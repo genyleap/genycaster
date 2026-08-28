@@ -6,6 +6,7 @@ module;
 #include <QEventLoop>
 #include <QList>
 #include <QNetworkAccessManager>
+#include <QNetworkProxy>
 #include <QNetworkProxyFactory>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -83,11 +84,15 @@ enum class RequestStage : std::uint8_t {
     return std::string{utf8.constData(), static_cast<std::size_t>(utf8.size())};
 }
 
-[[nodiscard]] std::string proxyPolicySummary()
+[[nodiscard]] std::string_view proxyPolicySummary(const ProxyPolicy proxyPolicy) noexcept
 {
-    return QNetworkProxyFactory::usesSystemConfiguration()
-        ? "system configuration"
-        : "application configuration";
+    switch (proxyPolicy) {
+    case ProxyPolicy::Direct:
+        return "direct (no proxy)";
+    case ProxyPolicy::System:
+        return "system configuration";
+    }
+    return "unknown";
 }
 
 [[nodiscard]] std::string sslErrorSummary(const QList<QSslError>& errors)
@@ -150,6 +155,11 @@ enum class RequestStage : std::uint8_t {
 
 class QtHttpTransport final : public farcaster::transport::http::IHttpTransport {
 public:
+    explicit QtHttpTransport(const ProxyPolicy proxyPolicy) noexcept
+        : proxyPolicy_{proxyPolicy}
+    {
+    }
+
     [[nodiscard]] foundation::result::Result<farcaster::transport::http::HttpResponse>
     get(const farcaster::transport::http::HttpRequest& request) override
     {
@@ -215,8 +225,11 @@ private:
             return std::unexpected(std::move(headerStatus.error()));
         }
 
-        const std::string configuredProxyPolicy = proxyPolicySummary();
+        const std::string configuredProxyPolicy{proxyPolicySummary(proxyPolicy_)};
         QNetworkAccessManager manager{};
+        if (proxyPolicy_ == ProxyPolicy::Direct) {
+            manager.setProxy(QNetworkProxy{QNetworkProxy::NoProxy});
+        }
         std::unique_ptr<QNetworkReply> reply{};
         if (requestBody == nullptr) {
             reply.reset(manager.get(networkRequest));
@@ -351,10 +364,12 @@ private:
             foundation::error::ErrorCode::TransportFailure,
             "Qt Network completed the request without an HTTP status code."));
     }
+
+    ProxyPolicy proxyPolicy_{ProxyPolicy::System};
 };
 }
 
-foundation::result::Result<std::unique_ptr<http::IHttpTransport>> makeTransport()
+foundation::result::Result<std::unique_ptr<http::IHttpTransport>> makeTransport(const ProxyPolicy proxyPolicy)
 {
     if (QCoreApplication::instance() == nullptr) {
         return std::unexpected(transportError(
@@ -362,9 +377,11 @@ foundation::result::Result<std::unique_ptr<http::IHttpTransport>> makeTransport(
             "Qt Network transport requires an active QCoreApplication."));
     }
 
-    std::call_once(systemProxyConfigurationFlag, [] {
-        QNetworkProxyFactory::setUseSystemConfiguration(true);
-    });
+    if (proxyPolicy == ProxyPolicy::System) {
+        std::call_once(systemProxyConfigurationFlag, [] {
+            QNetworkProxyFactory::setUseSystemConfiguration(true);
+        });
+    }
 
     if (!QSslSocket::supportsSsl()) {
         return std::unexpected(transportError(
@@ -373,7 +390,7 @@ foundation::result::Result<std::unique_ptr<http::IHttpTransport>> makeTransport(
                 toUtf8(QSslSocket::activeBackend()) + "."));
     }
 
-    std::unique_ptr<http::IHttpTransport> transport = std::make_unique<QtHttpTransport>();
+    std::unique_ptr<http::IHttpTransport> transport = std::make_unique<QtHttpTransport>(proxyPolicy);
     return transport;
 }
 
