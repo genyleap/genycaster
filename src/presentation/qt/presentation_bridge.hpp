@@ -165,6 +165,7 @@ public:
 
 signals:
     void stateChanged();
+    void castQueued();
     void identityOpened();
     void identityRequested(QString username, bool allowRecoveryProbe);
     void feedRequested(

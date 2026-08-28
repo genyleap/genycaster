@@ -159,10 +159,14 @@ foundation::result::Result<std::vector<domain::feed::FeedEntry>> SqliteTimelineS
 {
     std::scoped_lock lock{m_impl->mutex};
     auto prepared = sqlite::Statement::prepare(m_impl->connection, R"SQL(
-SELECT cast_id, sort_time_ms
-FROM timeline_entries
-WHERE timeline_id = ?
-ORDER BY position ASC
+SELECT entry.cast_id, entry.sort_time_ms
+FROM timeline_entries AS entry
+WHERE entry.timeline_id = ?
+  AND NOT EXISTS (
+      SELECT 1 FROM cast_local_tombstones AS tombstone
+      WHERE tombstone.cast_id = entry.cast_id
+  )
+ORDER BY entry.position ASC
 LIMIT ?;
 )SQL");
     if (!prepared) {

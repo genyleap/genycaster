@@ -279,7 +279,7 @@ struct WriteService::Impl final {
                 attempted.operation.idempotencyKey,
                 WritePhase::RetryScheduled,
                 observer,
-                makeError(cause.code, failure.message));
+                makeError(cause.code, cause.message));
             return;
         }
         auto status = outbox.markFailed(
@@ -294,7 +294,7 @@ struct WriteService::Impl final {
             attempted.operation.idempotencyKey,
             WritePhase::Failed,
             observer,
-            makeError(cause.code, failure.message));
+            makeError(cause.code, cause.message));
     }
 
     void processOne(
@@ -363,6 +363,7 @@ struct WriteService::Impl final {
             return;
         }
 
+        const bool requiresPreSubmitReconciliation = record.attemptCount > 0U;
         auto attempt = outbox.beginAttempt(record.operation.idempotencyKey, foundation::time::now());
         if (!attempt) {
             observer(WriteState{.phase = WritePhase::Failed, .error = std::move(attempt.error())});
@@ -371,41 +372,32 @@ struct WriteService::Impl final {
         record = std::move(*attempt);
         observer(WriteState{.phase = WritePhase::Submitting, .record = writeRecord(record)});
 
-        auto before = submitter->reconcile(record.operation);
-        if (!before) {
-            scheduleOrFail(record, before.error(), observer);
-            return;
-        }
-        if (*before == capability::write::ConfirmationState::Confirmed) {
-            noteConfirmed(record, observer);
-            return;
+        if (requiresPreSubmitReconciliation) {
+            auto before = submitter->reconcile(record.operation);
+            if (!before) {
+                scheduleOrFail(record, before.error(), observer);
+                return;
+            }
+            if (*before == capability::write::ConfirmationState::Confirmed) {
+                noteConfirmed(record, observer);
+                return;
+            }
         }
 
         auto submitted = submitter->submit(record.operation);
         if (!submitted) {
-            auto afterFailure = submitter->reconcile(record.operation);
-            if (afterFailure && *afterFailure == capability::write::ConfirmationState::Confirmed) {
-                noteConfirmed(record, observer);
-                return;
+            if (submitted.error().code == foundation::error::ErrorCode::Conflict) {
+                auto conflictState = submitter->reconcile(record.operation);
+                if (conflictState &&
+                    *conflictState == capability::write::ConfirmationState::Confirmed) {
+                    noteConfirmed(record, observer);
+                    return;
+                }
             }
             scheduleOrFail(record, submitted.error(), observer);
             return;
         }
 
-        auto after = submitter->reconcile(record.operation);
-        if (!after) {
-            scheduleOrFail(record, after.error(), observer);
-            return;
-        }
-        if (*after != capability::write::ConfirmationState::Confirmed) {
-            scheduleOrFail(
-                record,
-                makeError(
-                    foundation::error::ErrorCode::Unavailable,
-                    "Submitted protocol write is not yet visible in authoritative state."),
-                observer);
-            return;
-        }
         noteConfirmed(record, observer);
     }
 

@@ -11,7 +11,7 @@ import farcaster.local.write;
 export namespace farcaster::storage::write {
 
 /**
- * @brief Opens the SQLite durable outbox/optimistic-cast store.
+ * @brief Opens the SQLite durable outbox/local-write-projection store.
  * @param path SQLite database path shared with canonical read/entity storage.
  * @return Store implementation or a structured storage failure.
  */

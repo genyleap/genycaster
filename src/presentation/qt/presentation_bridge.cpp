@@ -736,32 +736,35 @@ void PresentationBridge::applyWriteState(
         }
     }
 
-    if (m_writePhase == QStringLiteral("confirmed")) {
-        const QString targetCastId = presentationMutation.value(QStringLiteral("targetCastId")).toString();
-        if ((operationKind == QStringLiteral("like") || operationKind == QStringLiteral("unlike") ||
-             operationKind == QStringLiteral("recast") || operationKind == QStringLiteral("undo-recast")) &&
-            !targetCastId.isEmpty()) {
-            const bool active = operationKind == QStringLiteral("like") || operationKind == QStringLiteral("recast");
-            const QString reaction = (operationKind == QStringLiteral("like") || operationKind == QStringLiteral("unlike"))
-                ? QStringLiteral("like") : QStringLiteral("recast");
-            updateReactionPresentation(m_rows, targetCastId, reaction, active);
-            updateReactionPresentation(m_writeRows, targetCastId, reaction, active);
-            updateReactionPresentation(m_detail, targetCastId, reaction, active);
-        } else if (operationKind == QStringLiteral("follow") || operationKind == QStringLiteral("unfollow")) {
-            const qulonglong targetFid = presentationMutation.value(QStringLiteral("targetFid")).toULongLong();
-            if (m_activeView == QStringLiteral("profile") &&
-                m_detail.value(QStringLiteral("fid")).toULongLong() == targetFid) {
-                m_detail.insert(QStringLiteral("followingByMe"), operationKind == QStringLiteral("follow"));
-            }
-        } else if (operationKind == QStringLiteral("remove-cast") && !targetCastId.isEmpty()) {
-            removeCastPresentation(m_rows, targetCastId);
-            removeCastPresentation(m_writeRows, targetCastId);
-            if (m_activeView == QStringLiteral("cast") &&
-                m_detail.value(QStringLiteral("castId")).toString() == targetCastId) {
-                m_activeView = QStringLiteral("feed");
-                m_detail.clear();
-            }
+    const QString targetCastId = presentationMutation.value(QStringLiteral("targetCastId")).toString();
+    if ((operationKind == QStringLiteral("like") || operationKind == QStringLiteral("unlike") ||
+         operationKind == QStringLiteral("recast") || operationKind == QStringLiteral("undo-recast")) &&
+        !targetCastId.isEmpty()) {
+        const bool active = operationKind == QStringLiteral("like") || operationKind == QStringLiteral("recast");
+        const QString reaction = (operationKind == QStringLiteral("like") || operationKind == QStringLiteral("unlike"))
+            ? QStringLiteral("like") : QStringLiteral("recast");
+        updateReactionPresentation(m_rows, targetCastId, reaction, active);
+        updateReactionPresentation(m_writeRows, targetCastId, reaction, active);
+        updateReactionPresentation(m_detail, targetCastId, reaction, active);
+    } else if (operationKind == QStringLiteral("follow") || operationKind == QStringLiteral("unfollow")) {
+        const qulonglong targetFid = presentationMutation.value(QStringLiteral("targetFid")).toULongLong();
+        if (m_activeView == QStringLiteral("profile") &&
+            m_detail.value(QStringLiteral("fid")).toULongLong() == targetFid) {
+            m_detail.insert(QStringLiteral("followingByMe"), operationKind == QStringLiteral("follow"));
         }
+    } else if (operationKind == QStringLiteral("remove-cast") && !targetCastId.isEmpty()) {
+        removeCastPresentation(m_rows, targetCastId);
+        removeCastPresentation(m_writeRows, targetCastId);
+        if (m_activeView == QStringLiteral("cast") &&
+            m_detail.value(QStringLiteral("castId")).toString() == targetCastId) {
+            m_activeView = QStringLiteral("feed");
+            m_detail.clear();
+        }
+    }
+
+    if (operationKind == QStringLiteral("publish-cast") &&
+        m_writePhase == QStringLiteral("queued")) {
+        emit castQueued();
     }
     emit stateChanged();
 }

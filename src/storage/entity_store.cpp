@@ -366,7 +366,16 @@ SqliteEntityStore::findCast(const domain::cast::CastId& castId)
     std::scoped_lock lock{m_impl->mutex};
     auto prepared = sqlite::Statement::prepare(
         m_impl->connection,
-        "SELECT author_fid, text, parent_id, parent_url, created_at_ms, reply_count, recast_count, like_count FROM casts WHERE id = ?;");
+        R"SQL(
+SELECT c.author_fid, c.text, c.parent_id, c.parent_url, c.created_at_ms,
+       c.reply_count, c.recast_count, c.like_count
+FROM casts AS c
+WHERE c.id = ?
+  AND NOT EXISTS (
+      SELECT 1 FROM cast_local_tombstones AS tombstone
+      WHERE tombstone.cast_id = c.id
+  );
+)SQL");
     if (!prepared) {
         return std::unexpected(toFoundationError(std::move(prepared.error())));
     }

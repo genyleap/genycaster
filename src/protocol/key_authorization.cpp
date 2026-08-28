@@ -188,7 +188,15 @@ foundation::result::Result<std::string> encodeSignedKeyRequestMetadata(
     }
 
     std::string encoded{};
-    encoded.reserve(MetadataHeadSize + AbiWordSize * 4U);
+    // `metadata` is ABI-encoding of one dynamic tuple argument, matching
+    // Solidity `abi.encode(SignedKeyRequestMetadata(...))` and the official
+    // SDK's `encodeAbiParameters([{ type: "tuple", ... }], [metadata])`.
+    // Because the tuple contains dynamic `bytes`, the top-level argument head
+    // is an offset to the tuple payload. Omitting this 0x20 word produces a
+    // structurally plausible 32-byte-aligned blob that Snapchain rejects before
+    // consuming the user nonce.
+    encoded.reserve(AbiWordSize + MetadataHeadSize + AbiWordSize * 4U);
+    appendUint256(encoded, AbiWordSize);
     appendUint256(encoded, requestFid.value);
     appendAddress(encoded, requestSignerAddress);
     appendUint256(encoded, MetadataHeadSize);

@@ -231,6 +231,51 @@ VALUES(?, ?, ?, ?, ?, ?);
     return {};
 }
 
+[[nodiscard]] foundation::result::Status insertCastTombstone(
+    sqlite::Connection& connection,
+    const domain::write::SignedOperation& operation,
+    const foundation::time::Timestamp createdAt)
+{
+    if (operation.kind != domain::write::OperationKind::RemoveCast || !operation.target.cast) {
+        return {};
+    }
+
+    auto prepared = sqlite::Statement::prepare(connection, R"SQL(
+INSERT OR IGNORE INTO cast_local_tombstones(
+    cast_id, idempotency_key, author_fid, created_at_ms)
+VALUES(?, ?, ?, ?);
+)SQL");
+    if (!prepared) {
+        return std::unexpected(toFoundationError(std::move(prepared.error())));
+    }
+    auto statement = std::move(*prepared);
+    if (auto status = sqlite::bindText(
+            statement.native(), 1, operation.target.cast->id.value); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+    if (auto status = sqlite::bindText(
+            statement.native(), 2, operation.idempotencyKey.value); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+    if (operation.author.value > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+        return std::unexpected(storageFailure("FID is outside SQLite INTEGER range."));
+    }
+    if (auto status = bindInt64(
+            connection, statement.native(), 3, static_cast<std::int64_t>(operation.author.value),
+            "Failed to bind local cast tombstone author"); !status) {
+        return status;
+    }
+    if (auto status = bindInt64(
+            connection, statement.native(), 4, toMilliseconds(createdAt),
+            "Failed to bind local cast tombstone timestamp"); !status) {
+        return status;
+    }
+    if (auto status = sqlite::stepDone(connection, statement); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+    return {};
+}
+
 [[nodiscard]] foundation::result::Result<domain::cast::Cast> loadCast(
     sqlite::Connection& connection,
     const std::string_view castId)
@@ -676,6 +721,12 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0);
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
         const bool inserted = sqlite3_changes(m_connection.native()) != 0;
+
+        if (inserted) {
+            if (auto status = insertCastTombstone(m_connection, operation, enqueuedAt); !status) {
+                return std::unexpected(std::move(status.error()));
+            }
+        }
 
         if (inserted && operation.optimisticCast) {
             auto projectionPrepared = sqlite::Statement::prepare(m_connection, R"SQL(

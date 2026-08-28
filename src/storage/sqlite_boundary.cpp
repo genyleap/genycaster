@@ -191,6 +191,12 @@ CREATE TABLE IF NOT EXISTS cast_write_state (
     FOREIGN KEY (cast_id) REFERENCES casts(id) ON DELETE CASCADE,
     FOREIGN KEY (idempotency_key) REFERENCES write_outbox(idempotency_key) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS cast_local_tombstones (
+    cast_id TEXT PRIMARY KEY NOT NULL,
+    idempotency_key TEXT UNIQUE NOT NULL,
+    author_fid INTEGER NOT NULL,
+    created_at_ms INTEGER NOT NULL
+);
 )SQL";
 
     Transaction transaction{connection};
@@ -339,6 +345,22 @@ DROP TABLE cast_write_state_v11_backup;
         }
     }
     if (auto status = recordMigration(connection, 12, appliedAt); !status) {
+        return status;
+    }
+
+    // Preserve local delete intent across upgrades. Older Phase 5 databases may
+    // already contain remove-cast outbox records that predate the durable
+    // tombstone projection, so backfill them before recording schema v13.
+    if (auto status = connection.execute(R"SQL(
+INSERT OR IGNORE INTO cast_local_tombstones(
+    cast_id, idempotency_key, author_fid, created_at_ms)
+SELECT target_cast_id, idempotency_key, author_fid, enqueued_at_ms
+FROM write_outbox
+WHERE kind = 'remove-cast' AND target_cast_id IS NOT NULL;
+)SQL"); !status) {
+        return status;
+    }
+    if (auto status = recordMigration(connection, 13, appliedAt); !status) {
         return status;
     }
 

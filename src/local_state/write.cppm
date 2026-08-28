@@ -15,10 +15,11 @@ import farcaster.domain.write;
 export namespace farcaster::local::write {
 
 /**
- * @brief Durable local outbox plus optimistic canonical projection boundary.
+ * @brief Durable local outbox plus local-first write projection boundary.
  *
- * enqueue() must atomically persist both the signed operation and its optimistic
- * canonical entity. No provider/network work belongs in this interface.
+ * enqueue() must atomically persist the signed operation and every local
+ * projection required by that operation, including optimistic cast creation or
+ * a durable cast-removal tombstone. No provider/network work belongs here.
  */
 class IOutboxStore {
 public:
@@ -26,7 +27,7 @@ public:
     virtual ~IOutboxStore() = default;
 
     /**
-     * @brief Atomically inserts one outbox record and optimistic canonical cast.
+     * @brief Atomically inserts one outbox record and its local-first projection.
      * @return Existing record when the idempotency key was already enqueued.
      */
     [[nodiscard]] virtual foundation::result::Result<domain::write::OutboxRecord> enqueue(
@@ -51,19 +52,19 @@ public:
         const domain::write::IdempotencyKey& key,
         foundation::time::Timestamp attemptedAt) = 0;
 
-    /** @brief Schedules a bounded retry while retaining the optimistic cast. */
+    /** @brief Schedules a bounded retry while retaining the local projection. */
     [[nodiscard]] virtual foundation::result::Status markRetry(
         const domain::write::IdempotencyKey& key,
         domain::write::OutboxFailure failure,
         foundation::time::Timestamp nextAttemptAt) = 0;
 
-    /** @brief Marks terminal failure without rolling back the optimistic cast. */
+    /** @brief Marks terminal failure without rolling back the local projection. */
     [[nodiscard]] virtual foundation::result::Status markFailed(
         const domain::write::IdempotencyKey& key,
         domain::write::OutboxFailure failure,
         foundation::time::Timestamp failedAt) = 0;
 
-    /** @brief Marks both outbox and optimistic projection network-confirmed. */
+    /** @brief Marks both outbox and local projection network-confirmed. */
     [[nodiscard]] virtual foundation::result::Status markConfirmed(
         const domain::write::IdempotencyKey& key,
         foundation::time::Timestamp confirmedAt) = 0;

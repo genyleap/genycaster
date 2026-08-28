@@ -108,7 +108,8 @@ using Observer = std::function<void(WriteState)>;
  *
  * Every operation is gated by the exact signer scope, canonicalized before
  * signing, committed to the local outbox before network I/O, reconciled before
- * retry, and confirmed only from authoritative Snapchain state.
+ * re-submission after an ambiguous prior attempt, and confirmed by a validated
+ * canonical submit response or authoritative reconciliation.
  */
 class WriteService final {
 public:

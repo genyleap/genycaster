@@ -24,7 +24,7 @@ struct Config final {
     std::string baseUrl{};
     std::string authorizationHeaderName{};
     std::string authorizationHeaderValue{};
-    std::chrono::milliseconds timeout{15'000};
+    std::chrono::milliseconds timeout{5'000};
     std::size_t maxBodyBytes{8U * 1024U * 1024U};
 };
 
