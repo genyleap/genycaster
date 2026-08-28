@@ -208,6 +208,7 @@ QString PresentationBridge::writeErrorText() const { return m_writeErrorText; }
 QString PresentationBridge::lastPublishedCastId() const { return m_lastPublishedCastId; }
 QString PresentationBridge::activeView() const { return m_activeView; }
 QString PresentationBridge::activeFeed() const { return m_activeFeed; }
+QString PresentationBridge::profileFeed() const { return m_profileFeed; }
 QString PresentationBridge::identityName() const { return m_identityName; }
 qulonglong PresentationBridge::identityFid() const noexcept { return m_identityFid; }
 QString PresentationBridge::statusText() const { return m_statusText; }
@@ -218,7 +219,7 @@ bool PresentationBridge::isStale() const noexcept { return m_isStale; }
 bool PresentationBridge::isOffline() const noexcept { return m_isOffline; }
 bool PresentationBridge::sourceUnavailable() const noexcept { return m_sourceUnavailable; }
 bool PresentationBridge::networkReachabilityKnown() const noexcept { return m_networkReachabilityKnown; }
-bool PresentationBridge::canLoadMore() const noexcept { return !m_next.isEmpty() && !m_isBusy; }
+bool PresentationBridge::hasMore() const noexcept { return !m_next.isEmpty(); }
 bool PresentationBridge::hasReadActivity() const noexcept { return m_hasReadActivity; }
 bool PresentationBridge::feedStarted() const noexcept { return m_feedStarted; }
 QVariantList PresentationBridge::rows() const { return m_rows; }
@@ -300,6 +301,9 @@ void PresentationBridge::openCast(const QString& castId)
         emit stateChanged();
         return;
     }
+    m_detailReturnView = m_activeView == QStringLiteral("profile")
+        ? QStringLiteral("profile")
+        : QStringLiteral("feed");
     beginIntent(QStringLiteral("Reading cached cast…"));
     emit castRequested(castId, consumeRecoveryProbe());
 }
@@ -311,13 +315,71 @@ void PresentationBridge::openProfile()
         emit stateChanged();
         return;
     }
+    openProfileFid(m_identityFid);
+}
+
+void PresentationBridge::openMyProfile()
+{
+    if (!m_isAuthenticated || m_accountFid == 0) {
+        m_errorText = QStringLiteral("Sign in before opening your account profile.");
+        emit stateChanged();
+        return;
+    }
+    openProfileFid(m_accountFid);
+}
+
+void PresentationBridge::openProfileFid(const qulonglong fid)
+{
+    if (fid == 0) {
+        m_errorText = QStringLiteral("That Farcaster profile identifier is invalid.");
+        emit stateChanged();
+        return;
+    }
+    m_profileFid = fid;
+    m_activeView = QStringLiteral("profile");
+    m_rows.clear();
+    m_detail.clear();
+    m_next.clear();
+    m_shouldOpenProfileFeedAfterProfile = true;
     beginIntent(QStringLiteral("Reading cached profile…"));
-    emit profileRequested(m_identityFid, consumeRecoveryProbe());
+    emit profileRequested(m_profileFid, consumeRecoveryProbe());
+}
+
+void PresentationBridge::selectProfileFeed(const QString& feed)
+{
+    if (m_profileFid == 0) {
+        m_errorText = QStringLiteral("Open a profile before loading profile posts.");
+        emit stateChanged();
+        return;
+    }
+    m_activeView = QStringLiteral("profile");
+    const QString requestedFeed = feed == QStringLiteral("user-replies")
+        ? QStringLiteral("user-replies")
+        : feed == QStringLiteral("user-popular")
+            ? QStringLiteral("user-popular")
+            : QStringLiteral("user-casts");
+    if (m_profileFeed != requestedFeed) {
+        m_rows.clear();
+    }
+    m_profileFeed = requestedFeed;
+    m_next.clear();
+    beginIntent(m_profileFeed == QStringLiteral("user-replies")
+        ? QStringLiteral("Reading cached replies…")
+        : m_profileFeed == QStringLiteral("user-popular")
+            ? QStringLiteral("Reading cached popular casts…")
+            : QStringLiteral("Reading cached posts…"));
+    emit feedRequested(m_profileFeed, m_profileFid, {}, {}, consumeRecoveryProbe());
 }
 
 void PresentationBridge::openFollowers()
 {
-    if (m_identityFid == 0) {
+    m_socialReturnView = m_activeView == QStringLiteral("profile")
+        ? QStringLiteral("profile")
+        : QStringLiteral("feed");
+    m_socialFid = m_socialReturnView == QStringLiteral("profile") && m_profileFid != 0
+        ? m_profileFid
+        : m_identityFid;
+    if (m_socialFid == 0) {
         m_errorText = QStringLiteral("Open an identity first.");
         emit stateChanged();
         return;
@@ -326,12 +388,18 @@ void PresentationBridge::openFollowers()
     m_next.clear();
     beginIntent(QStringLiteral("Reading cached followers…"));
     emit socialRequested(
-        QStringLiteral("followers"), m_identityFid, {}, consumeRecoveryProbe());
+        QStringLiteral("followers"), m_socialFid, {}, consumeRecoveryProbe());
 }
 
 void PresentationBridge::openFollowing()
 {
-    if (m_identityFid == 0) {
+    m_socialReturnView = m_activeView == QStringLiteral("profile")
+        ? QStringLiteral("profile")
+        : QStringLiteral("feed");
+    m_socialFid = m_socialReturnView == QStringLiteral("profile") && m_profileFid != 0
+        ? m_profileFid
+        : m_identityFid;
+    if (m_socialFid == 0) {
         m_errorText = QStringLiteral("Open an identity first.");
         emit stateChanged();
         return;
@@ -340,7 +408,25 @@ void PresentationBridge::openFollowing()
     m_next.clear();
     beginIntent(QStringLiteral("Reading cached following…"));
     emit socialRequested(
-        QStringLiteral("following"), m_identityFid, {}, consumeRecoveryProbe());
+        QStringLiteral("following"), m_socialFid, {}, consumeRecoveryProbe());
+}
+
+void PresentationBridge::returnFromSocial()
+{
+    if (m_socialReturnView == QStringLiteral("profile") && m_profileFid != 0) {
+        openProfileFid(m_profileFid);
+        return;
+    }
+    showFeed();
+}
+
+void PresentationBridge::returnFromDetail()
+{
+    if (m_detailReturnView == QStringLiteral("profile") && m_profileFid != 0) {
+        openProfileFid(m_profileFid);
+        return;
+    }
+    showFeed();
 }
 
 void PresentationBridge::loadMore()
@@ -351,8 +437,10 @@ void PresentationBridge::loadMore()
     beginIntent(QStringLiteral("Loading the next page…"));
     if (m_activeView == QStringLiteral("feed")) {
         emit feedRequested(m_activeFeed, m_identityFid, m_channelId, m_next, false);
+    } else if (m_activeView == QStringLiteral("profile")) {
+        emit feedRequested(m_profileFeed, m_profileFid, {}, m_next, false);
     } else {
-        emit socialRequested(m_activeView, m_identityFid, m_next, false);
+        emit socialRequested(m_activeView, m_socialFid, m_next, false);
     }
 }
 
@@ -371,12 +459,28 @@ void PresentationBridge::retryCurrent(const bool allowRecoveryProbe)
     m_allowRecoveryProbeForNextIntent = allowRecoveryProbe;
     if (m_activeView == QStringLiteral("feed") && m_activeFeed == QStringLiteral("channel")) {
         openChannel(m_channelId);
-    } else if (m_activeView == QStringLiteral("feed")) { selectFeed(m_activeFeed); }
-    else if (m_activeView == QStringLiteral("profile")) { openProfile(); }
-    else if (m_activeView == QStringLiteral("cast")) {
-        openCast(m_detail.value(QStringLiteral("castId")).toString());
-    } else if (m_activeView == QStringLiteral("followers")) { openFollowers(); }
-    else { openFollowing(); }
+    } else if (m_activeView == QStringLiteral("feed")) {
+        selectFeed(m_activeFeed);
+    } else if (m_activeView == QStringLiteral("profile")) {
+        selectProfileFeed(m_profileFeed);
+    } else if (m_activeView == QStringLiteral("cast")) {
+        const QString castId = m_detail.value(QStringLiteral("castId")).toString().trimmed();
+        if (castId.isEmpty()) {
+            m_errorText = QStringLiteral("That cast identifier is empty.");
+            emit stateChanged();
+            return;
+        }
+        beginIntent(QStringLiteral("Reading cached cast…"));
+        emit castRequested(castId, consumeRecoveryProbe());
+    } else if (m_activeView == QStringLiteral("followers")) {
+        beginIntent(QStringLiteral("Reading cached followers…"));
+        emit socialRequested(
+            QStringLiteral("followers"), m_socialFid, {}, consumeRecoveryProbe());
+    } else {
+        beginIntent(QStringLiteral("Reading cached following…"));
+        emit socialRequested(
+            QStringLiteral("following"), m_socialFid, {}, consumeRecoveryProbe());
+    }
 }
 
 void PresentationBridge::showFeed()
@@ -809,7 +913,10 @@ void PresentationBridge::applyWriteState(
         }
         if (!replaced) { m_writeRows.prepend(presentationMutation); }
 
-        if (m_activeView == QStringLiteral("feed")) {
+        if (m_activeView == QStringLiteral("feed") ||
+            (m_activeView == QStringLiteral("profile") &&
+             m_profileFeed == QStringLiteral("user-casts") &&
+             m_profileFid == m_accountFid)) {
             QVariantList merged{};
             merged.reserve(m_writeRows.size() + m_rows.size());
             for (const auto& row : m_writeRows) { merged.push_back(row); }
@@ -926,8 +1033,15 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
     if (m_activeView == QStringLiteral("feed")) {
         m_feedStarted = true;
         m_activeFeed = std::move(selector);
+    } else if (m_activeView == QStringLiteral("profile")) {
+        m_profileFeed = std::move(selector);
     }
-    if (m_activeView == QStringLiteral("feed") && !m_writeRows.isEmpty()) {
+    const bool mergeLocalWrites = !m_writeRows.isEmpty() &&
+        (m_activeView == QStringLiteral("feed") ||
+         (m_activeView == QStringLiteral("profile") &&
+          m_profileFeed == QStringLiteral("user-casts") &&
+          m_profileFid == m_accountFid));
+    if (mergeLocalWrites) {
         QVariantList retainedWriteRows{};
         QVariantList merged{};
         retainedWriteRows.reserve(m_writeRows.size());
@@ -985,6 +1099,12 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
 {
     m_activeView = std::move(view);
     m_detail = std::move(detail);
+    if (m_activeView == QStringLiteral("profile")) {
+        const qulonglong resolvedProfileFid = m_detail.value(QStringLiteral("fid")).toULongLong();
+        if (resolvedProfileFid != 0) {
+            m_profileFid = resolvedProfileFid;
+        }
+    }
     applyReactionOverrides(m_detail, m_reactionOverrides);
     applyFollowingOverride(m_detail, m_followOverrides);
     m_statusText = std::move(status);
@@ -994,6 +1114,14 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
     m_isStale = stale;
     m_sourceUnavailable = sourceUnavailable;
     emit stateChanged();
+
+    if (m_activeView == QStringLiteral("profile") && !m_isBusy &&
+        m_shouldOpenProfileFeedAfterProfile && m_profileFid != 0) {
+        m_shouldOpenProfileFeedAfterProfile = false;
+        QMetaObject::invokeMethod(this,
+            [this] { selectProfileFeed(m_profileFeed); },
+            Qt::QueuedConnection);
+    }
 }
 
 void PresentationBridge::applyVerificationFixture()
