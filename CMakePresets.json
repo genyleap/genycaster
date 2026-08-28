@@ -1,0 +1,188 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 30,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "core-debug",
+      "displayName": "Core Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/core-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "FARCASTER_BUILD_TESTS": "ON",
+        "FARCASTER_BUILD_UI": "OFF",
+        "FARCASTER_ENABLE_HYPERSNAP_PROVIDER": "OFF",
+        "FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS": "OFF",
+        "FARCASTER_ENABLE_PROTOCOL_SIGNING": "OFF",
+        "FARCASTER_ENABLE_SNAPCHAIN_SIGNER_PROVIDER": "OFF"
+      }
+    },
+    {
+      "name": "core-release",
+      "displayName": "Core Release",
+      "inherits": "core-debug",
+      "binaryDir": "${sourceDir}/build/core-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "strict-self-hosted",
+      "displayName": "Strict Self-hosted Core",
+      "inherits": "core-debug",
+      "binaryDir": "${sourceDir}/build/strict-self-hosted",
+      "cacheVariables": {
+        "FARCASTER_SELF_HOSTED_ONLY": "ON",
+        "FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS": "OFF"
+      }
+    },
+    {
+      "name": "minimal-core",
+      "displayName": "Minimal Core \u2014 No Optional Product Composition",
+      "inherits": "core-debug",
+      "binaryDir": "${sourceDir}/build/minimal-core",
+      "cacheVariables": {
+        "FARCASTER_ENABLE_SOCIAL": "OFF",
+        "FARCASTER_ENABLE_FEED": "OFF",
+        "FARCASTER_ENABLE_CHANNELS": "OFF",
+        "FARCASTER_ENABLE_MINIAPPS": "OFF",
+        "FARCASTER_ENABLE_CHAT": "OFF",
+        "FARCASTER_ENABLE_SEARCH": "OFF",
+        "FARCASTER_ENABLE_NOTIFICATIONS": "OFF",
+        "FARCASTER_ENABLE_WALLET": "OFF"
+      }
+    },
+    {
+      "name": "provider-hypersnap",
+      "displayName": "Hypersnap Provider Debug",
+      "inherits": "core-debug",
+      "binaryDir": "${sourceDir}/build/provider-hypersnap",
+      "cacheVariables": {
+        "FARCASTER_ENABLE_HYPERSNAP_PROVIDER": "ON"
+      }
+    },
+    {
+      "name": "provider-auth",
+      "displayName": "Farcaster Auth Provider Debug",
+      "inherits": "core-debug",
+      "binaryDir": "${sourceDir}/build/provider-auth",
+      "cacheVariables": {
+        "FARCASTER_ENABLE_HYPERSNAP_PROVIDER": "OFF",
+        "FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS": "ON",
+        "FARCASTER_ENABLE_PROTOCOL_SIGNING": "OFF"
+      }
+    },
+    {
+      "name": "secure-signer",
+      "displayName": "Native Secure Signer Debug",
+      "inherits": "core-debug",
+      "binaryDir": "${sourceDir}/build/secure-signer",
+      "cacheVariables": {
+        "FARCASTER_ENABLE_PROTOCOL_SIGNING": "ON",
+        "FARCASTER_ENABLE_SNAPCHAIN_SIGNER_PROVIDER": "ON"
+      }
+    },
+    {
+      "name": "ui-debug",
+      "displayName": "Qt Quick Debug",
+      "inherits": "core-debug",
+      "binaryDir": "${sourceDir}/build/ui-debug",
+      "cacheVariables": {
+        "FARCASTER_BUILD_UI": "ON",
+        "FARCASTER_ENABLE_HYPERSNAP_PROVIDER": "ON",
+        "FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS": "ON",
+        "FARCASTER_ENABLE_PROTOCOL_SIGNING": "ON",
+        "FARCASTER_ENABLE_SNAPCHAIN_SIGNER_PROVIDER": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "core-debug",
+      "configurePreset": "core-debug"
+    },
+    {
+      "name": "core-release",
+      "configurePreset": "core-release"
+    },
+    {
+      "name": "strict-self-hosted",
+      "configurePreset": "strict-self-hosted"
+    },
+    {
+      "name": "minimal-core",
+      "configurePreset": "minimal-core"
+    },
+    {
+      "name": "provider-hypersnap",
+      "configurePreset": "provider-hypersnap"
+    },
+    {
+      "name": "provider-auth",
+      "configurePreset": "provider-auth"
+    },
+    {
+      "name": "secure-signer",
+      "configurePreset": "secure-signer"
+    },
+    {
+      "name": "ui-debug",
+      "configurePreset": "ui-debug"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "core-debug",
+      "configurePreset": "core-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "strict-self-hosted",
+      "configurePreset": "strict-self-hosted",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "minimal-core",
+      "configurePreset": "minimal-core",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "provider-hypersnap",
+      "configurePreset": "provider-hypersnap",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "provider-auth",
+      "configurePreset": "provider-auth",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "output": {
+        "outputOnFailure": true
+      },
+      "name": "secure-signer",
+      "configurePreset": "secure-signer"
+    },
+    {
+      "name": "ui-debug",
+      "configurePreset": "ui-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

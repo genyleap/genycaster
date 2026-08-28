@@ -1,0 +1,24 @@
+module farcaster.application.configuration;
+
+namespace farcaster::application::configuration {
+
+FeatureSet configuredFeatures() noexcept
+{
+    return FeatureSet{
+        .hasSocial = @FARCASTER_ENABLE_SOCIAL_CPP@,
+        .hasFeed = @FARCASTER_ENABLE_FEED_CPP@,
+        .hasChannels = @FARCASTER_ENABLE_CHANNELS_CPP@,
+        .hasMiniApps = @FARCASTER_ENABLE_MINIAPPS_CPP@,
+        .hasChat = @FARCASTER_ENABLE_CHAT_CPP@,
+        .hasSearch = @FARCASTER_ENABLE_SEARCH_CPP@,
+        .hasNotifications = @FARCASTER_ENABLE_NOTIFICATIONS_CPP@,
+        .hasWallet = @FARCASTER_ENABLE_WALLET_CPP@,
+    };
+}
+
+DeploymentProfile configuredDeploymentProfile() noexcept
+{
+    return DeploymentProfile::@FARCASTER_DEPLOYMENT_PROFILE_CPP@;
+}
+
+}
