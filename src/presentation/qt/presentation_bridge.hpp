@@ -35,6 +35,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QString lastPublishedCastId READ lastPublishedCastId NOTIFY stateChanged)
     Q_PROPERTY(QString activeView READ activeView NOTIFY stateChanged)
     Q_PROPERTY(QString activeFeed READ activeFeed NOTIFY stateChanged)
+    Q_PROPERTY(QString profileFeed READ profileFeed NOTIFY stateChanged)
     Q_PROPERTY(QString identityName READ identityName NOTIFY stateChanged)
     Q_PROPERTY(qulonglong identityFid READ identityFid NOTIFY stateChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY stateChanged)
@@ -45,7 +46,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool isOffline READ isOffline NOTIFY stateChanged)
     Q_PROPERTY(bool sourceUnavailable READ sourceUnavailable NOTIFY stateChanged)
     Q_PROPERTY(bool networkReachabilityKnown READ networkReachabilityKnown NOTIFY stateChanged)
-    Q_PROPERTY(bool canLoadMore READ canLoadMore NOTIFY stateChanged)
+    Q_PROPERTY(bool hasMore READ hasMore NOTIFY stateChanged)
     Q_PROPERTY(bool hasReadActivity READ hasReadActivity NOTIFY stateChanged)
     Q_PROPERTY(bool feedStarted READ feedStarted NOTIFY stateChanged)
     Q_PROPERTY(QVariantList rows READ rows NOTIFY stateChanged)
@@ -80,6 +81,7 @@ public:
     [[nodiscard]] QString lastPublishedCastId() const;
     [[nodiscard]] QString activeView() const;
     [[nodiscard]] QString activeFeed() const;
+    [[nodiscard]] QString profileFeed() const;
     [[nodiscard]] QString identityName() const;
     [[nodiscard]] qulonglong identityFid() const noexcept;
     [[nodiscard]] QString statusText() const;
@@ -90,7 +92,7 @@ public:
     [[nodiscard]] bool isOffline() const noexcept;
     [[nodiscard]] bool sourceUnavailable() const noexcept;
     [[nodiscard]] bool networkReachabilityKnown() const noexcept;
-    [[nodiscard]] bool canLoadMore() const noexcept;
+    [[nodiscard]] bool hasMore() const noexcept;
     [[nodiscard]] bool hasReadActivity() const noexcept;
     [[nodiscard]] bool feedStarted() const noexcept;
     [[nodiscard]] QVariantList rows() const;
@@ -101,8 +103,13 @@ public:
     Q_INVOKABLE void openChannel(const QString& channelId);
     Q_INVOKABLE void openCast(const QString& castId);
     Q_INVOKABLE void openProfile();
+    Q_INVOKABLE void openMyProfile();
+    Q_INVOKABLE void openProfileFid(qulonglong fid);
+    Q_INVOKABLE void selectProfileFeed(const QString& feed);
     Q_INVOKABLE void openFollowers();
     Q_INVOKABLE void openFollowing();
+    Q_INVOKABLE void returnFromSocial();
+    Q_INVOKABLE void returnFromDetail();
     Q_INVOKABLE void loadMore();
     Q_INVOKABLE void retry();
     Q_INVOKABLE void showFeed();
@@ -229,6 +236,11 @@ private:
     QVariantMap m_followOverrides{};
     QString m_activeView{QStringLiteral("feed")};
     QString m_activeFeed{QStringLiteral("following")};
+    QString m_profileFeed{QStringLiteral("user-casts")};
+    qulonglong m_profileFid{};
+    qulonglong m_socialFid{};
+    QString m_socialReturnView{QStringLiteral("feed")};
+    QString m_detailReturnView{QStringLiteral("feed")};
     QString m_channelId{};
     QString m_identityName{};
     qulonglong m_identityFid{};
@@ -243,6 +255,7 @@ private:
     bool m_hasReadActivity{false};
     bool m_feedStarted{false};
     bool m_shouldOpenFollowingAfterIdentity{false};
+    bool m_shouldOpenProfileFeedAfterProfile{false};
     bool m_allowRecoveryProbeForNextIntent{false};
     QString m_next{};
     QVariantList m_rows{};
