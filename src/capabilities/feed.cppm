@@ -52,6 +52,21 @@ public:
     [[nodiscard]] virtual foundation::result::Result<FeedPage> channel(
         const domain::channel::ChannelId& channelId,
         const pagination::PageRequest& pageRequest) = 0;
+
+    /** @brief Reads one user's casts in reverse chronological order. */
+    [[nodiscard]] virtual foundation::result::Result<FeedPage> userCasts(
+        domain::identity::Fid fid,
+        const pagination::PageRequest& pageRequest) = 0;
+
+    /** @brief Reads one user's replies/recasts surface. */
+    [[nodiscard]] virtual foundation::result::Result<FeedPage> userReplies(
+        domain::identity::Fid fid,
+        const pagination::PageRequest& pageRequest) = 0;
+
+    /** @brief Reads one user's popular casts surface. */
+    [[nodiscard]] virtual foundation::result::Result<FeedPage> userPopular(
+        domain::identity::Fid fid,
+        const pagination::PageRequest& pageRequest) = 0;
 };
 
 }
