@@ -7,6 +7,8 @@ module;
 
 module farcaster.provider.hypersnap.profile;
 
+import farcaster.domain.profile;
+import farcaster.domain.identity;
 import farcaster.provider.hypersnap.codec;
 import farcaster.provider.hypersnap.request;
 

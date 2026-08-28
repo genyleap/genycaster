@@ -309,14 +309,123 @@ FROM cast_embed_items WHERE cast_id = ? ORDER BY position ASC;
     return cast;
 }
 
+[[nodiscard]] std::string operationKindText(const domain::write::OperationKind kind)
+{
+    using domain::write::OperationKind;
+    switch (kind) {
+    case OperationKind::PublishCast: return "publish-cast";
+    case OperationKind::RemoveCast: return "remove-cast";
+    case OperationKind::Like: return "like";
+    case OperationKind::Unlike: return "unlike";
+    case OperationKind::Recast: return "recast";
+    case OperationKind::UndoRecast: return "undo-recast";
+    case OperationKind::Follow: return "follow";
+    case OperationKind::Unfollow: return "unfollow";
+    }
+    return "publish-cast";
+}
+
+[[nodiscard]] foundation::result::Result<domain::write::OperationKind> parseOperationKind(
+    const std::string_view text)
+{
+    using domain::write::OperationKind;
+    if (text == "publish-cast") return OperationKind::PublishCast;
+    if (text == "remove-cast") return OperationKind::RemoveCast;
+    if (text == "like") return OperationKind::Like;
+    if (text == "unlike") return OperationKind::Unlike;
+    if (text == "recast") return OperationKind::Recast;
+    if (text == "undo-recast") return OperationKind::UndoRecast;
+    if (text == "follow") return OperationKind::Follow;
+    if (text == "unfollow") return OperationKind::Unfollow;
+    return std::unexpected(storageFailure("Write outbox contains an unsupported operation kind."));
+}
+
+[[nodiscard]] foundation::result::Status bindOptionalFid(
+    sqlite::Connection& connection,
+    sqlite3_stmt* const statement,
+    const int index,
+    const std::optional<domain::identity::Fid> fid,
+    const std::string_view context)
+{
+    if (!fid) {
+        if (sqlite3_bind_null(statement, index) != SQLITE_OK) {
+            return std::unexpected(toFoundationError(sqlite::makeError(connection.native(), context)));
+        }
+        return {};
+    }
+    if (fid->value > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+        return std::unexpected(storageFailure("FID is outside SQLite INTEGER range."));
+    }
+    return bindInt64(connection, statement, index, static_cast<std::int64_t>(fid->value), context);
+}
+
+[[nodiscard]] foundation::result::Status validateOperationShape(
+    const domain::write::SignedOperation& operation)
+{
+    using domain::write::OperationKind;
+    if (operation.idempotencyKey.value.empty() || operation.author.value == 0U ||
+        operation.messageBytes.empty() || operation.signerPublicKey.hex.empty()) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Durable outbox enqueue requires a complete signed protocol operation."));
+    }
+    const bool hasCastTarget = operation.target.cast.has_value();
+    const bool hasFidTarget = operation.target.fid.has_value();
+    const bool hasOptimisticCast = operation.optimisticCast.has_value();
+    switch (operation.kind) {
+    case OperationKind::PublishCast:
+        if (!hasOptimisticCast || hasCastTarget || hasFidTarget ||
+            operation.optimisticCast->id.value.empty() ||
+            operation.optimisticCast->author.value != operation.author.value ||
+            operation.idempotencyKey.value != operation.optimisticCast->id.value) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "PublishCast requires one matching optimistic cast and no external target."));
+        }
+        return {};
+    case OperationKind::RemoveCast:
+        if (hasOptimisticCast || !hasCastTarget || hasFidTarget ||
+            operation.target.cast->author.value != operation.author.value) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "RemoveCast requires one cast target owned by the operation author."));
+        }
+        return {};
+    case OperationKind::Like:
+    case OperationKind::Unlike:
+    case OperationKind::Recast:
+    case OperationKind::UndoRecast:
+        if (hasOptimisticCast || !hasCastTarget || hasFidTarget ||
+            operation.target.cast->id.value.empty() || operation.target.cast->author.value == 0U) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Reaction operations require exactly one valid cast target."));
+        }
+        return {};
+    case OperationKind::Follow:
+    case OperationKind::Unfollow:
+        if (hasOptimisticCast || hasCastTarget || !hasFidTarget ||
+            operation.target.fid->value == 0U || operation.target.fid->value == operation.author.value) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Follow operations require exactly one non-self FID target."));
+        }
+        return {};
+    }
+    return std::unexpected(foundation::error::Error::make(
+        foundation::error::ErrorCode::InvalidArgument,
+        "Unsupported protocol operation kind."));
+}
+
 [[nodiscard]] foundation::result::Result<domain::write::OutboxRecord> loadRecord(
     sqlite::Connection& connection,
     const std::string_view key)
 {
     auto prepared = sqlite::Statement::prepare(connection, R"SQL(
-SELECT kind, cast_id, author_fid, signer_public_key_hex, message_bytes,
-       signed_at_ms, enqueued_at_ms, status, attempt_count,
-       next_attempt_at_ms, last_failure_kind, last_failure_message, confirmed_at_ms
+SELECT kind, cast_id, author_fid, target_cast_id, target_cast_fid, target_fid,
+       signer_public_key_hex, message_bytes, signed_at_ms, enqueued_at_ms,
+       status, attempt_count, next_attempt_at_ms, last_failure_kind,
+       last_failure_message, confirmed_at_ms
 FROM write_outbox WHERE idempotency_key = ?;
 )SQL");
     if (!prepared) return std::unexpected(toFoundationError(std::move(prepared.error())));
@@ -329,61 +438,99 @@ FROM write_outbox WHERE idempotency_key = ?;
         return std::unexpected(notFound("Write outbox record was not found."));
     }
     if (step != SQLITE_ROW) {
-        return std::unexpected(toFoundationError(sqlite::makeError(connection.native(), "Failed to load write outbox record")));
+        return std::unexpected(toFoundationError(sqlite::makeError(
+            connection.native(), "Failed to load write outbox record")));
     }
 
-    const std::string kind = sqlite::columnText(statement.native(), 0);
-    if (kind != "publish-cast") {
-        return std::unexpected(storageFailure("Write outbox contains an unsupported operation kind."));
+    auto kind = parseOperationKind(sqlite::columnText(statement.native(), 0));
+    if (!kind) return std::unexpected(std::move(kind.error()));
+    const bool hasCastId = sqlite3_column_type(statement.native(), 1) != SQLITE_NULL;
+    const std::string castId = hasCastId ? sqlite::columnText(statement.native(), 1) : std::string{};
+    const auto rawAuthor = sqlite3_column_int64(statement.native(), 2);
+    if (rawAuthor <= 0) {
+        return std::unexpected(storageFailure("Write outbox contains an invalid author FID."));
     }
-    const std::string castId = sqlite::columnText(statement.native(), 1);
-    const auto authorFid = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 2));
-    const std::string signerPublicKey = sqlite::columnText(statement.native(), 3);
-    std::string messageBytes = sqlite::columnBlob(statement.native(), 4);
+    const domain::identity::Fid author{static_cast<std::uint64_t>(rawAuthor)};
+
+    domain::write::OperationTarget target{};
+    const bool hasTargetCastId = sqlite3_column_type(statement.native(), 3) != SQLITE_NULL;
+    const std::string targetCastId = hasTargetCastId ? sqlite::columnText(statement.native(), 3) : std::string{};
+    const bool hasTargetCastFid = sqlite3_column_type(statement.native(), 4) != SQLITE_NULL;
+    if (hasTargetCastId != hasTargetCastFid) {
+        return std::unexpected(storageFailure("Write outbox contains a partial cast target."));
+    }
+    if (hasTargetCastId) {
+        const auto rawFid = sqlite3_column_int64(statement.native(), 4);
+        if (rawFid <= 0) {
+            return std::unexpected(storageFailure("Write outbox contains an invalid target cast FID."));
+        }
+        target.cast = domain::cast::CastReference{
+            .author = domain::identity::Fid{static_cast<std::uint64_t>(rawFid)},
+            .id = domain::cast::CastId{targetCastId},
+        };
+    }
+    if (sqlite3_column_type(statement.native(), 5) != SQLITE_NULL) {
+        const auto rawFid = sqlite3_column_int64(statement.native(), 5);
+        if (rawFid <= 0) {
+            return std::unexpected(storageFailure("Write outbox contains an invalid target FID."));
+        }
+        target.fid = domain::identity::Fid{static_cast<std::uint64_t>(rawFid)};
+    }
+
+    std::optional<domain::cast::Cast> optimisticCast{};
+    if (hasCastId) {
+        auto cast = loadCast(connection, castId);
+        if (!cast) return std::unexpected(std::move(cast.error()));
+        if (cast->author.value != author.value) {
+            return std::unexpected(storageFailure("Write outbox author does not match its optimistic cast."));
+        }
+        optimisticCast = std::move(*cast);
+    }
+
+    std::string messageBytes = sqlite::columnBlob(statement.native(), 7);
     if (messageBytes.empty()) {
         return std::unexpected(storageFailure("Write outbox contains an empty canonical message envelope."));
     }
-    auto persistedStatus = parseStatus(sqlite::columnText(statement.native(), 7));
+    auto persistedStatus = parseStatus(sqlite::columnText(statement.native(), 10));
     if (!persistedStatus) return std::unexpected(std::move(persistedStatus.error()));
-    const auto rawAttempts = sqlite3_column_int64(statement.native(), 8);
+    const auto rawAttempts = sqlite3_column_int64(statement.native(), 11);
     if (rawAttempts < 0 || rawAttempts > static_cast<sqlite3_int64>(std::numeric_limits<std::uint32_t>::max())) {
         return std::unexpected(storageFailure("Write outbox attempt count is outside uint32 range."));
     }
 
-    auto cast = loadCast(connection, castId);
-    if (!cast) return std::unexpected(std::move(cast.error()));
-    if (cast->author.value != authorFid) {
-        return std::unexpected(storageFailure("Write outbox author does not match its optimistic cast."));
-    }
-
     domain::write::OutboxRecord record{
         .operation = domain::write::SignedOperation{
-            .kind = domain::write::OperationKind::PublishCast,
+            .kind = *kind,
             .idempotencyKey = domain::write::IdempotencyKey{std::string{key}},
-            .optimisticCast = std::move(*cast),
-            .signerPublicKey = domain::signer::PublicKey{signerPublicKey},
+            .author = author,
+            .target = std::move(target),
+            .optimisticCast = std::move(optimisticCast),
+            .signerPublicKey = domain::signer::PublicKey{sqlite::columnText(statement.native(), 6)},
             .messageBytes = std::move(messageBytes),
-            .signedAt = fromMilliseconds(sqlite3_column_int64(statement.native(), 5)),
+            .signedAt = fromMilliseconds(sqlite3_column_int64(statement.native(), 8)),
         },
         .status = *persistedStatus,
         .attemptCount = static_cast<std::uint32_t>(rawAttempts),
-        .enqueuedAt = fromMilliseconds(sqlite3_column_int64(statement.native(), 6)),
+        .enqueuedAt = fromMilliseconds(sqlite3_column_int64(statement.native(), 9)),
     };
-    if (sqlite3_column_type(statement.native(), 9) != SQLITE_NULL) {
-        record.nextAttemptAt = fromMilliseconds(sqlite3_column_int64(statement.native(), 9));
+    if (auto valid = validateOperationShape(record.operation); !valid) {
+        return std::unexpected(storageFailure("Persisted write outbox operation violates its canonical shape."));
     }
-    if (sqlite3_column_type(statement.native(), 10) != SQLITE_NULL) {
-        auto parsedKind = parseFailureKind(sqlite::columnText(statement.native(), 10));
+    if (sqlite3_column_type(statement.native(), 12) != SQLITE_NULL) {
+        record.nextAttemptAt = fromMilliseconds(sqlite3_column_int64(statement.native(), 12));
+    }
+    if (sqlite3_column_type(statement.native(), 13) != SQLITE_NULL) {
+        auto parsedKind = parseFailureKind(sqlite::columnText(statement.native(), 13));
         if (!parsedKind) return std::unexpected(std::move(parsedKind.error()));
         record.lastFailure = domain::write::OutboxFailure{
             .kind = *parsedKind,
-            .message = sqlite::optionalColumnText(statement.native(), 11).value_or(std::string{}),
+            .message = sqlite::optionalColumnText(statement.native(), 14).value_or(std::string{}),
         };
-    } else if (sqlite3_column_type(statement.native(), 11) != SQLITE_NULL) {
+    } else if (sqlite3_column_type(statement.native(), 14) != SQLITE_NULL) {
         return std::unexpected(storageFailure("Write outbox failure message exists without a failure kind."));
     }
-    if (sqlite3_column_type(statement.native(), 12) != SQLITE_NULL) {
-        record.confirmedAt = fromMilliseconds(sqlite3_column_int64(statement.native(), 12));
+    if (sqlite3_column_type(statement.native(), 15) != SQLITE_NULL) {
+        record.confirmedAt = fromMilliseconds(sqlite3_column_int64(statement.native(), 15));
     }
     return record;
 }
@@ -412,10 +559,29 @@ UPDATE cast_write_state SET state = ?, updated_at_ms = ? WHERE idempotency_key =
     if (auto status = sqlite::stepDone(connection, statement); !status) {
         return std::unexpected(toFoundationError(std::move(status.error())));
     }
-    if (sqlite3_changes(connection.native()) == 0) {
-        return std::unexpected(storageFailure("Write projection state was missing during reconciliation."));
+    if (sqlite3_changes(connection.native()) != 0) {
+        return {};
     }
-    return {};
+
+    auto checkPrepared = sqlite::Statement::prepare(
+        connection, "SELECT cast_id FROM write_outbox WHERE idempotency_key = ?;");
+    if (!checkPrepared) return std::unexpected(toFoundationError(std::move(checkPrepared.error())));
+    auto check = std::move(*checkPrepared);
+    if (auto status = sqlite::bindText(check.native(), 1, key.value); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+    const int step = sqlite3_step(check.native());
+    if (step == SQLITE_DONE) {
+        return std::unexpected(notFound("Write outbox record disappeared during projection reconciliation."));
+    }
+    if (step != SQLITE_ROW) {
+        return std::unexpected(toFoundationError(sqlite::makeError(
+            connection.native(), "Failed to inspect write projection ownership")));
+    }
+    if (sqlite3_column_type(check.native(), 0) == SQLITE_NULL) {
+        return {};
+    }
+    return std::unexpected(storageFailure("Write projection state was missing during reconciliation."));
 }
 
 class SqliteOutboxStore final : public local::write::IOutboxStore {
@@ -438,57 +604,71 @@ public:
         const foundation::time::Timestamp enqueuedAt) override
     {
         std::scoped_lock lock{m_mutex};
-        if (operation.kind != domain::write::OperationKind::PublishCast ||
-            operation.idempotencyKey.value.empty() || operation.optimisticCast.id.value.empty() ||
-            operation.messageBytes.empty() || operation.signerPublicKey.hex.empty()) {
-            return std::unexpected(foundation::error::Error::make(
-                foundation::error::ErrorCode::InvalidArgument,
-                "Durable outbox enqueue requires one complete signed PublishCast operation."));
-        }
-        if (operation.idempotencyKey.value != operation.optimisticCast.id.value) {
-            return std::unexpected(foundation::error::Error::make(
-                foundation::error::ErrorCode::InvalidArgument,
-                "PublishCast idempotency key must equal its canonical cast hash identity."));
+        if (auto valid = validateOperationShape(operation); !valid) {
+            return std::unexpected(std::move(valid.error()));
         }
 
         sqlite::Transaction transaction{m_connection};
         if (auto status = transaction.begin(); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
-        if (auto status = insertCast(m_connection, operation.optimisticCast); !status) {
-            return std::unexpected(std::move(status.error()));
+        if (operation.optimisticCast) {
+            if (auto status = insertCast(m_connection, *operation.optimisticCast); !status) {
+                return std::unexpected(std::move(status.error()));
+            }
         }
 
         auto prepared = sqlite::Statement::prepare(m_connection, R"SQL(
 INSERT OR IGNORE INTO write_outbox(
-    idempotency_key, kind, cast_id, author_fid, signer_public_key_hex,
-    message_bytes, signed_at_ms, enqueued_at_ms, status, attempt_count)
-VALUES(?, 'publish-cast', ?, ?, ?, ?, ?, ?, 'pending', 0);
+    idempotency_key, kind, cast_id, author_fid,
+    target_cast_id, target_cast_fid, target_fid,
+    signer_public_key_hex, message_bytes, signed_at_ms, enqueued_at_ms,
+    status, attempt_count)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0);
 )SQL");
         if (!prepared) return std::unexpected(toFoundationError(std::move(prepared.error())));
         auto statement = std::move(*prepared);
         if (auto status = sqlite::bindText(statement.native(), 1, operation.idempotencyKey.value); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
-        if (auto status = sqlite::bindText(statement.native(), 2, operation.optimisticCast.id.value); !status) {
+        if (auto status = sqlite::bindText(statement.native(), 2, operationKindText(operation.kind)); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
-        if (auto status = bindInt64(m_connection, statement.native(), 3,
-                static_cast<std::int64_t>(operation.optimisticCast.author.value),
-                "Failed to bind outbox author"); !status) {
+        const std::optional<std::string> optimisticCastId = operation.optimisticCast
+            ? std::optional<std::string>{operation.optimisticCast->id.value} : std::nullopt;
+        if (auto status = sqlite::bindOptionalText(statement.native(), 3, optimisticCastId); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+        if (auto status = bindInt64(m_connection, statement.native(), 4,
+                static_cast<std::int64_t>(operation.author.value), "Failed to bind outbox author"); !status) {
             return std::unexpected(std::move(status.error()));
         }
-        if (auto status = sqlite::bindText(statement.native(), 4, operation.signerPublicKey.hex); !status) {
+        const std::optional<std::string> targetCastId = operation.target.cast
+            ? std::optional<std::string>{operation.target.cast->id.value} : std::nullopt;
+        if (auto status = sqlite::bindOptionalText(statement.native(), 5, targetCastId); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
-        if (auto status = sqlite::bindBlob(statement.native(), 5, operation.messageBytes); !status) {
+        const std::optional<domain::identity::Fid> targetCastFid = operation.target.cast
+            ? std::optional<domain::identity::Fid>{operation.target.cast->author} : std::nullopt;
+        if (auto status = bindOptionalFid(m_connection, statement.native(), 6, targetCastFid,
+                "Failed to bind outbox target-cast FID"); !status) {
+            return std::unexpected(std::move(status.error()));
+        }
+        if (auto status = bindOptionalFid(m_connection, statement.native(), 7, operation.target.fid,
+                "Failed to bind outbox target FID"); !status) {
+            return std::unexpected(std::move(status.error()));
+        }
+        if (auto status = sqlite::bindText(statement.native(), 8, operation.signerPublicKey.hex); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
-        if (auto status = bindInt64(m_connection, statement.native(), 6, toMilliseconds(operation.signedAt),
+        if (auto status = sqlite::bindBlob(statement.native(), 9, operation.messageBytes); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+        if (auto status = bindInt64(m_connection, statement.native(), 10, toMilliseconds(operation.signedAt),
                 "Failed to bind outbox signing timestamp"); !status) {
             return std::unexpected(std::move(status.error()));
         }
-        if (auto status = bindInt64(m_connection, statement.native(), 7, toMilliseconds(enqueuedAt),
+        if (auto status = bindInt64(m_connection, statement.native(), 11, toMilliseconds(enqueuedAt),
                 "Failed to bind outbox enqueue timestamp"); !status) {
             return std::unexpected(std::move(status.error()));
         }
@@ -497,7 +677,7 @@ VALUES(?, 'publish-cast', ?, ?, ?, ?, ?, ?, 'pending', 0);
         }
         const bool inserted = sqlite3_changes(m_connection.native()) != 0;
 
-        if (inserted) {
+        if (inserted && operation.optimisticCast) {
             auto projectionPrepared = sqlite::Statement::prepare(m_connection, R"SQL(
 INSERT INTO cast_write_state(cast_id, idempotency_key, state, updated_at_ms)
 VALUES(?, ?, 'pending', ?);
@@ -506,7 +686,8 @@ VALUES(?, ?, 'pending', ?);
                 return std::unexpected(toFoundationError(std::move(projectionPrepared.error())));
             }
             auto projection = std::move(*projectionPrepared);
-            if (auto status = sqlite::bindText(projection.native(), 1, operation.optimisticCast.id.value); !status) {
+            if (auto status = sqlite::bindText(
+                    projection.native(), 1, operation.optimisticCast->id.value); !status) {
                 return std::unexpected(toFoundationError(std::move(status.error())));
             }
             if (auto status = sqlite::bindText(projection.native(), 2, operation.idempotencyKey.value); !status) {
@@ -523,6 +704,13 @@ VALUES(?, ?, 'pending', ?);
 
         auto record = loadRecord(m_connection, operation.idempotencyKey.value);
         if (!record) return std::unexpected(std::move(record.error()));
+        if (record->operation.kind != operation.kind ||
+            record->operation.author.value != operation.author.value ||
+            record->operation.signerPublicKey.hex != operation.signerPublicKey.hex ||
+            record->operation.messageBytes != operation.messageBytes) {
+            return std::unexpected(conflict(
+                "Idempotency key is already bound to a different protocol operation."));
+        }
         if (auto status = transaction.commit(); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }

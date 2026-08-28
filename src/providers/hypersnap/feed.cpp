@@ -10,6 +10,8 @@ module;
 
 module farcaster.provider.hypersnap.feed;
 
+import farcaster.domain.channel;
+import farcaster.domain.identity;
 import farcaster.capability.catalog;
 import farcaster.capability.model;
 import farcaster.domain.feed;

@@ -14,6 +14,7 @@ import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.foundation.time;
 import farcaster.domain.cast;
+import farcaster.domain.identity;
 import farcaster.domain.session;
 import farcaster.local.write;
 import farcaster.application.executor;
@@ -22,6 +23,31 @@ import farcaster.capability.write_submit;
 import farcaster.capability.write;
 
 export namespace farcaster::application::write {
+
+
+/** @brief Application-facing classification of one protocol mutation. */
+enum class OperationKind : std::uint8_t {
+    PublishCast,
+    RemoveCast,
+    Like,
+    Unlike,
+    Recast,
+    UndoRecast,
+    Follow,
+    Unfollow,
+};
+
+/** @brief Application-facing target snapshot for one social mutation. */
+struct OperationTarget final {
+    std::optional<domain::cast::CastReference> cast{};
+    std::optional<domain::identity::Fid> fid{};
+};
+
+/** @brief Reaction family used by the public application write API. */
+enum class ReactionKind : std::uint8_t {
+    Like,
+    Recast,
+};
 
 /** @brief User-authored content accepted by the shared root/reply composer use case. */
 struct PublishCastRequest final {
@@ -47,10 +73,13 @@ enum class DurableWriteStatus {
     Failed,
 };
 
-/** @brief Application-owned snapshot of one durable optimistic write. */
+/** @brief Application-owned snapshot of one durable protocol write. */
 struct WriteRecord final {
     std::string idempotencyKey{};
-    domain::cast::Cast optimisticCast{};
+    OperationKind kind{OperationKind::PublishCast};
+    domain::identity::Fid author{};
+    std::optional<domain::cast::Cast> optimisticCast{};
+    OperationTarget target{};
     DurableWriteStatus status{DurableWriteStatus::Pending};
     std::uint32_t attemptCount{};
     std::optional<foundation::time::Timestamp> nextAttemptAt{};
@@ -75,11 +104,11 @@ struct WritePolicy final {
 using Observer = std::function<void(WriteState)>;
 
 /**
- * @brief Orchestrates canonical root/reply CAST_ADD creation, durable enqueue and reconciliation.
+ * @brief Orchestrates all implemented Farcaster social writes through one durable pipeline.
  *
- * The service never accesses private key material or provider DTOs. It consumes
- * SignerService's verified write gate, a canonical codec, a durable local outbox
- * and an optional provider-neutral submit/reconcile port.
+ * Every operation is gated by the exact signer scope, canonicalized before
+ * signing, committed to the local outbox before network I/O, reconciled before
+ * retry, and confirmed only from authoritative Snapchain state.
  */
 class WriteService final {
 public:
@@ -98,25 +127,34 @@ public:
     WriteService(WriteService&&) = delete;
     auto operator=(WriteService&&) -> WriteService& = delete;
 
-    /**
-     * @brief Publishes one root or reply cast through signer → durable outbox → reconciliation.
-     *
-     * The signed outbox record and optimistic canonical cast are committed before
-     * any network submission. When no submitter is configured, the record remains
-     * safely queued for a later resume.
-     */
+    /** @brief Publishes one root or reply cast through the durable protocol pipeline. */
     [[nodiscard]] foundation::result::Status publish(
         std::optional<domain::session::ClientSession> session,
         PublishCastRequest request,
         Observer observer);
 
-    /**
-     * @brief Processes due pending records after startup/network/signer recovery.
-     *
-     * Every record is re-gated against the current SignerService and exact signer
-     * public key before network I/O. A revoked/expired/replaced signer therefore
-     * cannot be bypassed by a previously signed outbox envelope.
-     */
+    /** @brief Deletes one cast owned by the authenticated user through CAST_REMOVE. */
+    [[nodiscard]] foundation::result::Status removeCast(
+        std::optional<domain::session::ClientSession> session,
+        domain::cast::CastReference target,
+        Observer observer);
+
+    /** @brief Adds or removes a Like/Recast reaction through REACTION_ADD/REMOVE. */
+    [[nodiscard]] foundation::result::Status setReaction(
+        std::optional<domain::session::ClientSession> session,
+        domain::cast::CastReference target,
+        ReactionKind reaction,
+        bool isActive,
+        Observer observer);
+
+    /** @brief Adds or removes a follow relationship through LINK_ADD/LINK_REMOVE. */
+    [[nodiscard]] foundation::result::Status setFollowing(
+        std::optional<domain::session::ClientSession> session,
+        domain::identity::Fid target,
+        bool isFollowing,
+        Observer observer);
+
+    /** @brief Processes due pending records after startup/network/signer recovery. */
     [[nodiscard]] foundation::result::Status resume(
         std::optional<domain::session::ClientSession> session,
         Observer observer);

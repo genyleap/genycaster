@@ -118,6 +118,13 @@ public:
     Q_INVOKABLE bool prepareReply(const QString& parentCastId);
     Q_INVOKABLE void clearReplyTarget();
     Q_INVOKABLE void publishReply(const QString& text);
+    /** @brief Adds or removes a Like/Recast reaction for one canonical cast target. */
+    Q_INVOKABLE void setReaction(
+        const QString& kind, qulonglong targetAuthorFid, const QString& targetCastId, bool active);
+    /** @brief Adds or removes the authenticated account's follow link to targetFid. */
+    Q_INVOKABLE void setFollowing(qulonglong targetFid, bool following);
+    /** @brief Deletes one cast only when its author is the authenticated account. */
+    Q_INVOKABLE void removeCast(qulonglong authorFid, const QString& castId);
 
     /** @brief Retries the current surface without bypassing an active capability cooldown. */
     void retryAutomatically();
@@ -141,7 +148,7 @@ public:
     /** @brief Commits normalized protocol-signer readiness without exposing provider details. */
     void applySignerState(
         QString phase, bool busy, bool writeReady, QString statusText, QString errorText);
-    /** @brief Commits durable PublishCast lifecycle and optional optimistic feed row. */
+    /** @brief Commits one durable protocol-write lifecycle plus optional presentation mutation. */
     void applyWriteState(
         QString phase, bool busy, QString statusText, QString errorText, QVariantMap optimisticRow = {});
     /** @brief Commits a normalized identity presentation snapshot. */
@@ -175,6 +182,9 @@ signals:
     void signerRevokeRequested();
     void publishCastRequested(QString text);
     void publishReplyRequested(QString text, qulonglong parentAuthorFid, QString parentCastId);
+    void reactionRequested(QString kind, qulonglong targetAuthorFid, QString targetCastId, bool active);
+    void followingMutationRequested(qulonglong targetFid, bool following);
+    void removeCastRequested(qulonglong authorFid, QString castId);
     void socialRequested(
         QString kind,
         qulonglong fid,

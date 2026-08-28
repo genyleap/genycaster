@@ -11,11 +11,69 @@
 
 import farcaster.application.configuration;
 
+namespace {
+
+void updateReactionPresentation(
+    QVariantMap& map,
+    const QString& castId,
+    const QString& kind,
+    const bool active)
+{
+    if (map.value(QStringLiteral("castId")).toString() != castId) {
+        return;
+    }
+    const QString stateKey = kind == QStringLiteral("like")
+        ? QStringLiteral("likedByMe")
+        : QStringLiteral("recastedByMe");
+    const QString countKey = kind == QStringLiteral("like")
+        ? QStringLiteral("likeCount")
+        : QStringLiteral("recastCount");
+    const bool previous = map.value(stateKey).toBool();
+    if (previous == active) {
+        return;
+    }
+    qulonglong count = map.value(countKey).toULongLong();
+    if (active) {
+        ++count;
+    } else if (count > 0U) {
+        --count;
+    }
+    map.insert(stateKey, active);
+    map.insert(countKey, count);
+}
+
+void updateReactionPresentation(
+    QVariantList& rows,
+    const QString& castId,
+    const QString& kind,
+    const bool active)
+{
+    for (qsizetype index = 0; index < rows.size(); ++index) {
+        auto map = rows[index].toMap();
+        if (map.value(QStringLiteral("castId")).toString() != castId) {
+            continue;
+        }
+        updateReactionPresentation(map, castId, kind, active);
+        rows[index] = std::move(map);
+    }
+}
+
+void removeCastPresentation(QVariantList& rows, const QString& castId)
+{
+    for (qsizetype index = rows.size(); index > 0; --index) {
+        if (rows[index - 1].toMap().value(QStringLiteral("castId")).toString() == castId) {
+            rows.removeAt(index - 1);
+        }
+    }
+}
+
+}
+
 PresentationBridge::PresentationBridge(QObject* const parent) : QObject(parent) {}
 
 QString PresentationBridge::architectureState() const
 {
-    return QStringLiteral("Phase 5D · guest read → verified session → signer-gated durable root/reply publish");
+    return QStringLiteral("Phase 5E · guest read → verified session → scoped durable Farcaster writes");
 }
 
 bool PresentationBridge::isStrictSelfHosted() const noexcept
@@ -434,6 +492,85 @@ void PresentationBridge::publishReply(const QString& text)
     emit publishReplyRequested(text, m_replyParentAuthorFid, m_replyParentCastId);
 }
 
+
+void PresentationBridge::setReaction(
+    const QString& kind,
+    const qulonglong targetAuthorFid,
+    const QString& targetCastId,
+    const bool active)
+{
+    const QString canonicalKind = kind.trimmed().toLower();
+    const QString canonicalCastId = targetCastId.trimmed();
+    if (!m_runtimeReady || !m_isAuthenticated || !m_writeReady || m_writeBusy) {
+        m_writeErrorText = !m_isAuthenticated
+            ? QStringLiteral("Sign in before interacting with a cast.")
+            : QStringLiteral("Enable a verified Farcaster signer before interacting.");
+        emit stateChanged();
+        return;
+    }
+    if ((canonicalKind != QStringLiteral("like") && canonicalKind != QStringLiteral("recast")) ||
+        targetAuthorFid == 0U || canonicalCastId.isEmpty()) {
+        m_writeErrorText = QStringLiteral("That Farcaster reaction target is invalid.");
+        emit stateChanged();
+        return;
+    }
+    m_writeBusy = true;
+    m_writePhase = QStringLiteral("preparing");
+    m_writeStatusText = active
+        ? QStringLiteral("Preparing the Farcaster interaction…")
+        : QStringLiteral("Preparing to remove the Farcaster interaction…");
+    m_writeErrorText.clear();
+    emit stateChanged();
+    emit reactionRequested(canonicalKind, targetAuthorFid, canonicalCastId, active);
+}
+
+void PresentationBridge::setFollowing(const qulonglong targetFid, const bool following)
+{
+    if (!m_runtimeReady || !m_isAuthenticated || !m_writeReady || m_writeBusy) {
+        m_writeErrorText = !m_isAuthenticated
+            ? QStringLiteral("Sign in before changing follows.")
+            : QStringLiteral("Enable a verified Farcaster signer before changing follows.");
+        emit stateChanged();
+        return;
+    }
+    if (targetFid == 0U || targetFid == m_accountFid) {
+        m_writeErrorText = QStringLiteral("That Farcaster follow target is invalid.");
+        emit stateChanged();
+        return;
+    }
+    m_writeBusy = true;
+    m_writePhase = QStringLiteral("preparing");
+    m_writeStatusText = following
+        ? QStringLiteral("Preparing the Farcaster follow…")
+        : QStringLiteral("Preparing the Farcaster unfollow…");
+    m_writeErrorText.clear();
+    emit stateChanged();
+    emit followingMutationRequested(targetFid, following);
+}
+
+void PresentationBridge::removeCast(const qulonglong authorFid, const QString& castId)
+{
+    const QString canonicalCastId = castId.trimmed();
+    if (!m_runtimeReady || !m_isAuthenticated || !m_writeReady || m_writeBusy) {
+        m_writeErrorText = !m_isAuthenticated
+            ? QStringLiteral("Sign in before deleting a cast.")
+            : QStringLiteral("Enable a verified Farcaster signer before deleting a cast.");
+        emit stateChanged();
+        return;
+    }
+    if (authorFid == 0U || authorFid != m_accountFid || canonicalCastId.isEmpty()) {
+        m_writeErrorText = QStringLiteral("Only your own canonical Farcaster cast can be deleted.");
+        emit stateChanged();
+        return;
+    }
+    m_writeBusy = true;
+    m_writePhase = QStringLiteral("preparing");
+    m_writeStatusText = QStringLiteral("Preparing the Farcaster cast deletion…");
+    m_writeErrorText.clear();
+    emit stateChanged();
+    emit removeCastRequested(authorFid, canonicalCastId);
+}
+
 void PresentationBridge::openAuthenticationApproval()
 {
     const QUrl parsed{m_authenticationApprovalUrl};
@@ -558,25 +695,26 @@ void PresentationBridge::applyWriteState(
     const bool busy,
     QString statusText,
     QString errorText,
-    QVariantMap optimisticRow)
+    QVariantMap presentationMutation)
 {
     m_writePhase = std::move(phase);
     m_writeBusy = busy;
     m_writeStatusText = std::move(statusText);
     m_writeErrorText = std::move(errorText);
 
-    const QString castId = optimisticRow.value(QStringLiteral("castId")).toString();
-    if (!castId.isEmpty()) {
+    const QString operationKind = presentationMutation.value(QStringLiteral("operationKind")).toString();
+    const QString castId = presentationMutation.value(QStringLiteral("castId")).toString();
+    if (operationKind == QStringLiteral("publish-cast") && !castId.isEmpty()) {
         m_lastPublishedCastId = castId;
         bool replaced = false;
         for (qsizetype index = 0; index < m_writeRows.size(); ++index) {
             if (m_writeRows[index].toMap().value(QStringLiteral("castId")).toString() == castId) {
-                m_writeRows[index] = optimisticRow;
+                m_writeRows[index] = presentationMutation;
                 replaced = true;
                 break;
             }
         }
-        if (!replaced) { m_writeRows.prepend(optimisticRow); }
+        if (!replaced) { m_writeRows.prepend(presentationMutation); }
 
         if (m_activeView == QStringLiteral("feed")) {
             QVariantList merged{};
@@ -595,6 +733,34 @@ void PresentationBridge::applyWriteState(
                 if (!duplicate) { merged.push_back(row); }
             }
             m_rows = std::move(merged);
+        }
+    }
+
+    if (m_writePhase == QStringLiteral("confirmed")) {
+        const QString targetCastId = presentationMutation.value(QStringLiteral("targetCastId")).toString();
+        if ((operationKind == QStringLiteral("like") || operationKind == QStringLiteral("unlike") ||
+             operationKind == QStringLiteral("recast") || operationKind == QStringLiteral("undo-recast")) &&
+            !targetCastId.isEmpty()) {
+            const bool active = operationKind == QStringLiteral("like") || operationKind == QStringLiteral("recast");
+            const QString reaction = (operationKind == QStringLiteral("like") || operationKind == QStringLiteral("unlike"))
+                ? QStringLiteral("like") : QStringLiteral("recast");
+            updateReactionPresentation(m_rows, targetCastId, reaction, active);
+            updateReactionPresentation(m_writeRows, targetCastId, reaction, active);
+            updateReactionPresentation(m_detail, targetCastId, reaction, active);
+        } else if (operationKind == QStringLiteral("follow") || operationKind == QStringLiteral("unfollow")) {
+            const qulonglong targetFid = presentationMutation.value(QStringLiteral("targetFid")).toULongLong();
+            if (m_activeView == QStringLiteral("profile") &&
+                m_detail.value(QStringLiteral("fid")).toULongLong() == targetFid) {
+                m_detail.insert(QStringLiteral("followingByMe"), operationKind == QStringLiteral("follow"));
+            }
+        } else if (operationKind == QStringLiteral("remove-cast") && !targetCastId.isEmpty()) {
+            removeCastPresentation(m_rows, targetCastId);
+            removeCastPresentation(m_writeRows, targetCastId);
+            if (m_activeView == QStringLiteral("cast") &&
+                m_detail.value(QStringLiteral("castId")).toString() == targetCastId) {
+                m_activeView = QStringLiteral("feed");
+                m_detail.clear();
+            }
         }
     }
     emit stateChanged();

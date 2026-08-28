@@ -20,7 +20,7 @@ export namespace farcaster::provider::snapchain::signer {
  * Credentials are intentionally absent from this value.
  */
 struct Config final {
-    std::string baseUrl{"https://crackle.farcaster.xyz:3381"};
+    std::string baseUrl{"https://snapchain.farcaster.xyz"};
     std::chrono::milliseconds timeout{15'000};
     std::size_t maxBodyBytes{8U * 1024U * 1024U};
     /** @brief Maximum time spent waiting for submitted signer state to become authoritative. */

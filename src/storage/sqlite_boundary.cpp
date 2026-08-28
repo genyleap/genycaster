@@ -141,6 +141,7 @@ CREATE TABLE IF NOT EXISTS client_session (
     username TEXT,
     display_name TEXT,
     avatar_url TEXT,
+    custody_address TEXT,
     auth_method TEXT NOT NULL,
     authenticated_at_ms INTEGER NOT NULL,
     expires_at_ms INTEGER NOT NULL
@@ -161,8 +162,11 @@ CREATE TABLE IF NOT EXISTS signer_metadata (
 CREATE TABLE IF NOT EXISTS write_outbox (
     idempotency_key TEXT PRIMARY KEY NOT NULL,
     kind TEXT NOT NULL,
-    cast_id TEXT NOT NULL,
+    cast_id TEXT,
     author_fid INTEGER NOT NULL,
+    target_cast_id TEXT,
+    target_cast_fid INTEGER,
+    target_fid INTEGER,
     signer_public_key_hex TEXT NOT NULL,
     message_bytes BLOB NOT NULL,
     signed_at_ms INTEGER NOT NULL,
@@ -255,6 +259,86 @@ CREATE TABLE IF NOT EXISTS cast_write_state (
         return status;
     }
     if (auto status = recordMigration(connection, 10, appliedAt); !status) {
+        return status;
+    }
+
+    auto hasWriteTarget = tableHasColumn(connection, "write_outbox", "target_cast_id");
+    if (!hasWriteTarget) {
+        return std::unexpected(hasWriteTarget.error());
+    }
+    if (!*hasWriteTarget) {
+        constexpr std::string_view upgradeWriteOutbox = R"SQL(
+CREATE TEMP TABLE cast_write_state_v11_backup AS
+SELECT cast_id, idempotency_key, state, updated_at_ms FROM cast_write_state;
+CREATE TABLE write_outbox_v11 (
+    idempotency_key TEXT PRIMARY KEY NOT NULL,
+    kind TEXT NOT NULL,
+    cast_id TEXT,
+    author_fid INTEGER NOT NULL,
+    target_cast_id TEXT,
+    target_cast_fid INTEGER,
+    target_fid INTEGER,
+    signer_public_key_hex TEXT NOT NULL,
+    message_bytes BLOB NOT NULL,
+    signed_at_ms INTEGER NOT NULL,
+    enqueued_at_ms INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at_ms INTEGER,
+    last_failure_kind TEXT,
+    last_failure_message TEXT,
+    confirmed_at_ms INTEGER,
+    FOREIGN KEY (cast_id) REFERENCES casts(id) ON DELETE RESTRICT
+);
+INSERT INTO write_outbox_v11(
+    idempotency_key, kind, cast_id, author_fid,
+    target_cast_id, target_cast_fid, target_fid,
+    signer_public_key_hex, message_bytes, signed_at_ms, enqueued_at_ms,
+    status, attempt_count, next_attempt_at_ms, last_failure_kind,
+    last_failure_message, confirmed_at_ms)
+SELECT idempotency_key, kind, cast_id, author_fid,
+       NULL, NULL, NULL, signer_public_key_hex, message_bytes,
+       signed_at_ms, enqueued_at_ms, status, attempt_count,
+       next_attempt_at_ms, last_failure_kind, last_failure_message, confirmed_at_ms
+FROM write_outbox;
+DROP TABLE cast_write_state;
+DROP TABLE write_outbox;
+ALTER TABLE write_outbox_v11 RENAME TO write_outbox;
+CREATE INDEX idx_write_outbox_ready
+    ON write_outbox(status, next_attempt_at_ms, enqueued_at_ms);
+CREATE INDEX idx_write_outbox_author_ready
+    ON write_outbox(author_fid, status, next_attempt_at_ms, enqueued_at_ms);
+CREATE TABLE cast_write_state (
+    cast_id TEXT PRIMARY KEY NOT NULL,
+    idempotency_key TEXT UNIQUE NOT NULL,
+    state TEXT NOT NULL,
+    updated_at_ms INTEGER NOT NULL,
+    FOREIGN KEY (cast_id) REFERENCES casts(id) ON DELETE CASCADE,
+    FOREIGN KEY (idempotency_key) REFERENCES write_outbox(idempotency_key) ON DELETE CASCADE
+);
+INSERT INTO cast_write_state(cast_id, idempotency_key, state, updated_at_ms)
+SELECT cast_id, idempotency_key, state, updated_at_ms FROM cast_write_state_v11_backup;
+DROP TABLE cast_write_state_v11_backup;
+)SQL";
+        if (auto status = connection.execute(upgradeWriteOutbox); !status) {
+            return status;
+        }
+    }
+    if (auto status = recordMigration(connection, 11, appliedAt); !status) {
+        return status;
+    }
+
+    auto hasSessionCustodyAddress = tableHasColumn(connection, "client_session", "custody_address");
+    if (!hasSessionCustodyAddress) {
+        return std::unexpected(hasSessionCustodyAddress.error());
+    }
+    if (!*hasSessionCustodyAddress) {
+        if (auto status = connection.execute(
+                "ALTER TABLE client_session ADD COLUMN custody_address TEXT;"); !status) {
+            return status;
+        }
+    }
+    if (auto status = recordMigration(connection, 12, appliedAt); !status) {
         return status;
     }
 

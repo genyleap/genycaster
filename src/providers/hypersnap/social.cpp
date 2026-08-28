@@ -9,6 +9,7 @@ module;
 
 module farcaster.provider.hypersnap.social;
 
+import farcaster.domain.identity;
 import farcaster.capability.catalog;
 import farcaster.capability.model;
 import farcaster.domain.social;

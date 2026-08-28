@@ -61,7 +61,7 @@ public:
     load() override
     {
         auto prepared = sqlite::Statement::prepare(m_connection, R"SQL(
-SELECT fid, username, display_name, avatar_url, auth_method,
+SELECT fid, username, display_name, avatar_url, custody_address, auth_method,
        authenticated_at_ms, expires_at_ms
 FROM client_session WHERE singleton_id = 1;
 )SQL");
@@ -78,14 +78,14 @@ FROM client_session WHERE singleton_id = 1;
                 m_connection.native(), "Failed to read client session")));
         }
         const auto fidValue = sqlite3_column_int64(statement.native(), 0);
-        const auto authenticatedAt = sqlite3_column_int64(statement.native(), 5);
-        const auto expiresAt = sqlite3_column_int64(statement.native(), 6);
+        const auto authenticatedAt = sqlite3_column_int64(statement.native(), 6);
+        const auto expiresAt = sqlite3_column_int64(statement.native(), 7);
         if (fidValue <= 0 || authenticatedAt < 0 || expiresAt < 0) {
             return std::unexpected(foundation::error::Error::make(
                 foundation::error::ErrorCode::StorageFailure,
                 "Persisted client session contains invalid scalar values."));
         }
-        auto method = parseMethod(sqlite::columnText(statement.native(), 4));
+        auto method = parseMethod(sqlite::columnText(statement.native(), 5));
         if (!method) {
             return std::unexpected(std::move(method.error()));
         }
@@ -94,6 +94,7 @@ FROM client_session WHERE singleton_id = 1;
             .username = sqlite::optionalColumnText(statement.native(), 1),
             .displayName = sqlite::optionalColumnText(statement.native(), 2),
             .avatarUrl = sqlite::optionalColumnText(statement.native(), 3),
+            .custodyAddress = sqlite::optionalColumnText(statement.native(), 4),
             .method = *method,
             .authenticatedAt = foundation::time::Timestamp{
                 std::chrono::milliseconds{authenticatedAt}},
@@ -113,14 +114,15 @@ FROM client_session WHERE singleton_id = 1;
         }
         auto prepared = sqlite::Statement::prepare(m_connection, R"SQL(
 INSERT INTO client_session(
-    singleton_id, fid, username, display_name, avatar_url, auth_method,
+    singleton_id, fid, username, display_name, avatar_url, custody_address, auth_method,
     authenticated_at_ms, expires_at_ms)
-VALUES(1, ?, ?, ?, ?, ?, ?, ?)
+VALUES(1, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(singleton_id) DO UPDATE SET
     fid = excluded.fid,
     username = excluded.username,
     display_name = excluded.display_name,
     avatar_url = excluded.avatar_url,
+    custody_address = excluded.custody_address,
     auth_method = excluded.auth_method,
     authenticated_at_ms = excluded.authenticated_at_ms,
     expires_at_ms = excluded.expires_at_ms;
@@ -143,14 +145,17 @@ ON CONFLICT(singleton_id) DO UPDATE SET
         if (auto status = sqlite::bindOptionalText(statement.native(), 4, session.avatarUrl); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
-        if (auto status = sqlite::bindText(statement.native(), 5, methodText(session.method)); !status) {
+        if (auto status = sqlite::bindOptionalText(statement.native(), 5, session.custodyAddress); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+        if (auto status = sqlite::bindText(statement.native(), 6, methodText(session.method)); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
         if (sqlite3_bind_int64(
-                statement.native(), 6,
+                statement.native(), 7,
                 static_cast<sqlite3_int64>(session.authenticatedAt.time_since_epoch().count())) != SQLITE_OK ||
             sqlite3_bind_int64(
-                statement.native(), 7,
+                statement.native(), 8,
                 static_cast<sqlite3_int64>(session.expiresAt.time_since_epoch().count())) != SQLITE_OK) {
             return std::unexpected(toFoundationError(sqlite::makeError(
                 m_connection.native(), "Failed to bind client-session timestamps")));

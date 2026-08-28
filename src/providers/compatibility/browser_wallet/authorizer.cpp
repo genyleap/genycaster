@@ -21,6 +21,7 @@ module;
 module farcaster.provider.compatibility.browser_wallet.authorizer;
 
 import farcaster.capability.signer;
+import farcaster.capability.signer_attestation;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.protocol.key_authorization;
@@ -115,6 +116,19 @@ constexpr std::size_t MaximumHandledRequests = 16U;
     return bytes;
 }
 
+[[nodiscard]] std::string encodeHexAddress(const std::string_view bytes)
+{
+    constexpr char digits[] = "0123456789abcdef";
+    std::string result{"0x"};
+    result.reserve(2U + bytes.size() * 2U);
+    for (const char rawCharacter : bytes) {
+        const auto character = static_cast<unsigned char>(rawCharacter);
+        result.push_back(digits[(character >> 4U) & 0x0FU]);
+        result.push_back(digits[character & 0x0FU]);
+    }
+    return result;
+}
+
 [[nodiscard]] std::string htmlEscape(const std::string_view value)
 {
     std::string escaped{};
@@ -135,25 +149,37 @@ constexpr std::size_t MaximumHandledRequests = 16U;
 [[nodiscard]] std::string approvalPage(
     const std::string_view callbackPath,
     const std::string_view scriptNonce,
-    const protocol::key_authorization::TypedDataDocuments& documents)
+    const protocol::key_authorization::TypedDataDocuments& documents,
+    const bool needsSignedKeyRequest,
+    const std::string_view expectedCustodyAddress)
 {
     std::string page = R"html(<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Genycaster signer approval</title><style nonce=")html";
     page += scriptNonce;
-    page += R"html(">:root{color-scheme:light dark;font-family:system-ui,sans-serif}body{max-width:42rem;margin:3rem auto;padding:0 1.25rem;line-height:1.45}button{font:inherit;padding:.75rem 1rem;border-radius:.65rem;border:1px solid currentColor;cursor:pointer}code{word-break:break-all}.muted{opacity:.72}.error{color:#c33}</style></head><body><h1>Enable Genycaster interactions</h1><p>Genycaster is asking your Ethereum custody wallet to authorize one Farcaster protocol signer. This creates no transaction and spends no gas.</p><p class="muted">The approval is bound to this key, scopes, TTL, nonce and deadline. The private custody key never enters Genycaster.</p><button id="approve">Approve with wallet</button><p id="status" class="muted">No wallet request has been sent yet.</p><script nonce=")html";
+    page += R"html(">:root{color-scheme:light dark;font-family:system-ui,sans-serif}body{max-width:42rem;margin:3rem auto;padding:0 1.25rem;line-height:1.45}button{font:inherit;padding:.75rem 1rem;border-radius:.65rem;border:1px solid currentColor;cursor:pointer}.muted{opacity:.72}.error{color:#c33}li{margin:.35rem 0}</style></head><body><h1>Connect Genycaster</h1><p>Authorize this device to interact with Farcaster on your behalf.</p><ul><li>Publish and delete casts</li><li>Like and recast</li><li>Follow and unfollow</li></ul><p class="muted">No transaction or gas is required. Your custody private key never enters Genycaster.</p><p><strong>Required Farcaster custody wallet:</strong> <code>)html";
+    page += htmlEscape(expectedCustodyAddress);
+    page += R"html(</code></p><button id="approve">Authorize</button><p id="status" class="muted">No wallet request has been sent yet.</p><script nonce=")html";
     page += scriptNonce;
-    page += R"html(">const signedKeyRequest=)html";
-    page += documents.signedKeyRequestJson;
-    page += R"html(;const keyAdd=)html";
+    page += R"html(">const keyAdd=)html";
     page += documents.keyAddJson;
     page += R"html(;const callbackPath=")html";
     page += htmlEscape(callbackPath);
-    page += R"html(";const status=document.getElementById('status');const reportFailure=async(error)=>{const rejected=error&&Number(error.code)===4001;try{await fetch(callbackPath,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({error:rejected?'rejected':'wallet_error'})});}catch(_ignored){}return rejected;};document.getElementById('approve').addEventListener('click',async()=>{try{if(!window.ethereum){const missing=new Error('No EIP-1193 wallet is available in this browser. Open this page inside a compatible wallet browser or install a wallet extension.');missing.code=-1;throw missing;}status.textContent='Waiting for wallet approval…';const accounts=await window.ethereum.request({method:'eth_requestAccounts'});if(!accounts||!accounts[0])throw new Error('The wallet returned no account.');const account=accounts[0];const signedKeyRequestSignature=await window.ethereum.request({method:'eth_signTypedData_v4',params:[account,JSON.stringify(signedKeyRequest)]});const custodySignature=await window.ethereum.request({method:'eth_signTypedData_v4',params:[account,JSON.stringify(keyAdd)]});const response=await fetch(callbackPath,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({account,signedKeyRequestSignature,custodySignature})});if(!response.ok)throw new Error(await response.text()||'Genycaster rejected the wallet response.');status.textContent='Signer authorization received. You can return to Genycaster.';document.getElementById('approve').disabled=true;}catch(error){const rejected=await reportFailure(error);status.className='error';status.textContent=rejected?'Wallet approval was rejected.':(error&&error.message?error.message:String(error));}});</script></body></html>)html";
+    page += R"html(";const expectedCustodyAddress=")html";
+    page += expectedCustodyAddress;
+    page += R"html(";const status=document.getElementById('status');const reportFailure=async(error)=>{const rejected=error&&Number(error.code)===4001;try{await fetch(callbackPath,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({error:rejected?'rejected':'wallet_error'})});}catch(_ignored){}return rejected;};document.getElementById('approve').addEventListener('click',async()=>{try{if(!window.ethereum){const missing=new Error('No EIP-1193 wallet is available in this browser. Open this page inside a compatible wallet browser or install a wallet extension.');missing.code=-1;throw missing;}status.textContent='Waiting for wallet approval…';const accounts=await window.ethereum.request({method:'eth_requestAccounts'});if(!accounts||!accounts[0])throw new Error('The wallet returned no account.');const account=accounts[0];if(account.toLowerCase()!==expectedCustodyAddress){const mismatch=await fetch(callbackPath,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({error:'wrong_custody',account})});throw new Error(await mismatch.text()||'Select the Farcaster custody wallet shown above.');})html";
+    if (needsSignedKeyRequest) {
+        page += "const signedKeyRequest=";
+        page += documents.signedKeyRequestJson;
+        page += R"html(;const signedKeyRequestSignature=await window.ethereum.request({method:'eth_signTypedData_v4',params:[account,JSON.stringify(signedKeyRequest)]});)html";
+    } else {
+        page += R"html(const signedKeyRequestSignature=null;)html";
+    }
+    page += R"html(const custodySignature=await window.ethereum.request({method:'eth_signTypedData_v4',params:[account,JSON.stringify(keyAdd)]});const response=await fetch(callbackPath,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({account,signedKeyRequestSignature,custodySignature})});if(!response.ok)throw new Error(await response.text()||'Genycaster rejected the wallet response.');status.textContent='Signer authorization received. You can return to Genycaster.';document.getElementById('approve').disabled=true;}catch(error){const rejected=await reportFailure(error);status.className='error';status.textContent=rejected?'Wallet approval was rejected.':(error&&error.message?error.message:String(error));}});</script></body></html>)html";
     return page;
 }
 
 struct WalletResponse final {
     std::string address{};
-    std::string signedKeyRequestSignature{};
+    std::optional<std::string> signedKeyRequestSignature{};
     std::string custodySignature{};
 };
 
@@ -170,7 +196,8 @@ struct WalletResponse final {
 }
 
 [[nodiscard]] foundation::result::Result<WalletResponse> parseWalletResponse(
-    const std::string_view body)
+    const std::string_view body,
+    const bool requiresSignedKeyRequest)
 {
     boost::system::error_code parseError{};
     auto value = json::parse(body, parseError);
@@ -192,29 +219,40 @@ struct WalletResponse final {
             return std::unexpected(unavailable(
                 "The wallet could not complete the custody authorization request."));
         }
+        if (error == "wrong_custody") {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::Unauthorized,
+                "The selected browser wallet is not the current Farcaster custody wallet for this FID. Switch to the custody wallet shown on the approval page and retry."));
+        }
         return std::unexpected(protocolFailure("Wallet approval returned an unknown error state."));
     }
     auto account = jsonString(object, "account");
-    auto signedKeyRequest = jsonString(object, "signedKeyRequestSignature");
     auto custody = jsonString(object, "custodySignature");
     if (!account) return std::unexpected(std::move(account.error()));
-    if (!signedKeyRequest) return std::unexpected(std::move(signedKeyRequest.error()));
     if (!custody) return std::unexpected(std::move(custody.error()));
 
     auto addressBytes = decodeHex(*account, EthereumAddressBytes, "Wallet account");
-    auto signedKeyRequestBytes = decodeHex(
-        *signedKeyRequest, EcdsaSignatureBytes, "SignedKeyRequest signature");
     auto custodyBytes = decodeHex(*custody, EcdsaSignatureBytes, "KeyAdd custody signature");
     if (!addressBytes) return std::unexpected(std::move(addressBytes.error()));
-    if (!signedKeyRequestBytes) return std::unexpected(std::move(signedKeyRequestBytes.error()));
     if (!custodyBytes) return std::unexpected(std::move(custodyBytes.error()));
+
+    std::optional<std::string> requestSignature{};
+    if (requiresSignedKeyRequest) {
+        auto signedKeyRequest = jsonString(object, "signedKeyRequestSignature");
+        if (!signedKeyRequest) return std::unexpected(std::move(signedKeyRequest.error()));
+        auto signedKeyRequestBytes = decodeHex(
+            *signedKeyRequest, EcdsaSignatureBytes, "SignedKeyRequest signature");
+        if (!signedKeyRequestBytes) return std::unexpected(std::move(signedKeyRequestBytes.error()));
+        requestSignature = std::move(*signedKeyRequestBytes);
+    }
 
     return WalletResponse{
         .address = std::move(*addressBytes),
-        .signedKeyRequestSignature = std::move(*signedKeyRequestBytes),
+        .signedKeyRequestSignature = std::move(requestSignature),
         .custodySignature = std::move(*custodyBytes),
     };
 }
+
 
 [[nodiscard]] foundation::result::Status validateConfig(const Config& config)
 {
@@ -236,15 +274,23 @@ public:
     explicit BrowserWalletAuthorizer(Config config) : m_config(std::move(config)) {}
 
     [[nodiscard]] foundation::result::Result<capability::signer::KeyAddAuthorization> authorize(
-        const capability::signer::KeyAddRequest& request) override
+        const capability::signer::KeyAddRequest& request,
+        std::optional<capability::signer_attestation::SignedKeyRequestAttestation> appAttestation) override
     {
         if (request.fid.value == 0U || request.requestFid.value == 0U) {
             return std::unexpected(invalid("Custody authorization requires non-zero user and request FIDs."));
         }
-        if (request.requestFid.value != request.fid.value) {
+        auto expectedCustodyBytes = decodeHex(
+            request.custodyAddress, EthereumAddressBytes, "Expected Farcaster custody address");
+        if (!expectedCustodyBytes) {
+            return std::unexpected(std::move(expectedCustodyBytes.error()));
+        }
+        const std::string expectedCustodyAddress = encodeHexAddress(*expectedCustodyBytes);
+        const bool needsSignedKeyRequest = !appAttestation.has_value();
+        if (request.requestFid.value != request.fid.value && !appAttestation) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::Unsupported,
-                "This custody authorizer supports self-attributed signer requests only; requestFid must equal the signed-in FID."));
+                "App-attributed signer authorization requires a pre-attested SignedKeyRequest."));
         }
 
         auto farcasterDeadline = protocol::message::toFarcasterTimestamp(request.deadline);
@@ -335,7 +381,8 @@ public:
 
             const std::string target{requestMessage.target()};
             if (requestMessage.method() == http::verb::get && target == approvalPath) {
-                auto page = approvalPage(callbackPath, *nonce, *documents);
+                auto page = approvalPage(
+                    callbackPath, *nonce, *documents, needsSignedKeyRequest, expectedCustodyAddress);
                 http::response<http::string_body> response{http::status::ok, requestMessage.version()};
                 response.set(http::field::server, "Genycaster");
                 response.set(http::field::cache_control, "no-store, max-age=0");
@@ -365,16 +412,31 @@ public:
                         "Expected application/json.", "text/plain; charset=utf-8");
                     continue;
                 }
-                auto wallet = parseWalletResponse(requestMessage.body());
+                auto wallet = parseWalletResponse(requestMessage.body(), needsSignedKeyRequest);
                 if (!wallet) {
                     writeResponse(http::status::bad_request,
                         wallet.error().message, "text/plain; charset=utf-8");
                     return std::unexpected(std::move(wallet.error()));
                 }
+                if (wallet->address != *expectedCustodyBytes) {
+                    const auto error = makeError(
+                        foundation::error::ErrorCode::Unauthorized,
+                        "Connected wallet " + encodeHexAddress(wallet->address) +
+                            " is not the current Farcaster custody wallet for FID " +
+                            std::to_string(request.fid.value) + ". Expected " +
+                            expectedCustodyAddress + ". Switch wallet accounts and retry.");
+                    writeResponse(http::status::bad_request,
+                        error.message, "text/plain; charset=utf-8");
+                    return std::unexpected(error);
+                }
+                const auto& requestSignerAddress = appAttestation
+                    ? appAttestation->requestSignerAddress : wallet->address;
+                const auto& requestSignature = appAttestation
+                    ? appAttestation->signature : *wallet->signedKeyRequestSignature;
                 auto metadata = protocol::key_authorization::encodeSignedKeyRequestMetadata(
                     request.requestFid,
-                    wallet->address,
-                    wallet->signedKeyRequestSignature,
+                    requestSignerAddress,
+                    requestSignature,
                     *farcasterDeadline);
                 if (!metadata) {
                     writeResponse(http::status::bad_request,

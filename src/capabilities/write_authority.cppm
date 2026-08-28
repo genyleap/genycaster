@@ -7,6 +7,7 @@ export module farcaster.capability.write_authority;
 import farcaster.foundation.result;
 import farcaster.domain.identity;
 import farcaster.domain.signer;
+import farcaster.foundation.time;
 
 export namespace farcaster::capability::write {
 
@@ -30,6 +31,17 @@ public:
     [[nodiscard]] virtual foundation::result::Result<domain::signer::Signature> sign(
         domain::signer::Scope requiredScope,
         const std::string& bytes) = 0;
+
+    /**
+     * @brief Records an authoritative confirmed write for sliding signer-TTL state.
+     *
+     * A confirmed protocol message proves that this signer was accepted at the
+     * supplied time. Implementations may persist that observation without
+     * exposing or rotating private key material.
+     */
+    [[nodiscard]] virtual foundation::result::Status recordConfirmedWrite(
+        domain::identity::Fid fid,
+        foundation::time::Timestamp confirmedAt) = 0;
 };
 
 } // namespace farcaster::capability::write

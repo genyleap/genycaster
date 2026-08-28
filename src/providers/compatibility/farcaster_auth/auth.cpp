@@ -483,6 +483,11 @@ parseJson(const std::string& body)
     return value;
 }
 
+struct VerifiedIdentityAuthorization final {
+    domain::session::AuthenticationMethod method{domain::session::AuthenticationMethod::Custody};
+    std::string custodyAddress{};
+};
+
 class EthereumVerifier final {
 public:
     EthereumVerifier(
@@ -493,7 +498,7 @@ public:
     {
     }
 
-    [[nodiscard]] foundation::result::Result<domain::session::AuthenticationMethod> verify(
+    [[nodiscard]] foundation::result::Result<VerifiedIdentityAuthorization> verify(
         const std::string& message,
         const std::string& signature,
         const std::string& expectedAddress,
@@ -514,26 +519,38 @@ public:
                 "SIWF signature does not match the address declared in the message."));
         }
 
+        std::optional<domain::session::AuthenticationMethod> method{};
         if (acceptAuthAddress) {
             auto authAddress = isActiveAuthAddress(expectedAddress, fid);
             if (!authAddress) {
                 return std::unexpected(std::move(authAddress.error()));
             }
             if (*authAddress) {
-                return domain::session::AuthenticationMethod::AuthAddress;
+                method = domain::session::AuthenticationMethod::AuthAddress;
             }
         }
 
-        auto custodyFid = fidForCustody(expectedAddress);
-        if (!custodyFid) {
-            return std::unexpected(std::move(custodyFid.error()));
+        if (!method) {
+            auto custodyFid = fidForCustody(expectedAddress);
+            if (!custodyFid) {
+                return std::unexpected(std::move(custodyFid.error()));
+            }
+            if (*custodyFid != fid.value) {
+                return std::unexpected(makeError(
+                    foundation::error::ErrorCode::Unauthorized,
+                    "SIWF signer is neither an active auth address nor the custody owner of the FID."));
+            }
+            method = domain::session::AuthenticationMethod::Custody;
         }
-        if (*custodyFid != fid.value) {
-            return std::unexpected(makeError(
-                foundation::error::ErrorCode::Unauthorized,
-                "SIWF signer is neither an active auth address nor the custody owner of the FID."));
+
+        auto custodyAddress = custodyAddressForFid(fid);
+        if (!custodyAddress) {
+            return std::unexpected(std::move(custodyAddress.error()));
         }
-        return domain::session::AuthenticationMethod::Custody;
+        return VerifiedIdentityAuthorization{
+            .method = *method,
+            .custodyAddress = std::move(*custodyAddress),
+        };
     }
 
 private:
@@ -663,6 +680,42 @@ private:
                 ? std::move(keyType.error()) : std::move(state.error()));
         }
         return *state == 1U && *keyType == 2U;
+    }
+
+    [[nodiscard]] foundation::result::Result<std::string> custodyAddressForFid(
+        const domain::identity::Fid fid)
+    {
+        auto selector = functionSelector("custodyOf(uint256)");
+        if (!selector) {
+            return std::unexpected(std::move(selector.error()));
+        }
+        auto result = ethCall(
+            idRegistryAddress,
+            "0x" + *selector + wordFromUnsigned(fid.value));
+        if (!result) {
+            return std::unexpected(std::move(result.error()));
+        }
+        std::string encoded = lower(*result);
+        if (encoded.starts_with("0x")) {
+            encoded.erase(0U, 2U);
+        }
+        constexpr std::size_t addressWordHexLength{64U};
+        constexpr std::size_t addressHexLength{40U};
+        constexpr std::size_t addressPaddingHexLength{addressWordHexLength - addressHexLength};
+        if (encoded.size() != addressWordHexLength ||
+            !std::ranges::all_of(encoded.substr(0U, addressPaddingHexLength),
+                [](const char ch) { return ch == '0'; })) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::ProtocolFailure,
+                "IdRegistry returned an invalid custody-address ABI value."));
+        }
+        const std::string address = encoded.substr(addressPaddingHexLength);
+        if (std::ranges::all_of(address, [](const char ch) { return ch == '0'; })) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::Unauthorized,
+                "Farcaster FID has no active custody address in IdRegistry."));
+        }
+        return "0x" + address;
     }
 
     [[nodiscard]] foundation::result::Result<std::uint64_t> fidForCustody(
@@ -971,7 +1024,8 @@ public:
             .username = optionalString(*json, "username"),
             .displayName = optionalString(*json, "displayName"),
             .avatarUrl = optionalString(*json, "pfpUrl"),
-            .method = *method,
+            .custodyAddress = method->custodyAddress,
+            .method = method->method,
             .authenticatedAt = authenticatedAt,
             .expiresAt = expiresAt,
         };

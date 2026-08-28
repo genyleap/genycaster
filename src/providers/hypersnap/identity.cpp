@@ -8,6 +8,7 @@ module;
 
 module farcaster.provider.hypersnap.identity;
 
+import farcaster.domain.identity;
 import farcaster.foundation.error;
 import farcaster.provider.hypersnap.codec;
 import farcaster.provider.hypersnap.request;

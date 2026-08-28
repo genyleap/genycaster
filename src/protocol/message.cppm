@@ -10,6 +10,7 @@ export module farcaster.protocol.message;
 import farcaster.domain.cast;
 import farcaster.domain.identity;
 import farcaster.domain.signer;
+import farcaster.domain.write;
 import farcaster.foundation.result;
 import farcaster.foundation.time;
 
@@ -22,7 +23,6 @@ enum class Network : std::uint32_t {
     Devnet = 3U,
 };
 
-
 /** @brief Exact CAST_ADD payload before envelope signing, with optional parent CastId. */
 struct CastAddInput final {
     domain::identity::Fid fid{};
@@ -30,6 +30,36 @@ struct CastAddInput final {
     std::string text{};
     std::vector<domain::cast::Embed> embeds{};
     std::optional<domain::cast::CastReference> parent{};
+    std::uint32_t timestamp{};
+    Network network{Network::Mainnet};
+};
+
+/** @brief Exact CAST_REMOVE payload before envelope signing. */
+struct CastRemoveInput final {
+    domain::identity::Fid fid{};
+    domain::signer::PublicKey publicKey{};
+    domain::cast::CastReference target{};
+    std::uint32_t timestamp{};
+    Network network{Network::Mainnet};
+};
+
+/** @brief Exact REACTION_ADD/REACTION_REMOVE payload before envelope signing. */
+struct ReactionInput final {
+    domain::identity::Fid fid{};
+    domain::signer::PublicKey publicKey{};
+    domain::cast::CastReference target{};
+    domain::write::ReactionKind reaction{domain::write::ReactionKind::Like};
+    bool isActive{true};
+    std::uint32_t timestamp{};
+    Network network{Network::Mainnet};
+};
+
+/** @brief Exact LINK_ADD/LINK_REMOVE follow payload before envelope signing. */
+struct FollowInput final {
+    domain::identity::Fid fid{};
+    domain::signer::PublicKey publicKey{};
+    domain::identity::Fid target{};
+    bool isFollowing{true};
     std::uint32_t timestamp{};
     Network network{Network::Mainnet};
 };
@@ -58,12 +88,7 @@ struct KeyRemoveSelfRevokeInput final {
     Network network{Network::Mainnet};
 };
 
-/**
- * @brief Canonical protobuf MessageData plus its BLAKE3-20 digest.
- *
- * The digest, not MessageData itself, is the Ed25519 envelope signing input in
- * the current Snapchain validation contract.
- */
+/** @brief Canonical protobuf MessageData plus its BLAKE3-20 digest. */
 struct UnsignedMessage final {
     std::string dataBytes{};
     std::string hashBytes{};
@@ -74,9 +99,25 @@ struct UnsignedMessage final {
 [[nodiscard]] foundation::result::Result<std::uint32_t> toFarcasterTimestamp(
     foundation::time::Timestamp timestamp);
 
+/** @brief Converts uint32 Farcaster-epoch seconds to a Unix wall-clock timestamp. */
+[[nodiscard]] foundation::time::Timestamp fromFarcasterTimestamp(
+    std::uint32_t timestamp) noexcept;
+
 /** @brief Builds canonical protobuf MessageData for a root CAST_ADD or reply. */
 [[nodiscard]] foundation::result::Result<UnsignedMessage> encodeCastAdd(
     const CastAddInput& input);
+
+/** @brief Builds canonical protobuf MessageData for CAST_REMOVE. */
+[[nodiscard]] foundation::result::Result<UnsignedMessage> encodeCastRemove(
+    const CastRemoveInput& input);
+
+/** @brief Builds canonical protobuf MessageData for REACTION_ADD/REACTION_REMOVE. */
+[[nodiscard]] foundation::result::Result<UnsignedMessage> encodeReaction(
+    const ReactionInput& input);
+
+/** @brief Builds canonical protobuf MessageData for LINK_ADD/LINK_REMOVE follow. */
+[[nodiscard]] foundation::result::Result<UnsignedMessage> encodeFollow(
+    const FollowInput& input);
 
 /** @brief Builds canonical protobuf MessageData for a custody-authorized KEY_ADD. */
 [[nodiscard]] foundation::result::Result<UnsignedMessage> encodeKeyAdd(
@@ -86,11 +127,7 @@ struct UnsignedMessage final {
 [[nodiscard]] foundation::result::Result<UnsignedMessage> encodeKeyRemoveSelfRevoke(
     const KeyRemoveSelfRevokeInput& input);
 
-/**
- * @brief Encodes the final protobuf Message envelope using an Ed25519 signature over hashBytes.
- * @param message Canonical unsigned message returned by an encode function.
- * @param signature Raw 64-byte Ed25519 signature over message.hashBytes.
- */
+/** @brief Encodes the final protobuf Message envelope with an Ed25519 hash signature. */
 [[nodiscard]] foundation::result::Result<std::string> seal(
     const UnsignedMessage& message,
     const domain::signer::Signature& signature);

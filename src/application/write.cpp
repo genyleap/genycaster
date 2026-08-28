@@ -4,7 +4,6 @@ module;
 #include <chrono>
 #include <cstdint>
 #include <expected>
-#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -13,6 +12,8 @@ module;
 
 module farcaster.application.write;
 
+import farcaster.domain.cast;
+import farcaster.domain.identity;
 import farcaster.application.executor;
 import farcaster.capability.write;
 import farcaster.capability.write_authority;
@@ -136,6 +137,31 @@ namespace {
         "The queued write was signed by a different or no-longer-current protocol signer.");
 }
 
+[[nodiscard]] OperationKind applicationKind(const domain::write::OperationKind kind) noexcept
+{
+    using DomainKind = domain::write::OperationKind;
+    switch (kind) {
+    case DomainKind::PublishCast: return OperationKind::PublishCast;
+    case DomainKind::RemoveCast: return OperationKind::RemoveCast;
+    case DomainKind::Like: return OperationKind::Like;
+    case DomainKind::Unlike: return OperationKind::Unlike;
+    case DomainKind::Recast: return OperationKind::Recast;
+    case DomainKind::UndoRecast: return OperationKind::UndoRecast;
+    case DomainKind::Follow: return OperationKind::Follow;
+    case DomainKind::Unfollow: return OperationKind::Unfollow;
+    }
+    return OperationKind::PublishCast;
+}
+
+[[nodiscard]] domain::write::ReactionKind domainReaction(const ReactionKind reaction) noexcept
+{
+    switch (reaction) {
+    case ReactionKind::Like: return domain::write::ReactionKind::Like;
+    case ReactionKind::Recast: return domain::write::ReactionKind::Recast;
+    }
+    return domain::write::ReactionKind::Like;
+}
+
 [[nodiscard]] DurableWriteStatus durableStatus(const domain::write::OutboxStatus status) noexcept
 {
     switch (status) {
@@ -150,7 +176,13 @@ namespace {
 {
     return WriteRecord{
         .idempotencyKey = record.operation.idempotencyKey.value,
+        .kind = applicationKind(record.operation.kind),
+        .author = record.operation.author,
         .optimisticCast = record.operation.optimisticCast,
+        .target = OperationTarget{
+            .cast = record.operation.target.cast,
+            .fid = record.operation.target.fid,
+        },
         .status = durableStatus(record.status),
         .attemptCount = record.attemptCount,
         .nextAttemptAt = record.nextAttemptAt,
@@ -174,8 +206,15 @@ struct WriteService::Impl final {
         std::optional<foundation::error::Error> error = std::nullopt)
     {
         auto record = outbox.find(key);
-        if (!record) {
-            observer(WriteState{.phase = WritePhase::Failed, .error = std::move(record.error())});
+        if (!record || !*record) {
+            observer(WriteState{
+                .phase = WritePhase::Failed,
+                .error = record
+                    ? std::optional<foundation::error::Error>{makeError(
+                        foundation::error::ErrorCode::StorageFailure,
+                        "Durable write disappeared while emitting state.")}
+                    : std::optional<foundation::error::Error>{std::move(record.error())},
+            });
             return;
         }
         observer(WriteState{
@@ -186,21 +225,40 @@ struct WriteService::Impl final {
     }
 
     [[nodiscard]] foundation::result::Result<domain::signer::PublicKey> currentAuthority(
-        const std::optional<domain::session::ClientSession>& session)
+        const std::optional<domain::session::ClientSession>& session,
+        const domain::signer::Scope scope)
     {
         if (!session) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::Unauthorized,
-                "Publishing requires an authenticated Farcaster session."));
+                "A protocol write requires an authenticated Farcaster session."));
         }
         if (domain::session::isExpired(*session, foundation::time::now())) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::Unauthorized,
-                "The Farcaster session has expired; sign in again before publishing."));
+                "The Farcaster session has expired; sign in again before writing."));
         }
-        auto signer = authority.requireSigner(session->fid, domain::signer::Scope::CastAdd);
-        if (!signer) return std::unexpected(std::move(signer.error()));
+        auto signer = authority.requireSigner(session->fid, scope);
+        if (!signer) {
+            return std::unexpected(std::move(signer.error()));
+        }
         return *signer;
+    }
+
+    void noteConfirmed(const domain::write::OutboxRecord& record, const Observer& observer)
+    {
+        const auto confirmedAt = foundation::time::now();
+        auto confirmed = outbox.markConfirmed(record.operation.idempotencyKey, confirmedAt);
+        if (!confirmed) {
+            observer(WriteState{.phase = WritePhase::Failed, .error = std::move(confirmed.error())});
+            return;
+        }
+        auto refreshed = authority.recordConfirmedWrite(record.operation.author, confirmedAt);
+        emitRecord(
+            record.operation.idempotencyKey,
+            WritePhase::Confirmed,
+            observer,
+            refreshed ? std::nullopt : std::optional<foundation::error::Error>{std::move(refreshed.error())});
     }
 
     void scheduleOrFail(
@@ -247,7 +305,7 @@ struct WriteService::Impl final {
         if (record.status != domain::write::OutboxStatus::Pending) {
             return;
         }
-        auto currentSigner = currentAuthority(session);
+        auto currentSigner = currentAuthority(session, domain::write::requiredScope(record.operation.kind));
         if (!currentSigner) {
             observer(WriteState{
                 .phase = WritePhase::Blocked,
@@ -283,21 +341,15 @@ struct WriteService::Impl final {
         if (record.attemptCount >= policy.maxAttempts) {
             auto reconciliation = submitter->reconcile(record.operation);
             if (reconciliation && *reconciliation == capability::write::ConfirmationState::Confirmed) {
-                auto confirmed = outbox.markConfirmed(
-                    record.operation.idempotencyKey,
-                    foundation::time::now());
-                if (!confirmed) {
-                    observer(WriteState{.phase = WritePhase::Failed, .error = std::move(confirmed.error())});
-                    return;
-                }
-                emitRecord(record.operation.idempotencyKey, WritePhase::Confirmed, observer);
+                noteConfirmed(record, observer);
                 return;
             }
             const auto cause = reconciliation
                 ? makeError(
                     foundation::error::ErrorCode::Conflict,
                     "Maximum write attempts were reached without authoritative confirmation.")
-                : makeError(reconciliation.error().code,
+                : makeError(
+                    reconciliation.error().code,
                     "Maximum write attempts were reached and authoritative confirmation is unavailable.");
             auto failed = outbox.markFailed(
                 record.operation.idempotencyKey,
@@ -325,14 +377,7 @@ struct WriteService::Impl final {
             return;
         }
         if (*before == capability::write::ConfirmationState::Confirmed) {
-            auto status = outbox.markConfirmed(
-                record.operation.idempotencyKey,
-                foundation::time::now());
-            if (!status) {
-                observer(WriteState{.phase = WritePhase::Failed, .error = std::move(status.error())});
-                return;
-            }
-            emitRecord(record.operation.idempotencyKey, WritePhase::Confirmed, observer);
+            noteConfirmed(record, observer);
             return;
         }
 
@@ -340,14 +385,7 @@ struct WriteService::Impl final {
         if (!submitted) {
             auto afterFailure = submitter->reconcile(record.operation);
             if (afterFailure && *afterFailure == capability::write::ConfirmationState::Confirmed) {
-                auto status = outbox.markConfirmed(
-                    record.operation.idempotencyKey,
-                    foundation::time::now());
-                if (!status) {
-                    observer(WriteState{.phase = WritePhase::Failed, .error = std::move(status.error())});
-                    return;
-                }
-                emitRecord(record.operation.idempotencyKey, WritePhase::Confirmed, observer);
+                noteConfirmed(record, observer);
                 return;
             }
             scheduleOrFail(record, submitted.error(), observer);
@@ -368,14 +406,31 @@ struct WriteService::Impl final {
                 observer);
             return;
         }
-        auto confirmed = outbox.markConfirmed(
-            record.operation.idempotencyKey,
-            foundation::time::now());
-        if (!confirmed) {
-            observer(WriteState{.phase = WritePhase::Failed, .error = std::move(confirmed.error())});
+        noteConfirmed(record, observer);
+    }
+
+    void enqueuePrepared(
+        const std::optional<domain::session::ClientSession>& session,
+        domain::write::PreparedOperation prepared,
+        const Observer& observer)
+    {
+        auto signature = authority.sign(domain::write::requiredScope(prepared.kind), prepared.hashBytes);
+        if (!signature) {
+            observer(WriteState{.phase = WritePhase::Blocked, .error = std::move(signature.error())});
             return;
         }
-        emitRecord(record.operation.idempotencyKey, WritePhase::Confirmed, observer);
+        auto operation = codec.seal(prepared, *signature);
+        if (!operation) {
+            observer(WriteState{.phase = WritePhase::Failed, .error = std::move(operation.error())});
+            return;
+        }
+        auto queued = outbox.enqueue(*operation, foundation::time::now());
+        if (!queued) {
+            observer(WriteState{.phase = WritePhase::Failed, .error = std::move(queued.error())});
+            return;
+        }
+        observer(WriteState{.phase = WritePhase::Queued, .record = writeRecord(*queued)});
+        processOne(session, std::move(*queued), observer);
     }
 };
 
@@ -413,47 +468,128 @@ foundation::result::Status WriteService::publish(
         return valid;
     }
     return m_impl->executor.post(
-        [this, session = std::move(session), request = std::move(request),
-            observer = std::move(observer)]() mutable {
-            auto signer = m_impl->currentAuthority(session);
+        [this, session = std::move(session), request = std::move(request), observer = std::move(observer)]() mutable {
+            auto signer = m_impl->currentAuthority(session, domain::signer::Scope::CastAdd);
             if (!signer) {
                 observer(WriteState{.phase = WritePhase::Blocked, .error = std::move(signer.error())});
                 return;
             }
-
-            const auto now = foundation::time::now();
             auto prepared = m_impl->codec.preparePublishCast(
                 domain::write::PublishCastIntent{
                     .author = session->fid,
                     .text = std::move(request.text),
                     .embeds = std::move(request.embeds),
                     .parent = std::move(request.parent),
-                    .createdAt = now,
+                    .createdAt = foundation::time::now(),
                 },
                 *signer);
             if (!prepared) {
                 observer(WriteState{.phase = WritePhase::Failed, .error = std::move(prepared.error())});
                 return;
             }
-            auto signature = m_impl->authority.sign(
-                domain::signer::Scope::CastAdd,
-                prepared->hashBytes);
-            if (!signature) {
-                observer(WriteState{.phase = WritePhase::Blocked, .error = std::move(signature.error())});
+            m_impl->enqueuePrepared(session, std::move(*prepared), observer);
+        });
+}
+
+foundation::result::Status WriteService::removeCast(
+    std::optional<domain::session::ClientSession> session,
+    domain::cast::CastReference target,
+    Observer observer)
+{
+    if (!observer) {
+        return std::unexpected(makeError(foundation::error::ErrorCode::InvalidArgument,
+            "RemoveCast requires a write-state observer."));
+    }
+    return m_impl->executor.post(
+        [this, session = std::move(session), target = std::move(target), observer = std::move(observer)]() mutable {
+            auto signer = m_impl->currentAuthority(session, domain::signer::Scope::CastRemove);
+            if (!signer) {
+                observer(WriteState{.phase = WritePhase::Blocked, .error = std::move(signer.error())});
                 return;
             }
-            auto operation = m_impl->codec.seal(*prepared, *signature);
-            if (!operation) {
-                observer(WriteState{.phase = WritePhase::Failed, .error = std::move(operation.error())});
+            auto prepared = m_impl->codec.prepareRemoveCast(
+                domain::write::RemoveCastIntent{
+                    .author = session->fid,
+                    .target = std::move(target),
+                    .createdAt = foundation::time::now(),
+                },
+                *signer);
+            if (!prepared) {
+                observer(WriteState{.phase = WritePhase::Failed, .error = std::move(prepared.error())});
                 return;
             }
-            auto queued = m_impl->outbox.enqueue(*operation, foundation::time::now());
-            if (!queued) {
-                observer(WriteState{.phase = WritePhase::Failed, .error = std::move(queued.error())});
+            m_impl->enqueuePrepared(session, std::move(*prepared), observer);
+        });
+}
+
+foundation::result::Status WriteService::setReaction(
+    std::optional<domain::session::ClientSession> session,
+    domain::cast::CastReference target,
+    const ReactionKind reaction,
+    const bool isActive,
+    Observer observer)
+{
+    if (!observer) {
+        return std::unexpected(makeError(foundation::error::ErrorCode::InvalidArgument,
+            "Reaction mutation requires a write-state observer."));
+    }
+    return m_impl->executor.post(
+        [this, session = std::move(session), target = std::move(target), reaction, isActive,
+            observer = std::move(observer)]() mutable {
+            const auto scope = isActive ? domain::signer::Scope::ReactionAdd : domain::signer::Scope::ReactionRemove;
+            auto signer = m_impl->currentAuthority(session, scope);
+            if (!signer) {
+                observer(WriteState{.phase = WritePhase::Blocked, .error = std::move(signer.error())});
                 return;
             }
-            observer(WriteState{.phase = WritePhase::Queued, .record = writeRecord(*queued)});
-            m_impl->processOne(session, std::move(*queued), observer);
+            auto prepared = m_impl->codec.prepareReaction(
+                domain::write::ReactionIntent{
+                    .author = session->fid,
+                    .target = std::move(target),
+                    .reaction = domainReaction(reaction),
+                    .isActive = isActive,
+                    .createdAt = foundation::time::now(),
+                },
+                *signer);
+            if (!prepared) {
+                observer(WriteState{.phase = WritePhase::Failed, .error = std::move(prepared.error())});
+                return;
+            }
+            m_impl->enqueuePrepared(session, std::move(*prepared), observer);
+        });
+}
+
+foundation::result::Status WriteService::setFollowing(
+    std::optional<domain::session::ClientSession> session,
+    const domain::identity::Fid target,
+    const bool isFollowing,
+    Observer observer)
+{
+    if (!observer) {
+        return std::unexpected(makeError(foundation::error::ErrorCode::InvalidArgument,
+            "Follow mutation requires a write-state observer."));
+    }
+    return m_impl->executor.post(
+        [this, session = std::move(session), target, isFollowing, observer = std::move(observer)]() mutable {
+            const auto scope = isFollowing ? domain::signer::Scope::LinkAdd : domain::signer::Scope::LinkRemove;
+            auto signer = m_impl->currentAuthority(session, scope);
+            if (!signer) {
+                observer(WriteState{.phase = WritePhase::Blocked, .error = std::move(signer.error())});
+                return;
+            }
+            auto prepared = m_impl->codec.prepareFollow(
+                domain::write::FollowIntent{
+                    .author = session->fid,
+                    .target = target,
+                    .isFollowing = isFollowing,
+                    .createdAt = foundation::time::now(),
+                },
+                *signer);
+            if (!prepared) {
+                observer(WriteState{.phase = WritePhase::Failed, .error = std::move(prepared.error())});
+                return;
+            }
+            m_impl->enqueuePrepared(session, std::move(*prepared), observer);
         });
 }
 

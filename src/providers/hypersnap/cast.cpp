@@ -7,6 +7,7 @@ module;
 
 module farcaster.provider.hypersnap.cast;
 
+import farcaster.domain.cast;
 import farcaster.foundation.error;
 import farcaster.provider.hypersnap.codec;
 import farcaster.provider.hypersnap.request;

@@ -251,12 +251,6 @@ inline constexpr std::uint32_t requestedPageSize = 1'000U;
     return document;
 }
 
-[[nodiscard]] foundation::time::Timestamp unixSecondsToTimestamp(const std::uint64_t seconds)
-{
-    return foundation::time::Timestamp{
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds{seconds})};
-}
-
 [[nodiscard]] foundation::result::Result<domain::signer::Scope> mapScope(
     const std::string_view value)
 {
@@ -371,6 +365,10 @@ inline constexpr std::uint32_t requestedPageSize = 1'000U;
         return std::unexpected(protocolError("Snapchain gasless signer has an empty scope set."));
     }
 
+    if (**lastUsedAt > std::numeric_limits<std::uint32_t>::max()) {
+        return std::unexpected(protocolError(
+            "Snapchain gasless signer lastUsedAt exceeds the Farcaster uint32 timestamp range."));
+    }
     const std::uint64_t computedExpiry = **lastUsedAt + static_cast<std::uint64_t>(*ttl);
     if (*expiresAt && **expiresAt != computedExpiry) {
         return std::unexpected(protocolError("Snapchain gasless signer expiry is inconsistent with lastUsedAt + ttl."));
@@ -378,7 +376,8 @@ inline constexpr std::uint32_t requestedPageSize = 1'000U;
 
     registration.kind = domain::signer::RegistrationKind::Gasless;
     registration.ttlSeconds = *ttl;
-    registration.lastUsedAt = unixSecondsToTimestamp(**lastUsedAt);
+    registration.lastUsedAt = protocol::message::fromFarcasterTimestamp(
+        static_cast<std::uint32_t>(**lastUsedAt));
     registration.requestFid = domain::identity::Fid{**requestFid};
     registration.scopes = std::move(*scopes);
     registration.state = domain::signer::isExpired(registration, registration.verifiedAt)
@@ -471,9 +470,8 @@ inline constexpr std::uint32_t requestedPageSize = 1'000U;
     url.append("&pageSize=");
     url.append(std::to_string(requestedPageSize));
     if (requestFid) {
-        // serde_qs requires explicit, unescaped sequence brackets even for one
-        // requester. Scalar or percent-escaped brackets are not equivalent.
-        url.append("&requesterFids[0]=");
+        // Snapchain accepts requester FIDs as repeated scalar query parameters.
+        url.append("&requesterFids=");
         url.append(std::to_string(requestFid->value));
     }
     if (pageToken && !pageToken->empty()) {
@@ -813,7 +811,15 @@ public:
             if (now >= confirmationDeadline) {
                 return std::unexpected(makeError(
                     foundation::error::ErrorCode::Timeout,
-                    "Snapchain accepted KEY_ADD into its submission queue, but the signer did not become observable within the confirmation window."));
+                    "Snapchain accepted KEY_ADD at the submission boundary, but stateful merge did not complete. "
+                    "The current user nonce is " +
+                        std::to_string(observed->nonces.currentUserNonce) +
+                        " while this KEY_ADD requires nonce " + std::to_string(request.nonce) +
+                        ". The signer is still absent (user FID " +
+                        std::to_string(request.fid.value) + ", request FID " +
+                        std::to_string(request.requestFid.value) +
+                        "). This indicates a stateful authorization rejection "
+                        "(for example a custody-wallet or SignedKeyRequest/request-FID mismatch), not merely slow indexing."));
             }
             std::this_thread::sleep_for(std::min(
                 m_config.confirmationPollInterval,

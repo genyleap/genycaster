@@ -12,6 +12,7 @@ import farcaster.foundation.result;
 import farcaster.foundation.time;
 import farcaster.domain.identity;
 import farcaster.domain.signer;
+import farcaster.capability.signer_attestation;
 
 export namespace farcaster::capability::signer {
 
@@ -74,6 +75,8 @@ struct KeyAddRequest final {
     foundation::time::Timestamp deadline{};
     /** @brief App FID bound into SignedKeyRequest metadata. Defaults by policy outside the port. */
     domain::identity::Fid requestFid{};
+    /** @brief Current user-FID custody address as normalized 20-byte 0x-prefixed Ethereum hex. */
+    std::string custodyAddress{};
 };
 
 /**
@@ -101,7 +104,8 @@ public:
 
     /** @brief Requests custody authorization for one exact gasless signer registration. */
     [[nodiscard]] virtual foundation::result::Result<KeyAddAuthorization> authorize(
-        const KeyAddRequest& request) = 0;
+        const KeyAddRequest& request,
+        std::optional<signer_attestation::SignedKeyRequestAttestation> appAttestation = std::nullopt) = 0;
 };
 
 /** @brief Unified Snapchain/on-chain signer lookup result. */

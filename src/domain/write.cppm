@@ -14,28 +14,87 @@ import farcaster.foundation.time;
 
 export namespace farcaster::domain::write {
 
-/** @brief Protocol-native write operations currently implemented by the durable outbox. */
+/** @brief Protocol-native mutations handled by the shared durable write pipeline. */
 enum class OperationKind : std::uint8_t {
     PublishCast,
+    RemoveCast,
+    Like,
+    Unlike,
+    Recast,
+    UndoRecast,
+    Follow,
+    Unfollow,
 };
 
-/** @brief Stable client-owned idempotency key derived from canonical protocol identity. */
+/** @brief Stable client-owned idempotency key derived from the canonical message hash. */
 struct IdempotencyKey final {
     std::string value{};
 };
+
+/** @brief Canonical target of a social protocol mutation. */
+struct OperationTarget final {
+    std::optional<domain::cast::CastReference> cast{};
+    std::optional<domain::identity::Fid> fid{};
+};
+
+/** @brief Returns the exact signer scope required by one operation kind. */
+[[nodiscard]] domain::signer::Scope requiredScope(const OperationKind kind) noexcept
+{
+    using domain::signer::Scope;
+    switch (kind) {
+    case OperationKind::PublishCast: return Scope::CastAdd;
+    case OperationKind::RemoveCast: return Scope::CastRemove;
+    case OperationKind::Like:
+    case OperationKind::Recast: return Scope::ReactionAdd;
+    case OperationKind::Unlike:
+    case OperationKind::UndoRecast: return Scope::ReactionRemove;
+    case OperationKind::Follow: return Scope::LinkAdd;
+    case OperationKind::Unfollow: return Scope::LinkRemove;
+    }
+    return Scope::CastAdd;
+}
 
 /**
  * @brief Canonical user intent for publishing a root cast or reply.
  *
  * The author and timestamp are assigned by Application from the authenticated
- * session and wall clock. An optional parent is a protocol-native CastReference;
- * Presentation never constructs protobuf parent messages.
+ * session and wall clock. An optional parent is a protocol-native CastReference.
  */
 struct PublishCastIntent final {
     domain::identity::Fid author{};
     std::string text{};
     std::vector<domain::cast::Embed> embeds{};
     std::optional<domain::cast::CastReference> parent{};
+    foundation::time::Timestamp createdAt{};
+};
+
+/** @brief Canonical intent for deleting a cast owned by the authenticated FID. */
+struct RemoveCastIntent final {
+    domain::identity::Fid author{};
+    domain::cast::CastReference target{};
+    foundation::time::Timestamp createdAt{};
+};
+
+/** @brief Reaction type whose add/remove form is selected by the application request. */
+enum class ReactionKind : std::uint8_t {
+    Like,
+    Recast,
+};
+
+/** @brief Canonical intent for adding or removing a Like/Recast reaction. */
+struct ReactionIntent final {
+    domain::identity::Fid author{};
+    domain::cast::CastReference target{};
+    ReactionKind reaction{ReactionKind::Like};
+    bool isActive{true};
+    foundation::time::Timestamp createdAt{};
+};
+
+/** @brief Canonical intent for adding or removing a follow link. */
+struct FollowIntent final {
+    domain::identity::Fid author{};
+    domain::identity::Fid target{};
+    bool isFollowing{true};
     foundation::time::Timestamp createdAt{};
 };
 
@@ -48,7 +107,9 @@ struct PublishCastIntent final {
 struct PreparedOperation final {
     OperationKind kind{OperationKind::PublishCast};
     IdempotencyKey idempotencyKey{};
-    domain::cast::Cast optimisticCast{};
+    domain::identity::Fid author{};
+    OperationTarget target{};
+    std::optional<domain::cast::Cast> optimisticCast{};
     domain::signer::PublicKey signerPublicKey{};
     std::string dataBytes{};
     std::string hashBytes{};
@@ -64,7 +125,9 @@ struct PreparedOperation final {
 struct SignedOperation final {
     OperationKind kind{OperationKind::PublishCast};
     IdempotencyKey idempotencyKey{};
-    domain::cast::Cast optimisticCast{};
+    domain::identity::Fid author{};
+    OperationTarget target{};
+    std::optional<domain::cast::Cast> optimisticCast{};
     domain::signer::PublicKey signerPublicKey{};
     std::string messageBytes{};
     foundation::time::Timestamp signedAt{};

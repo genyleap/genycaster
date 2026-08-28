@@ -15,6 +15,7 @@ target_sources(farcaster_capabilities
             social.cppm
             auth.cppm
             signer.cppm
+            signer_attestation.cppm
             write.cppm
             write_authority.cppm
             write_submit.cppm

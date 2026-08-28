@@ -19,6 +19,7 @@ module farcaster.protocol.message;
 import farcaster.domain.cast;
 import farcaster.domain.identity;
 import farcaster.domain.signer;
+import farcaster.domain.write;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.foundation.time;
@@ -30,6 +31,13 @@ namespace {
 constexpr std::uint32_t hashSchemeBlake3 = 1U;
 constexpr std::uint32_t signatureSchemeEd25519 = 1U;
 constexpr std::uint32_t messageTypeCastAdd = 1U;
+constexpr std::uint32_t messageTypeCastRemove = 2U;
+constexpr std::uint32_t messageTypeReactionAdd = 3U;
+constexpr std::uint32_t messageTypeReactionRemove = 4U;
+constexpr std::uint32_t messageTypeLinkAdd = 5U;
+constexpr std::uint32_t messageTypeLinkRemove = 6U;
+constexpr std::uint32_t reactionTypeLike = 1U;
+constexpr std::uint32_t reactionTypeRecast = 2U;
 constexpr std::uint32_t messageTypeKeyAdd = 16U;
 constexpr std::uint32_t messageTypeKeyRemove = 17U;
 constexpr std::uint32_t keyTypeEd25519 = 1U;
@@ -280,6 +288,87 @@ void appendMessage(
     return body;
 }
 
+[[nodiscard]] foundation::result::Status validateSimpleMessage(
+    const domain::identity::Fid fid,
+    const domain::signer::PublicKey& publicKey,
+    const std::uint32_t timestamp,
+    const Network network,
+    const std::string_view context)
+{
+    if (fid.value == 0U) {
+        return std::unexpected(invalid(std::string{context} + " requires a non-zero FID."));
+    }
+    if (timestamp == 0U) {
+        return std::unexpected(invalid(std::string{context} + " requires a non-zero Farcaster timestamp."));
+    }
+    switch (network) {
+    case Network::Mainnet:
+    case Network::Testnet:
+    case Network::Devnet:
+        break;
+    default:
+        return std::unexpected(invalid(std::string{context} + " requires a recognized Farcaster network."));
+    }
+    if (auto decoded = decodePublicKey(publicKey); !decoded) {
+        return std::unexpected(std::move(decoded.error()));
+    }
+    return {};
+}
+
+[[nodiscard]] foundation::result::Result<std::string> targetCastId(
+    const domain::cast::CastReference& target,
+    const std::string_view context)
+{
+    if (target.author.value == 0U) {
+        return std::unexpected(invalid(std::string{context} + " requires a non-zero target-author FID."));
+    }
+    auto hash = decodeCastHash(target.id.value, context);
+    if (!hash) {
+        return std::unexpected(std::move(hash.error()));
+    }
+    return encodeCastId(target.author, *hash);
+}
+
+[[nodiscard]] foundation::result::Result<std::string> encodeCastRemoveBody(
+    const CastRemoveInput& input)
+{
+    if (input.target.author.value != input.fid.value) {
+        return std::unexpected(invalid("CAST_REMOVE may target only a cast owned by the authenticated FID."));
+    }
+    auto hash = decodeCastHash(input.target.id.value, "CAST_REMOVE target");
+    if (!hash) {
+        return std::unexpected(std::move(hash.error()));
+    }
+    std::string body{};
+    appendBytes(body, 1U, *hash);
+    return body;
+}
+
+[[nodiscard]] foundation::result::Result<std::string> encodeReactionBody(
+    const ReactionInput& input)
+{
+    auto castId = targetCastId(input.target, "REACTION target cast");
+    if (!castId) {
+        return std::unexpected(std::move(castId.error()));
+    }
+    std::string body{};
+    appendUint(body, 1U, input.reaction == domain::write::ReactionKind::Like
+        ? reactionTypeLike : reactionTypeRecast);
+    appendMessage(body, 2U, *castId);
+    return body;
+}
+
+[[nodiscard]] foundation::result::Result<std::string> encodeFollowBody(const FollowInput& input)
+{
+    if (input.target.value == 0U || input.target.value == input.fid.value) {
+        return std::unexpected(invalid("LINK follow requires a non-zero target FID different from the author."));
+    }
+    std::string body{};
+    appendBytes(body, 1U, "follow");
+    appendUint(body, 3U, input.target.value);
+    return body;
+}
+
 [[nodiscard]] foundation::result::Status validateKeyAdd(const KeyAddInput& input)
 {
     if (auto status = validateCommon(input.fid, input.timestamp, input.deadline, input.network); !status) {
@@ -398,6 +487,14 @@ foundation::result::Result<std::uint32_t> toFarcasterTimestamp(
     return static_cast<std::uint32_t>(farcasterSeconds);
 }
 
+foundation::time::Timestamp fromFarcasterTimestamp(const std::uint32_t timestamp) noexcept
+{
+    const std::uint64_t unixSeconds = farcasterEpochUnixSeconds +
+        static_cast<std::uint64_t>(timestamp);
+    return foundation::time::Timestamp{
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds{unixSeconds})};
+}
+
 foundation::result::Result<UnsignedMessage> encodeCastAdd(const CastAddInput& input)
 {
     if (auto status = validateCastAdd(input); !status) {
@@ -417,6 +514,63 @@ foundation::result::Result<UnsignedMessage> encodeCastAdd(const CastAddInput& in
         input.timestamp,
         input.network,
         5U,
+        *body);
+}
+
+foundation::result::Result<UnsignedMessage> encodeCastRemove(const CastRemoveInput& input)
+{
+    if (auto status = validateSimpleMessage(input.fid, input.publicKey, input.timestamp, input.network, "CAST_REMOVE"); !status) {
+        return std::unexpected(std::move(status.error()));
+    }
+    auto body = encodeCastRemoveBody(input);
+    if (!body) {
+        return std::unexpected(std::move(body.error()));
+    }
+    return encodeData(
+        input.fid,
+        input.publicKey,
+        messageTypeCastRemove,
+        input.timestamp,
+        input.network,
+        6U,
+        *body);
+}
+
+foundation::result::Result<UnsignedMessage> encodeReaction(const ReactionInput& input)
+{
+    if (auto status = validateSimpleMessage(input.fid, input.publicKey, input.timestamp, input.network, "REACTION"); !status) {
+        return std::unexpected(std::move(status.error()));
+    }
+    auto body = encodeReactionBody(input);
+    if (!body) {
+        return std::unexpected(std::move(body.error()));
+    }
+    return encodeData(
+        input.fid,
+        input.publicKey,
+        input.isActive ? messageTypeReactionAdd : messageTypeReactionRemove,
+        input.timestamp,
+        input.network,
+        7U,
+        *body);
+}
+
+foundation::result::Result<UnsignedMessage> encodeFollow(const FollowInput& input)
+{
+    if (auto status = validateSimpleMessage(input.fid, input.publicKey, input.timestamp, input.network, "LINK"); !status) {
+        return std::unexpected(std::move(status.error()));
+    }
+    auto body = encodeFollowBody(input);
+    if (!body) {
+        return std::unexpected(std::move(body.error()));
+    }
+    return encodeData(
+        input.fid,
+        input.publicKey,
+        input.isFollowing ? messageTypeLinkAdd : messageTypeLinkRemove,
+        input.timestamp,
+        input.network,
+        14U,
         *body);
 }
 

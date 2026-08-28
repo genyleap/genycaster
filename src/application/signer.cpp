@@ -13,8 +13,10 @@ module;
 
 module farcaster.application.signer;
 
+import farcaster.domain.identity;
 import farcaster.application.executor;
 import farcaster.capability.signer;
+import farcaster.capability.signer_attestation;
 import farcaster.domain.session;
 import farcaster.domain.signer;
 import farcaster.foundation.error;
@@ -138,6 +140,7 @@ struct SignerService::Impl final {
     local::signer::ISignerMetadataStore& metadataStore;
     capability::signer::ISignerRegistry* registry{};
     capability::signer::ICustodyAuthorizer* authorizer{};
+    capability::signer_attestation::ISignedKeyRequestAttestor* attestor{};
     SignerPolicy policy{};
     std::unique_ptr<capability::signer::INativeSigner> nativeSigner{};
     SignerState current{};
@@ -174,6 +177,7 @@ SignerService::SignerService(
     local::signer::ISignerMetadataStore& metadataStore,
     capability::signer::ISignerRegistry* const registry,
     capability::signer::ICustodyAuthorizer* const authorizer,
+    capability::signer_attestation::ISignedKeyRequestAttestor* const attestor,
     SignerPolicy policy)
     : m_impl(std::make_unique<Impl>(Impl{
           .executor = executor,
@@ -181,6 +185,7 @@ SignerService::SignerService(
           .metadataStore = metadataStore,
           .registry = registry,
           .authorizer = authorizer,
+          .attestor = attestor,
           .policy = std::move(policy),
       }))
 {
@@ -413,6 +418,14 @@ foundation::result::Status SignerService::provision(
                 observer(m_impl->current);
                 return;
             }
+            if (!session->custodyAddress || session->custodyAddress->empty()) {
+                m_impl->current = SignerState{.phase = SignerPhase::AuthorizationRequired,
+                    .record = record, .requiredScopes = m_impl->policy.scopes,
+                    .error = makeError(foundation::error::ErrorCode::Unauthorized,
+                        "The current login predates custody-wallet verification. Sign out and sign in again so Genycaster can verify the FID's current custody address before KEY_ADD.")};
+                observer(m_impl->current);
+                return;
+            }
 
             auto nonce = nextNonce(inspected->nonces.currentUserNonce, "Signer user nonce");
             if (!nonce) {
@@ -432,8 +445,29 @@ foundation::result::Status SignerService::provision(
                 .deadline = now + std::chrono::duration_cast<std::chrono::milliseconds>(
                     m_impl->policy.authorizationLifetime),
                 .requestFid = requestFid,
+                .custodyAddress = *session->custodyAddress,
             };
-            auto authorization = m_impl->authorizer->authorize(request);
+            std::optional<capability::signer_attestation::SignedKeyRequestAttestation> appAttestation{};
+            if (requestFid.value != session->fid.value) {
+                if (m_impl->attestor == nullptr) {
+                    m_impl->current = SignerState{.phase = SignerPhase::AuthorizationRequired,
+                        .record = record, .requiredScopes = m_impl->policy.scopes,
+                        .error = makeError(foundation::error::ErrorCode::Unsupported,
+                            "Genycaster App-FID signing is configured, but no SignedKeyRequest attestation provider is available.")};
+                    observer(m_impl->current);
+                    return;
+                }
+                auto attestation = m_impl->attestor->attest(request.requestFid.value, request.publicKey.hex, request.deadline);
+                if (!attestation) {
+                    m_impl->current = SignerState{.phase = SignerPhase::AuthorizationRequired,
+                        .record = record, .requiredScopes = m_impl->policy.scopes,
+                        .error = std::move(attestation.error())};
+                    observer(m_impl->current);
+                    return;
+                }
+                appAttestation = std::move(*attestation);
+            }
+            auto authorization = m_impl->authorizer->authorize(request, std::move(appAttestation));
             if (!authorization) {
                 m_impl->current = SignerState{.phase = SignerPhase::AuthorizationRequired,
                     .record = record, .requiredScopes = m_impl->policy.scopes,
@@ -557,6 +591,36 @@ foundation::result::Status SignerService::revoke(
                 .record = std::move(record), .requiredScopes = m_impl->policy.scopes};
             observer(m_impl->current);
         });
+}
+
+foundation::result::Status SignerService::recordConfirmedWrite(
+    const domain::identity::Fid fid,
+    const foundation::time::Timestamp confirmedAt)
+{
+    if (fid.value == 0U || !m_impl->current.record ||
+        !m_impl->current.record->lastVerifiedRegistration) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::Unauthorized,
+            "Cannot refresh signer TTL without an active verified registration."));
+    }
+    auto record = *m_impl->current.record;
+    if (record.local.fid.value != fid.value ||
+        record.lastVerifiedRegistration->fid.value != fid.value ||
+        record.lastVerifiedRegistration->state != domain::signer::RegistrationState::Active) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::Unauthorized,
+            "Confirmed write belongs to a different or inactive signer registration."));
+    }
+    auto& registration = *record.lastVerifiedRegistration;
+    if (!registration.lastUsedAt || confirmedAt > *registration.lastUsedAt) {
+        registration.lastUsedAt = confirmedAt;
+    }
+    registration.verifiedAt = confirmedAt;
+    if (auto saved = m_impl->metadataStore.save(record); !saved) {
+        return std::unexpected(std::move(saved.error()));
+    }
+    m_impl->current = stateForRegistration(std::move(record), m_impl->policy.scopes);
+    return {};
 }
 
 foundation::result::Result<domain::signer::PublicKey> SignerService::requireSigner(

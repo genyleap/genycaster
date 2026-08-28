@@ -20,18 +20,18 @@ export namespace farcaster::provider::snapchain::write {
  * it with a self-hosted or otherwise policy-approved Snapchain origin.
  */
 struct Config final {
-    std::string baseUrl{"https://crackle.farcaster.xyz:3381"};
+    std::string baseUrl{"https://snapchain.farcaster.xyz"};
     std::chrono::milliseconds timeout{15'000};
     std::size_t maxBodyBytes{8U * 1024U * 1024U};
 };
 
 /**
- * @brief Creates a canonical Snapchain CAST_ADD submit/reconcile adapter.
+ * @brief Creates a canonical Snapchain protocol-write submit/reconcile adapter.
  *
  * submit() POSTs the exact protobuf Message to `/v1/submitMessage` and validates
- * the returned canonical hash. reconcile() queries `/v1/castById` by FID/hash so
- * crash/timeout ambiguity is resolved before retry. The borrowed transport must
- * outlive the returned adapter.
+ * the returned canonical hash/type/FID. reconcile() resolves Cast, Reaction and
+ * Follow desired state through Snapchain's authoritative read endpoints before
+ * retrying an ambiguous operation. The borrowed transport must outlive the adapter.
  */
 [[nodiscard]] std::unique_ptr<capability::write::IWriteSubmitter> makeSubmitter(
     transport::http::IHttpTransport& transport,

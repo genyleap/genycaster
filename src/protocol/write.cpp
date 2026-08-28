@@ -13,10 +13,12 @@ module farcaster.protocol.write;
 
 import farcaster.capability.write;
 import farcaster.domain.cast;
+import farcaster.domain.identity;
 import farcaster.domain.signer;
 import farcaster.domain.write;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
+import farcaster.foundation.time;
 import farcaster.protocol.message;
 
 namespace farcaster::protocol::write {
@@ -42,6 +44,33 @@ namespace {
         result.push_back(digits[value & 0x0FU]);
     }
     return result;
+}
+
+[[nodiscard]] foundation::result::Result<domain::write::PreparedOperation> preparedFrom(
+    const domain::write::OperationKind kind,
+    const domain::identity::Fid author,
+    domain::write::OperationTarget target,
+    std::optional<domain::cast::Cast> optimisticCast,
+    const domain::signer::PublicKey& signerPublicKey,
+    protocol::message::UnsignedMessage message,
+    const foundation::time::Timestamp preparedAt)
+{
+    if (message.hashBytes.size() != 20U) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::ProtocolFailure,
+            "Canonical Farcaster write hash must contain exactly 20 bytes."));
+    }
+    return domain::write::PreparedOperation{
+        .kind = kind,
+        .idempotencyKey = domain::write::IdempotencyKey{hexHash(message.hashBytes)},
+        .author = author,
+        .target = std::move(target),
+        .optimisticCast = std::move(optimisticCast),
+        .signerPublicKey = signerPublicKey,
+        .dataBytes = std::move(message.dataBytes),
+        .hashBytes = std::move(message.hashBytes),
+        .preparedAt = preparedAt,
+    };
 }
 
 class CanonicalWriteCodec final : public capability::write::ICanonicalWriteCodec {
@@ -75,39 +104,124 @@ public:
         if (!message) {
             return std::unexpected(std::move(message.error()));
         }
-        if (message->hashBytes.size() != 20U) {
-            return std::unexpected(foundation::error::Error::make(
-                foundation::error::ErrorCode::ProtocolFailure,
-                "Canonical CAST_ADD hash must contain exactly 20 bytes."));
-        }
         const std::string castId = hexHash(message->hashBytes);
-        return domain::write::PreparedOperation{
-            .kind = domain::write::OperationKind::PublishCast,
-            .idempotencyKey = domain::write::IdempotencyKey{castId},
-            .optimisticCast = domain::cast::Cast{
-                .id = domain::cast::CastId{castId},
-                .author = intent.author,
-                .text = intent.text,
-                .parent = intent.parent
-                    ? std::optional<domain::cast::CastId>{intent.parent->id}
-                    : std::nullopt,
-                .embeds = intent.embeds,
-                .createdAt = intent.createdAt,
-            },
-            .signerPublicKey = signerPublicKey,
-            .dataBytes = std::move(message->dataBytes),
-            .hashBytes = std::move(message->hashBytes),
-            .preparedAt = intent.createdAt,
+        auto optimisticCast = domain::cast::Cast{
+            .id = domain::cast::CastId{castId},
+            .author = intent.author,
+            .text = intent.text,
+            .parent = intent.parent
+                ? std::optional<domain::cast::CastId>{intent.parent->id}
+                : std::nullopt,
+            .embeds = intent.embeds,
+            .createdAt = intent.createdAt,
         };
+        return preparedFrom(
+            domain::write::OperationKind::PublishCast,
+            intent.author,
+            {},
+            std::move(optimisticCast),
+            signerPublicKey,
+            std::move(*message),
+            intent.createdAt);
+    }
+
+    [[nodiscard]] foundation::result::Result<domain::write::PreparedOperation>
+    prepareRemoveCast(
+        const domain::write::RemoveCastIntent& intent,
+        const domain::signer::PublicKey& signerPublicKey) override
+    {
+        auto timestamp = protocol::message::toFarcasterTimestamp(intent.createdAt);
+        if (!timestamp) {
+            return std::unexpected(std::move(timestamp.error()));
+        }
+        auto message = protocol::message::encodeCastRemove(protocol::message::CastRemoveInput{
+            .fid = intent.author,
+            .publicKey = signerPublicKey,
+            .target = intent.target,
+            .timestamp = *timestamp,
+            .network = m_network,
+        });
+        if (!message) {
+            return std::unexpected(std::move(message.error()));
+        }
+        return preparedFrom(
+            domain::write::OperationKind::RemoveCast,
+            intent.author,
+            domain::write::OperationTarget{.cast = intent.target},
+            std::nullopt,
+            signerPublicKey,
+            std::move(*message),
+            intent.createdAt);
+    }
+
+    [[nodiscard]] foundation::result::Result<domain::write::PreparedOperation>
+    prepareReaction(
+        const domain::write::ReactionIntent& intent,
+        const domain::signer::PublicKey& signerPublicKey) override
+    {
+        auto timestamp = protocol::message::toFarcasterTimestamp(intent.createdAt);
+        if (!timestamp) {
+            return std::unexpected(std::move(timestamp.error()));
+        }
+        auto message = protocol::message::encodeReaction(protocol::message::ReactionInput{
+            .fid = intent.author,
+            .publicKey = signerPublicKey,
+            .target = intent.target,
+            .reaction = intent.reaction,
+            .isActive = intent.isActive,
+            .timestamp = *timestamp,
+            .network = m_network,
+        });
+        if (!message) {
+            return std::unexpected(std::move(message.error()));
+        }
+        const auto kind = intent.reaction == domain::write::ReactionKind::Like
+            ? (intent.isActive ? domain::write::OperationKind::Like : domain::write::OperationKind::Unlike)
+            : (intent.isActive ? domain::write::OperationKind::Recast : domain::write::OperationKind::UndoRecast);
+        return preparedFrom(
+            kind,
+            intent.author,
+            domain::write::OperationTarget{.cast = intent.target},
+            std::nullopt,
+            signerPublicKey,
+            std::move(*message),
+            intent.createdAt);
+    }
+
+    [[nodiscard]] foundation::result::Result<domain::write::PreparedOperation>
+    prepareFollow(
+        const domain::write::FollowIntent& intent,
+        const domain::signer::PublicKey& signerPublicKey) override
+    {
+        auto timestamp = protocol::message::toFarcasterTimestamp(intent.createdAt);
+        if (!timestamp) {
+            return std::unexpected(std::move(timestamp.error()));
+        }
+        auto message = protocol::message::encodeFollow(protocol::message::FollowInput{
+            .fid = intent.author,
+            .publicKey = signerPublicKey,
+            .target = intent.target,
+            .isFollowing = intent.isFollowing,
+            .timestamp = *timestamp,
+            .network = m_network,
+        });
+        if (!message) {
+            return std::unexpected(std::move(message.error()));
+        }
+        return preparedFrom(
+            intent.isFollowing ? domain::write::OperationKind::Follow : domain::write::OperationKind::Unfollow,
+            intent.author,
+            domain::write::OperationTarget{.fid = intent.target},
+            std::nullopt,
+            signerPublicKey,
+            std::move(*message),
+            intent.createdAt);
     }
 
     [[nodiscard]] foundation::result::Result<domain::write::SignedOperation> seal(
         const domain::write::PreparedOperation& operation,
         const domain::signer::Signature& signature) override
     {
-        if (operation.kind != domain::write::OperationKind::PublishCast) {
-            return std::unexpected(invalid("Canonical write codec received an unsupported operation kind."));
-        }
         auto envelope = protocol::message::seal(
             protocol::message::UnsignedMessage{
                 .dataBytes = operation.dataBytes,
@@ -121,6 +235,8 @@ public:
         return domain::write::SignedOperation{
             .kind = operation.kind,
             .idempotencyKey = operation.idempotencyKey,
+            .author = operation.author,
+            .target = operation.target,
             .optimisticCast = operation.optimisticCast,
             .signerPublicKey = operation.signerPublicKey,
             .messageBytes = std::move(*envelope),

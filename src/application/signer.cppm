@@ -16,6 +16,7 @@ import farcaster.foundation.time;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.capability.signer;
+import farcaster.capability.signer_attestation;
 import farcaster.capability.write_authority;
 import farcaster.local.signer;
 import farcaster.application.executor;
@@ -90,6 +91,7 @@ public:
         local::signer::ISignerMetadataStore& metadataStore,
         capability::signer::ISignerRegistry* registry,
         capability::signer::ICustodyAuthorizer* authorizer,
+        capability::signer_attestation::ISignedKeyRequestAttestor* attestor,
         SignerPolicy policy = {});
     /** @brief Destroys the service after executor-owned work has drained. */
     ~SignerService();
@@ -126,6 +128,11 @@ public:
     [[nodiscard]] foundation::result::Result<domain::signer::Signature> sign(
         domain::signer::Scope requiredScope,
         const std::string& bytes) override;
+
+    /** @brief Advances locally verified sliding-TTL state after an authoritative write confirmation. */
+    [[nodiscard]] foundation::result::Status recordConfirmedWrite(
+        domain::identity::Fid fid,
+        foundation::time::Timestamp confirmedAt) override;
 
     /** @brief Returns the current normalized state snapshot. */
     [[nodiscard]] SignerState state() const;
