@@ -460,7 +460,9 @@ inline constexpr std::uint32_t requestedPageSize = 1'000U;
     url.append("&pageSize=");
     url.append(std::to_string(requestedPageSize));
     if (requestFid) {
-        url.append("&requesterFids=");
+        // serde_qs requires explicit sequence syntax even for one requester.
+        // A scalar requesterFids value is rejected by Snapchain with HTTP 400.
+        url.append("&requesterFids%5B0%5D=");
         url.append(std::to_string(requestFid->value));
     }
     if (pageToken && !pageToken->empty()) {
