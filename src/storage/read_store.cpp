@@ -52,6 +52,15 @@ namespace {
     if (key.kind == local::read::FeedKey::Kind::Channel) {
         return "feed:channel:" + (key.channel ? key.channel->value : std::string{});
     }
+    if (key.kind == local::read::FeedKey::Kind::UserCasts) {
+        return "feed:user:casts:" + std::to_string(key.fid ? key.fid->value : 0);
+    }
+    if (key.kind == local::read::FeedKey::Kind::UserReplies) {
+        return "feed:user:replies:" + std::to_string(key.fid ? key.fid->value : 0);
+    }
+    if (key.kind == local::read::FeedKey::Kind::UserPopular) {
+        return "feed:user:popular:" + std::to_string(key.fid ? key.fid->value : 0);
+    }
     return "feed:trending";
 }
 
