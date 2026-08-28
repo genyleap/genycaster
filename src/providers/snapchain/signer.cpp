@@ -13,6 +13,7 @@ module;
 #include <optional>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -111,6 +112,16 @@ inline constexpr std::uint32_t requestedPageSize = 1'000U;
         return std::unexpected(makeError(
             foundation::error::ErrorCode::InvalidArgument,
             "Snapchain response-size limit must be positive."));
+    }
+    if (config.confirmationTimeout <= std::chrono::milliseconds::zero()) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Snapchain confirmation timeout must be positive."));
+    }
+    if (config.confirmationPollInterval <= std::chrono::milliseconds::zero()) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Snapchain confirmation poll interval must be positive."));
     }
     return {};
 }
@@ -768,31 +779,46 @@ public:
             return std::unexpected(std::move(submitted.error()));
         }
 
-        auto observed = inspect(
-            request.fid,
-            domain::signer::PublicKey{*expectedKey},
-            request.requestFid);
-        if (!observed) {
-            return std::unexpected(std::move(observed.error()));
-        }
-        if (!observed->registration) {
-            return std::unexpected(protocolError(
-                "Snapchain accepted KEY_ADD but the signer was not observable afterwards."));
-        }
+        const auto confirmationDeadline =
+            std::chrono::steady_clock::now() + m_config.confirmationTimeout;
+        while (true) {
+            auto observed = inspect(
+                request.fid,
+                domain::signer::PublicKey{*expectedKey},
+                request.requestFid);
+            if (!observed) {
+                return std::unexpected(std::move(observed.error()));
+            }
+            if (observed->registration) {
+                const auto& registration = *observed->registration;
+                if (registration.kind != domain::signer::RegistrationKind::Gasless ||
+                    registration.state != domain::signer::RegistrationState::Active ||
+                    registration.publicKey.hex != *expectedKey ||
+                    registration.ttlSeconds != request.ttlSeconds ||
+                    registration.scopes != request.scopes ||
+                    !registration.requestFid ||
+                    registration.requestFid->value != request.requestFid.value ||
+                    observed->nonces.currentUserNonce < request.nonce) {
+                    return std::unexpected(protocolError(
+                        "Snapchain post-submit signer state does not match the authorized KEY_ADD request."));
+                }
+                return registration;
+            }
+            if (observed->nonces.currentUserNonce >= request.nonce) {
+                return std::unexpected(protocolError(
+                    "Snapchain advanced the KEY_ADD nonce without exposing the authorized signer."));
+            }
 
-        const auto& registration = *observed->registration;
-        if (registration.kind != domain::signer::RegistrationKind::Gasless ||
-            registration.state != domain::signer::RegistrationState::Active ||
-            registration.publicKey.hex != *expectedKey ||
-            registration.ttlSeconds != request.ttlSeconds ||
-            registration.scopes != request.scopes ||
-            !registration.requestFid ||
-            registration.requestFid->value != request.requestFid.value ||
-            observed->nonces.currentUserNonce < request.nonce) {
-            return std::unexpected(protocolError(
-                "Snapchain post-submit signer state does not match the authorized KEY_ADD request."));
+            const auto now = std::chrono::steady_clock::now();
+            if (now >= confirmationDeadline) {
+                return std::unexpected(makeError(
+                    foundation::error::ErrorCode::Timeout,
+                    "Snapchain accepted KEY_ADD into its submission queue, but the signer did not become observable within the confirmation window."));
+            }
+            std::this_thread::sleep_for(std::min(
+                m_config.confirmationPollInterval,
+                std::chrono::duration_cast<std::chrono::milliseconds>(confirmationDeadline - now)));
         }
-        return registration;
     }
 
     [[nodiscard]] foundation::result::Status selfRevoke(
