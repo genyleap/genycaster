@@ -50,6 +50,9 @@ std::vector<capability::model::CapabilityDescriptor> capabilities()
         derivedRead(capability::catalog::feedFollowingRead()),
         derivedRead(capability::catalog::feedTrendingRead()),
         derivedRead(capability::catalog::feedChannelRead()),
+        protocolRead(capability::catalog::feedUserCastsRead()),
+        derivedRead(capability::catalog::feedUserRepliesRead()),
+        derivedRead(capability::catalog::feedUserPopularRead()),
     };
 }
 
