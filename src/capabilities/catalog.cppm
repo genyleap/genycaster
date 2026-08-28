@@ -20,6 +20,12 @@ export namespace farcaster::capability::catalog {
 [[nodiscard]] model::CapabilityId feedTrendingRead();
 /** @brief Channel feed read capability. */
 [[nodiscard]] model::CapabilityId feedChannelRead();
+/** @brief User-authored casts feed read capability. */
+[[nodiscard]] model::CapabilityId feedUserCastsRead();
+/** @brief User replies/recasts feed read capability. */
+[[nodiscard]] model::CapabilityId feedUserRepliesRead();
+/** @brief User popular-casts feed read capability. */
+[[nodiscard]] model::CapabilityId feedUserPopularRead();
 /** @brief Personalized feed read capability. */
 [[nodiscard]] model::CapabilityId feedForYouRead();
 /** @brief Mini App manifest resolution capability. */
