@@ -31,6 +31,18 @@ public:
         const domain::channel::ChannelId& channelId,
         const capability::pagination::PageRequest& pageRequest) override;
 
+    [[nodiscard]] foundation::result::Result<capability::feed::FeedPage> userCasts(
+        domain::identity::Fid fid,
+        const capability::pagination::PageRequest& pageRequest) override;
+
+    [[nodiscard]] foundation::result::Result<capability::feed::FeedPage> userReplies(
+        domain::identity::Fid fid,
+        const capability::pagination::PageRequest& pageRequest) override;
+
+    [[nodiscard]] foundation::result::Result<capability::feed::FeedPage> userPopular(
+        domain::identity::Fid fid,
+        const capability::pagination::PageRequest& pageRequest) override;
+
 private:
     transport::http::IHttpTransport& m_transport;
     storage::continuation::ContinuationStore& m_continuations;
