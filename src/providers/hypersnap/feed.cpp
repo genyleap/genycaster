@@ -24,7 +24,8 @@ namespace farcaster::provider::hypersnap::feed {
 namespace {
 
 constexpr std::chrono::milliseconds followingRequestTimeout{5'000};
-constexpr std::chrono::milliseconds discoveryRequestTimeout{8'000};
+constexpr std::chrono::milliseconds discoveryRequestTimeout{6'000};
+constexpr std::chrono::milliseconds profileFeedRequestTimeout{6'000};
 
 [[nodiscard]] foundation::result::Result<std::size_t> validatedLimit(
     const capability::pagination::PageRequest& pageRequest)
@@ -153,6 +154,51 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::channel(
         {{"channel_ids", channelId.value}},
         pageRequest,
         discoveryRequestTimeout);
+}
+
+foundation::result::Result<capability::feed::FeedPage> FeedSource::userCasts(
+    const domain::identity::Fid fid,
+    const capability::pagination::PageRequest& pageRequest)
+{
+    return readFeed(
+        m_transport,
+        m_continuations,
+        m_config,
+        capability::catalog::feedUserCastsRead(),
+        "/v2/farcaster/feed/user/casts",
+        {{"fid", std::to_string(fid.value)}},
+        pageRequest,
+        profileFeedRequestTimeout);
+}
+
+foundation::result::Result<capability::feed::FeedPage> FeedSource::userReplies(
+    const domain::identity::Fid fid,
+    const capability::pagination::PageRequest& pageRequest)
+{
+    return readFeed(
+        m_transport,
+        m_continuations,
+        m_config,
+        capability::catalog::feedUserRepliesRead(),
+        "/v2/farcaster/feed/user/replies_and_recasts",
+        {{"fid", std::to_string(fid.value)}},
+        pageRequest,
+        profileFeedRequestTimeout);
+}
+
+foundation::result::Result<capability::feed::FeedPage> FeedSource::userPopular(
+    const domain::identity::Fid fid,
+    const capability::pagination::PageRequest& pageRequest)
+{
+    return readFeed(
+        m_transport,
+        m_continuations,
+        m_config,
+        capability::catalog::feedUserPopularRead(),
+        "/v2/farcaster/feed/user/popular",
+        {{"fid", std::to_string(fid.value)}},
+        pageRequest,
+        profileFeedRequestTimeout);
 }
 
 }
