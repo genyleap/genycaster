@@ -197,6 +197,19 @@ CREATE TABLE IF NOT EXISTS cast_local_tombstones (
     author_fid INTEGER NOT NULL,
     created_at_ms INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS cast_reaction_local_state (
+    author_fid INTEGER NOT NULL,
+    cast_id TEXT NOT NULL,
+    target_cast_fid INTEGER NOT NULL,
+    reaction_kind TEXT NOT NULL CHECK (reaction_kind IN ('like', 'recast')),
+    is_active INTEGER NOT NULL CHECK (is_active IN (0, 1)),
+    idempotency_key TEXT NOT NULL,
+    updated_at_ms INTEGER NOT NULL,
+    PRIMARY KEY (author_fid, cast_id, reaction_kind),
+    FOREIGN KEY (idempotency_key) REFERENCES write_outbox(idempotency_key) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_cast_reaction_local_author
+    ON cast_reaction_local_state(author_fid, updated_at_ms);
 )SQL";
 
     Transaction transaction{connection};
@@ -361,6 +374,62 @@ WHERE kind = 'remove-cast' AND target_cast_id IS NOT NULL;
         return status;
     }
     if (auto status = recordMigration(connection, 13, appliedAt); !status) {
+        return status;
+    }
+
+    // Keep account-scoped reaction intent durable independently of provider
+    // feed payloads. Backfill the latest historical Like/Unlike and
+    // Recast/Undo-Recast operation for each account/cast/reaction tuple.
+    if (auto status = connection.execute(R"SQL(
+CREATE TABLE IF NOT EXISTS cast_reaction_local_state (
+    author_fid INTEGER NOT NULL,
+    cast_id TEXT NOT NULL,
+    target_cast_fid INTEGER NOT NULL,
+    reaction_kind TEXT NOT NULL CHECK (reaction_kind IN ('like', 'recast')),
+    is_active INTEGER NOT NULL CHECK (is_active IN (0, 1)),
+    idempotency_key TEXT NOT NULL,
+    updated_at_ms INTEGER NOT NULL,
+    PRIMARY KEY (author_fid, cast_id, reaction_kind),
+    FOREIGN KEY (idempotency_key) REFERENCES write_outbox(idempotency_key) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_cast_reaction_local_author
+    ON cast_reaction_local_state(author_fid, updated_at_ms);
+INSERT OR REPLACE INTO cast_reaction_local_state(
+    author_fid, cast_id, target_cast_fid, reaction_kind,
+    is_active, idempotency_key, updated_at_ms)
+SELECT
+    current.author_fid,
+    current.target_cast_id,
+    current.target_cast_fid,
+    CASE WHEN current.kind IN ('like', 'unlike') THEN 'like' ELSE 'recast' END,
+    CASE WHEN current.kind IN ('like', 'recast') THEN 1 ELSE 0 END,
+    current.idempotency_key,
+    current.enqueued_at_ms
+FROM write_outbox AS current
+WHERE current.kind IN ('like', 'unlike', 'recast', 'undo-recast')
+  AND current.target_cast_id IS NOT NULL
+  AND current.target_cast_fid IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM write_outbox AS newer
+      WHERE newer.author_fid = current.author_fid
+        AND newer.target_cast_id = current.target_cast_id
+        AND newer.kind IN ('like', 'unlike', 'recast', 'undo-recast')
+        AND (
+            (current.kind IN ('like', 'unlike') AND newer.kind IN ('like', 'unlike'))
+            OR
+            (current.kind IN ('recast', 'undo-recast') AND newer.kind IN ('recast', 'undo-recast'))
+        )
+        AND (
+            newer.enqueued_at_ms > current.enqueued_at_ms
+            OR (newer.enqueued_at_ms = current.enqueued_at_ms
+                AND newer.rowid > current.rowid)
+        )
+  );
+)SQL"); !status) {
+        return status;
+    }
+    if (auto status = recordMigration(connection, 14, appliedAt); !status) {
         return status;
     }
 

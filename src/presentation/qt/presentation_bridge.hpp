@@ -151,6 +151,8 @@ public:
     /** @brief Commits one durable protocol-write lifecycle plus optional presentation mutation. */
     void applyWriteState(
         QString phase, bool busy, QString statusText, QString errorText, QVariantMap optimisticRow = {});
+    /** @brief Replaces account-scoped durable Like/Recast state used to overlay refreshed reads. */
+    void applyReactionProjections(QVariantList reactions);
     /** @brief Commits a normalized identity presentation snapshot. */
     void applyIdentity(qulonglong fid, QString displayName, QString username,
         QString status, QString error, QString diagnostic, bool busy, bool stale, bool sourceUnavailable);
@@ -219,6 +221,7 @@ private:
     qulonglong m_replyParentAuthorFid{};
     QString m_replyParentCastId{};
     QVariantList m_writeRows{};
+    QVariantMap m_reactionOverrides{};
     QString m_activeView{QStringLiteral("feed")};
     QString m_activeFeed{QStringLiteral("following")};
     QString m_channelId{};

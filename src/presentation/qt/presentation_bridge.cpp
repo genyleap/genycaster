@@ -67,6 +67,56 @@ void removeCastPresentation(QVariantList& rows, const QString& castId)
     }
 }
 
+[[nodiscard]] QString reactionOverrideKey(const QString& castId, const QString& kind)
+{
+    return kind + QChar{0x1f} + castId;
+}
+
+void rememberReactionOverride(
+    QVariantMap& overrides,
+    const QString& castId,
+    const QString& kind,
+    const bool active)
+{
+    if (castId.isEmpty() || (kind != QStringLiteral("like") && kind != QStringLiteral("recast"))) {
+        return;
+    }
+    overrides.insert(reactionOverrideKey(castId, kind), active);
+}
+
+void applyReactionOverrides(QVariantMap& map, const QVariantMap& overrides)
+{
+    const QString castId = map.value(QStringLiteral("castId")).toString();
+    if (castId.isEmpty()) {
+        return;
+    }
+    const QString likeKey = reactionOverrideKey(castId, QStringLiteral("like"));
+    if (overrides.contains(likeKey)) {
+        const bool likedByMe = overrides.value(likeKey).toBool();
+        map.insert(QStringLiteral("likedByMe"), likedByMe);
+        if (likedByMe && map.value(QStringLiteral("likeCount")).toULongLong() == 0U) {
+            map.insert(QStringLiteral("likeCount"), qulonglong{1});
+        }
+    }
+    const QString recastKey = reactionOverrideKey(castId, QStringLiteral("recast"));
+    if (overrides.contains(recastKey)) {
+        const bool recastedByMe = overrides.value(recastKey).toBool();
+        map.insert(QStringLiteral("recastedByMe"), recastedByMe);
+        if (recastedByMe && map.value(QStringLiteral("recastCount")).toULongLong() == 0U) {
+            map.insert(QStringLiteral("recastCount"), qulonglong{1});
+        }
+    }
+}
+
+void applyReactionOverrides(QVariantList& rows, const QVariantMap& overrides)
+{
+    for (qsizetype index = 0; index < rows.size(); ++index) {
+        auto map = rows[index].toMap();
+        applyReactionOverrides(map, overrides);
+        rows[index] = std::move(map);
+    }
+}
+
 }
 
 PresentationBridge::PresentationBridge(QObject* const parent) : QObject(parent) {}
@@ -648,6 +698,7 @@ void PresentationBridge::applyAuthenticationState(
             m_rows = std::move(retained);
         }
         m_writeRows.clear();
+        m_reactionOverrides.clear();
         m_lastPublishedCastId.clear();
         clearReplyTarget();
     }
@@ -743,6 +794,7 @@ void PresentationBridge::applyWriteState(
         const bool active = operationKind == QStringLiteral("like") || operationKind == QStringLiteral("recast");
         const QString reaction = (operationKind == QStringLiteral("like") || operationKind == QStringLiteral("unlike"))
             ? QStringLiteral("like") : QStringLiteral("recast");
+        rememberReactionOverride(m_reactionOverrides, targetCastId, reaction, active);
         updateReactionPresentation(m_rows, targetCastId, reaction, active);
         updateReactionPresentation(m_writeRows, targetCastId, reaction, active);
         updateReactionPresentation(m_detail, targetCastId, reaction, active);
@@ -766,6 +818,23 @@ void PresentationBridge::applyWriteState(
         m_writePhase == QStringLiteral("queued")) {
         emit castQueued();
     }
+    emit stateChanged();
+}
+
+void PresentationBridge::applyReactionProjections(QVariantList reactions)
+{
+    m_reactionOverrides.clear();
+    for (const auto& value : reactions) {
+        const QVariantMap projection = value.toMap();
+        rememberReactionOverride(
+            m_reactionOverrides,
+            projection.value(QStringLiteral("castId")).toString(),
+            projection.value(QStringLiteral("kind")).toString(),
+            projection.value(QStringLiteral("active")).toBool());
+    }
+    applyReactionOverrides(m_rows, m_reactionOverrides);
+    applyReactionOverrides(m_writeRows, m_reactionOverrides);
+    applyReactionOverrides(m_detail, m_reactionOverrides);
     emit stateChanged();
 }
 
@@ -842,6 +911,7 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
     } else {
         m_rows = std::move(rows);
     }
+    applyReactionOverrides(m_rows, m_reactionOverrides);
     m_next = std::move(next);
     m_statusText = std::move(status);
     m_errorText = std::move(error);
@@ -857,6 +927,7 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
 {
     m_activeView = std::move(view);
     m_detail = std::move(detail);
+    applyReactionOverrides(m_detail, m_reactionOverrides);
     m_statusText = std::move(status);
     m_errorText = std::move(error);
     m_diagnosticText = std::move(diagnostic);

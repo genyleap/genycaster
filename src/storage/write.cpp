@@ -276,6 +276,77 @@ VALUES(?, ?, ?, ?);
     return {};
 }
 
+[[nodiscard]] foundation::result::Status upsertReactionProjection(
+    sqlite::Connection& connection,
+    const domain::write::SignedOperation& operation,
+    const foundation::time::Timestamp updatedAt)
+{
+    using domain::write::OperationKind;
+    const bool isLike = operation.kind == OperationKind::Like ||
+        operation.kind == OperationKind::Unlike;
+    const bool isRecast = operation.kind == OperationKind::Recast ||
+        operation.kind == OperationKind::UndoRecast;
+    if ((!isLike && !isRecast) || !operation.target.cast) {
+        return {};
+    }
+
+    auto prepared = sqlite::Statement::prepare(connection, R"SQL(
+INSERT INTO cast_reaction_local_state(
+    author_fid, cast_id, target_cast_fid, reaction_kind,
+    is_active, idempotency_key, updated_at_ms)
+VALUES(?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(author_fid, cast_id, reaction_kind) DO UPDATE SET
+    target_cast_fid = excluded.target_cast_fid,
+    is_active = excluded.is_active,
+    idempotency_key = excluded.idempotency_key,
+    updated_at_ms = excluded.updated_at_ms;
+)SQL");
+    if (!prepared) {
+        return std::unexpected(toFoundationError(std::move(prepared.error())));
+    }
+    auto statement = std::move(*prepared);
+    if (operation.author.value > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) ||
+        operation.target.cast->author.value > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+        return std::unexpected(storageFailure("FID is outside SQLite INTEGER range."));
+    }
+    if (auto status = bindInt64(connection, statement.native(), 1,
+            static_cast<std::int64_t>(operation.author.value),
+            "Failed to bind local reaction author"); !status) {
+        return status;
+    }
+    if (auto status = sqlite::bindText(
+            statement.native(), 2, operation.target.cast->id.value); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+    if (auto status = bindInt64(connection, statement.native(), 3,
+            static_cast<std::int64_t>(operation.target.cast->author.value),
+            "Failed to bind local reaction target author"); !status) {
+        return status;
+    }
+    if (auto status = sqlite::bindText(
+            statement.native(), 4, isLike ? "like" : "recast"); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+    const bool isActive = operation.kind == OperationKind::Like ||
+        operation.kind == OperationKind::Recast;
+    if (sqlite3_bind_int(statement.native(), 5, isActive ? 1 : 0) != SQLITE_OK) {
+        return std::unexpected(toFoundationError(sqlite::makeError(
+            connection.native(), "Failed to bind local reaction desired state")));
+    }
+    if (auto status = sqlite::bindText(
+            statement.native(), 6, operation.idempotencyKey.value); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+    if (auto status = bindInt64(connection, statement.native(), 7, toMilliseconds(updatedAt),
+            "Failed to bind local reaction timestamp"); !status) {
+        return status;
+    }
+    if (auto status = sqlite::stepDone(connection, statement); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+    return {};
+}
+
 [[nodiscard]] foundation::result::Result<domain::cast::Cast> loadCast(
     sqlite::Connection& connection,
     const std::string_view castId)
@@ -726,6 +797,9 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0);
             if (auto status = insertCastTombstone(m_connection, operation, enqueuedAt); !status) {
                 return std::unexpected(std::move(status.error()));
             }
+            if (auto status = upsertReactionProjection(m_connection, operation, enqueuedAt); !status) {
+                return std::unexpected(std::move(status.error()));
+            }
         }
 
         if (inserted && operation.optimisticCast) {
@@ -778,6 +852,71 @@ VALUES(?, ?, 'pending', ?);
         }
         if (!record) return std::unexpected(std::move(record.error()));
         return std::optional<domain::write::OutboxRecord>{std::move(*record)};
+    }
+
+    [[nodiscard]] foundation::result::Result<std::vector<local::write::ReactionProjection>>
+    listReactionProjections(const domain::identity::Fid author) override
+    {
+        std::scoped_lock lock{m_mutex};
+        if (author.value == 0U ||
+            author.value > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Reaction projection lookup requires a valid account FID."));
+        }
+
+        auto prepared = sqlite::Statement::prepare(m_connection, R"SQL(
+SELECT cast_id, target_cast_fid, reaction_kind, is_active, updated_at_ms
+FROM cast_reaction_local_state
+WHERE author_fid = ?
+ORDER BY updated_at_ms ASC, cast_id ASC, reaction_kind ASC;
+)SQL");
+        if (!prepared) {
+            return std::unexpected(toFoundationError(std::move(prepared.error())));
+        }
+        auto statement = std::move(*prepared);
+        if (auto status = bindInt64(m_connection, statement.native(), 1,
+                static_cast<std::int64_t>(author.value),
+                "Failed to bind local reaction account FID"); !status) {
+            return std::unexpected(std::move(status.error()));
+        }
+
+        std::vector<local::write::ReactionProjection> projections{};
+        while (true) {
+            const int step = sqlite3_step(statement.native());
+            if (step == SQLITE_DONE) {
+                break;
+            }
+            if (step != SQLITE_ROW) {
+                return std::unexpected(toFoundationError(sqlite::makeError(
+                    m_connection.native(), "Failed to list local reaction projections")));
+            }
+            const auto targetFidRaw = sqlite3_column_int64(statement.native(), 1);
+            if (targetFidRaw <= 0) {
+                return std::unexpected(storageFailure(
+                    "Local reaction projection contains an invalid target FID."));
+            }
+            const std::string reactionKind = sqlite::columnText(statement.native(), 2);
+            domain::write::ReactionKind reaction{};
+            if (reactionKind == "like") {
+                reaction = domain::write::ReactionKind::Like;
+            } else if (reactionKind == "recast") {
+                reaction = domain::write::ReactionKind::Recast;
+            } else {
+                return std::unexpected(storageFailure(
+                    "Local reaction projection contains an unknown reaction kind."));
+            }
+            projections.push_back(local::write::ReactionProjection{
+                .target = domain::cast::CastReference{
+                    .author = domain::identity::Fid{static_cast<std::uint64_t>(targetFidRaw)},
+                    .id = domain::cast::CastId{sqlite::columnText(statement.native(), 0)},
+                },
+                .reaction = reaction,
+                .isActive = sqlite3_column_int(statement.native(), 3) != 0,
+                .updatedAt = fromMilliseconds(sqlite3_column_int64(statement.native(), 4)),
+            });
+        }
+        return projections;
     }
 
     [[nodiscard]] foundation::result::Result<std::vector<domain::write::OutboxRecord>> listReady(

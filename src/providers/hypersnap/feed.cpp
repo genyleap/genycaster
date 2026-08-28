@@ -23,7 +23,8 @@ import farcaster.provider.hypersnap.request;
 namespace farcaster::provider::hypersnap::feed {
 namespace {
 
-constexpr std::chrono::milliseconds feedRequestTimeout{12'000};
+constexpr std::chrono::milliseconds followingRequestTimeout{5'000};
+constexpr std::chrono::milliseconds discoveryRequestTimeout{8'000};
 
 [[nodiscard]] foundation::result::Result<std::size_t> validatedLimit(
     const capability::pagination::PageRequest& pageRequest)
@@ -43,7 +44,8 @@ constexpr std::chrono::milliseconds feedRequestTimeout{12'000};
     const capability::model::CapabilityId& capabilityId,
     const std::string_view path,
     std::vector<std::pair<std::string, std::string>> query,
-    const capability::pagination::PageRequest& pageRequest)
+    const capability::pagination::PageRequest& pageRequest,
+    const std::chrono::milliseconds requestTimeout)
 {
     if (auto status = request::validateConfig(config); !status) {
         return std::unexpected(std::move(status.error()));
@@ -67,7 +69,7 @@ constexpr std::chrono::milliseconds feedRequestTimeout{12'000};
     auto body = requests.getJson(
         path,
         query,
-        request::GetOptions{.timeout = feedRequestTimeout});
+        request::GetOptions{.timeout = requestTimeout});
     if (!body) {
         return std::unexpected(std::move(body.error()));
     }
@@ -115,7 +117,8 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::following(
         capability::catalog::feedFollowingRead(),
         "/v2/farcaster/feed/following",
         {{"fid", std::to_string(fid.value)}},
-        pageRequest);
+        pageRequest,
+        followingRequestTimeout);
 }
 
 foundation::result::Result<capability::feed::FeedPage> FeedSource::trending(
@@ -128,7 +131,8 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::trending(
         capability::catalog::feedTrendingRead(),
         "/v2/farcaster/feed/trending",
         {},
-        pageRequest);
+        pageRequest,
+        discoveryRequestTimeout);
 }
 
 foundation::result::Result<capability::feed::FeedPage> FeedSource::channel(
@@ -147,7 +151,8 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::channel(
         capability::catalog::feedChannelRead(),
         "/v2/farcaster/feed/channels",
         {{"channel_ids", channelId.value}},
-        pageRequest);
+        pageRequest,
+        discoveryRequestTimeout);
 }
 
 }

@@ -9,10 +9,25 @@ export module farcaster.local.write;
 
 import farcaster.foundation.result;
 import farcaster.foundation.time;
+import farcaster.domain.cast;
 import farcaster.domain.identity;
 import farcaster.domain.write;
 
 export namespace farcaster::local::write {
+
+
+/**
+ * @brief Durable account-scoped local desired state for one cast reaction.
+ *
+ * The projection is independent of provider feed payloads so a refresh cannot
+ * erase the authenticated account's last local Like/Recast intent.
+ */
+struct ReactionProjection final {
+    domain::cast::CastReference target{};
+    domain::write::ReactionKind reaction{domain::write::ReactionKind::Like};
+    bool isActive{false};
+    foundation::time::Timestamp updatedAt{};
+};
 
 /**
  * @brief Durable local outbox plus local-first write projection boundary.
@@ -37,6 +52,15 @@ public:
     /** @brief Loads one record by deterministic idempotency key. */
     [[nodiscard]] virtual foundation::result::Result<std::optional<domain::write::OutboxRecord>> find(
         const domain::write::IdempotencyKey& key) = 0;
+
+    /**
+     * @brief Lists the authenticated account's latest durable Like/Recast desired states.
+     *
+     * This is a local projection read. It performs no provider/network work and
+     * must be called from an I/O/application executor rather than the GUI thread.
+     */
+    [[nodiscard]] virtual foundation::result::Result<std::vector<ReactionProjection>>
+    listReactionProjections(domain::identity::Fid author) = 0;
 
     /** @brief Lists due pending records in deterministic enqueue order. */
     [[nodiscard]] virtual foundation::result::Result<std::vector<domain::write::OutboxRecord>> listReady(

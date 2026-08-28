@@ -43,6 +43,25 @@ namespace {
 
 std::once_flag systemProxyConfigurationFlag{};
 
+struct ThreadNetworkManagers final {
+    std::unique_ptr<QNetworkAccessManager> system{};
+    std::unique_ptr<QNetworkAccessManager> direct{};
+};
+
+[[nodiscard]] QNetworkAccessManager& networkManagerFor(const ProxyPolicy proxyPolicy)
+{
+    thread_local ThreadNetworkManagers managers{};
+    auto& selected = proxyPolicy == ProxyPolicy::Direct
+        ? managers.direct : managers.system;
+    if (!selected) {
+        selected = std::make_unique<QNetworkAccessManager>();
+        if (proxyPolicy == ProxyPolicy::Direct) {
+            selected->setProxy(QNetworkProxy{QNetworkProxy::NoProxy});
+        }
+    }
+    return *selected;
+}
+
 enum class RequestStage : std::uint8_t {
     Starting,
     Connecting,
@@ -226,10 +245,7 @@ private:
         }
 
         const std::string configuredProxyPolicy{proxyPolicySummary(proxyPolicy_)};
-        QNetworkAccessManager manager{};
-        if (proxyPolicy_ == ProxyPolicy::Direct) {
-            manager.setProxy(QNetworkProxy{QNetworkProxy::NoProxy});
-        }
+        QNetworkAccessManager& manager = networkManagerFor(proxyPolicy_);
         std::unique_ptr<QNetworkReply> reply{};
         if (requestBody == nullptr) {
             reply.reset(manager.get(networkRequest));
