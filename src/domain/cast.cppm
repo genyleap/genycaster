@@ -19,6 +19,18 @@ struct CastId final {
     std::string value{};
 };
 
+/**
+ * @brief Protocol-native reference to an existing cast.
+ *
+ * Farcaster parent_cast_id requires both the parent author FID and the exact
+ * 20-byte cast hash. Keeping the pair canonical prevents Presentation or
+ * providers from reconstructing protocol parent identity.
+ */
+struct CastReference final {
+    identity::Fid author{};
+    CastId id{};
+};
+
 /** @brief Canonical kind of a protocol-native cast embed. */
 enum class EmbedKind : std::uint8_t {
     Url,

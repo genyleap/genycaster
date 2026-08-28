@@ -202,14 +202,23 @@ void appendMessage(
         return std::unexpected(invalid("CAST_ADD requires a recognized Farcaster network."));
     }
     if (input.text.size() > maximumCastTextBytes) {
-        return std::unexpected(invalid("Phase 5C CAST_ADD text must not exceed 320 UTF-8 bytes."));
+        return std::unexpected(invalid("CAST_ADD text must not exceed 320 UTF-8 bytes."));
     }
     if (input.embeds.size() > conservativeMaximumCastEmbeds) {
         return std::unexpected(invalid(
-            "Phase 5C CAST_ADD supports at most two embeds for cross-version compatibility."));
+            "CAST_ADD supports at most two embeds for cross-version compatibility."));
     }
     if (input.text.empty() && input.embeds.empty()) {
         return std::unexpected(invalid("CAST_ADD must contain text or at least one embed."));
+    }
+    if (input.parent) {
+        if (input.parent->author.value == 0U) {
+            return std::unexpected(invalid(
+                "CAST_ADD parent cast requires a non-zero parent-author FID."));
+        }
+        if (auto hash = decodeCastHash(input.parent->id.value, "CAST_ADD parent cast"); !hash) {
+            return std::unexpected(std::move(hash.error()));
+        }
     }
     for (const auto& embed : input.embeds) {
         if (embed.kind == domain::cast::EmbedKind::Url) {
@@ -247,6 +256,13 @@ void appendMessage(
 [[nodiscard]] foundation::result::Result<std::string> encodeCastAddBody(const CastAddInput& input)
 {
     std::string body{};
+    if (input.parent) {
+        auto parentHash = decodeCastHash(input.parent->id.value, "CAST_ADD parent cast");
+        if (!parentHash) {
+            return std::unexpected(std::move(parentHash.error()));
+        }
+        appendMessage(body, 3U, encodeCastId(input.parent->author, *parentHash));
+    }
     appendBytes(body, 4U, input.text);
     for (const auto& embed : input.embeds) {
         std::string encodedEmbed{};

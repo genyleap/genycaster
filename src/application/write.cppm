@@ -23,10 +23,11 @@ import farcaster.capability.write;
 
 export namespace farcaster::application::write {
 
-/** @brief User-authored content accepted by the Phase 5C root-cast use case. */
+/** @brief User-authored content accepted by the shared root/reply composer use case. */
 struct PublishCastRequest final {
     std::string text{};
     std::vector<domain::cast::Embed> embeds{};
+    std::optional<domain::cast::CastReference> parent{};
 };
 
 /** @brief Product-neutral lifecycle emitted while one durable write is handled. */
@@ -74,7 +75,7 @@ struct WritePolicy final {
 using Observer = std::function<void(WriteState)>;
 
 /**
- * @brief Orchestrates canonical PublishCast creation, durable enqueue and reconciliation.
+ * @brief Orchestrates canonical root/reply CAST_ADD creation, durable enqueue and reconciliation.
  *
  * The service never accesses private key material or provider DTOs. It consumes
  * SignerService's verified write gate, a canonical codec, a durable local outbox
@@ -98,7 +99,7 @@ public:
     auto operator=(WriteService&&) -> WriteService& = delete;
 
     /**
-     * @brief Publishes one root cast intent through signer → durable outbox → reconciliation.
+     * @brief Publishes one root or reply cast through signer → durable outbox → reconciliation.
      *
      * The signed outbox record and optimistic canonical cast are committed before
      * any network submission. When no submitter is configured, the record remains

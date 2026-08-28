@@ -5,6 +5,7 @@ module;
 #include <cstdint>
 #include <expected>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -67,6 +68,7 @@ public:
             .publicKey = signerPublicKey,
             .text = intent.text,
             .embeds = intent.embeds,
+            .parent = intent.parent,
             .timestamp = *timestamp,
             .network = m_network,
         });
@@ -86,6 +88,9 @@ public:
                 .id = domain::cast::CastId{castId},
                 .author = intent.author,
                 .text = intent.text,
+                .parent = intent.parent
+                    ? std::optional<domain::cast::CastId>{intent.parent->id}
+                    : std::nullopt,
                 .embeds = intent.embeds,
                 .createdAt = intent.createdAt,
             },

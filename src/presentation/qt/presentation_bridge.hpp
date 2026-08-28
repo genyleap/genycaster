@@ -114,6 +114,10 @@ public:
     Q_INVOKABLE void provisionSigner();
     Q_INVOKABLE void revokeSigner();
     Q_INVOKABLE void publishCast(const QString& text);
+    Q_INVOKABLE void beginComposer();
+    Q_INVOKABLE bool prepareReply(const QString& parentCastId);
+    Q_INVOKABLE void clearReplyTarget();
+    Q_INVOKABLE void publishReply(const QString& text);
 
     /** @brief Retries the current surface without bypassing an active capability cooldown. */
     void retryAutomatically();
@@ -170,6 +174,7 @@ signals:
     void signerProvisionRequested();
     void signerRevokeRequested();
     void publishCastRequested(QString text);
+    void publishReplyRequested(QString text, qulonglong parentAuthorFid, QString parentCastId);
     void socialRequested(
         QString kind,
         qulonglong fid,
@@ -200,6 +205,8 @@ private:
     QString m_writeStatusText{};
     QString m_writeErrorText{};
     QString m_lastPublishedCastId{};
+    qulonglong m_replyParentAuthorFid{};
+    QString m_replyParentCastId{};
     QVariantList m_writeRows{};
     QString m_activeView{QStringLiteral("feed")};
     QString m_activeFeed{QStringLiteral("following")};

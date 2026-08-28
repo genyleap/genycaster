@@ -427,6 +427,7 @@ foundation::result::Status WriteService::publish(
                     .author = session->fid,
                     .text = std::move(request.text),
                     .embeds = std::move(request.embeds),
+                    .parent = std::move(request.parent),
                     .createdAt = now,
                 },
                 *signer);

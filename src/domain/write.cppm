@@ -25,15 +25,17 @@ struct IdempotencyKey final {
 };
 
 /**
- * @brief Canonical user intent for publishing a root cast.
+ * @brief Canonical user intent for publishing a root cast or reply.
  *
  * The author and timestamp are assigned by Application from the authenticated
- * session and wall clock. Presentation code supplies only user-authored content.
+ * session and wall clock. An optional parent is a protocol-native CastReference;
+ * Presentation never constructs protobuf parent messages.
  */
 struct PublishCastIntent final {
     domain::identity::Fid author{};
     std::string text{};
     std::vector<domain::cast::Embed> embeds{};
+    std::optional<domain::cast::CastReference> parent{};
     foundation::time::Timestamp createdAt{};
 };
 

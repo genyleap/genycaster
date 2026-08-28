@@ -15,7 +15,7 @@ PresentationBridge::PresentationBridge(QObject* const parent) : QObject(parent) 
 
 QString PresentationBridge::architectureState() const
 {
-    return QStringLiteral("Phase 5C · guest read → verified session → signer-gated durable publish");
+    return QStringLiteral("Phase 5D · guest read → verified session → signer-gated durable root/reply publish");
 }
 
 bool PresentationBridge::isStrictSelfHosted() const noexcept
@@ -331,6 +331,109 @@ void PresentationBridge::publishCast(const QString& text)
     emit publishCastRequested(text);
 }
 
+void PresentationBridge::beginComposer()
+{
+    if (m_writeBusy) { return; }
+    m_writePhase = QStringLiteral("idle");
+    m_writeStatusText.clear();
+    m_writeErrorText.clear();
+    clearReplyTarget();
+    emit stateChanged();
+}
+
+bool PresentationBridge::prepareReply(const QString& parentCastId)
+{
+    const QString canonicalParentId = parentCastId.trimmed();
+    if (canonicalParentId.isEmpty()) {
+        m_writeErrorText = QStringLiteral("That reply target has an empty cast identifier.");
+        emit stateChanged();
+        return false;
+    }
+
+    auto capture = [this, &canonicalParentId](const QVariantMap& map) {
+        if (map.value(QStringLiteral("castId")).toString() != canonicalParentId) { return false; }
+        bool ok = false;
+        const auto fid = map.value(QStringLiteral("authorFid")).toULongLong(&ok);
+        if (!ok || fid == 0) { return false; }
+        m_replyParentAuthorFid = fid;
+        m_replyParentCastId = canonicalParentId;
+        return true;
+    };
+
+    if (capture(m_detail)) {
+        m_writeErrorText.clear();
+        emit stateChanged();
+        return true;
+    }
+    for (const auto& row : m_rows) {
+        if (capture(row.toMap())) {
+            m_writeErrorText.clear();
+            emit stateChanged();
+            return true;
+        }
+    }
+    for (const auto& row : m_writeRows) {
+        if (capture(row.toMap())) {
+            m_writeErrorText.clear();
+            emit stateChanged();
+            return true;
+        }
+    }
+
+    m_writeErrorText = QStringLiteral(
+        "The reply target is not available as a canonical cast in the current presentation state.");
+    emit stateChanged();
+    return false;
+}
+
+void PresentationBridge::clearReplyTarget()
+{
+    m_replyParentAuthorFid = 0;
+    m_replyParentCastId.clear();
+}
+
+void PresentationBridge::publishReply(const QString& text)
+{
+    if (!m_runtimeReady) {
+        m_writeErrorText = QStringLiteral("The local runtime is still starting.");
+        emit stateChanged();
+        return;
+    }
+    if (!m_isAuthenticated) {
+        m_writeErrorText = QStringLiteral("Sign in before replying to a cast.");
+        emit stateChanged();
+        return;
+    }
+    if (!m_writeReady) {
+        m_writeErrorText = QStringLiteral("Enable a verified Farcaster signer before replying.");
+        emit stateChanged();
+        return;
+    }
+    if (m_writeBusy) { return; }
+    if (text.trimmed().isEmpty()) {
+        m_writeErrorText = QStringLiteral("Write something before replying.");
+        emit stateChanged();
+        return;
+    }
+    if (text.toUtf8().size() > 320) {
+        m_writeErrorText = QStringLiteral("Standard Farcaster casts are limited to 320 UTF-8 bytes.");
+        emit stateChanged();
+        return;
+    }
+    if (m_replyParentAuthorFid == 0 || m_replyParentCastId.isEmpty()) {
+        m_writeErrorText = QStringLiteral("Choose a canonical cast before publishing a reply.");
+        emit stateChanged();
+        return;
+    }
+
+    m_writeBusy = true;
+    m_writePhase = QStringLiteral("preparing");
+    m_writeStatusText = QStringLiteral("Preparing a canonical Farcaster reply…");
+    m_writeErrorText.clear();
+    emit stateChanged();
+    emit publishReplyRequested(text, m_replyParentAuthorFid, m_replyParentCastId);
+}
+
 void PresentationBridge::openAuthenticationApproval()
 {
     const QUrl parsed{m_authenticationApprovalUrl};
@@ -409,6 +512,7 @@ void PresentationBridge::applyAuthenticationState(
         }
         m_writeRows.clear();
         m_lastPublishedCastId.clear();
+        clearReplyTarget();
     }
     // Authentication proves account ownership only. Sign-out clears write authority
     // immediately; an authenticated session keeps the separately observed signer state.

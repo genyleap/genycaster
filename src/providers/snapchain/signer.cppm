@@ -15,11 +15,12 @@ export namespace farcaster::provider::snapchain::signer {
 /**
  * @brief Snapchain signer-registry HTTP configuration owned by composition code.
  *
- * The base URL may point at a self-hosted or otherwise policy-approved
- * Snapchain node. Credentials are intentionally absent from this value.
+ * The default targets Farcaster's public mainnet node. Composition may replace
+ * it with a self-hosted or otherwise policy-approved Snapchain origin.
+ * Credentials are intentionally absent from this value.
  */
 struct Config final {
-    std::string baseUrl{};
+    std::string baseUrl{"https://crackle.farcaster.xyz:3381"};
     std::chrono::milliseconds timeout{15'000};
     std::size_t maxBodyBytes{8U * 1024U * 1024U};
 };

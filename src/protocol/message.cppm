@@ -1,6 +1,7 @@
 module;
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -22,12 +23,13 @@ enum class Network : std::uint32_t {
 };
 
 
-/** @brief Exact Phase 5C root CAST_ADD payload before envelope signing. */
+/** @brief Exact CAST_ADD payload before envelope signing, with optional parent CastId. */
 struct CastAddInput final {
     domain::identity::Fid fid{};
     domain::signer::PublicKey publicKey{};
     std::string text{};
     std::vector<domain::cast::Embed> embeds{};
+    std::optional<domain::cast::CastReference> parent{};
     std::uint32_t timestamp{};
     Network network{Network::Mainnet};
 };
@@ -72,7 +74,7 @@ struct UnsignedMessage final {
 [[nodiscard]] foundation::result::Result<std::uint32_t> toFarcasterTimestamp(
     foundation::time::Timestamp timestamp);
 
-/** @brief Builds canonical protobuf MessageData for a root CAST_ADD. */
+/** @brief Builds canonical protobuf MessageData for a root CAST_ADD or reply. */
 [[nodiscard]] foundation::result::Result<UnsignedMessage> encodeCastAdd(
     const CastAddInput& input);
 

@@ -13,9 +13,14 @@ import farcaster.capability.write_submit;
 
 export namespace farcaster::provider::snapchain::write {
 
-/** @brief Snapchain canonical write/reconciliation HTTP configuration. */
+/**
+ * @brief Snapchain canonical write/reconciliation HTTP configuration.
+ *
+ * The default targets Farcaster's public mainnet node. Composition may replace
+ * it with a self-hosted or otherwise policy-approved Snapchain origin.
+ */
 struct Config final {
-    std::string baseUrl{};
+    std::string baseUrl{"https://crackle.farcaster.xyz:3381"};
     std::chrono::milliseconds timeout{15'000};
     std::size_t maxBodyBytes{8U * 1024U * 1024U};
 };
