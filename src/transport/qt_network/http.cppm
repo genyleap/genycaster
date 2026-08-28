@@ -21,7 +21,8 @@ enum class ProxyPolicy : std::uint8_t {
 /**
  * @brief Creates a Qt Network-backed blocking HTTP transport for graphical runtimes.
  *
- * Each request owns its Qt network objects on the calling worker thread. The
+ * Each worker thread reuses one QNetworkAccessManager per proxy policy while
+ * each request owns its reply/event-loop state on that same worker thread. The
  * application must already have a QCoreApplication instance. TLS certificate
  * verification remains enabled and Qt uses the platform trust facilities. Proxy
  * participation is an explicit composition policy.
