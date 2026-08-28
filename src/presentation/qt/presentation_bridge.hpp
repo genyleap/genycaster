@@ -28,6 +28,11 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool signerBusy READ signerBusy NOTIFY stateChanged)
     Q_PROPERTY(QString signerStatusText READ signerStatusText NOTIFY stateChanged)
     Q_PROPERTY(QString signerErrorText READ signerErrorText NOTIFY stateChanged)
+    Q_PROPERTY(bool writeBusy READ writeBusy NOTIFY stateChanged)
+    Q_PROPERTY(QString writePhase READ writePhase NOTIFY stateChanged)
+    Q_PROPERTY(QString writeStatusText READ writeStatusText NOTIFY stateChanged)
+    Q_PROPERTY(QString writeErrorText READ writeErrorText NOTIFY stateChanged)
+    Q_PROPERTY(QString lastPublishedCastId READ lastPublishedCastId NOTIFY stateChanged)
     Q_PROPERTY(QString activeView READ activeView NOTIFY stateChanged)
     Q_PROPERTY(QString activeFeed READ activeFeed NOTIFY stateChanged)
     Q_PROPERTY(QString identityName READ identityName NOTIFY stateChanged)
@@ -68,6 +73,11 @@ public:
     [[nodiscard]] bool signerBusy() const noexcept;
     [[nodiscard]] QString signerStatusText() const;
     [[nodiscard]] QString signerErrorText() const;
+    [[nodiscard]] bool writeBusy() const noexcept;
+    [[nodiscard]] QString writePhase() const;
+    [[nodiscard]] QString writeStatusText() const;
+    [[nodiscard]] QString writeErrorText() const;
+    [[nodiscard]] QString lastPublishedCastId() const;
     [[nodiscard]] QString activeView() const;
     [[nodiscard]] QString activeFeed() const;
     [[nodiscard]] QString identityName() const;
@@ -103,6 +113,7 @@ public:
     Q_INVOKABLE void openAuthenticationApproval();
     Q_INVOKABLE void provisionSigner();
     Q_INVOKABLE void revokeSigner();
+    Q_INVOKABLE void publishCast(const QString& text);
 
     /** @brief Retries the current surface without bypassing an active capability cooldown. */
     void retryAutomatically();
@@ -126,6 +137,9 @@ public:
     /** @brief Commits normalized protocol-signer readiness without exposing provider details. */
     void applySignerState(
         QString phase, bool busy, bool writeReady, QString statusText, QString errorText);
+    /** @brief Commits durable PublishCast lifecycle and optional optimistic feed row. */
+    void applyWriteState(
+        QString phase, bool busy, QString statusText, QString errorText, QVariantMap optimisticRow = {});
     /** @brief Commits a normalized identity presentation snapshot. */
     void applyIdentity(qulonglong fid, QString displayName, QString username,
         QString status, QString error, QString diagnostic, bool busy, bool stale, bool sourceUnavailable);
@@ -155,6 +169,7 @@ signals:
     void signOutRequested();
     void signerProvisionRequested();
     void signerRevokeRequested();
+    void publishCastRequested(QString text);
     void socialRequested(
         QString kind,
         qulonglong fid,
@@ -180,6 +195,12 @@ private:
     bool m_signerBusy{false};
     QString m_signerStatusText{QStringLiteral("Sign in before enabling interactions.")};
     QString m_signerErrorText{};
+    bool m_writeBusy{false};
+    QString m_writePhase{QStringLiteral("idle")};
+    QString m_writeStatusText{};
+    QString m_writeErrorText{};
+    QString m_lastPublishedCastId{};
+    QVariantList m_writeRows{};
     QString m_activeView{QStringLiteral("feed")};
     QString m_activeFeed{QStringLiteral("following")};
     QString m_channelId{};

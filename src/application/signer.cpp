@@ -559,6 +559,39 @@ foundation::result::Status SignerService::revoke(
         });
 }
 
+foundation::result::Result<domain::signer::PublicKey> SignerService::requireSigner(
+    const domain::identity::Fid fid,
+    const domain::signer::Scope requiredScope) const
+{
+    if (fid.value == 0U) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::Unauthorized,
+            "A signed-in Farcaster FID is required before resolving write authority."));
+    }
+    if (!m_impl->nativeSigner || m_impl->current.phase != SignerPhase::Ready ||
+        !m_impl->current.record || !m_impl->current.record->lastVerifiedRegistration) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::Unauthorized,
+            "A verified protocol signer is required before writing."));
+    }
+    const auto& record = *m_impl->current.record;
+    if (record.local.fid.value != fid.value ||
+        record.lastVerifiedRegistration->fid.value != fid.value) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::Unauthorized,
+            "The current protocol signer belongs to a different Farcaster account."));
+    }
+    if (!domain::signer::permits(
+            *record.lastVerifiedRegistration,
+            requiredScope,
+            foundation::time::now())) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::Unauthorized,
+            "The active protocol signer is not authorized for this message type."));
+    }
+    return record.local.publicKey;
+}
+
 foundation::result::Result<domain::signer::Signature> SignerService::sign(
     const domain::signer::Scope requiredScope,
     const std::string& bytes)

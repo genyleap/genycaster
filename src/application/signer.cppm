@@ -9,14 +9,16 @@ module;
 
 export module farcaster.application.signer;
 
-import farcaster.application.executor;
-import farcaster.capability.signer;
-import farcaster.domain.identity;
 import farcaster.domain.session;
 import farcaster.domain.signer;
+import farcaster.domain.identity;
+import farcaster.foundation.time;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
+import farcaster.capability.signer;
+import farcaster.capability.write_authority;
 import farcaster.local.signer;
+import farcaster.application.executor;
 
 export namespace farcaster::application::signer {
 
@@ -79,7 +81,7 @@ using Observer = std::function<void(SignerState)>;
  * The service owns only opaque signer handles. Private key bytes stay inside
  * ISignerVault/INativeSigner implementations and never enter Application.
  */
-class SignerService final {
+class SignerService final : public capability::write::IWriteAuthority {
 public:
     /** @brief Creates the service over explicit secure-storage/network/authorization ports. */
     SignerService(
@@ -116,9 +118,14 @@ public:
      * @brief Signs canonical protocol bytes only when the current signer is ready for the scope.
      * @return Signature or a structured authorization/signer failure.
      */
+    /** @brief Returns the current network-verified signer key for an exact FID/scope. */
+    [[nodiscard]] foundation::result::Result<domain::signer::PublicKey> requireSigner(
+        domain::identity::Fid fid,
+        domain::signer::Scope requiredScope) const override;
+
     [[nodiscard]] foundation::result::Result<domain::signer::Signature> sign(
         domain::signer::Scope requiredScope,
-        const std::string& bytes);
+        const std::string& bytes) override;
 
     /** @brief Returns the current normalized state snapshot. */
     [[nodiscard]] SignerState state() const;

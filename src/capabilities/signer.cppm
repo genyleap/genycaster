@@ -8,10 +8,10 @@ module;
 
 export module farcaster.capability.signer;
 
-import farcaster.domain.identity;
-import farcaster.domain.signer;
 import farcaster.foundation.result;
 import farcaster.foundation.time;
+import farcaster.domain.identity;
+import farcaster.domain.signer;
 
 export namespace farcaster::capability::signer {
 

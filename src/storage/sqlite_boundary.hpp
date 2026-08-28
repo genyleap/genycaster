@@ -59,11 +59,14 @@ private:
 
 [[nodiscard]] auto bindText(sqlite3_stmt* statement, int index, std::string_view value)
     -> std::expected<void, Error>;
+[[nodiscard]] auto bindBlob(sqlite3_stmt* statement, int index, std::string_view value)
+    -> std::expected<void, Error>;
 [[nodiscard]] auto bindOptionalText(
     sqlite3_stmt* statement,
     int index,
     const std::optional<std::string>& value) -> std::expected<void, Error>;
 [[nodiscard]] auto columnText(sqlite3_stmt* statement, int column) -> std::string;
+[[nodiscard]] auto columnBlob(sqlite3_stmt* statement, int column) -> std::string;
 [[nodiscard]] auto optionalColumnText(sqlite3_stmt* statement, int column)
     -> std::optional<std::string>;
 [[nodiscard]] auto stepDone(Connection& connection, Statement& statement)

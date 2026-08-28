@@ -158,6 +158,35 @@ CREATE TABLE IF NOT EXISTS signer_metadata (
     request_fid INTEGER,
     verified_at_ms INTEGER
 );
+CREATE TABLE IF NOT EXISTS write_outbox (
+    idempotency_key TEXT PRIMARY KEY NOT NULL,
+    kind TEXT NOT NULL,
+    cast_id TEXT NOT NULL,
+    author_fid INTEGER NOT NULL,
+    signer_public_key_hex TEXT NOT NULL,
+    message_bytes BLOB NOT NULL,
+    signed_at_ms INTEGER NOT NULL,
+    enqueued_at_ms INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at_ms INTEGER,
+    last_failure_kind TEXT,
+    last_failure_message TEXT,
+    confirmed_at_ms INTEGER,
+    FOREIGN KEY (cast_id) REFERENCES casts(id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS idx_write_outbox_ready
+    ON write_outbox(status, next_attempt_at_ms, enqueued_at_ms);
+CREATE INDEX IF NOT EXISTS idx_write_outbox_author_ready
+    ON write_outbox(author_fid, status, next_attempt_at_ms, enqueued_at_ms);
+CREATE TABLE IF NOT EXISTS cast_write_state (
+    cast_id TEXT PRIMARY KEY NOT NULL,
+    idempotency_key TEXT UNIQUE NOT NULL,
+    state TEXT NOT NULL,
+    updated_at_ms INTEGER NOT NULL,
+    FOREIGN KEY (cast_id) REFERENCES casts(id) ON DELETE CASCADE,
+    FOREIGN KEY (idempotency_key) REFERENCES write_outbox(idempotency_key) ON DELETE CASCADE
+);
 )SQL";
 
     Transaction transaction{connection};
@@ -220,6 +249,12 @@ CREATE TABLE IF NOT EXISTS signer_metadata (
         return status;
     }
     if (auto status = recordMigration(connection, 8, appliedAt); !status) {
+        return status;
+    }
+    if (auto status = recordMigration(connection, 9, appliedAt); !status) {
+        return status;
+    }
+    if (auto status = recordMigration(connection, 10, appliedAt); !status) {
         return status;
     }
 
@@ -401,6 +436,23 @@ std::expected<void, Error> bindText(
     return {};
 }
 
+std::expected<void, Error> bindBlob(
+    sqlite3_stmt* const statement,
+    const int index,
+    const std::string_view value)
+{
+    const auto result = sqlite3_bind_blob(
+        statement,
+        index,
+        value.data(),
+        static_cast<int>(value.size()),
+        SQLITE_TRANSIENT);
+    if (result != SQLITE_OK) {
+        return std::unexpected(Error{result, "Failed to bind SQLite blob parameter."});
+    }
+    return {};
+}
+
 std::expected<void, Error> bindOptionalText(
     sqlite3_stmt* const statement,
     const int index,
@@ -414,6 +466,16 @@ std::expected<void, Error> bindOptionalText(
         return {};
     }
     return bindText(statement, index, *value);
+}
+
+std::string columnBlob(sqlite3_stmt* const statement, const int column)
+{
+    const auto* bytes = static_cast<const char*>(sqlite3_column_blob(statement, column));
+    const int size = sqlite3_column_bytes(statement, column);
+    if (bytes == nullptr || size <= 0) {
+        return {};
+    }
+    return std::string{bytes, static_cast<std::size_t>(size)};
 }
 
 std::optional<std::string> optionalColumnText(sqlite3_stmt* const statement, const int column)

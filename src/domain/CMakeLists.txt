@@ -13,6 +13,7 @@ target_sources(farcaster_domain
             feed.cppm
             session.cppm
             signer.cppm
+            write.cppm
     PRIVATE
         session.cpp
         signer.cpp

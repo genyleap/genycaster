@@ -10,6 +10,7 @@ target_sources(farcaster_local_state
             read.cppm
             session.cppm
             signer.cppm
+            write.cppm
 )
 
 target_link_libraries(farcaster_local_state PUBLIC farcaster::foundation farcaster::domain farcaster::capabilities)

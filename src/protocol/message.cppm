@@ -6,6 +6,7 @@ module;
 
 export module farcaster.protocol.message;
 
+import farcaster.domain.cast;
 import farcaster.domain.identity;
 import farcaster.domain.signer;
 import farcaster.foundation.result;
@@ -18,6 +19,17 @@ enum class Network : std::uint32_t {
     Mainnet = 1U,
     Testnet = 2U,
     Devnet = 3U,
+};
+
+
+/** @brief Exact Phase 5C root CAST_ADD payload before envelope signing. */
+struct CastAddInput final {
+    domain::identity::Fid fid{};
+    domain::signer::PublicKey publicKey{};
+    std::string text{};
+    std::vector<domain::cast::Embed> embeds{};
+    std::uint32_t timestamp{};
+    Network network{Network::Mainnet};
 };
 
 /** @brief Exact KEY_ADD payload fields before protobuf envelope signing. */
@@ -59,6 +71,10 @@ struct UnsignedMessage final {
 /** @brief Converts a Unix wall-clock timestamp to uint32 Farcaster epoch seconds. */
 [[nodiscard]] foundation::result::Result<std::uint32_t> toFarcasterTimestamp(
     foundation::time::Timestamp timestamp);
+
+/** @brief Builds canonical protobuf MessageData for a root CAST_ADD. */
+[[nodiscard]] foundation::result::Result<UnsignedMessage> encodeCastAdd(
+    const CastAddInput& input);
 
 /** @brief Builds canonical protobuf MessageData for a custody-authorized KEY_ADD. */
 [[nodiscard]] foundation::result::Result<UnsignedMessage> encodeKeyAdd(

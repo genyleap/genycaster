@@ -1,56 +1,36 @@
 module;
 
-#include <optional>
-#include <string>
+#include <memory>
 
 export module farcaster.capability.write;
 
-import farcaster.domain.write;
 import farcaster.foundation.result;
+import farcaster.domain.write;
+import farcaster.domain.signer;
 
 export namespace farcaster::capability::write {
 
-/** @brief Canonical outcome of a provider submit attempt. */
-enum class SubmitOutcome : std::uint8_t {
-    Submitted,
-    AlreadyConfirmed,
-    Conflict,
-    RateLimited,
-    Unavailable,
-    Unsupported,
-    ProtocolRejected,
-};
-
 /**
- * @brief Provider-neutral result of one submit attempt.
+ * @brief Provider-neutral canonical Farcaster write codec.
  *
- * Application and Presentation only see this canonical outcome. Raw provider
- * errors, cursors, and SDK types never cross this boundary.
+ * Protocol implementations own protobuf/hash/envelope details. Application
+ * supplies canonical intents and an already network-verified signer public key.
  */
-struct SubmitResult final {
-    SubmitOutcome outcome{SubmitOutcome::Unsupported};
-    /** @brief Canonical identifier the provider assigned on success, when known. */
-    std::optional<domain::write::IdempotencyKey> confirmedKey{};
-};
-
-/**
- * @brief Blocking provider-neutral protocol-write submission port.
- *
- * Implementations may perform network I/O. Callers must execute these methods
- * on an I/O executor and never on the Qt GUI thread.
- */
-class IWriteSubmitter {
+class ICanonicalWriteCodec {
 public:
-    /** @brief Destroys the submitter. */
-    virtual ~IWriteSubmitter() = default;
+    /** @brief Destroys the codec. */
+    virtual ~ICanonicalWriteCodec() = default;
 
-    /**
-     * @brief Submits one already-signed canonical protocol write.
-     * @param operation Signed canonical message produced by the local signer.
-     * @return Canonical submit outcome.
-     */
-    [[nodiscard]] virtual foundation::result::Result<SubmitResult> submit(
-        const domain::write::SignedOperation& operation) = 0;
+    /** @brief Builds canonical MessageData/hash and optimistic cast identity. */
+    [[nodiscard]] virtual foundation::result::Result<domain::write::PreparedOperation>
+    preparePublishCast(
+        const domain::write::PublishCastIntent& intent,
+        const domain::signer::PublicKey& signerPublicKey) = 0;
+
+    /** @brief Seals a prepared operation with the Ed25519 signature over hashBytes. */
+    [[nodiscard]] virtual foundation::result::Result<domain::write::SignedOperation> seal(
+        const domain::write::PreparedOperation& operation,
+        const domain::signer::Signature& signature) = 0;
 };
 
-}
+} // namespace farcaster::capability::write

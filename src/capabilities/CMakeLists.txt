@@ -15,6 +15,9 @@ target_sources(farcaster_capabilities
             social.cppm
             auth.cppm
             signer.cppm
+            write.cppm
+            write_authority.cppm
+            write_submit.cppm
     PRIVATE
         catalog.cpp
 )

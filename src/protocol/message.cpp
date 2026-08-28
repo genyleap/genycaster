@@ -16,6 +16,7 @@ module;
 
 module farcaster.protocol.message;
 
+import farcaster.domain.cast;
 import farcaster.domain.identity;
 import farcaster.domain.signer;
 import farcaster.foundation.error;
@@ -28,6 +29,7 @@ namespace {
 
 constexpr std::uint32_t hashSchemeBlake3 = 1U;
 constexpr std::uint32_t signatureSchemeEd25519 = 1U;
+constexpr std::uint32_t messageTypeCastAdd = 1U;
 constexpr std::uint32_t messageTypeKeyAdd = 16U;
 constexpr std::uint32_t messageTypeKeyRemove = 17U;
 constexpr std::uint32_t keyTypeEd25519 = 1U;
@@ -37,6 +39,10 @@ constexpr std::uint64_t farcasterEpochUnixSeconds = 1'609'459'200ULL;
 constexpr std::size_t publicKeySize = 32U;
 constexpr std::size_t signatureSize = 64U;
 constexpr std::size_t custodySignatureSize = 65U;
+constexpr std::size_t castHashSize = 20U;
+constexpr std::size_t maximumCastTextBytes = 320U;
+constexpr std::size_t conservativeMaximumCastEmbeds = 2U;
+constexpr std::size_t maximumProtocolUrlBytes = 256U;
 
 [[nodiscard]] foundation::error::Error invalid(std::string message)
 {
@@ -152,6 +158,110 @@ void appendMessage(
         break;
     }
     return {};
+}
+
+[[nodiscard]] foundation::result::Result<std::string> decodeCastHash(
+    const std::string_view value,
+    const std::string_view context)
+{
+    std::string_view hex = value;
+    if (hex.starts_with("0x") || hex.starts_with("0X")) {
+        hex.remove_prefix(2U);
+    }
+    if (hex.size() != castHashSize * 2U) {
+        return std::unexpected(invalid(
+            std::string{context} + " must contain exactly 20 bytes of hexadecimal cast hash."));
+    }
+    std::string bytes(castHashSize, '\0');
+    for (std::size_t index{}; index < castHashSize; ++index) {
+        const auto high = hexDigit(hex[index * 2U]);
+        const auto low = hexDigit(hex[index * 2U + 1U]);
+        if (high < 0 || low < 0) {
+            return std::unexpected(invalid(
+                std::string{context} + " contains non-hexadecimal cast hash characters."));
+        }
+        bytes[index] = static_cast<char>((high << 4) | low);
+    }
+    return bytes;
+}
+
+[[nodiscard]] foundation::result::Status validateCastAdd(const CastAddInput& input)
+{
+    if (input.fid.value == 0U) {
+        return std::unexpected(invalid("CAST_ADD requires a non-zero FID."));
+    }
+    if (input.timestamp == 0U) {
+        return std::unexpected(invalid("CAST_ADD requires a non-zero Farcaster timestamp."));
+    }
+    switch (input.network) {
+    case Network::Mainnet:
+    case Network::Testnet:
+    case Network::Devnet:
+        break;
+    default:
+        return std::unexpected(invalid("CAST_ADD requires a recognized Farcaster network."));
+    }
+    if (input.text.size() > maximumCastTextBytes) {
+        return std::unexpected(invalid("Phase 5C CAST_ADD text must not exceed 320 UTF-8 bytes."));
+    }
+    if (input.embeds.size() > conservativeMaximumCastEmbeds) {
+        return std::unexpected(invalid(
+            "Phase 5C CAST_ADD supports at most two embeds for cross-version compatibility."));
+    }
+    if (input.text.empty() && input.embeds.empty()) {
+        return std::unexpected(invalid("CAST_ADD must contain text or at least one embed."));
+    }
+    for (const auto& embed : input.embeds) {
+        if (embed.kind == domain::cast::EmbedKind::Url) {
+            if (embed.value.empty() || embed.value.size() > maximumProtocolUrlBytes) {
+                return std::unexpected(invalid(
+                    "CAST_ADD URL embeds must contain between 1 and 256 bytes."));
+            }
+            if (embed.referencedAuthor) {
+                return std::unexpected(invalid(
+                    "CAST_ADD URL embeds must not carry a referenced-author FID."));
+            }
+            continue;
+        }
+        if (!embed.referencedAuthor || embed.referencedAuthor->value == 0U) {
+            return std::unexpected(invalid(
+                "CAST_ADD cast-reference embeds require a non-zero referenced-author FID."));
+        }
+        if (auto hash = decodeCastHash(embed.value, "CAST_ADD cast-reference embed"); !hash) {
+            return std::unexpected(std::move(hash.error()));
+        }
+    }
+    return {};
+}
+
+[[nodiscard]] std::string encodeCastId(
+    const domain::identity::Fid fid,
+    const std::string_view hashBytes)
+{
+    std::string castId{};
+    appendUint(castId, 1U, fid.value);
+    appendBytes(castId, 2U, hashBytes);
+    return castId;
+}
+
+[[nodiscard]] foundation::result::Result<std::string> encodeCastAddBody(const CastAddInput& input)
+{
+    std::string body{};
+    appendBytes(body, 4U, input.text);
+    for (const auto& embed : input.embeds) {
+        std::string encodedEmbed{};
+        if (embed.kind == domain::cast::EmbedKind::Url) {
+            appendBytes(encodedEmbed, 1U, embed.value);
+        } else {
+            auto hash = decodeCastHash(embed.value, "CAST_ADD cast-reference embed");
+            if (!hash) {
+                return std::unexpected(std::move(hash.error()));
+            }
+            appendMessage(encodedEmbed, 2U, encodeCastId(*embed.referencedAuthor, *hash));
+        }
+        appendMessage(body, 6U, encodedEmbed);
+    }
+    return body;
 }
 
 [[nodiscard]] foundation::result::Status validateKeyAdd(const KeyAddInput& input)
@@ -270,6 +380,28 @@ foundation::result::Result<std::uint32_t> toFarcasterTimestamp(
         return std::unexpected(invalid("Timestamp exceeds the uint32 Farcaster protocol range."));
     }
     return static_cast<std::uint32_t>(farcasterSeconds);
+}
+
+foundation::result::Result<UnsignedMessage> encodeCastAdd(const CastAddInput& input)
+{
+    if (auto status = validateCastAdd(input); !status) {
+        return std::unexpected(std::move(status.error()));
+    }
+    if (auto publicKeyBytes = decodePublicKey(input.publicKey); !publicKeyBytes) {
+        return std::unexpected(std::move(publicKeyBytes.error()));
+    }
+    auto body = encodeCastAddBody(input);
+    if (!body) {
+        return std::unexpected(std::move(body.error()));
+    }
+    return encodeData(
+        input.fid,
+        input.publicKey,
+        messageTypeCastAdd,
+        input.timestamp,
+        input.network,
+        5U,
+        *body);
 }
 
 foundation::result::Result<UnsignedMessage> encodeKeyAdd(const KeyAddInput& input)

@@ -1,5 +1,6 @@
 #include "presentation_bridge.hpp"
 
+#include <QByteArray>
 #include <QDesktopServices>
 #include <QString>
 #include <QUrl>
@@ -14,7 +15,7 @@ PresentationBridge::PresentationBridge(QObject* const parent) : QObject(parent) 
 
 QString PresentationBridge::architectureState() const
 {
-    return QStringLiteral("Phase 5A · guest read → verified session → signer-gated interaction");
+    return QStringLiteral("Phase 5C · guest read → verified session → signer-gated durable publish");
 }
 
 bool PresentationBridge::isStrictSelfHosted() const noexcept
@@ -55,6 +56,11 @@ QString PresentationBridge::signerPhase() const { return m_signerPhase; }
 bool PresentationBridge::signerBusy() const noexcept { return m_signerBusy; }
 QString PresentationBridge::signerStatusText() const { return m_signerStatusText; }
 QString PresentationBridge::signerErrorText() const { return m_signerErrorText; }
+bool PresentationBridge::writeBusy() const noexcept { return m_writeBusy; }
+QString PresentationBridge::writePhase() const { return m_writePhase; }
+QString PresentationBridge::writeStatusText() const { return m_writeStatusText; }
+QString PresentationBridge::writeErrorText() const { return m_writeErrorText; }
+QString PresentationBridge::lastPublishedCastId() const { return m_lastPublishedCastId; }
 QString PresentationBridge::activeView() const { return m_activeView; }
 QString PresentationBridge::activeFeed() const { return m_activeFeed; }
 QString PresentationBridge::identityName() const { return m_identityName; }
@@ -289,6 +295,42 @@ void PresentationBridge::revokeSigner()
     emit signerRevokeRequested();
 }
 
+void PresentationBridge::publishCast(const QString& text)
+{
+    if (!m_runtimeReady) {
+        m_writeErrorText = QStringLiteral("The local runtime is still starting.");
+        emit stateChanged();
+        return;
+    }
+    if (!m_isAuthenticated) {
+        m_writeErrorText = QStringLiteral("Sign in before publishing a cast.");
+        emit stateChanged();
+        return;
+    }
+    if (!m_writeReady) {
+        m_writeErrorText = QStringLiteral("Enable a verified Farcaster signer before publishing.");
+        emit stateChanged();
+        return;
+    }
+    if (m_writeBusy) { return; }
+    if (text.trimmed().isEmpty()) {
+        m_writeErrorText = QStringLiteral("Write something before publishing.");
+        emit stateChanged();
+        return;
+    }
+    if (text.toUtf8().size() > 320) {
+        m_writeErrorText = QStringLiteral("Standard Farcaster casts are limited to 320 UTF-8 bytes.");
+        emit stateChanged();
+        return;
+    }
+    m_writeBusy = true;
+    m_writePhase = QStringLiteral("preparing");
+    m_writeStatusText = QStringLiteral("Preparing a canonical Farcaster cast…");
+    m_writeErrorText.clear();
+    emit stateChanged();
+    emit publishCastRequested(text);
+}
+
 void PresentationBridge::openAuthenticationApproval()
 {
     const QUrl parsed{m_authenticationApprovalUrl};
@@ -334,6 +376,7 @@ void PresentationBridge::applyAuthenticationState(
 {
     m_authenticationAvailable = available;
     m_authenticationPhase = std::move(phase);
+    const qulonglong previousAccountFid = m_accountFid;
     // The attempt phase is independent from the already established account
     // session. Starting a replacement/re-authentication flow must not make a
     // verified current account appear signed out until a new proof succeeds.
@@ -346,6 +389,27 @@ void PresentationBridge::applyAuthenticationState(
     m_accountAvatarUrl = m_isAuthenticated ? std::move(avatarUrl) : QString{};
     m_authenticationApprovalUrl = std::move(approvalUrl);
     m_authenticationErrorText = std::move(errorText);
+    if (!m_isAuthenticated || (previousAccountFid != 0 && previousAccountFid != m_accountFid)) {
+        if (!m_writeRows.isEmpty() && !m_rows.isEmpty()) {
+            QVariantList retained{};
+            retained.reserve(m_rows.size());
+            for (const auto& row : m_rows) {
+                const QString castId = row.toMap().value(QStringLiteral("castId")).toString();
+                bool wasOptimistic = false;
+                for (const auto& writeRow : m_writeRows) {
+                    if (!castId.isEmpty() &&
+                        writeRow.toMap().value(QStringLiteral("castId")).toString() == castId) {
+                        wasOptimistic = true;
+                        break;
+                    }
+                }
+                if (!wasOptimistic) { retained.push_back(row); }
+            }
+            m_rows = std::move(retained);
+        }
+        m_writeRows.clear();
+        m_lastPublishedCastId.clear();
+    }
     // Authentication proves account ownership only. Sign-out clears write authority
     // immediately; an authenticated session keeps the separately observed signer state.
     if (!m_isAuthenticated) {
@@ -354,6 +418,10 @@ void PresentationBridge::applyAuthenticationState(
         m_signerBusy = false;
         m_signerStatusText = QStringLiteral("Sign in before enabling interactions.");
         m_signerErrorText.clear();
+        m_writeBusy = false;
+        m_writePhase = QStringLiteral("idle");
+        m_writeStatusText.clear();
+        m_writeErrorText.clear();
     } else {
         m_writeReady = m_signerPhase == QStringLiteral("ready");
     }
@@ -378,6 +446,53 @@ void PresentationBridge::applySignerState(
     m_writeReady = m_isAuthenticated && writeReady;
     m_signerStatusText = std::move(statusText);
     m_signerErrorText = std::move(errorText);
+    emit stateChanged();
+}
+
+void PresentationBridge::applyWriteState(
+    QString phase,
+    const bool busy,
+    QString statusText,
+    QString errorText,
+    QVariantMap optimisticRow)
+{
+    m_writePhase = std::move(phase);
+    m_writeBusy = busy;
+    m_writeStatusText = std::move(statusText);
+    m_writeErrorText = std::move(errorText);
+
+    const QString castId = optimisticRow.value(QStringLiteral("castId")).toString();
+    if (!castId.isEmpty()) {
+        m_lastPublishedCastId = castId;
+        bool replaced = false;
+        for (qsizetype index = 0; index < m_writeRows.size(); ++index) {
+            if (m_writeRows[index].toMap().value(QStringLiteral("castId")).toString() == castId) {
+                m_writeRows[index] = optimisticRow;
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) { m_writeRows.prepend(optimisticRow); }
+
+        if (m_activeView == QStringLiteral("feed")) {
+            QVariantList merged{};
+            merged.reserve(m_writeRows.size() + m_rows.size());
+            for (const auto& row : m_writeRows) { merged.push_back(row); }
+            for (const auto& row : m_rows) {
+                const QString existingId = row.toMap().value(QStringLiteral("castId")).toString();
+                bool duplicate = false;
+                for (const auto& writeRow : m_writeRows) {
+                    if (!existingId.isEmpty() &&
+                        writeRow.toMap().value(QStringLiteral("castId")).toString() == existingId) {
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if (!duplicate) { merged.push_back(row); }
+            }
+            m_rows = std::move(merged);
+        }
+    }
     emit stateChanged();
 }
 
@@ -413,7 +528,47 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
         m_feedStarted = true;
         m_activeFeed = std::move(selector);
     }
-    m_rows = std::move(rows);
+    if (m_activeView == QStringLiteral("feed") && !m_writeRows.isEmpty()) {
+        QVariantList retainedWriteRows{};
+        QVariantList merged{};
+        retainedWriteRows.reserve(m_writeRows.size());
+        merged.reserve(m_writeRows.size() + rows.size());
+        for (const auto& writeRow : m_writeRows) {
+            const auto map = writeRow.toMap();
+            const QString castId = map.value(QStringLiteral("castId")).toString();
+            const bool confirmed = map.value(QStringLiteral("writeState")).toString()
+                == QStringLiteral("confirmed");
+            bool authoritative = false;
+            if (confirmed && !castId.isEmpty()) {
+                for (const auto& row : rows) {
+                    if (row.toMap().value(QStringLiteral("castId")).toString() == castId) {
+                        authoritative = true;
+                        break;
+                    }
+                }
+            }
+            if (!authoritative) {
+                retainedWriteRows.push_back(writeRow);
+                merged.push_back(writeRow);
+            }
+        }
+        m_writeRows = std::move(retainedWriteRows);
+        for (const auto& row : rows) {
+            const QString castId = row.toMap().value(QStringLiteral("castId")).toString();
+            bool duplicate = false;
+            for (const auto& writeRow : m_writeRows) {
+                if (!castId.isEmpty() &&
+                    writeRow.toMap().value(QStringLiteral("castId")).toString() == castId) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) { merged.push_back(row); }
+        }
+        m_rows = std::move(merged);
+    } else {
+        m_rows = std::move(rows);
+    }
     m_next = std::move(next);
     m_statusText = std::move(status);
     m_errorText = std::move(error);
