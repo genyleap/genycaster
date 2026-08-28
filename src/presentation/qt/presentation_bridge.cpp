@@ -117,13 +117,50 @@ void applyReactionOverrides(QVariantList& rows, const QVariantMap& overrides)
     }
 }
 
+[[nodiscard]] QString followingOverrideKey(const qulonglong targetFid)
+{
+    return QString::number(targetFid);
+}
+
+void rememberFollowingOverride(
+    QVariantMap& overrides,
+    const qulonglong targetFid,
+    const bool isFollowing)
+{
+    if (targetFid == 0U) {
+        return;
+    }
+    overrides.insert(followingOverrideKey(targetFid), isFollowing);
+}
+
+void applyFollowingOverride(QVariantMap& map, const QVariantMap& overrides)
+{
+    const qulonglong targetFid = map.value(QStringLiteral("fid")).toULongLong();
+    if (targetFid == 0U) {
+        return;
+    }
+    const QString key = followingOverrideKey(targetFid);
+    if (overrides.contains(key)) {
+        map.insert(QStringLiteral("followingByMe"), overrides.value(key).toBool());
+    }
+}
+
+void applyFollowingOverrides(QVariantList& rows, const QVariantMap& overrides)
+{
+    for (qsizetype index = 0; index < rows.size(); ++index) {
+        auto map = rows[index].toMap();
+        applyFollowingOverride(map, overrides);
+        rows[index] = std::move(map);
+    }
+}
+
 }
 
 PresentationBridge::PresentationBridge(QObject* const parent) : QObject(parent) {}
 
 QString PresentationBridge::architectureState() const
 {
-    return QStringLiteral("Phase 5E · guest read → verified session → scoped durable Farcaster writes");
+    return QStringLiteral("Phase 5F · network-aware durable writes with restart-safe social state");
 }
 
 bool PresentationBridge::isStrictSelfHosted() const noexcept
@@ -649,9 +686,13 @@ void PresentationBridge::applyRuntimeState(const bool ready, QString errorText)
 
 void PresentationBridge::applyNetworkReachability(const bool known, const bool online)
 {
+    const bool changed = m_networkReachabilityKnown != known || m_isOffline != (known && !online);
     m_networkReachabilityKnown = known;
     m_isOffline = known && !online;
     emit stateChanged();
+    if (changed) {
+        emit networkReachabilityChanged(known, online);
+    }
 }
 
 void PresentationBridge::applyAuthenticationState(
@@ -699,6 +740,7 @@ void PresentationBridge::applyAuthenticationState(
         }
         m_writeRows.clear();
         m_reactionOverrides.clear();
+        m_followOverrides.clear();
         m_lastPublishedCastId.clear();
         clearReplyTarget();
     }
@@ -800,10 +842,10 @@ void PresentationBridge::applyWriteState(
         updateReactionPresentation(m_detail, targetCastId, reaction, active);
     } else if (operationKind == QStringLiteral("follow") || operationKind == QStringLiteral("unfollow")) {
         const qulonglong targetFid = presentationMutation.value(QStringLiteral("targetFid")).toULongLong();
-        if (m_activeView == QStringLiteral("profile") &&
-            m_detail.value(QStringLiteral("fid")).toULongLong() == targetFid) {
-            m_detail.insert(QStringLiteral("followingByMe"), operationKind == QStringLiteral("follow"));
-        }
+        const bool isFollowing = operationKind == QStringLiteral("follow");
+        rememberFollowingOverride(m_followOverrides, targetFid, isFollowing);
+        applyFollowingOverrides(m_rows, m_followOverrides);
+        applyFollowingOverride(m_detail, m_followOverrides);
     } else if (operationKind == QStringLiteral("remove-cast") && !targetCastId.isEmpty()) {
         removeCastPresentation(m_rows, targetCastId);
         removeCastPresentation(m_writeRows, targetCastId);
@@ -835,6 +877,21 @@ void PresentationBridge::applyReactionProjections(QVariantList reactions)
     applyReactionOverrides(m_rows, m_reactionOverrides);
     applyReactionOverrides(m_writeRows, m_reactionOverrides);
     applyReactionOverrides(m_detail, m_reactionOverrides);
+    emit stateChanged();
+}
+
+void PresentationBridge::applyFollowingProjections(QVariantList following)
+{
+    m_followOverrides.clear();
+    for (const auto& value : following) {
+        const QVariantMap projection = value.toMap();
+        rememberFollowingOverride(
+            m_followOverrides,
+            projection.value(QStringLiteral("targetFid")).toULongLong(),
+            projection.value(QStringLiteral("following")).toBool());
+    }
+    applyFollowingOverrides(m_rows, m_followOverrides);
+    applyFollowingOverride(m_detail, m_followOverrides);
     emit stateChanged();
 }
 
@@ -912,6 +969,7 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
         m_rows = std::move(rows);
     }
     applyReactionOverrides(m_rows, m_reactionOverrides);
+    applyFollowingOverrides(m_rows, m_followOverrides);
     m_next = std::move(next);
     m_statusText = std::move(status);
     m_errorText = std::move(error);
@@ -928,6 +986,7 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
     m_activeView = std::move(view);
     m_detail = std::move(detail);
     applyReactionOverrides(m_detail, m_reactionOverrides);
+    applyFollowingOverride(m_detail, m_followOverrides);
     m_statusText = std::move(status);
     m_errorText = std::move(error);
     m_diagnosticText = std::move(diagnostic);

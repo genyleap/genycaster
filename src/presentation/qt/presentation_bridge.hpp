@@ -153,6 +153,8 @@ public:
         QString phase, bool busy, QString statusText, QString errorText, QVariantMap optimisticRow = {});
     /** @brief Replaces account-scoped durable Like/Recast state used to overlay refreshed reads. */
     void applyReactionProjections(QVariantList reactions);
+    /** @brief Replaces account-scoped durable Follow/Unfollow state used to overlay refreshed profiles. */
+    void applyFollowingProjections(QVariantList following);
     /** @brief Commits a normalized identity presentation snapshot. */
     void applyIdentity(qulonglong fid, QString displayName, QString username,
         QString status, QString error, QString diagnostic, bool busy, bool stale, bool sourceUnavailable);
@@ -167,6 +169,8 @@ public:
 
 signals:
     void stateChanged();
+    /** @brief Emitted only when OS/network reachability knowledge or online state changes. */
+    void networkReachabilityChanged(bool known, bool online);
     void castQueued();
     void identityOpened();
     void identityRequested(QString username, bool allowRecoveryProbe);
@@ -222,6 +226,7 @@ private:
     QString m_replyParentCastId{};
     QVariantList m_writeRows{};
     QVariantMap m_reactionOverrides{};
+    QVariantMap m_followOverrides{};
     QString m_activeView{QStringLiteral("feed")};
     QString m_activeFeed{QStringLiteral("following")};
     QString m_channelId{};

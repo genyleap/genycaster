@@ -347,6 +347,64 @@ ON CONFLICT(author_fid, cast_id, reaction_kind) DO UPDATE SET
     return {};
 }
 
+[[nodiscard]] foundation::result::Status upsertFollowingProjection(
+    sqlite::Connection& connection,
+    const domain::write::SignedOperation& operation,
+    const foundation::time::Timestamp updatedAt)
+{
+    using domain::write::OperationKind;
+    const bool isFollowingOperation = operation.kind == OperationKind::Follow ||
+        operation.kind == OperationKind::Unfollow;
+    if (!isFollowingOperation || !operation.target.fid) {
+        return {};
+    }
+    if (operation.author.value > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) ||
+        operation.target.fid->value > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+        return std::unexpected(storageFailure("FID is outside SQLite INTEGER range."));
+    }
+
+    auto prepared = sqlite::Statement::prepare(connection, R"SQL(
+INSERT INTO following_local_state(
+    author_fid, target_fid, is_following, idempotency_key, updated_at_ms)
+VALUES(?, ?, ?, ?, ?)
+ON CONFLICT(author_fid, target_fid) DO UPDATE SET
+    is_following = excluded.is_following,
+    idempotency_key = excluded.idempotency_key,
+    updated_at_ms = excluded.updated_at_ms;
+)SQL");
+    if (!prepared) {
+        return std::unexpected(toFoundationError(std::move(prepared.error())));
+    }
+    auto statement = std::move(*prepared);
+    if (auto status = bindInt64(connection, statement.native(), 1,
+            static_cast<std::int64_t>(operation.author.value),
+            "Failed to bind local following author"); !status) {
+        return status;
+    }
+    if (auto status = bindInt64(connection, statement.native(), 2,
+            static_cast<std::int64_t>(operation.target.fid->value),
+            "Failed to bind local following target"); !status) {
+        return status;
+    }
+    if (sqlite3_bind_int(
+            statement.native(), 3, operation.kind == OperationKind::Follow ? 1 : 0) != SQLITE_OK) {
+        return std::unexpected(toFoundationError(sqlite::makeError(
+            connection.native(), "Failed to bind local following desired state")));
+    }
+    if (auto status = sqlite::bindText(
+            statement.native(), 4, operation.idempotencyKey.value); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+    if (auto status = bindInt64(connection, statement.native(), 5, toMilliseconds(updatedAt),
+            "Failed to bind local following timestamp"); !status) {
+        return status;
+    }
+    if (auto status = sqlite::stepDone(connection, statement); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+    return {};
+}
+
 [[nodiscard]] foundation::result::Result<domain::cast::Cast> loadCast(
     sqlite::Connection& connection,
     const std::string_view castId)
@@ -800,6 +858,9 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0);
             if (auto status = upsertReactionProjection(m_connection, operation, enqueuedAt); !status) {
                 return std::unexpected(std::move(status.error()));
             }
+            if (auto status = upsertFollowingProjection(m_connection, operation, enqueuedAt); !status) {
+                return std::unexpected(std::move(status.error()));
+            }
         }
 
         if (inserted && operation.optimisticCast) {
@@ -914,6 +975,57 @@ ORDER BY updated_at_ms ASC, cast_id ASC, reaction_kind ASC;
                 .reaction = reaction,
                 .isActive = sqlite3_column_int(statement.native(), 3) != 0,
                 .updatedAt = fromMilliseconds(sqlite3_column_int64(statement.native(), 4)),
+            });
+        }
+        return projections;
+    }
+
+    [[nodiscard]] foundation::result::Result<std::vector<local::write::FollowingProjection>>
+    listFollowingProjections(const domain::identity::Fid author) override
+    {
+        std::scoped_lock lock{m_mutex};
+        if (author.value == 0U ||
+            author.value > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Following projection lookup requires a valid account FID."));
+        }
+
+        auto prepared = sqlite::Statement::prepare(m_connection, R"SQL(
+SELECT target_fid, is_following, updated_at_ms
+FROM following_local_state
+WHERE author_fid = ?
+ORDER BY updated_at_ms ASC, target_fid ASC;
+)SQL");
+        if (!prepared) {
+            return std::unexpected(toFoundationError(std::move(prepared.error())));
+        }
+        auto statement = std::move(*prepared);
+        if (auto status = bindInt64(m_connection, statement.native(), 1,
+                static_cast<std::int64_t>(author.value),
+                "Failed to bind local following account FID"); !status) {
+            return std::unexpected(std::move(status.error()));
+        }
+
+        std::vector<local::write::FollowingProjection> projections{};
+        while (true) {
+            const int step = sqlite3_step(statement.native());
+            if (step == SQLITE_DONE) {
+                break;
+            }
+            if (step != SQLITE_ROW) {
+                return std::unexpected(toFoundationError(sqlite::makeError(
+                    m_connection.native(), "Failed to list local following projections")));
+            }
+            const auto targetFidRaw = sqlite3_column_int64(statement.native(), 0);
+            if (targetFidRaw <= 0) {
+                return std::unexpected(storageFailure(
+                    "Local following projection contains an invalid target FID."));
+            }
+            projections.push_back(local::write::FollowingProjection{
+                .target = domain::identity::Fid{static_cast<std::uint64_t>(targetFidRaw)},
+                .isFollowing = sqlite3_column_int(statement.native(), 1) != 0,
+                .updatedAt = fromMilliseconds(sqlite3_column_int64(statement.native(), 2)),
             });
         }
         return projections;

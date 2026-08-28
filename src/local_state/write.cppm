@@ -30,6 +30,18 @@ struct ReactionProjection final {
 };
 
 /**
+ * @brief Durable account-scoped local desired state for one follow relationship.
+ *
+ * The projection is independent of profile-provider payloads so a refresh or
+ * restart cannot erase the authenticated account's last Follow/Unfollow intent.
+ */
+struct FollowingProjection final {
+    domain::identity::Fid target{};
+    bool isFollowing{false};
+    foundation::time::Timestamp updatedAt{};
+};
+
+/**
  * @brief Durable local outbox plus local-first write projection boundary.
  *
  * enqueue() must atomically persist the signed operation and every local
@@ -61,6 +73,15 @@ public:
      */
     [[nodiscard]] virtual foundation::result::Result<std::vector<ReactionProjection>>
     listReactionProjections(domain::identity::Fid author) = 0;
+
+    /**
+     * @brief Lists the authenticated account's latest durable Follow/Unfollow desired states.
+     *
+     * This local projection survives provider refreshes and process restarts and
+     * performs no provider/network work.
+     */
+    [[nodiscard]] virtual foundation::result::Result<std::vector<FollowingProjection>>
+    listFollowingProjections(domain::identity::Fid author) = 0;
 
     /** @brief Lists due pending records in deterministic enqueue order. */
     [[nodiscard]] virtual foundation::result::Result<std::vector<domain::write::OutboxRecord>> listReady(

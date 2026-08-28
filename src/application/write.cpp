@@ -1,6 +1,7 @@
 module;
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <expected>
@@ -65,11 +66,11 @@ namespace {
     case ErrorCode::Timeout:
     case ErrorCode::Unavailable:
     case ErrorCode::TransportFailure:
+    case ErrorCode::Conflict:
         return true;
     case ErrorCode::InvalidArgument:
     case ErrorCode::NotFound:
     case ErrorCode::Unauthorized:
-    case ErrorCode::Conflict:
     case ErrorCode::Unsupported:
     case ErrorCode::StorageFailure:
     case ErrorCode::ProtocolFailure:
@@ -153,6 +154,31 @@ namespace {
     return OperationKind::PublishCast;
 }
 
+class AtomicFlagReset final {
+public:
+    explicit AtomicFlagReset(std::atomic_bool& flag) noexcept
+        : m_flag(flag)
+    {
+    }
+
+    ~AtomicFlagReset()
+    {
+        m_flag.store(false, std::memory_order_release);
+    }
+
+    AtomicFlagReset(const AtomicFlagReset&) = delete;
+    auto operator=(const AtomicFlagReset&) -> AtomicFlagReset& = delete;
+
+private:
+    std::atomic_bool& m_flag;
+};
+
+[[nodiscard]] bool isConflictReconciliationOnly(
+    const domain::write::OutboxRecord& record) noexcept
+{
+    return record.lastFailure && record.lastFailure->kind == domain::write::FailureKind::Conflict;
+}
+
 [[nodiscard]] domain::write::ReactionKind domainReaction(const ReactionKind reaction) noexcept
 {
     switch (reaction) {
@@ -192,12 +218,29 @@ namespace {
 } // namespace
 
 struct WriteService::Impl final {
+    Impl(
+        executor::IExecutor& executorValue,
+        capability::write::IWriteAuthority& authorityValue,
+        capability::write::ICanonicalWriteCodec& codecValue,
+        local::write::IOutboxStore& outboxValue,
+        capability::write::IWriteSubmitter* submitterValue,
+        WritePolicy policyValue)
+        : executor(executorValue),
+          authority(authorityValue),
+          codec(codecValue),
+          outbox(outboxValue),
+          submitter(submitterValue),
+          policy(std::move(policyValue))
+    {
+    }
+
     executor::IExecutor& executor;
     capability::write::IWriteAuthority& authority;
     capability::write::ICanonicalWriteCodec& codec;
     local::write::IOutboxStore& outbox;
     capability::write::IWriteSubmitter* submitter{};
     WritePolicy policy{};
+    std::atomic_bool isResumeScheduled{false};
 
     void emitRecord(
         const domain::write::IdempotencyKey& key,
@@ -297,6 +340,48 @@ struct WriteService::Impl final {
             makeError(cause.code, cause.message));
     }
 
+    void scheduleConflictReconciliation(
+        const domain::write::OutboxRecord& attempted,
+        const foundation::error::Error& cause,
+        const Observer& observer)
+    {
+        const auto now = foundation::time::now();
+        const bool canRetry =
+            (cause.code == foundation::error::ErrorCode::Conflict || isRetryable(cause.code)) &&
+            attempted.attemptCount < policy.maxAttempts;
+        if (canRetry) {
+            const auto next = now + retryDelay(policy, attempted.attemptCount);
+            auto status = outbox.markRetry(
+                attempted.operation.idempotencyKey,
+                persistentFailureFor(foundation::error::ErrorCode::Conflict),
+                next);
+            if (!status) {
+                observer(WriteState{.phase = WritePhase::Failed, .error = std::move(status.error())});
+                return;
+            }
+            emitRecord(
+                attempted.operation.idempotencyKey,
+                WritePhase::RetryScheduled,
+                observer,
+                makeError(cause.code, cause.message));
+            return;
+        }
+
+        auto status = outbox.markFailed(
+            attempted.operation.idempotencyKey,
+            persistentFailureFor(cause.code),
+            now);
+        if (!status) {
+            observer(WriteState{.phase = WritePhase::Failed, .error = std::move(status.error())});
+            return;
+        }
+        emitRecord(
+            attempted.operation.idempotencyKey,
+            WritePhase::Failed,
+            observer,
+            makeError(cause.code, cause.message));
+    }
+
     void processOne(
         const std::optional<domain::session::ClientSession>& session,
         domain::write::OutboxRecord record,
@@ -307,6 +392,9 @@ struct WriteService::Impl final {
         }
         auto currentSigner = currentAuthority(session, domain::write::requiredScope(record.operation.kind));
         if (!currentSigner) {
+            // A generic not-ready authority can be transient during restore/provisioning.
+            // Terminal expiry/revocation is delivered explicitly through
+            // invalidatePendingAuthority(), while a different ready key is caught below.
             observer(WriteState{
                 .phase = WritePhase::Blocked,
                 .record = writeRecord(record),
@@ -364,6 +452,7 @@ struct WriteService::Impl final {
         }
 
         const bool requiresPreSubmitReconciliation = record.attemptCount > 0U;
+        const bool conflictReconciliationOnly = isConflictReconciliationOnly(record);
         auto attempt = outbox.beginAttempt(record.operation.idempotencyKey, foundation::time::now());
         if (!attempt) {
             observer(WriteState{.phase = WritePhase::Failed, .error = std::move(attempt.error())});
@@ -375,11 +464,24 @@ struct WriteService::Impl final {
         if (requiresPreSubmitReconciliation) {
             auto before = submitter->reconcile(record.operation);
             if (!before) {
-                scheduleOrFail(record, before.error(), observer);
+                if (conflictReconciliationOnly) {
+                    scheduleConflictReconciliation(record, before.error(), observer);
+                } else {
+                    scheduleOrFail(record, before.error(), observer);
+                }
                 return;
             }
             if (*before == capability::write::ConfirmationState::Confirmed) {
                 noteConfirmed(record, observer);
+                return;
+            }
+            if (conflictReconciliationOnly) {
+                scheduleConflictReconciliation(
+                    record,
+                    makeError(
+                        foundation::error::ErrorCode::Conflict,
+                        "The protocol write conflicted and authoritative indexing has not confirmed it yet."),
+                    observer);
                 return;
             }
         }
@@ -393,6 +495,12 @@ struct WriteService::Impl final {
                     noteConfirmed(record, observer);
                     return;
                 }
+                if (!conflictState) {
+                    scheduleConflictReconciliation(record, conflictState.error(), observer);
+                    return;
+                }
+                scheduleConflictReconciliation(record, submitted.error(), observer);
+                return;
             }
             scheduleOrFail(record, submitted.error(), observer);
             return;
@@ -433,14 +541,8 @@ WriteService::WriteService(
     local::write::IOutboxStore& outbox,
     capability::write::IWriteSubmitter* submitter,
     WritePolicy policy)
-    : m_impl(std::make_unique<Impl>(Impl{
-        .executor = executor,
-        .authority = authority,
-        .codec = codec,
-        .outbox = outbox,
-        .submitter = submitter,
-        .policy = std::move(policy),
-    }))
+    : m_impl(std::make_unique<Impl>(
+        executor, authority, codec, outbox, submitter, std::move(policy)))
 {
 }
 
@@ -597,8 +699,12 @@ foundation::result::Status WriteService::resume(
     if (auto valid = validatePolicy(m_impl->policy); !valid) {
         return valid;
     }
-    return m_impl->executor.post(
+    if (m_impl->isResumeScheduled.exchange(true, std::memory_order_acq_rel)) {
+        return {};
+    }
+    auto posted = m_impl->executor.post(
         [this, session = std::move(session), observer = std::move(observer)]() mutable {
+            AtomicFlagReset reset{m_impl->isResumeScheduled};
             if (!session || domain::session::isExpired(*session, foundation::time::now())) {
                 observer(WriteState{
                     .phase = WritePhase::Blocked,
@@ -618,6 +724,64 @@ foundation::result::Status WriteService::resume(
             }
             for (auto& record : *records) {
                 m_impl->processOne(session, std::move(record), observer);
+            }
+        });
+    if (!posted) {
+        m_impl->isResumeScheduled.store(false, std::memory_order_release);
+    }
+    return posted;
+}
+
+foundation::result::Status WriteService::invalidatePendingAuthority(
+    std::optional<domain::session::ClientSession> session,
+    Observer observer)
+{
+    if (!observer) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Signer invalidation requires a write-state observer."));
+    }
+    if (!session || domain::session::isExpired(*session, foundation::time::now())) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::Unauthorized,
+            "A current authenticated Farcaster session is required to invalidate queued writes."));
+    }
+    if (auto valid = validatePolicy(m_impl->policy); !valid) {
+        return valid;
+    }
+
+    return m_impl->executor.post(
+        [this, session = std::move(session), observer = std::move(observer)]() mutable {
+            const auto failure = persistentFailureFor(foundation::error::ErrorCode::Unauthorized);
+            while (true) {
+                auto records = m_impl->outbox.listReady(
+                    session->fid,
+                    foundation::time::Timestamp::max(),
+                    m_impl->policy.resumeBatchSize);
+                if (!records) {
+                    observer(WriteState{.phase = WritePhase::Failed, .error = std::move(records.error())});
+                    return;
+                }
+                if (records->empty()) {
+                    return;
+                }
+                for (const auto& record : *records) {
+                    auto failed = m_impl->outbox.markFailed(
+                        record.operation.idempotencyKey,
+                        failure,
+                        foundation::time::now());
+                    if (!failed) {
+                        observer(WriteState{.phase = WritePhase::Failed, .error = std::move(failed.error())});
+                        return;
+                    }
+                    m_impl->emitRecord(
+                        record.operation.idempotencyKey,
+                        WritePhase::Failed,
+                        observer,
+                        makeError(
+                            foundation::error::ErrorCode::Unauthorized,
+                            "Queued write was invalidated because its protocol signer expired or was revoked."));
+                }
             }
         });
 }

@@ -160,6 +160,16 @@ public:
         std::optional<domain::session::ClientSession> session,
         Observer observer);
 
+    /**
+     * @brief Fails every queued write for the account after authoritative signer expiry/revocation.
+     *
+     * This performs no network submission. Durable optimistic projections are
+     * retained, but stale signed envelopes cannot cross a signer-authority lifecycle.
+     */
+    [[nodiscard]] foundation::result::Status invalidatePendingAuthority(
+        std::optional<domain::session::ClientSession> session,
+        Observer observer);
+
 private:
     struct Impl;
     std::unique_ptr<Impl> m_impl;

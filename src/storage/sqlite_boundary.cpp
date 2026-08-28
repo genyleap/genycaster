@@ -210,6 +210,17 @@ CREATE TABLE IF NOT EXISTS cast_reaction_local_state (
 );
 CREATE INDEX IF NOT EXISTS idx_cast_reaction_local_author
     ON cast_reaction_local_state(author_fid, updated_at_ms);
+CREATE TABLE IF NOT EXISTS following_local_state (
+    author_fid INTEGER NOT NULL,
+    target_fid INTEGER NOT NULL,
+    is_following INTEGER NOT NULL CHECK (is_following IN (0, 1)),
+    idempotency_key TEXT NOT NULL,
+    updated_at_ms INTEGER NOT NULL,
+    PRIMARY KEY (author_fid, target_fid),
+    FOREIGN KEY (idempotency_key) REFERENCES write_outbox(idempotency_key) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_following_local_author
+    ON following_local_state(author_fid, updated_at_ms);
 )SQL";
 
     Transaction transaction{connection};
@@ -430,6 +441,51 @@ WHERE current.kind IN ('like', 'unlike', 'recast', 'undo-recast')
         return status;
     }
     if (auto status = recordMigration(connection, 14, appliedAt); !status) {
+        return status;
+    }
+
+    // Keep account-scoped follow intent durable independently of provider
+    // profile payloads. Backfill the latest Follow/Unfollow operation for each
+    // account/target tuple so upgrades preserve the user's desired state.
+    if (auto status = connection.execute(R"SQL(
+CREATE TABLE IF NOT EXISTS following_local_state (
+    author_fid INTEGER NOT NULL,
+    target_fid INTEGER NOT NULL,
+    is_following INTEGER NOT NULL CHECK (is_following IN (0, 1)),
+    idempotency_key TEXT NOT NULL,
+    updated_at_ms INTEGER NOT NULL,
+    PRIMARY KEY (author_fid, target_fid),
+    FOREIGN KEY (idempotency_key) REFERENCES write_outbox(idempotency_key) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_following_local_author
+    ON following_local_state(author_fid, updated_at_ms);
+INSERT OR REPLACE INTO following_local_state(
+    author_fid, target_fid, is_following, idempotency_key, updated_at_ms)
+SELECT
+    current.author_fid,
+    current.target_fid,
+    CASE WHEN current.kind = 'follow' THEN 1 ELSE 0 END,
+    current.idempotency_key,
+    current.enqueued_at_ms
+FROM write_outbox AS current
+WHERE current.kind IN ('follow', 'unfollow')
+  AND current.target_fid IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM write_outbox AS newer
+      WHERE newer.author_fid = current.author_fid
+        AND newer.target_fid = current.target_fid
+        AND newer.kind IN ('follow', 'unfollow')
+        AND (
+            newer.enqueued_at_ms > current.enqueued_at_ms
+            OR (newer.enqueued_at_ms = current.enqueued_at_ms
+                AND newer.rowid > current.rowid)
+        )
+  );
+)SQL"); !status) {
+        return status;
+    }
+    if (auto status = recordMigration(connection, 15, appliedAt); !status) {
         return status;
     }
 
