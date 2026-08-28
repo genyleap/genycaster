@@ -57,7 +57,7 @@ LoadResult load(
     auto accountRef = makeString(account);
     if (!serviceRef || !accountRef) {
         return std::unexpected(allocationFailure(
-            "Failed to allocate macOS Keychain query strings."));
+            "Failed to allocate Apple Keychain query strings."));
     }
 
     const void* keys[] = {
@@ -83,7 +83,7 @@ LoadResult load(
         &kCFTypeDictionaryValueCallBacks)};
     if (!query) {
         return std::unexpected(allocationFailure(
-            "Failed to allocate macOS Keychain query."));
+            "Failed to allocate Apple Keychain query."));
     }
 
     CFTypeRef result{};
@@ -97,13 +97,13 @@ LoadResult load(
             CFRelease(result);
         }
         return std::unexpected(nativeFailure(
-            "Failed to load protocol signer from macOS Keychain", status));
+            "Failed to load protocol signer from Apple Keychain", status));
     }
 
     CfPtr<CFDataRef> data{static_cast<CFDataRef>(result)};
     if (CFDataGetLength(data.get()) != static_cast<CFIndex>(seedSize)) {
         return std::unexpected(allocationFailure(
-            "macOS Keychain protocol signer contains an invalid Ed25519 seed length."));
+            "Apple Keychain protocol signer contains an invalid Ed25519 seed length."));
     }
     CFDataGetBytes(
         data.get(),
@@ -125,7 +125,7 @@ Status save(
         static_cast<CFIndex>(seed.size()))};
     if (!serviceRef || !accountRef || !data) {
         return std::unexpected(allocationFailure(
-            "Failed to allocate macOS Keychain signer values."));
+            "Failed to allocate Apple Keychain signer values."));
     }
 
     const void* keys[] = {
@@ -153,13 +153,13 @@ Status save(
         &kCFTypeDictionaryValueCallBacks)};
     if (!attributes) {
         return std::unexpected(allocationFailure(
-            "Failed to allocate macOS Keychain signer attributes."));
+            "Failed to allocate Apple Keychain signer attributes."));
     }
 
     const OSStatus status = SecItemAdd(attributes.get(), nullptr);
     if (status != errSecSuccess) {
         return std::unexpected(nativeFailure(
-            "Failed to save protocol signer in macOS Keychain", status));
+            "Failed to save protocol signer in Apple Keychain", status));
     }
     return {};
 }
@@ -170,7 +170,7 @@ Status erase(const std::string_view service, const std::string_view account)
     auto accountRef = makeString(account);
     if (!serviceRef || !accountRef) {
         return std::unexpected(allocationFailure(
-            "Failed to allocate macOS Keychain delete query strings."));
+            "Failed to allocate Apple Keychain delete query strings."));
     }
 
     const void* keys[] = {kSecClass, kSecAttrService, kSecAttrAccount};
@@ -184,7 +184,7 @@ Status erase(const std::string_view service, const std::string_view account)
         &kCFTypeDictionaryValueCallBacks)};
     if (!query) {
         return std::unexpected(allocationFailure(
-            "Failed to allocate macOS Keychain delete query."));
+            "Failed to allocate Apple Keychain delete query."));
     }
 
     const OSStatus status = SecItemDelete(query.get());
@@ -192,7 +192,7 @@ Status erase(const std::string_view service, const std::string_view account)
         return {};
     }
     return std::unexpected(nativeFailure(
-        "Failed to delete protocol signer from macOS Keychain", status));
+        "Failed to delete protocol signer from Apple Keychain", status));
 }
 
 }

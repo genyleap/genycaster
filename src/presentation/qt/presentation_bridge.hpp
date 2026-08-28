@@ -24,6 +24,10 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QString accountAvatarUrl READ accountAvatarUrl NOTIFY stateChanged)
     Q_PROPERTY(qulonglong accountFid READ accountFid NOTIFY stateChanged)
     Q_PROPERTY(bool writeReady READ writeReady NOTIFY stateChanged)
+    Q_PROPERTY(QString signerPhase READ signerPhase NOTIFY stateChanged)
+    Q_PROPERTY(bool signerBusy READ signerBusy NOTIFY stateChanged)
+    Q_PROPERTY(QString signerStatusText READ signerStatusText NOTIFY stateChanged)
+    Q_PROPERTY(QString signerErrorText READ signerErrorText NOTIFY stateChanged)
     Q_PROPERTY(QString activeView READ activeView NOTIFY stateChanged)
     Q_PROPERTY(QString activeFeed READ activeFeed NOTIFY stateChanged)
     Q_PROPERTY(QString identityName READ identityName NOTIFY stateChanged)
@@ -60,6 +64,10 @@ public:
     [[nodiscard]] QString accountAvatarUrl() const;
     [[nodiscard]] qulonglong accountFid() const noexcept;
     [[nodiscard]] bool writeReady() const noexcept;
+    [[nodiscard]] QString signerPhase() const;
+    [[nodiscard]] bool signerBusy() const noexcept;
+    [[nodiscard]] QString signerStatusText() const;
+    [[nodiscard]] QString signerErrorText() const;
     [[nodiscard]] QString activeView() const;
     [[nodiscard]] QString activeFeed() const;
     [[nodiscard]] QString identityName() const;
@@ -93,6 +101,8 @@ public:
     Q_INVOKABLE void cancelSignIn();
     Q_INVOKABLE void signOut();
     Q_INVOKABLE void openAuthenticationApproval();
+    Q_INVOKABLE void provisionSigner();
+    Q_INVOKABLE void revokeSigner();
 
     /** @brief Retries the current surface without bypassing an active capability cooldown. */
     void retryAutomatically();
@@ -113,6 +123,9 @@ public:
         QString errorText);
     /** @brief Reports an authentication worker failure without replacing a valid account session. */
     void applyAuthenticationError(QString errorText);
+    /** @brief Commits normalized protocol-signer readiness without exposing provider details. */
+    void applySignerState(
+        QString phase, bool busy, bool writeReady, QString statusText, QString errorText);
     /** @brief Commits a normalized identity presentation snapshot. */
     void applyIdentity(qulonglong fid, QString displayName, QString username,
         QString status, QString error, QString diagnostic, bool busy, bool stale, bool sourceUnavailable);
@@ -140,6 +153,8 @@ signals:
     void signInRequested();
     void signInCancelRequested();
     void signOutRequested();
+    void signerProvisionRequested();
+    void signerRevokeRequested();
     void socialRequested(
         QString kind,
         qulonglong fid,
@@ -161,6 +176,10 @@ private:
     QString m_accountAvatarUrl{};
     qulonglong m_accountFid{};
     bool m_writeReady{false};
+    QString m_signerPhase{QStringLiteral("signed-out")};
+    bool m_signerBusy{false};
+    QString m_signerStatusText{QStringLiteral("Sign in before enabling interactions.")};
+    QString m_signerErrorText{};
     QString m_activeView{QStringLiteral("feed")};
     QString m_activeFeed{QStringLiteral("following")};
     QString m_channelId{};

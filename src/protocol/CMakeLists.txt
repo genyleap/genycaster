@@ -7,9 +7,11 @@ target_sources(farcaster_protocol
         FILES
             hash.cppm
             message.cppm
+            key_authorization.cppm
     PRIVATE
         hash.cpp
         message.cpp
+        key_authorization.cpp
 )
 
 target_link_libraries(farcaster_protocol

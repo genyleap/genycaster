@@ -17,7 +17,7 @@ open(std::string)
 {
     return std::unexpected(foundation::error::Error::make(
         foundation::error::ErrorCode::Unsupported,
-        "Platform-secure protocol signer storage is not implemented on this platform yet."));
+        "No platform-secure protocol signer storage backend is available in this build."));
 }
 
 }

@@ -51,6 +51,10 @@ QString PresentationBridge::accountUsername() const { return m_accountUsername; 
 QString PresentationBridge::accountAvatarUrl() const { return m_accountAvatarUrl; }
 qulonglong PresentationBridge::accountFid() const noexcept { return m_accountFid; }
 bool PresentationBridge::writeReady() const noexcept { return m_writeReady; }
+QString PresentationBridge::signerPhase() const { return m_signerPhase; }
+bool PresentationBridge::signerBusy() const noexcept { return m_signerBusy; }
+QString PresentationBridge::signerStatusText() const { return m_signerStatusText; }
+QString PresentationBridge::signerErrorText() const { return m_signerErrorText; }
 QString PresentationBridge::activeView() const { return m_activeView; }
 QString PresentationBridge::activeFeed() const { return m_activeFeed; }
 QString PresentationBridge::identityName() const { return m_identityName; }
@@ -271,6 +275,20 @@ void PresentationBridge::signOut()
     emit signOutRequested();
 }
 
+void PresentationBridge::provisionSigner()
+{
+    if (!m_isAuthenticated || m_signerBusy) { return; }
+    m_signerErrorText.clear();
+    emit signerProvisionRequested();
+}
+
+void PresentationBridge::revokeSigner()
+{
+    if (!m_isAuthenticated || m_signerBusy || !m_writeReady) { return; }
+    m_signerErrorText.clear();
+    emit signerRevokeRequested();
+}
+
 void PresentationBridge::openAuthenticationApproval()
 {
     const QUrl parsed{m_authenticationApprovalUrl};
@@ -328,15 +346,38 @@ void PresentationBridge::applyAuthenticationState(
     m_accountAvatarUrl = m_isAuthenticated ? std::move(avatarUrl) : QString{};
     m_authenticationApprovalUrl = std::move(approvalUrl);
     m_authenticationErrorText = std::move(errorText);
-    // Authentication proves account ownership only. Protocol writes remain
-    // unavailable until a Phase 5 signer is provisioned and validated.
-    m_writeReady = false;
+    // Authentication proves account ownership only. Sign-out clears write authority
+    // immediately; an authenticated session keeps the separately observed signer state.
+    if (!m_isAuthenticated) {
+        m_writeReady = false;
+        m_signerPhase = QStringLiteral("signed-out");
+        m_signerBusy = false;
+        m_signerStatusText = QStringLiteral("Sign in before enabling interactions.");
+        m_signerErrorText.clear();
+    } else {
+        m_writeReady = m_signerPhase == QStringLiteral("ready");
+    }
     emit stateChanged();
 }
 
 void PresentationBridge::applyAuthenticationError(QString errorText)
 {
     m_authenticationErrorText = std::move(errorText);
+    emit stateChanged();
+}
+
+void PresentationBridge::applySignerState(
+    QString phase,
+    const bool busy,
+    const bool writeReady,
+    QString statusText,
+    QString errorText)
+{
+    m_signerPhase = std::move(phase);
+    m_signerBusy = busy;
+    m_writeReady = m_isAuthenticated && writeReady;
+    m_signerStatusText = std::move(statusText);
+    m_signerErrorText = std::move(errorText);
     emit stateChanged();
 }
 

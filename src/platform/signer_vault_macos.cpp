@@ -175,7 +175,7 @@ public:
         if (!*loaded) {
             return std::unexpected(foundation::error::Error::make(
                 foundation::error::ErrorCode::NotFound,
-                "Protocol signer is no longer present in macOS Keychain."));
+                "Protocol signer is no longer present in Apple Keychain."));
         }
         auto key = makePrivateKey(**loaded);
         if (!key) return std::unexpected(std::move(key.error()));
@@ -196,7 +196,7 @@ public:
         if (!*loaded) {
             return std::unexpected(foundation::error::Error::make(
                 foundation::error::ErrorCode::NotFound,
-                "Protocol signer is no longer present in macOS Keychain."));
+                "Protocol signer is no longer present in Apple Keychain."));
         }
         auto key = makePrivateKey(**loaded);
         if (!key) return std::unexpected(std::move(key.error()));
@@ -275,7 +275,7 @@ open(std::string serviceName)
     if (serviceName.empty()) {
         return std::unexpected(foundation::error::Error::make(
             foundation::error::ErrorCode::InvalidArgument,
-            "macOS protocol signer vault requires a non-empty service name."));
+            "Apple protocol signer vault requires a non-empty service name."));
     }
     std::unique_ptr<capability::signer::ISignerVault> vault =
         std::make_unique<KeychainSignerVault>(std::move(serviceName));
