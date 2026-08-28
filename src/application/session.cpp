@@ -110,6 +110,19 @@ foundation::result::Status SessionService::restore(Observer observer)
             return;
         }
         m_impl->current = std::move(**loaded);
+        if (!m_impl->current->custodyAddress && m_impl->compatibilityAuth != nullptr) {
+            auto custodyAddress =
+                m_impl->compatibilityAuth->resolveCustodyAddress(m_impl->current->fid);
+            if (!custodyAddress) {
+                observer(failedState(std::move(custodyAddress.error()), m_impl->current));
+                return;
+            }
+            m_impl->current->custodyAddress = std::move(*custodyAddress);
+            if (auto saved = m_impl->store.save(*m_impl->current); !saved) {
+                observer(failedState(std::move(saved.error()), m_impl->current));
+                return;
+            }
+        }
         observer(SessionState{
             .phase = SessionPhase::Authenticated,
             .session = m_impl->current,

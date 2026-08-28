@@ -15,12 +15,14 @@ export namespace farcaster::provider::snapchain::signer {
 /**
  * @brief Snapchain signer-registry HTTP configuration owned by composition code.
  *
- * The default targets Farcaster's public mainnet node. Composition may replace
- * it with a self-hosted or otherwise policy-approved Snapchain origin.
- * Credentials are intentionally absent from this value.
+ * Composition supplies the deployment origin. The adapter is intentionally
+ * unaware of gateway/vendor identity; optional HTTP credentials are modeled
+ * only as an explicit header name/value pair.
  */
 struct Config final {
-    std::string baseUrl{"https://snapchain.farcaster.xyz"};
+    std::string baseUrl{};
+    std::string authorizationHeaderName{};
+    std::string authorizationHeaderValue{};
     std::chrono::milliseconds timeout{15'000};
     std::size_t maxBodyBytes{8U * 1024U * 1024U};
     /** @brief Maximum time spent waiting for submitted signer state to become authoritative. */

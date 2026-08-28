@@ -11,6 +11,7 @@ module;
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 module farcaster.provider.snapchain.write;
 
@@ -48,6 +49,7 @@ using domain::write::OperationKind;
     return value;
 }
 
+
 [[nodiscard]] foundation::result::Status validateConfig(const Config& config)
 {
     if (config.baseUrl.empty() ||
@@ -66,7 +68,46 @@ using domain::write::OperationKind;
             foundation::error::ErrorCode::InvalidArgument,
             "Snapchain write timeout and response-size limit must be positive."));
     }
+    const bool hasAuthorizationHeaderName = !config.authorizationHeaderName.empty();
+    const bool hasAuthorizationHeaderValue = !config.authorizationHeaderValue.empty();
+    if (hasAuthorizationHeaderName != hasAuthorizationHeaderValue) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Snapchain authorization header name and value must be configured together."));
+    }
+    if (hasAuthorizationHeaderName) {
+        const auto validHeaderCharacter = [](const unsigned char character) {
+            return std::isalnum(character) != 0 ||
+                std::string_view{"!#$%&'*+-.^_`|~"}.find(static_cast<char>(character)) !=
+                    std::string_view::npos;
+        };
+        if (!std::ranges::all_of(config.authorizationHeaderName, validHeaderCharacter)) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Snapchain authorization header name contains invalid HTTP token characters."));
+        }
+        if (config.authorizationHeaderValue.find_first_of("\r\n") != std::string::npos) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Snapchain authorization header value must not contain line breaks."));
+        }
+    }
     return {};
+}
+
+[[nodiscard]] std::vector<std::string> requestHeaders(
+    const Config& config,
+    const bool binaryBody)
+{
+    std::vector<std::string> headers{"Accept: application/json"};
+    if (binaryBody) {
+        headers.emplace_back("Content-Type: application/octet-stream");
+    }
+    if (!config.authorizationHeaderName.empty()) {
+        headers.push_back(
+            config.authorizationHeaderName + ": " + config.authorizationHeaderValue);
+    }
+    return headers;
 }
 
 [[nodiscard]] bool isHexDigit(const char character)
@@ -101,6 +142,14 @@ using domain::write::OperationKind;
     boost::system::error_code error{};
     auto value = boost::json::parse(body, error);
     if (error) {
+        const bool looksLikeHtml = body.find("<!DOCTYPE") != std::string_view::npos ||
+            body.find("<!doctype") != std::string_view::npos ||
+            body.find("<html") != std::string_view::npos;
+        if (looksLikeHtml) {
+            return std::unexpected(protocolError(
+                "Snapchain endpoint returned HTML instead of JSON. The configured base URL points "
+                "to a documentation/reverse-proxy page rather than a Snapchain HTTP API."));
+        }
         return std::unexpected(protocolError("Snapchain write response is not valid JSON."));
     }
     return value;
@@ -541,7 +590,7 @@ public:
         }
         transport::http::HttpPostRequest request{
             .url = trimTrailingSlashes(m_config.baseUrl) + "/v1/submitMessage",
-            .headers = {"Accept: application/json", "Content-Type: application/octet-stream"},
+            .headers = requestHeaders(m_config, true),
             .body = operation.messageBytes,
             .timeout = m_config.timeout,
             .maxBodyBytes = m_config.maxBodyBytes,
@@ -567,7 +616,7 @@ public:
         }
         transport::http::HttpRequest request{
             .url = reconciliationUrl(m_config, operation),
-            .headers = {"Accept: application/json"},
+            .headers = requestHeaders(m_config, false),
             .timeout = m_config.timeout,
             .maxBodyBytes = m_config.maxBodyBytes,
         };

@@ -86,6 +86,7 @@ inline constexpr std::uint32_t requestedPageSize = 1'000U;
     return encoded;
 }
 
+
 [[nodiscard]] foundation::result::Status validateConfig(const Config& config)
 {
     if (config.baseUrl.empty()) {
@@ -123,7 +124,46 @@ inline constexpr std::uint32_t requestedPageSize = 1'000U;
             foundation::error::ErrorCode::InvalidArgument,
             "Snapchain confirmation poll interval must be positive."));
     }
+    const bool hasAuthorizationHeaderName = !config.authorizationHeaderName.empty();
+    const bool hasAuthorizationHeaderValue = !config.authorizationHeaderValue.empty();
+    if (hasAuthorizationHeaderName != hasAuthorizationHeaderValue) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Snapchain authorization header name and value must be configured together."));
+    }
+    if (hasAuthorizationHeaderName) {
+        const auto validHeaderCharacter = [](const unsigned char character) {
+            return std::isalnum(character) != 0 ||
+                std::string_view{"!#$%&'*+-.^_`|~"}.find(static_cast<char>(character)) !=
+                    std::string_view::npos;
+        };
+        if (!std::ranges::all_of(config.authorizationHeaderName, validHeaderCharacter)) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Snapchain authorization header name contains invalid HTTP token characters."));
+        }
+        if (config.authorizationHeaderValue.find_first_of("\r\n") != std::string::npos) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Snapchain authorization header value must not contain line breaks."));
+        }
+    }
     return {};
+}
+
+[[nodiscard]] std::vector<std::string> requestHeaders(
+    const Config& config,
+    const bool binaryBody)
+{
+    std::vector<std::string> headers{"Accept: application/json"};
+    if (binaryBody) {
+        headers.emplace_back("Content-Type: application/octet-stream");
+    }
+    if (!config.authorizationHeaderName.empty()) {
+        headers.push_back(
+            config.authorizationHeaderName + ": " + config.authorizationHeaderValue);
+    }
+    return headers;
 }
 
 [[nodiscard]] bool isHexDigit(const char character)
@@ -246,6 +286,14 @@ inline constexpr std::uint32_t requestedPageSize = 1'000U;
     std::error_code error{};
     JsonValue document = boost::json::parse(body, error);
     if (error) {
+        const bool looksLikeHtml = body.find("<!DOCTYPE") != std::string_view::npos ||
+            body.find("<!doctype") != std::string_view::npos ||
+            body.find("<html") != std::string_view::npos;
+        if (looksLikeHtml) {
+            return std::unexpected(protocolError(
+                "Snapchain endpoint returned HTML instead of JSON. The configured base URL points "
+                "to a documentation/reverse-proxy page rather than a Snapchain HTTP API."));
+        }
         return std::unexpected(protocolError("Snapchain returned invalid JSON: " + error.message()));
     }
     return document;
@@ -470,8 +518,10 @@ inline constexpr std::uint32_t requestedPageSize = 1'000U;
     url.append("&pageSize=");
     url.append(std::to_string(requestedPageSize));
     if (requestFid) {
-        // Snapchain accepts requester FIDs as repeated scalar query parameters.
-        url.append("&requesterFids=");
+        // Snapchain parses query strings with serde_qs. A Vec<u64> must use
+        // indexed array notation; a scalar requesterFids=42 is rejected as
+        // "expected a sequence" by the HTTP server.
+        url.append("&requesterFids[0]=");
         url.append(std::to_string(requestFid->value));
     }
     if (pageToken && !pageToken->empty()) {
@@ -545,7 +595,7 @@ struct Page final {
 {
     auto response = transport.get(transport::http::HttpRequest{
         .url = url,
-        .headers = {"Accept: application/json"},
+        .headers = requestHeaders(config, false),
         .timeout = config.timeout,
         .maxBodyBytes = config.maxBodyBytes,
     });
@@ -567,10 +617,7 @@ struct Page final {
     url.append("/v1/submitMessage");
     auto response = transport.post(transport::http::HttpPostRequest{
         .url = std::move(url),
-        .headers = {
-            "Accept: application/json",
-            "Content-Type: application/octet-stream",
-        },
+        .headers = requestHeaders(config, true),
         .body = std::move(body),
         .timeout = config.timeout,
         .maxBodyBytes = config.maxBodyBytes,

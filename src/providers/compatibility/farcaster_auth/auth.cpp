@@ -553,6 +553,12 @@ public:
         };
     }
 
+    [[nodiscard]] foundation::result::Result<std::string> currentCustodyAddress(
+        const domain::identity::Fid fid)
+    {
+        return custodyAddressForFid(fid);
+    }
+
 private:
     [[nodiscard]] foundation::result::Result<std::string> rpc(
         const std::string_view method,
@@ -1107,6 +1113,18 @@ public:
                 siweUri),
         };
         return started;
+    }
+
+    [[nodiscard]] foundation::result::Result<std::string> resolveCustodyAddress(
+        const domain::identity::Fid fid) override
+    {
+        if (fid.value == 0U) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Custody resolution requires a non-zero FID."));
+        }
+        EthereumVerifier verifier{m_transport, m_config.optimismRpcUrl, m_config.requestTimeout};
+        return verifier.currentCustodyAddress(fid);
     }
 
 private:

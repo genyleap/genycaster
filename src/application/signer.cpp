@@ -422,7 +422,7 @@ foundation::result::Status SignerService::provision(
                 m_impl->current = SignerState{.phase = SignerPhase::AuthorizationRequired,
                     .record = record, .requiredScopes = m_impl->policy.scopes,
                     .error = makeError(foundation::error::ErrorCode::Unauthorized,
-                        "The current login predates custody-wallet verification. Sign out and sign in again so Genycaster can verify the FID's current custody address before KEY_ADD.")};
+                        "The current session has no verified Farcaster custody address. Session restore normally refreshes legacy sessions automatically; verify Optimism RPC connectivity or sign in again before KEY_ADD.")};
                 observer(m_impl->current);
                 return;
             }

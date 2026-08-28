@@ -1,6 +1,7 @@
 module;
 
 #include <cstdint>
+#include <string_view>
 
 export module farcaster.application.configuration;
 
@@ -30,6 +31,18 @@ struct FeatureSet final {
 };
 
 /**
+ * @brief First-party shipping origins used by the executable composition root.
+ *
+ * Provider-specific upstream identities and credentials deliberately do not
+ * belong here. The Snapchain origin is the stable Genyleap gateway.
+ */
+struct DeploymentEndpoints final {
+    std::string_view siwfDomain{};
+    std::string_view siwfUri{};
+    std::string_view snapchainBaseUrl{};
+};
+
+/**
  * @brief Returns the feature set configured by the current CMake build profile.
  * @return Immutable feature-availability snapshot for composition code.
  */
@@ -40,5 +53,11 @@ struct FeatureSet final {
  * @return StrictSelfHosted when public/managed infrastructure is disabled by build policy.
  */
 [[nodiscard]] DeploymentProfile configuredDeploymentProfile() noexcept;
+
+/**
+ * @brief Returns first-party shipping identity/protocol origins for composition.
+ * @return Build-configured defaults; runtime overrides are applied by the executable.
+ */
+[[nodiscard]] DeploymentEndpoints configuredDeploymentEndpoints() noexcept;
 
 }

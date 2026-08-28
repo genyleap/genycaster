@@ -6,6 +6,7 @@ module;
 
 export module farcaster.capability.auth;
 
+import farcaster.domain.identity;
 import farcaster.domain.session;
 import farcaster.foundation.result;
 import farcaster.foundation.time;
@@ -81,6 +82,16 @@ public:
      */
     [[nodiscard]] virtual foundation::result::Result<StartedAuthentication> begin(
         const SignInRequest& request) = 0;
+
+    /**
+     * @brief Resolves the current authoritative custody address for an existing FID.
+     *
+     * This is used to upgrade legacy persisted sessions without forcing a new SIWF
+     * ceremony. Failure must not invalidate the already verified read session; it only
+     * prevents custody-authorized signer provisioning until verification succeeds.
+     */
+    [[nodiscard]] virtual foundation::result::Result<std::string> resolveCustodyAddress(
+        domain::identity::Fid fid) = 0;
 };
 
 }

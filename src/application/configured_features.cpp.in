@@ -21,4 +21,13 @@ DeploymentProfile configuredDeploymentProfile() noexcept
     return DeploymentProfile::@FARCASTER_DEPLOYMENT_PROFILE_CPP@;
 }
 
+DeploymentEndpoints configuredDeploymentEndpoints() noexcept
+{
+    return DeploymentEndpoints{
+        .siwfDomain = "@FARCASTER_DEFAULT_SIWF_DOMAIN@",
+        .siwfUri = "@FARCASTER_DEFAULT_SIWF_URI@",
+        .snapchainBaseUrl = "@FARCASTER_DEFAULT_SNAPCHAIN_BASE_URL@",
+    };
+}
+
 }
