@@ -339,6 +339,60 @@ void PresentationBridge::openChannel(const QString& channelId)
         m_activeFeed, m_identityFid, m_channelId, {}, consumeRecoveryProbe());
 }
 
+
+void PresentationBridge::openSearchQuery(const QString& query)
+{
+    QString canonical = query.trimmed();
+    if (canonical.isEmpty()) {
+        m_errorText = qtTrId("genycaster.bridge.enter_a_search_query");
+        emit stateChanged();
+        return;
+    }
+
+    if (canonical.startsWith(QStringLiteral("http://"), Qt::CaseInsensitive) ||
+        canonical.startsWith(QStringLiteral("https://"), Qt::CaseInsensitive)) {
+        const QUrl url{canonical};
+        const QString host = url.host().toLower();
+        const QStringList segments = url.path().split(QLatin1Char('/'), Qt::SkipEmptyParts);
+        if ((host == QStringLiteral("farcaster.xyz") || host.endsWith(QStringLiteral(".farcaster.xyz"))) &&
+            segments.size() >= 3 && segments[0] == QStringLiteral("~") &&
+            segments[1] == QStringLiteral("channel")) {
+            openChannel(segments[2]);
+            return;
+        }
+        if ((host == QStringLiteral("farcaster.xyz") || host.endsWith(QStringLiteral(".farcaster.xyz"))) &&
+            !segments.isEmpty() && !segments[0].startsWith(QLatin1Char('~'))) {
+            openProfileUsername(segments[0]);
+            return;
+        }
+    }
+
+    if (canonical.startsWith(QLatin1Char('@'))) {
+        canonical.remove(0, 1);
+        openProfileUsername(canonical);
+        return;
+    }
+    if (canonical.startsWith(QStringLiteral("channel:"), Qt::CaseInsensitive)) {
+        openChannel(canonical.sliced(8).trimmed());
+        return;
+    }
+    if (canonical.startsWith(QLatin1Char('/')) || canonical.startsWith(QLatin1Char('#'))) {
+        canonical.remove(0, 1);
+        openChannel(canonical);
+        return;
+    }
+    if (canonical.startsWith(QStringLiteral("cast:"), Qt::CaseInsensitive)) {
+        openCast(canonical.sliced(5).trimmed());
+        return;
+    }
+    if (canonical.startsWith(QStringLiteral("0x"), Qt::CaseInsensitive) && canonical.size() >= 18) {
+        openCast(canonical);
+        return;
+    }
+
+    openProfileUsername(canonical);
+}
+
 void PresentationBridge::openCast(const QString& castId)
 {
     if (castId.trimmed().isEmpty()) {
@@ -1220,6 +1274,63 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
     m_isStale = stale;
     m_sourceUnavailable = sourceUnavailable;
     emit stateChanged();
+}
+
+
+void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap preview)
+{
+    const QString targetKey = canonicalCastKey(std::move(castId));
+    if (targetKey.isEmpty() || preview.isEmpty()) {
+        return;
+    }
+
+    auto patchEmbeds = [&targetKey, &preview](QVariantMap& row) {
+        QVariantList embeds = row.value(QStringLiteral("embeds")).toList();
+        bool changed = false;
+        for (qsizetype index = 0; index < embeds.size(); ++index) {
+            QVariantMap embed = embeds[index].toMap();
+            if (embed.value(QStringLiteral("kind")).toString() != QStringLiteral("cast-reference") ||
+                canonicalCastKey(embed.value(QStringLiteral("castId")).toString()) != targetKey) {
+                continue;
+            }
+            for (auto it = preview.cbegin(); it != preview.cend(); ++it) {
+                if (it.key() != QStringLiteral("kind")) {
+                    embed.insert(it.key(), it.value());
+                }
+            }
+            embed.insert(QStringLiteral("kind"), QStringLiteral("cast-reference"));
+            embeds[index] = std::move(embed);
+            changed = true;
+        }
+        if (changed) {
+            row.insert(QStringLiteral("embeds"), std::move(embeds));
+        }
+    };
+
+    bool changed = false;
+    for (qsizetype index = 0; index < m_rows.size(); ++index) {
+        QVariantMap row = m_rows[index].toMap();
+        if (canonicalCastKey(row.value(QStringLiteral("parentCastId")).toString()) == targetKey) {
+            row.insert(QStringLiteral("parentPreview"), preview);
+            changed = true;
+        }
+        const QVariantList before = row.value(QStringLiteral("embeds")).toList();
+        patchEmbeds(row);
+        if (before != row.value(QStringLiteral("embeds")).toList()) {
+            changed = true;
+        }
+        m_rows[index] = std::move(row);
+    }
+
+    const QVariantList detailBefore = m_detail.value(QStringLiteral("embeds")).toList();
+    patchEmbeds(m_detail);
+    if (detailBefore != m_detail.value(QStringLiteral("embeds")).toList()) {
+        changed = true;
+    }
+
+    if (changed) {
+        emit stateChanged();
+    }
 }
 
 void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString status,
