@@ -43,6 +43,18 @@ struct DeploymentEndpoints final {
 };
 
 /**
+ * @brief Canonical public product identity used for client attribution.
+ *
+ * The FID is public metadata only. The custody secret for this FID must never
+ * ship in the desktop client; production signer attestation remains a backend
+ * responsibility.
+ */
+struct DeploymentIdentity final {
+    std::uint64_t appFid{};
+    std::string_view appName{};
+};
+
+/**
  * @brief Returns the feature set configured by the current CMake build profile.
  * @return Immutable feature-availability snapshot for composition code.
  */
@@ -59,5 +71,11 @@ struct DeploymentEndpoints final {
  * @return Build-configured defaults; runtime overrides are applied by the executable.
  */
 [[nodiscard]] DeploymentEndpoints configuredDeploymentEndpoints() noexcept;
+
+/**
+ * @brief Returns the canonical public Genycaster App identity.
+ * @return Build-configured App FID and display name.
+ */
+[[nodiscard]] DeploymentIdentity configuredDeploymentIdentity() noexcept;
 
 }
