@@ -573,6 +573,8 @@ foundation::result::Status WriteService::publish(
                     .author = session->fid,
                     .text = std::move(request.text),
                     .embeds = std::move(request.embeds),
+                    .mentions = std::move(request.mentions),
+                    .mentionPositions = std::move(request.mentionPositions),
                     .parent = std::move(request.parent),
                     .createdAt = foundation::time::now(),
                 },
