@@ -15,9 +15,11 @@ target_sources(farcaster_domain
             signer.cppm
             write.cppm
             valuation.cppm
+            rich_document.cppm
     PRIVATE
         session.cpp
         signer.cpp
+        rich_document.cpp
 )
 
 target_link_libraries(farcaster_domain PUBLIC farcaster::foundation)
