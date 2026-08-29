@@ -61,10 +61,14 @@ using foundation::error::ErrorCode;
         kind = local::read::FeedKey::Kind::Following;
     } else if (query.kind == model::FeedQuery::Kind::Channel) {
         kind = local::read::FeedKey::Kind::Channel;
-    } else if (query.kind == model::FeedQuery::Kind::UserCasts) {
-        kind = local::read::FeedKey::Kind::UserCasts;
+    } else if (query.kind == model::FeedQuery::Kind::UserPosts) {
+        kind = local::read::FeedKey::Kind::UserPosts;
+    } else if (query.kind == model::FeedQuery::Kind::UserQuotes) {
+        kind = local::read::FeedKey::Kind::UserQuotes;
     } else if (query.kind == model::FeedQuery::Kind::UserReplies) {
         kind = local::read::FeedKey::Kind::UserReplies;
+    } else if (query.kind == model::FeedQuery::Kind::UserLikes) {
+        kind = local::read::FeedKey::Kind::UserLikes;
     } else if (query.kind == model::FeedQuery::Kind::UserPopular) {
         kind = local::read::FeedKey::Kind::UserPopular;
     }
@@ -285,8 +289,10 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
 {
     if (query.limit == 0 || !observer ||
         ((query.kind == model::FeedQuery::Kind::Following ||
-          query.kind == model::FeedQuery::Kind::UserCasts ||
+          query.kind == model::FeedQuery::Kind::UserPosts ||
+          query.kind == model::FeedQuery::Kind::UserQuotes ||
           query.kind == model::FeedQuery::Kind::UserReplies ||
+          query.kind == model::FeedQuery::Kind::UserLikes ||
           query.kind == model::FeedQuery::Kind::UserPopular) && (!query.fid || query.fid->value == 0)) ||
         (query.kind == model::FeedQuery::Kind::Channel && (!query.channel || query.channel->value.empty()))) {
         return std::unexpected(Error::make(ErrorCode::InvalidArgument, "Feed selector, limit and observer must be valid."));
