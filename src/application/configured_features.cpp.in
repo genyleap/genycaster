@@ -30,4 +30,12 @@ DeploymentEndpoints configuredDeploymentEndpoints() noexcept
     };
 }
 
+DeploymentIdentity configuredDeploymentIdentity() noexcept
+{
+    return DeploymentIdentity{
+        .appFid = @FARCASTER_DEFAULT_APP_FID@ULL,
+        .appName = "@FARCASTER_DEFAULT_APP_NAME@",
+    };
+}
+
 }
