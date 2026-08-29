@@ -337,4 +337,58 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::userPopular(
         pageRequest, profileFeedRequestTimeout);
 }
 
+foundation::result::Result<domain::feed::ViewerReactionSnapshot> FeedSource::viewerReactions(
+    const domain::identity::Fid fid,
+    const std::size_t limit)
+{
+    if (fid.value == 0 || limit == 0 || limit > 100) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Viewer reaction limit must be between 1 and 100."));
+    }
+    if (auto status = request::validateConfig(m_config); !status) {
+        return std::unexpected(std::move(status.error()));
+    }
+
+    request::Client requests{m_transport, m_config};
+    const auto readTargets = [&](const std::string_view type)
+        -> foundation::result::Result<std::vector<domain::cast::CastId>> {
+        auto body = requests.getJson(
+            "/v1/reactionsByFid",
+            {
+                {"fid", std::to_string(fid.value)},
+                {"reaction_type", std::string{type}},
+                {"pageSize", std::to_string(limit)},
+                {"reverse", "true"},
+            },
+            request::GetOptions{.timeout = std::chrono::milliseconds{2'000}});
+        if (!body) {
+            return std::unexpected(std::move(body.error()));
+        }
+        auto payload = codec::decodeReactionTargets(*body);
+        if (!payload) {
+            return std::unexpected(std::move(payload.error()));
+        }
+        std::vector<domain::cast::CastId> ids{};
+        ids.reserve(payload->targets.size());
+        for (auto& target : payload->targets) {
+            ids.push_back(std::move(target.castId));
+        }
+        return ids;
+    };
+
+    auto liked = readTargets("Like");
+    if (!liked) {
+        return std::unexpected(std::move(liked.error()));
+    }
+    auto recasted = readTargets("Recast");
+    if (!recasted) {
+        return std::unexpected(std::move(recasted.error()));
+    }
+    return domain::feed::ViewerReactionSnapshot{
+        .liked = std::move(*liked),
+        .recasted = std::move(*recasted),
+    };
+}
+
 }
