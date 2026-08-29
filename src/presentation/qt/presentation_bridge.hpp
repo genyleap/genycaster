@@ -104,6 +104,8 @@ public:
     Q_INVOKABLE void openCast(const QString& castId);
     Q_INVOKABLE void openProfile();
     Q_INVOKABLE void openMyProfile();
+    /** @brief Resolves one exact Farcaster username from Explore and opens its profile without retargeting Home. */
+    Q_INVOKABLE void openProfileUsername(const QString& username);
     Q_INVOKABLE void openProfileFid(qulonglong fid);
     Q_INVOKABLE void selectProfileFeed(const QString& feed);
     Q_INVOKABLE void openFollowers();
@@ -166,6 +168,9 @@ public:
     /** @brief Commits a normalized identity presentation snapshot. */
     void applyIdentity(qulonglong fid, QString displayName, QString username,
         QString status, QString error, QString diagnostic, bool busy, bool stale, bool sourceUnavailable);
+    /** @brief Commits transient exact-lookup status without mutating the currently viewed Home identity. */
+    void applyLookupState(QString status, QString error, QString diagnostic,
+        bool busy, bool stale, bool sourceUnavailable);
     /** @brief Commits normalized rows for a feed or social surface. */
     void applyList(QString view, QString selector, QVariantList rows, QString next,
         QString status, QString error, QString diagnostic, bool busy, bool stale, bool sourceUnavailable);
@@ -182,6 +187,7 @@ signals:
     void castQueued();
     void identityOpened();
     void identityRequested(QString username, bool allowRecoveryProbe);
+    void profileUsernameRequested(QString username, bool allowRecoveryProbe);
     void feedRequested(
         QString feed,
         qulonglong fid,
