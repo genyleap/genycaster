@@ -26,6 +26,7 @@ class QSettings;
 class LocalizationController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString languageTag READ languageTag NOTIFY localeChanged)
+    Q_PROPERTY(QString effectiveLanguageTag READ effectiveLanguageTag NOTIFY localeChanged)
     Q_PROPERTY(QString regionalLocaleTag READ regionalLocaleTag NOTIFY localeChanged)
     Q_PROPERTY(QString effectiveLocaleName READ effectiveLocaleName NOTIFY localeChanged)
     Q_PROPERTY(QString calendarId READ calendarId NOTIFY localeChanged)
@@ -83,6 +84,7 @@ public:
     auto operator=(LocalizationController&&) -> LocalizationController& = delete;
 
     [[nodiscard]] QString languageTag() const;
+    [[nodiscard]] QString effectiveLanguageTag() const;
     [[nodiscard]] QString regionalLocaleTag() const;
     [[nodiscard]] QString effectiveLocaleName() const;
     [[nodiscard]] QString calendarId() const;
