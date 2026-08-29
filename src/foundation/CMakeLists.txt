@@ -8,9 +8,11 @@ target_sources(farcaster_foundation
             error.cppm
             result.cppm
             time.cppm
+            utf8.cppm
     PRIVATE
         error.cpp
         time.cpp
+        utf8.cpp
 )
 
 target_compile_features(farcaster_foundation PUBLIC cxx_std_26)
