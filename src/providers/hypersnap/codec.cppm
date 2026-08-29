@@ -42,6 +42,13 @@ struct ReactionTargetsPayload final {
     std::optional<std::string> providerCursor{};
 };
 
+
+/** @brief One canonical UserData value returned by the protocol-wide FID lookup. */
+struct UserDataEntry final {
+    std::string type{};
+    std::string value{};
+};
+
 /** @brief Canonical social-graph users plus provider-private continuation cursor. */
 struct SocialPayload final {
     std::vector<domain::profile::Profile> profiles{};
@@ -56,6 +63,10 @@ struct SocialPayload final {
 
 /** @brief Decodes one standard Snapchain UserData message value. */
 [[nodiscard]] foundation::result::Result<std::string> decodeUserDataValue(std::string_view body);
+
+/** @brief Decodes all standard Snapchain UserData messages returned for one FID. */
+[[nodiscard]] foundation::result::Result<std::vector<UserDataEntry>> decodeUserDataEntries(
+    std::string_view body);
 
 /** @brief Decodes the pinned Hypersnap v2 single-cast schema with its author. */
 [[nodiscard]] foundation::result::Result<CastPayload> decodeCastPayload(std::string_view body);
