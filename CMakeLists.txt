@@ -14,6 +14,25 @@ include(ArchitectureGuards)
 option(FARCASTER_BUILD_TESTS "Build unit, contract, integration and architecture tests" ON)
 option(FARCASTER_BUILD_UI "Build the Qt Quick presentation shell" ON)
 
+# Shipping deployment identity/origins. These are first-party product defaults,
+# not provider identities. Runtime CLI/environment overrides remain available for
+# development, testing and self-hosted deployments.
+set(FARCASTER_DEFAULT_SIWF_DOMAIN
+    "genycaster.genyleap.com"
+    CACHE STRING "Default SIWF domain for shipping Genycaster builds")
+set(FARCASTER_DEFAULT_SIWF_URI
+    "https://genycaster.genyleap.com/login"
+    CACHE STRING "Default SIWF URI for shipping Genycaster builds")
+set(FARCASTER_DEFAULT_SNAPCHAIN_BASE_URL
+    "https://snapchain.genyleap.com"
+    CACHE STRING "Default Genycaster-facing Snapchain HTTP origin")
+set(FARCASTER_DEFAULT_APP_FID
+    "256"
+    CACHE STRING "Canonical Farcaster App FID for Genycaster attribution")
+set(FARCASTER_DEFAULT_APP_NAME
+    "Genycaster"
+    CACHE STRING "Canonical Farcaster App display name for Genycaster")
+
 # These options describe product composition. Feature implementation targets are
 # created only when real behavior exists; empty ceremonial feature libraries are forbidden.
 option(FARCASTER_ENABLE_SOCIAL "Enable social product composition" ON)
@@ -65,10 +84,30 @@ option(
 )
 unset(_farcasterProtocolSigningDefault)
 
+set(_farcasterQtKeychainSignerVaultDefault OFF)
+if(FARCASTER_ENABLE_PROTOCOL_SIGNING AND NOT APPLE)
+    # Non-Apple shipping builds use QtKeychain as the portable secure-secret
+    # boundary: Windows Credential Store, Linux Secret Service/KWallet, and
+    # Android Keystore. Apple keeps the direct Security.framework adapter.
+    set(_farcasterQtKeychainSignerVaultDefault ON)
+endif()
+option(
+    FARCASTER_ENABLE_QTKEYCHAIN_SIGNER_VAULT
+    "Enable the QtKeychain-backed secure signer vault on non-Apple platforms"
+    ${_farcasterQtKeychainSignerVaultDefault}
+)
+unset(_farcasterQtKeychainSignerVaultDefault)
+
+option(
+    FARCASTER_REQUIRE_SECURE_SIGNER_VAULT
+    "Fail configure when protocol signing has no secure platform vault backend"
+    OFF
+)
+
 set(_farcasterSnapchainSignerProviderDefault OFF)
 if(FARCASTER_BUILD_UI AND FARCASTER_ENABLE_PROTOCOL_SIGNING)
-    # Runnable signed-write builds include canonical signer-registry inspection.
-    # KEY_ADD/KEY_REMOVE submission and custody authorization remain fail-closed.
+    # Runnable signed-write builds include canonical signer-registry inspection,
+    # KEY_ADD/KEY_REMOVE submission, and post-submit network verification.
     set(_farcasterSnapchainSignerProviderDefault ON)
 endif()
 option(
@@ -77,6 +116,46 @@ option(
     ${_farcasterSnapchainSignerProviderDefault}
 )
 unset(_farcasterSnapchainSignerProviderDefault)
+
+set(_farcasterSnapchainWriteProviderDefault OFF)
+if(FARCASTER_BUILD_UI AND FARCASTER_ENABLE_PROTOCOL_SIGNING)
+    # Protocol-message submission/reconciliation is a separate capability from signer
+    # provisioning even though normal shipping UI builds compose both.
+    set(_farcasterSnapchainWriteProviderDefault ON)
+endif()
+option(
+    FARCASTER_ENABLE_SNAPCHAIN_WRITE_PROVIDER
+    "Compile the canonical Snapchain message submit/reconciliation adapter"
+    ${_farcasterSnapchainWriteProviderDefault}
+)
+unset(_farcasterSnapchainWriteProviderDefault)
+
+set(_farcasterBrowserWalletAuthorizerDefault OFF)
+if(FARCASTER_BUILD_UI AND FARCASTER_ENABLE_PROTOCOL_SIGNING)
+    # The compatibility authorizer is transport-only: it serves canonical EIP-712
+    # documents on loopback and delegates URL launching to the Qt shell.
+    set(_farcasterBrowserWalletAuthorizerDefault ON)
+endif()
+option(
+    FARCASTER_ENABLE_BROWSER_WALLET_AUTHORIZER
+    "Compile the cross-platform loopback EIP-1193 custody authorizer"
+    ${_farcasterBrowserWalletAuthorizerDefault}
+)
+unset(_farcasterBrowserWalletAuthorizerDefault)
+
+set(_farcasterSignerAttestationProviderDefault OFF)
+if(FARCASTER_BUILD_UI AND FARCASTER_ENABLE_PROTOCOL_SIGNING)
+    # Production App-FID attribution uses a tiny HTTPS attestation service so
+    # the user's custody wallet signs only KEY_ADD. The app custody key never
+    # ships inside the desktop binary.
+    set(_farcasterSignerAttestationProviderDefault ON)
+endif()
+option(
+    FARCASTER_ENABLE_SIGNER_ATTESTATION_PROVIDER
+    "Compile the App-FID SignedKeyRequest attestation adapter"
+    ${_farcasterSignerAttestationProviderDefault}
+)
+unset(_farcasterSignerAttestationProviderDefault)
 
 option(FARCASTER_SELF_HOSTED_ONLY "Disallow public/managed providers by deployment policy" OFF)
 
@@ -105,7 +184,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(CTest)
 
 if(FARCASTER_BUILD_UI)
-    find_package(Qt6 6.6 REQUIRED COMPONENTS Quick Qml QuickControls2 Network)
+    find_package(Qt6 6.6 REQUIRED COMPONENTS Quick Qml QuickControls2 Network LinguistTools)
     set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qml")
 
     if(QT_KNOWN_POLICY_QTP0004)
@@ -117,8 +196,8 @@ endif()
 
 add_subdirectory(src/foundation)
 add_subdirectory(src/domain)
-add_subdirectory(src/protocol)
 add_subdirectory(src/capabilities)
+add_subdirectory(src/protocol)
 add_subdirectory(src/provider)
 add_subdirectory(src/local_state)
 add_subdirectory(src/application)
@@ -132,7 +211,7 @@ if(FARCASTER_ENABLE_PROTOCOL_SIGNING)
     add_subdirectory(src/platform)
 endif()
 
-if(FARCASTER_ENABLE_SNAPCHAIN_SIGNER_PROVIDER)
+if(FARCASTER_ENABLE_SNAPCHAIN_SIGNER_PROVIDER OR FARCASTER_ENABLE_SNAPCHAIN_WRITE_PROVIDER)
     add_subdirectory(src/providers/snapchain)
 endif()
 
@@ -142,6 +221,14 @@ endif()
 
 if(FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS)
     add_subdirectory(src/providers/compatibility/farcaster_auth)
+endif()
+
+if(FARCASTER_ENABLE_BROWSER_WALLET_AUTHORIZER)
+    add_subdirectory(src/providers/compatibility/browser_wallet)
+endif()
+
+if(FARCASTER_ENABLE_SIGNER_ATTESTATION_PROVIDER)
+    add_subdirectory(src/providers/compatibility/signer_attestation)
 endif()
 
 if(FARCASTER_BUILD_UI)
