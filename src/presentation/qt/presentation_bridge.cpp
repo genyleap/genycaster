@@ -130,6 +130,32 @@ void applyReactionOverrides(QVariantList& rows, const QVariantMap& overrides)
     }
 }
 
+void applyViewerReactionSnapshotTo(QVariantMap& map, const QVariantMap& snapshot)
+{
+    const QString castId = canonicalCastKey(map.value(QStringLiteral("castId")).toString());
+    if (castId.isEmpty()) { return; }
+    if (snapshot.value(reactionOverrideKey(castId, QStringLiteral("like"))).toBool()) {
+        map.insert(QStringLiteral("likedByMe"), true);
+    }
+    if (snapshot.value(reactionOverrideKey(castId, QStringLiteral("recast"))).toBool()) {
+        map.insert(QStringLiteral("recastedByMe"), true);
+    }
+}
+
+void applyViewerReactionSnapshotTo(QVariantList& rows, const QVariantMap& snapshot)
+{
+    for (qsizetype index = 0; index < rows.size(); ++index) {
+        auto map = rows[index].toMap();
+        applyViewerReactionSnapshotTo(map, snapshot);
+        rows[index] = std::move(map);
+    }
+}
+
+[[nodiscard]] QString profileCacheKey(const qulonglong fid, const QString& feed)
+{
+    return QString::number(fid) + QChar{0x1f} + feed;
+}
+
 [[nodiscard]] QString followingOverrideKey(const qulonglong targetFid)
 {
     return QString::number(targetFid);
@@ -368,12 +394,26 @@ void PresentationBridge::openProfileFid(const qulonglong fid)
     }
     m_profileFid = fid;
     m_activeView = QStringLiteral("profile");
-    m_rows.clear();
-    m_detail.clear();
-    m_next.clear();
-    m_shouldOpenProfileFeedAfterProfile = true;
+    if (const auto detail = m_profileDetailCache.constFind(fid); detail != m_profileDetailCache.cend()) {
+        m_detail = *detail;
+    } else {
+        m_detail.clear();
+    }
+    const QString cachedListKey = profileCacheKey(m_profileFid, m_profileFeed);
+    if (const auto rows = m_profileListCache.constFind(cachedListKey); rows != m_profileListCache.cend()) {
+        m_rows = *rows;
+        m_next = m_profileNextCache.value(cachedListKey);
+    } else {
+        m_rows.clear();
+        m_next.clear();
+    }
     beginIntent(qtTrId("genycaster.bridge.reading_cached_profile"));
-    emit profileRequested(m_profileFid, consumeRecoveryProbe());
+    const bool recoveryProbe = consumeRecoveryProbe();
+    emit profileRequested(m_profileFid, recoveryProbe);
+    // Profile metadata and its selected timeline are independent cache-first
+    // surfaces. Start both immediately: SQLite/memory can paint the screen in
+    // the same turn while their network refreshes reconcile in parallel.
+    emit feedRequested(m_profileFeed, m_profileFid, {}, {}, recoveryProbe);
 }
 
 void PresentationBridge::selectProfileFeed(const QString& feed)
@@ -390,11 +430,15 @@ void PresentationBridge::selectProfileFeed(const QString& feed)
         feed == QStringLiteral("user-likes") ? QStringLiteral("user-likes") :
         feed == QStringLiteral("user-popular") ? QStringLiteral("user-popular") :
         QStringLiteral("user-posts");
-    if (m_profileFeed != requestedFeed) {
-        m_rows.clear();
-    }
     m_profileFeed = requestedFeed;
-    m_next.clear();
+    const QString cachedListKey = profileCacheKey(m_profileFid, m_profileFeed);
+    if (const auto rows = m_profileListCache.constFind(cachedListKey); rows != m_profileListCache.cend()) {
+        m_rows = *rows;
+        m_next = m_profileNextCache.value(cachedListKey);
+    } else {
+        m_rows.clear();
+        m_next.clear();
+    }
     QString message = qtTrId("genycaster.bridge.reading_cached_posts");
     if (m_profileFeed == QStringLiteral("user-quotes")) { message = qtTrId("genycaster.bridge.reading_cached_quotes"); }
     else if (m_profileFeed == QStringLiteral("user-replies")) { message = qtTrId("genycaster.bridge.reading_cached_replies"); }
@@ -886,6 +930,7 @@ void PresentationBridge::applyAuthenticationState(
             m_rows = std::move(retained);
         }
         m_writeRows.clear();
+        m_viewerReactionSnapshot.clear();
         m_reactionOverrides.clear();
         m_followOverrides.clear();
         m_lastPublishedCastId.clear();
@@ -1030,6 +1075,28 @@ void PresentationBridge::applyReactionProjections(QVariantList reactions)
     emit stateChanged();
 }
 
+void PresentationBridge::applyViewerReactionSnapshot(QVariantList reactions)
+{
+    m_viewerReactionSnapshot.clear();
+    for (const auto& value : reactions) {
+        const QVariantMap snapshot = value.toMap();
+        const QString castId = snapshot.value(QStringLiteral("castId")).toString();
+        if (snapshot.value(QStringLiteral("liked")).toBool()) {
+            rememberReactionOverride(m_viewerReactionSnapshot, castId, QStringLiteral("like"), true);
+        }
+        if (snapshot.value(QStringLiteral("recasted")).toBool()) {
+            rememberReactionOverride(m_viewerReactionSnapshot, castId, QStringLiteral("recast"), true);
+        }
+    }
+    applyViewerReactionSnapshotTo(m_rows, m_viewerReactionSnapshot);
+    applyViewerReactionSnapshotTo(m_writeRows, m_viewerReactionSnapshot);
+    applyViewerReactionSnapshotTo(m_detail, m_viewerReactionSnapshot);
+    applyReactionOverrides(m_rows, m_reactionOverrides);
+    applyReactionOverrides(m_writeRows, m_reactionOverrides);
+    applyReactionOverrides(m_detail, m_reactionOverrides);
+    emit stateChanged();
+}
+
 void PresentationBridge::applyFollowingProjections(QVariantList following)
 {
     m_followOverrides.clear();
@@ -1137,9 +1204,15 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
     } else {
         m_rows = std::move(rows);
     }
+    applyViewerReactionSnapshotTo(m_rows, m_viewerReactionSnapshot);
     applyReactionOverrides(m_rows, m_reactionOverrides);
     applyFollowingOverrides(m_rows, m_followOverrides);
     m_next = std::move(next);
+    if (m_activeView == QStringLiteral("profile") && m_profileFid != 0) {
+        const QString key = profileCacheKey(m_profileFid, m_profileFeed);
+        m_profileListCache.insert(key, m_rows);
+        m_profileNextCache.insert(key, m_next);
+    }
     m_statusText = std::move(status);
     m_errorText = std::move(error);
     m_diagnosticText = std::move(diagnostic);
@@ -1160,8 +1233,12 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
             m_profileFid = resolvedProfileFid;
         }
     }
+    applyViewerReactionSnapshotTo(m_detail, m_viewerReactionSnapshot);
     applyReactionOverrides(m_detail, m_reactionOverrides);
     applyFollowingOverride(m_detail, m_followOverrides);
+    if (m_activeView == QStringLiteral("profile") && m_profileFid != 0) {
+        m_profileDetailCache.insert(m_profileFid, m_detail);
+    }
     m_statusText = std::move(status);
     m_errorText = std::move(error);
     m_diagnosticText = std::move(diagnostic);
@@ -1170,13 +1247,6 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
     m_sourceUnavailable = sourceUnavailable;
     emit stateChanged();
 
-    if (m_activeView == QStringLiteral("profile") && !m_isBusy &&
-        m_shouldOpenProfileFeedAfterProfile && m_profileFid != 0) {
-        m_shouldOpenProfileFeedAfterProfile = false;
-        QMetaObject::invokeMethod(this,
-            [this] { selectProfileFeed(m_profileFeed); },
-            Qt::QueuedConnection);
-    }
 }
 
 void PresentationBridge::applyVerificationFixture()
