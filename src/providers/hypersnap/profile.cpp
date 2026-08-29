@@ -23,7 +23,13 @@ constexpr std::string_view displayUserDataType{"2"};
 constexpr std::string_view bioUserDataType{"3"};
 constexpr std::string_view urlUserDataType{"5"};
 constexpr std::string_view locationUserDataType{"7"};
-constexpr std::string_view bannerUserDataType{"11"};
+constexpr std::string_view bannerUserDataType{"10"};
+constexpr std::string_view compatibilityBannerUserDataType{"11"};
+
+[[nodiscard]] constexpr bool isRemoteBannerUrl(const std::string_view value) noexcept
+{
+    return value.starts_with("https://") || value.starts_with("http://") || value.starts_with("ipfs://");
+}
 
 }
 
@@ -89,6 +95,16 @@ ProfileSource::get(const domain::identity::Fid fid)
     }
     if (!profile->bannerUrl) {
         profile->bannerUrl = userDataValue(bannerUserDataType);
+    }
+    // Some newer protocol snapshots assign Banner to slot 11, while deployed
+    // Snapchain-compatible APIs still expose Banner as slot 10. Slot 11 is also
+    // used for the primary Ethereum address in deployed schemas, so never accept
+    // it blindly as an image URL.
+    if (!profile->bannerUrl) {
+        if (auto compatibility = userDataValue(compatibilityBannerUserDataType);
+            compatibility && isRemoteBannerUrl(*compatibility)) {
+            profile->bannerUrl = std::move(*compatibility);
+        }
     }
     return profile;
 }
