@@ -1162,8 +1162,14 @@ private:
 foundation::result::Result<std::unique_ptr<capability::auth::ICompatibilityAuthentication>>
 makeAuthentication(transport::http::IHttpTransport& transport, Config config)
 {
-    if (!startsWithHttp(config.relayBaseUrl) || !startsWithHttp(config.optimismRpcUrl) ||
-        config.relayVersion.empty() || config.requestTimeout <= std::chrono::milliseconds::zero() ||
+    config.relayBaseUrl = normalizeConfigurationValue(std::move(config.relayBaseUrl));
+    config.relayVersion = normalizeConfigurationValue(std::move(config.relayVersion));
+    config.optimismRpcUrl = normalizeConfigurationValue(std::move(config.optimismRpcUrl));
+
+    if (!isValidHttpUri(config.relayBaseUrl) || !isValidHttpUri(config.optimismRpcUrl) ||
+        config.relayBaseUrl.find_first_of("?#") != std::string::npos ||
+        config.relayVersion.empty() || config.relayVersion.find_first_of("/?#\\") != std::string::npos ||
+        config.requestTimeout <= std::chrono::milliseconds::zero() ||
         config.attemptLifetime <= std::chrono::minutes::zero() ||
         config.sessionLifetime <= std::chrono::hours::zero()) {
         return std::unexpected(makeError(
