@@ -7,6 +7,7 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -84,6 +85,23 @@ using JsonValue = boost::json::value;
     }
     return std::unexpected(protocolError(
         std::string{context} + "." + std::string{key} + " must be a non-negative integer."));
+}
+
+[[nodiscard]] std::optional<std::uint64_t> optionalUnsigned(
+    const JsonObject& object,
+    const std::string_view key)
+{
+    const JsonValue* value = findValue(object, key);
+    if (value == nullptr || value->is_null()) {
+        return std::nullopt;
+    }
+    if (value->is_uint64()) {
+        return value->as_uint64();
+    }
+    if (value->is_int64() && value->as_int64() >= 0) {
+        return static_cast<std::uint64_t>(value->as_int64());
+    }
+    return std::nullopt;
 }
 
 [[nodiscard]] std::optional<std::string> optionalString(
@@ -230,6 +248,12 @@ mapProfile(const JsonObject& user)
     }
     profile.avatarUrl = optionalString(user, "pfp_url");
     profile.custodyAddress = optionalString(user, "custody_address");
+    if (auto followers = optionalUnsigned(user, "follower_count")) {
+        profile.followerCount = *followers;
+    }
+    if (auto following = optionalUnsigned(user, "following_count")) {
+        profile.followingCount = *following;
+    }
 
     if (const JsonValue* profileValue = findValue(user, "profile");
         profileValue != nullptr && profileValue->is_object()) {
@@ -238,6 +262,20 @@ mapProfile(const JsonObject& user)
             bioValue != nullptr && bioValue->is_object()) {
             if (auto bio = optionalString(bioValue->as_object(), "text")) {
                 profile.bio = std::move(*bio);
+            }
+        }
+        if (const JsonValue* locationValue = findValue(profileObject, "location");
+            locationValue != nullptr && locationValue->is_object()) {
+            if (auto description = optionalString(locationValue->as_object(), "description");
+                description && !description->empty()) {
+                profile.location = std::move(*description);
+            }
+        }
+        if (const JsonValue* bannerValue = findValue(profileObject, "banner");
+            bannerValue != nullptr && bannerValue->is_object()) {
+            if (auto banner = optionalString(bannerValue->as_object(), "url");
+                banner && !banner->empty()) {
+                profile.bannerUrl = std::move(*banner);
             }
         }
     }
@@ -430,7 +468,7 @@ foundation::result::Result<domain::profile::Profile> decodeUser(const std::strin
     return mapProfile(userValue->as_object());
 }
 
-foundation::result::Result<domain::cast::Cast> decodeCast(const std::string_view body)
+foundation::result::Result<CastPayload> decodeCastPayload(const std::string_view body)
 {
     auto document = parseJson(body);
     if (!document) {
@@ -447,7 +485,78 @@ foundation::result::Result<domain::cast::Cast> decodeCast(const std::string_view
     if (!mapped) {
         return std::unexpected(std::move(mapped.error()));
     }
-    return std::move(mapped->cast);
+    return CastPayload{.cast = std::move(mapped->cast), .author = std::move(mapped->author)};
+}
+
+foundation::result::Result<domain::cast::Cast> decodeCast(const std::string_view body)
+{
+    auto payload = decodeCastPayload(body);
+    if (!payload) {
+        return std::unexpected(std::move(payload.error()));
+    }
+    return std::move(payload->cast);
+}
+
+foundation::result::Result<ReactionTargetsPayload> decodeReactionTargets(
+    const std::string_view body)
+{
+    auto document = parseJson(body);
+    if (!document) {
+        return std::unexpected(std::move(document.error()));
+    }
+    if (!document->is_object()) {
+        return std::unexpected(protocolError("Snapchain reactions response must be a JSON object."));
+    }
+    const JsonObject& root = document->as_object();
+    const JsonValue* messages = findValue(root, "messages");
+    if (messages == nullptr || !messages->is_array()) {
+        return std::unexpected(protocolError("Snapchain reactions response.messages must be an array."));
+    }
+
+    ReactionTargetsPayload payload{};
+    payload.targets.reserve(messages->as_array().size());
+    constexpr std::uint64_t farcasterEpochUnixSeconds = 1'609'459'200ULL;
+    for (const JsonValue& messageValue : messages->as_array()) {
+        if (!messageValue.is_object()) {
+            return std::unexpected(protocolError("Snapchain reactions response contains a non-object message."));
+        }
+        const JsonValue* dataValue = findValue(messageValue.as_object(), "data");
+        if (dataValue == nullptr || !dataValue->is_object()) {
+            return std::unexpected(protocolError("Snapchain reaction message.data must be an object."));
+        }
+        const JsonObject& data = dataValue->as_object();
+        auto timestamp = requireUnsigned(data, "timestamp", "reaction.data");
+        if (!timestamp) {
+            return std::unexpected(std::move(timestamp.error()));
+        }
+        if (*timestamp > std::numeric_limits<std::uint32_t>::max()) {
+            return std::unexpected(protocolError("reaction.data.timestamp exceeds uint32."));
+        }
+        const JsonValue* bodyValue = findValue(data, "reactionBody");
+        if (bodyValue == nullptr || !bodyValue->is_object()) {
+            return std::unexpected(protocolError("Snapchain reaction message.reactionBody must be an object."));
+        }
+        const JsonValue* targetValue = findValue(bodyValue->as_object(), "targetCastId");
+        if (targetValue == nullptr || !targetValue->is_object()) {
+            continue;
+        }
+        auto targetFid = requireUnsigned(targetValue->as_object(), "fid", "reaction.targetCastId");
+        auto targetHash = requireString(targetValue->as_object(), "hash", "reaction.targetCastId");
+        if (!targetFid) { return std::unexpected(std::move(targetFid.error())); }
+        if (!targetHash) { return std::unexpected(std::move(targetHash.error())); }
+        const auto unixSeconds = farcasterEpochUnixSeconds + *timestamp;
+        payload.targets.push_back(ReactionTarget{
+            .author = domain::identity::Fid{*targetFid},
+            .castId = domain::cast::CastId{std::move(*targetHash)},
+            .reactedAt = foundation::time::Timestamp{std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::seconds{unixSeconds})},
+        });
+    }
+    if (const JsonValue* token = findValue(root, "nextPageToken");
+        token != nullptr && token->is_string() && !token->as_string().empty()) {
+        payload.providerCursor = std::string{token->as_string()};
+    }
+    return payload;
 }
 
 foundation::result::Result<SocialPayload> decodeSocial(const std::string_view body)
