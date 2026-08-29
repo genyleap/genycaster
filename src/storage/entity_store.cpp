@@ -97,9 +97,9 @@ foundation::result::Status SqliteEntityStore::putProfile(const domain::profile::
     std::scoped_lock lock{m_impl->mutex};
     auto prepared = sqlite::Statement::prepare(m_impl->connection, R"SQL(
 INSERT INTO profiles(
-    fid, username, display_name, bio, avatar_url, banner_url, location, custody_address,
+    fid, username, display_name, bio, avatar_url, banner_url, location, profile_url, custody_address,
     follower_count, following_count)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(fid) DO UPDATE SET
     username = excluded.username,
     display_name = excluded.display_name,
@@ -107,6 +107,7 @@ ON CONFLICT(fid) DO UPDATE SET
     avatar_url = excluded.avatar_url,
     banner_url = excluded.banner_url,
     location = excluded.location,
+    profile_url = excluded.profile_url,
     custody_address = excluded.custody_address,
     follower_count = excluded.follower_count,
     following_count = excluded.following_count;
@@ -145,11 +146,14 @@ ON CONFLICT(fid) DO UPDATE SET
     if (auto status = sqlite::bindOptionalText(statement.native(), 7, profile.location); !status) {
         return std::unexpected(toFoundationError(std::move(status.error())));
     }
-    if (auto status = sqlite::bindOptionalText(statement.native(), 8, profile.custodyAddress); !status) {
+    if (auto status = sqlite::bindOptionalText(statement.native(), 8, profile.profileUrl); !status) {
         return std::unexpected(toFoundationError(std::move(status.error())));
     }
-    if (sqlite3_bind_int64(statement.native(), 9, static_cast<sqlite3_int64>(profile.followerCount)) != SQLITE_OK ||
-        sqlite3_bind_int64(statement.native(), 10, static_cast<sqlite3_int64>(profile.followingCount)) != SQLITE_OK) {
+    if (auto status = sqlite::bindOptionalText(statement.native(), 9, profile.custodyAddress); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+    if (sqlite3_bind_int64(statement.native(), 10, static_cast<sqlite3_int64>(profile.followerCount)) != SQLITE_OK ||
+        sqlite3_bind_int64(statement.native(), 11, static_cast<sqlite3_int64>(profile.followingCount)) != SQLITE_OK) {
         return std::unexpected(toFoundationError(sqlite::makeError(
             m_impl->connection.native(), "Failed to bind profile social counts")));
     }
@@ -165,7 +169,7 @@ SqliteEntityStore::findProfile(const domain::identity::Fid fid)
     std::scoped_lock lock{m_impl->mutex};
     auto prepared = sqlite::Statement::prepare(
         m_impl->connection,
-        "SELECT username, display_name, bio, avatar_url, banner_url, location, custody_address, "
+        "SELECT username, display_name, bio, avatar_url, banner_url, location, profile_url, custody_address, "
         "follower_count, following_count FROM profiles WHERE fid = ?;");
     if (!prepared) {
         return std::unexpected(toFoundationError(std::move(prepared.error())));
@@ -197,9 +201,10 @@ SqliteEntityStore::findProfile(const domain::identity::Fid fid)
     profile.avatarUrl = sqlite::optionalColumnText(statement.native(), 3);
     profile.bannerUrl = sqlite::optionalColumnText(statement.native(), 4);
     profile.location = sqlite::optionalColumnText(statement.native(), 5);
-    profile.custodyAddress = sqlite::optionalColumnText(statement.native(), 6);
-    profile.followerCount = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 7));
-    profile.followingCount = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 8));
+    profile.profileUrl = sqlite::optionalColumnText(statement.native(), 6);
+    profile.custodyAddress = sqlite::optionalColumnText(statement.native(), 7);
+    profile.followerCount = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 8));
+    profile.followingCount = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 9));
     return std::optional<domain::profile::Profile>{std::move(profile)};
 }
 
@@ -209,7 +214,7 @@ SqliteEntityStore::findProfileByUsername(const std::string_view username)
     std::scoped_lock lock{m_impl->mutex};
     auto prepared = sqlite::Statement::prepare(
         m_impl->connection,
-        "SELECT fid, username, display_name, bio, avatar_url, banner_url, location, custody_address, "
+        "SELECT fid, username, display_name, bio, avatar_url, banner_url, location, profile_url, custody_address, "
         "follower_count, following_count "
         "FROM profiles WHERE username = ? COLLATE NOCASE LIMIT 1;");
     if (!prepared) {
@@ -240,9 +245,10 @@ SqliteEntityStore::findProfileByUsername(const std::string_view username)
     profile.avatarUrl = sqlite::optionalColumnText(statement.native(), 4);
     profile.bannerUrl = sqlite::optionalColumnText(statement.native(), 5);
     profile.location = sqlite::optionalColumnText(statement.native(), 6);
-    profile.custodyAddress = sqlite::optionalColumnText(statement.native(), 7);
-    profile.followerCount = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 8));
-    profile.followingCount = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 9));
+    profile.profileUrl = sqlite::optionalColumnText(statement.native(), 7);
+    profile.custodyAddress = sqlite::optionalColumnText(statement.native(), 8);
+    profile.followerCount = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 9));
+    profile.followingCount = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 10));
     return std::optional<domain::profile::Profile>{std::move(profile)};
 }
 

@@ -1,7 +1,10 @@
 module;
 
+#include <chrono>
 #include <expected>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -13,6 +16,16 @@ import farcaster.provider.hypersnap.codec;
 import farcaster.provider.hypersnap.request;
 
 namespace farcaster::provider::hypersnap::profile {
+namespace {
+
+constexpr std::string_view pfpUserDataType{"1"};
+constexpr std::string_view displayUserDataType{"2"};
+constexpr std::string_view bioUserDataType{"3"};
+constexpr std::string_view urlUserDataType{"5"};
+constexpr std::string_view locationUserDataType{"7"};
+constexpr std::string_view bannerUserDataType{"11"};
+
+}
 
 ProfileSource::ProfileSource(transport::http::IHttpTransport& transport, config::Config config)
     : m_transport(transport), m_config(std::move(config))
@@ -32,7 +45,52 @@ ProfileSource::get(const domain::identity::Fid fid)
     if (!body) {
         return std::unexpected(std::move(body.error()));
     }
-    return codec::decodeUser(*body);
+    auto profile = codec::decodeUser(*body);
+    if (!profile) {
+        return std::unexpected(std::move(profile.error()));
+    }
+
+    // The enriched v2 User response is the fast path. Protocol-native UserData
+    // remains the canonical fallback for fields that a node has not hydrated.
+    // Optional enrichment failures never make the base profile unreadable.
+    const auto userDataValue = [&](const std::string_view type) -> std::optional<std::string> {
+        auto userDataBody = requests.getJson(
+            "/v1/userDataByFid",
+            {{"fid", std::to_string(fid.value)}, {"user_data_type", std::string{type}}},
+            request::GetOptions{.timeout = std::chrono::milliseconds{3'000}});
+        if (!userDataBody) {
+            return std::nullopt;
+        }
+        auto value = codec::decodeUserDataValue(*userDataBody);
+        if (!value || value->empty()) {
+            return std::nullopt;
+        }
+        return std::move(*value);
+    };
+
+    if (!profile->avatarUrl) {
+        profile->avatarUrl = userDataValue(pfpUserDataType);
+    }
+    if (!profile->displayName) {
+        if (auto value = userDataValue(displayUserDataType)) {
+            profile->displayName = domain::identity::DisplayName{std::move(*value)};
+        }
+    }
+    if (profile->bio.empty()) {
+        if (auto value = userDataValue(bioUserDataType)) {
+            profile->bio = std::move(*value);
+        }
+    }
+    if (!profile->profileUrl) {
+        profile->profileUrl = userDataValue(urlUserDataType);
+    }
+    if (!profile->location) {
+        profile->location = userDataValue(locationUserDataType);
+    }
+    if (!profile->bannerUrl) {
+        profile->bannerUrl = userDataValue(bannerUserDataType);
+    }
+    return profile;
 }
 
 }

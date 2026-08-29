@@ -1,6 +1,8 @@
 add_library(farcaster_presentation STATIC
     qt/presentation_bridge.cpp
     qt/presentation_bridge.hpp
+    qt/localization_controller.cpp
+    qt/localization_controller.hpp
 )
 add_library(farcaster::presentation ALIAS farcaster_presentation)
 
@@ -13,6 +15,7 @@ target_link_libraries(farcaster_presentation
     PUBLIC
         farcaster::application
         Qt6::Core
+        Qt6::Qml
     PRIVATE
         Qt6::Gui
 )

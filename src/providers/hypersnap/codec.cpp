@@ -247,6 +247,7 @@ mapProfile(const JsonObject& user)
         profile.displayName = domain::identity::DisplayName{std::move(*displayName)};
     }
     profile.avatarUrl = optionalString(user, "pfp_url");
+    profile.profileUrl = optionalString(user, "url");
     profile.custodyAddress = optionalString(user, "custody_address");
     if (auto followers = optionalUnsigned(user, "follower_count")) {
         profile.followerCount = *followers;
@@ -258,6 +259,9 @@ mapProfile(const JsonObject& user)
     if (const JsonValue* profileValue = findValue(user, "profile");
         profileValue != nullptr && profileValue->is_object()) {
         const JsonObject& profileObject = profileValue->as_object();
+        if (!profile.profileUrl) {
+            profile.profileUrl = optionalString(profileObject, "url");
+        }
         if (const JsonValue* bioValue = findValue(profileObject, "bio");
             bioValue != nullptr && bioValue->is_object()) {
             if (auto bio = optionalString(bioValue->as_object(), "text")) {
@@ -466,6 +470,36 @@ foundation::result::Result<domain::profile::Profile> decodeUser(const std::strin
         return std::unexpected(protocolError("Hypersnap user response.user must be a JSON object."));
     }
     return mapProfile(userValue->as_object());
+}
+
+foundation::result::Result<std::string> decodeUserDataValue(const std::string_view body)
+{
+    auto document = parseJson(body);
+    if (!document) {
+        return std::unexpected(std::move(document.error()));
+    }
+    if (!document->is_object()) {
+        return std::unexpected(protocolError("Snapchain user data response must be a JSON object."));
+    }
+
+    const JsonObject& root = document->as_object();
+    const JsonValue* messageValue = &*document;
+    if (const JsonValue* messages = findValue(root, "messages");
+        messages != nullptr && messages->is_array() && !messages->as_array().empty()) {
+        messageValue = &messages->as_array().front();
+    }
+    if (!messageValue->is_object()) {
+        return std::unexpected(protocolError("Snapchain user data message must be an object."));
+    }
+    const JsonValue* dataValue = findValue(messageValue->as_object(), "data");
+    if (dataValue == nullptr || !dataValue->is_object()) {
+        return std::unexpected(protocolError("Snapchain user data message.data must be an object."));
+    }
+    const JsonValue* bodyValue = findValue(dataValue->as_object(), "userDataBody");
+    if (bodyValue == nullptr || !bodyValue->is_object()) {
+        return std::unexpected(protocolError("Snapchain user data body is missing."));
+    }
+    return requireString(bodyValue->as_object(), "value", "userDataBody");
 }
 
 foundation::result::Result<CastPayload> decodeCastPayload(const std::string_view body)

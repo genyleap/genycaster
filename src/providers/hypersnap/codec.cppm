@@ -54,6 +54,9 @@ struct SocialPayload final {
 /** @brief Decodes the pinned Hypersnap v2 single-user schema. */
 [[nodiscard]] foundation::result::Result<domain::profile::Profile> decodeUser(std::string_view body);
 
+/** @brief Decodes one standard Snapchain UserData message value. */
+[[nodiscard]] foundation::result::Result<std::string> decodeUserDataValue(std::string_view body);
+
 /** @brief Decodes the pinned Hypersnap v2 single-cast schema with its author. */
 [[nodiscard]] foundation::result::Result<CastPayload> decodeCastPayload(std::string_view body);
 

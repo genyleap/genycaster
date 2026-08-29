@@ -222,7 +222,7 @@ private:
     bool m_writeReady{false};
     QString m_signerPhase{QStringLiteral("signed-out")};
     bool m_signerBusy{false};
-    QString m_signerStatusText{QStringLiteral("Sign in before enabling interactions.")};
+    QString m_signerStatusText{};
     QString m_signerErrorText{};
     bool m_writeBusy{false};
     QString m_writePhase{QStringLiteral("idle")};
@@ -244,7 +244,7 @@ private:
     QString m_channelId{};
     QString m_identityName{};
     qulonglong m_identityFid{};
-    QString m_statusText{QStringLiteral("Starting local read runtime…")};
+    QString m_statusText{};
     QString m_errorText{};
     QString m_diagnosticText{};
     bool m_isBusy{true};

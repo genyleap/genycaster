@@ -174,8 +174,11 @@ enum class RequestStage : std::uint8_t {
 
 class QtHttpTransport final : public farcaster::transport::http::IHttpTransport {
 public:
-    explicit QtHttpTransport(const ProxyPolicy proxyPolicy) noexcept
-        : proxyPolicy_{proxyPolicy}
+    QtHttpTransport(
+        const ProxyPolicy proxyPolicy,
+        const ProtocolPolicy protocolPolicy) noexcept
+        : proxyPolicy_{proxyPolicy},
+          protocolPolicy_{protocolPolicy}
     {
     }
 
@@ -239,6 +242,9 @@ private:
         networkRequest.setAttribute(
             QNetworkRequest::RedirectPolicyAttribute,
             QNetworkRequest::NoLessSafeRedirectPolicy);
+        if (protocolPolicy_ == ProtocolPolicy::Http1Only) {
+            networkRequest.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
+        }
         auto headerStatus = applyHeaders(networkRequest, requestHeaders);
         if (!headerStatus) {
             return std::unexpected(std::move(headerStatus.error()));
@@ -382,10 +388,13 @@ private:
     }
 
     ProxyPolicy proxyPolicy_{ProxyPolicy::System};
+    ProtocolPolicy protocolPolicy_{ProtocolPolicy::Automatic};
 };
 }
 
-foundation::result::Result<std::unique_ptr<http::IHttpTransport>> makeTransport(const ProxyPolicy proxyPolicy)
+foundation::result::Result<std::unique_ptr<http::IHttpTransport>> makeTransport(
+    const ProxyPolicy proxyPolicy,
+    const ProtocolPolicy protocolPolicy)
 {
     if (QCoreApplication::instance() == nullptr) {
         return std::unexpected(transportError(
@@ -406,7 +415,8 @@ foundation::result::Result<std::unique_ptr<http::IHttpTransport>> makeTransport(
                 toUtf8(QSslSocket::activeBackend()) + "."));
     }
 
-    std::unique_ptr<http::IHttpTransport> transport = std::make_unique<QtHttpTransport>(proxyPolicy);
+    std::unique_ptr<http::IHttpTransport> transport =
+        std::make_unique<QtHttpTransport>(proxyPolicy, protocolPolicy);
     return transport;
 }
 

@@ -82,6 +82,58 @@ namespace {
         std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
+[[nodiscard]] domain::profile::Profile mergeEmbeddedProfileSummary(
+    const std::optional<domain::profile::Profile>& existing,
+    domain::profile::Profile incoming)
+{
+    if (!existing) {
+        // Embedded feed/social author objects are not authoritative sources for
+        // follower/following totals. Persist identity/presentation fields so
+        // list rows remain useful offline, but leave social counts unknown until
+        // the dedicated profile capability refreshes them.
+        incoming.followerCount = 0;
+        incoming.followingCount = 0;
+        return incoming;
+    }
+
+    // Feed/social author objects are summary snapshots. They must not overwrite
+    // authoritative profile details or social counts previously obtained from
+    // the dedicated profile capability. This prevents a feed refresh from
+    // regressing a profile card to stale/partial metadata.
+    incoming.followerCount = existing->followerCount;
+    incoming.followingCount = existing->followingCount;
+    if (!existing->bio.empty()) {
+        incoming.bio = existing->bio;
+    }
+    if (existing->avatarUrl) {
+        incoming.avatarUrl = existing->avatarUrl;
+    }
+    if (existing->bannerUrl) {
+        incoming.bannerUrl = existing->bannerUrl;
+    }
+    if (existing->location) {
+        incoming.location = existing->location;
+    }
+    if (existing->profileUrl) {
+        incoming.profileUrl = existing->profileUrl;
+    }
+    if (existing->custodyAddress) {
+        incoming.custodyAddress = existing->custodyAddress;
+    }
+    return incoming;
+}
+
+[[nodiscard]] foundation::result::Status putEmbeddedProfileSummary(
+    local::entity::IEntityStore& store,
+    const domain::profile::Profile& profile)
+{
+    auto existing = store.findProfile(profile.fid);
+    if (!existing) {
+        return std::unexpected(std::move(existing.error()));
+    }
+    return store.putProfile(mergeEmbeddedProfileSummary(*existing, profile));
+}
+
 class SqliteReadStore final : public local::read::IReadStore {
 public:
     [[nodiscard]] static foundation::result::Result<std::unique_ptr<SqliteReadStore>>
@@ -291,7 +343,7 @@ foundation::result::Status SqliteReadStore::writeFeed(
     const bool append)
 {
     for (const auto& profile : page.profiles) {
-        if (auto status = m_entities->putProfile(profile); !status) {
+        if (auto status = putEmbeddedProfileSummary(*m_entities, profile); !status) {
             return status;
         }
     }
@@ -443,7 +495,7 @@ foundation::result::Status SqliteReadStore::writeSocial(
     const bool append)
 {
     for (const auto& profile : page.profiles) {
-        if (auto status = m_entities->putProfile(profile); !status) {
+        if (auto status = putEmbeddedProfileSummary(*m_entities, profile); !status) {
             return status;
         }
     }

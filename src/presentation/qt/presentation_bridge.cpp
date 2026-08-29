@@ -1,9 +1,11 @@
 #include "presentation_bridge.hpp"
 
 #include <QByteArray>
+#include <QDateTime>
 #include <QDesktopServices>
 #include <QString>
 #include <QUrl>
+#include <QtTranslation>
 #include <QVariantList>
 #include <QVariantMap>
 
@@ -13,13 +15,22 @@ import farcaster.application.configuration;
 
 namespace {
 
+[[nodiscard]] QString canonicalCastKey(QString castId)
+{
+    castId = castId.trimmed().toLower();
+    if (castId.startsWith(QStringLiteral("0x"))) {
+        castId.remove(0, 2);
+    }
+    return castId;
+}
+
 void updateReactionPresentation(
     QVariantMap& map,
     const QString& castId,
     const QString& kind,
     const bool active)
 {
-    if (map.value(QStringLiteral("castId")).toString() != castId) {
+    if (canonicalCastKey(map.value(QStringLiteral("castId")).toString()) != canonicalCastKey(castId)) {
         return;
     }
     const QString stateKey = kind == QStringLiteral("like")
@@ -50,7 +61,7 @@ void updateReactionPresentation(
 {
     for (qsizetype index = 0; index < rows.size(); ++index) {
         auto map = rows[index].toMap();
-        if (map.value(QStringLiteral("castId")).toString() != castId) {
+        if (canonicalCastKey(map.value(QStringLiteral("castId")).toString()) != canonicalCastKey(castId)) {
             continue;
         }
         updateReactionPresentation(map, castId, kind, active);
@@ -69,7 +80,7 @@ void removeCastPresentation(QVariantList& rows, const QString& castId)
 
 [[nodiscard]] QString reactionOverrideKey(const QString& castId, const QString& kind)
 {
-    return kind + QChar{0x1f} + castId;
+    return kind + QChar{0x1f} + canonicalCastKey(castId);
 }
 
 void rememberReactionOverride(
@@ -86,7 +97,7 @@ void rememberReactionOverride(
 
 void applyReactionOverrides(QVariantMap& map, const QVariantMap& overrides)
 {
-    const QString castId = map.value(QStringLiteral("castId")).toString();
+    const QString castId = canonicalCastKey(map.value(QStringLiteral("castId")).toString());
     if (castId.isEmpty()) {
         return;
     }
@@ -156,7 +167,12 @@ void applyFollowingOverrides(QVariantList& rows, const QVariantMap& overrides)
 
 }
 
-PresentationBridge::PresentationBridge(QObject* const parent) : QObject(parent) {}
+PresentationBridge::PresentationBridge(QObject* const parent)
+    : QObject(parent),
+      m_signerStatusText{qtTrId("genycaster.bridge.sign_in_before_enabling_interactions")},
+      m_statusText{qtTrId("genycaster.bridge.starting_local_read_runtime")}
+{
+}
 
 QString PresentationBridge::architectureState() const
 {
@@ -245,24 +261,24 @@ void PresentationBridge::openIdentity(const QString& username)
 {
     const QString canonical = username.trimmed();
     if (canonical.isEmpty()) {
-        m_errorText = QStringLiteral("Enter a Farcaster username.");
+        m_errorText = qtTrId("genycaster.bridge.enter_a_farcaster_username");
         emit stateChanged();
         return;
     }
     m_shouldOpenFollowingAfterIdentity = true;
-    beginIntent(QStringLiteral("Checking local identity…"));
+    beginIntent(qtTrId("genycaster.bridge.checking_local_identity"));
     emit identityRequested(canonical, consumeRecoveryProbe());
 }
 
 void PresentationBridge::selectFeed(const QString& feed)
 {
     if (!m_runtimeReady) {
-        m_errorText = QStringLiteral("The local read runtime is still starting.");
+        m_errorText = qtTrId("genycaster.bridge.the_local_read_runtime_is_still_starting");
         emit stateChanged();
         return;
     }
     if (feed == QStringLiteral("following") && m_identityFid == 0) {
-        m_errorText = QStringLiteral("Open an identity before reading Following.");
+        m_errorText = qtTrId("genycaster.bridge.open_an_identity_before_reading_following");
         emit stateChanged();
         return;
     }
@@ -272,7 +288,7 @@ void PresentationBridge::selectFeed(const QString& feed)
         ? QStringLiteral("following") : QStringLiteral("trending");
     m_channelId.clear();
     m_next.clear();
-    beginIntent(QStringLiteral("Reading cached feed…"));
+    beginIntent(qtTrId("genycaster.bridge.reading_cached_feed"));
     emit feedRequested(m_activeFeed, m_identityFid, {}, {}, consumeRecoveryProbe());
 }
 
@@ -280,7 +296,7 @@ void PresentationBridge::openChannel(const QString& channelId)
 {
     const QString canonical = channelId.trimmed();
     if (canonical.isEmpty()) {
-        m_errorText = QStringLiteral("Enter a channel id.");
+        m_errorText = qtTrId("genycaster.bridge.enter_a_channel_id");
         emit stateChanged();
         return;
     }
@@ -289,7 +305,7 @@ void PresentationBridge::openChannel(const QString& channelId)
     m_activeFeed = QStringLiteral("channel");
     m_channelId = canonical;
     m_next.clear();
-    beginIntent(QStringLiteral("Reading cached channel…"));
+    beginIntent(qtTrId("genycaster.bridge.reading_cached_channel"));
     emit feedRequested(
         m_activeFeed, m_identityFid, m_channelId, {}, consumeRecoveryProbe());
 }
@@ -297,21 +313,21 @@ void PresentationBridge::openChannel(const QString& channelId)
 void PresentationBridge::openCast(const QString& castId)
 {
     if (castId.trimmed().isEmpty()) {
-        m_errorText = QStringLiteral("That cast identifier is empty.");
+        m_errorText = qtTrId("genycaster.bridge.that_cast_identifier_is_empty");
         emit stateChanged();
         return;
     }
     m_detailReturnView = m_activeView == QStringLiteral("profile")
         ? QStringLiteral("profile")
         : QStringLiteral("feed");
-    beginIntent(QStringLiteral("Reading cached cast…"));
+    beginIntent(qtTrId("genycaster.bridge.reading_cached_cast"));
     emit castRequested(castId, consumeRecoveryProbe());
 }
 
 void PresentationBridge::openProfile()
 {
     if (m_identityFid == 0) {
-        m_errorText = QStringLiteral("Open an identity first.");
+        m_errorText = qtTrId("genycaster.bridge.open_an_identity_first");
         emit stateChanged();
         return;
     }
@@ -321,7 +337,7 @@ void PresentationBridge::openProfile()
 void PresentationBridge::openMyProfile()
 {
     if (!m_isAuthenticated || m_accountFid == 0) {
-        m_errorText = QStringLiteral("Sign in before opening your account profile.");
+        m_errorText = qtTrId("genycaster.bridge.sign_in_before_opening_your_account_profile");
         emit stateChanged();
         return;
     }
@@ -331,7 +347,7 @@ void PresentationBridge::openMyProfile()
 void PresentationBridge::openProfileFid(const qulonglong fid)
 {
     if (fid == 0) {
-        m_errorText = QStringLiteral("That Farcaster profile identifier is invalid.");
+        m_errorText = qtTrId("genycaster.bridge.that_farcaster_profile_identifier_is_invalid");
         emit stateChanged();
         return;
     }
@@ -341,14 +357,14 @@ void PresentationBridge::openProfileFid(const qulonglong fid)
     m_detail.clear();
     m_next.clear();
     m_shouldOpenProfileFeedAfterProfile = true;
-    beginIntent(QStringLiteral("Reading cached profile…"));
+    beginIntent(qtTrId("genycaster.bridge.reading_cached_profile"));
     emit profileRequested(m_profileFid, consumeRecoveryProbe());
 }
 
 void PresentationBridge::selectProfileFeed(const QString& feed)
 {
     if (m_profileFid == 0) {
-        m_errorText = QStringLiteral("Open a profile before loading profile posts.");
+        m_errorText = qtTrId("genycaster.bridge.open_a_profile_before_loading_profile_posts");
         emit stateChanged();
         return;
     }
@@ -364,11 +380,11 @@ void PresentationBridge::selectProfileFeed(const QString& feed)
     }
     m_profileFeed = requestedFeed;
     m_next.clear();
-    QString message = QStringLiteral("Reading cached posts…");
-    if (m_profileFeed == QStringLiteral("user-quotes")) { message = QStringLiteral("Reading cached quotes…"); }
-    else if (m_profileFeed == QStringLiteral("user-replies")) { message = QStringLiteral("Reading cached replies…"); }
-    else if (m_profileFeed == QStringLiteral("user-likes")) { message = QStringLiteral("Reading cached likes…"); }
-    else if (m_profileFeed == QStringLiteral("user-popular")) { message = QStringLiteral("Reading cached popular casts…"); }
+    QString message = qtTrId("genycaster.bridge.reading_cached_posts");
+    if (m_profileFeed == QStringLiteral("user-quotes")) { message = qtTrId("genycaster.bridge.reading_cached_quotes"); }
+    else if (m_profileFeed == QStringLiteral("user-replies")) { message = qtTrId("genycaster.bridge.reading_cached_replies"); }
+    else if (m_profileFeed == QStringLiteral("user-likes")) { message = qtTrId("genycaster.bridge.reading_cached_likes"); }
+    else if (m_profileFeed == QStringLiteral("user-popular")) { message = qtTrId("genycaster.bridge.reading_cached_popular_casts"); }
     beginIntent(std::move(message));
     emit feedRequested(m_profileFeed, m_profileFid, {}, {}, consumeRecoveryProbe());
 }
@@ -382,13 +398,13 @@ void PresentationBridge::openFollowers()
         ? m_profileFid
         : m_identityFid;
     if (m_socialFid == 0) {
-        m_errorText = QStringLiteral("Open an identity first.");
+        m_errorText = qtTrId("genycaster.bridge.open_an_identity_first");
         emit stateChanged();
         return;
     }
     m_activeView = QStringLiteral("followers");
     m_next.clear();
-    beginIntent(QStringLiteral("Reading cached followers…"));
+    beginIntent(qtTrId("genycaster.bridge.reading_cached_followers"));
     emit socialRequested(
         QStringLiteral("followers"), m_socialFid, {}, consumeRecoveryProbe());
 }
@@ -402,13 +418,13 @@ void PresentationBridge::openFollowing()
         ? m_profileFid
         : m_identityFid;
     if (m_socialFid == 0) {
-        m_errorText = QStringLiteral("Open an identity first.");
+        m_errorText = qtTrId("genycaster.bridge.open_an_identity_first");
         emit stateChanged();
         return;
     }
     m_activeView = QStringLiteral("following");
     m_next.clear();
-    beginIntent(QStringLiteral("Reading cached following…"));
+    beginIntent(qtTrId("genycaster.bridge.reading_cached_following"));
     emit socialRequested(
         QStringLiteral("following"), m_socialFid, {}, consumeRecoveryProbe());
 }
@@ -436,7 +452,7 @@ void PresentationBridge::loadMore()
     if (m_next.isEmpty() || m_isBusy) {
         return;
     }
-    beginIntent(QStringLiteral("Loading the next page…"));
+    beginIntent(qtTrId("genycaster.bridge.loading_the_next_page"));
     if (m_activeView == QStringLiteral("feed")) {
         emit feedRequested(m_activeFeed, m_identityFid, m_channelId, m_next, false);
     } else if (m_activeView == QStringLiteral("profile")) {
@@ -468,18 +484,18 @@ void PresentationBridge::retryCurrent(const bool allowRecoveryProbe)
     } else if (m_activeView == QStringLiteral("cast")) {
         const QString castId = m_detail.value(QStringLiteral("castId")).toString().trimmed();
         if (castId.isEmpty()) {
-            m_errorText = QStringLiteral("That cast identifier is empty.");
+            m_errorText = qtTrId("genycaster.bridge.that_cast_identifier_is_empty");
             emit stateChanged();
             return;
         }
-        beginIntent(QStringLiteral("Reading cached cast…"));
+        beginIntent(qtTrId("genycaster.bridge.reading_cached_cast"));
         emit castRequested(castId, consumeRecoveryProbe());
     } else if (m_activeView == QStringLiteral("followers")) {
-        beginIntent(QStringLiteral("Reading cached followers…"));
+        beginIntent(qtTrId("genycaster.bridge.reading_cached_followers"));
         emit socialRequested(
             QStringLiteral("followers"), m_socialFid, {}, consumeRecoveryProbe());
     } else {
-        beginIntent(QStringLiteral("Reading cached following…"));
+        beginIntent(qtTrId("genycaster.bridge.reading_cached_following"));
         emit socialRequested(
             QStringLiteral("following"), m_socialFid, {}, consumeRecoveryProbe());
     }
@@ -495,12 +511,12 @@ void PresentationBridge::openExternalUrl(const QString& url)
 {
     const QUrl parsed{url};
     if (!parsed.isValid() || (parsed.scheme() != QStringLiteral("https") && parsed.scheme() != QStringLiteral("http"))) {
-        m_errorText = QStringLiteral("Only valid HTTP(S) links can be opened externally.");
+        m_errorText = qtTrId("genycaster.bridge.only_valid_http_s_links_can_be_opened_externally");
         emit stateChanged();
         return;
     }
     if (!QDesktopServices::openUrl(parsed)) {
-        m_errorText = QStringLiteral("The system could not open that link.");
+        m_errorText = qtTrId("genycaster.bridge.the_system_could_not_open_that_link");
         emit stateChanged();
     }
 }
@@ -508,13 +524,13 @@ void PresentationBridge::openExternalUrl(const QString& url)
 void PresentationBridge::beginSignIn()
 {
     if (!m_runtimeReady) {
-        m_authenticationErrorText = QStringLiteral("The local runtime is still starting.");
+        m_authenticationErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
         emit stateChanged();
         return;
     }
     if (!m_authenticationAvailable) {
-        m_authenticationErrorText = QStringLiteral(
-            "Sign in is not configured in this build. Guest reading remains available.");
+        m_authenticationErrorText = qtTrId(
+            "genycaster.bridge.sign_in_is_not_configured_guest_reading_remains_available");
         emit stateChanged();
         return;
     }
@@ -549,34 +565,34 @@ void PresentationBridge::revokeSigner()
 void PresentationBridge::publishCast(const QString& text)
 {
     if (!m_runtimeReady) {
-        m_writeErrorText = QStringLiteral("The local runtime is still starting.");
+        m_writeErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
         emit stateChanged();
         return;
     }
     if (!m_isAuthenticated) {
-        m_writeErrorText = QStringLiteral("Sign in before publishing a cast.");
+        m_writeErrorText = qtTrId("genycaster.bridge.sign_in_before_publishing_a_cast");
         emit stateChanged();
         return;
     }
     if (!m_writeReady) {
-        m_writeErrorText = QStringLiteral("Enable a verified Farcaster signer before publishing.");
+        m_writeErrorText = qtTrId("genycaster.bridge.enable_a_verified_farcaster_signer_before_publishing");
         emit stateChanged();
         return;
     }
     if (m_writeBusy) { return; }
     if (text.trimmed().isEmpty()) {
-        m_writeErrorText = QStringLiteral("Write something before publishing.");
+        m_writeErrorText = qtTrId("genycaster.bridge.write_something_before_publishing");
         emit stateChanged();
         return;
     }
     if (text.toUtf8().size() > 320) {
-        m_writeErrorText = QStringLiteral("Standard Farcaster casts are limited to 320 UTF-8 bytes.");
+        m_writeErrorText = qtTrId("genycaster.bridge.standard_farcaster_casts_are_limited_to_320_utf_8_bytes");
         emit stateChanged();
         return;
     }
     m_writeBusy = true;
     m_writePhase = QStringLiteral("preparing");
-    m_writeStatusText = QStringLiteral("Preparing a canonical Farcaster cast…");
+    m_writeStatusText = qtTrId("genycaster.bridge.preparing_a_canonical_farcaster_cast");
     m_writeErrorText.clear();
     emit stateChanged();
     emit publishCastRequested(text);
@@ -596,7 +612,7 @@ bool PresentationBridge::prepareReply(const QString& parentCastId)
 {
     const QString canonicalParentId = parentCastId.trimmed();
     if (canonicalParentId.isEmpty()) {
-        m_writeErrorText = QStringLiteral("That reply target has an empty cast identifier.");
+        m_writeErrorText = qtTrId("genycaster.bridge.that_reply_target_has_an_empty_cast_identifier");
         emit stateChanged();
         return false;
     }
@@ -631,8 +647,8 @@ bool PresentationBridge::prepareReply(const QString& parentCastId)
         }
     }
 
-    m_writeErrorText = QStringLiteral(
-        "The reply target is not available as a canonical cast in the current presentation state.");
+    m_writeErrorText = qtTrId(
+        "genycaster.bridge.reply_target_not_available_as_canonical_cast");
     emit stateChanged();
     return false;
 }
@@ -646,40 +662,40 @@ void PresentationBridge::clearReplyTarget()
 void PresentationBridge::publishReply(const QString& text)
 {
     if (!m_runtimeReady) {
-        m_writeErrorText = QStringLiteral("The local runtime is still starting.");
+        m_writeErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
         emit stateChanged();
         return;
     }
     if (!m_isAuthenticated) {
-        m_writeErrorText = QStringLiteral("Sign in before replying to a cast.");
+        m_writeErrorText = qtTrId("genycaster.bridge.sign_in_before_replying_to_a_cast");
         emit stateChanged();
         return;
     }
     if (!m_writeReady) {
-        m_writeErrorText = QStringLiteral("Enable a verified Farcaster signer before replying.");
+        m_writeErrorText = qtTrId("genycaster.bridge.enable_a_verified_farcaster_signer_before_replying");
         emit stateChanged();
         return;
     }
     if (m_writeBusy) { return; }
     if (text.trimmed().isEmpty()) {
-        m_writeErrorText = QStringLiteral("Write something before replying.");
+        m_writeErrorText = qtTrId("genycaster.bridge.write_something_before_replying");
         emit stateChanged();
         return;
     }
     if (text.toUtf8().size() > 320) {
-        m_writeErrorText = QStringLiteral("Standard Farcaster casts are limited to 320 UTF-8 bytes.");
+        m_writeErrorText = qtTrId("genycaster.bridge.standard_farcaster_casts_are_limited_to_320_utf_8_bytes");
         emit stateChanged();
         return;
     }
     if (m_replyParentAuthorFid == 0 || m_replyParentCastId.isEmpty()) {
-        m_writeErrorText = QStringLiteral("Choose a canonical cast before publishing a reply.");
+        m_writeErrorText = qtTrId("genycaster.bridge.choose_a_canonical_cast_before_publishing_a_reply");
         emit stateChanged();
         return;
     }
 
     m_writeBusy = true;
     m_writePhase = QStringLiteral("preparing");
-    m_writeStatusText = QStringLiteral("Preparing a canonical Farcaster reply…");
+    m_writeStatusText = qtTrId("genycaster.bridge.preparing_a_canonical_farcaster_reply");
     m_writeErrorText.clear();
     emit stateChanged();
     emit publishReplyRequested(text, m_replyParentAuthorFid, m_replyParentCastId);
@@ -696,22 +712,22 @@ void PresentationBridge::setReaction(
     const QString canonicalCastId = targetCastId.trimmed();
     if (!m_runtimeReady || !m_isAuthenticated || !m_writeReady || m_writeBusy) {
         m_writeErrorText = !m_isAuthenticated
-            ? QStringLiteral("Sign in before interacting with a cast.")
-            : QStringLiteral("Enable a verified Farcaster signer before interacting.");
+            ? qtTrId("genycaster.bridge.sign_in_before_interacting_with_a_cast")
+            : qtTrId("genycaster.bridge.enable_a_verified_farcaster_signer_before_interacting");
         emit stateChanged();
         return;
     }
     if ((canonicalKind != QStringLiteral("like") && canonicalKind != QStringLiteral("recast")) ||
         targetAuthorFid == 0U || canonicalCastId.isEmpty()) {
-        m_writeErrorText = QStringLiteral("That Farcaster reaction target is invalid.");
+        m_writeErrorText = qtTrId("genycaster.bridge.that_farcaster_reaction_target_is_invalid");
         emit stateChanged();
         return;
     }
     m_writeBusy = true;
     m_writePhase = QStringLiteral("preparing");
     m_writeStatusText = active
-        ? QStringLiteral("Preparing the Farcaster interaction…")
-        : QStringLiteral("Preparing to remove the Farcaster interaction…");
+        ? qtTrId("genycaster.bridge.preparing_the_farcaster_interaction")
+        : qtTrId("genycaster.bridge.preparing_to_remove_the_farcaster_interaction");
     m_writeErrorText.clear();
     emit stateChanged();
     emit reactionRequested(canonicalKind, targetAuthorFid, canonicalCastId, active);
@@ -721,21 +737,21 @@ void PresentationBridge::setFollowing(const qulonglong targetFid, const bool fol
 {
     if (!m_runtimeReady || !m_isAuthenticated || !m_writeReady || m_writeBusy) {
         m_writeErrorText = !m_isAuthenticated
-            ? QStringLiteral("Sign in before changing follows.")
-            : QStringLiteral("Enable a verified Farcaster signer before changing follows.");
+            ? qtTrId("genycaster.bridge.sign_in_before_changing_follows")
+            : qtTrId("genycaster.bridge.enable_a_verified_farcaster_signer_before_changing_follows");
         emit stateChanged();
         return;
     }
     if (targetFid == 0U || targetFid == m_accountFid) {
-        m_writeErrorText = QStringLiteral("That Farcaster follow target is invalid.");
+        m_writeErrorText = qtTrId("genycaster.bridge.that_farcaster_follow_target_is_invalid");
         emit stateChanged();
         return;
     }
     m_writeBusy = true;
     m_writePhase = QStringLiteral("preparing");
     m_writeStatusText = following
-        ? QStringLiteral("Preparing the Farcaster follow…")
-        : QStringLiteral("Preparing the Farcaster unfollow…");
+        ? qtTrId("genycaster.bridge.preparing_the_farcaster_follow")
+        : qtTrId("genycaster.bridge.preparing_the_farcaster_unfollow");
     m_writeErrorText.clear();
     emit stateChanged();
     emit followingMutationRequested(targetFid, following);
@@ -746,19 +762,19 @@ void PresentationBridge::removeCast(const qulonglong authorFid, const QString& c
     const QString canonicalCastId = castId.trimmed();
     if (!m_runtimeReady || !m_isAuthenticated || !m_writeReady || m_writeBusy) {
         m_writeErrorText = !m_isAuthenticated
-            ? QStringLiteral("Sign in before deleting a cast.")
-            : QStringLiteral("Enable a verified Farcaster signer before deleting a cast.");
+            ? qtTrId("genycaster.bridge.sign_in_before_deleting_a_cast")
+            : qtTrId("genycaster.bridge.enable_a_verified_farcaster_signer_before_deleting_a_cast");
         emit stateChanged();
         return;
     }
     if (authorFid == 0U || authorFid != m_accountFid || canonicalCastId.isEmpty()) {
-        m_writeErrorText = QStringLiteral("Only your own canonical Farcaster cast can be deleted.");
+        m_writeErrorText = qtTrId("genycaster.bridge.only_your_own_canonical_farcaster_cast_can_be_deleted");
         emit stateChanged();
         return;
     }
     m_writeBusy = true;
     m_writePhase = QStringLiteral("preparing");
-    m_writeStatusText = QStringLiteral("Preparing the Farcaster cast deletion…");
+    m_writeStatusText = qtTrId("genycaster.bridge.preparing_the_farcaster_cast_deletion");
     m_writeErrorText.clear();
     emit stateChanged();
     emit removeCastRequested(authorFid, canonicalCastId);
@@ -769,12 +785,12 @@ void PresentationBridge::openAuthenticationApproval()
     const QUrl parsed{m_authenticationApprovalUrl};
     if (!parsed.isValid() ||
         (parsed.scheme() != QStringLiteral("https") && parsed.scheme() != QStringLiteral("http"))) {
-        m_authenticationErrorText = QStringLiteral("The authentication approval link is invalid.");
+        m_authenticationErrorText = qtTrId("genycaster.bridge.the_authentication_approval_link_is_invalid");
         emit stateChanged();
         return;
     }
     if (!QDesktopServices::openUrl(parsed)) {
-        m_authenticationErrorText = QStringLiteral("The system could not open the Farcaster approval link.");
+        m_authenticationErrorText = qtTrId("genycaster.bridge.the_system_could_not_open_the_farcaster_approval_link");
         emit stateChanged();
     }
 }
@@ -785,8 +801,8 @@ void PresentationBridge::applyRuntimeState(const bool ready, QString errorText)
     m_isBusy = false;
     m_errorText = errorText;
     m_diagnosticText = ready ? QString{} : std::move(errorText);
-    m_statusText = ready ? QStringLiteral("Ready to read")
-                         : QStringLiteral("Local runtime unavailable");
+    m_statusText = ready ? qtTrId("genycaster.bridge.ready_to_read")
+                         : qtTrId("genycaster.bridge.local_runtime_unavailable");
     emit stateChanged();
 }
 
@@ -856,7 +872,7 @@ void PresentationBridge::applyAuthenticationState(
         m_writeReady = false;
         m_signerPhase = QStringLiteral("signed-out");
         m_signerBusy = false;
-        m_signerStatusText = QStringLiteral("Sign in before enabling interactions.");
+        m_signerStatusText = qtTrId("genycaster.bridge.sign_in_before_enabling_interactions");
         m_signerErrorText.clear();
         m_writeBusy = false;
         m_writePhase = QStringLiteral("idle");
@@ -1133,17 +1149,18 @@ void PresentationBridge::applyVerificationFixture()
     m_feedStarted = true;
     m_identityFid = 6841;
     m_identityName = QStringLiteral("Protocol Field Notes");
-    m_statusText = QStringLiteral("Cached · refreshing in background");
+    m_statusText = qtTrId("genycaster.bridge.cached_refreshing_in_background");
     m_isBusy = true;
     m_isStale = true;
     m_networkReachabilityKnown = true;
     m_isOffline = false;
     m_sourceUnavailable = false;
     m_diagnosticText.clear();
+    const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
     m_rows = {
-        QVariantMap{{QStringLiteral("castId"), QStringLiteral("0x01")}, {QStringLiteral("author"), QStringLiteral("alice")}, {QStringLiteral("displayName"), QStringLiteral("Alice Lin")}, {QStringLiteral("text"), QStringLiteral("Native clients feel different when the cache is the product, not a fallback.")}, {QStringLiteral("time"), QStringLiteral("2m")}, {QStringLiteral("replyCount"), 12}, {QStringLiteral("recastCount"), 4}, {QStringLiteral("likeCount"), 86}, {QStringLiteral("embeds"), QVariantList{QVariantMap{{QStringLiteral("kind"), QStringLiteral("url")}, {QStringLiteral("url"), QStringLiteral("https://example.com/native-client")}}}}},
-        QVariantMap{{QStringLiteral("castId"), QStringLiteral("0x02")}, {QStringLiteral("author"), QStringLiteral("builders")}, {QStringLiteral("displayName"), QStringLiteral("Farcaster Builders")}, {QStringLiteral("text"), QStringLiteral("Channel telemetry is flowing through canonical local state.")}, {QStringLiteral("time"), QStringLiteral("8m")}},
-        QVariantMap{{QStringLiteral("castId"), QStringLiteral("0x03")}, {QStringLiteral("author"), QStringLiteral("violet")}, {QStringLiteral("displayName"), QStringLiteral("Violet")}, {QStringLiteral("text"), QStringLiteral("The network can disappear. The reading surface should not.")}, {QStringLiteral("time"), QStringLiteral("14m")}}
+        QVariantMap{{QStringLiteral("castId"), QStringLiteral("0x01")}, {QStringLiteral("author"), QStringLiteral("alice")}, {QStringLiteral("displayName"), QStringLiteral("Alice Lin")}, {QStringLiteral("text"), QStringLiteral("Native clients feel different when the cache is the product, not a fallback.")}, {QStringLiteral("createdAtMs"), nowMs - 120'000}, {QStringLiteral("replyCount"), 12}, {QStringLiteral("recastCount"), 4}, {QStringLiteral("likeCount"), 86}, {QStringLiteral("embeds"), QVariantList{QVariantMap{{QStringLiteral("kind"), QStringLiteral("url")}, {QStringLiteral("url"), QStringLiteral("https://example.com/native-client")}}}}},
+        QVariantMap{{QStringLiteral("castId"), QStringLiteral("0x02")}, {QStringLiteral("author"), QStringLiteral("builders")}, {QStringLiteral("displayName"), QStringLiteral("Farcaster Builders")}, {QStringLiteral("text"), QStringLiteral("Channel telemetry is flowing through canonical local state.")}, {QStringLiteral("createdAtMs"), nowMs - 480'000}},
+        QVariantMap{{QStringLiteral("castId"), QStringLiteral("0x03")}, {QStringLiteral("author"), QStringLiteral("violet")}, {QStringLiteral("displayName"), QStringLiteral("Violet")}, {QStringLiteral("text"), QStringLiteral("The network can disappear. The reading surface should not.")}, {QStringLiteral("createdAtMs"), nowMs - 840'000}}
     };
     m_next = QStringLiteral("fixture-next");
     emit stateChanged();

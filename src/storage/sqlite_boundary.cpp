@@ -58,6 +58,30 @@ namespace {
     return stepDone(connection, statement);
 }
 
+[[nodiscard]] auto migrationApplied(
+    Connection& connection,
+    const std::int64_t version) -> std::expected<bool, Error>
+{
+    auto prepared = Statement::prepare(
+        connection,
+        "SELECT 1 FROM schema_migrations WHERE version = ? LIMIT 1;");
+    if (!prepared) {
+        return std::unexpected(prepared.error());
+    }
+    auto statement = std::move(*prepared);
+    if (sqlite3_bind_int64(statement.native(), 1, version) != SQLITE_OK) {
+        return std::unexpected(makeError(connection.native(), "Failed to bind migration version"));
+    }
+    const int step = sqlite3_step(statement.native());
+    if (step == SQLITE_ROW) {
+        return true;
+    }
+    if (step == SQLITE_DONE) {
+        return false;
+    }
+    return std::unexpected(makeError(connection.native(), "Failed to inspect migration state"));
+}
+
 [[nodiscard]] auto migrate(Connection& connection) -> std::expected<void, Error>
 {
     constexpr std::string_view schema = R"SQL(
@@ -73,6 +97,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     avatar_url TEXT,
     banner_url TEXT,
     location TEXT,
+    profile_url TEXT,
     custody_address TEXT,
     follower_count INTEGER NOT NULL DEFAULT 0,
     following_count INTEGER NOT NULL DEFAULT 0
@@ -520,6 +545,39 @@ WHERE current.kind IN ('follow', 'unfollow')
     }
     if (auto status = recordMigration(connection, 17, appliedAt); !status) {
         return status;
+    }
+
+    // Preserve the protocol-native USER_DATA_TYPE_URL separately from the bio.
+    // Older databases gain the optional column without rewriting existing rows.
+    {
+        auto exists = tableHasColumn(connection, "profiles", "profile_url");
+        if (!exists) { return std::unexpected(exists.error()); }
+        if (!*exists) {
+            if (auto status = connection.execute("ALTER TABLE profiles ADD COLUMN profile_url TEXT;"); !status) {
+                return status;
+            }
+        }
+    }
+    if (auto status = recordMigration(connection, 18, appliedAt); !status) {
+        return status;
+    }
+
+    // Older builds allowed embedded feed/social author summaries to persist
+    // follower/following counts. Those snapshots are not authoritative and can
+    // survive long enough to make a profile look fabricated. Clear the polluted
+    // cache exactly once; a dedicated profile refresh repopulates current totals.
+    auto countsResetApplied = migrationApplied(connection, 19);
+    if (!countsResetApplied) {
+        return std::unexpected(countsResetApplied.error());
+    }
+    if (!*countsResetApplied) {
+        if (auto status = connection.execute(
+                "UPDATE profiles SET follower_count = 0, following_count = 0;"); !status) {
+            return status;
+        }
+        if (auto status = recordMigration(connection, 19, appliedAt); !status) {
+            return status;
+        }
     }
 
     // Copy legacy URL embeds only after all columns required by the current

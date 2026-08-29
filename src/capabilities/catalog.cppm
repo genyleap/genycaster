@@ -32,6 +32,10 @@ export namespace farcaster::capability::catalog {
 [[nodiscard]] model::CapabilityId feedUserPopularRead();
 /** @brief Personalized feed read capability. */
 [[nodiscard]] model::CapabilityId feedForYouRead();
+/** @brief Timestamped asset-to-fiat valuation read capability. */
+[[nodiscard]] model::CapabilityId valuationAssetPriceRead();
+/** @brief Timestamped fiat FX valuation read capability. */
+[[nodiscard]] model::CapabilityId valuationFxRead();
 /** @brief Mini App manifest resolution capability. */
 [[nodiscard]] model::CapabilityId miniAppManifestResolve();
 /** @brief Mini App discovery index capability. */

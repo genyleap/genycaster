@@ -291,10 +291,33 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::userReplies(
     const domain::identity::Fid fid,
     const capability::pagination::PageRequest& pageRequest)
 {
-    return readFeed(
+    auto page = readFeed(
         m_transport, m_continuations, m_config, capability::catalog::feedUserRepliesRead(),
         "/v2/farcaster/feed/user/replies_and_recasts", {{"fid", std::to_string(fid.value)}},
         pageRequest, profileFeedRequestTimeout);
+    if (!page) {
+        return std::unexpected(std::move(page.error()));
+    }
+
+    // Hypersnap's compatibility endpoint intentionally combines replies and
+    // recasts. The Profile "Replies" surface must remain semantically exact,
+    // so retain only CastAdd messages that have a parent cast. Recasts are
+    // reactions and belong to a separate interaction surface, not Replies.
+    std::unordered_set<std::string> retained{};
+    std::vector<domain::cast::Cast> replies{};
+    replies.reserve(page->casts.size());
+    for (auto& cast : page->casts) {
+        if (!cast.parent.has_value()) {
+            continue;
+        }
+        retained.insert(cast.id.value);
+        replies.push_back(std::move(cast));
+    }
+    page->casts = std::move(replies);
+    std::erase_if(page->entries, [&](const auto& entry) {
+        return !retained.contains(entry.castId.value);
+    });
+    return page;
 }
 
 foundation::result::Result<capability::feed::FeedPage> FeedSource::userLikes(
