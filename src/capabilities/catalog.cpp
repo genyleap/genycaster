@@ -14,8 +14,10 @@ model::CapabilityId graphFollowingRead() { return model::CapabilityId{"graph.fol
 model::CapabilityId feedFollowingRead() { return model::CapabilityId{"feed.following.read"}; }
 model::CapabilityId feedTrendingRead() { return model::CapabilityId{"feed.trending.read"}; }
 model::CapabilityId feedChannelRead() { return model::CapabilityId{"feed.channel.read"}; }
-model::CapabilityId feedUserCastsRead() { return model::CapabilityId{"feed.user.casts.read"}; }
+model::CapabilityId feedUserPostsRead() { return model::CapabilityId{"feed.user.posts.read"}; }
+model::CapabilityId feedUserQuotesRead() { return model::CapabilityId{"feed.user.quotes.read"}; }
 model::CapabilityId feedUserRepliesRead() { return model::CapabilityId{"feed.user.replies.read"}; }
+model::CapabilityId feedUserLikesRead() { return model::CapabilityId{"feed.user.likes.read"}; }
 model::CapabilityId feedUserPopularRead() { return model::CapabilityId{"feed.user.popular.read"}; }
 model::CapabilityId feedForYouRead() { return model::CapabilityId{"feed.for_you.read"}; }
 model::CapabilityId miniAppManifestResolve() { return model::CapabilityId{"miniapp.manifest.resolve"}; }
