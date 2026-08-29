@@ -5,6 +5,8 @@ add_library(farcaster_presentation STATIC
     qt/presentation_bridge.hpp
     qt/localization_controller.cpp
     qt/localization_controller.hpp
+    qt/rich_composer_controller.cpp
+    qt/rich_composer_controller.hpp
 )
 add_library(farcaster::presentation ALIAS farcaster_presentation)
 
@@ -16,10 +18,12 @@ target_include_directories(farcaster_presentation
 target_link_libraries(farcaster_presentation
     PUBLIC
         farcaster::application
+        farcaster::application_rich
         Qt6::Core
         Qt6::Qml
     PRIVATE
         Qt6::Gui
+        Qt6::Quick
 )
 
 target_compile_features(farcaster_presentation PUBLIC cxx_std_26)
