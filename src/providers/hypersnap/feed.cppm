@@ -31,11 +31,19 @@ public:
         const domain::channel::ChannelId& channelId,
         const capability::pagination::PageRequest& pageRequest) override;
 
-    [[nodiscard]] foundation::result::Result<capability::feed::FeedPage> userCasts(
+    [[nodiscard]] foundation::result::Result<capability::feed::FeedPage> userPosts(
+        domain::identity::Fid fid,
+        const capability::pagination::PageRequest& pageRequest) override;
+
+    [[nodiscard]] foundation::result::Result<capability::feed::FeedPage> userQuotes(
         domain::identity::Fid fid,
         const capability::pagination::PageRequest& pageRequest) override;
 
     [[nodiscard]] foundation::result::Result<capability::feed::FeedPage> userReplies(
+        domain::identity::Fid fid,
+        const capability::pagination::PageRequest& pageRequest) override;
+
+    [[nodiscard]] foundation::result::Result<capability::feed::FeedPage> userLikes(
         domain::identity::Fid fid,
         const capability::pagination::PageRequest& pageRequest) override;
 
