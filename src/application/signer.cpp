@@ -281,9 +281,10 @@ foundation::result::Status SignerService::restore(
                 return;
             }
 
-            const auto requestFid = record.lastVerifiedRegistration
-                ? record.lastVerifiedRegistration->requestFid
-                : m_impl->policy.requestFid;
+            // Client attribution is a policy invariant. A signer previously registered
+            // with the viewer FID must not stay Ready after the application moves to a
+            // canonical App FID, otherwise Farcaster attributes casts to the user client.
+            const auto requestFid = m_impl->policy.requestFid;
             auto inspected = m_impl->registry->inspect(session->fid, record.local.publicKey, requestFid);
             if (!inspected) {
                 m_impl->current = SignerState{.phase = SignerPhase::Unavailable,
