@@ -490,6 +490,41 @@ foundation::result::Result<domain::profile::Profile> decodeUser(const std::strin
     return mapProfile(userValue->as_object());
 }
 
+[[nodiscard]] std::optional<UserDataEntry> decodeUserDataEntry(const JsonValue& messageValue)
+{
+    if (!messageValue.is_object()) {
+        return std::nullopt;
+    }
+    const JsonValue* dataValue = findValue(messageValue.as_object(), "data");
+    if (dataValue == nullptr || !dataValue->is_object()) {
+        return std::nullopt;
+    }
+    const JsonValue* bodyValue = findValue(dataValue->as_object(), "userDataBody");
+    if (bodyValue == nullptr || !bodyValue->is_object()) {
+        return std::nullopt;
+    }
+    const JsonObject& bodyObject = bodyValue->as_object();
+    const auto value = optionalString(bodyObject, "value");
+    if (!value || value->empty()) {
+        return std::nullopt;
+    }
+
+    std::string type{};
+    if (const JsonValue* typeValue = findValue(bodyObject, "type"); typeValue != nullptr) {
+        if (typeValue->is_string()) {
+            type = std::string{typeValue->as_string()};
+        } else if (typeValue->is_uint64()) {
+            type = std::to_string(typeValue->as_uint64());
+        } else if (typeValue->is_int64() && typeValue->as_int64() >= 0) {
+            type = std::to_string(typeValue->as_int64());
+        }
+    }
+    if (type.empty()) {
+        return std::nullopt;
+    }
+    return UserDataEntry{.type = std::move(type), .value = *value};
+}
+
 foundation::result::Result<std::string> decodeUserDataValue(const std::string_view body)
 {
     auto document = parseJson(body);
@@ -518,6 +553,40 @@ foundation::result::Result<std::string> decodeUserDataValue(const std::string_vi
         return std::unexpected(protocolError("Snapchain user data body is missing."));
     }
     return requireString(bodyValue->as_object(), "value", "userDataBody");
+}
+
+foundation::result::Result<std::vector<UserDataEntry>> decodeUserDataEntries(
+    const std::string_view body)
+{
+    auto document = parseJson(body);
+    if (!document) {
+        return std::unexpected(std::move(document.error()));
+    }
+    if (!document->is_object()) {
+        return std::unexpected(protocolError("Snapchain user data response must be a JSON object."));
+    }
+
+    std::vector<UserDataEntry> entries{};
+    const JsonObject& root = document->as_object();
+    if (const JsonValue* messages = findValue(root, "messages"); messages != nullptr) {
+        if (!messages->is_array()) {
+            return std::unexpected(protocolError("Snapchain user data response.messages must be an array."));
+        }
+        entries.reserve(messages->as_array().size());
+        for (const JsonValue& message : messages->as_array()) {
+            if (auto entry = decodeUserDataEntry(message)) {
+                entries.push_back(std::move(*entry));
+            }
+        }
+        return entries;
+    }
+
+    if (auto entry = decodeUserDataEntry(*document)) {
+        entries.push_back(std::move(*entry));
+        return entries;
+    }
+
+    return std::unexpected(protocolError("Snapchain user data response contains no UserData message."));
 }
 
 foundation::result::Result<CastPayload> decodeCastPayload(const std::string_view body)
