@@ -127,11 +127,15 @@ public:
     Q_INVOKABLE void provisionSigner();
     Q_INVOKABLE void revokeSigner();
     Q_INVOKABLE void publishCast(const QString& text);
+    /** @brief Publishes the exact safe-serialized rich document projection plus semantic mentions. */
+    Q_INVOKABLE void publishPreparedCast(const QString& text, const QVariantList& mentionFids, const QVariantList& mentionPositions, const QVariantList& embeds);
     Q_INVOKABLE int utf8ByteCount(const QString& text) const;
     Q_INVOKABLE void beginComposer();
     Q_INVOKABLE bool prepareReply(const QString& parentCastId);
     Q_INVOKABLE void clearReplyTarget();
     Q_INVOKABLE void publishReply(const QString& text);
+    /** @brief Publishes the exact safe-serialized reply projection plus semantic mentions. */
+    Q_INVOKABLE void publishPreparedReply(const QString& text, const QVariantList& mentionFids, const QVariantList& mentionPositions, const QVariantList& embeds);
     /** @brief Adds or removes a Like/Recast reaction for one canonical cast target. */
     Q_INVOKABLE void setReaction(
         const QString& kind, qulonglong targetAuthorFid, const QString& targetCastId, bool active);
@@ -211,8 +215,8 @@ signals:
     void signOutRequested();
     void signerProvisionRequested();
     void signerRevokeRequested();
-    void publishCastRequested(QString text);
-    void publishReplyRequested(QString text, qulonglong parentAuthorFid, QString parentCastId);
+    void publishCastRequested(QString text, QVariantList mentionFids, QVariantList mentionPositions, QVariantList embeds);
+    void publishReplyRequested(QString text, QVariantList mentionFids, QVariantList mentionPositions, QVariantList embeds, qulonglong parentAuthorFid, QString parentCastId);
     void reactionRequested(QString kind, qulonglong targetAuthorFid, QString targetCastId, bool active);
     void followingMutationRequested(qulonglong targetFid, bool following);
     void removeCastRequested(qulonglong authorFid, QString castId);
