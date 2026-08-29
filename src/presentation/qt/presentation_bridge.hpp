@@ -102,6 +102,8 @@ public:
     Q_INVOKABLE void openIdentity(const QString& username);
     Q_INVOKABLE void selectFeed(const QString& feed);
     Q_INVOKABLE void openChannel(const QString& channelId);
+    /** @brief Resolves one Explore query to a profile, channel, or canonical cast target. */
+    Q_INVOKABLE void openSearchQuery(const QString& query);
     Q_INVOKABLE void openCast(const QString& castId);
     Q_INVOKABLE void openProfile();
     Q_INVOKABLE void openMyProfile();
@@ -177,6 +179,8 @@ public:
     /** @brief Commits normalized rows for a feed or social surface. */
     void applyList(QString view, QString selector, QVariantList rows, QString next,
         QString status, QString error, QString diagnostic, bool busy, bool stale, bool sourceUnavailable);
+    /** @brief Patches a hydrated parent/quoted cast preview into visible rows without exposing raw ids. */
+    void applyReferencedCastPreview(QString castId, QVariantMap preview);
     /** @brief Commits normalized profile or cast detail presentation data. */
     void applyDetail(QString view, QVariantMap detail, QString status, QString error, QString diagnostic,
         bool busy, bool stale, bool sourceUnavailable);
