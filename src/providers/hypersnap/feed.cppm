@@ -1,15 +1,22 @@
+module;
+
+#include <cstddef>
+
 export module farcaster.provider.hypersnap.feed;
 
 import farcaster.capability.feed;
 import farcaster.capability.pagination;
 import farcaster.domain.channel;
+import farcaster.domain.cast;
 import farcaster.domain.identity;
+import farcaster.domain.feed;
 import farcaster.foundation.result;
 import farcaster.provider.hypersnap.config;
 import farcaster.storage.continuation;
 import farcaster.transport.http;
 
 export namespace farcaster::provider::hypersnap::feed {
+
 
 /** @brief Blocking Hypersnap v2 feed adapter with provider-private cursor isolation. */
 class FeedSource final : public capability::feed::IFeedSource {
@@ -50,6 +57,11 @@ public:
     [[nodiscard]] foundation::result::Result<capability::feed::FeedPage> userPopular(
         domain::identity::Fid fid,
         const capability::pagination::PageRequest& pageRequest) override;
+
+    /** @brief Reads recent active Like/Recast targets for one signed-in viewer. */
+    [[nodiscard]] foundation::result::Result<domain::feed::ViewerReactionSnapshot> viewerReactions(
+        domain::identity::Fid fid,
+        std::size_t limit = 100);
 
 private:
     transport::http::IHttpTransport& m_transport;
