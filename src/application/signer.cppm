@@ -50,7 +50,7 @@ struct SignerPolicy final {
     std::vector<domain::signer::Scope> scopes{domain::signer::standardSocialScopes()};
     std::uint32_t ttlSeconds{domain::signer::DefaultGaslessTtlSeconds};
     std::chrono::minutes authorizationLifetime{60};
-    /** @brief Optional app FID for SignedKeyRequest attribution; falls back to the user FID. */
+    /** @brief Canonical app FID for SignedKeyRequest attribution. Empty explicitly permits self-client attribution. */
     std::optional<domain::identity::Fid> requestFid{};
 };
 
