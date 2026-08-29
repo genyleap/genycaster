@@ -321,8 +321,15 @@ private:
         });
         QObject::connect(&timeoutTimer, &QTimer::timeout, &loop, [&]() {
             timedOut = true;
-            reply->abort();
-            loop.quit();
+            // QNetworkReply::abort() completes asynchronously and emits finished().
+            // Let that signal close the local event loop so the TLS backend can
+            // finish its teardown before the reply is destroyed. Quitting here
+            // races QSslSocket cleanup and can produce "device not open" writes.
+            if (reply->isRunning()) {
+                reply->abort();
+            } else {
+                loop.quit();
+            }
         });
 
         const auto timeoutCount = timeout.count();
