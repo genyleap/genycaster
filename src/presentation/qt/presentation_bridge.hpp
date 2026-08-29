@@ -1,6 +1,7 @@
 // Textual compatibility boundary: Qt MOC requires this QObject declaration in a .hpp file.
 #pragma once
 
+#include <QHash>
 #include <QObject>
 #include <QString>
 #include <QVariantList>
@@ -163,6 +164,8 @@ public:
         QString phase, bool busy, QString statusText, QString errorText, QVariantMap optimisticRow = {});
     /** @brief Replaces account-scoped durable Like/Recast state used to overlay refreshed reads. */
     void applyReactionProjections(QVariantList reactions);
+    /** @brief Replaces network-observed active Like/Recast state for the signed-in viewer. */
+    void applyViewerReactionSnapshot(QVariantList reactions);
     /** @brief Replaces account-scoped durable Follow/Unfollow state used to overlay refreshed profiles. */
     void applyFollowingProjections(QVariantList following);
     /** @brief Commits a normalized identity presentation snapshot. */
@@ -239,8 +242,12 @@ private:
     qulonglong m_replyParentAuthorFid{};
     QString m_replyParentCastId{};
     QVariantList m_writeRows{};
+    QVariantMap m_viewerReactionSnapshot{};
     QVariantMap m_reactionOverrides{};
     QVariantMap m_followOverrides{};
+    QHash<qulonglong, QVariantMap> m_profileDetailCache{};
+    QHash<QString, QVariantList> m_profileListCache{};
+    QHash<QString, QString> m_profileNextCache{};
     QString m_activeView{QStringLiteral("feed")};
     QString m_activeFeed{QStringLiteral("following")};
     QString m_profileFeed{QStringLiteral("user-posts")};
@@ -262,7 +269,6 @@ private:
     bool m_hasReadActivity{false};
     bool m_feedStarted{false};
     bool m_shouldOpenFollowingAfterIdentity{false};
-    bool m_shouldOpenProfileFeedAfterProfile{false};
     bool m_allowRecoveryProbeForNextIntent{false};
     QString m_next{};
     QVariantList m_rows{};
