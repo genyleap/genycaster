@@ -53,13 +53,23 @@ public:
         const domain::channel::ChannelId& channelId,
         const pagination::PageRequest& pageRequest) = 0;
 
-    /** @brief Reads one user's casts in reverse chronological order. */
-    [[nodiscard]] virtual foundation::result::Result<FeedPage> userCasts(
+    /** @brief Reads one user's root, non-quote posts in reverse chronological order. */
+    [[nodiscard]] virtual foundation::result::Result<FeedPage> userPosts(
         domain::identity::Fid fid,
         const pagination::PageRequest& pageRequest) = 0;
 
-    /** @brief Reads one user's replies/recasts surface. */
+    /** @brief Reads one user's quote-cast posts in reverse chronological order. */
+    [[nodiscard]] virtual foundation::result::Result<FeedPage> userQuotes(
+        domain::identity::Fid fid,
+        const pagination::PageRequest& pageRequest) = 0;
+
+    /** @brief Reads one user's replies surface. */
     [[nodiscard]] virtual foundation::result::Result<FeedPage> userReplies(
+        domain::identity::Fid fid,
+        const pagination::PageRequest& pageRequest) = 0;
+
+    /** @brief Reads casts liked by one user, ordered by reaction recency. */
+    [[nodiscard]] virtual foundation::result::Result<FeedPage> userLikes(
         domain::identity::Fid fid,
         const pagination::PageRequest& pageRequest) = 0;
 
