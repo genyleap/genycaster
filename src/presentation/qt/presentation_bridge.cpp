@@ -353,21 +353,23 @@ void PresentationBridge::selectProfileFeed(const QString& feed)
         return;
     }
     m_activeView = QStringLiteral("profile");
-    const QString requestedFeed = feed == QStringLiteral("user-replies")
-        ? QStringLiteral("user-replies")
-        : feed == QStringLiteral("user-popular")
-            ? QStringLiteral("user-popular")
-            : QStringLiteral("user-casts");
+    const QString requestedFeed =
+        feed == QStringLiteral("user-quotes") ? QStringLiteral("user-quotes") :
+        feed == QStringLiteral("user-replies") ? QStringLiteral("user-replies") :
+        feed == QStringLiteral("user-likes") ? QStringLiteral("user-likes") :
+        feed == QStringLiteral("user-popular") ? QStringLiteral("user-popular") :
+        QStringLiteral("user-posts");
     if (m_profileFeed != requestedFeed) {
         m_rows.clear();
     }
     m_profileFeed = requestedFeed;
     m_next.clear();
-    beginIntent(m_profileFeed == QStringLiteral("user-replies")
-        ? QStringLiteral("Reading cached replies…")
-        : m_profileFeed == QStringLiteral("user-popular")
-            ? QStringLiteral("Reading cached popular casts…")
-            : QStringLiteral("Reading cached posts…"));
+    QString message = QStringLiteral("Reading cached posts…");
+    if (m_profileFeed == QStringLiteral("user-quotes")) { message = QStringLiteral("Reading cached quotes…"); }
+    else if (m_profileFeed == QStringLiteral("user-replies")) { message = QStringLiteral("Reading cached replies…"); }
+    else if (m_profileFeed == QStringLiteral("user-likes")) { message = QStringLiteral("Reading cached likes…"); }
+    else if (m_profileFeed == QStringLiteral("user-popular")) { message = QStringLiteral("Reading cached popular casts…"); }
+    beginIntent(std::move(message));
     emit feedRequested(m_profileFeed, m_profileFid, {}, {}, consumeRecoveryProbe());
 }
 
@@ -915,7 +917,7 @@ void PresentationBridge::applyWriteState(
 
         if (m_activeView == QStringLiteral("feed") ||
             (m_activeView == QStringLiteral("profile") &&
-             m_profileFeed == QStringLiteral("user-casts") &&
+             m_profileFeed == QStringLiteral("user-posts") &&
              m_profileFid == m_accountFid)) {
             QVariantList merged{};
             merged.reserve(m_writeRows.size() + m_rows.size());
@@ -1039,7 +1041,7 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
     const bool mergeLocalWrites = !m_writeRows.isEmpty() &&
         (m_activeView == QStringLiteral("feed") ||
          (m_activeView == QStringLiteral("profile") &&
-          m_profileFeed == QStringLiteral("user-casts") &&
+          m_profileFeed == QStringLiteral("user-posts") &&
           m_profileFid == m_accountFid));
     if (mergeLocalWrites) {
         QVariantList retainedWriteRows{};
