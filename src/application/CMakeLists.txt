@@ -67,6 +67,32 @@ target_compile_features(farcaster_application PUBLIC cxx_std_26)
 set_property(TARGET farcaster_application PROPERTY CXX_SCAN_FOR_MODULES ON)
 farcaster_enable_warnings(farcaster_application)
 
+
+# Rich publishing is intentionally isolated from session/read orchestration. This
+# keeps the AST, safe serializer and syntax registry independently testable and
+# prevents UI-rich-content work from pulling the complete live-read graph into
+# every compiler invocation.
+add_library(farcaster_application_rich)
+add_library(farcaster::application_rich ALIAS farcaster_application_rich)
+target_sources(farcaster_application_rich
+    PUBLIC
+        FILE_SET CXX_MODULES
+        FILES
+            rich_format.cppm
+            syntax.cppm
+    PRIVATE
+        rich_format.cpp
+        syntax.cpp
+)
+target_link_libraries(farcaster_application_rich
+    PUBLIC
+        farcaster::foundation
+        farcaster::domain
+)
+target_compile_features(farcaster_application_rich PUBLIC cxx_std_26)
+set_property(TARGET farcaster_application_rich PROPERTY CXX_SCAN_FOR_MODULES ON)
+farcaster_enable_warnings(farcaster_application_rich)
+
 # Durable protocol writes are an independently testable application use case.
 # They consume only stable ports and the executor contract; no provider,
 # storage implementation, Qt or signer implementation leaks inward.
