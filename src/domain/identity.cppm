@@ -11,6 +11,8 @@ export namespace farcaster::domain::identity {
 /** @brief Farcaster identifier for a protocol identity. */
 struct Fid final {
     std::uint64_t value{};
+
+    [[nodiscard]] constexpr bool operator==(const Fid&) const noexcept = default;
 };
 
 /** @brief Canonical Farcaster username snapshot. */
