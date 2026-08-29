@@ -53,6 +53,8 @@ enum class ReactionKind : std::uint8_t {
 struct PublishCastRequest final {
     std::string text{};
     std::vector<domain::cast::Embed> embeds{};
+    std::vector<domain::identity::Fid> mentions{};
+    std::vector<std::uint32_t> mentionPositions{};
     std::optional<domain::cast::CastReference> parent{};
 };
 
