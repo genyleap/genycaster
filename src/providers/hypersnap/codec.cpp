@@ -249,6 +249,28 @@ mapProfile(const JsonObject& user)
     profile.avatarUrl = optionalString(user, "pfp_url");
     profile.profileUrl = optionalString(user, "url");
     profile.custodyAddress = optionalString(user, "custody_address");
+
+    const auto bannerFromObject = [](const JsonObject& object) -> std::optional<std::string> {
+        if (auto direct = optionalString(object, "banner_url"); direct && !direct->empty()) {
+            return direct;
+        }
+        const JsonValue* const value = findValue(object, "banner");
+        if (value == nullptr) {
+            return std::nullopt;
+        }
+        if (value->is_string()) {
+            const std::string banner = value->as_string().c_str();
+            return banner.empty() ? std::nullopt : std::optional<std::string>{banner};
+        }
+        if (value->is_object()) {
+            if (auto nested = optionalString(value->as_object(), "url"); nested && !nested->empty()) {
+                return nested;
+            }
+        }
+        return std::nullopt;
+    };
+
+    profile.bannerUrl = bannerFromObject(user);
     if (auto followers = optionalUnsigned(user, "follower_count")) {
         profile.followerCount = *followers;
     }
@@ -275,12 +297,8 @@ mapProfile(const JsonObject& user)
                 profile.location = std::move(*description);
             }
         }
-        if (const JsonValue* bannerValue = findValue(profileObject, "banner");
-            bannerValue != nullptr && bannerValue->is_object()) {
-            if (auto banner = optionalString(bannerValue->as_object(), "url");
-                banner && !banner->empty()) {
-                profile.bannerUrl = std::move(*banner);
-            }
+        if (!profile.bannerUrl) {
+            profile.bannerUrl = bannerFromObject(profileObject);
         }
     }
     return profile;
