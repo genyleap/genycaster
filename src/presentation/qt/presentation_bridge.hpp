@@ -127,6 +127,7 @@ public:
     Q_INVOKABLE void provisionSigner();
     Q_INVOKABLE void revokeSigner();
     Q_INVOKABLE void publishCast(const QString& text);
+    Q_INVOKABLE int utf8ByteCount(const QString& text) const;
     Q_INVOKABLE void beginComposer();
     Q_INVOKABLE bool prepareReply(const QString& parentCastId);
     Q_INVOKABLE void clearReplyTarget();
@@ -141,6 +142,8 @@ public:
 
     /** @brief Retries the current surface without bypassing an active capability cooldown. */
     void retryAutomatically();
+    /** @brief Rebuilds cached transient status/error strings after a runtime locale switch. */
+    void retranslateTransientState();
 
     /** @brief Commits initialization state on the object's Qt thread. */
     void applyRuntimeState(bool ready, QString errorText = {});
