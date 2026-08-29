@@ -23,8 +23,9 @@ constexpr std::string_view displayUserDataType{"2"};
 constexpr std::string_view bioUserDataType{"3"};
 constexpr std::string_view urlUserDataType{"5"};
 constexpr std::string_view locationUserDataType{"7"};
-constexpr std::string_view bannerUserDataType{"10"};
-constexpr std::string_view compatibilityBannerUserDataType{"11"};
+constexpr std::string_view bannerUserDataTypeName{"USER_DATA_TYPE_BANNER"};
+constexpr std::string_view bannerUserDataType{"11"};
+constexpr std::string_view legacyBannerUserDataType{"10"};
 
 [[nodiscard]] constexpr bool isRemoteBannerUrl(const std::string_view value) noexcept
 {
@@ -93,19 +94,21 @@ ProfileSource::get(const domain::identity::Fid fid)
     if (!profile->location) {
         profile->location = userDataValue(locationUserDataType);
     }
-    if (!profile->bannerUrl) {
-        profile->bannerUrl = userDataValue(bannerUserDataType);
-    }
-    // Some newer protocol snapshots assign Banner to slot 11, while deployed
-    // Snapchain-compatible APIs still expose Banner as slot 10. Slot 11 is also
-    // used for the primary Ethereum address in deployed schemas, so never accept
-    // it blindly as an image URL.
-    if (!profile->bannerUrl) {
-        if (auto compatibility = userDataValue(compatibilityBannerUserDataType);
-            compatibility && isRemoteBannerUrl(*compatibility)) {
-            profile->bannerUrl = std::move(*compatibility);
+    // Banner is protocol UserData rather than a field guaranteed by the enriched
+    // v2 User response. Prefer the symbolic enum name so the adapter does not
+    // depend on historical numeric assignments. Current Farcaster assigns Banner
+    // to slot 11; slot 10 is retained only as a legacy compatibility fallback.
+    const auto assignBanner = [&](const std::string_view type) {
+        if (profile->bannerUrl) {
+            return;
         }
-    }
+        if (auto value = userDataValue(type); value && isRemoteBannerUrl(*value)) {
+            profile->bannerUrl = std::move(*value);
+        }
+    };
+    assignBanner(bannerUserDataTypeName);
+    assignBanner(bannerUserDataType);
+    assignBanner(legacyBannerUserDataType);
     return profile;
 }
 
