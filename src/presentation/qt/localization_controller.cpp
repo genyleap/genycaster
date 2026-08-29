@@ -65,6 +65,53 @@ constexpr auto kTranslationResourcePrefix = ":/i18n/qml_";
         : QLocale{QStringLiteral("en_US")};
 }
 
+[[nodiscard]] bool firstStrongCharacterIsRtl(const QString& text) noexcept
+{
+    for (const QChar character : text) {
+        switch (character.direction()) {
+        case QChar::DirR:
+        case QChar::DirAL:
+        case QChar::DirRLE:
+        case QChar::DirRLO:
+        case QChar::DirRLI:
+            return true;
+        case QChar::DirL:
+        case QChar::DirLRE:
+        case QChar::DirLRO:
+        case QChar::DirLRI:
+            return false;
+        default:
+            break;
+        }
+    }
+    return false;
+}
+
+[[nodiscard]] QString normalizeNumberGlyphs(QString text, const bool usePersianDigits)
+{
+    for (qsizetype index = 0; index < text.size(); ++index) {
+        const QChar character = text.at(index);
+        const ushort value = character.unicode();
+        int digit = -1;
+        if (value >= u'0' && value <= u'9') {
+            digit = static_cast<int>(value - u'0');
+        } else if (value >= 0x06F0 && value <= 0x06F9) {
+            digit = static_cast<int>(value - 0x06F0);
+        } else if (value >= 0x0660 && value <= 0x0669) {
+            digit = static_cast<int>(value - 0x0660);
+        }
+        if (digit >= 0) {
+            text[index] = QChar{static_cast<ushort>((usePersianDigits ? 0x06F0 : u'0') + digit)};
+            continue;
+        }
+        if (!usePersianDigits) {
+            if (value == 0x066B) text[index] = QLatin1Char('.');
+            else if (value == 0x066C) text[index] = QLatin1Char(',');
+        }
+    }
+    return text;
+}
+
 [[nodiscard]] QString catalogLocaleNameFor(const QString& languageTag)
 {
     return uiLocaleFor(languageTag).name();
@@ -768,16 +815,30 @@ void LocalizationController::resetToSystemDefaults()
     setLanguageTag(QStringLiteral("system"));
 }
 
+bool LocalizationController::isRightToLeftText(const QString& text) const noexcept
+{
+    if (text.trimmed().isEmpty()) {
+        return rightToLeft();
+    }
+    return firstStrongCharacterIsRtl(text);
+}
+
+QString LocalizationController::formatIdentifier(const qulonglong value) const
+{
+    return QString::number(value);
+}
+
 QString LocalizationController::formatNumber(const double value, const int precision) const
 {
-    return precision < 0
+    const QString formatted = precision < 0
         ? m_impl->regionalLocale.toString(value, 'g', QLocale::FloatingPointShortest)
         : m_impl->regionalLocale.toString(value, 'f', std::clamp(precision, 0, 12));
+    return normalizeNumberGlyphs(formatted, rightToLeft());
 }
 
 QString LocalizationController::formatInteger(const qint64 value) const
 {
-    return m_impl->regionalLocale.toString(value);
+    return normalizeNumberGlyphs(m_impl->regionalLocale.toString(value), rightToLeft());
 }
 
 QString LocalizationController::formatCompactNumber(const double value) const
@@ -822,27 +883,33 @@ QString LocalizationController::formatRelativeTime(const qint64 epochMillisecond
     const qint64 elapsedSeconds = std::max<qint64>(0, (nowMs - epochMilliseconds) / 1000);
     if (elapsedSeconds < 60) return qtTrId("genycaster.locale.relative_now");
     if (elapsedSeconds < 3600) {
-        return qtTrId("genycaster.locale.relative_minutes")
-            .arg(formatInteger(elapsedSeconds / 60));
+        const qint64 value = elapsedSeconds / 60;
+        return value == 1 ? qtTrId("genycaster.locale.relative_minute")
+                          : qtTrId("genycaster.locale.relative_minutes").arg(formatInteger(value));
     }
     if (elapsedSeconds < 86'400) {
-        return qtTrId("genycaster.locale.relative_hours")
-            .arg(formatInteger(elapsedSeconds / 3600));
+        const qint64 value = elapsedSeconds / 3600;
+        return value == 1 ? qtTrId("genycaster.locale.relative_hour")
+                          : qtTrId("genycaster.locale.relative_hours").arg(formatInteger(value));
     }
     if (elapsedSeconds < 604'800) {
-        return qtTrId("genycaster.locale.relative_days")
-            .arg(formatInteger(elapsedSeconds / 86'400));
+        const qint64 value = elapsedSeconds / 86'400;
+        return value == 1 ? qtTrId("genycaster.locale.relative_day")
+                          : qtTrId("genycaster.locale.relative_days").arg(formatInteger(value));
     }
     if (elapsedSeconds < 2'629'746) {
-        return qtTrId("genycaster.locale.relative_weeks")
-            .arg(formatInteger(elapsedSeconds / 604'800));
+        const qint64 value = elapsedSeconds / 604'800;
+        return value == 1 ? qtTrId("genycaster.locale.relative_week")
+                          : qtTrId("genycaster.locale.relative_weeks").arg(formatInteger(value));
     }
     if (elapsedSeconds < 31'556'952) {
-        return qtTrId("genycaster.locale.relative_months")
-            .arg(formatInteger(std::max<qint64>(1, elapsedSeconds / 2'629'746)));
+        const qint64 value = std::max<qint64>(1, elapsedSeconds / 2'629'746);
+        return value == 1 ? qtTrId("genycaster.locale.relative_month")
+                          : qtTrId("genycaster.locale.relative_months").arg(formatInteger(value));
     }
-    return qtTrId("genycaster.locale.relative_years")
-        .arg(formatInteger(std::max<qint64>(1, elapsedSeconds / 31'556'952)));
+    const qint64 value = std::max<qint64>(1, elapsedSeconds / 31'556'952);
+    return value == 1 ? qtTrId("genycaster.locale.relative_year")
+                      : qtTrId("genycaster.locale.relative_years").arg(formatInteger(value));
 }
 
 QString LocalizationController::formatDateTime(
@@ -861,9 +928,9 @@ QString LocalizationController::formatDateTime(
 
     const QCalendar calendar = calendarFor(effectiveCalendar, m_impl->regionalLocale);
     const QLocale::FormatType type = formatTypeFor(style);
-    return calendar.dateTimeToString(
+    return normalizeNumberGlyphs(calendar.dateTimeToString(
         m_impl->regionalLocale.dateTimeFormat(type), dateTime, QDate{}, QTime{},
-        m_impl->regionalLocale);
+        m_impl->regionalLocale), rightToLeft());
 }
 
 QString LocalizationController::formatCurrency(
@@ -873,7 +940,8 @@ QString LocalizationController::formatCurrency(
     if (code.isEmpty()) code = effectiveCurrencyCode();
     if (code.size() != 3 || code == QStringLiteral("IRT")) return {};
     const QString symbol = currencySymbolFor(code);
-    return m_impl->regionalLocale.toCurrencyString(value, symbol, precision);
+    return normalizeNumberGlyphs(
+        m_impl->regionalLocale.toCurrencyString(value, symbol, precision), rightToLeft());
 }
 
 QString LocalizationController::formatMonetaryUnit(
