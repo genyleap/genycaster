@@ -114,6 +114,7 @@ public:
     Q_INVOKABLE void retry();
     Q_INVOKABLE void showFeed();
     Q_INVOKABLE void openExternalUrl(const QString& url);
+    Q_INVOKABLE void copyText(const QString& text);
     Q_INVOKABLE void beginSignIn();
     Q_INVOKABLE void cancelSignIn();
     Q_INVOKABLE void signOut();
