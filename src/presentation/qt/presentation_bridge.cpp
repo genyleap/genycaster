@@ -585,6 +585,38 @@ void PresentationBridge::retryAutomatically()
     retryCurrent(false);
 }
 
+void PresentationBridge::retranslateTransientState()
+{
+    if (m_signerPhase == QStringLiteral("signed-out")) {
+        m_signerStatusText = qtTrId("genycaster.bridge.sign_in_before_enabling_interactions");
+    } else if (m_signerPhase == QStringLiteral("checking")) {
+        m_signerStatusText = qtTrId("genycaster.runtime.checking_the_protocol_signer_against_the_network");
+    } else if (m_signerPhase == QStringLiteral("missing")) {
+        m_signerStatusText = qtTrId("genycaster.runtime.interaction_signer_is_not_enabled_yet");
+    } else if (m_signerPhase == QStringLiteral("authorization-required")) {
+        m_signerStatusText = qtTrId("genycaster.runtime.custody_wallet_approval_is_required_to_enable_interactions");
+    } else if (m_signerPhase == QStringLiteral("provisioning")) {
+        m_signerStatusText = qtTrId("genycaster.runtime.waiting_for_custody_approval_and_network_confirmation");
+    } else if (m_signerPhase == QStringLiteral("ready")) {
+        m_signerStatusText = qtTrId("genycaster.runtime.interaction_signing_is_ready");
+    } else if (m_signerPhase == QStringLiteral("revoked")) {
+        m_signerStatusText = qtTrId("genycaster.runtime.the_protocol_signer_has_been_revoked");
+    } else if (m_signerPhase == QStringLiteral("expired")) {
+        m_signerStatusText = qtTrId("genycaster.runtime.the_protocol_signer_expired_enable_interactions_again_to_con");
+    } else if (m_signerPhase == QStringLiteral("unavailable")) {
+        m_signerStatusText = qtTrId("genycaster.runtime.interaction_signing_is_temporarily_unavailable_reading_is_un");
+    } else if (m_signerPhase == QStringLiteral("failed")) {
+        m_signerStatusText = qtTrId("genycaster.runtime.interaction_signing_could_not_be_verified_safely_reading_is_");
+    }
+
+    // Provider errors are ephemeral presentation data. Clearing them on a locale
+    // switch prevents a translated message from surviving in the wrong language.
+    m_authenticationErrorText.clear();
+    m_signerErrorText.clear();
+    m_writeErrorText.clear();
+    emit stateChanged();
+}
+
 void PresentationBridge::retryCurrent(const bool allowRecoveryProbe)
 {
     m_allowRecoveryProbeForNextIntent = allowRecoveryProbe;
@@ -683,6 +715,11 @@ void PresentationBridge::revokeSigner()
     if (!m_isAuthenticated || m_signerBusy || !m_writeReady) { return; }
     m_signerErrorText.clear();
     emit signerRevokeRequested();
+}
+
+int PresentationBridge::utf8ByteCount(const QString& text) const
+{
+    return static_cast<int>(text.toUtf8().size());
 }
 
 void PresentationBridge::publishCast(const QString& text)
