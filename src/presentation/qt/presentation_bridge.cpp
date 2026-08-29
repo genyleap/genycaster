@@ -155,6 +155,7 @@ void applyFollowingOverride(QVariantMap& map, const QVariantMap& overrides)
     const QString key = followingOverrideKey(targetFid);
     if (overrides.contains(key)) {
         map.insert(QStringLiteral("followingByMe"), overrides.value(key).toBool());
+        map.insert(QStringLiteral("followingKnown"), true);
     }
 }
 
