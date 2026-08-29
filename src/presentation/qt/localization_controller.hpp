@@ -128,6 +128,10 @@ public:
     /** @brief Restores all localization preferences to system-aware defaults. */
     Q_INVOKABLE void resetToSystemDefaults();
 
+    /** @brief Returns true when the first strong character in text is right-to-left. */
+    Q_INVOKABLE bool isRightToLeftText(const QString& text) const noexcept;
+    /** @brief Returns a protocol/identifier-safe ASCII decimal representation. */
+    Q_INVOKABLE QString formatIdentifier(qulonglong value) const;
     /** @brief Formats a numeric value using the active regional locale and requested precision. */
     Q_INVOKABLE QString formatNumber(double value, int precision = -1) const;
     /** @brief Formats an integer using the active regional numbering system and grouping rules. */
