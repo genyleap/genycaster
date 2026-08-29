@@ -1,5 +1,6 @@
 module;
 
+#include <chrono>
 #include <cstddef>
 #include <expected>
 #include <string>
@@ -129,6 +130,35 @@ foundation::result::Result<capability::social::SocialGraphPage> SocialGraphSourc
         capability::catalog::graphFollowingRead(),
         "/v2/farcaster/user/following",
         pageRequest);
+}
+
+foundation::result::Result<bool> SocialGraphSource::isFollowing(
+    const domain::identity::Fid source,
+    const domain::identity::Fid target)
+{
+    if (source.value == 0 || target.value == 0 || source.value == target.value) {
+        return false;
+    }
+    if (auto status = request::validateConfig(m_config); !status) {
+        return std::unexpected(std::move(status.error()));
+    }
+
+    request::Client requests{m_transport, m_config};
+    auto link = requests.getJson(
+        "/v1/linkById",
+        {
+            {"fid", std::to_string(source.value)},
+            {"target_fid", std::to_string(target.value)},
+            {"link_type", "follow"},
+        },
+        request::GetOptions{.timeout = std::chrono::milliseconds{4'000}});
+    if (link) {
+        return true;
+    }
+    if (link.error().code == foundation::error::ErrorCode::NotFound) {
+        return false;
+    }
+    return std::unexpected(std::move(link.error()));
 }
 
 }
