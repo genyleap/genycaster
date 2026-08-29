@@ -30,6 +30,7 @@ namespace {
 constexpr std::chrono::milliseconds followingRequestTimeout{10'000};
 constexpr std::chrono::milliseconds discoveryRequestTimeout{12'000};
 constexpr std::chrono::milliseconds profileFeedRequestTimeout{10'000};
+constexpr std::chrono::milliseconds viewerReactionRequestTimeout{7'500};
 
 [[nodiscard]] foundation::result::Result<std::size_t> validatedLimit(
     const capability::pagination::PageRequest& pageRequest)
@@ -361,7 +362,7 @@ foundation::result::Result<domain::feed::ViewerReactionSnapshot> FeedSource::vie
                 {"pageSize", std::to_string(limit)},
                 {"reverse", "true"},
             },
-            request::GetOptions{.timeout = std::chrono::milliseconds{2'000}});
+            request::GetOptions{.timeout = viewerReactionRequestTimeout});
         if (!body) {
             return std::unexpected(std::move(body.error()));
         }
