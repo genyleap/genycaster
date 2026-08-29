@@ -68,6 +68,18 @@ public:
         local::read::IReadStore& store,
         gateway::IReadGateway& gateway) noexcept;
 
+    /**
+     * @brief Creates a cache-first service with independent cache and refresh lanes.
+     *
+     * Keeping local SQLite work separate from blocking network refresh prevents a
+     * slow provider request from delaying navigation to already-cached content.
+     */
+    ReadService(
+        executor::IExecutor& cacheExecutor,
+        executor::IExecutor& refreshExecutor,
+        local::read::IReadStore& store,
+        gateway::IReadGateway& gateway) noexcept;
+
     /** @brief Resolves and opens an identity, publishing cache before refresh. */
     [[nodiscard]] foundation::result::Result<ReadRequest>
     openIdentity(
@@ -100,7 +112,8 @@ public:
         model::ReadOptions options = {});
 
 private:
-    executor::IExecutor& m_executor;
+    executor::IExecutor& m_cacheExecutor;
+    executor::IExecutor& m_refreshExecutor;
     local::read::IReadStore& m_store;
     gateway::IReadGateway& m_gateway;
 };
