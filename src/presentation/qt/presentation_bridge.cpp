@@ -2,6 +2,8 @@
 
 #include <QByteArray>
 #include <QDateTime>
+#include <QClipboard>
+#include <QGuiApplication>
 #include <QDesktopServices>
 #include <QString>
 #include <QUrl>
@@ -518,6 +520,16 @@ void PresentationBridge::openExternalUrl(const QString& url)
     if (!QDesktopServices::openUrl(parsed)) {
         m_errorText = qtTrId("genycaster.bridge.the_system_could_not_open_that_link");
         emit stateChanged();
+    }
+}
+
+void PresentationBridge::copyText(const QString& text)
+{
+    if (text.isEmpty()) {
+        return;
+    }
+    if (QClipboard* const clipboard = QGuiApplication::clipboard(); clipboard != nullptr) {
+        clipboard->setText(text);
     }
 }
 
