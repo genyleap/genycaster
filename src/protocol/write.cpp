@@ -97,7 +97,12 @@ public:
             .publicKey = signerPublicKey,
             .text = intent.text,
             .embeds = intent.embeds,
+            .mentions = intent.mentions,
+            .mentionPositions = intent.mentionPositions,
             .parent = intent.parent,
+            .type = intent.text.size() <= 320U
+                ? protocol::message::CastType::Cast
+                : protocol::message::CastType::LongCast,
             .timestamp = *timestamp,
             .network = m_network,
         });
