@@ -20,10 +20,14 @@ export namespace farcaster::capability::catalog {
 [[nodiscard]] model::CapabilityId feedTrendingRead();
 /** @brief Channel feed read capability. */
 [[nodiscard]] model::CapabilityId feedChannelRead();
-/** @brief User-authored casts feed read capability. */
-[[nodiscard]] model::CapabilityId feedUserCastsRead();
-/** @brief User replies/recasts feed read capability. */
+/** @brief User-authored root-post feed read capability. */
+[[nodiscard]] model::CapabilityId feedUserPostsRead();
+/** @brief User-authored quote-post feed read capability. */
+[[nodiscard]] model::CapabilityId feedUserQuotesRead();
+/** @brief User replies feed read capability. */
 [[nodiscard]] model::CapabilityId feedUserRepliesRead();
+/** @brief Casts liked by a user feed read capability. */
+[[nodiscard]] model::CapabilityId feedUserLikesRead();
 /** @brief User popular-casts feed read capability. */
 [[nodiscard]] model::CapabilityId feedUserPopularRead();
 /** @brief Personalized feed read capability. */
