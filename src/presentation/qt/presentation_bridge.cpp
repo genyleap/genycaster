@@ -724,6 +724,13 @@ int PresentationBridge::utf8ByteCount(const QString& text) const
 
 void PresentationBridge::publishCast(const QString& text)
 {
+    publishPreparedCast(text, {}, {}, {});
+}
+
+void PresentationBridge::publishPreparedCast(
+    const QString& text, const QVariantList& mentionFids, const QVariantList& mentionPositions,
+    const QVariantList& embeds)
+{
     if (!m_runtimeReady) {
         m_writeErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
         emit stateChanged();
@@ -745,8 +752,18 @@ void PresentationBridge::publishCast(const QString& text)
         emit stateChanged();
         return;
     }
-    if (text.toUtf8().size() > 320) {
-        m_writeErrorText = qtTrId("genycaster.bridge.standard_farcaster_casts_are_limited_to_320_utf_8_bytes");
+    if (text.toUtf8().size() > 1024) {
+        m_writeErrorText = qtTrId("genycaster.bridge.farcaster_casts_are_limited_to_1024_utf_8_bytes");
+        emit stateChanged();
+        return;
+    }
+    if (mentionFids.size() != mentionPositions.size() || mentionFids.size() > 10) {
+        m_writeErrorText = qtTrId("genycaster.bridge.invalid_semantic_mentions");
+        emit stateChanged();
+        return;
+    }
+    if (embeds.size() > 2) {
+        m_writeErrorText = qtTrId("genycaster.bridge.too_many_cast_embeds");
         emit stateChanged();
         return;
     }
@@ -755,7 +772,7 @@ void PresentationBridge::publishCast(const QString& text)
     m_writeStatusText = qtTrId("genycaster.bridge.preparing_a_canonical_farcaster_cast");
     m_writeErrorText.clear();
     emit stateChanged();
-    emit publishCastRequested(text);
+    emit publishCastRequested(text, mentionFids, mentionPositions, embeds);
 }
 
 void PresentationBridge::beginComposer()
@@ -821,6 +838,13 @@ void PresentationBridge::clearReplyTarget()
 
 void PresentationBridge::publishReply(const QString& text)
 {
+    publishPreparedReply(text, {}, {}, {});
+}
+
+void PresentationBridge::publishPreparedReply(
+    const QString& text, const QVariantList& mentionFids, const QVariantList& mentionPositions,
+    const QVariantList& embeds)
+{
     if (!m_runtimeReady) {
         m_writeErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
         emit stateChanged();
@@ -842,8 +866,18 @@ void PresentationBridge::publishReply(const QString& text)
         emit stateChanged();
         return;
     }
-    if (text.toUtf8().size() > 320) {
-        m_writeErrorText = qtTrId("genycaster.bridge.standard_farcaster_casts_are_limited_to_320_utf_8_bytes");
+    if (text.toUtf8().size() > 1024) {
+        m_writeErrorText = qtTrId("genycaster.bridge.farcaster_casts_are_limited_to_1024_utf_8_bytes");
+        emit stateChanged();
+        return;
+    }
+    if (mentionFids.size() != mentionPositions.size() || mentionFids.size() > 10) {
+        m_writeErrorText = qtTrId("genycaster.bridge.invalid_semantic_mentions");
+        emit stateChanged();
+        return;
+    }
+    if (embeds.size() > 2) {
+        m_writeErrorText = qtTrId("genycaster.bridge.too_many_cast_embeds");
         emit stateChanged();
         return;
     }
@@ -858,7 +892,7 @@ void PresentationBridge::publishReply(const QString& text)
     m_writeStatusText = qtTrId("genycaster.bridge.preparing_a_canonical_farcaster_reply");
     m_writeErrorText.clear();
     emit stateChanged();
-    emit publishReplyRequested(text, m_replyParentAuthorFid, m_replyParentCastId);
+    emit publishReplyRequested(text, mentionFids, mentionPositions, embeds, m_replyParentAuthorFid, m_replyParentCastId);
 }
 
 
