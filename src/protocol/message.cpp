@@ -48,7 +48,9 @@ constexpr std::size_t publicKeySize = 32U;
 constexpr std::size_t signatureSize = 64U;
 constexpr std::size_t custodySignatureSize = 65U;
 constexpr std::size_t castHashSize = 20U;
-constexpr std::size_t maximumCastTextBytes = 320U;
+constexpr std::size_t standardCastTextBytes = 320U;
+constexpr std::size_t maximumCastTextBytes = 1024U;
+constexpr std::size_t maximumCastMentions = 10U;
 constexpr std::size_t conservativeMaximumCastEmbeds = 2U;
 constexpr std::size_t maximumProtocolUrlBytes = 256U;
 
@@ -209,12 +211,46 @@ void appendMessage(
     default:
         return std::unexpected(invalid("CAST_ADD requires a recognized Farcaster network."));
     }
+    if (!foundation::utf8::isValid(input.text)) {
+        return std::unexpected(invalid("CAST_ADD text must be valid UTF-8."));
+    }
     if (input.text.size() > maximumCastTextBytes) {
-        return std::unexpected(invalid("CAST_ADD text must not exceed 320 UTF-8 bytes."));
+        return std::unexpected(invalid("CAST_ADD text must not exceed 1024 UTF-8 bytes for standard LONG_CAST publication."));
     }
     if (input.embeds.size() > conservativeMaximumCastEmbeds) {
         return std::unexpected(invalid(
             "CAST_ADD supports at most two embeds for cross-version compatibility."));
+    }
+    if (input.mentions.size() > maximumCastMentions) {
+        return std::unexpected(invalid("CAST_ADD supports at most ten mentions."));
+    }
+    if (input.mentions.size() != input.mentionPositions.size()) {
+        return std::unexpected(invalid("CAST_ADD mention FIDs and byte positions must have equal lengths."));
+    }
+    std::uint32_t previousPosition{};
+    bool firstPosition = true;
+    for (std::size_t index{}; index < input.mentions.size(); ++index) {
+        if (input.mentions[index].value == 0U) {
+            return std::unexpected(invalid("CAST_ADD mention FIDs must be non-zero."));
+        }
+        const auto position = input.mentionPositions[index];
+        if (position > input.text.size()) {
+            return std::unexpected(invalid("CAST_ADD mention byte position lies beyond the serialized UTF-8 text."));
+        }
+        if (!firstPosition && position < previousPosition) {
+            return std::unexpected(invalid("CAST_ADD mention byte positions must be ordered."));
+        }
+        firstPosition = false;
+        previousPosition = position;
+    }
+    if (input.type == CastType::Cast && input.text.size() > standardCastTextBytes) {
+        return std::unexpected(invalid("CAST_ADD text above 320 UTF-8 bytes must use LONG_CAST."));
+    }
+    if (input.type == CastType::LongCast && input.text.size() <= standardCastTextBytes) {
+        return std::unexpected(invalid("LONG_CAST is reserved for text above 320 UTF-8 bytes."));
+    }
+    if (input.type == CastType::TenKCast) {
+        return std::unexpected(invalid("TEN_K_CAST requires an explicit Farcaster Pro capability and is not enabled by this codec."));
     }
     if (input.text.empty() && input.embeds.empty()) {
         return std::unexpected(invalid("CAST_ADD must contain text or at least one embed."));
@@ -271,7 +307,21 @@ void appendMessage(
         }
         appendMessage(body, 3U, encodeCastId(input.parent->author, *parentHash));
     }
+    if (!input.mentions.empty()) {
+        std::string packedMentions{};
+        for (const auto fid : input.mentions) {
+            appendVarint(packedMentions, fid.value);
+        }
+        appendBytes(body, 2U, packedMentions);
+    }
     appendBytes(body, 4U, input.text);
+    if (!input.mentionPositions.empty()) {
+        std::string packedPositions{};
+        for (const auto position : input.mentionPositions) {
+            appendVarint(packedPositions, position);
+        }
+        appendBytes(body, 5U, packedPositions);
+    }
     for (const auto& embed : input.embeds) {
         std::string encodedEmbed{};
         if (embed.kind == domain::cast::EmbedKind::Url) {
@@ -284,6 +334,9 @@ void appendMessage(
             appendMessage(encodedEmbed, 2U, encodeCastId(*embed.referencedAuthor, *hash));
         }
         appendMessage(body, 6U, encodedEmbed);
+    }
+    if (input.type != CastType::Cast) {
+        appendUint(body, 8U, static_cast<std::uint32_t>(input.type));
     }
     return body;
 }
