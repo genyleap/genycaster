@@ -346,6 +346,18 @@ void PresentationBridge::openMyProfile()
     openProfileFid(m_accountFid);
 }
 
+void PresentationBridge::openProfileUsername(const QString& username)
+{
+    const QString canonical = username.trimmed();
+    if (canonical.isEmpty()) {
+        m_errorText = qtTrId("genycaster.bridge.enter_a_farcaster_username");
+        emit stateChanged();
+        return;
+    }
+    beginIntent(qtTrId("genycaster.bridge.checking_local_identity"));
+    emit profileUsernameRequested(canonical, consumeRecoveryProbe());
+}
+
 void PresentationBridge::openProfileFid(const qulonglong fid)
 {
     if (fid == 0) {
@@ -1029,6 +1041,18 @@ void PresentationBridge::applyFollowingProjections(QVariantList following)
     }
     applyFollowingOverrides(m_rows, m_followOverrides);
     applyFollowingOverride(m_detail, m_followOverrides);
+    emit stateChanged();
+}
+
+void PresentationBridge::applyLookupState(QString status, QString error, QString diagnostic,
+    const bool busy, const bool stale, const bool sourceUnavailable)
+{
+    m_statusText = std::move(status);
+    m_errorText = std::move(error);
+    m_diagnosticText = std::move(diagnostic);
+    m_isBusy = busy;
+    m_isStale = stale;
+    m_sourceUnavailable = sourceUnavailable;
     emit stateChanged();
 }
 
