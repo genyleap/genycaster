@@ -137,7 +137,19 @@ ReadService::ReadService(
     executor::IExecutor& executor,
     local::read::IReadStore& store,
     gateway::IReadGateway& gateway) noexcept
-    : m_executor(executor), m_store(store), m_gateway(gateway)
+    : ReadService(executor, executor, store, gateway)
+{
+}
+
+ReadService::ReadService(
+    executor::IExecutor& cacheExecutor,
+    executor::IExecutor& refreshExecutor,
+    local::read::IReadStore& store,
+    gateway::IReadGateway& gateway) noexcept
+    : m_cacheExecutor(cacheExecutor),
+      m_refreshExecutor(refreshExecutor),
+      m_store(store),
+      m_gateway(gateway)
 {
 }
 
@@ -151,44 +163,53 @@ foundation::result::Result<ReadRequest> ReadService::openIdentity(
             ErrorCode::InvalidArgument, "Identity username and observer are required."));
     }
     auto cancelled = std::make_shared<std::atomic_bool>(false);
-    return postRequest(m_executor, [this, username = std::move(username), observer = std::move(observer),
-                                   options, cancelled]() mutable {
-        model::IdentityState state{.username = username};
-        auto cached = m_store.findProfileByUsername(username);
-        if (!cached) {
-            state.metadata = failedMetadata(std::move(cached.error()), false);
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        state.profile = std::move(*cached);
-        if (state.profile) {
-            state.fid = state.profile->fid;
-        }
-        state.metadata = refreshingMetadata(state.profile.has_value());
-        publish(cancelled, observer, state);
+    return postRequest(m_cacheExecutor,
+        [this, username = std::move(username), observer = std::move(observer), options, cancelled]() mutable {
+            if (cancelled->load(std::memory_order_acquire)) { return; }
+            model::IdentityState state{.username = username};
+            auto cached = m_store.findProfileByUsername(username);
+            if (cached) {
+                state.profile = std::move(*cached);
+                if (state.profile) { state.fid = state.profile->fid; }
+                state.metadata = refreshingMetadata(state.profile.has_value());
+            } else {
+                state.metadata = failedMetadata(std::move(cached.error()), false);
+            }
+            publish(cancelled, observer, state);
 
-        auto fid = m_gateway.resolveIdentity(username, options);
-        if (!fid) {
-            state.metadata = failedMetadata(std::move(fid.error()), state.profile.has_value());
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        state.fid = *fid;
-        auto profile = m_gateway.profile(*fid, options);
-        if (!profile) {
-            state.metadata = failedMetadata(std::move(profile.error()), state.profile.has_value());
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        if (auto status = m_store.putProfile(*profile); !status) {
-            state.metadata = failedMetadata(std::move(status.error()), state.profile.has_value());
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        state.profile = std::move(*profile);
-        state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
-        publish(cancelled, observer, std::move(state));
-    }, cancelled);
+            auto refreshState = state;
+            auto refreshObserver = observer;
+            auto status = m_refreshExecutor.post(
+                [this, username, observer = std::move(refreshObserver), options, cancelled,
+                 state = std::move(refreshState)]() mutable {
+                    if (cancelled->load(std::memory_order_acquire)) { return; }
+                    auto fid = m_gateway.resolveIdentity(username, options);
+                    if (!fid) {
+                        state.metadata = failedMetadata(std::move(fid.error()), state.profile.has_value());
+                        publish(cancelled, observer, std::move(state));
+                        return;
+                    }
+                    state.fid = *fid;
+                    auto profile = m_gateway.profile(*fid, options);
+                    if (!profile) {
+                        state.metadata = failedMetadata(std::move(profile.error()), state.profile.has_value());
+                        publish(cancelled, observer, std::move(state));
+                        return;
+                    }
+                    if (auto saved = m_store.putProfile(*profile); !saved) {
+                        state.metadata = failedMetadata(std::move(saved.error()), state.profile.has_value());
+                        publish(cancelled, observer, std::move(state));
+                        return;
+                    }
+                    state.profile = std::move(*profile);
+                    state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
+                    publish(cancelled, observer, std::move(state));
+                });
+            if (!status) {
+                state.metadata = failedMetadata(std::move(status.error()), state.profile.has_value());
+                publish(cancelled, observer, std::move(state));
+            }
+        }, cancelled);
 }
 
 foundation::result::Result<ReadRequest> ReadService::openProfile(
@@ -200,32 +221,45 @@ foundation::result::Result<ReadRequest> ReadService::openProfile(
         return std::unexpected(Error::make(ErrorCode::InvalidArgument, "Profile FID and observer are required."));
     }
     auto cancelled = std::make_shared<std::atomic_bool>(false);
-    return postRequest(m_executor, [this, fid, observer = std::move(observer), options, cancelled]() mutable {
-        model::ProfileState state{.fid = fid};
-        auto cached = m_store.findProfile(fid);
-        if (!cached) {
-            state.metadata = failedMetadata(std::move(cached.error()), false);
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        state.profile = std::move(*cached);
-        state.metadata = refreshingMetadata(state.profile.has_value());
-        publish(cancelled, observer, state);
-        auto fresh = m_gateway.profile(fid, options);
-        if (!fresh) {
-            state.metadata = failedMetadata(std::move(fresh.error()), state.profile.has_value());
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        if (auto status = m_store.putProfile(*fresh); !status) {
-            state.metadata = failedMetadata(std::move(status.error()), state.profile.has_value());
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        state.profile = std::move(*fresh);
-        state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
-        publish(cancelled, observer, std::move(state));
-    }, cancelled);
+    return postRequest(m_cacheExecutor,
+        [this, fid, observer = std::move(observer), options, cancelled]() mutable {
+            if (cancelled->load(std::memory_order_acquire)) { return; }
+            model::ProfileState state{.fid = fid};
+            auto cached = m_store.findProfile(fid);
+            if (cached) {
+                state.profile = std::move(*cached);
+                state.metadata = refreshingMetadata(state.profile.has_value());
+            } else {
+                state.metadata = failedMetadata(std::move(cached.error()), false);
+            }
+            publish(cancelled, observer, state);
+
+            auto refreshState = state;
+            auto refreshObserver = observer;
+            auto status = m_refreshExecutor.post(
+                [this, fid, observer = std::move(refreshObserver), options, cancelled,
+                 state = std::move(refreshState)]() mutable {
+                    if (cancelled->load(std::memory_order_acquire)) { return; }
+                    auto fresh = m_gateway.profile(fid, options);
+                    if (!fresh) {
+                        state.metadata = failedMetadata(std::move(fresh.error()), state.profile.has_value());
+                        publish(cancelled, observer, std::move(state));
+                        return;
+                    }
+                    if (auto saved = m_store.putProfile(*fresh); !saved) {
+                        state.metadata = failedMetadata(std::move(saved.error()), state.profile.has_value());
+                        publish(cancelled, observer, std::move(state));
+                        return;
+                    }
+                    state.profile = std::move(*fresh);
+                    state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
+                    publish(cancelled, observer, std::move(state));
+                });
+            if (!status) {
+                state.metadata = failedMetadata(std::move(status.error()), state.profile.has_value());
+                publish(cancelled, observer, std::move(state));
+            }
+        }, cancelled);
 }
 
 foundation::result::Result<ReadRequest> ReadService::openCast(
@@ -237,49 +271,57 @@ foundation::result::Result<ReadRequest> ReadService::openCast(
         return std::unexpected(Error::make(ErrorCode::InvalidArgument, "Cast id and observer are required."));
     }
     auto cancelled = std::make_shared<std::atomic_bool>(false);
-    return postRequest(m_executor, [this, castId = std::move(castId), observer = std::move(observer),
-                                   options, cancelled]() mutable {
-        model::CastState state{.castId = castId};
-        auto cached = m_store.findCast(castId);
-        if (!cached) {
-            state.metadata = failedMetadata(std::move(cached.error()), false);
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        state.cast = std::move(*cached);
-        if (state.cast) {
-            auto author = m_store.findProfile(state.cast->author);
-            if (author) {
-                state.author = std::move(*author);
+    return postRequest(m_cacheExecutor,
+        [this, castId = std::move(castId), observer = std::move(observer), options, cancelled]() mutable {
+            if (cancelled->load(std::memory_order_acquire)) { return; }
+            model::CastState state{.castId = castId};
+            auto cached = m_store.findCast(castId);
+            if (cached) {
+                state.cast = std::move(*cached);
+                if (state.cast) {
+                    auto author = m_store.findProfile(state.cast->author);
+                    if (author) { state.author = std::move(*author); }
+                }
+                state.metadata = refreshingMetadata(state.cast.has_value());
+            } else {
+                state.metadata = failedMetadata(std::move(cached.error()), false);
             }
-        }
-        state.metadata = refreshingMetadata(state.cast.has_value());
-        publish(cancelled, observer, state);
-        auto fresh = m_gateway.cast(castId, options);
-        if (!fresh) {
-            state.metadata = failedMetadata(std::move(fresh.error()), state.cast.has_value());
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        if (auto status = m_store.putCast(*fresh); !status) {
-            state.metadata = failedMetadata(std::move(status.error()), state.cast.has_value());
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        state.cast = std::move(*fresh);
-        auto author = m_gateway.profile(state.cast->author);
-        if (author) {
-            static_cast<void>(m_store.putProfile(*author));
-            state.author = std::move(*author);
-        } else {
-            auto cachedAuthor = m_store.findProfile(state.cast->author);
-            if (cachedAuthor) {
-                state.author = std::move(*cachedAuthor);
+            publish(cancelled, observer, state);
+
+            auto refreshState = state;
+            auto refreshObserver = observer;
+            auto status = m_refreshExecutor.post(
+                [this, castId, observer = std::move(refreshObserver), options, cancelled,
+                 state = std::move(refreshState)]() mutable {
+                    if (cancelled->load(std::memory_order_acquire)) { return; }
+                    auto fresh = m_gateway.cast(castId, options);
+                    if (!fresh) {
+                        state.metadata = failedMetadata(std::move(fresh.error()), state.cast.has_value());
+                        publish(cancelled, observer, std::move(state));
+                        return;
+                    }
+                    if (auto saved = m_store.putCast(*fresh); !saved) {
+                        state.metadata = failedMetadata(std::move(saved.error()), state.cast.has_value());
+                        publish(cancelled, observer, std::move(state));
+                        return;
+                    }
+                    state.cast = std::move(*fresh);
+                    auto author = m_gateway.profile(state.cast->author);
+                    if (author) {
+                        static_cast<void>(m_store.putProfile(*author));
+                        state.author = std::move(*author);
+                    } else {
+                        auto cachedAuthor = m_store.findProfile(state.cast->author);
+                        if (cachedAuthor) { state.author = std::move(*cachedAuthor); }
+                    }
+                    state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
+                    publish(cancelled, observer, std::move(state));
+                });
+            if (!status) {
+                state.metadata = failedMetadata(std::move(status.error()), state.cast.has_value());
+                publish(cancelled, observer, std::move(state));
             }
-        }
-        state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
-        publish(cancelled, observer, std::move(state));
-    }, cancelled);
+        }, cancelled);
 }
 
 foundation::result::Result<ReadRequest> ReadService::openFeed(
@@ -298,46 +340,58 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
         return std::unexpected(Error::make(ErrorCode::InvalidArgument, "Feed selector, limit and observer must be valid."));
     }
     auto cancelled = std::make_shared<std::atomic_bool>(false);
-    return postRequest(m_executor, [this, query = std::move(query), observer = std::move(observer),
-                                   options, cancelled]() mutable {
-        model::FeedState state{.query = query};
-        const auto localKey = toLocalKey(query);
-        auto cached = m_store.readFeed(localKey);
-        if (!cached) {
-            state.metadata = failedMetadata(std::move(cached.error()), false);
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        state.casts = cached->casts;
-        state.profiles = cached->profiles;
-        state.entries = cached->entries;
-        state.next = cached->next;
-        state.metadata = refreshingMetadata(!state.entries.empty());
-        publish(cancelled, observer, state);
-        auto fresh = m_gateway.feed(query, options);
-        if (!fresh) {
-            state.metadata = failedMetadata(std::move(fresh.error()), !state.entries.empty());
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        if (auto status = m_store.writeFeed(localKey, *fresh, query.continuation.has_value()); !status) {
-            state.metadata = failedMetadata(std::move(status.error()), !state.entries.empty());
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        auto materialized = m_store.readFeed(localKey);
-        if (!materialized) {
-            state.metadata = failedMetadata(std::move(materialized.error()), !state.entries.empty());
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        state.casts = std::move(materialized->casts);
-        state.profiles = std::move(materialized->profiles);
-        state.entries = std::move(materialized->entries);
-        state.next = std::move(materialized->next);
-        state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
-        publish(cancelled, observer, std::move(state));
-    }, cancelled);
+    return postRequest(m_cacheExecutor,
+        [this, query = std::move(query), observer = std::move(observer), options, cancelled]() mutable {
+            if (cancelled->load(std::memory_order_acquire)) { return; }
+            model::FeedState state{.query = query};
+            const auto localKey = toLocalKey(query);
+            auto cached = m_store.readFeed(localKey);
+            if (cached) {
+                state.casts = cached->casts;
+                state.profiles = cached->profiles;
+                state.entries = cached->entries;
+                state.next = cached->next;
+                state.metadata = refreshingMetadata(!state.entries.empty());
+            } else {
+                state.metadata = failedMetadata(std::move(cached.error()), false);
+            }
+            publish(cancelled, observer, state);
+
+            auto refreshState = state;
+            auto refreshObserver = observer;
+            auto status = m_refreshExecutor.post(
+                [this, query, localKey, observer = std::move(refreshObserver), options, cancelled,
+                 state = std::move(refreshState)]() mutable {
+                    if (cancelled->load(std::memory_order_acquire)) { return; }
+                    auto fresh = m_gateway.feed(query, options);
+                    if (!fresh) {
+                        state.metadata = failedMetadata(std::move(fresh.error()), !state.entries.empty());
+                        publish(cancelled, observer, std::move(state));
+                        return;
+                    }
+                    if (auto saved = m_store.writeFeed(localKey, *fresh, query.continuation.has_value()); !saved) {
+                        state.metadata = failedMetadata(std::move(saved.error()), !state.entries.empty());
+                        publish(cancelled, observer, std::move(state));
+                        return;
+                    }
+                    auto materialized = m_store.readFeed(localKey);
+                    if (!materialized) {
+                        state.metadata = failedMetadata(std::move(materialized.error()), !state.entries.empty());
+                        publish(cancelled, observer, std::move(state));
+                        return;
+                    }
+                    state.casts = std::move(materialized->casts);
+                    state.profiles = std::move(materialized->profiles);
+                    state.entries = std::move(materialized->entries);
+                    state.next = std::move(materialized->next);
+                    state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
+                    publish(cancelled, observer, std::move(state));
+                });
+            if (!status) {
+                state.metadata = failedMetadata(std::move(status.error()), !state.entries.empty());
+                publish(cancelled, observer, std::move(state));
+            }
+        }, cancelled);
 }
 
 foundation::result::Result<ReadRequest> ReadService::openSocial(
@@ -346,47 +400,59 @@ foundation::result::Result<ReadRequest> ReadService::openSocial(
     const model::ReadOptions options)
 {
     if (query.fid.value == 0 || query.limit == 0 || !observer) {
-        return std::unexpected(Error::make(ErrorCode::InvalidArgument, "Social selector, limit and observer must be valid."));
+        return std::unexpected(Error::make(ErrorCode::InvalidArgument, "Social selector, FID, limit and observer are required."));
     }
     auto cancelled = std::make_shared<std::atomic_bool>(false);
-    return postRequest(m_executor, [this, query = std::move(query), observer = std::move(observer),
-                                   options, cancelled]() mutable {
-        model::SocialState state{.query = query};
-        const auto localKey = toLocalKey(query);
-        auto cached = m_store.readSocial(localKey);
-        if (!cached) {
-            state.metadata = failedMetadata(std::move(cached.error()), false);
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        state.profiles = cached->profiles;
-        state.relations = cached->relations;
-        state.next = cached->next;
-        state.metadata = refreshingMetadata(!state.relations.empty());
-        publish(cancelled, observer, state);
-        auto fresh = m_gateway.social(query, options);
-        if (!fresh) {
-            state.metadata = failedMetadata(std::move(fresh.error()), !state.relations.empty());
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        if (auto status = m_store.writeSocial(localKey, *fresh, query.continuation.has_value()); !status) {
-            state.metadata = failedMetadata(std::move(status.error()), !state.relations.empty());
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        auto materialized = m_store.readSocial(localKey);
-        if (!materialized) {
-            state.metadata = failedMetadata(std::move(materialized.error()), !state.relations.empty());
-            publish(cancelled, observer, std::move(state));
-            return;
-        }
-        state.profiles = std::move(materialized->profiles);
-        state.relations = std::move(materialized->relations);
-        state.next = std::move(materialized->next);
-        state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
-        publish(cancelled, observer, std::move(state));
-    }, cancelled);
+    return postRequest(m_cacheExecutor,
+        [this, query = std::move(query), observer = std::move(observer), options, cancelled]() mutable {
+            if (cancelled->load(std::memory_order_acquire)) { return; }
+            model::SocialState state{.query = query};
+            const auto localKey = toLocalKey(query);
+            auto cached = m_store.readSocial(localKey);
+            if (cached) {
+                state.profiles = cached->profiles;
+                state.relations = cached->relations;
+                state.next = cached->next;
+                state.metadata = refreshingMetadata(!state.profiles.empty());
+            } else {
+                state.metadata = failedMetadata(std::move(cached.error()), false);
+            }
+            publish(cancelled, observer, state);
+
+            auto refreshState = state;
+            auto refreshObserver = observer;
+            auto status = m_refreshExecutor.post(
+                [this, query, localKey, observer = std::move(refreshObserver), options, cancelled,
+                 state = std::move(refreshState)]() mutable {
+                    if (cancelled->load(std::memory_order_acquire)) { return; }
+                    auto fresh = m_gateway.social(query, options);
+                    if (!fresh) {
+                        state.metadata = failedMetadata(std::move(fresh.error()), !state.profiles.empty());
+                        publish(cancelled, observer, std::move(state));
+                        return;
+                    }
+                    if (auto saved = m_store.writeSocial(localKey, *fresh, query.continuation.has_value()); !saved) {
+                        state.metadata = failedMetadata(std::move(saved.error()), !state.profiles.empty());
+                        publish(cancelled, observer, std::move(state));
+                        return;
+                    }
+                    auto materialized = m_store.readSocial(localKey);
+                    if (!materialized) {
+                        state.metadata = failedMetadata(std::move(materialized.error()), !state.profiles.empty());
+                        publish(cancelled, observer, std::move(state));
+                        return;
+                    }
+                    state.profiles = std::move(materialized->profiles);
+                    state.relations = std::move(materialized->relations);
+                    state.next = std::move(materialized->next);
+                    state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
+                    publish(cancelled, observer, std::move(state));
+                });
+            if (!status) {
+                state.metadata = failedMetadata(std::move(status.error()), !state.profiles.empty());
+                publish(cancelled, observer, std::move(state));
+            }
+        }, cancelled);
 }
 
 }
