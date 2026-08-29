@@ -236,7 +236,7 @@ private:
     QVariantMap m_followOverrides{};
     QString m_activeView{QStringLiteral("feed")};
     QString m_activeFeed{QStringLiteral("following")};
-    QString m_profileFeed{QStringLiteral("user-casts")};
+    QString m_profileFeed{QStringLiteral("user-posts")};
     qulonglong m_profileFid{};
     qulonglong m_socialFid{};
     QString m_socialReturnView{QStringLiteral("feed")};
