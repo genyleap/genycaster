@@ -71,7 +71,11 @@ CREATE TABLE IF NOT EXISTS profiles (
     display_name TEXT,
     bio TEXT NOT NULL,
     avatar_url TEXT,
-    custody_address TEXT
+    banner_url TEXT,
+    location TEXT,
+    custody_address TEXT,
+    follower_count INTEGER NOT NULL DEFAULT 0,
+    following_count INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS casts (
     id TEXT PRIMARY KEY NOT NULL,
@@ -486,6 +490,35 @@ WHERE current.kind IN ('follow', 'unfollow')
         return status;
     }
     if (auto status = recordMigration(connection, 15, appliedAt); !status) {
+        return status;
+    }
+
+    // Preserve canonical social counts with cached profiles. The columns are
+    // additive and default to zero for existing local snapshots.
+    for (const auto column : std::array{std::string_view{"follower_count"}, std::string_view{"following_count"}}) {
+        auto exists = tableHasColumn(connection, "profiles", column);
+        if (!exists) { return std::unexpected(exists.error()); }
+        if (!*exists) {
+            const std::string statement = "ALTER TABLE profiles ADD COLUMN " + std::string{column} +
+                " INTEGER NOT NULL DEFAULT 0;";
+            if (auto status = connection.execute(statement); !status) { return status; }
+        }
+    }
+    if (auto status = recordMigration(connection, 16, appliedAt); !status) {
+        return status;
+    }
+
+    // Preserve profile presentation data now exposed by the canonical v2 User
+    // object. These are optional and therefore safe additive migrations.
+    for (const auto column : std::array{std::string_view{"banner_url"}, std::string_view{"location"}}) {
+        auto exists = tableHasColumn(connection, "profiles", column);
+        if (!exists) { return std::unexpected(exists.error()); }
+        if (!*exists) {
+            const std::string statement = "ALTER TABLE profiles ADD COLUMN " + std::string{column} + " TEXT;";
+            if (auto status = connection.execute(statement); !status) { return status; }
+        }
+    }
+    if (auto status = recordMigration(connection, 17, appliedAt); !status) {
         return status;
     }
 
