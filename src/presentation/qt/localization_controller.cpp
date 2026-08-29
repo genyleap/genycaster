@@ -6,6 +6,7 @@
 #include <QGuiApplication>
 #include <QHash>
 #include <QLocale>
+#include <QPointer>
 #include <QQmlEngine>
 #include <QSettings>
 #include <QSet>
@@ -18,6 +19,7 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 
 namespace {
 
@@ -29,6 +31,8 @@ constexpr auto kTimeZoneSetting = "localization/timeZone";
 constexpr auto kCurrencySetting = "localization/currency";
 constexpr auto kAdditionalCurrenciesSetting = "localization/additionalCurrencies";
 constexpr int kShahanshahiYearOffset = 1180;
+constexpr auto kTranslationProbeId = "genycaster.app.genycaster";
+constexpr auto kTranslationResourcePrefix = ":/i18n/qml_";
 
 [[nodiscard]] QString canonicalLanguageTag(QString value)
 {
@@ -288,13 +292,13 @@ constexpr int kShahanshahiYearOffset = 1180;
 class LocalizationController::Impl final {
 public:
     Impl(QQmlEngine& engineValue, QSettings& settingsValue)
-        : engine{engineValue}, settings{settingsValue}, translator{std::make_unique<QTranslator>()}
+        : engine{&engineValue}, settings{settingsValue}
     {
     }
 
-    QQmlEngine& engine;
+    QPointer<QQmlEngine> engine;
     QSettings& settings;
-    std::unique_ptr<QTranslator> translator;
+    std::unique_ptr<QTranslator> translator{};
     QString languageTag{QStringLiteral("system")};
     QString regionalLocaleTag{QStringLiteral("system")};
     QString calendarId{QStringLiteral("auto")};
@@ -363,12 +367,16 @@ LocalizationController::LocalizationController(
 
     const QString selectedLanguage = canonicalLanguageTag(
         overrides.languageTag.isEmpty() ? storedLanguage : overrides.languageTag);
-    setLanguageTag(selectedLanguage.isEmpty() ? QStringLiteral("system") : selectedLanguage);
+    if (!setLanguageTag(selectedLanguage.isEmpty() ? QStringLiteral("system") : selectedLanguage)) {
+        throw std::runtime_error{"Genycaster could not load its embedded UI translation catalog"};
+    }
 }
 
 LocalizationController::~LocalizationController()
 {
-    QCoreApplication::removeTranslator(m_impl->translator.get());
+    if (m_impl->translator) {
+        QCoreApplication::removeTranslator(m_impl->translator.get());
+    }
 }
 
 QString LocalizationController::languageTag() const { return m_impl->languageTag; }
@@ -589,28 +597,60 @@ bool LocalizationController::setLanguageTag(const QString& languageTag)
         return false;
     }
 
-    QCoreApplication::removeTranslator(m_impl->translator.get());
-    m_impl->translator = std::make_unique<QTranslator>();
-
-    m_impl->languageTag = canonical;
-    m_impl->uiLocale = uiLocaleFor(canonical);
     const QString catalogLocale = catalogLocaleNameFor(canonical);
-    const QString resource = QStringLiteral(":/i18n/qml_%1.qm").arg(catalogLocale);
-    if (!m_impl->translator->load(resource)) {
-        const QString fallback = QStringLiteral(":/i18n/qml_en_US.qm");
-        if (!m_impl->translator->load(fallback)) {
-            return false;
-        }
-        m_impl->uiLocale = QLocale{QStringLiteral("en_US")};
-    }
-    if (!QCoreApplication::installTranslator(m_impl->translator.get())) {
+    const QString resource = QString::fromLatin1(kTranslationResourcePrefix)
+        + catalogLocale + QStringLiteral(".qm");
+
+    auto candidate = std::make_unique<QTranslator>();
+    if (!candidate->load(resource)) {
+        qCritical().noquote()
+            << "Unable to load embedded Genycaster translation catalog:" << resource;
         return false;
     }
+
+    std::unique_ptr<QTranslator> previous = std::move(m_impl->translator);
+    if (previous) {
+        QCoreApplication::removeTranslator(previous.get());
+    }
+
+    const auto rollback = [&] {
+        if (previous) {
+            if (!QCoreApplication::installTranslator(previous.get())) {
+                qFatal("Unable to restore the previous Genycaster translation catalog.");
+            }
+        }
+        m_impl->translator = std::move(previous);
+    };
+
+    if (!QCoreApplication::installTranslator(candidate.get())) {
+        qCritical().noquote()
+            << "Unable to install embedded Genycaster translation catalog:" << resource;
+        rollback();
+        return false;
+    }
+
+    // qtTrId() deliberately returns the id itself when no id-based catalog entry
+    // exists. Treat that as a packaging/build invariant failure instead of
+    // allowing hundreds of QString::arg warnings to leak into the UI runtime.
+    if (qtTrId(kTranslationProbeId) == QString::fromLatin1(kTranslationProbeId)) {
+        QCoreApplication::removeTranslator(candidate.get());
+        qCritical().noquote()
+            << "Embedded Genycaster catalog is not a valid ID-based translation catalog:"
+            << resource;
+        rollback();
+        return false;
+    }
+
+    m_impl->translator = std::move(candidate);
+    m_impl->languageTag = canonical;
+    m_impl->uiLocale = uiLocaleFor(canonical);
 
     QLocale::setDefault(m_impl->regionalLocale);
     QGuiApplication::setLayoutDirection(m_impl->uiLocale.textDirection());
     m_impl->settings.setValue(QString::fromLatin1(kLanguageSetting), m_impl->languageTag);
-    m_impl->engine.retranslate();
+    if (m_impl->engine) {
+        m_impl->engine->retranslate();
+    }
     ++m_impl->revision;
     emit localeChanged();
     return true;

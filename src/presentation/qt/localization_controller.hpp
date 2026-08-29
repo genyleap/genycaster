@@ -19,7 +19,9 @@ class QSettings;
  * intentionally independent. It formats values that already have explicit semantics; it never
  * fetches market data, invents FX rates or mutates canonical timestamps.
  *
- * The referenced QQmlEngine and QSettings must outlive this controller.
+ * QSettings must outlive this controller. The QQmlEngine is observed rather than owned and may
+ * be destroyed first during orderly application teardown; no controller method may then request
+ * QML retranslation.
  */
 class LocalizationController final : public QObject {
     Q_OBJECT
@@ -62,7 +64,8 @@ public:
 
     /**
      * @brief Creates the localization runtime and immediately applies the selected preferences.
-     * @param engine QML engine to retranslate after runtime language changes.
+     * @param engine QML engine to retranslate after runtime language changes. It is observed
+     * rather than owned so the engine may be destroyed first during application teardown.
      * @param settings Device-local settings store. It is borrowed and must outlive this object.
      * @param overrides Optional command-line overrides. Empty values use persisted/system policy.
      * @param parent Optional Qt owner.
