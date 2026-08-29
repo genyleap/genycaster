@@ -64,6 +64,8 @@ struct PublishCastIntent final {
     domain::identity::Fid author{};
     std::string text{};
     std::vector<domain::cast::Embed> embeds{};
+    std::vector<domain::identity::Fid> mentions{};
+    std::vector<std::uint32_t> mentionPositions{};
     std::optional<domain::cast::CastReference> parent{};
     foundation::time::Timestamp createdAt{};
 };
