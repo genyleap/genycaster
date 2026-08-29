@@ -13,6 +13,7 @@ import farcaster.domain.signer;
 import farcaster.domain.write;
 import farcaster.foundation.result;
 import farcaster.foundation.time;
+import farcaster.foundation.utf8;
 
 export namespace farcaster::protocol::message {
 
@@ -23,13 +24,23 @@ enum class Network : std::uint32_t {
     Devnet = 3U,
 };
 
+/** @brief CAST_ADD text class used by current Farcaster protocol validation. */
+enum class CastType : std::uint32_t {
+    Cast = 0U,
+    LongCast = 1U,
+    TenKCast = 2U,
+};
+
 /** @brief Exact CAST_ADD payload before envelope signing, with optional parent CastId. */
 struct CastAddInput final {
     domain::identity::Fid fid{};
     domain::signer::PublicKey publicKey{};
     std::string text{};
     std::vector<domain::cast::Embed> embeds{};
+    std::vector<domain::identity::Fid> mentions{};
+    std::vector<std::uint32_t> mentionPositions{};
     std::optional<domain::cast::CastReference> parent{};
+    CastType type{CastType::Cast};
     std::uint32_t timestamp{};
     Network network{Network::Mainnet};
 };
