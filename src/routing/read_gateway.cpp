@@ -205,10 +205,14 @@ foundation::result::Result<capability::feed::FeedPage> RoutedReadGateway::feed(
         capabilityId = capability::catalog::feedFollowingRead();
     } else if (query.kind == application::read::model::FeedQuery::Kind::Channel) {
         capabilityId = capability::catalog::feedChannelRead();
-    } else if (query.kind == application::read::model::FeedQuery::Kind::UserCasts) {
-        capabilityId = capability::catalog::feedUserCastsRead();
+    } else if (query.kind == application::read::model::FeedQuery::Kind::UserPosts) {
+        capabilityId = capability::catalog::feedUserPostsRead();
+    } else if (query.kind == application::read::model::FeedQuery::Kind::UserQuotes) {
+        capabilityId = capability::catalog::feedUserQuotesRead();
     } else if (query.kind == application::read::model::FeedQuery::Kind::UserReplies) {
         capabilityId = capability::catalog::feedUserRepliesRead();
+    } else if (query.kind == application::read::model::FeedQuery::Kind::UserLikes) {
+        capabilityId = capability::catalog::feedUserLikesRead();
     } else if (query.kind == application::read::model::FeedQuery::Kind::UserPopular) {
         capabilityId = capability::catalog::feedUserPopularRead();
     }
@@ -235,13 +239,21 @@ foundation::result::Result<capability::feed::FeedPage> RoutedReadGateway::feed(
         return executeObserved(m_health, *route, capabilityId, options,
             [&] { return (*binding)->feed->channel(*query.channel, pageRequest); });
     }
-    if (query.kind == application::read::model::FeedQuery::Kind::UserCasts) {
+    if (query.kind == application::read::model::FeedQuery::Kind::UserPosts) {
         return executeObserved(m_health, *route, capabilityId, options,
-            [&] { return (*binding)->feed->userCasts(*query.fid, pageRequest); });
+            [&] { return (*binding)->feed->userPosts(*query.fid, pageRequest); });
+    }
+    if (query.kind == application::read::model::FeedQuery::Kind::UserQuotes) {
+        return executeObserved(m_health, *route, capabilityId, options,
+            [&] { return (*binding)->feed->userQuotes(*query.fid, pageRequest); });
     }
     if (query.kind == application::read::model::FeedQuery::Kind::UserReplies) {
         return executeObserved(m_health, *route, capabilityId, options,
             [&] { return (*binding)->feed->userReplies(*query.fid, pageRequest); });
+    }
+    if (query.kind == application::read::model::FeedQuery::Kind::UserLikes) {
+        return executeObserved(m_health, *route, capabilityId, options,
+            [&] { return (*binding)->feed->userLikes(*query.fid, pageRequest); });
     }
     if (query.kind == application::read::model::FeedQuery::Kind::UserPopular) {
         return executeObserved(m_health, *route, capabilityId, options,
