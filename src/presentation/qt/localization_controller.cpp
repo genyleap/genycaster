@@ -34,6 +34,25 @@ constexpr int kShahanshahiYearOffset = 1180;
 constexpr auto kTranslationProbeId = "genycaster.app.genycaster";
 constexpr auto kTranslationResourcePrefix = ":/i18n/qml_";
 
+[[nodiscard]] QString languageTagFor(const QLocale::Language language)
+{
+    switch (language) {
+    case QLocale::English: return QStringLiteral("en");
+    case QLocale::Persian: return QStringLiteral("fa");
+    case QLocale::German: return QStringLiteral("de");
+    case QLocale::Japanese: return QStringLiteral("ja");
+    case QLocale::Korean: return QStringLiteral("ko");
+    case QLocale::Chinese: return QStringLiteral("zh");
+    case QLocale::Hindi: return QStringLiteral("hi");
+    case QLocale::Arabic: return QStringLiteral("ar");
+    case QLocale::Spanish: return QStringLiteral("es");
+    case QLocale::French: return QStringLiteral("fr");
+    case QLocale::Portuguese: return QStringLiteral("pt");
+    case QLocale::Russian: return QStringLiteral("ru");
+    default: return {};
+    }
+}
+
 [[nodiscard]] QString canonicalLanguageTag(QString value)
 {
     value = value.trimmed();
@@ -43,26 +62,31 @@ constexpr auto kTranslationResourcePrefix = ":/i18n/qml_";
 
     value.replace(QLatin1Char('-'), QLatin1Char('_'));
     const QLocale locale{value};
-    if (locale.language() == QLocale::English) {
-        return QStringLiteral("en");
-    }
-    if (locale.language() == QLocale::Persian) {
-        return QStringLiteral("fa");
-    }
-    return {};
+    return languageTagFor(locale.language());
 }
 
 [[nodiscard]] QLocale uiLocaleFor(const QString& languageTag)
 {
-    if (languageTag == QStringLiteral("fa")) {
-        return QLocale{QStringLiteral("fa_IR")};
+    QString effectiveTag = languageTag;
+    if (effectiveTag == QStringLiteral("system")) {
+        effectiveTag = languageTagFor(QLocale::system().language());
+        if (effectiveTag.isEmpty()) {
+            effectiveTag = QStringLiteral("en");
+        }
     }
-    if (languageTag == QStringLiteral("en")) {
-        return QLocale{QStringLiteral("en_US")};
-    }
-    return QLocale::system().language() == QLocale::Persian
-        ? QLocale{QStringLiteral("fa_IR")}
-        : QLocale{QStringLiteral("en_US")};
+
+    if (effectiveTag == QStringLiteral("fa")) return QLocale{QStringLiteral("fa_IR")};
+    if (effectiveTag == QStringLiteral("de")) return QLocale{QStringLiteral("de_DE")};
+    if (effectiveTag == QStringLiteral("ja")) return QLocale{QStringLiteral("ja_JP")};
+    if (effectiveTag == QStringLiteral("ko")) return QLocale{QStringLiteral("ko_KR")};
+    if (effectiveTag == QStringLiteral("zh")) return QLocale{QStringLiteral("zh_CN")};
+    if (effectiveTag == QStringLiteral("hi")) return QLocale{QStringLiteral("hi_IN")};
+    if (effectiveTag == QStringLiteral("ar")) return QLocale{QStringLiteral("ar_SA")};
+    if (effectiveTag == QStringLiteral("es")) return QLocale{QStringLiteral("es_ES")};
+    if (effectiveTag == QStringLiteral("fr")) return QLocale{QStringLiteral("fr_FR")};
+    if (effectiveTag == QStringLiteral("pt")) return QLocale{QStringLiteral("pt_BR")};
+    if (effectiveTag == QStringLiteral("ru")) return QLocale{QStringLiteral("ru_RU")};
+    return QLocale{QStringLiteral("en_US")};
 }
 
 [[nodiscard]] bool firstStrongCharacterIsRtl(const QString& text) noexcept
@@ -427,6 +451,7 @@ LocalizationController::~LocalizationController()
 }
 
 QString LocalizationController::languageTag() const { return m_impl->languageTag; }
+QString LocalizationController::effectiveLanguageTag() const { return languageTagFor(m_impl->uiLocale.language()); }
 QString LocalizationController::regionalLocaleTag() const { return m_impl->regionalLocaleTag; }
 QString LocalizationController::effectiveLocaleName() const { return m_impl->regionalLocale.name(); }
 QString LocalizationController::calendarId() const { return m_impl->calendarId; }
@@ -462,9 +487,9 @@ QString LocalizationController::languageLabel() const
     if (m_impl->languageTag == QStringLiteral("system")) {
         return qtTrId("genycaster.locale.language_system");
     }
-    return m_impl->languageTag == QStringLiteral("fa")
-        ? qtTrId("genycaster.locale.language_persian")
-        : qtTrId("genycaster.locale.language_english");
+    const QLocale locale = uiLocaleFor(m_impl->languageTag);
+    QString label = locale.nativeLanguageName().trimmed();
+    return label.isEmpty() ? QLocale::languageToString(locale.language()) : label;
 }
 
 QString LocalizationController::regionalLocaleLabel() const
@@ -519,14 +544,26 @@ QString LocalizationController::currencyLabel() const
 
 QVariantList LocalizationController::availableLanguages() const
 {
-    return {
+    QVariantList result{
         QVariantMap{{QStringLiteral("id"), QStringLiteral("system")},
                     {QStringLiteral("label"), qtTrId("genycaster.locale.language_system")}},
-        QVariantMap{{QStringLiteral("id"), QStringLiteral("en")},
-                    {QStringLiteral("label"), qtTrId("genycaster.locale.language_english")}},
-        QVariantMap{{QStringLiteral("id"), QStringLiteral("fa")},
-                    {QStringLiteral("label"), qtTrId("genycaster.locale.language_persian")}},
     };
+    static constexpr std::array<const char*, 12> kLanguages{
+        "en", "fa", "de", "ja", "ko", "zh", "hi", "ar", "es", "fr", "pt", "ru"};
+    result.reserve(static_cast<qsizetype>(kLanguages.size() + 1));
+    for (const char* tag : kLanguages) {
+        const QString languageTag = QString::fromLatin1(tag);
+        const QLocale locale = uiLocaleFor(languageTag);
+        QString label = locale.nativeLanguageName().trimmed();
+        if (label.isEmpty()) {
+            label = QLocale::languageToString(locale.language());
+        }
+        result.push_back(QVariantMap{
+            {QStringLiteral("id"), languageTag},
+            {QStringLiteral("label"), label},
+        });
+    }
+    return result;
 }
 
 QVariantList LocalizationController::availableRegionalLocales() const
