@@ -1,15 +1,19 @@
 module;
 
+#include <algorithm>
 #include <chrono>
 #include <cstddef>
 #include <expected>
+#include <ranges>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
 module farcaster.provider.hypersnap.feed;
 
+import farcaster.domain.cast;
 import farcaster.domain.channel;
 import farcaster.domain.identity;
 import farcaster.capability.catalog;
@@ -97,6 +101,109 @@ constexpr std::chrono::milliseconds profileFeedRequestTimeout{6'000};
     return page;
 }
 
+[[nodiscard]] bool isQuote(const domain::cast::Cast& cast)
+{
+    return std::ranges::any_of(cast.embeds, [](const auto& embed) {
+        return embed.kind == domain::cast::EmbedKind::CastReference;
+    });
+}
+
+[[nodiscard]] capability::feed::FeedPage filtered(
+    capability::feed::FeedPage page,
+    const bool wantQuotes)
+{
+    std::unordered_set<std::string> retained{};
+    std::vector<domain::cast::Cast> casts{};
+    casts.reserve(page.casts.size());
+    for (auto& cast : page.casts) {
+        const bool matches = !cast.parent.has_value() && (isQuote(cast) == wantQuotes);
+        if (!matches) { continue; }
+        retained.insert(cast.id.value);
+        casts.push_back(std::move(cast));
+    }
+    page.casts = std::move(casts);
+    std::erase_if(page.entries, [&](const auto& entry) {
+        return !retained.contains(entry.castId.value);
+    });
+    return page;
+}
+
+[[nodiscard]] foundation::result::Result<capability::feed::FeedPage> readLikedFeed(
+    transport::http::IHttpTransport& transport,
+    storage::continuation::ContinuationStore& continuationStore,
+    const config::Config& config,
+    const domain::identity::Fid fid,
+    const capability::pagination::PageRequest& pageRequest)
+{
+    if (auto status = request::validateConfig(config); !status) {
+        return std::unexpected(std::move(status.error()));
+    }
+    auto limit = validatedLimit(pageRequest);
+    if (!limit) {
+        return std::unexpected(std::move(limit.error()));
+    }
+    const auto capabilityId = capability::catalog::feedUserLikesRead();
+    continuation::Store continuations{continuationStore, config.provider.id};
+    auto cursor = continuations.resolve(capabilityId, pageRequest);
+    if (!cursor) {
+        return std::unexpected(std::move(cursor.error()));
+    }
+
+    std::vector<std::pair<std::string, std::string>> query{
+        {"fid", std::to_string(fid.value)},
+        {"reaction_type", "Like"},
+        {"pageSize", std::to_string(*limit)},
+        {"reverse", "true"},
+    };
+    if (*cursor) {
+        query.emplace_back("pageToken", **cursor);
+    }
+
+    request::Client requests{transport, config};
+    auto body = requests.getJson(
+        "/v1/reactionsByFid", query, request::GetOptions{.timeout = profileFeedRequestTimeout});
+    if (!body) {
+        return std::unexpected(std::move(body.error()));
+    }
+    auto reactions = codec::decodeReactionTargets(*body);
+    if (!reactions) {
+        return std::unexpected(std::move(reactions.error()));
+    }
+
+    capability::feed::FeedPage page{};
+    std::unordered_set<std::uint64_t> seenProfiles{};
+    for (const auto& target : reactions->targets) {
+        auto castBody = requests.getJson(
+            "/v2/farcaster/cast",
+            {{"identifier", target.castId.value}, {"type", "hash"}},
+            request::GetOptions{.timeout = profileFeedRequestTimeout});
+        if (!castBody) {
+            if (castBody.error().code == foundation::error::ErrorCode::NotFound) {
+                continue;
+            }
+            return std::unexpected(std::move(castBody.error()));
+        }
+        auto cast = codec::decodeCastPayload(*castBody);
+        if (!cast) {
+            return std::unexpected(std::move(cast.error()));
+        }
+        page.entries.push_back(domain::feed::FeedEntry{
+            .castId = cast->cast.id,
+            .sortTime = target.reactedAt,
+        });
+        if (seenProfiles.insert(cast->author.fid.value).second) {
+            page.profiles.push_back(std::move(cast->author));
+        }
+        page.casts.push_back(std::move(cast->cast));
+    }
+    auto next = continuations.bind(capabilityId, std::move(reactions->providerCursor));
+    if (!next) {
+        return std::unexpected(std::move(next.error()));
+    }
+    page.next = std::move(*next);
+    return page;
+}
+
 }
 
 FeedSource::FeedSource(
@@ -156,19 +263,28 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::channel(
         discoveryRequestTimeout);
 }
 
-foundation::result::Result<capability::feed::FeedPage> FeedSource::userCasts(
+foundation::result::Result<capability::feed::FeedPage> FeedSource::userPosts(
     const domain::identity::Fid fid,
     const capability::pagination::PageRequest& pageRequest)
 {
-    return readFeed(
-        m_transport,
-        m_continuations,
-        m_config,
-        capability::catalog::feedUserCastsRead(),
-        "/v2/farcaster/feed/user/casts",
-        {{"fid", std::to_string(fid.value)}},
-        pageRequest,
-        profileFeedRequestTimeout);
+    auto page = readFeed(
+        m_transport, m_continuations, m_config, capability::catalog::feedUserPostsRead(),
+        "/v2/farcaster/feed/user/casts", {{"fid", std::to_string(fid.value)}},
+        pageRequest, profileFeedRequestTimeout);
+    if (!page) { return std::unexpected(std::move(page.error())); }
+    return filtered(std::move(*page), false);
+}
+
+foundation::result::Result<capability::feed::FeedPage> FeedSource::userQuotes(
+    const domain::identity::Fid fid,
+    const capability::pagination::PageRequest& pageRequest)
+{
+    auto page = readFeed(
+        m_transport, m_continuations, m_config, capability::catalog::feedUserQuotesRead(),
+        "/v2/farcaster/feed/user/casts", {{"fid", std::to_string(fid.value)}},
+        pageRequest, profileFeedRequestTimeout);
+    if (!page) { return std::unexpected(std::move(page.error())); }
+    return filtered(std::move(*page), true);
 }
 
 foundation::result::Result<capability::feed::FeedPage> FeedSource::userReplies(
@@ -176,14 +292,16 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::userReplies(
     const capability::pagination::PageRequest& pageRequest)
 {
     return readFeed(
-        m_transport,
-        m_continuations,
-        m_config,
-        capability::catalog::feedUserRepliesRead(),
-        "/v2/farcaster/feed/user/replies_and_recasts",
-        {{"fid", std::to_string(fid.value)}},
-        pageRequest,
-        profileFeedRequestTimeout);
+        m_transport, m_continuations, m_config, capability::catalog::feedUserRepliesRead(),
+        "/v2/farcaster/feed/user/replies_and_recasts", {{"fid", std::to_string(fid.value)}},
+        pageRequest, profileFeedRequestTimeout);
+}
+
+foundation::result::Result<capability::feed::FeedPage> FeedSource::userLikes(
+    const domain::identity::Fid fid,
+    const capability::pagination::PageRequest& pageRequest)
+{
+    return readLikedFeed(m_transport, m_continuations, m_config, fid, pageRequest);
 }
 
 foundation::result::Result<capability::feed::FeedPage> FeedSource::userPopular(
@@ -191,14 +309,9 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::userPopular(
     const capability::pagination::PageRequest& pageRequest)
 {
     return readFeed(
-        m_transport,
-        m_continuations,
-        m_config,
-        capability::catalog::feedUserPopularRead(),
-        "/v2/farcaster/feed/user/popular",
-        {{"fid", std::to_string(fid.value)}},
-        pageRequest,
-        profileFeedRequestTimeout);
+        m_transport, m_continuations, m_config, capability::catalog::feedUserPopularRead(),
+        "/v2/farcaster/feed/user/popular", {{"fid", std::to_string(fid.value)}},
+        pageRequest, profileFeedRequestTimeout);
 }
 
 }
