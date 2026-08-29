@@ -27,9 +27,9 @@ import farcaster.provider.hypersnap.request;
 namespace farcaster::provider::hypersnap::feed {
 namespace {
 
-constexpr std::chrono::milliseconds followingRequestTimeout{5'000};
-constexpr std::chrono::milliseconds discoveryRequestTimeout{6'000};
-constexpr std::chrono::milliseconds profileFeedRequestTimeout{6'000};
+constexpr std::chrono::milliseconds followingRequestTimeout{10'000};
+constexpr std::chrono::milliseconds discoveryRequestTimeout{12'000};
+constexpr std::chrono::milliseconds profileFeedRequestTimeout{10'000};
 
 [[nodiscard]] foundation::result::Result<std::size_t> validatedLimit(
     const capability::pagination::PageRequest& pageRequest)
