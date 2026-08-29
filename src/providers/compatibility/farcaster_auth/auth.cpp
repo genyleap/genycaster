@@ -65,6 +65,28 @@ constexpr std::string_view universalSignatureValidatorByteCode{
     return value.starts_with("https://") || value.starts_with("http://");
 }
 
+[[nodiscard]] bool isValidHttpUri(const std::string_view value)
+{
+    if (!startsWithHttp(value)) {
+        return false;
+    }
+    for (const unsigned char ch : value) {
+        if (std::isspace(ch) || ch == '\\' || ch == '"' || ch == '\'') {
+            return false;
+        }
+    }
+
+    const std::size_t authorityStart = value.find("://") + 3U;
+    const std::size_t authorityEnd = value.find_first_of("/?#", authorityStart);
+    const std::string_view authority = authorityEnd == std::string_view::npos
+        ? value.substr(authorityStart)
+        : value.substr(authorityStart, authorityEnd - authorityStart);
+    if (authority.empty() || authority.front() == ':' || authority.contains('@')) {
+        return false;
+    }
+    return true;
+}
+
 [[nodiscard]] std::string trim(std::string value)
 {
     const auto notSpace = [](const unsigned char ch) { return !std::isspace(ch); };
@@ -1063,7 +1085,7 @@ public:
     {
         const std::string domain = normalizeConfigurationValue(request.domain);
         const std::string siweUri = normalizeConfigurationValue(request.siweUri);
-        if (domain.empty() || siweUri.empty() || !startsWithHttp(siweUri)) {
+        if (domain.empty() || siweUri.empty() || !isValidHttpUri(siweUri)) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::InvalidArgument,
                 "SIWF requires an app-owned domain and an http/https relying-party URI."));
@@ -1083,6 +1105,9 @@ public:
         }
         if (auto status = requireSuccessStatus(*response, "Farcaster authentication relay"); !status) {
             auto error = std::move(status.error());
+            if (response->statusCode == 400U || response->statusCode == 422U) {
+                error.code = foundation::error::ErrorCode::InvalidArgument;
+            }
             error.message.append(" Configured SIWF URI: \"");
             error.message.append(jsonEscape(siweUri));
             error.message.append("\".");
