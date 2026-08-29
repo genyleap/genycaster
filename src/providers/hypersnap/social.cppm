@@ -27,6 +27,11 @@ public:
         domain::identity::Fid fid,
         const capability::pagination::PageRequest& pageRequest) override;
 
+    /** @brief Returns whether source currently follows target using the canonical Link edge. */
+    [[nodiscard]] foundation::result::Result<bool> isFollowing(
+        domain::identity::Fid source,
+        domain::identity::Fid target);
+
 private:
     transport::http::IHttpTransport& m_transport;
     storage::continuation::ContinuationStore& m_continuations;
