@@ -16,6 +16,7 @@ target_sources(farcaster_domain
             write.cppm
             valuation.cppm
             rich_document.cppm
+            media.cppm
     PRIVATE
         session.cpp
         signer.cpp
