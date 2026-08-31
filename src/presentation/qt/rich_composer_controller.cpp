@@ -1,5 +1,6 @@
 #include "rich_composer_controller.hpp"
 
+#include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -14,6 +15,7 @@
 #include <QTextFragment>
 #include <QUrl>
 #include <QSettings>
+#include <QSet>
 #include <QTimer>
 #include <QVariantMap>
 
@@ -47,7 +49,10 @@ using farcaster::domain::rich::RichInline;
 using farcaster::domain::rich::TextBlock;
 
 constexpr auto DraftKey = "composer/richDraftV1";
+constexpr auto DraftManagedAssetsKey = "composer/richManagedAssetsV1";
 constexpr auto SidecarPrefix = "richCastSidecar/v1/";
+constexpr auto ManagedSidecarPrefix = "richCastManagedAssets/v1/";
+constexpr auto PendingCleanupKey = "mediaPendingCleanup/v1";
 constexpr std::size_t MaxHistory = 64U;
 
 class NativeSyntaxDocumentHighlighter final : public QSyntaxHighlighter {
@@ -499,6 +504,101 @@ bool sameInlines(const std::vector<RichInline>& lhs, const std::vector<RichInlin
     return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin(), sameInline);
 }
 
+using ManagedAssets = QHash<QString, QString>;
+
+[[nodiscard]] QByteArray managedAssetsToJson(const ManagedAssets& assets)
+{
+    QJsonArray rows{};
+    for (auto iterator = assets.constBegin(); iterator != assets.constEnd(); ++iterator) {
+        rows.append(QJsonObject{
+            {QStringLiteral("url"), iterator.key()},
+            {QStringLiteral("managementToken"), iterator.value()},
+        });
+    }
+    return QJsonDocument{rows}.toJson(QJsonDocument::Compact);
+}
+
+[[nodiscard]] ManagedAssets managedAssetsFromJson(const QByteArray& bytes)
+{
+    ManagedAssets result{};
+    QJsonParseError error{};
+    const auto document = QJsonDocument::fromJson(bytes, &error);
+    if (error.error != QJsonParseError::NoError || !document.isArray()) {
+        return result;
+    }
+    for (const auto& value : document.array()) {
+        const auto row = value.toObject();
+        const QString url = row.value(QStringLiteral("url")).toString().trimmed();
+        const QString token = row.value(QStringLiteral("managementToken")).toString().trimmed();
+        if (!url.isEmpty() && !token.isEmpty()) {
+            result.insert(url, token);
+        }
+    }
+    return result;
+}
+
+[[nodiscard]] QSet<QString> mediaUrls(const RichCastDocument& document)
+{
+    QSet<QString> result{};
+    for (const auto& block : document.blocks) {
+        if (const auto* media = std::get_if<farcaster::domain::rich::MediaBlock>(&block.payload)) {
+            const QString url = QString::fromUtf8(media->url);
+            if (!url.isEmpty()) {
+                result.insert(url);
+            }
+        }
+    }
+    return result;
+}
+
+[[nodiscard]] QStringList pendingCleanupTokens(QSettings& settings)
+{
+    QStringList result{};
+    const auto stored = settings.value(QString::fromLatin1(PendingCleanupKey)).toStringList();
+    QSet<QString> seen{};
+    for (const auto& token : stored) {
+        const QString canonical = token.trimmed();
+        if (!canonical.isEmpty() && !seen.contains(canonical)) {
+            seen.insert(canonical);
+            result.push_back(canonical);
+        }
+    }
+    return result;
+}
+
+void queueCleanupToken(QSettings& settings, const QString& token)
+{
+    const QString canonical = token.trimmed();
+    if (canonical.isEmpty()) {
+        return;
+    }
+    auto pending = pendingCleanupTokens(settings);
+    if (!pending.contains(canonical)) {
+        pending.push_back(canonical);
+        settings.setValue(QString::fromLatin1(PendingCleanupKey), pending);
+    }
+}
+
+[[nodiscard]] bool tokenReferencedByPublishedCast(
+    QSettings& settings,
+    const QString& token,
+    const QString& excludedStorageKey = {})
+{
+    const QString prefix = QString::fromLatin1(ManagedSidecarPrefix);
+    for (const auto& key : settings.allKeys()) {
+        if (!key.startsWith(prefix) || key == excludedStorageKey) {
+            continue;
+        }
+        const auto assets = managedAssetsFromJson(settings.value(key).toByteArray());
+        for (auto iterator = assets.constBegin(); iterator != assets.constEnd(); ++iterator) {
+            if (iterator.value() == token) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 } // namespace
 
 class RichComposerController::Impl final {
@@ -520,6 +620,7 @@ public:
     farcaster::application::syntax::SyntaxHighlighter highlighter{};
     std::vector<std::unique_ptr<NativeSyntaxDocumentHighlighter>> documentHighlighters{};
     RichCastDocument document{};
+    ManagedAssets managedAssets{};
     farcaster::application::rich::FarcasterSafeLayout layout{};
     QString markdown{};
     std::deque<RichCastDocument> undoStack{};
@@ -570,6 +671,7 @@ public:
     void newEmpty(bool mark)
     {
         document = RichCastDocument{};
+        managedAssets.clear();
         document.blocks.push_back(RichBlock{
             .id = farcaster::domain::rich::makeBlockId(1U, "paragraph"),
             .kind = BlockKind::Paragraph,
@@ -588,7 +690,9 @@ public:
 
     void saveDraft(bool explicitSave)
     {
+        autosave.stop();
         settings.setValue(QString::fromLatin1(DraftKey), documentToJson(document, markdown));
+        settings.setValue(QString::fromLatin1(DraftManagedAssetsKey), managedAssetsToJson(managedAssets));
         settings.sync();
         dirty = false;
         saveStatusText = explicitSave ? qtTrId("genycaster.composer.saved") : qtTrId("genycaster.composer.autosaved");
@@ -712,7 +816,11 @@ void RichComposerController::setMarkdownSource(const QString& source)
     m_impl->setDocument(std::move(*parsed), source, true);
 }
 
-void RichComposerController::newDocument() { m_impl->newEmpty(false); }
+void RichComposerController::newDocument()
+{
+    clearDraft();
+    m_impl->newEmpty(false);
+}
 bool RichComposerController::restoreDraft()
 {
     const auto bytes = m_impl->settings.value(QString::fromLatin1(DraftKey)).toByteArray();
@@ -720,6 +828,8 @@ bool RichComposerController::restoreDraft()
     auto restored = documentFromJson(bytes);
     if (!restored) return false;
     m_impl->document = std::move(restored->first);
+    m_impl->managedAssets = managedAssetsFromJson(
+        m_impl->settings.value(QString::fromLatin1(DraftManagedAssetsKey)).toByteArray());
     m_impl->markdown = std::move(restored->second);
     if (m_impl->markdown.isEmpty()) m_impl->syncMarkdownFromDocument();
     m_impl->dirty = false;
@@ -734,7 +844,14 @@ bool RichComposerController::restoreDraft()
 void RichComposerController::saveDraft() { m_impl->saveDraft(true); }
 void RichComposerController::clearDraft()
 {
+    for (auto iterator = m_impl->managedAssets.constBegin(); iterator != m_impl->managedAssets.constEnd(); ++iterator) {
+        if (!tokenReferencedByPublishedCast(m_impl->settings, iterator.value())) {
+            queueCleanupToken(m_impl->settings, iterator.value());
+        }
+    }
+    m_impl->managedAssets.clear();
     m_impl->settings.remove(QString::fromLatin1(DraftKey));
+    m_impl->settings.remove(QString::fromLatin1(DraftManagedAssetsKey));
     m_impl->settings.sync();
     m_impl->dirty = false;
     m_impl->saveStatusText.clear();
@@ -1087,6 +1204,28 @@ bool RichComposerController::insertMedia(
     return true;
 }
 
+bool RichComposerController::insertManagedMedia(
+    const QString& url,
+    const QString& mediaType,
+    const QString& managementToken,
+    const QString& altText,
+    const int afterIndex)
+{
+    const QString canonicalUrl = url.trimmed();
+    const QString canonicalToken = managementToken.trimmed();
+    if (canonicalToken.isEmpty() ||
+        !insertMedia(canonicalUrl, mediaType, altText, afterIndex)) {
+        queueCleanupToken(m_impl->settings, canonicalToken);
+        m_impl->settings.sync();
+        return false;
+    }
+    m_impl->managedAssets.insert(canonicalUrl, canonicalToken);
+    // Persist the document/token pair immediately after a successful upload so a
+    // process crash cannot strand an object before the normal autosave timer fires.
+    m_impl->saveDraft(false);
+    return true;
+}
+
 bool RichComposerController::resolveMention(
     const int blockIndex, const int selectionStart, const int selectionLength, const qulonglong fid,
     const QString& username, const QString& displayName)
@@ -1176,10 +1315,76 @@ void RichComposerController::commitPublishedCast(const QString& castId)
 {
     const auto canonical = castId.trimmed();
     if (canonical.isEmpty() || farcaster::domain::rich::empty(m_impl->document)) return;
-    m_impl->settings.setValue(QString::fromLatin1(SidecarPrefix) + canonical, documentToJson(m_impl->document, m_impl->markdown, canonical));
+
+    const auto referencedUrls = mediaUrls(m_impl->document);
+    ManagedAssets publishedAssets{};
+    for (auto iterator = m_impl->managedAssets.constBegin(); iterator != m_impl->managedAssets.constEnd(); ++iterator) {
+        if (referencedUrls.contains(iterator.key())) {
+            publishedAssets.insert(iterator.key(), iterator.value());
+        } else if (!tokenReferencedByPublishedCast(m_impl->settings, iterator.value())) {
+            queueCleanupToken(m_impl->settings, iterator.value());
+        }
+    }
+
+    m_impl->settings.setValue(
+        QString::fromLatin1(SidecarPrefix) + canonical,
+        documentToJson(m_impl->document, m_impl->markdown, canonical));
+    const QString managedSidecarKey = QString::fromLatin1(ManagedSidecarPrefix) + canonical;
+    if (publishedAssets.isEmpty()) {
+        m_impl->settings.remove(managedSidecarKey);
+    } else {
+        m_impl->settings.setValue(managedSidecarKey, managedAssetsToJson(publishedAssets));
+    }
     m_impl->settings.remove(QString::fromLatin1(DraftKey));
+    m_impl->settings.remove(QString::fromLatin1(DraftManagedAssetsKey));
     m_impl->settings.sync();
+    m_impl->managedAssets.clear();
     m_impl->dirty = false;
     m_impl->saveStatusText = qtTrId("genycaster.composer.published_metadata_saved");
     emit saveStateChanged();
+}
+
+QStringList RichComposerController::releaseManagedAssetsForCast(const QString& castId)
+{
+    const QString canonical = castId.trimmed();
+    if (canonical.isEmpty()) {
+        return {};
+    }
+    const QString managedSidecarKey = QString::fromLatin1(ManagedSidecarPrefix) + canonical;
+    const auto assets = managedAssetsFromJson(m_impl->settings.value(managedSidecarKey).toByteArray());
+    m_impl->settings.remove(managedSidecarKey);
+    m_impl->settings.remove(QString::fromLatin1(SidecarPrefix) + canonical);
+
+    QStringList queued{};
+    for (auto iterator = assets.constBegin(); iterator != assets.constEnd(); ++iterator) {
+        if (!tokenReferencedByPublishedCast(m_impl->settings, iterator.value(), managedSidecarKey)) {
+            queueCleanupToken(m_impl->settings, iterator.value());
+            if (!queued.contains(iterator.value())) {
+                queued.push_back(iterator.value());
+            }
+        }
+    }
+    m_impl->settings.sync();
+    return queued;
+}
+
+QStringList RichComposerController::pendingManagedAssetCleanup() const
+{
+    return pendingCleanupTokens(m_impl->settings);
+}
+
+void RichComposerController::markManagedAssetCleanupCompleted(const QString& managementToken)
+{
+    const QString canonical = managementToken.trimmed();
+    if (canonical.isEmpty()) {
+        return;
+    }
+    auto pending = pendingCleanupTokens(m_impl->settings);
+    pending.removeAll(canonical);
+    if (pending.isEmpty()) {
+        m_impl->settings.remove(QString::fromLatin1(PendingCleanupKey));
+    } else {
+        m_impl->settings.setValue(QString::fromLatin1(PendingCleanupKey), pending);
+    }
+    m_impl->settings.sync();
 }
