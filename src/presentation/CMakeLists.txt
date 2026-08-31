@@ -5,6 +5,8 @@ add_library(farcaster_presentation STATIC
     qt/presentation_bridge.hpp
     qt/localization_controller.cpp
     qt/localization_controller.hpp
+    qt/media_upload_controller.cpp
+    qt/media_upload_controller.hpp
     qt/rich_composer_controller.cpp
     qt/rich_composer_controller.hpp
 )
