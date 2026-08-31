@@ -3,6 +3,8 @@ module;
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <string>
+#include <string_view>
 
 export module farcaster.capability.media;
 
@@ -27,6 +29,18 @@ using ProgressObserver = std::function<void(UploadStage stage, std::uint64_t tra
 using CancellationProbe = std::function<bool()>;
 
 /**
+ * @brief Uploaded media plus an opaque local-only lifecycle credential.
+ *
+ * managementToken authorizes lifecycle operations for the asset through the
+ * Genycaster media gateway. It is never a Farcaster embed and must not be
+ * exposed as an object-storage credential or provider identifier.
+ */
+struct ManagedAsset final {
+    domain::media::Asset asset{};
+    std::string managementToken{};
+};
+
+/**
  * @brief Provider-neutral media-upload gateway port.
  *
  * Concrete implementations may use direct pre-signed object-store uploads or
@@ -44,13 +58,32 @@ public:
      * @param localPath Local file selected by the user; read only by the outer adapter.
      * @param progress Optional progress observer invoked from the I/O executor.
      * @param cancelled Probe that returns true when the caller requested cancellation.
-     * @return Stable public media asset or a structured recoverable failure.
+     * @return Stable public media asset plus opaque lifecycle token, or a recoverable failure.
      */
-    [[nodiscard]] virtual foundation::result::Result<domain::media::Asset> upload(
+    [[nodiscard]] virtual foundation::result::Result<ManagedAsset> upload(
         domain::identity::Fid fid,
         const std::filesystem::path& localPath,
         ProgressObserver progress,
         CancellationProbe cancelled) = 0;
+};
+
+/**
+ * @brief Provider-neutral lifecycle port for deleting a Genycaster-managed media asset.
+ *
+ * Implementations authenticate the current Farcaster identity and keep all
+ * storage-provider credentials and object keys behind the gateway boundary.
+ */
+class IMediaAssetLifecycleGateway {
+public:
+    virtual ~IMediaAssetLifecycleGateway() = default;
+
+    /**
+     * @brief Deletes an owned managed asset identified by an opaque gateway token.
+     * @return success when the object is deleted or already absent; otherwise a structured failure.
+     */
+    [[nodiscard]] virtual foundation::result::Status remove(
+        domain::identity::Fid fid,
+        std::string_view managementToken) = 0;
 };
 
 } // namespace farcaster::capability::media
