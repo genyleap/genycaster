@@ -20,6 +20,7 @@ target_sources(farcaster_capabilities
             write_authority.cppm
             write_submit.cppm
             valuation.cppm
+            media.cppm
     PRIVATE
         catalog.cpp
 )
