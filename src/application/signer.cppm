@@ -52,6 +52,8 @@ struct SignerPolicy final {
     std::chrono::minutes authorizationLifetime{60};
     /** @brief Canonical app FID for SignedKeyRequest attribution. Empty explicitly permits self-client attribution. */
     std::optional<domain::identity::Fid> requestFid{};
+    /** @brief Rejects missing or viewer-owned request FIDs when product attribution must identify an external client. */
+    bool requireExternalAppAttribution{false};
 };
 
 /** @brief Result of checking one specific protocol-changing interaction. */
