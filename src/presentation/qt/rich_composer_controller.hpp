@@ -102,6 +102,13 @@ public:
     Q_INVOKABLE bool insertEmbed(const QString& url, const QString& title = {}, int afterIndex = -1);
     Q_INVOKABLE bool insertMedia(
         const QString& url, const QString& mediaType = {}, const QString& altText = {}, int afterIndex = -1);
+    /** @brief Inserts uploaded media while retaining its opaque local lifecycle token. */
+    Q_INVOKABLE bool insertManagedMedia(
+        const QString& url,
+        const QString& mediaType,
+        const QString& managementToken,
+        const QString& altText = {},
+        int afterIndex = -1);
     /** @brief Converts a textual @mention selection into a resolved semantic mention node. */
     Q_INVOKABLE bool resolveMention(
         int blockIndex, int selectionStart, int selectionLength, qulonglong fid,
@@ -117,6 +124,13 @@ public:
     Q_INVOKABLE QVariantList richBlocksForCast(const QString& castId) const;
     /** @brief Associates the current versioned AST sidecar with an already-published cast hash. */
     Q_INVOKABLE void commitPublishedCast(const QString& castId);
+
+    /** @brief Releases local media ownership attached to a confirmed deleted cast. */
+    [[nodiscard]] QStringList releaseManagedAssetsForCast(const QString& castId);
+    /** @brief Returns durable managed-media tokens waiting for authenticated gateway cleanup. */
+    [[nodiscard]] QStringList pendingManagedAssetCleanup() const;
+    /** @brief Marks one durable cleanup token complete after the gateway confirms deletion. */
+    void markManagedAssetCleanupCompleted(const QString& managementToken);
 
 signals:
     void documentChanged();
