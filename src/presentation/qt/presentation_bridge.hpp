@@ -191,6 +191,8 @@ public:
     /** @brief Commits normalized profile or cast detail presentation data. */
     void applyDetail(QString view, QVariantMap detail, QString status, QString error, QString diagnostic,
         bool busy, bool stale, bool sourceUnavailable);
+    /** @brief Caches and applies whether a viewed profile follows the signed-in account. */
+    void applyProfileFollowsMe(qulonglong fid, bool followsMe);
     /** @brief Loads deterministic content for smoke and visual verification only. */
     void applyVerificationFixture();
 
@@ -256,6 +258,7 @@ private:
     QVariantMap m_viewerReactionSnapshot{};
     QVariantMap m_reactionOverrides{};
     QVariantMap m_followOverrides{};
+    QVariantMap m_followsMeSnapshot{};
     QHash<qulonglong, QVariantMap> m_profileDetailCache{};
     QHash<QString, QVariantList> m_profileListCache{};
     QHash<QString, QString> m_profileNextCache{};
