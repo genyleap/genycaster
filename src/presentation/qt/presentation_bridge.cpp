@@ -194,6 +194,20 @@ void applyFollowingOverrides(QVariantList& rows, const QVariantMap& overrides)
     }
 }
 
+void applyFollowsMeSnapshot(QVariantMap& map, const QVariantMap& snapshot)
+{
+    const qulonglong fid = map.value(QStringLiteral("fid")).toULongLong();
+    if (fid == 0U) {
+        return;
+    }
+    const QString key = QString::number(fid);
+    if (!snapshot.contains(key)) {
+        return;
+    }
+    map.insert(QStringLiteral("followsMe"), snapshot.value(key).toBool());
+    map.insert(QStringLiteral("followsMeKnown"), true);
+}
+
 }
 
 PresentationBridge::PresentationBridge(QObject* const parent)
@@ -1418,6 +1432,9 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
     applyViewerReactionSnapshotTo(m_detail, m_viewerReactionSnapshot);
     applyReactionOverrides(m_detail, m_reactionOverrides);
     applyFollowingOverride(m_detail, m_followOverrides);
+    if (m_activeView == QStringLiteral("profile")) {
+        applyFollowsMeSnapshot(m_detail, m_followsMeSnapshot);
+    }
     if (m_activeView == QStringLiteral("profile") && m_profileFid != 0) {
         m_profileDetailCache.insert(m_profileFid, m_detail);
     }
@@ -1429,6 +1446,36 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
     m_sourceUnavailable = sourceUnavailable;
     emit stateChanged();
 
+}
+
+
+void PresentationBridge::applyProfileFollowsMe(const qulonglong fid, const bool followsMe)
+{
+    if (fid == 0U) {
+        return;
+    }
+
+    const QString key = QString::number(fid);
+    m_followsMeSnapshot.insert(key, followsMe);
+
+    bool changed = false;
+    if (m_activeView == QStringLiteral("profile")
+        && m_detail.value(QStringLiteral("fid")).toULongLong() == fid) {
+        m_detail.insert(QStringLiteral("followsMe"), followsMe);
+        m_detail.insert(QStringLiteral("followsMeKnown"), true);
+        changed = true;
+    }
+
+    if (m_profileDetailCache.contains(fid)) {
+        QVariantMap cached = m_profileDetailCache.value(fid);
+        cached.insert(QStringLiteral("followsMe"), followsMe);
+        cached.insert(QStringLiteral("followsMeKnown"), true);
+        m_profileDetailCache.insert(fid, std::move(cached));
+    }
+
+    if (changed) {
+        emit stateChanged();
+    }
 }
 
 void PresentationBridge::applyVerificationFixture()
