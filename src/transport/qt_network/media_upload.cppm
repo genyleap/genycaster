@@ -5,6 +5,7 @@ module;
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 
 export module farcaster.transport.qtnetwork.media;
 
@@ -34,6 +35,18 @@ struct Config final {
  */
 [[nodiscard]] foundation::result::Result<std::unique_ptr<capability::media::IMediaUploadGateway>>
 makeGateway(
+    capability::write::IWriteAuthority& authority,
+    ProxyPolicy proxyPolicy = ProxyPolicy::System,
+    Config config = {});
+
+/**
+ * @brief Creates the Qt Network implementation of managed-media deletion.
+ *
+ * The adapter sends only an opaque lifecycle token to the Genyleap gateway;
+ * QStorage keys and credentials remain server-side.
+ */
+[[nodiscard]] foundation::result::Result<std::unique_ptr<capability::media::IMediaAssetLifecycleGateway>>
+makeLifecycleGateway(
     capability::write::IWriteAuthority& authority,
     ProxyPolicy proxyPolicy = ProxyPolicy::System,
     Config config = {});
