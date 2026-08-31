@@ -61,7 +61,7 @@ public:
     /** @brief Applies native lifecycle progress on the Qt main thread. */
     void applyProgress(QString phase, qulonglong transferred, qulonglong total);
     /** @brief Completes the upload and emits the stable public asset URL for the rich composer. */
-    void applyCompleted(QString assetUrl, QString contentType, QString fileName, qulonglong sizeBytes);
+    void applyCompleted(QString assetUrl, QString contentType, QString fileName, QString managementToken, qulonglong sizeBytes);
     /** @brief Applies a localized user-visible upload failure. */
     void applyFailed(QString message);
     /** @brief Applies cooperative cancellation completion. */
@@ -74,7 +74,7 @@ signals:
     /** @brief Requests cancellation of the native in-flight upload. */
     void cancelRequested();
     /** @brief Delivers a verified stable media URL to the rich composer. */
-    void assetReady(QString url, QString mediaType, int afterIndex);
+    void assetReady(QString url, QString mediaType, QString managementToken, int afterIndex);
 
 private:
     void resetProgress();
