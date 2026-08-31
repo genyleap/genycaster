@@ -125,9 +125,10 @@ foundation::result::Result<UploadHandle> MediaUploadService::start(
             }
             observer(UploadState{
                 .phase = UploadPhase::Completed,
-                .transferred = result->sizeBytes,
-                .total = result->sizeBytes,
-                .asset = std::move(*result),
+                .transferred = result->asset.sizeBytes,
+                .total = result->asset.sizeBytes,
+                .asset = std::move(result->asset),
+                .managementToken = std::move(result->managementToken),
             });
         });
     if (!status) {
