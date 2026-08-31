@@ -551,6 +551,22 @@ using ManagedAssets = QHash<QString, QString>;
     return result;
 }
 
+void eraseMediaUrl(RichCastDocument& document, const QString& url)
+{
+    const std::string canonicalUrl = url.toUtf8().toStdString();
+    std::erase_if(document.blocks, [&canonicalUrl](const RichBlock& block) {
+        const auto* media = std::get_if<farcaster::domain::rich::MediaBlock>(&block.payload);
+        return media != nullptr && media->url == canonicalUrl;
+    });
+    if (document.blocks.empty()) {
+        document.blocks.push_back(RichBlock{
+            .id = farcaster::domain::rich::makeBlockId(1U, "paragraph"),
+            .kind = BlockKind::Paragraph,
+            .payload = TextBlock{},
+        });
+    }
+}
+
 [[nodiscard]] QStringList pendingCleanupTokens(QSettings& settings)
 {
     QStringList result{};
@@ -1064,13 +1080,57 @@ bool RichComposerController::addCodeBlock(const QString& language)
 }
 bool RichComposerController::removeBlock(const int index)
 {
-    if (index < 0 || static_cast<std::size_t>(index) >= m_impl->document.blocks.size()) return false;
+    if (index < 0 || static_cast<std::size_t>(index) >= m_impl->document.blocks.size()) {
+        return false;
+    }
+
+    QString managedUrl{};
+    QString managementToken{};
+    const auto& removedBlock = m_impl->document.blocks[static_cast<std::size_t>(index)];
+    if (const auto* media = std::get_if<farcaster::domain::rich::MediaBlock>(&removedBlock.payload)) {
+        managedUrl = QString::fromUtf8(media->url).trimmed();
+        managementToken = m_impl->managedAssets.value(managedUrl).trimmed();
+    }
+
     m_impl->pushHistory();
     m_impl->document.blocks.erase(m_impl->document.blocks.begin() + index);
     if (m_impl->document.blocks.empty()) {
-        m_impl->document.blocks.push_back(RichBlock{.id = farcaster::domain::rich::makeBlockId(m_impl->revision + 1U, "paragraph"), .kind = BlockKind::Paragraph, .payload = TextBlock{}});
+        m_impl->document.blocks.push_back(RichBlock{
+            .id = farcaster::domain::rich::makeBlockId(m_impl->revision + 1U, "paragraph"),
+            .kind = BlockKind::Paragraph,
+            .payload = TextBlock{},
+        });
     }
-    m_impl->syncMarkdownFromDocument(); m_impl->rebuild(); m_impl->markDirty();
+
+    const bool releasedManagedAsset =
+        !managedUrl.isEmpty() && !managementToken.isEmpty() &&
+        !mediaUrls(m_impl->document).contains(managedUrl);
+    bool cleanupQueued = false;
+    if (releasedManagedAsset) {
+        m_impl->managedAssets.remove(managedUrl);
+        for (auto& snapshot : m_impl->undoStack) {
+            eraseMediaUrl(snapshot, managedUrl);
+        }
+        for (auto& snapshot : m_impl->redoStack) {
+            eraseMediaUrl(snapshot, managedUrl);
+        }
+        if (!tokenReferencedByPublishedCast(m_impl->settings, managementToken)) {
+            queueCleanupToken(m_impl->settings, managementToken);
+            cleanupQueued = true;
+        }
+    }
+
+    m_impl->syncMarkdownFromDocument();
+    m_impl->rebuild();
+    m_impl->markDirty();
+    if (releasedManagedAsset) {
+        // Persist the updated draft and cleanup intent before the asynchronous
+        // gateway delete can run, so a crash cannot restore a now-deleted URL.
+        m_impl->saveDraft(false);
+    }
+    if (cleanupQueued) {
+        emit managedAssetCleanupRequested();
+    }
     return true;
 }
 bool RichComposerController::duplicateBlock(const int index)
