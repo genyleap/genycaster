@@ -55,8 +55,9 @@ public:
     NativeSyntaxDocumentHighlighter(
         QTextDocument* document,
         farcaster::application::syntax::SyntaxHighlighter& engine)
-        : QSyntaxHighlighter(document), engine(engine)
+        : QSyntaxHighlighter(static_cast<QObject*>(nullptr)), engine(engine)
     {
+        setDocument(document);
     }
 
     void configure(const QString& language, const QVariantMap& semanticPalette)
