@@ -27,6 +27,7 @@ DeploymentEndpoints configuredDeploymentEndpoints() noexcept
         .siwfDomain = "@FARCASTER_DEFAULT_SIWF_DOMAIN@",
         .siwfUri = "@FARCASTER_DEFAULT_SIWF_URI@",
         .snapchainBaseUrl = "@FARCASTER_DEFAULT_SNAPCHAIN_BASE_URL@",
+        .mediaGatewayBaseUrl = "@FARCASTER_DEFAULT_MEDIA_GATEWAY_BASE_URL@",
     };
 }
 
