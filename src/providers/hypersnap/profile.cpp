@@ -22,6 +22,7 @@ constexpr std::string_view pfpUserDataType{"1"};
 constexpr std::string_view displayUserDataType{"2"};
 constexpr std::string_view bioUserDataType{"3"};
 constexpr std::string_view urlUserDataType{"5"};
+constexpr std::string_view usernameUserDataType{"6"};
 constexpr std::string_view locationUserDataType{"7"};
 constexpr std::string_view currentBannerUserDataType{"11"};
 constexpr std::string_view legacyBannerUserDataType{"10"};
@@ -127,6 +128,15 @@ ProfileSource::get(const domain::identity::Fid fid)
     }
     if (!profile->profileUrl) {
         profile->profileUrl = findValue(*entries, urlUserDataType, "USER_DATA_TYPE_URL");
+    }
+    if (!profile->username || profile->username->value.starts_with("fid:")) {
+        auto username = findValue(*entries, usernameUserDataType, "USER_DATA_TYPE_USERNAME");
+        if (!username) {
+            username = findValue(*entries, usernameUserDataType, "USER_DATA_TYPE_FNAME");
+        }
+        if (username && !username->empty()) {
+            profile->username = domain::identity::Username{std::move(*username)};
+        }
     }
     if (!profile->location) {
         profile->location = findValue(*entries, locationUserDataType, "USER_DATA_TYPE_LOCATION");
