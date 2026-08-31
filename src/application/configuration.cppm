@@ -40,14 +40,17 @@ struct DeploymentEndpoints final {
     std::string_view siwfDomain{};
     std::string_view siwfUri{};
     std::string_view snapchainBaseUrl{};
+    std::string_view mediaGatewayBaseUrl{};
 };
 
 /**
  * @brief Canonical public product identity used for client attribution.
  *
- * The FID is public metadata only. The custody secret for this FID must never
- * ship in the desktop client; production signer attestation remains a backend
- * responsibility.
+ * The FID is public metadata only. Farcaster resolves the externally displayed
+ * client identity from this FID's Farcaster profile; appName is only a local
+ * product label and cannot override protocol attribution. The custody secret
+ * for this FID must never ship in the desktop client; production signer
+ * attestation remains a backend responsibility.
  */
 struct DeploymentIdentity final {
     std::uint64_t appFid{};
