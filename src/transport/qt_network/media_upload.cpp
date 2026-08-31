@@ -31,6 +31,7 @@ module;
 #include <limits>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -401,7 +402,7 @@ public:
     {
     }
 
-    [[nodiscard]] foundation::result::Result<domain::media::Asset> upload(
+    [[nodiscard]] foundation::result::Result<capability::media::ManagedAsset> upload(
         const domain::identity::Fid fid,
         const std::filesystem::path& localPath,
         capability::media::ProgressObserver progress,
@@ -655,21 +656,91 @@ public:
         const QString finalAssetUrl = completion->value(QStringLiteral("assetUrl")).toString(assetUrlText);
         const QString finalContentType = completion->value(QStringLiteral("contentType")).toString(contentType);
         const QString finalFileName = completion->value(QStringLiteral("fileName")).toString(info.fileName());
+        const QString managementToken = completion->value(QStringLiteral("managementToken")).toString().trimmed();
         const auto finalSize = static_cast<std::uint64_t>(
             completion->value(QStringLiteral("sizeBytes")).toDouble(static_cast<double>(sizeBytes)));
-        if (!validHttpUrl(finalAssetUrl) || finalSize != sizeBytes) {
+        if (!validHttpUrl(finalAssetUrl) || finalSize != sizeBytes || managementToken.isEmpty()) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::ProtocolFailure,
                 "Media gateway completion response did not match the uploaded file."));
         }
 
-        return domain::media::Asset{
-            .url = toString(finalAssetUrl),
-            .contentType = toString(finalContentType),
-            .fileName = toString(finalFileName),
-            .sizeBytes = finalSize,
-            .kind = image ? domain::media::Kind::Image : domain::media::Kind::Video,
+        return capability::media::ManagedAsset{
+            .asset = domain::media::Asset{
+                .url = toString(finalAssetUrl),
+                .contentType = toString(finalContentType),
+                .fileName = toString(finalFileName),
+                .sizeBytes = finalSize,
+                .kind = image ? domain::media::Kind::Image : domain::media::Kind::Video,
+            },
+            .managementToken = toString(managementToken),
         };
+    }
+
+private:
+    capability::write::IWriteAuthority& m_authority;
+    ProxyPolicy m_proxyPolicy{ProxyPolicy::System};
+    Config m_config{};
+    QUrl m_baseUrl{};
+};
+
+class QtMediaAssetLifecycleGateway final : public capability::media::IMediaAssetLifecycleGateway {
+public:
+    QtMediaAssetLifecycleGateway(
+        capability::write::IWriteAuthority& authority,
+        const ProxyPolicy proxyPolicy,
+        Config config,
+        QUrl baseUrl) noexcept
+        : m_authority{authority},
+          m_proxyPolicy{proxyPolicy},
+          m_config{std::move(config)},
+          m_baseUrl{std::move(baseUrl)}
+    {
+    }
+
+    [[nodiscard]] foundation::result::Status remove(
+        const domain::identity::Fid fid,
+        const std::string_view managementToken) override
+    {
+        if (QCoreApplication::instance() == nullptr) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::TransportFailure,
+                "Managed media cleanup requires an active QCoreApplication."));
+        }
+        if (managementToken.empty()) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Managed media cleanup requires an asset management token."));
+        }
+
+        const QJsonObject deleteObject{
+            {QStringLiteral("managementToken"),
+             QString::fromUtf8(managementToken.data(), static_cast<qsizetype>(managementToken.size()))},
+        };
+        const QByteArray deleteBody = jsonBody(deleteObject);
+        const QString deletePath = QStringLiteral("/v1/assets");
+        auto headers = authorizationHeaders(
+            m_authority, fid, QByteArrayLiteral("DELETE"), deletePath, deleteBody);
+        if (!headers) {
+            return std::unexpected(std::move(headers.error()));
+        }
+
+        QNetworkAccessManager& manager = networkManagerFor(m_proxyPolicy);
+        auto deleted = performRequest(
+            manager,
+            QByteArrayLiteral("DELETE"),
+            endpointUrl(m_baseUrl, deletePath),
+            *headers,
+            deleteBody,
+            m_config.requestTimeout,
+            m_config.maxResponseBytes,
+            {},
+            {},
+            0U);
+        if (!deleted) {
+            return std::unexpected(std::move(deleted.error()));
+        }
+        return {};
     }
 
 private:
@@ -700,6 +771,28 @@ makeGateway(
     }
     std::unique_ptr<capability::media::IMediaUploadGateway> gateway =
         std::make_unique<QtMediaUploadGateway>(authority, proxyPolicy, std::move(config), std::move(*baseUrl));
+    return gateway;
+}
+
+foundation::result::Result<std::unique_ptr<capability::media::IMediaAssetLifecycleGateway>>
+makeLifecycleGateway(
+    capability::write::IWriteAuthority& authority,
+    const ProxyPolicy proxyPolicy,
+    Config config)
+{
+    auto baseUrl = normalizedBaseUrl(config.baseUrl);
+    if (!baseUrl) {
+        return std::unexpected(std::move(baseUrl.error()));
+    }
+    if (config.requestTimeout <= std::chrono::milliseconds::zero() ||
+        config.maxResponseBytes == 0U) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Media gateway request timeout and response limit must be positive."));
+    }
+    std::unique_ptr<capability::media::IMediaAssetLifecycleGateway> gateway =
+        std::make_unique<QtMediaAssetLifecycleGateway>(
+            authority, proxyPolicy, std::move(config), std::move(*baseUrl));
     return gateway;
 }
 
