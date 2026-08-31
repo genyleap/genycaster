@@ -129,6 +129,37 @@ namespace {
             foundation::error::ErrorCode::InvalidArgument,
             "Signer authorization lifetime must be positive."));
     }
+    if (policy.requestFid && policy.requestFid->value == 0U) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Signer request FID must be non-zero when configured."));
+    }
+    if (policy.requireExternalAppAttribution && !policy.requestFid) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "External client attribution requires a configured App FID."));
+    }
+    return {};
+}
+
+[[nodiscard]] foundation::result::Status validateAttributionForSession(
+    const SignerPolicy& policy,
+    const domain::identity::Fid viewerFid)
+{
+    if (!policy.requireExternalAppAttribution) {
+        return {};
+    }
+    if (!policy.requestFid || policy.requestFid->value == 0U) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "External client attribution requires a configured App FID."));
+    }
+    if (policy.requestFid->value == viewerFid.value) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Configured Genycaster App FID resolves to the signed-in user FID. "
+            "Refusing self-attribution because Farcaster would label casts as sent from the user instead of Genycaster."));
+    }
     return {};
 }
 
@@ -210,6 +241,20 @@ foundation::result::Status SignerService::restore(
                 m_impl->nativeSigner.reset();
                 m_impl->current = SignerState{.phase = SignerPhase::SignedOut,
                     .requiredScopes = m_impl->policy.scopes};
+                observer(m_impl->current);
+                return;
+            }
+            if (auto valid = validatePolicy(m_impl->policy); !valid) {
+                m_impl->nativeSigner.reset();
+                m_impl->current = SignerState{.phase = SignerPhase::Failed,
+                    .requiredScopes = m_impl->policy.scopes, .error = std::move(valid.error())};
+                observer(m_impl->current);
+                return;
+            }
+            if (auto valid = validateAttributionForSession(m_impl->policy, session->fid); !valid) {
+                m_impl->nativeSigner.reset();
+                m_impl->current = SignerState{.phase = SignerPhase::Failed,
+                    .requiredScopes = m_impl->policy.scopes, .error = std::move(valid.error())};
                 observer(m_impl->current);
                 return;
             }
@@ -319,6 +364,12 @@ foundation::result::Status SignerService::provision(
                 return;
             }
             if (auto valid = validatePolicy(m_impl->policy); !valid) {
+                m_impl->current = SignerState{.phase = SignerPhase::Failed,
+                    .requiredScopes = m_impl->policy.scopes, .error = std::move(valid.error())};
+                observer(m_impl->current);
+                return;
+            }
+            if (auto valid = validateAttributionForSession(m_impl->policy, session->fid); !valid) {
                 m_impl->current = SignerState{.phase = SignerPhase::Failed,
                     .requiredScopes = m_impl->policy.scopes, .error = std::move(valid.error())};
                 observer(m_impl->current);
