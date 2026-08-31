@@ -136,6 +136,8 @@ signals:
     void documentChanged();
     void historyChanged();
     void saveStateChanged();
+    /** @brief Requests immediate processing of newly queued managed-media cleanup. */
+    void managedAssetCleanupRequested();
 
 private:
     class Impl;
