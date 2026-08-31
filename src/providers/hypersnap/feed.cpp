@@ -28,7 +28,7 @@ namespace farcaster::provider::hypersnap::feed {
 namespace {
 
 constexpr std::chrono::milliseconds followingRequestTimeout{10'000};
-constexpr std::chrono::milliseconds discoveryRequestTimeout{12'000};
+constexpr std::chrono::milliseconds discoveryRequestTimeout{6'000};
 constexpr std::chrono::milliseconds profileFeedRequestTimeout{10'000};
 constexpr std::chrono::milliseconds viewerReactionRequestTimeout{7'500};
 
