@@ -6,6 +6,7 @@ module;
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 
 export module farcaster.application.media.upload;
 
@@ -36,6 +37,7 @@ struct UploadState final {
     std::uint64_t transferred{};
     std::uint64_t total{};
     std::optional<domain::media::Asset> asset{};
+    std::string managementToken{};
     std::optional<foundation::error::Error> error{};
 };
 
