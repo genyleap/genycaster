@@ -117,3 +117,30 @@ target_link_libraries(farcaster_application_write
 target_compile_features(farcaster_application_write PUBLIC cxx_std_26)
 set_property(TARGET farcaster_application_write PROPERTY CXX_SCAN_FOR_MODULES ON)
 farcaster_enable_warnings(farcaster_application_write)
+
+
+if(FARCASTER_ENABLE_MEDIA_UPLOAD)
+    # Media upload is an optional application capability. The core service owns
+    # scheduling/session policy only; filesystem/network/storage behavior remains
+    # behind capability.media and concrete outer adapters.
+    add_library(farcaster_application_media)
+    add_library(farcaster::application_media ALIAS farcaster_application_media)
+    target_sources(farcaster_application_media
+        PUBLIC
+            FILE_SET CXX_MODULES
+            FILES
+                media_upload.cppm
+        PRIVATE
+            media_upload.cpp
+    )
+    target_link_libraries(farcaster_application_media
+        PUBLIC
+            farcaster::application_executor
+            farcaster::foundation
+            farcaster::domain
+            farcaster::capabilities
+    )
+    target_compile_features(farcaster_application_media PUBLIC cxx_std_26)
+    set_property(TARGET farcaster_application_media PROPERTY CXX_SCAN_FOR_MODULES ON)
+    farcaster_enable_warnings(farcaster_application_media)
+endif()
