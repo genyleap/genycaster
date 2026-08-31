@@ -1129,7 +1129,9 @@ void PresentationBridge::applyWriteState(
     const QString operationKind = presentationMutation.value(QStringLiteral("operationKind")).toString();
     const QString castId = presentationMutation.value(QStringLiteral("castId")).toString();
     if (operationKind == QStringLiteral("publish-cast") && !castId.isEmpty()) {
-        m_lastPublishedCastId = castId;
+        if (m_writePhase == QStringLiteral("confirmed")) {
+            m_lastPublishedCastId = castId;
+        }
         bool replaced = false;
         for (qsizetype index = 0; index < m_writeRows.size(); ++index) {
             if (m_writeRows[index].toMap().value(QStringLiteral("castId")).toString() == castId) {
