@@ -161,6 +161,7 @@ void MediaUploadController::applyCompleted(
     QString assetUrl,
     QString contentType,
     QString fileName,
+    QString managementToken,
     const qulonglong sizeBytes)
 {
     if (!m_busy) {
@@ -178,7 +179,7 @@ void MediaUploadController::applyCompleted(
         m_fileName = std::move(fileName);
     }
     emit stateChanged();
-    emit assetReady(std::move(assetUrl), std::move(contentType), afterIndex);
+    emit assetReady(std::move(assetUrl), std::move(contentType), std::move(managementToken), afterIndex);
 }
 
 void MediaUploadController::applyFailed(QString message)
