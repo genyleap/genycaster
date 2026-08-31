@@ -130,8 +130,10 @@ if(FARCASTER_ENABLE_MEDIA_UPLOAD)
             FILE_SET CXX_MODULES
             FILES
                 media_upload.cppm
+                media_lifecycle.cppm
         PRIVATE
             media_upload.cpp
+            media_lifecycle.cpp
     )
     target_link_libraries(farcaster_application_media
         PUBLIC
