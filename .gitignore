@@ -7,6 +7,8 @@
 /CMakeCache.txt
 /cmake_install.cmake
 /Testing/
+/docs/
+/tests/
 
 # CMake generated files
 compile_commands.json
@@ -53,6 +55,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Tooling
+.qtcreator/*
 .cache/
 .ccls-cache/
 .clangd/
@@ -73,7 +76,7 @@ logs/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
-/apps/tegra-demo/media/
+/apps/genycaster-demo/media/
 
 # Environment / secrets
 .env
