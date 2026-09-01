@@ -84,9 +84,12 @@ bool MediaUploadController::beginUpload(const QUrl& localFile, const int afterIn
         suffix == QStringLiteral("png") || suffix == QStringLiteral("webp") ||
         suffix == QStringLiteral("gif") || suffix == QStringLiteral("avif");
     m_localPath = localPath;
+    const QFileInfo fileInfo{localPath};
     m_fileName = localFile.fileName();
     m_afterIndex = afterIndex;
     resetProgress();
+    const qint64 localSize = fileInfo.size();
+    m_totalBytes = localSize > 0 ? static_cast<qulonglong>(localSize) : 0U;
     emit stateChanged();
     emit uploadRequested(m_localPath, m_afterIndex);
     return true;
