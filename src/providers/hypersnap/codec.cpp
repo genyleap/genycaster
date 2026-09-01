@@ -3,6 +3,7 @@ module;
 #include <boost/json.hpp>
 
 #include <chrono>
+#include <cmath>
 #include <cctype>
 #include <cstddef>
 #include <cstdint>
@@ -100,6 +101,26 @@ using JsonValue = boost::json::value;
     }
     if (value->is_int64() && value->as_int64() >= 0) {
         return static_cast<std::uint64_t>(value->as_int64());
+    }
+    return std::nullopt;
+}
+
+[[nodiscard]] std::optional<double> optionalDouble(
+    const JsonObject& object,
+    const std::string_view key)
+{
+    const JsonValue* value = findValue(object, key);
+    if (value == nullptr || value->is_null()) {
+        return std::nullopt;
+    }
+    if (value->is_double()) {
+        return value->as_double();
+    }
+    if (value->is_int64()) {
+        return static_cast<double>(value->as_int64());
+    }
+    if (value->is_uint64()) {
+        return static_cast<double>(value->as_uint64());
     }
     return std::nullopt;
 }
@@ -276,6 +297,20 @@ mapProfile(const JsonObject& user)
     }
     if (auto following = optionalUnsigned(user, "following_count")) {
         profile.followingCount = *following;
+    }
+
+    // Neynar-compatible user payloads expose account quality as either `score`
+    // or the legacy experimental.neynar_user_score field. Keep the canonical
+    // domain field provider-neutral and accept only the documented [0, 1] range.
+    std::optional<double> qualityScore = optionalDouble(user, "score");
+    if (!qualityScore) {
+        if (const JsonValue* experimental = findValue(user, "experimental");
+            experimental != nullptr && experimental->is_object()) {
+            qualityScore = optionalDouble(experimental->as_object(), "neynar_user_score");
+        }
+    }
+    if (qualityScore && std::isfinite(*qualityScore) && *qualityScore >= 0.0 && *qualityScore <= 1.0) {
+        profile.qualityScore = *qualityScore;
     }
 
     if (const JsonValue* profileValue = findValue(user, "profile");
