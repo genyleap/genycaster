@@ -25,6 +25,8 @@ struct Profile final {
     std::optional<std::string> custodyAddress{};
     std::uint64_t followerCount{};
     std::uint64_t followingCount{};
+    /** @brief Provider-derived account quality score normalized to [0, 1], when available. */
+    std::optional<double> qualityScore{};
 };
 
 }
