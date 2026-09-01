@@ -98,8 +98,8 @@ foundation::result::Status SqliteEntityStore::putProfile(const domain::profile::
     auto prepared = sqlite::Statement::prepare(m_impl->connection, R"SQL(
 INSERT INTO profiles(
     fid, username, display_name, bio, avatar_url, banner_url, location, profile_url, custody_address,
-    follower_count, following_count)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    follower_count, following_count, quality_score)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(fid) DO UPDATE SET
     username = excluded.username,
     display_name = excluded.display_name,
@@ -110,7 +110,8 @@ ON CONFLICT(fid) DO UPDATE SET
     profile_url = excluded.profile_url,
     custody_address = excluded.custody_address,
     follower_count = excluded.follower_count,
-    following_count = excluded.following_count;
+    following_count = excluded.following_count,
+    quality_score = excluded.quality_score;
 )SQL");
     if (!prepared) {
         return std::unexpected(toFoundationError(std::move(prepared.error())));
@@ -157,6 +158,13 @@ ON CONFLICT(fid) DO UPDATE SET
         return std::unexpected(toFoundationError(sqlite::makeError(
             m_impl->connection.native(), "Failed to bind profile social counts")));
     }
+    const int qualityStatus = profile.qualityScore
+        ? sqlite3_bind_double(statement.native(), 12, *profile.qualityScore)
+        : sqlite3_bind_null(statement.native(), 12);
+    if (qualityStatus != SQLITE_OK) {
+        return std::unexpected(toFoundationError(sqlite::makeError(
+            m_impl->connection.native(), "Failed to bind profile quality score")));
+    }
     if (auto status = sqlite::stepDone(m_impl->connection, statement); !status) {
         return std::unexpected(toFoundationError(std::move(status.error())));
     }
@@ -170,7 +178,7 @@ SqliteEntityStore::findProfile(const domain::identity::Fid fid)
     auto prepared = sqlite::Statement::prepare(
         m_impl->connection,
         "SELECT username, display_name, bio, avatar_url, banner_url, location, profile_url, custody_address, "
-        "follower_count, following_count FROM profiles WHERE fid = ?;");
+        "follower_count, following_count, quality_score FROM profiles WHERE fid = ?;");
     if (!prepared) {
         return std::unexpected(toFoundationError(std::move(prepared.error())));
     }
@@ -205,6 +213,9 @@ SqliteEntityStore::findProfile(const domain::identity::Fid fid)
     profile.custodyAddress = sqlite::optionalColumnText(statement.native(), 7);
     profile.followerCount = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 8));
     profile.followingCount = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 9));
+    if (sqlite3_column_type(statement.native(), 10) != SQLITE_NULL) {
+        profile.qualityScore = sqlite3_column_double(statement.native(), 10);
+    }
     return std::optional<domain::profile::Profile>{std::move(profile)};
 }
 
@@ -215,7 +226,7 @@ SqliteEntityStore::findProfileByUsername(const std::string_view username)
     auto prepared = sqlite::Statement::prepare(
         m_impl->connection,
         "SELECT fid, username, display_name, bio, avatar_url, banner_url, location, profile_url, custody_address, "
-        "follower_count, following_count "
+        "follower_count, following_count, quality_score "
         "FROM profiles WHERE username = ? COLLATE NOCASE LIMIT 1;");
     if (!prepared) {
         return std::unexpected(toFoundationError(std::move(prepared.error())));
@@ -249,6 +260,9 @@ SqliteEntityStore::findProfileByUsername(const std::string_view username)
     profile.custodyAddress = sqlite::optionalColumnText(statement.native(), 8);
     profile.followerCount = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 9));
     profile.followingCount = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 10));
+    if (sqlite3_column_type(statement.native(), 11) != SQLITE_NULL) {
+        profile.qualityScore = sqlite3_column_double(statement.native(), 11);
+    }
     return std::optional<domain::profile::Profile>{std::move(profile)};
 }
 
