@@ -432,13 +432,39 @@ public:
         }
         const auto sizeBytes = static_cast<std::uint64_t>(signedSize);
         QMimeDatabase mimeDatabase{};
-        const QString contentType = mimeDatabase.mimeTypeForFile(info, QMimeDatabase::MatchContent).name();
-        const bool image = contentType.startsWith(QStringLiteral("image/"));
-        const bool video = contentType.startsWith(QStringLiteral("video/"));
+        // MatchDefault intentionally considers the filename before falling back to content
+        // sniffing. MatchContent alone misclassifies valid ISO-BMFF/QuickTime media as
+        // application/octet-stream on some platform MIME databases, which caused valid
+        // .mp4/.mov selections to fail before the gateway request.
+        QString contentType = mimeDatabase.mimeTypeForFile(info, QMimeDatabase::MatchDefault).name().toLower();
+        const QString suffix = info.suffix().toLower();
+        const auto canonicalFromSuffix = [&suffix]() -> QString {
+            if (suffix == QStringLiteral("jpg") || suffix == QStringLiteral("jpeg")) return QStringLiteral("image/jpeg");
+            if (suffix == QStringLiteral("png")) return QStringLiteral("image/png");
+            if (suffix == QStringLiteral("webp")) return QStringLiteral("image/webp");
+            if (suffix == QStringLiteral("gif")) return QStringLiteral("image/gif");
+            if (suffix == QStringLiteral("avif")) return QStringLiteral("image/avif");
+            if (suffix == QStringLiteral("mp4")) return QStringLiteral("video/mp4");
+            if (suffix == QStringLiteral("webm")) return QStringLiteral("video/webm");
+            if (suffix == QStringLiteral("mov")) return QStringLiteral("video/quicktime");
+            return {};
+        }();
+        const bool detectedDefault = contentType == QStringLiteral("application/octet-stream");
+        if (detectedDefault && !canonicalFromSuffix.isEmpty()) {
+            contentType = canonicalFromSuffix;
+        }
+        const bool image = contentType == QStringLiteral("image/jpeg") ||
+            contentType == QStringLiteral("image/png") ||
+            contentType == QStringLiteral("image/webp") ||
+            contentType == QStringLiteral("image/gif") ||
+            contentType == QStringLiteral("image/avif");
+        const bool video = contentType == QStringLiteral("video/mp4") ||
+            contentType == QStringLiteral("video/webm") ||
+            contentType == QStringLiteral("video/quicktime");
         if (!image && !video) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::InvalidArgument,
-                "Genycaster media upload accepts image and video files only."));
+                "Genycaster media upload accepts JPG, PNG, WebP, GIF, AVIF, MP4, WebM, and MOV media only."));
         }
         if ((image && sizeBytes > m_config.maxImageBytes) ||
             (video && sizeBytes > m_config.maxVideoBytes)) {
