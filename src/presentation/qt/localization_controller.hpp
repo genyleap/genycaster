@@ -5,6 +5,7 @@
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
+#include <QVariantMap>
 
 #include <memory>
 
@@ -140,6 +141,12 @@ public:
     Q_INVOKABLE QString formatInteger(qint64 value) const;
     /** @brief Formats a large count using translated compact units and regional digits. */
     Q_INVOKABLE QString formatCompactNumber(double value) const;
+    /**
+     * @brief Builds a locale/calendar-aware six-week month model for QML calendars.
+     * @param monthOffset Relative month offset from the current date in the selected calendar.
+     * @return Title, weekday labels and canonical day cells for the active calendar system.
+     */
+    Q_INVOKABLE QVariantMap calendarMonthModel(int monthOffset = 0) const;
     /** @brief Formats an epoch-millisecond timestamp according to the selected display policy. */
     Q_INVOKABLE QString formatTimestamp(
         qint64 epochMilliseconds, const QString& style = QStringLiteral("short")) const;
