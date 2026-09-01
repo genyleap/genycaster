@@ -1,8 +1,47 @@
 #include "media_upload_controller.hpp"
 
 #include <algorithm>
+#include <array>
+#include <memory>
 #include <QFileInfo>
+#include <QStringView>
 #include <utility>
+
+namespace {
+
+struct SupportedMedia final {
+    QStringView extension;
+    QStringView contentType;
+    QStringView previewKind;
+};
+
+constexpr std::array SupportedMediaTypes{
+    SupportedMedia{u"jpg", u"image/jpeg", u"image"},
+    SupportedMedia{u"jpeg", u"image/jpeg", u"image"},
+    SupportedMedia{u"png", u"image/png", u"image"},
+    SupportedMedia{u"webp", u"image/webp", u"image"},
+    SupportedMedia{u"gif", u"image/gif", u"image"},
+    SupportedMedia{u"avif", u"image/avif", u"image"},
+    SupportedMedia{u"mp4", u"video/mp4", u"video"},
+    SupportedMedia{u"webm", u"video/webm", u"video"},
+    SupportedMedia{u"mov", u"video/quicktime", u"video"},
+};
+
+[[nodiscard]] const SupportedMedia* supportedMediaFor(const QFileInfo& fileInfo) noexcept
+{
+    const QString suffix = fileInfo.suffix().toLower();
+    const auto iterator = std::ranges::find_if(
+        SupportedMediaTypes,
+        [&suffix](const SupportedMedia& candidate) { return candidate.extension == suffix; });
+    return iterator == SupportedMediaTypes.end() ? nullptr : std::addressof(*iterator);
+}
+
+[[nodiscard]] QString unsupportedMediaMessage()
+{
+    return qtTrId("genycaster.media.unsupported_file_type");
+}
+
+} // namespace
 
 MediaUploadController::MediaUploadController(QObject* parent)
     : QObject{parent}
@@ -49,9 +88,14 @@ QUrl MediaUploadController::localPreviewUrl() const
     return m_localPreviewUrl;
 }
 
-bool MediaUploadController::imagePreview() const noexcept
+QString MediaUploadController::previewKind() const
 {
-    return m_imagePreview;
+    return m_previewKind;
+}
+
+QString MediaUploadController::selectedContentType() const
+{
+    return m_selectedContentType;
 }
 
 qulonglong MediaUploadController::transferredBytes() const noexcept
@@ -69,8 +113,38 @@ bool MediaUploadController::beginUpload(const QUrl& localFile, const int afterIn
     if (!m_available || m_busy || !localFile.isValid() || !localFile.isLocalFile()) {
         return false;
     }
+
     const QString localPath = localFile.toLocalFile();
-    if (localPath.trimmed().isEmpty()) {
+    const QFileInfo fileInfo{localPath};
+    if (localPath.trimmed().isEmpty() || !fileInfo.exists() || !fileInfo.isFile() || !fileInfo.isReadable()) {
+        m_busy = false;
+        m_canRetry = false;
+        m_phase = QStringLiteral("failed");
+        m_errorText = qtTrId("genycaster.media.file_unreadable");
+        m_fileName = localFile.fileName();
+        m_localPreviewUrl.clear();
+        m_previewKind.clear();
+        m_selectedContentType.clear();
+        m_localPath.clear();
+        resetProgress();
+        emit stateChanged();
+        return false;
+    }
+
+    const SupportedMedia* media = supportedMediaFor(fileInfo);
+    if (media == nullptr) {
+        m_busy = false;
+        m_canRetry = false;
+        m_phase = QStringLiteral("failed");
+        m_errorText = unsupportedMediaMessage();
+        m_fileName = fileInfo.fileName();
+        m_localPreviewUrl.clear();
+        m_previewKind.clear();
+        m_selectedContentType.clear();
+        m_localPath.clear();
+        m_afterIndex = afterIndex;
+        resetProgress();
+        emit stateChanged();
         return false;
     }
 
@@ -79,13 +153,10 @@ bool MediaUploadController::beginUpload(const QUrl& localFile, const int afterIn
     m_errorText.clear();
     m_phase = QStringLiteral("queued");
     m_localPreviewUrl = localFile;
-    const QString suffix = QFileInfo{localPath}.suffix().toLower();
-    m_imagePreview = suffix == QStringLiteral("jpg") || suffix == QStringLiteral("jpeg") ||
-        suffix == QStringLiteral("png") || suffix == QStringLiteral("webp") ||
-        suffix == QStringLiteral("gif") || suffix == QStringLiteral("avif");
+    m_previewKind = media->previewKind.toString();
+    m_selectedContentType = media->contentType.toString();
     m_localPath = localPath;
-    const QFileInfo fileInfo{localPath};
-    m_fileName = localFile.fileName();
+    m_fileName = fileInfo.fileName();
     m_afterIndex = afterIndex;
     resetProgress();
     const qint64 localSize = fileInfo.size();
@@ -121,11 +192,7 @@ void MediaUploadController::clear()
     m_canRetry = false;
     m_errorText.clear();
     m_phase.clear();
-    m_fileName.clear();
-    m_localPreviewUrl.clear();
-    m_imagePreview = false;
-    m_localPath.clear();
-    m_afterIndex = -1;
+    clearSelection();
     resetProgress();
     emit stateChanged();
 }
@@ -153,10 +220,10 @@ void MediaUploadController::applyProgress(QString phase, const qulonglong transf
     }
     m_phase = std::move(phase);
     m_transferredBytes = transferred;
-    m_totalBytes = total;
-    m_progress = total == 0U
+    m_totalBytes = total > 0U ? total : m_totalBytes;
+    m_progress = m_totalBytes == 0U
         ? 0.0
-        : std::clamp(static_cast<double>(transferred) / static_cast<double>(total), 0.0, 1.0);
+        : std::clamp(static_cast<double>(transferred) / static_cast<double>(m_totalBytes), 0.0, 1.0);
     emit stateChanged();
 }
 
@@ -180,6 +247,9 @@ void MediaUploadController::applyCompleted(
     m_progress = 1.0;
     if (!fileName.isEmpty()) {
         m_fileName = std::move(fileName);
+    }
+    if (!contentType.isEmpty()) {
+        m_selectedContentType = contentType;
     }
     emit stateChanged();
     emit assetReady(std::move(assetUrl), std::move(contentType), std::move(managementToken), afterIndex);
@@ -208,4 +278,14 @@ void MediaUploadController::resetProgress()
     m_progress = 0.0;
     m_transferredBytes = 0U;
     m_totalBytes = 0U;
+}
+
+void MediaUploadController::clearSelection()
+{
+    m_fileName.clear();
+    m_localPreviewUrl.clear();
+    m_previewKind.clear();
+    m_selectedContentType.clear();
+    m_localPath.clear();
+    m_afterIndex = -1;
 }
