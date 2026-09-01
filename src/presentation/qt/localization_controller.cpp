@@ -896,6 +896,93 @@ QString LocalizationController::formatCompactNumber(const double value) const
     return formatInteger(static_cast<qint64>(std::llround(value)));
 }
 
+QVariantMap LocalizationController::calendarMonthModel(const int monthOffset) const
+{
+    const QString effectiveCalendarId = m_impl->calendarId == QStringLiteral("auto")
+        ? defaultCalendarFor(m_impl->regionalLocale)
+        : m_impl->calendarId;
+    const QCalendar calendar = calendarFor(effectiveCalendarId, m_impl->regionalLocale);
+    const QDate today = QDate::currentDate();
+    auto parts = calendar.partsFromDate(today);
+    if (!calendar.isValid() || !parts.isValid()) {
+        return {};
+    }
+
+    int targetYear = parts.year;
+    int targetMonth = parts.month;
+    int remaining = monthOffset;
+    while (remaining > 0) {
+        const int months = calendar.monthsInYear(targetYear);
+        if (targetMonth < months) {
+            ++targetMonth;
+        } else {
+            ++targetYear;
+            targetMonth = 1;
+        }
+        --remaining;
+    }
+    while (remaining < 0) {
+        if (targetMonth > 1) {
+            --targetMonth;
+        } else {
+            --targetYear;
+            targetMonth = calendar.monthsInYear(targetYear);
+        }
+        ++remaining;
+    }
+
+    const QDate firstDate = calendar.dateFromParts(targetYear, targetMonth, 1);
+    if (!firstDate.isValid()) {
+        return {};
+    }
+
+    const int firstDayOfWeek = static_cast<int>(m_impl->regionalLocale.firstDayOfWeek());
+    const int monthFirstDay = calendar.dayOfWeek(firstDate);
+    const int leadingDays = (monthFirstDay - firstDayOfWeek + 7) % 7;
+
+    QVariantList weekdayLabels;
+    weekdayLabels.reserve(7);
+    for (int index = 0; index < 7; ++index) {
+        const int weekday = ((firstDayOfWeek - 1 + index) % 7) + 1;
+        weekdayLabels.push_back(calendar.weekDayName(
+            m_impl->regionalLocale, weekday, QLocale::ShortFormat));
+    }
+
+    QVariantList cells;
+    cells.reserve(42);
+    for (int index = 0; index < 42; ++index) {
+        const QDate date = firstDate.addDays(index - leadingDays);
+        const auto cellParts = calendar.partsFromDate(date);
+        const bool adjacent = !cellParts.isValid() || cellParts.year != targetYear || cellParts.month != targetMonth;
+        cells.push_back(QVariantMap{
+            {QStringLiteral("day"), cellParts.isValid() ? cellParts.day : 0},
+            {QStringLiteral("adjacent"), adjacent},
+            {QStringLiteral("today"), date == today},
+            {QStringLiteral("julianDay"), date.toJulianDay()},
+        });
+    }
+
+    const int displayYear = effectiveCalendarId == QStringLiteral("shahanshahi")
+        ? targetYear + kShahanshahiYearOffset
+        : targetYear;
+    const QString monthName = calendar.monthName(
+        m_impl->regionalLocale, targetMonth, targetYear, QLocale::LongFormat);
+    const QString title = monthName.isEmpty()
+        ? m_impl->regionalLocale.toString(displayYear)
+        : QStringLiteral("%1 %2").arg(monthName, m_impl->regionalLocale.toString(displayYear));
+
+    return QVariantMap{
+        {QStringLiteral("calendarId"), effectiveCalendarId},
+        {QStringLiteral("title"), normalizeNumberGlyphs(title, rightToLeft())},
+        {QStringLiteral("year"), displayYear},
+        {QStringLiteral("month"), targetMonth},
+        {QStringLiteral("dayCount"), calendar.daysInMonth(targetMonth, targetYear)},
+        {QStringLiteral("weekdays"), weekdayLabels},
+        {QStringLiteral("cells"), cells},
+        {QStringLiteral("monthOffset"), monthOffset},
+    };
+}
+
 QString LocalizationController::formatTimestamp(
     const qint64 epochMilliseconds, const QString& style) const
 {
