@@ -22,7 +22,8 @@ class MediaUploadController final : public QObject {
     Q_PROPERTY(QString errorText READ errorText NOTIFY stateChanged)
     Q_PROPERTY(QString fileName READ fileName NOTIFY stateChanged)
     Q_PROPERTY(QUrl localPreviewUrl READ localPreviewUrl NOTIFY stateChanged)
-    Q_PROPERTY(bool imagePreview READ imagePreview NOTIFY stateChanged)
+    Q_PROPERTY(QString previewKind READ previewKind NOTIFY stateChanged)
+    Q_PROPERTY(QString selectedContentType READ selectedContentType NOTIFY stateChanged)
     Q_PROPERTY(qulonglong transferredBytes READ transferredBytes NOTIFY stateChanged)
     Q_PROPERTY(qulonglong totalBytes READ totalBytes NOTIFY stateChanged)
 
@@ -38,15 +39,18 @@ public:
     [[nodiscard]] QString errorText() const;
     [[nodiscard]] QString fileName() const;
     [[nodiscard]] QUrl localPreviewUrl() const;
-    [[nodiscard]] bool imagePreview() const noexcept;
+    /** @brief Returns image, video, or empty for the current local selection. */
+    [[nodiscard]] QString previewKind() const;
+    /** @brief Returns the canonical MIME type expected by the media gateway. */
+    [[nodiscard]] QString selectedContentType() const;
     [[nodiscard]] qulonglong transferredBytes() const noexcept;
     [[nodiscard]] qulonglong totalBytes() const noexcept;
 
     /**
      * @brief Starts uploading one local file selected by the user.
-     * @param localFile Local file URL supplied by Qt FileDialog.
+     * @param localFile Local file URL supplied by Qt FileDialog or DropArea.
      * @param afterIndex Rich-composer block index after which the media will be inserted.
-     * @return false when upload is unavailable, already busy, or the URL is not a local file.
+     * @return false when upload is unavailable, already busy, invalid, unreadable, or unsupported.
      */
     Q_INVOKABLE bool beginUpload(const QUrl& localFile, int afterIndex = -1);
     /** @brief Requests cooperative cancellation of the current upload. */
@@ -78,6 +82,7 @@ signals:
 
 private:
     void resetProgress();
+    void clearSelection();
 
     bool m_available{false};
     bool m_busy{false};
@@ -88,7 +93,8 @@ private:
     QString m_unavailableReason{};
     QString m_fileName{};
     QUrl m_localPreviewUrl{};
-    bool m_imagePreview{false};
+    QString m_previewKind{};
+    QString m_selectedContentType{};
     QString m_localPath{};
     int m_afterIndex{-1};
     qulonglong m_transferredBytes{};
