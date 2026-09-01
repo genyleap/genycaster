@@ -100,7 +100,8 @@ CREATE TABLE IF NOT EXISTS profiles (
     profile_url TEXT,
     custody_address TEXT,
     follower_count INTEGER NOT NULL DEFAULT 0,
-    following_count INTEGER NOT NULL DEFAULT 0
+    following_count INTEGER NOT NULL DEFAULT 0,
+    quality_score REAL
 );
 CREATE TABLE IF NOT EXISTS casts (
     id TEXT PRIMARY KEY NOT NULL,
@@ -578,6 +579,22 @@ WHERE current.kind IN ('follow', 'unfollow')
         if (auto status = recordMigration(connection, 19, appliedAt); !status) {
             return status;
         }
+    }
+
+    // Preserve the provider-neutral normalized profile quality score. The source
+    // may currently be Neynar-compatible, but storage keeps only the canonical
+    // [0, 1] value so presentation remains provider-independent.
+    {
+        auto exists = tableHasColumn(connection, "profiles", "quality_score");
+        if (!exists) { return std::unexpected(exists.error()); }
+        if (!*exists) {
+            if (auto status = connection.execute("ALTER TABLE profiles ADD COLUMN quality_score REAL;"); !status) {
+                return status;
+            }
+        }
+    }
+    if (auto status = recordMigration(connection, 20, appliedAt); !status) {
+        return status;
     }
 
     // Copy legacy URL embeds only after all columns required by the current
