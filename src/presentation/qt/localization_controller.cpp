@@ -111,8 +111,39 @@ constexpr auto kTranslationResourcePrefix = ":/i18n/qml_";
     return false;
 }
 
-[[nodiscard]] QString normalizeNumberGlyphs(QString text, const bool usePersianDigits)
+enum class NumberGlyphStyle {
+    Latin,
+    Persian,
+    ArabicIndic,
+    Devanagari,
+};
+
+[[nodiscard]] NumberGlyphStyle numberGlyphStyleFor(const QLocale::Language language) noexcept
 {
+    switch (language) {
+    case QLocale::Persian: return NumberGlyphStyle::Persian;
+    case QLocale::Arabic: return NumberGlyphStyle::ArabicIndic;
+    case QLocale::Hindi: return NumberGlyphStyle::Devanagari;
+    default: return NumberGlyphStyle::Latin;
+    }
+}
+
+[[nodiscard]] ushort digitBaseFor(const NumberGlyphStyle style) noexcept
+{
+    switch (style) {
+    case NumberGlyphStyle::Persian: return 0x06F0;
+    case NumberGlyphStyle::ArabicIndic: return 0x0660;
+    case NumberGlyphStyle::Devanagari: return 0x0966;
+    case NumberGlyphStyle::Latin: return u'0';
+    }
+    return u'0';
+}
+
+[[nodiscard]] QString normalizeNumberGlyphs(QString text, const QLocale::Language language)
+{
+    const NumberGlyphStyle targetStyle = numberGlyphStyleFor(language);
+    const ushort targetBase = digitBaseFor(targetStyle);
+
     for (qsizetype index = 0; index < text.size(); ++index) {
         const QChar character = text.at(index);
         const ushort value = character.unicode();
@@ -123,17 +154,29 @@ constexpr auto kTranslationResourcePrefix = ":/i18n/qml_";
             digit = static_cast<int>(value - 0x06F0);
         } else if (value >= 0x0660 && value <= 0x0669) {
             digit = static_cast<int>(value - 0x0660);
+        } else if (value >= 0x0966 && value <= 0x096F) {
+            digit = static_cast<int>(value - 0x0966);
         }
         if (digit >= 0) {
-            text[index] = QChar{static_cast<ushort>((usePersianDigits ? 0x06F0 : u'0') + digit)};
+            text[index] = QChar{static_cast<ushort>(targetBase + digit)};
             continue;
         }
-        if (!usePersianDigits) {
+        if (targetStyle == NumberGlyphStyle::Latin) {
             if (value == 0x066B) text[index] = QLatin1Char('.');
             else if (value == 0x066C) text[index] = QLatin1Char(',');
+        } else if (targetStyle == NumberGlyphStyle::Persian || targetStyle == NumberGlyphStyle::ArabicIndic) {
+            if (value == u'.') text[index] = QChar{0x066B};
+            else if (value == u',') text[index] = QChar{0x066C};
         }
     }
     return text;
+}
+
+[[nodiscard]] QString localizedUngroupedInteger(
+    const qint64 value,
+    const QLocale::Language language)
+{
+    return normalizeNumberGlyphs(QString::number(value), language);
 }
 
 [[nodiscard]] QString catalogLocaleNameFor(const QString& languageTag)
@@ -329,7 +372,10 @@ constexpr auto kTranslationResourcePrefix = ":/i18n/qml_";
 }
 
 [[nodiscard]] QString formatShahanshahi(
-    const QDateTime& dateTime, const QLocale& locale, const QString& style)
+    const QDateTime& dateTime,
+    const QLocale& regionalLocale,
+    const QLocale& uiLocale,
+    const QString& style)
 {
     const QCalendar jalali{QCalendar::System::Jalali};
     const auto parts = jalali.partsFromDate(dateTime.date());
@@ -338,18 +384,19 @@ constexpr auto kTranslationResourcePrefix = ":/i18n/qml_";
     }
 
     const int imperialYear = parts.year + kShahanshahiYearOffset;
-    const QString year = locale.toString(imperialYear);
-    const QString month = locale.toString(parts.month);
-    const QString day = locale.toString(parts.day);
-    const QString time = locale.toString(dateTime.time(), QLocale::ShortFormat);
+    const QString year = localizedUngroupedInteger(imperialYear, uiLocale.language());
+    const QString month = localizedUngroupedInteger(parts.month, uiLocale.language());
+    const QString day = localizedUngroupedInteger(parts.day, uiLocale.language());
+    const QString time = normalizeNumberGlyphs(
+        regionalLocale.toString(dateTime.time(), QLocale::ShortFormat), uiLocale.language());
 
     if (style.compare(QStringLiteral("short"), Qt::CaseInsensitive) == 0) {
         return qtTrId("genycaster.locale.shahanshahi_short").arg(year, month, day, time);
     }
 
-    const QString monthName = jalali.monthName(locale, parts.month, parts.year, QLocale::LongFormat);
+    const QString monthName = jalali.monthName(uiLocale, parts.month, parts.year, QLocale::LongFormat);
     const QString weekday = jalali.weekDayName(
-        locale, dateTime.date().dayOfWeek(), QLocale::LongFormat);
+        uiLocale, dateTime.date().dayOfWeek(), QLocale::LongFormat);
     if (style.compare(QStringLiteral("long"), Qt::CaseInsensitive) == 0) {
         return qtTrId("genycaster.locale.shahanshahi_long")
             .arg(weekday, day, monthName, year, time);
@@ -870,12 +917,12 @@ QString LocalizationController::formatNumber(const double value, const int preci
     const QString formatted = precision < 0
         ? m_impl->regionalLocale.toString(value, 'g', QLocale::FloatingPointShortest)
         : m_impl->regionalLocale.toString(value, 'f', std::clamp(precision, 0, 12));
-    return normalizeNumberGlyphs(formatted, rightToLeft());
+    return normalizeNumberGlyphs(formatted, m_impl->uiLocale.language());
 }
 
 QString LocalizationController::formatInteger(const qint64 value) const
 {
-    return normalizeNumberGlyphs(m_impl->regionalLocale.toString(value), rightToLeft());
+    return normalizeNumberGlyphs(m_impl->regionalLocale.toString(value), m_impl->uiLocale.language());
 }
 
 QString LocalizationController::formatCompactNumber(const double value) const
@@ -944,8 +991,8 @@ QVariantMap LocalizationController::calendarMonthModel(const int monthOffset) co
     weekdayLabels.reserve(7);
     for (int index = 0; index < 7; ++index) {
         const int weekday = ((firstDayOfWeek - 1 + index) % 7) + 1;
-        weekdayLabels.push_back(calendar.weekDayName(
-            m_impl->regionalLocale, weekday, QLocale::ShortFormat));
+        weekdayLabels.push_back(calendar.standaloneWeekDayName(
+            m_impl->uiLocale, weekday, QLocale::ShortFormat));
     }
 
     QVariantList cells;
@@ -954,8 +1001,11 @@ QVariantMap LocalizationController::calendarMonthModel(const int monthOffset) co
         const QDate date = firstDate.addDays(index - leadingDays);
         const auto cellParts = calendar.partsFromDate(date);
         const bool adjacent = !cellParts.isValid() || cellParts.year != targetYear || cellParts.month != targetMonth;
+        const int day = cellParts.isValid() ? cellParts.day : 0;
         cells.push_back(QVariantMap{
-            {QStringLiteral("day"), cellParts.isValid() ? cellParts.day : 0},
+            {QStringLiteral("day"), day},
+            {QStringLiteral("dayText"), day > 0
+                ? localizedUngroupedInteger(day, m_impl->uiLocale.language()) : QString{}},
             {QStringLiteral("adjacent"), adjacent},
             {QStringLiteral("today"), date == today},
             {QStringLiteral("julianDay"), date.toJulianDay()},
@@ -965,15 +1015,30 @@ QVariantMap LocalizationController::calendarMonthModel(const int monthOffset) co
     const int displayYear = effectiveCalendarId == QStringLiteral("shahanshahi")
         ? targetYear + kShahanshahiYearOffset
         : targetYear;
-    const QString monthName = calendar.monthName(
-        m_impl->regionalLocale, targetMonth, targetYear, QLocale::LongFormat);
-    const QString title = monthName.isEmpty()
-        ? m_impl->regionalLocale.toString(displayYear)
-        : QStringLiteral("%1 %2").arg(monthName, m_impl->regionalLocale.toString(displayYear));
+    const QString monthName = calendar.standaloneMonthName(
+        m_impl->uiLocale, targetMonth, targetYear, QLocale::LongFormat);
+    const QString localizedYear = localizedUngroupedInteger(displayYear, m_impl->uiLocale.language());
+    QString title{};
+    if (effectiveCalendarId == QStringLiteral("shahanshahi")) {
+        title = monthName.isEmpty()
+            ? localizedYear
+            : QStringLiteral("%1 %2").arg(monthName, localizedYear);
+    } else {
+        // QLocale performs calendar-aware month/year localization while the
+        // final normalization guarantees that the visible digit script follows
+        // the selected UI language even when the regional locale differs.
+        title = m_impl->uiLocale.toString(firstDate, QStringLiteral("MMMM yyyy"), calendar).simplified();
+        title = normalizeNumberGlyphs(title, m_impl->uiLocale.language());
+        if (title.isEmpty()) {
+            title = monthName.isEmpty()
+                ? localizedYear
+                : QStringLiteral("%1 %2").arg(monthName, localizedYear);
+        }
+    }
 
     return QVariantMap{
         {QStringLiteral("calendarId"), effectiveCalendarId},
-        {QStringLiteral("title"), normalizeNumberGlyphs(title, rightToLeft())},
+        {QStringLiteral("title"), title},
         {QStringLiteral("year"), displayYear},
         {QStringLiteral("month"), targetMonth},
         {QStringLiteral("dayCount"), calendar.daysInMonth(targetMonth, targetYear)},
@@ -1047,14 +1112,14 @@ QString LocalizationController::formatDateTime(
         ? defaultCalendarFor(m_impl->regionalLocale)
         : m_impl->calendarId;
     if (effectiveCalendar == QStringLiteral("shahanshahi")) {
-        return formatShahanshahi(dateTime, m_impl->regionalLocale, style);
+        return formatShahanshahi(dateTime, m_impl->regionalLocale, m_impl->uiLocale, style);
     }
 
     const QCalendar calendar = calendarFor(effectiveCalendar, m_impl->regionalLocale);
     const QLocale::FormatType type = formatTypeFor(style);
     return normalizeNumberGlyphs(calendar.dateTimeToString(
         m_impl->regionalLocale.dateTimeFormat(type), dateTime, QDate{}, QTime{},
-        m_impl->regionalLocale), rightToLeft());
+        m_impl->regionalLocale), m_impl->uiLocale.language());
 }
 
 QString LocalizationController::formatCurrency(
@@ -1065,7 +1130,7 @@ QString LocalizationController::formatCurrency(
     if (code.size() != 3 || code == QStringLiteral("IRT")) return {};
     const QString symbol = currencySymbolFor(code);
     return normalizeNumberGlyphs(
-        m_impl->regionalLocale.toCurrencyString(value, symbol, precision), rightToLeft());
+        m_impl->regionalLocale.toCurrencyString(value, symbol, precision), m_impl->uiLocale.language());
 }
 
 QString LocalizationController::formatMonetaryUnit(
