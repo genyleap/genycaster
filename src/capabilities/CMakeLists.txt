@@ -13,6 +13,7 @@ target_sources(farcaster_capabilities
             cast.cppm
             identity.cppm
             social.cppm
+            search.cppm
             auth.cppm
             signer.cppm
             signer_attestation.cppm
