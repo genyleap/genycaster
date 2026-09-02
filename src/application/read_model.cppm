@@ -9,6 +9,7 @@ module;
 export module farcaster.application.read.model;
 
 import farcaster.capability.pagination;
+import farcaster.capability.search;
 import farcaster.domain.cast;
 import farcaster.domain.channel;
 import farcaster.domain.feed;
@@ -75,6 +76,19 @@ struct CastState final {
     domain::cast::CastId castId{};
     std::optional<domain::cast::Cast> cast{};
     std::optional<domain::profile::Profile> author{};
+    ReadMetadata metadata{};
+};
+
+/** @brief Operation-safe interactive search selector owned by Application. */
+struct SearchQuery final {
+    std::string text{};
+    std::size_t limit{6};
+};
+
+/** @brief Derived interactive search snapshot and lifecycle metadata. */
+struct SearchState final {
+    SearchQuery query{};
+    capability::search::SearchPage page{};
     ReadMetadata metadata{};
 };
 
