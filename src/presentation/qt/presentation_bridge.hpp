@@ -24,6 +24,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QString accountUsername READ accountUsername NOTIFY stateChanged)
     Q_PROPERTY(QString accountAvatarUrl READ accountAvatarUrl NOTIFY stateChanged)
     Q_PROPERTY(qulonglong accountFid READ accountFid NOTIFY stateChanged)
+    Q_PROPERTY(QVariantMap accountProfile READ accountProfile NOTIFY stateChanged)
     Q_PROPERTY(bool writeReady READ writeReady NOTIFY stateChanged)
     Q_PROPERTY(QString signerPhase READ signerPhase NOTIFY stateChanged)
     Q_PROPERTY(bool signerBusy READ signerBusy NOTIFY stateChanged)
@@ -70,6 +71,8 @@ public:
     [[nodiscard]] QString accountUsername() const;
     [[nodiscard]] QString accountAvatarUrl() const;
     [[nodiscard]] qulonglong accountFid() const noexcept;
+    /** @brief Returns the cached provider-neutral profile presentation for the authenticated account. */
+    [[nodiscard]] QVariantMap accountProfile() const;
     [[nodiscard]] bool writeReady() const noexcept;
     [[nodiscard]] QString signerPhase() const;
     [[nodiscard]] bool signerBusy() const noexcept;
@@ -120,6 +123,8 @@ public:
     Q_INVOKABLE void showFeed();
     Q_INVOKABLE void openExternalUrl(const QString& url);
     Q_INVOKABLE void copyText(const QString& text);
+    /** @brief Selects the approved contextual glyph for the existing Like action without changing reaction semantics. */
+    [[nodiscard]] Q_INVOKABLE QString contextualReactionIcon(const QString& text) const;
     Q_INVOKABLE void beginSignIn();
     Q_INVOKABLE void cancelSignIn();
     Q_INVOKABLE void signOut();
@@ -178,7 +183,7 @@ public:
     /** @brief Replaces account-scoped durable Follow/Unfollow state used to overlay refreshed profiles. */
     void applyFollowingProjections(QVariantList following);
     /** @brief Commits a normalized identity presentation snapshot. */
-    void applyIdentity(qulonglong fid, QString displayName, QString username,
+    void applyIdentity(qulonglong fid, QString displayName, QString username, QVariantMap profile,
         QString status, QString error, QString diagnostic, bool busy, bool stale, bool sourceUnavailable);
     /** @brief Commits transient exact-lookup status without mutating the currently viewed Home identity. */
     void applyLookupState(QString status, QString error, QString diagnostic,
@@ -242,6 +247,7 @@ private:
     QString m_accountUsername{};
     QString m_accountAvatarUrl{};
     qulonglong m_accountFid{};
+    QVariantMap m_accountProfile{};
     bool m_writeReady{false};
     QString m_signerPhase{QStringLiteral("signed-out")};
     bool m_signerBusy{false};
