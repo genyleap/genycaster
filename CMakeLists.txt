@@ -14,24 +14,89 @@ include(ArchitectureGuards)
 option(FARCASTER_BUILD_TESTS "Build unit, contract, integration and architecture tests" ON)
 option(FARCASTER_BUILD_UI "Build the Qt Quick presentation shell" ON)
 
+set(_farcasterMediaUploadDefault OFF)
+if(FARCASTER_BUILD_UI)
+    set(_farcasterMediaUploadDefault ON)
+endif()
+option(
+    FARCASTER_ENABLE_MEDIA_UPLOAD
+    "Compile provider-neutral media upload through the Genyleap media gateway"
+    ${_farcasterMediaUploadDefault}
+)
+unset(_farcasterMediaUploadDefault)
+
 # Shipping deployment identity/origins. These are first-party product defaults,
 # not provider identities. Runtime CLI/environment overrides remain available for
 # development, testing and self-hosted deployments.
+set(_GENYCASTER_CANONICAL_SIWF_DOMAIN "genycaster.genyleap.com")
+set(_GENYCASTER_CANONICAL_SIWF_URI "https://genycaster.genyleap.com/login")
 set(FARCASTER_DEFAULT_SIWF_DOMAIN
-    "genycaster.genyleap.com"
+    "${_GENYCASTER_CANONICAL_SIWF_DOMAIN}"
     CACHE STRING "Default SIWF domain for shipping Genycaster builds")
 set(FARCASTER_DEFAULT_SIWF_URI
-    "https://genycaster.genyleap.com/login"
+    "${_GENYCASTER_CANONICAL_SIWF_URI}"
     CACHE STRING "Default SIWF URI for shipping Genycaster builds")
+
+# CMake cache entries survive source upgrades. Reject stale malformed SIWF values
+# before they can be compiled into a shipping binary. Local development values
+# such as http://localhost:3000/login remain valid.
+if(NOT FARCASTER_DEFAULT_SIWF_DOMAIN MATCHES "^[A-Za-z0-9.-]+(:[0-9]+)?$")
+    message(WARNING
+        "Invalid cached FARCASTER_DEFAULT_SIWF_DOMAIN='${FARCASTER_DEFAULT_SIWF_DOMAIN}'. "
+        "Resetting it to '${_GENYCASTER_CANONICAL_SIWF_DOMAIN}'.")
+    set(FARCASTER_DEFAULT_SIWF_DOMAIN
+        "${_GENYCASTER_CANONICAL_SIWF_DOMAIN}"
+        CACHE STRING "Default SIWF domain for shipping Genycaster builds" FORCE)
+endif()
+if(NOT FARCASTER_DEFAULT_SIWF_URI MATCHES "^https?://[^ \t\r\n\"'\\]+$")
+    message(WARNING
+        "Invalid cached FARCASTER_DEFAULT_SIWF_URI='${FARCASTER_DEFAULT_SIWF_URI}'. "
+        "Resetting it to '${_GENYCASTER_CANONICAL_SIWF_URI}'.")
+    set(FARCASTER_DEFAULT_SIWF_URI
+        "${_GENYCASTER_CANONICAL_SIWF_URI}"
+        CACHE STRING "Default SIWF URI for shipping Genycaster builds" FORCE)
+endif()
+string(REGEX REPLACE "^https?://([^/]+).*$" "\\1" _farcasterSiwfUriAuthority
+    "${FARCASTER_DEFAULT_SIWF_URI}")
+if(NOT _farcasterSiwfUriAuthority STREQUAL FARCASTER_DEFAULT_SIWF_DOMAIN)
+    message(WARNING
+        "Cached SIWF domain/URI do not describe the same relying party "
+        "('${FARCASTER_DEFAULT_SIWF_DOMAIN}' vs '${FARCASTER_DEFAULT_SIWF_URI}'). "
+        "Resetting both to the canonical Genycaster deployment identity.")
+    set(FARCASTER_DEFAULT_SIWF_DOMAIN
+        "${_GENYCASTER_CANONICAL_SIWF_DOMAIN}"
+        CACHE STRING "Default SIWF domain for shipping Genycaster builds" FORCE)
+    set(FARCASTER_DEFAULT_SIWF_URI
+        "${_GENYCASTER_CANONICAL_SIWF_URI}"
+        CACHE STRING "Default SIWF URI for shipping Genycaster builds" FORCE)
+endif()
+unset(_farcasterSiwfUriAuthority)
+unset(_GENYCASTER_CANONICAL_SIWF_DOMAIN)
+unset(_GENYCASTER_CANONICAL_SIWF_URI)
 set(FARCASTER_DEFAULT_SNAPCHAIN_BASE_URL
     "https://snapchain.genyleap.com"
     CACHE STRING "Default Genycaster-facing Snapchain HTTP origin")
+set(FARCASTER_DEFAULT_MEDIA_GATEWAY_BASE_URL
+    "https://storage-farcaster.genyleap.com"
+    CACHE STRING "Default Genycaster media upload gateway origin")
 set(FARCASTER_DEFAULT_APP_FID
-    "256"
+    "866408"
     CACHE STRING "Canonical Farcaster App FID for Genycaster attribution")
 set(FARCASTER_DEFAULT_APP_NAME
     "Genycaster"
     CACHE STRING "Canonical Farcaster App display name for Genycaster")
+# CMake caches survive source upgrades. Older development builds either guessed
+# FID 256 or retained 0 as an unconfigured client identity. Migrate those known
+# legacy values to the canonical Genycaster/Genyleap App FID used for attribution.
+if(FARCASTER_DEFAULT_APP_FID STREQUAL "256" OR FARCASTER_DEFAULT_APP_FID STREQUAL "0")
+    set(FARCASTER_DEFAULT_APP_FID
+        "866408"
+        CACHE STRING "Canonical Farcaster App FID for Genycaster attribution" FORCE)
+endif()
+if(NOT FARCASTER_DEFAULT_APP_FID MATCHES "^[0-9]+$")
+    message(FATAL_ERROR
+        "FARCASTER_DEFAULT_APP_FID must be an unsigned decimal FID.")
+endif()
 
 # These options describe product composition. Feature implementation targets are
 # created only when real behavior exists; empty ceremonial feature libraries are forbidden.
@@ -184,7 +249,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(CTest)
 
 if(FARCASTER_BUILD_UI)
-    find_package(Qt6 6.6 REQUIRED COMPONENTS Quick Qml QuickControls2 Network LinguistTools)
+    find_package(Qt6 6.6 REQUIRED COMPONENTS Quick Qml QuickControls2 Network Multimedia LinguistTools)
     set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qml")
 
     if(QT_KNOWN_POLICY_QTP0004)
