@@ -112,6 +112,7 @@ struct PreparedOperation final {
     domain::identity::Fid author{};
     OperationTarget target{};
     std::optional<domain::cast::Cast> optimisticCast{};
+    std::optional<IdempotencyKey> dependsOn{};
     domain::signer::PublicKey signerPublicKey{};
     std::string dataBytes{};
     std::string hashBytes{};
@@ -130,6 +131,7 @@ struct SignedOperation final {
     domain::identity::Fid author{};
     OperationTarget target{};
     std::optional<domain::cast::Cast> optimisticCast{};
+    std::optional<IdempotencyKey> dependsOn{};
     domain::signer::PublicKey signerPublicKey{};
     std::string messageBytes{};
     foundation::time::Timestamp signedAt{};
