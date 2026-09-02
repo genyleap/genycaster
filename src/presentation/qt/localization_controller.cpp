@@ -114,29 +114,19 @@ constexpr auto kTranslationResourcePrefix = ":/i18n/qml_";
 enum class NumberGlyphStyle {
     Latin,
     Persian,
-    ArabicIndic,
-    Devanagari,
 };
 
 [[nodiscard]] NumberGlyphStyle numberGlyphStyleFor(const QLocale::Language language) noexcept
 {
-    switch (language) {
-    case QLocale::Persian: return NumberGlyphStyle::Persian;
-    case QLocale::Arabic: return NumberGlyphStyle::ArabicIndic;
-    case QLocale::Hindi: return NumberGlyphStyle::Devanagari;
-    default: return NumberGlyphStyle::Latin;
-    }
+    // Product rule: native Persian digits belong to the Persian UI only.
+    // Every other interface language uses Latin digits regardless of the
+    // regional locale so numeric typography remains predictable.
+    return language == QLocale::Persian ? NumberGlyphStyle::Persian : NumberGlyphStyle::Latin;
 }
 
 [[nodiscard]] ushort digitBaseFor(const NumberGlyphStyle style) noexcept
 {
-    switch (style) {
-    case NumberGlyphStyle::Persian: return 0x06F0;
-    case NumberGlyphStyle::ArabicIndic: return 0x0660;
-    case NumberGlyphStyle::Devanagari: return 0x0966;
-    case NumberGlyphStyle::Latin: return u'0';
-    }
-    return u'0';
+    return style == NumberGlyphStyle::Persian ? 0x06F0 : u'0';
 }
 
 [[nodiscard]] QString normalizeNumberGlyphs(QString text, const QLocale::Language language)
@@ -164,7 +154,7 @@ enum class NumberGlyphStyle {
         if (targetStyle == NumberGlyphStyle::Latin) {
             if (value == 0x066B) text[index] = QLatin1Char('.');
             else if (value == 0x066C) text[index] = QLatin1Char(',');
-        } else if (targetStyle == NumberGlyphStyle::Persian || targetStyle == NumberGlyphStyle::ArabicIndic) {
+        } else if (targetStyle == NumberGlyphStyle::Persian) {
             if (value == u'.') text[index] = QChar{0x066B};
             else if (value == u',') text[index] = QChar{0x066C};
         }
