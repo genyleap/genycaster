@@ -20,6 +20,7 @@ model::CapabilityId feedUserRepliesRead() { return model::CapabilityId{"feed.use
 model::CapabilityId feedUserLikesRead() { return model::CapabilityId{"feed.user.likes.read"}; }
 model::CapabilityId feedUserPopularRead() { return model::CapabilityId{"feed.user.popular.read"}; }
 model::CapabilityId feedForYouRead() { return model::CapabilityId{"feed.for_you.read"}; }
+model::CapabilityId searchRead() { return model::CapabilityId{"search.read"}; }
 model::CapabilityId valuationAssetPriceRead() { return model::CapabilityId{"valuation.asset_price.read"}; }
 model::CapabilityId valuationFxRead() { return model::CapabilityId{"valuation.fx.read"}; }
 model::CapabilityId miniAppManifestResolve() { return model::CapabilityId{"miniapp.manifest.resolve"}; }
