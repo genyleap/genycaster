@@ -784,6 +784,53 @@ foundation::result::Result<domain::cast::Cast> decodeCast(const std::string_view
     return std::move(payload->cast);
 }
 
+foundation::result::Result<ConversationPayload> decodeConversationPayload(
+    const std::string_view body)
+{
+    auto document = parseJson(body);
+    if (!document) {
+        return std::unexpected(std::move(document.error()));
+    }
+    if (!document->is_object()) {
+        return std::unexpected(protocolError("Hypersnap conversation response must be a JSON object."));
+    }
+
+    const JsonValue* conversationValue = findValue(document->as_object(), "conversation");
+    if (conversationValue == nullptr || !conversationValue->is_object()) {
+        return std::unexpected(protocolError(
+            "Hypersnap conversation response.conversation must be a JSON object."));
+    }
+    const JsonValue* castValue = findValue(conversationValue->as_object(), "cast");
+    if (castValue == nullptr || !castValue->is_object()) {
+        return std::unexpected(protocolError(
+            "Hypersnap conversation response.conversation.cast must be a JSON object."));
+    }
+
+    auto mapped = mapCast(castValue->as_object());
+    if (!mapped) {
+        return std::unexpected(std::move(mapped.error()));
+    }
+
+    std::size_t directReplyCount{0};
+    if (const JsonValue* replies = findValue(castValue->as_object(), "direct_replies");
+        replies != nullptr) {
+        if (!replies->is_array()) {
+            return std::unexpected(protocolError(
+                "Hypersnap conversation cast.direct_replies must be an array."));
+        }
+        directReplyCount = replies->as_array().size();
+    }
+    mapped->cast.engagement.replies = std::max<std::uint64_t>(
+        mapped->cast.engagement.replies,
+        static_cast<std::uint64_t>(directReplyCount));
+
+    return ConversationPayload{
+        .cast = std::move(mapped->cast),
+        .author = std::move(mapped->author),
+        .directReplyCount = directReplyCount,
+    };
+}
+
 foundation::result::Result<ReactionTargetsPayload> decodeReactionTargets(
     const std::string_view body)
 {
