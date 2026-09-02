@@ -55,6 +55,7 @@ std::vector<capability::model::CapabilityDescriptor> capabilities()
         derivedRead(capability::catalog::feedUserRepliesRead()),
         derivedRead(capability::catalog::feedUserLikesRead()),
         derivedRead(capability::catalog::feedUserPopularRead()),
+        derivedRead(capability::catalog::searchRead()),
     };
 }
 
