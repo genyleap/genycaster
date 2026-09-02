@@ -82,6 +82,7 @@ struct WriteRecord final {
     domain::identity::Fid author{};
     std::optional<domain::cast::Cast> optimisticCast{};
     OperationTarget target{};
+    std::optional<std::string> dependsOn{};
     DurableWriteStatus status{DurableWriteStatus::Pending};
     std::uint32_t attemptCount{};
     std::optional<foundation::time::Timestamp> nextAttemptAt{};
@@ -134,6 +135,18 @@ public:
     [[nodiscard]] foundation::result::Status publish(
         std::optional<domain::session::ClientSession> session,
         PublishCastRequest request,
+        Observer observer);
+
+    /**
+     * @brief Publishes an ordered Farcaster thread as normal CastAdd messages linked by parent_cast_id.
+     *
+     * The first request may itself be a reply. Every later request is rewritten
+     * to reply to the immediately preceding locally hashed cast and is durably
+     * blocked behind that parent's outbox confirmation.
+     */
+    [[nodiscard]] foundation::result::Status publishThread(
+        std::optional<domain::session::ClientSession> session,
+        std::vector<PublishCastRequest> requests,
         Observer observer);
 
     /** @brief Deletes one cast owned by the authenticated user through CAST_REMOVE. */
