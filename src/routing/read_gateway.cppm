@@ -11,6 +11,7 @@ import farcaster.capability.cast;
 import farcaster.capability.feed;
 import farcaster.capability.identity;
 import farcaster.capability.profile;
+import farcaster.capability.search;
 import farcaster.capability.social;
 import farcaster.domain.cast;
 import farcaster.domain.identity;
@@ -33,6 +34,7 @@ struct SourceBinding final {
     capability::profile::IProfileSource* profile{};
     capability::cast::ICastSource* cast{};
     capability::feed::IFeedSource* feed{};
+    capability::search::ISearchSource* search{};
     capability::social::ISocialGraphSource* social{};
 };
 
@@ -69,6 +71,11 @@ public:
     [[nodiscard]] foundation::result::Result<capability::feed::FeedPage>
     feed(
         const application::read::model::FeedQuery& query,
+        application::read::model::ReadOptions options = {}) override;
+    /** @inheritdoc */
+    [[nodiscard]] foundation::result::Result<capability::search::SearchPage>
+    search(
+        const application::read::model::SearchQuery& query,
         application::read::model::ReadOptions options = {}) override;
     /** @inheritdoc */
     [[nodiscard]] foundation::result::Result<capability::social::SocialGraphPage>
