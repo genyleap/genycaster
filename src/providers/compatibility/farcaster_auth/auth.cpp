@@ -70,7 +70,8 @@ constexpr std::string_view universalSignatureValidatorByteCode{
     if (!startsWithHttp(value)) {
         return false;
     }
-    for (const unsigned char ch : value) {
+    for (const char rawCh : value) {
+        const auto ch = static_cast<unsigned char>(rawCh);
         if (std::isspace(ch) || ch == '\\' || ch == '"' || ch == '\'') {
             return false;
         }
@@ -215,8 +216,8 @@ constexpr std::string_view universalSignatureValidatorByteCode{
 
 [[nodiscard]] bool isValidNonce(const std::string_view value)
 {
-    return value.size() >= 8U && std::ranges::all_of(value, [](const unsigned char ch) {
-        return std::isalnum(ch) != 0;
+    return value.size() >= 8U && std::ranges::all_of(value, [](const char rawCh) {
+        return std::isalnum(static_cast<unsigned char>(rawCh)) != 0;
     });
 }
 
@@ -224,7 +225,8 @@ constexpr std::string_view universalSignatureValidatorByteCode{
 {
     std::string escaped{};
     escaped.reserve(value.size() + 8);
-    for (const unsigned char ch : value) {
+    for (const char rawCh : value) {
+        const auto ch = static_cast<unsigned char>(rawCh);
         switch (ch) {
         case '"': escaped += "\\\""; break;
         case '\\': escaped += "\\\\"; break;
@@ -838,31 +840,31 @@ struct ParsedSiwe final {
             }
             return std::nullopt;
         };
-        if (auto value = readField("URI: ")) {
-            parsed.uri = std::move(*value);
-        } else if (auto value = readField("Nonce: ")) {
-            parsed.nonce = std::move(*value);
-        } else if (auto value = readField("Version: ")) {
-            parsed.version = std::move(*value);
-        } else if (auto value = readField("Issued At: ")) {
-            parsed.issuedAt = std::move(*value);
-        } else if (auto value = readField("Expiration Time: ")) {
-            auto timestamp = parseRfc3339(*value);
+        if (auto uriValue = readField("URI: ")) {
+            parsed.uri = std::move(*uriValue);
+        } else if (auto nonceValue = readField("Nonce: ")) {
+            parsed.nonce = std::move(*nonceValue);
+        } else if (auto versionValue = readField("Version: ")) {
+            parsed.version = std::move(*versionValue);
+        } else if (auto issuedAtValue = readField("Issued At: ")) {
+            parsed.issuedAt = std::move(*issuedAtValue);
+        } else if (auto expirationValue = readField("Expiration Time: ")) {
+            auto timestamp = parseRfc3339(*expirationValue);
             if (!timestamp) {
                 return std::unexpected(std::move(timestamp.error()));
             }
             parsed.expirationTime = *timestamp;
-        } else if (auto value = readField("Not Before: ")) {
-            auto timestamp = parseRfc3339(*value);
+        } else if (auto notBeforeValue = readField("Not Before: ")) {
+            auto timestamp = parseRfc3339(*notBeforeValue);
             if (!timestamp) {
                 return std::unexpected(std::move(timestamp.error()));
             }
             parsed.notBefore = *timestamp;
-        } else if (auto value = readField("Chain ID: ")) {
+        } else if (auto chainIdValue = readField("Chain ID: ")) {
             std::uint64_t chain{};
             const auto [end, error] = std::from_chars(
-                value->data(), value->data() + value->size(), chain);
-            if (error != std::errc{} || end != value->data() + value->size()) {
+                chainIdValue->data(), chainIdValue->data() + chainIdValue->size(), chain);
+            if (error != std::errc{} || end != chainIdValue->data() + chainIdValue->size()) {
                 return std::unexpected(makeError(
                     foundation::error::ErrorCode::Unauthorized,
                     "SIWF Chain ID is invalid."));
