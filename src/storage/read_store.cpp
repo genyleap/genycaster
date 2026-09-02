@@ -120,6 +120,12 @@ namespace {
     if (existing->custodyAddress) {
         incoming.custodyAddress = existing->custodyAddress;
     }
+    if (!existing->verifiedEthAddresses.empty()) {
+        incoming.verifiedEthAddresses = existing->verifiedEthAddresses;
+    }
+    if (!existing->verifiedSolAddresses.empty()) {
+        incoming.verifiedSolAddresses = existing->verifiedSolAddresses;
+    }
     return incoming;
 }
 
