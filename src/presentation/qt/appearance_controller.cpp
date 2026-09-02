@@ -1,5 +1,6 @@
 #include "appearance_controller.hpp"
 
+#include <QColor>
 #include <QGuiApplication>
 #include <QSettings>
 #include <QStyleHints>
@@ -8,7 +9,9 @@ namespace {
 
 constexpr auto kThemeModeSetting = "appearance/themeMode";
 constexpr auto kColorThemeSetting = "appearance/colorTheme";
+constexpr auto kCustomAccentSetting = "appearance/customAccent";
 constexpr auto kReduceMotionSetting = "appearance/reduceMotion";
+constexpr auto kDefaultCustomAccent = "#FF4FA3";
 
 [[nodiscard]] QString canonicalThemeMode(QString value) {
   value = value.trimmed().toLower();
@@ -28,10 +31,21 @@ constexpr auto kReduceMotionSetting = "appearance/reduceMotion";
     return QStringLiteral("geny");
   }
   if (value == QStringLiteral("geny") || value == QStringLiteral("ocean") ||
-      value == QStringLiteral("violet") || value == QStringLiteral("ember")) {
+      value == QStringLiteral("violet") || value == QStringLiteral("ember") ||
+      value == QStringLiteral("rose") || value == QStringLiteral("mint") ||
+      value == QStringLiteral("mono") || value == QStringLiteral("custom")) {
     return value;
   }
   return {};
+}
+
+[[nodiscard]] QString canonicalAccentColor(const QString &value) {
+  QColor color{value.trimmed()};
+  if (!color.isValid()) {
+    return {};
+  }
+  color.setAlpha(255);
+  return color.name(QColor::HexRgb).toUpper();
 }
 
 [[nodiscard]] bool parseBooleanOverride(const QString &value,
@@ -80,6 +94,15 @@ AppearanceController::AppearanceController(QSettings &settings,
     m_colorThemeId = QStringLiteral("geny");
   }
 
+  m_customAccentColor = canonicalAccentColor(
+      m_settings
+          .value(QString::fromLatin1(kCustomAccentSetting),
+                 QString::fromLatin1(kDefaultCustomAccent))
+          .toString());
+  if (m_customAccentColor.isEmpty()) {
+    m_customAccentColor = QString::fromLatin1(kDefaultCustomAccent);
+  }
+
   m_reduceMotion = parseBooleanOverride(
       overrides.reduceMotion,
       m_settings.value(QString::fromLatin1(kReduceMotionSetting), false)
@@ -94,6 +117,9 @@ AppearanceController::AppearanceController(QSettings &settings,
 
 QString AppearanceController::themeMode() const { return m_themeMode; }
 QString AppearanceController::colorThemeId() const { return m_colorThemeId; }
+QString AppearanceController::customAccentColor() const {
+  return m_customAccentColor;
+}
 bool AppearanceController::effectiveDark() const noexcept {
   return m_effectiveDark;
 }
@@ -130,6 +156,24 @@ bool AppearanceController::setColorThemeId(const QString &themeId) {
   return true;
 }
 
+bool AppearanceController::setCustomAccentColor(const QString &color) {
+  const QString canonical = canonicalAccentColor(color);
+  if (canonical.isEmpty()) {
+    return false;
+  }
+  const bool changed = canonical != m_customAccentColor ||
+                       m_colorThemeId != QStringLiteral("custom");
+  m_customAccentColor = canonical;
+  m_colorThemeId = QStringLiteral("custom");
+  m_settings.setValue(QString::fromLatin1(kCustomAccentSetting),
+                      m_customAccentColor);
+  m_settings.setValue(QString::fromLatin1(kColorThemeSetting), m_colorThemeId);
+  if (changed) {
+    emit appearanceChanged();
+  }
+  return true;
+}
+
 void AppearanceController::setReduceMotion(const bool enabled) {
   if (enabled == m_reduceMotion) {
     return;
@@ -143,12 +187,15 @@ void AppearanceController::setReduceMotion(const bool enabled) {
 void AppearanceController::resetAppearance() {
   const bool changed = m_themeMode != QStringLiteral("system") ||
                        m_colorThemeId != QStringLiteral("geny") ||
+                       m_customAccentColor != QString::fromLatin1(kDefaultCustomAccent) ||
                        m_reduceMotion;
   m_themeMode = QStringLiteral("system");
   m_colorThemeId = QStringLiteral("geny");
+  m_customAccentColor = QString::fromLatin1(kDefaultCustomAccent);
   m_reduceMotion = false;
   m_settings.remove(QString::fromLatin1(kThemeModeSetting));
   m_settings.remove(QString::fromLatin1(kColorThemeSetting));
+  m_settings.remove(QString::fromLatin1(kCustomAccentSetting));
   m_settings.remove(QString::fromLatin1(kReduceMotionSetting));
   refreshEffectiveMode(false);
   if (changed) {
