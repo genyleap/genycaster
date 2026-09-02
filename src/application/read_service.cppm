@@ -57,6 +57,8 @@ public:
     using CastObserver = std::function<void(model::CastState)>;
     /** @brief Observer receiving immutable owned feed snapshots. */
     using FeedObserver = std::function<void(model::FeedState)>;
+    /** @brief Observer receiving immutable owned interactive-search snapshots. */
+    using SearchObserver = std::function<void(model::SearchState)>;
     /** @brief Observer receiving immutable owned social snapshots. */
     using SocialObserver = std::function<void(model::SocialState)>;
 
@@ -103,6 +105,12 @@ public:
     openFeed(
         model::FeedQuery query,
         FeedObserver observer,
+        model::ReadOptions options = {});
+    /** @brief Executes one derived search outside the UI thread without persistent caching. */
+    [[nodiscard]] foundation::result::Result<ReadRequest>
+    openSearch(
+        model::SearchQuery query,
+        SearchObserver observer,
         model::ReadOptions options = {});
     /** @brief Opens or paginates a social graph list cache-first. */
     [[nodiscard]] foundation::result::Result<ReadRequest>
