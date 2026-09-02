@@ -997,6 +997,73 @@ void PresentationBridge::publishPreparedReply(
 }
 
 
+
+void PresentationBridge::publishPreparedThread(const QVariantList& casts)
+{
+    if (!m_runtimeReady) {
+        m_writeErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
+        emit stateChanged();
+        return;
+    }
+    if (!m_isAuthenticated) {
+        m_writeErrorText = qtTrId("genycaster.bridge.sign_in_before_publishing_a_cast");
+        emit stateChanged();
+        return;
+    }
+    if (!m_writeReady) {
+        m_writeErrorText = qtTrId("genycaster.bridge.enable_a_verified_farcaster_signer_before_publishing");
+        emit stateChanged();
+        return;
+    }
+    if (m_writeBusy) {
+        return;
+    }
+    if (casts.size() < 2 || casts.size() > 12) {
+        m_writeErrorText = qtTrId("genycaster.bridge.thread_cast_count_invalid");
+        emit stateChanged();
+        return;
+    }
+    for (const auto& value : casts) {
+        const QVariantMap cast = value.toMap();
+        const QString text = cast.value(QStringLiteral("text")).toString();
+        const QVariantList mentionFids = cast.value(QStringLiteral("mentionFids")).toList();
+        const QVariantList mentionPositions = cast.value(QStringLiteral("mentionPositions")).toList();
+        const QVariantList embeds = cast.value(QStringLiteral("embeds")).toList();
+        if (text.trimmed().isEmpty() && embeds.isEmpty()) {
+            m_writeErrorText = qtTrId("genycaster.bridge.thread_cast_empty");
+            emit stateChanged();
+            return;
+        }
+        if (text.toUtf8().size() > 1024) {
+            m_writeErrorText = qtTrId("genycaster.bridge.farcaster_casts_are_limited_to_1024_utf_8_bytes");
+            emit stateChanged();
+            return;
+        }
+        if (mentionFids.size() != mentionPositions.size() || mentionFids.size() > 10) {
+            m_writeErrorText = qtTrId("genycaster.bridge.invalid_semantic_mentions");
+            emit stateChanged();
+            return;
+        }
+        if (embeds.size() > 2) {
+            m_writeErrorText = qtTrId("genycaster.bridge.too_many_cast_embeds");
+            emit stateChanged();
+            return;
+        }
+    }
+    if (!m_replyParentCastId.isEmpty() && m_replyParentAuthorFid == 0) {
+        m_writeErrorText = qtTrId("genycaster.bridge.choose_a_canonical_cast_before_publishing_a_reply");
+        emit stateChanged();
+        return;
+    }
+
+    m_writeBusy = true;
+    m_writePhase = QStringLiteral("preparing");
+    m_writeStatusText = qtTrId("genycaster.bridge.preparing_a_canonical_farcaster_thread");
+    m_writeErrorText.clear();
+    emit stateChanged();
+    emit publishThreadRequested(casts, m_replyParentAuthorFid, m_replyParentCastId);
+}
+
 void PresentationBridge::setReaction(
     const QString& kind,
     const qulonglong targetAuthorFid,
