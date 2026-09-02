@@ -1163,22 +1163,61 @@ bool RichComposerController::applyInlineStyle(
     auto* inlines = editableInlines(block);
     if (!inlines) return false;
     const QString plain = inlinesPlainText(*inlines);
-    if (selectionStart < 0 || selectionStart + selectionLength > plain.size()) return false;
+    if (selectionStart < 0) return false;
+    const auto selectionStartIndex = static_cast<qsizetype>(selectionStart);
+    const auto selectionLengthValue = static_cast<qsizetype>(selectionLength);
+    if (selectionStartIndex > plain.size() || selectionLengthValue > plain.size() - selectionStartIndex) return false;
+
     InlineKind kind = InlineKind::Text;
     if (style == QStringLiteral("strong")) kind = InlineKind::Strong;
     else if (style == QStringLiteral("emphasis")) kind = InlineKind::Emphasis;
     else if (style == QStringLiteral("inline-code")) kind = InlineKind::InlineCode;
     else return false;
-    m_impl->pushHistory();
+
+    const qsizetype selectionEnd = selectionStartIndex + selectionLengthValue;
     std::vector<RichInline> next{};
-    const auto before = plain.left(selectionStart);
-    const auto selected = plain.mid(selectionStart, selectionLength);
-    const auto after = plain.mid(selectionStart + selectionLength);
-    if (!before.isEmpty()) next.push_back(RichInline{.kind = InlineKind::Text, .text = before.toUtf8().toStdString()});
-    next.push_back(RichInline{.kind = kind, .text = selected.toUtf8().toStdString()});
-    if (!after.isEmpty()) next.push_back(RichInline{.kind = InlineKind::Text, .text = after.toUtf8().toStdString()});
+    next.reserve(inlines->size() + 2U);
+    qsizetype cursor = 0;
+
+    const auto appendSlice = [&next](const RichInline& source, const QString& text, const std::optional<InlineKind> overrideKind = std::nullopt) {
+        if (text.isEmpty()) return;
+        RichInline part = source;
+        part.text = text.toUtf8().toStdString();
+        if (overrideKind) {
+            part.kind = *overrideKind;
+            part.target.clear();
+            part.fid.reset();
+            part.username.clear();
+            part.displayName.clear();
+        }
+        next.push_back(std::move(part));
+    };
+
+    for (const RichInline& span : *inlines) {
+        QString visible = span.kind == InlineKind::Mention && !span.username.empty()
+            ? QStringLiteral("@") + QString::fromUtf8(span.username)
+            : QString::fromUtf8(span.text);
+        const qsizetype spanStart = cursor;
+        const qsizetype spanEnd = cursor + visible.size();
+        cursor = spanEnd;
+
+        if (spanEnd <= selectionStartIndex || spanStart >= selectionEnd) {
+            appendSlice(span, visible);
+            continue;
+        }
+
+        const qsizetype localStart = std::max<qsizetype>(0, selectionStartIndex - spanStart);
+        const qsizetype localEnd = std::min(visible.size(), selectionEnd - spanStart);
+        appendSlice(span, visible.left(localStart));
+        appendSlice(span, visible.mid(localStart, localEnd - localStart), kind);
+        appendSlice(span, visible.mid(localEnd));
+    }
+
+    m_impl->pushHistory();
     *inlines = std::move(next);
-    m_impl->syncMarkdownFromDocument(); m_impl->rebuild(); m_impl->markDirty();
+    m_impl->syncMarkdownFromDocument();
+    m_impl->rebuild();
+    m_impl->markDirty();
     return true;
 }
 
@@ -1195,12 +1234,15 @@ bool RichComposerController::applyLink(
     auto* inlines = editableInlines(block);
     if (!inlines) return false;
     const QString plain = inlinesPlainText(*inlines);
-    if (selectionStart < 0 || selectionStart + selectionLength > plain.size()) return false;
+    if (selectionStart < 0) return false;
+    const auto selectionStartIndex = static_cast<qsizetype>(selectionStart);
+    const auto selectionLengthValue = static_cast<qsizetype>(selectionLength);
+    if (selectionStartIndex > plain.size() || selectionLengthValue > plain.size() - selectionStartIndex) return false;
 
     m_impl->pushHistory();
-    const auto before = plain.left(selectionStart);
-    const auto selected = plain.mid(selectionStart, selectionLength);
-    const auto after = plain.mid(selectionStart + selectionLength);
+    const auto before = plain.left(selectionStartIndex);
+    const auto selected = plain.mid(selectionStartIndex, selectionLengthValue);
+    const auto after = plain.mid(selectionStartIndex + selectionLengthValue);
     std::vector<RichInline> next{};
     if (!before.isEmpty()) next.push_back(RichInline{.kind = InlineKind::Text, .text = before.toUtf8().toStdString()});
     next.push_back(RichInline{
@@ -1295,10 +1337,13 @@ bool RichComposerController::resolveMention(
     auto* inlines = editableInlines(block);
     if (!inlines) return false;
     const QString plain = inlinesPlainText(*inlines);
-    if (selectionStart < 0 || selectionStart + selectionLength > plain.size()) return false;
+    if (selectionStart < 0) return false;
+    const auto selectionStartIndex = static_cast<qsizetype>(selectionStart);
+    const auto selectionLengthValue = static_cast<qsizetype>(selectionLength);
+    if (selectionStartIndex > plain.size() || selectionLengthValue > plain.size() - selectionStartIndex) return false;
     m_impl->pushHistory();
-    const auto before = plain.left(selectionStart);
-    const auto after = plain.mid(selectionStart + selectionLength);
+    const auto before = plain.left(selectionStartIndex);
+    const auto after = plain.mid(selectionStartIndex + selectionLengthValue);
     std::vector<RichInline> next{};
     if (!before.isEmpty()) next.push_back(RichInline{.kind = InlineKind::Text, .text = before.toUtf8().toStdString()});
     next.push_back(RichInline{
