@@ -671,6 +671,17 @@ std::expected<Connection, Error> Connection::open(const std::filesystem::path& p
         return std::unexpected(std::move(error));
     }
 
+    // Genycaster deliberately uses multiple short-lived SQLite connections for
+    // independent read/session/signer/write lanes. WAL allows those lanes to
+    // coexist, while a bounded busy timeout absorbs normal writer hand-off
+    // instead of surfacing transient SQLITE_BUSY as a user-visible failure.
+    constexpr int busyTimeoutMilliseconds = 5'000;
+    if (sqlite3_busy_timeout(database, busyTimeoutMilliseconds) != SQLITE_OK) {
+        auto error = makeError(database, "Failed to configure SQLite busy timeout");
+        sqlite3_close(database);
+        return std::unexpected(std::move(error));
+    }
+
     Connection connection{database};
     if (auto status = connection.execute("PRAGMA foreign_keys = ON;"); !status) {
         return std::unexpected(status.error());
