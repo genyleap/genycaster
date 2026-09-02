@@ -192,6 +192,8 @@ public:
     void applyReactionProjections(QVariantList reactions);
     /** @brief Replaces network-observed active Like/Recast state for the signed-in viewer. */
     void applyViewerReactionSnapshot(QVariantList reactions);
+    /** @brief Applies authoritative Like/Recast state for a bounded set of visible casts. */
+    void applyViewerReactionDelta(QVariantList reactions);
     /** @brief Replaces account-scoped durable Follow/Unfollow state used to overlay refreshed profiles. */
     void applyFollowingProjections(QVariantList following);
     /** @brief Commits a normalized identity presentation snapshot. */
