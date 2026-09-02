@@ -280,13 +280,18 @@ private:
         elapsedTimer.start();
 
         const auto consumeAvailableBody = [&]() {
-            if (bodyLimitExceeded || !reply->isOpen()) {
+            if (!reply->isOpen()) {
                 return;
             }
             const QByteArray chunk = reply->readAll();
+            if (bodyLimitExceeded) {
+                return;
+            }
             if (!appendBodyChunk(responseBody, chunk, maxBodyBytes)) {
+                // Keep draining the response until QNetworkReply finishes instead
+                // of aborting a live TLS socket. The caller still receives
+                // BodyTooLarge below, but QSslSocket gets an orderly teardown.
                 bodyLimitExceeded = true;
-                reply->abort();
             }
         };
 
