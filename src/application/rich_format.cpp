@@ -562,7 +562,9 @@ foundation::result::Result<FarcasterSafeLayout> FarcasterSafeSerializer::seriali
     FarcasterSafeLayout result{};
     auto& output = result.text;
     for (const auto& block : document.blocks) {
+        const std::size_t beforeBlock = output.size();
         if (!output.empty()) appendBlockSeparator(output);
+        const std::size_t afterSeparator = output.size();
         switch (block.kind) {
         case BlockKind::Paragraph:
             if (const auto* text = std::get_if<TextBlock>(&block.payload)) {
@@ -610,21 +612,20 @@ foundation::result::Result<FarcasterSafeLayout> FarcasterSafeSerializer::seriali
             ++result.simplifiedElementCount;
             break;
         case BlockKind::Embed:
-            if (const auto* embed = std::get_if<domain::rich::EmbedBlock>(&block.payload)) {
-                if (auto target = safeLinkTarget(embed->url)) output.append(*target);
-            }
+            // URL embeds are protocol fields, not cast text. Duplicating the URL
+            // here makes clients render both a raw link and the rich embed.
             break;
         case BlockKind::CastReference:
             // A cast reference is represented through a protocol embed when available;
             // leaking hashes into fallback text would make the cross-client result ugly.
-            ++result.simplifiedElementCount;
             break;
         case BlockKind::Media:
-            if (const auto* media = std::get_if<domain::rich::MediaBlock>(&block.payload)) {
-                if (!media->altText.empty()) output.append(media->altText);
-                else if (auto target = safeLinkTarget(media->url)) output.append(*target);
-            }
+            // Media URLs are emitted through protocolEmbeds(). Keep cast text
+            // exactly user-authored instead of leaking CDN URLs into the post.
             break;
+        }
+        if (output.size() == afterSeparator && afterSeparator != beforeBlock) {
+            output.resize(beforeBlock);
         }
     }
 
