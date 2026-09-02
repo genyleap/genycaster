@@ -5,7 +5,9 @@
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QDesktopServices>
+#include <QList>
 #include <QString>
+#include <QStringList>
 #include <QUrl>
 #include <QtTranslation>
 #include <QVariantList>
@@ -16,6 +18,85 @@
 import farcaster.application.configuration;
 
 namespace {
+
+struct ContextualReactionRule final {
+    const char* icon;
+    QStringList phrases;
+    QStringList tokens;
+};
+
+[[nodiscard]] bool isTokenCharacter(const QChar character)
+{
+    return character.isLetterOrNumber() || character == QLatin1Char('_');
+}
+
+[[nodiscard]] bool containsToken(const QString& text, const QString& token)
+{
+    qsizetype offset = 0;
+    while ((offset = text.indexOf(token, offset, Qt::CaseInsensitive)) >= 0) {
+        const qsizetype end = offset + token.size();
+        const bool hasLeftBoundary = offset == 0 || !isTokenCharacter(text.at(offset - 1));
+        const bool hasRightBoundary = end == text.size() || !isTokenCharacter(text.at(end));
+        if (hasLeftBoundary && hasRightBoundary) {
+            return true;
+        }
+        offset = end;
+    }
+    return false;
+}
+
+[[nodiscard]] QString resolveContextualReaction(const QString& text)
+{
+    static const QList<ContextualReactionRule> rules{
+        {"brands/genyleap", {QStringLiteral("genyleap")}, {}},
+        {"brands/geny", {}, {QStringLiteral("geny")}},
+        {"quilibrium/quilibrium", {QStringLiteral("quilibrium")}, {}},
+        {"quilibrium/qstore", {}, {QStringLiteral("qstore")}},
+        {"quilibrium/qkms", {}, {QStringLiteral("qkms")}},
+        {"quilibrium/qping", {}, {QStringLiteral("qping")}},
+        {"quilibrium/quark", {}, {QStringLiteral("quark")}},
+        {"brands/farcaster", {}, {QStringLiteral("farcaster"), QStringLiteral("fc"), QStringLiteral("warpcast")}},
+        {"brands/degen", {}, {QStringLiteral("degen")}},
+        {"languages/cplusplus", {QStringLiteral("c++"), QStringLiteral("cplusplus")}, {QStringLiteral("cpp"), QStringLiteral("cxx")}},
+        {"languages/qml", {QStringLiteral("qt quick")}, {QStringLiteral("qml")}},
+        {"languages/typescript", {}, {QStringLiteral("typescript")}},
+        {"languages/javascript", {}, {QStringLiteral("javascript")}},
+        {"languages/php", {}, {QStringLiteral("php")}},
+        {"platforms/linux", {QStringLiteral("gnu/linux")}, {QStringLiteral("linux")}},
+        {"platforms/windows", {}, {QStringLiteral("windows"), QStringLiteral("win32"), QStringLiteral("win64")}},
+        {"platforms/macos", {QStringLiteral("os x"), QStringLiteral("mac os")}, {QStringLiteral("macos")}},
+        {"platforms/ios", {}, {QStringLiteral("ios"), QStringLiteral("iphone"), QStringLiteral("ipados")}},
+        {"platforms/android", {}, {QStringLiteral("android")}},
+        {"brands/github", {}, {QStringLiteral("github")}},
+        {"brands/youtube", {}, {QStringLiteral("youtube")}},
+        {"brands/telegram", {}, {QStringLiteral("telegram")}},
+        {"crypto/base", {QStringLiteral("eth base"), QStringLiteral("base chain"), QStringLiteral("base network")}, {QStringLiteral("base")}},
+        {"crypto/bitcoin", {}, {QStringLiteral("bitcoin"), QStringLiteral("btc")}},
+        {"crypto/ethereum", {}, {QStringLiteral("ethereum"), QStringLiteral("ether"), QStringLiteral("eth")}},
+        {"crypto/solana", {}, {QStringLiteral("solana"), QStringLiteral("sol")}},
+        {"reactions/gem", {QStringLiteral("super rare")}, {QStringLiteral("superrare"), QStringLiteral("gem")}},
+        {"crypto/nft", {}, {QStringLiteral("nft"), QStringLiteral("nfts")}},
+        {"reactions/wow", {QStringLiteral("mind blown")}, {QStringLiteral("wow")}},
+        {"reactions/art", {}, {QStringLiteral("art"), QStringLiteral("artist"), QStringLiteral("artwork")}},
+        {"reactions/ai", {QStringLiteral("artificial intelligence")}, {QStringLiteral("ai"), QStringLiteral("llm")}},
+        {"reactions/security", {}, {QStringLiteral("security"), QStringLiteral("privacy"), QStringLiteral("secure")}},
+        {"reactions/code", {}, {QStringLiteral("code"), QStringLiteral("coding"), QStringLiteral("programming"), QStringLiteral("developer")}},
+    };
+
+    for (const auto& rule : rules) {
+        for (const auto& phrase : rule.phrases) {
+            if (text.contains(phrase, Qt::CaseInsensitive)) {
+                return QString::fromLatin1(rule.icon);
+            }
+        }
+        for (const auto& token : rule.tokens) {
+            if (containsToken(text, token)) {
+                return QString::fromLatin1(rule.icon);
+            }
+        }
+    }
+    return QStringLiteral("actions/heart");
+}
 
 [[nodiscard]] QString canonicalCastKey(QString castId)
 {
@@ -255,6 +336,7 @@ QString PresentationBridge::accountName() const { return m_accountName; }
 QString PresentationBridge::accountUsername() const { return m_accountUsername; }
 QString PresentationBridge::accountAvatarUrl() const { return m_accountAvatarUrl; }
 qulonglong PresentationBridge::accountFid() const noexcept { return m_accountFid; }
+QVariantMap PresentationBridge::accountProfile() const { return m_accountProfile; }
 bool PresentationBridge::writeReady() const noexcept { return m_writeReady; }
 QString PresentationBridge::signerPhase() const { return m_signerPhase; }
 bool PresentationBridge::signerBusy() const noexcept { return m_signerBusy; }
@@ -690,6 +772,11 @@ void PresentationBridge::copyText(const QString& text)
     }
 }
 
+QString PresentationBridge::contextualReactionIcon(const QString& text) const
+{
+    return resolveContextualReaction(text);
+}
+
 void PresentationBridge::beginSignIn()
 {
     if (!m_runtimeReady) {
@@ -1073,6 +1160,7 @@ void PresentationBridge::applyAuthenticationState(
         m_reactionOverrides.clear();
         m_followOverrides.clear();
         m_lastPublishedCastId.clear();
+        m_accountProfile.clear();
         clearReplyTarget();
     }
     // Authentication proves account ownership only. Sign-out clears write authority
@@ -1266,7 +1354,7 @@ void PresentationBridge::applyLookupState(QString status, QString error, QString
 }
 
 void PresentationBridge::applyIdentity(const qulonglong fid, QString displayName,
-    QString username, QString status, QString error, QString diagnostic, const bool busy,
+    QString username, QVariantMap profile, QString status, QString error, QString diagnostic, const bool busy,
     const bool stale, const bool sourceUnavailable)
 {
     m_identityFid = fid;
@@ -1277,6 +1365,10 @@ void PresentationBridge::applyIdentity(const qulonglong fid, QString displayName
     m_isBusy = busy;
     m_isStale = stale;
     m_sourceUnavailable = sourceUnavailable;
+    if (fid != 0 && fid == m_accountFid && !profile.isEmpty()) {
+        m_accountProfile = std::move(profile);
+        m_profileDetailCache.insert(fid, m_accountProfile);
+    }
     emit stateChanged();
 
     if (m_shouldOpenFollowingAfterIdentity && m_identityFid != 0 && !m_isBusy) {
@@ -1439,6 +1531,9 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
     }
     if (m_activeView == QStringLiteral("profile") && m_profileFid != 0) {
         m_profileDetailCache.insert(m_profileFid, m_detail);
+        if (m_profileFid == m_accountFid) {
+            m_accountProfile = m_detail;
+        }
     }
     m_statusText = std::move(status);
     m_errorText = std::move(error);
