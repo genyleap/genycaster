@@ -848,7 +848,7 @@ void PresentationBridge::publishPreparedCast(
         return;
     }
     if (m_writeBusy) { return; }
-    if (text.trimmed().isEmpty()) {
+    if (text.trimmed().isEmpty() && embeds.isEmpty()) {
         m_writeErrorText = qtTrId("genycaster.bridge.write_something_before_publishing");
         emit stateChanged();
         return;
@@ -962,7 +962,7 @@ void PresentationBridge::publishPreparedReply(
         return;
     }
     if (m_writeBusy) { return; }
-    if (text.trimmed().isEmpty()) {
+    if (text.trimmed().isEmpty() && embeds.isEmpty()) {
         m_writeErrorText = qtTrId("genycaster.bridge.write_something_before_replying");
         emit stateChanged();
         return;
