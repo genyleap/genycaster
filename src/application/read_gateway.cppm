@@ -6,6 +6,7 @@ export module farcaster.application.read.gateway;
 
 import farcaster.application.read.model;
 import farcaster.capability.feed;
+import farcaster.capability.search;
 import farcaster.capability.social;
 import farcaster.domain.cast;
 import farcaster.domain.identity;
@@ -36,6 +37,9 @@ public:
     /** @brief Reads one canonical feed page for the requested operation. */
     [[nodiscard]] virtual foundation::result::Result<capability::feed::FeedPage>
     feed(const model::FeedQuery& query, model::ReadOptions options = {}) = 0;
+    /** @brief Reads one provider-neutral interactive search snapshot. */
+    [[nodiscard]] virtual foundation::result::Result<capability::search::SearchPage>
+    search(const model::SearchQuery& query, model::ReadOptions options = {}) = 0;
     /** @brief Reads one canonical social graph page. */
     [[nodiscard]] virtual foundation::result::Result<capability::social::SocialGraphPage>
     social(const model::SocialQuery& query, model::ReadOptions options = {}) = 0;
