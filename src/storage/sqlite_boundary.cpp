@@ -197,6 +197,7 @@ CREATE TABLE IF NOT EXISTS write_outbox (
     target_cast_id TEXT,
     target_cast_fid INTEGER,
     target_fid INTEGER,
+    depends_on_key TEXT,
     signer_public_key_hex TEXT NOT NULL,
     message_bytes BLOB NOT NULL,
     signed_at_ms INTEGER NOT NULL,
@@ -594,6 +595,23 @@ WHERE current.kind IN ('follow', 'unfollow')
         }
     }
     if (auto status = recordMigration(connection, 20, appliedAt); !status) {
+        return status;
+    }
+
+    // Thread children are ordinary CastAdd messages, but their network submit
+    // order must survive restart/offline recovery. Persist the parent outbox key
+    // independently of the protocol parent_cast_id encoded inside message_bytes.
+    {
+        auto exists = tableHasColumn(connection, "write_outbox", "depends_on_key");
+        if (!exists) { return std::unexpected(exists.error()); }
+        if (!*exists) {
+            if (auto status = connection.execute(
+                    "ALTER TABLE write_outbox ADD COLUMN depends_on_key TEXT;"); !status) {
+                return status;
+            }
+        }
+    }
+    if (auto status = recordMigration(connection, 21, appliedAt); !status) {
         return status;
     }
 
