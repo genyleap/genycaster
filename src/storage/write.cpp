@@ -543,6 +543,17 @@ FROM cast_embed_items WHERE cast_id = ? ORDER BY position ASC;
             foundation::error::ErrorCode::InvalidArgument,
             "Durable outbox enqueue requires a complete signed protocol operation."));
     }
+    if (operation.dependsOn &&
+        (operation.dependsOn->value.empty() || operation.dependsOn->value == operation.idempotencyKey.value)) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Durable outbox dependency must reference a distinct non-empty operation key."));
+    }
+    if (operation.dependsOn && operation.kind != domain::write::OperationKind::PublishCast) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Only PublishCast operations may currently depend on another outbox write."));
+    }
     const bool hasCastTarget = operation.target.cast.has_value();
     const bool hasFidTarget = operation.target.fid.has_value();
     const bool hasOptimisticCast = operation.optimisticCast.has_value();
@@ -599,7 +610,7 @@ FROM cast_embed_items WHERE cast_id = ? ORDER BY position ASC;
 SELECT kind, cast_id, author_fid, target_cast_id, target_cast_fid, target_fid,
        signer_public_key_hex, message_bytes, signed_at_ms, enqueued_at_ms,
        status, attempt_count, next_attempt_at_ms, last_failure_kind,
-       last_failure_message, confirmed_at_ms
+       last_failure_message, confirmed_at_ms, depends_on_key
 FROM write_outbox WHERE idempotency_key = ?;
 )SQL");
     if (!prepared) return std::unexpected(toFoundationError(std::move(prepared.error())));
@@ -679,6 +690,10 @@ FROM write_outbox WHERE idempotency_key = ?;
             .author = author,
             .target = std::move(target),
             .optimisticCast = std::move(optimisticCast),
+            .dependsOn = sqlite3_column_type(statement.native(), 16) != SQLITE_NULL
+                ? std::optional<domain::write::IdempotencyKey>{domain::write::IdempotencyKey{
+                    sqlite::columnText(statement.native(), 16)}}
+                : std::nullopt,
             .signerPublicKey = domain::signer::PublicKey{sqlite::columnText(statement.native(), 6)},
             .messageBytes = std::move(messageBytes),
             .signedAt = fromMilliseconds(sqlite3_column_int64(statement.native(), 8)),
@@ -797,8 +812,8 @@ INSERT OR IGNORE INTO write_outbox(
     idempotency_key, kind, cast_id, author_fid,
     target_cast_id, target_cast_fid, target_fid,
     signer_public_key_hex, message_bytes, signed_at_ms, enqueued_at_ms,
-    status, attempt_count)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0);
+    depends_on_key, status, attempt_count)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0);
 )SQL");
         if (!prepared) return std::unexpected(toFoundationError(std::move(prepared.error())));
         auto statement = std::move(*prepared);
@@ -845,6 +860,11 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0);
         if (auto status = bindInt64(m_connection, statement.native(), 11, toMilliseconds(enqueuedAt),
                 "Failed to bind outbox enqueue timestamp"); !status) {
             return std::unexpected(std::move(status.error()));
+        }
+        const std::optional<std::string> dependencyKey = operation.dependsOn
+            ? std::optional<std::string>{operation.dependsOn->value} : std::nullopt;
+        if (auto status = sqlite::bindOptionalText(statement.native(), 12, dependencyKey); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
         }
         if (auto status = sqlite::stepDone(m_connection, statement); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
@@ -893,7 +913,10 @@ VALUES(?, ?, 'pending', ?);
         if (record->operation.kind != operation.kind ||
             record->operation.author.value != operation.author.value ||
             record->operation.signerPublicKey.hex != operation.signerPublicKey.hex ||
-            record->operation.messageBytes != operation.messageBytes) {
+            record->operation.messageBytes != operation.messageBytes ||
+            record->operation.dependsOn.has_value() != operation.dependsOn.has_value() ||
+            (record->operation.dependsOn && operation.dependsOn &&
+             record->operation.dependsOn->value != operation.dependsOn->value)) {
             return std::unexpected(conflict(
                 "Idempotency key is already bound to a different protocol operation."));
         }
