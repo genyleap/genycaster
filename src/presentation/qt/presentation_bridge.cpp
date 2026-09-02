@@ -365,6 +365,9 @@ bool PresentationBridge::hasReadActivity() const noexcept { return m_hasReadActi
 bool PresentationBridge::feedStarted() const noexcept { return m_feedStarted; }
 QVariantList PresentationBridge::rows() const { return m_rows; }
 QVariantMap PresentationBridge::detail() const { return m_detail; }
+QVariantList PresentationBridge::searchResults() const { return m_searchResults; }
+bool PresentationBridge::searchBusy() const noexcept { return m_searchBusy; }
+QString PresentationBridge::searchErrorText() const { return m_searchErrorText; }
 
 void PresentationBridge::beginIntent(QString status)
 {
@@ -487,6 +490,46 @@ void PresentationBridge::openSearchQuery(const QString& query)
     }
 
     openProfileUsername(canonical);
+}
+
+void PresentationBridge::requestSearchSuggestions(const QString& query)
+{
+    QString canonical = query.trimmed();
+    if (canonical.startsWith(QStringLiteral("cast:"), Qt::CaseInsensitive) ||
+        (canonical.startsWith(QStringLiteral("0x"), Qt::CaseInsensitive) && canonical.size() >= 18)) {
+        clearSearchSuggestions();
+        return;
+    }
+    if (canonical.startsWith(QStringLiteral("channel:"), Qt::CaseInsensitive)) {
+        canonical = canonical.sliced(8).trimmed();
+    } else if (canonical.startsWith(QLatin1Char('@')) || canonical.startsWith(QLatin1Char('/')) ||
+               canonical.startsWith(QLatin1Char('#'))) {
+        canonical.remove(0, 1);
+        canonical = canonical.trimmed();
+    }
+    if (canonical.size() < 2) {
+        clearSearchSuggestions();
+        return;
+    }
+    m_searchResults.clear();
+    m_searchQuery = canonical;
+    m_searchErrorText.clear();
+    m_searchBusy = true;
+    emit searchChanged();
+    emit searchSuggestionsRequested(canonical);
+}
+
+void PresentationBridge::clearSearchSuggestions()
+{
+    const bool changed = !m_searchResults.isEmpty() || !m_searchErrorText.isEmpty() || m_searchBusy;
+    m_searchResults.clear();
+    m_searchQuery.clear();
+    m_searchErrorText.clear();
+    m_searchBusy = false;
+    emit searchSuggestionsCancelled();
+    if (changed) {
+        emit searchChanged();
+    }
 }
 
 void PresentationBridge::openCast(const QString& castId)
@@ -1406,6 +1449,18 @@ void PresentationBridge::applyFollowingProjections(QVariantList following)
     applyFollowingOverrides(m_rows, m_followOverrides);
     applyFollowingOverride(m_detail, m_followOverrides);
     emit stateChanged();
+}
+
+void PresentationBridge::applySearchSuggestions(
+    QString query, QVariantList results, QString errorText, const bool busy)
+{
+    if (query.trimmed() != m_searchQuery) {
+        return;
+    }
+    m_searchResults = std::move(results);
+    m_searchErrorText = std::move(errorText);
+    m_searchBusy = busy;
+    emit searchChanged();
 }
 
 void PresentationBridge::applyLookupState(QString status, QString error, QString diagnostic,
