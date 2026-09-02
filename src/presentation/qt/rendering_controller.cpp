@@ -71,28 +71,82 @@ int RenderingController::preferredSampleCount() const noexcept {
 
 double RenderingController::effectScale() const noexcept {
   if (m_profile == QStringLiteral("efficiency")) {
-    return 0.55;
+    return 0.38;
   }
   if (m_profile == QStringLiteral("fidelity")) {
-    return 1.0;
+    return 1.15;
   }
   if (m_effectiveQuality == QStringLiteral("efficiency")) {
-    return 0.62;
+    return 0.52;
   }
   if (m_effectiveQuality == QStringLiteral("fidelity")) {
-    return 1.0;
+    return 1.05;
   }
   return 0.82;
 }
 
 double RenderingController::mediaDecodeScale() const noexcept {
   if (m_profile == QStringLiteral("efficiency")) {
-    return 0.75;
+    return 0.70;
   }
   if (m_profile == QStringLiteral("fidelity")) {
+    return 1.50;
+  }
+  if (m_effectiveQuality == QStringLiteral("efficiency")) {
+    return 0.80;
+  }
+  if (m_effectiveQuality == QStringLiteral("fidelity")) {
     return 1.25;
   }
-  return m_effectiveQuality == QStringLiteral("efficiency") ? 0.82 : 1.0;
+  return 1.0;
+}
+
+double RenderingController::geometryQualityScale() const noexcept {
+  if (m_profile == QStringLiteral("efficiency")) {
+    return 0.72;
+  }
+  if (m_profile == QStringLiteral("fidelity")) {
+    return 1.70;
+  }
+  if (m_effectiveQuality == QStringLiteral("efficiency")) {
+    return 0.88;
+  }
+  if (m_effectiveQuality == QStringLiteral("fidelity")) {
+    return 1.45;
+  }
+  return 1.08;
+}
+
+double RenderingController::vectorRasterScale() const noexcept {
+  if (m_profile == QStringLiteral("efficiency")) {
+    return 1.0;
+  }
+  if (m_profile == QStringLiteral("fidelity")) {
+    return 2.0;
+  }
+  if (m_effectiveQuality == QStringLiteral("efficiency")) {
+    return 1.0;
+  }
+  if (m_effectiveQuality == QStringLiteral("fidelity")) {
+    return 1.75;
+  }
+  return 1.35;
+}
+
+int RenderingController::layerSampleCount() const noexcept {
+  if (m_profile == QStringLiteral("efficiency")) {
+    return 0;
+  }
+  if (m_profile == QStringLiteral("fidelity")) {
+    return 4;
+  }
+  if (m_effectiveQuality == QStringLiteral("efficiency")) {
+    return 0;
+  }
+  if (m_effectiveQuality == QStringLiteral("fidelity")) {
+    return 4;
+  }
+  return 2;
 }
 
 bool RenderingController::restartRequired() const noexcept {
