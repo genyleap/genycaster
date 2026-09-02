@@ -3,6 +3,7 @@ module;
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
 export module farcaster.domain.profile;
 
@@ -23,6 +24,10 @@ struct Profile final {
     std::optional<std::string> location{};
     std::optional<std::string> profileUrl{};
     std::optional<std::string> custodyAddress{};
+    /** @brief Farcaster-verified EVM addresses associated with this profile. */
+    std::vector<std::string> verifiedEthAddresses{};
+    /** @brief Farcaster-verified Solana addresses associated with this profile. */
+    std::vector<std::string> verifiedSolAddresses{};
     std::uint64_t followerCount{};
     std::uint64_t followingCount{};
     /** @brief Provider-derived account quality score normalized to [0, 1], when available. */
