@@ -209,6 +209,9 @@ private:
             .cast = record.operation.target.cast,
             .fid = record.operation.target.fid,
         },
+        .dependsOn = record.operation.dependsOn
+            ? std::optional<std::string>{record.operation.dependsOn->value}
+            : std::nullopt,
         .status = durableStatus(record.status),
         .attemptCount = record.attemptCount,
         .nextAttemptAt = record.nextAttemptAt,
@@ -389,6 +392,48 @@ struct WriteService::Impl final {
     {
         if (record.status != domain::write::OutboxStatus::Pending) {
             return;
+        }
+        if (record.operation.dependsOn) {
+            auto dependency = outbox.find(*record.operation.dependsOn);
+            if (!dependency) {
+                observer(WriteState{.phase = WritePhase::Failed, .record = writeRecord(record),
+                    .error = std::move(dependency.error())});
+                return;
+            }
+            if (!*dependency) {
+                const auto cause = makeError(
+                    foundation::error::ErrorCode::StorageFailure,
+                    "Thread write dependency is missing from the durable outbox.");
+                auto failed = outbox.markFailed(
+                    record.operation.idempotencyKey,
+                    persistentFailureFor(cause.code),
+                    foundation::time::now());
+                if (!failed) {
+                    observer(WriteState{.phase = WritePhase::Failed, .error = std::move(failed.error())});
+                    return;
+                }
+                emitRecord(record.operation.idempotencyKey, WritePhase::Failed, observer, cause);
+                return;
+            }
+            if ((*dependency)->status == domain::write::OutboxStatus::Failed) {
+                const auto cause = makeError(
+                    foundation::error::ErrorCode::Conflict,
+                    "A parent cast in this thread failed, so its child cannot be submitted safely.");
+                auto failed = outbox.markFailed(
+                    record.operation.idempotencyKey,
+                    persistentFailureFor(cause.code),
+                    foundation::time::now());
+                if (!failed) {
+                    observer(WriteState{.phase = WritePhase::Failed, .error = std::move(failed.error())});
+                    return;
+                }
+                emitRecord(record.operation.idempotencyKey, WritePhase::Failed, observer, cause);
+                return;
+            }
+            if ((*dependency)->status != domain::write::OutboxStatus::Confirmed) {
+                observer(WriteState{.phase = WritePhase::Queued, .record = writeRecord(record)});
+                return;
+            }
         }
         auto currentSigner = currentAuthority(session, domain::write::requiredScope(record.operation.kind));
         if (!currentSigner) {
@@ -584,6 +629,72 @@ foundation::result::Status WriteService::publish(
                 return;
             }
             m_impl->enqueuePrepared(session, std::move(*prepared), observer);
+        });
+}
+
+
+foundation::result::Status WriteService::publishThread(
+    std::optional<domain::session::ClientSession> session,
+    std::vector<PublishCastRequest> requests,
+    Observer observer)
+{
+    if (!observer) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "PublishThread requires a write-state observer."));
+    }
+    if (requests.empty()) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "PublishThread requires at least one cast."));
+    }
+    if (auto valid = validatePolicy(m_impl->policy); !valid) {
+        return valid;
+    }
+    return m_impl->executor.post(
+        [this, session = std::move(session), requests = std::move(requests), observer = std::move(observer)]() mutable {
+            auto signer = m_impl->currentAuthority(session, domain::signer::Scope::CastAdd);
+            if (!signer) {
+                observer(WriteState{.phase = WritePhase::Blocked, .error = std::move(signer.error())});
+                return;
+            }
+
+            std::optional<domain::cast::CastReference> previousCast{};
+            std::optional<domain::write::IdempotencyKey> previousKey{};
+            for (std::size_t index{}; index < requests.size(); ++index) {
+                auto& request = requests[index];
+                if (index > 0U) {
+                    request.parent = previousCast;
+                }
+                auto prepared = m_impl->codec.preparePublishCast(
+                    domain::write::PublishCastIntent{
+                        .author = session->fid,
+                        .text = std::move(request.text),
+                        .embeds = std::move(request.embeds),
+                        .mentions = std::move(request.mentions),
+                        .mentionPositions = std::move(request.mentionPositions),
+                        .parent = std::move(request.parent),
+                        .createdAt = foundation::time::now(),
+                    },
+                    *signer);
+                if (!prepared) {
+                    observer(WriteState{.phase = WritePhase::Failed, .error = std::move(prepared.error())});
+                    return;
+                }
+                prepared->dependsOn = previousKey;
+                if (!prepared->optimisticCast) {
+                    observer(WriteState{.phase = WritePhase::Failed, .error = makeError(
+                        foundation::error::ErrorCode::InternalFailure,
+                        "Canonical thread preparation did not produce an optimistic cast identity.")});
+                    return;
+                }
+                previousCast = domain::cast::CastReference{
+                    .author = session->fid,
+                    .id = prepared->optimisticCast->id,
+                };
+                previousKey = prepared->idempotencyKey;
+                m_impl->enqueuePrepared(session, std::move(*prepared), observer);
+            }
         });
 }
 
