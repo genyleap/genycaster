@@ -30,6 +30,9 @@ class RenderingController final : public QObject {
   Q_PROPERTY(int preferredSampleCount READ preferredSampleCount NOTIFY renderingChanged)
   Q_PROPERTY(double effectScale READ effectScale NOTIFY renderingChanged)
   Q_PROPERTY(double mediaDecodeScale READ mediaDecodeScale NOTIFY renderingChanged)
+  Q_PROPERTY(double geometryQualityScale READ geometryQualityScale NOTIFY renderingChanged)
+  Q_PROPERTY(double vectorRasterScale READ vectorRasterScale NOTIFY renderingChanged)
+  Q_PROPERTY(int layerSampleCount READ layerSampleCount NOTIFY renderingChanged)
   Q_PROPERTY(bool restartRequired READ restartRequired NOTIFY renderingChanged)
 
 public:
@@ -47,6 +50,9 @@ public:
   [[nodiscard]] int preferredSampleCount() const noexcept;
   [[nodiscard]] double effectScale() const noexcept;
   [[nodiscard]] double mediaDecodeScale() const noexcept;
+  [[nodiscard]] double geometryQualityScale() const noexcept;
+  [[nodiscard]] double vectorRasterScale() const noexcept;
+  [[nodiscard]] int layerSampleCount() const noexcept;
   [[nodiscard]] bool restartRequired() const noexcept;
 
   /** @brief Selects efficiency, adaptive, or fidelity. Returns false for an unknown value. */
