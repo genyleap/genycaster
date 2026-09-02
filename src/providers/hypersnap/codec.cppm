@@ -1,5 +1,6 @@
 module;
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -28,6 +29,13 @@ struct FeedPayload final {
 struct CastPayload final {
     domain::cast::Cast cast{};
     domain::profile::Profile author{};
+};
+
+/** @brief Canonical root cast plus the direct reply count from a conversation response. */
+struct ConversationPayload final {
+    domain::cast::Cast cast{};
+    domain::profile::Profile author{};
+    std::size_t directReplyCount{0};
 };
 
 /** @brief Canonical target of one active protocol reaction. */
@@ -82,6 +90,10 @@ decodeSearchChannels(std::string_view body);
 
 /** @brief Decodes the pinned Hypersnap v2 single-cast schema. */
 [[nodiscard]] foundation::result::Result<domain::cast::Cast> decodeCast(std::string_view body);
+
+/** @brief Decodes the pinned Hypersnap v2 conversation root and its direct replies. */
+[[nodiscard]] foundation::result::Result<ConversationPayload> decodeConversationPayload(
+    std::string_view body);
 
 /** @brief Decodes the standard Snapchain reactionsByFid response. */
 [[nodiscard]] foundation::result::Result<ReactionTargetsPayload> decodeReactionTargets(
