@@ -99,6 +99,8 @@ CREATE TABLE IF NOT EXISTS profiles (
     location TEXT,
     profile_url TEXT,
     custody_address TEXT,
+    verified_eth_addresses TEXT,
+    verified_sol_addresses TEXT,
     follower_count INTEGER NOT NULL DEFAULT 0,
     following_count INTEGER NOT NULL DEFAULT 0,
     quality_score REAL
@@ -612,6 +614,21 @@ WHERE current.kind IN ('follow', 'unfollow')
         }
     }
     if (auto status = recordMigration(connection, 21, appliedAt); !status) {
+        return status;
+    }
+
+    // Persist verified wallet sets separately from the custody address so local-first
+    // profile snapshots retain the protocol identities used for account assets.
+    for (const auto column : std::array{std::string_view{"verified_eth_addresses"},
+                                        std::string_view{"verified_sol_addresses"}}) {
+        auto exists = tableHasColumn(connection, "profiles", column);
+        if (!exists) { return std::unexpected(exists.error()); }
+        if (!*exists) {
+            const std::string statement = "ALTER TABLE profiles ADD COLUMN " + std::string{column} + " TEXT;";
+            if (auto status = connection.execute(statement); !status) { return status; }
+        }
+    }
+    if (auto status = recordMigration(connection, 22, appliedAt); !status) {
         return status;
     }
 
