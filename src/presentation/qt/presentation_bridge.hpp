@@ -141,6 +141,8 @@ public:
     Q_INVOKABLE void publishReply(const QString& text);
     /** @brief Publishes the exact safe-serialized reply projection plus semantic mentions. */
     Q_INVOKABLE void publishPreparedReply(const QString& text, const QVariantList& mentionFids, const QVariantList& mentionPositions, const QVariantList& embeds);
+    /** @brief Publishes an ordered list of normal CastAdd messages as a protocol-native reply chain. */
+    Q_INVOKABLE void publishPreparedThread(const QVariantList& casts);
     /** @brief Adds or removes a Like/Recast reaction for one canonical cast target. */
     Q_INVOKABLE void setReaction(
         const QString& kind, qulonglong targetAuthorFid, const QString& targetCastId, bool active);
@@ -224,6 +226,7 @@ signals:
     void signerRevokeRequested();
     void publishCastRequested(QString text, QVariantList mentionFids, QVariantList mentionPositions, QVariantList embeds);
     void publishReplyRequested(QString text, QVariantList mentionFids, QVariantList mentionPositions, QVariantList embeds, qulonglong parentAuthorFid, QString parentCastId);
+    void publishThreadRequested(QVariantList casts, qulonglong parentAuthorFid, QString parentCastId);
     void reactionRequested(QString kind, qulonglong targetAuthorFid, QString targetCastId, bool active);
     void followingMutationRequested(qulonglong targetFid, bool following);
     void removeCastRequested(qulonglong authorFid, QString castId);
