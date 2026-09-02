@@ -31,6 +31,8 @@ constexpr std::chrono::milliseconds followingRequestTimeout{10'000};
 constexpr std::chrono::milliseconds discoveryRequestTimeout{6'000};
 constexpr std::chrono::milliseconds profileFeedRequestTimeout{10'000};
 constexpr std::chrono::milliseconds viewerReactionRequestTimeout{7'500};
+constexpr std::chrono::milliseconds replyEnrichmentRequestTimeout{4'000};
+constexpr std::chrono::milliseconds exactViewerReactionRequestTimeout{4'000};
 
 [[nodiscard]] foundation::result::Result<std::size_t> validatedLimit(
     const capability::pagination::PageRequest& pageRequest)
@@ -318,6 +320,39 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::userReplies(
     std::erase_if(page->entries, [&](const auto& entry) {
         return !retained.contains(entry.castId.value);
     });
+
+    // The compatibility feed may carry an unhydrated cast snapshot whose derived
+    // engagement fields are all zero. For visible reply rows, use the conversation
+    // endpoint as a bounded best-effort enrichment. Besides aggregate reactions,
+    // its direct_replies array gives us a reliable reply count when metrics have
+    // not yet been materialized into the feed row.
+    request::Client requests{m_transport, m_config};
+    for (auto& cast : page->casts) {
+        if (cast.engagement.replies != 0) {
+            continue;
+        }
+        auto conversationBody = requests.getJson(
+            "/v2/farcaster/cast/conversation",
+            {
+                {"identifier", cast.id.value},
+                {"type", "hash"},
+                {"reply_depth", "1"},
+            },
+            request::GetOptions{.timeout = replyEnrichmentRequestTimeout});
+        if (!conversationBody) {
+            continue;
+        }
+        auto conversation = codec::decodeConversationPayload(*conversationBody);
+        if (!conversation || conversation->cast.id.value != cast.id.value) {
+            continue;
+        }
+        cast.engagement.replies = std::max(
+            cast.engagement.replies, conversation->cast.engagement.replies);
+        cast.engagement.likes = std::max(
+            cast.engagement.likes, conversation->cast.engagement.likes);
+        cast.engagement.recasts = std::max(
+            cast.engagement.recasts, conversation->cast.engagement.recasts);
+    }
     return page;
 }
 
@@ -390,6 +425,68 @@ foundation::result::Result<domain::feed::ViewerReactionSnapshot> FeedSource::vie
         .liked = std::move(*liked),
         .recasted = std::move(*recasted),
     };
+}
+
+foundation::result::Result<domain::feed::ViewerReactionSnapshot> FeedSource::viewerReactionsFor(
+    const domain::identity::Fid fid,
+    const std::vector<domain::cast::CastReference>& targets)
+{
+    if (fid.value == 0 || targets.size() > 16U) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Exact viewer reaction lookup requires a viewer and at most 16 cast targets."));
+    }
+    if (auto status = request::validateConfig(m_config); !status) {
+        return std::unexpected(std::move(status.error()));
+    }
+
+    request::Client requests{m_transport, m_config};
+    domain::feed::ViewerReactionSnapshot snapshot{};
+    snapshot.liked.reserve(targets.size());
+    snapshot.recasted.reserve(targets.size());
+
+    const auto hasReaction = [&](const domain::cast::CastReference& target,
+                                 const std::string_view type)
+        -> foundation::result::Result<bool> {
+        if (target.author.value == 0 || target.id.value.empty()) {
+            return false;
+        }
+        auto body = requests.getJson(
+            "/v1/reactionById",
+            {
+                {"fid", std::to_string(fid.value)},
+                {"target_fid", std::to_string(target.author.value)},
+                {"target_hash", target.id.value},
+                {"reaction_type", std::string{type}},
+            },
+            request::GetOptions{.timeout = exactViewerReactionRequestTimeout});
+        if (body) {
+            return true;
+        }
+        if (body.error().code == foundation::error::ErrorCode::NotFound) {
+            return false;
+        }
+        return std::unexpected(std::move(body.error()));
+    };
+
+    for (const auto& target : targets) {
+        auto liked = hasReaction(target, "Like");
+        if (!liked) {
+            return std::unexpected(std::move(liked.error()));
+        }
+        if (*liked) {
+            snapshot.liked.push_back(target.id);
+        }
+
+        auto recasted = hasReaction(target, "Recast");
+        if (!recasted) {
+            return std::unexpected(std::move(recasted.error()));
+        }
+        if (*recasted) {
+            snapshot.recasted.push_back(target.id);
+        }
+    }
+    return snapshot;
 }
 
 }
