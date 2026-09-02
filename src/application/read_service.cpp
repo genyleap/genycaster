@@ -15,6 +15,7 @@ import farcaster.application.executor;
 import farcaster.application.read.gateway;
 import farcaster.application.read.model;
 import farcaster.capability.feed;
+import farcaster.capability.search;
 import farcaster.capability.social;
 import farcaster.domain.cast;
 import farcaster.domain.identity;
@@ -391,6 +392,37 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                 state.metadata = failedMetadata(std::move(status.error()), !state.entries.empty());
                 publish(cancelled, observer, std::move(state));
             }
+        }, cancelled);
+}
+
+foundation::result::Result<ReadRequest> ReadService::openSearch(
+    model::SearchQuery query,
+    SearchObserver observer,
+    const model::ReadOptions options)
+{
+    if (query.text.empty() || query.limit == 0 || query.limit > 30 || !observer) {
+        return std::unexpected(Error::make(
+            ErrorCode::InvalidArgument, "Search query, bounded limit and observer are required."));
+    }
+    auto cancelled = std::make_shared<std::atomic_bool>(false);
+    return postRequest(m_refreshExecutor,
+        [this, query = std::move(query), observer = std::move(observer), options, cancelled]() mutable {
+            if (cancelled->load(std::memory_order_acquire)) { return; }
+            model::SearchState state{
+                .query = query,
+                .page = {},
+                .metadata = refreshingMetadata(false),
+            };
+            publish(cancelled, observer, state);
+            auto fresh = m_gateway.search(query, options);
+            if (!fresh) {
+                state.metadata = failedMetadata(std::move(fresh.error()), false);
+                publish(cancelled, observer, std::move(state));
+                return;
+            }
+            state.page = std::move(*fresh);
+            state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
+            publish(cancelled, observer, std::move(state));
         }, cancelled);
 }
 
