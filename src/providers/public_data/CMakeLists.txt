@@ -10,9 +10,11 @@ target_sources(farcaster_provider_public_data
             config.cppm
             market.cppm
             score.cppm
+            holdings.cppm
     PRIVATE
         market.cpp
         score.cpp
+        holdings.cpp
         boost_json.cpp
 )
 
