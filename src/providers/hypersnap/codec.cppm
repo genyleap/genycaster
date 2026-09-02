@@ -8,6 +8,7 @@ module;
 
 export module farcaster.provider.hypersnap.codec;
 
+import farcaster.capability.search;
 import farcaster.domain.cast;
 import farcaster.domain.identity;
 import farcaster.domain.profile;
@@ -60,6 +61,14 @@ struct SocialPayload final {
 
 /** @brief Decodes the pinned Hypersnap v2 single-user schema. */
 [[nodiscard]] foundation::result::Result<domain::profile::Profile> decodeUser(std::string_view body);
+
+/** @brief Decodes the pinned Hypersnap v2 user-search response. */
+[[nodiscard]] foundation::result::Result<std::vector<domain::profile::Profile>> decodeUsers(
+    std::string_view body);
+
+/** @brief Decodes the pinned Hypersnap v2 channel-search response. */
+[[nodiscard]] foundation::result::Result<std::vector<capability::search::ChannelSuggestion>>
+decodeSearchChannels(std::string_view body);
 
 /** @brief Decodes one standard Snapchain UserData message value. */
 [[nodiscard]] foundation::result::Result<std::string> decodeUserDataValue(std::string_view body);
