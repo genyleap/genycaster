@@ -2,6 +2,7 @@ module;
 
 #include <boost/json.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cctype>
@@ -134,6 +135,50 @@ using JsonValue = boost::json::value;
         return std::nullopt;
     }
     return std::string{value->as_string()};
+}
+
+[[nodiscard]] std::vector<std::string> optionalStringArray(
+    const JsonObject& object,
+    const std::string_view key)
+{
+    const JsonValue* value = findValue(object, key);
+    if (value == nullptr || value->is_null() || !value->is_array()) {
+        return {};
+    }
+
+    std::vector<std::string> result{};
+    result.reserve(value->as_array().size());
+    for (const JsonValue& item : value->as_array()) {
+        if (!item.is_string()) {
+            continue;
+        }
+        std::string text{item.as_string()};
+        if (!text.empty()) {
+            result.push_back(std::move(text));
+        }
+    }
+    return result;
+}
+
+void appendUniqueAddress(std::vector<std::string>& addresses, std::string address)
+{
+    if (address.empty()) {
+        return;
+    }
+    std::string key = address;
+    std::ranges::transform(key, key.begin(), [](const char value) {
+        return static_cast<char>(std::tolower(static_cast<unsigned char>(value)));
+    });
+    for (const std::string& existing : addresses) {
+        std::string existingKey = existing;
+        std::ranges::transform(existingKey, existingKey.begin(), [](const char value) {
+            return static_cast<char>(std::tolower(static_cast<unsigned char>(value)));
+        });
+        if (existingKey == key) {
+            return;
+        }
+    }
+    addresses.push_back(std::move(address));
 }
 
 [[nodiscard]] bool readDigits(
@@ -270,6 +315,17 @@ mapProfile(const JsonObject& user)
     profile.avatarUrl = optionalString(user, "pfp_url");
     profile.profileUrl = optionalString(user, "url");
     profile.custodyAddress = optionalString(user, "custody_address");
+
+    if (const JsonValue* verified = findValue(user, "verified_addresses");
+        verified != nullptr && verified->is_object()) {
+        profile.verifiedEthAddresses = optionalStringArray(verified->as_object(), "eth_addresses");
+        profile.verifiedSolAddresses = optionalStringArray(verified->as_object(), "sol_addresses");
+    }
+    for (std::string verification : optionalStringArray(user, "verifications")) {
+        if (verification.size() == 42U && verification.starts_with("0x")) {
+            appendUniqueAddress(profile.verifiedEthAddresses, std::move(verification));
+        }
+    }
 
     const auto bannerFromObject = [](const JsonObject& object) -> std::optional<std::string> {
         if (auto direct = optionalString(object, "banner_url"); direct && !direct->empty()) {
