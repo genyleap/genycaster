@@ -53,6 +53,9 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool feedStarted READ feedStarted NOTIFY stateChanged)
     Q_PROPERTY(QVariantList rows READ rows NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList searchResults READ searchResults NOTIFY searchChanged)
+    Q_PROPERTY(bool searchBusy READ searchBusy NOTIFY searchChanged)
+    Q_PROPERTY(QString searchErrorText READ searchErrorText NOTIFY searchChanged)
 
 public:
     /** @brief Creates the presentation adapter with optional Qt ownership. */
@@ -101,12 +104,19 @@ public:
     [[nodiscard]] bool feedStarted() const noexcept;
     [[nodiscard]] QVariantList rows() const;
     [[nodiscard]] QVariantMap detail() const;
+    [[nodiscard]] QVariantList searchResults() const;
+    [[nodiscard]] bool searchBusy() const noexcept;
+    [[nodiscard]] QString searchErrorText() const;
 
     Q_INVOKABLE void openIdentity(const QString& username);
     Q_INVOKABLE void selectFeed(const QString& feed);
     Q_INVOKABLE void openChannel(const QString& channelId);
     /** @brief Resolves one Explore query to a profile, channel, or canonical cast target. */
     Q_INVOKABLE void openSearchQuery(const QString& query);
+    /** @brief Requests debounced provider-neutral suggestions for the Explore palette. */
+    Q_INVOKABLE void requestSearchSuggestions(const QString& query);
+    /** @brief Clears suggestions and cancels the active interactive search request. */
+    Q_INVOKABLE void clearSearchSuggestions();
     Q_INVOKABLE void openCast(const QString& castId);
     Q_INVOKABLE void openProfile();
     Q_INVOKABLE void openMyProfile();
@@ -190,6 +200,8 @@ public:
     /** @brief Commits transient exact-lookup status without mutating the currently viewed Home identity. */
     void applyLookupState(QString status, QString error, QString diagnostic,
         bool busy, bool stale, bool sourceUnavailable);
+    /** @brief Commits provider-neutral Explore suggestions without changing the active navigation surface. */
+    void applySearchSuggestions(QString query, QVariantList results, QString errorText, bool busy);
     /** @brief Commits normalized rows for a feed or social surface. */
     void applyList(QString view, QString selector, QVariantList rows, QString next,
         QString status, QString error, QString diagnostic, bool busy, bool stale, bool sourceUnavailable);
@@ -205,12 +217,15 @@ public:
 
 signals:
     void stateChanged();
+    void searchChanged();
     /** @brief Emitted only when OS/network reachability knowledge or online state changes. */
     void networkReachabilityChanged(bool known, bool online);
     void castQueued();
     void identityOpened();
     void identityRequested(QString username, bool allowRecoveryProbe);
     void profileUsernameRequested(QString username, bool allowRecoveryProbe);
+    void searchSuggestionsRequested(QString query);
+    void searchSuggestionsCancelled();
     void feedRequested(
         QString feed,
         qulonglong fid,
@@ -296,4 +311,8 @@ private:
     QString m_next{};
     QVariantList m_rows{};
     QVariantMap m_detail{};
+    QVariantList m_searchResults{};
+    QString m_searchQuery{};
+    QString m_searchErrorText{};
+    bool m_searchBusy{false};
 };
