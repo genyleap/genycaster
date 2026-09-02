@@ -1,6 +1,7 @@
 #include "rendering_controller.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #include <QQuickWindow>
 #include <QScreen>
@@ -89,30 +90,30 @@ double RenderingController::mediaDecodeScale() const noexcept {
   if (m_profile == QStringLiteral("efficiency")) {
     return 0.72;
   }
+  // Fidelity decodes at the exact DPR-backed display requirement. Scaling
+  // beyond that only creates an extra downsample pass and can make UI/media
+  // visibly softer while increasing memory bandwidth.
   if (m_profile == QStringLiteral("fidelity")) {
-    return 1.10;
+    return 1.0;
   }
   if (m_effectiveQuality == QStringLiteral("efficiency")) {
     return 0.82;
-  }
-  if (m_effectiveQuality == QStringLiteral("fidelity")) {
-    return 1.05;
   }
   return 1.0;
 }
 
 double RenderingController::geometryQualityScale() const noexcept {
   if (m_profile == QStringLiteral("efficiency")) {
-    return 0.78;
+    return 0.80;
   }
   if (m_profile == QStringLiteral("fidelity")) {
-    return 1.35;
+    return 1.16;
   }
   if (m_effectiveQuality == QStringLiteral("efficiency")) {
     return 0.90;
   }
   if (m_effectiveQuality == QStringLiteral("fidelity")) {
-    return 1.20;
+    return 1.10;
   }
   return 1.0;
 }
@@ -134,19 +135,11 @@ double RenderingController::vectorRasterScale() const noexcept {
 }
 
 int RenderingController::layerSampleCount() const noexcept {
-  if (m_profile == QStringLiteral("efficiency")) {
-    return 0;
-  }
-  if (m_profile == QStringLiteral("fidelity")) {
-    return 4;
-  }
-  if (m_effectiveQuality == QStringLiteral("efficiency")) {
-    return 0;
-  }
-  if (m_effectiveQuality == QStringLiteral("fidelity")) {
-    return 4;
-  }
-  return 2;
+  // Offscreen QML layers already resolve to textures. Multisampling every
+  // masked/avatar/effect layer adds costly resolve passes and can introduce a
+  // second filtering stage. Window-level MSAA and analytic geometry AA own edge
+  // quality; keep texture layers single-sampled in every profile.
+  return 0;
 }
 
 bool RenderingController::restartRequired() const noexcept {
@@ -179,6 +172,9 @@ void RenderingController::attachWindow(QQuickWindow *window) {
   }
   m_window = window;
   m_frameClock.invalidate();
+  m_telemetryPublishClock.invalidate();
+  m_smoothedFrameIntervalMs = 0.0;
+  m_frameIntervalMs = 0.0;
   if (m_window == nullptr) {
     return;
   }
@@ -236,6 +232,7 @@ void RenderingController::updateStaticTelemetry() {
 void RenderingController::recordFrame() {
   if (!m_frameClock.isValid()) {
     m_frameClock.start();
+    m_telemetryPublishClock.start();
     updateStaticTelemetry();
     return;
   }
@@ -243,9 +240,31 @@ void RenderingController::recordFrame() {
   if (sampleMs <= 0.0 || sampleMs > 250.0) {
     return;
   }
-  m_frameIntervalMs = m_frameIntervalMs <= 0.0 ? sampleMs : m_frameIntervalMs * 0.88 + sampleMs * 0.12;
+
+  m_smoothedFrameIntervalMs = m_smoothedFrameIntervalMs <= 0.0
+      ? sampleMs
+      : m_smoothedFrameIntervalMs * 0.88 + sampleMs * 0.12;
   updateAdaptiveQuality();
-  emit telemetryChanged();
+
+  // Never publish telemetry every frame. A QML binding to frameIntervalMs can
+  // schedule another frame, which would otherwise turn frameSwapped into an
+  // idle-time render loop. Publish at human-readable cadence and only when the
+  // displayed value changed meaningfully.
+  constexpr qint64 telemetryIntervalMs = 750;
+  constexpr double meaningfulDeltaMs = 0.15;
+  if (!m_telemetryPublishClock.isValid()) {
+    m_telemetryPublishClock.start();
+    return;
+  }
+  if (m_telemetryPublishClock.elapsed() < telemetryIntervalMs) {
+    return;
+  }
+  m_telemetryPublishClock.restart();
+  if (m_frameIntervalMs <= 0.0 ||
+      std::abs(m_smoothedFrameIntervalMs - m_frameIntervalMs) >= meaningfulDeltaMs) {
+    m_frameIntervalMs = m_smoothedFrameIntervalMs;
+    emit telemetryChanged();
+  }
 }
 
 void RenderingController::updateAdaptiveQuality() {
@@ -254,10 +273,10 @@ void RenderingController::updateAdaptiveQuality() {
     next = QStringLiteral("efficiency");
   } else if (m_profile == QStringLiteral("fidelity")) {
     next = QStringLiteral("fidelity");
-  } else if (m_frameIntervalMs > 0.0) {
+  } else if (m_smoothedFrameIntervalMs > 0.0) {
     const double targetMs = m_refreshRate > 1.0 ? 1000.0 / m_refreshRate : 16.667;
-    const bool isSlow = m_frameIntervalMs > targetMs * 1.28;
-    const bool isStable = m_frameIntervalMs <= targetMs * 1.08;
+    const bool isSlow = m_smoothedFrameIntervalMs > targetMs * 1.28;
+    const bool isStable = m_smoothedFrameIntervalMs <= targetMs * 1.08;
     m_slowFrameStreak = isSlow ? std::min(m_slowFrameStreak + 1, 120) : 0;
     m_stableFrameStreak = isStable ? std::min(m_stableFrameStreak + 1, 240) : 0;
 
