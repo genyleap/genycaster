@@ -20,7 +20,9 @@ module;
 
 module farcaster.provider.hypersnap.codec;
 
+import farcaster.capability.search;
 import farcaster.domain.cast;
+import farcaster.domain.channel;
 import farcaster.domain.identity;
 import farcaster.domain.profile;
 import farcaster.foundation.error;
@@ -579,6 +581,79 @@ foundation::result::Result<domain::profile::Profile> decodeUser(const std::strin
         return std::unexpected(protocolError("Hypersnap user response.user must be a JSON object."));
     }
     return mapProfile(userValue->as_object());
+}
+
+foundation::result::Result<std::vector<domain::profile::Profile>> decodeUsers(
+    const std::string_view body)
+{
+    auto document = parseJson(body);
+    if (!document) {
+        return std::unexpected(std::move(document.error()));
+    }
+    if (!document->is_object()) {
+        return std::unexpected(protocolError("Hypersnap user-search response must be a JSON object."));
+    }
+    const JsonValue* usersValue = findValue(document->as_object(), "users");
+    if (usersValue == nullptr || !usersValue->is_array()) {
+        return std::unexpected(protocolError("Hypersnap user-search response.users must be an array."));
+    }
+
+    std::vector<domain::profile::Profile> profiles{};
+    profiles.reserve(usersValue->as_array().size());
+    for (const JsonValue& userValue : usersValue->as_array()) {
+        if (!userValue.is_object()) {
+            return std::unexpected(protocolError("Hypersnap user-search response contains a non-object user."));
+        }
+        auto profile = mapProfile(userValue.as_object());
+        if (!profile) {
+            return std::unexpected(std::move(profile.error()));
+        }
+        profiles.push_back(std::move(*profile));
+    }
+    return profiles;
+}
+
+foundation::result::Result<std::vector<capability::search::ChannelSuggestion>>
+decodeSearchChannels(const std::string_view body)
+{
+    auto document = parseJson(body);
+    if (!document) {
+        return std::unexpected(std::move(document.error()));
+    }
+    if (!document->is_object()) {
+        return std::unexpected(protocolError("Hypersnap channel-search response must be a JSON object."));
+    }
+    const JsonValue* channelsValue = findValue(document->as_object(), "channels");
+    if (channelsValue == nullptr || !channelsValue->is_array()) {
+        return std::unexpected(protocolError("Hypersnap channel-search response.channels must be an array."));
+    }
+
+    std::vector<capability::search::ChannelSuggestion> channels{};
+    channels.reserve(channelsValue->as_array().size());
+    for (const JsonValue& channelValue : channelsValue->as_array()) {
+        if (!channelValue.is_object()) {
+            return std::unexpected(protocolError("Hypersnap channel-search response contains a non-object channel."));
+        }
+        const JsonObject& channel = channelValue.as_object();
+        auto id = requireString(channel, "id", "channel");
+        auto name = requireString(channel, "name", "channel");
+        if (!id) {
+            return std::unexpected(std::move(id.error()));
+        }
+        if (!name) {
+            return std::unexpected(std::move(name.error()));
+        }
+        capability::search::ChannelSuggestion suggestion{};
+        suggestion.id = domain::channel::ChannelId{std::move(*id)};
+        suggestion.name = std::move(*name);
+        suggestion.imageUrl = optionalString(channel, "image_url");
+        suggestion.description = optionalString(channel, "description");
+        if (auto followers = optionalUnsigned(channel, "follower_count")) {
+            suggestion.followerCount = *followers;
+        }
+        channels.push_back(std::move(suggestion));
+    }
+    return channels;
 }
 
 [[nodiscard]] std::optional<UserDataEntry> decodeUserDataEntry(const JsonValue& messageValue)
