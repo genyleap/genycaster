@@ -232,6 +232,33 @@ void applyViewerReactionSnapshotTo(QVariantList& rows, const QVariantMap& snapsh
     }
 }
 
+void applyViewerReactionDeltaTo(
+    QVariantMap& map,
+    const QString& targetCastId,
+    const bool liked,
+    const bool recasted)
+{
+    const QString castId = canonicalCastKey(map.value(QStringLiteral("castId")).toString());
+    if (castId.isEmpty() || castId != canonicalCastKey(targetCastId)) {
+        return;
+    }
+    map.insert(QStringLiteral("likedByMe"), liked);
+    map.insert(QStringLiteral("recastedByMe"), recasted);
+}
+
+void applyViewerReactionDeltaTo(
+    QVariantList& rows,
+    const QString& castId,
+    const bool liked,
+    const bool recasted)
+{
+    for (qsizetype index = 0; index < rows.size(); ++index) {
+        auto map = rows[index].toMap();
+        applyViewerReactionDeltaTo(map, castId, liked, recasted);
+        rows[index] = std::move(map);
+    }
+}
+
 [[nodiscard]] QString profileCacheKey(const qulonglong fid, const QString& feed)
 {
     return QString::number(fid) + QChar{0x1f} + feed;
@@ -1430,6 +1457,40 @@ void PresentationBridge::applyViewerReactionSnapshot(QVariantList reactions)
     applyViewerReactionSnapshotTo(m_rows, m_viewerReactionSnapshot);
     applyViewerReactionSnapshotTo(m_writeRows, m_viewerReactionSnapshot);
     applyViewerReactionSnapshotTo(m_detail, m_viewerReactionSnapshot);
+    applyReactionOverrides(m_rows, m_reactionOverrides);
+    applyReactionOverrides(m_writeRows, m_reactionOverrides);
+    applyReactionOverrides(m_detail, m_reactionOverrides);
+    emit stateChanged();
+}
+
+void PresentationBridge::applyViewerReactionDelta(QVariantList reactions)
+{
+    for (const auto& value : reactions) {
+        const QVariantMap reaction = value.toMap();
+        const QString castId = reaction.value(QStringLiteral("castId")).toString();
+        const QString canonical = canonicalCastKey(castId);
+        if (canonical.isEmpty()) {
+            continue;
+        }
+
+        const bool liked = reaction.value(QStringLiteral("liked")).toBool();
+        const bool recasted = reaction.value(QStringLiteral("recasted")).toBool();
+        m_viewerReactionSnapshot.remove(reactionOverrideKey(canonical, QStringLiteral("like")));
+        m_viewerReactionSnapshot.remove(reactionOverrideKey(canonical, QStringLiteral("recast")));
+        if (liked) {
+            rememberReactionOverride(m_viewerReactionSnapshot, canonical, QStringLiteral("like"), true);
+        }
+        if (recasted) {
+            rememberReactionOverride(m_viewerReactionSnapshot, canonical, QStringLiteral("recast"), true);
+        }
+
+        applyViewerReactionDeltaTo(m_rows, canonical, liked, recasted);
+        applyViewerReactionDeltaTo(m_writeRows, canonical, liked, recasted);
+        applyViewerReactionDeltaTo(m_detail, canonical, liked, recasted);
+    }
+
+    // Local optimistic/durable write projections are newer than an eventually
+    // consistent network read and therefore remain the final authority.
     applyReactionOverrides(m_rows, m_reactionOverrides);
     applyReactionOverrides(m_writeRows, m_reactionOverrides);
     applyReactionOverrides(m_detail, m_reactionOverrides);
