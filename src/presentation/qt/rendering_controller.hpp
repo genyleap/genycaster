@@ -80,6 +80,8 @@ private:
   QString m_effectiveQuality{QStringLiteral("balanced")};
   QString m_graphicsApi{QStringLiteral("unknown")};
   QElapsedTimer m_frameClock{};
+  QElapsedTimer m_telemetryPublishClock{};
+  double m_smoothedFrameIntervalMs{0.0};
   double m_frameIntervalMs{0.0};
   double m_refreshRate{0.0};
   double m_devicePixelRatio{1.0};
