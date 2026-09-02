@@ -243,6 +243,7 @@ public:
             .author = operation.author,
             .target = operation.target,
             .optimisticCast = operation.optimisticCast,
+            .dependsOn = operation.dependsOn,
             .signerPublicKey = operation.signerPublicKey,
             .messageBytes = std::move(*envelope),
             .signedAt = operation.preparedAt,
