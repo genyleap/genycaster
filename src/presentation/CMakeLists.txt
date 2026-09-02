@@ -2,6 +2,8 @@ add_library(farcaster_presentation STATIC
     qt/appearance_controller.cpp
     qt/appearance_controller.hpp
     qt/presentation_bridge.cpp
+    qt/rendering_controller.cpp
+    qt/rendering_controller.hpp
     qt/presentation_bridge.hpp
     qt/localization_controller.cpp
     qt/localization_controller.hpp
