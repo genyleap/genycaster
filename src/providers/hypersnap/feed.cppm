@@ -1,6 +1,7 @@
 module;
 
 #include <cstddef>
+#include <vector>
 
 export module farcaster.provider.hypersnap.feed;
 
@@ -62,6 +63,11 @@ public:
     [[nodiscard]] foundation::result::Result<domain::feed::ViewerReactionSnapshot> viewerReactions(
         domain::identity::Fid fid,
         std::size_t limit = 100);
+
+    /** @brief Resolves authoritative Like/Recast state for a bounded set of visible casts. */
+    [[nodiscard]] foundation::result::Result<domain::feed::ViewerReactionSnapshot> viewerReactionsFor(
+        domain::identity::Fid fid,
+        const std::vector<domain::cast::CastReference>& targets);
 
 private:
     transport::http::IHttpTransport& m_transport;
