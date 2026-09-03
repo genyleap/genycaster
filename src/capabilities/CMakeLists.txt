@@ -22,6 +22,7 @@ target_sources(farcaster_capabilities
             write_submit.cppm
             valuation.cppm
             market.cppm
+            notification.cppm
             profile_quality.cppm
             media.cppm
     PRIVATE
