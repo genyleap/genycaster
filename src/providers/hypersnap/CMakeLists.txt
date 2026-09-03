@@ -17,6 +17,7 @@ target_sources(farcaster_provider_hypersnap
             cast.cppm
             social.cppm
             search.cppm
+            notification.cppm
             identity.cppm
     PRIVATE
         request.cpp
@@ -28,6 +29,7 @@ target_sources(farcaster_provider_hypersnap
         cast.cpp
         social.cpp
         search.cpp
+        notification.cpp
         identity.cpp
         boost_json.cpp
 )
