@@ -280,7 +280,12 @@ private:
         elapsedTimer.start();
 
         const auto consumeAvailableBody = [&]() {
-            if (!reply->isOpen()) {
+            // A timeout abort closes the underlying QSslSocket before the
+            // QNetworkReply necessarily flips its QIODevice open flag. Never
+            // drain after cancellation: calling readAll() in that narrow window
+            // makes Qt ask a closed QSslSocket to read and emits
+            // "QIODevice::read (QSslSocket): device not open".
+            if (timedOut || !reply->isOpen()) {
                 return;
             }
             const QByteArray chunk = reply->readAll();
@@ -308,6 +313,9 @@ private:
             requestStage = RequestStage::ResponseHeaders;
         });
         QObject::connect(reply.get(), &QNetworkReply::readyRead, &loop, [&]() {
+            if (timedOut) {
+                return;
+            }
             requestStage = RequestStage::ResponseBody;
             consumeAvailableBody();
         });
