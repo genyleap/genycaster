@@ -19,6 +19,7 @@ import farcaster.capability.model;
 import farcaster.capability.pagination;
 import farcaster.capability.profile;
 import farcaster.capability.search;
+import farcaster.capability.notification;
 import farcaster.capability.social;
 import farcaster.domain.cast;
 import farcaster.domain.identity;
@@ -282,6 +283,30 @@ foundation::result::Result<capability::search::SearchPage> RoutedReadGateway::se
     }
     return executeObserved(m_health, *route, capabilityId, options,
         [&] { return (*binding)->search->search(query.text, query.limit); });
+}
+
+foundation::result::Result<capability::notification::NotificationPage> RoutedReadGateway::notifications(
+    const application::read::model::NotificationQuery& query,
+    const application::read::model::ReadOptions options)
+{
+    const auto capabilityId = capability::catalog::notificationsRead();
+    auto route = m_router.resolve(requestFor(capabilityId, options));
+    if (!route) {
+        return std::unexpected(std::move(route.error()));
+    }
+    auto binding = bindingFor(route->provider.id);
+    if (!binding) {
+        return std::unexpected(std::move(binding.error()));
+    }
+    if ((*binding)->notifications == nullptr) {
+        return std::unexpected(missingSource("notifications"));
+    }
+    const capability::pagination::PageRequest pageRequest{
+        .limit = query.limit,
+        .continuation = query.continuation,
+    };
+    return executeObserved(m_health, *route, capabilityId, options,
+        [&] { return (*binding)->notifications->notifications(query.viewer, pageRequest); });
 }
 
 foundation::result::Result<capability::social::SocialGraphPage> RoutedReadGateway::social(
