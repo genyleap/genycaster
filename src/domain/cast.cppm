@@ -70,6 +70,8 @@ struct Cast final {
     /** @brief Protocol-native parent URL used by channel/root casts when no parent cast is present. */
     std::optional<std::string> parentUrl{};
     std::vector<Embed> embeds{};
+    /** @brief Direct conversation replies when a thread-aware read supplied them. */
+    std::vector<Cast> directReplies{};
     Engagement engagement{};
     foundation::time::Timestamp createdAt{};
 };
