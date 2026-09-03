@@ -56,6 +56,12 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QVariantList searchResults READ searchResults NOTIFY searchChanged)
     Q_PROPERTY(bool searchBusy READ searchBusy NOTIFY searchChanged)
     Q_PROPERTY(QString searchErrorText READ searchErrorText NOTIFY searchChanged)
+    Q_PROPERTY(QVariantList notificationRows READ notificationRows NOTIFY notificationsChanged)
+    Q_PROPERTY(bool notificationsBusy READ notificationsBusy NOTIFY notificationsChanged)
+    Q_PROPERTY(QString notificationsErrorText READ notificationsErrorText NOTIFY notificationsChanged)
+    Q_PROPERTY(bool notificationsHasMore READ notificationsHasMore NOTIFY notificationsChanged)
+    Q_PROPERTY(int notificationUnreadCount READ notificationUnreadCount NOTIFY notificationsChanged)
+    Q_PROPERTY(bool hasUnreadNotifications READ hasUnreadNotifications NOTIFY notificationsChanged)
 
 public:
     /** @brief Creates the presentation adapter with optional Qt ownership. */
@@ -107,6 +113,12 @@ public:
     [[nodiscard]] QVariantList searchResults() const;
     [[nodiscard]] bool searchBusy() const noexcept;
     [[nodiscard]] QString searchErrorText() const;
+    [[nodiscard]] QVariantList notificationRows() const;
+    [[nodiscard]] bool notificationsBusy() const noexcept;
+    [[nodiscard]] QString notificationsErrorText() const;
+    [[nodiscard]] bool notificationsHasMore() const noexcept;
+    [[nodiscard]] int notificationUnreadCount() const noexcept;
+    [[nodiscard]] bool hasUnreadNotifications() const noexcept;
 
     Q_INVOKABLE void openIdentity(const QString& username);
     Q_INVOKABLE void selectFeed(const QString& feed);
@@ -117,6 +129,14 @@ public:
     Q_INVOKABLE void requestSearchSuggestions(const QString& query);
     /** @brief Clears suggestions and cancels the active interactive search request. */
     Q_INVOKABLE void clearSearchSuggestions();
+    /** @brief Opens the signed-in viewer's in-app Farcaster notifications. */
+    Q_INVOKABLE void openNotifications();
+    /** @brief Loads the next notification page when available. */
+    Q_INVOKABLE void loadMoreNotifications();
+    /** @brief Refreshes the notification badge without navigating away from the current surface. */
+    Q_INVOKABLE void refreshNotificationBadge();
+    /** @brief Marks notifications observed up to now as locally seen. */
+    Q_INVOKABLE void markNotificationsRead();
     Q_INVOKABLE void openCast(const QString& castId);
     Q_INVOKABLE void openProfile();
     Q_INVOKABLE void openMyProfile();
@@ -204,6 +224,12 @@ public:
         bool busy, bool stale, bool sourceUnavailable);
     /** @brief Commits provider-neutral Explore suggestions without changing the active navigation surface. */
     void applySearchSuggestions(QString query, QVariantList results, QString errorText, bool busy);
+    /** @brief Commits one in-app notifications page without disturbing the active feed cache. */
+    void applyNotifications(QVariantList rows, QString next, QString errorText, bool busy, bool append);
+    /** @brief Commits a lightweight unseen-notification timestamp snapshot for navigation badges. */
+    void applyNotificationBadge(QVariantList observedAtMs, bool busy, bool authoritative = true);
+    /** @brief Restores the account-scoped local notification seen watermark from durable settings. */
+    void restoreNotificationSeenAt(qulonglong accountFid, qlonglong observedAtMs);
     /** @brief Commits normalized rows for a feed or social surface. */
     void applyList(QString view, QString selector, QVariantList rows, QString next,
         QString status, QString error, QString diagnostic, bool busy, bool stale, bool sourceUnavailable);
@@ -220,6 +246,7 @@ public:
 signals:
     void stateChanged();
     void searchChanged();
+    void notificationsChanged();
     /** @brief Emitted only when OS/network reachability knowledge or online state changes. */
     void networkReachabilityChanged(bool known, bool online);
     void castQueued();
@@ -228,6 +255,9 @@ signals:
     void profileUsernameRequested(QString username, bool allowRecoveryProbe);
     void searchSuggestionsRequested(QString query);
     void searchSuggestionsCancelled();
+    void notificationsRequested(QString continuation, bool allowRecoveryProbe);
+    void notificationBadgeRequested(bool allowRecoveryProbe);
+    void notificationSeenAtChanged(qulonglong accountFid, qlonglong observedAtMs);
     void feedRequested(
         QString feed,
         qulonglong fid,
@@ -317,4 +347,11 @@ private:
     QString m_searchQuery{};
     QString m_searchErrorText{};
     bool m_searchBusy{false};
+    QVariantList m_notificationRows{};
+    QString m_notificationNext{};
+    QString m_notificationsErrorText{};
+    bool m_notificationsBusy{false};
+    qlonglong m_notificationSeenAtMs{0};
+    int m_notificationUnreadCount{0};
+    bool m_notificationBadgeBusy{false};
 };
