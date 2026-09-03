@@ -34,6 +34,8 @@ export namespace farcaster::capability::catalog {
 [[nodiscard]] model::CapabilityId feedForYouRead();
 /** @brief Derived interactive profile/channel search capability. */
 [[nodiscard]] model::CapabilityId searchRead();
+/** @brief In-app Farcaster notifications read capability. */
+[[nodiscard]] model::CapabilityId notificationsRead();
 /** @brief Timestamped asset-to-fiat valuation read capability. */
 [[nodiscard]] model::CapabilityId valuationAssetPriceRead();
 /** @brief Timestamped fiat FX valuation read capability. */
