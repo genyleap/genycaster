@@ -1,0 +1,56 @@
+module;
+
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <vector>
+
+export module farcaster.capability.notification;
+
+import farcaster.capability.pagination;
+import farcaster.domain.cast;
+import farcaster.domain.identity;
+import farcaster.domain.profile;
+import farcaster.foundation.result;
+import farcaster.foundation.time;
+
+export namespace farcaster::capability::notification {
+
+/** @brief Provider-neutral in-app Farcaster notification category. */
+enum class NotificationKind : std::uint8_t {
+    Mention,
+    Reply,
+    Reaction,
+    Follow,
+    Unknown,
+};
+
+/** @brief Canonical notification row materialized from the Farcaster read API. */
+struct NotificationItem final {
+    std::string stableId{};
+    NotificationKind kind{NotificationKind::Unknown};
+    foundation::time::Timestamp observedAt{};
+    std::optional<domain::cast::Cast> cast{};
+    std::vector<domain::profile::Profile> actors{};
+    std::size_t aggregateCount{1};
+};
+
+/** @brief Canonical paginated notification snapshot. */
+struct NotificationPage final {
+    std::vector<NotificationItem> items{};
+    std::optional<pagination::ContinuationToken> next{};
+};
+
+/** @brief Blocking provider-neutral in-app notifications read port. */
+class INotificationSource {
+public:
+    virtual ~INotificationSource() = default;
+
+    /** @brief Reads one notification page for the specified viewer. */
+    [[nodiscard]] virtual foundation::result::Result<NotificationPage> notifications(
+        domain::identity::Fid viewer,
+        const pagination::PageRequest& pageRequest) = 0;
+};
+
+}
