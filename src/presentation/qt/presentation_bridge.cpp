@@ -113,27 +113,35 @@ void updateReactionPresentation(
     const QString& kind,
     const bool active)
 {
-    if (canonicalCastKey(map.value(QStringLiteral("castId")).toString()) != canonicalCastKey(castId)) {
-        return;
+    if (canonicalCastKey(map.value(QStringLiteral("castId")).toString()) == canonicalCastKey(castId)) {
+        const QString stateKey = kind == QStringLiteral("like")
+            ? QStringLiteral("likedByMe")
+            : QStringLiteral("recastedByMe");
+        const QString countKey = kind == QStringLiteral("like")
+            ? QStringLiteral("likeCount")
+            : QStringLiteral("recastCount");
+        const bool previous = map.value(stateKey).toBool();
+        if (previous != active) {
+            qulonglong count = map.value(countKey).toULongLong();
+            if (active) {
+                ++count;
+            } else if (count > 0U) {
+                --count;
+            }
+            map.insert(stateKey, active);
+            map.insert(countKey, count);
+        }
     }
-    const QString stateKey = kind == QStringLiteral("like")
-        ? QStringLiteral("likedByMe")
-        : QStringLiteral("recastedByMe");
-    const QString countKey = kind == QStringLiteral("like")
-        ? QStringLiteral("likeCount")
-        : QStringLiteral("recastCount");
-    const bool previous = map.value(stateKey).toBool();
-    if (previous == active) {
-        return;
+
+    QVariantList replies = map.value(QStringLiteral("threadReplies")).toList();
+    for (qsizetype index = 0; index < replies.size(); ++index) {
+        QVariantMap reply = replies[index].toMap();
+        updateReactionPresentation(reply, castId, kind, active);
+        replies[index] = std::move(reply);
     }
-    qulonglong count = map.value(countKey).toULongLong();
-    if (active) {
-        ++count;
-    } else if (count > 0U) {
-        --count;
+    if (!replies.isEmpty()) {
+        map.insert(QStringLiteral("threadReplies"), std::move(replies));
     }
-    map.insert(stateKey, active);
-    map.insert(countKey, count);
 }
 
 void updateReactionPresentation(
@@ -144,9 +152,6 @@ void updateReactionPresentation(
 {
     for (qsizetype index = 0; index < rows.size(); ++index) {
         auto map = rows[index].toMap();
-        if (canonicalCastKey(map.value(QStringLiteral("castId")).toString()) != canonicalCastKey(castId)) {
-            continue;
-        }
         updateReactionPresentation(map, castId, kind, active);
         rows[index] = std::move(map);
     }
@@ -181,24 +186,33 @@ void rememberReactionOverride(
 void applyReactionOverrides(QVariantMap& map, const QVariantMap& overrides)
 {
     const QString castId = canonicalCastKey(map.value(QStringLiteral("castId")).toString());
-    if (castId.isEmpty()) {
-        return;
-    }
-    const QString likeKey = reactionOverrideKey(castId, QStringLiteral("like"));
-    if (overrides.contains(likeKey)) {
-        const bool likedByMe = overrides.value(likeKey).toBool();
-        map.insert(QStringLiteral("likedByMe"), likedByMe);
-        if (likedByMe && map.value(QStringLiteral("likeCount")).toULongLong() == 0U) {
-            map.insert(QStringLiteral("likeCount"), qulonglong{1});
+    if (!castId.isEmpty()) {
+        const QString likeKey = reactionOverrideKey(castId, QStringLiteral("like"));
+        if (overrides.contains(likeKey)) {
+            const bool likedByMe = overrides.value(likeKey).toBool();
+            map.insert(QStringLiteral("likedByMe"), likedByMe);
+            if (likedByMe && map.value(QStringLiteral("likeCount")).toULongLong() == 0U) {
+                map.insert(QStringLiteral("likeCount"), qulonglong{1});
+            }
+        }
+        const QString recastKey = reactionOverrideKey(castId, QStringLiteral("recast"));
+        if (overrides.contains(recastKey)) {
+            const bool recastedByMe = overrides.value(recastKey).toBool();
+            map.insert(QStringLiteral("recastedByMe"), recastedByMe);
+            if (recastedByMe && map.value(QStringLiteral("recastCount")).toULongLong() == 0U) {
+                map.insert(QStringLiteral("recastCount"), qulonglong{1});
+            }
         }
     }
-    const QString recastKey = reactionOverrideKey(castId, QStringLiteral("recast"));
-    if (overrides.contains(recastKey)) {
-        const bool recastedByMe = overrides.value(recastKey).toBool();
-        map.insert(QStringLiteral("recastedByMe"), recastedByMe);
-        if (recastedByMe && map.value(QStringLiteral("recastCount")).toULongLong() == 0U) {
-            map.insert(QStringLiteral("recastCount"), qulonglong{1});
-        }
+
+    QVariantList replies = map.value(QStringLiteral("threadReplies")).toList();
+    for (qsizetype index = 0; index < replies.size(); ++index) {
+        QVariantMap reply = replies[index].toMap();
+        applyReactionOverrides(reply, overrides);
+        replies[index] = std::move(reply);
+    }
+    if (!replies.isEmpty()) {
+        map.insert(QStringLiteral("threadReplies"), std::move(replies));
     }
 }
 
@@ -214,12 +228,29 @@ void applyReactionOverrides(QVariantList& rows, const QVariantMap& overrides)
 void applyViewerReactionSnapshotTo(QVariantMap& map, const QVariantMap& snapshot)
 {
     const QString castId = canonicalCastKey(map.value(QStringLiteral("castId")).toString());
-    if (castId.isEmpty()) { return; }
-    if (snapshot.value(reactionOverrideKey(castId, QStringLiteral("like"))).toBool()) {
-        map.insert(QStringLiteral("likedByMe"), true);
+    if (!castId.isEmpty()) {
+        if (snapshot.value(reactionOverrideKey(castId, QStringLiteral("like"))).toBool()) {
+            map.insert(QStringLiteral("likedByMe"), true);
+            if (map.value(QStringLiteral("likeCount")).toULongLong() == 0U) {
+                map.insert(QStringLiteral("likeCount"), qulonglong{1});
+            }
+        }
+        if (snapshot.value(reactionOverrideKey(castId, QStringLiteral("recast"))).toBool()) {
+            map.insert(QStringLiteral("recastedByMe"), true);
+            if (map.value(QStringLiteral("recastCount")).toULongLong() == 0U) {
+                map.insert(QStringLiteral("recastCount"), qulonglong{1});
+            }
+        }
     }
-    if (snapshot.value(reactionOverrideKey(castId, QStringLiteral("recast"))).toBool()) {
-        map.insert(QStringLiteral("recastedByMe"), true);
+
+    QVariantList replies = map.value(QStringLiteral("threadReplies")).toList();
+    for (qsizetype index = 0; index < replies.size(); ++index) {
+        QVariantMap reply = replies[index].toMap();
+        applyViewerReactionSnapshotTo(reply, snapshot);
+        replies[index] = std::move(reply);
+    }
+    if (!replies.isEmpty()) {
+        map.insert(QStringLiteral("threadReplies"), std::move(replies));
     }
 }
 
@@ -239,11 +270,26 @@ void applyViewerReactionDeltaTo(
     const bool recasted)
 {
     const QString castId = canonicalCastKey(map.value(QStringLiteral("castId")).toString());
-    if (castId.isEmpty() || castId != canonicalCastKey(targetCastId)) {
-        return;
+    if (!castId.isEmpty() && castId == canonicalCastKey(targetCastId)) {
+        map.insert(QStringLiteral("likedByMe"), liked);
+        map.insert(QStringLiteral("recastedByMe"), recasted);
+        if (liked && map.value(QStringLiteral("likeCount")).toULongLong() == 0U) {
+            map.insert(QStringLiteral("likeCount"), qulonglong{1});
+        }
+        if (recasted && map.value(QStringLiteral("recastCount")).toULongLong() == 0U) {
+            map.insert(QStringLiteral("recastCount"), qulonglong{1});
+        }
     }
-    map.insert(QStringLiteral("likedByMe"), liked);
-    map.insert(QStringLiteral("recastedByMe"), recasted);
+
+    QVariantList replies = map.value(QStringLiteral("threadReplies")).toList();
+    for (qsizetype index = 0; index < replies.size(); ++index) {
+        QVariantMap reply = replies[index].toMap();
+        applyViewerReactionDeltaTo(reply, targetCastId, liked, recasted);
+        replies[index] = std::move(reply);
+    }
+    if (!replies.isEmpty()) {
+        map.insert(QStringLiteral("threadReplies"), std::move(replies));
+    }
 }
 
 void applyViewerReactionDeltaTo(
@@ -395,6 +441,12 @@ QVariantMap PresentationBridge::detail() const { return m_detail; }
 QVariantList PresentationBridge::searchResults() const { return m_searchResults; }
 bool PresentationBridge::searchBusy() const noexcept { return m_searchBusy; }
 QString PresentationBridge::searchErrorText() const { return m_searchErrorText; }
+QVariantList PresentationBridge::notificationRows() const { return m_notificationRows; }
+bool PresentationBridge::notificationsBusy() const noexcept { return m_notificationsBusy; }
+QString PresentationBridge::notificationsErrorText() const { return m_notificationsErrorText; }
+bool PresentationBridge::notificationsHasMore() const noexcept { return !m_notificationNext.isEmpty(); }
+int PresentationBridge::notificationUnreadCount() const noexcept { return m_notificationUnreadCount; }
+bool PresentationBridge::hasUnreadNotifications() const noexcept { return m_notificationUnreadCount > 0; }
 
 void PresentationBridge::beginIntent(QString status)
 {
@@ -556,6 +608,68 @@ void PresentationBridge::clearSearchSuggestions()
     emit searchSuggestionsCancelled();
     if (changed) {
         emit searchChanged();
+    }
+}
+
+void PresentationBridge::openNotifications()
+{
+    markNotificationsRead();
+    if (!m_isAuthenticated || m_accountFid == 0) {
+        m_notificationRows.clear();
+        m_notificationNext.clear();
+        m_notificationsErrorText = qtTrId("genycaster.notifications.sign_in_required");
+        m_notificationsBusy = false;
+        emit notificationsChanged();
+        return;
+    }
+    m_notificationsErrorText.clear();
+    m_notificationsBusy = true;
+    emit notificationsChanged();
+    emit notificationsRequested({}, consumeRecoveryProbe());
+}
+
+void PresentationBridge::loadMoreNotifications()
+{
+    if (m_notificationsBusy || m_notificationNext.isEmpty() || m_accountFid == 0) {
+        return;
+    }
+    m_notificationsBusy = true;
+    m_notificationsErrorText.clear();
+    emit notificationsChanged();
+    emit notificationsRequested(m_notificationNext, false);
+}
+
+void PresentationBridge::refreshNotificationBadge()
+{
+    if (!m_runtimeReady || !m_isAuthenticated || m_accountFid == 0 || m_notificationBadgeBusy) {
+        return;
+    }
+    m_notificationBadgeBusy = true;
+    emit notificationBadgeRequested(false);
+}
+
+void PresentationBridge::markNotificationsRead()
+{
+    if (!m_isAuthenticated || m_accountFid == 0) {
+        if (m_notificationUnreadCount != 0) {
+            m_notificationUnreadCount = 0;
+            emit notificationsChanged();
+        }
+        return;
+    }
+
+    qlonglong watermark = QDateTime::currentMSecsSinceEpoch();
+    for (const QVariant& value : std::as_const(m_notificationRows)) {
+        watermark = std::max(
+            watermark,
+            value.toMap().value(QStringLiteral("observedAtMs")).toLongLong());
+    }
+    const bool changed = m_notificationUnreadCount != 0 || watermark != m_notificationSeenAtMs;
+    m_notificationSeenAtMs = watermark;
+    m_notificationUnreadCount = 0;
+    emit notificationSeenAtChanged(m_accountFid, m_notificationSeenAtMs);
+    if (changed) {
+        emit notificationsChanged();
     }
 }
 
@@ -1298,7 +1412,15 @@ void PresentationBridge::applyAuthenticationState(
         m_followOverrides.clear();
         m_lastPublishedCastId.clear();
         m_accountProfile.clear();
+        m_notificationRows.clear();
+        m_notificationNext.clear();
+        m_notificationsErrorText.clear();
+        m_notificationsBusy = false;
+        m_notificationSeenAtMs = 0;
+        m_notificationUnreadCount = 0;
+        m_notificationBadgeBusy = false;
         clearReplyTarget();
+        emit notificationsChanged();
     }
     // Authentication proves account ownership only. Sign-out clears write authority
     // immediately; an authenticated session keeps the separately observed signer state.
@@ -1561,6 +1683,71 @@ void PresentationBridge::applyIdentity(const qulonglong fid, QString displayName
             [this] { selectFeed(QStringLiteral("following")); },
             Qt::QueuedConnection);
     }
+}
+
+void PresentationBridge::applyNotifications(
+    QVariantList rows, QString next, QString errorText, const bool busy, const bool append)
+{
+    if (append) {
+        QHash<QString, bool> seen{};
+        for (const QVariant& value : std::as_const(m_notificationRows)) {
+            seen.insert(value.toMap().value(QStringLiteral("id")).toString(), true);
+        }
+        for (QVariant& value : rows) {
+            const QString id = value.toMap().value(QStringLiteral("id")).toString();
+            if (id.isEmpty() || seen.contains(id)) {
+                continue;
+            }
+            seen.insert(id, true);
+            m_notificationRows.push_back(std::move(value));
+        }
+    } else if (!busy || m_notificationRows.isEmpty()) {
+        m_notificationRows = std::move(rows);
+    }
+    if (!busy) {
+        m_notificationNext = std::move(next);
+    }
+    m_notificationsErrorText = std::move(errorText);
+    m_notificationsBusy = busy;
+    emit notificationsChanged();
+}
+
+void PresentationBridge::applyNotificationBadge(
+    QVariantList observedAtMs, const bool busy, const bool authoritative)
+{
+    m_notificationBadgeBusy = busy;
+    if (!m_isAuthenticated || m_accountFid == 0) {
+        if (m_notificationUnreadCount != 0) {
+            m_notificationUnreadCount = 0;
+            emit notificationsChanged();
+        }
+        return;
+    }
+    if (!authoritative) {
+        return;
+    }
+
+    int unread = 0;
+    for (const QVariant& value : std::as_const(observedAtMs)) {
+        if (value.toLongLong() > m_notificationSeenAtMs) {
+            ++unread;
+        }
+    }
+    if (unread != m_notificationUnreadCount) {
+        m_notificationUnreadCount = unread;
+        emit notificationsChanged();
+    }
+}
+
+void PresentationBridge::restoreNotificationSeenAt(
+    const qulonglong accountFid, const qlonglong observedAtMs)
+{
+    if (!m_isAuthenticated || m_accountFid == 0 || accountFid != m_accountFid) {
+        return;
+    }
+    m_notificationSeenAtMs = std::max<qlonglong>(0, observedAtMs);
+    m_notificationUnreadCount = 0;
+    emit notificationsChanged();
 }
 
 void PresentationBridge::applyList(QString view, QString selector, QVariantList rows,
