@@ -52,6 +52,12 @@ public:
         const std::vector<std::pair<std::string, std::string>>& query,
         GetOptions options = {});
 
+    /** @brief Executes a Hypersnap JSON POST with a caller-owned serialized body. */
+    [[nodiscard]] foundation::result::Result<std::string> postJson(
+        std::string_view path,
+        std::string body,
+        GetOptions options = {});
+
 private:
     transport::http::IHttpTransport& m_transport;
     config::Config m_config{};
