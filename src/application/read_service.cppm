@@ -59,6 +59,8 @@ public:
     using FeedObserver = std::function<void(model::FeedState)>;
     /** @brief Observer receiving immutable owned interactive-search snapshots. */
     using SearchObserver = std::function<void(model::SearchState)>;
+    /** @brief Observer receiving immutable owned notification snapshots. */
+    using NotificationObserver = std::function<void(model::NotificationState)>;
     /** @brief Observer receiving immutable owned social snapshots. */
     using SocialObserver = std::function<void(model::SocialState)>;
 
@@ -111,6 +113,12 @@ public:
     openSearch(
         model::SearchQuery query,
         SearchObserver observer,
+        model::ReadOptions options = {});
+    /** @brief Executes one in-app notification read outside the UI thread. */
+    [[nodiscard]] foundation::result::Result<ReadRequest>
+    openNotifications(
+        model::NotificationQuery query,
+        NotificationObserver observer,
         model::ReadOptions options = {});
     /** @brief Opens or paginates a social graph list cache-first. */
     [[nodiscard]] foundation::result::Result<ReadRequest>
