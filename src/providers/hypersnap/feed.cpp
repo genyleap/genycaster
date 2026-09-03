@@ -28,11 +28,10 @@ namespace farcaster::provider::hypersnap::feed {
 namespace {
 
 constexpr std::chrono::milliseconds followingRequestTimeout{10'000};
-constexpr std::chrono::milliseconds discoveryRequestTimeout{6'000};
+constexpr std::chrono::milliseconds discoveryRequestTimeout{10'000};
 constexpr std::chrono::milliseconds profileFeedRequestTimeout{10'000};
 constexpr std::chrono::milliseconds viewerReactionRequestTimeout{7'500};
 constexpr std::chrono::milliseconds replyEnrichmentRequestTimeout{4'000};
-constexpr std::chrono::milliseconds exactViewerReactionRequestTimeout{4'000};
 
 [[nodiscard]] foundation::result::Result<std::size_t> validatedLimit(
     const capability::pagination::PageRequest& pageRequest)
@@ -104,6 +103,89 @@ constexpr std::chrono::milliseconds exactViewerReactionRequestTimeout{4'000};
     return page;
 }
 
+[[nodiscard]] foundation::result::Result<capability::feed::FeedPage> readFeedWithAliasFallback(
+    transport::http::IHttpTransport& transport,
+    storage::continuation::ContinuationStore& continuationStore,
+    const config::Config& config,
+    const capability::model::CapabilityId& capabilityId,
+    const std::string_view preferredPath,
+    std::vector<std::pair<std::string, std::string>> preferredQuery,
+    const std::string_view fallbackPath,
+    std::vector<std::pair<std::string, std::string>> fallbackQuery,
+    const capability::pagination::PageRequest& pageRequest,
+    const std::chrono::milliseconds requestTimeout)
+{
+    auto preferred = readFeed(
+        transport,
+        continuationStore,
+        config,
+        capabilityId,
+        preferredPath,
+        std::move(preferredQuery),
+        pageRequest,
+        requestTimeout);
+    if (preferred) {
+        return preferred;
+    }
+
+    // Hypersnap documents both explicit feed endpoints and the generic
+    // /feed?feed_type=... compatibility route. A node can temporarily have one
+    // surface unavailable while the other remains healthy, so retry once on the
+    // alias before surfacing a discovery outage. The provider-private cursor is
+    // still resolved/bound through the same canonical capability id.
+    return readFeed(
+        transport,
+        continuationStore,
+        config,
+        capabilityId,
+        fallbackPath,
+        std::move(fallbackQuery),
+        pageRequest,
+        requestTimeout);
+}
+
+[[nodiscard]] bool hasUsableDiscoveryPage(const capability::feed::FeedPage& page) noexcept
+{
+    return !page.casts.empty();
+}
+
+[[nodiscard]] foundation::result::Result<capability::feed::FeedPage> readDiscoveryChannelsFallback(
+    transport::http::IHttpTransport& transport,
+    storage::continuation::ContinuationStore& continuationStore,
+    const config::Config& config,
+    const capability::pagination::PageRequest& pageRequest)
+{
+    // Channel feeds are computed directly from parent-url casts on Hypersnap and
+    // remain useful even when the optional Metrics/Trending service is disabled
+    // or temporarily rebuilding. Keep this as a first-page-only recovery corpus:
+    // provider cursors from a trending endpoint are not interchangeable with a
+    // channel-filter cursor.
+    if (pageRequest.continuation) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::NotFound,
+            "Discovery channel fallback does not reuse a trending continuation."));
+    }
+
+    capability::pagination::PageRequest fallbackRequest{
+        .limit = std::max<std::size_t>(pageRequest.limit, 60U),
+        .continuation = std::nullopt,
+    };
+    auto fallback = readFeed(
+        transport,
+        continuationStore,
+        config,
+        capability::catalog::feedTrendingRead(),
+        "/v2/farcaster/feed/channels",
+        {{"channel_ids", "base,dev,developers,programming,builders,art,nft,photography,farcaster,memes"}},
+        fallbackRequest,
+        discoveryRequestTimeout);
+    if (fallback) {
+        // Do not expose a cursor bound to a different server-side feed family.
+        fallback->next.reset();
+    }
+    return fallback;
+}
+
 [[nodiscard]] bool isQuote(const domain::cast::Cast& cast)
 {
     return std::ranges::any_of(cast.embeds, [](const auto& embed) {
@@ -154,17 +236,17 @@ constexpr std::chrono::milliseconds exactViewerReactionRequestTimeout{4'000};
 
     std::vector<std::pair<std::string, std::string>> query{
         {"fid", std::to_string(fid.value)},
-        {"reaction_type", "Like"},
-        {"pageSize", std::to_string(*limit)},
-        {"reverse", "true"},
+        {"type", "likes"},
+        {"limit", std::to_string(*limit)},
     };
     if (*cursor) {
-        query.emplace_back("pageToken", **cursor);
+        query.emplace_back("cursor", **cursor);
     }
 
     request::Client requests{transport, config};
     auto body = requests.getJson(
-        "/v1/reactionsByFid", query, request::GetOptions{.timeout = profileFeedRequestTimeout});
+        "/v2/farcaster/reaction/user", query,
+        request::GetOptions{.timeout = profileFeedRequestTimeout});
     if (!body) {
         return std::unexpected(std::move(body.error()));
     }
@@ -221,29 +303,113 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::following(
     const domain::identity::Fid fid,
     const capability::pagination::PageRequest& pageRequest)
 {
-    return readFeed(
+    auto followingPage = readFeedWithAliasFallback(
         m_transport,
         m_continuations,
         m_config,
         capability::catalog::feedFollowingRead(),
         "/v2/farcaster/feed/following",
         {{"fid", std::to_string(fid.value)}},
+        "/v2/farcaster/feed",
+        {{"feed_type", "following"}, {"fid", std::to_string(fid.value)}},
         pageRequest,
         followingRequestTimeout);
+    if (followingPage && (hasUsableDiscoveryPage(*followingPage) || pageRequest.continuation)) {
+        return followingPage;
+    }
+
+    // A public node can have the social/feed projection unavailable while raw
+    // channel reads continue to work. Home must degrade to useful discovery
+    // rather than becoming an empty surface. Preserve a real Following result
+    // whenever it contains data; only first-page failure/empty results recover.
+    if (!pageRequest.continuation) {
+        auto trendingPage = readFeed(
+            m_transport,
+            m_continuations,
+            m_config,
+            capability::catalog::feedFollowingRead(),
+            "/v2/farcaster/feed/trending",
+            {},
+            pageRequest,
+            discoveryRequestTimeout);
+        if (trendingPage && hasUsableDiscoveryPage(*trendingPage)) {
+            return trendingPage;
+        }
+        auto channelFallback = readDiscoveryChannelsFallback(
+            m_transport, m_continuations, m_config, pageRequest);
+        if (channelFallback && hasUsableDiscoveryPage(*channelFallback)) {
+            return channelFallback;
+        }
+    }
+
+    return followingPage;
 }
 
 foundation::result::Result<capability::feed::FeedPage> FeedSource::trending(
     const capability::pagination::PageRequest& pageRequest)
 {
-    return readFeed(
+    auto page = readFeedWithAliasFallback(
         m_transport,
         m_continuations,
         m_config,
         capability::catalog::feedTrendingRead(),
         "/v2/farcaster/feed/trending",
         {},
+        "/v2/farcaster/feed",
+        {{"feed_type", "trending"}},
         pageRequest,
         discoveryRequestTimeout);
+    if (page && (hasUsableDiscoveryPage(*page) || pageRequest.continuation)) {
+        return page;
+    }
+
+    // /feed/for_you and /feed/topic are documented compatibility aliases of
+    // trending. Continue through those aliases when the primary endpoint is
+    // reachable but temporarily returns an empty projection during index rebuild.
+    if (!pageRequest.continuation) {
+        auto forYou = readFeed(
+            m_transport,
+            m_continuations,
+            m_config,
+            capability::catalog::feedTrendingRead(),
+            "/v2/farcaster/feed/for_you",
+            {},
+            pageRequest,
+            discoveryRequestTimeout);
+        if (forYou && hasUsableDiscoveryPage(*forYou)) {
+            return forYou;
+        }
+
+        auto topic = readFeed(
+            m_transport,
+            m_continuations,
+            m_config,
+            capability::catalog::feedTrendingRead(),
+            "/v2/farcaster/feed/topic",
+            {},
+            pageRequest,
+            discoveryRequestTimeout);
+        if (topic && hasUsableDiscoveryPage(*topic)) {
+            return topic;
+        }
+
+        auto channelFallback = readDiscoveryChannelsFallback(
+            m_transport, m_continuations, m_config, pageRequest);
+        if (channelFallback && hasUsableDiscoveryPage(*channelFallback)) {
+            return channelFallback;
+        }
+
+        // If a compatibility endpoint succeeded but was legitimately empty,
+        // prefer that successful result over surfacing a stale transport error.
+        if (forYou) {
+            return forYou;
+        }
+        if (topic) {
+            return topic;
+        }
+    }
+
+    return page;
 }
 
 foundation::result::Result<capability::feed::FeedPage> FeedSource::channel(
@@ -302,10 +468,8 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::userReplies(
         return std::unexpected(std::move(page.error()));
     }
 
-    // Hypersnap's compatibility endpoint intentionally combines replies and
-    // recasts. The Profile "Replies" surface must remain semantically exact,
-    // so retain only CastAdd messages that have a parent cast. Recasts are
-    // reactions and belong to a separate interaction surface, not Replies.
+    // The documented endpoint is reply-only. Keep the canonical parent guard so
+    // a stale or mixed compatibility node cannot leak root casts into Replies.
     std::unordered_set<std::string> retained{};
     std::vector<domain::cast::Cast> replies{};
     replies.reserve(page->casts.size());
@@ -377,10 +541,10 @@ foundation::result::Result<domain::feed::ViewerReactionSnapshot> FeedSource::vie
     const domain::identity::Fid fid,
     const std::size_t limit)
 {
-    if (fid.value == 0 || limit == 0 || limit > 100) {
+    if (fid.value == 0 || limit == 0 || limit > 10'000) {
         return std::unexpected(foundation::error::Error::make(
             foundation::error::ErrorCode::InvalidArgument,
-            "Viewer reaction limit must be between 1 and 100."));
+            "Viewer reaction limit must be between 1 and 10000."));
     }
     if (auto status = request::validateConfig(m_config); !status) {
         return std::unexpected(std::move(status.error()));
@@ -390,12 +554,11 @@ foundation::result::Result<domain::feed::ViewerReactionSnapshot> FeedSource::vie
     const auto readTargets = [&](const std::string_view type)
         -> foundation::result::Result<std::vector<domain::cast::CastId>> {
         auto body = requests.getJson(
-            "/v1/reactionsByFid",
+            "/v2/farcaster/reaction/user",
             {
                 {"fid", std::to_string(fid.value)},
-                {"reaction_type", std::string{type}},
-                {"pageSize", std::to_string(limit)},
-                {"reverse", "true"},
+                {"type", type == "Like" ? "likes" : "recasts"},
+                {"limit", std::to_string(limit)},
             },
             request::GetOptions{.timeout = viewerReactionRequestTimeout});
         if (!body) {
@@ -436,53 +599,35 @@ foundation::result::Result<domain::feed::ViewerReactionSnapshot> FeedSource::vie
             foundation::error::ErrorCode::InvalidArgument,
             "Exact viewer reaction lookup requires a viewer and at most 16 cast targets."));
     }
-    if (auto status = request::validateConfig(m_config); !status) {
-        return std::unexpected(std::move(status.error()));
+    if (targets.empty()) {
+        return domain::feed::ViewerReactionSnapshot{};
     }
 
-    request::Client requests{m_transport, m_config};
+    // The live Hypersnap implementation of /batch/cast-interactions currently
+    // reports authored-cast interaction metadata, not the documented per-cast
+    // liked/recasted booleans. The canonical v2 source of truth for a viewer's
+    // active reactions is /reaction/user, so use one bounded snapshot and filter
+    // it locally instead of issuing legacy reactionById probes or trusting the
+    // incompatible batch response shape.
+    auto observed = viewerReactions(fid, 10'000);
+    if (!observed) {
+        return std::unexpected(std::move(observed.error()));
+    }
+
     domain::feed::ViewerReactionSnapshot snapshot{};
     snapshot.liked.reserve(targets.size());
     snapshot.recasted.reserve(targets.size());
-
-    const auto hasReaction = [&](const domain::cast::CastReference& target,
-                                 const std::string_view type)
-        -> foundation::result::Result<bool> {
-        if (target.author.value == 0 || target.id.value.empty()) {
-            return false;
-        }
-        auto body = requests.getJson(
-            "/v1/reactionById",
-            {
-                {"fid", std::to_string(fid.value)},
-                {"target_fid", std::to_string(target.author.value)},
-                {"target_hash", target.id.value},
-                {"reaction_type", std::string{type}},
-            },
-            request::GetOptions{.timeout = exactViewerReactionRequestTimeout});
-        if (body) {
-            return true;
-        }
-        if (body.error().code == foundation::error::ErrorCode::NotFound) {
-            return false;
-        }
-        return std::unexpected(std::move(body.error()));
+    const auto contains = [](const std::vector<domain::cast::CastId>& ids,
+                             const domain::cast::CastId& target) {
+        return std::ranges::any_of(ids, [&target](const domain::cast::CastId& candidate) {
+            return candidate.value == target.value;
+        });
     };
-
     for (const auto& target : targets) {
-        auto liked = hasReaction(target, "Like");
-        if (!liked) {
-            return std::unexpected(std::move(liked.error()));
-        }
-        if (*liked) {
+        if (contains(observed->liked, target.id)) {
             snapshot.liked.push_back(target.id);
         }
-
-        auto recasted = hasReaction(target, "Recast");
-        if (!recasted) {
-            return std::unexpected(std::move(recasted.error()));
-        }
-        if (*recasted) {
+        if (contains(observed->recasted, target.id)) {
             snapshot.recasted.push_back(target.id);
         }
     }
