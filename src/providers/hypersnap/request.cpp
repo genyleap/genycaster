@@ -205,6 +205,28 @@ static foundation::result::Result<std::string> performGet(
     return std::move(response->body);
 }
 
+static foundation::result::Result<std::string> performPost(
+    transport::http::IHttpTransport& transport,
+    const std::string& url,
+    std::string body,
+    const farcaster::provider::hypersnap::request::GetOptions& options)
+{
+    auto response = transport.post(transport::http::HttpPostRequest{
+        .url = url,
+        .headers = {"Accept: application/json", "Content-Type: application/json"},
+        .body = std::move(body),
+        .timeout = options.timeout,
+        .maxBodyBytes = options.maxBodyBytes,
+    });
+    if (!response) {
+        return std::unexpected(std::move(response.error()));
+    }
+    if (response->statusCode < 200 || response->statusCode >= 300) {
+        return std::unexpected(httpStatusError(response->statusCode, response->body));
+    }
+    return std::move(response->body);
+}
+
 [[nodiscard]] std::string queryValue(
     const std::vector<std::pair<std::string, std::string>>& query,
     const std::string_view name)
@@ -248,6 +270,21 @@ foundation::result::Result<std::string> Client::getJson(
     diagnostic.append("ms\n");
     diagnostic.append(error.message);
     error.message = std::move(diagnostic);
+    return std::unexpected(std::move(error));
+}
+
+foundation::result::Result<std::string> Client::postJson(
+    const std::string_view path,
+    std::string body,
+    const farcaster::provider::hypersnap::request::GetOptions options)
+{
+    auto result = performPost(m_transport, makeUrl(m_config, path, {}), std::move(body), options);
+    if (result) {
+        return result;
+    }
+    foundation::error::Error error = std::move(result.error());
+    error.message = "Endpoint: " + std::string{path} + "\nDeadline: " +
+        std::to_string(options.timeout.count()) + "ms\n" + error.message;
     return std::unexpected(std::move(error));
 }
 
