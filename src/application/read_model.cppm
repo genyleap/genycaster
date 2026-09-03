@@ -10,6 +10,7 @@ export module farcaster.application.read.model;
 
 import farcaster.capability.pagination;
 import farcaster.capability.search;
+import farcaster.capability.notification;
 import farcaster.domain.cast;
 import farcaster.domain.channel;
 import farcaster.domain.feed;
@@ -89,6 +90,22 @@ struct SearchQuery final {
 struct SearchState final {
     SearchQuery query{};
     capability::search::SearchPage page{};
+    ReadMetadata metadata{};
+};
+
+
+/** @brief Operation-safe notification selector owned by Application. */
+struct NotificationQuery final {
+    domain::identity::Fid viewer{};
+    std::size_t limit{30};
+    std::optional<capability::pagination::ContinuationToken> continuation{};
+};
+
+/** @brief Canonical in-app notifications and lifecycle metadata. */
+struct NotificationState final {
+    NotificationQuery query{};
+    std::vector<capability::notification::NotificationItem> items{};
+    std::optional<capability::pagination::ContinuationToken> next{};
     ReadMetadata metadata{};
 };
 
