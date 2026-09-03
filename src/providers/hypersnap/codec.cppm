@@ -10,8 +10,10 @@ module;
 export module farcaster.provider.hypersnap.codec;
 
 import farcaster.capability.search;
+import farcaster.capability.notification;
 import farcaster.domain.cast;
 import farcaster.domain.identity;
+import farcaster.domain.feed;
 import farcaster.domain.profile;
 import farcaster.foundation.result;
 import farcaster.foundation.time;
@@ -31,7 +33,7 @@ struct CastPayload final {
     domain::profile::Profile author{};
 };
 
-/** @brief Canonical root cast plus the direct reply count from a conversation response. */
+/** @brief Canonical thread root plus root-author snapshot from a conversation response. */
 struct ConversationPayload final {
     domain::cast::Cast cast{};
     domain::profile::Profile author{};
@@ -48,6 +50,12 @@ struct ReactionTarget final {
 /** @brief Active reaction targets plus the raw Snapchain pagination cursor. */
 struct ReactionTargetsPayload final {
     std::vector<ReactionTarget> targets{};
+    std::optional<std::string> providerCursor{};
+};
+
+/** @brief Canonical notification rows plus the provider-private cursor. */
+struct NotificationPayload final {
+    std::vector<capability::notification::NotificationItem> items{};
     std::optional<std::string> providerCursor{};
 };
 
@@ -91,13 +99,20 @@ decodeSearchChannels(std::string_view body);
 /** @brief Decodes the pinned Hypersnap v2 single-cast schema. */
 [[nodiscard]] foundation::result::Result<domain::cast::Cast> decodeCast(std::string_view body);
 
-/** @brief Decodes the pinned Hypersnap v2 conversation root and its direct replies. */
+/** @brief Decodes the pinned Hypersnap v2 conversation root and recursive direct replies. */
 [[nodiscard]] foundation::result::Result<ConversationPayload> decodeConversationPayload(
     std::string_view body);
 
 /** @brief Decodes the standard Snapchain reactionsByFid response. */
 [[nodiscard]] foundation::result::Result<ReactionTargetsPayload> decodeReactionTargets(
     std::string_view body);
+
+/** @brief Decodes the documented legacy batch cast-interactions response for one viewer. */
+[[nodiscard]] foundation::result::Result<domain::feed::ViewerReactionSnapshot> decodeCastInteractions(
+    std::string_view body, domain::identity::Fid viewer);
+
+/** @brief Decodes the pinned Hypersnap v2 notifications response schema. */
+[[nodiscard]] foundation::result::Result<NotificationPayload> decodeNotifications(std::string_view body);
 
 /** @brief Decodes the pinned Hypersnap v2 followers/following response schema. */
 [[nodiscard]] foundation::result::Result<SocialPayload> decodeSocial(std::string_view body);
