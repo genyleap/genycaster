@@ -16,6 +16,7 @@ import farcaster.application.read.gateway;
 import farcaster.application.read.model;
 import farcaster.capability.feed;
 import farcaster.capability.search;
+import farcaster.capability.notification;
 import farcaster.capability.social;
 import farcaster.domain.cast;
 import farcaster.domain.identity;
@@ -421,6 +422,39 @@ foundation::result::Result<ReadRequest> ReadService::openSearch(
                 return;
             }
             state.page = std::move(*fresh);
+            state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
+            publish(cancelled, observer, std::move(state));
+        }, cancelled);
+}
+
+foundation::result::Result<ReadRequest> ReadService::openNotifications(
+    model::NotificationQuery query,
+    NotificationObserver observer,
+    const model::ReadOptions options)
+{
+    if (query.viewer.value == 0 || query.limit == 0 || query.limit > 100 || !observer) {
+        return std::unexpected(Error::make(
+            ErrorCode::InvalidArgument, "Notification viewer, bounded limit and observer are required."));
+    }
+    auto cancelled = std::make_shared<std::atomic_bool>(false);
+    return postRequest(m_refreshExecutor,
+        [this, query = std::move(query), observer = std::move(observer), options, cancelled]() mutable {
+            if (cancelled->load(std::memory_order_acquire)) { return; }
+            model::NotificationState state{
+                .query = query,
+                .items = {},
+                .next = {},
+                .metadata = refreshingMetadata(false),
+            };
+            publish(cancelled, observer, state);
+            auto fresh = m_gateway.notifications(query, options);
+            if (!fresh) {
+                state.metadata = failedMetadata(std::move(fresh.error()), false);
+                publish(cancelled, observer, std::move(state));
+                return;
+            }
+            state.items = std::move(fresh->items);
+            state.next = std::move(fresh->next);
             state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
             publish(cancelled, observer, std::move(state));
         }, cancelled);
