@@ -21,9 +21,11 @@ module;
 module farcaster.provider.hypersnap.codec;
 
 import farcaster.capability.search;
+import farcaster.capability.notification;
 import farcaster.domain.cast;
 import farcaster.domain.channel;
 import farcaster.domain.identity;
+import farcaster.domain.feed;
 import farcaster.domain.profile;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
@@ -126,6 +128,17 @@ using JsonValue = boost::json::value;
         return static_cast<double>(value->as_uint64());
     }
     return std::nullopt;
+}
+
+[[nodiscard]] std::optional<bool> optionalBool(
+    const JsonObject& object,
+    const std::string_view key)
+{
+    const JsonValue* value = findValue(object, key);
+    if (value == nullptr || value->is_null() || !value->is_bool()) {
+        return std::nullopt;
+    }
+    return value->as_bool();
 }
 
 [[nodiscard]] std::optional<std::string> optionalString(
@@ -441,25 +454,21 @@ struct MappedCast final {
     if (auto parentUrl = optionalString(castObject, "parent_url"); parentUrl && !parentUrl->empty()) {
         cast.parentUrl = std::move(*parentUrl);
     }
-    if (cast.parent && cast.parentUrl) {
-        return std::unexpected(protocolError(
-            "Hypersnap cast cannot contain both parent_hash and parent_url."));
-    }
+    // Some Farcaster v2-compatible nodes preserve both the direct parent hash
+    // and the channel/root parent URL as contextual metadata. The protocol's
+    // canonical parent identity remains the hash when present; retaining the
+    // URL is harmless context and must not invalidate an otherwise usable cast.
 
     if (const JsonValue* reactionsValue = findValue(castObject, "reactions");
         reactionsValue != nullptr && reactionsValue->is_object()) {
-        auto likes = requireUnsigned(reactionsValue->as_object(), "likes_count", "cast.reactions");
-        auto recasts = requireUnsigned(reactionsValue->as_object(), "recasts_count", "cast.reactions");
-        if (!likes) { return std::unexpected(std::move(likes.error())); }
-        if (!recasts) { return std::unexpected(std::move(recasts.error())); }
-        cast.engagement.likes = *likes;
-        cast.engagement.recasts = *recasts;
+        // Engagement enrichment is derived data. A partially-populated index row
+        // must not invalidate the canonical cast itself or blank an entire feed.
+        cast.engagement.likes = optionalUnsigned(reactionsValue->as_object(), "likes_count").value_or(0);
+        cast.engagement.recasts = optionalUnsigned(reactionsValue->as_object(), "recasts_count").value_or(0);
     }
     if (const JsonValue* repliesValue = findValue(castObject, "replies");
         repliesValue != nullptr && repliesValue->is_object()) {
-        auto replies = requireUnsigned(repliesValue->as_object(), "count", "cast.replies");
-        if (!replies) { return std::unexpected(std::move(replies.error())); }
-        cast.engagement.replies = *replies;
+        cast.engagement.replies = optionalUnsigned(repliesValue->as_object(), "count").value_or(0);
     }
 
     if (const JsonValue* embedsValue = findValue(castObject, "embeds");
@@ -499,6 +508,27 @@ struct MappedCast final {
             }
         }
     }
+
+    if (const JsonValue* repliesValue = findValue(castObject, "direct_replies");
+        repliesValue != nullptr && repliesValue->is_array()) {
+        const auto& replyValues = repliesValue->as_array();
+        cast.directReplies.reserve(replyValues.size());
+        for (const JsonValue& replyValue : replyValues) {
+            if (!replyValue.is_object()) {
+                continue;
+            }
+            // A thread should remain usable even if one historical reply cannot
+            // be normalized. Skip only that child instead of rejecting the root.
+            auto reply = mapCast(replyValue.as_object());
+            if (!reply) {
+                continue;
+            }
+            cast.directReplies.push_back(std::move(reply->cast));
+        }
+        cast.engagement.replies = std::max<std::uint64_t>(
+            cast.engagement.replies, static_cast<std::uint64_t>(replyValues.size()));
+    }
+
     return MappedCast{.cast = std::move(cast), .author = std::move(*author)};
 }
 
@@ -537,31 +567,115 @@ foundation::result::Result<FeedPayload> decodeFeed(const std::string_view body)
         return std::unexpected(protocolError("Hypersnap feed response must be a JSON object."));
     }
     const JsonObject& root = document->as_object();
-    const JsonValue* castsValue = findValue(root, "casts");
-    if (castsValue == nullptr || !castsValue->is_array()) {
-        return std::unexpected(protocolError("Hypersnap feed response.casts must be an array."));
+
+    // The documented v2 shape is {casts,next}. During API rollout skew some
+    // compatible deployments wrapped that payload in result/data, so accept
+    // those envelopes without weakening the cast-level validation contract.
+    const JsonObject* feedRoot = &root;
+    if (findValue(*feedRoot, "casts") == nullptr) {
+        for (const std::string_view envelope : {std::string_view{"result"}, std::string_view{"data"}}) {
+            const JsonValue* value = findValue(root, envelope);
+            if (value != nullptr && value->is_object() && findValue(value->as_object(), "casts") != nullptr) {
+                feedRoot = &value->as_object();
+                break;
+            }
+        }
+    }
+
+    const JsonValue* castsValue = findValue(*feedRoot, "casts");
+    const JsonValue* itemsValue = findValue(*feedRoot, "items");
+    if ((castsValue == nullptr || !castsValue->is_array()) &&
+        (itemsValue == nullptr || !itemsValue->is_array())) {
+        return std::unexpected(protocolError(
+            "Hypersnap feed response must contain a casts or items array."));
     }
 
     FeedPayload payload{};
     std::unordered_set<std::uint64_t> seenProfiles{};
-    payload.casts.reserve(castsValue->as_array().size());
-    payload.profiles.reserve(castsValue->as_array().size());
-    for (const JsonValue& castValue : castsValue->as_array()) {
-        if (!castValue.is_object()) {
-            return std::unexpected(protocolError("Hypersnap feed contains a non-object cast."));
-        }
-        auto mapped = mapCast(castValue.as_object());
+    std::optional<foundation::error::Error> firstCastError{};
+
+    auto appendMapped = [&](const JsonObject& castObject,
+                           const JsonObject* itemObject = nullptr) {
+        auto mapped = mapCast(castObject);
         if (!mapped) {
-            return std::unexpected(std::move(mapped.error()));
+            if (!firstCastError) {
+                firstCastError = std::move(mapped.error());
+            }
+            return;
+        }
+        if (itemObject != nullptr) {
+            mapped->cast.engagement.likes = std::max(
+                mapped->cast.engagement.likes,
+                optionalUnsigned(*itemObject, "likes").value_or(0));
+            mapped->cast.engagement.recasts = std::max(
+                mapped->cast.engagement.recasts,
+                optionalUnsigned(*itemObject, "recasts").value_or(0));
+            mapped->cast.engagement.replies = std::max(
+                mapped->cast.engagement.replies,
+                optionalUnsigned(*itemObject, "replies").value_or(0));
         }
         if (seenProfiles.insert(mapped->author.fid.value).second) {
             payload.profiles.push_back(mapped->author);
         }
         payload.casts.push_back(std::move(mapped->cast));
+    };
+
+    std::size_t sourceCount = 0;
+    if (castsValue != nullptr && castsValue->is_array()) {
+        sourceCount = castsValue->as_array().size();
+        payload.casts.reserve(sourceCount);
+        payload.profiles.reserve(sourceCount);
+        for (const JsonValue& castValue : castsValue->as_array()) {
+            if (!castValue.is_object()) {
+                if (!firstCastError) {
+                    firstCastError = protocolError("Hypersnap feed contains a non-object cast.");
+                }
+                continue;
+            }
+            appendMapped(castValue.as_object());
+        }
+    } else if (itemsValue != nullptr && itemsValue->is_array()) {
+        // Older/internal FeedService payloads expose [{cast,likes,recasts,replies}].
+        // Accept the already-v2-shaped cast object when present. Raw protobuf
+        // messages remain rejected by mapCast rather than being guessed.
+        sourceCount = itemsValue->as_array().size();
+        payload.casts.reserve(sourceCount);
+        payload.profiles.reserve(sourceCount);
+        for (const JsonValue& itemValue : itemsValue->as_array()) {
+            if (!itemValue.is_object()) {
+                if (!firstCastError) {
+                    firstCastError = protocolError("Hypersnap feed contains a non-object item.");
+                }
+                continue;
+            }
+            const JsonObject& item = itemValue.as_object();
+            const JsonValue* castValue = findValue(item, "cast");
+            if (castValue == nullptr || !castValue->is_object()) {
+                if (!firstCastError) {
+                    firstCastError = protocolError("Hypersnap feed item.cast must be an object.");
+                }
+                continue;
+            }
+            appendMapped(castValue->as_object(), &item);
+        }
     }
-    auto cursor = readNextCursor(root);
+
+    if (sourceCount != 0 && payload.casts.empty() && firstCastError) {
+        return std::unexpected(std::move(*firstCastError));
+    }
+
+    auto cursor = readNextCursor(*feedRoot);
     if (!cursor) {
         return std::unexpected(std::move(cursor.error()));
+    }
+    if (!*cursor) {
+        if (auto direct = optionalString(*feedRoot, "next_cursor"); direct && !direct->empty()) {
+            *cursor = std::move(*direct);
+        } else if (feedRoot != &root) {
+            if (auto rootCursor = optionalString(root, "next_cursor"); rootCursor && !rootCursor->empty()) {
+                *cursor = std::move(*rootCursor);
+            }
+        }
     }
     payload.providerCursor = std::move(*cursor);
     return payload;
@@ -811,7 +925,7 @@ foundation::result::Result<ConversationPayload> decodeConversationPayload(
         return std::unexpected(std::move(mapped.error()));
     }
 
-    std::size_t directReplyCount{0};
+    std::size_t directReplyCount{mapped->cast.directReplies.size()};
     if (const JsonValue* replies = findValue(castValue->as_object(), "direct_replies");
         replies != nullptr) {
         if (!replies->is_array()) {
@@ -839,9 +953,66 @@ foundation::result::Result<ReactionTargetsPayload> decodeReactionTargets(
         return std::unexpected(std::move(document.error()));
     }
     if (!document->is_object()) {
-        return std::unexpected(protocolError("Snapchain reactions response must be a JSON object."));
+        return std::unexpected(protocolError("Hypersnap reactions response must be a JSON object."));
     }
     const JsonObject& root = document->as_object();
+
+    // Preferred Hypersnap v2 API shape.
+    if (const JsonValue* reactions = findValue(root, "reactions");
+        reactions != nullptr && reactions->is_array()) {
+        ReactionTargetsPayload payload{};
+        payload.targets.reserve(reactions->as_array().size());
+        for (const JsonValue& reactionValue : reactions->as_array()) {
+            if (!reactionValue.is_object()) {
+                continue;
+            }
+            const JsonObject& reaction = reactionValue.as_object();
+            const JsonValue* castValue = findValue(reaction, "cast");
+            if (castValue == nullptr || !castValue->is_object()) {
+                continue;
+            }
+            const JsonObject& cast = castValue->as_object();
+            auto targetHash = requireString(cast, "hash", "reaction.cast");
+            if (!targetHash || targetHash->empty()) {
+                continue;
+            }
+
+            domain::identity::Fid targetAuthor{};
+            if (const auto directFid = optionalUnsigned(cast, "fid")) {
+                targetAuthor = domain::identity::Fid{*directFid};
+            } else if (const JsonValue* authorValue = findValue(cast, "author");
+                       authorValue != nullptr && authorValue->is_object()) {
+                if (const auto authorFid = optionalUnsigned(authorValue->as_object(), "fid")) {
+                    targetAuthor = domain::identity::Fid{*authorFid};
+                }
+            }
+
+            foundation::time::Timestamp reactedAt{};
+            if (const auto timestampText = optionalString(reaction, "reaction_timestamp")) {
+                if (auto parsed = parseTimestamp(*timestampText); parsed) {
+                    reactedAt = *parsed;
+                }
+            } else if (const auto unixSeconds = optionalUnsigned(reaction, "timestamp")) {
+                reactedAt = foundation::time::Timestamp{
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::seconds{*unixSeconds})};
+            }
+            payload.targets.push_back(ReactionTarget{
+                .author = targetAuthor,
+                .castId = domain::cast::CastId{std::move(*targetHash)},
+                .reactedAt = reactedAt,
+            });
+        }
+        auto cursor = readNextCursor(root);
+        if (!cursor) {
+            return std::unexpected(std::move(cursor.error()));
+        }
+        payload.providerCursor = std::move(*cursor);
+        return payload;
+    }
+
+    // Legacy Snapchain-compatible shape retained only for older self-hosted
+    // nodes. New reads use the documented /v2/farcaster/reaction/* endpoints.
     const JsonValue* messages = findValue(root, "messages");
     if (messages == nullptr || !messages->is_array()) {
         return std::unexpected(protocolError("Snapchain reactions response.messages must be an array."));
@@ -890,6 +1061,178 @@ foundation::result::Result<ReactionTargetsPayload> decodeReactionTargets(
         token != nullptr && token->is_string() && !token->as_string().empty()) {
         payload.providerCursor = std::string{token->as_string()};
     }
+    return payload;
+}
+
+
+foundation::result::Result<domain::feed::ViewerReactionSnapshot> decodeCastInteractions(
+    const std::string_view body,
+    const domain::identity::Fid viewer)
+{
+    auto document = parseJson(body);
+    if (!document) {
+        return std::unexpected(std::move(document.error()));
+    }
+    if (!document->is_object() || viewer.value == 0) {
+        return std::unexpected(protocolError("Hypersnap batch cast-interactions response is invalid."));
+    }
+    const JsonObject& root = document->as_object();
+    const std::string key = std::to_string(viewer.value);
+    const JsonValue* interactions = findValue(root, key);
+    if (interactions == nullptr || !interactions->is_array()) {
+        return std::unexpected(protocolError(
+            "Hypersnap batch cast-interactions response is missing the viewer entry."));
+    }
+
+    domain::feed::ViewerReactionSnapshot snapshot{};
+    for (const JsonValue& value : interactions->as_array()) {
+        if (!value.is_object()) {
+            continue;
+        }
+        const JsonObject& interaction = value.as_object();
+        const auto hash = optionalString(interaction, "hash");
+        if (!hash || hash->empty()) {
+            continue;
+        }
+        if (optionalBool(interaction, "liked").value_or(false)) {
+            snapshot.liked.push_back(domain::cast::CastId{*hash});
+        }
+        if (optionalBool(interaction, "recasted").value_or(false)) {
+            snapshot.recasted.push_back(domain::cast::CastId{*hash});
+        }
+    }
+    return snapshot;
+}
+
+foundation::result::Result<NotificationPayload> decodeNotifications(const std::string_view body)
+{
+    auto document = parseJson(body);
+    if (!document) {
+        return std::unexpected(std::move(document.error()));
+    }
+    if (!document->is_object()) {
+        return std::unexpected(protocolError("Hypersnap notifications response must be a JSON object."));
+    }
+    const JsonObject& root = document->as_object();
+    const JsonValue* notifications = findValue(root, "notifications");
+    if (notifications == nullptr || !notifications->is_array()) {
+        return std::unexpected(protocolError("Hypersnap notifications response.notifications must be an array."));
+    }
+
+    NotificationPayload payload{};
+    payload.items.reserve(notifications->as_array().size());
+    for (const JsonValue& value : notifications->as_array()) {
+        if (!value.is_object()) {
+            continue;
+        }
+        const JsonObject& object = value.as_object();
+        const std::string type = optionalString(object, "type").value_or("unknown");
+
+        capability::notification::NotificationKind kind = capability::notification::NotificationKind::Unknown;
+        if (type == "cast-mention" || type == "mention" || type == "mentions") {
+            kind = capability::notification::NotificationKind::Mention;
+        } else if (type == "cast-reply" || type == "reply" || type == "replies") {
+            kind = capability::notification::NotificationKind::Reply;
+        } else if (type == "reaction" || type == "like" || type == "likes" ||
+                   type == "recast" || type == "recasts") {
+            kind = capability::notification::NotificationKind::Reaction;
+        } else if (type == "follow" || type == "follows") {
+            kind = capability::notification::NotificationKind::Follow;
+        }
+
+        foundation::time::Timestamp observedAt{};
+        std::uint64_t unixSeconds{0};
+        if (const auto timestamp = optionalUnsigned(object, "most_recent_timestamp")) {
+            unixSeconds = *timestamp;
+            observedAt = foundation::time::Timestamp{
+                std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds{*timestamp})};
+        } else if (const auto timestampText = optionalString(object, "timestamp")) {
+            if (auto parsed = parseTimestamp(*timestampText); parsed) {
+                observedAt = *parsed;
+                unixSeconds = static_cast<std::uint64_t>(
+                    std::max<std::int64_t>(0, observedAt.time_since_epoch().count()) / 1000);
+            }
+        } else if (const auto numericTimestamp = optionalUnsigned(object, "timestamp")) {
+            unixSeconds = *numericTimestamp;
+            observedAt = foundation::time::Timestamp{
+                std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds{*numericTimestamp})};
+        }
+
+        capability::notification::NotificationItem item{
+            .kind = kind,
+            .observedAt = observedAt,
+        };
+
+        const auto appendActor = [&](const JsonValue& actorValue) {
+            const JsonObject* profileObject = nullptr;
+            if (actorValue.is_object()) {
+                const JsonObject& candidate = actorValue.as_object();
+                if (const JsonValue* user = findValue(candidate, "user"); user != nullptr && user->is_object()) {
+                    profileObject = &user->as_object();
+                } else if (findValue(candidate, "fid") != nullptr) {
+                    profileObject = &candidate;
+                }
+            }
+            if (profileObject == nullptr) {
+                return;
+            }
+            auto profile = mapProfile(*profileObject);
+            if (!profile) {
+                return;
+            }
+            const auto duplicate = std::ranges::any_of(item.actors, [&](const auto& actor) {
+                return actor.fid.value == profile->fid.value;
+            });
+            if (!duplicate) {
+                item.actors.push_back(std::move(*profile));
+            }
+        };
+
+        // Current Hypersnap nodes emit a compact {type, cast, user, timestamp}
+        // notification shape while older/documented compatibility responses may
+        // provide aggregated reactions/follows and most_recent_timestamp. Support
+        // both without leaking either provider DTO into the capability model.
+        if (const JsonValue* user = findValue(object, "user"); user != nullptr) {
+            appendActor(*user);
+        }
+
+        if (const JsonValue* castValue = findValue(object, "cast");
+            castValue != nullptr && castValue->is_object()) {
+            if (auto mapped = mapCast(castValue->as_object()); mapped) {
+                item.cast = std::move(mapped->cast);
+                if (item.actors.empty() &&
+                    (kind == capability::notification::NotificationKind::Reply ||
+                     kind == capability::notification::NotificationKind::Mention)) {
+                    item.actors.push_back(std::move(mapped->author));
+                }
+            }
+        }
+
+        std::size_t aggregateCount = item.actors.empty() ? 0U : item.actors.size();
+        for (const std::string_view key : {std::string_view{"reactions"}, std::string_view{"follows"}}) {
+            if (const JsonValue* actors = findValue(object, key); actors != nullptr && actors->is_array()) {
+                aggregateCount = std::max(aggregateCount, actors->as_array().size());
+                for (const JsonValue& actor : actors->as_array()) {
+                    appendActor(actor);
+                }
+            }
+        }
+        aggregateCount = std::max(aggregateCount, item.actors.size());
+        item.aggregateCount = std::max<std::size_t>(1U, aggregateCount);
+
+        const std::string castKey = item.cast ? item.cast->id.value : std::string{};
+        const std::string actorKey = item.actors.empty()
+            ? std::string{}
+            : std::to_string(item.actors.front().fid.value);
+        item.stableId = type + ":" + std::to_string(unixSeconds) + ":" + castKey + ":" + actorKey;
+        payload.items.push_back(std::move(item));
+    }
+
+    auto cursor = readNextCursor(root);
+    if (!cursor) {
+        return std::unexpected(std::move(cursor.error()));
+    }
+    payload.providerCursor = std::move(*cursor);
     return payload;
 }
 
