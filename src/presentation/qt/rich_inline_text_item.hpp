@@ -31,6 +31,7 @@ class RichInlineTextItem final : public QQuickPaintedItem {
     Q_OBJECT
     Q_PROPERTY(QVariantList inlines READ inlines WRITE setInlines NOTIFY inlinesChanged)
     Q_PROPERTY(int pixelSize READ pixelSize WRITE setPixelSize NOTIFY pixelSizeChanged)
+    Q_PROPERTY(bool bold READ bold WRITE setBold NOTIFY boldChanged)
     Q_PROPERTY(qreal lineHeight READ lineHeight WRITE setLineHeight NOTIFY lineHeightChanged)
     Q_PROPERTY(QString fontFamily READ fontFamily WRITE setFontFamily NOTIFY fontFamilyChanged)
     Q_PROPERTY(QColor textColor READ textColor WRITE setTextColor NOTIFY textColorChanged)
@@ -56,6 +57,10 @@ public:
 
     [[nodiscard]] int pixelSize() const noexcept;
     void setPixelSize(int pixelSize);
+
+    /** @brief Applies a bold weight to the whole paragraph (headings). */
+    [[nodiscard]] bool bold() const noexcept;
+    void setBold(bool bold);
 
     [[nodiscard]] qreal lineHeight() const noexcept;
     void setLineHeight(qreal lineHeight);
@@ -93,6 +98,7 @@ public:
 signals:
     void inlinesChanged();
     void pixelSizeChanged();
+    void boldChanged();
     void lineHeightChanged();
     void fontFamilyChanged();
     void textColorChanged();
