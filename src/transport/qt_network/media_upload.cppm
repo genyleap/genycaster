@@ -12,6 +12,7 @@ export module farcaster.transport.qtnetwork.media;
 import farcaster.capability.media;
 import farcaster.capability.write_authority;
 import farcaster.foundation.result;
+import farcaster.transport.async_http;
 import farcaster.transport.qtnetwork;
 
 export namespace farcaster::transport::qtnetwork::media {
@@ -36,7 +37,7 @@ struct Config final {
 [[nodiscard]] foundation::result::Result<std::unique_ptr<capability::media::IMediaUploadGateway>>
 makeGateway(
     capability::write::IWriteAuthority& authority,
-    ProxyPolicy proxyPolicy = ProxyPolicy::System,
+    async_http::IAsyncHttpTransport& transport,
     Config config = {});
 
 /**
@@ -48,7 +49,7 @@ makeGateway(
 [[nodiscard]] foundation::result::Result<std::unique_ptr<capability::media::IMediaAssetLifecycleGateway>>
 makeLifecycleGateway(
     capability::write::IWriteAuthority& authority,
-    ProxyPolicy proxyPolicy = ProxyPolicy::System,
+    async_http::IAsyncHttpTransport& transport,
     Config config = {});
 
 } // namespace farcaster::transport::qtnetwork::media
