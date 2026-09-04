@@ -9,6 +9,8 @@ target_sources(farcaster_provider_hypersnap
         FILES
             config.cppm
             request.cppm
+            async_request.cppm
+            async_gateway.cppm
             codec.cppm
             continuation.cppm
             registration.cppm
@@ -21,6 +23,8 @@ target_sources(farcaster_provider_hypersnap
             identity.cppm
     PRIVATE
         request.cpp
+        async_request.cpp
+        async_gateway.cpp
         codec.cpp
         continuation.cpp
         registration.cpp
@@ -36,10 +40,13 @@ target_sources(farcaster_provider_hypersnap
 
 target_link_libraries(farcaster_provider_hypersnap
     PUBLIC
+        farcaster::application
+        farcaster::application_executor
         farcaster::capabilities
         farcaster::provider
         farcaster::storage
         farcaster::transport
+        farcaster::execution
     PRIVATE
         Boost::headers
 )
