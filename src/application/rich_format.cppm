@@ -10,6 +10,7 @@ module;
 
 export module farcaster.application.rich_format;
 
+import farcaster.application.emoji.unicode_normalizer;
 import farcaster.domain.identity;
 import farcaster.domain.rich_document;
 import farcaster.foundation.error;
