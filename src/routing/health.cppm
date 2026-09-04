@@ -4,6 +4,7 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <mutex>
 #include <vector>
 
 export module farcaster.routing.health;
@@ -78,11 +79,11 @@ struct CapabilityHealth final {
 struct AttemptAdmission final { bool isProbe{false}; };
 
 /**
- * @brief Mutable runtime health and circuit state for serialized routed reads.
+ * @brief Thread-safe runtime health and circuit state for routed reads.
  *
- * The registry is intentionally not internally synchronized. Its composition
- * owner must serialize route resolution, admission, and outcome recording on
- * one executor. Network health probes remain outside the router itself.
+ * Admission, health snapshots, and outcome recording are synchronized so
+ * independent live reads may execute concurrently on a bounded worker pool.
+ * Network health probes remain outside the router itself.
  */
 class HealthRegistry final {
 public:
@@ -150,6 +151,7 @@ private:
     SteadyClock m_defaultClock{};
     const IMonotonicClock* m_clock{&m_defaultClock};
     CircuitBreakerPolicy m_policy{};
+    mutable std::mutex m_mutex{};
     std::vector<CapabilityHealth> m_health{};
 };
 
