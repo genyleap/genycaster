@@ -37,6 +37,10 @@ struct BodyAccumulator final {
     bool exceeded{};
 };
 
+struct HeaderAccumulator final {
+    std::vector<std::string>* headers{};
+};
+
 [[nodiscard]] std::size_t appendBody(
     char* data,
     const std::size_t size,
@@ -60,6 +64,35 @@ struct BodyAccumulator final {
     }
 
     accumulator->body->append(data, byteCount);
+    return byteCount;
+}
+
+[[nodiscard]] std::size_t appendHeader(
+    char* data,
+    const std::size_t size,
+    const std::size_t count,
+    void* userData)
+{
+    if (data == nullptr || userData == nullptr || size == 0 ||
+        count > (std::numeric_limits<std::size_t>::max() / size)) {
+        return 0;
+    }
+
+    const std::size_t byteCount = size * count;
+    auto* accumulator = static_cast<HeaderAccumulator*>(userData);
+    if (accumulator->headers == nullptr) {
+        return 0;
+    }
+
+    std::string line{data, byteCount};
+    while (!line.empty() && (line.back() == '\r' || line.back() == '\n')) {
+        line.pop_back();
+    }
+    if (line.starts_with("HTTP/")) {
+        accumulator->headers->clear();
+    } else if (!line.empty() && line.find(':') != std::string::npos) {
+        accumulator->headers->push_back(std::move(line));
+    }
     return byteCount;
 }
 
@@ -123,10 +156,12 @@ private:
         }
 
         std::string responseBody{};
+        std::vector<std::string> responseHeaders{};
         BodyAccumulator accumulator{
             .body = &responseBody,
             .maxBytes = maxBodyBytes,
         };
+        HeaderAccumulator headerAccumulator{.headers = &responseHeaders};
         curl_easy_setopt(handle.get(), CURLOPT_URL, url.c_str());
         curl_easy_setopt(handle.get(), CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(handle.get(), CURLOPT_NOSIGNAL, 1L);
@@ -134,6 +169,8 @@ private:
         curl_easy_setopt(handle.get(), CURLOPT_USERAGENT, "Genycaster/0.5");
         curl_easy_setopt(handle.get(), CURLOPT_WRITEFUNCTION, &appendBody);
         curl_easy_setopt(handle.get(), CURLOPT_WRITEDATA, &accumulator);
+        curl_easy_setopt(handle.get(), CURLOPT_HEADERFUNCTION, &appendHeader);
+        curl_easy_setopt(handle.get(), CURLOPT_HEADERDATA, &headerAccumulator);
         curl_easy_setopt(handle.get(), CURLOPT_MAXREDIRS, 5L);
         if (requestBody != nullptr) {
             curl_easy_setopt(handle.get(), CURLOPT_POST, 1L);
@@ -193,6 +230,7 @@ private:
         return http::HttpResponse{
             .statusCode = static_cast<std::uint16_t>(statusCode),
             .body = std::move(responseBody),
+            .headers = std::move(responseHeaders),
         };
     }
 };
