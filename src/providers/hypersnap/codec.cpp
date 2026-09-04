@@ -1084,8 +1084,17 @@ foundation::result::Result<domain::feed::ViewerReactionSnapshot> decodeCastInter
             "Hypersnap batch cast-interactions response is missing the viewer entry."));
     }
 
+    const auto& entries = interactions->as_array();
     domain::feed::ViewerReactionSnapshot snapshot{};
-    for (const JsonValue& value : interactions->as_array()) {
+    // A compliant implementation returns one per-cast entry carrying at least
+    // the target hash (liked/recasted may be false). Some compatible deployments
+    // instead report authored-cast interaction metadata (mentions, parent_fid,
+    // timestamp) with no hash at all. Silently treating that incompatible shape
+    // as "the viewer reacted to nothing" would blank every reaction state, so
+    // reject it and let the caller fall back to the canonical /reaction/user
+    // source of truth.
+    bool sawHashEntry{false};
+    for (const JsonValue& value : entries) {
         if (!value.is_object()) {
             continue;
         }
@@ -1094,12 +1103,18 @@ foundation::result::Result<domain::feed::ViewerReactionSnapshot> decodeCastInter
         if (!hash || hash->empty()) {
             continue;
         }
+        sawHashEntry = true;
         if (optionalBool(interaction, "liked").value_or(false)) {
             snapshot.liked.push_back(domain::cast::CastId{*hash});
         }
         if (optionalBool(interaction, "recasted").value_or(false)) {
             snapshot.recasted.push_back(domain::cast::CastId{*hash});
         }
+    }
+    if (!entries.empty() && !sawHashEntry) {
+        return std::unexpected(protocolError(
+            "Hypersnap batch cast-interactions response does not match the "
+            "documented per-cast interactions shape (missing hash)."));
     }
     return snapshot;
 }
