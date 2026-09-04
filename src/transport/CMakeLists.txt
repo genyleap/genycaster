@@ -6,6 +6,7 @@ target_sources(farcaster_transport
         FILE_SET CXX_MODULES
         FILES
             http.cppm
+            async_http.cppm
 )
 
 target_link_libraries(farcaster_transport PUBLIC farcaster::foundation)
