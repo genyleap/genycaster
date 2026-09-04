@@ -3,7 +3,6 @@ module;
 #include <QByteArray>
 #include <QCoreApplication>
 #include <QCryptographicHash>
-#include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -11,18 +10,13 @@ module;
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QMimeDatabase>
-#include <QNetworkAccessManager>
-#include <QNetworkProxy>
-#include <QNetworkReply>
-#include <QNetworkRequest>
-#include <QObject>
 #include <QString>
-#include <QTimer>
 #include <QUuid>
 #include <QUrl>
-#include <QVariant>
 
 #include <algorithm>
+#include <atomic>
+#include <condition_variable>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -30,6 +24,8 @@ module;
 #include <filesystem>
 #include <limits>
 #include <memory>
+#include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -44,30 +40,14 @@ import farcaster.domain.media;
 import farcaster.domain.signer;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
+import farcaster.transport.async_http;
+import farcaster.transport.http;
 import farcaster.transport.qtnetwork;
 
 namespace farcaster::transport::qtnetwork::media {
 namespace {
 
 using Header = std::pair<QByteArray, QByteArray>;
-
-struct ThreadNetworkManagers final {
-    std::unique_ptr<QNetworkAccessManager> system{};
-    std::unique_ptr<QNetworkAccessManager> direct{};
-};
-
-[[nodiscard]] QNetworkAccessManager& networkManagerFor(const ProxyPolicy proxyPolicy)
-{
-    thread_local ThreadNetworkManagers managers{};
-    auto& selected = proxyPolicy == ProxyPolicy::Direct ? managers.direct : managers.system;
-    if (!selected) {
-        selected = std::make_unique<QNetworkAccessManager>();
-        if (proxyPolicy == ProxyPolicy::Direct) {
-            selected->setProxy(QNetworkProxy{QNetworkProxy::NoProxy});
-        }
-    }
-    return *selected;
-}
 
 [[nodiscard]] foundation::error::Error makeError(
     const foundation::error::ErrorCode code,
@@ -192,8 +172,42 @@ struct HttpResult final {
     QByteArray body{};
 };
 
+[[nodiscard]] farcaster::transport::async_http::Method asyncMethod(const QByteArray& method)
+{
+    if (method == QByteArrayLiteral("POST")) {
+        return farcaster::transport::async_http::Method::Post;
+    }
+    if (method == QByteArrayLiteral("PUT")) {
+        return farcaster::transport::async_http::Method::Put;
+    }
+    if (method == QByteArrayLiteral("DELETE")) {
+        return farcaster::transport::async_http::Method::Delete;
+    }
+    return farcaster::transport::async_http::Method::Get;
+}
+
+[[nodiscard]] std::vector<std::string> asyncHeaders(const std::vector<Header>& headers)
+{
+    std::vector<std::string> result{};
+    result.reserve(headers.size());
+    for (const auto& [name, value] : headers) {
+        std::string header{name.constData(), static_cast<std::size_t>(name.size())};
+        header.append(": ");
+        header.append(value.constData(), static_cast<std::size_t>(value.size()));
+        result.push_back(std::move(header));
+    }
+    return result;
+}
+
+struct AsyncWaitState final {
+    std::mutex mutex{};
+    std::condition_variable ready{};
+    std::optional<foundation::result::Result<farcaster::transport::http::HttpResponse>> result{};
+    std::atomic_uint64_t sentBytes{};
+};
+
 [[nodiscard]] foundation::result::Result<HttpResult> performRequest(
-    QNetworkAccessManager& manager,
+    farcaster::transport::async_http::IAsyncHttpTransport& transport,
     const QByteArray& method,
     const QUrl& url,
     const std::vector<Header>& headers,
@@ -211,113 +225,75 @@ struct HttpResult final {
             "Media upload was cancelled."));
     }
 
-    QNetworkRequest request{url};
-    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
-    for (const auto& [name, value] : headers) {
-        request.setRawHeader(name, value);
-    }
-
-    QNetworkReply* rawReply = nullptr;
-    if (method == QByteArrayLiteral("POST")) {
-        rawReply = manager.post(request, body);
-    } else if (method == QByteArrayLiteral("PUT")) {
-        rawReply = manager.put(request, body);
-    } else if (method == QByteArrayLiteral("DELETE")) {
-        rawReply = manager.sendCustomRequest(request, QByteArrayLiteral("DELETE"), body);
-    } else {
-        return std::unexpected(makeError(
-            foundation::error::ErrorCode::InvalidArgument,
-            "Unsupported media HTTP request mode."));
-    }
-    if (rawReply == nullptr) {
-        return std::unexpected(makeError(
-            foundation::error::ErrorCode::TransportFailure,
-            "Qt Network could not create the media request."));
-    }
-    std::unique_ptr<QNetworkReply> reply{rawReply};
-
-    bool timedOut = false;
-    bool cancelledDuringRequest = false;
-    bool responseTooLarge = false;
-    QByteArray responseBody{};
-    QEventLoop loop{};
-    QTimer timeoutTimer{};
-    timeoutTimer.setSingleShot(true);
-    QObject::connect(&timeoutTimer, &QTimer::timeout, reply.get(), [&] {
-        timedOut = true;
-        reply->abort();
-    });
-    QTimer cancellationTimer{};
-    cancellationTimer.setInterval(80);
-    QObject::connect(&cancellationTimer, &QTimer::timeout, reply.get(), [&] {
-        if (cancelled && cancelled()) {
-            cancelledDuringRequest = true;
-            reply->abort();
-        }
-    });
-    const auto drainResponse = [&] {
-        const QByteArray chunk = reply->readAll();
-        if (chunk.isEmpty() || responseTooLarge) {
-            return;
-        }
-        const auto currentSize = static_cast<std::size_t>(responseBody.size());
-        const auto chunkSize = static_cast<std::size_t>(chunk.size());
-        if (currentSize > maxResponseBytes || chunkSize > maxResponseBytes - currentSize) {
-            responseTooLarge = true;
-            reply->abort();
-            return;
-        }
-        responseBody.append(chunk);
-    };
-    QObject::connect(reply.get(), &QNetworkReply::readyRead, reply.get(), drainResponse);
-    QObject::connect(reply.get(), &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    auto state = std::make_shared<AsyncWaitState>();
+    farcaster::transport::async_http::Request request{};
+    request.method = asyncMethod(method);
+    request.url = toString(url.toString(QUrl::FullyEncoded));
+    request.headers = asyncHeaders(headers);
+    request.body.assign(body.constData(), static_cast<std::size_t>(body.size()));
+    request.timeout = timeout;
+    request.maxBodyBytes = maxResponseBytes;
+    request.priority = farcaster::transport::async_http::Priority::Interactive;
+    request.retryPolicy = farcaster::transport::async_http::RetryPolicy::None;
+    request.maximumAttempts = 1U;
     if (method == QByteArrayLiteral("PUT") && progress) {
-        QObject::connect(reply.get(), &QNetworkReply::uploadProgress, reply.get(),
-            [&](const qint64 sent, const qint64) {
-                const auto safeSent = static_cast<std::uint64_t>(std::max<qint64>(0, sent));
-                const auto absoluteSent = std::min(totalBytes, progressBaseBytes + safeSent);
-                progress(capability::media::UploadStage::Uploading, absoluteSent, totalBytes);
-            });
+        request.uploadProgress = [state](const std::uint64_t sent, const std::uint64_t) {
+            state->sentBytes.store(sent, std::memory_order_relaxed);
+            state->ready.notify_one();
+        };
     }
 
-    timeoutTimer.start(static_cast<int>(std::clamp<long long>(
-        timeout.count(), 1LL, static_cast<long long>(std::numeric_limits<int>::max()))));
-    cancellationTimer.start();
-    loop.exec();
-    cancellationTimer.stop();
-    timeoutTimer.stop();
-    drainResponse();
+    auto operation = transport.start(
+        std::move(request),
+        [state](foundation::result::Result<farcaster::transport::http::HttpResponse> response) mutable {
+            {
+                const std::scoped_lock lock{state->mutex};
+                state->result.emplace(std::move(response));
+            }
+            state->ready.notify_one();
+        });
+    if (!operation) {
+        return std::unexpected(std::move(operation.error()));
+    }
 
-    if (responseTooLarge) {
-        return std::unexpected(makeError(
-            foundation::error::ErrorCode::ProtocolFailure,
-            "Media gateway response exceeded the configured limit."));
+    std::uint64_t lastReported = 0U;
+    while (true) {
+        std::unique_lock lock{state->mutex};
+        if (state->result) {
+            break;
+        }
+        state->ready.wait_for(lock, std::chrono::milliseconds{60});
+        if (state->result) {
+            break;
+        }
+        lock.unlock();
+
+        if (cancelled && cancelled()) {
+            operation->cancel();
+        }
+        if (progress && method == QByteArrayLiteral("PUT")) {
+            const auto sent = state->sentBytes.load(std::memory_order_relaxed);
+            if (sent != lastReported) {
+                lastReported = sent;
+                progress(
+                    capability::media::UploadStage::Uploading,
+                    std::min(totalBytes, progressBaseBytes + sent),
+                    totalBytes);
+            }
+        }
     }
-    if (cancelledDuringRequest || (cancelled && cancelled())) {
-        return std::unexpected(makeError(
-            foundation::error::ErrorCode::Unavailable,
-            "Media upload was cancelled."));
+
+    auto response = std::move(*state->result);
+    if (!response) {
+        return std::unexpected(std::move(response.error()));
     }
-    if (timedOut) {
-        return std::unexpected(makeError(
-            foundation::error::ErrorCode::Timeout,
-            "Media upload request timed out."));
-    }
-    const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    if (status >= 100 && (status < 200 || status >= 300)) {
+    const int status = static_cast<int>(response->statusCode);
+    const QByteArray responseBody{
+        response->body.data(), static_cast<qsizetype>(response->body.size())};
+    if (status < 200 || status >= 300) {
         return std::unexpected(httpError(status, responseBody));
     }
-    if (reply->error() != QNetworkReply::NoError) {
-        return std::unexpected(makeError(
-            foundation::error::ErrorCode::TransportFailure,
-            "Media upload network request failed: " + toString(reply->errorString())));
-    }
-    if (status < 200 || status >= 300) {
-        return std::unexpected(makeError(
-            foundation::error::ErrorCode::ProtocolFailure,
-            "Media gateway did not return a valid HTTP success status."));
-    }
-    return HttpResult{.status = status, .body = std::move(responseBody)};
+    return HttpResult{.status = status, .body = responseBody};
 }
 
 [[nodiscard]] std::string uploadChallenge(
@@ -392,11 +368,11 @@ class QtMediaUploadGateway final : public capability::media::IMediaUploadGateway
 public:
     QtMediaUploadGateway(
         capability::write::IWriteAuthority& authority,
-        const ProxyPolicy proxyPolicy,
+        farcaster::transport::async_http::IAsyncHttpTransport& transport,
         Config config,
         QUrl baseUrl) noexcept
         : m_authority{authority},
-          m_proxyPolicy{proxyPolicy},
+          m_transport{transport},
           m_config{std::move(config)},
           m_baseUrl{std::move(baseUrl)}
     {
@@ -494,9 +470,8 @@ public:
         if (!createHeaders) {
             return std::unexpected(std::move(createHeaders.error()));
         }
-        QNetworkAccessManager& manager = networkManagerFor(m_proxyPolicy);
         auto created = performRequest(
-            manager,
+            m_transport,
             QByteArrayLiteral("POST"),
             endpointUrl(m_baseUrl, createPath),
             *createHeaders,
@@ -549,7 +524,7 @@ public:
                 return;
             }
             (void)performRequest(
-                manager,
+                m_transport,
                 QByteArrayLiteral("DELETE"),
                 endpointUrl(m_baseUrl, abortPath),
                 *abortHeaders,
@@ -598,7 +573,7 @@ public:
                 return std::unexpected(std::move(partHeaders.error()));
             }
             auto uploaded = performRequest(
-                manager,
+                m_transport,
                 QByteArrayLiteral("PUT"),
                 endpointUrl(m_baseUrl, partPath),
                 *partHeaders,
@@ -661,7 +636,7 @@ public:
             return std::unexpected(std::move(completeHeaders.error()));
         }
         auto completed = performRequest(
-            manager,
+            m_transport,
             QByteArrayLiteral("POST"),
             endpointUrl(m_baseUrl, completePath),
             *completeHeaders,
@@ -705,7 +680,7 @@ public:
 
 private:
     capability::write::IWriteAuthority& m_authority;
-    ProxyPolicy m_proxyPolicy{ProxyPolicy::System};
+    farcaster::transport::async_http::IAsyncHttpTransport& m_transport;
     Config m_config{};
     QUrl m_baseUrl{};
 };
@@ -714,11 +689,11 @@ class QtMediaAssetLifecycleGateway final : public capability::media::IMediaAsset
 public:
     QtMediaAssetLifecycleGateway(
         capability::write::IWriteAuthority& authority,
-        const ProxyPolicy proxyPolicy,
+        farcaster::transport::async_http::IAsyncHttpTransport& transport,
         Config config,
         QUrl baseUrl) noexcept
         : m_authority{authority},
-          m_proxyPolicy{proxyPolicy},
+          m_transport{transport},
           m_config{std::move(config)},
           m_baseUrl{std::move(baseUrl)}
     {
@@ -751,9 +726,8 @@ public:
             return std::unexpected(std::move(headers.error()));
         }
 
-        QNetworkAccessManager& manager = networkManagerFor(m_proxyPolicy);
         auto deleted = performRequest(
-            manager,
+            m_transport,
             QByteArrayLiteral("DELETE"),
             endpointUrl(m_baseUrl, deletePath),
             *headers,
@@ -771,7 +745,7 @@ public:
 
 private:
     capability::write::IWriteAuthority& m_authority;
-    ProxyPolicy m_proxyPolicy{ProxyPolicy::System};
+    farcaster::transport::async_http::IAsyncHttpTransport& m_transport;
     Config m_config{};
     QUrl m_baseUrl{};
 };
@@ -781,7 +755,7 @@ private:
 foundation::result::Result<std::unique_ptr<capability::media::IMediaUploadGateway>>
 makeGateway(
     capability::write::IWriteAuthority& authority,
-    const ProxyPolicy proxyPolicy,
+    farcaster::transport::async_http::IAsyncHttpTransport& transport,
     Config config)
 {
     auto baseUrl = normalizedBaseUrl(config.baseUrl);
@@ -796,14 +770,14 @@ makeGateway(
             "Media gateway limits and request timeouts must be positive."));
     }
     std::unique_ptr<capability::media::IMediaUploadGateway> gateway =
-        std::make_unique<QtMediaUploadGateway>(authority, proxyPolicy, std::move(config), std::move(*baseUrl));
+        std::make_unique<QtMediaUploadGateway>(authority, transport, std::move(config), std::move(*baseUrl));
     return gateway;
 }
 
 foundation::result::Result<std::unique_ptr<capability::media::IMediaAssetLifecycleGateway>>
 makeLifecycleGateway(
     capability::write::IWriteAuthority& authority,
-    const ProxyPolicy proxyPolicy,
+    farcaster::transport::async_http::IAsyncHttpTransport& transport,
     Config config)
 {
     auto baseUrl = normalizedBaseUrl(config.baseUrl);
@@ -818,7 +792,7 @@ makeLifecycleGateway(
     }
     std::unique_ptr<capability::media::IMediaAssetLifecycleGateway> gateway =
         std::make_unique<QtMediaAssetLifecycleGateway>(
-            authority, proxyPolicy, std::move(config), std::move(*baseUrl));
+            authority, transport, std::move(config), std::move(*baseUrl));
     return gateway;
 }
 
