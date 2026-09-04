@@ -27,7 +27,7 @@ class QTextDocument;
  * GUI thread; the document is immutable after layout so the scene-graph paint
  * pass can read it safely.
  */
-class RichInlineTextItem final : public QQuickPaintedItem {
+class RichInlineTextItem : public QQuickPaintedItem {
     Q_OBJECT
     Q_PROPERTY(QVariantList inlines READ inlines WRITE setInlines NOTIFY inlinesChanged)
     Q_PROPERTY(int pixelSize READ pixelSize WRITE setPixelSize NOTIFY pixelSizeChanged)
