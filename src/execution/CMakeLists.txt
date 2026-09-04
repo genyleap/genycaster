@@ -6,8 +6,12 @@ target_sources(farcaster_execution
         FILE_SET CXX_MODULES
         FILES
             serial.cppm
+            thread_pool.cppm
+            weighted_thread_pool.cppm
     PRIVATE
         serial.cpp
+        thread_pool.cpp
+        weighted_thread_pool.cpp
 )
 
 target_link_libraries(farcaster_execution PUBLIC farcaster::application_executor farcaster::foundation)
