@@ -244,6 +244,7 @@ public:
         const QByteArray utf8 = text.toUtf8();
         const std::string_view bytes{utf8.constData(), static_cast<std::size_t>(utf8.size())};
         const auto clusters = farcaster::application::emoji::unicode::scanEmojiClusters(bytes);
+        qWarning() << "EMOJI_INSERT" << text << "clusters=" << clusters.size();
         if (clusters.empty()) {
             cursor.insertText(text, base);
             return;
