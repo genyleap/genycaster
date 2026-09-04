@@ -121,7 +121,13 @@ public:
             // Every emoji cluster is one object-replacement character with its
             // own format range; locate its line through the range position.
             const auto ranges = blockLayout->formats();
+            qWarning() << "EMOJI_RANGES block_formats=" << ranges.size()
+                       << "lineCount=" << blockLayout->lineCount()
+                       << "textLength=" << block.text().length();
             for (const auto& range : ranges) {
+                qWarning() << "EMOJI_RANGE type=" << range.format.objectType()
+                           << "start=" << range.start << "len=" << range.length
+                           << "char=" << block.text().mid(range.start, 1);
                 if (range.format.objectType() != EmojiObjectType) {
                     continue;
                 }
