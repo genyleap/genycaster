@@ -125,14 +125,41 @@ public:
     noto::NotoAnimatedEmojiProvider provider;
     cache::EmojiAssetCache diskCache;
     repository::EmojiAssetRepository repository;
-    std::unique_ptr<farcaster::transport::async_http::IAsyncHttpTransport> transport{};
-    std::unique_ptr<farcaster::execution::weighted_thread_pool::WeightedThreadPoolExecutor> executor{};
-
     catalog::RecentEmojiStore recentStore{};
 
+    // Shutdown gate. ~Impl sets this before any member is destroyed so that
+    // reactor-thread completion callbacks fired while the transport shuts down
+    // (see ~AsyncQtHttpTransport) cannot touch a dying owner or its state.
+    std::atomic<bool> shuttingDown{false};
+
+    // Diagnostic counters (bounded, non-identifying).
+    std::atomic<std::uint64_t> counterAssetHit{};
+    std::atomic<std::uint64_t> counterAssetMiss{};
+    std::atomic<std::uint64_t> counterCacheHit{};
+    std::atomic<std::uint64_t> counterCacheMiss{};
+    std::atomic<std::uint64_t> counterCacheInvalid{};
+    std::atomic<std::uint64_t> counterRendererFallback{};
+    std::atomic<std::uint64_t> counterAnimationPausedOffscreen{};
+
+    // Cross-thread request state. Must be declared before (so it is destroyed
+    // after) the network infrastructure below: executor draining and transport
+    // shutdown can still run completion paths that lock pendingMutex and touch
+    // the counters and repository.
     std::mutex networkMutex{};
     std::mutex pendingMutex{};
     std::unordered_set<std::string> pendingKeys{};
+
+    ~Impl()
+    {
+        shuttingDown = true;
+    }
+
+    // Network infrastructure. Declared last so it is destroyed first: the
+    // executor drains queued jobs while every dependency is still alive, and
+    // the transport is torn down while the state above (which its shutdown
+    // callbacks may still touch) is still alive.
+    std::unique_ptr<farcaster::transport::async_http::IAsyncHttpTransport> transport{};
+    std::unique_ptr<farcaster::execution::weighted_thread_pool::WeightedThreadPoolExecutor> executor{};
 
     // Network infrastructure is created lazily on the first asset fetch. Emoji
     // playback never needs it (bundled assets and the disk cache are always
@@ -166,15 +193,6 @@ public:
         executor = std::make_unique<farcaster::execution::weighted_thread_pool::WeightedThreadPoolExecutor>(
             2U, 32U, 32U * 1024U * 1024U);
     }
-
-    // Diagnostic counters (bounded, non-identifying).
-    std::atomic<std::uint64_t> counterAssetHit{};
-    std::atomic<std::uint64_t> counterAssetMiss{};
-    std::atomic<std::uint64_t> counterCacheHit{};
-    std::atomic<std::uint64_t> counterCacheMiss{};
-    std::atomic<std::uint64_t> counterCacheInvalid{};
-    std::atomic<std::uint64_t> counterRendererFallback{};
-    std::atomic<std::uint64_t> counterAnimationPausedOffscreen{};
 
     [[nodiscard]] std::optional<std::string> normalizedKeyOf(const QString& sequence) const
     {
@@ -261,6 +279,9 @@ public:
         const std::string& assetKey,
         const std::string& utf8Sequence)
     {
+        if (shuttingDown) {
+            return; // owner is being destroyed; do not start new work.
+        }
         // 1. Disk cache hit (already validated at store time; cache re-checks
         //    the digest on read and evicts corrupt entries).
         auto cached = diskCache.read(providerId, assetKey, Revision);
@@ -356,6 +377,9 @@ public:
 
     void markFailed(const std::string& utf8Sequence)
     {
+        if (shuttingDown) {
+            return;
+        }
         const std::optional<std::string> key = normalizedKeyOf(QString::fromUtf8(utf8Sequence));
         repository.markUnavailable(utf8Sequence);
         ++counterAssetMiss;
@@ -369,6 +393,9 @@ public:
         {
             const std::scoped_lock lock{pendingMutex};
             pendingKeys.erase(key);
+        }
+        if (shuttingDown) {
+            return; // owner is going away; never hop back to the UI thread.
         }
         // Hop to the Qt main thread before touching QObject state or signals.
         QMetaObject::invokeMethod(&owner, [this, callback = std::move(onUiThread)] {
