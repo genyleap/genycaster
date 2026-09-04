@@ -81,9 +81,6 @@ public:
     {
         document.setDefaultFont(QFont{});
         document.documentLayout()->registerHandler(EmojiObjectType, &handler);
-        if (const auto* screen = QGuiApplication::primaryScreen()) {
-            document.documentLayout()->setPaintDevice(screen);
-        }
         QTextOption option{};
         option.setWrapMode(QTextOption::WordWrap);
         document.setDefaultTextOption(option);
@@ -115,30 +112,37 @@ public:
     {
         QVariantList rects{};
         const auto* layout = document.documentLayout();
+        const qreal em = QFontMetricsF(document.defaultFont()).height();
         for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
             const QTextLayout* blockLayout = block.layout();
             const qreal blockTop = layout->blockBoundingRect(block).top();
-            for (int lineIndex = 0; lineIndex < blockLayout->lineCount(); ++lineIndex) {
-                const QTextLine line = blockLayout->lineAt(lineIndex);
-                const int start = line.textStart();
-                const int length = line.textLength();
-                for (int index = start; index < start + length; ++index) {
-                    const QTextCharFormat format = blockLayout->formatAt(index);
-                    if (format.objectType() != EmojiObjectType) {
+            // Every emoji cluster is one object-replacement character with its
+            // own format range; locate its line through the range position.
+            const auto ranges = blockLayout->formats();
+            for (const auto& range : ranges) {
+                if (range.format.objectType() != EmojiObjectType) {
+                    continue;
+                }
+                const int position = range.start;
+                for (int lineIndex = 0; lineIndex < blockLayout->lineCount(); ++lineIndex) {
+                    const QTextLine line = blockLayout->lineAt(lineIndex);
+                    const int start = line.textStart();
+                    const int length = line.textLength();
+                    if (position < start || position >= start + length) {
                         continue;
                     }
-                    const qreal x0 = line.cursorToX(index);
-                    const qreal x1 = line.cursorToX(index + 1);
-                    const qreal em = QFontMetricsF(document.defaultFont()).height();
+                    const qreal x0 = line.cursorToX(position);
+                    const qreal x1 = line.cursorToX(position + 1);
                     const qreal width = qMax(x1 - x0, 1.0);
                     const qreal y = blockTop + line.y() + (line.height() - em) / 2.0;
                     rects.push_back(QVariantMap{
-                        {QStringLiteral("sequence"), format.property(EmojiSequenceProperty).toString()},
+                        {QStringLiteral("sequence"), range.format.property(EmojiSequenceProperty).toString()},
                         {QStringLiteral("x"), x0},
                         {QStringLiteral("y"), y},
                         {QStringLiteral("width"), width},
                         {QStringLiteral("height"), em},
                     });
+                    break;
                 }
             }
         }
@@ -167,9 +171,6 @@ public:
         }
         cursor.endEditBlock();
         document.setDefaultFont(effectiveFont());
-        if (const auto* screen = QGuiApplication::primaryScreen()) {
-            document.documentLayout()->setPaintDevice(screen);
-        }
     }
 
     void insertSpan(QTextCursor& cursor, const QVariant& entry)
@@ -195,14 +196,14 @@ public:
         } else if (kind == QLatin1String("emphasis")) {
             base.setFontItalic(true);
         } else if (kind == QLatin1String("inline-code")) {
-            base.setFontFamily(codeFontFamily);
+            base.setFontFamilies({codeFontFamily});
             base.setForeground(codeColor);
             base.setBackground(codeBackground);
         } else if (kind == QLatin1String("link")) {
             base.setForeground(linkColor);
             base.setAnchor(true);
             base.setAnchorHref(map.value(QStringLiteral("target")).toString());
-            base.setUnderline(false);
+            base.setFontUnderline(false);
         } else if (kind == QLatin1String("mention")) {
             base.setForeground(linkColor);
             const QString username = map.value(QStringLiteral("username")).toString();
