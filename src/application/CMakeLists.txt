@@ -45,12 +45,15 @@ target_sources(farcaster_application
             configuration.cppm
             read_model.cppm
             read_gateway.cppm
+            read_async_gateway.cppm
+            read_async_service.cppm
             read_service.cppm
             session.cppm
             signer.cppm
     PRIVATE
         "${configuredFeaturesSource}"
         read_service.cpp
+        read_async_service.cpp
         session.cpp
         signer.cpp
 )
