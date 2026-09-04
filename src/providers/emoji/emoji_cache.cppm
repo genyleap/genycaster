@@ -11,6 +11,7 @@ module;
 
 export module farcaster.provider.emoji.emoji_cache;
 
+import farcaster.capability.animated_emoji;
 import farcaster.foundation.result;
 import farcaster.provider.emoji.emoji_asset_validator;
 
@@ -44,9 +45,10 @@ struct CacheLookup final {
  *
  * Writes are atomic (temp file + rename) and every entry carries a sidecar
  * metadata file so corruption and tampering are detected on read. The cache is
- * pure filesystem logic; network and UI concerns stay outside.
+ * pure filesystem logic; network and UI concerns stay outside. Implements the
+ * provider-neutral cache port so the application layer never sees disk paths.
  */
-class EmojiAssetCache final {
+class EmojiAssetCache final : public capability::animated_emoji::IEmojiAssetCache {
 public:
     explicit EmojiAssetCache(EmojiCacheConfig config);
 
@@ -68,7 +70,7 @@ public:
     [[nodiscard]] bool contains(
         std::string_view provider,
         std::string_view key,
-        std::uint32_t revision) noexcept;
+        std::uint32_t revision) noexcept override;
 
     /**
      * @brief Loads a validated cached entry.
@@ -76,10 +78,10 @@ public:
      * Recoverable failures: NotFound, StorageFailure. Corrupt entries are
      * evicted automatically and reported as NotFound with diagnostic text.
      */
-    [[nodiscard]] foundation::result::Result<CacheLookup> read(
+    [[nodiscard]] foundation::result::Result<capability::animated_emoji::CachedEmojiAsset> read(
         std::string_view provider,
         std::string_view key,
-        std::uint32_t revision) noexcept;
+        std::uint32_t revision) noexcept override;
 
     /**
      * @brief Atomically stores a validated asset with its digest.
@@ -92,7 +94,7 @@ public:
         std::string_view key,
         std::uint32_t revision,
         std::span<const std::byte> bytes,
-        validator::Sha256 sha256) noexcept;
+        validator::Sha256 sha256) noexcept override;
 
     /** @brief Enforces the byte/entry budget, evicting oldest entries first. */
     void evict() noexcept;
