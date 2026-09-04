@@ -10,12 +10,14 @@ target_sources(farcaster_routing
             policy.cppm
             router.cppm
             read_gateway.cppm
+            read_async_gateway.cppm
     PRIVATE
         registry.cpp
         health.cpp
         policy.cpp
         router.cpp
         read_gateway.cpp
+        read_async_gateway.cpp
 )
 
 target_link_libraries(farcaster_routing
