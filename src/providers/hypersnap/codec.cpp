@@ -1133,8 +1133,9 @@ foundation::result::Result<NotificationPayload> decodeNotifications(const std::s
             kind = capability::notification::NotificationKind::Mention;
         } else if (type == "cast-reply" || type == "reply" || type == "replies") {
             kind = capability::notification::NotificationKind::Reply;
-        } else if (type == "reaction" || type == "like" || type == "likes" ||
-                   type == "recast" || type == "recasts") {
+        } else if (type == "recast" || type == "recasts") {
+            kind = capability::notification::NotificationKind::Recast;
+        } else if (type == "reaction" || type == "like" || type == "likes") {
             kind = capability::notification::NotificationKind::Reaction;
         } else if (type == "follow" || type == "follows") {
             kind = capability::notification::NotificationKind::Follow;
