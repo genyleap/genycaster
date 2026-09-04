@@ -363,6 +363,7 @@ public:
             QDateTime::currentMSecsSinceEpoch());
         persistRecents();
         emit owner.recentsChanged();
+        emit owner.emojiGroupsChanged();
     }
 
     void persistRecents()
@@ -569,4 +570,5 @@ void EmojiController::clearRecents()
     m_impl->recentStore.clear();
     m_impl->persistRecents();
     emit recentsChanged();
+    emit emojiGroupsChanged();
 }
