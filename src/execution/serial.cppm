@@ -1,5 +1,6 @@
 module;
 
+#include <cstddef>
 #include <memory>
 
 export module farcaster.execution.serial;
@@ -10,15 +11,17 @@ import farcaster.foundation.result;
 export namespace farcaster::execution::serial {
 
 /**
- * @brief RAII single-worker executor for ordered blocking read work.
+ * @brief RAII single-worker executor for ordered bounded work.
  *
- * Accepted jobs execute sequentially on one owned worker. Destruction stops
- * accepting work, drains accepted jobs, and joins the worker.
+ * Accepted jobs execute sequentially on one owned worker. The pending queue is
+ * bounded so a stalled persistence/session lane cannot grow process memory
+ * without limit. Destruction stops accepting work, drains accepted jobs, and
+ * joins the worker without busy-spinning.
  */
 class SerialExecutor final : public application::executor::IExecutor {
 public:
-    /** @brief Starts the owned worker thread. */
-    SerialExecutor();
+    /** @brief Starts the worker with a bounded pending queue. */
+    explicit SerialExecutor(std::size_t maximumPendingJobs = 128U);
     /** @brief Drains accepted work and joins the worker thread. */
     ~SerialExecutor() override;
     SerialExecutor(const SerialExecutor&) = delete;
