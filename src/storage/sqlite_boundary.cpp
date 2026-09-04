@@ -632,6 +632,31 @@ WHERE current.kind IN ('follow', 'unfollow')
         return status;
     }
 
+    // Pagination appends are identity-based rather than full-list rewrites.
+    // Deduplicate any legacy rows once, then enforce stable list identities so
+    // INSERT OR IGNORE can append only unseen feed/social entries.
+    auto incrementalListsApplied = migrationApplied(connection, 23);
+    if (!incrementalListsApplied) {
+        return std::unexpected(incrementalListsApplied.error());
+    }
+    if (!*incrementalListsApplied) {
+        if (auto status = connection.execute(
+                "DELETE FROM timeline_entries WHERE rowid NOT IN ("
+                "SELECT MIN(rowid) FROM timeline_entries GROUP BY timeline_id, cast_id);"
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_timeline_entries_identity "
+                "ON timeline_entries(timeline_id, cast_id);"
+                "DELETE FROM social_list_entries WHERE rowid NOT IN ("
+                "SELECT MIN(rowid) FROM social_list_entries "
+                "GROUP BY list_id, source_fid, target_fid, relation_kind);"
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_social_list_identity "
+                "ON social_list_entries(list_id, source_fid, target_fid, relation_kind);"); !status) {
+            return status;
+        }
+        if (auto status = recordMigration(connection, 23, appliedAt); !status) {
+            return status;
+        }
+    }
+
     // Copy legacy URL embeds only after all columns required by the current
     // cast_embed_items schema are guaranteed to exist. This ordering keeps
     // upgrades from an intermediate Phase 3 database safe as well as Phase 2.
