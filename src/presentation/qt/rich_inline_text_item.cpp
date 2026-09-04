@@ -205,6 +205,11 @@ public:
             base.setUnderline(false);
         } else if (kind == QLatin1String("mention")) {
             base.setForeground(linkColor);
+            const QString username = map.value(QStringLiteral("username")).toString();
+            if (!username.isEmpty()) {
+                insertTextWithEmojiObjects(cursor, QStringLiteral("@") + username, base);
+                return;
+            }
         }
 
         insertTextWithEmojiObjects(cursor, text, base);
