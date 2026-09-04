@@ -1,5 +1,6 @@
 #include "rich_inline_text_item.hpp"
 
+#include <QColor>
 #include <QFont>
 #include <QFontMetricsF>
 #include <QGuiApplication>
@@ -210,6 +211,16 @@ public:
             if (!username.isEmpty()) {
                 insertTextWithEmojiObjects(cursor, QStringLiteral("@") + username, base);
                 return;
+            }
+        }
+
+        // Optional per-span color override; the feed fallback path uses it to
+        // keep channel/hashtag tokens accent-colored like the HTML renderer.
+        const QString colorText = map.value(QStringLiteral("color")).toString();
+        if (!colorText.isEmpty()) {
+            const QColor color{colorText};
+            if (color.isValid()) {
+                base.setForeground(color);
             }
         }
 
