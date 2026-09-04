@@ -18,6 +18,7 @@ target_sources(farcaster_domain
             market.cppm
             rich_document.cppm
             media.cppm
+            emoji.cppm
     PRIVATE
         session.cpp
         signer.cpp
