@@ -8,6 +8,7 @@ module;
 export module farcaster.domain.cast;
 
 import farcaster.domain.identity;
+import farcaster.domain.profile;
 import farcaster.foundation.time;
 
 export namespace farcaster::domain::cast {
@@ -74,6 +75,14 @@ struct Cast final {
     std::vector<Cast> directReplies{};
     Engagement engagement{};
     foundation::time::Timestamp createdAt{};
+    /**
+     * @brief Author profile snapshot carried beside a cast when the read supplied it.
+     *
+     * Thread/conversation reads return the full author object for every nested
+     * cast. Retaining it here lets consumers hydrate reply authors without
+     * issuing a profile fetch per FID; plain feed/cast reads leave it empty.
+     */
+    std::optional<profile::Profile> authorProfile{};
 };
 
 }
