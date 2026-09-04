@@ -308,7 +308,7 @@ public:
         const std::filesystem::path& path,
         const std::string& utf8Sequence)
     {
-        domain::emoji::AnimatedEmojiAsset asset{};
+        farcaster::domain::emoji::AnimatedEmojiAsset asset{};
         asset.unicodeSequence = utf8Sequence;
         asset.provider = providerId;
         asset.assetKey = assetKey;
@@ -503,7 +503,10 @@ QString EmojiController::assetSourceFor(const QString& sequence) const
 
 bool EmojiController::animatedAvailableFor(const QString& sequence) const
 {
-    return m_impl->repository.isAvailable(sequence, Revision);
+    const auto utf8 = sequence.toUtf8();
+    return m_impl->repository.isAvailable(
+        std::string_view{utf8.constData(), static_cast<std::size_t>(utf8.size())},
+        Revision);
 }
 
 void EmojiController::requestAsset(const QString& sequence)
