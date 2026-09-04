@@ -27,9 +27,9 @@ import farcaster.provider.hypersnap.request;
 namespace farcaster::provider::hypersnap::feed {
 namespace {
 
-constexpr std::chrono::milliseconds followingRequestTimeout{10'000};
-constexpr std::chrono::milliseconds discoveryRequestTimeout{10'000};
-constexpr std::chrono::milliseconds profileFeedRequestTimeout{10'000};
+constexpr std::chrono::milliseconds followingRequestTimeout{5'000};
+constexpr std::chrono::milliseconds discoveryRequestTimeout{6'000};
+constexpr std::chrono::milliseconds profileFeedRequestTimeout{6'000};
 constexpr std::chrono::milliseconds viewerReactionRequestTimeout{7'500};
 constexpr std::chrono::milliseconds replyEnrichmentRequestTimeout{4'000};
 
@@ -103,6 +103,13 @@ constexpr std::chrono::milliseconds replyEnrichmentRequestTimeout{4'000};
     return page;
 }
 
+[[nodiscard]] bool supportsAliasFallback(
+    const foundation::error::ErrorCode code) noexcept
+{
+    using foundation::error::ErrorCode;
+    return code == ErrorCode::NotFound || code == ErrorCode::Unsupported;
+}
+
 [[nodiscard]] foundation::result::Result<capability::feed::FeedPage> readFeedWithAliasFallback(
     transport::http::IHttpTransport& transport,
     storage::continuation::ContinuationStore& continuationStore,
@@ -124,15 +131,13 @@ constexpr std::chrono::milliseconds replyEnrichmentRequestTimeout{4'000};
         std::move(preferredQuery),
         pageRequest,
         requestTimeout);
-    if (preferred) {
+    if (preferred || !supportsAliasFallback(preferred.error().code)) {
         return preferred;
     }
 
-    // Hypersnap documents both explicit feed endpoints and the generic
-    // /feed?feed_type=... compatibility route. A node can temporarily have one
-    // surface unavailable while the other remains healthy, so retry once on the
-    // alias before surfacing a discovery outage. The provider-private cursor is
-    // still resolved/bound through the same canonical capability id.
+    // The generic /feed route is only a compatibility fallback for nodes that
+    // do not expose the explicit endpoint. Transient outages, timeouts, and
+    // rate limits must not fan out into a second equivalent request.
     return readFeed(
         transport,
         continuationStore,
@@ -142,48 +147,6 @@ constexpr std::chrono::milliseconds replyEnrichmentRequestTimeout{4'000};
         std::move(fallbackQuery),
         pageRequest,
         requestTimeout);
-}
-
-[[nodiscard]] bool hasUsableDiscoveryPage(const capability::feed::FeedPage& page) noexcept
-{
-    return !page.casts.empty();
-}
-
-[[nodiscard]] foundation::result::Result<capability::feed::FeedPage> readDiscoveryChannelsFallback(
-    transport::http::IHttpTransport& transport,
-    storage::continuation::ContinuationStore& continuationStore,
-    const config::Config& config,
-    const capability::pagination::PageRequest& pageRequest)
-{
-    // Channel feeds are computed directly from parent-url casts on Hypersnap and
-    // remain useful even when the optional Metrics/Trending service is disabled
-    // or temporarily rebuilding. Keep this as a first-page-only recovery corpus:
-    // provider cursors from a trending endpoint are not interchangeable with a
-    // channel-filter cursor.
-    if (pageRequest.continuation) {
-        return std::unexpected(foundation::error::Error::make(
-            foundation::error::ErrorCode::NotFound,
-            "Discovery channel fallback does not reuse a trending continuation."));
-    }
-
-    capability::pagination::PageRequest fallbackRequest{
-        .limit = std::max<std::size_t>(pageRequest.limit, 60U),
-        .continuation = std::nullopt,
-    };
-    auto fallback = readFeed(
-        transport,
-        continuationStore,
-        config,
-        capability::catalog::feedTrendingRead(),
-        "/v2/farcaster/feed/channels",
-        {{"channel_ids", "base,dev,developers,programming,builders,art,nft,photography,farcaster,memes"}},
-        fallbackRequest,
-        discoveryRequestTimeout);
-    if (fallback) {
-        // Do not expose a cursor bound to a different server-side feed family.
-        fallback->next.reset();
-    }
-    return fallback;
 }
 
 [[nodiscard]] bool isQuote(const domain::cast::Cast& cast)
@@ -303,7 +266,7 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::following(
     const domain::identity::Fid fid,
     const capability::pagination::PageRequest& pageRequest)
 {
-    auto followingPage = readFeedWithAliasFallback(
+    return readFeedWithAliasFallback(
         m_transport,
         m_continuations,
         m_config,
@@ -314,41 +277,12 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::following(
         {{"feed_type", "following"}, {"fid", std::to_string(fid.value)}},
         pageRequest,
         followingRequestTimeout);
-    if (followingPage && (hasUsableDiscoveryPage(*followingPage) || pageRequest.continuation)) {
-        return followingPage;
-    }
-
-    // A public node can have the social/feed projection unavailable while raw
-    // channel reads continue to work. Home must degrade to useful discovery
-    // rather than becoming an empty surface. Preserve a real Following result
-    // whenever it contains data; only first-page failure/empty results recover.
-    if (!pageRequest.continuation) {
-        auto trendingPage = readFeed(
-            m_transport,
-            m_continuations,
-            m_config,
-            capability::catalog::feedFollowingRead(),
-            "/v2/farcaster/feed/trending",
-            {},
-            pageRequest,
-            discoveryRequestTimeout);
-        if (trendingPage && hasUsableDiscoveryPage(*trendingPage)) {
-            return trendingPage;
-        }
-        auto channelFallback = readDiscoveryChannelsFallback(
-            m_transport, m_continuations, m_config, pageRequest);
-        if (channelFallback && hasUsableDiscoveryPage(*channelFallback)) {
-            return channelFallback;
-        }
-    }
-
-    return followingPage;
 }
 
 foundation::result::Result<capability::feed::FeedPage> FeedSource::trending(
     const capability::pagination::PageRequest& pageRequest)
 {
-    auto page = readFeedWithAliasFallback(
+    return readFeedWithAliasFallback(
         m_transport,
         m_continuations,
         m_config,
@@ -359,57 +293,6 @@ foundation::result::Result<capability::feed::FeedPage> FeedSource::trending(
         {{"feed_type", "trending"}},
         pageRequest,
         discoveryRequestTimeout);
-    if (page && (hasUsableDiscoveryPage(*page) || pageRequest.continuation)) {
-        return page;
-    }
-
-    // /feed/for_you and /feed/topic are documented compatibility aliases of
-    // trending. Continue through those aliases when the primary endpoint is
-    // reachable but temporarily returns an empty projection during index rebuild.
-    if (!pageRequest.continuation) {
-        auto forYou = readFeed(
-            m_transport,
-            m_continuations,
-            m_config,
-            capability::catalog::feedTrendingRead(),
-            "/v2/farcaster/feed/for_you",
-            {},
-            pageRequest,
-            discoveryRequestTimeout);
-        if (forYou && hasUsableDiscoveryPage(*forYou)) {
-            return forYou;
-        }
-
-        auto topic = readFeed(
-            m_transport,
-            m_continuations,
-            m_config,
-            capability::catalog::feedTrendingRead(),
-            "/v2/farcaster/feed/topic",
-            {},
-            pageRequest,
-            discoveryRequestTimeout);
-        if (topic && hasUsableDiscoveryPage(*topic)) {
-            return topic;
-        }
-
-        auto channelFallback = readDiscoveryChannelsFallback(
-            m_transport, m_continuations, m_config, pageRequest);
-        if (channelFallback && hasUsableDiscoveryPage(*channelFallback)) {
-            return channelFallback;
-        }
-
-        // If a compatibility endpoint succeeded but was legitimately empty,
-        // prefer that successful result over surfacing a stale transport error.
-        if (forYou) {
-            return forYou;
-        }
-        if (topic) {
-            return topic;
-        }
-    }
-
-    return page;
 }
 
 foundation::result::Result<capability::feed::FeedPage> FeedSource::channel(
