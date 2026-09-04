@@ -1196,14 +1196,50 @@ foundation::result::Result<NotificationPayload> decodeNotifications(const std::s
             appendActor(*user);
         }
 
-        if (const JsonValue* castValue = findValue(object, "cast");
-            castValue != nullptr && castValue->is_object()) {
+        const JsonValue* castValue = findValue(object, "cast");
+        if (castValue != nullptr && castValue->is_object()) {
             if (auto mapped = mapCast(castValue->as_object()); mapped) {
                 item.cast = std::move(mapped->cast);
                 if (item.actors.empty() &&
                     (kind == capability::notification::NotificationKind::Reply ||
                      kind == capability::notification::NotificationKind::Mention)) {
                     item.actors.push_back(std::move(mapped->author));
+                }
+            }
+        }
+
+        // Reply/mention context: the cast this notification answers and its
+        // author. Current nodes emit a compact {type, cast, user, timestamp}
+        // shape whose cast may carry a Neynar-compatible parent_author object;
+        // richer responses may add an explicit notification-level parent_author
+        // and parent_cast. Capture whatever is present so the UI can render the
+        // conversation hierarchy without leaking provider DTOs. Absent fields
+        // leave the notification fully usable without this enrichment.
+        if (kind == capability::notification::NotificationKind::Reply ||
+            kind == capability::notification::NotificationKind::Mention) {
+            const auto mapParentAuthor = [&](const JsonObject& profileObject) {
+                auto profile = mapProfile(profileObject);
+                if (profile && !item.parentAuthor) {
+                    item.parentAuthor = std::move(*profile);
+                }
+            };
+            if (castValue != nullptr && castValue->is_object()) {
+                if (const JsonValue* parentAuthor = findValue(castValue->as_object(), "parent_author");
+                    parentAuthor != nullptr && parentAuthor->is_object()) {
+                    mapParentAuthor(parentAuthor->as_object());
+                }
+            }
+            if (const JsonValue* parentAuthor = findValue(object, "parent_author");
+                parentAuthor != nullptr && parentAuthor->is_object()) {
+                mapParentAuthor(parentAuthor->as_object());
+            }
+            if (const JsonValue* parentCast = findValue(object, "parent_cast");
+                parentCast != nullptr && parentCast->is_object()) {
+                if (auto parent = mapCast(parentCast->as_object()); parent) {
+                    item.parentCast = std::move(parent->cast);
+                    if (!item.parentAuthor) {
+                        item.parentAuthor = std::move(parent->author);
+                    }
                 }
             }
         }
