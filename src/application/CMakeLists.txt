@@ -89,6 +89,7 @@ target_sources(farcaster_application_rich
 )
 target_link_libraries(farcaster_application_rich
     PUBLIC
+        farcaster::application_emoji
         farcaster::foundation
         farcaster::domain
 )
