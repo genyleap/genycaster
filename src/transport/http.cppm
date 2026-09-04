@@ -24,6 +24,7 @@ struct HttpRequest final {
 struct HttpResponse final {
     std::uint16_t statusCode{};
     std::string body{};
+    std::vector<std::string> headers{};
 };
 
 /** @brief Immutable HTTP POST request with an owned UTF-8/binary body. */
