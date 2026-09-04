@@ -358,71 +358,80 @@ foundation::result::Status SqliteReadStore::writeFeed(
             return status;
         }
     }
+
     const std::string id = feedKey(key);
-    std::vector<domain::feed::FeedEntry> entries{};
-    if (append) {
-        auto current = m_timelines->readTimeline(local::timeline::TimelineId{id}, 10'000);
-        if (!current) {
-            return std::unexpected(std::move(current.error()));
-        }
-        entries = std::move(*current);
-    }
-    std::unordered_set<std::string> seen{};
-    for (const auto& entry : entries) {
-        seen.insert(entry.castId.value);
-    }
-    for (const auto& entry : page.entries) {
-        if (seen.insert(entry.castId.value).second) {
-            entries.push_back(entry);
-        }
-    }
     std::scoped_lock lock{m_mutex};
     sqlite::Transaction transaction{m_metadata};
     if (auto status = transaction.begin(); !status) {
         return std::unexpected(toFoundationError(std::move(status.error())));
     }
-    auto clearPrepared = sqlite::Statement::prepare(
-        m_metadata, "DELETE FROM timeline_entries WHERE timeline_id = ?;");
-    if (!clearPrepared) {
-        return std::unexpected(toFoundationError(std::move(clearPrepared.error())));
+
+    sqlite3_int64 nextPosition = 0;
+    if (append) {
+        auto positionPrepared = sqlite::Statement::prepare(
+            m_metadata,
+            "SELECT COALESCE(MAX(position) + 1, 0) FROM timeline_entries WHERE timeline_id = ?;");
+        if (!positionPrepared) {
+            return std::unexpected(toFoundationError(std::move(positionPrepared.error())));
+        }
+        auto position = std::move(*positionPrepared);
+        if (auto status = sqlite::bindText(position.native(), 1, id); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+        if (sqlite3_step(position.native()) != SQLITE_ROW) {
+            return std::unexpected(toFoundationError(sqlite::makeError(
+                m_metadata.native(), "Failed to read next feed position")));
+        }
+        nextPosition = sqlite3_column_int64(position.native(), 0);
+    } else {
+        auto clearPrepared = sqlite::Statement::prepare(
+            m_metadata, "DELETE FROM timeline_entries WHERE timeline_id = ?;");
+        if (!clearPrepared) {
+            return std::unexpected(toFoundationError(std::move(clearPrepared.error())));
+        }
+        auto clear = std::move(*clearPrepared);
+        if (auto status = sqlite::bindText(clear.native(), 1, id); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+        if (auto status = sqlite::stepDone(m_metadata, clear); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
     }
-    auto clear = std::move(*clearPrepared);
-    if (auto status = sqlite::bindText(clear.native(), 1, id); !status) {
-        return std::unexpected(toFoundationError(std::move(status.error())));
-    }
-    if (auto status = sqlite::stepDone(m_metadata, clear); !status) {
-        return std::unexpected(toFoundationError(std::move(status.error())));
-    }
+
     auto insertPrepared = sqlite::Statement::prepare(m_metadata, R"SQL(
-INSERT INTO timeline_entries(timeline_id, position, cast_id, sort_time_ms)
+INSERT OR IGNORE INTO timeline_entries(timeline_id, position, cast_id, sort_time_ms)
 VALUES(?, ?, ?, ?);
 )SQL");
     if (!insertPrepared) {
         return std::unexpected(toFoundationError(std::move(insertPrepared.error())));
     }
     auto insert = std::move(*insertPrepared);
-    for (std::size_t index = 0; index < entries.size(); ++index) {
+    for (const auto& entry : page.entries) {
         insert.reset();
         if (auto status = sqlite::bindText(insert.native(), 1, id); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
-        if (sqlite3_bind_int64(insert.native(), 2, static_cast<sqlite3_int64>(index)) != SQLITE_OK) {
+        if (sqlite3_bind_int64(insert.native(), 2, nextPosition) != SQLITE_OK) {
             return std::unexpected(toFoundationError(sqlite::makeError(
                 m_metadata.native(), "Failed to bind feed entry position")));
         }
-        if (auto status = sqlite::bindText(insert.native(), 3, entries[index].castId.value); !status) {
+        if (auto status = sqlite::bindText(insert.native(), 3, entry.castId.value); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
         if (sqlite3_bind_int64(
                 insert.native(), 4,
-                static_cast<sqlite3_int64>(entries[index].sortTime.time_since_epoch().count())) != SQLITE_OK) {
+                static_cast<sqlite3_int64>(entry.sortTime.time_since_epoch().count())) != SQLITE_OK) {
             return std::unexpected(toFoundationError(sqlite::makeError(
                 m_metadata.native(), "Failed to bind feed entry timestamp")));
         }
         if (auto status = sqlite::stepDone(m_metadata, insert); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
+        if (sqlite3_changes(m_metadata.native()) > 0) {
+            ++nextPosition;
+        }
     }
+
     if (auto status = writeContinuationLocked(id, page.next); !status) {
         return status;
     }
@@ -505,36 +514,32 @@ foundation::result::Status SqliteReadStore::writeSocial(
             return status;
         }
     }
+
     const std::string id = socialKey(key);
-    std::vector<domain::social::SocialRelation> relations{};
-    if (append) {
-        auto current = readSocial(local::read::SocialKey{.kind = key.kind, .fid = key.fid, .limit = 10'000});
-        if (!current) {
-            return std::unexpected(std::move(current.error()));
-        }
-        relations = std::move(current->relations);
-    }
-    std::unordered_set<std::string> seen{};
-    for (const auto& relation : relations) {
-        seen.insert(std::to_string(relation.source.value) + ":" +
-            std::to_string(relation.target.value) + ":" +
-            std::to_string(static_cast<int>(relation.kind)));
-    }
-    for (const auto& relation : page.relations) {
-        const std::string relationId = std::to_string(relation.source.value) + ":" +
-            std::to_string(relation.target.value) + ":" +
-            std::to_string(static_cast<int>(relation.kind));
-        if (seen.insert(relationId).second) {
-            relations.push_back(relation);
-        }
+    std::scoped_lock lock{m_mutex};
+    sqlite::Transaction transaction{m_metadata};
+    if (auto status = transaction.begin(); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
     }
 
-    {
-        std::scoped_lock lock{m_mutex};
-        sqlite::Transaction transaction{m_metadata};
-        if (auto status = transaction.begin(); !status) {
+    sqlite3_int64 nextPosition = 0;
+    if (append) {
+        auto positionPrepared = sqlite::Statement::prepare(
+            m_metadata,
+            "SELECT COALESCE(MAX(position) + 1, 0) FROM social_list_entries WHERE list_id = ?;");
+        if (!positionPrepared) {
+            return std::unexpected(toFoundationError(std::move(positionPrepared.error())));
+        }
+        auto position = std::move(*positionPrepared);
+        if (auto status = sqlite::bindText(position.native(), 1, id); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
+        if (sqlite3_step(position.native()) != SQLITE_ROW) {
+            return std::unexpected(toFoundationError(sqlite::makeError(
+                m_metadata.native(), "Failed to read next social-list position")));
+        }
+        nextPosition = sqlite3_column_int64(position.native(), 0);
+    } else {
         auto clearPrepared = sqlite::Statement::prepare(
             m_metadata, "DELETE FROM social_list_entries WHERE list_id = ?;");
         if (!clearPrepared) {
@@ -547,46 +552,51 @@ foundation::result::Status SqliteReadStore::writeSocial(
         if (auto status = sqlite::stepDone(m_metadata, clear); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
-        auto insertPrepared = sqlite::Statement::prepare(m_metadata, R"SQL(
-INSERT INTO social_list_entries(list_id, position, source_fid, target_fid, relation_kind)
+    }
+
+    auto insertPrepared = sqlite::Statement::prepare(m_metadata, R"SQL(
+INSERT OR IGNORE INTO social_list_entries(list_id, position, source_fid, target_fid, relation_kind)
 VALUES(?, ?, ?, ?, ?);
 )SQL");
-        if (!insertPrepared) {
-            return std::unexpected(toFoundationError(std::move(insertPrepared.error())));
-        }
-        auto insert = std::move(*insertPrepared);
-        for (std::size_t index = 0; index < relations.size(); ++index) {
-            insert.reset();
-            if (auto status = sqlite::bindText(insert.native(), 1, id); !status) {
-                return std::unexpected(toFoundationError(std::move(status.error())));
-            }
-            if (sqlite3_bind_int64(insert.native(), 2, static_cast<sqlite3_int64>(index)) != SQLITE_OK ||
-                sqlite3_bind_int64(insert.native(), 3, static_cast<sqlite3_int64>(relations[index].source.value)) != SQLITE_OK ||
-                sqlite3_bind_int64(insert.native(), 4, static_cast<sqlite3_int64>(relations[index].target.value)) != SQLITE_OK) {
-                return std::unexpected(toFoundationError(sqlite::makeError(
-                    m_metadata.native(), "Failed to bind social relation")));
-            }
-            if (auto status = sqlite::bindText(
-                    insert.native(), 5,
-                    relations[index].kind == domain::social::SocialRelationKind::Blocks
-                        ? std::string_view{"blocks"} : std::string_view{"follows"}); !status) {
-                return std::unexpected(toFoundationError(std::move(status.error())));
-            }
-            if (auto status = sqlite::stepDone(m_metadata, insert); !status) {
-                return std::unexpected(toFoundationError(std::move(status.error())));
-            }
-        }
-        if (auto status = writeContinuationLocked(id, page.next); !status) {
-            return status;
-        }
-        if (auto status = transaction.commit(); !status) {
+    if (!insertPrepared) {
+        return std::unexpected(toFoundationError(std::move(insertPrepared.error())));
+    }
+    auto insert = std::move(*insertPrepared);
+    for (const auto& relation : page.relations) {
+        insert.reset();
+        if (auto status = sqlite::bindText(insert.native(), 1, id); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
+        if (sqlite3_bind_int64(insert.native(), 2, nextPosition) != SQLITE_OK ||
+            sqlite3_bind_int64(insert.native(), 3, static_cast<sqlite3_int64>(relation.source.value)) != SQLITE_OK ||
+            sqlite3_bind_int64(insert.native(), 4, static_cast<sqlite3_int64>(relation.target.value)) != SQLITE_OK) {
+            return std::unexpected(toFoundationError(sqlite::makeError(
+                m_metadata.native(), "Failed to bind social relation")));
+        }
+        if (auto status = sqlite::bindText(
+                insert.native(), 5,
+                relation.kind == domain::social::SocialRelationKind::Blocks
+                    ? std::string_view{"blocks"} : std::string_view{"follows"}); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+        if (auto status = sqlite::stepDone(m_metadata, insert); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+        if (sqlite3_changes(m_metadata.native()) > 0) {
+            ++nextPosition;
+        }
+    }
+
+    if (auto status = writeContinuationLocked(id, page.next); !status) {
+        return status;
+    }
+    if (auto status = transaction.commit(); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
     }
     return {};
 }
 
-}
+} // namespace
 
 foundation::result::Result<std::unique_ptr<local::read::IReadStore>>
 openReadStore(const std::filesystem::path& path)
@@ -599,4 +609,4 @@ openReadStore(const std::filesystem::path& path)
     return result;
 }
 
-}
+} // namespace farcaster::storage::read
