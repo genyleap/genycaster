@@ -11,6 +11,8 @@ add_library(farcaster_presentation STATIC
     qt/media_upload_controller.hpp
     qt/rich_composer_controller.cpp
     qt/rich_composer_controller.hpp
+    qt/emoji_controller.cpp
+    qt/emoji_controller.hpp
 )
 add_library(farcaster::presentation ALIAS farcaster_presentation)
 
@@ -23,6 +25,10 @@ target_link_libraries(farcaster_presentation
     PUBLIC
         farcaster::application
         farcaster::application_rich
+        farcaster::application_emoji
+        farcaster::provider_emoji
+        farcaster::execution
+        farcaster::transport_qt_network
         Qt6::Core
         Qt6::Qml
     PRIVATE
