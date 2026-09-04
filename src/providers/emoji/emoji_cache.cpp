@@ -21,6 +21,7 @@ module;
 
 module farcaster.provider.emoji.emoji_cache;
 
+import farcaster.capability.animated_emoji;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.provider.emoji.emoji_asset_validator;
@@ -299,7 +300,7 @@ bool EmojiAssetCache::contains(
     return read(provider, key, revision).has_value();
 }
 
-foundation::result::Result<CacheLookup> EmojiAssetCache::read(
+foundation::result::Result<capability::animated_emoji::CachedEmojiAsset> EmojiAssetCache::read(
     const std::string_view provider,
     const std::string_view key,
     const std::uint32_t revision) noexcept
@@ -321,7 +322,14 @@ foundation::result::Result<CacheLookup> EmojiAssetCache::read(
             "Emoji asset is not present in the cache."));
     }
     if (auto lookup = readEntry(*found)) {
-        return *lookup;
+        return capability::animated_emoji::CachedEmojiAsset{
+            .path = lookup->path,
+            .sizeBytes = lookup->sizeBytes,
+            .revision = lookup->revision,
+            .provider = std::move(lookup->provider),
+            .assetKey = std::move(lookup->assetKey),
+            .sha256 = lookup->sha256,
+        };
     }
     return std::unexpected(error(
         foundation::error::ErrorCode::NotFound,
