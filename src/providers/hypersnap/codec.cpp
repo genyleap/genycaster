@@ -415,7 +415,9 @@ struct MappedCast final {
     domain::profile::Profile author{};
 };
 
-[[nodiscard]] foundation::result::Result<MappedCast> mapCast(const JsonObject& castObject)
+[[nodiscard]] foundation::result::Result<MappedCast> mapCast(
+    const JsonObject& castObject,
+    const bool retainAuthorProfiles = false)
 {
     auto hash = requireString(castObject, "hash", "cast");
     auto text = requireString(castObject, "text", "cast");
@@ -519,9 +521,15 @@ struct MappedCast final {
             }
             // A thread should remain usable even if one historical reply cannot
             // be normalized. Skip only that child instead of rejecting the root.
-            auto reply = mapCast(replyValue.as_object());
+            auto reply = mapCast(replyValue.as_object(), retainAuthorProfiles);
             if (!reply) {
                 continue;
+            }
+            if (retainAuthorProfiles) {
+                // The v2 conversation schema embeds the full author object on
+                // every nested cast. Preserve it on the canonical snapshot so
+                // thread consumers can hydrate reply authors from the payload.
+                reply->cast.authorProfile.emplace(std::move(reply->author));
             }
             cast.directReplies.push_back(std::move(reply->cast));
         }
@@ -920,7 +928,7 @@ foundation::result::Result<ConversationPayload> decodeConversationPayload(
             "Hypersnap conversation response.conversation.cast must be a JSON object."));
     }
 
-    auto mapped = mapCast(castValue->as_object());
+    auto mapped = mapCast(castValue->as_object(), true);
     if (!mapped) {
         return std::unexpected(std::move(mapped.error()));
     }
