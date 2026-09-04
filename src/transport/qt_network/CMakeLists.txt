@@ -4,9 +4,12 @@ add_library(farcaster::transport_qt_network ALIAS farcaster_transport_qt_network
 target_sources(farcaster_transport_qt_network
     PUBLIC
         FILE_SET CXX_MODULES
-        FILES http.cppm
+        FILES
+            http.cppm
+            async_http.cppm
     PRIVATE
         http.cpp
+        async_http.cpp
 )
 
 target_link_libraries(farcaster_transport_qt_network
