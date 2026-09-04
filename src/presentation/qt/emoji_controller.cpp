@@ -41,6 +41,7 @@ import farcaster.provider.emoji.emoji_cache;
 import farcaster.provider.emoji.noto_animated_emoji;
 import farcaster.transport.async_http;
 import farcaster.transport.http;
+import farcaster.transport.qtnetwork;
 import farcaster.transport.qtnetwork.async;
 
 namespace {
@@ -185,7 +186,10 @@ public:
         if (!key || !provider.supports(*key)) {
             return;
         }
-        if (repository.isAvailable(sequence, Revision)) {
+        const auto utf8SequenceView = std::string_view{
+            sequence.toUtf8().constData(),
+            static_cast<std::size_t>(sequence.toUtf8().size())};
+        if (repository.isAvailable(utf8SequenceView, Revision)) {
             ++counterAssetHit;
             const QString source = sourceFor(sequence);
             if (!source.isEmpty()) {
@@ -193,7 +197,7 @@ public:
             }
             return;
         }
-        if (repository.recentlyFailed(sequence)) {
+        if (repository.recentlyFailed(utf8SequenceView)) {
             ++counterAssetMiss;
             emit owner.assetFailed(sequence);
             return;
