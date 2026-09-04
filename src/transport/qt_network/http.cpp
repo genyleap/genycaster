@@ -145,6 +145,21 @@ enum class RequestStage : std::uint8_t {
     return true;
 }
 
+
+[[nodiscard]] std::vector<std::string> responseHeaders(const QNetworkReply& reply)
+{
+    std::vector<std::string> headers{};
+    const auto rawHeaders = reply.rawHeaderPairs();
+    headers.reserve(static_cast<std::size_t>(rawHeaders.size()));
+    for (const auto& [name, value] : rawHeaders) {
+        std::string header{name.constData(), static_cast<std::size_t>(name.size())};
+        header.append(": ");
+        header.append(value.constData(), static_cast<std::size_t>(value.size()));
+        headers.push_back(std::move(header));
+    }
+    return headers;
+}
+
 [[nodiscard]] foundation::result::Status applyHeaders(
     QNetworkRequest& networkRequest,
     const std::vector<std::string>& headers)
@@ -380,6 +395,7 @@ private:
             return farcaster::transport::http::HttpResponse{
                 .statusCode = static_cast<std::uint16_t>(statusCode),
                 .body = std::move(responseBody),
+                .headers = responseHeaders(*reply),
             };
         }
 
