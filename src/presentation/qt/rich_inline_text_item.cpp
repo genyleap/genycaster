@@ -120,7 +120,10 @@ public:
             const qreal blockTop = layout->blockBoundingRect(block).top();
             // Every emoji cluster is one object-replacement character with its
             // own format range; locate its line through the range position.
-            const auto ranges = blockLayout->formats();
+            // Use QTextBlock::textFormats() (per-character document formats);
+            // QTextLayout::formats() only returns manually-set additional
+            // formats and is empty for QTextDocument content.
+            const auto ranges = block.textFormats();
             qWarning() << "EMOJI_RANGES block_formats=" << ranges.size()
                        << "lineCount=" << blockLayout->lineCount()
                        << "textLength=" << block.text().length();
@@ -548,6 +551,7 @@ void RichInlineTextItem::geometryChange(
 
 void RichInlineTextItem::paint(QPainter* painter)
 {
+    qWarning() << "EMOJI_PAINT" << width() << height();
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing, true);
     painter->setRenderHint(QPainter::TextAntialiasing, true);
