@@ -1,0 +1,120 @@
+// Textual compatibility boundary: Qt MOC requires this QObject declaration in
+// a .hpp file. The renderer owns a QTextDocument whose layout engine positions
+// emoji as real inline objects (wrapping, BiDi, alignment); animation frames
+// are overlaid by QML at the exact rectangles this item reports. No emoji or
+// provider logic lives here — cluster detection uses the native module.
+#pragma once
+
+#include <QColor>
+#include <QObject>
+#include <QQuickPaintedItem>
+#include <QVariantList>
+#include <QVariantMap>
+
+#include <memory>
+
+class QTextDocument;
+
+/**
+ * @brief QML-facing rich-text renderer with inline emoji objects.
+ *
+ * The item converts markup spans into a QTextDocument, replacing emoji
+ * clusters with U+FFFC inline objects so they participate in normal text
+ * layout (line wrapping, BiDi, mixed direction, alignment). Every emoji box
+ * is reported through emojiRects in item coordinates; the QML wrapper places
+ * an AnimatedEmoji overlay on top, while the item itself paints the system
+ * Unicode glyph as an always-correct fallback. Layout is done entirely on the
+ * GUI thread; the document is immutable after layout so the scene-graph paint
+ * pass can read it safely.
+ */
+class RichInlineTextItem final : public QQuickPaintedItem {
+    Q_OBJECT
+    Q_PROPERTY(QVariantList inlines READ inlines WRITE setInlines NOTIFY inlinesChanged)
+    Q_PROPERTY(int pixelSize READ pixelSize WRITE setPixelSize NOTIFY pixelSizeChanged)
+    Q_PROPERTY(qreal lineHeight READ lineHeight WRITE setLineHeight NOTIFY lineHeightChanged)
+    Q_PROPERTY(QString fontFamily READ fontFamily WRITE setFontFamily NOTIFY fontFamilyChanged)
+    Q_PROPERTY(QColor textColor READ textColor WRITE setTextColor NOTIFY textColorChanged)
+    Q_PROPERTY(QColor linkColor READ linkColor WRITE setLinkColor NOTIFY linkColorChanged)
+    Q_PROPERTY(QColor codeColor READ codeColor WRITE setCodeColor NOTIFY codeColorChanged)
+    Q_PROPERTY(QColor codeBackground READ codeBackground WRITE setCodeBackground NOTIFY codeBackgroundChanged)
+    Q_PROPERTY(QString codeFontFamily READ codeFontFamily WRITE setCodeFontFamily NOTIFY codeFontFamilyChanged)
+    Q_PROPERTY(bool alignRight READ alignRight WRITE setAlignRight NOTIFY alignRightChanged)
+    Q_PROPERTY(qreal emojiBoxScale READ emojiBoxScale WRITE setEmojiBoxScale NOTIFY emojiBoxScaleChanged)
+    Q_PROPERTY(qreal contentHeight READ contentHeight NOTIFY contentHeightChanged)
+    Q_PROPERTY(QVariantList emojiRects READ emojiRects NOTIFY emojiRectsChanged)
+
+public:
+    /** @brief Creates the renderer. */
+    explicit RichInlineTextItem(QQuickItem* parent = nullptr);
+    ~RichInlineTextItem() override;
+
+    RichInlineTextItem(const RichInlineTextItem&) = delete;
+    auto operator=(const RichInlineTextItem&) -> RichInlineTextItem& = delete;
+
+    [[nodiscard]] QVariantList inlines() const;
+    void setInlines(const QVariantList& inlines);
+
+    [[nodiscard]] int pixelSize() const noexcept;
+    void setPixelSize(int pixelSize);
+
+    [[nodiscard]] qreal lineHeight() const noexcept;
+    void setLineHeight(qreal lineHeight);
+
+    [[nodiscard]] QString fontFamily() const;
+    void setFontFamily(const QString& fontFamily);
+
+    [[nodiscard]] QColor textColor() const;
+    void setTextColor(const QColor& color);
+
+    [[nodiscard]] QColor linkColor() const;
+    void setLinkColor(const QColor& color);
+
+    [[nodiscard]] QColor codeColor() const;
+    void setCodeColor(const QColor& color);
+
+    [[nodiscard]] QColor codeBackground() const;
+    void setCodeBackground(const QColor& color);
+
+    [[nodiscard]] QString codeFontFamily() const;
+    void setCodeFontFamily(const QString& fontFamily);
+
+    [[nodiscard]] bool alignRight() const noexcept;
+    void setAlignRight(bool alignRight);
+
+    [[nodiscard]] qreal emojiBoxScale() const noexcept;
+    void setEmojiBoxScale(qreal scale);
+
+    /** @brief Laid-out content height in item coordinates. */
+    [[nodiscard]] qreal contentHeight() const noexcept;
+
+    /** @brief Emoji boxes in item coordinates: [{sequence,x,y,width,height}]. */
+    [[nodiscard]] QVariantList emojiRects() const;
+
+signals:
+    void inlinesChanged();
+    void pixelSizeChanged();
+    void lineHeightChanged();
+    void fontFamilyChanged();
+    void textColorChanged();
+    void linkColorChanged();
+    void codeColorChanged();
+    void codeBackgroundChanged();
+    void codeFontFamilyChanged();
+    void alignRightChanged();
+    void emojiBoxScaleChanged();
+    void contentHeightChanged();
+    void emojiRectsChanged();
+    /** @brief Emitted when a link target inside the text is activated. */
+    void linkActivated(const QString& url);
+
+protected:
+    void componentComplete() override;
+    void geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry) override;
+    void paint(QPainter* painter) override;
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
+
+private:
+    class Impl;
+    std::unique_ptr<Impl> m_impl;
+};
