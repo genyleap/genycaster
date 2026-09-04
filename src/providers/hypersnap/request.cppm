@@ -16,11 +16,12 @@ import farcaster.transport.http;
 export namespace farcaster::provider::hypersnap::request {
 
 /**
- * @brief Per-request transport budget for one Hypersnap JSON read.
+ * @brief Total request budget for one Hypersnap JSON operation.
  *
- * Provider capability implementations may override the default budget when an
- * endpoint performs materially heavier server-side aggregation. The finite
- * budget remains provider-local and never becomes an Application concern.
+ * GET retries share this single deadline rather than receiving a fresh timeout
+ * per attempt. Provider capability implementations may override the default
+ * budget for materially heavier aggregation while the budget remains local to
+ * the provider adapter.
  */
 struct GetOptions final {
     std::chrono::milliseconds timeout{15'000};
@@ -42,17 +43,17 @@ public:
     [[nodiscard]] const config::Config& config() const noexcept;
 
     /**
-     * @brief Executes a percent-encoded Hypersnap v2 JSON GET.
+     * @brief Executes a percent-encoded Hypersnap v2 JSON GET with bounded retry.
      * @param path Provider-local endpoint path.
      * @param query Provider-local query parameters.
-     * @param options Finite transport budget and response-size limit.
+     * @param options Shared deadline and response-size limit for all attempts.
      */
     [[nodiscard]] foundation::result::Result<std::string> getJson(
         std::string_view path,
         const std::vector<std::pair<std::string, std::string>>& query,
         GetOptions options = {});
 
-    /** @brief Executes a Hypersnap JSON POST with a caller-owned serialized body. */
+    /** @brief Executes one Hypersnap JSON POST without generic transport retry. */
     [[nodiscard]] foundation::result::Result<std::string> postJson(
         std::string_view path,
         std::string body,
