@@ -171,6 +171,13 @@ public:
             insertSpan(cursor, entry);
         }
         cursor.endEditBlock();
+        // Newline characters in plain spans split the document into further
+        // blocks; carry the paragraph format (line height, alignment) onto all
+        // of them so RTL multi-line casts stay right-aligned throughout.
+        for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+            QTextCursor blockCursor{block};
+            blockCursor.setBlockFormat(blockFormat);
+        }
         document.setDefaultFont(effectiveFont());
     }
 
