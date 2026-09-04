@@ -116,24 +116,6 @@ public:
           }()),
           repository(provider, diskCache, catalog)
     {
-        {
-            farcaster::transport::qtnetwork::async::NetworkLimits limits{};
-            limits.maximumActiveRequests = 8U;
-            limits.maximumActiveRequestsPerOrigin = 4U;
-            limits.maximumBackgroundActiveRequests = 6U;
-            limits.maximumBackgroundActiveRequestsPerOrigin = 3U;
-            limits.maximumAcceptedRequests = 24U;
-            limits.maximumAcceptedRequestBodyBytes = 1U * 1024U * 1024U;
-            limits.maximumBufferedResponseBytes = MaximumAssetBytes + 64U * 1024U;
-            limits.replyReadBufferBytes = 64U * 1024U;
-            auto transportInstance = farcaster::transport::qtnetwork::async::makeAsyncTransport(
-                farcaster::transport::qtnetwork::ProxyPolicy::System,
-                farcaster::transport::qtnetwork::ProtocolPolicy::Automatic,
-                limits);
-            if (transportInstance) {
-                transport = std::move(*transportInstance);
-            }
-        }
         restoreRecents();
     }
 
@@ -144,12 +126,46 @@ public:
     cache::EmojiAssetCache diskCache;
     repository::EmojiAssetRepository repository;
     std::unique_ptr<farcaster::transport::async_http::IAsyncHttpTransport> transport{};
-    farcaster::execution::weighted_thread_pool::WeightedThreadPoolExecutor executor{2U, 32U, 32U * 1024U * 1024U};
+    std::unique_ptr<farcaster::execution::weighted_thread_pool::WeightedThreadPoolExecutor> executor{};
 
     catalog::RecentEmojiStore recentStore{};
 
+    std::mutex networkMutex{};
     std::mutex pendingMutex{};
     std::unordered_set<std::string> pendingKeys{};
+
+    // Network infrastructure is created lazily on the first asset fetch. Emoji
+    // playback never needs it (bundled assets and the disk cache are always
+    // available), so startup and offline sessions never spawn a reactor thread.
+    void ensureNetwork()
+    {
+        if (transport) {
+            return;
+        }
+        const std::scoped_lock lock{networkMutex};
+        if (transport) {
+            return;
+        }
+        farcaster::transport::qtnetwork::async::NetworkLimits limits{};
+        limits.maximumActiveRequests = 8U;
+        limits.maximumActiveRequestsPerOrigin = 4U;
+        limits.maximumBackgroundActiveRequests = 6U;
+        limits.maximumBackgroundActiveRequestsPerOrigin = 3U;
+        limits.maximumAcceptedRequests = 24U;
+        limits.maximumAcceptedRequestBodyBytes = 1U * 1024U * 1024U;
+        limits.maximumBufferedResponseBytes = MaximumAssetBytes + 64U * 1024U;
+        limits.replyReadBufferBytes = 64U * 1024U;
+        auto transportInstance = farcaster::transport::qtnetwork::async::makeAsyncTransport(
+            farcaster::transport::qtnetwork::ProxyPolicy::System,
+            farcaster::transport::qtnetwork::ProtocolPolicy::Automatic,
+            limits);
+        if (!transportInstance) {
+            return;
+        }
+        transport = std::move(*transportInstance);
+        executor = std::make_unique<farcaster::execution::weighted_thread_pool::WeightedThreadPoolExecutor>(
+            2U, 32U, 32U * 1024U * 1024U);
+    }
 
     // Diagnostic counters (bounded, non-identifying).
     std::atomic<std::uint64_t> counterAssetHit{};
@@ -179,7 +195,7 @@ public:
 
     void requestAsset(const QString& sequence)
     {
-        if (!transport || sequence.trimmed().isEmpty()) {
+        if (sequence.trimmed().isEmpty()) {
             return;
         }
         const auto key = normalizedKeyOf(sequence);
@@ -203,6 +219,14 @@ public:
             return;
         }
 
+        ensureNetwork();
+        if (!transport || !executor) {
+            ++counterAssetMiss;
+            repository.markUnavailable(sequence.toUtf8().toStdString());
+            emit owner.assetFailed(sequence);
+            return;
+        }
+
         {
             const std::scoped_lock lock{pendingMutex};
             if (pendingKeys.contains(*key)) {
@@ -218,7 +242,7 @@ public:
 
         // Disk-cache probe and any network fetch run off the UI thread.
         const auto self = this;
-        const auto status = executor.post(
+        const auto status = executor->post(
             0U,
             [self, providerId, assetKey, utf8Sequence] {
                 self->resolveOffUiThread(providerId, assetKey, utf8Sequence);
