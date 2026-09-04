@@ -55,6 +55,11 @@ constexpr std::chrono::milliseconds followingRequestTimeout{5'000};
 constexpr std::chrono::milliseconds discoveryRequestTimeout{6'000};
 constexpr std::chrono::milliseconds profileFeedRequestTimeout{6'000};
 constexpr std::chrono::milliseconds viewerReactionRequestTimeout{7'500};
+// The reaction snapshot is filtered locally, so a bounded but broad window must
+// cover reactions on casts the viewer engaged with recently. Mirrors the exact
+// blocking source (feed.cpp viewerReactionsFor) so async reads cannot silently
+// drop older reactions that /reaction/user would still report.
+constexpr std::size_t viewerReactionSnapshotLimit{10'000};
 
 struct Group final {
     std::atomic_bool cancelled{false};
@@ -1184,8 +1189,7 @@ foundation::result::Result<AppRequest> AsyncGateway::viewerReactionsFor(
             }
             completion(std::move(snapshot));
         };
-        const auto fallbackLimit = std::min<std::size_t>(
-            500U, std::max<std::size_t>(100U, targetState->size() * 16U));
+        const auto fallbackLimit = viewerReactionSnapshotLimit;
         const auto startReaction = [this, group, viewer, fallbackLimit, state, finish](
                                        const char* type,
                                        const bool likes) {
