@@ -4,6 +4,7 @@ module;
 #include <chrono>
 #include <expected>
 #include <optional>
+#include <mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -71,6 +72,7 @@ HealthRegistry::HealthRegistry(
 
 void HealthRegistry::update(CapabilityHealth health)
 {
+    std::scoped_lock lock{m_mutex};
     for (std::size_t index = 0; index < m_health.size(); ++index) {
         CapabilityHealth& current = m_health[index];
         const bool sameProvider =
@@ -91,6 +93,7 @@ std::optional<CapabilityHealth> HealthRegistry::find(
     const provider::model::ProviderId& providerId,
     const capability::model::CapabilityId& capabilityId) const
 {
+    std::scoped_lock lock{m_mutex};
     for (std::size_t index = 0; index < m_health.size(); ++index) {
         const CapabilityHealth& health = m_health[index];
         const bool sameProvider =
@@ -151,6 +154,7 @@ foundation::result::Result<AttemptAdmission> HealthRegistry::beginAttempt(
     const capability::model::CapabilityId& capabilityId,
     const AttemptMode mode)
 {
+    std::scoped_lock lock{m_mutex};
     CapabilityHealth* const health = findMutable(providerId, capabilityId);
     if (health == nullptr) {
         return AttemptAdmission{};
@@ -191,6 +195,7 @@ void HealthRegistry::recordSuccess(
     const capability::model::CapabilityId& capabilityId,
     const std::chrono::milliseconds latency)
 {
+    std::scoped_lock lock{m_mutex};
     CapabilityHealth& health = ensure(providerId, capabilityId);
     recordObservation(health, latency, false);
     health.state = HealthState::Healthy;
@@ -211,6 +216,7 @@ void HealthRegistry::recordFailure(
         return;
     }
 
+    std::scoped_lock lock{m_mutex};
     CapabilityHealth& health = ensure(providerId, capabilityId);
     const bool probeFailed = health.circuit == CircuitState::HalfOpen;
     recordObservation(health, latency, true);
