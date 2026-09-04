@@ -571,7 +571,13 @@ private:
             return;
         }
         auto& active = activeIterator->second;
-        if (!active.reply || active.bodyLimitExceeded || active.timedOut) {
+        // A timeout abort (or an interrupted connection) closes the underlying
+        // QIODevice before the reply necessarily flips its open flag. Never
+        // drain after cancellation: calling readAll() in that narrow window
+        // makes Qt ask a closed device to read and emits
+        // "QIODevice::read (QNetworkReplyHttpImpl): device not open".
+        if (!active.reply || active.bodyLimitExceeded || active.timedOut ||
+            !active.reply->isOpen()) {
             return;
         }
         const QByteArray bytes = active.reply->readAll();
