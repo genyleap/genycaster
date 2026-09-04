@@ -68,6 +68,7 @@ public:
         QFont font = document->defaultFont();
         font.setPixelSize(qMax(1, qRound(rect.height())));
         painter->setFont(font);
+        qWarning() << "EMOJI_DRAW" << sequence << rect.width() << rect.height();
         painter->drawText(rect, Qt::AlignCenter, sequence);
         painter->restore();
     }
@@ -147,6 +148,7 @@ public:
                 }
             }
         }
+        qWarning() << "EMOJI_RECTS" << rects.size();
         if (rects != emojiRects) {
             emojiRects = std::move(rects);
             emit owner.emojiRectsChanged();
