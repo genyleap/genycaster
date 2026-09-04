@@ -263,6 +263,9 @@ public:
     {
         QTextCharFormat format{};
         format.setFont(effectiveFont());
+        if (bold) {
+            format.setFontWeight(QFont::Bold);
+        }
         format.setForeground(textColor);
         return format;
     }
@@ -278,6 +281,7 @@ public:
 
     QVariantList inlines{};
     int pixelSize{15};
+    bool bold{false};
     qreal lineHeight{1.0};
     QString fontFamily{};
     QColor textColor{Qt::black};
@@ -329,6 +333,21 @@ void RichInlineTextItem::setPixelSize(const int pixelSize)
     }
     m_impl->pixelSize = pixelSize;
     emit pixelSizeChanged();
+    m_impl->rebuild();
+}
+
+bool RichInlineTextItem::bold() const noexcept
+{
+    return m_impl->bold;
+}
+
+void RichInlineTextItem::setBold(const bool bold)
+{
+    if (bold == m_impl->bold) {
+        return;
+    }
+    m_impl->bold = bold;
+    emit boldChanged();
     m_impl->rebuild();
 }
 
