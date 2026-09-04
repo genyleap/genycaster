@@ -18,6 +18,7 @@ module;
 
 module farcaster.application.rich_format;
 
+import farcaster.application.emoji.unicode_normalizer;
 import farcaster.domain.identity;
 import farcaster.domain.rich_document;
 import farcaster.foundation.error;
@@ -162,6 +163,17 @@ constexpr std::size_t MaxInlineSpansPerBlock = 512U;
                     }
                 }
             }
+        }
+        if (const std::size_t emojiLength =
+                emoji::unicode::emojiByteLengthAt(text, index);
+            emojiLength > 0U) {
+            // Emoji clusters are semantic inline nodes with the Unicode text as
+            // identity. Animation is a presentation concern layered on top by
+            // the renderer; serialization always emits the plain Unicode text.
+            flushPending();
+            pushText(InlineKind::Emoji, std::string{text.substr(index, emojiLength)});
+            index += emojiLength;
+            continue;
         }
         if (text[index] == '@' && (index == 0U || std::isspace(static_cast<unsigned char>(text[index - 1U])) != 0 ||
                                     std::ispunct(static_cast<unsigned char>(text[index - 1U])) != 0)) {
