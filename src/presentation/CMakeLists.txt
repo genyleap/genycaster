@@ -13,6 +13,8 @@ add_library(farcaster_presentation STATIC
     qt/rich_composer_controller.hpp
     qt/emoji_controller.cpp
     qt/emoji_controller.hpp
+    qt/rich_inline_text_item.cpp
+    qt/rich_inline_text_item.hpp
 )
 add_library(farcaster::presentation ALIAS farcaster_presentation)
 
@@ -39,4 +41,12 @@ target_link_libraries(farcaster_presentation
 target_compile_features(farcaster_presentation PUBLIC cxx_std_26)
 set_property(TARGET farcaster_presentation PROPERTY CXX_SCAN_FOR_MODULES ON)
 set_target_properties(farcaster_presentation PROPERTIES AUTOMOC ON)
+# The Qt Labs Lottie QML renderer is optional: when the Qt SDK ships it the
+# emoji platform reports animation availability and QML overlays animate;
+# otherwise everything falls back to system Unicode glyphs.
+find_package(Qt6 QUIET COMPONENTS Lottie)
+if(Qt6Lottie_FOUND)
+    target_compile_definitions(farcaster_presentation PRIVATE FARCASTER_HAS_LOTTIE=1)
+endif()
+
 farcaster_enable_warnings(farcaster_presentation)
