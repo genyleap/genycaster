@@ -133,8 +133,6 @@ constexpr std::string_view MetaSeparator = "=";
 EmojiAssetCache::EmojiAssetCache(EmojiCacheConfig config)
     : m_config(std::move(config))
 {
-    prepareDirectories();
-    pruneOrphanTemps();
 }
 
 void EmojiAssetCache::prepareDirectories() noexcept
@@ -354,6 +352,7 @@ foundation::result::Status EmojiAssetCache::store(
             "Emoji cache entry exceeds the bounded entry size."));
     }
     prepareDirectories();
+    pruneOrphanTemps();
     const auto assetPath = pathFor(provider, key, revision);
     const auto metaPath = metaPathFor(provider, key, revision);
 
