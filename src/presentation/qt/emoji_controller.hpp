@@ -19,11 +19,9 @@ class QSettings;
 /**
  * @brief QML-facing animated emoji platform adapter.
  *
- * The controller composes the provider-neutral emoji capability: Unicode
- * normalization, the Noto provider, bounded validation, the disk cache and
- * the asset repository all live in native modules. This object owns the
- * asynchronous download pipeline (shared async HTTP transport + bounded CPU
- * executor), recent-emoji persistence and the picker model.
+ * Catalog/search/recents and motion decisions depend only on native application
+ * modules. Executable composition supplies provider-neutral asset callbacks;
+ * no provider, network or cache implementation is linked into presentation.
  */
 class EmojiController final : public QObject {
     Q_OBJECT
@@ -58,7 +56,7 @@ public:
 
     /** @brief True when the native emoji platform is composed and usable. */
     [[nodiscard]] bool available() const noexcept;
-    /** @brief True when this build embeds the Qt Labs Lottie renderer. */
+    /** @brief True when this build supports VectorImage Lottie playback (Qt 6.10+). */
     [[nodiscard]] bool lottieAvailable() const noexcept;
     /** @brief Active emoji style identifier (future-proof: "noto-animated"). */
     [[nodiscard]] QString styleId() const;
