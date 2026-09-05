@@ -1,4 +1,5 @@
 #include "rich_inline_text_item.hpp"
+#include <QSet>
 
 #include <QColor>
 #include <QFont>
@@ -42,6 +43,7 @@ class EmojiObjectHandler final : public QObject, public QTextObjectInterface {
     Q_INTERFACES(QTextObjectInterface)
 
 public:
+    QSet<int> animatedPositions{};
     [[nodiscard]] QSizeF intrinsicSize(
         QTextDocument* document,
         const int /*position*/,
@@ -57,11 +59,11 @@ public:
         QPainter* painter,
         const QRectF& rect,
         QTextDocument* document,
-        const int /*position*/,
+        const int position,
         const QTextFormat& format) override
     {
         const QString sequence = format.property(EmojiSequenceProperty).toString();
-        if (sequence.isEmpty()) {
+        if (sequence.isEmpty() || animatedPositions.contains(position)) {
             return;
         }
         painter->save();
@@ -127,7 +129,7 @@ public:
                 if (range.format.objectType() != EmojiObjectType) {
                     continue;
                 }
-                const int position = range.start;
+                for (int position = range.start; position < range.start + range.length; ++position) {
                 for (int lineIndex = 0; lineIndex < blockLayout->lineCount(); ++lineIndex) {
                     const QTextLine line = blockLayout->lineAt(lineIndex);
                     const int start = line.textStart();
@@ -136,17 +138,19 @@ public:
                         continue;
                     }
                     const qreal x0 = line.cursorToX(position);
-                    const qreal x1 = line.cursorToX(position + 1);
-                    const qreal width = qMax(x1 - x0, 1.0);
-                    const qreal y = blockTop + line.y() + (line.height() - em) / 2.0;
+                    const qreal x1 = line.cursorToX(position, QTextLine::Trailing);
+                    const qreal width = qMax(qAbs(x1 - x0), 1.0);
+                    const qreal y = blockTop + line.y() + line.ascent() - em;
                     rects.push_back(QVariantMap{
                         {QStringLiteral("sequence"), range.format.property(EmojiSequenceProperty).toString()},
-                        {QStringLiteral("x"), x0},
+                        {QStringLiteral("position"), block.position() + position},
+                        {QStringLiteral("x"), layout->blockBoundingRect(block).left() + qMin(x0, x1)},
                         {QStringLiteral("y"), y},
                         {QStringLiteral("width"), width},
                         {QStringLiteral("height"), em},
                     });
                     break;
+                }
                 }
             }
         }
@@ -521,6 +525,16 @@ qreal RichInlineTextItem::contentHeight() const noexcept
 QVariantList RichInlineTextItem::emojiRects() const
 {
     return m_impl->emojiRects;
+}
+
+void RichInlineTextItem::setEmojiAnimated(const int position, const bool animated)
+{
+    if (animated) {
+        m_impl->handler.animatedPositions.insert(position);
+    } else {
+        m_impl->handler.animatedPositions.remove(position);
+    }
+    update();
 }
 
 void RichInlineTextItem::componentComplete()
