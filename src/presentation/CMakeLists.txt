@@ -40,11 +40,10 @@ target_link_libraries(farcaster_presentation
 target_compile_features(farcaster_presentation PUBLIC cxx_std_26)
 set_property(TARGET farcaster_presentation PROPERTY CXX_SCAN_FOR_MODULES ON)
 set_target_properties(farcaster_presentation PROPERTIES AUTOMOC ON)
-# The Qt Labs Lottie QML renderer is optional: when the Qt SDK ships it the
-# emoji platform reports animation availability and QML overlays animate;
-# otherwise everything falls back to system Unicode glyphs.
+# VectorImage needs Qt 6.10+ and the Qt Lottie vector-format plugin.
+# Older/renderer-free SDKs retain the Unicode fallback without loading this type.
 find_package(Qt6 QUIET COMPONENTS Lottie)
-if(Qt6Lottie_FOUND)
+if(Qt6Lottie_FOUND AND Qt6_VERSION VERSION_GREATER_EQUAL 6.10)
     target_compile_definitions(farcaster_presentation PRIVATE FARCASTER_HAS_LOTTIE=1)
 endif()
 
