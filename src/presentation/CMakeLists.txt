@@ -1,3 +1,5 @@
+add_subdirectory(media)
+
 add_library(farcaster_presentation STATIC
     qt/appearance_controller.cpp
     qt/appearance_controller.hpp
@@ -7,6 +9,10 @@ add_library(farcaster_presentation STATIC
     qt/presentation_bridge.hpp
     qt/localization_controller.cpp
     qt/localization_controller.hpp
+    qt/media_classifier_controller.cpp
+    qt/media_classifier_controller.hpp
+    qt/media_playback_coordinator.cpp
+    qt/media_playback_coordinator.hpp
     qt/media_upload_controller.cpp
     qt/media_upload_controller.hpp
     qt/rich_composer_controller.cpp
@@ -30,6 +36,7 @@ target_link_libraries(farcaster_presentation
         farcaster::application_emoji
         farcaster::execution
         farcaster::transport_qt_network
+        farcaster::presentation_media
         Qt6::Core
         Qt6::Qml
     PRIVATE
