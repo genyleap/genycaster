@@ -72,8 +72,10 @@ public:
                 {QStringLiteral("lastUsedMs"), static_cast<double>(record.lastUsedEpochMs)},
             });
         }
+        // QSettings::setValue updates the settings object immediately and lets
+        // Qt coalesce the physical write. An explicit sync() here put disk I/O
+        // directly on the emoji-selection UI path and caused a visible hitch.
         settings.setValue(QString::fromLatin1(RecentsKey), QJsonDocument{rows}.toJson(QJsonDocument::Compact));
-        settings.sync();
     }
 
     void restoreRecents()
