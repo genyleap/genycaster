@@ -386,13 +386,56 @@ private:
                 case 'n': value.push_back('\n'); break;
                 case 'r': value.push_back('\r'); break;
                 case 't': value.push_back('\t'); break;
-                case 'u':
+                case 'u': {
                     if (m_cursor + 4U >= m_input.size()) {
                         (void)fail("incomplete unicode escape");
                         return false;
                     }
+                    std::uint32_t codePoint{};
+                    const char* start = m_input.data() + m_cursor + 1U;
+                    const auto parsed = std::from_chars(start, start + 4, codePoint, 16);
+                    if (parsed.ec != std::errc{} || parsed.ptr != start + 4 || codePoint == 0U) {
+                        (void)fail("invalid unicode escape");
+                        return false;
+                    }
                     m_cursor += 4U;
+                    if (codePoint >= 0xD800U && codePoint <= 0xDBFFU) {
+                        if (m_cursor + 6U >= m_input.size() ||
+                            m_input.substr(m_cursor + 1U, 2U) != "\\u") {
+                            (void)fail("unpaired unicode surrogate");
+                            return false;
+                        }
+                        std::uint32_t low{};
+                        start = m_input.data() + m_cursor + 3U;
+                        const auto parsedLow = std::from_chars(start, start + 4, low, 16);
+                        if (parsedLow.ec != std::errc{} || parsedLow.ptr != start + 4 ||
+                            low < 0xDC00U || low > 0xDFFFU) {
+                            (void)fail("invalid unicode surrogate pair");
+                            return false;
+                        }
+                        codePoint = 0x10000U + ((codePoint - 0xD800U) << 10U) + low - 0xDC00U;
+                        m_cursor += 6U;
+                    } else if (codePoint >= 0xDC00U && codePoint <= 0xDFFFU) {
+                        (void)fail("unpaired unicode surrogate");
+                        return false;
+                    }
+                    if (codePoint < 0x80U) {
+                        value.push_back(static_cast<char>(codePoint));
+                    } else if (codePoint < 0x800U) {
+                        value.push_back(static_cast<char>(0xC0U | (codePoint >> 6U)));
+                        value.push_back(static_cast<char>(0x80U | (codePoint & 0x3FU)));
+                    } else {
+                        if (codePoint < 0x10000U) {
+                            value.push_back(static_cast<char>(0xE0U | (codePoint >> 12U)));
+                        } else {
+                            value.push_back(static_cast<char>(0xF0U | (codePoint >> 18U)));
+                            value.push_back(static_cast<char>(0x80U | ((codePoint >> 12U) & 0x3FU)));
+                        }
+                        value.push_back(static_cast<char>(0x80U | ((codePoint >> 6U) & 0x3FU)));
+                        value.push_back(static_cast<char>(0x80U | (codePoint & 0x3FU)));
+                    }
                     break;
+                }
                 default:
                     (void)fail("invalid JSON escape");
                     return false;
@@ -426,6 +469,9 @@ private:
                 return fail("3D layers are unsupported in emoji assets");
             }
             return true;
+        }
+        if ((key == "x" && kind == Kind::String && !m_lastString.empty()) || key == "fonts") {
+            return fail("expressions and font data are unsupported in emoji assets");
         }
         if (key == "chars") {
             return fail("embedded font/text data is unsupported in emoji assets");
@@ -568,7 +614,6 @@ private:
             ++m_cursor;
             return Kind::Array;
         }
-        std::size_t elementCount{};
         bool firstElement = true;
         while (m_cursor < m_input.size()) {
             if (!firstElement) {
@@ -579,11 +624,11 @@ private:
                 }
             }
             firstElement = false;
-            if (countingLayers && ++elementCount > m_limits.maxLayers) {
+            if (countingLayers && ++m_layers > m_limits.maxLayers) {
                 (void)fail("layer count exceeds the validation limit");
                 return Kind::Null;
             }
-            if (countingAssets && ++elementCount > m_limits.maxAssets) {
+            if (countingAssets && ++m_assets > m_limits.maxAssets) {
                 (void)fail("asset count exceeds the validation limit");
                 return Kind::Null;
             }
@@ -594,8 +639,6 @@ private:
             skipWhitespace();
             if (m_cursor < m_input.size() && m_input[m_cursor] == ']') {
                 ++m_cursor;
-                if (countingLayers) m_layers = static_cast<std::uint32_t>(elementCount);
-                if (countingAssets) m_assets = static_cast<std::uint32_t>(elementCount);
                 return Kind::Array;
             }
         }
