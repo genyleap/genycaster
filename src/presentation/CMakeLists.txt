@@ -28,7 +28,6 @@ target_link_libraries(farcaster_presentation
         farcaster::application
         farcaster::application_rich
         farcaster::application_emoji
-        farcaster::provider_emoji
         farcaster::execution
         farcaster::transport_qt_network
         Qt6::Core
