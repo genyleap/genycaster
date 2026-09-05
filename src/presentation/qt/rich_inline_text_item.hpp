@@ -94,6 +94,8 @@ public:
 
     /** @brief Emoji boxes in item coordinates: [{sequence,x,y,width,height}]. */
     [[nodiscard]] QVariantList emojiRects() const;
+    /** @brief Suppresses one inline glyph only while its animation replaces it; layout is unchanged. */
+    Q_INVOKABLE void setEmojiAnimated(int position, bool animated);
 
 signals:
     void inlinesChanged();
