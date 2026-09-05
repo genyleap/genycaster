@@ -12,6 +12,7 @@
 #include <QVariantMap>
 
 #include <memory>
+#include <functional>
 
 class QSettings;
 
@@ -35,6 +36,17 @@ class EmojiController final : public QObject {
     Q_PROPERTY(int pendingFetches READ pendingFetches NOTIFY fetchStateChanged)
 
 public:
+    /** @brief Provider-neutral Qt callback boundary; installed by executable composition. */
+    struct AssetBackend final {
+        std::function<QString(const QString&)> source{};
+        std::function<void(const QString&)> request{};
+        std::function<int()> pending{};
+    };
+    /** @brief Replaces borrowed backend callbacks on the GUI thread; clear before backend teardown. */
+    void setAssetBackend(AssetBackend backend);
+    /** @brief Native motion policy: 0 disables playback, 1 plays once, -1 loops. */
+    Q_INVOKABLE int playbackLoops(int surface, bool reducedMotion, bool active, bool visible) const;
+
     /** @brief Creates the emoji adapter over the borrowed settings store. */
     explicit EmojiController(QSettings& settings, QObject* parent = nullptr);
     ~EmojiController() override;
