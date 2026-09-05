@@ -68,7 +68,6 @@ public:
         QFont font = document->defaultFont();
         font.setPixelSize(qMax(1, qRound(rect.height())));
         painter->setFont(font);
-        qWarning() << "EMOJI_DRAW" << sequence << rect.width() << rect.height();
         painter->drawText(rect, Qt::AlignCenter, sequence);
         painter->restore();
     }
@@ -124,13 +123,7 @@ public:
             // QTextLayout::formats() only returns manually-set additional
             // formats and is empty for QTextDocument content.
             const auto ranges = block.textFormats();
-            qWarning() << "EMOJI_RANGES block_formats=" << ranges.size()
-                       << "lineCount=" << blockLayout->lineCount()
-                       << "textLength=" << block.text().length();
             for (const auto& range : ranges) {
-                qWarning() << "EMOJI_RANGE type=" << range.format.objectType()
-                           << "start=" << range.start << "len=" << range.length
-                           << "char=" << block.text().mid(range.start, 1);
                 if (range.format.objectType() != EmojiObjectType) {
                     continue;
                 }
@@ -157,7 +150,6 @@ public:
                 }
             }
         }
-        qWarning() << "EMOJI_RECTS" << rects.size();
         if (rects != emojiRects) {
             emojiRects = std::move(rects);
             emit owner.emojiRectsChanged();
@@ -253,7 +245,6 @@ public:
         const QByteArray utf8 = text.toUtf8();
         const std::string_view bytes{utf8.constData(), static_cast<std::size_t>(utf8.size())};
         const auto clusters = farcaster::application::emoji::unicode::scanEmojiClusters(bytes);
-        qWarning() << "EMOJI_INSERT" << text << "clusters=" << clusters.size();
         if (clusters.empty()) {
             cursor.insertText(text, base);
             return;
@@ -551,7 +542,6 @@ void RichInlineTextItem::geometryChange(
 
 void RichInlineTextItem::paint(QPainter* painter)
 {
-    qWarning() << "EMOJI_PAINT" << width() << height();
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing, true);
     painter->setRenderHint(QPainter::TextAntialiasing, true);
