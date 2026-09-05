@@ -42,6 +42,7 @@ target_link_libraries(farcaster_presentation
     PRIVATE
         Qt6::Gui
         Qt6::Quick
+        Qt6::Multimedia
 )
 
 target_compile_features(farcaster_presentation PUBLIC cxx_std_26)
