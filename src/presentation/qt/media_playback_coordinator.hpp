@@ -1,0 +1,63 @@
+// Textual compatibility boundary: Qt MOC requires this QObject declaration in a .hpp file.
+#pragma once
+
+#include <QObject>
+#include <QPointer>
+
+/**
+ * @brief App-wide coordination of primary media playback sessions.
+ *
+ * Ensures that only one audible video session is active at a time across
+ * recycled feed delegates, detail, profile and fullscreen surfaces. Feed
+ * players claim the primary session on explicit play; a new primary suspends
+ * the previous one. Session mute/volume preferences are owned here so every
+ * Cast surface follows one audio policy instead of conflicting local policies.
+ *
+ * The coordinator is intentionally small and QML-facing: real decoding stays
+ * in the canonical GenyVideoPlayer component; this object only arbitrates
+ * which player owns the audible session.
+ */
+class MediaPlaybackCoordinator final : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(bool muted READ muted WRITE setMuted NOTIFY sessionChanged)
+
+public:
+    /** @brief Creates an idle coordinator (no active session). */
+    explicit MediaPlaybackCoordinator(QObject* parent = nullptr);
+
+    /** @brief Whether new playback sessions start muted (session preference). */
+    [[nodiscard]] bool muted() const noexcept;
+    /** @brief Sets the session-wide muted preference. */
+    void setMuted(bool muted);
+    /** @brief Current primary player, or null when nothing is playing. */
+    [[nodiscard]] QObject* activePlayer() const noexcept;
+
+    /**
+     * @brief Claims the primary audible session for one player.
+     * Any previously active player is suspended through its
+     * `suspendFromPlaybackCoordinator()` invokable.
+     * @return false when the caller is not a live QObject.
+     */
+    Q_INVOKABLE bool claimPrimary(QObject* player);
+
+    /**
+     * @brief Releases a player from the primary session.
+     * Called on explicit pause, source replacement and delegate destruction.
+     */
+    Q_INVOKABLE void release(QObject* player);
+
+    /** @brief Convenience QML helper returning whether a player owns the session. */
+    Q_INVOKABLE bool isPrimary(QObject* player) const;
+
+signals:
+    /** @brief Emitted when the session preference (mute) changes. */
+    void sessionChanged();
+    /** @brief Emitted when the primary player changes. */
+    void activePlayerChanged();
+
+private:
+    void suspendPlayer(QObject* player);
+
+    QPointer<QObject> m_activePlayer{};
+    bool m_muted{false};
+};
