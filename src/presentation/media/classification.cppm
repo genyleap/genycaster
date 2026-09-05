@@ -12,6 +12,7 @@
 module;
 
 #include <cstdint>
+#include <string>
 #include <string_view>
 
 export module farcaster.presentation.media;
@@ -38,6 +39,19 @@ struct Classification final {
     MediaKind kind{MediaKind::Unknown};
     bool visual{false};
     bool directPlayable{false};
+};
+
+/// Canonical playback hints derived from one already-classified media URL.
+///
+/// `url` always preserves the original external resource. `adaptiveUrl` is
+/// populated only when the source is already an HLS manifest or when a known
+/// first-party media CDN URL can be deterministically mapped to its HLS
+/// manifest without page scraping. `contentType` describes that adaptive
+/// source when known.
+struct PlaybackSource final {
+    std::string url{};
+    std::string adaptiveUrl{};
+    std::string contentType{};
 };
 
 /// Classify an embed using the canonical precedence order:
@@ -67,6 +81,13 @@ struct Classification final {
 /// trusted media-host rules only; metadata-aware callers should prefer
 /// `classify()` so signed/extensionless sources are recognized.
 [[nodiscard]] Classification classifyUrl(std::string_view url);
+
+/// Derive decoder-facing playback hints for a direct media URL.
+///
+/// This function never performs network I/O and never scrapes web pages. It
+/// recognizes HLS directly and the stable Cloudflare Stream URL family used by
+/// Farcaster media. Unknown/direct progressive sources remain unchanged.
+[[nodiscard]] PlaybackSource playbackSourceForUrl(std::string_view url);
 
 /// True when a URL may be handed to the media stack directly. Only schemes
 /// intentionally supported by Genycaster (http, https, file, qrc) qualify;
