@@ -130,27 +130,27 @@ public:
                     continue;
                 }
                 for (int position = range.start; position < range.start + range.length; ++position) {
-                for (int lineIndex = 0; lineIndex < blockLayout->lineCount(); ++lineIndex) {
-                    const QTextLine line = blockLayout->lineAt(lineIndex);
-                    const int start = line.textStart();
-                    const int length = line.textLength();
-                    if (position < start || position >= start + length) {
-                        continue;
+                    for (int lineIndex = 0; lineIndex < blockLayout->lineCount(); ++lineIndex) {
+                        const QTextLine line = blockLayout->lineAt(lineIndex);
+                        const int start = line.textStart();
+                        const int length = line.textLength();
+                        if (position < start || position >= start + length) {
+                            continue;
+                        }
+                        const qreal x0 = line.cursorToX(position);
+                        const qreal x1 = line.cursorToX(position + 1);
+                        const qreal width = qMax(qAbs(x1 - x0), 1.0);
+                        const qreal y = blockTop + line.y() + line.ascent() - em;
+                        rects.push_back(QVariantMap{
+                            {QStringLiteral("sequence"), range.format.property(EmojiSequenceProperty).toString()},
+                            {QStringLiteral("position"), block.position() + position},
+                            {QStringLiteral("x"), layout->blockBoundingRect(block).left() + qMin(x0, x1)},
+                            {QStringLiteral("y"), y},
+                            {QStringLiteral("width"), width},
+                            {QStringLiteral("height"), em},
+                        });
+                        break;
                     }
-                    const qreal x0 = line.cursorToX(position);
-                    const qreal x1 = line.cursorToX(position, QTextLine::Trailing);
-                    const qreal width = qMax(qAbs(x1 - x0), 1.0);
-                    const qreal y = blockTop + line.y() + line.ascent() - em;
-                    rects.push_back(QVariantMap{
-                        {QStringLiteral("sequence"), range.format.property(EmojiSequenceProperty).toString()},
-                        {QStringLiteral("position"), block.position() + position},
-                        {QStringLiteral("x"), layout->blockBoundingRect(block).left() + qMin(x0, x1)},
-                        {QStringLiteral("y"), y},
-                        {QStringLiteral("width"), width},
-                        {QStringLiteral("height"), em},
-                    });
-                    break;
-                }
                 }
             }
         }
