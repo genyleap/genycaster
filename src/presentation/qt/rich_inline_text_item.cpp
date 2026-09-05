@@ -140,14 +140,20 @@ public:
                         const qreal x0 = line.cursorToX(position);
                         const qreal x1 = line.cursorToX(position + 1);
                         const qreal width = qMax(qAbs(x1 - x0), 1.0);
-                        const qreal y = blockTop + line.y() + line.ascent() - em;
+                        const qreal storedHeight = range.format.property(EmojiWidthProperty).toDouble();
+                        const qreal height = storedHeight > 0.0 ? storedHeight : em;
+                        const qreal lineTop = blockTop + line.y();
+                        const qreal lineBottom = lineTop + line.height();
+                        const qreal baseline = lineTop + line.ascent();
+                        const qreal preferredY = baseline - height;
+                        const qreal y = qBound(lineTop, preferredY, qMax(lineTop, lineBottom - height));
                         rects.push_back(QVariantMap{
                             {QStringLiteral("sequence"), range.format.property(EmojiSequenceProperty).toString()},
                             {QStringLiteral("position"), block.position() + position},
                             {QStringLiteral("x"), layout->blockBoundingRect(block).left() + qMin(x0, x1)},
                             {QStringLiteral("y"), y},
                             {QStringLiteral("width"), width},
-                            {QStringLiteral("height"), em},
+                            {QStringLiteral("height"), height},
                         });
                         break;
                     }
@@ -168,7 +174,11 @@ public:
         cursor.beginEditBlock();
         QTextBlockFormat blockFormat{};
         if (lineHeight > 0.0) {
-            blockFormat.setLineHeight(lineHeight, QTextBlockFormat::ProportionalHeight);
+            // QML exposes line height as a multiplier (1.55 == 155%), while
+            // QTextBlockFormat::ProportionalHeight expects an integer-like
+            // percentage. Accept an already-percent value as a boundary aid.
+            const qreal proportionalHeight = lineHeight <= 10.0 ? lineHeight * 100.0 : lineHeight;
+            blockFormat.setLineHeight(proportionalHeight, QTextBlockFormat::ProportionalHeight);
         }
         if (alignRight) {
             blockFormat.setAlignment(Qt::AlignRight);
@@ -268,6 +278,7 @@ public:
                     base);
             }
             QTextCharFormat emojiFormat = base;
+            emojiFormat.setFontUnderline(false);
             emojiFormat.setObjectType(EmojiObjectType);
             emojiFormat.setProperty(EmojiSequenceProperty, QString::fromUtf8(cluster.sequence));
             emojiFormat.setProperty(EmojiWidthProperty, side);
