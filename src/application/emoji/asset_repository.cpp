@@ -137,8 +137,8 @@ void EmojiAssetRepository::registerValidatedAsset(
         return;
     }
     const std::string memoryEntry = memoryKey(asset.provider, asset.assetKey, asset.revision);
+    m_failedKeys.erase(memoryKey(asset.provider, asset.assetKey, 0U));
     m_registry[memoryEntry] = std::move(asset);
-    m_failedKeys.erase(memoryEntry);
     pruneMemoryRegistry();
 }
 
