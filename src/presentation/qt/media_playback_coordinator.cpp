@@ -1,5 +1,6 @@
 #include "media_playback_coordinator.hpp"
 
+#include <QMetaMethod>
 #include <QMetaObject>
 
 MediaPlaybackCoordinator::MediaPlaybackCoordinator(QObject* const parent)
