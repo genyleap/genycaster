@@ -113,6 +113,102 @@ constexpr std::array<std::string_view, 8> fileExtensions{
         || endsWith(lowerAscii(normalizedPath(rawUrl)), ".epub");
 }
 
+struct UrlParts final {
+    std::string scheme{};
+    std::string host{};
+    std::string path{};
+    std::string query{};
+};
+
+[[nodiscard]] std::optional<UrlParts> parseHttpUrl(const std::string_view rawUrl)
+{
+    const std::size_t schemeEnd = rawUrl.find("://");
+    if (schemeEnd == std::string_view::npos) {
+        return std::nullopt;
+    }
+    UrlParts parts{};
+    parts.scheme = lowerAscii(rawUrl.substr(0, schemeEnd));
+    if (parts.scheme != "http" && parts.scheme != "https") {
+        return std::nullopt;
+    }
+
+    const std::size_t authorityStart = schemeEnd + 3U;
+    const std::size_t authorityEnd = rawUrl.find_first_of("/?#", authorityStart);
+    std::string_view authority = authorityEnd == std::string_view::npos
+        ? rawUrl.substr(authorityStart)
+        : rawUrl.substr(authorityStart, authorityEnd - authorityStart);
+    const std::size_t at = authority.rfind('@');
+    if (at != std::string_view::npos) {
+        authority.remove_prefix(at + 1U);
+    }
+    const std::size_t port = authority.rfind(':');
+    if (port != std::string_view::npos && authority.find(']') == std::string_view::npos) {
+        authority = authority.substr(0, port);
+    }
+    parts.host = lowerAscii(authority);
+    if (parts.host.empty()) {
+        return std::nullopt;
+    }
+
+    if (authorityEnd == std::string_view::npos) {
+        parts.path = "/";
+        return parts;
+    }
+    const std::size_t queryStart = rawUrl.find_first_of("?#", authorityEnd);
+    const std::size_t pathEnd = queryStart == std::string_view::npos ? rawUrl.size() : queryStart;
+    parts.path = std::string{rawUrl.substr(authorityEnd, pathEnd - authorityEnd)};
+    if (parts.path.empty()) {
+        parts.path = "/";
+    }
+    if (queryStart != std::string_view::npos && rawUrl[queryStart] == '?') {
+        const std::size_t fragment = rawUrl.find('#', queryStart);
+        parts.query = std::string{rawUrl.substr(
+            queryStart, fragment == std::string_view::npos
+                ? std::string_view::npos : fragment - queryStart)};
+    }
+    return parts;
+}
+
+[[nodiscard]] bool isCloudflareStreamHost(const std::string_view host)
+{
+    return host == "videodelivery.net"
+        || endsWith(host, ".videodelivery.net")
+        || endsWith(host, ".cloudflarestream.com");
+}
+
+[[nodiscard]] bool isHlsUrl(const std::string_view rawUrl)
+{
+    return endsWith(lowerAscii(normalizedPath(rawUrl)), ".m3u8");
+}
+
+[[nodiscard]] std::string firstPathSegment(const std::string_view path)
+{
+    std::size_t begin = 0U;
+    while (begin < path.size() && path[begin] == '/') {
+        ++begin;
+    }
+    if (begin >= path.size()) {
+        return {};
+    }
+    const std::size_t end = path.find('/', begin);
+    return std::string{path.substr(
+        begin, end == std::string_view::npos ? std::string_view::npos : end - begin)};
+}
+
+[[nodiscard]] std::string cloudflareManifestUrl(const UrlParts& parts)
+{
+    const std::string assetId = firstPathSegment(parts.path);
+    if (assetId.empty()) {
+        return {};
+    }
+    std::string host = parts.host;
+    if (host == "iframe.videodelivery.net") {
+        host = "videodelivery.net";
+    }
+    return parts.scheme + "://" + host + "/" + assetId
+        + "/manifest/video.m3u8" + parts.query;
+}
+
 /// Hosts whose opaque URLs are reliably direct video media (no page
 /// extraction). Media that requires scraping is intentionally never listed.
 [[nodiscard]] bool isTrustedVideoHost(const std::string_view rawUrl)
@@ -340,6 +436,30 @@ Classification classify(
 Classification classifyUrl(const std::string_view url)
 {
     return urlFallback(url);
+}
+
+PlaybackSource playbackSourceForUrl(const std::string_view url)
+{
+    PlaybackSource result{};
+    result.url = std::string{url};
+    if (url.empty() || !isSupportedPlaybackScheme(url)) {
+        return result;
+    }
+    if (isHlsUrl(url)) {
+        result.adaptiveUrl = result.url;
+        result.contentType = "application/vnd.apple.mpegurl";
+        return result;
+    }
+
+    const auto parts = parseHttpUrl(url);
+    if (!parts || !isCloudflareStreamHost(parts->host)) {
+        return result;
+    }
+    result.adaptiveUrl = cloudflareManifestUrl(*parts);
+    if (!result.adaptiveUrl.empty()) {
+        result.contentType = "application/vnd.apple.mpegurl";
+    }
+    return result;
 }
 
 bool isSupportedPlaybackScheme(const std::string_view url)
