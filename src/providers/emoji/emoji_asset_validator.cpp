@@ -4,6 +4,8 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <charconv>
+#include <cmath>
 #include <expected>
 #include <limits>
 #include <optional>
@@ -51,12 +53,9 @@ namespace {
     if (text.empty()) {
         return false;
     }
-    char* end{};
-    const double value = std::strtod(std::string{text}.c_str(), &end);
-    if (end == nullptr || *end != '\0') {
-        return false;
-    }
-    if (value > std::numeric_limits<double>::max() || value < -std::numeric_limits<double>::max()) {
+    double value{};
+    const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value);
+    if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size() || !std::isfinite(value)) {
         return false;
     }
     out = value;
@@ -469,6 +468,15 @@ private:
 
         // Nested layer/asset validation.
         if (key == "ty") {
+            // Shape operators use string types; only layer types are numeric.
+            if (kind == Kind::String) {
+                for (const std::string_view type : {"gr", "sh", "fl", "gf", "st", "gs", "tr", "el", "rc", "sr", "tm", "rd", "rp", "mm", "pb", "zz", "op"}) {
+                    if (m_lastString == type) {
+                        return true;
+                    }
+                }
+                return fail("unknown Lottie shape type");
+            }
             if (kind != Kind::Number) {
                 return fail("Lottie layer type must be a number");
             }
@@ -476,8 +484,7 @@ private:
             if (!parseDoubleValue(m_lastNumber, value)) {
                 return fail("Lottie layer type is out of range");
             }
-            const auto type = static_cast<std::int64_t>(value);
-            if (type == 2 || type == 5) {
+            if (value != std::floor(value) || value < 0.0 || value > 5.0 || value == 2.0 || value == 5.0) {
                 return fail("image and text layers are unsupported in emoji assets");
             }
             return true;
