@@ -1,6 +1,6 @@
 // Textual compatibility boundary: Qt MOC requires this QObject declaration in
 // a .hpp file. All emoji logic lives in native C++ modules; this adapter only
-// owns Qt-facing state, the async fetch pipeline and QSettings persistence.
+// owns Qt-facing state, borrowed asset callbacks and QSettings persistence.
 #pragma once
 
 #include <QHash>
@@ -56,7 +56,7 @@ public:
 
     /** @brief True when the native emoji platform is composed and usable. */
     [[nodiscard]] bool available() const noexcept;
-    /** @brief True when this build supports VectorImage Lottie playback (Qt 6.10+). */
+    /** @brief True when this build supports VectorImage Lottie playback (Qt 6.11+). */
     [[nodiscard]] bool lottieAvailable() const noexcept;
     /** @brief Active emoji style identifier (future-proof: "noto-animated"). */
     [[nodiscard]] QString styleId() const;
@@ -65,7 +65,7 @@ public:
     [[nodiscard]] QVariantList emojiGroups() const;
     /** @brief Recent emoji sequences, most relevant first. */
     [[nodiscard]] QVariantList recents() const;
-    /** @brief Bounded diagnostic counters for the diagnostics surface. */
+    /** @brief Renderer availability and pending work for the diagnostics surface. */
     [[nodiscard]] QVariantMap diagnostics() const;
     /** @brief Number of in-flight asset fetches. */
     [[nodiscard]] int pendingFetches() const noexcept;
