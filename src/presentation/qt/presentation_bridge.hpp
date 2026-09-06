@@ -240,6 +240,10 @@ public:
         bool busy, bool stale, bool sourceUnavailable);
     /** @brief Caches and applies whether a viewed profile follows the signed-in account. */
     void applyProfileFollowsMe(qulonglong fid, bool followsMe);
+    /** @brief Applies a read-only relationship to matching current search results.
+     * Local follow mutations take precedence; absent results are ignored.
+     */
+    void applySearchFollowing(qulonglong fid, bool following);
     /** @brief Loads deterministic content for smoke and visual verification only. */
     void applyVerificationFixture();
 
