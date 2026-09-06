@@ -470,6 +470,9 @@ private:
                   context->request.body.data(),
                   static_cast<qsizetype>(context->request.body.size()));
         switch (context->request.method) {
+        case async_http::Method::Head:
+            reply = m_manager->head(networkRequest);
+            break;
         case async_http::Method::Get:
             reply = m_manager->get(networkRequest);
             break;
