@@ -76,9 +76,6 @@ public:
      */
     [[nodiscard]] std::string downloadUrlFor(std::string_view key) const override;
 
-    /** @brief Raster source for worker-side thumbnail preparation; empty for unsupported keys. */
-    [[nodiscard]] std::string rasterDownloadUrlFor(std::string_view key) const;
-
     /** @brief Returns the provider's raster animation URL for worker-side frame preparation.
      * Returns empty for unsupported keys. No I/O is performed.
      */
