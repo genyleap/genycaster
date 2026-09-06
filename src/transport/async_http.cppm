@@ -18,6 +18,7 @@ export namespace farcaster::transport::async_http {
 
 /** @brief HTTP verb supported by the asynchronous transport reactor. */
 enum class Method : std::uint8_t {
+    Head,
     Get,
     Post,
     Put,
