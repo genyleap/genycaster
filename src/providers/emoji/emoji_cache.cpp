@@ -185,7 +185,7 @@ std::filesystem::path EmojiAssetCache::pathFor(
         digestInput.size(),
     });
     return m_config.rootDirectory /
-        (hexDigest(digest) + std::string{".lottie"});
+        (hexDigest(digest) + (m_config.format == EmojiCacheFormat::SpritePng ? ".png" : ".lottie"));
 }
 
 std::vector<EmojiAssetCache::EntryState> EmojiAssetCache::enumerateEntries() const noexcept
@@ -200,7 +200,7 @@ std::vector<EmojiAssetCache::EntryState> EmojiAssetCache::enumerateEntries() con
             continue;
         }
         const auto path = item.path();
-        if (path.extension() != ".lottie") {
+        if (path.extension() != (m_config.format == EmojiCacheFormat::SpritePng ? ".png" : ".lottie")) {
             continue;
         }
         std::error_code sizeEc{};
