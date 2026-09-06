@@ -1633,6 +1633,8 @@ void PresentationBridge::applyFollowingProjections(QVariantList following)
     }
     applyFollowingOverrides(m_rows, m_followOverrides);
     applyFollowingOverride(m_detail, m_followOverrides);
+    applyFollowingOverrides(m_searchResults, m_followOverrides);
+    emit searchChanged();
     emit stateChanged();
 }
 
@@ -1643,6 +1645,12 @@ void PresentationBridge::applySearchSuggestions(
         return;
     }
     m_searchResults = std::move(results);
+    applyFollowingOverrides(m_searchResults, m_followOverrides);
+    for (auto& value : m_searchResults) {
+        QVariantMap item = value.toMap();
+        applyFollowsMeSnapshot(item, m_followsMeSnapshot);
+        value = std::move(item);
+    }
     m_searchErrorText = std::move(errorText);
     m_searchBusy = busy;
     emit searchChanged();
@@ -1934,6 +1942,12 @@ void PresentationBridge::applyProfileFollowsMe(const qulonglong fid, const bool 
 
     const QString key = QString::number(fid);
     m_followsMeSnapshot.insert(key, followsMe);
+    for (auto& value : m_searchResults) {
+        QVariantMap item = value.toMap();
+        applyFollowsMeSnapshot(item, m_followsMeSnapshot);
+        value = std::move(item);
+    }
+    emit searchChanged();
 
     bool changed = false;
     if (m_activeView == QStringLiteral("profile")
