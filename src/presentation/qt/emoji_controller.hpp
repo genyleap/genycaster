@@ -42,10 +42,8 @@ public:
         std::function<void(const QString&)> request{};
         std::function<int()> pending{};
         std::function<QVariantMap(const QString&)> sprite{};
-        std::function<void(const QString&)> requestSprite{};
-        std::function<void(const QString&)> releaseSprite{};
-        std::function<QVariantMap(const QString&)> sprite{};
         std::function<bool(const QString&)> requestSprite{};
+        std::function<void(const QString&)> releaseSprite{};
     };
     /** @brief Replaces borrowed backend callbacks on the GUI thread; clear before backend teardown. */
     void setAssetBackend(AssetBackend backend);
@@ -74,6 +72,7 @@ public:
     Q_INVOKABLE QVariantMap spriteFor(const QString& sequence) const;
     /** @brief Requests bounded asynchronous download/decode/cache work.
      * Returns false on backpressure, allowing visible callers to retry later.
+     * A true return acquires viewport interest and must be paired with releaseSprite.
      * Completion or recoverable failure is delivered by spriteReady/spriteFailed.
      */
     Q_INVOKABLE bool requestSprite(const QString& sequence);
@@ -97,10 +96,6 @@ public:
      * An empty source means the system Unicode glyph must be used.
      */
     Q_INVOKABLE QString assetSourceFor(const QString& sequence) const;
-    /** @brief Cached local sprite-sheet metadata, or an empty map. Never performs I/O. */
-    Q_INVOKABLE QVariantMap spriteFor(const QString& sequence) const;
-    /** @brief Acquires viewport interest; prepare a bounded sprite off-thread. Pair with releaseSprite. */
-    Q_INVOKABLE void requestSprite(const QString& sequence);
     /** @brief Releases viewport interest and permits queued work to be cancelled. */
     Q_INVOKABLE void releaseSprite(const QString& sequence);
     /** @brief True when a validated animated asset is renderable right now. */
@@ -135,10 +130,6 @@ signals:
     void assetReady(const QString& sequence, const QString& source);
     /** @brief Emitted when an asset fetch failed and fell back to the glyph. */
     void assetFailed(const QString& sequence);
-    /** @brief Worker-prepared local PNG sheet; contains source, frameCount, frameSize and frameDuration. */
-    void spriteReady(const QString& sequence, const QVariantMap& sprite);
-    /** @brief Preparation failed; the cell must keep its selectable Unicode fallback. */
-    void spriteFailed(const QString& sequence);
     void recentsChanged();
     void emojiGroupsChanged();
     void diagnosticsChanged();
