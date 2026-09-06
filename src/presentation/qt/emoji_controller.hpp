@@ -27,6 +27,7 @@ class EmojiController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool available READ available CONSTANT)
     Q_PROPERTY(bool lottieAvailable READ lottieAvailable CONSTANT)
+    Q_PROPERTY(bool spriteAvailable READ spriteAvailable CONSTANT)
     Q_PROPERTY(QString styleId READ styleId CONSTANT)
     Q_PROPERTY(QVariantList emojiGroups READ emojiGroups NOTIFY emojiGroupsChanged)
     Q_PROPERTY(QVariantList specialEmojiGroups READ specialEmojiGroups CONSTANT)
@@ -40,6 +41,11 @@ public:
         std::function<QString(const QString&)> source{};
         std::function<void(const QString&)> request{};
         std::function<int()> pending{};
+        std::function<QVariantMap(const QString&)> sprite{};
+        std::function<void(const QString&)> requestSprite{};
+        std::function<void(const QString&)> releaseSprite{};
+        std::function<QVariantMap(const QString&)> sprite{};
+        std::function<bool(const QString&)> requestSprite{};
     };
     /** @brief Replaces borrowed backend callbacks on the GUI thread; clear before backend teardown. */
     void setAssetBackend(AssetBackend backend);
@@ -59,6 +65,18 @@ public:
     [[nodiscard]] bool available() const noexcept;
     /** @brief True when this build supports VectorImage Lottie playback (Qt 6.11+). */
     [[nodiscard]] bool lottieAvailable() const noexcept;
+    /** @brief True when the Qt GIF decoder needed for worker-prepared sprites is installed. */
+    [[nodiscard]] bool spriteAvailable() const noexcept;
+
+    /** @brief Returns cached local atlas metadata (source, frameSize, frameCount, frameDuration).
+     * GUI-thread memory lookup only; an empty map means not prepared yet.
+     */
+    Q_INVOKABLE QVariantMap spriteFor(const QString& sequence) const;
+    /** @brief Requests bounded asynchronous download/decode/cache work.
+     * Returns false on backpressure, allowing visible callers to retry later.
+     * Completion or recoverable failure is delivered by spriteReady/spriteFailed.
+     */
+    Q_INVOKABLE bool requestSprite(const QString& sequence);
     /** @brief Active emoji style identifier (future-proof: "noto-animated"). */
     [[nodiscard]] QString styleId() const;
 
@@ -79,6 +97,12 @@ public:
      * An empty source means the system Unicode glyph must be used.
      */
     Q_INVOKABLE QString assetSourceFor(const QString& sequence) const;
+    /** @brief Cached local sprite-sheet metadata, or an empty map. Never performs I/O. */
+    Q_INVOKABLE QVariantMap spriteFor(const QString& sequence) const;
+    /** @brief Acquires viewport interest; prepare a bounded sprite off-thread. Pair with releaseSprite. */
+    Q_INVOKABLE void requestSprite(const QString& sequence);
+    /** @brief Releases viewport interest and permits queued work to be cancelled. */
+    Q_INVOKABLE void releaseSprite(const QString& sequence);
     /** @brief True when a validated animated asset is renderable right now. */
     Q_INVOKABLE bool animatedAvailableFor(const QString& sequence) const;
     /**
@@ -103,10 +127,18 @@ public:
     Q_INVOKABLE void clearRecents();
 
 signals:
+    /** @brief Prepared, validated local atlas metadata; receivers own a value copy. */
+    void spriteReady(const QString& sequence, const QVariantMap& sprite);
+    /** @brief Preparation failed; callers keep the selectable Unicode fallback. */
+    void spriteFailed(const QString& sequence);
     /** @brief Emitted when a validated animated asset becomes available. */
     void assetReady(const QString& sequence, const QString& source);
     /** @brief Emitted when an asset fetch failed and fell back to the glyph. */
     void assetFailed(const QString& sequence);
+    /** @brief Worker-prepared local PNG sheet; contains source, frameCount, frameSize and frameDuration. */
+    void spriteReady(const QString& sequence, const QVariantMap& sprite);
+    /** @brief Preparation failed; the cell must keep its selectable Unicode fallback. */
+    void spriteFailed(const QString& sequence);
     void recentsChanged();
     void emojiGroupsChanged();
     void diagnosticsChanged();
