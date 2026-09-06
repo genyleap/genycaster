@@ -17,6 +17,12 @@ import farcaster.provider.emoji.emoji_asset_validator;
 
 export namespace farcaster::provider::emoji::cache {
 
+/** @brief On-disk representation; prepared raster frames never alias source Lottie assets. */
+enum class EmojiCacheFormat : std::uint8_t {
+    Lottie,
+    SpritePng,
+};
+
 /**
  * @brief Bounded disk cache policy for validated emoji assets.
  */
@@ -26,6 +32,7 @@ struct EmojiCacheConfig final {
     std::size_t maxEntryBytes{4U * 1024U * 1024U};
     std::uint32_t maxEntries{2048U};
     std::chrono::seconds orphanTempMaxAge{std::chrono::hours{1}};
+    EmojiCacheFormat format{EmojiCacheFormat::Lottie};
 };
 
 /**
@@ -86,8 +93,9 @@ public:
     /**
      * @brief Atomically stores a validated asset with its digest.
      *
-     * The byte range must already have passed the emoji asset validator. The
-     * stored digest is verified again on every read.
+     * Lottie bytes must have passed the emoji asset validator. SpritePng bytes
+     * must be generated from bounded, validated frames by the native renderer.
+     * The stored digest is verified again on every read.
      */
     [[nodiscard]] foundation::result::Status store(
         std::string_view provider,
