@@ -452,9 +452,8 @@ void PresentationBridge::beginIntent(QString status)
 {
     m_hasReadActivity = true;
     m_isBusy = true;
-    m_errorText.clear();
-    m_diagnosticText.clear();
-    m_sourceUnavailable = false;
+    // Starting a cache read/recovery attempt is not evidence of recovery.
+    // Keep the last failure until a terminal read result replaces it.
     m_statusText = std::move(status);
     emit stateChanged();
 }
@@ -842,7 +841,7 @@ void PresentationBridge::returnFromDetail()
 
 void PresentationBridge::loadMore()
 {
-    if (m_next.isEmpty() || m_isBusy) {
+    if (m_next.isEmpty() || m_isBusy || m_sourceUnavailable || m_isOffline || !m_errorText.isEmpty()) {
         return;
     }
     beginIntent(qtTrId("genycaster.bridge.loading_the_next_page"));
@@ -899,6 +898,9 @@ void PresentationBridge::retranslateTransientState()
 
 void PresentationBridge::retryCurrent(const bool allowRecoveryProbe)
 {
+    if (m_isBusy) {
+        return;
+    }
     m_allowRecoveryProbeForNextIntent = allowRecoveryProbe;
     if (m_activeView == QStringLiteral("feed") && m_activeFeed == QStringLiteral("channel")) {
         openChannel(m_channelId);
@@ -1650,11 +1652,13 @@ void PresentationBridge::applyLookupState(QString status, QString error, QString
     const bool busy, const bool stale, const bool sourceUnavailable)
 {
     m_statusText = std::move(status);
-    m_errorText = std::move(error);
-    m_diagnosticText = std::move(diagnostic);
+    if (!busy) {
+        m_errorText = std::move(error);
+        m_diagnosticText = std::move(diagnostic);
+        m_sourceUnavailable = sourceUnavailable;
+    }
     m_isBusy = busy;
     m_isStale = stale;
-    m_sourceUnavailable = sourceUnavailable;
     emit stateChanged();
 }
 
@@ -1665,11 +1669,13 @@ void PresentationBridge::applyIdentity(const qulonglong fid, QString displayName
     m_identityFid = fid;
     m_identityName = displayName.isEmpty() ? std::move(username) : std::move(displayName);
     m_statusText = std::move(status);
-    m_errorText = std::move(error);
-    m_diagnosticText = std::move(diagnostic);
+    if (!busy) {
+        m_errorText = std::move(error);
+        m_diagnosticText = std::move(diagnostic);
+        m_sourceUnavailable = sourceUnavailable;
+    }
     m_isBusy = busy;
     m_isStale = stale;
-    m_sourceUnavailable = sourceUnavailable;
     if (fid != 0 && fid == m_accountFid && !profile.isEmpty()) {
         m_accountProfile = std::move(profile);
         m_profileDetailCache.insert(fid, m_accountProfile);
@@ -1817,11 +1823,13 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
         m_profileNextCache.insert(key, m_next);
     }
     m_statusText = std::move(status);
-    m_errorText = std::move(error);
-    m_diagnosticText = std::move(diagnostic);
+    if (!busy) {
+        m_errorText = std::move(error);
+        m_diagnosticText = std::move(diagnostic);
+        m_sourceUnavailable = sourceUnavailable;
+    }
     m_isBusy = busy;
     m_isStale = stale;
-    m_sourceUnavailable = sourceUnavailable;
     emit stateChanged();
 }
 
@@ -1906,11 +1914,13 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
         }
     }
     m_statusText = std::move(status);
-    m_errorText = std::move(error);
-    m_diagnosticText = std::move(diagnostic);
+    if (!busy) {
+        m_errorText = std::move(error);
+        m_diagnosticText = std::move(diagnostic);
+        m_sourceUnavailable = sourceUnavailable;
+    }
     m_isBusy = busy;
     m_isStale = stale;
-    m_sourceUnavailable = sourceUnavailable;
     emit stateChanged();
 
 }
