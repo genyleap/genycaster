@@ -29,6 +29,8 @@ struct NotoEmojiConfig final {
         "https://fonts.gstatic.com/s/e/notoemoji/latest/{key}/lottie.json"};
     std::uint32_t revision{1U};
     std::function<std::optional<std::filesystem::path>(std::string_view key)> bundledPath{};
+    std::string rasterCdnUrlPattern{
+        "https://fonts.gstatic.com/s/e/notoemoji/latest/{key}/512.gif"};
 };
 
 /**
@@ -73,6 +75,14 @@ public:
      * Returns empty when the key is malformed or unsupported.
      */
     [[nodiscard]] std::string downloadUrlFor(std::string_view key) const override;
+
+    /** @brief Raster source for worker-side thumbnail preparation; empty for unsupported keys. */
+    [[nodiscard]] std::string rasterDownloadUrlFor(std::string_view key) const;
+
+    /** @brief Returns the provider's raster animation URL for worker-side frame preparation.
+     * Returns empty for unsupported keys. No I/O is performed.
+     */
+    [[nodiscard]] std::string rasterDownloadUrlFor(std::string_view key) const;
 
     /** @brief Validates a normalized key shape (lowercase hex joined by _). */
     [[nodiscard]] static bool wellFormedKey(std::string_view key) noexcept;
