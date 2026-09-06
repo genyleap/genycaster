@@ -6,6 +6,8 @@
 #include <QSettings>
 #include <QUrl>
 
+#include <utility>
+
 #if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
 #include <QPlaybackOptions>
 
@@ -170,4 +172,61 @@ bool MediaPlaybackCoordinator::prepareForSource(
     Q_UNUSED(source);
 #endif
     return true;
+}
+
+qulonglong MediaPlaybackCoordinator::prepareSource(const QString& source)
+{
+    const qulonglong requestId = m_nextSourcePreparationId++;
+    if (m_nextSourcePreparationId == 0) {
+        m_nextSourcePreparationId = 1;
+    }
+
+    const QPointer<MediaPlaybackCoordinator> guard{this};
+    QMetaObject::invokeMethod(
+        this,
+        [guard, requestId, source] {
+            if (!guard) {
+                return;
+            }
+            const QUrl url{source};
+            const QString scheme = url.scheme().toLower();
+            const bool remote = scheme == QStringLiteral("http")
+                || scheme == QStringLiteral("https");
+            if (source.trimmed().isEmpty() || (remote && (!url.isValid() || url.host().isEmpty()))) {
+                emit guard->sourcePreparationFailed(requestId, source, QString{});
+                return;
+            }
+            if (remote) {
+                if (guard->m_sourcePreparationBackend.start) {
+                    guard->m_sourcePreparationBackend.start(requestId, source);
+                } else {
+                    emit guard->sourcePreparationFailed(requestId, source, QString{});
+                }
+                return;
+            }
+            emit guard->sourcePrepared(requestId, source);
+        },
+        Qt::QueuedConnection);
+    return requestId;
+}
+
+void MediaPlaybackCoordinator::setSourcePreparationBackend(SourcePreparationBackend backend)
+{
+    m_sourcePreparationBackend = std::move(backend);
+}
+
+void MediaPlaybackCoordinator::completeSourcePreparation(
+    const qulonglong requestId,
+    QString source,
+    const bool available,
+    QString errorText)
+{
+    if (requestId == 0) {
+        return;
+    }
+    if (available) {
+        emit sourcePrepared(requestId, source);
+        return;
+    }
+    emit sourcePreparationFailed(requestId, source, errorText);
 }
