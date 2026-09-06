@@ -42,8 +42,9 @@ public:
         std::function<void(const QString&)> request{};
         std::function<int()> pending{};
         std::function<QVariantMap(const QString&)> sprite{};
-        std::function<bool(const QString&)> requestSprite{};
+        std::function<bool(const QString&, bool)> requestSprite{};
         std::function<void(const QString&)> releaseSprite{};
+        std::function<void(const QString&)> requestCached{};
     };
     /** @brief Replaces borrowed backend callbacks on the GUI thread; clear before backend teardown. */
     void setAssetBackend(AssetBackend backend);
@@ -74,8 +75,10 @@ public:
      * Returns false on backpressure, allowing visible callers to retry later.
      * A true return acquires viewport interest and must be paired with releaseSprite.
      * Completion or recoverable failure is delivered by spriteReady/spriteFailed.
+     * retry bypasses a previous failure cooldown for an explicit user retry;
+     * admission limits and in-flight deduplication still apply.
      */
-    Q_INVOKABLE bool requestSprite(const QString& sequence);
+    Q_INVOKABLE bool requestSprite(const QString& sequence, bool retry = false);
     /** @brief Active emoji style identifier (future-proof: "noto-animated"). */
     [[nodiscard]] QString styleId() const;
 
@@ -108,6 +111,10 @@ public:
      * stores the asset, then emits assetReady/assetFailed. Never blocks.
      */
     Q_INVOKABLE void requestAsset(const QString& sequence);
+    /** @brief Resolves only bundled/disk-cached Lottie off-thread; never downloads on a miss.
+     * Emits assetReady on a hit. Intended for one selected preview, not a grid.
+     */
+    Q_INVOKABLE void requestCachedAsset(const QString& sequence);
     /** @brief Records one emoji usage for the Recent category (Unicode identity). */
     Q_INVOKABLE void recordUsage(const QString& sequence);
     /** @brief Searches the catalog (names, tags, key, unicode). */
@@ -125,7 +132,7 @@ signals:
     /** @brief Prepared, validated local atlas metadata; receivers own a value copy. */
     void spriteReady(const QString& sequence, const QVariantMap& sprite);
     /** @brief Preparation failed; callers keep the selectable Unicode fallback. */
-    void spriteFailed(const QString& sequence);
+    void spriteFailed(const QString& sequence, const QString& reason);
     /** @brief Emitted when a validated animated asset becomes available. */
     void assetReady(const QString& sequence, const QString& source);
     /** @brief Emitted when an asset fetch failed and fell back to the glyph. */
