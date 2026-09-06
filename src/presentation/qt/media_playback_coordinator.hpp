@@ -5,6 +5,8 @@
 #include <QPointer>
 #include <QString>
 
+#include <functional>
+
 class QSettings;
 
 /**
@@ -26,6 +28,16 @@ class MediaPlaybackCoordinator final : public QObject {
     Q_PROPERTY(QString preferredQuality READ preferredQuality WRITE setPreferredQuality NOTIFY sessionChanged)
 
 public:
+    /**
+     * @brief Asynchronous remote-source preparation supplied by composition.
+     *
+     * start must return immediately. Completion is delivered later through
+     * completeSourcePreparation() on the coordinator's thread.
+     */
+    struct SourcePreparationBackend final {
+        std::function<void(qulonglong requestId, const QString& source)> start{};
+    };
+
     /** @brief Creates an idle coordinator (no active session). */
     explicit MediaPlaybackCoordinator(QObject* parent = nullptr);
     /** @brief Creates a coordinator whose playback preferences persist in QSettings. */
@@ -74,11 +86,45 @@ public:
      */
     Q_INVOKABLE bool prepareForSource(QObject* player, const QString& source) const;
 
+    /**
+     * @brief Starts non-blocking preparation of a decoder-facing source.
+     *
+     * Local sources complete on the next event-loop turn. HTTP(S) sources are
+     * delegated to composition so DNS, proxy, TLS and redirects can settle
+     * away from the GUI thread before QMediaPlayer receives the URL. A remote
+     * source fails recoverably while that backend is unavailable.
+     *
+     * @return Non-zero request identity used to reject stale completions.
+     */
+    Q_INVOKABLE qulonglong prepareSource(const QString& source);
+
+    /** @brief Replaces the borrowed asynchronous source-preparation callback. */
+    void setSourcePreparationBackend(SourcePreparationBackend backend);
+
+    /**
+     * @brief Completes one source-preparation request on the coordinator thread.
+     *
+     * available selects sourcePrepared versus sourcePreparationFailed. The
+     * caller retains no ownership after this function returns.
+     */
+    void completeSourcePreparation(
+        qulonglong requestId,
+        QString source,
+        bool available,
+        QString errorText = {});
+
 signals:
     /** @brief Emitted when a session-wide playback preference changes. */
     void sessionChanged();
     /** @brief Emitted when the primary player changes. */
     void activePlayerChanged();
+    /** @brief Emitted after a source is safe to assign to QMediaPlayer. */
+    void sourcePrepared(qulonglong requestId, const QString& source);
+    /** @brief Emitted when remote preparation failed before decoder startup. */
+    void sourcePreparationFailed(
+        qulonglong requestId,
+        const QString& source,
+        const QString& errorText);
 
 private:
     void suspendPlayer(QObject* player);
@@ -87,4 +133,6 @@ private:
     QSettings* m_settings{};
     bool m_muted{false};
     QString m_preferredQuality{QStringLiteral("auto")};
+    SourcePreparationBackend m_sourcePreparationBackend{};
+    qulonglong m_nextSourcePreparationId{1};
 };
