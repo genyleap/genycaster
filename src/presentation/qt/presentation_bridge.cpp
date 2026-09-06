@@ -1412,6 +1412,8 @@ void PresentationBridge::applyAuthenticationState(
         m_viewerReactionSnapshot.clear();
         m_reactionOverrides.clear();
         m_followOverrides.clear();
+        m_followsMeSnapshot.clear();
+        clearSearchSuggestions();
         m_lastPublishedCastId.clear();
         m_accountProfile.clear();
         m_notificationRows.clear();
