@@ -64,7 +64,7 @@ public:
 
     /** @brief Picker model: localized categories with Unicode values. */
     [[nodiscard]] QVariantList emojiGroups() const;
-    /** @brief Small curated animated set, kept separate from the Unicode catalog. */
+    /** @brief Manifest-derived animated catalog, kept in a separate picker mode. */
     [[nodiscard]] QVariantList specialEmojiGroups() const;
     /** @brief Recent emoji sequences, most relevant first. */
     [[nodiscard]] QVariantList recents() const;
@@ -93,7 +93,7 @@ public:
     Q_INVOKABLE void recordUsage(const QString& sequence);
     /** @brief Searches the catalog (names, tags, key, unicode). */
     Q_INVOKABLE QVariantList search(const QString& query, int limit = 64) const;
-    /** @brief Searches only the curated animated set. */
+    /** @brief Searches the manifest-derived animated catalog. */
     Q_INVOKABLE QVariantList searchSpecial(const QString& query, int limit = 64) const;
     /** @brief Catalog metadata for one sequence (name/category for a11y). */
     Q_INVOKABLE QVariantMap entryFor(const QString& sequence) const;
