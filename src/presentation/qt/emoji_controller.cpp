@@ -171,9 +171,11 @@ QVariantMap EmojiController::spriteFor(const QString& sequence) const
     return m_impl->backend.sprite ? m_impl->backend.sprite(sequence) : QVariantMap{};
 }
 
-bool EmojiController::requestSprite(const QString& sequence)
+bool EmojiController::requestSprite(const QString& sequence, const bool retry)
 {
-    return m_impl->backend.requestSprite && m_impl->backend.requestSprite(sequence);
+    if (m_impl->backend.requestSprite) return m_impl->backend.requestSprite(sequence, retry);
+    emit spriteFailed(sequence, QStringLiteral("backend: sprite runtime is not attached"));
+    return true; // Terminal failure, not queue backpressure; release is a no-op.
 }
 
 QString EmojiController::styleId() const
@@ -251,6 +253,11 @@ void EmojiController::requestAsset(const QString& sequence)
     if (lottieAvailable() && m_impl->backend.request) {
         m_impl->backend.request(sequence);
     }
+}
+
+void EmojiController::requestCachedAsset(const QString& sequence)
+{
+    if (lottieAvailable() && m_impl->backend.requestCached) m_impl->backend.requestCached(sequence);
 }
 
 int EmojiController::playbackLoops(const int surface, const bool reducedMotion,
