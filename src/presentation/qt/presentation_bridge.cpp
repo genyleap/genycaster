@@ -1934,6 +1934,21 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
 }
 
 
+void PresentationBridge::applySearchFollowing(const qulonglong fid, const bool following)
+{
+    bool changed = false;
+    for (auto& value : m_searchResults) {
+        QVariantMap item = value.toMap();
+        if (fid == 0 || item.value(QStringLiteral("fid")).toULongLong() != fid) continue;
+        item.insert(QStringLiteral("followingByMe"), following);
+        item.insert(QStringLiteral("followingKnown"), true);
+        applyFollowingOverride(item, m_followOverrides);
+        value = std::move(item);
+        changed = true;
+    }
+    if (changed) emit searchChanged();
+}
+
 void PresentationBridge::applyProfileFollowsMe(const qulonglong fid, const bool followsMe)
 {
     if (fid == 0U) {
