@@ -60,18 +60,14 @@ AnimationDecision MotionPolicy::decide(
                   .pauseWhenInvisible = true,
               };
     case Surface::PickerCell:
-        // Picker cells stay static until hover/focus/selection activates them.
-        return active
-            ? AnimationDecision{
-                  .mode = PlaybackMode::PlayOnce,
-                  .loopCount = 1U,
-                  .pauseWhenInvisible = true,
-              }
-            : AnimationDecision{
-                  .mode = PlaybackMode::Static,
-                  .loopCount = 1U,
-                  .pauseWhenInvisible = true,
-              };
+        // Special-picker cells animate as soon as they enter the viewport.
+        // Playing once keeps the initial reveal lively without leaving dozens
+        // of persistent loops competing with scrolling and asset decoding.
+        return AnimationDecision{
+            .mode = active ? PlaybackMode::PlayOnce : PlaybackMode::Static,
+            .loopCount = 1U,
+            .pauseWhenInvisible = true,
+        };
     case Surface::PickerPreview:
         // The dedicated preview cell may loop while the picker is open.
         return AnimationDecision{
