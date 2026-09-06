@@ -4,6 +4,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QImageReader>
 #include <QSettings>
 
 #include <algorithm>
@@ -159,6 +160,22 @@ bool EmojiController::lottieAvailable() const noexcept
 #endif
 }
 
+bool EmojiController::spriteAvailable() const noexcept
+{
+    static const bool supported = QImageReader::supportedImageFormats().contains(QByteArrayLiteral("gif"));
+    return supported;
+}
+
+QVariantMap EmojiController::spriteFor(const QString& sequence) const
+{
+    return m_impl->backend.sprite ? m_impl->backend.sprite(sequence) : QVariantMap{};
+}
+
+bool EmojiController::requestSprite(const QString& sequence)
+{
+    return m_impl->backend.requestSprite && m_impl->backend.requestSprite(sequence);
+}
+
 QString EmojiController::styleId() const
 {
     return QStringLiteral("noto-animated");
@@ -221,6 +238,22 @@ QString EmojiController::assetSourceFor(const QString& sequence) const
 bool EmojiController::animatedAvailableFor(const QString& sequence) const
 {
     return lottieAvailable() && !assetSourceFor(sequence).isEmpty();
+}
+
+QVariantMap EmojiController::spriteFor(const QString& sequence) const
+{
+    return m_impl->backend.sprite ? m_impl->backend.sprite(sequence) : QVariantMap{};
+}
+
+void EmojiController::requestSprite(const QString& sequence)
+{
+    if (m_impl->backend.requestSprite) m_impl->backend.requestSprite(sequence);
+    else emit spriteFailed(sequence);
+}
+
+void EmojiController::releaseSprite(const QString& sequence)
+{
+    if (m_impl->backend.releaseSprite) m_impl->backend.releaseSprite(sequence);
 }
 
 void EmojiController::requestAsset(const QString& sequence)
