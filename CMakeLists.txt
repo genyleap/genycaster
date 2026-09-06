@@ -14,6 +14,17 @@ include(ArchitectureGuards)
 option(FARCASTER_BUILD_TESTS "Build unit, contract, integration and architecture tests" ON)
 option(FARCASTER_BUILD_UI "Build the Qt Quick presentation shell" ON)
 
+set(_genycasterPublicDataDefault OFF)
+if(FARCASTER_BUILD_UI)
+    set(_genycasterPublicDataDefault ON)
+endif()
+option(
+    GENYCASTER_ENABLE_PUBLIC_DATA_PROVIDER
+    "Compile optional CoinGecko/GeckoTerminal/Neynar public insight adapters"
+    ${_genycasterPublicDataDefault}
+)
+unset(_genycasterPublicDataDefault)
+
 set(_farcasterMediaUploadDefault OFF)
 if(FARCASTER_BUILD_UI)
     set(_farcasterMediaUploadDefault ON)
@@ -106,7 +117,7 @@ option(FARCASTER_ENABLE_CHANNELS "Enable channels product composition" OFF)
 option(FARCASTER_ENABLE_MINIAPPS "Enable Mini Apps product composition" OFF)
 option(FARCASTER_ENABLE_CHAT "Enable chat product composition" OFF)
 option(FARCASTER_ENABLE_SEARCH "Enable search product composition" OFF)
-option(FARCASTER_ENABLE_NOTIFICATIONS "Enable notifications product composition" OFF)
+option(FARCASTER_ENABLE_NOTIFICATIONS "Enable notifications product composition" ON)
 option(FARCASTER_ENABLE_WALLET "Enable wallet product composition" OFF)
 
 set(_farcasterHypersnapProviderDefault OFF)
@@ -249,7 +260,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(CTest)
 
 if(FARCASTER_BUILD_UI)
-    find_package(Qt6 6.6 REQUIRED COMPONENTS Quick Qml QuickControls2 Network Multimedia LinguistTools)
+    find_package(Qt6 6.6 REQUIRED COMPONENTS Quick Qml QuickControls2 Network Multimedia Concurrent LinguistTools)
     set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qml")
 
     if(QT_KNOWN_POLICY_QTP0004)
@@ -266,6 +277,7 @@ add_subdirectory(src/protocol)
 add_subdirectory(src/provider)
 add_subdirectory(src/local_state)
 add_subdirectory(src/application)
+add_subdirectory(src/application/emoji)
 add_subdirectory(src/execution)
 add_subdirectory(src/routing)
 add_subdirectory(src/sync)
@@ -284,6 +296,10 @@ if(FARCASTER_ENABLE_HYPERSNAP_PROVIDER)
     add_subdirectory(src/providers/hypersnap)
 endif()
 
+if(GENYCASTER_ENABLE_PUBLIC_DATA_PROVIDER)
+    add_subdirectory(src/providers/public_data)
+endif()
+
 if(FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS)
     add_subdirectory(src/providers/compatibility/farcaster_auth)
 endif()
@@ -291,6 +307,10 @@ endif()
 if(FARCASTER_ENABLE_BROWSER_WALLET_AUTHORIZER)
     add_subdirectory(src/providers/compatibility/browser_wallet)
 endif()
+
+# The emoji platform is part of the product core: it carries no provider or
+# network dependency in the application/domain layers and is always compiled.
+add_subdirectory(src/providers/emoji)
 
 if(FARCASTER_ENABLE_SIGNER_ATTESTATION_PROVIDER)
     add_subdirectory(src/providers/compatibility/signer_attestation)
