@@ -29,6 +29,7 @@ class EmojiController final : public QObject {
     Q_PROPERTY(bool lottieAvailable READ lottieAvailable CONSTANT)
     Q_PROPERTY(QString styleId READ styleId CONSTANT)
     Q_PROPERTY(QVariantList emojiGroups READ emojiGroups NOTIFY emojiGroupsChanged)
+    Q_PROPERTY(QVariantList specialEmojiGroups READ specialEmojiGroups CONSTANT)
     Q_PROPERTY(QVariantList recents READ recents NOTIFY recentsChanged)
     Q_PROPERTY(QVariantMap diagnostics READ diagnostics NOTIFY diagnosticsChanged)
     Q_PROPERTY(int pendingFetches READ pendingFetches NOTIFY fetchStateChanged)
@@ -63,6 +64,8 @@ public:
 
     /** @brief Picker model: localized categories with Unicode values. */
     [[nodiscard]] QVariantList emojiGroups() const;
+    /** @brief Small curated animated set, kept separate from the Unicode catalog. */
+    [[nodiscard]] QVariantList specialEmojiGroups() const;
     /** @brief Recent emoji sequences, most relevant first. */
     [[nodiscard]] QVariantList recents() const;
     /** @brief Renderer availability and pending work for the diagnostics surface. */
@@ -90,6 +93,8 @@ public:
     Q_INVOKABLE void recordUsage(const QString& sequence);
     /** @brief Searches the catalog (names, tags, key, unicode). */
     Q_INVOKABLE QVariantList search(const QString& query, int limit = 64) const;
+    /** @brief Searches only the curated animated set. */
+    Q_INVOKABLE QVariantList searchSpecial(const QString& query, int limit = 64) const;
     /** @brief Catalog metadata for one sequence (name/category for a11y). */
     Q_INVOKABLE QVariantMap entryFor(const QString& sequence) const;
     /** @brief Batch source lookup for many sequences (renderer overlay). */
