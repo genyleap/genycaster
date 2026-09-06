@@ -34,18 +34,6 @@ constexpr auto RecentsKey = "emoji/recentsV1";
     return QStringLiteral("social/smile");
 }
 
-[[nodiscard]] const QStringList& specialEmojiSequences()
-{
-    static const QStringList sequences{
-        QString::fromUtf8("😂"), QString::fromUtf8("❤️"), QString::fromUtf8("🔥"),
-        QString::fromUtf8("👍"), QString::fromUtf8("😍"), QString::fromUtf8("😭"),
-        QString::fromUtf8("🎉"), QString::fromUtf8("🚀"), QString::fromUtf8("👀"),
-        QString::fromUtf8("✨"), QString::fromUtf8("💯"), QString::fromUtf8("🤣"),
-        QString::fromUtf8("😊"), QString::fromUtf8("😎"), QString::fromUtf8("🙏"),
-    };
-    return sequences;
-}
-
 } // namespace
 
 class EmojiController::Impl final {
@@ -75,24 +63,20 @@ public:
                 values.push_back(QString::fromUtf8(
                     entry.unicode.data(), static_cast<qsizetype>(entry.unicode.size())));
             }
-            catalogGroups.push_back(QVariantMap{
+            const QVariantMap group{
                 {QStringLiteral("id"), QString::fromUtf8(catalog::EmojiCatalog::categoryId(category))},
                 {QStringLiteral("titleKey"),
                  QString::fromUtf8(catalog::EmojiCatalog::categoryLabelId(category))},
                 {QStringLiteral("icon"), categoryIcon(category)},
                 {QStringLiteral("values"), values},
-            });
+            };
+            catalogGroups.push_back(group);
+            // EmojiCatalog is generated from the vendored Noto Animated Emoji
+            // manifest. Every row therefore has a canonical provider asset key;
+            // availability (bundled, cached or downloadable) is resolved lazily
+            // by the runtime and must not be duplicated as a presentation list.
+            specialGroups.push_back(group);
         }
-        QVariantList values{};
-        for (const QString& sequence : specialEmojiSequences()) {
-            values.push_back(sequence);
-        }
-        specialGroups.push_back(QVariantMap{
-            {QStringLiteral("id"), QStringLiteral("animated")},
-            {QStringLiteral("titleKey"), QStringLiteral("genycaster.emoji.animated")},
-            {QStringLiteral("icon"), QStringLiteral("social/sparkles")},
-            {QStringLiteral("values"), values},
-        });
     }
 
     void recordUsage(const QString& sequence)
@@ -282,32 +266,10 @@ QVariantList EmojiController::search(const QString& query, const int limit) cons
 
 QVariantList EmojiController::searchSpecial(const QString& query, const int limit) const
 {
-    QVariantList result{};
-    if (limit <= 0) {
-        return result;
-    }
-    const QString needle = query.trimmed();
-    for (const QString& sequence : specialEmojiSequences()) {
-        const auto utf8 = sequence.toUtf8();
-        const auto* entry = m_impl->catalog.find(
-            std::string_view{utf8.constData(), static_cast<std::size_t>(utf8.size())});
-        if (entry == nullptr) {
-            continue;
-        }
-        const QString searchable = sequence + QLatin1Char{' '}
-            + QString::fromUtf8(entry->key.data(), static_cast<qsizetype>(entry->key.size()))
-            + QLatin1Char{' '}
-            + QString::fromUtf8(entry->name.data(), static_cast<qsizetype>(entry->name.size()))
-            + QLatin1Char{' '}
-            + QString::fromUtf8(entry->tags.data(), static_cast<qsizetype>(entry->tags.size()));
-        if (needle.isEmpty() || searchable.contains(needle, Qt::CaseInsensitive)) {
-            result.push_back(sequence);
-            if (result.size() >= limit) {
-                break;
-            }
-        }
-    }
-    return result;
+    // The animated provider and the classic picker share Unicode identity, but
+    // their UI modes remain separate. The provider catalog is the single source
+    // of truth for both enumeration and search.
+    return search(query, limit);
 }
 
 QVariantMap EmojiController::entryFor(const QString& sequence) const
