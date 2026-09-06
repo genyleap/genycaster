@@ -138,4 +138,21 @@ std::string NotoAnimatedEmojiProvider::downloadUrlFor(const std::string_view key
     return url;
 }
 
+std::string NotoAnimatedEmojiProvider::rasterDownloadUrlFor(const std::string_view key) const
+{
+    if (!supports(key)) return {};
+    return "https://fonts.gstatic.com/s/e/notoemoji/latest/" + std::string{key} + "/512.gif";
+}
+
+std::string NotoAnimatedEmojiProvider::rasterDownloadUrlFor(const std::string_view key) const
+{
+    if (!supports(key)) return {};
+    std::string url = m_config.rasterCdnUrlPattern;
+    constexpr std::string_view placeholder = "{key}";
+    const auto position = url.find(placeholder);
+    if (position == std::string::npos) return {};
+    url.replace(position, placeholder.size(), key);
+    return url;
+}
+
 } // namespace farcaster::provider::emoji::noto
