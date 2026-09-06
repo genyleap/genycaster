@@ -34,6 +34,18 @@ constexpr auto RecentsKey = "emoji/recentsV1";
     return QStringLiteral("social/smile");
 }
 
+[[nodiscard]] const QStringList& specialEmojiSequences()
+{
+    static const QStringList sequences{
+        QString::fromUtf8("😂"), QString::fromUtf8("❤️"), QString::fromUtf8("🔥"),
+        QString::fromUtf8("👍"), QString::fromUtf8("😍"), QString::fromUtf8("😭"),
+        QString::fromUtf8("🎉"), QString::fromUtf8("🚀"), QString::fromUtf8("👀"),
+        QString::fromUtf8("✨"), QString::fromUtf8("💯"), QString::fromUtf8("🤣"),
+        QString::fromUtf8("😊"), QString::fromUtf8("😎"), QString::fromUtf8("🙏"),
+    };
+    return sequences;
+}
+
 } // namespace
 
 class EmojiController::Impl final {
@@ -42,12 +54,46 @@ public:
         : settings(settings), owner(owner)
     {
         restoreRecents();
+        buildGroups();
     }
     QSettings& settings;
     EmojiController& owner;
     catalog::EmojiCatalog catalog{};
     catalog::RecentEmojiStore recentStore{};
     AssetBackend backend{};
+    QVariantList catalogGroups{};
+    QVariantList specialGroups{};
+
+    void buildGroups()
+    {
+        for (std::size_t index = 0;
+             index <= static_cast<std::size_t>(catalog::EmojiCategory::Flags);
+             ++index) {
+            const auto category = static_cast<catalog::EmojiCategory>(index);
+            QVariantList values{};
+            for (const auto& entry : catalog.byCategory(category)) {
+                values.push_back(QString::fromUtf8(
+                    entry.unicode.data(), static_cast<qsizetype>(entry.unicode.size())));
+            }
+            catalogGroups.push_back(QVariantMap{
+                {QStringLiteral("id"), QString::fromUtf8(catalog::EmojiCatalog::categoryId(category))},
+                {QStringLiteral("titleKey"),
+                 QString::fromUtf8(catalog::EmojiCatalog::categoryLabelId(category))},
+                {QStringLiteral("icon"), categoryIcon(category)},
+                {QStringLiteral("values"), values},
+            });
+        }
+        QVariantList values{};
+        for (const QString& sequence : specialEmojiSequences()) {
+            values.push_back(sequence);
+        }
+        specialGroups.push_back(QVariantMap{
+            {QStringLiteral("id"), QStringLiteral("animated")},
+            {QStringLiteral("titleKey"), QStringLiteral("genycaster.emoji.animated")},
+            {QStringLiteral("icon"), QStringLiteral("social/sparkles")},
+            {QStringLiteral("values"), values},
+        });
+    }
 
     void recordUsage(const QString& sequence)
     {
@@ -136,11 +182,11 @@ QString EmojiController::styleId() const
 
 QVariantList EmojiController::emojiGroups() const
 {
-    QVariantList groups{};
+    QVariantList groups = m_impl->catalogGroups;
 
     const auto recentsList = recents();
     if (!recentsList.isEmpty()) {
-        groups.push_back(QVariantMap{
+        groups.push_front(QVariantMap{
             {QStringLiteral("id"), QStringLiteral("recent")},
             {QStringLiteral("titleKey"), QStringLiteral("genycaster.emoji.category.recent")},
             {QStringLiteral("icon"), QStringLiteral("system/clock")},
@@ -148,21 +194,12 @@ QVariantList EmojiController::emojiGroups() const
         });
     }
 
-    for (std::size_t index = 0; index <= static_cast<std::size_t>(catalog::EmojiCategory::Flags); ++index) {
-        const auto category = static_cast<catalog::EmojiCategory>(index);
-        QVariantList values{};
-        for (const auto& entry : m_impl->catalog.byCategory(category)) {
-            values.push_back(QString::fromUtf8(entry.unicode.data(), static_cast<qsizetype>(entry.unicode.size())));
-        }
-        groups.push_back(QVariantMap{
-            {QStringLiteral("id"), QString::fromUtf8(catalog::EmojiCatalog::categoryId(category))},
-            {QStringLiteral("titleKey"),
-             QString::fromUtf8(catalog::EmojiCatalog::categoryLabelId(category))},
-            {QStringLiteral("icon"), categoryIcon(category)},
-            {QStringLiteral("values"), values},
-        });
-    }
     return groups;
+}
+
+QVariantList EmojiController::specialEmojiGroups() const
+{
+    return m_impl->specialGroups;
 }
 
 QVariantList EmojiController::recents() const
@@ -239,6 +276,36 @@ QVariantList EmojiController::search(const QString& query, const int limit) cons
          m_impl->catalog.search(std::string_view{utf8.constData(), static_cast<std::size_t>(utf8.size())},
                                 static_cast<std::size_t>(std::max(0, limit)))) {
         result.push_back(QString::fromUtf8(unicode.data(), static_cast<qsizetype>(unicode.size())));
+    }
+    return result;
+}
+
+QVariantList EmojiController::searchSpecial(const QString& query, const int limit) const
+{
+    QVariantList result{};
+    if (limit <= 0) {
+        return result;
+    }
+    const QString needle = query.trimmed();
+    for (const QString& sequence : specialEmojiSequences()) {
+        const auto utf8 = sequence.toUtf8();
+        const auto* entry = m_impl->catalog.find(
+            std::string_view{utf8.constData(), static_cast<std::size_t>(utf8.size())});
+        if (entry == nullptr) {
+            continue;
+        }
+        const QString searchable = sequence + QLatin1Char{' '}
+            + QString::fromUtf8(entry->key.data(), static_cast<qsizetype>(entry->key.size()))
+            + QLatin1Char{' '}
+            + QString::fromUtf8(entry->name.data(), static_cast<qsizetype>(entry->name.size()))
+            + QLatin1Char{' '}
+            + QString::fromUtf8(entry->tags.data(), static_cast<qsizetype>(entry->tags.size()));
+        if (needle.isEmpty() || searchable.contains(needle, Qt::CaseInsensitive)) {
+            result.push_back(sequence);
+            if (result.size() >= limit) {
+                break;
+            }
+        }
     }
     return result;
 }
