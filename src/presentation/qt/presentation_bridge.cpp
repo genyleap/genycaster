@@ -612,7 +612,6 @@ void PresentationBridge::clearSearchSuggestions()
 
 void PresentationBridge::openNotifications()
 {
-    markNotificationsRead();
     if (!m_isAuthenticated || m_accountFid == 0) {
         m_notificationRows.clear();
         m_notificationNext.clear();
@@ -657,7 +656,11 @@ void PresentationBridge::markNotificationsRead()
         return;
     }
 
-    qlonglong watermark = QDateTime::currentMSecsSinceEpoch();
+    // Only mark notifications the user has actually received on the visible
+    // notifications surface. Using "now" here made an in-flight first page
+    // appear already read and could swallow notifications that arrived while
+    // the request was running.
+    qlonglong watermark = m_notificationSeenAtMs;
     for (const QVariant& value : std::as_const(m_notificationRows)) {
         watermark = std::max(
             watermark,
