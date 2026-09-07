@@ -26,6 +26,7 @@ target_sources(farcaster_capabilities
             profile_quality.cppm
             media.cppm
             animated_emoji.cppm
+            wallet.cppm
     PRIVATE
         catalog.cpp
 )
