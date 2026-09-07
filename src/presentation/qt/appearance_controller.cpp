@@ -5,12 +5,17 @@
 #include <QSettings>
 #include <QStyleHints>
 
+#include <algorithm>
+#include <cmath>
+
 namespace {
 
 constexpr auto kThemeModeSetting = "appearance/themeMode";
 constexpr auto kColorThemeSetting = "appearance/colorTheme";
 constexpr auto kCustomAccentSetting = "appearance/customAccent";
 constexpr auto kReduceMotionSetting = "appearance/reduceMotion";
+constexpr auto kFontScaleSetting = "appearance/fontScale";
+constexpr auto kInterfaceScaleSetting = "appearance/interfaceScale";
 constexpr auto kDefaultCustomAccent = "#FF4FA3";
 
 [[nodiscard]] QString canonicalThemeMode(QString value) {
@@ -66,6 +71,15 @@ constexpr auto kDefaultCustomAccent = "#FF4FA3";
   return fallback;
 }
 
+[[nodiscard]] qreal canonicalScale(const qreal value, const qreal minimum,
+                                   const qreal maximum) {
+  if (!std::isfinite(value)) {
+    return 1.0;
+  }
+  const qreal clamped = std::clamp(value, minimum, maximum);
+  return std::round(clamped * 20.0) / 20.0;
+}
+
 } // namespace
 
 AppearanceController::AppearanceController(QSettings &settings,
@@ -107,6 +121,12 @@ AppearanceController::AppearanceController(QSettings &settings,
       overrides.reduceMotion,
       m_settings.value(QString::fromLatin1(kReduceMotionSetting), false)
           .toBool());
+  m_fontScale = canonicalScale(
+      m_settings.value(QString::fromLatin1(kFontScaleSetting), 1.0).toReal(),
+      0.85, 1.30);
+  m_interfaceScale = canonicalScale(
+      m_settings.value(QString::fromLatin1(kInterfaceScaleSetting), 1.0).toReal(),
+      0.90, 1.20);
   refreshEffectiveMode(false);
 
   if (auto *const hints = QGuiApplication::styleHints()) {
@@ -125,6 +145,10 @@ bool AppearanceController::effectiveDark() const noexcept {
 }
 bool AppearanceController::reduceMotion() const noexcept {
   return m_reduceMotion;
+}
+qreal AppearanceController::fontScale() const noexcept { return m_fontScale; }
+qreal AppearanceController::interfaceScale() const noexcept {
+  return m_interfaceScale;
 }
 
 bool AppearanceController::setThemeMode(const QString &mode) {
@@ -184,19 +208,52 @@ void AppearanceController::setReduceMotion(const bool enabled) {
   emit appearanceChanged();
 }
 
+bool AppearanceController::setFontScale(const qreal scale) {
+  if (!std::isfinite(scale)) {
+    return false;
+  }
+  const qreal canonical = canonicalScale(scale, 0.85, 1.30);
+  if (qFuzzyCompare(canonical, m_fontScale)) {
+    return true;
+  }
+  m_fontScale = canonical;
+  m_settings.setValue(QString::fromLatin1(kFontScaleSetting), m_fontScale);
+  emit appearanceChanged();
+  return true;
+}
+
+bool AppearanceController::setInterfaceScale(const qreal scale) {
+  if (!std::isfinite(scale)) {
+    return false;
+  }
+  const qreal canonical = canonicalScale(scale, 0.90, 1.20);
+  if (qFuzzyCompare(canonical, m_interfaceScale)) {
+    return true;
+  }
+  m_interfaceScale = canonical;
+  m_settings.setValue(QString::fromLatin1(kInterfaceScaleSetting), m_interfaceScale);
+  emit appearanceChanged();
+  return true;
+}
+
 void AppearanceController::resetAppearance() {
   const bool changed = m_themeMode != QStringLiteral("system") ||
                        m_colorThemeId != QStringLiteral("geny") ||
                        m_customAccentColor != QString::fromLatin1(kDefaultCustomAccent) ||
-                       m_reduceMotion;
+                       m_reduceMotion || !qFuzzyCompare(m_fontScale, 1.0) ||
+                       !qFuzzyCompare(m_interfaceScale, 1.0);
   m_themeMode = QStringLiteral("system");
   m_colorThemeId = QStringLiteral("geny");
   m_customAccentColor = QString::fromLatin1(kDefaultCustomAccent);
   m_reduceMotion = false;
+  m_fontScale = 1.0;
+  m_interfaceScale = 1.0;
   m_settings.remove(QString::fromLatin1(kThemeModeSetting));
   m_settings.remove(QString::fromLatin1(kColorThemeSetting));
   m_settings.remove(QString::fromLatin1(kCustomAccentSetting));
   m_settings.remove(QString::fromLatin1(kReduceMotionSetting));
+  m_settings.remove(QString::fromLatin1(kFontScaleSetting));
+  m_settings.remove(QString::fromLatin1(kInterfaceScaleSetting));
   refreshEffectiveMode(false);
   if (changed) {
     emit appearanceChanged();
