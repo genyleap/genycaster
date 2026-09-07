@@ -135,7 +135,7 @@ public:
     Q_INVOKABLE void loadMoreNotifications();
     /** @brief Refreshes the notification badge without navigating away from the current surface. */
     Q_INVOKABLE void refreshNotificationBadge();
-    /** @brief Marks notifications observed up to now as locally seen. */
+    /** @brief Marks only the notifications already presented to the user as locally seen. */
     Q_INVOKABLE void markNotificationsRead();
     Q_INVOKABLE void openCast(const QString& castId);
     Q_INVOKABLE void openProfile();
