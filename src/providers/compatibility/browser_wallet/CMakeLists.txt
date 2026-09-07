@@ -5,19 +5,36 @@ add_library(farcaster_provider_compatibility_browser_wallet)
 add_library(farcaster::provider_compatibility_browser_wallet ALIAS farcaster_provider_compatibility_browser_wallet)
 
 target_sources(farcaster_provider_compatibility_browser_wallet
-    PUBLIC
-        FILE_SET CXX_MODULES
-        FILES
-            authorizer.cppm
     PRIVATE
-        authorizer.cpp
         boost_json.cpp
 )
+
+if(FARCASTER_ENABLE_BROWSER_WALLET_AUTHORIZER)
+    target_sources(farcaster_provider_compatibility_browser_wallet
+        PUBLIC
+            FILE_SET CXX_MODULES
+            FILES
+                authorizer.cppm
+        PRIVATE
+            authorizer.cpp
+    )
+    target_link_libraries(farcaster_provider_compatibility_browser_wallet PUBLIC farcaster::protocol)
+endif()
+
+if(FARCASTER_ENABLE_BROWSER_WALLET_BRIDGE)
+    target_sources(farcaster_provider_compatibility_browser_wallet
+        PUBLIC
+            FILE_SET CXX_MODULES
+            FILES
+                bridge.cppm
+        PRIVATE
+            bridge.cpp
+    )
+endif()
 
 target_link_libraries(farcaster_provider_compatibility_browser_wallet
     PUBLIC
         farcaster::capabilities
-        farcaster::protocol
     PRIVATE
         Boost::headers
         OpenSSL::Crypto
