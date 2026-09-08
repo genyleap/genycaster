@@ -27,9 +27,11 @@ struct Config final {
 /**
  * @brief Creates an isolated loopback EIP-1193 bridge backed by the user's real wallet provider.
  *
- * The bridge binds only to 127.0.0.1 and never receives private keys. Sensitive
- * signing, account-access and transaction methods require an explicit approval
- * click on the Genycaster bridge page before the request reaches `window.ethereum`.
+ * The bridge binds only to 127.0.0.1 and never receives private keys. The first
+ * account-access request for each Mini App origin requires explicit host consent;
+ * that grant is remembered only for this bridge process and is revoked on wallet
+ * disconnect. Signing and transaction methods always require an explicit approval
+ * click before the request reaches `window.ethereum`.
  */
 [[nodiscard]] foundation::result::Result<std::unique_ptr<capability::wallet::IEthereumWalletBridge>>
 makeBridge(Config config);
