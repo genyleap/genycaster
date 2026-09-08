@@ -735,10 +735,14 @@ bool LocalizationController::setLanguageTag(const QString& languageTag)
     }
 
     const auto rollback = [&] {
-        if (previous) {
-            if (!QCoreApplication::installTranslator(previous.get())) {
-                qFatal("Unable to restore the previous Genycaster translation catalog.");
-            }
+        if (previous && !QCoreApplication::installTranslator(previous.get())) {
+            // Locale changes are initiated from the UI and must never become a
+            // process-abort path. Keep the previous translator object as the
+            // authoritative selection so a later language change can recover,
+            // while Qt safely falls back to source strings for this frame.
+            qCritical().noquote()
+                << "Unable to restore the previous Genycaster translation catalog;"
+                   " continuing with source strings until the next locale change.";
         }
         m_impl->translator = std::move(previous);
     };
