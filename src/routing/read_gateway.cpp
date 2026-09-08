@@ -86,13 +86,20 @@ template <typename Operation>
     const auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(
         healthRegistry.now() - startedAt);
     if (result) {
-        healthRegistry.recordSuccess(route.provider.id, capabilityId, latency);
+        healthRegistry.recordSuccess(
+            route.provider.id, capabilityId, latency, *admission);
         return result;
     }
 
     foundation::error::Error error = std::move(result.error());
     if (health::isRetryableFailure(error.code)) {
-        healthRegistry.recordFailure(route.provider.id, capabilityId, error.code, latency);
+        healthRegistry.recordFailure(
+            route.provider.id, capabilityId, error.code, latency, *admission);
+    } else {
+        // A non-retryable result is neutral to source availability. If this
+        // call was a half-open probe, release the probe lease without
+        // fabricating either a health success or another retryable strike.
+        healthRegistry.abandonAttempt(route.provider.id, capabilityId, *admission);
     }
 
     std::string diagnostic = "Capability: " + capabilityId.value;
