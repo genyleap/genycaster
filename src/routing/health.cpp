@@ -1,10 +1,12 @@
 module;
 
-#include <cstddef>
+#include <algorithm>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <expected>
-#include <optional>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -73,6 +75,7 @@ HealthRegistry::HealthRegistry(
 void HealthRegistry::update(CapabilityHealth health)
 {
     std::scoped_lock lock{m_mutex};
+    clearActiveProbe(health.providerId, health.capabilityId);
     for (std::size_t index = 0; index < m_health.size(); ++index) {
         CapabilityHealth& current = m_health[index];
         const bool sameProvider =
@@ -149,6 +152,31 @@ CapabilityHealth& HealthRegistry::ensure(
     return m_health.back();
 }
 
+void HealthRegistry::clearActiveProbe(
+    const provider::model::ProviderId& providerId,
+    const capability::model::CapabilityId& capabilityId) noexcept
+{
+    std::erase_if(m_activeProbes, [&](const ActiveProbe& probe) {
+        return probe.providerId.value == providerId.value
+            && probe.capabilityId.value == capabilityId.value;
+    });
+}
+
+bool HealthRegistry::hasActiveProbe(
+    const provider::model::ProviderId& providerId,
+    const capability::model::CapabilityId& capabilityId,
+    const std::uint64_t probeId) const noexcept
+{
+    if (probeId == 0U) {
+        return false;
+    }
+    return std::ranges::any_of(m_activeProbes, [&](const ActiveProbe& probe) {
+        return probe.id == probeId
+            && probe.providerId.value == providerId.value
+            && probe.capabilityId.value == capabilityId.value;
+    });
+}
+
 foundation::result::Result<AttemptAdmission> HealthRegistry::beginAttempt(
     const provider::model::ProviderId& providerId,
     const capability::model::CapabilityId& capabilityId,
@@ -186,17 +214,72 @@ foundation::result::Result<AttemptAdmission> HealthRegistry::beginAttempt(
                 + providerId.value + "'; retry after " + std::to_string(remaining.count()) + " ms."));
     }
 
+    clearActiveProbe(providerId, capabilityId);
+    const std::uint64_t probeId = m_nextProbeId;
+    ++m_nextProbeId;
+    if (m_nextProbeId == 0U) {
+        m_nextProbeId = 1U;
+    }
+    m_activeProbes.push_back(ActiveProbe{
+        .providerId = providerId,
+        .capabilityId = capabilityId,
+        .id = probeId,
+    });
     health->circuit = CircuitState::HalfOpen;
-    return AttemptAdmission{.isProbe = true};
+    return AttemptAdmission{.isProbe = true, .probeId = probeId};
+}
+
+void HealthRegistry::abandonAttempt(
+    const provider::model::ProviderId& providerId,
+    const capability::model::CapabilityId& capabilityId,
+    const AttemptAdmission admission)
+{
+    if (!admission.isProbe || admission.probeId == 0U) {
+        return;
+    }
+
+    std::scoped_lock lock{m_mutex};
+    if (!hasActiveProbe(providerId, capabilityId, admission.probeId)) {
+        return;
+    }
+    clearActiveProbe(providerId, capabilityId);
+
+    CapabilityHealth* const health = findMutable(providerId, capabilityId);
+    if (health == nullptr || health->circuit != CircuitState::HalfOpen) {
+        return;
+    }
+
+    // A cancelled/neutral probe did not observe source health. Restore the
+    // pre-probe Open state and preserve its cooldown rather than fabricating a
+    // success or failure sample.
+    health->circuit = CircuitState::Open;
 }
 
 void HealthRegistry::recordSuccess(
     const provider::model::ProviderId& providerId,
     const capability::model::CapabilityId& capabilityId,
-    const std::chrono::milliseconds latency)
+    const std::chrono::milliseconds latency,
+    const AttemptAdmission admission)
 {
     std::scoped_lock lock{m_mutex};
     CapabilityHealth& health = ensure(providerId, capabilityId);
+
+    if (admission.isProbe) {
+        const bool isAuthoritativeProbe = health.circuit == CircuitState::HalfOpen
+            && hasActiveProbe(providerId, capabilityId, admission.probeId);
+        if (!isAuthoritativeProbe) {
+            return;
+        }
+    } else if (health.circuit == CircuitState::HalfOpen) {
+        // A request admitted before the circuit entered HalfOpen may still
+        // complete concurrently. Its latency is useful, but only the active
+        // probe is allowed to resolve the circuit transition.
+        recordObservation(health, latency, false);
+        health.lastSuccessfulAt = now();
+        return;
+    }
+
+    clearActiveProbe(providerId, capabilityId);
     recordObservation(health, latency, false);
     health.state = HealthState::Healthy;
     health.consecutiveFailures = 0;
@@ -210,7 +293,8 @@ void HealthRegistry::recordFailure(
     const provider::model::ProviderId& providerId,
     const capability::model::CapabilityId& capabilityId,
     const foundation::error::ErrorCode error,
-    const std::chrono::milliseconds latency)
+    const std::chrono::milliseconds latency,
+    const AttemptAdmission admission)
 {
     if (!isRetryableFailure(error)) {
         return;
@@ -218,7 +302,25 @@ void HealthRegistry::recordFailure(
 
     std::scoped_lock lock{m_mutex};
     CapabilityHealth& health = ensure(providerId, capabilityId);
-    const bool probeFailed = health.circuit == CircuitState::HalfOpen;
+
+    if (admission.isProbe) {
+        const bool isAuthoritativeProbe = health.circuit == CircuitState::HalfOpen
+            && hasActiveProbe(providerId, capabilityId, admission.probeId);
+        if (!isAuthoritativeProbe) {
+            return;
+        }
+    } else if (health.circuit == CircuitState::HalfOpen) {
+        // Preserve the active probe lease when an older in-flight request
+        // finishes during recovery. The sample still contributes to health
+        // telemetry, but it cannot impersonate the recovery probe.
+        recordObservation(health, latency, true);
+        ++health.consecutiveFailures;
+        health.lastError = error;
+        return;
+    }
+
+    const bool probeFailed = admission.isProbe;
+    clearActiveProbe(providerId, capabilityId);
     recordObservation(health, latency, true);
     ++health.consecutiveFailures;
     health.lastError = error;
