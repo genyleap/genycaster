@@ -24,8 +24,7 @@ constexpr std::string_view bioUserDataType{"3"};
 constexpr std::string_view urlUserDataType{"5"};
 constexpr std::string_view usernameUserDataType{"6"};
 constexpr std::string_view locationUserDataType{"7"};
-constexpr std::string_view currentBannerUserDataType{"11"};
-constexpr std::string_view legacyBannerUserDataType{"10"};
+constexpr std::string_view bannerUserDataType{"10"};
 
 [[nodiscard]] constexpr bool isRemoteBannerUrl(const std::string_view value) noexcept
 {
@@ -56,12 +55,11 @@ constexpr std::string_view legacyBannerUserDataType{"10"};
 [[nodiscard]] std::optional<std::string> findBanner(
     const std::vector<codec::UserDataEntry>& entries)
 {
-    // Current protocol snapshots use slot 11 while older pro-era hubs used slot
-    // 10. Parse both, but accept only an actual remote image URI so an address or
-    // unrelated future UserData value can never become a banner accidentally.
+    // Farcaster UserDataType 10 is the canonical banner slot. Keep numeric and
+    // symbolic decoding equivalent, but never reinterpret newer UserData fields
+    // as media merely because their value happens to look like a URL.
     for (const auto& entry : entries) {
-        const bool bannerType = isType(entry, currentBannerUserDataType, "USER_DATA_TYPE_BANNER") ||
-            isType(entry, legacyBannerUserDataType, "USER_DATA_TYPE_BANNER");
+        const bool bannerType = isType(entry, bannerUserDataType, "USER_DATA_TYPE_BANNER");
         if (bannerType && isRemoteBannerUrl(entry.value)) {
             return entry.value;
         }
