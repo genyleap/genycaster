@@ -188,8 +188,7 @@ constexpr std::string_view bioUserDataType{"3"};
 constexpr std::string_view urlUserDataType{"5"};
 constexpr std::string_view usernameUserDataType{"6"};
 constexpr std::string_view locationUserDataType{"7"};
-constexpr std::string_view currentBannerUserDataType{"11"};
-constexpr std::string_view legacyBannerUserDataType{"10"};
+constexpr std::string_view bannerUserDataType{"10"};
 
 [[nodiscard]] bool isType(
     const codec::UserDataEntry& entry,
@@ -222,8 +221,7 @@ constexpr std::string_view legacyBannerUserDataType{"10"};
     const std::vector<codec::UserDataEntry>& entries)
 {
     for (const auto& entry : entries) {
-        const bool bannerType = isType(entry, currentBannerUserDataType, "USER_DATA_TYPE_BANNER") ||
-            isType(entry, legacyBannerUserDataType, "USER_DATA_TYPE_BANNER");
+        const bool bannerType = isType(entry, bannerUserDataType, "USER_DATA_TYPE_BANNER");
         if (bannerType && remoteBanner(entry.value)) {
             return entry.value;
         }
