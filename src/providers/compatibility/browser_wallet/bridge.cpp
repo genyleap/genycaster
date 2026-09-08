@@ -18,6 +18,7 @@ module;
 #include <mutex>
 #include <optional>
 #include <ranges>
+#include <set>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -91,12 +92,23 @@ constexpr std::chrono::milliseconds PollDelay{20};
         || method.starts_with("eth_") || method.starts_with("wallet_");
 }
 
-[[nodiscard]] bool sensitiveMethod(const std::string_view method)
+[[nodiscard]] bool sensitiveMethod(
+    const std::string_view method,
+    const bool hasAccountAccessGrant)
 {
-    if (method == "eth_requestAccounts" || method == "personal_sign"
-        || method == "eth_decrypt" || method == "eth_getEncryptionPublicKey") return true;
-    if (method.starts_with("eth_sign") || method.starts_with("eth_send")) return true;
-    if (!method.starts_with("wallet_")) return false;
+    if (method == "eth_requestAccounts") {
+        return !hasAccountAccessGrant;
+    }
+    if (method == "personal_sign"
+        || method == "eth_decrypt" || method == "eth_getEncryptionPublicKey") {
+        return true;
+    }
+    if (method.starts_with("eth_sign") || method.starts_with("eth_send")) {
+        return true;
+    }
+    if (!method.starts_with("wallet_")) {
+        return false;
+    }
     return method != "wallet_getCapabilities" && method != "wallet_getPermissions"
         && method != "wallet_getCallsStatus";
 }
@@ -189,7 +201,7 @@ constexpr std::chrono::milliseconds PollDelay{20};
     page += nonce;
     page += R"html(">const base=")html";
     page += basePath;
-    page += R"html(";const status=document.getElementById('status');const wallet=document.getElementById('wallet');const box=document.getElementById('request');const approve=document.getElementById('approve');let current=null;let busy=false;const post=async(path,data)=>{try{await fetch(base+path,{method:'POST',headers:{'content-type':'application/json'},cache:'no-store',body:JSON.stringify(data)});}catch(_ignored){}};const describeWallet=async()=>{if(!window.ethereum){wallet.className='error';wallet.textContent='No EIP-1193 wallet detected. Open this URL in a wallet browser or a browser with a wallet extension.';return;}try{const accounts=await window.ethereum.request({method:'eth_accounts'});const chain=await window.ethereum.request({method:'eth_chainId'});wallet.className='ok';wallet.textContent='Wallet detected · '+chain+(accounts&&accounts[0]?' · '+accounts[0]:' · not connected');}catch(error){wallet.className='error';wallet.textContent=error&&error.message?error.message:String(error);}};const sendEvent=(event,params)=>post('/event',{event,params});if(window.ethereum&&window.ethereum.on){for(const event of ['accountsChanged','chainChanged','connect','disconnect','message'])window.ethereum.on(event,(value)=>{sendEvent(event,[value]);describeWallet();});}const execute=async()=>{if(!current||busy)return;if(!window.ethereum){status.className='error';status.textContent='No EIP-1193 wallet is available.';return;}busy=true;approve.disabled=true;try{status.className='muted';status.textContent='Waiting for wallet…';const result=await window.ethereum.request({method:current.method,params:current.params});await post('/result',{transportId:current.transportId,result:result===undefined?null:result});status.className='ok';status.textContent='Wallet request completed.';}catch(error){const code=error&&Number.isInteger(Number(error.code))?Number(error.code):4001;let details='';try{if(error&&error.data!==undefined)details=typeof error.data==='string'?error.data:JSON.stringify(error.data);}catch(_ignored){}await post('/result',{transportId:current.transportId,error:{code,message:error&&error.message?error.message:String(error),details}});status.className=code===4001?'muted':'error';status.textContent=code===4001?'Wallet request rejected.':'Wallet request failed.';}finally{current=null;busy=false;approve.disabled=false;box.style.display='none';describeWallet();}};approve.addEventListener('click',execute);const poll=async()=>{if(busy||current){setTimeout(poll,500);return;}try{const response=await fetch(base+'/next',{cache:'no-store'});if(response.status===204){setTimeout(poll,650);return;}if(!response.ok)throw new Error(await response.text());current=await response.json();document.getElementById('method').textContent=current.method;document.getElementById('params').textContent=JSON.stringify(current.params,null,2);document.getElementById('kind').textContent=current.requiresApproval?'Explicit approval required':'Read-only wallet request';box.style.display='block';status.className='muted';status.textContent=current.requiresApproval?'Review this request before continuing.':'Routing read-only request to the wallet…';if(!current.requiresApproval)execute();}catch(error){status.className='error';status.textContent=error&&error.message?error.message:String(error);}setTimeout(poll,500);};describeWallet();poll();</script></body></html>)html";
+    page += R"html(";const status=document.getElementById('status');const wallet=document.getElementById('wallet');const box=document.getElementById('request');const approve=document.getElementById('approve');let current=null;let busy=false;const post=async(path,data)=>{try{await fetch(base+path,{method:'POST',headers:{'content-type':'application/json'},cache:'no-store',body:JSON.stringify(data)});}catch(_ignored){}};const describeWallet=async()=>{if(!window.ethereum){wallet.className='error';wallet.textContent='No EIP-1193 wallet detected. Open this URL in a wallet browser or a browser with a wallet extension.';return;}try{const accounts=await window.ethereum.request({method:'eth_accounts'});const chain=await window.ethereum.request({method:'eth_chainId'});wallet.className='ok';wallet.textContent='Wallet detected · '+chain+(accounts&&accounts[0]?' · '+accounts[0]:' · not connected');}catch(error){wallet.className='error';wallet.textContent=error&&error.message?error.message:String(error);}};const sendEvent=(event,params)=>post('/event',{event,params});if(window.ethereum&&window.ethereum.on){for(const event of ['accountsChanged','chainChanged','connect','disconnect','message'])window.ethereum.on(event,(value)=>{sendEvent(event,[value]);describeWallet();});}const execute=async()=>{if(!current||busy)return;if(!window.ethereum){status.className='error';status.textContent='No EIP-1193 wallet is available.';return;}busy=true;approve.disabled=true;try{status.className='muted';status.textContent='Waiting for wallet…';const result=await window.ethereum.request({method:current.method,params:current.params});await post('/result',{transportId:current.transportId,result:result===undefined?null:result});status.className='ok';status.textContent='Wallet request completed.';}catch(error){const code=error&&Number.isInteger(Number(error.code))?Number(error.code):4001;let details='';try{if(error&&error.data!==undefined)details=typeof error.data==='string'?error.data:JSON.stringify(error.data);}catch(_ignored){}await post('/result',{transportId:current.transportId,error:{code,message:error&&error.message?error.message:String(error),details}});status.className=code===4001?'muted':'error';status.textContent=code===4001?'Wallet request rejected.':'Wallet request failed.';}finally{current=null;busy=false;approve.disabled=false;box.style.display='none';describeWallet();}};approve.addEventListener('click',execute);const poll=async()=>{if(busy||current){setTimeout(poll,500);return;}try{const response=await fetch(base+'/next',{cache:'no-store'});if(response.status===204){setTimeout(poll,650);return;}if(!response.ok)throw new Error(await response.text());current=await response.json();document.getElementById('method').textContent=current.method;document.getElementById('params').textContent=JSON.stringify(current.params,null,2);const rememberedAccess=current.method==='eth_requestAccounts'&&!current.requiresApproval;document.getElementById('kind').textContent=current.requiresApproval?'Explicit approval required':rememberedAccess?'Previously approved account access':'Read-only wallet request';box.style.display='block';status.className='muted';status.textContent=current.requiresApproval?'Review this request before continuing.':rememberedAccess?'Using the account access you already approved for this Mini App.':'Routing read-only request to the wallet…';if(!current.requiresApproval)execute();}catch(error){status.className='error';status.textContent=error&&error.message?error.message:String(error);}setTimeout(poll,500);};describeWallet();poll();</script></body></html>)html";
     return page;
 }
 
@@ -198,6 +210,7 @@ struct Pending final {
     capability::wallet::EthereumRpcRequest request{};
     capability::wallet::EthereumRpcCompletion completion{};
     Clock::time_point created{};
+    std::string origin{};
     bool delivered{};
 };
 
@@ -317,6 +330,7 @@ public:
                     .request = std::move(request),
                     .completion = std::move(completion),
                     .created = Clock::now(),
+                    .origin = m_origin,
                     .delivered = false,
                 });
                 if (!m_pageLaunched) {
@@ -491,7 +505,9 @@ private:
                     {"transportId", id},
                     {"method", pending.request.method},
                     {"params", std::move(params)},
-                    {"requiresApproval", sensitiveMethod(pending.request.method)},
+                    {"requiresApproval", sensitiveMethod(
+                        pending.request.method,
+                        m_accountAccessGrants.contains(pending.origin))},
                 };
                 break;
             }
@@ -557,6 +573,11 @@ private:
                 .code = code, .message = std::move(message), .details = std::move(details)};
         } else if (const auto* result = object.if_contains("result")) {
             response.resultJson = json::serialize(*result);
+            if (pending.request.method == "eth_requestAccounts"
+                && result->is_array() && !result->as_array().empty()) {
+                std::scoped_lock lock{m_mutex};
+                m_accountAccessGrants.insert(pending.origin);
+            }
         } else {
             response.error = capability::wallet::EthereumRpcError{
                 .code = 4200, .message = "Wallet response omitted both result and error.", .details = {}};
@@ -590,6 +611,14 @@ private:
             if (!m_active) {
                 writeText(socket, http::status::gone, "Wallet session is closed.");
                 return;
+            }
+            const bool disconnected = *kind == capability::wallet::EthereumWalletEventKind::Disconnect;
+            const bool accountsCleared = *kind == capability::wallet::EthereumWalletEventKind::AccountsChanged
+                && !params->as_array().empty()
+                && params->as_array().front().is_array()
+                && params->as_array().front().as_array().empty();
+            if (disconnected || accountsCleared) {
+                m_accountAccessGrants.erase(m_origin);
             }
             sink = m_eventSink;
         }
@@ -636,6 +665,7 @@ private:
     bool m_active{};
     bool m_pageLaunched{};
     std::map<std::uint64_t, Pending> m_pending{};
+    std::set<std::string, std::less<>> m_accountAccessGrants{};
     capability::wallet::EthereumWalletEventSink m_eventSink{};
     std::jthread m_worker{};
 };
