@@ -75,8 +75,18 @@ struct CapabilityHealth final {
     bool probeEligible{false};
 };
 
-/** @brief Admission result describing whether the accepted call is a probe. */
-struct AttemptAdmission final { bool isProbe{false}; };
+/**
+ * @brief Admission lease for one routed source attempt.
+ *
+ * A non-zero probeId identifies the exact half-open recovery probe admitted by
+ * the registry. The identifier is process-local and exists only so cancellation
+ * can release that probe without accidentally releasing a newer probe for the
+ * same provider/capability pair.
+ */
+struct AttemptAdmission final {
+    bool isProbe{false};
+    std::uint64_t probeId{0};
+};
 
 /**
  * @brief Thread-safe runtime health and circuit state for routed reads.
@@ -124,35 +134,70 @@ public:
         const capability::model::CapabilityId& capabilityId,
         AttemptMode mode);
 
-    /** @brief Records a successful source call and closes the capability circuit. */
+    /**
+     * @brief Releases an admitted recovery probe that ended without a source outcome.
+     *
+     * Cancellation and other neutral terminal paths must call this for the
+     * admission they received. The previous Open state and cooldown are
+     * preserved; no latency/error observation is recorded.
+     */
+    void abandonAttempt(
+        const provider::model::ProviderId& providerId,
+        const capability::model::CapabilityId& capabilityId,
+        AttemptAdmission admission);
+
+    /**
+     * @brief Records a successful source call and closes the capability circuit when authoritative.
+     * @param admission Admission lease associated with the completed call.
+     */
     void recordSuccess(
         const provider::model::ProviderId& providerId,
         const capability::model::CapabilityId& capabilityId,
-        std::chrono::milliseconds latency);
+        std::chrono::milliseconds latency,
+        AttemptAdmission admission = {});
 
-    /** @brief Records one retryable source failure and advances the capability circuit. */
+    /**
+     * @brief Records one retryable source failure and advances the capability circuit when authoritative.
+     * @param admission Admission lease associated with the completed call.
+     */
     void recordFailure(
         const provider::model::ProviderId& providerId,
         const capability::model::CapabilityId& capabilityId,
         foundation::error::ErrorCode error,
-        std::chrono::milliseconds latency);
+        std::chrono::milliseconds latency,
+        AttemptAdmission admission = {});
 
     /** @brief Returns current injected monotonic time for attempt latency measurement. */
     [[nodiscard]] MonotonicTimePoint now() const noexcept;
 
 private:
+    struct ActiveProbe final {
+        provider::model::ProviderId providerId{};
+        capability::model::CapabilityId capabilityId{};
+        std::uint64_t id{0};
+    };
+
     [[nodiscard]] CapabilityHealth* findMutable(
         const provider::model::ProviderId& providerId,
         const capability::model::CapabilityId& capabilityId) noexcept;
     [[nodiscard]] CapabilityHealth& ensure(
         const provider::model::ProviderId& providerId,
         const capability::model::CapabilityId& capabilityId);
+    void clearActiveProbe(
+        const provider::model::ProviderId& providerId,
+        const capability::model::CapabilityId& capabilityId) noexcept;
+    [[nodiscard]] bool hasActiveProbe(
+        const provider::model::ProviderId& providerId,
+        const capability::model::CapabilityId& capabilityId,
+        std::uint64_t probeId) const noexcept;
 
     SteadyClock m_defaultClock{};
     const IMonotonicClock* m_clock{&m_defaultClock};
     CircuitBreakerPolicy m_policy{};
     mutable std::mutex m_mutex{};
     std::vector<CapabilityHealth> m_health{};
+    std::vector<ActiveProbe> m_activeProbes{};
+    std::uint64_t m_nextProbeId{1};
 };
 
 /** @brief Classifies failures that indicate a transient capability-source outage. */
