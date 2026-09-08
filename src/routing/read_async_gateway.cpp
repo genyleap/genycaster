@@ -1,7 +1,9 @@
 module;
 
+#include <atomic>
 #include <chrono>
 #include <expected>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -29,6 +31,33 @@ using AppRequest = application::read::async_gateway::Request;
 using CapabilityId = capability::model::CapabilityId;
 using Error = foundation::error::Error;
 using ErrorCode = foundation::error::ErrorCode;
+
+struct ObservedAttempt final {
+    health::HealthRegistry* health{};
+    provider::model::ProviderId providerId{};
+    CapabilityId capabilityId{};
+    health::AttemptAdmission admission{};
+    health::MonotonicTimePoint startedAt{};
+    std::atomic_bool cancelled{false};
+    std::atomic_bool finalized{false};
+
+    [[nodiscard]] bool beginCompletion() noexcept
+    {
+        if (cancelled.load(std::memory_order_acquire)) {
+            return false;
+        }
+        return !finalized.exchange(true, std::memory_order_acq_rel);
+    }
+
+    void cancel()
+    {
+        cancelled.store(true, std::memory_order_release);
+        if (finalized.exchange(true, std::memory_order_acq_rel)) {
+            return;
+        }
+        health->abandonAttempt(providerId, capabilityId, admission);
+    }
+};
 
 [[nodiscard]] policy::CapabilityRequest requestFor(
     CapabilityId id,
@@ -116,38 +145,63 @@ template <typename Completion, typename Starter>
 
     const auto providerId = route.provider.id;
     const auto startedAt = healthRegistry.now();
+    auto attempt = std::make_shared<ObservedAttempt>();
+    attempt->health = &healthRegistry;
+    attempt->providerId = providerId;
+    attempt->capabilityId = capabilityId;
+    attempt->admission = *admission;
+    attempt->startedAt = startedAt;
     auto observedCompletion = [
-        health = &healthRegistry,
-        providerId,
-        capabilityId,
-        startedAt,
+        attempt,
         completion = std::move(completion)](auto result) mutable {
+        if (!attempt->beginCompletion()) {
+            return;
+        }
         const auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(
-            health->now() - startedAt);
+            attempt->health->now() - attempt->startedAt);
         if (result) {
-            health->recordSuccess(providerId, capabilityId, latency);
+            attempt->health->recordSuccess(
+                attempt->providerId, attempt->capabilityId, latency, attempt->admission);
             completion(std::move(result));
             return;
         }
 
         Error error = std::move(result.error());
         if (health::isRetryableFailure(error.code)) {
-            health->recordFailure(providerId, capabilityId, error.code, latency);
+            attempt->health->recordFailure(
+                attempt->providerId, attempt->capabilityId, error.code, latency,
+                attempt->admission);
+        } else {
+            attempt->health->abandonAttempt(
+                attempt->providerId, attempt->capabilityId, attempt->admission);
         }
         completion(std::unexpected(observedError(
-            std::move(error), providerId, capabilityId, latency)));
+            std::move(error), attempt->providerId, attempt->capabilityId, latency)));
     };
 
     auto request = starter(std::move(observedCompletion));
     if (request) {
-        return request;
+        AppRequest sourceRequest = std::move(*request);
+        return AppRequest{[attempt, sourceRequest = std::move(sourceRequest)]() mutable {
+            // Claim cancellation before touching the source handle so an
+            // immediate transport callback cannot race in and mutate health.
+            attempt->cancel();
+            sourceRequest.cancel();
+        }};
     }
 
+    const bool alreadyFinalized = attempt->finalized.exchange(
+        true, std::memory_order_acq_rel);
     const auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(
         healthRegistry.now() - startedAt);
     Error error = std::move(request.error());
-    if (health::isRetryableFailure(error.code)) {
-        healthRegistry.recordFailure(providerId, capabilityId, error.code, latency);
+    if (!alreadyFinalized) {
+        if (health::isRetryableFailure(error.code)) {
+            healthRegistry.recordFailure(
+                providerId, capabilityId, error.code, latency, *admission);
+        } else {
+            healthRegistry.abandonAttempt(providerId, capabilityId, *admission);
+        }
     }
     return std::unexpected(observedError(
         std::move(error), providerId, capabilityId, latency));
