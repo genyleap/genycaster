@@ -186,13 +186,15 @@ void RenderingController::attachWindow(QQuickWindow *window) {
 
 int RenderingController::sampleCountForProfile(const QString &profile) noexcept {
   const QString canonical = canonicalProfile(profile);
-  if (canonical == QStringLiteral("efficiency")) {
-    return 0;
-  }
   if (canonical == QStringLiteral("fidelity")) {
     return 4;
   }
-  return 2;
+  // Qt Quick's default scene-graph path uses vertex antialiasing for ordinary
+  // primitives, while Genycaster's curved design primitives request
+  // Shape.CurveRenderer which provides native high-quality curve AA without
+  // multisampling. Do not force window-wide MSAA in the recommended Adaptive
+  // profile; reserve its GPU/memory cost for the explicit Fidelity profile.
+  return 0;
 }
 
 QString RenderingController::canonicalProfile(QString profile) {
