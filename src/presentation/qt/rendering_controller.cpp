@@ -90,15 +90,11 @@ double RenderingController::mediaDecodeScale() const noexcept {
   if (m_profile == QStringLiteral("efficiency")) {
     return 0.72;
   }
-  // Fidelity decodes at the exact DPR-backed display requirement. Scaling
-  // beyond that only creates an extra downsample pass and can make UI/media
-  // visibly softer while increasing memory bandwidth.
-  if (m_profile == QStringLiteral("fidelity")) {
-    return 1.0;
-  }
-  if (m_effectiveQuality == QStringLiteral("efficiency")) {
-    return 0.82;
-  }
+  // Keep image decode size stable while Adaptive changes effect/geometry quality.
+  // Qt reloads an Image whenever sourceSize changes; coupling decode size to the
+  // frame-time state machine caused visible flicker and bursts of duplicate image
+  // requests. Adaptive and Fidelity therefore decode to the DPR-backed display
+  // requirement, while only the explicit Efficiency profile opts into reduction.
   return 1.0;
 }
 
