@@ -278,6 +278,41 @@ void supplementProfile(
     return hashes;
 }
 
+[[nodiscard]] std::string joinedCastHashes(const std::vector<domain::cast::Cast>& casts)
+{
+    std::string hashes{};
+    for (const auto& cast : casts) {
+        if (cast.id.value.empty()) {
+            continue;
+        }
+        if (!hashes.empty()) {
+            hashes.push_back(',');
+        }
+        hashes.append(cast.id.value);
+    }
+    return hashes;
+}
+
+void mergeHydratedReplyMetrics(
+    capability::feed::FeedPage& page, const codec::FeedPayload& hydrated)
+{
+    std::unordered_map<std::string, const domain::cast::Cast*> hydratedById{};
+    hydratedById.reserve(hydrated.casts.size());
+    for (const auto& cast : hydrated.casts) {
+        hydratedById.insert_or_assign(cast.id.value, &cast);
+    }
+    for (auto& cast : page.casts) {
+        const auto found = hydratedById.find(cast.id.value);
+        if (found == hydratedById.end() || found->second == nullptr) {
+            continue;
+        }
+        const auto& source = *found->second;
+        cast.engagement.likes = std::max(cast.engagement.likes, source.engagement.likes);
+        cast.engagement.recasts = std::max(cast.engagement.recasts, source.engagement.recasts);
+        cast.engagement.replies = std::max(cast.engagement.replies, source.engagement.replies);
+    }
+}
+
 [[nodiscard]] std::string batchFidBody(const domain::identity::Fid fid)
 {
     return "{\"fids\":[" + std::to_string(fid.value) + "]}";
@@ -783,26 +818,64 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                             filterReplies(page);
                             break;
                         }
-                        auto status = m_continuationExecutor.post(
-                            [this, group, capabilityId, providerCursor = std::move(providerCursor),
-                             page = std::move(page), completion = std::move(completion)]() mutable {
-                                if (group->cancelled.load(std::memory_order_acquire)) {
+                        auto finishPage = [this, group, capabilityId,
+                                           providerCursor = std::move(providerCursor),
+                                           completion = std::move(completion)](
+                                              capability::feed::FeedPage completedPage) mutable {
+                            auto completionState = std::make_shared<
+                                application::read::async_gateway::FeedCompletion>(std::move(completion));
+                            auto status = m_continuationExecutor.post(
+                                [this, group, capabilityId, providerCursor = std::move(providerCursor),
+                                 page = std::move(completedPage), completionState]() mutable {
+                                    if (group->cancelled.load(std::memory_order_acquire) || !*completionState) {
+                                        return;
+                                    }
+                                    continuation::Store continuations{
+                                        m_continuations, m_config.provider.id};
+                                    auto next = continuations.bind(
+                                        capabilityId, std::move(providerCursor));
+                                    auto finalCompletion = std::move(*completionState);
+                                    if (!next) {
+                                        finalCompletion(std::unexpected(std::move(next.error())));
+                                        return;
+                                    }
+                                    page.next = std::move(*next);
+                                    finalCompletion(std::move(page));
+                                });
+                            if (!status && *completionState) {
+                                auto finalCompletion = std::move(*completionState);
+                                finalCompletion(std::unexpected(std::move(status.error())));
+                            }
+                        };
+
+                        if (spec.filter == FeedSpec::Filter::Replies && !page.casts.empty()) {
+                            const std::string hashes = joinedCastHashes(page.casts);
+                            if (!hashes.empty()) {
+                                auto hydration = m_client.getJson(
+                                    "/v2/farcaster/cast/bulk",
+                                    {{"hashes", hashes}},
+                                    [group, page, finishPage](
+                                        foundation::result::Result<std::string> body) mutable {
+                                        if (group->cancelled.load(std::memory_order_acquire)) {
+                                            return;
+                                        }
+                                        if (body) {
+                                            auto hydrated = codec::decodeFeed(*body);
+                                            if (hydrated) {
+                                                mergeHydratedReplyMetrics(page, *hydrated);
+                                            }
+                                        }
+                                        finishPage(std::move(page));
+                                    },
+                                    request::GetOptions{.timeout = profileFeedRequestTimeout},
+                                    transport::async_http::Priority::Visible);
+                                if (hydration) {
+                                    group->add(std::move(*hydration));
                                     return;
                                 }
-                                continuation::Store continuations{
-                                    m_continuations, m_config.provider.id};
-                                auto next = continuations.bind(
-                                    capabilityId, std::move(providerCursor));
-                                if (!next) {
-                                    completion(std::unexpected(std::move(next.error())));
-                                    return;
-                                }
-                                page.next = std::move(*next);
-                                completion(std::move(page));
-                            });
-                        if (!status) {
-                            completion(std::unexpected(std::move(status.error())));
+                            }
                         }
+                        finishPage(std::move(page));
                     };
 
                     if (body || !spec.fallbackPath ||
