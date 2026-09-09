@@ -24,6 +24,8 @@ class AppearanceController final : public QObject {
   Q_PROPERTY(bool reduceMotion READ reduceMotion NOTIFY appearanceChanged)
   Q_PROPERTY(qreal fontScale READ fontScale NOTIFY appearanceChanged)
   Q_PROPERTY(qreal interfaceScale READ interfaceScale NOTIFY appearanceChanged)
+  Q_PROPERTY(qreal socialNavigationWidth READ socialNavigationWidth NOTIFY layoutChanged)
+  Q_PROPERTY(qreal socialContextWidth READ socialContextWidth NOTIFY layoutChanged)
 
 public:
   /** @brief Optional startup values for deterministic development and visual
@@ -55,6 +57,10 @@ public:
   [[nodiscard]] qreal fontScale() const noexcept;
   /** @brief Returns the persisted control/spacing scale in the supported 0.90-1.20 range. */
   [[nodiscard]] qreal interfaceScale() const noexcept;
+  /** @brief Returns the persisted desktop navigation rail width in logical pixels. */
+  [[nodiscard]] qreal socialNavigationWidth() const noexcept;
+  /** @brief Returns the persisted desktop social-context rail width in logical pixels. */
+  [[nodiscard]] qreal socialContextWidth() const noexcept;
 
   /** @brief Selects system, dark, or light mode. Returns false for an unknown
    * value. */
@@ -76,11 +82,18 @@ public:
   Q_INVOKABLE bool setFontScale(qreal scale);
   /** @brief Persists a control/spacing scale, clamped and quantized to the supported range. */
   Q_INVOKABLE bool setInterfaceScale(qreal scale);
+  /** @brief Persists the desktop navigation rail width, clamped to a usable range. */
+  Q_INVOKABLE bool setSocialNavigationWidth(qreal width);
+  /** @brief Persists the desktop context rail width, clamped to a usable range. */
+  Q_INVOKABLE bool setSocialContextWidth(qreal width);
+  /** @brief Restores the social column widths without changing other appearance preferences. */
+  Q_INVOKABLE void resetSocialLayout();
   /** @brief Restores the Geny preset with System mode and normal motion. */
   Q_INVOKABLE void resetAppearance();
 
 signals:
   void appearanceChanged();
+  void layoutChanged();
 
 private:
   void refreshEffectiveMode(bool notify = true);
@@ -93,4 +106,6 @@ private:
   bool m_reduceMotion{false};
   qreal m_fontScale{1.0};
   qreal m_interfaceScale{1.0};
+  qreal m_socialNavigationWidth{320.0};
+  qreal m_socialContextWidth{420.0};
 };
