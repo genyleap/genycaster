@@ -747,7 +747,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                 [this, group, spec, capabilityId, pageRequest, resolvedCursor,
                  completion = std::move(completion)](
                     foundation::result::Result<std::string> body) mutable {
-                    auto process = [this, group, spec, capabilityId,
+                    auto process = [this, group, spec, capabilityId, resolvedCursor,
                                     completion = std::move(completion)](
                                        foundation::result::Result<std::string> selectedBody) mutable {
                         if (group->cancelled.load(std::memory_order_acquire)) {
@@ -763,6 +763,12 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                             return;
                         }
                         auto providerCursor = std::move(payload->providerCursor);
+                        // A provider that returns the same raw cursor cannot make
+                        // forward progress. Terminate pagination instead of binding
+                        // a fresh opaque token to the same cursor forever.
+                        if (providerCursor && resolvedCursor && *providerCursor == *resolvedCursor) {
+                            providerCursor.reset();
+                        }
                         auto page = pageFromPayload(std::move(*payload));
                         switch (spec.filter) {
                         case FeedSpec::Filter::None:
