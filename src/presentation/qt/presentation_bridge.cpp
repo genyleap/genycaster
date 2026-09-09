@@ -7,6 +7,7 @@
 #include <QHash>
 #include <QDesktopServices>
 #include <QList>
+#include <QSettings>
 #include <QString>
 #include <QStringList>
 #include <QUrl>
@@ -14,6 +15,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 
+#include <algorithm>
 #include <utility>
 
 import farcaster.application.configuration;
@@ -425,7 +427,8 @@ void applyFollowsMeSnapshot(QVariantMap& map, const QVariantMap& snapshot)
 [[nodiscard]] bool hasHydratedCastPreview(const QVariantMap& preview)
 {
     return !preview.value(QStringLiteral("castId")).toString().isEmpty() &&
-        (!preview.value(QStringLiteral("text")).toString().isEmpty() ||
+        (preview.value(QStringLiteral("resolved")).toBool() ||
+         !preview.value(QStringLiteral("text")).toString().isEmpty() ||
          !preview.value(QStringLiteral("displayName")).toString().isEmpty() ||
          !preview.value(QStringLiteral("avatarUrl")).toString().isEmpty() ||
          !preview.value(QStringLiteral("embeds")).toList().isEmpty());
@@ -524,13 +527,80 @@ void reconcilePaginationPresentation(const QVariantList& previousRows, QVariantL
     incomingRows = std::move(reconciled);
 }
 
+[[nodiscard]] QVariantList reconcileRefreshPresentation(
+    QVariantList& visibleRows, const QVariantList& refreshedRows, const QVariantList& alreadyPending)
+{
+    QHash<QString, qsizetype> visibleIndex{};
+    visibleIndex.reserve(visibleRows.size());
+    for (qsizetype index = 0; index < visibleRows.size(); ++index) {
+        const QString key = paginationRowKey(visibleRows[index].toMap());
+        if (!key.isEmpty()) {
+            visibleIndex.insert(key, index);
+        }
+    }
+
+    QHash<QString, QVariantMap> pendingByKey{};
+    pendingByKey.reserve(alreadyPending.size() + refreshedRows.size());
+    for (const QVariant& value : alreadyPending) {
+        const QVariantMap row = value.toMap();
+        const QString key = paginationRowKey(row);
+        if (!key.isEmpty()) {
+            pendingByKey.insert(key, row);
+        }
+    }
+
+    QVariantList pending{};
+    pending.reserve(alreadyPending.size() + refreshedRows.size());
+    QHash<QString, bool> emitted{};
+    for (const QVariant& value : refreshedRows) {
+        QVariantMap row = value.toMap();
+        const QString key = paginationRowKey(row);
+        if (key.isEmpty()) {
+            continue;
+        }
+        const auto visible = visibleIndex.constFind(key);
+        if (visible != visibleIndex.cend()) {
+            const qsizetype index = visible.value();
+            preserveReferencedPresentation(row, visibleRows[index].toMap());
+            visibleRows[index] = std::move(row);
+            continue;
+        }
+        const auto priorPending = pendingByKey.constFind(key);
+        if (priorPending != pendingByKey.cend()) {
+            preserveReferencedPresentation(row, priorPending.value());
+        }
+        pending.push_back(row);
+        emitted.insert(key, true);
+    }
+
+    for (const QVariant& value : alreadyPending) {
+        const QVariantMap row = value.toMap();
+        const QString key = paginationRowKey(row);
+        if (!key.isEmpty() && !emitted.contains(key) && !visibleIndex.contains(key)) {
+            pending.push_back(row);
+        }
+    }
+    return pending;
 }
 
-PresentationBridge::PresentationBridge(QObject* const parent)
+}
+
+PresentationBridge::PresentationBridge(QObject* const parent, QSettings* const settings)
     : QObject(parent),
       m_signerStatusText{qtTrId("genycaster.bridge.sign_in_before_enabling_interactions")},
-      m_statusText{qtTrId("genycaster.bridge.starting_local_read_runtime")}
+      m_statusText{qtTrId("genycaster.bridge.starting_local_read_runtime")},
+      m_settings{settings}
 {
+    if (m_settings != nullptr) {
+        m_feedPageSize = std::clamp(m_settings->value(QStringLiteral("read/feedPageSize"), 20).toInt(), 1, 100);
+        m_contextHydrationLimit = std::clamp(
+            m_settings->value(QStringLiteral("read/contextHydrationLimit"), 40).toInt(), 1, 100);
+        m_linkPreviewPrefetchEnabled = m_settings->value(
+            QStringLiteral("read/linkPreviewPrefetchEnabled"), true).toBool();
+        m_inlineYouTubeEnabled = m_settings->value(
+            QStringLiteral("read/inlineYouTubeEnabled"), true).toBool();
+        m_bufferNewPosts = m_settings->value(QStringLiteral("read/bufferNewPosts"), true).toBool();
+    }
 }
 
 QString PresentationBridge::architectureState() const
@@ -609,6 +679,12 @@ QString PresentationBridge::notificationsErrorText() const { return m_notificati
 bool PresentationBridge::notificationsHasMore() const noexcept { return !m_notificationNext.isEmpty(); }
 int PresentationBridge::notificationUnreadCount() const noexcept { return m_notificationUnreadCount; }
 bool PresentationBridge::hasUnreadNotifications() const noexcept { return m_notificationUnreadCount > 0; }
+int PresentationBridge::feedPageSize() const noexcept { return m_feedPageSize; }
+int PresentationBridge::contextHydrationLimit() const noexcept { return m_contextHydrationLimit; }
+bool PresentationBridge::linkPreviewPrefetchEnabled() const noexcept { return m_linkPreviewPrefetchEnabled; }
+bool PresentationBridge::inlineYouTubeEnabled() const noexcept { return m_inlineYouTubeEnabled; }
+bool PresentationBridge::bufferNewPosts() const noexcept { return m_bufferNewPosts; }
+int PresentationBridge::pendingNewPostCount() const noexcept { return static_cast<int>(m_pendingFeedRows.size()); }
 
 void PresentationBridge::beginIntent(QString status)
 {
@@ -650,10 +726,15 @@ void PresentationBridge::selectFeed(const QString& feed)
         emit stateChanged();
         return;
     }
+    const QString nextFeed = feed == QStringLiteral("following")
+        ? QStringLiteral("following") : QStringLiteral("trending");
+    if (m_activeView != QStringLiteral("feed") || m_activeFeed != nextFeed) {
+        m_pendingFeedRows.clear();
+        m_bufferNextFeedRefresh = false;
+    }
     m_activeView = QStringLiteral("feed");
     m_feedStarted = true;
-    m_activeFeed = feed == QStringLiteral("following")
-        ? QStringLiteral("following") : QStringLiteral("trending");
+    m_activeFeed = nextFeed;
     m_channelId.clear();
     m_next.clear();
     beginIntent(qtTrId("genycaster.bridge.reading_cached_feed"));
@@ -667,6 +748,11 @@ void PresentationBridge::openChannel(const QString& channelId)
         m_errorText = qtTrId("genycaster.bridge.enter_a_channel_id");
         emit stateChanged();
         return;
+    }
+    if (m_activeView != QStringLiteral("feed") || m_activeFeed != QStringLiteral("channel")
+        || m_channelId != canonical) {
+        m_pendingFeedRows.clear();
+        m_bufferNextFeedRefresh = false;
     }
     m_activeView = QStringLiteral("feed");
     m_feedStarted = true;
@@ -1024,6 +1110,100 @@ void PresentationBridge::retry()
     retryCurrent(true);
 }
 
+void PresentationBridge::persistReadPreference(const QString& key, const QVariant& value)
+{
+    if (m_settings != nullptr) {
+        m_settings->setValue(QStringLiteral("read/") + key, value);
+    }
+}
+
+void PresentationBridge::setFeedPageSize(const int value)
+{
+    const int bounded = std::clamp(value, 1, 100);
+    if (bounded == m_feedPageSize) {
+        return;
+    }
+    m_feedPageSize = bounded;
+    persistReadPreference(QStringLiteral("feedPageSize"), bounded);
+    emit readPreferencesChanged();
+}
+
+void PresentationBridge::setContextHydrationLimit(const int value)
+{
+    const int bounded = std::clamp(value, 1, 100);
+    if (bounded == m_contextHydrationLimit) {
+        return;
+    }
+    m_contextHydrationLimit = bounded;
+    persistReadPreference(QStringLiteral("contextHydrationLimit"), bounded);
+    emit readPreferencesChanged();
+}
+
+void PresentationBridge::setLinkPreviewPrefetchEnabled(const bool enabled)
+{
+    if (enabled == m_linkPreviewPrefetchEnabled) {
+        return;
+    }
+    m_linkPreviewPrefetchEnabled = enabled;
+    persistReadPreference(QStringLiteral("linkPreviewPrefetchEnabled"), enabled);
+    emit readPreferencesChanged();
+}
+
+void PresentationBridge::setInlineYouTubeEnabled(const bool enabled)
+{
+    if (enabled == m_inlineYouTubeEnabled) {
+        return;
+    }
+    m_inlineYouTubeEnabled = enabled;
+    persistReadPreference(QStringLiteral("inlineYouTubeEnabled"), enabled);
+    emit readPreferencesChanged();
+}
+
+void PresentationBridge::setBufferNewPosts(const bool enabled)
+{
+    if (enabled == m_bufferNewPosts) {
+        return;
+    }
+    m_bufferNewPosts = enabled;
+    persistReadPreference(QStringLiteral("bufferNewPosts"), enabled);
+    if (!enabled && !m_pendingFeedRows.isEmpty()) {
+        revealPendingPosts();
+    }
+    emit readPreferencesChanged();
+}
+
+void PresentationBridge::revealPendingPosts()
+{
+    if (m_pendingFeedRows.isEmpty()) {
+        return;
+    }
+    QVariantList merged{};
+    merged.reserve(m_pendingFeedRows.size() + m_rows.size());
+    QHash<QString, bool> seen{};
+    const auto appendUnique = [&merged, &seen](const QVariant& value) {
+        const QString key = paginationRowKey(value.toMap());
+        if (!key.isEmpty() && seen.contains(key)) {
+            return;
+        }
+        if (!key.isEmpty()) {
+            seen.insert(key, true);
+        }
+        merged.push_back(value);
+    };
+    for (const QVariant& row : std::as_const(m_pendingFeedRows)) {
+        appendUnique(row);
+    }
+    for (const QVariant& row : std::as_const(m_rows)) {
+        appendUnique(row);
+    }
+    m_rows = std::move(merged);
+    m_pendingFeedRows.clear();
+    applyViewerReactionSnapshotTo(m_rows, m_viewerReactionSnapshot);
+    applyReactionOverrides(m_rows, m_reactionOverrides);
+    applyFollowingOverrides(m_rows, m_followOverrides);
+    emit stateChanged();
+}
+
 void PresentationBridge::retryAutomatically()
 {
     retryCurrent(false);
@@ -1067,6 +1247,8 @@ void PresentationBridge::retryCurrent(const bool allowRecoveryProbe)
         return;
     }
     m_allowRecoveryProbeForNextIntent = allowRecoveryProbe;
+    m_bufferNextFeedRefresh = m_bufferNewPosts && m_activeView == QStringLiteral("feed")
+        && !m_rows.isEmpty();
     if (m_activeView == QStringLiteral("feed") && m_activeFeed == QStringLiteral("channel")) {
         openChannel(m_channelId);
     } else if (m_activeView == QStringLiteral("feed")) {
@@ -1746,6 +1928,7 @@ void PresentationBridge::applyReactionProjections(QVariantList reactions)
             projection.value(QStringLiteral("active")).toBool());
     }
     applyReactionOverrides(m_rows, m_reactionOverrides);
+    applyReactionOverrides(m_pendingFeedRows, m_reactionOverrides);
     applyReactionOverrides(m_writeRows, m_reactionOverrides);
     applyReactionOverrides(m_detail, m_reactionOverrides);
     emit stateChanged();
@@ -1765,9 +1948,11 @@ void PresentationBridge::applyViewerReactionSnapshot(QVariantList reactions)
         }
     }
     applyViewerReactionSnapshotTo(m_rows, m_viewerReactionSnapshot);
+    applyViewerReactionSnapshotTo(m_pendingFeedRows, m_viewerReactionSnapshot);
     applyViewerReactionSnapshotTo(m_writeRows, m_viewerReactionSnapshot);
     applyViewerReactionSnapshotTo(m_detail, m_viewerReactionSnapshot);
     applyReactionOverrides(m_rows, m_reactionOverrides);
+    applyReactionOverrides(m_pendingFeedRows, m_reactionOverrides);
     applyReactionOverrides(m_writeRows, m_reactionOverrides);
     applyReactionOverrides(m_detail, m_reactionOverrides);
     emit stateChanged();
@@ -1795,6 +1980,7 @@ void PresentationBridge::applyViewerReactionDelta(QVariantList reactions)
         }
 
         applyViewerReactionDeltaTo(m_rows, canonical, liked, recasted);
+        applyViewerReactionDeltaTo(m_pendingFeedRows, canonical, liked, recasted);
         applyViewerReactionDeltaTo(m_writeRows, canonical, liked, recasted);
         applyViewerReactionDeltaTo(m_detail, canonical, liked, recasted);
     }
@@ -1802,6 +1988,7 @@ void PresentationBridge::applyViewerReactionDelta(QVariantList reactions)
     // Local optimistic/durable write projections are newer than an eventually
     // consistent network read and therefore remain the final authority.
     applyReactionOverrides(m_rows, m_reactionOverrides);
+    applyReactionOverrides(m_pendingFeedRows, m_reactionOverrides);
     applyReactionOverrides(m_writeRows, m_reactionOverrides);
     applyReactionOverrides(m_detail, m_reactionOverrides);
     emit stateChanged();
@@ -1818,6 +2005,7 @@ void PresentationBridge::applyFollowingProjections(QVariantList following)
             projection.value(QStringLiteral("following")).toBool());
     }
     applyFollowingOverrides(m_rows, m_followOverrides);
+    applyFollowingOverrides(m_pendingFeedRows, m_followOverrides);
     applyFollowingOverride(m_detail, m_followOverrides);
     applyFollowingOverrides(m_searchResults, m_followOverrides);
     emit searchChanged();
@@ -1974,6 +2162,21 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
         reconcilePaginationPresentation(m_rows, rows);
     }
 
+    const bool bufferedFeedRefresh = !paginationRequest && sameSurface
+        && view == QStringLiteral("feed") && m_bufferNextFeedRefresh && !m_rows.isEmpty();
+    if (bufferedFeedRefresh && busy) {
+        m_statusText = std::move(status);
+        m_isBusy = true;
+        m_isStale = stale;
+        emit stateChanged();
+        return;
+    }
+    if (bufferedFeedRefresh) {
+        m_pendingFeedRows = reconcileRefreshPresentation(m_rows, rows, m_pendingFeedRows);
+        rows = m_rows;
+        m_bufferNextFeedRefresh = false;
+    }
+
     m_activeView = std::move(view);
     if (m_activeView == QStringLiteral("feed")) {
         m_feedStarted = true;
@@ -2068,6 +2271,10 @@ void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap 
     if (targetKey.isEmpty() || preview.isEmpty()) {
         return;
     }
+    // A successfully supplied preview is authoritative even when the cast is
+    // media-only and therefore has an empty text body. QML uses this marker to
+    // distinguish resolved empty content from an ID-only hydration placeholder.
+    preview.insert(QStringLiteral("resolved"), true);
 
     auto patchEmbeds = [&targetKey, &preview](QVariantMap& row) {
         QVariantList embeds = row.value(QStringLiteral("embeds")).toList();
@@ -2092,32 +2299,46 @@ void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap 
         }
     };
 
+    const QString previewRevision = QStringList{
+        targetKey,
+        preview.value(QStringLiteral("text")).toString(),
+        preview.value(QStringLiteral("displayName")).toString(),
+        preview.value(QStringLiteral("avatarUrl")).toString(),
+        preview.value(QStringLiteral("resolved")).toBool() ? QStringLiteral("1") : QStringLiteral("0"),
+        QString::number(preview.value(QStringLiteral("embeds")).toList().size()),
+        QString::number(preview.value(QStringLiteral("replyCount")).toULongLong()),
+        QString::number(preview.value(QStringLiteral("recastCount")).toULongLong()),
+        QString::number(preview.value(QStringLiteral("likeCount")).toULongLong()),
+    }.join(QChar{0x1f});
+
     bool changed = false;
-    for (qsizetype index = 0; index < m_rows.size(); ++index) {
-        QVariantMap row = m_rows[index].toMap();
-        bool rowChanged = false;
-        if (canonicalCastKey(row.value(QStringLiteral("parentCastId")).toString()) == targetKey) {
-            row.insert(QStringLiteral("parentPreview"), preview);
-            rowChanged = true;
+    const auto patchRows = [&](QVariantList& rows) {
+        bool listChanged = false;
+        for (qsizetype index = 0; index < rows.size(); ++index) {
+            QVariantMap row = rows[index].toMap();
+            bool rowChanged = false;
+            if (canonicalCastKey(row.value(QStringLiteral("parentCastId")).toString()) == targetKey) {
+                row.insert(QStringLiteral("parentPreview"), preview);
+                rowChanged = true;
+            }
+            const QVariantList before = row.value(QStringLiteral("embeds")).toList();
+            patchEmbeds(row);
+            if (before != row.value(QStringLiteral("embeds")).toList()) {
+                rowChanged = true;
+            }
+            if (rowChanged) {
+                row.insert(QStringLiteral("_referencedRevision"), previewRevision);
+                listChanged = true;
+            }
+            rows[index] = std::move(row);
         }
-        const QVariantList before = row.value(QStringLiteral("embeds")).toList();
-        patchEmbeds(row);
-        if (before != row.value(QStringLiteral("embeds")).toList()) {
-            rowChanged = true;
-        }
-        if (rowChanged) {
-            const QString previewRevision = QStringList{
-                targetKey,
-                preview.value(QStringLiteral("text")).toString(),
-                preview.value(QStringLiteral("displayName")).toString(),
-                preview.value(QStringLiteral("avatarUrl")).toString(),
-                QString::number(preview.value(QStringLiteral("embeds")).toList().size()),
-            }.join(QChar{0x1f});
-            row.insert(QStringLiteral("_referencedRevision"), previewRevision);
-            changed = true;
-        }
-        m_rows[index] = std::move(row);
-    }
+        return listChanged;
+    };
+    changed = patchRows(m_rows) || changed;
+    // A refresh can intentionally hold newer rows behind the X-style banner.
+    // Hydration requests are started from that refreshed snapshot, so referenced
+    // parent/quote previews must patch the pending buffer as well as visible rows.
+    changed = patchRows(m_pendingFeedRows) || changed;
 
     if (canonicalCastKey(m_detail.value(QStringLiteral("parentCastId")).toString()) == targetKey) {
         m_detail.insert(QStringLiteral("parentPreview"), preview);
