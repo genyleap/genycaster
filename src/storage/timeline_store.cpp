@@ -35,6 +35,7 @@ public:
     auto operator=(SqliteTimelineStore&& other) noexcept -> SqliteTimelineStore&;
     [[nodiscard]] foundation::result::Status replaceTimeline(const local::timeline::TimelineId& timelineId, std::span<const domain::feed::FeedEntry> entries) override;
     [[nodiscard]] foundation::result::Result<std::vector<domain::feed::FeedEntry>> readTimeline(const local::timeline::TimelineId& timelineId, std::size_t limit) override;
+    [[nodiscard]] foundation::result::Result<std::vector<domain::feed::FeedEntry>> readAllTimeline(const local::timeline::TimelineId& timelineId) override;
 private:
     struct Impl;
     explicit SqliteTimelineStore(std::unique_ptr<Impl> impl) noexcept;
@@ -191,6 +192,47 @@ LIMIT ?;
         if (step != SQLITE_ROW) {
             return std::unexpected(toFoundationError(sqlite::makeError(
                 m_impl->connection.native(), "Failed to read timeline")));
+        }
+        result.push_back(domain::feed::FeedEntry{
+            .castId = domain::cast::CastId{sqlite::columnText(statement.native(), 0)},
+            .sortTime = fromMilliseconds(sqlite3_column_int64(statement.native(), 1)),
+        });
+    }
+    return result;
+}
+
+
+foundation::result::Result<std::vector<domain::feed::FeedEntry>> SqliteTimelineStore::readAllTimeline(
+    const local::timeline::TimelineId& timelineId)
+{
+    std::scoped_lock lock{m_impl->mutex};
+    auto prepared = sqlite::Statement::prepare(m_impl->connection, R"SQL(
+SELECT entry.cast_id, entry.sort_time_ms
+FROM timeline_entries AS entry
+WHERE entry.timeline_id = ?
+  AND NOT EXISTS (
+      SELECT 1 FROM cast_local_tombstones AS tombstone
+      WHERE tombstone.cast_id = entry.cast_id
+  )
+ORDER BY entry.position ASC;
+)SQL");
+    if (!prepared) {
+        return std::unexpected(toFoundationError(std::move(prepared.error())));
+    }
+    auto statement = std::move(*prepared);
+    if (auto status = sqlite::bindText(statement.native(), 1, timelineId.value); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+
+    std::vector<domain::feed::FeedEntry> result{};
+    while (true) {
+        const auto step = sqlite3_step(statement.native());
+        if (step == SQLITE_DONE) {
+            break;
+        }
+        if (step != SQLITE_ROW) {
+            return std::unexpected(toFoundationError(sqlite::makeError(
+                m_impl->connection.native(), "Failed to read complete timeline")));
         }
         result.push_back(domain::feed::FeedEntry{
             .castId = domain::cast::CastId{sqlite::columnText(statement.native(), 0)},
