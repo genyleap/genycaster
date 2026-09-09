@@ -47,6 +47,18 @@ public:
      */
     [[nodiscard]] virtual foundation::result::Result<std::vector<domain::feed::FeedEntry>>
     readTimeline(const TimelineId& timelineId, std::size_t limit) = 0;
+
+    /**
+     * @brief Reads the complete locally materialized timeline in stable order.
+     * @param timelineId Stable local timeline identifier.
+     * @return Every persisted entry or a structured storage failure.
+     *
+     * Network page size is intentionally not reused as a local snapshot limit.
+     * Pagination appends provider pages into one materialized timeline; callers
+     * that reconcile UI state must observe the complete accumulated snapshot.
+     */
+    [[nodiscard]] virtual foundation::result::Result<std::vector<domain::feed::FeedEntry>>
+    readAllTimeline(const TimelineId& timelineId) = 0;
 };
 
 }
