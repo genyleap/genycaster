@@ -25,6 +25,8 @@ struct FeedKey final {
     Kind kind{Kind::Trending};
     std::optional<domain::identity::Fid> fid{};
     std::optional<domain::channel::ChannelId> channel{};
+    // Provider page size carried with the request. It is intentionally not part
+    // of cache identity and must not truncate an accumulated local snapshot.
     std::size_t limit{30};
 };
 
@@ -33,6 +35,7 @@ struct SocialKey final {
     enum class Kind : std::uint8_t { Followers, Following };
     Kind kind{Kind::Followers};
     domain::identity::Fid fid{};
+    // Provider page size; local reads return the complete materialized list.
     std::size_t limit{30};
 };
 
@@ -56,7 +59,7 @@ public:
     /** @brief Atomically upserts one canonical cast. */
     [[nodiscard]] virtual foundation::result::Status
     putCast(const domain::cast::Cast& cast) = 0;
-    /** @brief Materializes cached feed entities and ordering for a query. */
+    /** @brief Materializes the complete cached feed accumulated for a query. */
     [[nodiscard]] virtual foundation::result::Result<capability::feed::FeedPage>
     readFeed(const FeedKey& key) = 0;
     /** @brief Upserts entities, then atomically commits feed ordering and continuation. */
@@ -64,7 +67,7 @@ public:
         const FeedKey& key,
         const capability::feed::FeedPage& page,
         bool append) = 0;
-    /** @brief Materializes a cached social graph page for a query. */
+    /** @brief Materializes the complete cached social graph list accumulated for a query. */
     [[nodiscard]] virtual foundation::result::Result<capability::social::SocialGraphPage>
     readSocial(const SocialKey& key) = 0;
     /** @brief Upserts profiles, then atomically commits social ordering and continuation. */
