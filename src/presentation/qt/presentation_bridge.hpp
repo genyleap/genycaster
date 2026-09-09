@@ -8,6 +8,8 @@
 #include <QVariantMap>
 
 /** @brief Thin QML adapter for guest-first reads and verified client-session state. */
+class QSettings;
+
 class PresentationBridge final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString architectureState READ architectureState CONSTANT)
@@ -62,10 +64,20 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool notificationsHasMore READ notificationsHasMore NOTIFY notificationsChanged)
     Q_PROPERTY(int notificationUnreadCount READ notificationUnreadCount NOTIFY notificationsChanged)
     Q_PROPERTY(bool hasUnreadNotifications READ hasUnreadNotifications NOTIFY notificationsChanged)
+    Q_PROPERTY(int feedPageSize READ feedPageSize NOTIFY readPreferencesChanged)
+    Q_PROPERTY(int contextHydrationLimit READ contextHydrationLimit NOTIFY readPreferencesChanged)
+    Q_PROPERTY(bool linkPreviewPrefetchEnabled READ linkPreviewPrefetchEnabled NOTIFY readPreferencesChanged)
+    Q_PROPERTY(bool inlineYouTubeEnabled READ inlineYouTubeEnabled NOTIFY readPreferencesChanged)
+    Q_PROPERTY(bool bufferNewPosts READ bufferNewPosts NOTIFY readPreferencesChanged)
+    Q_PROPERTY(int pendingNewPostCount READ pendingNewPostCount NOTIFY stateChanged)
 
 public:
-    /** @brief Creates the presentation adapter with optional Qt ownership. */
-    explicit PresentationBridge(QObject* parent = nullptr);
+    /**
+     * @brief Creates the presentation adapter with optional Qt ownership and persisted read preferences.
+     * @param parent Optional QObject owner.
+     * @param settings Optional borrowed settings store; when supplied it must outlive this bridge.
+     */
+    explicit PresentationBridge(QObject* parent = nullptr, QSettings* settings = nullptr);
     [[nodiscard]] QString architectureState() const;
     [[nodiscard]] bool isStrictSelfHosted() const noexcept;
     [[nodiscard]] bool diagnosticsEnabled() const noexcept;
@@ -119,6 +131,12 @@ public:
     [[nodiscard]] bool notificationsHasMore() const noexcept;
     [[nodiscard]] int notificationUnreadCount() const noexcept;
     [[nodiscard]] bool hasUnreadNotifications() const noexcept;
+    [[nodiscard]] int feedPageSize() const noexcept;
+    [[nodiscard]] int contextHydrationLimit() const noexcept;
+    [[nodiscard]] bool linkPreviewPrefetchEnabled() const noexcept;
+    [[nodiscard]] bool inlineYouTubeEnabled() const noexcept;
+    [[nodiscard]] bool bufferNewPosts() const noexcept;
+    [[nodiscard]] int pendingNewPostCount() const noexcept;
 
     Q_INVOKABLE void openIdentity(const QString& username);
     Q_INVOKABLE void selectFeed(const QString& feed);
@@ -150,6 +168,18 @@ public:
     Q_INVOKABLE void returnFromDetail();
     Q_INVOKABLE void loadMore();
     Q_INVOKABLE void retry();
+    /** @brief Applies pending refresh rows at the top without losing the current viewport history. */
+    Q_INVOKABLE void revealPendingPosts();
+    /** @brief Sets the bounded number of casts requested per page (1..100). */
+    Q_INVOKABLE void setFeedPageSize(int value);
+    /** @brief Sets the bounded number of parent/quote contexts hydrated per page (1..100). */
+    Q_INVOKABLE void setContextHydrationLimit(int value);
+    /** @brief Enables or disables background OpenGraph/link metadata prefetch for visible cards. */
+    Q_INVOKABLE void setLinkPreviewPrefetchEnabled(bool enabled);
+    /** @brief Enables or disables the isolated in-app YouTube player. */
+    Q_INVOKABLE void setInlineYouTubeEnabled(bool enabled);
+    /** @brief Enables or disables X-style buffering of newly refreshed feed rows. */
+    Q_INVOKABLE void setBufferNewPosts(bool enabled);
     Q_INVOKABLE void showFeed();
     Q_INVOKABLE void openExternalUrl(const QString& url);
     /** @brief Opens an approved rich-media URL in Genycaster's isolated native web-media host. */
@@ -254,6 +284,7 @@ signals:
     void stateChanged();
     void searchChanged();
     void notificationsChanged();
+    void readPreferencesChanged();
     /** @brief Emitted only when OS/network reachability knowledge or online state changes. */
     void networkReachabilityChanged(bool known, bool online);
     void castQueued();
@@ -294,6 +325,7 @@ signals:
 private:
     void beginIntent(QString status);
     void retryCurrent(bool allowRecoveryProbe);
+    void persistReadPreference(const QString& key, const QVariant& value);
     [[nodiscard]] bool consumeRecoveryProbe() noexcept;
     bool m_runtimeReady{false};
     bool m_authenticationAvailable{false};
@@ -348,6 +380,14 @@ private:
     bool m_feedStarted{false};
     bool m_shouldOpenFollowingAfterIdentity{false};
     bool m_allowRecoveryProbeForNextIntent{false};
+    QSettings* m_settings{nullptr};
+    int m_feedPageSize{20};
+    int m_contextHydrationLimit{40};
+    bool m_linkPreviewPrefetchEnabled{true};
+    bool m_inlineYouTubeEnabled{true};
+    bool m_bufferNewPosts{true};
+    bool m_bufferNextFeedRefresh{false};
+    QVariantList m_pendingFeedRows{};
     QString m_next{};
     QVariantList m_rows{};
     QVariantMap m_detail{};
