@@ -16,6 +16,8 @@ constexpr auto kCustomAccentSetting = "appearance/customAccent";
 constexpr auto kReduceMotionSetting = "appearance/reduceMotion";
 constexpr auto kFontScaleSetting = "appearance/fontScale";
 constexpr auto kInterfaceScaleSetting = "appearance/interfaceScale";
+constexpr auto kSocialNavigationWidthSetting = "layout/socialNavigationWidth";
+constexpr auto kSocialContextWidthSetting = "layout/socialContextWidth";
 constexpr auto kDefaultCustomAccent = "#FF4FA3";
 
 [[nodiscard]] QString canonicalThemeMode(QString value) {
@@ -69,6 +71,14 @@ constexpr auto kDefaultCustomAccent = "#FF4FA3";
     return false;
   }
   return fallback;
+}
+
+[[nodiscard]] qreal canonicalPanelWidth(const qreal value, const qreal fallback,
+                                        const qreal minimum, const qreal maximum) {
+  if (!std::isfinite(value)) {
+    return fallback;
+  }
+  return std::round(std::clamp(value, minimum, maximum));
 }
 
 [[nodiscard]] qreal canonicalScale(const qreal value, const qreal minimum,
@@ -127,6 +137,12 @@ AppearanceController::AppearanceController(QSettings &settings,
   m_interfaceScale = canonicalScale(
       m_settings.value(QString::fromLatin1(kInterfaceScaleSetting), 1.0).toReal(),
       0.90, 1.20);
+  m_socialNavigationWidth = canonicalPanelWidth(
+      m_settings.value(QString::fromLatin1(kSocialNavigationWidthSetting), 320.0).toReal(),
+      320.0, 264.0, 460.0);
+  m_socialContextWidth = canonicalPanelWidth(
+      m_settings.value(QString::fromLatin1(kSocialContextWidthSetting), 420.0).toReal(),
+      420.0, 304.0, 620.0);
   refreshEffectiveMode(false);
 
   if (auto *const hints = QGuiApplication::styleHints()) {
@@ -149,6 +165,12 @@ bool AppearanceController::reduceMotion() const noexcept {
 qreal AppearanceController::fontScale() const noexcept { return m_fontScale; }
 qreal AppearanceController::interfaceScale() const noexcept {
   return m_interfaceScale;
+}
+qreal AppearanceController::socialNavigationWidth() const noexcept {
+  return m_socialNavigationWidth;
+}
+qreal AppearanceController::socialContextWidth() const noexcept {
+  return m_socialContextWidth;
 }
 
 bool AppearanceController::setThemeMode(const QString &mode) {
@@ -234,6 +256,40 @@ bool AppearanceController::setInterfaceScale(const qreal scale) {
   m_settings.setValue(QString::fromLatin1(kInterfaceScaleSetting), m_interfaceScale);
   emit appearanceChanged();
   return true;
+}
+
+bool AppearanceController::setSocialNavigationWidth(const qreal width) {
+  const qreal canonical = canonicalPanelWidth(width, m_socialNavigationWidth, 264.0, 460.0);
+  if (qFuzzyCompare(canonical, m_socialNavigationWidth)) {
+    return true;
+  }
+  m_socialNavigationWidth = canonical;
+  m_settings.setValue(QString::fromLatin1(kSocialNavigationWidthSetting), m_socialNavigationWidth);
+  emit layoutChanged();
+  return true;
+}
+
+bool AppearanceController::setSocialContextWidth(const qreal width) {
+  const qreal canonical = canonicalPanelWidth(width, m_socialContextWidth, 304.0, 620.0);
+  if (qFuzzyCompare(canonical, m_socialContextWidth)) {
+    return true;
+  }
+  m_socialContextWidth = canonical;
+  m_settings.setValue(QString::fromLatin1(kSocialContextWidthSetting), m_socialContextWidth);
+  emit layoutChanged();
+  return true;
+}
+
+void AppearanceController::resetSocialLayout() {
+  const bool changed = !qFuzzyCompare(m_socialNavigationWidth, 320.0)
+      || !qFuzzyCompare(m_socialContextWidth, 420.0);
+  m_socialNavigationWidth = 320.0;
+  m_socialContextWidth = 420.0;
+  m_settings.remove(QString::fromLatin1(kSocialNavigationWidthSetting));
+  m_settings.remove(QString::fromLatin1(kSocialContextWidthSetting));
+  if (changed) {
+    emit layoutChanged();
+  }
 }
 
 void AppearanceController::resetAppearance() {
