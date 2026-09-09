@@ -4,6 +4,7 @@
 #include <QDateTime>
 #include <QClipboard>
 #include <QGuiApplication>
+#include <QHash>
 #include <QDesktopServices>
 #include <QList>
 #include <QString>
@@ -419,6 +420,108 @@ void applyFollowsMeSnapshot(QVariantMap& map, const QVariantMap& snapshot)
     }
     map.insert(QStringLiteral("followsMe"), snapshot.value(key).toBool());
     map.insert(QStringLiteral("followsMeKnown"), true);
+}
+
+[[nodiscard]] bool hasHydratedCastPreview(const QVariantMap& preview)
+{
+    return !preview.value(QStringLiteral("castId")).toString().isEmpty() &&
+        (!preview.value(QStringLiteral("text")).toString().isEmpty() ||
+         !preview.value(QStringLiteral("displayName")).toString().isEmpty() ||
+         !preview.value(QStringLiteral("avatarUrl")).toString().isEmpty() ||
+         !preview.value(QStringLiteral("embeds")).toList().isEmpty());
+}
+
+void preserveReferencedPresentation(QVariantMap& incoming, const QVariantMap& previous)
+{
+    bool preserved = false;
+
+    QVariantMap incomingParent = incoming.value(QStringLiteral("parentPreview")).toMap();
+    const QVariantMap previousParent = previous.value(QStringLiteral("parentPreview")).toMap();
+    if (!hasHydratedCastPreview(incomingParent) && hasHydratedCastPreview(previousParent)) {
+        incoming.insert(QStringLiteral("parentPreview"), previousParent);
+        preserved = true;
+    }
+
+    QVariantList incomingEmbeds = incoming.value(QStringLiteral("embeds")).toList();
+    const QVariantList previousEmbeds = previous.value(QStringLiteral("embeds")).toList();
+    for (qsizetype index = 0; index < incomingEmbeds.size(); ++index) {
+        QVariantMap embed = incomingEmbeds[index].toMap();
+        if (embed.value(QStringLiteral("kind")).toString() != QStringLiteral("cast-reference") ||
+            hasHydratedCastPreview(embed)) {
+            continue;
+        }
+        const QString target = canonicalCastKey(embed.value(QStringLiteral("castId")).toString());
+        if (target.isEmpty()) {
+            continue;
+        }
+        for (const QVariant& previousValue : previousEmbeds) {
+            const QVariantMap previousEmbed = previousValue.toMap();
+            if (previousEmbed.value(QStringLiteral("kind")).toString() != QStringLiteral("cast-reference") ||
+                canonicalCastKey(previousEmbed.value(QStringLiteral("castId")).toString()) != target ||
+                !hasHydratedCastPreview(previousEmbed)) {
+                continue;
+            }
+            incomingEmbeds[index] = previousEmbed;
+            preserved = true;
+            break;
+        }
+    }
+    if (preserved) {
+        incoming.insert(QStringLiteral("embeds"), std::move(incomingEmbeds));
+        const QString referencedRevision = previous.value(QStringLiteral("_referencedRevision")).toString();
+        if (!referencedRevision.isEmpty()) {
+            incoming.insert(QStringLiteral("_referencedRevision"), referencedRevision);
+        }
+    }
+}
+
+[[nodiscard]] QString paginationRowKey(const QVariantMap& row)
+{
+    const QString castKey = canonicalCastKey(row.value(QStringLiteral("castId")).toString());
+    if (!castKey.isEmpty()) {
+        return QStringLiteral("cast:") + castKey;
+    }
+    const qulonglong fid = row.value(QStringLiteral("fid")).toULongLong();
+    if (fid != 0) {
+        return QStringLiteral("fid:") + QString::number(fid);
+    }
+    return {};
+}
+
+void reconcilePaginationPresentation(const QVariantList& previousRows, QVariantList& incomingRows)
+{
+    // Continuation is an append/reconcile contract, never a replacement contract.
+    // Preserve the already-present ordering and update matching rows in place; only
+    // genuinely new stable keys are appended. This protects the viewport even if a
+    // provider/storage fallback accidentally returns only the latest provider page.
+    QVariantList reconciled = previousRows;
+    QHash<QString, qsizetype> indexByKey{};
+    indexByKey.reserve(reconciled.size() + incomingRows.size());
+    for (qsizetype index = 0; index < reconciled.size(); ++index) {
+        const QString key = paginationRowKey(reconciled[index].toMap());
+        if (!key.isEmpty()) {
+            indexByKey.insert(key, index);
+        }
+    }
+
+    for (const QVariant& value : incomingRows) {
+        QVariantMap row = value.toMap();
+        const QString key = paginationRowKey(row);
+        if (key.isEmpty()) {
+            reconciled.push_back(value);
+            continue;
+        }
+        const auto found = indexByKey.constFind(key);
+        if (found == indexByKey.cend()) {
+            indexByKey.insert(key, reconciled.size());
+            reconciled.push_back(std::move(row));
+            continue;
+        }
+        const qsizetype index = found.value();
+        preserveReferencedPresentation(row, reconciled[index].toMap());
+        reconciled[index] = std::move(row);
+    }
+    incomingRows = std::move(reconciled);
 }
 
 }
@@ -1008,6 +1111,18 @@ void PresentationBridge::openExternalUrl(const QString& url)
         m_errorText = qtTrId("genycaster.bridge.the_system_could_not_open_that_link");
         emit stateChanged();
     }
+}
+
+void PresentationBridge::openEmbeddedMedia(const QString& url, const QString& title)
+{
+    const QUrl parsed{url.trimmed()};
+    if (!parsed.isValid() || parsed.scheme() != QStringLiteral("https")
+        || parsed.userInfo().size() > 0 || parsed.host().isEmpty()) {
+        m_errorText = qtTrId("genycaster.bridge.only_valid_http_s_links_can_be_opened_externally");
+        emit stateChanged();
+        return;
+    }
+    emit embeddedMediaRequested(parsed.toString(QUrl::FullyEncoded), title.trimmed());
 }
 
 void PresentationBridge::copyText(const QString& text)
@@ -1837,8 +1952,28 @@ void PresentationBridge::restoreNotificationSeenAt(
 
 void PresentationBridge::applyList(QString view, QString selector, QVariantList rows,
     QString next, QString status, QString error, QString diagnostic, const bool busy,
-    const bool stale, const bool sourceUnavailable)
+    const bool stale, const bool sourceUnavailable, const bool paginationRequest)
 {
+    const QString currentSelector = m_activeView == QStringLiteral("feed") ? m_activeFeed
+        : m_activeView == QStringLiteral("profile") ? m_profileFeed : m_activeView;
+    const bool sameSurface = view == m_activeView && selector == currentSelector;
+
+    // Loading another page must not republish the already-visible cache snapshot.
+    // Doing so discards asynchronously hydrated reply/quote context and changes
+    // delegate heights above the viewport before the network page arrives. Keep
+    // the current presentation immutable until the terminal pagination snapshot.
+    if (paginationRequest && sameSurface && busy && !m_rows.isEmpty()) {
+        m_statusText = std::move(status);
+        m_isBusy = true;
+        m_isStale = stale;
+        emit stateChanged();
+        return;
+    }
+
+    if (paginationRequest && sameSurface && !m_rows.isEmpty()) {
+        reconcilePaginationPresentation(m_rows, rows);
+    }
+
     m_activeView = std::move(view);
     if (m_activeView == QStringLiteral("feed")) {
         m_feedStarted = true;
@@ -1960,18 +2095,34 @@ void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap 
     bool changed = false;
     for (qsizetype index = 0; index < m_rows.size(); ++index) {
         QVariantMap row = m_rows[index].toMap();
+        bool rowChanged = false;
         if (canonicalCastKey(row.value(QStringLiteral("parentCastId")).toString()) == targetKey) {
             row.insert(QStringLiteral("parentPreview"), preview);
-            changed = true;
+            rowChanged = true;
         }
         const QVariantList before = row.value(QStringLiteral("embeds")).toList();
         patchEmbeds(row);
         if (before != row.value(QStringLiteral("embeds")).toList()) {
+            rowChanged = true;
+        }
+        if (rowChanged) {
+            const QString previewRevision = QStringList{
+                targetKey,
+                preview.value(QStringLiteral("text")).toString(),
+                preview.value(QStringLiteral("displayName")).toString(),
+                preview.value(QStringLiteral("avatarUrl")).toString(),
+                QString::number(preview.value(QStringLiteral("embeds")).toList().size()),
+            }.join(QChar{0x1f});
+            row.insert(QStringLiteral("_referencedRevision"), previewRevision);
             changed = true;
         }
         m_rows[index] = std::move(row);
     }
 
+    if (canonicalCastKey(m_detail.value(QStringLiteral("parentCastId")).toString()) == targetKey) {
+        m_detail.insert(QStringLiteral("parentPreview"), preview);
+        changed = true;
+    }
     const QVariantList detailBefore = m_detail.value(QStringLiteral("embeds")).toList();
     patchEmbeds(m_detail);
     if (detailBefore != m_detail.value(QStringLiteral("embeds")).toList()) {
