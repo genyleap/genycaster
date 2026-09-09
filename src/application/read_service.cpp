@@ -1,12 +1,15 @@
 module;
 
 #include <atomic>
+#include <cstdint>
 #include <expected>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 module farcaster.application.read.service;
@@ -21,6 +24,7 @@ import farcaster.capability.social;
 import farcaster.domain.cast;
 import farcaster.domain.identity;
 import farcaster.domain.profile;
+import farcaster.domain.feed;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.local.read;
@@ -114,6 +118,57 @@ void publish(
         return std::unexpected(std::move(status.error()));
     }
     return ReadRequest{cancelled};
+}
+
+void seedFeedState(model::FeedState& state, const capability::feed::FeedPage& page)
+{
+    state.casts = page.casts;
+    state.profiles = page.profiles;
+    state.entries = page.entries;
+    state.next = page.next;
+}
+
+void mergeFeedPage(model::FeedState& state, const capability::feed::FeedPage& page)
+{
+    std::unordered_map<std::string, std::size_t> castIndex{};
+    castIndex.reserve(state.casts.size() + page.casts.size());
+    for (std::size_t index = 0; index < state.casts.size(); ++index) {
+        castIndex.insert_or_assign(state.casts[index].id.value, index);
+    }
+    for (const auto& cast : page.casts) {
+        if (const auto found = castIndex.find(cast.id.value); found != castIndex.end()) {
+            state.casts[found->second] = cast;
+        } else {
+            castIndex.emplace(cast.id.value, state.casts.size());
+            state.casts.push_back(cast);
+        }
+    }
+
+    std::unordered_map<std::uint64_t, std::size_t> profileIndex{};
+    profileIndex.reserve(state.profiles.size() + page.profiles.size());
+    for (std::size_t index = 0; index < state.profiles.size(); ++index) {
+        profileIndex.insert_or_assign(state.profiles[index].fid.value, index);
+    }
+    for (const auto& profile : page.profiles) {
+        if (const auto found = profileIndex.find(profile.fid.value); found != profileIndex.end()) {
+            state.profiles[found->second] = profile;
+        } else {
+            profileIndex.emplace(profile.fid.value, state.profiles.size());
+            state.profiles.push_back(profile);
+        }
+    }
+
+    std::unordered_set<std::string> entryIds{};
+    entryIds.reserve(state.entries.size() + page.entries.size());
+    for (const auto& entry : state.entries) {
+        entryIds.insert(entry.castId.value);
+    }
+    for (const auto& entry : page.entries) {
+        if (entryIds.insert(entry.castId.value).second) {
+            state.entries.push_back(entry);
+        }
+    }
+    state.next = page.next;
 }
 
 }
@@ -357,7 +412,14 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
             } else {
                 state.metadata = failedMetadata(std::move(cached.error()), false);
             }
-            publish(cancelled, observer, state);
+            // A continuation request is already represented by the current UI
+            // snapshot. Re-emitting the same cache before page N+1 arrives causes
+            // unnecessary delegate reconciliation and can temporarily discard
+            // presentation-only enrichment. Keep the cache for fallback/merge but
+            // publish it immediately only for the first page.
+            if (!query.continuation) {
+                publish(cancelled, observer, state);
+            }
 
             auto refreshState = state;
             auto refreshObserver = observer;
@@ -371,15 +433,21 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                         publish(cancelled, observer, std::move(state));
                         return;
                     }
+                    model::FeedState fallback = state;
+                    if (query.continuation) {
+                        mergeFeedPage(fallback, *fresh);
+                    } else {
+                        seedFeedState(fallback, *fresh);
+                    }
                     if (auto saved = m_store.writeFeed(localKey, *fresh, query.continuation.has_value()); !saved) {
-                        state.metadata = failedMetadata(std::move(saved.error()), !state.entries.empty());
-                        publish(cancelled, observer, std::move(state));
+                        fallback.metadata = failedMetadata(std::move(saved.error()), !fallback.entries.empty());
+                        publish(cancelled, observer, std::move(fallback));
                         return;
                     }
                     auto materialized = m_store.readFeed(localKey);
                     if (!materialized) {
-                        state.metadata = failedMetadata(std::move(materialized.error()), !state.entries.empty());
-                        publish(cancelled, observer, std::move(state));
+                        fallback.metadata = failedMetadata(std::move(materialized.error()), !fallback.entries.empty());
+                        publish(cancelled, observer, std::move(fallback));
                         return;
                     }
                     state.casts = std::move(materialized->casts);
