@@ -84,6 +84,9 @@ constexpr std::chrono::milliseconds replyEnrichmentRequestTimeout{4'000};
     if (!payload) {
         return std::unexpected(std::move(payload.error()));
     }
+    if (payload->providerCursor && *cursor && *payload->providerCursor == **cursor) {
+        payload->providerCursor.reset();
+    }
 
     capability::feed::FeedPage page{};
     page.casts = std::move(payload->casts);
