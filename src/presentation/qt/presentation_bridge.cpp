@@ -157,6 +157,65 @@ void updateReactionPresentation(
     }
 }
 
+[[nodiscard]] bool isReplyPresentationRow(const QVariantMap& row)
+{
+    return row.value(QStringLiteral("isReply")).toBool() ||
+        !row.value(QStringLiteral("parentCastId")).toString().isEmpty();
+}
+
+[[nodiscard]] bool isQuotePresentationRow(const QVariantMap& row)
+{
+    const QVariantList embeds = row.value(QStringLiteral("embeds")).toList();
+    for (const QVariant& value : embeds) {
+        const QVariantMap embed = value.toMap();
+        if (embed.value(QStringLiteral("kind")).toString().compare(
+                QStringLiteral("cast-reference"), Qt::CaseInsensitive) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void enforceProfileFeedSemantics(QVariantList& rows, const QString& profileFeed)
+{
+    if (profileFeed != QStringLiteral("user-posts") &&
+        profileFeed != QStringLiteral("user-quotes") &&
+        profileFeed != QStringLiteral("user-replies")) {
+        return;
+    }
+
+    for (qsizetype index = rows.size(); index > 0; --index) {
+        const QVariantMap row = rows[index - 1].toMap();
+        const bool reply = isReplyPresentationRow(row);
+        const bool quote = !reply && isQuotePresentationRow(row);
+        const bool keep = profileFeed == QStringLiteral("user-replies") ? reply
+            : profileFeed == QStringLiteral("user-quotes") ? quote
+            : !reply && !quote;
+        if (!keep) {
+            rows.removeAt(index - 1);
+        }
+    }
+}
+
+[[nodiscard]] bool writeRowEligibleForProfileFeed(
+    const QVariantMap& row, const QString& profileFeed)
+{
+    const bool reply = isReplyPresentationRow(row);
+    const bool quote = !reply && isQuotePresentationRow(row);
+    if (profileFeed == QStringLiteral("user-posts")) {
+        return !reply && !quote;
+    }
+    if (profileFeed == QStringLiteral("user-quotes")) {
+        return quote;
+    }
+    if (profileFeed == QStringLiteral("user-replies")) {
+        return reply;
+    }
+    // Local optimistic Casts cannot be classified authoritatively as Likes or
+    // Popular from the write projection alone. Do not leak them into those tabs.
+    return false;
+}
+
 void removeCastPresentation(QVariantList& rows, const QString& castId)
 {
     for (qsizetype index = rows.size(); index > 0; --index) {
@@ -1498,11 +1557,18 @@ void PresentationBridge::applyWriteState(
 
         if (m_activeView == QStringLiteral("feed") ||
             (m_activeView == QStringLiteral("profile") &&
-             m_profileFeed == QStringLiteral("user-posts") &&
+             (m_profileFeed == QStringLiteral("user-posts") ||
+              m_profileFeed == QStringLiteral("user-quotes") ||
+              m_profileFeed == QStringLiteral("user-replies")) &&
              m_profileFid == m_accountFid)) {
             QVariantList merged{};
             merged.reserve(m_writeRows.size() + m_rows.size());
-            for (const auto& row : m_writeRows) { merged.push_back(row); }
+            for (const auto& row : m_writeRows) {
+                if (m_activeView != QStringLiteral("profile") ||
+                    writeRowEligibleForProfileFeed(row.toMap(), m_profileFeed)) {
+                    merged.push_back(row);
+                }
+            }
             for (const auto& row : m_rows) {
                 const QString existingId = row.toMap().value(QStringLiteral("castId")).toString();
                 bool duplicate = false;
@@ -1779,11 +1845,18 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
         m_activeFeed = std::move(selector);
     } else if (m_activeView == QStringLiteral("profile")) {
         m_profileFeed = std::move(selector);
+        // Keep semantic profile tabs authoritative even when an older cached
+        // snapshot was produced before provider-side Posts/Quotes/Replies
+        // filtering was introduced. This also prevents stale reply rows from
+        // resurfacing while the network refresh is unavailable.
+        enforceProfileFeedSemantics(rows, m_profileFeed);
     }
     const bool mergeLocalWrites = !m_writeRows.isEmpty() &&
         (m_activeView == QStringLiteral("feed") ||
          (m_activeView == QStringLiteral("profile") &&
-          m_profileFeed == QStringLiteral("user-posts") &&
+          (m_profileFeed == QStringLiteral("user-posts") ||
+           m_profileFeed == QStringLiteral("user-quotes") ||
+           m_profileFeed == QStringLiteral("user-replies")) &&
           m_profileFid == m_accountFid));
     if (mergeLocalWrites) {
         QVariantList retainedWriteRows{};
@@ -1792,6 +1865,13 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
         merged.reserve(m_writeRows.size() + rows.size());
         for (const auto& writeRow : m_writeRows) {
             const auto map = writeRow.toMap();
+            const bool eligible = m_activeView != QStringLiteral("profile") ||
+                writeRowEligibleForProfileFeed(map, m_profileFeed);
+            if (!eligible) {
+                retainedWriteRows.push_back(writeRow);
+                continue;
+            }
+
             const QString castId = map.value(QStringLiteral("castId")).toString();
             const bool confirmed = map.value(QStringLiteral("writeState")).toString()
                 == QStringLiteral("confirmed");
