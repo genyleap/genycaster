@@ -152,6 +152,8 @@ public:
     Q_INVOKABLE void retry();
     Q_INVOKABLE void showFeed();
     Q_INVOKABLE void openExternalUrl(const QString& url);
+    /** @brief Opens an approved rich-media URL in Genycaster's isolated native web-media host. */
+    Q_INVOKABLE void openEmbeddedMedia(const QString& url, const QString& title = {});
     Q_INVOKABLE void copyText(const QString& text);
     /** @brief Selects the approved contextual glyph for the existing Like action without changing reaction semantics. */
     [[nodiscard]] Q_INVOKABLE QString contextualReactionIcon(const QString& text) const;
@@ -232,7 +234,8 @@ public:
     void restoreNotificationSeenAt(qulonglong accountFid, qlonglong observedAtMs);
     /** @brief Commits normalized rows for a feed or social surface. */
     void applyList(QString view, QString selector, QVariantList rows, QString next,
-        QString status, QString error, QString diagnostic, bool busy, bool stale, bool sourceUnavailable);
+        QString status, QString error, QString diagnostic, bool busy, bool stale,
+        bool sourceUnavailable, bool paginationRequest = false);
     /** @brief Patches a hydrated parent/quoted cast preview into visible rows without exposing raw ids. */
     void applyReferencedCastPreview(QString castId, QVariantMap preview);
     /** @brief Commits normalized profile or cast detail presentation data. */
@@ -281,6 +284,7 @@ signals:
     void reactionRequested(QString kind, qulonglong targetAuthorFid, QString targetCastId, bool active);
     void followingMutationRequested(qulonglong targetFid, bool following);
     void removeCastRequested(qulonglong authorFid, QString castId);
+    void embeddedMediaRequested(QString url, QString title);
     void socialRequested(
         QString kind,
         qulonglong fid,
