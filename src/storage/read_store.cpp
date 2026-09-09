@@ -309,7 +309,11 @@ foundation::result::Result<capability::feed::FeedPage> SqliteReadStore::readFeed
     const local::read::FeedKey& key)
 {
     const std::string id = feedKey(key);
-    auto entries = m_timelines->readTimeline(local::timeline::TimelineId{id}, key.limit);
+    // `key.limit` is the provider page size, not the size of the already
+    // materialized local snapshot. Pagination appends each fetched page to this
+    // timeline, so returning only the first network page makes load-more appear
+    // to succeed while the UI never sees the accumulated rows.
+    auto entries = m_timelines->readAllTimeline(local::timeline::TimelineId{id});
     if (!entries) {
         return std::unexpected(std::move(entries.error()));
     }
@@ -450,7 +454,7 @@ SqliteReadStore::readSocial(const local::read::SocialKey& key)
         std::scoped_lock lock{m_mutex};
         auto prepared = sqlite::Statement::prepare(m_metadata, R"SQL(
 SELECT source_fid, target_fid, relation_kind FROM social_list_entries
-WHERE list_id = ? ORDER BY position ASC LIMIT ?;
+WHERE list_id = ? ORDER BY position ASC;
 )SQL");
         if (!prepared) {
             return std::unexpected(toFoundationError(std::move(prepared.error())));
@@ -459,10 +463,8 @@ WHERE list_id = ? ORDER BY position ASC LIMIT ?;
         if (auto status = sqlite::bindText(statement.native(), 1, id); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
-        if (sqlite3_bind_int64(statement.native(), 2, static_cast<sqlite3_int64>(key.limit)) != SQLITE_OK) {
-            return std::unexpected(toFoundationError(sqlite::makeError(
-                m_metadata.native(), "Failed to bind social list limit")));
-        }
+        // Social pagination follows the same materialized-snapshot contract as
+        // feeds: the network page size must never truncate accumulated local rows.
         while (true) {
             const int step = sqlite3_step(statement.native());
             if (step == SQLITE_DONE) {
