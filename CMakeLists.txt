@@ -114,7 +114,12 @@ endif()
 option(FARCASTER_ENABLE_SOCIAL "Enable social product composition" ON)
 option(FARCASTER_ENABLE_FEED "Enable feed product composition" ON)
 option(FARCASTER_ENABLE_CHANNELS "Enable channels product composition" OFF)
-option(FARCASTER_ENABLE_MINIAPPS "Enable Mini Apps product composition" OFF)
+set(_farcasterMiniAppsDefault OFF)
+if(FARCASTER_BUILD_UI AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(_farcasterMiniAppsDefault ON)
+endif()
+option(FARCASTER_ENABLE_MINIAPPS "Enable Mini Apps product composition" ${_farcasterMiniAppsDefault})
+unset(_farcasterMiniAppsDefault)
 option(FARCASTER_ENABLE_CHAT "Enable chat product composition" OFF)
 option(FARCASTER_ENABLE_SEARCH "Enable search product composition" OFF)
 option(FARCASTER_ENABLE_NOTIFICATIONS "Enable notifications product composition" ON)
@@ -219,6 +224,17 @@ option(
 )
 unset(_farcasterBrowserWalletAuthorizerDefault)
 
+set(_farcasterMiniAppWalletBridgeDefault OFF)
+if(FARCASTER_BUILD_UI AND FARCASTER_ENABLE_MINIAPPS)
+    set(_farcasterMiniAppWalletBridgeDefault ON)
+endif()
+option(
+    FARCASTER_ENABLE_BROWSER_WALLET_BRIDGE
+    "Compile the isolated EIP-1193 Mini App browser-wallet bridge"
+    ${_farcasterMiniAppWalletBridgeDefault}
+)
+unset(_farcasterMiniAppWalletBridgeDefault)
+
 set(_farcasterSignerAttestationProviderDefault OFF)
 if(FARCASTER_BUILD_UI AND FARCASTER_ENABLE_PROTOCOL_SIGNING)
     # Production App-FID attribution uses a tiny HTTPS attestation service so
@@ -304,7 +320,7 @@ if(FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS)
     add_subdirectory(src/providers/compatibility/farcaster_auth)
 endif()
 
-if(FARCASTER_ENABLE_BROWSER_WALLET_AUTHORIZER)
+if(FARCASTER_ENABLE_BROWSER_WALLET_AUTHORIZER OR FARCASTER_ENABLE_BROWSER_WALLET_BRIDGE)
     add_subdirectory(src/providers/compatibility/browser_wallet)
 endif()
 
