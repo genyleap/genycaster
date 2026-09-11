@@ -9,8 +9,10 @@ target_sources(farcaster_presentation_media
         FILE_SET CXX_MODULES
         FILES
             classification.cppm
+            storage_policy.cppm
     PRIVATE
         classification.cpp
+        storage_policy.cpp
 )
 
 target_compile_features(farcaster_presentation_media PUBLIC cxx_std_26)
