@@ -54,6 +54,8 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool hasReadActivity READ hasReadActivity NOTIFY stateChanged)
     Q_PROPERTY(bool feedStarted READ feedStarted NOTIFY stateChanged)
     Q_PROPERTY(QVariantList rows READ rows NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList explorerArtRows READ explorerArtRows NOTIFY stateChanged)
+    Q_PROPERTY(bool explorerArtBusy READ explorerArtBusy NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY stateChanged)
     Q_PROPERTY(QVariantList searchResults READ searchResults NOTIFY searchChanged)
     Q_PROPERTY(bool searchBusy READ searchBusy NOTIFY searchChanged)
@@ -121,6 +123,8 @@ public:
     [[nodiscard]] bool hasReadActivity() const noexcept;
     [[nodiscard]] bool feedStarted() const noexcept;
     [[nodiscard]] QVariantList rows() const;
+    [[nodiscard]] QVariantList explorerArtRows() const;
+    [[nodiscard]] bool explorerArtBusy() const noexcept;
     [[nodiscard]] QVariantMap detail() const;
     [[nodiscard]] QVariantList searchResults() const;
     [[nodiscard]] bool searchBusy() const noexcept;
@@ -181,6 +185,8 @@ public:
     /** @brief Enables or disables X-style buffering of newly refreshed feed rows. */
     Q_INVOKABLE void setBufferNewPosts(bool enabled);
     Q_INVOKABLE void showFeed();
+    /** @brief Starts one bounded background discovery read across curated Farcaster art channels. */
+    Q_INVOKABLE void requestExplorerArt();
     Q_INVOKABLE void openExternalUrl(const QString& url);
     /** @brief Opens an approved rich-media URL in Genycaster's isolated native web-media host. */
     Q_INVOKABLE void openEmbeddedMedia(const QString& url, const QString& title = {});
@@ -266,6 +272,8 @@ public:
     void applyList(QString view, QString selector, QVariantList rows, QString next,
         QString status, QString error, QString diagnostic, bool busy, bool stale,
         bool sourceUnavailable, bool paginationRequest = false);
+    /** @brief Merges one bounded batch of art-channel discovery rows without replacing the active feed. */
+    void applyExplorerArtRows(QVariantList rows, bool busy);
     /** @brief Patches a hydrated parent/quoted cast preview into visible rows without exposing raw ids. */
     void applyReferencedCastPreview(QString castId, QVariantMap preview);
     /** @brief Commits normalized profile or cast detail presentation data. */
@@ -302,6 +310,7 @@ signals:
         QString channelId,
         QString continuation,
         bool allowRecoveryProbe);
+    void explorerArtRequested();
     void castRequested(QString castId, bool allowRecoveryProbe);
     void profileRequested(qulonglong fid, bool allowRecoveryProbe);
     void signInRequested();
@@ -390,6 +399,8 @@ private:
     QVariantList m_pendingFeedRows{};
     QString m_next{};
     QVariantList m_rows{};
+    QVariantList m_explorerArtRows{};
+    bool m_explorerArtBusy{false};
     QVariantMap m_detail{};
     QVariantList m_searchResults{};
     QString m_searchQuery{};
