@@ -324,11 +324,15 @@ public:
         const auto context = iterator->second;
         context->isCancelled = true;
         if (const auto active = m_active.find(id); active != m_active.end()) {
-            if (active->second.reply) {
-                active->second.reply->abort();
-            } else {
+            if (!active->second.reply) {
                 finishCancelled(context);
             }
+            // Image delegates are frequently recycled while a TLS reply is already
+            // delivering bytes. Aborting that socket from the cancellation path can
+            // race Qt's SSL backend and emit "QIODevice::read (QSslSocket): device
+            // not open". Keep the reply alive, drain/discard its remaining body, and
+            // complete cancellation when finished. This preserves bounded buffering
+            // without tearing down a live TLS device mid-read.
             return;
         }
         if (context->isQueued || context->isRetryWaiting) {
@@ -575,16 +579,19 @@ private:
         }
         auto& active = activeIterator->second;
         // A timeout abort (or an interrupted connection) closes the underlying
-        // QIODevice before the reply necessarily flips its open flag. Never
-        // drain after cancellation: calling readAll() in that narrow window
-        // makes Qt ask a closed device to read and emits
-        // "QIODevice::read (QNetworkReplyHttpImpl): device not open".
-        if (!active.reply || active.bodyLimitExceeded || active.timedOut ||
-            !active.reply->isOpen()) {
+        // QIODevice before the reply necessarily flips its open flag. Avoid reads
+        // after timeout; normal caller cancellation is instead drained below so
+        // Qt can tear down the TLS device in order.
+        if (!active.reply || active.timedOut || !active.reply->isOpen()) {
             return;
         }
         const QByteArray bytes = active.reply->readAll();
         if (bytes.isEmpty()) {
+            return;
+        }
+        // Cancelled requests and already-over-budget responses are drained only.
+        // No body bytes are retained after the caller has stopped caring.
+        if (contextIterator->second->isCancelled || active.bodyLimitExceeded) {
             return;
         }
         const auto chunkBytes = static_cast<std::size_t>(bytes.size());
