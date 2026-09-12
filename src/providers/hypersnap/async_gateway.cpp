@@ -61,6 +61,15 @@ constexpr std::chrono::milliseconds viewerReactionRequestTimeout{7'500};
 // drop older reactions that /reaction/user would still report.
 constexpr std::size_t viewerReactionSnapshotLimit{10'000};
 
+[[nodiscard]] transport::async_http::Priority priorityFor(
+    const application::read::model::ReadOptions options,
+    const transport::async_http::Priority foreground) noexcept
+{
+    return options.intent == application::read::model::ReadIntent::Prefetch
+        ? transport::async_http::Priority::Prefetch
+        : foreground;
+}
+
 struct Group final {
     std::atomic_bool cancelled{false};
     std::mutex mutex{};
@@ -482,14 +491,14 @@ foundation::result::Result<AppRequest> AsyncGateway::profile(
 foundation::result::Result<AppRequest> AsyncGateway::cast(
     domain::cast::CastId castId,
     application::read::async_gateway::CastCompletion completion,
-    const application::read::model::ReadOptions)
+    const application::read::model::ReadOptions options)
 {
     if (castId.value.empty() || !completion) {
         return std::unexpected(makeError(ErrorCode::InvalidArgument, "Cast id and completion are required."));
     }
     auto group = std::make_shared<Group>();
     auto completionState = std::make_shared<application::read::async_gateway::CastCompletion>(std::move(completion));
-    auto fallback = [this, group, castId, completionState]() mutable {
+    auto fallback = [this, group, castId, completionState, options]() mutable {
         if (group->cancelled.load(std::memory_order_acquire) || !*completionState) {
             return;
         }
@@ -508,7 +517,7 @@ foundation::result::Result<AppRequest> AsyncGateway::cast(
                 completion(codec::decodeCast(*body));
             },
             request::GetOptions{.timeout = std::chrono::milliseconds{8'000}},
-            transport::async_http::Priority::Interactive);
+            priorityFor(options, transport::async_http::Priority::Interactive));
         if (!operation) {
             auto completion = std::move(*completionState);
             if (completion) {
@@ -537,7 +546,7 @@ foundation::result::Result<AppRequest> AsyncGateway::cast(
             fallback();
         },
         request::GetOptions{.timeout = std::chrono::milliseconds{8'000}},
-        transport::async_http::Priority::Interactive);
+        priorityFor(options, transport::async_http::Priority::Interactive));
     if (!conversation) {
         fallback();
     } else {
@@ -549,7 +558,7 @@ foundation::result::Result<AppRequest> AsyncGateway::cast(
 foundation::result::Result<AppRequest> AsyncGateway::feed(
     application::read::model::FeedQuery query,
     application::read::async_gateway::FeedCompletion completion,
-    const application::read::model::ReadOptions)
+    const application::read::model::ReadOptions options)
 {
     if (!completion) {
         return std::unexpected(makeError(ErrorCode::InvalidArgument, "Feed completion is required."));
@@ -621,6 +630,8 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
         break;
     }
 
+    const auto requestPriority = priorityFor(
+        options, transport::async_http::Priority::Visible);
     auto group = std::make_shared<Group>();
     const capability::pagination::PageRequest pageRequest{
         .limit = query.limit,
@@ -631,7 +642,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
 
     auto scheduled = m_continuationExecutor.post(
         [this, group, query = std::move(query), spec = std::move(spec), capabilityId,
-         pageRequest, completion = std::move(completion)]() mutable {
+         pageRequest, requestPriority, completion = std::move(completion)]() mutable {
             if (group->cancelled.load(std::memory_order_acquire)) {
                 return;
             }
@@ -654,7 +665,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                 auto reactionsOperation = m_client.getJson(
                     "/v2/farcaster/reaction/user",
                     reactionQuery,
-                    [this, group, capabilityId, completion = std::move(completion)](
+                    [this, group, capabilityId, requestPriority, completion = std::move(completion)](
                         foundation::result::Result<std::string> body) mutable {
                         if (group->cancelled.load(std::memory_order_acquire)) {
                             return;
@@ -750,7 +761,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                                 finishEmptyOrHydrated(std::move(*payload), std::nullopt);
                             },
                             request::GetOptions{.timeout = profileFeedRequestTimeout},
-                            transport::async_http::Priority::Visible);
+                            requestPriority);
                         if (!bulk) {
                             finishEmptyOrHydrated(std::nullopt, std::move(bulk.error()));
                             return;
@@ -758,7 +769,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                         group->add(std::move(*bulk));
                     },
                     request::GetOptions{.timeout = profileFeedRequestTimeout},
-                    transport::async_http::Priority::Visible);
+                    requestPriority);
                 if (!reactionsOperation) {
                     completion(std::unexpected(std::move(reactionsOperation.error())));
                     return;
@@ -779,10 +790,10 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
             auto preferred = m_client.getJson(
                 spec.path,
                 preferredQuery,
-                [this, group, spec, capabilityId, pageRequest, resolvedCursor,
+                [this, group, spec, capabilityId, pageRequest, resolvedCursor, requestPriority,
                  completion = std::move(completion)](
                     foundation::result::Result<std::string> body) mutable {
-                    auto process = [this, group, spec, capabilityId, resolvedCursor,
+                    auto process = [this, group, spec, capabilityId, resolvedCursor, requestPriority,
                                     completion = std::move(completion)](
                                        foundation::result::Result<std::string> selectedBody) mutable {
                         if (group->cancelled.load(std::memory_order_acquire)) {
@@ -868,7 +879,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                                         finishPage(std::move(page));
                                     },
                                     request::GetOptions{.timeout = profileFeedRequestTimeout},
-                                    transport::async_http::Priority::Visible);
+                                    requestPriority);
                                 if (hydration) {
                                     group->add(std::move(*hydration));
                                     return;
@@ -896,7 +907,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                             process(std::move(fallbackBody));
                         },
                         request::GetOptions{.timeout = spec.timeout},
-                        transport::async_http::Priority::Visible);
+                        requestPriority);
                     if (!fallback) {
                         process(foundation::result::Result<std::string>{
                             std::unexpected(std::move(fallback.error()))});
@@ -905,7 +916,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                     group->add(std::move(*fallback));
                 },
                 request::GetOptions{.timeout = spec.timeout},
-                transport::async_http::Priority::Visible);
+                requestPriority);
             if (!preferred) {
                 completion(std::unexpected(std::move(preferred.error())));
                 return;
