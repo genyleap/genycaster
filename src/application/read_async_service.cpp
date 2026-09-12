@@ -646,10 +646,10 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
 
             auto request = m_gateway.feed(
                 query,
-                [this, query, localKey, observer, control](
+                [this, query, localKey, observer, options, control](
                     foundation::result::Result<capability::feed::FeedPage> fresh) mutable {
                     auto status = m_cacheExecutor.post(
-                        [this, query, localKey, observer, control,
+                        [this, query, localKey, observer, options, control,
                          fresh = std::move(fresh)]() mutable {
                             if (control->cancelled.load(std::memory_order_acquire)) {
                                 return;
@@ -662,6 +662,21 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                                     state.profiles = std::move(cached->profiles);
                                     state.entries = std::move(cached->entries);
                                     state.next = std::move(cached->next);
+                                }
+                                if (query.continuation
+                                    && options.intent == model::ReadIntent::Prefetch
+                                    && !state.entries.empty()) {
+                                    // Background pagination is opportunistic. Preserve the
+                                    // already-usable materialized feed and stop this local
+                                    // continuation chain instead of promoting a 429/5xx into
+                                    // a page-wide Source issue. A later first-page refresh can
+                                    // establish a fresh continuation token.
+                                    state.next.reset();
+                                    state.metadata = model::ReadMetadata{
+                                        .phase = model::ReadPhase::Ready,
+                                    };
+                                    publish(control, observer, std::move(state));
+                                    return;
                                 }
                                 state.metadata = failedMetadata(
                                     std::move(fresh.error()), !state.entries.empty());
@@ -710,8 +725,17 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                     failed.entries = std::move(cachedAgain->entries);
                     failed.next = std::move(cachedAgain->next);
                 }
-                failed.metadata = failedMetadata(
-                    std::move(request.error()), !failed.entries.empty());
+                if (query.continuation
+                    && options.intent == model::ReadIntent::Prefetch
+                    && !failed.entries.empty()) {
+                    failed.next.reset();
+                    failed.metadata = model::ReadMetadata{
+                        .phase = model::ReadPhase::Ready,
+                    };
+                } else {
+                    failed.metadata = failedMetadata(
+                        std::move(request.error()), !failed.entries.empty());
+                }
                 publish(control, observer, std::move(failed));
                 return;
             }
