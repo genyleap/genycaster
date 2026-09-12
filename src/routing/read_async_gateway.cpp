@@ -67,7 +67,8 @@ struct ObservedAttempt final {
         .capabilityId = std::move(id),
         .requiredAccess = capability::model::CapabilityAccess::Read,
         .minimumQuality = capability::model::CapabilityQuality::Experimental,
-        .allowRecoveryProbe = options.allowRecoveryProbe,
+        .allowRecoveryProbe = options.allowRecoveryProbe
+            && options.intent == application::read::model::ReadIntent::UserVisible,
     };
 }
 
@@ -135,6 +136,43 @@ template <typename Completion, typename Starter>
     Completion completion,
     Starter starter)
 {
+    if (options.intent == application::read::model::ReadIntent::Prefetch) {
+        const auto providerId = route.provider.id;
+        const auto startedAt = healthRegistry.now();
+        auto cancelled = std::make_shared<std::atomic_bool>(false);
+        auto prefetchCompletion = [
+            cancelled,
+            &healthRegistry,
+            providerId,
+            capabilityId,
+            startedAt,
+            completion = std::move(completion)](auto result) mutable {
+            if (cancelled->load(std::memory_order_acquire)) {
+                return;
+            }
+            if (result) {
+                completion(std::move(result));
+                return;
+            }
+            const auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(
+                healthRegistry.now() - startedAt);
+            completion(std::unexpected(observedError(
+                std::move(result.error()), providerId, capabilityId, latency)));
+        };
+        auto request = starter(std::move(prefetchCompletion));
+        if (!request) {
+            const auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(
+                healthRegistry.now() - startedAt);
+            return std::unexpected(observedError(
+                std::move(request.error()), providerId, capabilityId, latency));
+        }
+        AppRequest sourceRequest = std::move(*request);
+        return AppRequest{[cancelled, sourceRequest = std::move(sourceRequest)]() mutable {
+            cancelled->store(true, std::memory_order_release);
+            sourceRequest.cancel();
+        }};
+    }
+
     const auto mode = options.allowRecoveryProbe
         ? health::AttemptMode::ManualRecoveryProbe
         : health::AttemptMode::Normal;
