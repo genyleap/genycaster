@@ -42,7 +42,8 @@ namespace {
         .capabilityId = std::move(id),
         .requiredAccess = capability::model::CapabilityAccess::Read,
         .minimumQuality = capability::model::CapabilityQuality::Experimental,
-        .allowRecoveryProbe = options.allowRecoveryProbe,
+        .allowRecoveryProbe = options.allowRecoveryProbe
+            && options.intent == application::read::model::ReadIntent::UserVisible,
     };
 }
 
@@ -74,6 +75,28 @@ template <typename Operation>
     const application::read::model::ReadOptions options,
     Operation operation) -> decltype(operation())
 {
+    const auto startedAt = healthRegistry.now();
+    if (options.intent == application::read::model::ReadIntent::Prefetch) {
+        auto result = operation();
+        if (result) {
+            return result;
+        }
+        const auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(
+            healthRegistry.now() - startedAt);
+        foundation::error::Error error = std::move(result.error());
+        std::string diagnostic = "Capability: " + capabilityId.value;
+        diagnostic.append("\nProvider: ");
+        diagnostic.append(route.provider.id.value);
+        diagnostic.append("\nLatency: ");
+        diagnostic.append(std::to_string(latency.count()));
+        diagnostic.append("ms\nResult: ");
+        diagnostic.append(errorName(error.code));
+        diagnostic.append("\nPrefetch: true\n");
+        diagnostic.append(error.message);
+        error.message = std::move(diagnostic);
+        return std::unexpected(std::move(error));
+    }
+
     const auto mode = options.allowRecoveryProbe
         ? health::AttemptMode::ManualRecoveryProbe : health::AttemptMode::Normal;
     auto admission = healthRegistry.beginAttempt(route.provider.id, capabilityId, mode);
@@ -81,7 +104,6 @@ template <typename Operation>
         return std::unexpected(std::move(admission.error()));
     }
 
-    const auto startedAt = healthRegistry.now();
     auto result = operation();
     const auto latency = std::chrono::duration_cast<std::chrono::milliseconds>(
         healthRegistry.now() - startedAt);
