@@ -24,9 +24,21 @@ export namespace farcaster::application::read::model {
 /** @brief Lifecycle phase for a local-first read snapshot. */
 enum class ReadPhase : std::uint8_t { LoadingCache, Refreshing, Ready, Failed };
 
-/** @brief Provider-neutral recovery intent for one routed refresh attempt. */
+/** @brief Provider-neutral scheduling intent for one application read. */
+enum class ReadIntent : std::uint8_t {
+    UserVisible,
+    Prefetch,
+};
+
+/**
+ * @brief Provider-neutral execution options for one routed refresh attempt.
+ *
+ * Prefetch reads may reuse current route availability but must not create
+ * source-health strikes or request a manual recovery probe.
+ */
 struct ReadOptions final {
     bool allowRecoveryProbe{false};
+    ReadIntent intent{ReadIntent::UserVisible};
 };
 
 /** @brief Provider-neutral lifecycle metadata presented alongside usable data. */
