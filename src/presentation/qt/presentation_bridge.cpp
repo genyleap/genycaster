@@ -669,6 +669,8 @@ bool PresentationBridge::hasMore() const noexcept { return !m_next.isEmpty(); }
 bool PresentationBridge::hasReadActivity() const noexcept { return m_hasReadActivity; }
 bool PresentationBridge::feedStarted() const noexcept { return m_feedStarted; }
 QVariantList PresentationBridge::rows() const { return m_rows; }
+QVariantList PresentationBridge::explorerArtRows() const { return m_explorerArtRows; }
+bool PresentationBridge::explorerArtBusy() const noexcept { return m_explorerArtBusy; }
 QVariantMap PresentationBridge::detail() const { return m_detail; }
 QVariantList PresentationBridge::searchResults() const { return m_searchResults; }
 bool PresentationBridge::searchBusy() const noexcept { return m_searchBusy; }
@@ -933,8 +935,10 @@ void PresentationBridge::openCast(const QString& castId)
     m_detailReturnView = m_activeView == QStringLiteral("profile")
         ? QStringLiteral("profile")
         : QStringLiteral("feed");
+    m_activeView = QStringLiteral("cast");
+    m_detail.clear();
     beginIntent(qtTrId("genycaster.bridge.reading_cached_cast"));
-    emit castRequested(castId, consumeRecoveryProbe());
+    emit castRequested(castId.trimmed(), consumeRecoveryProbe());
 }
 
 void PresentationBridge::openProfile()
@@ -965,6 +969,14 @@ void PresentationBridge::openProfileUsername(const QString& username)
         emit stateChanged();
         return;
     }
+    // Route immediately to a clean profile loading state. Keeping the previous
+    // detail/list visible while username resolution runs leaks stale identity
+    // media into the new navigation target for one or more frames.
+    m_activeView = QStringLiteral("profile");
+    m_profileFid = 0;
+    m_detail.clear();
+    m_rows.clear();
+    m_next.clear();
     beginIntent(qtTrId("genycaster.bridge.checking_local_identity"));
     emit profileUsernameRequested(canonical, consumeRecoveryProbe());
 }
@@ -1279,6 +1291,16 @@ void PresentationBridge::showFeed()
 {
     if (m_activeFeed == QStringLiteral("channel")) { openChannel(m_channelId); }
     else { selectFeed(m_activeFeed); }
+}
+
+void PresentationBridge::requestExplorerArt()
+{
+    if (m_explorerArtBusy || !m_explorerArtRows.isEmpty() || !m_runtimeReady) {
+        return;
+    }
+    m_explorerArtBusy = true;
+    emit stateChanged();
+    emit explorerArtRequested();
 }
 
 void PresentationBridge::openExternalUrl(const QString& url)
@@ -2264,6 +2286,37 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
     emit stateChanged();
 }
 
+
+void PresentationBridge::applyExplorerArtRows(QVariantList rows, const bool busy)
+{
+    QHash<QString, qsizetype> existing{};
+    existing.reserve(m_explorerArtRows.size() + rows.size());
+    for (qsizetype index = 0; index < m_explorerArtRows.size(); ++index) {
+        const QString castId = m_explorerArtRows.at(index).toMap().value(QStringLiteral("castId")).toString();
+        if (!castId.isEmpty()) {
+            existing.insert(castId, index);
+        }
+    }
+    for (QVariant& value : rows) {
+        QVariantMap row = value.toMap();
+        const QString castId = row.value(QStringLiteral("castId")).toString();
+        if (castId.isEmpty()) {
+            continue;
+        }
+        if (const auto found = existing.constFind(castId); found != existing.cend()) {
+            m_explorerArtRows[*found] = std::move(row);
+        } else {
+            existing.insert(castId, m_explorerArtRows.size());
+            m_explorerArtRows.push_back(std::move(row));
+        }
+    }
+    std::sort(m_explorerArtRows.begin(), m_explorerArtRows.end(), [](const QVariant& left, const QVariant& right) {
+        return left.toMap().value(QStringLiteral("createdAtMs")).toLongLong()
+            > right.toMap().value(QStringLiteral("createdAtMs")).toLongLong();
+    });
+    m_explorerArtBusy = busy;
+    emit stateChanged();
+}
 
 void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap preview)
 {
