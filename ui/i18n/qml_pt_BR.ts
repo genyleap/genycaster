@@ -1,0 +1,3298 @@
+<?xml version='1.0' encoding='utf-8'?>
+<TS version="2.1" language="pt_BR" sourcelanguage="en_US">
+    <context>
+        <name />
+        <message id="genycaster.miniapp.presentation_title">
+            <source>Mini App presentation</source>
+            <translation>Mini App presentation</translation>
+        </message>
+        <message id="genycaster.miniapp.presentation_description">
+            <source>Saved for the next app you open. Changing this does not reload a running app.</source>
+            <translation>Saved for the next app you open. Changing this does not reload a running app.</translation>
+        </message>
+        <message id="genycaster.miniapp.mode_window">
+            <source>Separate window</source>
+            <translation>Separate window</translation>
+        </message>
+        <message id="genycaster.miniapp.mode_bottom">
+            <source>Drawer from bottom</source>
+            <translation>Drawer from bottom</translation>
+        </message>
+        <message id="genycaster.miniapp.mode_left">
+            <source>Drawer from left</source>
+            <translation>Drawer from left</translation>
+        </message>
+        <message id="genycaster.miniapp.mode_right">
+            <source>Drawer from right</source>
+            <translation>Drawer from right</translation>
+        </message>
+        <message id="genycaster.miniapp.close">
+            <source>Close app</source>
+            <translation>Close app</translation>
+        </message>
+        <message id="genycaster.miniapp.open_internal">
+            <source>Open in Genycaster</source>
+            <translation>Open in Genycaster</translation>
+        </message>
+        <message id="genycaster.miniapp.unavailable">
+            <source>The internal Mini App host is not enabled in this build.</source>
+            <translation>The internal Mini App host is not enabled in this build.</translation>
+        </message>
+        <message id="genycaster.miniapp.sign_in_first">
+            <source>Sign in to Genycaster before opening this app.</source>
+            <translation>Sign in to Genycaster before opening this app.</translation>
+        </message>
+        <message id="genycaster.miniapp.loading">
+            <source>Loading app…</source>
+            <translation>Carregando app…</translation>
+        </message>
+        <message id="genycaster.miniapp.invalid_url">
+            <source>This app needs a valid public HTTPS address.</source>
+            <translation>This app needs a valid public HTTPS address.</translation>
+        </message>
+        <message id="genycaster.miniapp.invalid_manifest">
+            <source>The app manifest is missing or invalid.</source>
+            <translation>The app manifest is missing or invalid.</translation>
+        </message>
+        <message id="genycaster.miniapp.load_failed">
+            <source>Could not load the app. Check your connection and try again.</source>
+            <translation>Could not load the app. Check your connection and try again.</translation>
+        </message>
+        <message id="genycaster.miniapp.ready_timeout">
+            <source>The app did not become ready. You can retry or close it.</source>
+            <translation>The app did not become ready. You can retry or close it.</translation>
+        </message>
+        <message id="genycaster.miniapp.unsupported_requirements">
+            <source>This app requires host capabilities or chains that Genycaster does not support yet. Reload cannot add them.</source>
+            <translation>This app requires capabilities that Genycaster does not support yet.</translation>
+        </message>
+        <message id="genycaster.miniapp.navigation_blocked">
+            <source>This app tried to leave its approved secure domain. Navigation was blocked.</source>
+            <translation>This app tried to leave its approved secure domain. Navigation was blocked.</translation>
+        </message>
+        <message id="genycaster.miniapp.renderer_failed">
+            <source>The app process stopped. Reload to start a new session.</source>
+            <translation>The app process stopped. Reload to start a new session.</translation>
+        </message>
+        <message id="genycaster.miniapp.rpc_limit">
+            <source>The app sent too many or oversized requests and was stopped.</source>
+            <translation>The app sent too many or oversized requests and was stopped.</translation>
+        </message>
+        <message id="genycaster.miniapp.back">
+            <source>Back</source>
+            <translation>Back</translation>
+        </message>
+        <message id="genycaster.miniapp.retry">
+            <source>Reload</source>
+            <translation>Reload</translation>
+        </message>
+        <message id="genycaster.app.genycaster">
+            <source>Genycaster</source>
+            <translation>Genycaster</translation>
+        </message>
+        <message id="genycaster.bottom_nav.create">
+            <source>Create</source>
+            <translation>Criar</translation>
+        </message>
+        <message id="genycaster.bottom_nav.home">
+            <source>Home</source>
+            <translation>Início</translation>
+        </message>
+        <message id="genycaster.bridge.cached_refreshing_in_background">
+            <source>Cached · refreshing in background</source>
+            <translation>Em cache · atualizando em segundo plano</translation>
+        </message>
+        <message id="genycaster.bridge.checking_local_identity">
+            <source>Checking local identity…</source>
+            <translation>Verificando identidade local…</translation>
+        </message>
+        <message id="genycaster.bridge.choose_a_canonical_cast_before_publishing_a_reply">
+            <source>Choose a canonical cast before publishing a reply.</source>
+            <translation>Escolha um cast canônico antes de publicar uma resposta.</translation>
+        </message>
+        <message id="genycaster.bridge.enable_a_verified_farcaster_signer_before_changing_follows">
+            <source>Enable a verified Farcaster signer before changing follows.</source>
+            <translation>Ative um assinante Farcaster verificado antes de alterar quem você segue.</translation>
+        </message>
+        <message id="genycaster.bridge.enable_a_verified_farcaster_signer_before_deleting_a_cast">
+            <source>Enable a verified Farcaster signer before deleting a cast.</source>
+            <translation>Ative um assinante Farcaster verificado antes de excluir um cast.</translation>
+        </message>
+        <message id="genycaster.bridge.enable_a_verified_farcaster_signer_before_interacting">
+            <source>Enable a verified Farcaster signer before interacting.</source>
+            <translation>Ative um assinante Farcaster verificado antes de interagir.</translation>
+        </message>
+        <message id="genycaster.bridge.enable_a_verified_farcaster_signer_before_publishing">
+            <source>Enable a verified Farcaster signer before publishing.</source>
+            <translation>Ative um assinante Farcaster verificado antes de publicar.</translation>
+        </message>
+        <message id="genycaster.bridge.enable_a_verified_farcaster_signer_before_replying">
+            <source>Enable a verified Farcaster signer before replying.</source>
+            <translation>Ative um assinante Farcaster verificado antes de responder.</translation>
+        </message>
+        <message id="genycaster.bridge.enter_a_channel_id">
+            <source>Enter a channel id.</source>
+            <translation>Digite um ID de canal.</translation>
+        </message>
+        <message id="genycaster.bridge.enter_a_farcaster_username">
+            <source>Enter a Farcaster username.</source>
+            <translation>Digite um nome de usuário do Farcaster.</translation>
+        </message>
+        <message id="genycaster.bridge.enter_a_search_query">
+            <source>Enter something to search.</source>
+            <translation>Digite algo para pesquisar.</translation>
+        </message>
+        <message id="genycaster.bridge.farcaster_casts_are_limited_to_1024_utf_8_bytes">
+            <source>Farcaster cast output is limited to 1024 UTF-8 bytes.</source>
+            <translation>A saída de um cast Farcaster é limitada a 1024 bytes UTF-8.</translation>
+        </message>
+        <message id="genycaster.bridge.invalid_cast_embeds">
+            <source>The cast embed layout is invalid.</source>
+            <translation>O layout das incorporações do cast é inválido.</translation>
+        </message>
+        <message id="genycaster.bridge.invalid_semantic_mentions">
+            <source>The semantic mention layout is invalid.</source>
+            <translation>O layout semântico das menções é inválido.</translation>
+        </message>
+        <message id="genycaster.bridge.loading_the_next_page">
+            <source>Loading the next page…</source>
+            <translation>Carregando a próxima página…</translation>
+        </message>
+        <message id="genycaster.bridge.local_runtime_unavailable">
+            <source>Local runtime unavailable</source>
+            <translation>Ambiente local indisponível</translation>
+        </message>
+        <message id="genycaster.bridge.only_valid_http_s_links_can_be_opened_externally">
+            <source>Only valid HTTP(S) links can be opened externally.</source>
+            <translation>Apenas links HTTP(S) válidos podem ser abertos externamente.</translation>
+        </message>
+        <message id="genycaster.bridge.only_your_own_canonical_farcaster_cast_can_be_deleted">
+            <source>Only your own canonical Farcaster cast can be deleted.</source>
+            <translation>Somente seu próprio cast canônico do Farcaster pode ser excluído.</translation>
+        </message>
+        <message id="genycaster.bridge.open_a_profile_before_loading_profile_posts">
+            <source>Open a profile before loading profile posts.</source>
+            <translation>Abra um perfil antes de carregar as publicações dele.</translation>
+        </message>
+        <message id="genycaster.bridge.open_an_identity_before_reading_following">
+            <source>Open an identity before reading Following.</source>
+            <translation>Abra uma identidade antes de ver quem ela segue.</translation>
+        </message>
+        <message id="genycaster.bridge.open_an_identity_first">
+            <source>Open an identity first.</source>
+            <translation>Abra uma identidade primeiro.</translation>
+        </message>
+        <message id="genycaster.bridge.preparing_a_canonical_farcaster_cast">
+            <source>Preparing a canonical Farcaster cast…</source>
+            <translation>Preparando um cast canônico do Farcaster…</translation>
+        </message>
+        <message id="genycaster.bridge.preparing_a_canonical_farcaster_reply">
+            <source>Preparing a canonical Farcaster reply…</source>
+            <translation>Preparando uma resposta canônica do Farcaster…</translation>
+        </message>
+        <message id="genycaster.bridge.preparing_a_canonical_farcaster_thread">
+            <source>Preparing a canonical Farcaster thread…</source>
+            <translation>Preparando uma sequência canônica do Farcaster…</translation>
+        </message>
+        <message id="genycaster.bridge.preparing_the_farcaster_cast_deletion">
+            <source>Preparing the Farcaster cast deletion…</source>
+            <translation>Preparando a exclusão do cast do Farcaster…</translation>
+        </message>
+        <message id="genycaster.bridge.preparing_the_farcaster_follow">
+            <source>Preparing the Farcaster follow…</source>
+            <translation>Preparando o follow no Farcaster…</translation>
+        </message>
+        <message id="genycaster.bridge.preparing_the_farcaster_interaction">
+            <source>Preparing the Farcaster interaction…</source>
+            <translation>Preparando a interação no Farcaster…</translation>
+        </message>
+        <message id="genycaster.bridge.preparing_the_farcaster_unfollow">
+            <source>Preparing the Farcaster unfollow…</source>
+            <translation>Preparando o unfollow no Farcaster…</translation>
+        </message>
+        <message id="genycaster.bridge.preparing_to_remove_the_farcaster_interaction">
+            <source>Preparing to remove the Farcaster interaction…</source>
+            <translation>Preparando a remoção da interação do Farcaster…</translation>
+        </message>
+        <message id="genycaster.bridge.reading_cached_cast">
+            <source>Reading cached cast…</source>
+            <translation>Lendo cast em cache…</translation>
+        </message>
+        <message id="genycaster.bridge.reading_cached_channel">
+            <source>Reading cached channel…</source>
+            <translation>Lendo canal em cache…</translation>
+        </message>
+        <message id="genycaster.bridge.reading_cached_feed">
+            <source>Reading cached feed…</source>
+            <translation>Lendo feed em cache…</translation>
+        </message>
+        <message id="genycaster.bridge.reading_cached_followers">
+            <source>Reading cached followers…</source>
+            <translation>Lendo seguidores em cache…</translation>
+        </message>
+        <message id="genycaster.bridge.reading_cached_following">
+            <source>Reading cached following…</source>
+            <translation>Lendo seguidos em cache…</translation>
+        </message>
+        <message id="genycaster.bridge.reading_cached_likes">
+            <source>Reading cached likes…</source>
+            <translation>Lendo curtidas em cache…</translation>
+        </message>
+        <message id="genycaster.bridge.reading_cached_popular_casts">
+            <source>Reading cached popular casts…</source>
+            <translation>Lendo casts populares em cache…</translation>
+        </message>
+        <message id="genycaster.bridge.reading_cached_posts">
+            <source>Reading cached posts…</source>
+            <translation>Lendo publicações em cache…</translation>
+        </message>
+        <message id="genycaster.bridge.reading_cached_profile">
+            <source>Reading cached profile…</source>
+            <translation>Lendo perfil em cache…</translation>
+        </message>
+        <message id="genycaster.bridge.reading_cached_quotes">
+            <source>Reading cached quotes…</source>
+            <translation>Lendo citações em cache…</translation>
+        </message>
+        <message id="genycaster.bridge.reading_cached_replies">
+            <source>Reading cached replies…</source>
+            <translation>Lendo respostas em cache…</translation>
+        </message>
+        <message id="genycaster.bridge.ready_to_read">
+            <source>Ready to read</source>
+            <translation>Pronto para ler</translation>
+        </message>
+        <message id="genycaster.bridge.reply_target_not_available_as_canonical_cast">
+            <source>The reply target is not available as a canonical cast in the current presentation state.</source>
+            <translation>O destino da resposta não está disponível como um cast canônico no estado de apresentação atual.</translation>
+        </message>
+        <message id="genycaster.bridge.sign_in_before_changing_follows">
+            <source>Sign in before changing follows.</source>
+            <translation>Entre na conta antes de alterar quem você segue.</translation>
+        </message>
+        <message id="genycaster.bridge.sign_in_before_deleting_a_cast">
+            <source>Sign in before deleting a cast.</source>
+            <translation>Entre na conta antes de excluir um cast.</translation>
+        </message>
+        <message id="genycaster.bridge.sign_in_before_enabling_interactions">
+            <source>Sign in before enabling interactions.</source>
+            <translation>Entre na conta antes de ativar interações.</translation>
+        </message>
+        <message id="genycaster.bridge.sign_in_before_interacting_with_a_cast">
+            <source>Sign in before interacting with a cast.</source>
+            <translation>Entre na conta antes de interagir com um cast.</translation>
+        </message>
+        <message id="genycaster.bridge.sign_in_before_opening_your_account_profile">
+            <source>Sign in before opening your account profile.</source>
+            <translation>Entre na conta antes de abrir o perfil da sua conta.</translation>
+        </message>
+        <message id="genycaster.bridge.sign_in_before_publishing_a_cast">
+            <source>Sign in before publishing a cast.</source>
+            <translation>Entre na conta antes de publicar um cast.</translation>
+        </message>
+        <message id="genycaster.bridge.sign_in_before_replying_to_a_cast">
+            <source>Sign in before replying to a cast.</source>
+            <translation>Entre na conta antes de responder a um cast.</translation>
+        </message>
+        <message id="genycaster.bridge.sign_in_is_not_configured_guest_reading_remains_available">
+            <source>Sign in is not configured in this build. Guest reading remains available.</source>
+            <translation>O login não está configurado nesta compilação. A leitura como convidado continua disponível.</translation>
+        </message>
+        <message id="genycaster.bridge.starting_local_read_runtime">
+            <source>Starting local read runtime…</source>
+            <translation>Iniciando o ambiente local de leitura…</translation>
+        </message>
+        <message id="genycaster.bridge.that_cast_identifier_is_empty">
+            <source>That cast identifier is empty.</source>
+            <translation>Esse identificador de cast está vazio.</translation>
+        </message>
+        <message id="genycaster.bridge.that_farcaster_follow_target_is_invalid">
+            <source>That Farcaster follow target is invalid.</source>
+            <translation>Esse destino de follow do Farcaster é inválido.</translation>
+        </message>
+        <message id="genycaster.bridge.that_farcaster_profile_identifier_is_invalid">
+            <source>That Farcaster profile identifier is invalid.</source>
+            <translation>Esse identificador de perfil do Farcaster é inválido.</translation>
+        </message>
+        <message id="genycaster.bridge.that_farcaster_reaction_target_is_invalid">
+            <source>That Farcaster reaction target is invalid.</source>
+            <translation>Esse destino de reação do Farcaster é inválido.</translation>
+        </message>
+        <message id="genycaster.bridge.that_reply_target_has_an_empty_cast_identifier">
+            <source>That reply target has an empty cast identifier.</source>
+            <translation>Esse destino de resposta tem um identificador de cast vazio.</translation>
+        </message>
+        <message id="genycaster.bridge.the_authentication_approval_link_is_invalid">
+            <source>The authentication approval link is invalid.</source>
+            <translation>O link de aprovação da autenticação é inválido.</translation>
+        </message>
+        <message id="genycaster.bridge.the_local_read_runtime_is_still_starting">
+            <source>The local read runtime is still starting.</source>
+            <translation>O ambiente local de leitura ainda está iniciando.</translation>
+        </message>
+        <message id="genycaster.bridge.the_local_runtime_is_still_starting">
+            <source>The local runtime is still starting.</source>
+            <translation>O ambiente local ainda está iniciando.</translation>
+        </message>
+        <message id="genycaster.bridge.the_system_could_not_open_that_link">
+            <source>The system could not open that link.</source>
+            <translation>O sistema não conseguiu abrir esse link.</translation>
+        </message>
+        <message id="genycaster.bridge.the_system_could_not_open_the_farcaster_approval_link">
+            <source>The system could not open the Farcaster approval link.</source>
+            <translation>O sistema não conseguiu abrir o link de aprovação do Farcaster.</translation>
+        </message>
+        <message id="genycaster.bridge.thread_cast_count_invalid">
+            <source>A thread must contain between 2 and 12 casts.</source>
+            <translation>Uma sequência deve conter entre 2 e 12 Casts.</translation>
+        </message>
+        <message id="genycaster.bridge.thread_cast_empty">
+            <source>Every cast in a thread must contain text or an embed.</source>
+            <translation>Cada Cast de uma sequência deve conter texto ou um conteúdo incorporado.</translation>
+        </message>
+        <message id="genycaster.bridge.too_many_cast_embeds">
+            <source>This cast contains too many protocol embeds. Farcaster accepts at most two.</source>
+            <translation>Este cast contém incorporações demais do protocolo. O Farcaster aceita no máximo duas.</translation>
+        </message>
+        <message id="genycaster.bridge.write_something_before_publishing">
+            <source>Write something before publishing.</source>
+            <translation>Escreva algo antes de publicar.</translation>
+        </message>
+        <message id="genycaster.bridge.write_something_before_replying">
+            <source>Write something before replying.</source>
+            <translation>Escreva algo antes de responder.</translation>
+        </message>
+        <message id="genycaster.cast.copy_cast_id">
+            <source>Copy cast ID</source>
+            <translation>Copiar ID do cast</translation>
+        </message>
+        <message id="genycaster.cast.copy_link">
+            <source>Copy link</source>
+            <translation>Copiar link</translation>
+        </message>
+        <message id="genycaster.cast.copy_text">
+            <source>Copy text</source>
+            <translation>Copiar texto</translation>
+        </message>
+        <message id="genycaster.cast.delete">
+            <source>Delete</source>
+            <translation>Excluir</translation>
+        </message>
+        <message id="genycaster.cast.open_author_profile">
+            <source>Open author profile</source>
+            <translation>Abrir perfil do autor</translation>
+        </message>
+        <message id="genycaster.cast.open_conversation_context">
+            <source>Open conversation context</source>
+            <translation>Abrir contexto da conversa</translation>
+        </message>
+        <message id="genycaster.cast.open_first_link">
+            <source>Open first link</source>
+            <translation>Abrir primeiro link</translation>
+        </message>
+        <message id="genycaster.cast.open_original_cast">
+            <source>Open original cast</source>
+            <translation>Abrir cast original</translation>
+        </message>
+        <message id="genycaster.cast.publish_failed_saved_locally">
+            <source>Publish failed · saved locally</source>
+            <translation>Falha ao publicar · salvo localmente</translation>
+        </message>
+        <message id="genycaster.cast.published">
+            <source>Published</source>
+            <translation>Publicado</translation>
+        </message>
+        <message id="genycaster.cast.publishing_saved_locally">
+            <source>Publishing · saved locally</source>
+            <translation>Publicando · salvo localmente</translation>
+        </message>
+        <message id="genycaster.cast.queued_for_retry_saved_locally">
+            <source>Queued for retry · saved locally</source>
+            <translation>Na fila para tentar novamente · salvo localmente</translation>
+        </message>
+        <message id="genycaster.cast.reply_failed_saved_locally">
+            <source>Reply failed · saved locally</source>
+            <translation>Falha ao responder · salvo localmente</translation>
+        </message>
+        <message id="genycaster.cast.reply_in_a_conversation">
+            <source>Reply in a conversation</source>
+            <translation>Responder em uma conversa</translation>
+        </message>
+        <message id="genycaster.cast.reply_published">
+            <source>Reply published</source>
+            <translation>Resposta publicada</translation>
+        </message>
+        <message id="genycaster.cast.replying_saved_locally">
+            <source>Replying · saved locally</source>
+            <translation>Respondendo · salvo localmente</translation>
+        </message>
+        <message id="genycaster.cast.replying_to_another_cast">
+            <source>Replying to another cast</source>
+            <translation>Respondendo a outro cast</translation>
+        </message>
+        <message id="genycaster.cast.replying_to_parent_link">
+            <source>Replying to a parent link</source>
+            <translation>Respondendo a um link pai</translation>
+        </message>
+        <message id="genycaster.cast.replying_to_value">
+            <source>Replying to %1</source>
+            <translation>Respondendo a %1</translation>
+        </message>
+        <message id="genycaster.cast.unknown">
+            <source>Unknown</source>
+            <translation>Desconhecido</translation>
+        </message>
+        <message id="genycaster.cast.value_embeds">
+            <source>%1 embeds</source>
+            <translation>%1 incorporações</translation>
+        </message>
+        <message id="genycaster.cast.view_conversation">
+            <source>View conversation</source>
+            <translation>Ver conversa</translation>
+        </message>
+        <message id="genycaster.cast.waiting_for_write_authority_saved_locally">
+            <source>Waiting for write authority · saved locally</source>
+            <translation>Aguardando permissão de escrita · salvo localmente</translation>
+        </message>
+        <message id="genycaster.composer.add_cast">
+            <source>Add cast</source>
+            <translation>Adicionar Cast</translation>
+        </message>
+        <message id="genycaster.composer.alt_text_optional">
+            <source>Optional alt text</source>
+            <translation>Texto alternativo opcional</translation>
+        </message>
+        <message id="genycaster.composer.apply">
+            <source>Apply</source>
+            <translation>Aplicar</translation>
+        </message>
+        <message id="genycaster.composer.auto_detect">
+            <source>Auto Detect</source>
+            <translation>Detecção automática</translation>
+        </message>
+        <message id="genycaster.composer.autosaved">
+            <source>Autosaved</source>
+            <translation>Salvo automaticamente</translation>
+        </message>
+        <message id="genycaster.composer.bold">
+            <source>Bold</source>
+            <translation>Negrito</translation>
+        </message>
+        <message id="genycaster.composer.clear_block">
+            <source>Clear block content</source>
+            <translation>Limpar conteúdo do bloco</translation>
+        </message>
+        <message id="genycaster.composer.code_block">
+            <source>Code block</source>
+            <translation>Bloco de código</translation>
+        </message>
+        <message id="genycaster.composer.compatibility_simplified_count">
+            <source>%1 formatting element(s) will be simplified in other Farcaster clients.</source>
+            <translation>%1 elemento(s) de formatação serão simplificados em outros clientes Farcaster.</translation>
+        </message>
+        <message id="genycaster.composer.copy_code">
+            <source>Copy code</source>
+            <translation>Copiar código</translation>
+        </message>
+        <message id="genycaster.composer.cross_client_safe">
+            <source>Published output is clean, protocol-safe text in every Farcaster client.</source>
+            <translation>A saída publicada é texto limpo e seguro para o protocolo em qualquer cliente Farcaster.</translation>
+        </message>
+        <message id="genycaster.composer.draft_restored">
+            <source>Draft restored</source>
+            <translation>Rascunho restaurado</translation>
+        </message>
+        <message id="genycaster.composer.editor_count">
+            <source>Editor %1</source>
+            <translation>Editor %1</translation>
+        </message>
+        <message id="genycaster.composer.embed">
+            <source>Embed</source>
+            <translation>Incorporar</translation>
+        </message>
+        <message id="genycaster.composer.emoji">
+            <source>Emoji</source>
+            <translation>Emoticon</translation>
+        </message>
+        <message id="genycaster.composer.emoji_subtitle">
+            <source>Add an emoji to the current cast.</source>
+            <translation>Adicione um emoji ao Cast atual.</translation>
+        </message>
+        <message id="genycaster.composer.farcaster_preview">
+            <source>Farcaster Preview</source>
+            <translation>Prévia do Farcaster</translation>
+        </message>
+        <message id="genycaster.composer.fid">
+            <source>Farcaster FID</source>
+            <translation>FID do Farcaster</translation>
+        </message>
+        <message id="genycaster.composer.formatting_simplified_count">
+            <source>%1 formatting element(s) will be simplified in standard Farcaster clients.</source>
+            <translation>%1 elemento(s) de formatação serão simplificados em clientes Farcaster padrão.</translation>
+        </message>
+        <message id="genycaster.composer.heading">
+            <source>Heading</source>
+            <translation>Título</translation>
+        </message>
+        <message id="genycaster.composer.heading_placeholder">
+            <source>Heading</source>
+            <translation>Título</translation>
+        </message>
+        <message id="genycaster.composer.inline_code">
+            <source>Inline code</source>
+            <translation>Código em linha</translation>
+        </message>
+        <message id="genycaster.composer.italic">
+            <source>Italic</source>
+            <translation>Itálico</translation>
+        </message>
+        <message id="genycaster.composer.line_numbers">
+            <source>Line numbers</source>
+            <translation>Números de linha</translation>
+        </message>
+        <message id="genycaster.composer.link">
+            <source>Link</source>
+            <translation>Link</translation>
+        </message>
+        <message id="genycaster.composer.list">
+            <source>Bulleted list</source>
+            <translation>Lista com marcadores</translation>
+        </message>
+        <message id="genycaster.composer.list_placeholder">
+            <source>One list item per line</source>
+            <translation>Um item de lista por linha</translation>
+        </message>
+        <message id="genycaster.composer.long_cast_notice">
+            <source>This will publish as a Farcaster long cast.</source>
+            <translation>Isto será publicado como um long cast do Farcaster.</translation>
+        </message>
+        <message id="genycaster.composer.markdown">
+            <source>Markdown</source>
+            <translation>Markdown</translation>
+        </message>
+        <message id="genycaster.composer.markdown_placeholder">
+            <source>Write or paste Markdown. It is parsed into the same rich document used by Visual mode.</source>
+            <translation>Escreva ou cole Markdown. Ele é analisado no mesmo documento rico usado pelo modo Visual.</translation>
+        </message>
+        <message id="genycaster.composer.media">
+            <source>Media</source>
+            <translation>Mídia</translation>
+        </message>
+        <message id="genycaster.composer.mention">
+            <source>Mention</source>
+            <translation>Menção</translation>
+        </message>
+        <message id="genycaster.composer.ordered_list">
+            <source>Numbered list</source>
+            <translation>Lista numerada</translation>
+        </message>
+        <message id="genycaster.composer.ordered_list_placeholder">
+            <source>One numbered item per line</source>
+            <translation>Um item numerado por linha</translation>
+        </message>
+        <message id="genycaster.composer.preview_empty">
+            <source>Nothing to preview yet.</source>
+            <translation>Nada para visualizar ainda.</translation>
+        </message>
+        <message id="genycaster.composer.publish_thread">
+            <source>Publish thread</source>
+            <translation>Publicar sequência</translation>
+        </message>
+        <message id="genycaster.composer.published_count">
+            <source>Published %1 / %2 bytes</source>
+            <translation>Publicado %1 / %2 bytes</translation>
+        </message>
+        <message id="genycaster.composer.published_metadata_saved">
+            <source>Rich metadata saved</source>
+            <translation>Metadados ricos salvos</translation>
+        </message>
+        <message id="genycaster.composer.publishing_thread">
+            <source>Publishing thread…</source>
+            <translation>Publicando sequência…</translation>
+        </message>
+        <message id="genycaster.composer.quote">
+            <source>Quote</source>
+            <translation>Citação</translation>
+        </message>
+        <message id="genycaster.composer.quote_placeholder">
+            <source>Quote</source>
+            <translation>Citação</translation>
+        </message>
+        <message id="genycaster.composer.remove_block">
+            <source>Remove block</source>
+            <translation>Remover bloco</translation>
+        </message>
+        <message id="genycaster.composer.remove_thread_cast">
+            <source>Remove this cast</source>
+            <translation>Remover este Cast</translation>
+        </message>
+        <message id="genycaster.composer.rich_engine_subtitle">
+            <source>Structured rich document · safe Farcaster output</source>
+            <translation>Documento rico estruturado · saída Farcaster segura</translation>
+        </message>
+        <message id="genycaster.composer.saved">
+            <source>Saved</source>
+            <translation>Salvo</translation>
+        </message>
+        <message id="genycaster.composer.separator">
+            <source>Separator</source>
+            <translation>Separador</translation>
+        </message>
+        <message id="genycaster.composer.thread_hint">
+            <source>Add another cast to turn this into a Farcaster thread.</source>
+            <translation>Adicione outro Cast para transformar isto em uma sequência do Farcaster.</translation>
+        </message>
+        <message id="genycaster.composer.thread_placeholder">
+            <source>Continue the thread · Cast %1</source>
+            <translation>Continuar a sequência · Cast %1</translation>
+        </message>
+        <message id="genycaster.composer.thread_protocol_hint">
+            <source>Each cast is a normal Farcaster CastAdd linked to the previous cast as its parent.</source>
+            <translation>Cada Cast é um CastAdd normal do Farcaster ligado ao Cast anterior como seu pai.</translation>
+        </message>
+        <message id="genycaster.composer.thread_title">
+            <source>New thread</source>
+            <translation>Nova sequência</translation>
+        </message>
+        <message id="genycaster.composer.title_optional">
+            <source>Optional title</source>
+            <translation>Título opcional</translation>
+        </message>
+        <message id="genycaster.composer.unsaved">
+            <source>Unsaved changes</source>
+            <translation>Alterações não salvas</translation>
+        </message>
+        <message id="genycaster.composer.url">
+            <source>URL</source>
+            <translation>URL</translation>
+        </message>
+        <message id="genycaster.composer.username">
+            <source>Username</source>
+            <translation>Nome de usuário</translation>
+        </message>
+        <message id="genycaster.composer.visual">
+            <source>Visual</source>
+            <translation>Visual</translation>
+        </message>
+        <message id="genycaster.composer.wrap">
+            <source>Wrap</source>
+            <translation>Quebrar linhas</translation>
+        </message>
+        <message id="genycaster.context.activity">
+            <source>Activity</source>
+            <translation>Atividade</translation>
+        </message>
+        <message id="genycaster.context.buyers_24h">
+            <source>Buyers 24h</source>
+            <translation>Compradores 24 h</translation>
+        </message>
+        <message id="genycaster.context.calendar">
+            <source>Calendar</source>
+            <translation>Calendário</translation>
+        </message>
+        <message id="genycaster.context.checking_geny">
+            <source>Checking your GENY balance…</source>
+            <translation>Verificando seu saldo GENY…</translation>
+        </message>
+        <message id="genycaster.context.community_active_people">
+            <source>Active people</source>
+            <translation>Pessoas ativas</translation>
+        </message>
+        <message id="genycaster.context.community_casts_loaded">
+            <source>Casts loaded</source>
+            <translation>Casts carregados</translation>
+        </message>
+        <message id="genycaster.context.community_engagement">
+            <source>Engagement</source>
+            <translation>Engajamento</translation>
+        </message>
+        <message id="genycaster.context.community_last_7_days">
+            <source>Last 7 days</source>
+            <translation>Últimos 7 dias</translation>
+        </message>
+        <message id="genycaster.context.community_live_sample">
+            <source>Live sample</source>
+            <translation>Amostra ao vivo</translation>
+        </message>
+        <message id="genycaster.context.community_offline">
+            <source>Offline</source>
+            <translation>Sem conexão</translation>
+        </message>
+        <message id="genycaster.context.community_stale">
+            <source>Needs refresh</source>
+            <translation>Precisa atualizar</translation>
+        </message>
+        <message id="genycaster.context.community_waiting">
+            <source>Waiting for feed activity</source>
+            <translation>Aguardando atividade do feed</translation>
+        </message>
+        <message id="genycaster.context.fdv">
+            <source>Fully diluted value</source>
+            <translation>Valor totalmente diluído</translation>
+        </message>
+        <message id="genycaster.context.geny_asset_explainer">
+            <source>GENY is read across your verified Farcaster EVM addresses on Base. No signing or transaction is required.</source>
+            <translation>O saldo de GENY é consultado em todos os seus endereços EVM verificados do Farcaster na Base. Nenhuma assinatura ou transação é necessária.</translation>
+        </message>
+        <message id="genycaster.context.geny_balance_unavailable">
+            <source>GENY balance is temporarily unavailable</source>
+            <translation>O saldo GENY está temporariamente indisponível</translation>
+        </message>
+        <message id="genycaster.context.geny_holder">
+            <source>GENY holder</source>
+            <translation>Titular de GENY</translation>
+        </message>
+        <message id="genycaster.context.geny_membership_hint">
+            <source>GENY is more than a token — it powers identity, access, and status across Genycaster.</source>
+            <translation>GENY é mais que um token — ele impulsiona identidade, acesso e status no Genycaster.</translation>
+        </message>
+        <message id="genycaster.context.geny_utility">
+            <source>GENY utility · Base</source>
+            <translation>Utilidade GENY · Base</translation>
+        </message>
+        <message id="genycaster.context.liquidity">
+            <source>Liquidity</source>
+            <translation>Liquidez</translation>
+        </message>
+        <message id="genycaster.context.market_cap">
+            <source>Market cap</source>
+            <translation>Valor de mercado</translation>
+        </message>
+        <message id="genycaster.context.market_empty">
+            <source>Market data is not available yet.</source>
+            <translation>Os dados de mercado ainda não estão disponíveis.</translation>
+        </message>
+        <message id="genycaster.context.market_source_live">
+            <source>Live market data</source>
+            <translation>Dados de mercado ao vivo</translation>
+        </message>
+        <message id="genycaster.context.market_waiting">
+            <source>Waiting for live price</source>
+            <translation>Aguardando preço ao vivo</translation>
+        </message>
+        <message id="genycaster.context.my_assets">
+            <source>My Assets</source>
+            <translation>Meus ativos</translation>
+        </message>
+        <message id="genycaster.context.not_geny_holder">
+            <source>You are not a GENY holder yet</source>
+            <translation>Você ainda não possui GENY</translation>
+        </message>
+        <message id="genycaster.context.sellers_24h">
+            <source>Sellers 24h</source>
+            <translation>Vendedores 24 h</translation>
+        </message>
+        <message id="genycaster.context.suggested_for_you">
+            <source>Suggested for You</source>
+            <translation>Sugestões para você</translation>
+        </message>
+        <message id="genycaster.context.token_pulse">
+            <source>Token Pulse</source>
+            <translation>Pulso de tokens</translation>
+        </message>
+        <message id="genycaster.context.upcoming_event">
+            <source>Upcoming: Community AMA · 19:00</source>
+            <translation>Em breve: AMA da comunidade · 19:00</translation>
+        </message>
+        <message id="genycaster.context.volume_24h">
+            <source>24h volume</source>
+            <translation>Volume 24h</translation>
+        </message>
+        <message id="genycaster.context.wallet_needed">
+            <source>No verified Farcaster EVM addresses were found</source>
+            <translation>Nenhum endereço EVM verificado do Farcaster foi encontrado</translation>
+        </message>
+        <message id="genycaster.detail.back_back_to_feed">
+            <source>Back to feed</source>
+            <translation>Voltar ao feed</translation>
+        </message>
+        <message id="genycaster.detail.canonical_detail">
+            <source>Canonical detail</source>
+            <translation>Detalhe canônico</translation>
+        </message>
+        <message id="genycaster.detail.delete_cast">
+            <source>Delete cast</source>
+            <translation>Excluir cast</translation>
+        </message>
+        <message id="genycaster.detail.fid_value">
+            <source>FID %1</source>
+            <translation>FID %1</translation>
+        </message>
+        <message id="genycaster.detail.follow">
+            <source>Follow</source>
+            <translation>Seguir</translation>
+        </message>
+        <message id="genycaster.detail.followed">
+            <source>Followed</source>
+            <translation>Seguindo</translation>
+        </message>
+        <message id="genycaster.detail.followers">
+            <source>Followers</source>
+            <translation>Seguidores</translation>
+        </message>
+        <message id="genycaster.detail.following">
+            <source>Following</source>
+            <translation>Seguindo</translation>
+        </message>
+        <message id="genycaster.detail.no_detail_cached_yet">
+            <source>No detail cached yet.</source>
+            <translation>Ainda não há detalhes em cache.</translation>
+        </message>
+        <message id="genycaster.detail.refresh">
+            <source>Refresh</source>
+            <translation>Atualizar</translation>
+        </message>
+        <message id="genycaster.detail.refreshing">
+            <source>Refreshing…</source>
+            <translation>Atualizando…</translation>
+        </message>
+        <message id="genycaster.detail.unfollow">
+            <source>Unfollow</source>
+            <translation>Deixar de seguir</translation>
+        </message>
+        <message id="genycaster.embed.external_link">
+            <source>External link</source>
+            <translation>Link externo</translation>
+        </message>
+        <message id="genycaster.embed.image">
+            <source>Image</source>
+            <translation>Imagem</translation>
+        </message>
+        <message id="genycaster.embed.image_embed">
+            <source>Image embed</source>
+            <translation>Imagem incorporada</translation>
+        </message>
+        <message id="genycaster.embed.media_unavailable">
+            <source>Preview unavailable</source>
+            <translation>Prévia indisponível</translation>
+        </message>
+        <message id="genycaster.embed.open_link">
+            <source>Open link</source>
+            <translation>Abrir link</translation>
+        </message>
+        <message id="genycaster.embed.open_original_image_external">
+            <source>Open original image</source>
+            <translation>Abrir imagem original</translation>
+        </message>
+        <message id="genycaster.embed.open_quoted_cast">
+            <source>Open quoted cast</source>
+            <translation>Abrir cast citado</translation>
+        </message>
+        <message id="genycaster.embed.open_safely_in_your_default_app_external">
+            <source>Open in your default app</source>
+            <translation>Abrir no seu aplicativo padrão</translation>
+        </message>
+        <message id="genycaster.embed.play_video">
+            <source>Play video</source>
+            <translation>Reproduzir vídeo</translation>
+        </message>
+        <message id="genycaster.embed.quoted_cast">
+            <source>Quoted cast</source>
+            <translation>Cast citado</translation>
+        </message>
+        <message id="genycaster.embed.video">
+            <source>Video</source>
+            <translation>Vídeo</translation>
+        </message>
+        <message id="genycaster.embed.view_quoted_cast_next">
+            <source>View quoted cast</source>
+            <translation>Ver cast citado</translation>
+        </message>
+        <message id="genycaster.emoji.classic">
+            <source>Classic</source>
+            <translation>Clássicos</translation>
+        </message>
+        <message id="genycaster.emoji.animated">
+            <source>Animated</source>
+            <translation>Animados</translation>
+        </message>
+        <message id="genycaster.emoji.more">
+            <source>More</source>
+            <translation>Mais</translation>
+        </message>
+        <message id="genycaster.emoji.category.activities">
+            <source>Activities</source>
+            <translation>Atividades</translation>
+        </message>
+        <message id="genycaster.emoji.category.animals">
+            <source>Animals</source>
+            <translation>Animais</translation>
+        </message>
+        <message id="genycaster.emoji.category.flags">
+            <source>Flags</source>
+            <translation>Bandeiras</translation>
+        </message>
+        <message id="genycaster.emoji.category.food">
+            <source>Food</source>
+            <translation>Comida</translation>
+        </message>
+        <message id="genycaster.emoji.category.objects">
+            <source>Objects</source>
+            <translation>Objetos</translation>
+        </message>
+        <message id="genycaster.emoji.category.people">
+            <source>People</source>
+            <translation>Pessoas</translation>
+        </message>
+        <message id="genycaster.emoji.category.recent">
+            <source>Recent</source>
+            <translation>Recentes</translation>
+        </message>
+        <message id="genycaster.emoji.category.smileys">
+            <source>Smileys</source>
+            <translation>Emojis</translation>
+        </message>
+        <message id="genycaster.emoji.category.symbols">
+            <source>Symbols</source>
+            <translation>Símbolos</translation>
+        </message>
+        <message id="genycaster.emoji.category.travel">
+            <source>Travel</source>
+            <translation>Viagem</translation>
+        </message>
+        <message id="genycaster.emoji.search_placeholder">
+            <source>Search emoji</source>
+            <translation>Buscar emoji</translation>
+        </message>
+        <message id="genycaster.empty.browse_explore">
+            <source>Browse Explore</source>
+            <translation>Explorar</translation>
+        </message>
+        <message id="genycaster.empty.explore_is_temporarily_unavailable_open_an_identity_fo">
+            <source>Public discovery is temporarily unavailable. Stay in guest mode and retry; sign-in is only required for interactions.</source>
+            <translation>A descoberta pública está temporariamente indisponível. Continue como convidado e tente novamente; o login só é necessário para interações.</translation>
+        </message>
+        <message id="genycaster.empty.explore_is_temporarily_unavailable_your_home_feed_rema">
+            <source>Explore is temporarily unavailable. Your Home feed remains independent while discovery recovers.</source>
+            <translation>Explorar está temporariamente indisponível. Seu feed inicial continua independente enquanto a descoberta se recupera.</translation>
+        </message>
+        <message id="genycaster.empty.genycaster_checks_local_state_first_then_refreshes_fro">
+            <source>Genycaster checks local state first, then refreshes from the selected source.</source>
+            <translation>O Genycaster verifica primeiro o estado local e depois atualiza a partir da fonte selecionada.</translation>
+        </message>
+        <message id="genycaster.empty.live_reading_is_not_configured">
+            <source>Live reading is not configured</source>
+            <translation>A leitura ao vivo não está configurada</translation>
+        </message>
+        <message id="genycaster.empty.loading_your_reading_surface">
+            <source>Loading your reading surface…</source>
+            <translation>Carregando sua área de leitura…</translation>
+        </message>
+        <message id="genycaster.empty.no_saved_posts_for_offline_reading">
+            <source>No saved posts for offline reading</source>
+            <translation>Não há publicações salvas para leitura offline</translation>
+        </message>
+        <message id="genycaster.empty.nothing_here_yet">
+            <source>Nothing here yet</source>
+            <translation>Ainda não há nada aqui</translation>
+        </message>
+        <message id="genycaster.empty.open_an_identity_choose_another_feed_or_refresh_this_s">
+            <source>Open an identity, choose another feed, or refresh this surface.</source>
+            <translation>Abra uma identidade, escolha outro feed ou atualize esta tela.</translation>
+        </message>
+        <message id="genycaster.empty.open_an_identity_for_your_home_feed_or_use_explore_for">
+            <source>Open an identity for your Home feed, or use Explore for network-wide discovery.</source>
+            <translation>Abra uma identidade para o feed inicial ou use Explorar para descobrir conteúdo de toda a rede.</translation>
+        </message>
+        <message id="genycaster.empty.open_home">
+            <source>Open Home</source>
+            <translation>Abrir Início</translation>
+        </message>
+        <message id="genycaster.empty.open_home_for_this_identity_or_use_explore_when_you_wa">
+            <source>Open Home for this identity, or use Explore when you want network-wide discovery.</source>
+            <translation>Abra Início para esta identidade ou use Explorar quando quiser descobrir conteúdo de toda a rede.</translation>
+        </message>
+        <message id="genycaster.empty.open_identity">
+            <source>Open identity</source>
+            <translation>Abrir identidade</translation>
+        </message>
+        <message id="genycaster.empty.open_your_farcaster_home">
+            <source>Open your Farcaster home</source>
+            <translation>Abrir seu Início do Farcaster</translation>
+        </message>
+        <message id="genycaster.empty.reconnect_and_refresh_once_to_populate_the_local_cache">
+            <source>Reconnect and refresh once to populate the local cache.</source>
+            <translation>Reconecte e atualize uma vez para preencher o cache local.</translation>
+        </message>
+        <message id="genycaster.empty.retry">
+            <source>Retry</source>
+            <translation>Tentar novamente</translation>
+        </message>
+        <message id="genycaster.empty.the_live_source_did_not_return_this_feed">
+            <source>The live source did not return this feed</source>
+            <translation>A fonte ao vivo não retornou este feed</translation>
+        </message>
+        <message id="genycaster.empty.this_feed_could_not_be_loaded">
+            <source>This feed could not be loaded</source>
+            <translation>Não foi possível carregar este feed</translation>
+        </message>
+        <message id="genycaster.empty.trending_is_unavailable_from_this_source">
+            <source>Explore could not refresh</source>
+            <translation>Não foi possível atualizar Explorar</translation>
+        </message>
+        <message id="genycaster.empty.try_again">
+            <source>Try again</source>
+            <translation>Tentar novamente</translation>
+        </message>
+        <message id="genycaster.empty.your_device_may_still_be_online_retry_or_use_another_a">
+            <source>Your device may still be online. Retry or use another available reading surface.</source>
+            <translation>Seu dispositivo pode ainda estar online. Tente novamente ou use outra área de leitura disponível.</translation>
+        </message>
+        <message id="genycaster.engagement.like_value_likes">
+            <source>Like · %1 likes</source>
+            <translation>Curtir · %1 curtidas</translation>
+        </message>
+        <message id="genycaster.engagement.recast_value_recasts">
+            <source>Recast · %1 recasts</source>
+            <translation>Recast · %1 recasts</translation>
+        </message>
+        <message id="genycaster.engagement.reply_value_replies">
+            <source>Reply · %1 replies</source>
+            <translation>Responder · %1 respostas</translation>
+        </message>
+        <message id="genycaster.engagement.undo_recast_value_recasts">
+            <source>Undo recast · %1 recasts</source>
+            <translation>Desfazer recast · %1 recasts</translation>
+        </message>
+        <message id="genycaster.engagement.unlike_value_likes">
+            <source>Unlike · %1 likes</source>
+            <translation>Descurtir · %1 curtidas</translation>
+        </message>
+        <message id="genycaster.engagement.value_replies">
+            <source>%1 replies</source>
+            <translation>%1 respostas</translation>
+        </message>
+        <message id="genycaster.feed_header.a_network_wide_view_from_the_selected_live_source">
+            <source>A network-wide view from the selected live source</source>
+            <translation>Visão de toda a rede a partir da fonte ao vivo selecionada</translation>
+        </message>
+        <message id="genycaster.feed_header.casts_scoped_to_the_channel_you_opened">
+            <source>Casts scoped to the channel you opened</source>
+            <translation>Casts do canal que você abriu</translation>
+        </message>
+        <message id="genycaster.feed_header.channel">
+            <source>Channel</source>
+            <translation>Canal</translation>
+        </message>
+        <message id="genycaster.feed_header.discover_people_channels_and_casts">
+            <source>Discover people, channels, and casts</source>
+            <translation>Descubra pessoas, canais e casts</translation>
+        </message>
+        <message id="genycaster.feed_header.explore">
+            <source>Explore</source>
+            <translation>Explorar</translation>
+        </message>
+        <message id="genycaster.feed_header.home">
+            <source>Home</source>
+            <translation>Início</translation>
+        </message>
+        <message id="genycaster.feed_header.open">
+            <source>Open</source>
+            <translation>Abrir</translation>
+        </message>
+        <message id="genycaster.feed_header.recent_casts_from_the_people_this_identity_follows">
+            <source>Recent casts from the people this identity follows</source>
+            <translation>Casts recentes das pessoas que esta identidade segue</translation>
+        </message>
+        <message id="genycaster.feed_header.refresh">
+            <source>Refresh</source>
+            <translation>Atualizar</translation>
+        </message>
+        <message id="genycaster.feed_header.refreshing">
+            <source>Refreshing…</source>
+            <translation>Atualizando…</translation>
+        </message>
+        <message id="genycaster.feed_header.search_hint">
+            <source>Use @ for profiles, / for channels, or paste a cast id.</source>
+            <translation>Use @ para perfis, / para canais ou cole um ID de cast.</translation>
+        </message>
+        <message id="genycaster.feed_header.search_people_channels_casts">
+            <source>Search people, @user, /channel, or cast id</source>
+            <translation>Pesquisar pessoas, @usuário, /canal ou ID de cast</translation>
+        </message>
+        <message id="genycaster.feed_header.universal_search">
+            <source>Explore search</source>
+            <translation>Pesquisa do Explorar</translation>
+        </message>
+        <message id="genycaster.feed_surface.loading_more">
+            <source>Loading more</source>
+            <translation>Carregando mais</translation>
+        </message>
+        <message id="genycaster.feed_surface.pull_to_refresh">
+            <source>Pull to refresh</source>
+            <translation>Puxe para atualizar</translation>
+        </message>
+        <message id="genycaster.feed_surface.release_to_refresh">
+            <source>Release to refresh</source>
+            <translation>Solte para atualizar</translation>
+        </message>
+        <message id="genycaster.feedback.backend_pending">
+            <source>Feedback transport is not connected yet. This interface is ready; server delivery will be wired in a later build.</source>
+            <translation>O envio de feedback ainda não está conectado ao servidor. Esta interface está pronta; a entrega ao servidor será conectada em uma versão futura.</translation>
+        </message>
+        <message id="genycaster.feedback.bug">
+            <source>Bug</source>
+            <translation>Erro</translation>
+        </message>
+        <message id="genycaster.feedback.copy">
+            <source>Copy</source>
+            <translation>Copiar</translation>
+        </message>
+        <message id="genycaster.feedback.done">
+            <source>Done</source>
+            <translation>Concluído</translation>
+        </message>
+        <message id="genycaster.feedback.idea">
+            <source>Idea</source>
+            <translation>Ideia</translation>
+        </message>
+        <message id="genycaster.feedback.improvement">
+            <source>Improve</source>
+            <translation>Melhoria</translation>
+        </message>
+        <message id="genycaster.feedback.performance">
+            <source>Performance</source>
+            <translation>Desempenho</translation>
+        </message>
+        <message id="genycaster.feedback.placeholder">
+            <source>What happened, what did you expect, and what would make this better?</source>
+            <translation>O que aconteceu, o que você esperava e o que tornaria isso melhor?</translation>
+        </message>
+        <message id="genycaster.feedback.subtitle">
+            <source>Tell us what feels broken, slow, confusing, or worth improving.</source>
+            <translation>Conte o que parece quebrado, lento, confuso ou merece ser melhorado.</translation>
+        </message>
+        <message id="genycaster.feedback.title">
+            <source>Send feedback</source>
+            <translation>Enviar feedback</translation>
+        </message>
+        <message id="genycaster.header.account">
+            <source>Account</source>
+            <translation>Conta</translation>
+        </message>
+        <message id="genycaster.header.genycaster">
+            <source>Genycaster</source>
+            <translation>Genycaster</translation>
+        </message>
+        <message id="genycaster.header.new_cast">
+            <source>New cast</source>
+            <translation>Novo cast</translation>
+        </message>
+        <message id="genycaster.header.open_your_signed_in_account_session">
+            <source>Open your signed-in account session</source>
+            <translation>Abrir a sessão da sua conta</translation>
+        </message>
+        <message id="genycaster.header.sign_in">
+            <source>Sign in</source>
+            <translation>Entrar</translation>
+        </message>
+        <message id="genycaster.header.sign_in_to_interact_on_farcaster">
+            <source>Sign in to interact on Farcaster</source>
+            <translation>Entre para interagir no Farcaster</translation>
+        </message>
+        <message id="genycaster.home.add_story">
+            <source>Add Story</source>
+            <translation>Adicionar story</translation>
+        </message>
+        <message id="genycaster.home.builder_notes">
+            <source>Builder Notes</source>
+            <translation>Notas de builders</translation>
+        </message>
+        <message id="genycaster.home.casts">
+            <source>Casts</source>
+            <translation>Publicações</translation>
+        </message>
+        <message id="genycaster.home.catch_up">
+            <source>Catch up with your friends and communities.</source>
+            <translation>Acompanhe seus amigos e comunidades.</translation>
+        </message>
+        <message id="genycaster.home.community_pulse">
+            <source>Community Pulse</source>
+            <translation>Pulso da comunidade</translation>
+        </message>
+        <message id="genycaster.home.conversations">
+            <source>Conversations</source>
+            <translation>Conversas</translation>
+        </message>
+        <message id="genycaster.home.devs">
+            <source>Devs</source>
+            <translation>Desenvolvedores</translation>
+        </message>
+        <message id="genycaster.home.for_you">
+            <source>For You</source>
+            <translation>Para você</translation>
+        </message>
+        <message id="genycaster.home.greeting_afternoon">
+            <source>Good afternoon, %1</source>
+            <translation>Boa tarde, %1</translation>
+        </message>
+        <message id="genycaster.home.greeting_evening">
+            <source>Good evening, %1</source>
+            <translation>Boa noite, %1</translation>
+        </message>
+        <message id="genycaster.home.greeting_morning">
+            <source>Good morning, %1</source>
+            <translation>Bom dia, %1</translation>
+        </message>
+        <message id="genycaster.home.greeting_night">
+            <source>Good night, %1</source>
+            <translation>Uma ótima noite, %1</translation>
+        </message>
+        <message id="genycaster.home.join_space">
+            <source>Join a space</source>
+            <translation>Entrar em um espaço</translation>
+        </message>
+        <message id="genycaster.home.post_photo">
+            <source>Post a photo</source>
+            <translation>Publicar foto</translation>
+        </message>
+        <message id="genycaster.home.share_cast">
+            <source>Share a cast</source>
+            <translation>Compartilhar cast</translation>
+        </message>
+        <message id="genycaster.home.view_profile">
+            <source>View Profile</source>
+            <translation>Ver perfil</translation>
+        </message>
+        <message id="genycaster.home.visual_filter_all">
+            <source>All</source>
+            <translation>Tudo</translation>
+        </message>
+        <message id="genycaster.home.visual_filter_images">
+            <source>Images</source>
+            <translation>Imagens</translation>
+        </message>
+        <message id="genycaster.home.visual_filter_nfts">
+            <source>NFTs</source>
+            <translation>Itens NFT</translation>
+        </message>
+        <message id="genycaster.home.visual_highlights">
+            <source>Visual Highlights</source>
+            <translation>Destaques visuais</translation>
+        </message>
+        <message id="genycaster.home.visuals">
+            <source>Visuals &amp; NFTs</source>
+            <translation>Visuais e NFTs</translation>
+        </message>
+        <message id="genycaster.locale.add_currency">
+            <source>Add</source>
+            <translation>Adicionar</translation>
+        </message>
+        <message id="genycaster.locale.additional_currencies">
+            <source>Also show</source>
+            <translation>Mostrar também</translation>
+        </message>
+        <message id="genycaster.locale.additional_currencies_description">
+            <source>Optional quote currencies are shown only when a trusted valuation is available. They do not replace the primary currency.</source>
+            <translation>Moedas de cotação opcionais só aparecem quando há uma avaliação confiável. Elas não substituem a moeda principal.</translation>
+        </message>
+        <message id="genycaster.locale.asset_quote">
+            <source>%1 = %2</source>
+            <translation>%1 = %2</translation>
+        </message>
+        <message id="genycaster.locale.calendar">
+            <source>Calendar</source>
+            <translation>Calendário</translation>
+        </message>
+        <message id="genycaster.locale.calendar_auto">
+            <source>Automatic calendar</source>
+            <translation>Calendário automático</translation>
+        </message>
+        <message id="genycaster.locale.calendar_gregorian">
+            <source>Gregorian</source>
+            <translation>Gregoriano</translation>
+        </message>
+        <message id="genycaster.locale.calendar_islamic_civil">
+            <source>Islamic Civil</source>
+            <translation>Islâmico civil</translation>
+        </message>
+        <message id="genycaster.locale.calendar_jalali">
+            <source>Solar Hijri (Jalali)</source>
+            <translation>Hijri solar (Jalali)</translation>
+        </message>
+        <message id="genycaster.locale.calendar_julian">
+            <source>Julian</source>
+            <translation>Juliano</translation>
+        </message>
+        <message id="genycaster.locale.calendar_milankovic">
+            <source>Revised Julian (Milanković)</source>
+            <translation>Juliano revisado (Milanković)</translation>
+        </message>
+        <message id="genycaster.locale.calendar_shahanshahi">
+            <source>Shahanshahi (Imperial)</source>
+            <translation>Shahanshahi (Imperial)</translation>
+        </message>
+        <message id="genycaster.locale.close">
+            <source>Close</source>
+            <translation>Fechar</translation>
+        </message>
+        <message id="genycaster.locale.compact_billion">
+            <source>%1B</source>
+            <translation>%1B</translation>
+        </message>
+        <message id="genycaster.locale.compact_million">
+            <source>%1M</source>
+            <translation>%1M</translation>
+        </message>
+        <message id="genycaster.locale.compact_thousand">
+            <source>%1K</source>
+            <translation>%1K</translation>
+        </message>
+        <message id="genycaster.locale.currency">
+            <source>Currency</source>
+            <translation>Moeda</translation>
+        </message>
+        <message id="genycaster.locale.currency_auto_value">
+            <source>Automatic (%1)</source>
+            <translation>Automática (%1)</translation>
+        </message>
+        <message id="genycaster.locale.currency_formatting_only">
+            <source>Currency selection controls formatting only. Token and FX conversion require a timestamped quote source and never happen inside localization.</source>
+            <translation>A seleção de moeda controla apenas a formatação. Conversões de tokens e câmbio exigem uma fonte de cotação confiável com data e hora e nunca são feitas dentro da localização.</translation>
+        </message>
+        <message id="genycaster.locale.currency_irt_toman">
+            <source>IRT — Toman</source>
+            <translation>IRT — Toman</translation>
+        </message>
+        <message id="genycaster.locale.done">
+            <source>Done</source>
+            <translation>Concluído</translation>
+        </message>
+        <message id="genycaster.locale.language">
+            <source>Language</source>
+            <translation>Idioma</translation>
+        </message>
+        <message id="genycaster.locale.language_system">
+            <source>System language</source>
+            <translation>Idioma do sistema</translation>
+        </message>
+        <message id="genycaster.locale.preview">
+            <source>Preview</source>
+            <translation>Prévia</translation>
+        </message>
+        <message id="genycaster.locale.region_system">
+            <source>System regional format</source>
+            <translation>Formato regional do sistema</translation>
+        </message>
+        <message id="genycaster.locale.regional_format">
+            <source>Regional format</source>
+            <translation>Formato regional</translation>
+        </message>
+        <message id="genycaster.locale.regional_format_description">
+            <source>Controls numbers, dates and automatic local currency independently from the UI language.</source>
+            <translation>Controla números, datas e a moeda local automática independentemente do idioma da interface.</translation>
+        </message>
+        <message id="genycaster.locale.relative_day">
+            <source>1 day ago</source>
+            <translation>há 1 dia</translation>
+        </message>
+        <message id="genycaster.locale.relative_days">
+            <source>%1 days ago</source>
+            <translation>há %1 dias</translation>
+        </message>
+        <message id="genycaster.locale.relative_hour">
+            <source>1 hour ago</source>
+            <translation>há 1 hora</translation>
+        </message>
+        <message id="genycaster.locale.relative_hours">
+            <source>%1 hours ago</source>
+            <translation>há %1 horas</translation>
+        </message>
+        <message id="genycaster.locale.relative_minute">
+            <source>1 minute ago</source>
+            <translation>há 1 minuto</translation>
+        </message>
+        <message id="genycaster.locale.relative_minutes">
+            <source>%1 minutes ago</source>
+            <translation>há %1 minutos</translation>
+        </message>
+        <message id="genycaster.locale.relative_month">
+            <source>1 month ago</source>
+            <translation>há 1 mês</translation>
+        </message>
+        <message id="genycaster.locale.relative_months">
+            <source>%1 months ago</source>
+            <translation>há %1 meses</translation>
+        </message>
+        <message id="genycaster.locale.relative_now">
+            <source>now</source>
+            <translation>agora</translation>
+        </message>
+        <message id="genycaster.locale.relative_week">
+            <source>1 week ago</source>
+            <translation>há 1 semana</translation>
+        </message>
+        <message id="genycaster.locale.relative_weeks">
+            <source>%1 weeks ago</source>
+            <translation>há %1 semanas</translation>
+        </message>
+        <message id="genycaster.locale.relative_year">
+            <source>1 year ago</source>
+            <translation>há 1 ano</translation>
+        </message>
+        <message id="genycaster.locale.relative_years">
+            <source>%1 years ago</source>
+            <translation>há %1 anos</translation>
+        </message>
+        <message id="genycaster.locale.shahanshahi_long">
+            <source>%1، %2 %3 %4 · %5</source>
+            <translation>%1، %2 %3 %4 · %5</translation>
+        </message>
+        <message id="genycaster.locale.shahanshahi_medium">
+            <source>%1 %2 %3 · %4</source>
+            <translation>%1 %2 %3 · %4</translation>
+        </message>
+        <message id="genycaster.locale.shahanshahi_short">
+            <source>%1/%2/%3 · %4</source>
+            <translation>%1/%2/%3 · %4</translation>
+        </message>
+        <message id="genycaster.locale.time_zone">
+            <source>Time zone</source>
+            <translation>Fuso horário</translation>
+        </message>
+        <message id="genycaster.locale.time_zone_system">
+            <source>System time zone</source>
+            <translation>Fuso horário do sistema</translation>
+        </message>
+        <message id="genycaster.locale.timestamp_calendar">
+            <source>Calendar</source>
+            <translation>Calendário</translation>
+        </message>
+        <message id="genycaster.locale.timestamp_display">
+            <source>Timestamp display</source>
+            <translation>Exibição de horário</translation>
+        </message>
+        <message id="genycaster.locale.timestamp_display_description">
+            <source>Smart keeps recent activity relative and uses your selected calendar for older dates. Calendar always shows the selected calendar; Relative always shows elapsed time.</source>
+            <translation>O modo Inteligente mantém atividades recentes em tempo relativo e usa o calendário escolhido para datas antigas. Calendário sempre usa o calendário selecionado; Relativo sempre mostra o tempo decorrido.</translation>
+        </message>
+        <message id="genycaster.locale.timestamp_relative">
+            <source>Relative</source>
+            <translation>Relativo</translation>
+        </message>
+        <message id="genycaster.locale.timestamp_smart">
+            <source>Smart</source>
+            <translation>Inteligente</translation>
+        </message>
+        <message id="genycaster.locale.toman_amount">
+            <source>%1 toman</source>
+            <translation>%1 toman</translation>
+        </message>
+        <message id="genycaster.media.authorizing">
+            <source>Authorizing upload…</source>
+            <translation>Autorizando envio…</translation>
+        </message>
+        <message id="genycaster.media.cancel">
+            <source>Cancel upload</source>
+            <translation>Cancelar envio</translation>
+        </message>
+        <message id="genycaster.media.cancelled">
+            <source>Upload cancelled</source>
+            <translation>Envio cancelado</translation>
+        </message>
+        <message id="genycaster.media.cancelling">
+            <source>Cancelling upload…</source>
+            <translation>Cancelando envio…</translation>
+        </message>
+        <message id="genycaster.media.choose_file">
+            <source>Choose photo or video</source>
+            <translation>Escolher foto ou vídeo</translation>
+        </message>
+        <message id="genycaster.media.choose_file_hint">
+            <source>Select an image or video from your device. It uploads before the cast is published.</source>
+            <translation>Selecione uma imagem ou um vídeo do seu dispositivo. O arquivo será enviado antes da publicação do cast.</translation>
+        </message>
+        <message id="genycaster.media.completed">
+            <source>Upload complete</source>
+            <translation>Envio concluído</translation>
+        </message>
+        <message id="genycaster.media.file_unreadable">
+            <source>The selected file is not readable.</source>
+            <translation>Não foi possível ler o arquivo selecionado.</translation>
+        </message>
+        <message id="genycaster.media.images">
+            <source>Images</source>
+            <translation>Imagens</translation>
+        </message>
+        <message id="genycaster.media.images_and_videos">
+            <source>Images and videos</source>
+            <translation>Imagens e vídeos</translation>
+        </message>
+        <message id="genycaster.media.insert_failed">
+            <source>The uploaded media could not be inserted into this cast.</source>
+            <translation>Não foi possível inserir a mídia enviada neste cast.</translation>
+        </message>
+        <message id="genycaster.media.preparing">
+            <source>Preparing media…</source>
+            <translation>Preparando mídia…</translation>
+        </message>
+        <message id="genycaster.media.queued">
+            <source>Waiting to upload…</source>
+            <translation>Aguardando envio…</translation>
+        </message>
+        <message id="genycaster.media.retry">
+            <source>Retry upload</source>
+            <translation>Tentar enviar novamente</translation>
+        </message>
+        <message id="genycaster.media.unsupported_file_type">
+            <source>Unsupported file type. Choose JPG, PNG, WebP, GIF, AVIF, MP4, WebM, or MOV.</source>
+            <translation>Tipo de arquivo não compatível. Escolha JPG, PNG, WebP, GIF, AVIF, MP4, WebM ou MOV.</translation>
+        </message>
+        <message id="genycaster.media.upload_failed">
+            <source>Media upload failed.</source>
+            <translation>Falha no envio da mídia.</translation>
+        </message>
+        <message id="genycaster.media.upload_unavailable">
+            <source>Media upload is unavailable until your Farcaster signer is ready.</source>
+            <translation>O envio de mídia ficará disponível quando seu signatário do Farcaster estiver pronto.</translation>
+        </message>
+        <message id="genycaster.media.uploading">
+            <source>Uploading…</source>
+            <translation>Enviando…</translation>
+        </message>
+        <message id="genycaster.media.verifying">
+            <source>Verifying upload…</source>
+            <translation>Verificando envio…</translation>
+        </message>
+        <message id="genycaster.media.videos">
+            <source>Videos</source>
+            <translation>Vídeos</translation>
+        </message>
+        <message id="genycaster.notifications.activity">
+            <source>New Farcaster activity</source>
+            <translation>Nova atividade no Farcaster</translation>
+        </message>
+        <message id="genycaster.notifications.could_not_refresh">
+            <source>Notifications could not refresh</source>
+            <translation>Não foi possível atualizar as notificações</translation>
+        </message>
+        <message id="genycaster.notifications.empty_description">
+            <source>New replies, mentions, reactions, and followers will appear here.</source>
+            <translation>Novas respostas, menções, reações e seguidores aparecerão aqui.</translation>
+        </message>
+        <message id="genycaster.notifications.empty_title">
+            <source>You are all caught up</source>
+            <translation>Você está em dia</translation>
+        </message>
+        <message id="genycaster.notifications.followed">
+            <source>%1 followed you</source>
+            <translation>%1 começou a seguir você</translation>
+        </message>
+        <message id="genycaster.notifications.in_reply_to_your_cast">
+            <source>In reply to your cast</source>
+            <translation>Em resposta ao seu cast</translation>
+        </message>
+        <message id="genycaster.notifications.mentioned">
+            <source>%1 mentioned you</source>
+            <translation>%1 mencionou você</translation>
+        </message>
+        <message id="genycaster.notifications.reacted">
+            <source>%1 reacted to your cast</source>
+            <translation>%1 reagiu ao seu cast</translation>
+        </message>
+        <message id="genycaster.notifications.reacted_many">
+            <source>%1 and %2 people reacted to your cast</source>
+            <translation>%1 e %2 pessoas reagiram ao seu cast</translation>
+        </message>
+        <message id="genycaster.notifications.recasted">
+            <source>%1 recast your cast</source>
+            <translation>%1 republicou seu cast</translation>
+        </message>
+        <message id="genycaster.notifications.recasted_many">
+            <source>%1 and %2 people recast your cast</source>
+            <translation>%1 e %2 pessoas republicaram seu cast</translation>
+        </message>
+        <message id="genycaster.notifications.replied">
+            <source>%1 replied to you</source>
+            <translation>%1 respondeu a você</translation>
+        </message>
+        <message id="genycaster.notifications.sign_in">
+            <source>Sign in</source>
+            <translation>Entrar</translation>
+        </message>
+        <message id="genycaster.notifications.sign_in_description">
+            <source>Sign in to see replies, mentions, reactions, and followers.</source>
+            <translation>Entre para ver respostas, menções, reações e seguidores.</translation>
+        </message>
+        <message id="genycaster.notifications.sign_in_required">
+            <source>Sign in to load your Farcaster notifications.</source>
+            <translation>Entre para carregar suas notificações do Farcaster.</translation>
+        </message>
+        <message id="genycaster.notifications.sign_in_title">
+            <source>Your notifications are account-specific</source>
+            <translation>Suas notificações são específicas da sua conta</translation>
+        </message>
+        <message id="genycaster.notifications.someone">
+            <source>Someone</source>
+            <translation>Alguém</translation>
+        </message>
+        <message id="genycaster.notifications.subtitle">
+            <source>Replies, mentions, reactions, and new followers from Farcaster.</source>
+            <translation>Respostas, menções, reações e novos seguidores do Farcaster.</translation>
+        </message>
+        <message id="genycaster.notifications.title">
+            <source>Notifications</source>
+            <translation>Notificações</translation>
+        </message>
+        <message id="genycaster.player.buffering">
+            <source>Buffering</source>
+            <translation>Armazenando em buffer</translation>
+        </message>
+        <message id="genycaster.player.exit_fullscreen">
+            <source>Exit full screen</source>
+            <translation>Sair da tela cheia</translation>
+        </message>
+        <message id="genycaster.player.fullscreen">
+            <source>Full screen</source>
+            <translation>Tela cheia</translation>
+        </message>
+        <message id="genycaster.player.mute">
+            <source>Mute</source>
+            <translation>Silenciar</translation>
+        </message>
+        <message id="genycaster.player.open_original">
+            <source>Open original</source>
+            <translation>Abrir original</translation>
+        </message>
+        <message id="genycaster.player.pause">
+            <source>Pause</source>
+            <translation>Pausar</translation>
+        </message>
+        <message id="genycaster.player.paused">
+            <source>Paused</source>
+            <translation>Em pausa</translation>
+        </message>
+        <message id="genycaster.player.play">
+            <source>Play</source>
+            <translation>Reproduzir</translation>
+        </message>
+        <message id="genycaster.player.playing">
+            <source>Playing</source>
+            <translation>Reproduzindo</translation>
+        </message>
+        <message id="genycaster.player.quality">
+            <source>Video quality</source>
+            <translation>Qualidade do vídeo</translation>
+        </message>
+        <message id="genycaster.player.quality_auto">
+            <source>Auto</source>
+            <translation>Automático</translation>
+        </message>
+        <message id="genycaster.player.quality_original">
+            <source>Original</source>
+            <translation>Qualidade original</translation>
+        </message>
+        <message id="genycaster.player.replay">
+            <source>Replay</source>
+            <translation>Repetir</translation>
+        </message>
+        <message id="genycaster.player.resume">
+            <source>Resume</source>
+            <translation>Retomar</translation>
+        </message>
+        <message id="genycaster.player.retry">
+            <source>Retry</source>
+            <translation>Tentar novamente</translation>
+        </message>
+        <message id="genycaster.player.seek">
+            <source>Seek</source>
+            <translation>Buscar</translation>
+        </message>
+        <message id="genycaster.player.unmute">
+            <source>Unmute</source>
+            <translation>Ativar som</translation>
+        </message>
+        <message id="genycaster.player.video_controls">
+            <source>Video controls</source>
+            <translation>Controles de vídeo</translation>
+        </message>
+        <message id="genycaster.player.video_unavailable">
+            <source>Video unavailable</source>
+            <translation>Vídeo indisponível</translation>
+        </message>
+        <message id="genycaster.player.volume">
+            <source>Volume</source>
+            <translation>Volume</translation>
+        </message>
+        <message id="genycaster.profile.back_back_to_feed">
+            <source>Back to feed</source>
+            <translation>Voltar ao feed</translation>
+        </message>
+        <message id="genycaster.profile.farcaster_profile">
+            <source>Farcaster profile</source>
+            <translation>Perfil do Farcaster</translation>
+        </message>
+        <message id="genycaster.search.not_following">
+            <source>Not following</source>
+            <translation type="unfinished">Not following</translation>
+        </message>
+        <message id="genycaster.search.not_followed_by">
+            <source>Does not follow you</source>
+            <translation type="unfinished">Does not follow you</translation>
+        </message>
+        <message id="genycaster.search.relationship_unknown">
+            <source>Relationship unknown</source>
+            <translation type="unfinished">Relationship unknown</translation>
+        </message>
+        <message id="genycaster.embed.miniapp_external">
+            <source>Mini App · opens externally</source>
+            <translation type="unfinished">Mini App · opens externally</translation>
+        </message>
+        <message id="genycaster.feed.filtered_empty">
+            <source>No matching posts in the loaded feed</source>
+            <translation type="unfinished">No matching posts in the loaded feed</translation>
+        </message>
+        <message id="genycaster.feed.filtered_description">
+            <source>These tabs filter the loaded feed. Load more posts or change the source; unavailable data is not an empty category.</source>
+            <translation type="unfinished">These tabs filter the loaded feed. Load more posts or change the source; unavailable data is not an empty category.</translation>
+        </message>
+        <message id="genycaster.feed.more_filtered">
+            <source>Look through more posts</source>
+            <translation type="unfinished">Look through more posts</translation>
+        </message>
+        <message id="genycaster.profile.follow">
+            <source>Follow</source>
+            <translation>Seguir</translation>
+        </message>
+        <message id="genycaster.profile.followed">
+            <source>Followed</source>
+            <translation>Seguindo</translation>
+        </message>
+        <message id="genycaster.profile.follows_you">
+            <source>Follows you</source>
+            <translation>Segue você</translation>
+        </message>
+        <message id="genycaster.profile.likes">
+            <source>Likes</source>
+            <translation>Curtidas</translation>
+        </message>
+        <message id="genycaster.profile.loading_more_profile_posts">
+            <source>Loading more profile posts</source>
+            <translation>Carregando mais publicações do perfil</translation>
+        </message>
+        <message id="genycaster.profile.no_liked_casts_here_yet">
+            <source>No liked casts here yet</source>
+            <translation>Ainda não há casts curtidos aqui</translation>
+        </message>
+        <message id="genycaster.profile.no_popular_casts_available_yet">
+            <source>No popular casts available yet</source>
+            <translation>Ainda não há casts populares disponíveis</translation>
+        </message>
+        <message id="genycaster.profile.no_posts_here_yet">
+            <source>No posts here yet</source>
+            <translation>Ainda não há publicações aqui</translation>
+        </message>
+        <message id="genycaster.profile.no_quotes_here_yet">
+            <source>No quotes here yet</source>
+            <translation>Ainda não há citações aqui</translation>
+        </message>
+        <message id="genycaster.profile.no_replies_here_yet">
+            <source>No replies here yet</source>
+            <translation>Ainda não há respostas aqui</translation>
+        </message>
+        <message id="genycaster.profile.open_profile_link">
+            <source>Open profile link</source>
+            <translation>Abrir link do perfil</translation>
+        </message>
+        <message id="genycaster.profile.popular">
+            <source>Popular</source>
+            <translation>Popular</translation>
+        </message>
+        <message id="genycaster.profile.posts">
+            <source>Posts</source>
+            <translation>Publicações</translation>
+        </message>
+        <message id="genycaster.profile.pull_to_refresh">
+            <source>Pull to refresh</source>
+            <translation>Puxe para atualizar</translation>
+        </message>
+        <message id="genycaster.profile.quotes">
+            <source>Quotes</source>
+            <translation>Citações</translation>
+        </message>
+        <message id="genycaster.profile.refresh">
+            <source>Refresh</source>
+            <translation>Atualizar</translation>
+        </message>
+        <message id="genycaster.profile.refreshing">
+            <source>Refreshing…</source>
+            <translation>Atualizando…</translation>
+        </message>
+        <message id="genycaster.profile.release_to_refresh">
+            <source>Release to refresh</source>
+            <translation>Solte para atualizar</translation>
+        </message>
+        <message id="genycaster.profile.replies">
+            <source>Replies</source>
+            <translation>Respostas</translation>
+        </message>
+        <message id="genycaster.profile.saved_profile_data_is_empty_retry_when_the_live_source">
+            <source>Saved profile data is empty. Retry when the live source responds.</source>
+            <translation>Os dados salvos do perfil estão vazios. Tente novamente quando a fonte ao vivo responder.</translation>
+        </message>
+        <message id="genycaster.profile.sort_all">
+            <source>All engagement</source>
+            <translation>Todo engajamento</translation>
+        </message>
+        <message id="genycaster.profile.sort_likes">
+            <source>Most liked</source>
+            <translation>Mais curtidos</translation>
+        </message>
+        <message id="genycaster.profile.sort_newest">
+            <source>Newest</source>
+            <translation>Mais recentes</translation>
+        </message>
+        <message id="genycaster.profile.sort_oldest">
+            <source>Oldest</source>
+            <translation>Mais antigos</translation>
+        </message>
+        <message id="genycaster.profile.sort_recasts">
+            <source>Most recast</source>
+            <translation>Mais recasts</translation>
+        </message>
+        <message id="genycaster.profile.sort_replies">
+            <source>Most replies</source>
+            <translation>Mais respostas</translation>
+        </message>
+        <message id="genycaster.profile.trust_score">
+            <source>Trust Score</source>
+            <translation>Pontuação de confiança</translation>
+        </message>
+        <message id="genycaster.profile.trust_signal_description">
+            <source>A public quality signal derived from the profile's canonical score when available.</source>
+            <translation>Um sinal público de qualidade derivado da pontuação canônica do perfil quando disponível.</translation>
+        </message>
+        <message id="genycaster.profile.trust_signal_unavailable">
+            <source>Trust signal unavailable</source>
+            <translation>Sinal de confiança indisponível</translation>
+        </message>
+        <message id="genycaster.profile.try_another_profile_tab_or_refresh">
+            <source>Try another profile tab or refresh.</source>
+            <translation>Tente outra aba do perfil ou atualize.</translation>
+        </message>
+        <message id="genycaster.profile.unfollow">
+            <source>Unfollow</source>
+            <translation>Deixar de seguir</translation>
+        </message>
+        <message id="genycaster.profile.value_followers">
+            <source>%1 Followers</source>
+            <translation>%1 seguidores</translation>
+        </message>
+        <message id="genycaster.profile.value_following">
+            <source>%1 Following</source>
+            <translation>%1 seguindo</translation>
+        </message>
+        <message id="genycaster.profile_list.unknown">
+            <source>Unknown</source>
+            <translation>Desconhecido</translation>
+        </message>
+        <message id="genycaster.rendering.adaptive">
+            <source>Adaptive</source>
+            <translation>Adaptativo</translation>
+        </message>
+        <message id="genycaster.rendering.adaptive_description">
+            <source>Recommended. Adjusts effect quality from observed frame pacing while keeping the interface stable.</source>
+            <translation>Recomendado. Ajusta a qualidade dos efeitos de acordo com o ritmo de quadros observado, mantendo a interface estável.</translation>
+        </message>
+        <message id="genycaster.rendering.backend">
+            <source>Graphics backend</source>
+            <translation>Backend gráfico</translation>
+        </message>
+        <message id="genycaster.rendering.display">
+            <source>Display</source>
+            <translation>Tela</translation>
+        </message>
+        <message id="genycaster.rendering.efficiency">
+            <source>Efficiency</source>
+            <translation>Eficiência</translation>
+        </message>
+        <message id="genycaster.rendering.efficiency_description">
+            <source>Lowest GPU and battery cost with lightweight effects and geometry anti-aliasing.</source>
+            <translation>Menor consumo de GPU e bateria com efeitos leves e antisserrilhamento geométrico.</translation>
+        </message>
+        <message id="genycaster.rendering.experimental">
+            <source>Experimental</source>
+            <translation>Em caráter experimental</translation>
+        </message>
+        <message id="genycaster.rendering.experimental_description">
+            <source>Rendering profiles are experimental while we qualify quality and energy behavior across GPUs.</source>
+            <translation>Os perfis de renderização são experimentais enquanto validamos a qualidade e o consumo de energia em diferentes GPUs.</translation>
+        </message>
+        <message id="genycaster.rendering.fidelity">
+            <source>Fidelity</source>
+            <translation>Alta fidelidade</translation>
+        </message>
+        <message id="genycaster.rendering.fidelity_description">
+            <source>Maximum visual quality, 4× MSAA, full effects, and higher media decode quality.</source>
+            <translation>Qualidade visual máxima, MSAA 4×, efeitos completos e maior qualidade de decodificação de mídia.</translation>
+        </message>
+        <message id="genycaster.rendering.frame_interval">
+            <source>Frame interval</source>
+            <translation>Intervalo de quadro</translation>
+        </message>
+        <message id="genycaster.rendering.msaa">
+            <source>MSAA</source>
+            <translation>Multiamostragem (MSAA)</translation>
+        </message>
+        <message id="genycaster.rendering.off">
+            <source>Off</source>
+            <translation>Desativado</translation>
+        </message>
+        <message id="genycaster.rendering.restart_required">
+            <source>Restart Genycaster to apply the selected MSAA level. Live effect and media quality changes are already active.</source>
+            <translation>Reinicie o Genycaster para aplicar o nível de MSAA selecionado. As mudanças ao vivo de efeitos e qualidade da mídia já estão ativas.</translation>
+        </message>
+        <message id="genycaster.rendering.subtitle">
+            <source>Choose how Genycaster balances battery, frame pacing, and visual fidelity.</source>
+            <translation>Escolha como o Genycaster equilibra bateria, ritmo de quadros e fidelidade visual.</translation>
+        </message>
+        <message id="genycaster.rendering.title">
+            <source>Rendering quality</source>
+            <translation>Qualidade de renderização</translation>
+        </message>
+        <message id="genycaster.roadmap.bookmarks_description">
+            <source>Save casts, threads, profiles, and collections into a fast local library.</source>
+            <translation>Salve casts, threads, perfis e coleções em uma biblioteca local rápida.</translation>
+        </message>
+        <message id="genycaster.roadmap.bookmarks_title">
+            <source>Bookmarks</source>
+            <translation>Favoritos</translation>
+        </message>
+        <message id="genycaster.roadmap.business_description">
+            <source>Profiles, analytics, publishing tools, customer conversations, and commerce for teams.</source>
+            <translation>Perfis, análises, ferramentas de publicação, conversas com clientes e comércio para equipes.</translation>
+        </message>
+        <message id="genycaster.roadmap.business_title">
+            <source>Business</source>
+            <translation>Negócios</translation>
+        </message>
+        <message id="genycaster.roadmap.channels_description">
+            <source>Browse channel spaces and community context while channel-specific interaction logic is connected.</source>
+            <translation>Explore canais e contexto da comunidade enquanto a interação específica de canais é conectada.</translation>
+        </message>
+        <message id="genycaster.roadmap.channels_title">
+            <source>Channels</source>
+            <translation>Canais</translation>
+        </message>
+        <message id="genycaster.roadmap.messages_description">
+            <source>Private conversation with a native desktop workflow and local-first history.</source>
+            <translation>Conversas privadas com fluxo de trabalho nativo para desktop e histórico local-first.</translation>
+        </message>
+        <message id="genycaster.roadmap.messages_title">
+            <source>Messages</source>
+            <translation>Mensagens</translation>
+        </message>
+        <message id="genycaster.roadmap.notifications_description">
+            <source>A focused inbox for mentions, replies, reactions, follows, and important activity.</source>
+            <translation>Uma caixa de entrada focada em menções, respostas, reações, follows e atividades importantes.</translation>
+        </message>
+        <message id="genycaster.roadmap.notifications_title">
+            <source>Notifications</source>
+            <translation>Notificações</translation>
+        </message>
+        <message id="genycaster.roadmap.spaces_description">
+            <source>Live social presence is prepared as a native Genycaster surface while realtime behavior is connected.</source>
+            <translation>A presença social ao vivo está preparada como uma superfície nativa enquanto o comportamento em tempo real é conectado.</translation>
+        </message>
+        <message id="genycaster.roadmap.spaces_title">
+            <source>Spaces</source>
+            <translation>Espaços</translation>
+        </message>
+        <message id="genycaster.roadmap.store_description">
+            <source>Discover apps, digital goods, memberships, and Farcaster-native commerce in one place.</source>
+            <translation>Descubra aplicativos, bens digitais, assinaturas e comércio nativo do Farcaster em um só lugar.</translation>
+        </message>
+        <message id="genycaster.roadmap.store_title">
+            <source>Store</source>
+            <translation>Loja</translation>
+        </message>
+        <message id="genycaster.roadmap.stories_description">
+            <source>Story publishing is visually prepared and waiting for its protocol integration.</source>
+            <translation>A publicação de stories está preparada visualmente e aguarda a integração com o protocolo.</translation>
+        </message>
+        <message id="genycaster.roadmap.stories_title">
+            <source>Stories</source>
+            <translation>Histórias</translation>
+        </message>
+        <message id="genycaster.runtime.cast">
+            <source>Cast</source>
+            <translation>Cast</translation>
+        </message>
+        <message id="genycaster.runtime.cast_deletion">
+            <source>Cast deletion</source>
+            <translation>Exclusão de cast</translation>
+        </message>
+        <message id="genycaster.runtime.cast_deletion_could_not_be_scheduled">
+            <source>Cast deletion could not be scheduled.</source>
+            <translation>Não foi possível agendar a exclusão do cast.</translation>
+        </message>
+        <message id="genycaster.runtime.cast_deletion_is_unavailable_in_this_runtime">
+            <source>Cast deletion is unavailable in this runtime.</source>
+            <translation>A exclusão de casts não está disponível neste ambiente.</translation>
+        </message>
+        <message id="genycaster.runtime.checking_the_protocol_signer_against_the_network">
+            <source>Checking the protocol signer against the network…</source>
+            <translation>Verificando o assinante de protocolo na rede…</translation>
+        </message>
+        <message id="genycaster.runtime.client_attribution_not_configured">
+            <source>Publishing is not configured for this Genycaster build yet. Reading remains available.</source>
+            <translation>A publicação ainda não está configurada nesta versão do Genycaster. A leitura continua disponível.</translation>
+        </message>
+        <message id="genycaster.runtime.confirmed_by_authoritative_farcaster_state">
+            <source> confirmed by authoritative Farcaster state.</source>
+            <translation>confirmado pelo estado autoritativo do Farcaster.</translation>
+        </message>
+        <message id="genycaster.runtime.could_not_reach_live_source">
+            <source>could not reach live source</source>
+            <translation>não foi possível alcançar a fonte ao vivo</translation>
+        </message>
+        <message id="genycaster.runtime.custody_wallet_approval_is_required_to_enable_interactions">
+            <source>Custody wallet approval is required to enable interactions.</source>
+            <translation>A aprovação da carteira de custódia é necessária para ativar interações.</translation>
+        </message>
+        <message id="genycaster.runtime.durable_cast_add_composition_is_not_available">
+            <source>Durable CAST_ADD composition is not available.</source>
+            <translation>A composição durável CAST_ADD não está disponível.</translation>
+        </message>
+        <message id="genycaster.runtime.durable_cast_remove_composition_is_not_available">
+            <source>Durable CAST_REMOVE composition is not available.</source>
+            <translation>A composição durável CAST_REMOVE não está disponível.</translation>
+        </message>
+        <message id="genycaster.runtime.durable_follow_composition_is_not_available">
+            <source>Durable follow composition is not available.</source>
+            <translation>A composição durável de follow não está disponível.</translation>
+        </message>
+        <message id="genycaster.runtime.durable_publishcast_composition_is_not_available">
+            <source>Durable PublishCast composition is not available.</source>
+            <translation>A composição durável PublishCast não está disponível.</translation>
+        </message>
+        <message id="genycaster.runtime.durable_reaction_composition_is_not_available">
+            <source>Durable reaction composition is not available.</source>
+            <translation>A composição durável de reação não está disponível.</translation>
+        </message>
+        <message id="genycaster.runtime.failed_the_signed_operation_remains_recorded_locally">
+            <source> failed. The signed operation remains recorded locally.</source>
+            <translation>falhou. A operação assinada continua registrada localmente.</translation>
+        </message>
+        <message id="genycaster.runtime.farcaster_could_not_verify_this_sign_in_start_a_new_request_">
+            <source>Farcaster could not verify this sign-in. Start a new request and approve the matching account.</source>
+            <translation>O Farcaster não conseguiu verificar este login. Inicie uma nova solicitação e aprove-a com a conta correspondente.</translation>
+        </message>
+        <message id="genycaster.runtime.farcaster_is_rate_limiting_this_write_it_is_saved_locally_fo">
+            <source>Farcaster is rate limiting this write. It is saved locally for retry.</source>
+            <translation>O Farcaster está limitando a frequência desta escrita. Ela foi salva localmente para nova tentativa.</translation>
+        </message>
+        <message id="genycaster.runtime.farcaster_rejected_the_canonical_protocol_message">
+            <source>Farcaster rejected the canonical protocol message.</source>
+            <translation>O Farcaster rejeitou a mensagem canônica do protocolo.</translation>
+        </message>
+        <message id="genycaster.runtime.follow">
+            <source>Follow</source>
+            <translation>Seguir</translation>
+        </message>
+        <message id="genycaster.runtime.follow_change_could_not_be_scheduled">
+            <source>Follow change could not be scheduled.</source>
+            <translation>Não foi possível agendar a alteração de follow.</translation>
+        </message>
+        <message id="genycaster.runtime.follow_changes_are_unavailable_in_this_runtime">
+            <source>Follow changes are unavailable in this runtime.</source>
+            <translation>Alterações de follow não estão disponíveis neste ambiente.</translation>
+        </message>
+        <message id="genycaster.runtime.genycaster_could_not_reach_the_selected_live_source_check_th">
+            <source>Genycaster could not reach the selected live source. Check the source or connection and retry.</source>
+            <translation>O Genycaster não conseguiu alcançar a fonte ao vivo selecionada. Verifique a fonte ou a conexão e tente novamente.</translation>
+        </message>
+        <message id="genycaster.runtime.interaction_signer_is_not_enabled_yet">
+            <source>Interaction signer is not enabled yet.</source>
+            <translation>O assinante de interação ainda não está ativado.</translation>
+        </message>
+        <message id="genycaster.runtime.interaction_signing_could_not_be_verified_safely_reading_is_">
+            <source>Interaction signing could not be verified safely. Reading is unaffected.</source>
+            <translation>Não foi possível verificar com segurança a assinatura de interação. A leitura não foi afetada.</translation>
+        </message>
+        <message id="genycaster.runtime.interaction_signing_is_ready">
+            <source>Interaction signing is ready.</source>
+            <translation>A assinatura de interação está pronta.</translation>
+        </message>
+        <message id="genycaster.runtime.interaction_signing_is_temporarily_unavailable_reading_is_un">
+            <source>Interaction signing is temporarily unavailable. Reading is unaffected.</source>
+            <translation>A assinatura de interação está temporariamente indisponível. A leitura não foi afetada.</translation>
+        </message>
+        <message id="genycaster.runtime.interaction_signing_is_unavailable">
+            <source>Interaction signing is unavailable.</source>
+            <translation>A assinatura de interação está indisponível.</translation>
+        </message>
+        <message id="genycaster.runtime.is_paused_until_the_verified_signer_is_available_again">
+            <source> is paused until the verified signer is available again.</source>
+            <translation>está pausado até que o assinante verificado volte a ficar disponível.</translation>
+        </message>
+        <message id="genycaster.runtime.is_saved_locally_a_bounded_network_retry_is_scheduled">
+            <source> is saved locally. A bounded network retry is scheduled.</source>
+            <translation>está salvo localmente. Uma nova tentativa de rede limitada foi agendada.</translation>
+        </message>
+        <message id="genycaster.runtime.like">
+            <source>Like</source>
+            <translation>Curtir</translation>
+        </message>
+        <message id="genycaster.runtime.live_format_mismatch">
+            <source>live format mismatch</source>
+            <translation>formato dos dados ao vivo incompatível</translation>
+        </message>
+        <message id="genycaster.runtime.live_read_timed_out">
+            <source>live read timed out</source>
+            <translation>a leitura ao vivo excedeu o tempo limite</translation>
+        </message>
+        <message id="genycaster.runtime.live_source_unavailable">
+            <source>live source unavailable</source>
+            <translation>fonte ao vivo indisponível</translation>
+        </message>
+        <message id="genycaster.runtime.loading_live_data">
+            <source>Loading live data…</source>
+            <translation>Carregando dados ao vivo…</translation>
+        </message>
+        <message id="genycaster.runtime.nothing_was_found_for_that_identity_or_item">
+            <source>Nothing was found for that identity or item.</source>
+            <translation>Nada foi encontrado para essa identidade ou item.</translation>
+        </message>
+        <message id="genycaster.runtime.protocol_write">
+            <source>Protocol write</source>
+            <translation>Escrita de protocolo</translation>
+        </message>
+        <message id="genycaster.runtime.publish_could_not_be_scheduled">
+            <source>Publish could not be scheduled.</source>
+            <translation>Não foi possível agendar a publicação.</translation>
+        </message>
+        <message id="genycaster.runtime.publishing_is_unavailable_in_this_runtime">
+            <source>Publishing is unavailable in this runtime.</source>
+            <translation>A publicação não está disponível neste ambiente.</translation>
+        </message>
+        <message id="genycaster.runtime.reaction_could_not_be_scheduled">
+            <source>Reaction could not be scheduled.</source>
+            <translation>Não foi possível agendar a reação.</translation>
+        </message>
+        <message id="genycaster.runtime.reactions_are_unavailable_in_this_runtime">
+            <source>Reactions are unavailable in this runtime.</source>
+            <translation>Reações não estão disponíveis neste ambiente.</translation>
+        </message>
+        <message id="genycaster.runtime.recast">
+            <source>Recast</source>
+            <translation>Recast</translation>
+        </message>
+        <message id="genycaster.runtime.recast_removal">
+            <source>Recast removal</source>
+            <translation>Remover recast</translation>
+        </message>
+        <message id="genycaster.runtime.refresh_did_not_complete">
+            <source>Refresh did not complete</source>
+            <translation>A atualização não foi concluída</translation>
+        </message>
+        <message id="genycaster.runtime.refresh_failed">
+            <source>refresh failed</source>
+            <translation>falha na atualização</translation>
+        </message>
+        <message id="genycaster.runtime.reply">
+            <source>Reply</source>
+            <translation>Responder</translation>
+        </message>
+        <message id="genycaster.runtime.reply_could_not_be_scheduled">
+            <source>Reply could not be scheduled.</source>
+            <translation>Não foi possível agendar a resposta.</translation>
+        </message>
+        <message id="genycaster.runtime.replying_is_unavailable_in_this_runtime">
+            <source>Replying is unavailable in this runtime.</source>
+            <translation>Responder não está disponível neste ambiente.</translation>
+        </message>
+        <message id="genycaster.runtime.saved_data">
+            <source>Saved data · </source>
+            <translation>Dados salvos ·</translation>
+        </message>
+        <message id="genycaster.runtime.saved_data_refreshing">
+            <source>Saved data · refreshing</source>
+            <translation>Dados salvos · atualizando</translation>
+        </message>
+        <message id="genycaster.runtime.saved_locally_before_network_submission">
+            <source> saved locally before network submission.</source>
+            <translation>salvo localmente antes do envio à rede.</translation>
+        </message>
+        <message id="genycaster.runtime.saved_locally_network_submission_is_not_configured_in_this_r">
+            <source> saved locally. Network submission is not configured in this runtime.</source>
+            <translation>salvo localmente. O envio à rede não está configurado neste ambiente.</translation>
+        </message>
+        <message id="genycaster.runtime.sign_in_before_enabling_interactions">
+            <source>Sign in before enabling interactions.</source>
+            <translation>Entre na conta antes de ativar interações.</translation>
+        </message>
+        <message id="genycaster.runtime.sign_in_could_not_be_completed">
+            <source>Sign in could not be completed.</source>
+            <translation>Não foi possível concluir o login.</translation>
+        </message>
+        <message id="genycaster.runtime.sign_in_is_not_available_in_this_build_guest_reading_is_stil">
+            <source>Sign in is not available in this build. Guest reading is still available.</source>
+            <translation>O login não está disponível nesta compilação. A leitura como convidado continua disponível.</translation>
+        </message>
+        <message id="genycaster.runtime.sign_in_is_temporarily_rate_limited_guest_reading_is_still_a">
+            <source>Sign in is temporarily rate limited. Guest reading is still available.</source>
+            <translation>O login está temporariamente limitado por frequência. A leitura como convidado continua disponível.</translation>
+        </message>
+        <message id="genycaster.runtime.signer_attestation_not_configured">
+            <source>Secure Genycaster client attribution is not configured yet. Reading remains available.</source>
+            <translation>A atribuição segura do cliente Genycaster ainda não está configurada. A leitura continua disponível.</translation>
+        </message>
+        <message id="genycaster.runtime.snapchain_rejected_or_contradicted_the_signer_authorization_">
+            <source>Snapchain rejected or contradicted the signer authorization state.</source>
+            <translation>O Snapchain rejeitou ou contradisse o estado de autorização do assinante.</translation>
+        </message>
+        <message id="genycaster.runtime.submitting_value_to_farcaster">
+            <source>Submitting %1 to Farcaster…</source>
+            <translation>Enviando %1 ao Farcaster…</translation>
+        </message>
+        <message id="genycaster.runtime.that_read_request_is_not_valid">
+            <source>That read request is not valid.</source>
+            <translation>Essa solicitação de leitura não é válida.</translation>
+        </message>
+        <message id="genycaster.runtime.the_authentication_worker_is_unavailable">
+            <source>The authentication worker is unavailable.</source>
+            <translation>O processo de autenticação está indisponível.</translation>
+        </message>
+        <message id="genycaster.runtime.the_custody_approval_or_network_confirmation_timed_out">
+            <source>The custody approval or network confirmation timed out.</source>
+            <translation>A aprovação de custódia ou confirmação da rede excedeu o tempo limite.</translation>
+        </message>
+        <message id="genycaster.runtime.the_custody_wallet_did_not_authorize_this_signer_request">
+            <source>The custody wallet did not authorize this signer request.</source>
+            <translation>A carteira de custódia não autorizou esta solicitação de assinante.</translation>
+        </message>
+        <message id="genycaster.runtime.the_live_source_did_not_answer_in_time_this_does_not_mean_yo">
+            <source>The live source did not answer in time. This does not mean your device is offline.</source>
+            <translation>A fonte ao vivo não respondeu a tempo. Isso não significa que seu dispositivo esteja offline.</translation>
+        </message>
+        <message id="genycaster.runtime.the_live_source_is_rate_limited_saved_data_remains_available">
+            <source>The live source is rate limited. Saved data remains available.</source>
+            <translation>A fonte ao vivo está limitada por frequência. Os dados salvos continuam disponíveis.</translation>
+        </message>
+        <message id="genycaster.runtime.the_live_source_returned_data_this_build_cannot_decode_yet">
+            <source>The live source returned data this build cannot decode yet.</source>
+            <translation>A fonte ao vivo retornou dados que esta compilação ainda não consegue decodificar.</translation>
+        </message>
+        <message id="genycaster.runtime.the_local_account_session_could_not_be_saved">
+            <source>The local account session could not be saved.</source>
+            <translation>Não foi possível salvar a sessão local da conta.</translation>
+        </message>
+        <message id="genycaster.runtime.the_local_cache_could_not_be_updated">
+            <source>The local cache could not be updated.</source>
+            <translation>Não foi possível atualizar o cache local.</translation>
+        </message>
+        <message id="genycaster.runtime.the_network_is_temporarily_unavailable_the_write_is_saved_lo">
+            <source>The network is temporarily unavailable. The write is saved locally for retry.</source>
+            <translation>A rede está temporariamente indisponível. A escrita foi salva localmente para nova tentativa.</translation>
+        </message>
+        <message id="genycaster.runtime.the_network_reported_authoritative_state_that_conflicts_with">
+            <source>The network reported authoritative state that conflicts with this write.</source>
+            <translation>A rede informou um estado autoritativo que entra em conflito com esta escrita.</translation>
+        </message>
+        <message id="genycaster.runtime.the_platform_secure_store_or_signer_metadata_could_not_be_ac">
+            <source>The platform secure store or signer metadata could not be accessed.</source>
+            <translation>Não foi possível acessar o armazenamento seguro da plataforma ou os metadados do assinante.</translation>
+        </message>
+        <message id="genycaster.runtime.the_protocol_signer_expired_enable_interactions_again_to_con">
+            <source>The protocol signer expired. Enable interactions again to continue.</source>
+            <translation>O assinante de protocolo expirou. Ative as interações novamente para continuar.</translation>
+        </message>
+        <message id="genycaster.runtime.the_protocol_signer_has_been_revoked">
+            <source>The protocol signer has been revoked.</source>
+            <translation>O assinante de protocolo foi revogado.</translation>
+        </message>
+        <message id="genycaster.runtime.the_protocol_write_could_not_be_completed_safely">
+            <source>The protocol write could not be completed safely.</source>
+            <translation>Não foi possível concluir com segurança a escrita do protocolo.</translation>
+        </message>
+        <message id="genycaster.runtime.the_read_could_not_be_completed">
+            <source>The read could not be completed.</source>
+            <translation>Não foi possível concluir a leitura.</translation>
+        </message>
+        <message id="genycaster.runtime.the_read_worker_is_unavailable">
+            <source>The read worker is unavailable.</source>
+            <translation>O processo de leitura está indisponível.</translation>
+        </message>
+        <message id="genycaster.runtime.the_secure_signer_wallet_or_snapchain_endpoint_is_currently_">
+            <source>The secure signer, wallet, or Snapchain endpoint is currently unavailable.</source>
+            <translation>O assinante seguro, a carteira ou o endpoint do Snapchain está indisponível no momento.</translation>
+        </message>
+        <message id="genycaster.runtime.the_selected_live_source_is_temporarily_unavailable_your_con">
+            <source>The selected live source is temporarily unavailable. Your connection may still be fine.</source>
+            <translation>A fonte ao vivo selecionada está temporariamente indisponível. Sua conexão pode continuar funcionando normalmente.</translation>
+        </message>
+        <message id="genycaster.runtime.the_selected_source_rejected_this_read">
+            <source>The selected source rejected this read.</source>
+            <translation>A fonte selecionada rejeitou esta leitura.</translation>
+        </message>
+        <message id="genycaster.runtime.the_sign_in_proof_could_not_be_validated_safely">
+            <source>The sign-in proof could not be validated safely.</source>
+            <translation>Não foi possível validar com segurança a prova de login.</translation>
+        </message>
+        <message id="genycaster.runtime.the_sign_in_request_timed_out_guest_reading_is_still_availab">
+            <source>The sign-in request timed out. Guest reading is still available.</source>
+            <translation>A solicitação de login excedeu o tempo limite. A leitura como convidado continua disponível.</translation>
+        </message>
+        <message id="genycaster.runtime.the_sign_in_service_is_temporarily_unavailable_guest_reading">
+            <source>The sign-in service is temporarily unavailable. Guest reading is still available.</source>
+            <translation>O serviço de login está temporariamente indisponível. A leitura como convidado continua disponível.</translation>
+        </message>
+        <message id="genycaster.runtime.the_signer_authorization_configuration_is_invalid">
+            <source>The signer authorization configuration is invalid.</source>
+            <translation>A configuração de autorização do assinante é inválida.</translation>
+        </message>
+        <message id="genycaster.runtime.the_signer_operation_could_not_be_completed_safely">
+            <source>The signer operation could not be completed safely.</source>
+            <translation>Não foi possível concluir com segurança a operação do assinante.</translation>
+        </message>
+        <message id="genycaster.runtime.the_write_could_not_be_saved_safely_to_the_durable_outbox">
+            <source>The write could not be saved safely to the durable outbox.</source>
+            <translation>Não foi possível salvar com segurança a escrita na caixa de saída durável.</translation>
+        </message>
+        <message id="genycaster.runtime.this_build_is_missing_a_required_signer_capability_or_endpoi">
+            <source>This build is missing a required signer capability or endpoint configuration.</source>
+            <translation>Esta compilação não tem uma capacidade necessária do assinante ou configuração de endpoint.</translation>
+        </message>
+        <message id="genycaster.runtime.this_build_is_missing_valid_sign_in_with_farcaster_app_confi">
+            <source>Sign-in configuration could not be used. Guest reading remains available.</source>
+            <translation>A configuração de login não pôde ser usada. A leitura como convidado continua disponível.</translation>
+        </message>
+        <message id="genycaster.runtime.this_interaction_does_not_satisfy_the_current_farcaster_prot">
+            <source>This interaction does not satisfy the current Farcaster protocol contract.</source>
+            <translation>Esta interação não atende ao contrato atual do protocolo Farcaster.</translation>
+        </message>
+        <message id="genycaster.runtime.this_interaction_needs_the_current_verified_farcaster_signer">
+            <source>This interaction needs the current verified Farcaster signer and exact required scope.</source>
+            <translation>Esta interação precisa do assinante Farcaster verificado atual e do escopo exato necessário.</translation>
+        </message>
+        <message id="genycaster.runtime.this_read_is_not_available_in_the_current_build">
+            <source>This read is not available in the current build.</source>
+            <translation>Esta leitura não está disponível na compilação atual.</translation>
+        </message>
+        <message id="genycaster.runtime.this_runtime_has_no_compatible_snapchain_write_endpoint_the_">
+            <source>This runtime has no compatible Snapchain write endpoint. The signed write remains queued locally.</source>
+            <translation>Este ambiente não tem um endpoint de escrita Snapchain compatível. A escrita assinada permanece na fila local.</translation>
+        </message>
+        <message id="genycaster.runtime.this_saved_page_cannot_continue_on_the_current_route_refresh">
+            <source>This saved page cannot continue on the current route. Refresh from the start.</source>
+            <translation>Esta página salva não pode continuar na rota atual. Atualize desde o início.</translation>
+        </message>
+        <message id="genycaster.runtime.thread_could_not_be_scheduled">
+            <source>The Farcaster thread could not be scheduled.</source>
+            <translation>Não foi possível agendar a sequência do Farcaster.</translation>
+        </message>
+        <message id="genycaster.runtime.unfollow">
+            <source>Unfollow</source>
+            <translation>Deixar de seguir</translation>
+        </message>
+        <message id="genycaster.runtime.unlike">
+            <source>Unlike</source>
+            <translation>Descurtir</translation>
+        </message>
+        <message id="genycaster.runtime.up_to_date">
+            <source>Up to date</source>
+            <translation>Atualizado</translation>
+        </message>
+        <message id="genycaster.runtime.waiting_for_custody_approval_and_network_confirmation">
+            <source>Waiting for custody approval and network confirmation…</source>
+            <translation>Aguardando aprovação de custódia e confirmação da rede…</translation>
+        </message>
+        <message id="genycaster.runtime.you">
+            <source>you</source>
+            <translation>você</translation>
+        </message>
+        <message id="genycaster.runtime.you_2">
+            <source>You</source>
+            <translation>Você</translation>
+        </message>
+        <message id="genycaster.search.cast">
+            <source>Cast</source>
+            <translation>Buscar cast</translation>
+        </message>
+        <message id="genycaster.search.channel">
+            <source>Channel</source>
+            <translation>Canal</translation>
+        </message>
+        <message id="genycaster.search.profile">
+            <source>Profile</source>
+            <translation>Perfil</translation>
+        </message>
+        <message id="genycaster.search.shortcuts">
+            <source>Search shortcuts</source>
+            <translation>Atalhos de busca</translation>
+        </message>
+        <message id="genycaster.section.back_back_to_feed">
+            <source>Back to feed</source>
+            <translation>Voltar ao feed</translation>
+        </message>
+        <message id="genycaster.settings.add_market_token">
+            <source>Add token</source>
+            <translation>Adicionar token</translation>
+        </message>
+        <message id="genycaster.settings.add_market_token_description">
+            <source>Add an Ethereum or Base token by contract address.</source>
+            <translation>Adicione um token Ethereum ou Base pelo endereço do contrato.</translation>
+        </message>
+        <message id="genycaster.settings.appearance">
+            <source>Appearance</source>
+            <translation>Aparência</translation>
+        </message>
+        <message id="genycaster.settings.appearance_description">
+            <source>Choose a mode and color current. Every control keeps the same Geny geometry.</source>
+            <translation>Escolha um modo e uma cor de interface. Todos os controles mantêm a mesma geometria Geny.</translation>
+        </message>
+        <message id="genycaster.settings.color_theme">
+            <source>Color theme</source>
+            <translation>Tema de cor</translation>
+        </message>
+        <message id="genycaster.settings.contract_address_placeholder">
+            <source>0x…</source>
+            <translation>0x…</translation>
+        </message>
+        <message id="genycaster.settings.custom_color">
+            <source>Custom accent</source>
+            <translation>Destaque personalizado</translation>
+        </message>
+        <message id="genycaster.settings.custom_color_description">
+            <source>Pick a preset or enter any hex color.</source>
+            <translation>Escolha uma predefinição ou digite qualquer cor hexadecimal.</translation>
+        </message>
+        <message id="genycaster.settings.custom_color_invalid">
+            <source>Enter a valid color such as #FF4FA3.</source>
+            <translation>Digite uma cor válida, como #FF4FA3.</translation>
+        </message>
+        <message id="genycaster.settings.custom_color_placeholder">
+            <source>#FF4FA3</source>
+            <translation>#FF4FA3</translation>
+        </message>
+        <message id="genycaster.settings.description">
+            <source>Shape Genycaster around the way you read. Appearance and regional preferences stay on this device.</source>
+            <translation>Adapte o Genycaster ao seu jeito de ler. As preferências de aparência e região permanecem neste dispositivo.</translation>
+        </message>
+        <message id="genycaster.settings.invalid_market_token">
+            <source>Enter a valid 0x contract address.</source>
+            <translation>Digite um endereço de contrato 0x válido.</translation>
+        </message>
+        <message id="genycaster.settings.language_region">
+            <source>Language &amp; region</source>
+            <translation>Idioma e região</translation>
+        </message>
+        <message id="genycaster.settings.market_assets">
+            <source>Tracked assets</source>
+            <translation>Ativos acompanhados</translation>
+        </message>
+        <message id="genycaster.settings.market_assets_description">
+            <source>Built-in assets can be hidden; custom EVM tokens can be added by contract address.</source>
+            <translation>Ativos integrados podem ser ocultados e tokens EVM personalizados adicionados pelo endereço do contrato.</translation>
+        </message>
+        <message id="genycaster.settings.market_price_precision">
+            <source>Price precision</source>
+            <translation>Precisão do preço</translation>
+        </message>
+        <message id="genycaster.settings.market_price_precision_description">
+            <source>Choose the maximum decimal places used for sub-dollar token prices. Smaller values use scientific notation.</source>
+            <translation>Escolha o máximo de casas decimais para preços de tokens abaixo de um dólar. Valores menores usam notação científica.</translation>
+        </message>
+        <message id="genycaster.settings.market_pulse">
+            <source>Market Pulse</source>
+            <translation>Pulso do mercado</translation>
+        </message>
+        <message id="genycaster.settings.market_pulse_description">
+            <source>Choose which assets appear in Token Pulse. Prices refresh from public market sources.</source>
+            <translation>Escolha os ativos do Token Pulse. Os preços são atualizados por fontes públicas de mercado.</translation>
+        </message>
+        <message id="genycaster.settings.mode">
+            <source>Mode</source>
+            <translation>Modo</translation>
+        </message>
+        <message id="genycaster.settings.mode_dark">
+            <source>Dark</source>
+            <translation>Escuro</translation>
+        </message>
+        <message id="genycaster.settings.mode_light">
+            <source>Light</source>
+            <translation>Claro</translation>
+        </message>
+        <message id="genycaster.settings.mode_system">
+            <source>System</source>
+            <translation>Sistema</translation>
+        </message>
+        <message id="genycaster.settings.move_asset_down">
+            <source>Move asset down</source>
+            <translation>Mover ativo para baixo</translation>
+        </message>
+        <message id="genycaster.settings.move_asset_up">
+            <source>Move asset up</source>
+            <translation>Mover ativo para cima</translation>
+        </message>
+        <message id="genycaster.settings.open">
+            <source>Open settings</source>
+            <translation>Abrir configurações</translation>
+        </message>
+        <message id="genycaster.settings.reduce_motion">
+            <source>Reduce motion</source>
+            <translation>Reduzir movimento</translation>
+        </message>
+        <message id="genycaster.settings.reduce_motion_description">
+            <source>Removes repeated and spatial animation while keeping status changes visible.</source>
+            <translation>Reduz animações repetitivas e espaciais, mantendo visíveis as mudanças de estado.</translation>
+        </message>
+        <message id="genycaster.settings.remove_market_asset">
+            <source>Remove token</source>
+            <translation>Remover token</translation>
+        </message>
+        <message id="genycaster.settings.reset_all">
+            <source>Reset all settings</source>
+            <translation>Redefinir configurações</translation>
+        </message>
+        <message id="genycaster.settings.theme_ember">
+            <source>Ember</source>
+            <translation>Brasa</translation>
+        </message>
+        <message id="genycaster.settings.theme_geny">
+            <source>Geny</source>
+            <translation>Geny</translation>
+        </message>
+        <message id="genycaster.settings.theme_mint">
+            <source>Mint</source>
+            <translation>Menta</translation>
+        </message>
+        <message id="genycaster.settings.theme_mono">
+            <source>Monochrome</source>
+            <translation>Monocromático</translation>
+        </message>
+        <message id="genycaster.settings.theme_ocean">
+            <source>Ocean</source>
+            <translation>Oceano</translation>
+        </message>
+        <message id="genycaster.settings.theme_rose">
+            <source>Rose</source>
+            <translation>Rosa</translation>
+        </message>
+        <message id="genycaster.settings.theme_violet">
+            <source>Violet</source>
+            <translation>Violeta</translation>
+        </message>
+        <message id="genycaster.settings.title">
+            <source>Settings</source>
+            <translation>Configurações</translation>
+        </message>
+        <message id="genycaster.shell.approve_sign_in">
+            <source>Approve sign in</source>
+            <translation>Aprovar login</translation>
+        </message>
+        <message id="genycaster.shell.approve_the_request_in_a_farcaster_compatible_client_t">
+            <source>Approve the request in a Farcaster-compatible client, then return here. Genycaster verifies the signed identity proof before creating a local session.</source>
+            <translation>Aprove a solicitação em um cliente compatível com Farcaster e volte para cá. O Genycaster verifica a prova de identidade assinada antes de criar uma sessão local.</translation>
+        </message>
+        <message id="genycaster.shell.cancel">
+            <source>Cancel</source>
+            <translation>Cancelar</translation>
+        </message>
+        <message id="genycaster.shell.close">
+            <source>Close</source>
+            <translation>Fechar</translation>
+        </message>
+        <message id="genycaster.shell.coming_soon">
+            <source>In development</source>
+            <translation>Em desenvolvimento</translation>
+        </message>
+        <message id="genycaster.shell.creating_a_secure_farcaster_sign_in_request">
+            <source>Creating a secure Farcaster sign-in request…</source>
+            <translation>Criando uma solicitação segura de login no Farcaster…</translation>
+        </message>
+        <message id="genycaster.shell.enable_interactions">
+            <source>Enable interactions</source>
+            <translation>Ativar interações</translation>
+        </message>
+        <message id="genycaster.shell.enabling">
+            <source>Enabling…</source>
+            <translation>Ativando…</translation>
+        </message>
+        <message id="genycaster.shell.followers">
+            <source>Followers</source>
+            <translation>Seguidores</translation>
+        </message>
+        <message id="genycaster.shell.following">
+            <source>Following</source>
+            <translation>Seguindo</translation>
+        </message>
+        <message id="genycaster.shell.new_cast">
+            <source>New cast</source>
+            <translation>Novo cast</translation>
+        </message>
+        <message id="genycaster.shell.open_farcaster">
+            <source>Open Farcaster</source>
+            <translation>Abrir Farcaster</translation>
+        </message>
+        <message id="genycaster.shell.publish">
+            <source>Publish</source>
+            <translation>Publicar</translation>
+        </message>
+        <message id="genycaster.shell.publishing">
+            <source>Publishing…</source>
+            <translation>Publicando…</translation>
+        </message>
+        <message id="genycaster.shell.reply">
+            <source>Reply</source>
+            <translation>Responder</translation>
+        </message>
+        <message id="genycaster.shell.replying">
+            <source>Replying…</source>
+            <translation>Respondendo…</translation>
+        </message>
+        <message id="genycaster.shell.revoke_signer">
+            <source>Revoke signer</source>
+            <translation>Revogar assinante</translation>
+        </message>
+        <message id="genycaster.shell.revoking">
+            <source>Revoking…</source>
+            <translation>Revogando…</translation>
+        </message>
+        <message id="genycaster.shell.saved_locally_first_then_refreshed_from_the_network">
+            <source>Saved locally first, then refreshed from the network</source>
+            <translation>Salvo primeiro localmente e depois atualizado pela rede</translation>
+        </message>
+        <message id="genycaster.shell.sign_in_is_not_configured_in_this_build_guest_reading_">
+            <source>Sign in is not configured in this build. Guest reading remains fully available.</source>
+            <translation>O login não está configurado nesta compilação. A leitura como convidado continua totalmente disponível.</translation>
+        </message>
+        <message id="genycaster.shell.sign_in_to_interact">
+            <source>Sign in to interact</source>
+            <translation>Entre para interagir</translation>
+        </message>
+        <message id="genycaster.shell.sign_in_with_farcaster">
+            <source>Sign in with Farcaster</source>
+            <translation>Entrar com Farcaster</translation>
+        </message>
+        <message id="genycaster.shell.sign_out">
+            <source>Sign out</source>
+            <translation>Sair</translation>
+        </message>
+        <message id="genycaster.shell.signed_in_account">
+            <source>Signed-in account</source>
+            <translation>Conta conectada</translation>
+        </message>
+        <message id="genycaster.shell.the_approval_link_is_kept_transient_and_opens_through_">
+            <source>The approval link is kept transient and opens through your system browser or Farcaster client. It is not stored in local session data.</source>
+            <translation>O link de aprovação é mantido apenas temporariamente e abre pelo navegador do sistema ou cliente Farcaster. Ele não é salvo nos dados da sessão local.</translation>
+        </message>
+        <message id="genycaster.shell.this_cast">
+            <source>this cast</source>
+            <translation>este cast</translation>
+        </message>
+        <message id="genycaster.shell.this_verified_session_identifies_your_account_protocol">
+            <source>This verified session identifies your account. Protocol writes remain locked until Genycaster has a valid Farcaster signer for this FID.</source>
+            <translation>Esta sessão verificada identifica sua conta. As escritas do protocolo permanecem bloqueadas até o Genycaster ter um assinante Farcaster válido para este FID.</translation>
+        </message>
+        <message id="genycaster.shell.try_again">
+            <source>Try again</source>
+            <translation>Tentar novamente</translation>
+        </message>
+        <message id="genycaster.shell.whats_happening">
+            <source>What’s happening?</source>
+            <translation>O que está acontecendo?</translation>
+        </message>
+        <message id="genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_">
+            <source>You can keep reading Genycaster as a guest. Sign in is required before Like, Recast, Reply, Follow, or Publish; protocol signing is a separate security step.</source>
+            <translation>Você pode continuar lendo o Genycaster como convidado. É necessário entrar antes de Curtir, Recast, Responder, Seguir ou Publicar; a assinatura do protocolo é uma etapa de segurança separada.</translation>
+        </message>
+        <message id="genycaster.shell.your_farcaster_account">
+            <source>Your Farcaster account</source>
+            <translation>Sua conta Farcaster</translation>
+        </message>
+        <message id="genycaster.side_nav.bookmarks">
+            <source>Bookmarks</source>
+            <translation>Favoritos</translation>
+        </message>
+        <message id="genycaster.side_nav.business">
+            <source>Business</source>
+            <translation>Negócios</translation>
+        </message>
+        <message id="genycaster.side_nav.channels">
+            <source>Channels</source>
+            <translation>Canais</translation>
+        </message>
+        <message id="genycaster.side_nav.explorer">
+            <source>Explorer</source>
+            <translation>Explorar</translation>
+        </message>
+        <message id="genycaster.side_nav.genycaster">
+            <source>Genycaster</source>
+            <translation>Genycaster</translation>
+        </message>
+        <message id="genycaster.side_nav.home">
+            <source>Home</source>
+            <translation>Início</translation>
+        </message>
+        <message id="genycaster.side_nav.messages">
+            <source>Messages</source>
+            <translation>Mensagens</translation>
+        </message>
+        <message id="genycaster.side_nav.no_identity_open">
+            <source>No identity open</source>
+            <translation>Nenhuma identidade aberta</translation>
+        </message>
+        <message id="genycaster.side_nav.notifications">
+            <source>Notifications</source>
+            <translation>Notificações</translation>
+        </message>
+        <message id="genycaster.side_nav.profile">
+            <source>Profile</source>
+            <translation>Perfil</translation>
+        </message>
+        <message id="genycaster.side_nav.store">
+            <source>Store</source>
+            <translation>Loja</translation>
+        </message>
+        <message id="genycaster.status.data_issue">
+            <source>Data issue</source>
+            <translation>Problema de dados</translation>
+        </message>
+        <message id="genycaster.status.details">
+            <source>Details</source>
+            <translation>Detalhes</translation>
+        </message>
+        <message id="genycaster.status.disconnected">
+            <source>Disconnected</source>
+            <translation>Desconectado</translation>
+        </message>
+        <message id="genycaster.status.hide_details">
+            <source>Hide details</source>
+            <translation>Ocultar detalhes</translation>
+        </message>
+        <message id="genycaster.status.live">
+            <source>Live</source>
+            <translation>Ao vivo</translation>
+        </message>
+        <message id="genycaster.status.live_source_responded">
+            <source>Live source: responded</source>
+            <translation>Fonte ao vivo: respondeu</translation>
+        </message>
+        <message id="genycaster.status.live_source_unavailable">
+            <source>Live source: unavailable</source>
+            <translation>Fonte ao vivo: indisponível</translation>
+        </message>
+        <message id="genycaster.status.network_value">
+            <source>Network: %1</source>
+            <translation>Rede: %1</translation>
+        </message>
+        <message id="genycaster.status.no_network_connection_showing_saved_data_when_availabl">
+            <source>No network connection · showing saved data when available</source>
+            <translation>Sem conexão de rede · mostrando dados salvos quando disponíveis</translation>
+        </message>
+        <message id="genycaster.status.offline">
+            <source>Offline</source>
+            <translation>Offline</translation>
+        </message>
+        <message id="genycaster.status.reachable">
+            <source>Reachable</source>
+            <translation>Acessível</translation>
+        </message>
+        <message id="genycaster.status.read_runtime_unavailable">
+            <source>Read runtime: unavailable</source>
+            <translation>Ambiente de leitura: indisponível</translation>
+        </message>
+        <message id="genycaster.status.ready">
+            <source>Ready</source>
+            <translation>Pronto</translation>
+        </message>
+        <message id="genycaster.status.retry">
+            <source>Retry</source>
+            <translation>Tentar novamente</translation>
+        </message>
+        <message id="genycaster.status.saved">
+            <source>Saved</source>
+            <translation>Salvo</translation>
+        </message>
+        <message id="genycaster.status.setup_issue">
+            <source>Setup issue</source>
+            <translation>Problema de configuração</translation>
+        </message>
+        <message id="genycaster.status.showing_saved_data_live_refresh_will_retry_automatical">
+            <source>Showing saved data · live refresh will retry automatically</source>
+            <translation>Mostrando dados salvos · a atualização ao vivo tentará novamente automaticamente</translation>
+        </message>
+        <message id="genycaster.status.source_issue">
+            <source>Source issue</source>
+            <translation>Problema de fonte</translation>
+        </message>
+        <message id="genycaster.status.syncing">
+            <source>Syncing</source>
+            <translation>Sincronizando</translation>
+        </message>
+        <message id="genycaster.status.unknown">
+            <source>Unknown</source>
+            <translation>Desconhecido</translation>
+        </message>
+        <message id="genycaster.apps.title">
+            <source>Apps</source>
+            <translation>Aplicativos</translation>
+        </message>
+        <message id="genycaster.apps.description">
+            <source>Discover and save Farcaster Mini Apps, then launch them in the Genycaster host.</source>
+            <translation>Descubra e salve Mini Apps do Farcaster e depois execute-as no host do Genycaster.</translation>
+        </message>
+        <message id="genycaster.apps.farcaster">
+            <source>Farcaster Mini Apps</source>
+            <translation>Mini Apps do Farcaster</translation>
+        </message>
+        <message id="genycaster.apps.native">
+            <source>Native Apps</source>
+            <translation>Aplicativos nativos</translation>
+        </message>
+        <message id="genycaster.apps.native_description">
+            <source>Native Genycaster Apps are in development.</source>
+            <translation>Os aplicativos nativos do Genycaster estão em desenvolvimento.</translation>
+        </message>
+        <message id="genycaster.apps.my_miniapps">
+            <source>My MiniApps</source>
+            <translation>Meus MiniApps</translation>
+        </message>
+        <message id="genycaster.apps.search_placeholder">
+            <source>Search Mini Apps</source>
+            <translation>Pesquisar Mini Apps</translation>
+        </message>
+        <message id="genycaster.apps.all_apps">
+            <source>All Apps</source>
+            <translation>Todos os apps</translation>
+        </message>
+        <message id="genycaster.apps.for_you">
+            <source>For You</source>
+            <translation>Para você</translation>
+        </message>
+        <message id="genycaster.apps.personalization_requires_provider">
+            <source>Personalized discovery needs the configured Mini App API.</source>
+            <translation>A descoberta personalizada requer a API de Mini Apps configurada.</translation>
+        </message>
+        <message id="genycaster.apps.my_fid">
+            <source>My FID</source>
+            <translation>Meu FID</translation>
+        </message>
+        <message id="genycaster.apps.discovering">
+            <source>Discovering Mini Apps…</source>
+            <translation>Descobrindo Mini Apps…</translation>
+        </message>
+        <message id="genycaster.apps.my_empty">
+            <source>No Mini Apps saved yet</source>
+            <translation>Nenhum Mini App salvo ainda</translation>
+        </message>
+        <message id="genycaster.apps.my_empty_description">
+            <source>Add apps from Explorer to keep them here in Genycaster.</source>
+            <translation>Adicione aplicativos pelo Explorer para mantê-los aqui no Genycaster.</translation>
+        </message>
+        <message id="genycaster.apps.explorer_empty">
+            <source>No Mini Apps found</source>
+            <translation>Nenhum Mini App encontrado</translation>
+        </message>
+        <message id="genycaster.apps.explorer_empty_description">
+            <source>Try another search or refresh the catalogue.</source>
+            <translation>Tente outra pesquisa ou atualize o catálogo.</translation>
+        </message>
+        <message id="genycaster.apps.remove">
+            <source>Remove</source>
+            <translation>Remover</translation>
+        </message>
+        <message id="genycaster.apps.save">
+            <source>Save</source>
+            <translation>Salvar</translation>
+        </message>
+        <message id="genycaster.apps.share">
+            <source>Share</source>
+            <translation>Compartilhar</translation>
+        </message>
+        <message id="genycaster.task_manager.title">
+            <source>Task Manager</source>
+            <translation>Gerenciador de tarefas</translation>
+        </message>
+        <message id="genycaster.task_manager.subtitle">
+            <source>Live Mini App resource usage and session controls.</source>
+            <translation>Uso de recursos das Mini Apps em tempo real e controles de sessão.</translation>
+        </message>
+        <message id="genycaster.task_manager.cpu">
+            <source>CPU usage</source>
+            <translation>Uso de CPU</translation>
+        </message>
+        <message id="genycaster.task_manager.memory">
+            <source>Memory</source>
+            <translation>Memória</translation>
+        </message>
+        <message id="genycaster.task_manager.sdk_rate">
+            <source>SDK activity</source>
+            <translation>Atividade do SDK</translation>
+        </message>
+        <message id="genycaster.task_manager.empty">
+            <source>No Mini Apps are running</source>
+            <translation>Nenhuma Mini App em execução</translation>
+        </message>
+        <message id="genycaster.task_manager.empty_description">
+            <source>Open a Mini App to see its live resource usage here.</source>
+            <translation>Abra uma Mini App para ver aqui o uso de recursos em tempo real.</translation>
+        </message>
+        <message id="genycaster.task_manager.focus">
+            <source>Focus</source>
+            <translation>Focar</translation>
+        </message>
+        <message id="genycaster.task_manager.minimize">
+            <source>Minimize</source>
+            <translation>Minimizar</translation>
+        </message>
+        <message id="genycaster.task_manager.terminate">
+            <source>Terminate</source>
+            <translation>Encerrar</translation>
+        </message>
+        <message id="genycaster.task_manager.foreground">
+            <source>Foreground</source>
+            <translation>Em primeiro plano</translation>
+        </message>
+        <message id="genycaster.task_manager.minimized">
+            <source>Minimized</source>
+            <translation>Minimizado</translation>
+        </message>
+        <message id="genycaster.task_manager.error">
+            <source>Error</source>
+            <translation>Falha</translation>
+        </message>
+        <message id="genycaster.task_manager.pid">
+            <source>Process</source>
+            <translation>Processo</translation>
+        </message>
+        <message id="genycaster.miniapp.add_confirm_title">
+            <source>Add Mini App</source>
+            <translation>Adicionar Mini App</translation>
+        </message>
+        <message id="genycaster.miniapp.add_confirm_description">
+            <source>Add %1 to My MiniApps in Genycaster?</source>
+            <translation>Adicionar %1 a Minhas MiniApps no Genycaster?</translation>
+        </message>
+        <message id="genycaster.miniapp.session_limit">
+            <source>Up to four Mini Apps can stay open at once. Close one in Task Manager to open another.</source>
+            <translation>Até quatro Mini Apps podem permanecer abertas ao mesmo tempo. Feche uma no Gerenciador de tarefas para abrir outra.</translation>
+        </message>
+        <message id="genycaster.miniapp.minimize">
+            <source>Minimize</source>
+            <translation>Minimizar</translation>
+        </message>
+        <message id="genycaster.miniapp.share">
+            <source>Share</source>
+            <translation>Compartilhar</translation>
+        </message>
+        <message id="genycaster.settings.text_size">
+            <source>Text size</source>
+            <translation>Tamanho do texto</translation>
+        </message>
+        <message id="genycaster.settings.interface_size">
+            <source>Interface size</source>
+            <translation>Tamanho da interface</translation>
+        </message>
+        <message id="genycaster.settings.scale_description">
+            <source>Adjust text and control sizing without changing the window size.</source>
+            <translation>Ajuste o tamanho do texto e dos controles sem alterar o tamanho da janela.</translation>
+        </message>
+        <message id="genycaster.settings.content_loading">
+            <source>Content &amp; loading</source>
+            <translation>Conteúdo e carregamento</translation>
+        </message>
+        <message id="genycaster.settings.content_loading_description">
+            <source>Control how GenyCaster requests, hydrates, previews, and reveals casts. These settings apply to future requests.</source>
+            <translation>Controle como o GenyCaster solicita, completa o contexto, pré-visualiza e revela casts. Estas configurações valem para solicitações futuras.</translation>
+        </message>
+        <message id="genycaster.settings.posts_per_refresh">
+            <source>Posts per refresh</source>
+            <translation>Posts por atualização</translation>
+        </message>
+        <message id="genycaster.settings.posts_per_refresh_description">
+            <source>Number of casts requested for each refresh or page. Range: 1–100.</source>
+            <translation>Quantidade de casts solicitados por atualização ou página. Intervalo: 1–100.</translation>
+        </message>
+        <message id="genycaster.settings.context_hydration_limit">
+            <source>Reply / quote context</source>
+            <translation>Contexto de resposta / citação</translation>
+        </message>
+        <message id="genycaster.settings.context_hydration_limit_description">
+            <source>Maximum referenced parent or quoted casts hydrated per page. Range: 1–100.</source>
+            <translation>Máximo de casts pai ou citados com contexto carregado por página. Intervalo: 1–100.</translation>
+        </message>
+        <message id="genycaster.settings.buffer_new_posts">
+            <source>Buffer new posts</source>
+            <translation>Manter novos posts em espera</translation>
+        </message>
+        <message id="genycaster.settings.buffer_new_posts_description">
+            <source>Keep the current timeline stable and show a “Show N posts” banner when a refresh finds newer casts.</source>
+            <translation>Mantém a timeline atual estável e mostra “Exibir N posts” quando uma atualização encontra casts mais recentes.</translation>
+        </message>
+        <message id="genycaster.settings.link_preview_prefetch">
+            <source>Prefetch link previews</source>
+            <translation>Pré-carregar prévias de links</translation>
+        </message>
+        <message id="genycaster.settings.link_preview_prefetch_description">
+            <source>Resolve visible web links in advance for richer cards. Disable to reduce background API and network work.</source>
+            <translation>Resolve links web visíveis antecipadamente para cartões mais ricos. Desative para reduzir trabalho de API e rede em segundo plano.</translation>
+        </message>
+        <message id="genycaster.settings.inline_youtube">
+            <source>Play YouTube in GenyCaster</source>
+            <translation>Reproduzir YouTube no GenyCaster</translation>
+        </message>
+        <message id="genycaster.settings.inline_youtube_description">
+            <source>Open supported YouTube links in the isolated in-app player instead of the external browser.</source>
+            <translation>Abra links do YouTube compatíveis no player isolado do app em vez do navegador externo.</translation>
+        </message>
+        <message id="genycaster.settings.read_api_note">
+            <source>Provider safety limits still apply. Higher values may increase latency, bandwidth, memory use, and API cost.</source>
+            <translation>Os limites de segurança do provedor continuam valendo. Valores maiores podem aumentar latência, banda, memória e custo de API.</translation>
+        </message>
+        <message id="genycaster.feed_surface.show_new_posts">
+            <source>Show %1 posts</source>
+            <translation>Exibir %1 posts</translation>
+        </message>
+        <message id="genycaster.cast.loading_original_cast">
+            <source>Loading original cast…</source>
+            <translation>Carregando cast original…</translation>
+        </message>
+        <message id="genycaster.embed.loading_quoted_cast">
+            <source>Loading quoted cast…</source>
+            <translation>Carregando cast citado…</translation>
+        </message>
+        <message id="genycaster.storage.title">
+            <source>Data &amp; Storage</source>
+            <translation>Dados e armazenamento</translation>
+        </message>
+        <message id="genycaster.storage.description">
+            <source>Control media downloads, disk cache, retention, and data usage.</source>
+            <translation>Controle downloads de mídia, cache em disco, retenção e uso de dados.</translation>
+        </message>
+        <message id="genycaster.storage.settings_entry_description">
+            <source>Automatic downloads, cache retention, storage usage, and network data.</source>
+            <translation>Downloads automáticos, retenção do cache, uso de armazenamento e dados de rede.</translation>
+        </message>
+        <message id="genycaster.storage.storage_usage">
+            <source>Storage Usage</source>
+            <translation>Uso de armazenamento</translation>
+        </message>
+        <message id="genycaster.storage.storage_usage_description">
+            <source>See what cached media uses on this device and clear any category independently.</source>
+            <translation>Veja quanto a mídia em cache ocupa neste dispositivo e limpe cada categoria separadamente.</translation>
+        </message>
+        <message id="genycaster.storage.cached_media">
+            <source>Cached media</source>
+            <translation>Mídia em cache</translation>
+        </message>
+        <message id="genycaster.storage.free_disk">
+            <source>Free disk</source>
+            <translation>Espaço livre</translation>
+        </message>
+        <message id="genycaster.storage.files">
+            <source>files</source>
+            <translation>arquivos</translation>
+        </message>
+        <message id="genycaster.storage.clear_category">
+            <source>Clear this cache</source>
+            <translation>Limpar este cache</translation>
+        </message>
+        <message id="genycaster.storage.clear_entire_cache">
+            <source>Clear Entire Cache</source>
+            <translation>Limpar todo o cache</translation>
+        </message>
+        <message id="genycaster.storage.cache_policy">
+            <source>Cache Policy</source>
+            <translation>Política de cache</translation>
+        </message>
+        <message id="genycaster.storage.cache_policy_description">
+            <source>Keep frequently viewed media local for faster, smoother feeds while staying within your storage budget.</source>
+            <translation>Mantenha localmente a mídia vista com frequência para feeds mais rápidos e fluidos, dentro do limite de armazenamento.</translation>
+        </message>
+        <message id="genycaster.storage.keep_media_on_disk">
+            <source>Keep media on disk</source>
+            <translation>Manter mídia no disco</translation>
+        </message>
+        <message id="genycaster.storage.keep_media_on_disk_description">
+            <source>Reuse downloaded media across app launches. Turning this off does not delete existing files.</source>
+            <translation>Reutiliza a mídia baixada entre aberturas do app. Desativar não exclui arquivos existentes.</translation>
+        </message>
+        <message id="genycaster.storage.cache_limit">
+            <source>Cache limit</source>
+            <translation>Limite do cache</translation>
+        </message>
+        <message id="genycaster.storage.auto_remove_cached_media">
+            <source>Auto-remove cached media</source>
+            <translation>Remover mídia em cache automaticamente</translation>
+        </message>
+        <message id="genycaster.storage.auto_remove_description">
+            <source>Old cached files are removed by category. Viewed media is touched periodically so recently used content stays available.</source>
+            <translation>Arquivos antigos são removidos por categoria. A mídia visualizada é atualizada periodicamente para manter o conteúdo usado recentemente.</translation>
+        </message>
+        <message id="genycaster.storage.using_wifi">
+            <source>Using Wi-Fi</source>
+            <translation>Usando Wi‑Fi</translation>
+        </message>
+        <message id="genycaster.storage.using_cellular">
+            <source>Using Cellular</source>
+            <translation>Usando rede móvel</translation>
+        </message>
+        <message id="genycaster.storage.auto_download_network_description">
+            <source>Choose which media can download automatically on this network and the maximum size per file.</source>
+            <translation>Escolha quais mídias podem baixar automaticamente nesta rede e o tamanho máximo por arquivo.</translation>
+        </message>
+        <message id="genycaster.storage.maximum_file_size">
+            <source>Maximum file size</source>
+            <translation>Tamanho máximo do arquivo</translation>
+        </message>
+        <message id="genycaster.storage.reset_auto_download">
+            <source>Reset Auto-Download Settings</source>
+            <translation>Redefinir download automático</translation>
+        </message>
+        <message id="genycaster.storage.media_data_usage">
+            <source>Media Data Usage</source>
+            <translation>Uso de dados de mídia</translation>
+        </message>
+        <message id="genycaster.storage.media_data_usage_description">
+            <source>Downloaded media bytes recorded by Genycaster. API metadata, uploads, Mini App web traffic, and streaming are not included yet.</source>
+            <translation>Bytes de mídia baixados registrados pelo Genycaster. Metadados da API, uploads, tráfego web de Mini Apps e streaming ainda não estão incluídos.</translation>
+        </message>
+        <message id="genycaster.storage.current_network">
+            <source>Current network</source>
+            <translation>Rede atual</translation>
+        </message>
+        <message id="genycaster.storage.metered">
+            <source>Metered</source>
+            <translation>Com franquia</translation>
+        </message>
+        <message id="genycaster.storage.unmetered">
+            <source>Unmetered</source>
+            <translation>Sem franquia</translation>
+        </message>
+        <message id="genycaster.storage.total">
+            <source>Total</source>
+            <translation>Total geral</translation>
+        </message>
+        <message id="genycaster.storage.wifi">
+            <source>Wi-Fi</source>
+            <translation>Rede Wi‑Fi</translation>
+        </message>
+        <message id="genycaster.storage.ethernet">
+            <source>Ethernet</source>
+            <translation>Rede Ethernet</translation>
+        </message>
+        <message id="genycaster.storage.cellular">
+            <source>Cellular</source>
+            <translation>Rede móvel</translation>
+        </message>
+        <message id="genycaster.storage.unknown_network">
+            <source>Unknown</source>
+            <translation>Desconhecida</translation>
+        </message>
+        <message id="genycaster.storage.usage_since">
+            <source>Statistics since</source>
+            <translation>Estatísticas desde</translation>
+        </message>
+        <message id="genycaster.storage.reset_statistics">
+            <source>Reset Statistics</source>
+            <translation>Redefinir estatísticas</translation>
+        </message>
+        <message id="genycaster.storage.download_behavior">
+            <source>Download Behavior</source>
+            <translation>Comportamento de download</translation>
+        </message>
+        <message id="genycaster.storage.download_behavior_description">
+            <source>When automatic download is disabled, cached media still opens instantly and uncached media waits for an explicit tap.</source>
+            <translation>Quando o download automático está desativado, a mídia em cache abre na hora e a mídia não armazenada espera uma ação explícita.</translation>
+        </message>
+        <message id="genycaster.storage.tap_to_load">
+            <source>Tap to load</source>
+            <translation>Toque para carregar</translation>
+        </message>
+        <message id="genycaster.storage.tap_to_load_explanation">
+            <source>The first tap loads blocked artwork. After it is ready, the next tap opens the gallery, player, or destination as appropriate.</source>
+            <translation>O primeiro toque carrega a arte bloqueada. Quando estiver pronta, o próximo toque abre a galeria, o player ou o destino correspondente.</translation>
+        </message>
+        <message id="genycaster.storage.avatar_note">
+            <source>Small identity assets such as avatars remain eager so names and profiles stay readable while scrolling.</source>
+            <translation>Recursos pequenos de identidade, como avatares, continuam carregando imediatamente para manter nomes e perfis legíveis durante a rolagem.</translation>
+        </message>
+        <message id="genycaster.storage.back_to_settings">
+            <source>Back to Settings</source>
+            <translation>Voltar para Configurações</translation>
+        </message>
+        <message id="genycaster.storage.photos">
+            <source>Photos</source>
+            <translation>Fotos</translation>
+        </message>
+        <message id="genycaster.storage.video_previews">
+            <source>Video Previews</source>
+            <translation>Pré-visualizações de vídeo</translation>
+        </message>
+        <message id="genycaster.storage.nfts">
+            <source>NFTs</source>
+            <translation>Colecionáveis NFT</translation>
+        </message>
+        <message id="genycaster.storage.mini_apps">
+            <source>Mini Apps</source>
+            <translation>Miniaplicativos</translation>
+        </message>
+        <message id="genycaster.storage.link_previews">
+            <source>Link Previews</source>
+            <translation>Pré-visualizações de links</translation>
+        </message>
+        <message id="genycaster.storage.avatars">
+            <source>Avatars</source>
+            <translation>Avatares</translation>
+        </message>
+        <message id="genycaster.storage.animated_emoji">
+            <source>Animated Emoji</source>
+            <translation>Emojis animados</translation>
+        </message>
+        <message id="genycaster.storage.other">
+            <source>Other</source>
+            <translation>Outros</translation>
+        </message>
+        <message id="genycaster.storage.one_day">
+            <source>1 day</source>
+            <translation>1 dia</translation>
+        </message>
+        <message id="genycaster.storage.three_days">
+            <source>3 days</source>
+            <translation>3 dias</translation>
+        </message>
+        <message id="genycaster.storage.one_week">
+            <source>1 week</source>
+            <translation>1 semana</translation>
+        </message>
+        <message id="genycaster.storage.one_month">
+            <source>1 month</source>
+            <translation>1 mês</translation>
+        </message>
+        <message id="genycaster.storage.three_months">
+            <source>3 months</source>
+            <translation>3 meses</translation>
+        </message>
+        <message id="genycaster.storage.one_year">
+            <source>1 year</source>
+            <translation>1 ano</translation>
+        </message>
+        <message id="genycaster.storage.never">
+            <source>Never</source>
+            <translation>Nunca</translation>
+        </message>
+        <message id="genycaster.storage.all">
+            <source>All</source>
+            <translation>Todos</translation>
+        </message>
+        <message id="genycaster.collectible.marketplace">
+            <source>NFT marketplace</source>
+            <translation>Mercado de NFT</translation>
+        </message>
+        <message id="genycaster.collectible.nft_badge">
+            <source>NFT</source>
+            <translation>NFT</translation>
+        </message>
+        <message id="genycaster.collectible.accessible_name">
+            <source>NFT · %1</source>
+            <translation>Colecionável NFT · %1</translation>
+        </message>
+        <message id="genycaster.collectible.default_title">
+            <source>Collectible</source>
+            <translation>Colecionável</translation>
+        </message>
+    </context>
+</TS>
