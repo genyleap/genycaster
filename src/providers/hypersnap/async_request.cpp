@@ -111,6 +111,28 @@ using ErrorCode = foundation::error::ErrorCode;
     return makeError(code, std::move(message));
 }
 
+
+[[nodiscard]] bool isBackgroundPriority(
+    const transport::async_http::Priority priority) noexcept
+{
+    return priority == transport::async_http::Priority::Background
+        || priority == transport::async_http::Priority::Prefetch;
+}
+
+[[nodiscard]] transport::async_http::RetryPolicy retryPolicyFor(
+    const transport::async_http::Priority priority) noexcept
+{
+    return isBackgroundPriority(priority)
+        ? transport::async_http::RetryPolicy::None
+        : transport::async_http::RetryPolicy::TransientRead;
+}
+
+[[nodiscard]] std::size_t maximumAttemptsFor(
+    const transport::async_http::Priority priority) noexcept
+{
+    return isBackgroundPriority(priority) ? 1U : 3U;
+}
+
 }
 
 struct Operation::State final {
@@ -175,8 +197,8 @@ foundation::result::Result<Operation> Client::getJson(
             .timeout = options.timeout,
             .maxBodyBytes = options.maxBodyBytes,
             .priority = priority,
-            .retryPolicy = transport::async_http::RetryPolicy::TransientRead,
-            .maximumAttempts = 3U,
+            .retryPolicy = retryPolicyFor(priority),
+            .maximumAttempts = maximumAttemptsFor(priority),
         },
         [this, state, completion = std::move(completion)](
             foundation::result::Result<transport::http::HttpResponse> response) mutable {
@@ -234,8 +256,8 @@ foundation::result::Result<Operation> Client::postReadJson(
             .timeout = options.timeout,
             .maxBodyBytes = options.maxBodyBytes,
             .priority = priority,
-            .retryPolicy = transport::async_http::RetryPolicy::TransientRead,
-            .maximumAttempts = 3U,
+            .retryPolicy = retryPolicyFor(priority),
+            .maximumAttempts = maximumAttemptsFor(priority),
         },
         [this, state, completion = std::move(completion)](
             foundation::result::Result<transport::http::HttpResponse> response) mutable {
