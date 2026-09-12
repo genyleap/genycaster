@@ -38,7 +38,7 @@ using foundation::error::ErrorCode;
 [[nodiscard]] bool isSourceUnavailableFailure(const ErrorCode code) noexcept
 {
     return code == ErrorCode::Unavailable || code == ErrorCode::Timeout ||
-        code == ErrorCode::TransportFailure;
+        code == ErrorCode::TransportFailure || code == ErrorCode::RateLimited;
 }
 
 [[nodiscard]] model::ReadMetadata refreshingMetadata(const bool hasCache)
@@ -429,6 +429,16 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                     if (cancelled->load(std::memory_order_acquire)) { return; }
                     auto fresh = m_gateway.feed(query, options);
                     if (!fresh) {
+                        if (query.continuation
+                            && options.intent == model::ReadIntent::Prefetch
+                            && !state.entries.empty()) {
+                            state.next.reset();
+                            state.metadata = model::ReadMetadata{
+                                .phase = model::ReadPhase::Ready,
+                            };
+                            publish(cancelled, observer, std::move(state));
+                            return;
+                        }
                         state.metadata = failedMetadata(std::move(fresh.error()), !state.entries.empty());
                         publish(cancelled, observer, std::move(state));
                         return;
