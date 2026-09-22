@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include <QQuickWindow>
+#include <QMetaObject>
 #include <QScreen>
 #include <QSettings>
 #include <QSGRendererInterface>
@@ -77,12 +78,9 @@ double RenderingController::effectScale() const noexcept {
   if (m_profile == QStringLiteral("fidelity")) {
     return 1.0;
   }
-  if (m_effectiveQuality == QStringLiteral("efficiency")) {
-    return 0.70;
-  }
-  if (m_effectiveQuality == QStringLiteral("fidelity")) {
-    return 1.0;
-  }
+  // Frame telemetry may change the Adaptive status label, but it must not
+  // resize every effect texture in the window. Explicit profile changes remain
+  // the only live source of render-resource sizing changes.
   return 0.88;
 }
 
@@ -105,12 +103,6 @@ double RenderingController::geometryQualityScale() const noexcept {
   if (m_profile == QStringLiteral("fidelity")) {
     return 1.16;
   }
-  if (m_effectiveQuality == QStringLiteral("efficiency")) {
-    return 0.90;
-  }
-  if (m_effectiveQuality == QStringLiteral("fidelity")) {
-    return 1.10;
-  }
   return 1.0;
 }
 
@@ -119,12 +111,6 @@ double RenderingController::vectorRasterScale() const noexcept {
     return 0.85;
   }
   if (m_profile == QStringLiteral("fidelity")) {
-    return 1.0;
-  }
-  if (m_effectiveQuality == QStringLiteral("efficiency")) {
-    return 0.90;
-  }
-  if (m_effectiveQuality == QStringLiteral("fidelity")) {
     return 1.0;
   }
   return 1.0;
@@ -154,9 +140,32 @@ bool RenderingController::setProfile(const QString &profile) {
   m_settings.setValue(QString::fromLatin1(kProfileSetting), m_profile);
   m_slowFrameStreak = 0;
   m_stableFrameStreak = 0;
+  const QString previousEffectiveQuality = m_effectiveQuality;
   updateAdaptiveQuality();
+  // energyMode also incorporates the explicit profile. When the effective
+  // quality label happens to stay equal across a profile change, its dedicated
+  // notifier still has to publish the energy-mode change.
+  if (m_effectiveQuality == previousEffectiveQuality) {
+    emit adaptiveQualityChanged();
+  }
   emit renderingChanged();
   return true;
+}
+
+void RenderingController::requestMediaPresentation(QObject *requester, const quint64 generation) {
+  if (requester == nullptr) {
+    return;
+  }
+  // A recycled delegate can request a new source before its previous ticket is
+  // reached. Keep only its latest generation so stale work cannot build a queue.
+  std::erase_if(m_mediaPresentationQueue, [requester](const MediaPresentationRequest &request) {
+    return request.requester.isNull() || request.requester == requester;
+  });
+  m_mediaPresentationQueue.push_back(MediaPresentationRequest{
+      .requester = requester,
+      .generation = generation,
+  });
+  tryGrantMediaPresentation();
 }
 
 void RenderingController::attachWindow(QQuickWindow *window) {
@@ -176,8 +185,25 @@ void RenderingController::attachWindow(QQuickWindow *window) {
   }
   connect(m_window, &QQuickWindow::frameSwapped, this, &RenderingController::recordFrame,
           Qt::QueuedConnection);
+  // The render-thread handshake acknowledges the exact presentation generation
+  // observed by scene-graph synchronization. Queued afterRendering callbacks
+  // from older frames cannot release another image because they carry an older
+  // generation.
+  connect(m_window, &QQuickWindow::beforeSynchronizing, this, [this] {
+    m_synchronizedMediaPresentationGeneration.store(
+        m_publishedMediaPresentationGeneration.load(std::memory_order_acquire),
+        std::memory_order_release);
+  }, Qt::DirectConnection);
+  connect(m_window, &QQuickWindow::afterRendering, this, [this] {
+    const quint64 synchronizedGeneration =
+        m_synchronizedMediaPresentationGeneration.load(std::memory_order_acquire);
+    QMetaObject::invokeMethod(this, [this, synchronizedGeneration] {
+      acknowledgeMediaPresentationFrame(synchronizedGeneration);
+    }, Qt::QueuedConnection);
+  }, Qt::DirectConnection);
   connect(m_window, &QQuickWindow::screenChanged, this, [this] { updateStaticTelemetry(); });
   updateStaticTelemetry();
+  tryGrantMediaPresentation();
 }
 
 int RenderingController::sampleCountForProfile(const QString &profile) noexcept {
@@ -265,6 +291,37 @@ void RenderingController::recordFrame() {
   }
 }
 
+void RenderingController::tryGrantMediaPresentation() {
+  if (m_window == nullptr || m_mediaPresentationGrantOutstanding) {
+    return;
+  }
+  while (!m_mediaPresentationQueue.empty()) {
+    MediaPresentationRequest request = std::move(m_mediaPresentationQueue.front());
+    m_mediaPresentationQueue.pop_front();
+    if (request.requester.isNull()) {
+      continue;
+    }
+    m_mediaPresentationGrantOutstanding = true;
+    ++m_currentMediaPresentationGeneration;
+    m_publishedMediaPresentationGeneration.store(
+        m_currentMediaPresentationGeneration, std::memory_order_release);
+    emit mediaPresentationGranted(
+        request.requester.data(), request.generation, m_currentMediaPresentationGeneration);
+    m_window->update();
+    return;
+  }
+}
+
+void RenderingController::acknowledgeMediaPresentationFrame(
+    const quint64 synchronizedGeneration) {
+  if (!m_mediaPresentationGrantOutstanding ||
+      synchronizedGeneration < m_currentMediaPresentationGeneration) {
+    return;
+  }
+  m_mediaPresentationGrantOutstanding = false;
+  tryGrantMediaPresentation();
+}
+
 void RenderingController::updateAdaptiveQuality() {
   QString next = QStringLiteral("balanced");
   if (m_profile == QStringLiteral("efficiency")) {
@@ -290,6 +347,8 @@ void RenderingController::updateAdaptiveQuality() {
   }
   if (next != m_effectiveQuality) {
     m_effectiveQuality = next;
-    emit renderingChanged();
+    // Keep frame-pacing feedback observable without invalidating the render
+    // sizing bindings carried by renderingChanged across every image and icon.
+    emit adaptiveQualityChanged();
   }
 }
