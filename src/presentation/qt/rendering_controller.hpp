@@ -4,7 +4,12 @@
 
 #include <QElapsedTimer>
 #include <QObject>
+#include <QPointer>
 #include <QString>
+
+#include <atomic>
+#include <cstdint>
+#include <deque>
 
 class QQuickWindow;
 class QSettings;
@@ -20,9 +25,9 @@ class QSettings;
 class RenderingController final : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString profile READ profile NOTIFY renderingChanged)
-  Q_PROPERTY(QString effectiveQuality READ effectiveQuality NOTIFY renderingChanged)
+  Q_PROPERTY(QString effectiveQuality READ effectiveQuality NOTIFY adaptiveQualityChanged)
   Q_PROPERTY(QString graphicsApi READ graphicsApi NOTIFY telemetryChanged)
-  Q_PROPERTY(QString energyMode READ energyMode NOTIFY renderingChanged)
+  Q_PROPERTY(QString energyMode READ energyMode NOTIFY adaptiveQualityChanged)
   Q_PROPERTY(double frameIntervalMs READ frameIntervalMs NOTIFY telemetryChanged)
   Q_PROPERTY(double refreshRate READ refreshRate NOTIFY telemetryChanged)
   Q_PROPERTY(double devicePixelRatio READ devicePixelRatio NOTIFY telemetryChanged)
@@ -57,6 +62,12 @@ public:
 
   /** @brief Selects efficiency, adaptive, or fidelity. Returns false for an unknown value. */
   Q_INVOKABLE bool setProfile(const QString &profile);
+  /**
+   * @brief Queues one decoded media surface for admission after a rendered frame.
+   * @param requester Borrowed QML media object; destroyed objects are skipped.
+   * @param generation Caller-owned identity used to reject stale source requests.
+   */
+  Q_INVOKABLE void requestMediaPresentation(QObject *requester, quint64 generation);
   /** @brief Attaches the application window used for render telemetry. */
   void attachWindow(QQuickWindow *window);
 
@@ -67,12 +78,22 @@ public:
 
 signals:
   void renderingChanged();
+  void adaptiveQualityChanged();
   void telemetryChanged();
+  /** @brief Grants at most one live decoded media surface per rendered frame. */
+  void mediaPresentationGranted(QObject *requester, quint64 generation, quint64 presentationSequence);
 
 private:
   void updateStaticTelemetry();
   void recordFrame();
+  void tryGrantMediaPresentation();
+  void acknowledgeMediaPresentationFrame(quint64 synchronizedGeneration);
   void updateAdaptiveQuality();
+
+  struct MediaPresentationRequest final {
+    QPointer<QObject> requester{};
+    quint64 generation{};
+  };
 
   QSettings &m_settings;
   QQuickWindow *m_window{nullptr};
@@ -88,4 +109,9 @@ private:
   int m_activeSampleCount{0};
   int m_slowFrameStreak{0};
   int m_stableFrameStreak{0};
+  std::deque<MediaPresentationRequest> m_mediaPresentationQueue{};
+  std::atomic<quint64> m_publishedMediaPresentationGeneration{0};
+  std::atomic<quint64> m_synchronizedMediaPresentationGeneration{0};
+  quint64 m_currentMediaPresentationGeneration{0};
+  bool m_mediaPresentationGrantOutstanding{false};
 };
