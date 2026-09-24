@@ -1,8 +1,10 @@
 module;
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cctype>
+#include <chrono>
 #include <cstddef>
 #include <expected>
 #include <memory>

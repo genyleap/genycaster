@@ -1,0 +1,853 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Dialogs
+import QtQuick.Layouts
+
+GenyDrawer {
+    id: root
+    objectName: "composerDrawer"
+
+    property var parentCast: null
+    property string initialAction: ""
+    property string suggestedText: ""
+    property var suggestedEmbeds: []
+    property bool transientDraft: false
+    property string editorMode: "visual"
+    property bool restoredDraft: false
+    property string insertKind: ""
+    property int insertBlockIndex: -1
+    property int insertSelectionStart: 0
+    property int insertSelectionLength: 0
+    property string insertSelectedText: ""
+    property int pendingMediaBlockIndex: -1
+    property var pendingMediaFiles: []
+    property int pendingMediaAfterIndex: -1
+    property var mediaMetadata: ({})
+    property bool mediaInsertFailed: false
+    property int emojiThreadIndex: -1
+    property int emojiThreadCursorPosition: -1
+    readonly property int maximumThreadCasts: 12
+    readonly property bool threadMode: threadTailModel.count > 0
+    readonly property bool compact: parent ? parent.width < 720 : false
+    readonly property string replyAuthor: root.parentCast
+                                                   ? String(root.parentCast.author || "") : ""
+    readonly property string replyName: root.parentCast
+                                                 ? String(root.parentCast.displayName
+                                                          || root.parentCast.author
+                                                          || qsTrId("genycaster.shell.this_cast")) : ""
+    readonly property string replyText: root.parentCast
+                                                 ? String(root.parentCast.text || "") : ""
+    readonly property bool replyContentRtl: localizationController.isRightToLeftText(
+                                                root.replyText || root.replyName)
+
+    signal publishRequested(string text, var mentionFids, var mentionPositions, var embeds)
+    signal replyRequested(string text, var mentionFids, var mentionPositions, var embeds)
+    signal threadRequested(var casts)
+    signal abandoned()
+
+    ListModel { id: threadTailModel }
+
+    bottomSheet: true
+    modal: true
+    focus: true
+    dimBackground: true
+    contentPadding: 0
+    width: parent ? parent.width : 1040
+    height: parent ? (compact ? Math.min(parent.height * 0.92, 820)
+                              : Math.min(parent.height * 0.78, 720)) : 720
+    // Composer content owns vertical scrolling; drawer-swipe gestures would otherwise
+    // compete with Flickable/ScrollView input on touch devices.
+    interactive: root.compact
+    function openLinkFromSelection() {
+        const editor = visualEditor.formattingEditor
+        if (root.editorMode !== "visual" || visualEditor.activeBlockIndex < 0 || editor === null
+                || editor.selectionStart === editor.selectionEnd) return
+        root.insertKind = "link"
+        root.insertBlockIndex = visualEditor.activeBlockIndex
+        root.insertSelectionStart = editor.selectionStart
+        root.insertSelectionLength = editor.selectionEnd - editor.selectionStart
+        root.insertSelectedText = editor.selectedText
+    }
+
+    function insertCodeBlockFromKeyboard() {
+        if (root.editorMode !== "visual") return
+        richComposer.insertBlock("code", visualEditor.activeBlockIndex)
+    }
+
+
+    function clearPendingMediaQueue() {
+        root.pendingMediaFiles = []
+        root.pendingMediaAfterIndex = -1
+    }
+
+    function startNextMediaUpload() {
+        if (mediaUpload.busy || root.pendingMediaFiles.length === 0)
+            return false
+
+        const queue = root.pendingMediaFiles.slice()
+        const nextFile = queue.shift()
+        root.pendingMediaFiles = queue
+        if (mediaUpload.beginUpload(nextFile, root.pendingMediaAfterIndex))
+            return true
+
+        return root.startNextMediaUpload()
+    }
+
+    function enqueueMediaFiles(files, afterIndex) {
+        if (!files || files.length === 0)
+            return false
+
+        const additions = []
+        for (let index = 0; index < files.length; ++index)
+            additions.push(files[index])
+        if (additions.length === 0)
+            return false
+
+        if (!mediaUpload.busy && root.pendingMediaFiles.length === 0)
+            root.pendingMediaAfterIndex = afterIndex
+        root.pendingMediaFiles = root.pendingMediaFiles.concat(additions)
+        return root.startNextMediaUpload() || root.pendingMediaFiles.length > 0
+    }
+
+    function addThreadCast() {
+        if (threadTailModel.count + 1 >= root.maximumThreadCasts)
+            return
+        threadTailModel.append({ "text": "" })
+    }
+
+    function removeThreadCast(index) {
+        if (index >= 0 && index < threadTailModel.count)
+            threadTailModel.remove(index)
+    }
+
+    function insertEmoji(emoji) {
+        if (!emoji || emoji.length === 0)
+            return
+        if (root.emojiThreadIndex >= 0 && root.emojiThreadIndex < threadTailModel.count) {
+            const current = String(threadTailModel.get(root.emojiThreadIndex).text || "")
+            const position = Math.max(0, Math.min(current.length, root.emojiThreadCursorPosition >= 0
+                                                   ? root.emojiThreadCursorPosition : current.length))
+            threadTailModel.setProperty(root.emojiThreadIndex, "text",
+                                        current.slice(0, position) + emoji + current.slice(position))
+            root.emojiThreadCursorPosition = position + emoji.length
+            return
+        }
+        if (root.editorMode === "visual" && visualEditor.insertTextAtCursor(emoji))
+            return
+        if (root.editorMode === "markdown") {
+            const position = markdownEditor.cursorPosition
+            markdownEditor.insert(position, emoji)
+            markdownEditor.cursorPosition = position + emoji.length
+            return
+        }
+        richComposer.markdownSource = richComposer.markdownSource + emoji
+    }
+
+    function closeComposerPopups() {
+        if (emojiPicker.opened)
+            emojiPicker.close()
+    }
+
+    function synchronizeEditorState() {
+        if (root.editorMode === "visual") {
+            visualEditor.commitActiveEditor()
+            return
+        }
+        if (root.editorMode === "markdown" && markdownEditor.text !== richComposer.markdownSource)
+            richComposer.markdownSource = markdownEditor.text
+    }
+
+    function setEditorMode(mode) {
+        const nextMode = String(mode || "")
+        if (nextMode !== "visual" && nextMode !== "markdown" && nextMode !== "preview")
+            return
+        if (nextMode === root.editorMode)
+            return
+        root.synchronizeEditorState()
+        root.closeComposerPopups()
+        root.editorMode = nextMode
+    }
+
+    function hasLiveEditorText() {
+        if (root.editorMode === "visual")
+            return visualEditor.hasLiveContent
+        if (root.editorMode === "markdown")
+            return markdownEditor.text.trim().length > 0
+        return false
+    }
+
+    function threadTailWithinLimit() {
+        for (let index = 0; index < threadTailModel.count; ++index) {
+            const text = String(threadTailModel.get(index).text || "")
+            if (text.trim().length === 0 || presentationBridge.utf8ByteCount(text) > 1024)
+                return false
+        }
+        return true
+    }
+
+    function hasPublishableContent() {
+        return (richComposer.safeText.trim().length > 0 || root.hasLiveEditorText()
+                || richComposer.protocolEmbeds.length > 0)
+               && root.threadTailWithinLimit()
+    }
+
+    function threadPayload() {
+        const casts = [{
+            "text": richComposer.safeText,
+            "mentionFids": richComposer.mentionFids,
+            "mentionPositions": richComposer.mentionPositions,
+            "embeds": richComposer.protocolEmbeds
+        }]
+        for (let index = 0; index < threadTailModel.count; ++index) {
+            casts.push({
+                "text": String(threadTailModel.get(index).text || ""),
+                "mentionFids": [],
+                "mentionPositions": [],
+                "embeds": []
+            })
+        }
+        return casts
+    }
+
+    function publishCurrent() {
+        root.synchronizeEditorState()
+        if (!richComposer.withinProtocolLimit || !root.hasPublishableContent()
+                || presentationBridge.writeBusy || mediaUpload.busy)
+            return
+        richComposer.saveDraft()
+        if (root.threadMode)
+            root.threadRequested(root.threadPayload())
+        else if (root.parentCast)
+            root.replyRequested(richComposer.safeText, richComposer.mentionFids, richComposer.mentionPositions, richComposer.protocolEmbeds)
+        else
+            root.publishRequested(richComposer.safeText, richComposer.mentionFids, richComposer.mentionPositions, richComposer.protocolEmbeds)
+    }
+
+    onOpened: {
+        root.closeComposerPopups()
+        editorMode = "visual"
+        insertKind = ""
+        mediaInsertFailed = false
+        root.emojiThreadIndex = -1
+        threadTailModel.clear()
+        root.mediaMetadata = ({})
+        root.clearPendingMediaQueue()
+        if (!mediaUpload.busy) mediaUpload.clear()
+        if (root.transientDraft || root.parentCast) {
+            richComposer.newDocument()
+            restoredDraft = false
+        } else {
+            restoredDraft = richComposer.restoreDraft()
+            if (!restoredDraft) richComposer.newDocument()
+        }
+        if (root.transientDraft) {
+            richComposer.markdownSource = String(root.suggestedText || "")
+            const embeds = root.suggestedEmbeds || []
+            for (let index = 0; index < Math.min(2, embeds.length); ++index)
+                richComposer.insertEmbed(String(embeds[index] || ""), "", -1)
+        }
+        if (root.initialAction === "media") {
+            Qt.callLater(function() {
+                root.pendingMediaBlockIndex = visualEditor.activeBlockIndex
+                mediaFileDialog.open()
+                root.initialAction = ""
+            })
+        }
+    }
+
+    onClosed: {
+        root.closeComposerPopups()
+        root.initialAction = ""
+        root.clearPendingMediaQueue()
+        if (mediaUpload.busy) mediaUpload.cancel()
+        if (!root.transientDraft && richComposer.dirty && !presentationBridge.writeBusy) richComposer.saveDraft()
+        presentationBridge.clearReplyTarget()
+        root.abandoned()
+    }
+
+    EmojiPicker {
+        id: emojiPicker
+        parent: Overlay.overlay
+        anchorItem: formattingToolbar
+        onEmojiSelected: emoji => root.insertEmoji(emoji)
+    }
+
+    FileDialog {
+        id: mediaFileDialog
+        title: qsTrId("genycaster.media.choose_file")
+        fileMode: FileDialog.OpenFiles
+        nameFilters: [
+            qsTrId("genycaster.media.images_and_videos") + " (*.jpg *.jpeg *.png *.webp *.gif *.avif *.mp4 *.webm *.mov)",
+            qsTrId("genycaster.media.images") + " (*.jpg *.jpeg *.png *.webp *.gif *.avif)",
+            qsTrId("genycaster.media.videos") + " (*.mp4 *.webm *.mov)"
+        ]
+        onAccepted: {
+            root.mediaInsertFailed = false
+            root.enqueueMediaFiles(selectedFiles, root.pendingMediaBlockIndex)
+        }
+    }
+
+    Connections {
+        target: mediaUpload
+        function onAssetReady(url, mediaType, managementToken, afterIndex) {
+            const canonicalUrl = String(url || "")
+            const nextMetadata = Object.assign({}, root.mediaMetadata)
+            nextMetadata[canonicalUrl] = {
+                fileName: mediaUpload.fileName,
+                localPreviewUrl: mediaUpload.localPreviewUrl.toString(),
+                mediaType: String(mediaType || mediaUpload.selectedContentType || ""),
+                sizeBytes: Number(mediaUpload.totalBytes || 0)
+            }
+            root.mediaMetadata = nextMetadata
+
+            if (!richComposer.insertManagedMedia(url, mediaType, managementToken, "", afterIndex)) {
+                root.mediaInsertFailed = true
+                return
+            }
+            root.mediaInsertFailed = false
+            if (afterIndex >= 0)
+                root.pendingMediaAfterIndex = afterIndex + 1
+            mediaUpload.clear()
+            if (!root.startNextMediaUpload())
+                root.insertKind = ""
+        }
+    }
+
+    Shortcut {
+        sequence: "Escape"
+        context: Qt.ApplicationShortcut
+        enabled: root.opened && !emojiPicker.opened
+        onActivated: root.close()
+    }
+    Shortcut { sequence: "Ctrl+Return"; enabled: root.opened && !emojiPicker.opened; onActivated: root.publishCurrent() }
+    Shortcut { sequence: "Meta+Return"; enabled: root.opened && !emojiPicker.opened; onActivated: root.publishCurrent() }
+    Shortcut { sequences: [StandardKey.Undo]; enabled: root.opened && !emojiPicker.opened && richComposer.canUndo; onActivated: richComposer.undo() }
+    Shortcut { sequences: [StandardKey.Redo]; enabled: root.opened && !emojiPicker.opened && richComposer.canRedo; onActivated: richComposer.redo() }
+    Shortcut { sequence: "Ctrl+K"; enabled: root.opened && !emojiPicker.opened; onActivated: root.openLinkFromSelection() }
+    Shortcut { sequence: "Meta+K"; enabled: root.opened && !emojiPicker.opened; onActivated: root.openLinkFromSelection() }
+    Shortcut { sequence: "Ctrl+Shift+C"; enabled: root.opened && !emojiPicker.opened; onActivated: root.insertCodeBlockFromKeyboard() }
+    Shortcut { sequence: "Meta+Shift+C"; enabled: root.opened && !emojiPicker.opened; onActivated: root.insertCodeBlockFromKeyboard() }
+
+    contentItem: ScrollView {
+        id: composerScroll
+        clip: true
+        contentWidth: availableWidth
+        ScrollBar.vertical: GenyScrollBar {}
+
+        ColumnLayout {
+            readonly property int sideMargin: root.compact ? Theme.mobileGutter : Theme.space6
+            width: Math.max(0, composerScroll.availableWidth - sideMargin * 2)
+            x: sideMargin
+            spacing: Theme.space3
+
+            Item { Layout.preferredHeight: root.compact ? Theme.space1 : Theme.space2 }
+
+            RowLayout {
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space3
+
+                ActionButton {
+                    iconOnly: true
+                    iconGlyph: Theme.iconClose
+                    iconSize: Theme.iconSize
+                    text: qsTrId("genycaster.shell.close")
+                    pill: true
+                    elevated: false
+                    onClicked: root.close()
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 1
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: root.threadMode ? qsTrId("genycaster.composer.thread_title")
+                              : root.parentCast ? qsTrId("genycaster.shell.reply") : qsTrId("genycaster.shell.new_cast")
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeTitle2Size
+                        font.weight: Theme.weightBold
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.composer.rich_engine_subtitle")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        elide: Text.ElideRight
+                    }
+                }
+
+
+                ActionButton {
+                    prominent: true
+                    compact: true
+                    iconGlyph: Theme.iconSend
+                    text: presentationBridge.writeBusy
+                          ? (root.threadMode ? qsTrId("genycaster.composer.publishing_thread")
+                             : root.parentCast ? qsTrId("genycaster.shell.replying") : qsTrId("genycaster.shell.publishing"))
+                          : (root.threadMode ? qsTrId("genycaster.composer.publish_thread")
+                             : root.parentCast ? qsTrId("genycaster.shell.reply") : qsTrId("genycaster.shell.publish"))
+                    enabled: !presentationBridge.writeBusy && !mediaUpload.busy
+                             && richComposer.withinProtocolLimit && root.hasPublishableContent()
+                    onClicked: root.publishCurrent()
+                }
+            }
+
+            ComposerToolbar {
+                Layout.fillWidth: true
+                mode: root.editorMode
+                onModeRequested: mode => root.setEditorMode(mode)
+            }
+
+            Superellipse {
+                id: replyContextCard
+                visible: root.parentCast !== null
+                Layout.fillWidth: true
+                implicitHeight: replyContextContent.implicitHeight + Theme.space4 * 2
+                curveDepth: Theme.curveContainer
+                fillColor: replyContextHover.hovered ? Theme.primarySurfaceHover : Theme.primarySurface
+                borderWidth: Theme.strokeHairline
+                borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
+                                     Theme.dark ? 0.46 : 0.28)
+                Accessible.role: Accessible.Button
+                Accessible.name: qsTrId("genycaster.cast.replying_to_value").arg(
+                                     root.replyAuthor.length > 0 ? "@" + root.replyAuthor : root.replyName)
+                Accessible.description: root.replyText
+
+                Behavior on fillColor {
+                    ColorAnimation { duration: Theme.motionFast }
+                }
+
+                RowLayout {
+                    id: replyContextContent
+                    anchors.fill: parent
+                    anchors.margins: Theme.space4
+                    spacing: Theme.space3
+                    layoutDirection: root.replyContentRtl ? Qt.RightToLeft : Qt.LeftToRight
+                    LayoutMirroring.enabled: false
+                    LayoutMirroring.childrenInherit: true
+
+                    Avatar {
+                        Layout.alignment: Qt.AlignTop
+                        avatarSize: root.compact ? 44 : 48
+                        sourceUrl: root.parentCast ? String(root.parentCast.avatarUrl || "") : ""
+                        displayName: root.replyName
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space1
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space2
+                            layoutDirection: root.replyContentRtl ? Qt.RightToLeft : Qt.LeftToRight
+
+                            Superellipse {
+                                Layout.preferredWidth: 26
+                                Layout.preferredHeight: 26
+                                curveDepth: 13
+                                fillColor: Theme.surfaceRaised
+
+                                Icon {
+                                    anchors.centerIn: parent
+                                    text: Theme.iconReply
+                                    color: Theme.accent
+                                    preferredSize: Theme.iconSizeSmall
+                                }
+                            }
+
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.cast.replying_to_value").arg(
+                                          root.replyAuthor.length > 0 ? "@" + root.replyAuthor : root.replyName)
+                                color: Theme.accent
+                                font.pixelSize: Theme.typeMetaSize
+                                font.weight: Theme.weightDemiBold
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: root.replyName
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightBold
+                            elide: Text.ElideRight
+                        }
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: root.replyText.length > 0
+                                  ? root.replyText : qsTrId("genycaster.embed.open_quoted_cast")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeBodySize
+                            font.weight: Theme.weightRegular
+                            lineHeight: Theme.typeBodyLineHeight
+                            maximumLineCount: root.compact ? 2 : 3
+                            wrapMode: Text.Wrap
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    Superellipse {
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.preferredWidth: Theme.compactControlHeight
+                        Layout.preferredHeight: Theme.compactControlHeight
+                        curveDepth: Theme.compactControlHeight / 2
+                        fillColor: Theme.surfaceRaised
+                        borderWidth: Theme.strokeHairline
+                        borderColor: Theme.borderSubtle
+
+                        Icon {
+                            anchors.centerIn: parent
+                            text: root.replyContentRtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                            color: Theme.inkMuted
+                            preferredSize: Theme.iconSizeSmall
+                        }
+                    }
+                }
+
+                HoverHandler { id: replyContextHover }
+                TapHandler {
+                    gesturePolicy: TapHandler.ReleaseWithinBounds
+                    onTapped: {
+                        const castId = root.parentCast ? String(root.parentCast.castId || "") : ""
+                        if (castId.length > 0) presentationBridge.openCast(castId)
+                    }
+                }
+            }
+
+            FormattingToolbar {
+                id: formattingToolbar
+                visible: root.editorMode === "visual"
+                Layout.fillWidth: true
+                activeBlockIndex: visualEditor.activeBlockIndex
+                activeEditor: visualEditor.formattingEditor
+                editorHost: visualEditor
+                onLinkRequested: (blockIndex, selectionStart, selectionLength, selectedText) => {
+                    root.insertKind = "link"
+                    root.insertBlockIndex = blockIndex
+                    root.insertSelectionStart = selectionStart
+                    root.insertSelectionLength = selectionLength
+                    root.insertSelectedText = selectedText
+                }
+                onMentionRequested: (blockIndex, selectionStart, selectionLength, selectedText) => {
+                    root.insertKind = "mention"
+                    root.insertBlockIndex = blockIndex
+                    root.insertSelectionStart = selectionStart
+                    root.insertSelectionLength = selectionLength
+                    root.insertSelectedText = selectedText
+                }
+                onEmbedRequested: blockIndex => {
+                    root.insertKind = "embed"
+                    root.insertBlockIndex = blockIndex
+                    root.insertSelectedText = ""
+                }
+                onMediaRequested: blockIndex => {
+                    root.insertKind = "media"
+                    root.insertBlockIndex = blockIndex
+                    root.insertSelectedText = ""
+                }
+                onEmojiRequested: {
+                    root.emojiThreadIndex = -1
+                    root.emojiThreadCursorPosition = -1
+                    emojiPicker.anchorItem = formattingToolbar
+                    emojiPicker.open()
+                }
+            }
+
+            ComposerInsertPanel {
+                visible: root.editorMode === "visual" && root.insertKind.length > 0
+                         && root.insertKind !== "media"
+                Layout.fillWidth: true
+                kind: root.insertKind
+                blockIndex: root.insertBlockIndex
+                selectionStart: root.insertSelectionStart
+                selectionLength: root.insertSelectionLength
+                selectedText: root.insertSelectedText
+                onFinished: root.insertKind = ""
+                onMediaFileRequested: blockIndex => {
+                    root.pendingMediaBlockIndex = blockIndex
+                    mediaFileDialog.open()
+                }
+            }
+
+            MediaUploadPanel {
+                id: mediaPanel
+                visible: root.editorMode === "visual"
+                         && (root.insertKind === "media" || hasAttachedMedia || hasTransientUpload)
+                Layout.fillWidth: true
+                blockIndex: root.insertBlockIndex
+                insertFailed: root.mediaInsertFailed
+                queuedFiles: root.pendingMediaFiles
+                attachmentMetadata: root.mediaMetadata
+                onBrowseRequested: blockIndex => {
+                    root.pendingMediaBlockIndex = blockIndex
+                    root.mediaInsertFailed = false
+                    mediaFileDialog.open()
+                }
+                onFilesDropped: (urls, blockIndex) => {
+                    root.mediaInsertFailed = false
+                    root.enqueueMediaFiles(urls, blockIndex)
+                }
+                onResetFailureRequested: root.mediaInsertFailed = false
+                onFinished: {
+                    root.insertKind = ""
+                    root.clearPendingMediaQueue()
+                    if (!mediaUpload.busy) {
+                        root.mediaInsertFailed = false
+                        if (mediaUpload.canRetry || mediaUpload.errorText.length > 0)
+                            mediaUpload.clear()
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: root.editorMode === "preview"
+                                        ? farcasterPreview.implicitHeight
+                                        : root.threadMode
+                                          ? (root.compact ? 220 : 250)
+                                          : (root.compact ? 290 : 320)
+                Layout.minimumHeight: root.editorMode === "preview"
+                                      ? Math.min(farcasterPreview.implicitHeight, root.compact ? 210 : 230)
+                                      : root.threadMode
+                                        ? (root.compact ? 200 : 220)
+                                        : (root.compact ? 250 : 280)
+                spacing: Theme.space3
+                layoutDirection: Qt.LeftToRight
+
+                Superellipse {
+                    visible: root.editorMode !== "preview"
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    fillColor: Theme.editorSurface
+                    borderWidth: Theme.strokeHairline
+                    borderColor: Theme.borderSubtle
+                    curveDepth: Theme.curveLarge
+
+                    RichTextEditor {
+                        id: visualEditor
+                        visible: root.editorMode === "visual"
+                        anchors.fill: parent
+                        anchors.margins: Theme.space3
+                    }
+
+                    Item {
+                        visible: root.editorMode === "markdown"
+                        anchors.fill: parent
+                        anchors.margins: Theme.space3
+
+                        Timer {
+                            id: markdownSync
+                            interval: 90
+                            repeat: false
+                            onTriggered: if (markdownEditor.text !== richComposer.markdownSource) richComposer.markdownSource = markdownEditor.text
+                        }
+
+                        DirectionAwareTextArea {
+                            id: markdownEditor
+                            anchors.fill: parent
+                            text: richComposer.markdownSource
+                            placeholderText: qsTrId("genycaster.composer.markdown_placeholder")
+                            background: null
+                            selectByMouse: true
+                            persistentSelection: true
+                            wrapMode: TextEdit.Wrap
+                            font.pixelSize: Theme.typeBodySize
+                            onTextChanged: if (activeFocus) markdownSync.restart()
+                            onActiveFocusChanged: if (!activeFocus && text !== richComposer.markdownSource) richComposer.markdownSource = text
+                        }
+                    }
+                }
+
+                FarcasterPreview {
+                    id: farcasterPreview
+                    visible: root.editorMode === "preview"
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    compact: root.compact
+                    attachmentMetadata: root.mediaMetadata
+                }
+            }
+
+            ColumnLayout {
+                visible: root.threadMode
+                Layout.fillWidth: true
+                spacing: Theme.space2
+
+                Repeater {
+                    model: threadTailModel
+
+                    delegate: RowLayout {
+                        id: threadRow
+                        layoutDirection: Theme.uiDirection
+                        required property int index
+                        required property string text
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+
+                        Item {
+                            Layout.preferredWidth: 34
+                            Layout.fillHeight: true
+
+                            Rectangle {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.top: parent.top
+                                anchors.bottom: sequenceDot.top
+                                width: 2
+                                color: Theme.borderMuted
+                            }
+                            Superellipse {
+                                id: sequenceDot
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 28
+                                height: 28
+                                curveDepth: 14
+                                fillColor: Theme.primarySurface
+                                borderWidth: Theme.strokeHairline
+                                borderColor: Theme.accent
+                                Label {
+                                    anchors.centerIn: parent
+                                    text: LocaleFormat.formatInteger(threadRow.index + 2)
+                                    color: Theme.accent
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: Theme.weightBold
+                                }
+                            }
+                        }
+
+                        Superellipse {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: Math.max(116, threadEditor.contentHeight + Theme.space5)
+                            fillColor: Theme.editorSurface
+                            borderWidth: threadEditor.activeFocus ? Theme.strokeEmphasis : Theme.strokeHairline
+                            borderColor: threadEditor.activeFocus ? Theme.accent : Theme.borderSubtle
+                            curveDepth: Theme.curveLarge
+
+                            DirectionAwareTextArea {
+                                id: threadEditor
+                                anchors.left: parent.left
+                                anchors.right: threadActions.left
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                anchors.margins: Theme.space3
+                                text: threadRow.text
+                                placeholderText: qsTrId("genycaster.composer.thread_placeholder").arg(LocaleFormat.formatInteger(threadRow.index + 2))
+                                background: null
+                                wrapMode: TextEdit.Wrap
+                                onTextChanged: if (activeFocus && text !== threadTailModel.get(threadRow.index).text)
+                                                   threadTailModel.setProperty(threadRow.index, "text", text)
+                            }
+
+                            ColumnLayout {
+                                id: threadActions
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.margins: Theme.space2
+                                spacing: Theme.space1
+
+                                ActionButton {
+                                    quiet: true
+                                    compact: true
+                                    iconOnly: true
+                                    iconGlyph: Theme.iconEmoji
+                                    iconSize: Theme.iconSizeSmall
+                                    text: qsTrId("genycaster.composer.emoji")
+                                    onClicked: {
+                                        root.emojiThreadIndex = threadRow.index
+                                        root.emojiThreadCursorPosition = threadEditor.cursorPosition
+                                        emojiPicker.anchorItem = threadEditor
+                                        emojiPicker.open()
+                                    }
+                                }
+                                ActionButton {
+                                    quiet: true
+                                    compact: true
+                                    iconOnly: true
+                                    iconGlyph: Theme.iconTrash
+                                    text: qsTrId("genycaster.composer.remove_thread_cast")
+                                    onClicked: root.removeThreadCast(threadRow.index)
+                                }
+                            }
+
+                            Label {
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                anchors.margins: Theme.space2
+                                text: LocaleFormat.formatInteger(presentationBridge.utf8ByteCount(threadRow.text))
+                                      + "/" + LocaleFormat.formatInteger(1024)
+                                color: presentationBridge.utf8ByteCount(threadRow.text) <= 1024
+                                       ? Theme.inkSubtle : Theme.danger
+                                font.family: Theme.fontFamilyForText(text)
+                                font.pixelSize: Theme.typeCaptionSize
+                            }
+                        }
+                    }
+                }
+            }
+
+            RowLayout {
+                layoutDirection: Theme.uiDirection
+                Layout.fillWidth: true
+                spacing: Theme.space2
+
+                ActionButton {
+                    quiet: true
+                    iconGlyph: Theme.iconPlus
+                    text: qsTrId("genycaster.composer.add_cast")
+                    enabled: threadTailModel.count + 1 < root.maximumThreadCasts
+                    onClicked: root.addThreadCast()
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: root.threadMode ? qsTrId("genycaster.composer.thread_protocol_hint")
+                                          : qsTrId("genycaster.composer.thread_hint")
+                    color: Theme.inkSubtle
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.Wrap
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space3
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 1
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: presentationBridge.writeErrorText.length > 0 ? presentationBridge.writeErrorText
+                              : richComposer.simplifiedElementCount > 0
+                                ? qsTrId("genycaster.composer.compatibility_simplified_count")
+                                    .arg(LocaleFormat.formatInteger(richComposer.simplifiedElementCount))
+                              : qsTrId("genycaster.composer.cross_client_safe")
+                        color: presentationBridge.writeErrorText.length > 0 ? Theme.warning : Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                    }
+                }
+
+                Label {
+                    LayoutMirroring.enabled: false
+                    text: qsTrId("genycaster.composer.editor_count")
+                              .arg(LocaleFormat.formatInteger(richComposer.editorCharacters))
+                          + "  •  " + qsTrId("genycaster.composer.published_count")
+                              .arg(LocaleFormat.formatInteger(richComposer.publishedBytes))
+                              .arg(LocaleFormat.formatInteger(richComposer.maximumPublishedBytes))
+                    color: richComposer.withinProtocolLimit ? Theme.inkSubtle : Theme.danger
+                    font.family: Theme.fontFamilyForText(text)
+                    font.pixelSize: Theme.typeCaptionSize
+                    font.weight: richComposer.withinProtocolLimit ? Theme.weightMedium : Theme.weightBold
+                }
+            }
+
+            Item { Layout.preferredHeight: root.compact ? Theme.space3 : Theme.space5 }
+        }
+    }
+}

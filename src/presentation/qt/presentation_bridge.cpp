@@ -1250,6 +1250,7 @@ void PresentationBridge::retranslateTransientState()
     m_authenticationErrorText.clear();
     m_signerErrorText.clear();
     m_writeErrorText.clear();
+    emit authenticationStateChanged();
     emit stateChanged();
 }
 
@@ -1348,12 +1349,14 @@ void PresentationBridge::beginSignIn()
 {
     if (!m_runtimeReady) {
         m_authenticationErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
+        emit authenticationStateChanged();
         emit stateChanged();
         return;
     }
     if (!m_authenticationAvailable) {
         m_authenticationErrorText = qtTrId(
             "genycaster.bridge.sign_in_is_not_configured_guest_reading_remains_available");
+        emit authenticationStateChanged();
         emit stateChanged();
         return;
     }
@@ -1715,11 +1718,13 @@ void PresentationBridge::openAuthenticationApproval()
     if (!parsed.isValid() ||
         (parsed.scheme() != QStringLiteral("https") && parsed.scheme() != QStringLiteral("http"))) {
         m_authenticationErrorText = qtTrId("genycaster.bridge.the_authentication_approval_link_is_invalid");
+        emit authenticationStateChanged();
         emit stateChanged();
         return;
     }
     if (!QDesktopServices::openUrl(parsed)) {
         m_authenticationErrorText = qtTrId("genycaster.bridge.the_system_could_not_open_the_farcaster_approval_link");
+        emit authenticationStateChanged();
         emit stateChanged();
     }
 }
@@ -1732,6 +1737,7 @@ void PresentationBridge::applyRuntimeState(const bool ready, QString errorText)
     m_diagnosticText = ready ? QString{} : std::move(errorText);
     m_statusText = ready ? qtTrId("genycaster.bridge.ready_to_read")
                          : qtTrId("genycaster.bridge.local_runtime_unavailable");
+    emit runtimeStateChanged();
     emit stateChanged();
 }
 
@@ -1822,12 +1828,14 @@ void PresentationBridge::applyAuthenticationState(
     } else {
         m_writeReady = m_signerPhase == QStringLiteral("ready");
     }
+    emit authenticationStateChanged();
     emit stateChanged();
 }
 
 void PresentationBridge::applyAuthenticationError(QString errorText)
 {
     m_authenticationErrorText = std::move(errorText);
+    emit authenticationStateChanged();
     emit stateChanged();
 }
 
@@ -2080,9 +2088,11 @@ void PresentationBridge::applyIdentity(const qulonglong fid, QString displayName
     }
     m_isBusy = busy;
     m_isStale = stale;
-    if (fid != 0 && fid == m_accountFid && !profile.isEmpty()) {
+    const bool updatesAccountProfile = fid != 0 && fid == m_accountFid && !profile.isEmpty();
+    if (updatesAccountProfile) {
         m_accountProfile = std::move(profile);
         m_profileDetailCache.insert(fid, m_accountProfile);
+        emit authenticationStateChanged();
     }
     emit stateChanged();
 
@@ -2429,6 +2439,7 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
         m_profileDetailCache.insert(m_profileFid, m_detail);
         if (m_profileFid == m_accountFid) {
             m_accountProfile = m_detail;
+            emit authenticationStateChanged();
         }
     }
     m_statusText = std::move(status);
@@ -2516,5 +2527,6 @@ void PresentationBridge::applyVerificationFixture()
         QVariantMap{{QStringLiteral("castId"), QStringLiteral("0x04")}, {QStringLiteral("author"), QStringLiteral("cinephile")}, {QStringLiteral("displayName"), QStringLiteral("Cinephile Daily")}, {QStringLiteral("text"), QStringLiteral("Direct video plays inline inside Genycaster — no external browser required.")}, {QStringLiteral("createdAtMs"), nowMs - 960'000}, {QStringLiteral("embeds"), QVariantList{QVariantMap{{QStringLiteral("kind"), QStringLiteral("video")}, {QStringLiteral("url"), QStringLiteral("https://example.com/clips/demo.mp4")}, {QStringLiteral("host"), QStringLiteral("example.com")}, {QStringLiteral("fileName"), QStringLiteral("demo.mp4")}, {QStringLiteral("imageSource"), QString{}}, {QStringLiteral("hasPreviewImage"), false}}}}},
     };
     m_next = QStringLiteral("fixture-next");
+    emit runtimeStateChanged();
     emit stateChanged();
 }

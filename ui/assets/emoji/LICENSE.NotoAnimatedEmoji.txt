@@ -1,0 +1,29 @@
+Google Noto Animated Emoji
+==========================
+
+Source: https://github.com/googlefonts/noto-emoji-animation
+Served by: https://googlefonts.github.io/noto-emoji-animation/
+Asset CDN: https://fonts.gstatic.com/s/e/notoemoji/latest/<key>/lottie.json
+
+License: CC BY 4.0
+License text: https://creativecommons.org/licenses/by/4.0/legalcode
+
+This directory contains:
+
+- lottie/emoji_u*.json        — the bundled bootstrap Lottie assets (CC BY 4.0).
+- noto_manifest.json          — a snapshot of the upstream noto-emoji-animation
+                                api.json (icon identifiers, Unicode codepoints,
+                                categories and tags) used to drive the emoji
+                                catalog and provider asset mapping.
+- bootstrap_manifest.json     — GenyCaster's configurable bootstrap set with
+                                pinned sha256 checksums.
+
+These assets and data files are third-party artwork and metadata published by
+Google. They are licensed under CC BY 4.0 and are NOT covered by the
+GenyCaster application license. Attribution:
+
+    Noto Animated Emoji, Copyright Google LLC
+    Licensed under the Creative Commons Attribution 4.0 International (CC BY 4.0)
+    https://creativecommons.org/licenses/by/4.0/
+
+No claim of ownership over the upstream artwork is made by GenyCaster.

@@ -4,43 +4,39 @@
         <name />
         <message id="genycaster.miniapp.presentation_title">
             <source>Mini App presentation</source>
-            <translation>Mini App presentation</translation>
+            <translation>Mini App प्रस्तुति</translation>
         </message>
         <message id="genycaster.miniapp.presentation_description">
             <source>Saved for the next app you open. Changing this does not reload a running app.</source>
-            <translation>Saved for the next app you open. Changing this does not reload a running app.</translation>
+            <translation>यह आपके द्वारा अगली बार खोले जाने वाले ऐप के लिए सहेजा जाता है। इसे बदलने से चल रहा ऐप दोबारा लोड नहीं होता।</translation>
         </message>
         <message id="genycaster.miniapp.mode_window">
             <source>Separate window</source>
-            <translation>Separate window</translation>
+            <translation>अलग विंडो</translation>
         </message>
         <message id="genycaster.miniapp.mode_bottom">
             <source>Drawer from bottom</source>
-            <translation>Drawer from bottom</translation>
+            <translation>नीचे से ड्रॉअर</translation>
         </message>
         <message id="genycaster.miniapp.mode_left">
             <source>Drawer from left</source>
-            <translation>Drawer from left</translation>
+            <translation>बाएँ से ड्रॉअर</translation>
         </message>
         <message id="genycaster.miniapp.mode_right">
             <source>Drawer from right</source>
-            <translation>Drawer from right</translation>
-        </message>
-        <message id="genycaster.miniapp.close">
-            <source>Close app</source>
-            <translation>Close app</translation>
+            <translation>दाएँ से ड्रॉअर</translation>
         </message>
         <message id="genycaster.miniapp.open_internal">
             <source>Open in Genycaster</source>
-            <translation>Open in Genycaster</translation>
+            <translation>Genycaster में खोलें</translation>
         </message>
         <message id="genycaster.miniapp.unavailable">
             <source>The internal Mini App host is not enabled in this build.</source>
-            <translation>The internal Mini App host is not enabled in this build.</translation>
+            <translation>इस बिल्ड में आंतरिक Mini App होस्ट सक्षम नहीं है।</translation>
         </message>
         <message id="genycaster.miniapp.sign_in_first">
             <source>Sign in to Genycaster before opening this app.</source>
-            <translation>Sign in to Genycaster before opening this app.</translation>
+            <translation>इस ऐप को खोलने से पहले Genycaster में साइन इन करें।</translation>
         </message>
         <message id="genycaster.miniapp.loading">
             <source>Loading app…</source>
@@ -48,43 +44,27 @@
         </message>
         <message id="genycaster.miniapp.invalid_url">
             <source>This app needs a valid public HTTPS address.</source>
-            <translation>This app needs a valid public HTTPS address.</translation>
+            <translation>इस ऐप को एक मान्य सार्वजनिक HTTPS पता चाहिए।</translation>
         </message>
         <message id="genycaster.miniapp.invalid_manifest">
             <source>The app manifest is missing or invalid.</source>
-            <translation>The app manifest is missing or invalid.</translation>
+            <translation>ऐप मैनिफ़ेस्ट मौजूद नहीं है या अमान्य है।</translation>
         </message>
         <message id="genycaster.miniapp.load_failed">
             <source>Could not load the app. Check your connection and try again.</source>
-            <translation>Could not load the app. Check your connection and try again.</translation>
+            <translation>ऐप लोड नहीं हो सका। अपना कनेक्शन जाँचें और फिर प्रयास करें।</translation>
         </message>
         <message id="genycaster.miniapp.ready_timeout">
             <source>The app did not become ready. You can retry or close it.</source>
-            <translation>The app did not become ready. You can retry or close it.</translation>
+            <translation>ऐप तैयार नहीं हुआ। आप फिर प्रयास कर सकते हैं या इसे बंद कर सकते हैं।</translation>
         </message>
         <message id="genycaster.miniapp.unsupported_requirements">
             <source>This app requires host capabilities or chains that Genycaster does not support yet. Reload cannot add them.</source>
             <translation>This app requires capabilities that Genycaster does not support yet.</translation>
         </message>
-        <message id="genycaster.miniapp.navigation_blocked">
-            <source>This app tried to leave its approved secure domain. Navigation was blocked.</source>
-            <translation>This app tried to leave its approved secure domain. Navigation was blocked.</translation>
-        </message>
-        <message id="genycaster.miniapp.renderer_failed">
-            <source>The app process stopped. Reload to start a new session.</source>
-            <translation>The app process stopped. Reload to start a new session.</translation>
-        </message>
         <message id="genycaster.miniapp.rpc_limit">
             <source>The app sent too many or oversized requests and was stopped.</source>
-            <translation>The app sent too many or oversized requests and was stopped.</translation>
-        </message>
-        <message id="genycaster.miniapp.back">
-            <source>Back</source>
-            <translation>Back</translation>
-        </message>
-        <message id="genycaster.miniapp.retry">
-            <source>Reload</source>
-            <translation>Reload</translation>
+            <translation>ऐप ने बहुत अधिक या बहुत बड़े अनुरोध भेजे और उसे रोक दिया गया।</translation>
         </message>
         <message id="genycaster.app.genycaster">
             <source>Genycaster</source>
@@ -386,10 +366,6 @@
             <source>Open conversation context</source>
             <translation>बातचीत का संदर्भ खोलें</translation>
         </message>
-        <message id="genycaster.cast.open_first_link">
-            <source>Open first link</source>
-            <translation>पहला लिंक खोलें</translation>
-        </message>
         <message id="genycaster.cast.open_original_cast">
             <source>Open original cast</source>
             <translation>मूल Cast खोलें</translation>
@@ -430,10 +406,6 @@
             <source>Replying to another cast</source>
             <translation>दूसरे Cast का उत्तर दिया जा रहा है</translation>
         </message>
-        <message id="genycaster.cast.replying_to_parent_link">
-            <source>Replying to a parent link</source>
-            <translation>पैरेंट लिंक का उत्तर दिया जा रहा है</translation>
-        </message>
         <message id="genycaster.cast.replying_to_value">
             <source>Replying to %1</source>
             <translation>%1 को उत्तर दिया जा रहा है</translation>
@@ -457,10 +429,6 @@
         <message id="genycaster.composer.add_cast">
             <source>Add cast</source>
             <translation>Cast जोड़ें</translation>
-        </message>
-        <message id="genycaster.composer.alt_text_optional">
-            <source>Optional alt text</source>
-            <translation>वैकल्पिक वर्णन</translation>
         </message>
         <message id="genycaster.composer.apply">
             <source>Apply</source>
@@ -694,37 +662,13 @@
             <source>Checking your GENY balance…</source>
             <translation>GENY बैलेंस जाँचा जा रहा है…</translation>
         </message>
-        <message id="genycaster.context.community_active_people">
-            <source>Active people</source>
-            <translation>सक्रिय लोग</translation>
-        </message>
         <message id="genycaster.context.community_casts_loaded">
             <source>Casts loaded</source>
             <translation>लोड किए गए कास्ट</translation>
         </message>
-        <message id="genycaster.context.community_engagement">
-            <source>Engagement</source>
-            <translation>एंगेजमेंट</translation>
-        </message>
         <message id="genycaster.context.community_last_7_days">
             <source>Last 7 days</source>
             <translation>पिछले 7 दिन</translation>
-        </message>
-        <message id="genycaster.context.community_live_sample">
-            <source>Live sample</source>
-            <translation>लाइव नमूना</translation>
-        </message>
-        <message id="genycaster.context.community_offline">
-            <source>Offline</source>
-            <translation>ऑफ़लाइन</translation>
-        </message>
-        <message id="genycaster.context.community_stale">
-            <source>Needs refresh</source>
-            <translation>रीफ़्रेश आवश्यक</translation>
-        </message>
-        <message id="genycaster.context.community_waiting">
-            <source>Waiting for feed activity</source>
-            <translation>फ़ीड गतिविधि की प्रतीक्षा</translation>
         </message>
         <message id="genycaster.context.fdv">
             <source>Fully diluted value</source>
@@ -789,10 +733,6 @@
         <message id="genycaster.context.token_pulse">
             <source>Token Pulse</source>
             <translation>टोकन पल्स</translation>
-        </message>
-        <message id="genycaster.context.upcoming_event">
-            <source>Upcoming: Community AMA · 19:00</source>
-            <translation>आगामी: कम्युनिटी AMA · 19:00</translation>
         </message>
         <message id="genycaster.context.volume_24h">
             <source>24h volume</source>
@@ -1118,14 +1058,6 @@
             <source>Loading more</source>
             <translation>और लोड हो रहा है</translation>
         </message>
-        <message id="genycaster.feed_surface.pull_to_refresh">
-            <source>Pull to refresh</source>
-            <translation>रीफ़्रेश करने के लिए खींचें</translation>
-        </message>
-        <message id="genycaster.feed_surface.release_to_refresh">
-            <source>Release to refresh</source>
-            <translation>रीफ़्रेश करने के लिए छोड़ें</translation>
-        </message>
         <message id="genycaster.feedback.backend_pending">
             <source>Feedback transport is not connected yet. This interface is ready; server delivery will be wired in a later build.</source>
             <translation>फ़ीडबैक ट्रांसपोर्ट अभी सर्वर से जुड़ा नहीं है। यह इंटरफ़ेस तैयार है; सर्वर डिलीवरी अगले बिल्ड में जोड़ी जाएगी।</translation>
@@ -1198,17 +1130,9 @@
             <source>Builder Notes</source>
             <translation>बिल्डर नोट्स</translation>
         </message>
-        <message id="genycaster.home.casts">
-            <source>Casts</source>
-            <translation>कास्ट</translation>
-        </message>
         <message id="genycaster.home.catch_up">
             <source>Catch up with your friends and communities.</source>
             <translation>अपने दोस्तों और समुदायों की नई बातें देखें।</translation>
-        </message>
-        <message id="genycaster.home.community_pulse">
-            <source>Community Pulse</source>
-            <translation>कम्युनिटी पल्स</translation>
         </message>
         <message id="genycaster.home.conversations">
             <source>Conversations</source>
@@ -1254,14 +1178,6 @@
             <source>View Profile</source>
             <translation>प्रोफ़ाइल देखें</translation>
         </message>
-        <message id="genycaster.home.visual_filter_all">
-            <source>All</source>
-            <translation>सभी</translation>
-        </message>
-        <message id="genycaster.home.visual_filter_images">
-            <source>Images</source>
-            <translation>चित्र</translation>
-        </message>
         <message id="genycaster.home.visual_filter_nfts">
             <source>NFTs</source>
             <translation>NFT संग्रह</translation>
@@ -1269,10 +1185,6 @@
         <message id="genycaster.home.visual_highlights">
             <source>Visual Highlights</source>
             <translation>विज़ुअल हाइलाइट्स</translation>
-        </message>
-        <message id="genycaster.home.visuals">
-            <source>Visuals &amp; NFTs</source>
-            <translation>विज़ुअल्स और NFT</translation>
         </message>
         <message id="genycaster.locale.add_currency">
             <source>Add</source>
@@ -1724,31 +1636,27 @@
         </message>
         <message id="genycaster.search.not_following">
             <source>Not following</source>
-            <translation type="unfinished">Not following</translation>
+            <translation>फ़ॉलो नहीं कर रहे</translation>
         </message>
         <message id="genycaster.search.not_followed_by">
             <source>Does not follow you</source>
-            <translation type="unfinished">Does not follow you</translation>
+            <translation>आपको फ़ॉलो नहीं करता</translation>
         </message>
         <message id="genycaster.search.relationship_unknown">
             <source>Relationship unknown</source>
-            <translation type="unfinished">Relationship unknown</translation>
-        </message>
-        <message id="genycaster.embed.miniapp_external">
-            <source>Mini App · opens externally</source>
-            <translation type="unfinished">Mini App · opens externally</translation>
+            <translation>संबंध अज्ञात</translation>
         </message>
         <message id="genycaster.feed.filtered_empty">
             <source>No matching posts in the loaded feed</source>
-            <translation type="unfinished">No matching posts in the loaded feed</translation>
+            <translation>लोड की गई फ़ीड में कोई मेल खाती पोस्ट नहीं</translation>
         </message>
         <message id="genycaster.feed.filtered_description">
             <source>These tabs filter the loaded feed. Load more posts or change the source; unavailable data is not an empty category.</source>
-            <translation type="unfinished">These tabs filter the loaded feed. Load more posts or change the source; unavailable data is not an empty category.</translation>
+            <translation>ये टैब लोड की गई फ़ीड को फ़िल्टर करते हैं। और पोस्ट लोड करें या स्रोत बदलें; डेटा उपलब्ध न होना श्रेणी के खाली होने का अर्थ नहीं है।</translation>
         </message>
         <message id="genycaster.feed.more_filtered">
             <source>Look through more posts</source>
-            <translation type="unfinished">Look through more posts</translation>
+            <translation>और पोस्ट देखें</translation>
         </message>
         <message id="genycaster.profile.follow">
             <source>Follow</source>
@@ -1802,10 +1710,6 @@
             <source>Posts</source>
             <translation>पोस्ट</translation>
         </message>
-        <message id="genycaster.profile.pull_to_refresh">
-            <source>Pull to refresh</source>
-            <translation>रीफ़्रेश करने के लिए खींचें</translation>
-        </message>
         <message id="genycaster.profile.quotes">
             <source>Quotes</source>
             <translation>उद्धरण</translation>
@@ -1817,10 +1721,6 @@
         <message id="genycaster.profile.refreshing">
             <source>Refreshing…</source>
             <translation>रीफ़्रेश हो रहा है…</translation>
-        </message>
-        <message id="genycaster.profile.release_to_refresh">
-            <source>Release to refresh</source>
-            <translation>रीफ़्रेश करने के लिए छोड़ें</translation>
         </message>
         <message id="genycaster.profile.replies">
             <source>Replies</source>
@@ -2834,10 +2734,6 @@
             <source>Discover and save Farcaster Mini Apps, then launch them in the Genycaster host.</source>
             <translation>Farcaster Mini Apps खोजें और सहेजें, फिर उन्हें Genycaster होस्ट में चलाएँ।</translation>
         </message>
-        <message id="genycaster.apps.farcaster">
-            <source>Farcaster Mini Apps</source>
-            <translation>Farcaster मिनी ऐप्स</translation>
-        </message>
         <message id="genycaster.apps.native">
             <source>Native Apps</source>
             <translation>नेटिव ऐप्स</translation>
@@ -2910,14 +2806,6 @@
             <source>Live Mini App resource usage and session controls.</source>
             <translation>मिनी ऐप संसाधन उपयोग और सत्र नियंत्रण का लाइव दृश्य।</translation>
         </message>
-        <message id="genycaster.task_manager.cpu">
-            <source>CPU usage</source>
-            <translation>CPU उपयोग</translation>
-        </message>
-        <message id="genycaster.task_manager.memory">
-            <source>Memory</source>
-            <translation>मेमोरी</translation>
-        </message>
         <message id="genycaster.task_manager.sdk_rate">
             <source>SDK activity</source>
             <translation>SDK गतिविधि</translation>
@@ -2954,29 +2842,9 @@
             <source>Error</source>
             <translation>त्रुटि</translation>
         </message>
-        <message id="genycaster.task_manager.pid">
-            <source>Process</source>
-            <translation>प्रोसेस</translation>
-        </message>
-        <message id="genycaster.miniapp.add_confirm_title">
-            <source>Add Mini App</source>
-            <translation>मिनी ऐप जोड़ें</translation>
-        </message>
-        <message id="genycaster.miniapp.add_confirm_description">
-            <source>Add %1 to My MiniApps in Genycaster?</source>
-            <translation>%1 को Genycaster के My MiniApps में जोड़ें?</translation>
-        </message>
         <message id="genycaster.miniapp.session_limit">
             <source>Up to four Mini Apps can stay open at once. Close one in Task Manager to open another.</source>
             <translation>एक समय में अधिकतम चार मिनी ऐप खुले रह सकते हैं। दूसरा खोलने के लिए कार्य प्रबंधक में एक बंद करें।</translation>
-        </message>
-        <message id="genycaster.miniapp.minimize">
-            <source>Minimize</source>
-            <translation>मिनिमाइज़</translation>
-        </message>
-        <message id="genycaster.miniapp.share">
-            <source>Share</source>
-            <translation>साझा करें</translation>
         </message>
         <message id="genycaster.settings.text_size">
             <source>Text size</source>
@@ -3029,14 +2897,6 @@
         <message id="genycaster.settings.link_preview_prefetch_description">
             <source>Resolve visible web links in advance for richer cards. Disable to reduce background API and network work.</source>
             <translation>बेहतर कार्ड के लिए दिखाई देने वाले वेब लिंक पहले से हल करें। बैकग्राउंड API और नेटवर्क काम घटाने के लिए बंद करें।</translation>
-        </message>
-        <message id="genycaster.settings.inline_youtube">
-            <source>Play YouTube in GenyCaster</source>
-            <translation>GenyCaster में YouTube चलाएँ</translation>
-        </message>
-        <message id="genycaster.settings.inline_youtube_description">
-            <source>Open supported YouTube links in the isolated in-app player instead of the external browser.</source>
-            <translation>समर्थित YouTube लिंक बाहरी ब्राउज़र के बजाय अलग-थलग इन-ऐप प्लेयर में खोलें।</translation>
         </message>
         <message id="genycaster.settings.read_api_note">
             <source>Provider safety limits still apply. Higher values may increase latency, bandwidth, memory use, and API cost.</source>
@@ -3293,6 +3153,122 @@
         <message id="genycaster.collectible.default_title">
             <source>Collectible</source>
             <translation>संग्रहणीय</translation>
+        </message>
+        <message id="genycaster.feed_pulse.loaded_profile_posts">
+            <source>Loaded profile posts</source>
+            <translation>लोड की गई प्रोफ़ाइल पोस्ट</translation>
+        </message>
+        <message id="genycaster.feed_pulse.loaded_feed_snapshot">
+            <source>Loaded feed snapshot</source>
+            <translation>लोड की गई फ़ीड का स्नैपशॉट</translation>
+        </message>
+        <message id="genycaster.feed_pulse.offline">
+            <source>offline</source>
+            <translation>ऑफ़लाइन</translation>
+        </message>
+        <message id="genycaster.feed_pulse.cached">
+            <source>cached</source>
+            <translation>कैश किया गया</translation>
+        </message>
+        <message id="genycaster.feed_pulse.waiting_for_data">
+            <source>waiting for data</source>
+            <translation>डेटा की प्रतीक्षा</translation>
+        </message>
+        <message id="genycaster.feed_pulse.profile_snapshot">
+            <source>Profile snapshot</source>
+            <translation>प्रोफ़ाइल स्नैपशॉट</translation>
+        </message>
+        <message id="genycaster.feed_pulse.title">
+            <source>Feed pulse</source>
+            <translation>फ़ीड पल्स</translation>
+        </message>
+        <message id="genycaster.feed_pulse.posts_loaded">
+            <source>Posts loaded</source>
+            <translation>लोड की गई पोस्ट</translation>
+        </message>
+        <message id="genycaster.feed_pulse.authors_loaded">
+            <source>Authors loaded</source>
+            <translation>लोड किए गए लेखक</translation>
+        </message>
+        <message id="genycaster.feed_pulse.interactions">
+            <source>Interactions</source>
+            <translation>इंटरैक्शन</translation>
+        </message>
+        <message id="genycaster.feed_pulse.avg_per_post">
+            <source>Avg / post</source>
+            <translation>औसत / पोस्ट</translation>
+        </message>
+        <message id="genycaster.home.prompt">
+            <source>What would you like to do today?</source>
+            <translation>आज आप क्या करना चाहेंगे?</translation>
+        </message>
+        <message id="genycaster.home.compose_description">
+            <source>Write and publish a new cast</source>
+            <translation>नया cast लिखें और प्रकाशित करें</translation>
+        </message>
+        <message id="genycaster.home.apps_description">
+            <source>Open apps and tools</source>
+            <translation>ऐप और टूल खोलें</translation>
+        </message>
+        <message id="genycaster.home.composer_placeholder">
+            <source>Write a new cast or message…</source>
+            <translation>नया cast या संदेश लिखें…</translation>
+        </message>
+        <message id="genycaster.settings.social_workspace">
+            <source>Social workspace</source>
+            <translation>सोशल कार्यक्षेत्र</translation>
+        </message>
+        <message id="genycaster.settings.social_workspace_description">
+            <source>Tune the desktop navigation and context columns. You can also drag their separators directly in the main window.</source>
+            <translation>डेस्कटॉप नेविगेशन और कॉन्टेक्स्ट कॉलम समायोजित करें। आप उनके विभाजकों को मुख्य विंडो में सीधे खींच भी सकते हैं।</translation>
+        </message>
+        <message id="genycaster.settings.navigation_width">
+            <source>Navigation width</source>
+            <translation>नेविगेशन चौड़ाई</translation>
+        </message>
+        <message id="genycaster.settings.navigation_width_description">
+            <source>Primary destinations and account controls</source>
+            <translation>मुख्य गंतव्य और खाता नियंत्रण</translation>
+        </message>
+        <message id="genycaster.settings.context_sidebar_width">
+            <source>Context sidebar width</source>
+            <translation>कॉन्टेक्स्ट साइडबार चौड़ाई</translation>
+        </message>
+        <message id="genycaster.settings.context_sidebar_width_description">
+            <source>Profile, activity, search, and feed context</source>
+            <translation>प्रोफ़ाइल, गतिविधि, खोज और फ़ीड कॉन्टेक्स्ट</translation>
+        </message>
+        <message id="genycaster.settings.reset_social_layout">
+            <source>Reset social layout</source>
+            <translation>सोशल लेआउट रीसेट करें</translation>
+        </message>
+        <message id="genycaster.social.search_placeholder">
+            <source>Search people, casts, and channels</source>
+            <translation>लोगों, casts और चैनलों को खोजें</translation>
+        </message>
+        <message id="genycaster.social.your_profile">
+            <source>Your profile</source>
+            <translation>आपकी प्रोफ़ाइल</translation>
+        </message>
+        <message id="genycaster.social.sign_in_to_personalize">
+            <source>Sign in to personalize</source>
+            <translation>व्यक्तिगत बनाने के लिए साइन इन करें</translation>
+        </message>
+        <message id="genycaster.social.followers_count">
+            <source>%1 followers</source>
+            <translation>%1 फ़ॉलोअर</translation>
+        </message>
+        <message id="genycaster.social.following_count">
+            <source>%1 following</source>
+            <translation>%1 को फ़ॉलो कर रहे हैं</translation>
+        </message>
+        <message id="genycaster.social.open_profile">
+            <source>Open profile</source>
+            <translation>प्रोफ़ाइल खोलें</translation>
+        </message>
+        <message id="genycaster.social.people_in_your_orbit">
+            <source>People in your orbit</source>
+            <translation>आपके दायरे के लोग</translation>
         </message>
     </context>
 </TS>

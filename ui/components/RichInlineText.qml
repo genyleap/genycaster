@@ -10,13 +10,19 @@ Item {
 
     required property var blockData
     property bool compact: false
+    property int emojiSurface: 1
+    property bool fontBold: false
     signal externalRequested(string url)
 
-    readonly property string kind: String(root.blockData.kind || "paragraph")
+    // Required means the binding must exist; its value may still become null
+    // briefly while a model delegate is being recycled.
+    readonly property var safeBlockData: root.blockData || ({})
+    readonly property string kind: String(root.safeBlockData.kind || "paragraph")
     readonly property bool textBlock: root.kind === "paragraph" || root.kind === "heading"
                                       || root.kind === "quote"
                                       || root.kind === "bullet-list" || root.kind === "ordered-list"
-    readonly property bool rtlContent: localizationController.isRightToLeftText(String(root.blockData.text || ""))
+    readonly property bool rtlContent: localizationController.isRightToLeftText(
+        String(root.safeBlockData.text || ""))
     readonly property int textSize: root.kind === "heading" ? Theme.typeTitle3Size : Theme.typeBodySize
     readonly property bool reducedMotion: Theme.reduceMotion
 
@@ -29,20 +35,23 @@ Item {
         const inlines = []
         const pushSpans = (spans) => {
             const values = spans || []
-            for (let i = 0; i < values.length; ++i)
-                inlines.push(values[i])
+            for (let i = 0; i < values.length; ++i) {
+                if (values[i])
+                    inlines.push(values[i])
+            }
         }
         if (root.kind === "bullet-list" || root.kind === "ordered-list") {
-            const items = root.blockData.items || []
+            const items = root.safeBlockData.items || []
             for (let i = 0; i < items.length; ++i) {
+                const item = items[i] || ({})
                 if (i > 0)
                     inlines.push({ kind: "text", text: "\n" })
                 inlines.push({ kind: "text", text: root.kind === "bullet-list" ? "• " : (i + 1) + ". " })
-                pushSpans(items[i].inlines)
+                pushSpans(item.inlines)
             }
             return inlines
         }
-        pushSpans(root.blockData.inlines)
+        pushSpans(root.safeBlockData.inlines)
         return inlines
     }
 
@@ -53,8 +62,9 @@ Item {
         height: textLayout.contentHeight
         inlines: root.flattenedInlines()
         pixelSize: root.textSize
+        bold: root.fontBold
         lineHeight: Theme.typeBodyLineHeight
-        fontFamily: Theme.fontFamilyForText(String(root.blockData.text || ""))
+        fontFamily: Theme.fontFamilyForText(String(root.safeBlockData.text || ""))
         textColor: Theme.ink
         linkColor: Theme.accent
         codeColor: Theme.ink
@@ -66,15 +76,91 @@ Item {
 
     Repeater {
         model: textLayout.emojiRects
-        delegate: AnimatedEmoji {
-            x: modelData.x
-            y: modelData.y
-            width: modelData.width
-            height: modelData.height
-            unicodeSequence: modelData.sequence
-            active: root.visible && root.width > 0 && root.height > 0
-                    && Qt.application.state === Qt.ApplicationActive
-            reducedMotion: root.reducedMotion
+        delegate: Item {
+            id: emojiOverlay
+
+            required property var modelData
+            readonly property var emojiRect: modelData || ({})
+            readonly property int emojiPosition: emojiRect.position === undefined
+                ? -1 : Number(emojiRect.position)
+            property bool spriteFallbackArmed: false
+            readonly property bool artworkReady: lottieEmoji.animationReady || spriteEmoji.animationReady
+
+            function syncAnimatedState() {
+                if (emojiPosition >= 0)
+                    textLayout.setEmojiAnimated(emojiPosition, emojiOverlay.artworkReady)
+            }
+
+            x: Number(emojiRect.x || 0)
+            y: Number(emojiRect.y || 0)
+            width: Number(emojiRect.width || 0)
+            height: Number(emojiRect.height || 0)
+
+            // Lottie remains the preferred Noto Animated Emoji renderer. If the
+            // scene graph/backend cannot present it, or an individual asset does
+            // not become ready promptly, the prepared PNG sprite path takes over
+            // without hiding the Unicode glyph until real artwork is available.
+            AnimatedEmoji {
+                id: lottieEmoji
+                anchors.fill: parent
+                unicodeSequence: String(emojiOverlay.emojiRect.sequence || "")
+                surface: root.emojiSurface
+                preserveArtwork: true
+                active: root.visible && root.width > 0 && root.height > 0
+                        && Qt.application.state === Qt.ApplicationActive
+                reducedMotion: root.reducedMotion
+                onAnimationReadyChanged: {
+                    if (animationReady)
+                        spriteFallbackTimer.stop()
+                    emojiOverlay.syncAnimatedState()
+                }
+                onRequestFailedChanged: {
+                    if (requestFailed)
+                        emojiOverlay.spriteFallbackArmed = true
+                }
+                onRendererUsableChanged: {
+                    if (!rendererUsable)
+                        emojiOverlay.spriteFallbackArmed = true
+                }
+            }
+
+            SpriteEmoji {
+                id: spriteEmoji
+                anchors.fill: parent
+                z: 1
+                visible: !lottieEmoji.animationReady
+                unicodeSequence: String(emojiOverlay.emojiRect.sequence || "")
+                surface: root.emojiSurface
+                preserveArtwork: true
+                viewportVisible: emojiOverlay.visible
+                active: emojiOverlay.spriteFallbackArmed
+                        && root.visible && root.width > 0 && root.height > 0
+                        && Qt.application.state === Qt.ApplicationActive
+                reducedMotion: root.reducedMotion
+                onAnimationReadyChanged: emojiOverlay.syncAnimatedState()
+            }
+
+            Timer {
+                id: spriteFallbackTimer
+                interval: 850
+                repeat: false
+                running: emojiOverlay.visible && !lottieEmoji.animationReady
+                         && !emojiOverlay.spriteFallbackArmed
+                onTriggered: {
+                    if (!lottieEmoji.animationReady)
+                        emojiOverlay.spriteFallbackArmed = true
+                }
+            }
+
+            Component.onCompleted: {
+                if (!lottieEmoji.rendererUsable)
+                    emojiOverlay.spriteFallbackArmed = true
+                emojiOverlay.syncAnimatedState()
+            }
+            Component.onDestruction: {
+                if (emojiPosition >= 0)
+                    textLayout.setEmojiAnimated(emojiPosition, false)
+            }
         }
     }
 }

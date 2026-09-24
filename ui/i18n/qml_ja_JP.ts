@@ -4,43 +4,39 @@
         <name />
         <message id="genycaster.miniapp.presentation_title">
             <source>Mini App presentation</source>
-            <translation>Mini App presentation</translation>
+            <translation>Mini App の表示方法</translation>
         </message>
         <message id="genycaster.miniapp.presentation_description">
             <source>Saved for the next app you open. Changing this does not reload a running app.</source>
-            <translation>Saved for the next app you open. Changing this does not reload a running app.</translation>
+            <translation>次に開くアプリ用に保存されます。変更しても実行中のアプリは再読み込みされません。</translation>
         </message>
         <message id="genycaster.miniapp.mode_window">
             <source>Separate window</source>
-            <translation>Separate window</translation>
+            <translation>別ウィンドウ</translation>
         </message>
         <message id="genycaster.miniapp.mode_bottom">
             <source>Drawer from bottom</source>
-            <translation>Drawer from bottom</translation>
+            <translation>下からドロワー</translation>
         </message>
         <message id="genycaster.miniapp.mode_left">
             <source>Drawer from left</source>
-            <translation>Drawer from left</translation>
+            <translation>左からドロワー</translation>
         </message>
         <message id="genycaster.miniapp.mode_right">
             <source>Drawer from right</source>
-            <translation>Drawer from right</translation>
-        </message>
-        <message id="genycaster.miniapp.close">
-            <source>Close app</source>
-            <translation>Close app</translation>
+            <translation>右からドロワー</translation>
         </message>
         <message id="genycaster.miniapp.open_internal">
             <source>Open in Genycaster</source>
-            <translation>Open in Genycaster</translation>
+            <translation>Genycaster で開く</translation>
         </message>
         <message id="genycaster.miniapp.unavailable">
             <source>The internal Mini App host is not enabled in this build.</source>
-            <translation>The internal Mini App host is not enabled in this build.</translation>
+            <translation>このビルドでは内部 Mini App ホストが有効になっていません。</translation>
         </message>
         <message id="genycaster.miniapp.sign_in_first">
             <source>Sign in to Genycaster before opening this app.</source>
-            <translation>Sign in to Genycaster before opening this app.</translation>
+            <translation>このアプリを開く前に Genycaster にサインインしてください。</translation>
         </message>
         <message id="genycaster.miniapp.loading">
             <source>Loading app…</source>
@@ -48,43 +44,27 @@
         </message>
         <message id="genycaster.miniapp.invalid_url">
             <source>This app needs a valid public HTTPS address.</source>
-            <translation>This app needs a valid public HTTPS address.</translation>
+            <translation>このアプリには有効な公開 HTTPS アドレスが必要です。</translation>
         </message>
         <message id="genycaster.miniapp.invalid_manifest">
             <source>The app manifest is missing or invalid.</source>
-            <translation>The app manifest is missing or invalid.</translation>
+            <translation>アプリのマニフェストが見つからないか、無効です。</translation>
         </message>
         <message id="genycaster.miniapp.load_failed">
             <source>Could not load the app. Check your connection and try again.</source>
-            <translation>Could not load the app. Check your connection and try again.</translation>
+            <translation>アプリを読み込めませんでした。接続を確認して、もう一度お試しください。</translation>
         </message>
         <message id="genycaster.miniapp.ready_timeout">
             <source>The app did not become ready. You can retry or close it.</source>
-            <translation>The app did not become ready. You can retry or close it.</translation>
+            <translation>アプリの準備が完了しませんでした。再試行するか閉じることができます。</translation>
         </message>
         <message id="genycaster.miniapp.unsupported_requirements">
             <source>This app requires host capabilities or chains that Genycaster does not support yet. Reload cannot add them.</source>
             <translation>This app requires capabilities that Genycaster does not support yet.</translation>
         </message>
-        <message id="genycaster.miniapp.navigation_blocked">
-            <source>This app tried to leave its approved secure domain. Navigation was blocked.</source>
-            <translation>This app tried to leave its approved secure domain. Navigation was blocked.</translation>
-        </message>
-        <message id="genycaster.miniapp.renderer_failed">
-            <source>The app process stopped. Reload to start a new session.</source>
-            <translation>The app process stopped. Reload to start a new session.</translation>
-        </message>
         <message id="genycaster.miniapp.rpc_limit">
             <source>The app sent too many or oversized requests and was stopped.</source>
-            <translation>The app sent too many or oversized requests and was stopped.</translation>
-        </message>
-        <message id="genycaster.miniapp.back">
-            <source>Back</source>
-            <translation>Back</translation>
-        </message>
-        <message id="genycaster.miniapp.retry">
-            <source>Reload</source>
-            <translation>Reload</translation>
+            <translation>アプリが多すぎるリクエストまたは大きすぎるリクエストを送信したため停止されました。</translation>
         </message>
         <message id="genycaster.app.genycaster">
             <source>Genycaster</source>
@@ -386,10 +366,6 @@
             <source>Open conversation context</source>
             <translation>会話のコンテキストを開く</translation>
         </message>
-        <message id="genycaster.cast.open_first_link">
-            <source>Open first link</source>
-            <translation>最初のリンクを開く</translation>
-        </message>
         <message id="genycaster.cast.open_original_cast">
             <source>Open original cast</source>
             <translation>元のキャストを開く</translation>
@@ -430,10 +406,6 @@
             <source>Replying to another cast</source>
             <translation>別のキャストに返信中</translation>
         </message>
-        <message id="genycaster.cast.replying_to_parent_link">
-            <source>Replying to a parent link</source>
-            <translation>親リンクに返信中</translation>
-        </message>
         <message id="genycaster.cast.replying_to_value">
             <source>Replying to %1</source>
             <translation>%1 に返信中</translation>
@@ -457,10 +429,6 @@
         <message id="genycaster.composer.add_cast">
             <source>Add cast</source>
             <translation>Cast を追加</translation>
-        </message>
-        <message id="genycaster.composer.alt_text_optional">
-            <source>Optional alt text</source>
-            <translation>任意の代替テキスト</translation>
         </message>
         <message id="genycaster.composer.apply">
             <source>Apply</source>
@@ -694,37 +662,13 @@
             <source>Checking your GENY balance…</source>
             <translation>GENY 残高を確認中…</translation>
         </message>
-        <message id="genycaster.context.community_active_people">
-            <source>Active people</source>
-            <translation>アクティブなユーザー</translation>
-        </message>
         <message id="genycaster.context.community_casts_loaded">
             <source>Casts loaded</source>
             <translation>読み込んだCast</translation>
         </message>
-        <message id="genycaster.context.community_engagement">
-            <source>Engagement</source>
-            <translation>エンゲージメント</translation>
-        </message>
         <message id="genycaster.context.community_last_7_days">
             <source>Last 7 days</source>
             <translation>過去7日間</translation>
-        </message>
-        <message id="genycaster.context.community_live_sample">
-            <source>Live sample</source>
-            <translation>ライブサンプル</translation>
-        </message>
-        <message id="genycaster.context.community_offline">
-            <source>Offline</source>
-            <translation>オフライン</translation>
-        </message>
-        <message id="genycaster.context.community_stale">
-            <source>Needs refresh</source>
-            <translation>更新が必要</translation>
-        </message>
-        <message id="genycaster.context.community_waiting">
-            <source>Waiting for feed activity</source>
-            <translation>フィードのアクティビティを待機中</translation>
         </message>
         <message id="genycaster.context.fdv">
             <source>Fully diluted value</source>
@@ -789,10 +733,6 @@
         <message id="genycaster.context.token_pulse">
             <source>Token Pulse</source>
             <translation>トークン動向</translation>
-        </message>
-        <message id="genycaster.context.upcoming_event">
-            <source>Upcoming: Community AMA · 19:00</source>
-            <translation>予定: コミュニティ AMA · 19:00</translation>
         </message>
         <message id="genycaster.context.volume_24h">
             <source>24h volume</source>
@@ -1118,14 +1058,6 @@
             <source>Loading more</source>
             <translation>さらに読み込み中</translation>
         </message>
-        <message id="genycaster.feed_surface.pull_to_refresh">
-            <source>Pull to refresh</source>
-            <translation>引いて更新</translation>
-        </message>
-        <message id="genycaster.feed_surface.release_to_refresh">
-            <source>Release to refresh</source>
-            <translation>離して更新</translation>
-        </message>
         <message id="genycaster.feedback.backend_pending">
             <source>Feedback transport is not connected yet. This interface is ready; server delivery will be wired in a later build.</source>
             <translation>フィードバック送信はまだサーバーに接続されていません。画面は準備済みで、サーバー送信は今後のビルドで接続します。</translation>
@@ -1198,17 +1130,9 @@
             <source>Builder Notes</source>
             <translation>ビルダーノート</translation>
         </message>
-        <message id="genycaster.home.casts">
-            <source>Casts</source>
-            <translation>キャスト</translation>
-        </message>
         <message id="genycaster.home.catch_up">
             <source>Catch up with your friends and communities.</source>
             <translation>友だちやコミュニティの近況を確認しましょう。</translation>
-        </message>
-        <message id="genycaster.home.community_pulse">
-            <source>Community Pulse</source>
-            <translation>コミュニティの動き</translation>
         </message>
         <message id="genycaster.home.conversations">
             <source>Conversations</source>
@@ -1254,14 +1178,6 @@
             <source>View Profile</source>
             <translation>プロフィールを見る</translation>
         </message>
-        <message id="genycaster.home.visual_filter_all">
-            <source>All</source>
-            <translation>すべて</translation>
-        </message>
-        <message id="genycaster.home.visual_filter_images">
-            <source>Images</source>
-            <translation>画像</translation>
-        </message>
         <message id="genycaster.home.visual_filter_nfts">
             <source>NFTs</source>
             <translation>NFT作品</translation>
@@ -1269,10 +1185,6 @@
         <message id="genycaster.home.visual_highlights">
             <source>Visual Highlights</source>
             <translation>ビジュアルハイライト</translation>
-        </message>
-        <message id="genycaster.home.visuals">
-            <source>Visuals &amp; NFTs</source>
-            <translation>ビジュアルとNFT</translation>
         </message>
         <message id="genycaster.locale.add_currency">
             <source>Add</source>
@@ -1724,31 +1636,27 @@
         </message>
         <message id="genycaster.search.not_following">
             <source>Not following</source>
-            <translation type="unfinished">Not following</translation>
+            <translation>フォローしていません</translation>
         </message>
         <message id="genycaster.search.not_followed_by">
             <source>Does not follow you</source>
-            <translation type="unfinished">Does not follow you</translation>
+            <translation>あなたをフォローしていません</translation>
         </message>
         <message id="genycaster.search.relationship_unknown">
             <source>Relationship unknown</source>
-            <translation type="unfinished">Relationship unknown</translation>
-        </message>
-        <message id="genycaster.embed.miniapp_external">
-            <source>Mini App · opens externally</source>
-            <translation type="unfinished">Mini App · opens externally</translation>
+            <translation>関係は不明です</translation>
         </message>
         <message id="genycaster.feed.filtered_empty">
             <source>No matching posts in the loaded feed</source>
-            <translation type="unfinished">No matching posts in the loaded feed</translation>
+            <translation>読み込み済みフィードに一致する投稿はありません</translation>
         </message>
         <message id="genycaster.feed.filtered_description">
             <source>These tabs filter the loaded feed. Load more posts or change the source; unavailable data is not an empty category.</source>
-            <translation type="unfinished">These tabs filter the loaded feed. Load more posts or change the source; unavailable data is not an empty category.</translation>
+            <translation>これらのタブは読み込み済みフィードを絞り込みます。投稿をさらに読み込むかソースを変更してください。データが取得できないことは、カテゴリが空であることを意味しません。</translation>
         </message>
         <message id="genycaster.feed.more_filtered">
             <source>Look through more posts</source>
-            <translation type="unfinished">Look through more posts</translation>
+            <translation>さらに投稿を見る</translation>
         </message>
         <message id="genycaster.profile.follow">
             <source>Follow</source>
@@ -1802,10 +1710,6 @@
             <source>Posts</source>
             <translation>投稿</translation>
         </message>
-        <message id="genycaster.profile.pull_to_refresh">
-            <source>Pull to refresh</source>
-            <translation>引いて更新</translation>
-        </message>
         <message id="genycaster.profile.quotes">
             <source>Quotes</source>
             <translation>引用</translation>
@@ -1817,10 +1721,6 @@
         <message id="genycaster.profile.refreshing">
             <source>Refreshing…</source>
             <translation>更新中…</translation>
-        </message>
-        <message id="genycaster.profile.release_to_refresh">
-            <source>Release to refresh</source>
-            <translation>離して更新</translation>
         </message>
         <message id="genycaster.profile.replies">
             <source>Replies</source>
@@ -2834,10 +2734,6 @@
             <source>Discover and save Farcaster Mini Apps, then launch them in the Genycaster host.</source>
             <translation>Farcaster Mini App を見つけて保存し、Genycaster ホスト内で起動できます。</translation>
         </message>
-        <message id="genycaster.apps.farcaster">
-            <source>Farcaster Mini Apps</source>
-            <translation>Farcaster ミニアプリ</translation>
-        </message>
         <message id="genycaster.apps.native">
             <source>Native Apps</source>
             <translation>ネイティブアプリ</translation>
@@ -2910,14 +2806,6 @@
             <source>Live Mini App resource usage and session controls.</source>
             <translation>ミニアプリのリアルタイムなリソース使用量とセッション操作。</translation>
         </message>
-        <message id="genycaster.task_manager.cpu">
-            <source>CPU usage</source>
-            <translation>CPU 使用率</translation>
-        </message>
-        <message id="genycaster.task_manager.memory">
-            <source>Memory</source>
-            <translation>メモリ</translation>
-        </message>
         <message id="genycaster.task_manager.sdk_rate">
             <source>SDK activity</source>
             <translation>SDK アクティビティ</translation>
@@ -2954,29 +2842,9 @@
             <source>Error</source>
             <translation>エラー</translation>
         </message>
-        <message id="genycaster.task_manager.pid">
-            <source>Process</source>
-            <translation>プロセス</translation>
-        </message>
-        <message id="genycaster.miniapp.add_confirm_title">
-            <source>Add Mini App</source>
-            <translation>ミニアプリを追加</translation>
-        </message>
-        <message id="genycaster.miniapp.add_confirm_description">
-            <source>Add %1 to My MiniApps in Genycaster?</source>
-            <translation>%1 を Genycaster の「My MiniApps」に追加しますか？</translation>
-        </message>
         <message id="genycaster.miniapp.session_limit">
             <source>Up to four Mini Apps can stay open at once. Close one in Task Manager to open another.</source>
             <translation>同時に開いておけるミニアプリは最大4個です。別のアプリを開くにはタスクマネージャーで1つ終了してください。</translation>
-        </message>
-        <message id="genycaster.miniapp.minimize">
-            <source>Minimize</source>
-            <translation>最小化</translation>
-        </message>
-        <message id="genycaster.miniapp.share">
-            <source>Share</source>
-            <translation>共有</translation>
         </message>
         <message id="genycaster.settings.text_size">
             <source>Text size</source>
@@ -3029,14 +2897,6 @@
         <message id="genycaster.settings.link_preview_prefetch_description">
             <source>Resolve visible web links in advance for richer cards. Disable to reduce background API and network work.</source>
             <translation>表示中の Web リンクを事前に解決して、より充実したカードを表示します。バックグラウンドの API/通信を減らすには無効にします。</translation>
-        </message>
-        <message id="genycaster.settings.inline_youtube">
-            <source>Play YouTube in GenyCaster</source>
-            <translation>GenyCaster で YouTube を再生</translation>
-        </message>
-        <message id="genycaster.settings.inline_youtube_description">
-            <source>Open supported YouTube links in the isolated in-app player instead of the external browser.</source>
-            <translation>対応する YouTube リンクを外部ブラウザーではなく、分離されたアプリ内プレーヤーで開きます。</translation>
         </message>
         <message id="genycaster.settings.read_api_note">
             <source>Provider safety limits still apply. Higher values may increase latency, bandwidth, memory use, and API cost.</source>
@@ -3293,6 +3153,122 @@
         <message id="genycaster.collectible.default_title">
             <source>Collectible</source>
             <translation>コレクティブル</translation>
+        </message>
+        <message id="genycaster.feed_pulse.loaded_profile_posts">
+            <source>Loaded profile posts</source>
+            <translation>読み込み済みのプロフィール投稿</translation>
+        </message>
+        <message id="genycaster.feed_pulse.loaded_feed_snapshot">
+            <source>Loaded feed snapshot</source>
+            <translation>読み込み済みフィードのスナップショット</translation>
+        </message>
+        <message id="genycaster.feed_pulse.offline">
+            <source>offline</source>
+            <translation>オフライン</translation>
+        </message>
+        <message id="genycaster.feed_pulse.cached">
+            <source>cached</source>
+            <translation>キャッシュ済み</translation>
+        </message>
+        <message id="genycaster.feed_pulse.waiting_for_data">
+            <source>waiting for data</source>
+            <translation>データを待機中</translation>
+        </message>
+        <message id="genycaster.feed_pulse.profile_snapshot">
+            <source>Profile snapshot</source>
+            <translation>プロフィールのスナップショット</translation>
+        </message>
+        <message id="genycaster.feed_pulse.title">
+            <source>Feed pulse</source>
+            <translation>フィードの状況</translation>
+        </message>
+        <message id="genycaster.feed_pulse.posts_loaded">
+            <source>Posts loaded</source>
+            <translation>読み込み済み投稿</translation>
+        </message>
+        <message id="genycaster.feed_pulse.authors_loaded">
+            <source>Authors loaded</source>
+            <translation>読み込み済み投稿者</translation>
+        </message>
+        <message id="genycaster.feed_pulse.interactions">
+            <source>Interactions</source>
+            <translation>インタラクション</translation>
+        </message>
+        <message id="genycaster.feed_pulse.avg_per_post">
+            <source>Avg / post</source>
+            <translation>投稿あたり平均</translation>
+        </message>
+        <message id="genycaster.home.prompt">
+            <source>What would you like to do today?</source>
+            <translation>今日は何をしますか？</translation>
+        </message>
+        <message id="genycaster.home.compose_description">
+            <source>Write and publish a new cast</source>
+            <translation>新しい Cast を書いて公開</translation>
+        </message>
+        <message id="genycaster.home.apps_description">
+            <source>Open apps and tools</source>
+            <translation>アプリとツールを開く</translation>
+        </message>
+        <message id="genycaster.home.composer_placeholder">
+            <source>Write a new cast or message…</source>
+            <translation>新しい Cast またはメッセージを書く…</translation>
+        </message>
+        <message id="genycaster.settings.social_workspace">
+            <source>Social workspace</source>
+            <translation>ソーシャルワークスペース</translation>
+        </message>
+        <message id="genycaster.settings.social_workspace_description">
+            <source>Tune the desktop navigation and context columns. You can also drag their separators directly in the main window.</source>
+            <translation>デスクトップのナビゲーションとコンテキスト列を調整します。メインウィンドウで区切り線を直接ドラッグすることもできます。</translation>
+        </message>
+        <message id="genycaster.settings.navigation_width">
+            <source>Navigation width</source>
+            <translation>ナビゲーション幅</translation>
+        </message>
+        <message id="genycaster.settings.navigation_width_description">
+            <source>Primary destinations and account controls</source>
+            <translation>主要な移動先とアカウント操作</translation>
+        </message>
+        <message id="genycaster.settings.context_sidebar_width">
+            <source>Context sidebar width</source>
+            <translation>コンテキストサイドバーの幅</translation>
+        </message>
+        <message id="genycaster.settings.context_sidebar_width_description">
+            <source>Profile, activity, search, and feed context</source>
+            <translation>プロフィール、アクティビティ、検索、フィードのコンテキスト</translation>
+        </message>
+        <message id="genycaster.settings.reset_social_layout">
+            <source>Reset social layout</source>
+            <translation>ソーシャルレイアウトをリセット</translation>
+        </message>
+        <message id="genycaster.social.search_placeholder">
+            <source>Search people, casts, and channels</source>
+            <translation>ユーザー、Cast、チャンネルを検索</translation>
+        </message>
+        <message id="genycaster.social.your_profile">
+            <source>Your profile</source>
+            <translation>あなたのプロフィール</translation>
+        </message>
+        <message id="genycaster.social.sign_in_to_personalize">
+            <source>Sign in to personalize</source>
+            <translation>パーソナライズするにはサインイン</translation>
+        </message>
+        <message id="genycaster.social.followers_count">
+            <source>%1 followers</source>
+            <translation>フォロワー %1</translation>
+        </message>
+        <message id="genycaster.social.following_count">
+            <source>%1 following</source>
+            <translation>フォロー中 %1</translation>
+        </message>
+        <message id="genycaster.social.open_profile">
+            <source>Open profile</source>
+            <translation>プロフィールを開く</translation>
+        </message>
+        <message id="genycaster.social.people_in_your_orbit">
+            <source>People in your orbit</source>
+            <translation>あなたの周辺のユーザー</translation>
         </message>
     </context>
 </TS>

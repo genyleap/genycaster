@@ -7,7 +7,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 
-/** @brief Thin QML adapter for guest-first reads and verified client-session state. */
+/** @brief QML presentation facade for guest-first reads, session state, and feature-scoped models. */
 class QSettings;
 
 class PresentationBridge final : public QObject {
@@ -15,18 +15,18 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QString architectureState READ architectureState CONSTANT)
     Q_PROPERTY(bool isStrictSelfHosted READ isStrictSelfHosted CONSTANT)
     Q_PROPERTY(bool diagnosticsEnabled READ diagnosticsEnabled CONSTANT)
-    Q_PROPERTY(bool runtimeReady READ runtimeReady NOTIFY stateChanged)
-    Q_PROPERTY(bool authenticationAvailable READ authenticationAvailable NOTIFY stateChanged)
-    Q_PROPERTY(bool isAuthenticated READ isAuthenticated NOTIFY stateChanged)
-    Q_PROPERTY(bool authenticationBusy READ authenticationBusy NOTIFY stateChanged)
-    Q_PROPERTY(QString authenticationPhase READ authenticationPhase NOTIFY stateChanged)
-    Q_PROPERTY(bool authenticationApprovalAvailable READ authenticationApprovalAvailable NOTIFY stateChanged)
-    Q_PROPERTY(QString authenticationErrorText READ authenticationErrorText NOTIFY stateChanged)
-    Q_PROPERTY(QString accountName READ accountName NOTIFY stateChanged)
-    Q_PROPERTY(QString accountUsername READ accountUsername NOTIFY stateChanged)
-    Q_PROPERTY(QString accountAvatarUrl READ accountAvatarUrl NOTIFY stateChanged)
-    Q_PROPERTY(qulonglong accountFid READ accountFid NOTIFY stateChanged)
-    Q_PROPERTY(QVariantMap accountProfile READ accountProfile NOTIFY stateChanged)
+    Q_PROPERTY(bool runtimeReady READ runtimeReady NOTIFY runtimeStateChanged)
+    Q_PROPERTY(bool authenticationAvailable READ authenticationAvailable NOTIFY authenticationStateChanged)
+    Q_PROPERTY(bool isAuthenticated READ isAuthenticated NOTIFY authenticationStateChanged)
+    Q_PROPERTY(bool authenticationBusy READ authenticationBusy NOTIFY authenticationStateChanged)
+    Q_PROPERTY(QString authenticationPhase READ authenticationPhase NOTIFY authenticationStateChanged)
+    Q_PROPERTY(bool authenticationApprovalAvailable READ authenticationApprovalAvailable NOTIFY authenticationStateChanged)
+    Q_PROPERTY(QString authenticationErrorText READ authenticationErrorText NOTIFY authenticationStateChanged)
+    Q_PROPERTY(QString accountName READ accountName NOTIFY authenticationStateChanged)
+    Q_PROPERTY(QString accountUsername READ accountUsername NOTIFY authenticationStateChanged)
+    Q_PROPERTY(QString accountAvatarUrl READ accountAvatarUrl NOTIFY authenticationStateChanged)
+    Q_PROPERTY(qulonglong accountFid READ accountFid NOTIFY authenticationStateChanged)
+    Q_PROPERTY(QVariantMap accountProfile READ accountProfile NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool writeReady READ writeReady NOTIFY stateChanged)
     Q_PROPERTY(QString signerPhase READ signerPhase NOTIFY stateChanged)
     Q_PROPERTY(bool signerBusy READ signerBusy NOTIFY stateChanged)
@@ -289,6 +289,10 @@ public:
     void applyVerificationFixture();
 
 signals:
+    /** @brief Runtime bootstrap readiness changed; isolated from ordinary feed invalidation. */
+    void runtimeStateChanged();
+    /** @brief Authentication/account presentation changed; isolated from feed/write invalidation. */
+    void authenticationStateChanged();
     void stateChanged();
     void searchChanged();
     void notificationsChanged();

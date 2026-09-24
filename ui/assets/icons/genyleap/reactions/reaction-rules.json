@@ -1,0 +1,447 @@
+{
+  "version": "1.1.0",
+  "defaultIcon": "actions/heart",
+  "activeDefaultIcon": "actions/heart-filled",
+  "selection": "highest-priority-first-match",
+  "notes": [
+    "Use Unicode-aware token boundaries.",
+    "Short aliases such as FC, ETH, SOL, TS and JS must only match complete tokens.",
+    "Primary reaction is one glyph; applications may expose secondary topic badges separately."
+  ],
+  "rules": [
+    {
+      "id": "genyleap",
+      "icon": "brands/genyleap",
+      "priority": 120,
+      "match": {
+        "phrases": [
+          "genyleap"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "geny",
+      "icon": "brands/geny",
+      "priority": 115,
+      "match": {
+        "tokens": [
+          "geny"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "quilibrium",
+      "icon": "quilibrium/quilibrium",
+      "priority": 112,
+      "match": {
+        "phrases": [
+          "quilibrium"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "qstore",
+      "icon": "quilibrium/qstore",
+      "priority": 111,
+      "match": {
+        "tokens": [
+          "qstore"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "qkms",
+      "icon": "quilibrium/qkms",
+      "priority": 111,
+      "match": {
+        "tokens": [
+          "qkms"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "qping",
+      "icon": "quilibrium/qping",
+      "priority": 111,
+      "match": {
+        "tokens": [
+          "qping"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "hypersnap",
+      "icon": "quilibrium/hypersnap",
+      "priority": 111,
+      "match": {
+        "tokens": [
+          "hypersnap"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "quark",
+      "icon": "quilibrium/quark",
+      "priority": 110,
+      "match": {
+        "tokens": [
+          "quark"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "farcaster",
+      "icon": "brands/farcaster",
+      "priority": 108,
+      "match": {
+        "tokens": [
+          "farcaster",
+          "fc",
+          "warpcast"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "degen",
+      "icon": "brands/degen",
+      "priority": 106,
+      "match": {
+        "tokens": [
+          "degen"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "cplusplus",
+      "icon": "languages/cplusplus",
+      "priority": 105,
+      "match": {
+        "phrases": [
+          "c++",
+          "cplusplus"
+        ],
+        "tokens": [
+          "cpp",
+          "cxx"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "qml",
+      "icon": "languages/qml",
+      "priority": 104,
+      "match": {
+        "tokens": [
+          "qml"
+        ],
+        "phrases": [
+          "qt quick"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "typescript",
+      "icon": "languages/typescript",
+      "priority": 103,
+      "match": {
+        "tokens": [
+          "typescript"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "javascript",
+      "icon": "languages/javascript",
+      "priority": 103,
+      "match": {
+        "tokens": [
+          "javascript"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "php",
+      "icon": "languages/php",
+      "priority": 103,
+      "match": {
+        "tokens": [
+          "php"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "linux",
+      "icon": "platforms/linux",
+      "priority": 101,
+      "match": {
+        "tokens": [
+          "linux"
+        ],
+        "phrases": [
+          "gnu/linux"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "windows",
+      "icon": "platforms/windows",
+      "priority": 101,
+      "match": {
+        "tokens": [
+          "windows",
+          "win32",
+          "win64"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "macos",
+      "icon": "platforms/macos",
+      "priority": 101,
+      "match": {
+        "tokens": [
+          "macos"
+        ],
+        "phrases": [
+          "os x",
+          "mac os"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "ios",
+      "icon": "platforms/ios",
+      "priority": 101,
+      "match": {
+        "tokens": [
+          "ios",
+          "iphone",
+          "ipados"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "android",
+      "icon": "platforms/android",
+      "priority": 101,
+      "match": {
+        "tokens": [
+          "android"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "github",
+      "icon": "brands/github",
+      "priority": 100,
+      "match": {
+        "tokens": [
+          "github"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "youtube",
+      "icon": "brands/youtube",
+      "priority": 100,
+      "match": {
+        "tokens": [
+          "youtube"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "telegram",
+      "icon": "brands/telegram",
+      "priority": 100,
+      "match": {
+        "tokens": [
+          "telegram"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "base",
+      "icon": "crypto/base",
+      "priority": 99,
+      "match": {
+        "phrases": [
+          "eth base",
+          "base chain",
+          "base network"
+        ],
+        "tokens": [
+          "base"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "bitcoin",
+      "icon": "crypto/bitcoin",
+      "priority": 98,
+      "match": {
+        "tokens": [
+          "bitcoin",
+          "btc"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "ethereum",
+      "icon": "crypto/ethereum",
+      "priority": 98,
+      "match": {
+        "tokens": [
+          "ethereum",
+          "ether",
+          "eth"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "solana",
+      "icon": "crypto/solana",
+      "priority": 98,
+      "match": {
+        "tokens": [
+          "solana",
+          "sol"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "superrare",
+      "icon": "reactions/gem",
+      "priority": 97,
+      "match": {
+        "tokens": [
+          "superrare"
+        ],
+        "phrases": [
+          "super rare"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "gem",
+      "icon": "reactions/gem",
+      "priority": 97,
+      "match": {
+        "tokens": [
+          "gem",
+          "superrare"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "nft",
+      "icon": "crypto/nft",
+      "priority": 96,
+      "match": {
+        "tokens": [
+          "nft",
+          "nfts"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "wow",
+      "icon": "reactions/wow",
+      "priority": 95,
+      "match": {
+        "tokens": [
+          "wow"
+        ],
+        "phrases": [
+          "mind blown"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "art",
+      "icon": "reactions/art",
+      "priority": 90,
+      "match": {
+        "tokens": [
+          "art",
+          "artist",
+          "artwork"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "ai",
+      "icon": "reactions/ai",
+      "priority": 88,
+      "match": {
+        "tokens": [
+          "ai",
+          "llm"
+        ],
+        "phrases": [
+          "artificial intelligence"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "security",
+      "icon": "reactions/security",
+      "priority": 86,
+      "match": {
+        "tokens": [
+          "security",
+          "privacy",
+          "secure"
+        ],
+        "caseSensitive": false
+      }
+    },
+    {
+      "id": "code",
+      "icon": "reactions/code",
+      "priority": 80,
+      "match": {
+        "tokens": [
+          "code",
+          "coding",
+          "programming",
+          "developer"
+        ],
+        "caseSensitive": false
+      }
+    }
+  ]
+}

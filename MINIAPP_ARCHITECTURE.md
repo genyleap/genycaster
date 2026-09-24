@@ -1,0 +1,221 @@
+# Genycaster Mini App Host Architecture
+
+## Current host contract
+
+Genycaster resolves the Farcaster manifest before the Mini App document is created. The host validates
+`requiredCapabilities` and `requiredChains` against the runtime capabilities that are actually available.
+Missing requirements are reported by exact identifier, and the UI explicitly explains that Reload cannot
+add a capability that the host does not provide.
+
+The Mini App runtime never reuses the Farcaster custody authorizer as an Ethereum provider. Custody
+authorization remains a one-shot signer-management workflow. EVM Mini Apps use the independent wallet
+bridge described below.
+
+## EVM wallet bridge
+
+Genycaster now has a provider-neutral `IEthereumWalletBridge` capability boundary and a browser-wallet
+adapter that connects Mini Apps to a real EIP-1193 provider without moving private keys into Genycaster.
+The bridge is compiled independently from the custody authorizer.
+
+The adapter creates a per-Mini-App loopback session on `127.0.0.1` with a cryptographically random session
+path. The approval page delegates requests to the browser's real `window.ethereum` provider. The host
+routes Farcaster `ethProviderRequestV2` requests into that session and returns JSON-RPC responses using the
+SDK wire contract.
+
+The current invariants are:
+
+1. `wallet.getEthereumProvider` is advertised only when the bridge is compiled, available, and has at least
+   one configured EVM chain.
+2. `getChains()` reports only configured CAIP-2 `eip155:*` chains. Solana is not advertised by this bridge.
+3. A wallet session is created lazily on the first actual Ethereum provider RPC, not merely because a Mini
+   App was opened or its manifest was inspected.
+4. Read-only RPC calls route automatically. The first `eth_requestAccounts` request for each Mini App
+   origin requires an explicit Continue action; a successful account-access grant is remembered for the
+   current Genycaster process so reopening/refocusing that same origin does not ask again. Wallet disconnect
+   or an empty `accountsChanged` event revokes the grant. Signing, transaction submission, and sensitive
+   `wallet_*` methods continue to require explicit approval for every request.
+5. `wallet_switchEthereumChain` and `wallet_addEthereumChain` are checked against the configured chain
+   policy and fail closed for disallowed networks.
+6. EIP-1193 errors are preserved where possible. User rejection remains `4001`; disallowed chains use
+   `4901`; an unavailable/timed-out provider session is not mislabeled as user rejection.
+7. Provider events (`accountsChanged`, `chainChanged`, `connect`, `disconnect`, and `message`) are forwarded
+   only to the currently live Mini App document. Native delivery is scoped by the document token so stale
+   events cannot cross a navigation boundary.
+8. EIP-6963 provider discovery is supported: the SDK's `eip6963RequestProvider` host call triggers an
+   `eip6963:announceProvider` client event describing the Genycaster Wallet Bridge.
+9. No private key, seed phrase, custody secret, or raw wallet credential crosses the Mini App bridge.
+10. Closing, failing, or replacing a Mini App tears down its active bridge session.
+
+The accepted chain set defaults to the EVM CAIP-2 chains represented by the current Farcaster Mini App
+manifest schema. Deployments can reduce that set through `GENYCASTER_MINIAPP_EVM_CHAINS`; unsupported or
+malformed requested chains remain absent from `getChains()`.
+
+### External-wallet requirement
+
+The browser approval page requires a real EIP-1193 wallet, either through a wallet browser or a browser
+extension that exposes `window.ethereum`. If none is available, the request fails rather than fabricating a
+provider. A future embedded Genycaster wallet can implement the same `IEthereumWalletBridge` interface
+without changing the Mini App runtime contract.
+
+## Apps surface
+
+`Apps` is a first-class shell route with two application families:
+
+- **Farcaster Mini Apps**
+  - **My MiniApps**: a Genycaster-local saved collection with Save/Remove and host-mediated `actions.addMiniApp`
+    consent. Adding a Mini App never silently enables notifications.
+  - **Explorer**: provider-routed discovery with search, refresh, normalized metadata, Share, Save/Remove, and
+    Launch. Network I/O, response-size enforcement, parsing, and catalogue normalization run on the dedicated
+    `miniapp-discovery-network` worker thread. QML receives normalized state only.
+- **Native Apps**: reserved for Genycaster-native applications and intentionally shown as under development.
+
+Opening Explorer performs an initial refresh when the catalogue is empty. Saved state is kept locally via
+`QSettings`, deduplicated by normalized HTTPS `homeUrl`, and capped to prevent unbounded client state.
+
+## Discovery routing
+
+Genycaster treats discovery as independent from Mini App execution. The discovery controller is
+provider-neutral and receives endpoint/format configuration from the composition root.
+
+The current routing strategy is:
+
+1. Neynar's structured Mini App endpoints are the primary discovery source: `/v2/farcaster/frame/catalog/`
+   for catalogue discovery, `/search/` for text search, and `/relevant/?viewer_fid=<FID>` for personalized
+   discovery. `GENYCASTER_NEYNAR_API_KEY` overrides the development credential; otherwise the documented
+   `NEYNAR_API_DOCS` credential is used for development/testing. Credentials remain inside the C++ network
+   adapter and are never exposed to QML or a Mini App document.
+2. Catalogue requests use `limit=100&time_window=7d`; text search uses `limit=20&q=<query>`; relevant discovery
+   is keyed by the signed-in viewer FID. Responses are bounded to 8 MiB and parsed/normalized off the GUI thread.
+3. A public Farcaster developer-reward index remains only as a degradation fallback when structured discovery
+   fails. A domain-only fallback row is still safe to launch because execution fetches the canonical
+   `/.well-known/farcaster.json` manifest before loading the application. Farcaster Universal Links are resolved
+   through `fc:miniapp:domain`.
+4. `fid:<number>` and the `My FID` shortcut filter the currently loaded catalogue by author FID; they are not
+   advertised as an exhaustive global "all apps by author" query because no stable public endpoint currently
+   provides that contract.
+5. The proposed Hypersnap `/v1/hyper/miniapps` FIP is not probed by default because deployed nodes cannot be
+   assumed to implement it. It can be reintroduced as a protocol-native provider after deployment support is
+   confirmed.
+
+The execution host never guesses a Mini App identity from an image CDN or presentation URL; the resolved
+manifest remains authoritative.
+
+## Multi-session runtime
+
+The Mini App runtime owns up to four live sessions. Each session has an independent task identifier, browser
+document, manifest/origin, document generation token, host context, lifecycle state, and task telemetry.
+Exactly one session is foreground at a time. Other sessions can remain minimized without being destroyed.
+
+The current invariants are:
+
+1. Ordinary user launches focus an existing matching session or create a new session until the four-session limit
+   is reached. `actions.openMiniApp` is a navigation handoff: the target receives
+   `context.location.type = "open_miniapp"` plus the source `referrerDomain`, and the source session closes only
+   after the target has successfully reached `actions.ready()`. Failed target preflight restores the source and
+   rejects the SDK action instead of destroying the current app. Genycaster does not silently evict an older session.
+2. Foreground selection is an explicit intent. Concurrent manifest/network completion cannot steal focus: only
+   the most recently selected session may become visible when its preflight finishes. Other sessions can finish
+   loading in the background without flashing over the active Mini App.
+3. Minimize preserves document state while suspending native WebKit media playback where supported. Hidden
+   sessions cannot steal AppKit first-responder state, consume Escape intended for the foreground drawer, or
+   restore the feed responder when they are terminated.
+4. Duplicate launches of the same requested/canonical URL are deduplicated into the existing session. QML binds
+   to task lifecycle state so Open actions enter an immediate animated loading/disabled state instead of sending
+   repeated requests on slow networks. Successful manifest preflight is cached per HTTPS origin for five minutes,
+   so reopening a recently validated Mini App avoids another `/.well-known/farcaster.json` round-trip while the
+   canonical document/session URL remains unchanged.
+5. Focus handoff is non-destructive: the target native surface is presented before the previous surface is hidden,
+   and Task Manager activation is deferred until its Qt modal has completed the current input turn. This prevents
+   modal-close/pointer events from being mistaken for native drawer dismissal and removes the blank handoff frame.
+6. Only the foreground session may create/use the EVM Wallet Bridge. A background/minimized session receives
+   EIP-1193 `4100` for wallet access.
+7. Terminating a task tears down its browser, wallet state, pending compose requests, host document generation,
+   and task-manager record deterministically. Account switch/sign-out tears down all Mini App sessions.
+
+## Mini App Task Manager
+
+The bottom status surface exposes a compact task-activity chip with a CPU-style glyph that opens the Mini App
+Task Manager. The controller is authoritative for task presentation and commands; QML only renders state and
+forwards Focus, Minimize, and Terminate intents. The Task Manager is an adaptive bottom drawer below the mobile
+breakpoint and a compact content-driven dialog on desktop; it does not reserve a large empty modal body. Task rows
+include each Mini App icon/domain/state and keep telemetry secondary to lifecycle controls. Explorer uses a virtualized `GridView` instead of eagerly
+constructing every catalogue card, so large 100-item catalogues do not instantiate every delegate/image at once.
+
+SDK/RPC activity is counted exactly per session. CPU and resident-memory fields are optional: they are shown only
+when a platform backend can attribute a renderer process identifier through a public API. Public `WKWebView` on
+current macOS does not expose its WebContent PID, and separate process-pool instances no longer guarantee renderer
+isolation, so Genycaster deliberately leaves CPU/RAM unavailable on that backend instead of using private WebKit
+selectors or guessed process ownership. Telemetry sampling never grants the Task Manager ownership of session
+lifecycle; commands are routed back to the Mini App runtime.
+
+
+## Media first-frame preview
+
+Generic video embeds that do not provide a provider poster are primed lazily after a short viewport-stability delay.
+Only instantiated/visible feed delegates request a muted decode, and the player pauses immediately after the first
+decoded frame while keeping that frame resident in the video sink. Provider thumbnails still take precedence and
+avoid decoder/network startup entirely. Passive priming never acquires the app-wide audible playback lease, so it
+cannot interrupt a video the user is already watching. This balances a non-black idle preview with feed scrolling
+and weak-network performance.
+
+## Sharing and host actions
+
+The current host supports `actions.openMiniApp` and `actions.composeCast` in addition to existing
+navigation/profile/cast actions. `actions.openMiniApp` follows Farcaster navigation semantics instead of acting as
+an independent launcher. `actions.composeCast` opens the visible Genycaster
+Composer, supports suggested text/embeds and cast-parent replies, and resolves only after the user publishes or
+cancels. Channel-targeted compose requests currently fail explicitly rather than being silently degraded.
+
+Mini App toolbar and Explorer/My MiniApps Share actions also route through the Genycaster Composer; no share
+action posts a Cast automatically.
+
+## Drawer geometry
+
+Side drawers use physical presentation edges rather than text direction to determine attached-corner
+geometry. The edge touching the screen is square:
+
+- left drawer: left corners square, right corners rounded;
+- right drawer: right corners square, left corners rounded;
+- bottom sheet: bottom corners square, top corners rounded.
+
+The rule is applied both to QML `GenyDrawer` and the native macOS Mini App presentation surface.
+
+Farcaster's web reference surface is 424x695 points. Genycaster therefore caps native desktop Mini App drawer
+width at 424 points and uses a 424x755 default separate-window content rect (60 points of Genycaster host chrome
+above the 695-point web surface). On narrower/mobile surfaces the device width remains authoritative. Native
+macOS drawer corners use Core Animation continuous corner curves; QML continuous-corner surfaces render through
+Qt Quick Shapes `Shape.CurveRenderer` rather than the former tessellated superellipse visual.
+
+## SDK add/remove semantics
+
+`actions.addMiniApp` is deliberately **not advertised** by `getCapabilities()` in this revision. Farcaster's host
+contract couples Add with signed server events and, when applicable, notification details delivered to the
+manifest `webhookUrl`. Genycaster does not pretend that its local My MiniApps bookmark is equivalent to that
+protocol capability. Users can still Save/Remove apps through Genycaster's own Apps UI; SDK calls to `addMiniApp`
+reject explicitly until the signed event/notification backend exists.
+
+## Remaining work
+
+The bridge is sufficient for EVM Mini Apps that can use an external EIP-1193 wallet, but the following are
+separate future capabilities rather than hidden fallbacks:
+
+- embedded/native Genycaster wallet accounts and secure key storage;
+- Solana wallet provider support;
+- remote notification/webhook synchronization for added Mini Apps;
+- protocol-native synchronization of `My MiniApps` when a deployed discovery/provider API exposes the
+  user's canonical collection;
+- richer transaction review (decoded calls, token/value/fee presentation, simulation and risk signals)
+  before sensitive wallet dispatch.
+
+
+### Neynar structured discovery
+
+Genycaster uses Neynar's Mini App APIs as the primary structured discovery source:
+
+- catalogue: `GET /v2/farcaster/frame/catalog/?limit=100&time_window=7d`
+- search: `GET /v2/farcaster/frame/search/?limit=20&q=<query>`
+- relevant: `GET /v2/farcaster/frame/relevant/?viewer_fid=<fid>`
+
+Requests send `x-api-key`. `GENYCASTER_NEYNAR_API_KEY` overrides the credential. When it is absent, the public documentation credential `NEYNAR_API_DOCS` is used as a development fallback so Explorer/Search/For You remain testable without local secret provisioning. Production deployments should configure their own Neynar credential or proxy discovery through a Genycaster service.
+
+The parser accepts Neynar's `frames` and `relevant_frames` response shapes, including the `manifest.frame` / `manifest.miniapp` snake_case fields (`home_url`, `icon_url`, `image_url`, `required_chains`, and related metadata). Discovery responses are capped at 8 MiB and normalized off the GUI thread before entering QML.

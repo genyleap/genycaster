@@ -35,6 +35,33 @@
       }
     },
     {
+      "name": "core-asan",
+      "displayName": "Core Debug + AddressSanitizer",
+      "inherits": "core-debug",
+      "binaryDir": "${sourceDir}/build/core-asan",
+      "cacheVariables": {
+        "GENYCASTER_SANITIZER": "address"
+      }
+    },
+    {
+      "name": "core-ubsan",
+      "displayName": "Core Debug + UndefinedBehaviorSanitizer",
+      "inherits": "core-debug",
+      "binaryDir": "${sourceDir}/build/core-ubsan",
+      "cacheVariables": {
+        "GENYCASTER_SANITIZER": "undefined"
+      }
+    },
+    {
+      "name": "core-tsan",
+      "displayName": "Core Debug + ThreadSanitizer",
+      "inherits": "core-debug",
+      "binaryDir": "${sourceDir}/build/core-tsan",
+      "cacheVariables": {
+        "GENYCASTER_SANITIZER": "thread"
+      }
+    },
+    {
       "name": "strict-self-hosted",
       "displayName": "Strict Self-hosted Core",
       "inherits": "core-debug",
@@ -122,6 +149,18 @@
       "configurePreset": "core-release"
     },
     {
+      "name": "core-asan",
+      "configurePreset": "core-asan"
+    },
+    {
+      "name": "core-ubsan",
+      "configurePreset": "core-ubsan"
+    },
+    {
+      "name": "core-tsan",
+      "configurePreset": "core-tsan"
+    },
+    {
       "name": "strict-self-hosted",
       "configurePreset": "strict-self-hosted"
     },
@@ -150,6 +189,27 @@
     {
       "name": "core-debug",
       "configurePreset": "core-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "core-asan",
+      "configurePreset": "core-asan",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "core-ubsan",
+      "configurePreset": "core-ubsan",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "core-tsan",
+      "configurePreset": "core-tsan",
       "output": {
         "outputOnFailure": true
       }

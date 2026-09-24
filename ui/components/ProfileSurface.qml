@@ -1,0 +1,1019 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Shapes
+
+Item {
+    id: root
+
+    property var detail
+    property var rows
+    property string profileFeed: "user-posts"
+    property string profileSortMode: "newest"
+    property string popularMetric: "all"
+    property bool runtimeReady: false
+    property bool compact: false
+    property bool busy: false
+    property bool hasMore: false
+    property bool offline: false
+    property bool sourceUnavailable: false
+    property string errorText: ""
+    property bool interactionsAvailable: false
+    property double accountFid: 0
+    property bool loadMorePending: false
+    property double positionedProfileFid: 0
+    property string viewportAnchorKey: ""
+    property real viewportAnchorOffset: 0
+    property bool restoringViewport: false
+    property bool stableModelSyncPending: false
+
+    signal backRequested()
+    signal followersRequested()
+    signal followingRequested()
+    signal refreshRequested()
+    signal profileFeedRequested(string feed)
+    signal castRequested(string castId)
+    signal profileRequested(double fid)
+    signal replyRequested(var cast)
+    signal reactionRequested(string kind, var cast, bool active)
+    signal followingMutationRequested(double targetFid, bool following)
+    signal removeCastRequested(var cast)
+    signal externalRequested(string url)
+    signal mediaRequested(var mediaItems, int index)
+    signal authenticationRequested()
+    signal loadMoreRequested()
+
+    readonly property bool isOwnProfile: Number(root.detail.fid || 0) > 0
+                                         && Number(root.detail.fid || 0) === Number(root.accountFid)
+    readonly property int profileAvatarSize: root.compact ? 84 : 96
+    readonly property int profileMargin: root.compact ? Theme.mobileGutter : Theme.space5
+    readonly property int profileContentLimit: root.compact ? 760 : 880
+    readonly property int profileContentWidth: Math.max(0, Math.min(root.profileContentLimit, width - root.profileMargin * 2))
+    readonly property int profileContentX: Math.max(root.profileMargin, Math.round((width - root.profileContentWidth) / 2))
+    readonly property bool profileContentRtl: Theme.rtl
+    readonly property int profileAvatarX: root.compact
+                                           ? Math.round((root.width - root.profileAvatarSize) / 2)
+                                           : root.profileContentRtl
+                                             ? root.profileContentX + root.profileContentWidth - root.profileAvatarSize - Theme.space3
+                                             : root.profileContentX + Theme.space3
+    readonly property bool showUsername: Boolean(root.detail.username) && !root.syntheticUsername(root.detail.username)
+    readonly property string normalizedBio: String(root.detail.bio || "").replace(/\s+/g, " ").trim()
+    readonly property string displayLocation: {
+        const geoAvailable = typeof geoLocationResolver !== "undefined" && geoLocationResolver !== null
+        const geoRevision = geoAvailable ? geoLocationResolver.revision : 0
+        if (!geoAvailable)
+            return ""
+        return geoLocationResolver.displayLabel(
+            String(root.detail.location || ""), localizationController.effectiveLanguageTag)
+    }
+
+    function ltrText(value) {
+        const isolate = String.fromCharCode(0x2066)
+        const pop = String.fromCharCode(0x2069)
+        return isolate + String(value || "") + pop
+    }
+
+    function ltrHandle(value) {
+        return root.ltrText(String.fromCharCode(0x40) + String(value || ""))
+    }
+
+    function compactCount(value) {
+        const localeRevision = localizationController.revision
+        return LocaleFormat.formatCompactNumber(Number(value || 0))
+    }
+
+    function syntheticUsername(value) {
+        return /^fid:[0-9]+$/i.test(String(value || "").trim())
+    }
+
+    function displayUrl(value) {
+        let text = String(value || "")
+        text = text.replace(/^https?:\/\//i, "")
+        return text.replace(/\/$/, "")
+    }
+
+    function metadataKey(value) {
+        let text = String(value || "").trim().toLowerCase()
+        text = text.replace(/^https?:\/\//i, "")
+        text = text.replace(/^www\./i, "")
+        text = text.replace(/^@/, "")
+        text = text.replace(/\/$/, "")
+        return text
+    }
+
+    readonly property string usernameMetadataKey: root.showUsername ? root.metadataKey(root.detail.username) : ""
+    readonly property string urlMetadataKey: root.metadataKey(root.detail.profileUrl)
+    readonly property string locationMetadataKey: root.metadataKey(root.detail.location)
+    readonly property bool showProfileUrl: root.urlMetadataKey.length > 0
+                                           && root.urlMetadataKey !== root.usernameMetadataKey
+    readonly property bool showLocation: root.locationMetadataKey.length > 0
+                                         && root.locationMetadataKey !== root.usernameMetadataKey
+                                         && root.locationMetadataKey !== root.urlMetadataKey
+
+    function rowTime(row) {
+        const value = row || ({})
+        const numeric = Number(value.createdAtMs || value.time || 0)
+        return isFinite(numeric) ? numeric : 0
+    }
+
+    function popularityScore(row) {
+        const value = row || ({})
+        const likes = Number(value.likeCount || 0)
+        const recasts = Number(value.recastCount || 0)
+        const replies = Number(value.replyCount || 0)
+        if (root.popularMetric === "likes")
+            return likes
+        if (root.popularMetric === "recasts")
+            return recasts
+        if (root.popularMetric === "replies")
+            return replies
+        return likes + recasts * 2 + replies * 1.5
+    }
+
+    function sortedRows() {
+        const source = root.rows || []
+        const result = []
+        for (let index = 0; index < source.length; ++index)
+            result.push(source[index])
+
+        if (root.profileFeed === "user-popular") {
+            result.sort(function(left, right) {
+                const scoreDelta = root.popularityScore(right) - root.popularityScore(left)
+                return scoreDelta !== 0 ? scoreDelta : root.rowTime(right) - root.rowTime(left)
+            })
+            return result
+        }
+
+        const direction = root.profileSortMode === "oldest" ? 1 : -1
+        result.sort(function(left, right) {
+            return (root.rowTime(left) - root.rowTime(right)) * direction
+        })
+        return result
+    }
+
+    readonly property var displayRows: root.sortedRows()
+
+    function rowKey(row, index) {
+        const value = row || ({})
+        const castId = String(value.castId || value.hash || value.id || "")
+        return castId.length > 0 ? "cast:" + castId : "cast-index:" + index
+    }
+
+    function rowRevision(row) {
+        const value = row || ({})
+        return [String(value._revision || value.castId || value.hash || value.id || ""),
+                String(value.likeCount || 0), String(value.recastCount || 0),
+                String(value.replyCount || 0), String(Boolean(value.likedByMe)),
+                String(Boolean(value.recastedByMe)), String(value.writeState || "")].join("\u001f")
+    }
+
+    // The list keeps a stable ListModel and diff-synchronizes it against the
+    // sorted source rows. Feeding the ListView a freshly allocated array on every
+    // rows change made it reset contentY to the top mid-scroll, which read as a
+    // flicker whenever a refresh or load-more delivered new rows.
+    function captureViewportAnchor() {
+        if (root.restoringViewport || profileRowsModel.count === 0) return
+        const headerHeight = profileList.headerItem ? profileList.headerItem.implicitHeight : 0
+        const probeY = Math.max(0, headerHeight - profileList.contentY) + 1
+        const index = profileList.indexAt(Math.max(1, profileList.width / 2), probeY)
+        if (index < 0 || index >= profileRowsModel.count) return
+        const item = profileList.itemAtIndex(index)
+        if (!item) return
+        root.viewportAnchorKey = String(profileRowsModel.get(index).stableKey || "")
+        root.viewportAnchorOffset = item.y - profileList.contentY
+    }
+
+    function stabilizeViewportAfterGeometryChange() {
+        if (profileList.moving || root.viewportAnchorKey.length === 0 || root.restoringViewport) return
+        root.restoringViewport = true
+        const key = root.viewportAnchorKey
+        const offset = root.viewportAnchorOffset
+        Qt.callLater(function() {
+            root.restoreViewportAnchor(key, offset)
+            root.restoringViewport = false
+            root.captureViewportAnchor()
+        })
+    }
+
+    function restoreViewportAnchor(anchorKey, anchorOffset) {
+        if (anchorKey.length === 0 || profileRowsModel.count === 0)
+            return
+        let targetIndex = -1
+        for (let index = 0; index < profileRowsModel.count; ++index) {
+            if (String(profileRowsModel.get(index).stableKey) === anchorKey) {
+                targetIndex = index
+                break
+            }
+        }
+        if (targetIndex < 0)
+            return
+        const item = profileList.itemAtIndex(targetIndex)
+        if (!item)
+            return
+        const minimum = profileList.originY
+        const maximum = Math.max(minimum, profileList.contentHeight - profileList.height)
+        profileList.contentY = Math.max(minimum, Math.min(maximum, item.y - anchorOffset))
+    }
+
+    function requestStableModelSync() {
+        if (profileList.moving) {
+            root.stableModelSyncPending = true
+            return
+        }
+        root.stableModelSyncPending = false
+        root.synchronizeStableModel()
+    }
+
+    function synchronizeStableModel() {
+        const source = root.displayRows
+        let anchorKey = ""
+        let anchorOffset = 0
+        let structureChanged = false
+        const headerHeight = profileList.headerItem ? profileList.headerItem.implicitHeight : 0
+        const probeY = Math.max(0, headerHeight - profileList.contentY) + 1
+        const anchorIndex = profileList.indexAt(Math.max(1, profileList.width / 2), probeY)
+        if (anchorIndex >= 0 && anchorIndex < profileRowsModel.count) {
+            const anchorItem = profileList.itemAtIndex(anchorIndex)
+            anchorKey = String(profileRowsModel.get(anchorIndex).stableKey)
+            anchorOffset = anchorItem ? anchorItem.y - profileList.contentY : 0
+        }
+
+        for (let index = 0; index < source.length; ++index) {
+            const key = root.rowKey(source[index], index)
+            const revision = root.rowRevision(source[index])
+            if (index < profileRowsModel.count
+                    && String(profileRowsModel.get(index).stableKey) === key) {
+                if (String(profileRowsModel.get(index).revisionKey || "") !== revision) {
+                    profileRowsModel.setProperty(index, "revisionKey", revision)
+                    profileRowsModel.setProperty(index, "payload", source[index])
+                }
+                continue
+            }
+
+            let existingIndex = -1
+            for (let probe = index + 1; probe < profileRowsModel.count; ++probe) {
+                if (String(profileRowsModel.get(probe).stableKey) === key) {
+                    existingIndex = probe
+                    break
+                }
+            }
+            if (existingIndex >= 0) {
+                profileRowsModel.move(existingIndex, index, 1)
+                structureChanged = true
+                if (String(profileRowsModel.get(index).revisionKey || "") !== revision) {
+                    profileRowsModel.setProperty(index, "revisionKey", revision)
+                    profileRowsModel.setProperty(index, "payload", source[index])
+                }
+            } else {
+                profileRowsModel.insert(index, { stableKey: key, revisionKey: revision, payload: source[index] })
+                structureChanged = true
+            }
+        }
+
+        while (profileRowsModel.count > source.length) {
+            profileRowsModel.remove(profileRowsModel.count - 1)
+            structureChanged = true
+        }
+
+        if (structureChanged && anchorKey.length > 0)
+            Qt.callLater(function() { root.restoreViewportAnchor(anchorKey, anchorOffset) })
+    }
+
+    function isNearEnd() {
+        if (profileList.count === 0 || profileList.contentHeight <= 0)
+            return false
+        const normalizedY = Math.max(0, profileList.contentY - profileList.originY)
+        const preloadDistance = Math.max(520, profileList.height * 0.7)
+        return profileList.atYEnd
+                || normalizedY + profileList.height >= profileList.contentHeight - preloadDistance
+    }
+
+    function scheduleLoadMore() {
+        // Never append while kinetic scrolling is active. Variable-height cast
+        // delegates can otherwise move under the pointer when the model grows.
+        if (profileList.moving || root.loadMorePending || root.busy || !root.hasMore
+                || !root.isNearEnd())
+            return
+        root.loadMorePending = true
+        Qt.callLater(root.requestScheduledLoadMore)
+    }
+
+    function requestScheduledLoadMore() {
+        root.loadMorePending = false
+        if (!root.busy && root.hasMore && profileList.count > 0)
+            root.loadMoreRequested()
+    }
+
+    function positionNewProfileAtBeginning() {
+        const fid = Number(root.detail.fid || 0)
+        if (!root.visible || fid <= 0 || fid === root.positionedProfileFid)
+            return
+        root.positionedProfileFid = fid
+        root.viewportAnchorKey = ""
+        Qt.callLater(function() {
+            const beginning = profileList.headerItem
+                    ? -profileList.headerItem.height : profileList.originY
+            profileList.contentY = beginning
+            Qt.callLater(function() {
+                profileList.contentY = profileList.headerItem
+                        ? -profileList.headerItem.height : profileList.originY
+            })
+        })
+    }
+
+    onVisibleChanged: root.positionNewProfileAtBeginning()
+    onDetailChanged: {
+        const incomingFid = Number(root.detail.fid || 0)
+        if (incomingFid !== root.positionedProfileFid) {
+            profileRowsModel.clear()
+            root.viewportAnchorKey = ""
+            root.stableModelSyncPending = false
+        }
+        root.positionNewProfileAtBeginning()
+    }
+    onRowsChanged: Qt.callLater(root.requestStableModelSync)
+    onProfileFeedChanged: {
+        profileSortMode = "newest"
+        popularMetric = "all"
+        root.viewportAnchorKey = ""
+        Qt.callLater(root.requestStableModelSync)
+        Qt.callLater(function() {
+            const beginning = profileList.headerItem
+                    ? -profileList.headerItem.height : profileList.originY
+            profileList.contentY = beginning
+        })
+    }
+    onProfileSortModeChanged: Qt.callLater(root.requestStableModelSync)
+    onPopularMetricChanged: Qt.callLater(root.requestStableModelSync)
+
+    onHasMoreChanged: {
+        if (!hasMore)
+            loadMorePending = false
+    }
+
+    onBusyChanged: {
+        if (!busy)
+            loadMorePending = false
+    }
+
+    Timer {
+        id: scrollWorkThrottle
+        interval: 96
+        repeat: false
+        onTriggered: {
+            if (!root.restoringViewport)
+                root.captureViewportAnchor()
+        }
+    }
+
+    ListModel {
+        id: profileRowsModel
+        dynamicRoles: true
+    }
+
+    ListView {
+        id: profileList
+        anchors.fill: parent
+        clip: true
+        model: profileRowsModel
+        spacing: 0
+        boundsBehavior: Flickable.DragOverBounds
+        boundsMovement: Flickable.FollowBoundsBehavior
+        reuseItems: true
+        cacheBuffer: Math.min(Math.max(height * 0.32, 280), 520)
+        pixelAligned: false
+
+        onMovementEnded: {
+            scrollWorkThrottle.stop()
+            if (root.stableModelSyncPending)
+                root.requestStableModelSync()
+            if (verticalOvershoot < -72 && !root.busy)
+                root.refreshRequested()
+            root.captureViewportAnchor()
+            root.scheduleLoadMore()
+        }
+        onContentYChanged: {
+            if (!root.restoringViewport && !scrollWorkThrottle.running)
+                scrollWorkThrottle.start()
+        }
+        onContentHeightChanged: {
+            root.stabilizeViewportAfterGeometryChange()
+            if (!scrollWorkThrottle.running)
+                scrollWorkThrottle.start()
+        }
+
+        header: ColumnLayout {
+            width: profileList.width
+            spacing: Theme.space2
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.leftMargin: root.profileContentX
+                Layout.rightMargin: root.profileContentX
+                spacing: Theme.space2
+                layoutDirection: Theme.rtl ? Qt.RightToLeft : Qt.LeftToRight
+
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    iconGlyph: Theme.iconBack
+                    text: qsTrId("genycaster.profile.back_back_to_feed")
+                    onClicked: root.backRequested()
+                }
+
+                Item { Layout.fillWidth: true }
+
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: Theme.iconRefresh
+                    text: root.busy ? qsTrId("genycaster.profile.refreshing") : qsTrId("genycaster.profile.refresh")
+                    enabled: !root.busy
+                    onClicked: root.refreshRequested()
+                }
+            }
+
+            Column {
+                id: profileHeader
+                Layout.fillWidth: true
+                spacing: 0
+
+                Item {
+                    id: bannerFrame
+                    x: root.profileContentX
+                    width: root.profileContentWidth
+                    readonly property real bannerAspectRatio: root.compact ? 2.8 : 3.2
+                    readonly property real coverRadius: Math.max(0, Math.min(Theme.shapeMedia, width / 2, height / 2))
+                    readonly property real coverCubicFactor: {
+                        const exponent = Math.max(2.0, Theme.superellipseExponent)
+                        const diagonal = Math.pow(0.5, 1 / exponent)
+                        return Math.max(0.5522847498, Math.min(0.985, (8 * diagonal - 4) / 3))
+                    }
+                    height: Boolean(root.detail.bannerUrl)
+                            ? Math.max(root.compact ? 132 : 156,
+                                       Math.min(root.compact ? 196 : 280,
+                                                Math.round(width / bannerAspectRatio)))
+                            : (root.compact ? 56 : 64)
+
+                    Superellipse {
+                        anchors.fill: parent
+                        curveDepth: Theme.shapeMedia
+                        fillColor: Theme.surfaceRaised
+                        borderWidth: Theme.strokeHairline
+                        borderColor: Theme.borderMuted
+
+                        // Keep the no-banner state deliberately quiet. It must read
+                        // as an intentional empty cover, never as a loading skeleton.
+                        Superellipse {
+                            anchors.fill: parent
+                            anchors.margins: 1
+                            curveDepth: Theme.shapeMedia
+                            fillColor: Theme.primarySurface
+                            opacity: 0.18
+                            borderWidth: 0
+                        }
+                    }
+
+                    SuperellipseImage {
+                        id: bannerImage
+                        anchors.fill: parent
+                        visible: Boolean(root.detail.bannerUrl)
+                        source: root.detail.bannerUrl || ""
+                        mediaCategory: "photos"
+                        requestedSourceWidth: Math.max(1, Math.round(width))
+                        requestedSourceHeight: Math.max(1, Math.round(height))
+                        fillMode: Image.PreserveAspectCrop
+                        cache: true
+                        // Profile covers use the direct scene-graph image path.
+                        // The large/wide MultiEffect mask can resolve the image
+                        // successfully yet produce a blank layer on some render
+                        // backends; the surrounding cover frame still owns the
+                        // visual boundary and border.
+                        clipToSuperellipse: false
+                        curveDepth: Theme.shapeMedia
+                        fillColor: Theme.surfaceRaised
+                        borderWidth: 0
+                        showLoadingIndicator: true
+                        showFailureIndicator: true
+                        retainPreviousWhileLoading: false
+                    }
+
+                    // The cover itself stays on the direct Image path to avoid
+                    // the wide-texture MultiEffect failure. An inverse vector
+                    // superellipse masks only the four corners afterward, so the
+                    // visual geometry remains identical without another texture/FBO.
+                    Shape {
+                        anchors.fill: parent
+                        z: 2
+                        visible: bannerImage.visible && bannerImage.ready
+                        preferredRendererType: Shape.CurveRenderer
+                        asynchronous: false
+
+                        ShapePath {
+                            fillColor: Theme.background
+                            fillRule: ShapePath.OddEvenFill
+                            strokeColor: "transparent"
+                            strokeWidth: -1
+
+                            startX: 0
+                            startY: 0
+                            PathLine { x: bannerFrame.width; y: 0 }
+                            PathLine { x: bannerFrame.width; y: bannerFrame.height }
+                            PathLine { x: 0; y: bannerFrame.height }
+                            PathLine { x: 0; y: 0 }
+
+                            PathMove { x: bannerFrame.coverRadius; y: 0 }
+                            PathLine { x: bannerFrame.width - bannerFrame.coverRadius; y: 0 }
+                            PathCubic {
+                                x: bannerFrame.width
+                                y: bannerFrame.coverRadius
+                                control1X: bannerFrame.width - bannerFrame.coverRadius
+                                           + bannerFrame.coverCubicFactor * bannerFrame.coverRadius
+                                control1Y: 0
+                                control2X: bannerFrame.width
+                                control2Y: bannerFrame.coverRadius
+                                           - bannerFrame.coverCubicFactor * bannerFrame.coverRadius
+                            }
+                            PathLine { x: bannerFrame.width; y: bannerFrame.height - bannerFrame.coverRadius }
+                            PathCubic {
+                                x: bannerFrame.width - bannerFrame.coverRadius
+                                y: bannerFrame.height
+                                control1X: bannerFrame.width
+                                control1Y: bannerFrame.height - bannerFrame.coverRadius
+                                           + bannerFrame.coverCubicFactor * bannerFrame.coverRadius
+                                control2X: bannerFrame.width - bannerFrame.coverRadius
+                                           + bannerFrame.coverCubicFactor * bannerFrame.coverRadius
+                                control2Y: bannerFrame.height
+                            }
+                            PathLine { x: bannerFrame.coverRadius; y: bannerFrame.height }
+                            PathCubic {
+                                x: 0
+                                y: bannerFrame.height - bannerFrame.coverRadius
+                                control1X: bannerFrame.coverRadius
+                                           - bannerFrame.coverCubicFactor * bannerFrame.coverRadius
+                                control1Y: bannerFrame.height
+                                control2X: 0
+                                control2Y: bannerFrame.height - bannerFrame.coverRadius
+                                           + bannerFrame.coverCubicFactor * bannerFrame.coverRadius
+                            }
+                            PathLine { x: 0; y: bannerFrame.coverRadius }
+                            PathCubic {
+                                x: bannerFrame.coverRadius
+                                y: 0
+                                control1X: 0
+                                control1Y: bannerFrame.coverRadius
+                                           - bannerFrame.coverCubicFactor * bannerFrame.coverRadius
+                                control2X: bannerFrame.coverRadius
+                                           - bannerFrame.coverCubicFactor * bannerFrame.coverRadius
+                                control2Y: 0
+                            }
+                        }
+                    }
+
+                    Superellipse {
+                        anchors.fill: parent
+                        z: 3
+                        visible: bannerImage.visible
+                        fillColor: "transparent"
+                        borderWidth: Theme.strokeHairline
+                        borderColor: Theme.borderMuted
+                        curveDepth: Theme.shapeMedia
+                    }
+
+                    TapHandler {
+                        enabled: Boolean(root.detail.bannerUrl)
+                        gesturePolicy: TapHandler.ReleaseWithinBounds
+                        onTapped: root.mediaRequested([
+                            { imageSource: String(root.detail.bannerUrl || ""), kind: "image" }
+                        ], 0)
+                    }
+                }
+
+                Item {
+                    width: parent.width
+                    height: Math.round(root.profileAvatarSize * 0.60) + Theme.space2
+
+                    Superellipse {
+                        x: root.profileAvatarX - 4
+                        y: -Math.round(root.profileAvatarSize * 0.50) - 4
+                        width: root.profileAvatarSize + 8
+                        height: root.profileAvatarSize + 8
+                        curveDepth: Math.round(width * 0.30)
+                        exponent: 3.8
+                        fillColor: Theme.surface
+                    }
+
+                    Avatar {
+                        id: profileAvatar
+                        x: root.profileAvatarX
+                        y: -Math.round(root.profileAvatarSize * 0.50)
+                        avatarSize: root.profileAvatarSize
+                        sourceUrl: root.detail.avatarUrl || ""
+                        displayName: root.detail.displayName || root.detail.username || ""
+                    }
+
+                    TapHandler {
+                        parent: profileAvatar
+                        enabled: Boolean(root.detail.avatarUrl)
+                        gesturePolicy: TapHandler.ReleaseWithinBounds
+                        onTapped: root.mediaRequested([
+                            { imageSource: String(root.detail.avatarUrl || ""), kind: "image" }
+                        ], 0)
+                    }
+
+                    ActionButton {
+                        x: root.profileContentRtl ? root.profileContentX : root.profileContentX + root.profileContentWidth - width
+                        anchors.top: parent.top
+                        anchors.topMargin: Theme.space2
+                        visible: Boolean(root.detail.followingKnown)
+                                 && Number(root.detail.fid || 0) > 0
+                                 && !root.isOwnProfile
+                        compact: true
+                        iconGlyph: Boolean(root.detail.followingByMe) ? Theme.iconCheck : ""
+                        text: Boolean(root.detail.followingByMe) ? qsTrId("genycaster.profile.followed") : qsTrId("genycaster.profile.follow")
+                        selected: Boolean(root.detail.followingByMe)
+                        prominent: !Boolean(root.detail.followingByMe)
+                        Accessible.description: Boolean(root.detail.followingByMe)
+                                                ? qsTrId("genycaster.profile.unfollow") : text
+                        onClicked: {
+                            if (!root.interactionsAvailable) {
+                                root.authenticationRequested()
+                                return
+                            }
+                            root.followingMutationRequested(
+                                Number(root.detail.fid), !Boolean(root.detail.followingByMe))
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    width: root.profileContentWidth
+                    x: root.profileContentX
+                    spacing: Theme.space1
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+                        layoutDirection: Theme.uiDirection
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            text: root.detail.displayName || (root.showUsername ? root.detail.username : "")
+                                  || qsTrId("genycaster.profile.farcaster_profile")
+                            color: Theme.ink
+                            font.pixelSize: root.compact ? Theme.typeTitle2Size : Theme.typeTitle1Size
+                            font.weight: Theme.weightBold
+                            horizontalAlignment: Theme.textStartAlignment
+                            wrapMode: Text.Wrap
+                        }
+
+                        Item {
+                            id: followsYouBadge
+                            visible: Boolean(root.detail.followsMeKnown) && Boolean(root.detail.followsMe)
+                                     && !root.isOwnProfile
+                            implicitWidth: followsYouText.implicitWidth + Theme.space3
+                            implicitHeight: Math.max(24, followsYouText.implicitHeight + Theme.space1)
+
+                            Superellipse {
+                                anchors.fill: parent
+                                fillColor: Theme.surfaceRaised
+                                borderWidth: 1
+                                borderColor: Theme.borderStrong
+                                curveDepth: Math.round(height / 2)
+                            }
+
+                            Label {
+                                id: followsYouText
+                                anchors.centerIn: parent
+                                text: qsTrId("genycaster.profile.follows_you")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: Theme.weightDemiBold
+                            }
+                        }
+
+                        Item { Layout.fillWidth: true }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space1
+                        layoutDirection: Theme.uiDirection
+
+                        Label {
+                            visible: root.showUsername
+                            Layout.maximumWidth: Math.max(160, parent.width * 0.72)
+                            LayoutMirroring.enabled: false
+                            text: root.ltrHandle(root.detail.username)
+                            font.family: Theme.latinFontFamily
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeMetaSize
+                            horizontalAlignment: Theme.textStartAlignment
+                            elide: Text.ElideRight
+                        }
+
+
+                        Item { Layout.fillWidth: true }
+                    }
+
+                    RichText {
+                        visible: root.normalizedBio.length > 0
+                        Layout.fillWidth: true
+                        sourceText: root.normalizedBio
+                        textSize: Theme.typeBodySize
+                        textLineHeight: Theme.typeBodyLineHeight
+                        onExternalRequested: url => root.externalRequested(url)
+                    }
+
+                    ColumnLayout {
+                        visible: root.showProfileUrl || root.showLocation
+                        Layout.fillWidth: true
+                        spacing: Theme.space1
+
+                        RowLayout {
+                            visible: root.showProfileUrl
+                            Layout.fillWidth: true
+                            spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
+
+                            Icon {
+                                text: Theme.iconLink
+                                color: Theme.accent
+                                preferredSize: Theme.typeCaptionSize
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                LayoutMirroring.enabled: false
+                                text: root.ltrText(root.displayUrl(root.detail.profileUrl))
+                                font.family: Theme.latinFontFamily
+                                color: Theme.accent
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: Theme.weightMedium
+                                horizontalAlignment: Theme.textStartAlignment
+                                elide: Text.ElideRight
+
+                                HoverHandler { id: profileLinkHover }
+                                TapHandler {
+                                    gesturePolicy: TapHandler.ReleaseWithinBounds
+                                    onTapped: root.externalRequested(root.detail.profileUrl || "")
+                                }
+                                Accessible.role: Accessible.Link
+                                Accessible.name: qsTrId("genycaster.profile.open_profile_link")
+                            }
+                        }
+
+                        RowLayout {
+                            visible: root.showLocation
+                            Layout.fillWidth: true
+                            spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
+
+                            Icon {
+                                text: Theme.iconLocation
+                                color: Theme.inkSubtle
+                                preferredSize: Theme.typeCaptionSize
+                            }
+
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: root.displayLocation
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                elide: Text.ElideRight
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space1
+                        layoutDirection: Theme.uiDirection
+
+                        ActionButton {
+                            compact: true
+                            quiet: true
+                            alignStart: true
+                            text: qsTrId("genycaster.profile.value_following").arg(root.compactCount(root.detail.followingCount))
+                            onClicked: root.followingRequested()
+                        }
+
+                        ActionButton {
+                            compact: true
+                            quiet: true
+                            alignStart: true
+                            text: qsTrId("genycaster.profile.value_followers").arg(root.compactCount(root.detail.followerCount))
+                            onClicked: root.followersRequested()
+                        }
+
+                        Item { Layout.fillWidth: true }
+                    }
+
+                }
+            }
+
+            Item {
+                Layout.fillWidth: true
+                implicitHeight: 48
+
+                Item {
+                    x: root.profileContentX
+                    width: root.profileContentWidth
+                    height: parent.height
+
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        height: 1
+                        color: Theme.divider
+                    }
+
+                    GenyTabStrip {
+                        anchors.fill: parent
+                        distribute: true
+                        segmented: false
+                        minimumTabWidth: 68
+                        spacing: 0
+                        currentId: root.profileFeed
+                        tabs: [
+                            { id: "user-posts", label: qsTrId("genycaster.profile.posts") },
+                            { id: "user-quotes", label: qsTrId("genycaster.profile.quotes") },
+                            { id: "user-replies", label: qsTrId("genycaster.profile.replies") },
+                            { id: "user-likes", label: qsTrId("genycaster.profile.likes") },
+                            { id: "user-popular", label: qsTrId("genycaster.profile.popular") }
+                        ]
+                        onActivated: tabId => root.profileFeedRequested(tabId)
+                    }
+                }
+            }
+
+            Item {
+                Layout.fillWidth: true
+                implicitHeight: 34 + Theme.space1
+
+                RowLayout {
+                    x: root.profileContentX
+                    width: root.profileContentWidth
+                    height: 34
+                    anchors.verticalCenter: parent.verticalCenter
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space2
+
+                    Item { Layout.fillWidth: true }
+
+                    FilterDropdown {
+                        Layout.maximumWidth: Math.min(176, root.profileContentWidth)
+                        model: root.profileFeed === "user-popular"
+                               ? [
+                                   qsTrId("genycaster.profile.sort_all"),
+                                   qsTrId("genycaster.profile.sort_likes"),
+                                   qsTrId("genycaster.profile.sort_recasts"),
+                                   qsTrId("genycaster.profile.sort_replies")
+                                 ]
+                               : [
+                                   qsTrId("genycaster.profile.sort_newest"),
+                                   qsTrId("genycaster.profile.sort_oldest")
+                                 ]
+                        currentIndex: root.profileFeed === "user-popular"
+                                      ? (root.popularMetric === "likes" ? 1
+                                         : root.popularMetric === "recasts" ? 2
+                                         : root.popularMetric === "replies" ? 3 : 0)
+                                      : (root.profileSortMode === "oldest" ? 1 : 0)
+                        onActivated: index => {
+                            if (root.profileFeed === "user-popular") {
+                                root.popularMetric = index === 1 ? "likes"
+                                                   : index === 2 ? "recasts"
+                                                   : index === 3 ? "replies" : "all"
+                            } else {
+                                root.profileSortMode = index === 1 ? "oldest" : "newest"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        delegate: Item {
+            id: profileCastDelegate
+            required property var payload
+            readonly property var modelData: payload
+            // On mobile the ListView owns the viewport width and CastItem owns
+            // the single symmetric content gutter. Keeping profileContentX here
+            // produced a second inset that Explorer no longer has.
+            x: root.compact ? 0 : root.profileContentX
+            width: root.compact ? profileList.width : root.profileContentWidth
+            height: profileCast.implicitHeight
+
+            CastItem {
+                id: profileCast
+                anchors.left: parent.left
+                anchors.right: parent.right
+                modelData: profileCastDelegate.modelData
+                compact: root.compact
+                interactionsAvailable: root.interactionsAvailable
+                accountFid: root.accountFid
+                onOpenRequested: castId => root.castRequested(castId)
+                onProfileRequested: fid => root.profileRequested(fid)
+                onReplyRequested: cast => root.replyRequested(cast)
+                onReactionRequested: (kind, cast, active) => root.reactionRequested(kind, cast, active)
+                onRemoveRequested: cast => root.removeCastRequested(cast)
+                onExternalRequested: url => root.externalRequested(url)
+                onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
+                onAuthenticationRequested: root.authenticationRequested()
+            }
+        }
+
+        footer: Item {
+            width: profileList.width
+            height: emptyProfileState.visible ? 176 : (root.busy ? 72 : (root.compact ? 112 : 52))
+
+            ColumnLayout {
+                id: emptyProfileState
+                x: root.profileContentX
+                width: root.profileContentWidth
+                anchors.verticalCenter: parent.verticalCenter
+                visible: root.rows.length === 0 && !root.busy && root.runtimeReady
+                         && root.errorText.length === 0
+                spacing: Theme.space2
+
+                Label {
+                    Layout.fillWidth: true
+                    text: root.profileFeed === "user-quotes"
+                          ? qsTrId("genycaster.profile.no_quotes_here_yet")
+                          : root.profileFeed === "user-replies"
+                            ? qsTrId("genycaster.profile.no_replies_here_yet")
+                            : root.profileFeed === "user-likes"
+                              ? qsTrId("genycaster.profile.no_liked_casts_here_yet")
+                              : root.profileFeed === "user-popular"
+                                ? qsTrId("genycaster.profile.no_popular_casts_available_yet")
+                                : qsTrId("genycaster.profile.no_posts_here_yet")
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightDemiBold
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    text: root.offline || root.sourceUnavailable
+                          ? qsTrId("genycaster.profile.saved_profile_data_is_empty_retry_when_the_live_source")
+                          : qsTrId("genycaster.profile.try_another_profile_tab_or_refresh")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeMetaSize
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
+                }
+            }
+
+            GenySpinner {
+                anchors.centerIn: parent
+                visible: root.busy
+                running: visible
+                Accessible.name: qsTrId("genycaster.profile.loading_more_profile_posts")
+            }
+        }
+    }
+
+    Item {
+        id: profilePullFeedback
+        readonly property real progress: Math.max(0, Math.min(1, -profileList.verticalOvershoot / 72))
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: profileList.top
+        anchors.topMargin: Theme.space2
+        z: 2
+        visible: profileList.verticalOvershoot < -8 && root.rows.length > 0
+        width: 42
+        height: 42
+        opacity: Math.min(1, 0.35 + progress * 0.65)
+        scale: 0.78 + progress * 0.22
+
+        Superellipse {
+            anchors.fill: parent
+            fillColor: Theme.surfaceElevated
+            borderWidth: Theme.strokeHairline
+            borderColor: Theme.borderMuted
+            curveDepth: 21
+            elevation: Theme.elevationControl
+            shadowOpacityScale: 0.55
+        }
+        ProgressRing {
+            anchors.fill: parent
+            anchors.margins: 6
+            progress: profilePullFeedback.progress
+            strokeWidth: 2.5
+            trackColor: Theme.borderMuted
+            progressColor: profilePullFeedback.progress >= 1 ? Theme.positive : Theme.accent
+        }
+        Icon {
+            anchors.centerIn: parent
+            text: profilePullFeedback.progress >= 1 ? Theme.iconRefresh : Theme.iconChevronDown
+            color: profilePullFeedback.progress >= 1 ? Theme.positive : Theme.ink
+            preferredSize: 17
+        }
+    }
+
+}

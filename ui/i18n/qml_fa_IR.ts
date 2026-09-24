@@ -4,35 +4,31 @@
         <name />
         <message id="genycaster.miniapp.presentation_title">
             <source>Mini App presentation</source>
-            <translation>نحوهٔ نمایش مینی‌اپ‌ها</translation>
+            <translation>نحوهٔ نمایش Mini App</translation>
         </message>
         <message id="genycaster.miniapp.presentation_description">
             <source>Saved for the next app you open. Changing this does not reload a running app.</source>
-            <translation>برای بازشدن بعدی ذخیره می‌شود؛ تغییر این گزینه برنامهٔ باز را دوباره بارگذاری نمی‌کند.</translation>
+            <translation>برای برنامهٔ بعدی که باز می‌کنید ذخیره می‌شود. تغییر این گزینه برنامهٔ در حال اجرا را دوباره بارگذاری نمی‌کند.</translation>
         </message>
         <message id="genycaster.miniapp.mode_window">
             <source>Separate window</source>
-            <translation>پنجرهٔ جدا</translation>
+            <translation>پنجرهٔ جداگانه</translation>
         </message>
         <message id="genycaster.miniapp.mode_bottom">
             <source>Drawer from bottom</source>
-            <translation>کشویی از پایین به بالا</translation>
+            <translation>کشو از پایین</translation>
         </message>
         <message id="genycaster.miniapp.mode_left">
             <source>Drawer from left</source>
-            <translation>کشویی از چپ به راست</translation>
+            <translation>کشو از چپ</translation>
         </message>
         <message id="genycaster.miniapp.mode_right">
             <source>Drawer from right</source>
-            <translation>کشویی از راست به چپ</translation>
-        </message>
-        <message id="genycaster.miniapp.close">
-            <source>Close app</source>
-            <translation>بستن برنامه</translation>
+            <translation>کشو از راست</translation>
         </message>
         <message id="genycaster.miniapp.open_internal">
             <source>Open in Genycaster</source>
-            <translation>باز کردن در جنی‌کستر</translation>
+            <translation>باز کردن در Genycaster</translation>
         </message>
         <message id="genycaster.miniapp.unavailable">
             <source>The internal Mini App host is not enabled in this build.</source>
@@ -66,25 +62,9 @@
             <source>This app requires host capabilities or chains that Genycaster does not support yet. Reload cannot add them.</source>
             <translation>این برنامه به قابلیت‌ها یا شبکه‌هایی نیاز دارد که جنی‌کستر هنوز پشتیبانی نمی‌کند. بارگذاری مجدد این قابلیت‌های میزبان را اضافه نمی‌کند.</translation>
         </message>
-        <message id="genycaster.miniapp.navigation_blocked">
-            <source>This app tried to leave its approved secure domain. Navigation was blocked.</source>
-            <translation>برنامه تلاش کرد از دامنهٔ امن تأییدشده خارج شود. این جابه‌جایی مسدود شد.</translation>
-        </message>
-        <message id="genycaster.miniapp.renderer_failed">
-            <source>The app process stopped. Reload to start a new session.</source>
-            <translation>پردازش برنامه متوقف شد. برای شروع یک نشست جدید دوباره بارگذاری کنید.</translation>
-        </message>
         <message id="genycaster.miniapp.rpc_limit">
             <source>The app sent too many or oversized requests and was stopped.</source>
             <translation>برنامه به‌دلیل ارسال درخواست‌های بیش‌ازحد یا بسیار بزرگ متوقف شد.</translation>
-        </message>
-        <message id="genycaster.miniapp.back">
-            <source>Back</source>
-            <translation>بازگشت</translation>
-        </message>
-        <message id="genycaster.miniapp.retry">
-            <source>Reload</source>
-            <translation>بارگذاری مجدد</translation>
         </message>
         <message id="genycaster.app.genycaster">
             <source>Genycaster</source>
@@ -386,10 +366,6 @@
             <source>Open conversation context</source>
             <translation>بازکردن زمینهٔ گفت‌وگو</translation>
         </message>
-        <message id="genycaster.cast.open_first_link">
-            <source>Open first link</source>
-            <translation>بازکردن نخستین پیوند</translation>
-        </message>
         <message id="genycaster.cast.open_original_cast">
             <source>Open original cast</source>
             <translation>بازکردن کست اصلی</translation>
@@ -430,10 +406,6 @@
             <source>Replying to another cast</source>
             <translation>در پاسخ به یک کست دیگر</translation>
         </message>
-        <message id="genycaster.cast.replying_to_parent_link">
-            <source>Replying to a parent link</source>
-            <translation>در پاسخ به یک پیوند والد</translation>
-        </message>
         <message id="genycaster.cast.replying_to_value">
             <source>Replying to %1</source>
             <translation>در پاسخ به %1</translation>
@@ -457,10 +429,6 @@
         <message id="genycaster.composer.add_cast">
             <source>Add cast</source>
             <translation>افزودن کست</translation>
-        </message>
-        <message id="genycaster.composer.alt_text_optional">
-            <source>Optional alt text</source>
-            <translation>متن جایگزین اختیاری</translation>
         </message>
         <message id="genycaster.composer.apply">
             <source>Apply</source>
@@ -694,37 +662,13 @@
             <source>Checking your GENY balance…</source>
             <translation>در حال بررسی موجودی GENY…</translation>
         </message>
-        <message id="genycaster.context.community_active_people">
-            <source>Active people</source>
-            <translation>افراد فعال</translation>
-        </message>
         <message id="genycaster.context.community_casts_loaded">
             <source>Casts loaded</source>
             <translation>کست‌های بارگذاری‌شده</translation>
         </message>
-        <message id="genycaster.context.community_engagement">
-            <source>Engagement</source>
-            <translation>تعامل</translation>
-        </message>
         <message id="genycaster.context.community_last_7_days">
             <source>Last 7 days</source>
             <translation>۷ روز اخیر</translation>
-        </message>
-        <message id="genycaster.context.community_live_sample">
-            <source>Live sample</source>
-            <translation>نمونهٔ زنده</translation>
-        </message>
-        <message id="genycaster.context.community_offline">
-            <source>Offline</source>
-            <translation>آفلاین</translation>
-        </message>
-        <message id="genycaster.context.community_stale">
-            <source>Needs refresh</source>
-            <translation>نیازمند به‌روزرسانی</translation>
-        </message>
-        <message id="genycaster.context.community_waiting">
-            <source>Waiting for feed activity</source>
-            <translation>در انتظار فعالیت فید</translation>
         </message>
         <message id="genycaster.context.fdv">
             <source>Fully diluted value</source>
@@ -789,10 +733,6 @@
         <message id="genycaster.context.token_pulse">
             <source>Token Pulse</source>
             <translation>نبض توکن‌ها</translation>
-        </message>
-        <message id="genycaster.context.upcoming_event">
-            <source>Upcoming: Community AMA · 19:00</source>
-            <translation>رویداد پیش‌رو: گفت‌وگوی جامعه · ۱۹:۰۰</translation>
         </message>
         <message id="genycaster.context.volume_24h">
             <source>24h volume</source>
@@ -1118,14 +1058,6 @@
             <source>Loading more</source>
             <translation>در حال بارگذاری بیشتر</translation>
         </message>
-        <message id="genycaster.feed_surface.pull_to_refresh">
-            <source>Pull to refresh</source>
-            <translation>برای تازه‌سازی بکشید</translation>
-        </message>
-        <message id="genycaster.feed_surface.release_to_refresh">
-            <source>Release to refresh</source>
-            <translation>برای تازه‌سازی رها کنید</translation>
-        </message>
         <message id="genycaster.feedback.backend_pending">
             <source>Feedback transport is not connected yet. This interface is ready; server delivery will be wired in a later build.</source>
             <translation>ارسال بازخورد هنوز به سرور متصل نیست. این رابط آماده است و ارسال سمت سرور در نسخه‌ای بعدی وصل می‌شود.</translation>
@@ -1198,17 +1130,9 @@
             <source>Builder Notes</source>
             <translation>یادداشت‌های سازندگان</translation>
         </message>
-        <message id="genycaster.home.casts">
-            <source>Casts</source>
-            <translation>کست‌ها</translation>
-        </message>
         <message id="genycaster.home.catch_up">
             <source>Catch up with your friends and communities.</source>
             <translation>از دوستان و انجمن‌هایت باخبر شو.</translation>
-        </message>
-        <message id="genycaster.home.community_pulse">
-            <source>Community Pulse</source>
-            <translation>نبض جامعه</translation>
         </message>
         <message id="genycaster.home.conversations">
             <source>Conversations</source>
@@ -1254,14 +1178,6 @@
             <source>View Profile</source>
             <translation>مشاهده پروفایل</translation>
         </message>
-        <message id="genycaster.home.visual_filter_all">
-            <source>All</source>
-            <translation>همه</translation>
-        </message>
-        <message id="genycaster.home.visual_filter_images">
-            <source>Images</source>
-            <translation>تصاویر</translation>
-        </message>
         <message id="genycaster.home.visual_filter_nfts">
             <source>NFTs</source>
             <translation>NFTها</translation>
@@ -1269,10 +1185,6 @@
         <message id="genycaster.home.visual_highlights">
             <source>Visual Highlights</source>
             <translation>برگزیده‌های تصویری</translation>
-        </message>
-        <message id="genycaster.home.visuals">
-            <source>Visuals &amp; NFTs</source>
-            <translation>تصاویر و NFTها</translation>
         </message>
         <message id="genycaster.locale.add_currency">
             <source>Add</source>
@@ -1732,23 +1644,19 @@
         </message>
         <message id="genycaster.search.relationship_unknown">
             <source>Relationship unknown</source>
-            <translation>وضعیت دنبال‌کردن نامشخص</translation>
-        </message>
-        <message id="genycaster.embed.miniapp_external">
-            <source>Mini App · opens externally</source>
-            <translation>مینی‌اپ · خارج از برنامه باز می‌شود</translation>
+            <translation>رابطه نامشخص است</translation>
         </message>
         <message id="genycaster.feed.filtered_empty">
             <source>No matching posts in the loaded feed</source>
-            <translation>در پست‌های بارگذاری‌شده موردی مطابق این دسته نیست</translation>
+            <translation>هیچ پست منطبقی در فید بارگذاری‌شده نیست</translation>
         </message>
         <message id="genycaster.feed.filtered_description">
             <source>These tabs filter the loaded feed. Load more posts or change the source; unavailable data is not an empty category.</source>
-            <translation>این تب‌ها پست‌های فید بارگذاری‌شده را فیلتر می‌کنند. پست‌های بیشتری بخوانید یا منبع را عوض کنید؛ در دسترس نبودن داده به معنی خالی بودن دسته نیست.</translation>
+            <translation>این زبانه‌ها فید بارگذاری‌شده را فیلتر می‌کنند. پست‌های بیشتری بارگذاری کنید یا منبع را تغییر دهید؛ در دسترس نبودن داده به معنی خالی بودن دسته نیست.</translation>
         </message>
         <message id="genycaster.feed.more_filtered">
             <source>Look through more posts</source>
-            <translation>جستجو در پست‌های بیشتر</translation>
+            <translation>پست‌های بیشتری را ببینید</translation>
         </message>
         <message id="genycaster.profile.follow">
             <source>Follow</source>
@@ -1802,10 +1710,6 @@
             <source>Posts</source>
             <translation>پست‌ها</translation>
         </message>
-        <message id="genycaster.profile.pull_to_refresh">
-            <source>Pull to refresh</source>
-            <translation>برای تازه‌سازی بکشید</translation>
-        </message>
         <message id="genycaster.profile.quotes">
             <source>Quotes</source>
             <translation>نقل‌قول‌ها</translation>
@@ -1817,10 +1721,6 @@
         <message id="genycaster.profile.refreshing">
             <source>Refreshing…</source>
             <translation>در حال تازه‌سازی…</translation>
-        </message>
-        <message id="genycaster.profile.release_to_refresh">
-            <source>Release to refresh</source>
-            <translation>برای تازه‌سازی رها کنید</translation>
         </message>
         <message id="genycaster.profile.replies">
             <source>Replies</source>
@@ -2834,10 +2734,6 @@
             <source>Discover and save Farcaster Mini Apps, then launch them in the Genycaster host.</source>
             <translation>مینی‌اپ‌های فارکستر را پیدا و ذخیره کنید و سپس آن‌ها را در میزبان جنی‌کستر اجرا کنید.</translation>
         </message>
-        <message id="genycaster.apps.farcaster">
-            <source>Farcaster Mini Apps</source>
-            <translation>مینی‌اپ‌های فارکستر</translation>
-        </message>
         <message id="genycaster.apps.native">
             <source>Native Apps</source>
             <translation>برنامه‌های بومی</translation>
@@ -2910,14 +2806,6 @@
             <source>Live Mini App resource usage and session controls.</source>
             <translation>مصرف زندهٔ منابع مینی‌اپ‌ها و کنترل نشست‌ها.</translation>
         </message>
-        <message id="genycaster.task_manager.cpu">
-            <source>CPU usage</source>
-            <translation>مصرف CPU</translation>
-        </message>
-        <message id="genycaster.task_manager.memory">
-            <source>Memory</source>
-            <translation>حافظه</translation>
-        </message>
         <message id="genycaster.task_manager.sdk_rate">
             <source>SDK activity</source>
             <translation>فعالیت SDK</translation>
@@ -2954,29 +2842,9 @@
             <source>Error</source>
             <translation>خطا</translation>
         </message>
-        <message id="genycaster.task_manager.pid">
-            <source>Process</source>
-            <translation>فرایند</translation>
-        </message>
-        <message id="genycaster.miniapp.add_confirm_title">
-            <source>Add Mini App</source>
-            <translation>افزودن مینی‌اپ</translation>
-        </message>
-        <message id="genycaster.miniapp.add_confirm_description">
-            <source>Add %1 to My MiniApps in Genycaster?</source>
-            <translation>%1 به «مینی‌اپ‌های من» در جنی‌کستر افزوده شود؟</translation>
-        </message>
         <message id="genycaster.miniapp.session_limit">
             <source>Up to four Mini Apps can stay open at once. Close one in Task Manager to open another.</source>
             <translation>حداکثر چهار مینی‌اپ می‌توانند هم‌زمان باز بمانند. برای بازکردن یکی دیگر، از مدیر وظایف یکی را ببندید.</translation>
-        </message>
-        <message id="genycaster.miniapp.minimize">
-            <source>Minimize</source>
-            <translation>کوچک‌سازی</translation>
-        </message>
-        <message id="genycaster.miniapp.share">
-            <source>Share</source>
-            <translation>اشتراک‌گذاری</translation>
         </message>
         <message id="genycaster.settings.text_size">
             <source>Text size</source>
@@ -3029,14 +2897,6 @@
         <message id="genycaster.settings.link_preview_prefetch_description">
             <source>Resolve visible web links in advance for richer cards. Disable to reduce background API and network work.</source>
             <translation>لینک‌های وب قابل‌مشاهده را از قبل برای کارت‌های کامل‌تر پردازش می‌کند. برای کاهش درخواست‌های پس‌زمینهٔ API و شبکه غیرفعال کنید.</translation>
-        </message>
-        <message id="genycaster.settings.inline_youtube">
-            <source>Play YouTube in GenyCaster</source>
-            <translation>پخش یوتیوب در GenyCaster</translation>
-        </message>
-        <message id="genycaster.settings.inline_youtube_description">
-            <source>Open supported YouTube links in the isolated in-app player instead of the external browser.</source>
-            <translation>لینک‌های پشتیبانی‌شدهٔ یوتیوب را به‌جای مرورگر خارجی در پخش‌کنندهٔ ایزولهٔ داخل برنامه باز می‌کند.</translation>
         </message>
         <message id="genycaster.settings.read_api_note">
             <source>Provider safety limits still apply. Higher values may increase latency, bandwidth, memory use, and API cost.</source>
@@ -3293,6 +3153,122 @@
         <message id="genycaster.collectible.default_title">
             <source>Collectible</source>
             <translation>اثر کلکسیونی</translation>
+        </message>
+        <message id="genycaster.feed_pulse.loaded_profile_posts">
+            <source>Loaded profile posts</source>
+            <translation>پست‌های بارگذاری‌شدهٔ پروفایل</translation>
+        </message>
+        <message id="genycaster.feed_pulse.loaded_feed_snapshot">
+            <source>Loaded feed snapshot</source>
+            <translation>نمای لحظه‌ای فید بارگذاری‌شده</translation>
+        </message>
+        <message id="genycaster.feed_pulse.offline">
+            <source>offline</source>
+            <translation>آفلاین</translation>
+        </message>
+        <message id="genycaster.feed_pulse.cached">
+            <source>cached</source>
+            <translation>ذخیره‌شده در کش</translation>
+        </message>
+        <message id="genycaster.feed_pulse.waiting_for_data">
+            <source>waiting for data</source>
+            <translation>در انتظار داده</translation>
+        </message>
+        <message id="genycaster.feed_pulse.profile_snapshot">
+            <source>Profile snapshot</source>
+            <translation>نمای لحظه‌ای پروفایل</translation>
+        </message>
+        <message id="genycaster.feed_pulse.title">
+            <source>Feed pulse</source>
+            <translation>نبض فید</translation>
+        </message>
+        <message id="genycaster.feed_pulse.posts_loaded">
+            <source>Posts loaded</source>
+            <translation>پست‌های بارگذاری‌شده</translation>
+        </message>
+        <message id="genycaster.feed_pulse.authors_loaded">
+            <source>Authors loaded</source>
+            <translation>نویسندگان بارگذاری‌شده</translation>
+        </message>
+        <message id="genycaster.feed_pulse.interactions">
+            <source>Interactions</source>
+            <translation>تعامل‌ها</translation>
+        </message>
+        <message id="genycaster.feed_pulse.avg_per_post">
+            <source>Avg / post</source>
+            <translation>میانگین / پست</translation>
+        </message>
+        <message id="genycaster.home.prompt">
+            <source>What would you like to do today?</source>
+            <translation>امروز دوست دارید چه کاری انجام دهید؟</translation>
+        </message>
+        <message id="genycaster.home.compose_description">
+            <source>Write and publish a new cast</source>
+            <translation>یک Cast جدید بنویسید و منتشر کنید</translation>
+        </message>
+        <message id="genycaster.home.apps_description">
+            <source>Open apps and tools</source>
+            <translation>باز کردن برنامه‌ها و ابزارها</translation>
+        </message>
+        <message id="genycaster.home.composer_placeholder">
+            <source>Write a new cast or message…</source>
+            <translation>یک Cast یا پیام جدید بنویسید…</translation>
+        </message>
+        <message id="genycaster.settings.social_workspace">
+            <source>Social workspace</source>
+            <translation>فضای کاری اجتماعی</translation>
+        </message>
+        <message id="genycaster.settings.social_workspace_description">
+            <source>Tune the desktop navigation and context columns. You can also drag their separators directly in the main window.</source>
+            <translation>ناوبری دسکتاپ و ستون‌های زمینه را تنظیم کنید. جداکننده‌های آن‌ها را نیز می‌توانید مستقیماً در پنجرهٔ اصلی بکشید.</translation>
+        </message>
+        <message id="genycaster.settings.navigation_width">
+            <source>Navigation width</source>
+            <translation>عرض ناوبری</translation>
+        </message>
+        <message id="genycaster.settings.navigation_width_description">
+            <source>Primary destinations and account controls</source>
+            <translation>مقصدهای اصلی و کنترل‌های حساب</translation>
+        </message>
+        <message id="genycaster.settings.context_sidebar_width">
+            <source>Context sidebar width</source>
+            <translation>عرض نوار کناری زمینه</translation>
+        </message>
+        <message id="genycaster.settings.context_sidebar_width_description">
+            <source>Profile, activity, search, and feed context</source>
+            <translation>زمینهٔ پروفایل، فعالیت، جستجو و فید</translation>
+        </message>
+        <message id="genycaster.settings.reset_social_layout">
+            <source>Reset social layout</source>
+            <translation>بازنشانی چیدمان اجتماعی</translation>
+        </message>
+        <message id="genycaster.social.search_placeholder">
+            <source>Search people, casts, and channels</source>
+            <translation>جستجوی افراد، Castها و کانال‌ها</translation>
+        </message>
+        <message id="genycaster.social.your_profile">
+            <source>Your profile</source>
+            <translation>پروفایل شما</translation>
+        </message>
+        <message id="genycaster.social.sign_in_to_personalize">
+            <source>Sign in to personalize</source>
+            <translation>برای شخصی‌سازی وارد شوید</translation>
+        </message>
+        <message id="genycaster.social.followers_count">
+            <source>%1 followers</source>
+            <translation>%1 دنبال‌کننده</translation>
+        </message>
+        <message id="genycaster.social.following_count">
+            <source>%1 following</source>
+            <translation>دنبال کردن %1 نفر</translation>
+        </message>
+        <message id="genycaster.social.open_profile">
+            <source>Open profile</source>
+            <translation>باز کردن پروفایل</translation>
+        </message>
+        <message id="genycaster.social.people_in_your_orbit">
+            <source>People in your orbit</source>
+            <translation>افراد پیرامون شما</translation>
         </message>
     </context>
 </TS>

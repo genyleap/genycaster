@@ -1,0 +1,1584 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+
+Item {
+    id: root
+    objectName: "appShell"
+
+    readonly property bool isReady: presentationBridge.architectureState.length > 0
+    readonly property bool largeDesktop: width >= Theme.breakpointLargeDesktop
+    readonly property bool desktop: width >= Theme.breakpointCompactDesktop
+    readonly property bool compactDesktop: width >= Theme.breakpointNarrow && width < Theme.breakpointCompactDesktop
+    readonly property bool narrow: width >= Theme.breakpointMobile && width < Theme.breakpointNarrow
+    readonly property bool mobile: width < Theme.breakpointMobile
+    readonly property bool wide: root.desktop
+    readonly property bool compact: width < Theme.breakpointNarrow
+    readonly property int socialMinimumReadingWidth: 680
+    readonly property bool homeSurfaceActive: root.shellRoute.length === 0
+                                               && presentationBridge.activeView === "feed"
+                                               && root.primaryDestination === "home"
+    readonly property bool socialSurfaceActive: root.shellRoute.length === 0
+                                                 && !root.homeSurfaceActive
+                                                 && (presentationBridge.activeView === "feed"
+                                                     || presentationBridge.activeView === "profile"
+                                                     || presentationBridge.activeView === "cast")
+    readonly property bool contextRailFits: root.desktop
+                                            && width >= root.desktopNavigationWidth
+                                                       + 304
+                                                       + root.socialMinimumReadingWidth
+                                                       + Theme.space6
+    readonly property bool showHomeContextRail: root.contextRailFits && root.homeSurfaceActive
+    readonly property bool showSocialContextRail: root.contextRailFits && root.socialSurfaceActive
+    readonly property bool showContextRail: root.showHomeContextRail || root.showSocialContextRail
+    readonly property bool identityAvailable: presentationBridge.identityFid > 0
+    readonly property bool passiveGuestDiscoveryFailure: presentationBridge.activeView === "feed" && presentationBridge.activeFeed === "trending" && !presentationBridge.isAuthenticated && presentationBridge.sourceUnavailable
+    readonly property int desktopNavigationWidth: root.desktop
+                                                  ? Math.round(Math.min(460, Math.max(264, appearanceController.socialNavigationWidth)))
+                                                  : Theme.navigationWidth
+    readonly property int desktopContextRailWidth: root.desktop
+                                                   ? Math.round(Math.min(
+                                                       Math.min(620, Math.max(304, appearanceController.socialContextWidth)),
+                                                       Math.max(304, root.width - root.desktopNavigationWidth
+                                                                    - root.socialMinimumReadingWidth - Theme.space6)))
+                                                   : 336
+    readonly property int navigationReservation: root.desktop ? root.desktopNavigationWidth : (root.compactDesktop || root.narrow ? 76 : 0)
+    readonly property int railReservation: root.showContextRail ? root.desktopContextRailWidth : 0
+    // Keep a real page gutter on phones. Media may fill the reading column, but
+    // the reading column itself must not touch either viewport edge.
+    readonly property int availableSocialWidth: Math.max(320, width - root.navigationReservation - root.railReservation
+                                                         - (root.desktop ? Theme.space5
+                                                            : root.mobile ? Theme.mobileGutter * 2 : 0))
+    // On phones FeedSurface spans the viewport and each cast owns exactly one
+    // symmetric content gutter. Reserving a second shell gutter here created a
+    // visually wider trailing edge around media.
+    readonly property int adaptiveFeedWidth: root.mobile
+                                             ? Math.round(width)
+                                             : Math.round(Math.min(880, root.availableSocialWidth))
+    readonly property int adaptiveProfileWidth: Math.round(Math.min(920, root.availableSocialWidth))
+    readonly property int adaptiveCastWidth: Math.round(Math.min(880, root.availableSocialWidth))
+    readonly property int activeSocialReadingWidth: presentationBridge.activeView === "profile"
+                                                     ? root.adaptiveProfileWidth
+                                                     : presentationBridge.activeView === "cast"
+                                                       ? root.adaptiveCastWidth : root.adaptiveFeedWidth
+    readonly property int adaptiveReadingWidth: root.adaptiveFeedWidth
+    readonly property int adaptiveDetailWidth: Math.round(Math.min(Theme.detailWidthWide, Math.max(320, width - root.navigationReservation - Theme.space4)))
+    readonly property int adaptiveDashboardWidth: Math.max(320, width - root.navigationReservation - (root.desktop ? Theme.space4 : Theme.mobileGutter * 2))
+    readonly property bool listViewActive: presentationBridge.activeView === "feed" || presentationBridge.activeView === "followers" || presentationBridge.activeView === "following"
+    property var composerParent: null
+    property string shellRoute: ""
+    // Shell route (e.g. Notifications) that was visible when a cast or profile
+    // opened above it. Back from that content restores this route instead of
+    // falling through to the Home feed.
+    property string pendingReturnShellRoute: ""
+    property string committedRichCastId: ""
+    property bool awaitingRichCommit: false
+    property string pendingMiniAppComposeRequestId: ""
+    property string pendingMiniAppComposeText: ""
+    property var pendingMiniAppComposeEmbeds: []
+    property string pendingMiniAppShareTaskId: ""
+    property string homePresentationMode: "for-you"
+    property string homeVisualFilter: "nfts"
+    property string primaryDestination: "home"
+    property string explorerPresentationMode: "for-you"
+    property string explorerVisualFilter: "nfts"
+    readonly property bool localeSettingsOpen: localePopupLoader.item !== null && localePopupLoader.item.opened
+    readonly property bool dataStorageSettingsOpen: dataStoragePopupLoader.item !== null && dataStoragePopupLoader.item.opened
+    readonly property bool overlayOpen: root.localeSettingsOpen || root.dataStorageSettingsOpen
+                                        || composerDrawer.opened || accountPopup.opened
+                                        || renderingSettingsPopup.opened || taskManagerPopup.opened || feedbackDialog.opened
+                                             || searchPalette.opened || mobileCreateMenu.opened || contextDrawer.opened
+                                             || mediaGallery.opened
+
+    Timer {
+        id: notificationBadgePoll
+        interval: 120000
+        repeat: true
+        running: presentationBridge.runtimeReady
+                 && presentationBridge.isAuthenticated
+                 && presentationBridge.accountFid > 0
+        onTriggered: presentationBridge.refreshNotificationBadge()
+    }
+
+    function openAccountPopup() {
+        accountPopup.open()
+    }
+
+    function openLocaleSettings(section) {
+        localePopupLoader.active = true
+        const requestedSection = section === undefined ? -1 : Number(section)
+        Qt.callLater(function() {
+            const popup = localePopupLoader.item
+            if (popup === null)
+                return
+            if (requestedSection >= 0)
+                popup.currentSection = requestedSection
+            popup.open()
+        })
+    }
+
+    function openDataStorageSettings() {
+        const settingsPopup = localePopupLoader.item
+        if (settingsPopup !== null)
+            settingsPopup.close()
+        dataStoragePopupLoader.active = true
+        Qt.callLater(function() {
+            if (dataStoragePopupLoader.item !== null)
+                dataStoragePopupLoader.item.open()
+        })
+    }
+
+    function rememberShellRouteForReturn() {
+        if (root.shellRoute.length > 0)
+            root.pendingReturnShellRoute = root.shellRoute
+    }
+
+    function clearPendingShellReturn() {
+        root.pendingReturnShellRoute = ""
+    }
+
+    function returnToPendingShellRoute() {
+        if (root.pendingReturnShellRoute.length === 0)
+            return
+        root.shellRoute = root.pendingReturnShellRoute
+        root.pendingReturnShellRoute = ""
+    }
+
+    function returnFromCastDetail() {
+        presentationBridge.returnFromDetail()
+        root.returnToPendingShellRoute()
+    }
+
+    function returnFromProfileSurface() {
+        presentationBridge.showFeed()
+        root.returnToPendingShellRoute()
+    }
+
+    function openMyProfileFromNavigation() {
+        root.clearPendingShellReturn()
+        root.shellRoute = ""
+        presentationBridge.openMyProfile()
+    }
+
+    Connections {
+        target: miniAppHost
+        function onProfileRequested(fid) {
+            miniAppHost.close()
+            root.clearPendingShellReturn()
+            root.primaryDestination = "home"
+            root.shellRoute = ""
+            presentationBridge.openProfileFid(fid)
+        }
+        function onCastRequested(hash) {
+            miniAppHost.close()
+            root.clearPendingShellReturn()
+            root.primaryDestination = "home"
+            root.shellRoute = ""
+            presentationBridge.openCast(hash)
+        }
+        function onShareRequested(url, title, taskId) {
+            root.pendingMiniAppShareTaskId = String(taskId || "")
+            root.openMiniAppComposer("", {"text": String(title || ""), "embeds": [String(url || "")]})
+        }
+        function onComposeCastRequested(requestId, options) {
+            root.openMiniAppComposer(String(requestId || ""), options || ({}))
+        }
+    }
+
+    function openShellRoute(route) {
+        root.clearPendingShellReturn()
+        const nextRoute = String(route || "")
+        root.shellRoute = nextRoute
+        if (nextRoute === "notifications")
+            presentationBridge.openNotifications()
+    }
+
+    function openHome() {
+        root.clearPendingShellReturn()
+        root.primaryDestination = "home"
+        root.shellRoute = ""
+        // The redesigned Home is a dashboard surface. Keep a live feed model
+        // warm behind it so recent activity panels have content immediately.
+        if (presentationBridge.activeView !== "feed" || !presentationBridge.feedStarted) {
+            const source = presentationBridge.isAuthenticated && root.identityAvailable
+                           ? "following" : "trending"
+            presentationBridge.selectFeed(source)
+        }
+    }
+
+    function selectHomePresentationMode(mode) {
+        const nextMode = String(mode || "for-you")
+        root.homePresentationMode = nextMode
+        root.homeVisualFilter = "nfts"
+    }
+
+    function selectExplorerPresentationMode(mode) {
+        const nextMode = String(mode || "for-you")
+        root.explorerPresentationMode = nextMode
+        root.explorerVisualFilter = "nfts"
+
+        // Explorer tabs are presentation projections of one stable source. An
+        // authenticated session stays on Following for every tab; guests stay on
+        // Trending. Switching Visuals/Conversations/Devs must never tear down a
+        // healthy source merely to reclassify rows already available locally.
+        const source = presentationBridge.isAuthenticated && root.identityAvailable
+                       ? "following" : "trending"
+        if (presentationBridge.activeView !== "feed" || presentationBridge.activeFeed !== source
+                || !presentationBridge.feedStarted)
+            presentationBridge.selectFeed(source)
+        if (nextMode === "visuals")
+            presentationBridge.requestExplorerArt()
+    }
+
+    function openExplorer() {
+        root.clearPendingShellReturn()
+        root.primaryDestination = "explorer"
+        root.shellRoute = ""
+        root.selectExplorerPresentationMode(root.explorerPresentationMode)
+    }
+
+    function openSuggestedProfile(username) {
+        root.clearPendingShellReturn()
+        root.primaryDestination = "explorer"
+        root.shellRoute = ""
+        presentationBridge.openSearchQuery(String(username || ""))
+    }
+
+    function openComposer(parentCast, initialAction, suggestedText) {
+        if (!presentationBridge.isAuthenticated || !presentationBridge.writeReady) {
+            accountPopup.open()
+            return
+        }
+        presentationBridge.beginComposer()
+        if (parentCast !== undefined && parentCast !== null) {
+            if (!parentCast.castId || !presentationBridge.prepareReply(String(parentCast.castId)))
+                return
+            composerParent = {
+                "castId": String(parentCast.castId),
+                "author": String(parentCast.author || parentCast.username || ""),
+                "displayName": String(parentCast.displayName || parentCast.author || ""),
+                "avatarUrl": String(parentCast.avatarUrl || ""),
+                "text": String(parentCast.text || "")
+            }
+        } else {
+            composerParent = null
+        }
+        composerDrawer.parentCast = composerParent
+        composerDrawer.initialAction = String(initialAction || "")
+        composerDrawer.transientDraft = false
+        composerDrawer.suggestedText = String(suggestedText || "")
+        composerDrawer.suggestedEmbeds = []
+        composerDrawer.open()
+    }
+
+    function openMiniAppComposer(requestId, options) {
+        const id = String(requestId || "")
+        if (!presentationBridge.isAuthenticated || !presentationBridge.writeReady) {
+            if (id.length > 0)
+                miniAppHost.cancelComposeCast(id)
+            accountPopup.open()
+            return
+        }
+        presentationBridge.beginComposer()
+        const parentHash = String(options.parentHash || "")
+        if (parentHash.length > 0) {
+            if (!presentationBridge.prepareReply(parentHash)) {
+                if (id.length > 0)
+                    miniAppHost.cancelComposeCast(id)
+                return
+            }
+            root.composerParent = {
+                "castId": parentHash,
+                "author": "",
+                "displayName": qsTrId("genycaster.shell.this_cast"),
+                "avatarUrl": "",
+                "text": ""
+            }
+        } else {
+            root.composerParent = null
+        }
+        root.pendingMiniAppComposeRequestId = id
+        root.pendingMiniAppComposeText = String(options.text || "")
+        root.pendingMiniAppComposeEmbeds = options.embeds || []
+        composerDrawer.parentCast = root.composerParent
+        composerDrawer.initialAction = ""
+        composerDrawer.transientDraft = true
+        composerDrawer.suggestedText = root.pendingMiniAppComposeText
+        composerDrawer.suggestedEmbeds = root.pendingMiniAppComposeEmbeds
+        composerDrawer.open()
+    }
+
+    function recentPosterProfiles(rows, limit) {
+        const source = rows || []
+        const result = []
+        const seen = ({})
+        const maximum = limit || 8
+        for (let index = 0; index < source.length && result.length < maximum; ++index) {
+            const row = source[index] || ({})
+            const fid = Number(row.authorFid || 0)
+            const username = String(row.author || row.username || "")
+            const key = fid > 0 ? "fid:" + fid : "user:" + username.toLowerCase()
+            if ((fid <= 0 && username.length === 0) || seen[key])
+                continue
+            seen[key] = true
+            let activityKind = "cast"
+            if (Boolean(row.isReply) || String(row.parentCastId || "").length > 0) {
+                activityKind = "reply"
+            } else {
+                const embeds = row.embeds || []
+                for (let embedIndex = 0; embedIndex < embeds.length; ++embedIndex) {
+                    const embed = embeds[embedIndex] || ({})
+                    const kind = String(embed.kind || "").toLowerCase()
+                    const url = String(embed.url || embed.value || "").toLowerCase()
+                    if (kind === "collectible" || kind === "nft"
+                            || /(?:opensea|superrare|foundation|objkt|zora\.co\/(?:collect|collections))/.test(url)) {
+                        activityKind = "nft"
+                        break
+                    }
+                    if (kind === "image" || kind === "video" || kind === "media")
+                        activityKind = "media"
+                }
+            }
+            result.push({
+                fid: fid,
+                username: username,
+                displayName: String(row.displayName || username),
+                avatarUrl: String(row.avatarUrl || ""),
+                createdAtMs: Number(row.createdAtMs || 0),
+                activityKind: activityKind
+            })
+        }
+        return result
+    }
+
+    Component {
+        id: explorerFeedExperienceHeaderComponent
+
+        Column {
+            width: parent ? parent.width : 0
+            spacing: 0
+
+            // Explorer's brand/action bar is fixed by the shell. Everything from
+            // the greeting downward belongs to the scrolling/pullable feed.
+            HomeFeedHeader {
+                width: parent.width
+                presentationMode: root.explorerPresentationMode
+                visualFilter: root.explorerVisualFilter
+                displayName: presentationBridge.accountName.length > 0 ? presentationBridge.accountName : presentationBridge.identityName
+                avatarUrl: presentationBridge.accountAvatarUrl
+                recentProfiles: root.recentPosterProfiles(presentationBridge.rows, 8)
+                authenticated: presentationBridge.isAuthenticated
+                interactionsAvailable: presentationBridge.isAuthenticated && presentationBridge.writeReady && !presentationBridge.writeBusy
+                compact: root.compact
+                onModeRequested: mode => root.selectExplorerPresentationMode(mode)
+                onVisualFilterRequested: filter => root.explorerVisualFilter = filter
+                onComposeRequested: root.openComposer(null)
+                onPhotoRequested: root.openComposer(null, "media")
+                onSpaceRequested: {
+                    if (!presentationBridge.isAuthenticated) root.openAccountPopup()
+                    else root.shellRoute = "spaces"
+                }
+                onRecentProfileRequested: profile => {
+                    const username = String(profile && profile.username ? profile.username : "")
+                    const fid = Number(profile && profile.fid ? profile.fid : 0)
+                    if (username.length > 0) root.openSuggestedProfile(username)
+                    else if (fid > 0) { root.shellRoute = ""; presentationBridge.openProfileFid(fid) }
+                }
+                onAuthenticationRequested: root.openAccountPopup()
+                onSearchRequested: searchPalette.open()
+            }
+        }
+    }
+
+
+    Rectangle {
+        anchors.fill: parent
+        color: Theme.background
+    }
+
+    RowLayout {
+        id: shellContent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: root.mobile ? parent.bottom : globalStatus.top
+        spacing: 0
+        layoutDirection: Theme.uiDirection
+
+        SideNavigation {
+            visible: root.desktop
+            Layout.fillHeight: true
+            Layout.preferredWidth: root.desktopNavigationWidth
+            activeView: presentationBridge.activeView
+            activeFeed: presentationBridge.activeFeed
+            shellRoute: root.shellRoute
+            primaryDestination: root.primaryDestination
+            hasUnreadNotifications: presentationBridge.hasUnreadNotifications
+            notificationUnreadCount: presentationBridge.notificationUnreadCount
+            identityAvailable: presentationBridge.isAuthenticated && root.identityAvailable
+            isAuthenticated: presentationBridge.isAuthenticated
+            writeReady: presentationBridge.writeReady
+            writeBusy: presentationBridge.writeBusy
+            accountFid: presentationBridge.accountFid
+            accountName: presentationBridge.accountName
+            accountUsername: presentationBridge.accountUsername
+            accountAvatarUrl: presentationBridge.accountAvatarUrl
+            profileDetail: presentationBridge.accountProfile
+            profileLoading: presentationBridge.isAuthenticated
+                            && Number(presentationBridge.accountProfile.fid || 0) !== Number(presentationBridge.accountFid)
+            statusText: presentationBridge.statusText
+            errorText: root.passiveGuestDiscoveryFailure ? "" : presentationBridge.errorText
+            diagnosticText: presentationBridge.diagnosticText
+            diagnosticsEnabled: presentationBridge.diagnosticsEnabled
+            runtimeReady: presentationBridge.runtimeReady
+            offline: presentationBridge.isOffline
+            sourceUnavailable: root.passiveGuestDiscoveryFailure ? false : presentationBridge.sourceUnavailable
+            networkKnown: presentationBridge.networkReachabilityKnown
+            stale: presentationBridge.isStale
+            busy: presentationBridge.isBusy
+            readStarted: presentationBridge.hasReadActivity
+            hasUsableContent: presentationBridge.rows.length > 0
+                              || Boolean(presentationBridge.detail.castId)
+                              || Number(presentationBridge.detail.fid || 0) > 0
+            onRetryRequested: presentationBridge.retry()
+            onTrendingRequested: root.openExplorer()
+            onFollowingRequested: root.openHome()
+            onProfileRequested: root.openMyProfileFromNavigation()
+            onIdentityRequested: root.openAccountPopup()
+            onAccountRequested: root.openAccountPopup()
+            onSettingsRequested: root.openLocaleSettings()
+            onRouteRequested: route => root.openShellRoute(route)
+        }
+
+        CompactNavigationRail {
+            visible: root.compactDesktop || root.narrow
+            Layout.fillHeight: true
+            Layout.preferredWidth: 76
+            activeView: presentationBridge.activeView
+            activeFeed: presentationBridge.activeFeed
+            shellRoute: root.shellRoute
+            primaryDestination: root.primaryDestination
+            hasUnreadNotifications: presentationBridge.hasUnreadNotifications
+            notificationUnreadCount: presentationBridge.notificationUnreadCount
+            isAuthenticated: presentationBridge.isAuthenticated
+            identityAvailable: presentationBridge.isAuthenticated && root.identityAvailable
+            onTrendingRequested: root.openExplorer()
+            onFollowingRequested: root.openHome()
+            onProfileRequested: root.openMyProfileFromNavigation()
+            onIdentityRequested: root.openAccountPopup()
+            onSettingsRequested: root.openLocaleSettings()
+            onRouteRequested: route => root.openShellRoute(route)
+        }
+
+        Item {
+            id: navigationResizeHandle
+            visible: root.desktop
+            Layout.fillHeight: true
+            Layout.preferredWidth: visible ? 7 : 0
+            z: 40
+
+            readonly property real handleX: width / 2
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: navHover.hovered || navDrag.active ? 2 : 1
+                height: parent.height
+                color: navHover.hovered || navDrag.active ? Theme.accent : Theme.divider
+                opacity: navHover.hovered || navDrag.active ? 0.72 : 0.30
+                Behavior on width { NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast } }
+                Behavior on opacity { NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast } }
+            }
+            HoverHandler { id: navHover; cursorShape: Qt.SplitHCursor }
+            DragHandler {
+                id: navDrag
+                target: null
+                property real startWidth: 0
+                onActiveChanged: if (active) startWidth = root.desktopNavigationWidth
+                onTranslationChanged: {
+                    if (!active) return
+                    const direction = Theme.rtl ? -1 : 1
+                    appearanceController.setSocialNavigationWidth(startWidth + translation.x * direction)
+                }
+            }
+        }
+
+        Item {
+            id: mobileWorkspace
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
+            ColumnLayout {
+                anchors.fill: parent
+                spacing: 0
+
+                AppHeader {
+                    visible: root.mobile
+                    Layout.fillWidth: true
+                    compact: root.compact
+                    showBrand: true
+                    isAuthenticated: presentationBridge.isAuthenticated
+                    writeReady: presentationBridge.writeReady
+                    writeBusy: presentationBridge.writeBusy
+                    notificationUnreadCount: presentationBridge.notificationUnreadCount
+                    notificationsSelected: root.shellRoute === "notifications"
+                    onAccountRequested: root.openAccountPopup()
+                    onOwnProfileRequested: root.openMyProfileFromNavigation()
+                    onNotificationsRequested: root.openShellRoute("notifications")
+                    onSettingsRequested: root.openLocaleSettings()
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    RowLayout {
+                        anchors.fill: parent
+                        layoutDirection: Theme.uiDirection
+                        anchors.leftMargin: root.wide ? Theme.space2 : 0
+                        anchors.rightMargin: root.wide ? Theme.space2 : 0
+                        anchors.topMargin: root.wide ? Theme.space3 : 0
+                        spacing: root.wide ? Theme.space3 : 0
+
+                        Item {
+                            id: readingPane
+                            // The pane owns the remaining workspace. Individual social surfaces
+                            // keep their own bounded reading widths and center themselves inside it.
+                            // This mirrors the pre-V20 shell and avoids dead strips between content
+                            // and the context rail when the window is wider than the reading column.
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+
+                            ColumnLayout {
+                                id: readingContent
+                                anchors.fill: parent
+                                spacing: Theme.space3
+
+                                ComingSoonSurface {
+                                    visible: root.shellRoute.length > 0 && root.shellRoute !== "notifications" && root.shellRoute !== "apps"
+                                    // Page switches fade + settle in instead of snapping.
+                                    opacity: visible ? 1.0 : 0.0
+                                    scale: visible ? 1.0 : 0.99
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    Layout.maximumWidth: root.adaptiveDetailWidth
+                                    Layout.alignment: Qt.AlignHCenter
+                                    iconGlyph: root.shellRoute === "bookmarks" ? Theme.iconBookmark
+                                             : root.shellRoute === "store" ? Theme.iconStore
+                                             : root.shellRoute === "notifications" ? Theme.iconNotification
+                                             : root.shellRoute === "messages" ? Theme.iconMessage
+                                             : root.shellRoute === "channels" ? Theme.iconGlobe
+                                             : root.shellRoute === "stories" ? Theme.iconImage
+                                             : root.shellRoute === "spaces" ? Theme.iconMessage
+                                             : Theme.iconBusiness
+                                    title: root.shellRoute === "bookmarks" ? qsTrId("genycaster.roadmap.bookmarks_title")
+                                         : root.shellRoute === "store" ? qsTrId("genycaster.roadmap.store_title")
+                                         : root.shellRoute === "notifications" ? qsTrId("genycaster.roadmap.notifications_title")
+                                         : root.shellRoute === "messages" ? qsTrId("genycaster.roadmap.messages_title")
+                                         : root.shellRoute === "channels" ? qsTrId("genycaster.roadmap.channels_title")
+                                         : root.shellRoute === "stories" ? qsTrId("genycaster.roadmap.stories_title")
+                                         : root.shellRoute === "spaces" ? qsTrId("genycaster.roadmap.spaces_title")
+                                         : qsTrId("genycaster.roadmap.business_title")
+                                    description: root.shellRoute === "bookmarks" ? qsTrId("genycaster.roadmap.bookmarks_description")
+                                               : root.shellRoute === "store" ? qsTrId("genycaster.roadmap.store_description")
+                                               : root.shellRoute === "notifications" ? qsTrId("genycaster.roadmap.notifications_description")
+                                               : root.shellRoute === "messages" ? qsTrId("genycaster.roadmap.messages_description")
+                                               : root.shellRoute === "channels" ? qsTrId("genycaster.roadmap.channels_description")
+                                               : root.shellRoute === "stories" ? qsTrId("genycaster.roadmap.stories_description")
+                                               : root.shellRoute === "spaces" ? qsTrId("genycaster.roadmap.spaces_description")
+                                               : qsTrId("genycaster.roadmap.business_description")
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                    Behavior on scale {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                }
+
+                                Loader {
+                                    active: root.shellRoute === "apps"
+                                    visible: active
+                                    opacity: active ? 1.0 : 0.0
+                                    scale: active ? 1.0 : 0.99
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    Layout.maximumWidth: root.adaptiveDetailWidth
+                                    Layout.alignment: Qt.AlignHCenter
+
+                                    sourceComponent: Component {
+                                        AppsSurface {
+                                            compact: root.compact
+                                            onAuthenticationRequested: root.openAccountPopup()
+                                        }
+                                    }
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                    Behavior on scale {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                }
+
+                                Loader {
+                                    active: root.shellRoute === "notifications"
+                                    visible: active
+                                    opacity: active ? 1.0 : 0.0
+                                    scale: active ? 1.0 : 0.99
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    Layout.maximumWidth: root.adaptiveDetailWidth
+                                    Layout.alignment: Qt.AlignHCenter
+
+                                    sourceComponent: Component {
+                                        NotificationSurface {
+                                            rows: presentationBridge.notificationRows
+                                            busy: presentationBridge.notificationsBusy
+                                            hasMore: presentationBridge.notificationsHasMore
+                                            errorText: presentationBridge.notificationsErrorText
+                                            authenticated: presentationBridge.isAuthenticated
+                                            compact: root.compact
+                                            accountFid: presentationBridge.accountFid
+                                            accountProfile: presentationBridge.accountProfile
+                                            onRefreshRequested: presentationBridge.openNotifications()
+                                            onLoadMoreRequested: presentationBridge.loadMoreNotifications()
+                                            onSignInRequested: root.openAccountPopup()
+                                            onProfileRequested: fid => {
+                                                root.rememberShellRouteForReturn()
+                                                root.shellRoute = ""
+                                                presentationBridge.openProfileFid(fid)
+                                            }
+                                            onCastRequested: castId => {
+                                                root.rememberShellRouteForReturn()
+                                                root.shellRoute = ""
+                                                presentationBridge.openCast(castId)
+                                            }
+                                        }
+                                    }
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                    Behavior on scale {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                }
+
+                                FeedHeader {
+                                    visible: root.shellRoute.length === 0 && presentationBridge.activeView === "feed"
+                                             && presentationBridge.activeFeed === "channel"
+                                    opacity: visible ? 1.0 : 0.0
+                                    Layout.fillWidth: true
+                                    Layout.maximumWidth: root.adaptiveReadingWidth
+                                    Layout.alignment: Qt.AlignHCenter
+                                    Layout.leftMargin: root.compact ? Theme.mobileGutter : Theme.space2
+                                    Layout.rightMargin: root.compact ? Theme.mobileGutter : Theme.space2
+                                    activeFeed: presentationBridge.activeFeed
+                                    identityAvailable: presentationBridge.isAuthenticated && root.identityAvailable
+                                    compact: root.compact
+                                    busy: presentationBridge.isBusy
+                                    feedStarted: presentationBridge.feedStarted
+                                    hasContent: presentationBridge.rows.length > 0
+                                    sourceUnavailable: presentationBridge.sourceUnavailable
+                                    errorText: presentationBridge.errorText
+                                    onTrendingRequested: { root.shellRoute = ""; presentationBridge.selectFeed("trending") }
+                                    onFollowingRequested: { root.shellRoute = ""; presentationBridge.selectFeed("following") }
+                                    onSearchRequested: query => presentationBridge.openSearchQuery(query)
+                                    onRefreshRequested: presentationBridge.retry()
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                }
+
+                                SectionHeader {
+                                    visible: root.shellRoute.length === 0 && (presentationBridge.activeView === "followers"
+                                             || presentationBridge.activeView === "following")
+                                    opacity: visible ? 1.0 : 0.0
+                                    Layout.fillWidth: true
+                                    Layout.maximumWidth: root.adaptiveDetailWidth
+                                    Layout.alignment: Qt.AlignHCenter
+                                    Layout.leftMargin: root.compact ? Theme.mobileGutter : 0
+                                    Layout.rightMargin: root.compact ? Theme.mobileGutter : 0
+                                    compact: root.compact
+                                    title: presentationBridge.activeView === "followers"
+                                           ? qsTrId("genycaster.shell.followers") : qsTrId("genycaster.shell.following")
+                                    subtitle: qsTrId("genycaster.shell.saved_locally_first_then_refreshed_from_the_network")
+                                    onBackRequested: presentationBridge.returnFromSocial()
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                }
+
+                                HomeDashboard {
+                                    visible: root.shellRoute.length === 0 && presentationBridge.activeView === "feed"
+                                             && root.primaryDestination === "home"
+                                    opacity: visible ? 1.0 : 0.0
+                                    scale: visible ? 1.0 : 0.99
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    Layout.maximumWidth: 16777215
+                                    Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                                    Layout.leftMargin: root.compact ? Theme.mobileGutter : Theme.space2
+                                    Layout.rightMargin: root.compact ? Theme.mobileGutter : Theme.space2
+                                    displayName: presentationBridge.accountName.length > 0 ? presentationBridge.accountName : presentationBridge.identityName
+                                    username: presentationBridge.accountUsername
+                                    avatarUrl: presentationBridge.accountAvatarUrl
+                                    authenticated: presentationBridge.isAuthenticated
+                                    busy: presentationBridge.isBusy
+                                    notificationUnreadCount: presentationBridge.notificationUnreadCount
+                                    rows: presentationBridge.rows
+                                    compact: root.compact
+                                    onExploreRequested: root.openExplorer()
+                                    onComposeRequested: text => root.openComposer(null, "", text)
+                                    onPhotoRequested: root.openComposer(null, "media")
+                                    onSearchRequested: searchPalette.open()
+                                    onNotificationsRequested: root.openShellRoute("notifications")
+                                    onChannelsRequested: root.openShellRoute("channels")
+                                    onAppsRequested: root.openShellRoute("apps")
+                                    onSettingsRequested: root.openLocaleSettings()
+                                    onProfileRequested: {
+                                        if (presentationBridge.isAuthenticated) root.openMyProfileFromNavigation()
+                                        else root.openAccountPopup()
+                                    }
+                                    onCastRequested: castId => presentationBridge.openCast(castId)
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                    Behavior on scale {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                }
+
+                                Loader {
+                                    id: feedSurfaceLoader
+                                    readonly property bool surfaceRequested: root.shellRoute.length === 0 && root.listViewActive
+                                                                             && !(presentationBridge.activeView === "feed"
+                                                                                  && root.primaryDestination === "home")
+                                    active: surfaceRequested || item !== null
+                                    visible: surfaceRequested
+                                    opacity: visible ? 1.0 : 0.0
+                                    scale: visible ? 1.0 : 0.99
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    Layout.maximumWidth: presentationBridge.activeView === "feed" ? root.adaptiveFeedWidth : root.adaptiveDetailWidth
+                                    Layout.alignment: Qt.AlignHCenter
+
+                                    sourceComponent: Component {
+                                        FeedSurface {
+                                            presentationActive: feedSurfaceLoader.surfaceRequested
+                                            rows: presentationBridge.rows
+                                            supplementalRows: root.primaryDestination === "explorer"
+                                                              ? presentationBridge.explorerArtRows : []
+                                            supplementalBusy: root.primaryDestination === "explorer"
+                                                              && presentationBridge.explorerArtBusy
+                                            runtimeReady: presentationBridge.runtimeReady
+                                            socialMode: presentationBridge.activeView !== "feed"
+                                            busy: presentationBridge.isBusy
+                                            hasMore: presentationBridge.hasMore
+                                            offline: presentationBridge.isOffline
+                                            sourceUnavailable: presentationBridge.sourceUnavailable
+                                            errorText: presentationBridge.errorText
+                                            activeFeed: presentationBridge.activeFeed
+                                            presentationMode: root.primaryDestination === "explorer"
+                                                              ? root.explorerPresentationMode : root.homePresentationMode
+                                            visualFilter: root.primaryDestination === "explorer"
+                                                          ? root.explorerVisualFilter : root.homeVisualFilter
+                                            headerContent: presentationBridge.activeView !== "feed" ? null
+                                                           : root.primaryDestination === "explorer" ? explorerFeedExperienceHeaderComponent : null
+                                            identityAvailable: presentationBridge.isAuthenticated && root.identityAvailable
+                                            feedStarted: presentationBridge.feedStarted
+                                            compact: root.compact
+                                            interactionsAvailable: presentationBridge.isAuthenticated
+                                                                   && presentationBridge.writeReady
+                                                                   && !presentationBridge.writeBusy
+                                            accountFid: presentationBridge.accountFid
+                                            pendingNewPostCount: presentationBridge.activeView === "feed"
+                                                                 ? presentationBridge.pendingNewPostCount : 0
+                                            onCastRequested: castId => presentationBridge.openCast(castId)
+                                            onProfileRequested: fid => presentationBridge.openProfileFid(fid)
+                                            onReplyRequested: cast => root.openComposer(cast)
+                                            onReactionRequested: (kind, cast, active) =>
+                                                presentationBridge.setReaction(kind, Number(cast.authorFid || 0), String(cast.castId || ""), active)
+                                            onRemoveCastRequested: cast =>
+                                                presentationBridge.removeCast(Number(cast.authorFid || 0), String(cast.castId || ""))
+                                            onLoadMoreRequested: presentationBridge.loadMore()
+                                            onRefreshRequested: presentationBridge.retry()
+                                            onRevealPendingPostsRequested: presentationBridge.revealPendingPosts()
+                                            onExternalRequested: url => presentationBridge.openExternalUrl(url)
+                                            onMediaRequested: (mediaItems, index) => mediaGallery.openAt(mediaItems, index)
+                                            onRetryRequested: presentationBridge.retry()
+                                            onIdentityRequested: presentationBridge.selectFeed("trending")
+                                            onFollowingRequested: presentationBridge.selectFeed("following")
+                                            onTrendingRequested: presentationBridge.selectFeed("trending")
+                                            onAuthenticationRequested: root.openAccountPopup()
+                                        }
+                                    }
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                    Behavior on scale {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                }
+
+                                Loader {
+                                    readonly property bool surfaceRequested: root.shellRoute.length === 0
+                                                                             && presentationBridge.activeView === "profile"
+                                    active: surfaceRequested || item !== null
+                                    visible: surfaceRequested
+                                    opacity: visible ? 1.0 : 0.0
+                                    scale: visible ? 1.0 : 0.99
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    Layout.maximumWidth: root.adaptiveProfileWidth
+                                    Layout.alignment: Qt.AlignHCenter
+
+                                    sourceComponent: Component {
+                                        ProfileSurface {
+                                            detail: presentationBridge.detail
+                                            rows: presentationBridge.rows
+                                            profileFeed: presentationBridge.profileFeed
+                                            runtimeReady: presentationBridge.runtimeReady
+                                            compact: root.compact
+                                            busy: presentationBridge.isBusy
+                                            hasMore: presentationBridge.hasMore
+                                            offline: presentationBridge.isOffline
+                                            sourceUnavailable: presentationBridge.sourceUnavailable
+                                            errorText: presentationBridge.errorText
+                                            interactionsAvailable: presentationBridge.isAuthenticated
+                                                                   && presentationBridge.writeReady
+                                                                   && !presentationBridge.writeBusy
+                                            accountFid: presentationBridge.accountFid
+                                            onBackRequested: root.returnFromProfileSurface()
+                                            onFollowersRequested: presentationBridge.openFollowers()
+                                            onFollowingRequested: presentationBridge.openFollowing()
+                                            onRefreshRequested: presentationBridge.selectProfileFeed(presentationBridge.profileFeed)
+                                            onProfileFeedRequested: feed => presentationBridge.selectProfileFeed(feed)
+                                            onCastRequested: castId => presentationBridge.openCast(castId)
+                                            onProfileRequested: fid => presentationBridge.openProfileFid(fid)
+                                            onReplyRequested: cast => root.openComposer(cast)
+                                            onReactionRequested: (kind, cast, active) =>
+                                                presentationBridge.setReaction(kind, Number(cast.authorFid || 0), String(cast.castId || ""), active)
+                                            onFollowingMutationRequested: (targetFid, following) =>
+                                                presentationBridge.setFollowing(targetFid, following)
+                                            onRemoveCastRequested: cast =>
+                                                presentationBridge.removeCast(Number(cast.authorFid || 0), String(cast.castId || ""))
+                                            onExternalRequested: url => presentationBridge.openExternalUrl(url)
+                                            onMediaRequested: (mediaItems, index) => mediaGallery.openAt(mediaItems, index)
+                                            onAuthenticationRequested: root.openAccountPopup()
+                                            onLoadMoreRequested: presentationBridge.loadMore()
+                                        }
+                                    }
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                    Behavior on scale {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                }
+
+                                Loader {
+                                    readonly property bool surfaceRequested: root.shellRoute.length === 0
+                                                                             && presentationBridge.activeView === "cast"
+                                    active: surfaceRequested || item !== null
+                                    visible: surfaceRequested
+                                    opacity: visible ? 1.0 : 0.0
+                                    scale: visible ? 1.0 : 0.99
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    Layout.maximumWidth: root.adaptiveCastWidth
+                                    Layout.alignment: Qt.AlignHCenter
+
+                                    sourceComponent: Component {
+                                        DetailSurface {
+                                            activeView: presentationBridge.activeView
+                                            detail: presentationBridge.detail
+                                            compact: root.compact
+                                            busy: presentationBridge.isBusy
+                                            interactionsAvailable: presentationBridge.isAuthenticated
+                                                                   && presentationBridge.writeReady
+                                                                   && !presentationBridge.writeBusy
+                                            accountFid: presentationBridge.accountFid
+                                            onBackRequested: root.returnFromCastDetail()
+                                            onRefreshRequested: presentationBridge.retry()
+                                            onCastRequested: castId => presentationBridge.openCast(castId)
+                                            onProfileRequested: fid => presentationBridge.openProfileFid(fid)
+                                            onReplyRequested: cast => root.openComposer(cast)
+                                            onReactionRequested: (kind, cast, active) =>
+                                                presentationBridge.setReaction(kind, Number(cast.authorFid || 0), String(cast.castId || ""), active)
+                                            onRemoveCastRequested: cast =>
+                                                presentationBridge.removeCast(Number(cast.authorFid || 0), String(cast.castId || ""))
+                                            onExternalRequested: url => presentationBridge.openExternalUrl(url)
+                                            onMediaRequested: (mediaItems, index) => mediaGallery.openAt(mediaItems, index)
+                                            onAuthenticationRequested: root.openAccountPopup()
+                                        }
+                                    }
+
+                                    Behavior on opacity {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                    Behavior on scale {
+                                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                }
+                            }
+
+
+                            ComposerDrawer {
+                                id: composerDrawer
+                                hostItem: readingPane
+                                blurSourceItem: shellContent
+                                parentCast: root.composerParent
+                                onPublishRequested: (text, mentionFids, mentionPositions, embeds) => {
+                                    if (root.pendingMiniAppComposeRequestId.length > 0) {
+                                        root.pendingMiniAppComposeText = text
+                                        root.pendingMiniAppComposeEmbeds = embeds
+                                    }
+                                    presentationBridge.publishPreparedCast(text, mentionFids, mentionPositions, embeds)
+                                }
+                                onReplyRequested: (text, mentionFids, mentionPositions, embeds) => {
+                                    if (root.pendingMiniAppComposeRequestId.length > 0) {
+                                        root.pendingMiniAppComposeText = text
+                                        root.pendingMiniAppComposeEmbeds = embeds
+                                    }
+                                    presentationBridge.publishPreparedReply(text, mentionFids, mentionPositions, embeds)
+                                }
+                                onThreadRequested: casts => presentationBridge.publishPreparedThread(casts)
+                                onAbandoned: {
+                                    root.composerParent = null
+                                    if (root.pendingMiniAppComposeRequestId.length > 0 && !root.awaitingRichCommit) {
+                                        miniAppHost.cancelComposeCast(root.pendingMiniAppComposeRequestId)
+                                        root.pendingMiniAppComposeRequestId = ""
+                                        root.pendingMiniAppComposeText = ""
+                                        root.pendingMiniAppComposeEmbeds = []
+                                    }
+                                    if (root.pendingMiniAppShareTaskId.length > 0) {
+                                        miniAppTaskManager.focusTask(root.pendingMiniAppShareTaskId)
+                                        root.pendingMiniAppShareTaskId = ""
+                                    }
+                                    composerDrawer.transientDraft = false
+                                    composerDrawer.suggestedText = ""
+                                    composerDrawer.suggestedEmbeds = []
+                                }
+                            }
+                        }
+
+                        Item {
+                            id: contextResizeHandle
+                            visible: root.showContextRail
+                            Layout.fillHeight: true
+                            Layout.preferredWidth: visible ? 7 : 0
+                            z: 40
+
+                            Rectangle {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                width: contextHover.hovered || contextDrag.active ? 2 : 1
+                                height: parent.height
+                                color: contextHover.hovered || contextDrag.active ? Theme.accent : Theme.divider
+                                opacity: contextHover.hovered || contextDrag.active ? 0.72 : 0.30
+                            }
+                            HoverHandler { id: contextHover; cursorShape: Qt.SplitHCursor }
+                            DragHandler {
+                                id: contextDrag
+                                target: null
+                                property real startWidth: 0
+                                onActiveChanged: if (active) startWidth = root.desktopContextRailWidth
+                                onTranslationChanged: {
+                                    if (!active) return
+                                    const direction = Theme.rtl ? 1 : -1
+                                    appearanceController.setSocialContextWidth(startWidth + translation.x * direction)
+                                }
+                            }
+                        }
+
+                        Loader {
+                            active: root.showHomeContextRail
+                            visible: active
+                            Layout.fillHeight: true
+                            Layout.preferredWidth: active ? root.desktopContextRailWidth : 0
+                            Layout.maximumWidth: active ? root.desktopContextRailWidth : 0
+
+                            sourceComponent: Component {
+                                ContextRail {
+                                    identityName: presentationBridge.isAuthenticated ? presentationBridge.identityName : ""
+                                    accountName: presentationBridge.accountName
+                                    accountFid: presentationBridge.accountFid
+                                    accountUsername: presentationBridge.accountUsername
+                                    accountAvatarUrl: presentationBridge.accountAvatarUrl
+                                    profileDetail: presentationBridge.accountProfile
+                                    feedRows: presentationBridge.rows
+                                    activeFeed: presentationBridge.activeFeed
+                                    statusText: presentationBridge.statusText
+                                    identityAvailable: presentationBridge.isAuthenticated && root.identityAvailable
+                                    isAuthenticated: presentationBridge.isAuthenticated
+                                    offline: presentationBridge.isOffline
+                                    busy: presentationBridge.isBusy
+                                    stale: presentationBridge.isStale
+                                    sourceUnavailable: presentationBridge.sourceUnavailable
+                                    onAccountRequested: root.openAccountPopup()
+                                    onRefreshRequested: presentationBridge.retry()
+                                    onProfileRequested: username => root.openSuggestedProfile(username)
+                                    onOwnProfileRequested: root.openMyProfileFromNavigation()
+                                    onMarketSettingsRequested: { root.openLocaleSettings(2) }
+                                }
+                            }
+                        }
+
+                        Loader {
+                            active: root.showSocialContextRail
+                            visible: active
+                            Layout.fillHeight: true
+                            Layout.preferredWidth: active ? root.desktopContextRailWidth : 0
+                            Layout.maximumWidth: active ? root.desktopContextRailWidth : 0
+
+                            sourceComponent: Component {
+                                SocialSidebar {
+                                    mode: presentationBridge.activeView === "profile" ? "profile"
+                                          : presentationBridge.activeView === "cast" ? "cast" : "feed"
+                                    authenticated: presentationBridge.isAuthenticated
+                                    busy: presentationBridge.isBusy
+                                    offline: presentationBridge.isOffline
+                                    stale: presentationBridge.isStale
+                                    notificationUnreadCount: presentationBridge.notificationUnreadCount
+                                    accountFid: presentationBridge.accountFid
+                                    accountName: presentationBridge.accountName
+                                    accountUsername: presentationBridge.accountUsername
+                                    accountAvatarUrl: presentationBridge.accountAvatarUrl
+                                    accountProfile: presentationBridge.accountProfile
+                                    currentProfile: presentationBridge.activeView === "profile" ? presentationBridge.detail : ({})
+                                    feedRows: presentationBridge.rows
+                                    onSearchRequested: searchPalette.open()
+                                    onAccountRequested: root.openAccountPopup()
+                                    onOwnProfileRequested: root.openMyProfileFromNavigation()
+                                    onProfileRequested: fid => presentationBridge.openProfileFid(fid)
+                                    onNotificationsRequested: root.openShellRoute("notifications")
+                                    onExploreRequested: root.openExplorer()
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+
+            // Compact navigation floats above content instead of reserving a
+            // permanent slab at the bottom of the viewport. The blurred glass
+            // surface keeps the controls legible while preserving context.
+            BottomNavigation {
+                id: mobileBottomNavigation
+                visible: root.mobile
+                z: 80
+                // Keep the dock compact and genuinely floating rather than
+                // recreating a full-width tab bar.
+                width: Math.min(parent.width - Theme.mobileGutter * 2, 420)
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: Theme.space3
+                blurSourceItem: readingPane
+                activeView: presentationBridge.activeView
+                activeFeed: presentationBridge.activeFeed
+                shellRoute: root.shellRoute
+                primaryDestination: root.primaryDestination
+                onTrendingRequested: root.openExplorer()
+                onFollowingRequested: root.openHome()
+                onRouteRequested: route => root.openShellRoute(route)
+                onCreateRequested: mobileCreateMenu.open()
+                onSettingsRequested: root.openLocaleSettings()
+            }
+        }
+    }
+
+    // Modal popups live in Overlay.overlay, above the normal item tree. This
+    // guard sits above every shell surface but below that popup overlay, so a
+    // press/release/wheel sequence can never fall through to a cast, link, or
+    // navigation control while any modal surface is open.
+    MouseArea {
+        id: modalInputGuard
+        anchors.fill: parent
+        z: 900
+        visible: root.overlayOpen
+        enabled: visible
+        acceptedButtons: Qt.AllButtons
+        hoverEnabled: true
+        preventStealing: true
+        propagateComposedEvents: false
+        onPressed: mouse => mouse.accepted = true
+        onReleased: mouse => mouse.accepted = true
+        onClicked: mouse => mouse.accepted = true
+        onDoubleClicked: mouse => mouse.accepted = true
+        onWheel: wheel => wheel.accepted = true
+    }
+
+    StatusFooter {
+        id: globalStatus
+        z: 40
+        visible: !root.mobile
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        compactMode: root.mobile
+        statusText: presentationBridge.statusText
+        errorText: root.passiveGuestDiscoveryFailure ? "" : presentationBridge.errorText
+        runtimeReady: presentationBridge.runtimeReady
+        offline: presentationBridge.isOffline
+        sourceUnavailable: root.passiveGuestDiscoveryFailure ? false : presentationBridge.sourceUnavailable
+        networkKnown: presentationBridge.networkReachabilityKnown
+        stale: presentationBridge.isStale
+        busy: presentationBridge.isBusy
+        hasUsableContent: presentationBridge.rows.length > 0
+                          || Boolean(presentationBridge.detail.castId)
+                          || Number(presentationBridge.detail.fid || 0) > 0
+        onRetryRequested: presentationBridge.retry()
+        onRenderingRequested: renderingSettingsPopup.open()
+        onTaskManagerRequested: taskManagerPopup.open()
+        onFeedbackRequested: feedbackDialog.open()
+    }
+
+
+    ActionButton {
+        z: 31
+        visible: root.compactDesktop && root.primaryDestination === "explorer" && root.shellRoute.length === 0
+                 && presentationBridge.activeView === "feed" && !root.overlayOpen
+        compact: true
+        quiet: false
+        iconOnly: true
+        iconGlyph: Theme.iconInfo
+        text: qsTrId("genycaster.context.activity")
+        anchors.top: parent.top
+        anchors.topMargin: Theme.space4
+        anchors.right: Theme.rtl ? undefined : parent.right
+        anchors.left: Theme.rtl ? parent.left : undefined
+        anchors.rightMargin: Theme.rtl ? 0 : Theme.space4
+        anchors.leftMargin: Theme.rtl ? Theme.space4 : 0
+        onClicked: contextDrawer.open()
+    }
+
+    GenyDrawer {
+        id: contextDrawer
+        bottomSheet: false
+        blurSourceItem: shellContent
+        dimBackground: false
+        interactive: root.compactDesktop
+        width: parent ? Math.min(root.desktopContextRailWidth, parent.width * 0.52) : root.desktopContextRailWidth
+        height: parent ? parent.height : 720
+
+        contentItem: ContextRail {
+            identityName: presentationBridge.isAuthenticated ? presentationBridge.identityName : ""
+            accountName: presentationBridge.accountName
+            accountFid: presentationBridge.accountFid
+            accountUsername: presentationBridge.accountUsername
+            accountAvatarUrl: presentationBridge.accountAvatarUrl
+            profileDetail: presentationBridge.accountProfile
+            feedRows: presentationBridge.rows
+            activeFeed: presentationBridge.activeFeed
+            statusText: presentationBridge.statusText
+            identityAvailable: presentationBridge.isAuthenticated && root.identityAvailable
+            isAuthenticated: presentationBridge.isAuthenticated
+            offline: presentationBridge.isOffline
+            busy: presentationBridge.isBusy
+            stale: presentationBridge.isStale
+            sourceUnavailable: presentationBridge.sourceUnavailable
+            onAccountRequested: root.openAccountPopup()
+            onRefreshRequested: presentationBridge.retry()
+            onProfileRequested: username => root.openSuggestedProfile(username)
+            onOwnProfileRequested: root.openMyProfileFromNavigation()
+            onMarketSettingsRequested: { root.openLocaleSettings(2) }
+        }
+    }
+
+    FloatingComposeButton {
+        id: floatingCompose
+        z: 30
+        visible: !root.overlayOpen && root.shellRoute.length === 0 && !root.mobile
+                 && !(presentationBridge.activeView === "feed" && root.primaryDestination === "home")
+        expanded: root.largeDesktop && hovered
+        labelText: presentationBridge.activeView === "cast" ? qsTrId("genycaster.shell.reply") : qsTrId("genycaster.header.new_cast")
+        iconGlyph: presentationBridge.activeView === "cast" ? Theme.iconReply : Theme.iconCompose
+        replyMode: presentationBridge.activeView === "cast" && Boolean(presentationBridge.detail.castId)
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: root.wide ? Theme.space5 + 36 : 78
+        x: Theme.rtl
+           ? root.railReservation + Theme.space5
+           : Math.max(Theme.space5, root.width - root.railReservation - Theme.space5 - width)
+        onComposeRequested: root.openComposer(null)
+        onReplyRequested: root.openComposer(presentationBridge.detail)
+    }
+
+    Shortcut {
+        sequence: Qt.platform.os === "osx" ? "Meta+K" : "Ctrl+K"
+        context: Qt.ApplicationShortcut
+        enabled: !root.overlayOpen && !miniAppHost.active
+        onActivated: searchPalette.open()
+    }
+
+    SearchPalette {
+        id: searchPalette
+        compact: root.mobile
+        blurSourceItem: shellContent
+        recentProfiles: root.recentPosterProfiles(presentationBridge.rows, 6)
+        results: presentationBridge.searchResults
+        resultsBusy: presentationBridge.searchBusy
+        resultsErrorText: presentationBridge.searchErrorText
+        onSuggestionsRequested: query => presentationBridge.requestSearchSuggestions(query)
+        onSuggestionsCleared: presentationBridge.clearSearchSuggestions()
+        onProfileRequested: fid => {
+            root.clearPendingShellReturn()
+            root.shellRoute = ""
+            presentationBridge.openProfileFid(fid)
+        }
+        onChannelRequested: channelId => {
+            root.clearPendingShellReturn()
+            root.shellRoute = ""
+            presentationBridge.openChannel(channelId)
+        }
+        onSearchRequested: query => {
+            root.clearPendingShellReturn()
+            root.shellRoute = ""
+            presentationBridge.openSearchQuery(query)
+        }
+    }
+
+    MediaGallery {
+        id: mediaGallery
+    }
+
+    MobileCreateMenu {
+        id: mobileCreateMenu
+        blurSourceItem: shellContent
+        onCastRequested: root.openComposer(null)
+        onPhotoRequested: root.openComposer(null, "media")
+        onSpaceRequested: {
+            if (!presentationBridge.isAuthenticated) root.openAccountPopup()
+            else root.shellRoute = "spaces"
+        }
+    }
+
+    Loader {
+        id: localePopupLoader
+        active: false
+        sourceComponent: Component {
+            LocaleSettingsPopup {
+                parent: root
+                blurSourceItem: shellContent
+                onCustomAccentStudioRequested: color => accentColorStudio.openWith(color)
+                onDataStorageRequested: root.openDataStorageSettings()
+            }
+        }
+    }
+
+    Loader {
+        id: dataStoragePopupLoader
+        active: false
+        sourceComponent: Component {
+            DataStoragePopup {
+                parent: root
+                blurSourceItem: shellContent
+                onBackRequested: {
+                    close()
+                    root.openLocaleSettings()
+                }
+            }
+        }
+    }
+
+    // Keep nested settings tools as top-level overlay siblings. A Popup nested
+    // inside another Drawer can lose stacking/focus ownership while the parent
+    // overlay handles the triggering pointer release.
+    AccentColorStudio {
+        id: accentColorStudio
+        parent: Overlay.overlay
+        onColorAccepted: color => {
+            if (localePopupLoader.item !== null)
+                localePopupLoader.item.applyCustomAccentColor(color)
+        }
+    }
+
+    GenyDrawer {
+        id: accountPopup
+        bottomSheet: root.compact
+        blurSourceItem: shellContent
+        dimBackground: true
+        width: parent ? (bottomSheet ? parent.width : Math.min(440, parent.width * 0.88)) : 440
+        height: parent ? (bottomSheet ? Math.min(660, parent.height * 0.86) : parent.height) : 660
+        contentPadding: 0
+
+        contentItem: Item {
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.leftMargin: accountPopup.bottomSheet ? Theme.mobileGutter : Theme.space5
+                anchors.rightMargin: accountPopup.bottomSheet ? Theme.mobileGutter : Theme.space5
+                anchors.topMargin: accountPopup.bottomSheet ? Theme.space3 : Theme.space5
+                anchors.bottomMargin: accountPopup.bottomSheet ? Theme.space3 : Theme.space5
+                spacing: Theme.space3
+
+                ModalHeader {
+                    Layout.fillWidth: true
+                    title: presentationBridge.isAuthenticated
+                           ? qsTrId("genycaster.shell.your_farcaster_account")
+                           : presentationBridge.authenticationPhase === "awaiting-approval"
+                             ? qsTrId("genycaster.shell.approve_sign_in")
+                             : qsTrId("genycaster.shell.sign_in_to_interact")
+                    subtitle: presentationBridge.isAuthenticated
+                              ? qsTrId("genycaster.shell.this_verified_session_identifies_your_account_protocol")
+                              : qsTrId("genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_")
+                    onCloseRequested: accountPopup.close()
+                }
+
+                ScrollView {
+                    id: accountScroll
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    contentWidth: availableWidth
+                    ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
+                    ScrollBar.vertical: GenyScrollBar {}
+
+                    ColumnLayout {
+                        width: accountScroll.availableWidth
+                        spacing: Theme.space3
+
+                        Superellipse {
+                            visible: presentationBridge.isAuthenticated
+                            Layout.fillWidth: true
+                            implicitHeight: accountSummary.implicitHeight + Theme.space4 * 2
+                            curveDepth: Theme.curveContainer
+                            fillColor: Theme.surfaceMuted
+                            borderWidth: 0
+
+                            ColumnLayout {
+                                id: accountSummary
+                                anchors.fill: parent
+                                anchors.margins: Theme.space4
+                                spacing: Theme.space1
+
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: presentationBridge.accountName.length > 0
+                                          ? presentationBridge.accountName
+                                          : qsTrId("genycaster.shell.signed_in_account")
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeBodySize
+                                    font.weight: Theme.weightDemiBold
+                                    wrapMode: Text.Wrap
+                                }
+
+                                DirectionAwareLabel {
+                                    visible: presentationBridge.accountUsername.length > 0
+                                    Layout.fillWidth: true
+                                    forceLeftToRight: true
+                                    text: "@" + presentationBridge.accountUsername
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    wrapMode: Text.Wrap
+                                }
+
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: presentationBridge.signerStatusText
+                                    color: presentationBridge.writeReady ? Theme.success : Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    wrapMode: Text.Wrap
+                                }
+
+                                DirectionAwareLabel {
+                                    visible: presentationBridge.signerErrorText.length > 0
+                                    Layout.fillWidth: true
+                                    text: presentationBridge.signerErrorText
+                                    color: Theme.warning
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    lineHeight: 1.3
+                                    wrapMode: Text.Wrap
+                                }
+                            }
+                        }
+
+                        Superellipse {
+                            visible: !presentationBridge.isAuthenticated
+                                     && !presentationBridge.authenticationAvailable
+                            Layout.fillWidth: true
+                            implicitHeight: unavailableText.implicitHeight + Theme.space4 * 2
+                            curveDepth: Theme.curveContainer
+                            fillColor: Theme.warningSurface
+
+                            DirectionAwareLabel {
+                                id: unavailableText
+                                anchors.fill: parent
+                                anchors.margins: Theme.space4
+                                text: qsTrId("genycaster.shell.sign_in_is_not_configured_in_this_build_guest_reading_")
+                                color: Theme.warning
+                                font.pixelSize: Theme.typeCaptionSize
+                                lineHeight: 1.3
+                                wrapMode: Text.Wrap
+                            }
+                        }
+
+                        DirectionAwareLabel {
+                            visible: presentationBridge.authenticationPhase === "starting"
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.shell.creating_a_secure_farcaster_sign_in_request")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeMetaSize
+                            wrapMode: Text.Wrap
+                        }
+
+                        ColumnLayout {
+                            visible: presentationBridge.authenticationPhase === "awaiting-approval"
+                            Layout.fillWidth: true
+                            spacing: Theme.space2
+
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.shell.approve_the_request_in_a_farcaster_compatible_client_t")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeMetaSize
+                                lineHeight: 1.35
+                                wrapMode: Text.Wrap
+                            }
+
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.shell.the_approval_link_is_kept_transient_and_opens_through_")
+                                color: Theme.inkSubtle
+                                font.pixelSize: Theme.typeCaptionSize
+                                lineHeight: 1.3
+                                wrapMode: Text.Wrap
+                            }
+                        }
+
+                        DirectionAwareLabel {
+                            visible: presentationBridge.authenticationErrorText.length > 0
+                            Layout.fillWidth: true
+                            text: presentationBridge.authenticationErrorText
+                            color: Theme.warning
+                            font.pixelSize: Theme.typeCaptionSize
+                            lineHeight: 1.3
+                            wrapMode: Text.Wrap
+                        }
+
+                        Item { Layout.preferredHeight: Theme.space3 }
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 1
+                    color: Theme.divider
+                }
+
+                Flow {
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space2
+
+                    ActionButton {
+                        visible: presentationBridge.authenticationPhase === "awaiting-approval"
+                        text: qsTrId("genycaster.shell.cancel")
+                        quiet: true
+                        onClicked: {
+                            presentationBridge.cancelSignIn()
+                            accountPopup.close()
+                        }
+                    }
+
+                    ActionButton {
+                        visible: !presentationBridge.isAuthenticated
+                                 && presentationBridge.authenticationPhase !== "starting"
+                                 && presentationBridge.authenticationPhase !== "awaiting-approval"
+                        text: presentationBridge.authenticationPhase === "failed"
+                              ? qsTrId("genycaster.shell.try_again")
+                              : qsTrId("genycaster.shell.sign_in_with_farcaster")
+                        prominent: true
+                        enabled: presentationBridge.runtimeReady && presentationBridge.authenticationAvailable
+                        onClicked: presentationBridge.beginSignIn()
+                    }
+
+                    ActionButton {
+                        visible: presentationBridge.authenticationPhase === "awaiting-approval"
+                        text: qsTrId("genycaster.shell.open_farcaster")
+                        prominent: true
+                        enabled: presentationBridge.authenticationApprovalAvailable
+                        onClicked: presentationBridge.openAuthenticationApproval()
+                    }
+
+                    ActionButton {
+                        visible: presentationBridge.isAuthenticated && !presentationBridge.writeReady
+                        text: presentationBridge.signerBusy
+                              ? qsTrId("genycaster.shell.enabling")
+                              : qsTrId("genycaster.shell.enable_interactions")
+                        prominent: true
+                        enabled: !presentationBridge.signerBusy
+                        onClicked: presentationBridge.provisionSigner()
+                    }
+
+                    ActionButton {
+                        visible: presentationBridge.isAuthenticated && presentationBridge.writeReady
+                        text: presentationBridge.signerBusy
+                              ? qsTrId("genycaster.shell.revoking")
+                              : qsTrId("genycaster.shell.revoke_signer")
+                        enabled: !presentationBridge.signerBusy
+                        onClicked: presentationBridge.revokeSigner()
+                    }
+
+                    ActionButton {
+                        visible: presentationBridge.isAuthenticated
+                        text: qsTrId("genycaster.shell.sign_out")
+                        onClicked: presentationBridge.signOut()
+                    }
+
+                    ActionButton {
+                        text: qsTrId("genycaster.shell.close")
+                        quiet: true
+                        onClicked: accountPopup.close()
+                    }
+                }
+            }
+        }
+    }
+
+    TaskManagerPopup {
+        id: taskManagerPopup
+        parent: Overlay.overlay
+    }
+
+    RenderingSettingsPopup {
+        id: renderingSettingsPopup
+        parent: Overlay.overlay
+    }
+
+    FeedbackDialog {
+        id: feedbackDialog
+        parent: Overlay.overlay
+    }
+
+    Connections {
+        target: presentationBridge
+
+        function onCastQueued() {
+            if (composerDrawer.opened) {
+                root.awaitingRichCommit = true
+                composerDrawer.close()
+            }
+        }
+
+        function onStateChanged() {
+            const castId = String(presentationBridge.lastPublishedCastId || "")
+            if (root.awaitingRichCommit && castId.length > 0 && castId !== root.committedRichCastId) {
+                richComposer.commitPublishedCast(castId)
+                root.committedRichCastId = castId
+                root.awaitingRichCommit = false
+                if (root.pendingMiniAppComposeRequestId.length > 0) {
+                    miniAppHost.completeComposeCast(root.pendingMiniAppComposeRequestId, castId,
+                                                    root.pendingMiniAppComposeText,
+                                                    root.pendingMiniAppComposeEmbeds)
+                    root.pendingMiniAppComposeRequestId = ""
+                    root.pendingMiniAppComposeText = ""
+                    root.pendingMiniAppComposeEmbeds = []
+                }
+            }
+        }
+    }
+}

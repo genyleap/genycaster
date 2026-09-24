@@ -4,43 +4,39 @@
         <name />
         <message id="genycaster.miniapp.presentation_title">
             <source>Mini App presentation</source>
-            <translation>Mini App presentation</translation>
+            <translation>Mini App 표시 방식</translation>
         </message>
         <message id="genycaster.miniapp.presentation_description">
             <source>Saved for the next app you open. Changing this does not reload a running app.</source>
-            <translation>Saved for the next app you open. Changing this does not reload a running app.</translation>
+            <translation>다음에 여는 앱에 적용되도록 저장됩니다. 이 설정을 변경해도 실행 중인 앱은 다시 로드되지 않습니다.</translation>
         </message>
         <message id="genycaster.miniapp.mode_window">
             <source>Separate window</source>
-            <translation>Separate window</translation>
+            <translation>별도 창</translation>
         </message>
         <message id="genycaster.miniapp.mode_bottom">
             <source>Drawer from bottom</source>
-            <translation>Drawer from bottom</translation>
+            <translation>아래에서 서랍 열기</translation>
         </message>
         <message id="genycaster.miniapp.mode_left">
             <source>Drawer from left</source>
-            <translation>Drawer from left</translation>
+            <translation>왼쪽에서 서랍 열기</translation>
         </message>
         <message id="genycaster.miniapp.mode_right">
             <source>Drawer from right</source>
-            <translation>Drawer from right</translation>
-        </message>
-        <message id="genycaster.miniapp.close">
-            <source>Close app</source>
-            <translation>Close app</translation>
+            <translation>오른쪽에서 서랍 열기</translation>
         </message>
         <message id="genycaster.miniapp.open_internal">
             <source>Open in Genycaster</source>
-            <translation>Open in Genycaster</translation>
+            <translation>Genycaster에서 열기</translation>
         </message>
         <message id="genycaster.miniapp.unavailable">
             <source>The internal Mini App host is not enabled in this build.</source>
-            <translation>The internal Mini App host is not enabled in this build.</translation>
+            <translation>이 빌드에서는 내부 Mini App 호스트가 활성화되어 있지 않습니다.</translation>
         </message>
         <message id="genycaster.miniapp.sign_in_first">
             <source>Sign in to Genycaster before opening this app.</source>
-            <translation>Sign in to Genycaster before opening this app.</translation>
+            <translation>이 앱을 열기 전에 Genycaster에 로그인하세요.</translation>
         </message>
         <message id="genycaster.miniapp.loading">
             <source>Loading app…</source>
@@ -48,43 +44,27 @@
         </message>
         <message id="genycaster.miniapp.invalid_url">
             <source>This app needs a valid public HTTPS address.</source>
-            <translation>This app needs a valid public HTTPS address.</translation>
+            <translation>이 앱에는 유효한 공개 HTTPS 주소가 필요합니다.</translation>
         </message>
         <message id="genycaster.miniapp.invalid_manifest">
             <source>The app manifest is missing or invalid.</source>
-            <translation>The app manifest is missing or invalid.</translation>
+            <translation>앱 매니페스트가 없거나 올바르지 않습니다.</translation>
         </message>
         <message id="genycaster.miniapp.load_failed">
             <source>Could not load the app. Check your connection and try again.</source>
-            <translation>Could not load the app. Check your connection and try again.</translation>
+            <translation>앱을 불러올 수 없습니다. 연결을 확인하고 다시 시도하세요.</translation>
         </message>
         <message id="genycaster.miniapp.ready_timeout">
             <source>The app did not become ready. You can retry or close it.</source>
-            <translation>The app did not become ready. You can retry or close it.</translation>
+            <translation>앱이 준비 상태가 되지 않았습니다. 다시 시도하거나 닫을 수 있습니다.</translation>
         </message>
         <message id="genycaster.miniapp.unsupported_requirements">
             <source>This app requires host capabilities or chains that Genycaster does not support yet. Reload cannot add them.</source>
             <translation>This app requires capabilities that Genycaster does not support yet.</translation>
         </message>
-        <message id="genycaster.miniapp.navigation_blocked">
-            <source>This app tried to leave its approved secure domain. Navigation was blocked.</source>
-            <translation>This app tried to leave its approved secure domain. Navigation was blocked.</translation>
-        </message>
-        <message id="genycaster.miniapp.renderer_failed">
-            <source>The app process stopped. Reload to start a new session.</source>
-            <translation>The app process stopped. Reload to start a new session.</translation>
-        </message>
         <message id="genycaster.miniapp.rpc_limit">
             <source>The app sent too many or oversized requests and was stopped.</source>
-            <translation>The app sent too many or oversized requests and was stopped.</translation>
-        </message>
-        <message id="genycaster.miniapp.back">
-            <source>Back</source>
-            <translation>Back</translation>
-        </message>
-        <message id="genycaster.miniapp.retry">
-            <source>Reload</source>
-            <translation>Reload</translation>
+            <translation>앱이 너무 많거나 너무 큰 요청을 보내 중지되었습니다.</translation>
         </message>
         <message id="genycaster.app.genycaster">
             <source>Genycaster</source>
@@ -386,10 +366,6 @@
             <source>Open conversation context</source>
             <translation>대화 맥락 열기</translation>
         </message>
-        <message id="genycaster.cast.open_first_link">
-            <source>Open first link</source>
-            <translation>첫 번째 링크 열기</translation>
-        </message>
         <message id="genycaster.cast.open_original_cast">
             <source>Open original cast</source>
             <translation>원본 캐스트 열기</translation>
@@ -430,10 +406,6 @@
             <source>Replying to another cast</source>
             <translation>다른 캐스트에 답글 작성 중</translation>
         </message>
-        <message id="genycaster.cast.replying_to_parent_link">
-            <source>Replying to a parent link</source>
-            <translation>상위 링크에 답글 작성 중</translation>
-        </message>
         <message id="genycaster.cast.replying_to_value">
             <source>Replying to %1</source>
             <translation>%1에게 답글 작성 중</translation>
@@ -457,10 +429,6 @@
         <message id="genycaster.composer.add_cast">
             <source>Add cast</source>
             <translation>Cast 추가</translation>
-        </message>
-        <message id="genycaster.composer.alt_text_optional">
-            <source>Optional alt text</source>
-            <translation>선택적 대체 텍스트</translation>
         </message>
         <message id="genycaster.composer.apply">
             <source>Apply</source>
@@ -694,37 +662,13 @@
             <source>Checking your GENY balance…</source>
             <translation>GENY 잔액 확인 중…</translation>
         </message>
-        <message id="genycaster.context.community_active_people">
-            <source>Active people</source>
-            <translation>활성 사용자</translation>
-        </message>
         <message id="genycaster.context.community_casts_loaded">
             <source>Casts loaded</source>
             <translation>불러온 캐스트</translation>
         </message>
-        <message id="genycaster.context.community_engagement">
-            <source>Engagement</source>
-            <translation>참여도</translation>
-        </message>
         <message id="genycaster.context.community_last_7_days">
             <source>Last 7 days</source>
             <translation>최근 7일</translation>
-        </message>
-        <message id="genycaster.context.community_live_sample">
-            <source>Live sample</source>
-            <translation>실시간 표본</translation>
-        </message>
-        <message id="genycaster.context.community_offline">
-            <source>Offline</source>
-            <translation>오프라인</translation>
-        </message>
-        <message id="genycaster.context.community_stale">
-            <source>Needs refresh</source>
-            <translation>새로고침 필요</translation>
-        </message>
-        <message id="genycaster.context.community_waiting">
-            <source>Waiting for feed activity</source>
-            <translation>피드 활동 대기 중</translation>
         </message>
         <message id="genycaster.context.fdv">
             <source>Fully diluted value</source>
@@ -789,10 +733,6 @@
         <message id="genycaster.context.token_pulse">
             <source>Token Pulse</source>
             <translation>토큰 동향</translation>
-        </message>
-        <message id="genycaster.context.upcoming_event">
-            <source>Upcoming: Community AMA · 19:00</source>
-            <translation>예정: 커뮤니티 AMA · 19:00</translation>
         </message>
         <message id="genycaster.context.volume_24h">
             <source>24h volume</source>
@@ -1118,14 +1058,6 @@
             <source>Loading more</source>
             <translation>더 불러오는 중</translation>
         </message>
-        <message id="genycaster.feed_surface.pull_to_refresh">
-            <source>Pull to refresh</source>
-            <translation>당겨서 새로고침</translation>
-        </message>
-        <message id="genycaster.feed_surface.release_to_refresh">
-            <source>Release to refresh</source>
-            <translation>놓아서 새로고침</translation>
-        </message>
         <message id="genycaster.feedback.backend_pending">
             <source>Feedback transport is not connected yet. This interface is ready; server delivery will be wired in a later build.</source>
             <translation>피드백 전송은 아직 서버에 연결되지 않았습니다. 이 화면은 준비되어 있으며 서버 전송은 이후 빌드에서 연결됩니다.</translation>
@@ -1198,17 +1130,9 @@
             <source>Builder Notes</source>
             <translation>빌더 노트</translation>
         </message>
-        <message id="genycaster.home.casts">
-            <source>Casts</source>
-            <translation>캐스트</translation>
-        </message>
         <message id="genycaster.home.catch_up">
             <source>Catch up with your friends and communities.</source>
             <translation>친구와 커뮤니티의 새 소식을 확인하세요.</translation>
-        </message>
-        <message id="genycaster.home.community_pulse">
-            <source>Community Pulse</source>
-            <translation>커뮤니티 펄스</translation>
         </message>
         <message id="genycaster.home.conversations">
             <source>Conversations</source>
@@ -1254,14 +1178,6 @@
             <source>View Profile</source>
             <translation>프로필 보기</translation>
         </message>
-        <message id="genycaster.home.visual_filter_all">
-            <source>All</source>
-            <translation>전체</translation>
-        </message>
-        <message id="genycaster.home.visual_filter_images">
-            <source>Images</source>
-            <translation>이미지</translation>
-        </message>
         <message id="genycaster.home.visual_filter_nfts">
             <source>NFTs</source>
             <translation>NFT 작품</translation>
@@ -1269,10 +1185,6 @@
         <message id="genycaster.home.visual_highlights">
             <source>Visual Highlights</source>
             <translation>비주얼 하이라이트</translation>
-        </message>
-        <message id="genycaster.home.visuals">
-            <source>Visuals &amp; NFTs</source>
-            <translation>비주얼 및 NFT</translation>
         </message>
         <message id="genycaster.locale.add_currency">
             <source>Add</source>
@@ -1724,31 +1636,27 @@
         </message>
         <message id="genycaster.search.not_following">
             <source>Not following</source>
-            <translation type="unfinished">Not following</translation>
+            <translation>팔로우하지 않음</translation>
         </message>
         <message id="genycaster.search.not_followed_by">
             <source>Does not follow you</source>
-            <translation type="unfinished">Does not follow you</translation>
+            <translation>회원님을 팔로우하지 않음</translation>
         </message>
         <message id="genycaster.search.relationship_unknown">
             <source>Relationship unknown</source>
-            <translation type="unfinished">Relationship unknown</translation>
-        </message>
-        <message id="genycaster.embed.miniapp_external">
-            <source>Mini App · opens externally</source>
-            <translation type="unfinished">Mini App · opens externally</translation>
+            <translation>관계 알 수 없음</translation>
         </message>
         <message id="genycaster.feed.filtered_empty">
             <source>No matching posts in the loaded feed</source>
-            <translation type="unfinished">No matching posts in the loaded feed</translation>
+            <translation>불러온 피드에 일치하는 게시물이 없습니다</translation>
         </message>
         <message id="genycaster.feed.filtered_description">
             <source>These tabs filter the loaded feed. Load more posts or change the source; unavailable data is not an empty category.</source>
-            <translation type="unfinished">These tabs filter the loaded feed. Load more posts or change the source; unavailable data is not an empty category.</translation>
+            <translation>이 탭은 불러온 피드를 필터링합니다. 게시물을 더 불러오거나 소스를 변경하세요. 데이터를 사용할 수 없다고 해서 카테고리가 비어 있는 것은 아닙니다.</translation>
         </message>
         <message id="genycaster.feed.more_filtered">
             <source>Look through more posts</source>
-            <translation type="unfinished">Look through more posts</translation>
+            <translation>게시물 더 보기</translation>
         </message>
         <message id="genycaster.profile.follow">
             <source>Follow</source>
@@ -1802,10 +1710,6 @@
             <source>Posts</source>
             <translation>게시물</translation>
         </message>
-        <message id="genycaster.profile.pull_to_refresh">
-            <source>Pull to refresh</source>
-            <translation>당겨서 새로고침</translation>
-        </message>
         <message id="genycaster.profile.quotes">
             <source>Quotes</source>
             <translation>인용</translation>
@@ -1817,10 +1721,6 @@
         <message id="genycaster.profile.refreshing">
             <source>Refreshing…</source>
             <translation>새로고침 중…</translation>
-        </message>
-        <message id="genycaster.profile.release_to_refresh">
-            <source>Release to refresh</source>
-            <translation>놓아서 새로고침</translation>
         </message>
         <message id="genycaster.profile.replies">
             <source>Replies</source>
@@ -2834,10 +2734,6 @@
             <source>Discover and save Farcaster Mini Apps, then launch them in the Genycaster host.</source>
             <translation>Farcaster 미니 앱을 찾아 저장한 뒤 Genycaster 호스트에서 실행하세요.</translation>
         </message>
-        <message id="genycaster.apps.farcaster">
-            <source>Farcaster Mini Apps</source>
-            <translation>Farcaster 미니 앱</translation>
-        </message>
         <message id="genycaster.apps.native">
             <source>Native Apps</source>
             <translation>네이티브 앱</translation>
@@ -2910,14 +2806,6 @@
             <source>Live Mini App resource usage and session controls.</source>
             <translation>미니 앱의 실시간 리소스 사용량과 세션 제어입니다.</translation>
         </message>
-        <message id="genycaster.task_manager.cpu">
-            <source>CPU usage</source>
-            <translation>CPU 사용량</translation>
-        </message>
-        <message id="genycaster.task_manager.memory">
-            <source>Memory</source>
-            <translation>메모리</translation>
-        </message>
         <message id="genycaster.task_manager.sdk_rate">
             <source>SDK activity</source>
             <translation>SDK 활동</translation>
@@ -2954,29 +2842,9 @@
             <source>Error</source>
             <translation>오류</translation>
         </message>
-        <message id="genycaster.task_manager.pid">
-            <source>Process</source>
-            <translation>프로세스</translation>
-        </message>
-        <message id="genycaster.miniapp.add_confirm_title">
-            <source>Add Mini App</source>
-            <translation>미니 앱 추가</translation>
-        </message>
-        <message id="genycaster.miniapp.add_confirm_description">
-            <source>Add %1 to My MiniApps in Genycaster?</source>
-            <translation>%1을(를) Genycaster의 My MiniApps에 추가할까요?</translation>
-        </message>
         <message id="genycaster.miniapp.session_limit">
             <source>Up to four Mini Apps can stay open at once. Close one in Task Manager to open another.</source>
             <translation>동시에 최대 4개의 미니 앱을 열어 둘 수 있습니다. 다른 앱을 열려면 작업 관리자에서 하나를 종료하세요.</translation>
-        </message>
-        <message id="genycaster.miniapp.minimize">
-            <source>Minimize</source>
-            <translation>최소화</translation>
-        </message>
-        <message id="genycaster.miniapp.share">
-            <source>Share</source>
-            <translation>공유</translation>
         </message>
         <message id="genycaster.settings.text_size">
             <source>Text size</source>
@@ -3029,14 +2897,6 @@
         <message id="genycaster.settings.link_preview_prefetch_description">
             <source>Resolve visible web links in advance for richer cards. Disable to reduce background API and network work.</source>
             <translation>보이는 웹 링크를 미리 해석해 더 풍부한 카드를 표시합니다. 백그라운드 API 및 네트워크 작업을 줄이려면 끄세요.</translation>
-        </message>
-        <message id="genycaster.settings.inline_youtube">
-            <source>Play YouTube in GenyCaster</source>
-            <translation>GenyCaster에서 YouTube 재생</translation>
-        </message>
-        <message id="genycaster.settings.inline_youtube_description">
-            <source>Open supported YouTube links in the isolated in-app player instead of the external browser.</source>
-            <translation>지원되는 YouTube 링크를 외부 브라우저 대신 격리된 앱 내 플레이어에서 엽니다.</translation>
         </message>
         <message id="genycaster.settings.read_api_note">
             <source>Provider safety limits still apply. Higher values may increase latency, bandwidth, memory use, and API cost.</source>
@@ -3293,6 +3153,122 @@
         <message id="genycaster.collectible.default_title">
             <source>Collectible</source>
             <translation>컬렉터블</translation>
+        </message>
+        <message id="genycaster.feed_pulse.loaded_profile_posts">
+            <source>Loaded profile posts</source>
+            <translation>불러온 프로필 게시물</translation>
+        </message>
+        <message id="genycaster.feed_pulse.loaded_feed_snapshot">
+            <source>Loaded feed snapshot</source>
+            <translation>불러온 피드 스냅샷</translation>
+        </message>
+        <message id="genycaster.feed_pulse.offline">
+            <source>offline</source>
+            <translation>오프라인</translation>
+        </message>
+        <message id="genycaster.feed_pulse.cached">
+            <source>cached</source>
+            <translation>캐시됨</translation>
+        </message>
+        <message id="genycaster.feed_pulse.waiting_for_data">
+            <source>waiting for data</source>
+            <translation>데이터 대기 중</translation>
+        </message>
+        <message id="genycaster.feed_pulse.profile_snapshot">
+            <source>Profile snapshot</source>
+            <translation>프로필 스냅샷</translation>
+        </message>
+        <message id="genycaster.feed_pulse.title">
+            <source>Feed pulse</source>
+            <translation>피드 현황</translation>
+        </message>
+        <message id="genycaster.feed_pulse.posts_loaded">
+            <source>Posts loaded</source>
+            <translation>불러온 게시물</translation>
+        </message>
+        <message id="genycaster.feed_pulse.authors_loaded">
+            <source>Authors loaded</source>
+            <translation>불러온 작성자</translation>
+        </message>
+        <message id="genycaster.feed_pulse.interactions">
+            <source>Interactions</source>
+            <translation>상호작용</translation>
+        </message>
+        <message id="genycaster.feed_pulse.avg_per_post">
+            <source>Avg / post</source>
+            <translation>게시물당 평균</translation>
+        </message>
+        <message id="genycaster.home.prompt">
+            <source>What would you like to do today?</source>
+            <translation>오늘 무엇을 하시겠어요?</translation>
+        </message>
+        <message id="genycaster.home.compose_description">
+            <source>Write and publish a new cast</source>
+            <translation>새 Cast 작성 및 게시</translation>
+        </message>
+        <message id="genycaster.home.apps_description">
+            <source>Open apps and tools</source>
+            <translation>앱과 도구 열기</translation>
+        </message>
+        <message id="genycaster.home.composer_placeholder">
+            <source>Write a new cast or message…</source>
+            <translation>새 Cast 또는 메시지 작성…</translation>
+        </message>
+        <message id="genycaster.settings.social_workspace">
+            <source>Social workspace</source>
+            <translation>소셜 작업 공간</translation>
+        </message>
+        <message id="genycaster.settings.social_workspace_description">
+            <source>Tune the desktop navigation and context columns. You can also drag their separators directly in the main window.</source>
+            <translation>데스크톱 탐색과 컨텍스트 열을 조정하세요. 메인 창에서 구분선을 직접 드래그할 수도 있습니다.</translation>
+        </message>
+        <message id="genycaster.settings.navigation_width">
+            <source>Navigation width</source>
+            <translation>탐색 너비</translation>
+        </message>
+        <message id="genycaster.settings.navigation_width_description">
+            <source>Primary destinations and account controls</source>
+            <translation>주요 목적지 및 계정 제어</translation>
+        </message>
+        <message id="genycaster.settings.context_sidebar_width">
+            <source>Context sidebar width</source>
+            <translation>컨텍스트 사이드바 너비</translation>
+        </message>
+        <message id="genycaster.settings.context_sidebar_width_description">
+            <source>Profile, activity, search, and feed context</source>
+            <translation>프로필, 활동, 검색 및 피드 컨텍스트</translation>
+        </message>
+        <message id="genycaster.settings.reset_social_layout">
+            <source>Reset social layout</source>
+            <translation>소셜 레이아웃 재설정</translation>
+        </message>
+        <message id="genycaster.social.search_placeholder">
+            <source>Search people, casts, and channels</source>
+            <translation>사람, Cast, 채널 검색</translation>
+        </message>
+        <message id="genycaster.social.your_profile">
+            <source>Your profile</source>
+            <translation>내 프로필</translation>
+        </message>
+        <message id="genycaster.social.sign_in_to_personalize">
+            <source>Sign in to personalize</source>
+            <translation>개인 설정을 위해 로그인</translation>
+        </message>
+        <message id="genycaster.social.followers_count">
+            <source>%1 followers</source>
+            <translation>팔로워 %1명</translation>
+        </message>
+        <message id="genycaster.social.following_count">
+            <source>%1 following</source>
+            <translation>%1명 팔로잉</translation>
+        </message>
+        <message id="genycaster.social.open_profile">
+            <source>Open profile</source>
+            <translation>프로필 열기</translation>
+        </message>
+        <message id="genycaster.social.people_in_your_orbit">
+            <source>People in your orbit</source>
+            <translation>내 주변 사람들</translation>
         </message>
     </context>
 </TS>

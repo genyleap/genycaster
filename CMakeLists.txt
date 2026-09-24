@@ -10,6 +10,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(AimcppProjectChecks)
 include(ProjectWarnings)
 include(ArchitectureGuards)
+include(Sanitizers)
 
 option(FARCASTER_BUILD_TESTS "Build unit, contract, integration and architecture tests" ON)
 option(FARCASTER_BUILD_UI "Build the Qt Quick presentation shell" ON)

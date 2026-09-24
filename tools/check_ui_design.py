@@ -1,0 +1,687 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+from pathlib import Path
+import re, sys
+
+root = Path(__file__).resolve().parents[1]
+ui = root / 'ui'
+cmake = (ui / 'CMakeLists.txt').read_text(encoding='utf-8')
+match = re.search(r'set\(farcasterQmlFiles\n(.*?)\n\)', cmake, re.S)
+if not match:
+    raise SystemExit('farcasterQmlFiles not found')
+registered = sorted(line.strip() for line in match.group(1).splitlines() if line.strip())
+# AnimatedEmojiLottie.qml is conditionally registered only when the Qt Lottie
+# module is available (mirroring ui/CMakeLists.txt); treat it as always known.
+registered = sorted(set(registered) | {'components/AnimatedEmojiLottie.qml'})
+discovered = sorted(str(p.relative_to(ui)) for p in ui.rglob('*.qml'))
+errors: list[str] = []
+if registered != discovered:
+    errors.append(f'QML manifest mismatch: missing={sorted(set(discovered)-set(registered))}, extra={sorted(set(registered)-set(discovered))}')
+
+controls = {
+    'AbstractButton','Action','ActionGroup','ApplicationWindow','BusyIndicator','Button','ButtonGroup',
+    'CheckBox','CheckDelegate','ComboBox','Container','Control','DelayButton','Dial','Dialog','DialogButtonBox',
+    'Drawer','Frame','GroupBox','ItemDelegate','Label','Menu','MenuBar','MenuBarItem','MenuItem','MenuSeparator',
+    'Page','PageIndicator','Pane','Popup','ProgressBar','RadioButton','RadioDelegate','RangeSlider','RoundButton',
+    'ScrollBar','ScrollIndicator','ScrollView','Slider','SpinBox','SplitView','StackView','SwipeDelegate','SwipeView',
+    'Switch','SwitchDelegate','TabBar','TabButton','TextArea','TextField','ToolBar','ToolButton','ToolSeparator','ToolTip','Tumbler'
+}
+for p in (ui/'components').glob('*.qml'):
+    if p.stem in controls:
+        errors.append(f'Local QML type collides with QtQuick.Controls: {p.name}')
+
+theme_contract_text = (ui / 'theme' / 'Theme.qml').read_text(encoding='utf-8')
+theme_contract_symbols = set(re.findall(r'\bproperty\s+\w+\s+(\w+)\s*:', theme_contract_text))
+theme_contract_symbols.update(re.findall(r'\bfunction\s+(\w+)\s*\(', theme_contract_text))
+
+for p in ui.rglob('*.qml'):
+    text = p.read_text(encoding='utf-8')
+    rel = p.relative_to(root)
+    for theme_symbol in sorted(set(re.findall(r'\bTheme\.(\w+)', text))):
+        if theme_symbol not in theme_contract_symbols:
+            errors.append(f'Unknown Theme token Theme.{theme_symbol}: {rel}')
+    if re.search(r'\bradius\s*:', text):
+        errors.append(f'Legacy Rectangle.radius style found: {rel}')
+    if 'BusyIndicator {' in text:
+        errors.append(f'Native BusyIndicator visual found: {rel}')
+    if 'ToolTip.' in text:
+        errors.append(f'Native ToolTip visual found: {rel}')
+    if 'ScrollIndicator.vertical:' in text or 'ScrollBar.vertical: ScrollBar {' in text:
+        errors.append(f'Native scroll chrome found: {rel}')
+    if 'control.mirrored' in text:
+        errors.append(f'Control mirroring used instead of semantic direction: {rel}')
+    if p.name != 'Theme.qml' and re.search(r'#[0-9A-Fa-f]{6,8}', text):
+        errors.append(f'Hard-coded color outside Theme.qml: {rel}')
+    if re.search(r'font\.pixelSize\s*:\s*\d', text):
+        errors.append(f'Raw font size outside semantic type tokens: {rel}')
+    if '\\u200E' in text or '\\u200F' in text:
+        errors.append(f'Literal bidi mark found; use an explicit helper instead: {rel}')
+    # Duplicate property assignments in one QML object are runtime/parser defects,
+    # not stylistic warnings. Keep this deliberately small and line-oriented.
+    property_scopes: list[dict[str, int]] = [{}]
+    qml_object_scopes: list[str | None] = [None]
+    for line_number, raw_line in enumerate(text.splitlines(), 1):
+        scan_line = raw_line.split('//', 1)[0]
+        property_match = re.match(r'^\s*([A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*)*)\s*:', scan_line)
+        if property_match:
+            property_name = property_match.group(1)
+            current_scope = property_scopes[-1]
+            if property_name in current_scope:
+                errors.append(
+                    f'Duplicate QML property assignment {property_name}: {rel}:{line_number} '
+                    f'(first at line {current_scope[property_name]})')
+            else:
+                current_scope[property_name] = line_number
+            if qml_object_scopes[-1] == 'Loader' and property_name in {'implicitWidth', 'implicitHeight'}:
+                errors.append(
+                    f'Loader {property_name} is read-only; rely on Loader intrinsic sizing or Layout.*: '
+                    f'{rel}:{line_number}')
+
+        object_match = re.match(r'^\s*([A-Z][A-Za-z0-9_.]*)\s*\{', scan_line)
+        object_type = object_match.group(1).split('.')[-1] if object_match else None
+        first_open = True
+        for character in scan_line:
+            if character == '{':
+                property_scopes.append({})
+                qml_object_scopes.append(object_type if first_open else None)
+                first_open = False
+            elif character == '}' and len(property_scopes) > 1:
+                property_scopes.pop()
+                qml_object_scopes.pop()
+
+    # Every project-owned SuperellipseImage must state its image fitting policy
+    # explicitly. Its default is PreserveAspectCrop for legacy cover surfaces,
+    # but content previews, app icons, avatars, banners and thumbnails have
+    # different semantics. Requiring fillMode at each call site prevents a
+    # future refactor from silently cropping user-visible content.
+    for image_match in re.finditer(r'\bSuperellipseImage\s*\{', text):
+        block_start = image_match.end() - 1
+        depth = 0
+        block_end = None
+        for offset in range(block_start, len(text)):
+            if text[offset] == '{':
+                depth += 1
+            elif text[offset] == '}':
+                depth -= 1
+                if depth == 0:
+                    block_end = offset + 1
+                    break
+        if block_end is None:
+            continue
+        image_block = text[image_match.start():block_end]
+        if 'fillMode:' not in image_block:
+            line_number = text[:image_match.start()].count('\n') + 1
+            errors.append(f'SuperellipseImage must declare an explicit fillMode: {rel}:{line_number}')
+
+    # Lightweight raw delimiter balance catches accidental edit damage.
+    if text.count('{') != text.count('}'):
+        errors.append(f'Brace imbalance: {rel}')
+    if text.count('(') != text.count(')'):
+        errors.append(f'Parenthesis imbalance: {rel}')
+    if text.count('[') != text.count(']'):
+        errors.append(f'Bracket imbalance: {rel}')
+
+    # A vertical ScrollView with its horizontal scrollbar hidden must also lock
+    # contentWidth to the viewport. Otherwise trackpad/horizontal wheel deltas
+    # can pan an oversized implicit child even though no horizontal affordance is
+    # visible, producing apparently random left/right layout drift. Code viewers
+    # that explicitly switch to ScrollBar.AsNeeded are intentionally excluded.
+    for scroll_match in re.finditer(r'\bScrollView\s*\{', text):
+        block_start = scroll_match.end() - 1
+        depth = 0
+        block_end = None
+        for offset in range(block_start, len(text)):
+            if text[offset] == '{':
+                depth += 1
+            elif text[offset] == '}':
+                depth -= 1
+                if depth == 0:
+                    block_end = offset + 1
+                    break
+        if block_end is None:
+            continue
+        scroll_block = text[scroll_match.start():block_end]
+        if ('ScrollBar.horizontal:' in scroll_block
+                and 'ScrollBar.AlwaysOff' in scroll_block
+                and 'ScrollBar.AsNeeded' not in scroll_block
+                and 'contentWidth:' not in scroll_block):
+            line_number = text[:scroll_match.start()].count('\n') + 1
+            errors.append(
+                f'Vertical ScrollView hides horizontal chrome without locking contentWidth: '
+                f'{rel}:{line_number}')
+
+
+# Latin protocol/content text must never inherit the FaNum glyph family.
+theme_text = (ui/'theme'/'Theme.qml').read_text(encoding='utf-8')
+if 'latinFontFamily' not in theme_text or 'persianFontFamily' not in theme_text:
+    errors.append('Theme must expose separate Latin and Persian font families')
+direction_label = (ui/'components'/'DirectionAwareLabel.qml').read_text(encoding='utf-8')
+if 'Theme.fontFamilyForText' not in direction_label:
+    errors.append('DirectionAwareLabel must select a script-capable font family from its own content')
+main_cpp = (ui/'mobile'/'main.cpp').read_text(encoding='utf-8')
+if 'application.setFont' in main_cpp and 'IRANSansXFaNum' in main_cpp:
+    errors.append('Application-wide FaNum font forces Persian digit glyphs into Latin content')
+
+# UI strings must not bake arrow glyphs into labels that also render an icon.
+for ts_name in ('qml_en_US.ts', 'qml_fa_IR.ts'):
+    ts_text = (ui/'i18n'/ts_name).read_text(encoding='utf-8')
+    if any(glyph in ts_text for glyph in ('←', '→', '⇐', '⇒', '⬅', '➡')):
+        errors.append(f'Decorative arrow glyph found in translation catalog: {ts_name}')
+
+
+# Components that claim shape-aware hit testing must expose a shape, not a rectangular Item wrapper.
+tab_button = (ui/'components'/'GenyTabButton.qml').read_text(encoding='utf-8')
+if 'containmentMask: background' not in tab_button or 'background: Superellipse' not in tab_button:
+    errors.append('GenyTabButton must use its Superellipse background as the containment mask')
+
+superellipse = (ui/'components'/'Superellipse.qml').read_text(encoding='utf-8')
+if 'containsMode: Shape.FillContains' in superellipse or 'containmentMask: renderedShape' in superellipse:
+    errors.append('Superellipse hit testing must stay on lightweight QQuickItem bounds; Shape.FillContains is forbidden in shared controls')
+if 'cornerSamples: 96' not in superellipse:
+    errors.append('Superellipse sampling quality regression')
+if ('import QtQuick.Shapes' not in superellipse
+        or 'id: renderedShape' not in superellipse
+        or 'preferredRendererType: Shape.CurveRenderer' not in superellipse):
+    errors.append('Superellipse visuals must use Qt Quick Shapes CurveRenderer for native high-quality edge antialiasing')
+if superellipse.find('SceneGraphSuperellipse {') > superellipse.find('Shape {\n        id: renderedShape'):
+    errors.append('SceneGraphSuperellipse may only remain as the non-visual containment helper, never the visual surface')
+
+scene_graph_stroke = (ui/'render'/'scene_graph_stroke_item.cpp').read_text(encoding='utf-8')
+scene_graph_surface = (ui/'render'/'scene_graph_superellipse_item.cpp').read_text(encoding='utf-8')
+for renderer_name, renderer_text in (
+    ('SceneGraphStroke', scene_graph_stroke),
+    ('SceneGraphSuperellipse', scene_graph_surface),
+):
+    if 'updatePaintNode' not in renderer_text or 'QSGGeometryNode' not in renderer_text:
+        errors.append(f'{renderer_name} must render through QQuickItem::updatePaintNode and QSGGeometryNode')
+    if 'QQuickPaintedItem' in renderer_text:
+        errors.append(f'{renderer_name} must never fall back to QQuickPaintedItem')
+    if 'QSGMaterial::Blending' not in renderer_text:
+        errors.append(f'{renderer_name} must enable premultiplied-alpha blending for feathered HiDPI edges')
+if 'render/scene_graph_stroke_item.cpp' not in cmake or 'render/scene_graph_superellipse_item.cpp' not in cmake:
+    errors.append('Scene Graph renderer sources must remain registered in the Farcaster.Client QML module')
+
+# Runtime-sensitive contracts discovered through real Qt 6.11 execution.
+# Popup itself is not a QQuickItem, so item-only attached properties must live
+# on its content item rather than the GenyModal root object.
+locale_popup = (ui/'components'/'LocaleSettingsPopup.qml').read_text(encoding='utf-8')
+locale_root_prefix = locale_popup.split('contentItem:', 1)[0]
+if 'Accessible.' in locale_root_prefix:
+    errors.append('LocaleSettingsPopup attaches Accessible to Popup instead of its content Item')
+if 'LayoutMirroring.' in locale_root_prefix:
+    errors.append('LocaleSettingsPopup attaches LayoutMirroring to Popup instead of its content Item')
+if re.search(r'Layout\.(?:maximumWidth|minimumWidth|preferredWidth)\s*:\s*[^\n]*parent\.width', locale_popup):
+    errors.append('LocaleSettingsPopup Layout width constraints must not derive from their RowLayout parent width')
+if 'DisplayScaleControl {' not in locale_popup:
+    errors.append('Display settings must use the dedicated Genycaster scale control rather than stock slider rows')
+
+combo = (ui/'components'/'GenyComboBox.qml').read_text(encoding='utf-8')
+if 'required property int index' not in combo:
+    errors.append('GenyComboBox delegate must declare its injected index role explicitly')
+
+cast_item = (ui/'components'/'CastItem.qml').read_text(encoding='utf-8')
+if re.search(r'Layout\.(?:maximumWidth|minimumWidth|preferredWidth)\s*:\s*[^\n]*parent\.width', cast_item):
+    errors.append('CastItem Layout constraint depends on its RowLayout parent width and can recurse')
+
+
+# Discovery/profile chrome contracts from the profile polish pass.
+side_navigation = (ui/'components'/'SideNavigation.qml').read_text(encoding='utf-8')
+app_header = (ui/'components'/'AppHeader.qml').read_text(encoding='utf-8')
+feed_header = (ui/'components'/'FeedHeader.qml').read_text(encoding='utf-8')
+profile_surface = (ui/'components'/'ProfileSurface.qml').read_text(encoding='utf-8')
+feed_surface = (ui/'components'/'FeedSurface.qml').read_text(encoding='utf-8')
+if 'ProfileTrustCard {' not in side_navigation:
+    errors.append('Desktop navigation must include the compact Trust/Profile card required by the social shell')
+if 'genycaster.feed_header.search_people_channels_casts' not in feed_header or 'signal searchRequested(string query)' not in feed_header:
+    errors.append('Explore must expose one unified search field for profiles, channels, and casts')
+search_palette = (ui/'components'/'SearchPalette.qml').read_text(encoding='utf-8')
+if 'signal searchRequested(string query)' not in search_palette or 'feed_header.search_people_channels_casts' not in search_palette:
+    errors.append('First-class search palette must support people, channels, and casts')
+if 'showProfileUrl' not in profile_surface or 'showLocation' not in profile_surface or 'metadataKey' not in profile_surface:
+    errors.append('Profile metadata must de-duplicate username, URL, and location values')
+if re.search(r'RichText\s*\{[^{}]*onAuthenticationRequested\s*:', profile_surface, re.S):
+    errors.append('Profile RichText cannot handle authenticationRequested; route auth only through interactive controls')
+empty_state = (ui/'components'/'EmptyState.qml').read_text(encoding='utf-8')
+if 'visible: root.idleHome || root.trendingUnavailable' in empty_state:
+    errors.append('Guest Explore source failure must not expose identity as a recovery action')
+
+app_shell = (ui/'components'/'AppShell.qml').read_text(encoding='utf-8')
+if 'passiveGuestDiscoveryFailure' not in app_shell:
+    errors.append('Guest Explore source failures must stay inline instead of becoming a global status warning')
+if 'profileList.verticalOvershoot' not in profile_surface or 'readList.verticalOvershoot' not in feed_surface:
+    errors.append('Pull-to-refresh hints must use overshoot rather than absolute contentY')
+if 'fillColor: "transparent"' not in cast_item \
+        or 'HoverHandler { id: messageHover }' in cast_item \
+        or 'anchors.leftMargin: root.contentRtl ? Theme.space3 : 58' not in cast_item \
+        or 'anchors.rightMargin: root.contentRtl ? 58 : Theme.space3' not in cast_item:
+    errors.append('Cast timeline must remain flat without hover recoloring and use a direction-aware content divider')
+if 'root.modelData.parentCastId || ""' in cast_item and 'text: root.ltrText(root.modelData.parentCastId' in cast_item:
+    errors.append('Reply context must not expose raw parent cast identifiers')
+
+# Genycaster 2026 native social redesign contracts.
+if 'readonly property real superellipseExponent: 4.0' not in theme_text:
+    errors.append('Genycaster primary shape language must use mathematical superellipse exponent n=4')
+for token in (
+    'breakpointMobile: 600',
+    'breakpointNarrow: 900',
+    'breakpointCompactDesktop: 1200',
+    'breakpointLargeDesktop: 1440',
+    'navigationWidth: 352',
+    'contextRailWidth: 416',
+):
+    if token not in theme_text:
+        errors.append(f'Native adaptive design contract is missing {token}')
+if 'HomeFeedHeader {' not in app_shell or 'recentPosterProfiles(presentationBridge.rows' not in app_shell:
+    errors.append('Home must preserve the real feed bridge and derive recent-profile chrome from live feed rows')
+if 'MobileCreateMenu {' not in app_shell:
+    errors.append('Mobile Create must expand into the Genycaster-specific creation surface')
+if 'ContextRail {' not in app_shell or 'contextDrawer.open()' not in app_shell:
+    errors.append('Compact desktop must keep the context rail available through a collapsible drawer')
+for component in ('EmbedPreview.qml', 'LinkPreview.qml', 'VideoPreview.qml', 'CollectiblePreview.qml', 'GalleryLayout.qml'):
+    if not (ui/'components'/component).exists():
+        errors.append(f'Semantic media presentation component missing: {component}')
+media_gallery = (ui/'components'/'MediaGallery.qml').read_text(encoding='utf-8')
+link_preview_media = (ui/'components'/'LinkPreview.qml').read_text(encoding='utf-8')
+if 'id: fullImage' not in media_gallery or 'fillMode: Image.PreserveAspectFit' not in media_gallery:
+    errors.append('Fullscreen MediaGallery must PreserveAspectFit so user media is never cropped')
+if ('id: miniAppPoster' not in link_preview_media
+        or 'previewImageAspect' not in link_preview_media
+        or not re.search(r'id:\s*miniAppPoster[\s\S]{0,900}fillMode:\s*Image\.PreserveAspectFit', link_preview_media)):
+    errors.append('Mini App discovery artwork must use metadata-aware PreserveAspectFit presentation')
+home_dashboard = (ui/'components'/'HomeDashboard.qml').read_text(encoding='utf-8')
+if 'recentActivity' in home_dashboard or 'component ActivityRow' in home_dashboard:
+    errors.append('Home dashboard must not instantiate the removed duplicate Recent Activity widget column')
+if 'readonly property bool compactActions: width < 620' not in home_dashboard:
+    errors.append('Home composer actions must collapse secondary labels before the primary Cast action can overflow')
+if 'readonly property bool curateHomeForYou: false' not in feed_surface:
+    errors.append('For You pagination must preserve stable source order; semantic presentation must not reorder existing casts')
+cast_embeds_panel = (ui/'components'/'CastEmbedsPanel.qml').read_text(encoding='utf-8')
+if ('CastEmbedsPanel {' not in cast_item
+        or 'GalleryLayout {' not in cast_embeds_panel
+        or 'EmbedPreview {' not in cast_embeds_panel):
+    errors.append('Cast presentation must route semantic embeds and multi-image composition through CastEmbedsPanel')
+
+remote_provider = ((ui/'mobile'/'remote_image_provider.hpp').read_text(encoding='utf-8') +
+                   (ui/'mobile'/'remote_image_provider.cpp').read_text(encoding='utf-8'))
+if ('QQuickAsyncImageProvider' not in remote_provider
+        or 'transparentFailureImage' not in remote_provider
+        or 'failedRequests' not in remote_provider):
+    errors.append('Remote image provider must remain async, back off repeated failures, and return a quiet fallback')
+
+# RTL/bidi contracts: UI geometry is explicit; content direction stays independent.
+main_qml = (ui/'mobile'/'Main.qml').read_text(encoding='utf-8')
+if 'LayoutMirroring.enabled: localizationController.rightToLeft' in main_qml:
+    errors.append('Main.qml must not globally mirror the QML tree; it double-mirrors explicit UI layouts')
+if 'LayoutMirroring.enabled: false' not in main_qml:
+    errors.append('Main.qml must explicitly disable global tree mirroring')
+
+for chrome_name in ('AppHeader.qml', 'SideNavigation.qml', 'BottomNavigation.qml', 'FeedHeader.qml', 'StatusStrip.qml'):
+    chrome_text = (ui/'components'/chrome_name).read_text(encoding='utf-8')
+    if 'RowLayout {' in chrome_text and 'layoutDirection: Theme.uiDirection' not in chrome_text:
+        errors.append(f'{chrome_name} must direct application-chrome RowLayouts explicitly')
+
+# Every horizontal application layout must declare a direction. This catches
+# accidental dependence on inherited/global mirroring before it reaches runtime.
+for qml_path in ui.rglob('*.qml'):
+    qml_lines = qml_path.read_text(encoding='utf-8').splitlines()
+    for line_index, line in enumerate(qml_lines):
+        if not any(token in line for token in ('RowLayout {', 'GridLayout {', 'Flow {')):
+            continue
+        nearby = '\n'.join(qml_lines[line_index:line_index + 20])
+        if 'layoutDirection:' not in nearby:
+            errors.append(f'Horizontal layout lacks explicit direction: {qml_path.relative_to(root)}:{line_index + 1}')
+
+combo = (ui/'components'/'GenyComboBox.qml').read_text(encoding='utf-8')
+if 'measuredTextWidth' not in combo or 'naturalPopupWidth' not in combo:
+    errors.append('GenyComboBox popup must size from the widest model text')
+if 'x: Theme.rtl ? control.width - width : 0' not in combo:
+    errors.append('GenyComboBox popup must align to logical start in RTL and LTR')
+if 'elide: Text.ElideNone' not in combo:
+    errors.append('GenyComboBox popup entries must not elide valid option labels')
+
+cast_item = (ui/'components'/'CastItem.qml').read_text(encoding='utf-8')
+if cast_item.count('layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight') < 4:
+    errors.append('CastItem nested horizontal layouts must consistently follow cast-content direction')
+
+# R5 navigation, typography and client-shell contracts.
+theme = (ui/'theme'/'Theme.qml').read_text(encoding='utf-8')
+if 'bundledPersianFontFamily' not in theme:
+    errors.append('R5 must prefer the application-bundled Persian font over system availability')
+if 'QFontDatabase::addApplicationFont' not in main_cpp or 'Vazirmatn-Regular.ttf' not in main_cpp:
+    errors.append('R5 must load the embedded Persian font family through QFontDatabase')
+if 'GENYCASTER_FETCH_UI_FONT' not in cmake or 'qt_add_resources(farcaster_client genycaster_ui_fonts' not in cmake:
+    errors.append('R5 CMake must acquire and embed the pinned Persian UI font family')
+if 'iconFontFamily' not in theme or 'iconGlyph' not in theme:
+    errors.append('R6 icon system must use the bundled canonical icon font through semantic names')
+if 'GENYCASTER_FETCH_ICON_FONT' not in cmake or 'fa-regular-400.ttf' not in cmake or 'fa-solid-900.ttf' not in cmake:
+    errors.append('R6 must acquire and embed Font Awesome Free Regular + Solid icon fonts')
+if 'GENYCASTER_FETCH_SCRIPT_FONTS' not in cmake or 'NotoSansDevanagari.ttf' not in cmake:
+    errors.append('R6 must bundle script-specific shaping coverage for multilingual UI')
+side_nav = (ui/'components'/'SideNavigation.qml').read_text(encoding='utf-8')
+
+# Custom navigation signal handlers must match signals exported by SideNavigation.
+# This catches QML load failures such as stale onFollowingListRequested handlers
+# after a navigation contract refactor.
+side_nav_signals = set(re.findall(r'^\s*signal\s+([A-Za-z_]\w*)\s*\(', side_nav, re.M))
+try:
+    side_nav_binding = app_shell.split('SideNavigation {', 1)[1].split('\n        }\n\n        Item {', 1)[0]
+except IndexError:
+    errors.append('AppShell SideNavigation binding block could not be located')
+else:
+    for handler_name in re.findall(r'\bon([A-Z][A-Za-z0-9_]*Requested)\s*:', side_nav_binding):
+        signal_name = handler_name[0].lower() + handler_name[1:]
+        if signal_name not in side_nav_signals:
+            errors.append(f'AppShell handles SideNavigation.{signal_name}, but SideNavigation does not export that signal')
+
+for nav_id in ('channels', 'notifications', 'store', 'business', 'messages', 'bookmarks'):
+    if f'routeRequested("{nav_id}")' not in side_nav:
+        errors.append(f'R5 sidebar is missing roadmap destination: {nav_id}')
+bottom_nav = (ui/'components'/'BottomNavigation.qml').read_text(encoding='utf-8')
+for token in ('bottom_nav.home', 'side_nav.explorer', 'bottom_nav.create', 'apps.title', 'settings.title'):
+    if token not in bottom_nav:
+        errors.append(f'vNext five-destination mobile navigation is missing {token}')
+icon = (ui/'components'/'Icon.qml').read_text(encoding='utf-8')
+if ('Theme.iconSource(root.text, root.filled)' not in icon
+        or 'icon.source: root.source' not in icon
+        or 'Theme.iconGlyph(root.text)' not in icon):
+    errors.append('vNext icons must prefer semantic Solar SVGs while retaining the bounded font fallback')
+
+composer_drawer = (ui/'components'/'ComposerDrawer.qml').read_text(encoding='utf-8')
+geny_drawer = (ui/'components'/'GenyDrawer.qml').read_text(encoding='utf-8')
+if ('bottomSheet: true' not in composer_drawer
+        or 'RichTextEditor' not in composer_drawer
+        or 'FarcasterPreview' not in composer_drawer
+        or 'richComposer.safeText' not in composer_drawer):
+    errors.append('R7 composer must be a bottom drawer backed by the native rich-document engine and safe preview')
+if 'FloatingComposeButton' not in app_shell or 'onComposeRequested: root.openComposer(null)' not in app_shell:
+    errors.append('R6 compose entry point must be a floating action, not sidebar chrome')
+floating_compose = (ui/'components'/'FloatingComposeButton.qml').read_text(encoding='utf-8')
+floating_block = app_shell.split('FloatingComposeButton {', 1)[1].split('\n    Shortcut {', 1)[0]
+if ('width: implicitWidth' not in floating_compose
+        or 'height: implicitHeight' not in floating_compose
+        or re.search(r'anchors\.(?:left|right)\s*:\s*Theme\.rtl', floating_block)
+        or 'x: Theme.rtl' not in floating_block):
+    errors.append('Floating compose geometry must use explicit size/x positioning and never swap left/right anchors during live RTL changes')
+if 'header.new_cast' in side_nav:
+    errors.append('R6 sidebar must not contain the New Cast primary action')
+backdrop_blur_path = ui/'components'/'BackdropBlur.qml'
+if backdrop_blur_path.exists():
+    errors.append('Drawers must use the shared GenyDrawer frost pipeline instead of an ad-hoc BackdropBlur component')
+drawer_backdrop = (ui/'components'/'DrawerBackdrop.qml').read_text(encoding='utf-8')
+if 'DrawerBackdrop {' not in geny_drawer or 'blurSourceItem' not in geny_drawer:
+    errors.append('GenyDrawer must route environment blur through the shared DrawerBackdrop')
+if 'ShaderEffectSource {' not in drawer_backdrop or 'MultiEffect {' not in drawer_backdrop:
+    errors.append('DrawerBackdrop must blur the application environment through ShaderEffectSource + MultiEffect')
+if 'fillColor: Theme.surfaceElevated' not in geny_drawer:
+    errors.append('GenyDrawer surface must remain opaque while the environment behind it is blurred')
+if 'PopupSurface {' not in geny_drawer:
+    errors.append('GenyDrawer must retain a tinted PopupSurface over the frosted backdrop')
+# Read-only code must use TextEdit when mouse selection is enabled. Qt Quick Text
+# does not expose selectByMouse; using it makes the entire QML type chain fail at runtime.
+code_block_view = (ui/'components'/'CodeBlockView.qml').read_text(encoding='utf-8')
+if re.search(r'\bText\s*\{(?:(?!\n\s*\}).)*?\bid\s*:\s*codeText(?:(?!\n\s*\}).)*?\bselectByMouse\s*:', code_block_view, re.S):
+    errors.append('CodeBlockView codeText must be a read-only TextEdit when selectByMouse is enabled')
+if 'TextEdit {' not in code_block_view or 'id: codeText' not in code_block_view or 'readOnly: true' not in code_block_view:
+    errors.append('CodeBlockView codeText must remain a selectable read-only TextEdit')
+code_text_match = re.search(r'\bTextEdit\s*\{\s*\n\s*id\s*:\s*codeText(?P<body>.*?)(?=\n\s*\})', code_block_view, re.S)
+if code_text_match and re.search(r'^\s*lineHeight\s*:', code_text_match.group('body'), re.M):
+    errors.append('Qt 6.11 TextEdit does not expose lineHeight; encode code-view line spacing in the sanitized rich-text <pre> style instead')
+if "line-height:1.5" not in code_block_view:
+    errors.append('CodeBlockView must preserve code line spacing through its sanitized <pre> rich-text style')
+
+if 'GenyDrawer {' not in locale_popup or 'bottomSheet:' not in locale_popup:
+    errors.append('R6 settings must use the responsive drawer architecture')
+
+# Mini App multi-window lifecycle and media hot-path regression contracts.
+miniapp_runtime = (ui/'mobile'/'miniapp_runtime.cpp').read_text(encoding='utf-8')
+miniapp_browser = (ui/'mobile'/'miniapp_browser.hpp').read_text(encoding='utf-8')
+miniapp_macos = (ui/'mobile'/'miniapp_browser_macos.mm').read_text(encoding='utf-8')
+if ('supportsParallelWindowVisibility' not in miniapp_runtime
+        or 'activate(*target, false)' not in miniapp_runtime
+        or 'QStringLiteral("background")' not in miniapp_runtime):
+    errors.append('Mini App Window presentation must preserve parallel visible sessions while tracking one active task')
+if ('std::function<void()> activated' not in miniapp_browser
+        or 'windowDidBecomeKey' not in miniapp_macos
+        or 'm_callbacks.activated' not in miniapp_macos):
+    errors.append('Native Mini App windows must report activation so foreground authority follows the focused window')
+video_preview = (ui/'components'/'VideoPreview.qml').read_text(encoding='utf-8')
+media_preview = (ui/'components'/'MediaPreview.qml').read_text(encoding='utf-8')
+video_player = (ui/'components'/'GenyVideoPlayer.qml').read_text(encoding='utf-8')
+if 'framePrimeArmed' in video_preview or 'eager: true' in video_preview or 'primeFrame: false' not in video_preview:
+    errors.append('Feed video previews must stay decoder-free until explicit playback')
+if 'eager: true' in media_preview or 'primeFrame: false' not in media_preview:
+    errors.append('Composer media previews must not decode hidden video frames to manufacture thumbnails')
+if 'QtQuick.Effects' in video_player or 'layer.effect: MultiEffect' in video_player:
+    errors.append('Canonical video playback must keep decoded frames off the offscreen MultiEffect hot path')
+if 'return stableRows.count < root.filterTargetCount' not in feed_surface:
+    errors.append('Filtered feed prefetch must reuse stableRows instead of reclassifying sourceRows during scroll')
+
+appearance_header = (root/'src'/'presentation'/'qt'/'appearance_controller.hpp').read_text(encoding='utf-8')
+appearance_source = (root/'src'/'presentation'/'qt'/'appearance_controller.cpp').read_text(encoding='utf-8')
+if ('Q_PROPERTY(qreal fontScale' not in appearance_header
+        or 'Q_PROPERTY(qreal interfaceScale' not in appearance_header
+        or 'appearance/fontScale' not in appearance_source
+        or 'appearance/interfaceScale' not in appearance_source):
+    errors.append('Appearance must persist independent text and interface scaling through the presentation controller')
+if ('readonly property real fontScale: appearanceController.fontScale' not in theme_text
+        or 'readonly property real interfaceScale: appearanceController.interfaceScale' not in theme_text):
+    errors.append('Theme must apply persisted text/interface scales through semantic tokens')
+miniapp_preview = (ui/'components'/'MiniAppPresentationPreview.qml').read_text(encoding='utf-8')
+if ('presentationCard' not in locale_popup
+        or 'MiniAppPresentationPreview {' not in locale_popup
+        or 'readonly property bool sidePanel' not in miniapp_preview
+        or 'readonly property bool bottomPanel' not in miniapp_preview
+        or 'readonly property bool floatingWindow' not in miniapp_preview
+        or 'id: titleBar' not in miniapp_preview
+        or 'id: navRail' not in miniapp_preview
+        or 'id: miniAppPanel' not in miniapp_preview):
+    errors.append('Mini App presentation settings must use detailed graphical placement previews instead of a text-only selector')
+if re.search(r'anchors\.(?:left|right|top|bottom)Margin\s*:\s*-', miniapp_preview):
+    errors.append('Mini App presentation previews must keep selection and chrome inside the card bounds')
+if 'root.bottomPanel ? workspace.width * 0.56' not in miniapp_preview:
+    errors.append('Bottom Mini App preview must communicate the constrained vertical modal width')
+
+display_scale = (ui/'components'/'DisplayScaleControl.qml').read_text(encoding='utf-8')
+if 'Theme.success' in display_scale:
+    errors.append('Display scale controls must use one accent language and never mix success green into sizing state')
+if 'LocaleFormat.formatInteger(root.valuePercent)' not in display_scale:
+    errors.append('Display scale percentage labels must react to runtime locale digit changes')
+
+superellipse_qml = (ui/'components'/'Superellipse.qml').read_text(encoding='utf-8')
+if ('preferredRendererType: Shape.CurveRenderer' not in superellipse_qml
+        or 'PathCubic {' not in superellipse_qml
+        or 'PathSvg {' in superellipse_qml
+        or 'SceneGraphSuperellipse {' in superellipse_qml
+        or 'Shape.FillContains' in superellipse_qml
+        or 'cubicFactor' not in superellipse_qml):
+    errors.append('Superellipse visuals must use one stable declarative Qt Shape.CurveRenderer path without legacy QSG geometry, dynamic SVG paths, or expensive shared FillContains hit testing')
+if 'allowsBackForwardNavigationGestures = disableNativeGestures' in miniapp_macos:
+    errors.append('Farcaster disableNativeGestures must not be misapplied to WebKit history-navigation gestures')
+show_status_block = miniapp_macos.split('- (void)showStatus:', 1)[1].split('- (void)showReady', 1)[0]
+if ('genycasterHostWindow()' not in miniapp_macos
+        or 'static __weak NSWindow* cachedHostWindow' not in miniapp_macos):
+    errors.append('Native Mini App drawers must remain anchored to the stable Qt host window instead of NSApp.mainWindow after another Mini App becomes key')
+if ('m_web = nil;' in show_status_block
+        or 'removeScriptMessageHandlerForName' in show_status_block):
+    errors.append('WKWebView teardown must not happen reentrantly inside WebKit failure callbacks; cleanup belongs to dispose')
+if ('[[nodiscard]] bool valid() const noexcept' not in miniapp_macos
+        or 'if (!browser->valid())' not in miniapp_macos):
+    errors.append('macOS Mini App browser construction must fail closed before dereferencing an unavailable native window/WebView')
+
+# Dynamic strokes update far more often than card silhouettes. Keep them on
+# Qt Shapes GeometryRenderer with a small local 4x MSAA layer; this avoids
+# CurveRenderer preprocessing churn while retaining high-quality edges.
+vector_stroke = (ui/'components'/'VectorStroke.qml').read_text(encoding='utf-8')
+if ('import QtQuick.Shapes' not in vector_stroke
+        or vector_stroke.count('preferredRendererType: Shape.GeometryRenderer') < 3
+        or vector_stroke.count('layer.samples: 4') < 3
+        or 'asynchronous: true' in vector_stroke
+        or 'PathAngleArc {' not in vector_stroke
+        or 'PathPolyline {' not in vector_stroke
+        or 'PathCubic {' not in vector_stroke):
+    errors.append('VectorStroke must use synchronous Qt Shapes GeometryRenderer plus local 4x MSAA for dynamic arcs, sparklines, and rounded outlines')
+for visual_path in (ui/'components').glob('*.qml'):
+    if visual_path.name == 'VectorStroke.qml':
+        continue
+    if re.search(r'\bSceneGraphStroke\s*\{', visual_path.read_text(encoding='utf-8')):
+        errors.append(f'Legacy SceneGraphStroke visual remains in production QML: {visual_path.relative_to(root)}')
+
+progress_ring = (ui/'components'/'ProgressRing.qml').read_text(encoding='utf-8')
+profile_trust = (ui/'components'/'ProfileTrustCard.qml').read_text(encoding='utf-8')
+if ('preferredRendererType: Shape.CurveRenderer' not in progress_ring
+        or 'ProgressRing {' not in profile_trust
+        or 'VectorStroke {' in profile_trust.split('id: scoreRing', 1)[1].split('}', 1)[0]):
+    errors.append('Profile trust ring must use the mostly-static CurveRenderer progress primitive instead of dynamic VectorStroke geometry')
+
+animated_emoji = (ui/'components'/'AnimatedEmoji.qml').read_text(encoding='utf-8')
+if ('readonly property bool insideViewport: {' in animated_emoji
+        or 'while (node !== null)' in animated_emoji
+        or 'Qt.callLater(() =>' in animated_emoji
+        or 'property var scrollHost' not in animated_emoji
+        or 'id: viewportTimer' not in animated_emoji):
+    errors.append('Animated emoji must sample viewport state outside the contentY hot path and avoid delayed closures that can outlive recycled delegates')
+
+if ('deduplicatedEmbeds' not in cast_embeds_panel
+        or 'supportingWithoutVisualDuplicates' not in cast_embeds_panel):
+    errors.append('Cast embed panel must deduplicate repeated URL/media embeds before laying out the grid')
+rich_cast_renderer = (ui/'components'/'RichCastRenderer.qml').read_text(encoding='utf-8')
+if ('suppressedEmbedUrls' not in rich_cast_renderer
+        or 'blockSuppressed' not in rich_cast_renderer
+        or 'suppressedEmbedUrls: root.protocolEmbedUrls' not in cast_item):
+    errors.append('Protocol embed cards must suppress matching local rich-sidecar embed blocks so links are rendered once')
+
+# Locale changes are live state changes. Both explicit Theme font bindings and
+# controls inheriting the application font must invalidate without a restart.
+if ('localeFontRevision' not in theme_text
+        or 'const revision = localeFontRevision' not in theme_text):
+    errors.append('Theme font bindings must depend on localization revision for live script/font changes')
+if ('&LocalizationController::localeChanged' not in main_cpp
+        or 'application.setFont(localeFont);' not in main_cpp):
+    errors.append('Application default font must follow LocalizationController::localeChanged at runtime')
+locale_format = (ui/'components'/'LocaleFormat.qml').read_text(encoding='utf-8')
+if ('pragma Singleton' not in locale_format
+        or 'localizationController.revision' not in locale_format
+        or 'function formatInteger' not in locale_format
+        or 'function formatNumber' not in locale_format):
+    errors.append('LocaleFormat must expose revision-aware reactive number/time formatting for runtime language changes')
+for qml_path in ui.rglob('*.qml'):
+    if qml_path.name == 'LocaleFormat.qml':
+        continue
+    qml_text = qml_path.read_text(encoding='utf-8')
+    if re.search(r'localizationController\.(?:formatIdentifier|formatNumber|formatInteger|formatCompactNumber|calendarMonthModel|formatTimestamp|formatRelativeTime|formatDateTime|formatCurrency|formatMonetaryUnit|formatAssetQuote)\s*\(', qml_text):
+        errors.append(f'Locale-sensitive formatter bypasses LocaleFormat revision facade: {qml_path.relative_to(root)}')
+localization_cpp = (root/'src'/'presentation'/'qt'/'localization_controller.cpp').read_text(encoding='utf-8')
+if 'qFatal(' in localization_cpp:
+    errors.append('User-triggered locale/catalog recovery must never terminate the process with qFatal')
+
+# Profile/cast/detail surfaces must not reintroduce the large empty vertical
+# reservations that made wide profile and conversation views feel sparse.
+profile_surface = (ui/'components'/'ProfileSurface.qml').read_text(encoding='utf-8')
+detail_surface = (ui/'components'/'DetailSurface.qml').read_text(encoding='utf-8')
+if ': (root.compact ? 56 : 64)' not in profile_surface:
+    errors.append('Profile no-banner state must stay compact instead of reserving a decorative hero void')
+if 'Theme.space9 + 72' in detail_surface:
+    errors.append('DetailSurface must not append the legacy oversized bottom dead-space reservation')
+if ('implicitHeight: messageRow.implicitHeight + Theme.space2' not in cast_item
+        or 'implicitHeight: messageContent.implicitHeight + Theme.space2 * 2' not in cast_item):
+    errors.append('CastItem vertical rhythm must retain the compact desktop density contract')
+
+rendering_popup = (ui/'components'/'RenderingSettingsPopup.qml').read_text(encoding='utf-8')
+adaptive_dialog = (ui/'components'/'GenyAdaptiveDialog.qml').read_text(encoding='utf-8')
+accent_studio = (ui/'components'/'AccentColorStudio.qml').read_text(encoding='utf-8')
+feedback_dialog = (ui/'components'/'FeedbackDialog.qml').read_text(encoding='utf-8')
+if ('contentItem: ScrollView {' not in rendering_popup
+        or 'readonly property int qualityColumns: compactLayout ? 1 : 3' not in rendering_popup
+        or 'readonly property bool recommended: modelData.id === "adaptive"' not in rendering_popup
+        or 'root.hostWidth < Theme.breakpointNarrow ? 620 : 780' not in rendering_popup
+        or 'GenyAdaptiveDialog {' not in rendering_popup):
+    errors.append('Rendering settings must remain responsive, mobile-drawer aware, and identify Adaptive as the recommended Qt-aligned default')
+if ('GenyModal {' not in adaptive_dialog
+        or 'GenyDrawer {' not in adaptive_dialog
+        or 'bottomSheet: true' not in adaptive_dialog
+        or 'compactPresentation: parent ? parent.width < Theme.breakpointMobile' not in adaptive_dialog
+        or 'GenyAdaptiveDialog {' not in accent_studio
+        or 'GenyAdaptiveDialog {' not in feedback_dialog):
+    errors.append('Transient settings/feedback dialogs must use a true bottom Drawer on mobile and a centered modal on desktop')
+locale_settings = (ui/'components'/'LocaleSettingsPopup.qml').read_text(encoding='utf-8')
+if ('readonly property bool mobilePresentation: parent ? parent.width < Theme.breakpointMobile' not in locale_settings
+        or 'bottomSheet: mobilePresentation' not in locale_settings):
+    errors.append('Settings presentation must use the same semantic mobile breakpoint as all other adaptive dialogs')
+
+action_button = (ui/'components'/'ActionButton.qml').read_text(encoding='utf-8')
+apps_surface = (ui/'components'/'AppsSurface.qml').read_text(encoding='utf-8')
+task_manager = (ui/'components'/'TaskManagerPopup.qml').read_text(encoding='utf-8')
+if ('property bool positive: false' not in action_button
+        or 'Theme.success' not in action_button
+        or 'positive: cardCell.runtimeState === "foreground"' not in apps_surface
+        or ('positive: taskCard.foreground' not in task_manager
+            and 'positive: Boolean(taskCard.modelData.foreground)' not in task_manager)):
+    errors.append('Focused Mini App actions must retain the positive/success visual state')
+if ('compactPresentation: parent ? parent.width < Theme.breakpointMobile' not in task_manager
+        or 'GenyModal {' not in task_manager
+        or 'GenyDrawer {' not in task_manager
+        or 'bottomSheet: true' not in task_manager):
+    errors.append('Task Manager must present as a bottom drawer on mobile and a dialog on desktop')
+if 'Layout.preferredHeight: contentRoot.listHeight' not in task_manager:
+    errors.append('Task Manager list must remain content-driven instead of reserving a tall empty modal')
+
+if ('const CGFloat panelWidth = MIN(width, 424.0);' not in miniapp_macos
+        or 'MIN(755.0' not in miniapp_macos):
+    errors.append('Native Mini App surface must preserve the Farcaster 424x695 web reference plus host chrome')
+if 'kCACornerCurveContinuous' not in miniapp_macos:
+    errors.append('Native macOS Mini App drawers must use continuous native corner curves')
+if ('session.browser->ready(disableNativeGestures);' not in miniapp_runtime
+        or 'QStringLiteral("disableNativeGestures")' not in miniapp_runtime):
+    errors.append('Mini App ready() must honor the Farcaster disableNativeGestures option')
+if ('QStringLiteral("open_miniapp")' not in miniapp_runtime
+        or 'referrerDomain' not in miniapp_runtime
+        or 'completeOpenMiniAppHandoff' not in miniapp_runtime):
+    errors.append('openMiniApp must provide referral context and close the source only after successful target readiness')
+capabilities_block = miniapp_runtime.split('[[nodiscard]] QJsonArray capabilities', 1)[1].split('[[nodiscard]] QJsonArray chains', 1)[0]
+if 'actions.addMiniApp' in capabilities_block:
+    errors.append('Host must not advertise addMiniApp until signed Farcaster server events and notification delivery exist')
+
+profile_provider = (root/'src'/'providers'/'hypersnap'/'profile.cpp').read_text(encoding='utf-8')
+async_profile_provider = (root/'src'/'providers'/'hypersnap'/'async_gateway.cpp').read_text(encoding='utf-8')
+for provider_text in (profile_provider, async_profile_provider):
+    if 'bannerUserDataType{"10"}' not in provider_text or 'currentBannerUserDataType{"11"}' in provider_text:
+        errors.append('Farcaster banner enrichment must use canonical UserDataType 10 and must not reinterpret type 11 as a banner')
+remote_image_provider = (ui/'mobile'/'remote_image_provider.cpp').read_text(encoding='utf-8')
+if 'appendIfSupported("image/avif")' in remote_image_provider or 'appendIfSupported("image/heic")' in remote_image_provider:
+    errors.append('Remote social-image negotiation must stay on conservative WebP/PNG/JPEG-class formats instead of optional AVIF/HEIC readers that can fail on CDN variants')
+if ('mediaCompatibilityAcceptHeader' not in remote_image_provider
+        or 'compatibilityAttempt' not in remote_image_provider):
+    errors.append('Remote social images must retry decode failures with a conservative JPEG/PNG-first CDN negotiation before returning the transparent sentinel')
+superellipse_image = (ui/'components'/'SuperellipseImage.qml').read_text(encoding='utf-8')
+if ('property bool showLoadingIndicator: true' not in superellipse_image
+        or 'readonly property bool loading:' not in superellipse_image
+        or 'GenySpinner {' not in superellipse_image
+        or 'layer.effect: root.maskActive ? maskEffectComponent : null' not in superellipse_image
+        or 'id: maskEffectComponent' not in superellipse_image
+        or 'MultiEffect {' not in superellipse_image
+        or 'retainPreviousWhileLoading' not in superellipse_image):
+    errors.append('Remote image surfaces must expose stable loading states, direct image-layer masking, and retain decoded content when supported')
+if 'source: imageSource' in superellipse_image:
+    errors.append('SuperellipseImage must not restore the hidden-image sibling MultiEffect proxy path used before Fixed 9')
+if ('popupZ: 10000' not in accent_studio
+        or 'Qt.callLater(function() { root.open() })' not in accent_studio
+        or 'z: control.popupZ' not in adaptive_dialog
+        or 'AccentColorStudio {' not in app_shell
+        or 'onCustomAccentStudioRequested: color => accentColorStudio.openWith(color)' not in app_shell
+        or 'AccentColorStudio {' in locale_settings):
+    errors.append('Custom Accent must open as a top-level overlay sibling rather than a nested settings Drawer child')
+link_preview = (ui/'components'/'LinkPreview.qml').read_text(encoding='utf-8')
+embed_preview = (ui/'components'/'EmbedPreview.qml').read_text(encoding='utf-8')
+if ('metadataManagedExternally' not in link_preview
+        or 'externalPreview: root.linkMetadata' not in embed_preview
+        or 'metadataManagedExternally: true' not in embed_preview):
+    errors.append('Embed and Link previews must share one metadata resolution result instead of issuing duplicate requests')
+if 'width / 6.0' in profile_surface or 'bannerAspectRatio' not in profile_surface:
+    errors.append('Profile banners must keep a readable cover aspect instead of the legacy ultra-wide 6:1 strip')
+
+if errors:
+    print('UI design guard failed:')
+    for e in errors:
+        print(' -', e)
+    sys.exit(1)
+print(f'UI design guard passed: {len(discovered)} QML files audited.')

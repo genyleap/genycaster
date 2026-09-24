@@ -8,6 +8,12 @@ if(APPLE)
     find_library(FARCASTER_SQLITE3_LIBRARY NAMES sqlite3 REQUIRED)
 else()
     find_package(SQLite3 REQUIRED)
+    # CMake 4.3 introduced SQLite3::SQLite3 and deprecated SQLite::SQLite3.
+    # Keep the project baseline compatible with CMake 3.30+ by providing the
+    # modern target name as an alias when an older FindSQLite3 module is used.
+    if(NOT TARGET SQLite3::SQLite3)
+        add_library(SQLite3::SQLite3 ALIAS SQLite::SQLite3)
+    endif()
 endif()
 
 # Shared private SQLite ABI/migration boundary. Keeping this target separate
@@ -21,7 +27,7 @@ target_include_directories(farcaster_storage_sqlite_boundary PUBLIC "${CMAKE_CUR
 if(APPLE)
     target_link_libraries(farcaster_storage_sqlite_boundary PRIVATE "${FARCASTER_SQLITE3_LIBRARY}")
 else()
-    target_link_libraries(farcaster_storage_sqlite_boundary PRIVATE SQLite::SQLite3)
+    target_link_libraries(farcaster_storage_sqlite_boundary PRIVATE SQLite3::SQLite3)
 endif()
 target_compile_features(farcaster_storage_sqlite_boundary PUBLIC cxx_std_26)
 farcaster_enable_warnings(farcaster_storage_sqlite_boundary)

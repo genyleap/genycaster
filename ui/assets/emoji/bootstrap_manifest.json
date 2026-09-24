@@ -1,0 +1,22 @@
+{
+  "comment": "GenyCaster bootstrap set for Google Noto Animated Emoji (Lottie JSON, CC BY 4.0). Each entry pins the asset key used by the Noto CDN (https://fonts.gstatic.com/s/e/notoemoji/latest/<key>/lottie.json) and the sha256 of the bundled file. Entries without sha256 are resolved lazily at runtime and must pass the emoji asset validator before rendering.",
+  "provider": "noto",
+  "revision": 1,
+  "assets": [
+    { "key": "1f602",     "sha256": "ae479405485961c5c233d882bd2b8ddf54c24e7ddb48371e6346b04b6b57edca" },
+    { "key": "2764_fe0f", "sha256": "7925790edd7ec4a4da6ccb9491c61a2e03705182e7db263f12d8e46a8fcddb79" },
+    { "key": "1f525",     "sha256": "96199d8e8fea7d90196b95b9a9e56b13af43e3817efe037bd9aa1e5215579838" },
+    { "key": "1f44d",     "sha256": "a5803c4978c0760977aa08033ab0abcb5023945a47008261cd405815fc947698" },
+    { "key": "1f60d",     "sha256": "2351f649844d0211f0935346c6358b7cdd38e7f2fb42164b7ecedbb67f7954aa" },
+    { "key": "1f62d",     "sha256": "9f8b1a18099511d53356d870edd0e042323e0d2b023321ee144821e197f551ec" },
+    { "key": "1f389",     "sha256": "eab1fd7070bffd2965c12a80d2d91cff76683af65019f142acf9a553ee877b5c" },
+    { "key": "1f680",     "sha256": "2b6daf24cee4de340073838a7d97d07c097f2d3919b676d0e4e5fed8a2f23453" },
+    { "key": "1f440",     "sha256": "0dfcabf677099ebe20efacf98f680cf3aeac6f7b647228acda73917c65e2120f" },
+    { "key": "2728",      "sha256": "60b0b7e80faadfadef6972fbf63b707f01b022fe7662573dca0bbf76785863ad" },
+    { "key": "1f4af",     "sha256": "8e48b464d7473e94e7b744a1774f4c3b7c7a6892faee8667f9e555ddf5160798" },
+    { "key": "1f923",     "sha256": "da5832ec41e5b4b60a2668891bd0670c1495022096839b0b92d943cb85008aea" },
+    { "key": "1f60a",     "sha256": "81b63e6a41d25180700660562a0681a0236f70db938b393fc154c7b335b9c1bf" },
+    { "key": "1f60e",     "sha256": "17ca3ea161b36f64e17a55c9f92ff3aa794e3036ce799aa1b55748ed3d72a977" },
+    { "key": "1f64f",     "sha256": "96c6f33baf19eb1e0fdcc2e16cd32bec25797022c66f66203721354491f0fd2f" }
+  ]
+}

@@ -4,43 +4,39 @@
         <name />
         <message id="genycaster.miniapp.presentation_title">
             <source>Mini App presentation</source>
-            <translation>Mini App presentation</translation>
+            <translation>Mini-App-Darstellung</translation>
         </message>
         <message id="genycaster.miniapp.presentation_description">
             <source>Saved for the next app you open. Changing this does not reload a running app.</source>
-            <translation>Saved for the next app you open. Changing this does not reload a running app.</translation>
+            <translation>Wird für die nächste geöffnete App gespeichert. Eine Änderung lädt eine laufende App nicht neu.</translation>
         </message>
         <message id="genycaster.miniapp.mode_window">
             <source>Separate window</source>
-            <translation>Separate window</translation>
+            <translation>Separates Fenster</translation>
         </message>
         <message id="genycaster.miniapp.mode_bottom">
             <source>Drawer from bottom</source>
-            <translation>Drawer from bottom</translation>
+            <translation>Schublade von unten</translation>
         </message>
         <message id="genycaster.miniapp.mode_left">
             <source>Drawer from left</source>
-            <translation>Drawer from left</translation>
+            <translation>Schublade von links</translation>
         </message>
         <message id="genycaster.miniapp.mode_right">
             <source>Drawer from right</source>
-            <translation>Drawer from right</translation>
-        </message>
-        <message id="genycaster.miniapp.close">
-            <source>Close app</source>
-            <translation>Close app</translation>
+            <translation>Schublade von rechts</translation>
         </message>
         <message id="genycaster.miniapp.open_internal">
             <source>Open in Genycaster</source>
-            <translation>Open in Genycaster</translation>
+            <translation>In Genycaster öffnen</translation>
         </message>
         <message id="genycaster.miniapp.unavailable">
             <source>The internal Mini App host is not enabled in this build.</source>
-            <translation>The internal Mini App host is not enabled in this build.</translation>
+            <translation>Der interne Mini-App-Host ist in diesem Build nicht aktiviert.</translation>
         </message>
         <message id="genycaster.miniapp.sign_in_first">
             <source>Sign in to Genycaster before opening this app.</source>
-            <translation>Sign in to Genycaster before opening this app.</translation>
+            <translation>Melde dich bei Genycaster an, bevor du diese App öffnest.</translation>
         </message>
         <message id="genycaster.miniapp.loading">
             <source>Loading app…</source>
@@ -48,43 +44,27 @@
         </message>
         <message id="genycaster.miniapp.invalid_url">
             <source>This app needs a valid public HTTPS address.</source>
-            <translation>This app needs a valid public HTTPS address.</translation>
+            <translation>Diese App benötigt eine gültige öffentliche HTTPS-Adresse.</translation>
         </message>
         <message id="genycaster.miniapp.invalid_manifest">
             <source>The app manifest is missing or invalid.</source>
-            <translation>The app manifest is missing or invalid.</translation>
+            <translation>Das App-Manifest fehlt oder ist ungültig.</translation>
         </message>
         <message id="genycaster.miniapp.load_failed">
             <source>Could not load the app. Check your connection and try again.</source>
-            <translation>Could not load the app. Check your connection and try again.</translation>
+            <translation>Die App konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.</translation>
         </message>
         <message id="genycaster.miniapp.ready_timeout">
             <source>The app did not become ready. You can retry or close it.</source>
-            <translation>The app did not become ready. You can retry or close it.</translation>
+            <translation>Die App wurde nicht bereit. Du kannst es erneut versuchen oder sie schließen.</translation>
         </message>
         <message id="genycaster.miniapp.unsupported_requirements">
             <source>This app requires host capabilities or chains that Genycaster does not support yet. Reload cannot add them.</source>
             <translation>This app requires capabilities that Genycaster does not support yet.</translation>
         </message>
-        <message id="genycaster.miniapp.navigation_blocked">
-            <source>This app tried to leave its approved secure domain. Navigation was blocked.</source>
-            <translation>This app tried to leave its approved secure domain. Navigation was blocked.</translation>
-        </message>
-        <message id="genycaster.miniapp.renderer_failed">
-            <source>The app process stopped. Reload to start a new session.</source>
-            <translation>The app process stopped. Reload to start a new session.</translation>
-        </message>
         <message id="genycaster.miniapp.rpc_limit">
             <source>The app sent too many or oversized requests and was stopped.</source>
-            <translation>The app sent too many or oversized requests and was stopped.</translation>
-        </message>
-        <message id="genycaster.miniapp.back">
-            <source>Back</source>
-            <translation>Back</translation>
-        </message>
-        <message id="genycaster.miniapp.retry">
-            <source>Reload</source>
-            <translation>Reload</translation>
+            <translation>Die App hat zu viele oder zu große Anfragen gesendet und wurde gestoppt.</translation>
         </message>
         <message id="genycaster.app.genycaster">
             <source>Genycaster</source>
@@ -386,10 +366,6 @@
             <source>Open conversation context</source>
             <translation>Konversationskontext öffnen</translation>
         </message>
-        <message id="genycaster.cast.open_first_link">
-            <source>Open first link</source>
-            <translation>Ersten Link öffnen</translation>
-        </message>
         <message id="genycaster.cast.open_original_cast">
             <source>Open original cast</source>
             <translation>Original-Cast öffnen</translation>
@@ -430,10 +406,6 @@
             <source>Replying to another cast</source>
             <translation>Antwort auf einen anderen Cast</translation>
         </message>
-        <message id="genycaster.cast.replying_to_parent_link">
-            <source>Replying to a parent link</source>
-            <translation>Antwort auf einen übergeordneten Link</translation>
-        </message>
         <message id="genycaster.cast.replying_to_value">
             <source>Replying to %1</source>
             <translation>Antwort an %1</translation>
@@ -457,10 +429,6 @@
         <message id="genycaster.composer.add_cast">
             <source>Add cast</source>
             <translation>Cast hinzufügen</translation>
-        </message>
-        <message id="genycaster.composer.alt_text_optional">
-            <source>Optional alt text</source>
-            <translation>Optionaler Alternativtext</translation>
         </message>
         <message id="genycaster.composer.apply">
             <source>Apply</source>
@@ -694,37 +662,13 @@
             <source>Checking your GENY balance…</source>
             <translation>GENY-Guthaben wird geprüft…</translation>
         </message>
-        <message id="genycaster.context.community_active_people">
-            <source>Active people</source>
-            <translation>Aktive Personen</translation>
-        </message>
         <message id="genycaster.context.community_casts_loaded">
             <source>Casts loaded</source>
             <translation>Geladene Casts</translation>
         </message>
-        <message id="genycaster.context.community_engagement">
-            <source>Engagement</source>
-            <translation>Interaktionen</translation>
-        </message>
         <message id="genycaster.context.community_last_7_days">
             <source>Last 7 days</source>
             <translation>Letzte 7 Tage</translation>
-        </message>
-        <message id="genycaster.context.community_live_sample">
-            <source>Live sample</source>
-            <translation>Live-Stichprobe</translation>
-        </message>
-        <message id="genycaster.context.community_offline">
-            <source>Offline</source>
-            <translation>Nicht verbunden</translation>
-        </message>
-        <message id="genycaster.context.community_stale">
-            <source>Needs refresh</source>
-            <translation>Aktualisierung nötig</translation>
-        </message>
-        <message id="genycaster.context.community_waiting">
-            <source>Waiting for feed activity</source>
-            <translation>Warte auf Feed-Aktivität</translation>
         </message>
         <message id="genycaster.context.fdv">
             <source>Fully diluted value</source>
@@ -789,10 +733,6 @@
         <message id="genycaster.context.token_pulse">
             <source>Token Pulse</source>
             <translation>Token-Puls</translation>
-        </message>
-        <message id="genycaster.context.upcoming_event">
-            <source>Upcoming: Community AMA · 19:00</source>
-            <translation>Demnächst: Community-AMA · 19:00</translation>
         </message>
         <message id="genycaster.context.volume_24h">
             <source>24h volume</source>
@@ -1118,14 +1058,6 @@
             <source>Loading more</source>
             <translation>Weitere werden geladen</translation>
         </message>
-        <message id="genycaster.feed_surface.pull_to_refresh">
-            <source>Pull to refresh</source>
-            <translation>Zum Aktualisieren ziehen</translation>
-        </message>
-        <message id="genycaster.feed_surface.release_to_refresh">
-            <source>Release to refresh</source>
-            <translation>Zum Aktualisieren loslassen</translation>
-        </message>
         <message id="genycaster.feedback.backend_pending">
             <source>Feedback transport is not connected yet. This interface is ready; server delivery will be wired in a later build.</source>
             <translation>Die Feedback-Übertragung ist noch nicht verbunden. Diese Oberfläche ist bereit; die Serverübertragung wird in einem späteren Build angebunden.</translation>
@@ -1198,17 +1130,9 @@
             <source>Builder Notes</source>
             <translation>Builder-Notizen</translation>
         </message>
-        <message id="genycaster.home.casts">
-            <source>Casts</source>
-            <translation>Beiträge</translation>
-        </message>
         <message id="genycaster.home.catch_up">
             <source>Catch up with your friends and communities.</source>
             <translation>Bleib bei deinen Freunden und Communities auf dem Laufenden.</translation>
-        </message>
-        <message id="genycaster.home.community_pulse">
-            <source>Community Pulse</source>
-            <translation>Community-Puls</translation>
         </message>
         <message id="genycaster.home.conversations">
             <source>Conversations</source>
@@ -1254,14 +1178,6 @@
             <source>View Profile</source>
             <translation>Profil ansehen</translation>
         </message>
-        <message id="genycaster.home.visual_filter_all">
-            <source>All</source>
-            <translation>Alle</translation>
-        </message>
-        <message id="genycaster.home.visual_filter_images">
-            <source>Images</source>
-            <translation>Bilder</translation>
-        </message>
         <message id="genycaster.home.visual_filter_nfts">
             <source>NFTs</source>
             <translation>NFT-Objekte</translation>
@@ -1269,10 +1185,6 @@
         <message id="genycaster.home.visual_highlights">
             <source>Visual Highlights</source>
             <translation>Visuelle Highlights</translation>
-        </message>
-        <message id="genycaster.home.visuals">
-            <source>Visuals &amp; NFTs</source>
-            <translation>Visuelles &amp; NFTs</translation>
         </message>
         <message id="genycaster.locale.add_currency">
             <source>Add</source>
@@ -1724,31 +1636,27 @@
         </message>
         <message id="genycaster.search.not_following">
             <source>Not following</source>
-            <translation type="unfinished">Not following</translation>
+            <translation>Du folgst nicht</translation>
         </message>
         <message id="genycaster.search.not_followed_by">
             <source>Does not follow you</source>
-            <translation type="unfinished">Does not follow you</translation>
+            <translation>Folgt dir nicht</translation>
         </message>
         <message id="genycaster.search.relationship_unknown">
             <source>Relationship unknown</source>
-            <translation type="unfinished">Relationship unknown</translation>
-        </message>
-        <message id="genycaster.embed.miniapp_external">
-            <source>Mini App · opens externally</source>
-            <translation type="unfinished">Mini App · opens externally</translation>
+            <translation>Beziehung unbekannt</translation>
         </message>
         <message id="genycaster.feed.filtered_empty">
             <source>No matching posts in the loaded feed</source>
-            <translation type="unfinished">No matching posts in the loaded feed</translation>
+            <translation>Keine passenden Beiträge im geladenen Feed</translation>
         </message>
         <message id="genycaster.feed.filtered_description">
             <source>These tabs filter the loaded feed. Load more posts or change the source; unavailable data is not an empty category.</source>
-            <translation type="unfinished">These tabs filter the loaded feed. Load more posts or change the source; unavailable data is not an empty category.</translation>
+            <translation>Diese Tabs filtern den geladenen Feed. Lade weitere Beiträge oder ändere die Quelle; nicht verfügbare Daten bedeuten keine leere Kategorie.</translation>
         </message>
         <message id="genycaster.feed.more_filtered">
             <source>Look through more posts</source>
-            <translation type="unfinished">Look through more posts</translation>
+            <translation>Weitere Beiträge durchsuchen</translation>
         </message>
         <message id="genycaster.profile.follow">
             <source>Follow</source>
@@ -1802,10 +1710,6 @@
             <source>Posts</source>
             <translation>Beiträge</translation>
         </message>
-        <message id="genycaster.profile.pull_to_refresh">
-            <source>Pull to refresh</source>
-            <translation>Zum Aktualisieren ziehen</translation>
-        </message>
         <message id="genycaster.profile.quotes">
             <source>Quotes</source>
             <translation>Zitate</translation>
@@ -1817,10 +1721,6 @@
         <message id="genycaster.profile.refreshing">
             <source>Refreshing…</source>
             <translation>Wird aktualisiert…</translation>
-        </message>
-        <message id="genycaster.profile.release_to_refresh">
-            <source>Release to refresh</source>
-            <translation>Zum Aktualisieren loslassen</translation>
         </message>
         <message id="genycaster.profile.replies">
             <source>Replies</source>
@@ -2834,10 +2734,6 @@
             <source>Discover and save Farcaster Mini Apps, then launch them in the Genycaster host.</source>
             <translation>Farcaster-Mini-Apps entdecken und speichern und anschließend im Genycaster-Host starten.</translation>
         </message>
-        <message id="genycaster.apps.farcaster">
-            <source>Farcaster Mini Apps</source>
-            <translation>Farcaster-Mini-Apps</translation>
-        </message>
         <message id="genycaster.apps.native">
             <source>Native Apps</source>
             <translation>Native Anwendungen</translation>
@@ -2910,14 +2806,6 @@
             <source>Live Mini App resource usage and session controls.</source>
             <translation>Live-Ressourcennutzung von Mini-Apps und Sitzungssteuerung.</translation>
         </message>
-        <message id="genycaster.task_manager.cpu">
-            <source>CPU usage</source>
-            <translation>CPU-Auslastung</translation>
-        </message>
-        <message id="genycaster.task_manager.memory">
-            <source>Memory</source>
-            <translation>Arbeitsspeicher</translation>
-        </message>
         <message id="genycaster.task_manager.sdk_rate">
             <source>SDK activity</source>
             <translation>SDK-Aktivität</translation>
@@ -2954,29 +2842,9 @@
             <source>Error</source>
             <translation>Fehler</translation>
         </message>
-        <message id="genycaster.task_manager.pid">
-            <source>Process</source>
-            <translation>Prozess</translation>
-        </message>
-        <message id="genycaster.miniapp.add_confirm_title">
-            <source>Add Mini App</source>
-            <translation>Mini-App hinzufügen</translation>
-        </message>
-        <message id="genycaster.miniapp.add_confirm_description">
-            <source>Add %1 to My MiniApps in Genycaster?</source>
-            <translation>%1 zu „Meine MiniApps“ in Genycaster hinzufügen?</translation>
-        </message>
         <message id="genycaster.miniapp.session_limit">
             <source>Up to four Mini Apps can stay open at once. Close one in Task Manager to open another.</source>
             <translation>Bis zu vier Mini-Apps können gleichzeitig geöffnet bleiben. Schließe im Task-Manager eine, um eine weitere zu öffnen.</translation>
-        </message>
-        <message id="genycaster.miniapp.minimize">
-            <source>Minimize</source>
-            <translation>Minimieren</translation>
-        </message>
-        <message id="genycaster.miniapp.share">
-            <source>Share</source>
-            <translation>Teilen</translation>
         </message>
         <message id="genycaster.settings.text_size">
             <source>Text size</source>
@@ -3029,14 +2897,6 @@
         <message id="genycaster.settings.link_preview_prefetch_description">
             <source>Resolve visible web links in advance for richer cards. Disable to reduce background API and network work.</source>
             <translation>Sichtbare Weblinks vorab auflösen, um reichhaltigere Karten zu zeigen. Deaktivieren, um API- und Netzwerkarbeit im Hintergrund zu reduzieren.</translation>
-        </message>
-        <message id="genycaster.settings.inline_youtube">
-            <source>Play YouTube in GenyCaster</source>
-            <translation>YouTube in GenyCaster abspielen</translation>
-        </message>
-        <message id="genycaster.settings.inline_youtube_description">
-            <source>Open supported YouTube links in the isolated in-app player instead of the external browser.</source>
-            <translation>Unterstützte YouTube-Links im isolierten In-App-Player statt im externen Browser öffnen.</translation>
         </message>
         <message id="genycaster.settings.read_api_note">
             <source>Provider safety limits still apply. Higher values may increase latency, bandwidth, memory use, and API cost.</source>
@@ -3293,6 +3153,122 @@
         <message id="genycaster.collectible.default_title">
             <source>Collectible</source>
             <translation>Sammlerstück</translation>
+        </message>
+        <message id="genycaster.feed_pulse.loaded_profile_posts">
+            <source>Loaded profile posts</source>
+            <translation>Geladene Profilbeiträge</translation>
+        </message>
+        <message id="genycaster.feed_pulse.loaded_feed_snapshot">
+            <source>Loaded feed snapshot</source>
+            <translation>Geladener Feed-Schnappschuss</translation>
+        </message>
+        <message id="genycaster.feed_pulse.offline">
+            <source>offline</source>
+            <translation>nicht verbunden</translation>
+        </message>
+        <message id="genycaster.feed_pulse.cached">
+            <source>cached</source>
+            <translation>zwischengespeichert</translation>
+        </message>
+        <message id="genycaster.feed_pulse.waiting_for_data">
+            <source>waiting for data</source>
+            <translation>Warte auf Daten</translation>
+        </message>
+        <message id="genycaster.feed_pulse.profile_snapshot">
+            <source>Profile snapshot</source>
+            <translation>Profil-Schnappschuss</translation>
+        </message>
+        <message id="genycaster.feed_pulse.title">
+            <source>Feed pulse</source>
+            <translation>Feed-Puls</translation>
+        </message>
+        <message id="genycaster.feed_pulse.posts_loaded">
+            <source>Posts loaded</source>
+            <translation>Geladene Beiträge</translation>
+        </message>
+        <message id="genycaster.feed_pulse.authors_loaded">
+            <source>Authors loaded</source>
+            <translation>Geladene Autoren</translation>
+        </message>
+        <message id="genycaster.feed_pulse.interactions">
+            <source>Interactions</source>
+            <translation>Interaktionen</translation>
+        </message>
+        <message id="genycaster.feed_pulse.avg_per_post">
+            <source>Avg / post</source>
+            <translation>Durchschn. / Beitrag</translation>
+        </message>
+        <message id="genycaster.home.prompt">
+            <source>What would you like to do today?</source>
+            <translation>Was möchtest du heute tun?</translation>
+        </message>
+        <message id="genycaster.home.compose_description">
+            <source>Write and publish a new cast</source>
+            <translation>Einen neuen Cast schreiben und veröffentlichen</translation>
+        </message>
+        <message id="genycaster.home.apps_description">
+            <source>Open apps and tools</source>
+            <translation>Apps und Tools öffnen</translation>
+        </message>
+        <message id="genycaster.home.composer_placeholder">
+            <source>Write a new cast or message…</source>
+            <translation>Einen neuen Cast oder eine Nachricht schreiben…</translation>
+        </message>
+        <message id="genycaster.settings.social_workspace">
+            <source>Social workspace</source>
+            <translation>Social-Arbeitsbereich</translation>
+        </message>
+        <message id="genycaster.settings.social_workspace_description">
+            <source>Tune the desktop navigation and context columns. You can also drag their separators directly in the main window.</source>
+            <translation>Passe die Desktop-Navigation und die Kontextspalten an. Du kannst ihre Trennlinien auch direkt im Hauptfenster ziehen.</translation>
+        </message>
+        <message id="genycaster.settings.navigation_width">
+            <source>Navigation width</source>
+            <translation>Navigationsbreite</translation>
+        </message>
+        <message id="genycaster.settings.navigation_width_description">
+            <source>Primary destinations and account controls</source>
+            <translation>Primäre Ziele und Kontosteuerung</translation>
+        </message>
+        <message id="genycaster.settings.context_sidebar_width">
+            <source>Context sidebar width</source>
+            <translation>Breite der Kontextseitenleiste</translation>
+        </message>
+        <message id="genycaster.settings.context_sidebar_width_description">
+            <source>Profile, activity, search, and feed context</source>
+            <translation>Profil-, Aktivitäts-, Such- und Feed-Kontext</translation>
+        </message>
+        <message id="genycaster.settings.reset_social_layout">
+            <source>Reset social layout</source>
+            <translation>Social-Layout zurücksetzen</translation>
+        </message>
+        <message id="genycaster.social.search_placeholder">
+            <source>Search people, casts, and channels</source>
+            <translation>Nach Personen, Casts und Kanälen suchen</translation>
+        </message>
+        <message id="genycaster.social.your_profile">
+            <source>Your profile</source>
+            <translation>Dein Profil</translation>
+        </message>
+        <message id="genycaster.social.sign_in_to_personalize">
+            <source>Sign in to personalize</source>
+            <translation>Zum Personalisieren anmelden</translation>
+        </message>
+        <message id="genycaster.social.followers_count">
+            <source>%1 followers</source>
+            <translation>%1 Follower</translation>
+        </message>
+        <message id="genycaster.social.following_count">
+            <source>%1 following</source>
+            <translation>Folgt %1</translation>
+        </message>
+        <message id="genycaster.social.open_profile">
+            <source>Open profile</source>
+            <translation>Profil öffnen</translation>
+        </message>
+        <message id="genycaster.social.people_in_your_orbit">
+            <source>People in your orbit</source>
+            <translation>Personen in deinem Umfeld</translation>
         </message>
     </context>
 </TS>

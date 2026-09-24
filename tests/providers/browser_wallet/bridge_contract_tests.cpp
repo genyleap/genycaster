@@ -1,0 +1,377 @@
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include <boost/json.hpp>
+
+#include <atomic>
+#include <cassert>
+#include <chrono>
+#include <cstdint>
+#include <future>
+#include <string>
+#include <string_view>
+
+import farcaster.capability.wallet;
+import farcaster.foundation.result;
+import farcaster.provider.compatibility.browser_wallet.bridge;
+
+namespace {
+
+namespace asio = boost::asio;
+namespace beast = boost::beast;
+namespace http = beast::http;
+namespace json = boost::json;
+using tcp = asio::ip::tcp;
+using namespace farcaster;
+
+struct ParsedUrl final {
+    std::string host{};
+    std::uint16_t port{};
+    std::string target{};
+};
+
+[[nodiscard]] ParsedUrl parseLoopbackUrl(const std::string_view url)
+{
+    constexpr std::string_view prefix{"http://127.0.0.1:"};
+    assert(url.starts_with(prefix));
+    const auto slash = url.find('/', prefix.size());
+    assert(slash != std::string_view::npos);
+    return {
+        .host = "127.0.0.1",
+        .port = static_cast<std::uint16_t>(
+            std::stoul(std::string{url.substr(prefix.size(), slash - prefix.size())})),
+        .target = std::string{url.substr(slash)},
+    };
+}
+
+[[nodiscard]] http::response<http::string_body> request(
+    const ParsedUrl& url,
+    const http::verb method,
+    std::string target,
+    std::string body = {})
+{
+    asio::io_context context{};
+    beast::tcp_stream stream{context};
+    stream.connect(tcp::resolver{context}.resolve(url.host, std::to_string(url.port)));
+    http::request<http::string_body> message{method, std::move(target), 11};
+    message.set(http::field::host, url.host);
+    if (!body.empty()) message.set(http::field::content_type, "application/json");
+    message.body() = std::move(body);
+    message.prepare_payload();
+    http::write(stream, message);
+    beast::flat_buffer buffer{};
+    http::response<http::string_body> response{};
+    http::read(stream, buffer, response);
+    beast::error_code ignored{};
+    stream.socket().shutdown(tcp::socket::shutdown_both, ignored);
+    return response;
+}
+
+void testBridgeRoutesWalletRequestsAndEvents()
+{
+    using provider::compatibility::browser_wallet::bridge::Config;
+    using provider::compatibility::browser_wallet::bridge::makeBridge;
+
+    std::promise<std::string> launchedPromise{};
+    auto launched = launchedPromise.get_future();
+    auto bridge = makeBridge(Config{
+        .launch = [&launchedPromise](const std::string& url) -> foundation::result::Status {
+            launchedPromise.set_value(url);
+            return {};
+        },
+        .supportedChains = {"eip155:1", "eip155:8453"},
+        .requestTimeout = std::chrono::seconds{3},
+        .maxRequestBytes = 16U * 1024U,
+    });
+    assert(bridge);
+    assert((*bridge)->available());
+    assert((*bridge)->supportedChains().size() == 2U);
+    assert((*bridge)->beginSession("Test Mini App", "https://mini.example"));
+    assert(launched.wait_for(std::chrono::milliseconds{50}) == std::future_status::timeout);
+
+    std::promise<capability::wallet::EthereumRpcResponse> responsePromise{};
+    auto responseFuture = responsePromise.get_future();
+    (*bridge)->request(
+        capability::wallet::EthereumRpcRequest{
+            .id = 7U,
+            .method = "eth_requestAccounts",
+            .paramsJson = "[]",
+        },
+        [&responsePromise](capability::wallet::EthereumRpcResponse response) mutable {
+            responsePromise.set_value(std::move(response));
+        });
+
+    assert(launched.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const ParsedUrl url = parseLoopbackUrl(launched.get());
+    const auto page = request(url, http::verb::get, url.target);
+    assert(page.result() == http::status::ok);
+    assert(page[http::field::cache_control] == "no-store, max-age=0");
+    assert(page.body().find("Test Mini App") != std::string::npos);
+    assert(page.body().find("https://mini.example") != std::string::npos);
+    assert(page.body().find("Explicit approval required") != std::string::npos);
+    assert(page.body().find("window.ethereum.request") != std::string::npos);
+
+    const auto next = request(url, http::verb::get, url.target + "/next");
+    assert(next.result() == http::status::ok);
+    boost::system::error_code parseError{};
+    const auto payload = json::parse(next.body(), parseError);
+    assert(!parseError && payload.is_object());
+    const auto& object = payload.as_object();
+    assert(object.at("method").as_string() == "eth_requestAccounts");
+    assert(object.at("requiresApproval").as_bool());
+    const auto& transportValue = object.at("transportId");
+    const std::uint64_t transportId = transportValue.is_uint64()
+        ? transportValue.as_uint64()
+        : static_cast<std::uint64_t>(transportValue.as_int64());
+
+    const auto posted = request(
+        url,
+        http::verb::post,
+        url.target + "/result",
+        json::serialize(json::object{
+            {"transportId", transportId},
+            {"result", json::array{"0x1111111111111111111111111111111111111111"}},
+        }));
+    assert(posted.result() == http::status::ok);
+    assert(responseFuture.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const auto response = responseFuture.get();
+    assert(!response.error);
+    assert(response.id == 7U);
+    assert(response.resultJson.find("0x1111111111111111111111111111111111111111") !=
+        std::string::npos);
+
+    std::promise<capability::wallet::EthereumRpcResponse> chainResponsePromise{};
+    auto chainResponseFuture = chainResponsePromise.get_future();
+    (*bridge)->request(
+        capability::wallet::EthereumRpcRequest{
+            .id = 8U,
+            .method = "eth_chainId",
+            .paramsJson = "[]",
+        },
+        [&chainResponsePromise](capability::wallet::EthereumRpcResponse chainResponse) mutable {
+            chainResponsePromise.set_value(std::move(chainResponse));
+        });
+    const auto chainNext = request(url, http::verb::get, url.target + "/next");
+    assert(chainNext.result() == http::status::ok);
+    const auto chainPayload = json::parse(chainNext.body(), parseError);
+    assert(!parseError && chainPayload.is_object());
+    const auto& chainObject = chainPayload.as_object();
+    assert(chainObject.at("method").as_string() == "eth_chainId");
+    assert(!chainObject.at("requiresApproval").as_bool());
+    const auto& chainTransportValue = chainObject.at("transportId");
+    const std::uint64_t chainTransportId = chainTransportValue.is_uint64()
+        ? chainTransportValue.as_uint64()
+        : static_cast<std::uint64_t>(chainTransportValue.as_int64());
+    const auto chainPosted = request(
+        url, http::verb::post, url.target + "/result",
+        json::serialize(json::object{{"transportId", chainTransportId}, {"result", "0x2105"}}));
+    assert(chainPosted.result() == http::status::ok);
+    assert(chainResponseFuture.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const auto chainResponse = chainResponseFuture.get();
+    assert(!chainResponse.error);
+    assert(chainResponse.id == 8U);
+    assert(chainResponse.resultJson == R"("0x2105")");
+
+    std::promise<capability::wallet::EthereumWalletEvent> eventPromise{};
+    auto eventFuture = eventPromise.get_future();
+    (*bridge)->setEventSink(
+        [&eventPromise](capability::wallet::EthereumWalletEvent event) mutable {
+            eventPromise.set_value(std::move(event));
+        });
+    const auto eventPosted = request(
+        url,
+        http::verb::post,
+        url.target + "/event",
+        R"({"event":"chainChanged","params":["0x2105"]})");
+    assert(eventPosted.result() == http::status::ok);
+    assert(eventFuture.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const auto event = eventFuture.get();
+    assert(event.kind == capability::wallet::EthereumWalletEventKind::ChainChanged);
+    assert(event.paramsJson == R"(["0x2105"])");
+}
+
+
+void testAccountAccessConsentIsRememberedPerOrigin()
+{
+    using provider::compatibility::browser_wallet::bridge::Config;
+    using provider::compatibility::browser_wallet::bridge::makeBridge;
+
+    std::promise<std::string> firstLaunchPromise{};
+    std::promise<std::string> secondLaunchPromise{};
+    std::promise<std::string> thirdLaunchPromise{};
+    auto firstLaunch = firstLaunchPromise.get_future();
+    auto secondLaunch = secondLaunchPromise.get_future();
+    auto thirdLaunch = thirdLaunchPromise.get_future();
+    std::atomic_int launchCount{};
+
+    auto bridge = makeBridge(Config{
+        .launch = [&firstLaunchPromise, &secondLaunchPromise, &thirdLaunchPromise, &launchCount](
+                      const std::string& url) -> foundation::result::Status {
+            const int index = launchCount.fetch_add(1, std::memory_order_relaxed);
+            if (index == 0) {
+                firstLaunchPromise.set_value(url);
+            } else if (index == 1) {
+                secondLaunchPromise.set_value(url);
+            } else if (index == 2) {
+                thirdLaunchPromise.set_value(url);
+            }
+            return {};
+        },
+        .supportedChains = {"eip155:8453"},
+        .requestTimeout = std::chrono::seconds{3},
+    });
+    assert(bridge);
+    assert((*bridge)->beginSession("Test Mini App", "https://mini.example"));
+
+    std::promise<capability::wallet::EthereumRpcResponse> firstResponsePromise{};
+    auto firstResponse = firstResponsePromise.get_future();
+    (*bridge)->request(
+        capability::wallet::EthereumRpcRequest{
+            .id = 21U,
+            .method = "eth_requestAccounts",
+            .paramsJson = "[]",
+        },
+        [&firstResponsePromise](capability::wallet::EthereumRpcResponse response) mutable {
+            firstResponsePromise.set_value(std::move(response));
+        });
+
+    assert(firstLaunch.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const ParsedUrl firstUrl = parseLoopbackUrl(firstLaunch.get());
+    const auto firstNext = request(firstUrl, http::verb::get, firstUrl.target + "/next");
+    assert(firstNext.result() == http::status::ok);
+    boost::system::error_code parseError{};
+    const auto firstPayload = json::parse(firstNext.body(), parseError);
+    assert(!parseError && firstPayload.is_object());
+    assert(firstPayload.as_object().at("requiresApproval").as_bool());
+    const auto& firstTransportValue = firstPayload.as_object().at("transportId");
+    const std::uint64_t firstTransportId = firstTransportValue.is_uint64()
+        ? firstTransportValue.as_uint64()
+        : static_cast<std::uint64_t>(firstTransportValue.as_int64());
+    const auto firstPosted = request(
+        firstUrl,
+        http::verb::post,
+        firstUrl.target + "/result",
+        json::serialize(json::object{
+            {"transportId", firstTransportId},
+            {"result", json::array{"0x1111111111111111111111111111111111111111"}},
+        }));
+    assert(firstPosted.result() == http::status::ok);
+    assert(firstResponse.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(!firstResponse.get().error);
+
+    (*bridge)->endSession();
+    assert((*bridge)->beginSession("Test Mini App", "https://mini.example"));
+
+    std::promise<capability::wallet::EthereumRpcResponse> secondResponsePromise{};
+    auto secondResponse = secondResponsePromise.get_future();
+    (*bridge)->request(
+        capability::wallet::EthereumRpcRequest{
+            .id = 22U,
+            .method = "eth_requestAccounts",
+            .paramsJson = "[]",
+        },
+        [&secondResponsePromise](capability::wallet::EthereumRpcResponse response) mutable {
+            secondResponsePromise.set_value(std::move(response));
+        });
+
+    assert(secondLaunch.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const ParsedUrl secondUrl = parseLoopbackUrl(secondLaunch.get());
+    const auto secondNext = request(secondUrl, http::verb::get, secondUrl.target + "/next");
+    assert(secondNext.result() == http::status::ok);
+    const auto secondPayload = json::parse(secondNext.body(), parseError);
+    assert(!parseError && secondPayload.is_object());
+    assert(!secondPayload.as_object().at("requiresApproval").as_bool());
+    const auto& secondTransportValue = secondPayload.as_object().at("transportId");
+    const std::uint64_t secondTransportId = secondTransportValue.is_uint64()
+        ? secondTransportValue.as_uint64()
+        : static_cast<std::uint64_t>(secondTransportValue.as_int64());
+    const auto secondPosted = request(
+        secondUrl,
+        http::verb::post,
+        secondUrl.target + "/result",
+        json::serialize(json::object{
+            {"transportId", secondTransportId},
+            {"result", json::array{"0x1111111111111111111111111111111111111111"}},
+        }));
+    assert(secondPosted.result() == http::status::ok);
+    assert(secondResponse.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(!secondResponse.get().error);
+
+    (*bridge)->endSession();
+    assert((*bridge)->beginSession("Other Mini App", "https://other.example"));
+
+    std::promise<capability::wallet::EthereumRpcResponse> thirdResponsePromise{};
+    auto thirdResponse = thirdResponsePromise.get_future();
+    (*bridge)->request(
+        capability::wallet::EthereumRpcRequest{
+            .id = 23U,
+            .method = "eth_requestAccounts",
+            .paramsJson = "[]",
+        },
+        [&thirdResponsePromise](capability::wallet::EthereumRpcResponse response) mutable {
+            thirdResponsePromise.set_value(std::move(response));
+        });
+
+    assert(thirdLaunch.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const ParsedUrl thirdUrl = parseLoopbackUrl(thirdLaunch.get());
+    const auto thirdNext = request(thirdUrl, http::verb::get, thirdUrl.target + "/next");
+    assert(thirdNext.result() == http::status::ok);
+    const auto thirdPayload = json::parse(thirdNext.body(), parseError);
+    assert(!parseError && thirdPayload.is_object());
+    assert(thirdPayload.as_object().at("requiresApproval").as_bool());
+    const auto& thirdTransportValue = thirdPayload.as_object().at("transportId");
+    const std::uint64_t thirdTransportId = thirdTransportValue.is_uint64()
+        ? thirdTransportValue.as_uint64()
+        : static_cast<std::uint64_t>(thirdTransportValue.as_int64());
+    const auto thirdPosted = request(
+        thirdUrl,
+        http::verb::post,
+        thirdUrl.target + "/result",
+        json::serialize(json::object{
+            {"transportId", thirdTransportId},
+            {"error", json::object{{"code", 4001}, {"message", "Rejected"}}},
+        }));
+    assert(thirdPosted.result() == http::status::ok);
+    assert(thirdResponse.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const auto rejected = thirdResponse.get();
+    assert(rejected.error);
+    assert(rejected.error->code == 4001);
+}
+
+void testBridgeRejectsUnsupportedChainBeforeWallet()
+{
+    using provider::compatibility::browser_wallet::bridge::Config;
+    using provider::compatibility::browser_wallet::bridge::makeBridge;
+
+    auto bridge = makeBridge(Config{
+        .launch = [](const std::string&) -> foundation::result::Status { return {}; },
+        .supportedChains = {"eip155:8453"},
+    });
+    assert(bridge);
+    assert((*bridge)->beginSession("Test Mini App", "https://mini.example"));
+
+    std::promise<capability::wallet::EthereumRpcResponse> responsePromise{};
+    auto responseFuture = responsePromise.get_future();
+    (*bridge)->request(
+        capability::wallet::EthereumRpcRequest{
+            .id = 9U,
+            .method = "wallet_switchEthereumChain",
+            .paramsJson = R"([{"chainId":"0x1"}])",
+        },
+        [&responsePromise](capability::wallet::EthereumRpcResponse response) mutable {
+            responsePromise.set_value(std::move(response));
+        });
+    assert(responseFuture.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const auto response = responseFuture.get();
+    assert(response.error);
+    assert(response.error->code == 4901);
+}
+
+} // namespace
+
+int main()
+{
+    testBridgeRoutesWalletRequestsAndEvents();
+    testAccountAccessConsentIsRememberedPerOrigin();
+    testBridgeRejectsUnsupportedChainBeforeWallet();
+    return 0;
+}

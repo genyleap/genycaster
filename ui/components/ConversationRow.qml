@@ -1,0 +1,38 @@
+import QtQuick
+
+Item {
+    id: root
+    property var modelData
+    property bool compact: false
+    property bool interactionsAvailable: false
+    property double accountFid: 0
+
+    signal openRequested(string castId)
+    signal profileRequested(double fid)
+    signal replyRequested(var cast)
+    signal reactionRequested(string kind, var cast, bool active)
+    signal removeRequested(var cast)
+    signal externalRequested(string url)
+    signal mediaRequested(var mediaItems, int index)
+    signal authenticationRequested()
+
+    implicitHeight: cast.implicitHeight
+
+    CastItem {
+        id: cast
+        anchors.left: parent.left
+        anchors.right: parent.right
+        modelData: root.modelData
+        compact: true
+        interactionsAvailable: root.interactionsAvailable
+        accountFid: root.accountFid
+        onOpenRequested: castId => root.openRequested(castId)
+        onProfileRequested: fid => root.profileRequested(fid)
+        onReplyRequested: data => root.replyRequested(data)
+        onReactionRequested: (kind, data, active) => root.reactionRequested(kind, data, active)
+        onRemoveRequested: data => root.removeRequested(data)
+        onExternalRequested: url => root.externalRequested(url)
+        onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
+        onAuthenticationRequested: root.authenticationRequested()
+    }
+}

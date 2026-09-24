@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "aliases": {
+    "brands/fc": "brands/farcaster",
+    "crypto/ether": "crypto/ethereum",
+    "crypto/eth-base": "crypto/base",
+    "reactions/nft": "crypto/nft",
+    "reactions/gem": "reactions/gem",
+    "brands/linux": "platforms/linux",
+    "brands/windows": "platforms/windows",
+    "brands/macos": "platforms/macos",
+    "brands/ios": "platforms/ios",
+    "brands/android": "platforms/android",
+    "tech/cplusplus": "languages/cplusplus",
+    "tech/qml": "languages/qml",
+    "tech/typescript": "languages/typescript",
+    "tech/javascript": "languages/javascript",
+    "tech/php": "languages/php",
+    "genyleap/genyleap-dna": "brands/genyleap",
+    "genyleap/geny-dna": "brands/geny",
+    "crypto/gem-superrare": "reactions/gem"
+  }
+}

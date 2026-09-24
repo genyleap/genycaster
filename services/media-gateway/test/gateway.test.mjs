@@ -1,0 +1,413 @@
+import assert from 'node:assert/strict';
+import {
+  generateKeyPairSync,
+  sign,
+} from 'node:crypto';
+import test from 'node:test';
+
+import {
+  buildUploadChallenge,
+  createMediaGateway,
+  loadConfig,
+} from '../gateway.mjs';
+
+const nowMs = Date.parse('2026-08-30T12:00:00.000Z');
+const fid = 4242;
+const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+const publicDer = publicKey.export({ format: 'der', type: 'spki' });
+const signerKey = publicDer.subarray(publicDer.length - 32).toString('hex');
+
+function config() {
+  return loadConfig({
+    GENYLEAP_MEDIA_HOST: '127.0.0.1',
+    GENYLEAP_MEDIA_PORT: '8790',
+    GENYLEAP_MEDIA_PUBLIC_BASE_URL: 'https://media-farcaster.genyleap.com',
+    GENYLEAP_MEDIA_SNAPCHAIN_BASE_URL: 'https://snapchain.genyleap.com',
+    GENYLEAP_MEDIA_TICKET_SECRET: '0123456789abcdef0123456789abcdef',
+    GENYLEAP_MEDIA_MULTIPART_PART_BYTES: String(5 * 1024 * 1024),
+    GENYLEAP_MEDIA_MAX_IMAGE_BYTES: String(25 * 1024 * 1024),
+    GENYLEAP_MEDIA_MAX_VIDEO_BYTES: String(512 * 1024 * 1024),
+  });
+}
+
+function signerFetch(url) {
+  const parsed = new URL(url);
+  assert.equal(parsed.pathname, '/v1/signersByFid');
+  const requestedFid = Number(parsed.searchParams.get('fid'));
+  assert.ok(Number.isSafeInteger(requestedFid) && requestedFid > 0);
+  return Promise.resolve(new Response(JSON.stringify({
+    signers: [{
+      key: signerKey,
+      fid: requestedFid,
+      source: 'SIGNER_SOURCE_OFFCHAIN',
+      scopes: ['MESSAGE_TYPE_CAST_ADD'],
+      expiresAt: Math.floor(nowMs / 1000) + 3600,
+    }],
+    nextPageToken: '',
+  }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  }));
+}
+
+function proofHeaders(method, pathname, body, nonce, contentType = 'application/json', proofFid = fid) {
+  const timestamp = Math.floor(nowMs / 1000);
+  const challenge = buildUploadChallenge({
+    method,
+    pathname,
+    fid: proofFid,
+    signerKey,
+    timestamp,
+    nonce,
+    body,
+  });
+  return {
+    'content-type': contentType,
+    'x-genycaster-fid': String(proofFid),
+    'x-genycaster-signer-key': signerKey,
+    'x-genycaster-timestamp': String(timestamp),
+    'x-genycaster-nonce': nonce,
+    'x-genycaster-signature': sign(null, Buffer.from(challenge), privateKey).toString('hex'),
+  };
+}
+
+async function withGateway(run) {
+  const stored = new Map();
+  let createCalls = 0;
+  const storage = {
+    async beginMultipartUpload({ key, contentType }) {
+      createCalls += 1;
+      stored.set(key, {
+        contentType,
+        parts: new Map(),
+        completed: false,
+        providerUploadId: `provider-${createCalls}`,
+      });
+      return { providerUploadId: `provider-${createCalls}` };
+    },
+    async uploadPart({ key, providerUploadId, partNumber, body }) {
+      const value = stored.get(key);
+      assert.ok(value);
+      assert.equal(providerUploadId, value.providerUploadId);
+      value.parts.set(partNumber, Buffer.from(body));
+      return { etag: `"part-${partNumber}"` };
+    },
+    async completeMultipartUpload({ key, providerUploadId, parts }) {
+      const value = stored.get(key);
+      assert.ok(value);
+      assert.equal(providerUploadId, value.providerUploadId);
+      assert.deepEqual(parts, [...value.parts.keys()].map((partNumber) => ({
+        partNumber,
+        etag: `"part-${partNumber}"`,
+      })));
+      value.completed = true;
+    },
+    async abortMultipartUpload({ key, providerUploadId }) {
+      const value = stored.get(key);
+      assert.ok(value);
+      assert.equal(providerUploadId, value.providerUploadId);
+      stored.delete(key);
+    },
+    async deleteObject(key) {
+      stored.delete(key);
+    },
+    async headObject(key) {
+      const value = stored.get(key);
+      if (!value?.completed) return { sizeBytes: null, contentType: '' };
+      const sizeBytes = [...value.parts.values()].reduce((sum, body) => sum + body.length, 0);
+      return { sizeBytes, contentType: value.contentType, etag: '"complete"' };
+    },
+    createDownload({ key, method, expiresSeconds }) {
+      assert.ok(['GET', 'HEAD'].includes(method));
+      assert.equal(expiresSeconds, 900);
+      return `https://private.storage.test/${key}?signed-read=1&method=${method}`;
+    },
+  };
+  const server = createMediaGateway(config(), storage, {
+    fetchImpl: signerFetch,
+    now: () => nowMs,
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  const address = server.address();
+  const origin = `http://127.0.0.1:${address.port}`;
+  try {
+    await run({ origin, stored, createCalls: () => createCalls });
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+}
+
+test('gateway configuration rejects malformed integer values and unsafe multipart sizes', () => {
+  assert.throws(
+    () => loadConfig({
+      GENYLEAP_MEDIA_TICKET_SECRET: '0123456789abcdef0123456789abcdef',
+      GENYLEAP_MEDIA_TICKET_LIFETIME_SECONDS: '900seconds',
+    }),
+    /must be a positive integer/,
+  );
+  assert.throws(
+    () => loadConfig({
+      GENYLEAP_MEDIA_TICKET_SECRET: '0123456789abcdef0123456789abcdef',
+      GENYLEAP_MEDIA_MULTIPART_PART_BYTES: '1048576',
+    }),
+    /between 5 MiB and 64 MiB/,
+  );
+});
+
+test('authorized Farcaster signer uploads a gateway-relayed multipart object and receives stable asset URL', async () => {
+  await withGateway(async ({ origin, stored }) => {
+    const payload = Buffer.alloc(3210, 0x5a);
+    const createDocument = {
+      fileName: 'photo.jpg',
+      contentType: 'image/jpeg',
+      sizeBytes: payload.length,
+    };
+    const createBody = Buffer.from(JSON.stringify(createDocument));
+    const created = await fetch(`${origin}/v1/uploads`, {
+      method: 'POST',
+      headers: proofHeaders('POST', '/v1/uploads', createBody, 'create_nonce_0000000001'),
+      body: createBody,
+    });
+    assert.equal(created.status, 201);
+    const ticket = await created.json();
+    assert.equal(ticket.mode, 'gateway-multipart');
+    assert.equal(ticket.partCount, 1);
+    assert.equal(ticket.partSizeBytes, 5 * 1024 * 1024);
+    assert.match(ticket.assetUrl, /^https:\/\/media-farcaster\.genyleap\.com\/m\/v1\//);
+    assert.equal('uploadUrl' in ticket, false);
+    assert.equal(stored.size, 1);
+
+    const partPath = `/v1/uploads/${ticket.uploadId}/parts/1`;
+    const uploadedPart = await fetch(`${origin}${partPath}`, {
+      method: 'PUT',
+      headers: proofHeaders('PUT', partPath, payload, 'part_nonce_000000000001', 'application/octet-stream'),
+      body: payload,
+    });
+    assert.equal(uploadedPart.status, 200);
+    const part = await uploadedPart.json();
+    assert.deepEqual(part, { partNumber: 1, etag: '"part-1"', sizeBytes: payload.length });
+
+    const completeDocument = {
+      uploadId: ticket.uploadId,
+      parts: [{ partNumber: 1, etag: part.etag }],
+    };
+    const completeBody = Buffer.from(JSON.stringify(completeDocument));
+    const completed = await fetch(`${origin}/v1/uploads/complete`, {
+      method: 'POST',
+      headers: proofHeaders('POST', '/v1/uploads/complete', completeBody, 'complete_nonce_0000001'),
+      body: completeBody,
+    });
+    assert.equal(completed.status, 200);
+    const asset = await completed.json();
+    assert.equal(asset.assetUrl, ticket.assetUrl);
+    assert.equal(asset.contentType, 'image/jpeg');
+    assert.equal(asset.fileName, 'photo.jpg');
+    assert.equal(asset.sizeBytes, payload.length);
+    assert.equal(typeof asset.managementToken, 'string');
+    assert.ok(asset.managementToken.length > 32);
+
+    const stable = await fetch(ticket.assetUrl.replace('https://media-farcaster.genyleap.com', origin), {
+      redirect: 'manual',
+    });
+    assert.equal(stable.status, 307);
+    assert.match(stable.headers.get('location') ?? '', /^https:\/\/private\.storage\.test\/v1\/.*signed-read=1/);
+
+    const deleteBody = Buffer.from(JSON.stringify({ managementToken: asset.managementToken }));
+    const deleted = await fetch(`${origin}/v1/assets`, {
+      method: 'DELETE',
+      headers: proofHeaders('DELETE', '/v1/assets', deleteBody, 'delete_nonce_0000000001'),
+      body: deleteBody,
+    });
+    assert.equal(deleted.status, 204);
+    assert.equal(stored.size, 0);
+  });
+});
+
+test('tampered managed-asset token cannot delete storage objects', async () => {
+  await withGateway(async ({ origin, stored }) => {
+    const payload = Buffer.from('managed-media');
+    const createBody = Buffer.from(JSON.stringify({
+      fileName: 'photo.jpg',
+      contentType: 'image/jpeg',
+      sizeBytes: payload.length,
+    }));
+    const created = await fetch(`${origin}/v1/uploads`, {
+      method: 'POST',
+      headers: proofHeaders('POST', '/v1/uploads', createBody, 'create_delete_nonce_001'),
+      body: createBody,
+    });
+    const ticket = await created.json();
+    const partPath = `/v1/uploads/${ticket.uploadId}/parts/1`;
+    const uploaded = await fetch(`${origin}${partPath}`, {
+      method: 'PUT',
+      headers: proofHeaders('PUT', partPath, payload, 'part_delete_nonce_00001', 'application/octet-stream'),
+      body: payload,
+    });
+    const part = await uploaded.json();
+    const completeBody = Buffer.from(JSON.stringify({
+      uploadId: ticket.uploadId,
+      parts: [{ partNumber: 1, etag: part.etag }],
+    }));
+    const completed = await fetch(`${origin}/v1/uploads/complete`, {
+      method: 'POST',
+      headers: proofHeaders('POST', '/v1/uploads/complete', completeBody, 'complete_delete_nonce01'),
+      body: completeBody,
+    });
+    const asset = await completed.json();
+    const tamperedToken = `${asset.managementToken.slice(0, -1)}${asset.managementToken.endsWith('A') ? 'B' : 'A'}`;
+    const deleteBody = Buffer.from(JSON.stringify({ managementToken: tamperedToken }));
+    const deleted = await fetch(`${origin}/v1/assets`, {
+      method: 'DELETE',
+      headers: proofHeaders('DELETE', '/v1/assets', deleteBody, 'delete_tamper_nonce_001'),
+      body: deleteBody,
+    });
+    assert.equal(deleted.status, 403);
+    assert.equal(stored.size, 1);
+  });
+});
+
+
+test('managed-asset token cannot be used by a different authenticated FID', async () => {
+  await withGateway(async ({ origin, stored }) => {
+    const payload = Buffer.from('owned-managed-media');
+    const createBody = Buffer.from(JSON.stringify({
+      fileName: 'owned.jpg',
+      contentType: 'image/jpeg',
+      sizeBytes: payload.length,
+    }));
+    const created = await fetch(`${origin}/v1/uploads`, {
+      method: 'POST',
+      headers: proofHeaders('POST', '/v1/uploads', createBody, 'create_owner_nonce_0001'),
+      body: createBody,
+    });
+    const ticket = await created.json();
+    const partPath = `/v1/uploads/${ticket.uploadId}/parts/1`;
+    const uploaded = await fetch(`${origin}${partPath}`, {
+      method: 'PUT',
+      headers: proofHeaders('PUT', partPath, payload, 'part_owner_nonce_000001', 'application/octet-stream'),
+      body: payload,
+    });
+    const part = await uploaded.json();
+    const completeBody = Buffer.from(JSON.stringify({
+      uploadId: ticket.uploadId,
+      parts: [{ partNumber: 1, etag: part.etag }],
+    }));
+    const completed = await fetch(`${origin}/v1/uploads/complete`, {
+      method: 'POST',
+      headers: proofHeaders('POST', '/v1/uploads/complete', completeBody, 'complete_owner_nonce01'),
+      body: completeBody,
+    });
+    const asset = await completed.json();
+
+    const deleteBody = Buffer.from(JSON.stringify({ managementToken: asset.managementToken }));
+    const deleted = await fetch(`${origin}/v1/assets`, {
+      method: 'DELETE',
+      headers: proofHeaders(
+        'DELETE',
+        '/v1/assets',
+        deleteBody,
+        'delete_wrong_owner_001',
+        'application/json',
+        fid + 1,
+      ),
+      body: deleteBody,
+    });
+    assert.equal(deleted.status, 403);
+    assert.equal(stored.size, 1);
+  });
+});
+
+test('multipart part size is enforced before provider upload', async () => {
+  await withGateway(async ({ origin, stored }) => {
+    const createBody = Buffer.from(JSON.stringify({
+      fileName: 'photo.jpg',
+      contentType: 'image/jpeg',
+      sizeBytes: 10,
+    }));
+    const created = await fetch(`${origin}/v1/uploads`, {
+      method: 'POST',
+      headers: proofHeaders('POST', '/v1/uploads', createBody, 'create_size_nonce_00001'),
+      body: createBody,
+    });
+    const ticket = await created.json();
+    const shortBody = Buffer.from('short');
+    const partPath = `/v1/uploads/${ticket.uploadId}/parts/1`;
+    const part = await fetch(`${origin}${partPath}`, {
+      method: 'PUT',
+      headers: proofHeaders('PUT', partPath, shortBody, 'part_size_nonce_0000001', 'application/octet-stream'),
+      body: shortBody,
+    });
+    assert.equal(part.status, 409);
+    assert.equal([...stored.values()][0].parts.size, 0);
+  });
+});
+
+test('client can abort an allocated multipart upload', async () => {
+  await withGateway(async ({ origin, stored }) => {
+    const createBody = Buffer.from(JSON.stringify({ fileName: 'photo.jpg', contentType: 'image/jpeg', sizeBytes: 3210 }));
+    const created = await fetch(`${origin}/v1/uploads`, {
+      method: 'POST',
+      headers: proofHeaders('POST', '/v1/uploads', createBody, 'create_abort_nonce_0001'),
+      body: createBody,
+    });
+    const ticket = await created.json();
+    assert.equal(stored.size, 1);
+
+    const abortBody = Buffer.from(JSON.stringify({ uploadId: ticket.uploadId }));
+    const aborted = await fetch(`${origin}/v1/uploads`, {
+      method: 'DELETE',
+      headers: proofHeaders('DELETE', '/v1/uploads', abortBody, 'abort_nonce_00000000001'),
+      body: abortBody,
+    });
+    assert.equal(aborted.status, 204);
+    assert.equal(stored.size, 0);
+  });
+});
+
+test('invalid proof is rejected before storage allocation', async () => {
+  await withGateway(async ({ origin, stored, createCalls }) => {
+    const document = { fileName: 'photo.jpg', contentType: 'image/jpeg', sizeBytes: 3210 };
+    const body = Buffer.from(JSON.stringify(document));
+    const headers = proofHeaders('POST', '/v1/uploads', body, 'invalid_nonce_00000001');
+    headers['x-genycaster-signature'] = '00'.repeat(64);
+    const response = await fetch(`${origin}/v1/uploads`, { method: 'POST', headers, body });
+    assert.equal(response.status, 401);
+    assert.equal(stored.size, 0);
+    assert.equal(createCalls(), 0);
+  });
+});
+
+test('malformed public media path is a bounded 404 instead of crashing the gateway', async () => {
+  await withGateway(async ({ origin }) => {
+    const response = await fetch(`${origin}/m/%E0%A4%A`, { redirect: 'manual' });
+    assert.equal(response.status, 404);
+  });
+});
+
+test('authorization proof nonce is single-use', async () => {
+  await withGateway(async ({ origin, stored }) => {
+    const document = { fileName: 'photo.jpg', contentType: 'image/jpeg', sizeBytes: 3210 };
+    const body = Buffer.from(JSON.stringify(document));
+    const headers = proofHeaders('POST', '/v1/uploads', body, 'replay_nonce_0000000001');
+    const first = await fetch(`${origin}/v1/uploads`, { method: 'POST', headers, body });
+    assert.equal(first.status, 201);
+    assert.equal(stored.size, 1);
+
+    const second = await fetch(`${origin}/v1/uploads`, { method: 'POST', headers, body });
+    assert.equal(second.status, 409);
+    assert.equal(stored.size, 1);
+  });
+});
+
+test('stable media HEAD is served by gateway metadata verification instead of QStorage HEAD', async () => {
+  await withGateway(async ({ origin }) => {
+    const key = 'v1/2026/08/12345678-1234-1234-1234-123456789abc.jpg';
+    const response = await fetch(`${origin}/m/${key}`, { method: 'HEAD', redirect: 'manual' });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'public, max-age=300');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  });
+});

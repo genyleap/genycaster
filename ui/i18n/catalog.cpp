@@ -4,6 +4,65 @@ namespace {
 
 void registerTranslationSourceMetadata()
 {
+    //% "Loaded profile posts"
+    (void)qtTrId("genycaster.feed_pulse.loaded_profile_posts");
+    //% "Loaded feed snapshot"
+    (void)qtTrId("genycaster.feed_pulse.loaded_feed_snapshot");
+    //% "offline"
+    (void)qtTrId("genycaster.feed_pulse.offline");
+    //% "cached"
+    (void)qtTrId("genycaster.feed_pulse.cached");
+    //% "waiting for data"
+    (void)qtTrId("genycaster.feed_pulse.waiting_for_data");
+    //% "Profile snapshot"
+    (void)qtTrId("genycaster.feed_pulse.profile_snapshot");
+    //% "Feed pulse"
+    (void)qtTrId("genycaster.feed_pulse.title");
+    //% "Posts loaded"
+    (void)qtTrId("genycaster.feed_pulse.posts_loaded");
+    //% "Authors loaded"
+    (void)qtTrId("genycaster.feed_pulse.authors_loaded");
+    //% "Interactions"
+    (void)qtTrId("genycaster.feed_pulse.interactions");
+    //% "Avg / post"
+    (void)qtTrId("genycaster.feed_pulse.avg_per_post");
+    //% "What would you like to do today?"
+    (void)qtTrId("genycaster.home.prompt");
+    //% "Write and publish a new cast"
+    (void)qtTrId("genycaster.home.compose_description");
+    //% "Open apps and tools"
+    (void)qtTrId("genycaster.home.apps_description");
+    //% "Write a new cast or message…"
+    (void)qtTrId("genycaster.home.composer_placeholder");
+    //% "Social workspace"
+    (void)qtTrId("genycaster.settings.social_workspace");
+    //% "Tune the desktop navigation and context columns. You can also drag their separators directly in the main window."
+    (void)qtTrId("genycaster.settings.social_workspace_description");
+    //% "Navigation width"
+    (void)qtTrId("genycaster.settings.navigation_width");
+    //% "Primary destinations and account controls"
+    (void)qtTrId("genycaster.settings.navigation_width_description");
+    //% "Context sidebar width"
+    (void)qtTrId("genycaster.settings.context_sidebar_width");
+    //% "Profile, activity, search, and feed context"
+    (void)qtTrId("genycaster.settings.context_sidebar_width_description");
+    //% "Reset social layout"
+    (void)qtTrId("genycaster.settings.reset_social_layout");
+    //% "Search people, casts, and channels"
+    (void)qtTrId("genycaster.social.search_placeholder");
+    //% "Your profile"
+    (void)qtTrId("genycaster.social.your_profile");
+    //% "Sign in to personalize"
+    (void)qtTrId("genycaster.social.sign_in_to_personalize");
+    //% "%1 followers"
+    (void)qtTrId("genycaster.social.followers_count");
+    //% "%1 following"
+    (void)qtTrId("genycaster.social.following_count");
+    //% "Open profile"
+    (void)qtTrId("genycaster.social.open_profile");
+    //% "People in your orbit"
+    (void)qtTrId("genycaster.social.people_in_your_orbit");
+
     //% "Content & loading"
     (void)qtTrId("genycaster.settings.content_loading");
     //% "Control how GenyCaster requests, hydrates, previews, and reveals casts. These settings apply to future requests."
@@ -24,10 +83,6 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.settings.link_preview_prefetch");
     //% "Resolve visible web links in advance for richer cards. Disable to reduce background API and network work."
     (void)qtTrId("genycaster.settings.link_preview_prefetch_description");
-    //% "Play YouTube in GenyCaster"
-    (void)qtTrId("genycaster.settings.inline_youtube");
-    //% "Open supported YouTube links in the isolated in-app player instead of the external browser."
-    (void)qtTrId("genycaster.settings.inline_youtube_description");
     //% "Provider safety limits still apply. Higher values may increase latency, bandwidth, memory use, and API cost."
     (void)qtTrId("genycaster.settings.read_api_note");
     //% "Show %1 posts"
@@ -48,8 +103,6 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.miniapp.mode_left");
     //% "Drawer from right"
     (void)qtTrId("genycaster.miniapp.mode_right");
-    //% "Close app"
-    (void)qtTrId("genycaster.miniapp.close");
     //% "Open in Genycaster"
     (void)qtTrId("genycaster.miniapp.open_internal");
     //% "The internal Mini App host is not enabled in this build."
@@ -68,38 +121,16 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.miniapp.ready_timeout");
     //% "This app requires host capabilities or chains that Genycaster does not support yet. Reload cannot add them."
     (void)qtTrId("genycaster.miniapp.unsupported_requirements");
-    //% "This app tried to leave its approved secure domain. Navigation was blocked."
-    (void)qtTrId("genycaster.miniapp.navigation_blocked");
-    //% "The app process stopped. Reload to start a new session."
-    (void)qtTrId("genycaster.miniapp.renderer_failed");
     //% "The app sent too many or oversized requests and was stopped."
     (void)qtTrId("genycaster.miniapp.rpc_limit");
-    //% "Back"
-    (void)qtTrId("genycaster.miniapp.back");
-    //% "Reload"
-    (void)qtTrId("genycaster.miniapp.retry");
-    //% "Add Mini App"
-    (void)qtTrId("genycaster.miniapp.add_confirm_title");
-    //% "Add %1 to My MiniApps in Genycaster?"
-    (void)qtTrId("genycaster.miniapp.add_confirm_description");
     //% "Up to four Mini Apps can stay open at once. Close one in Task Manager to open another."
     (void)qtTrId("genycaster.miniapp.session_limit");
-    //% "Minimize"
-    (void)qtTrId("genycaster.miniapp.minimize");
-    //% "Share"
-    (void)qtTrId("genycaster.miniapp.share");
     //% "Task Manager"
     (void)qtTrId("genycaster.task_manager.title");
     //% "Live Mini App resource usage and session controls."
     (void)qtTrId("genycaster.task_manager.subtitle");
-    //% "CPU usage"
-    (void)qtTrId("genycaster.task_manager.cpu");
-    //% "Memory"
-    (void)qtTrId("genycaster.task_manager.memory");
     //% "SDK activity"
     (void)qtTrId("genycaster.task_manager.sdk_rate");
-    //% "Process"
-    (void)qtTrId("genycaster.task_manager.pid");
     //% "Focus"
     (void)qtTrId("genycaster.task_manager.focus");
     //% "Minimize"
@@ -117,8 +148,6 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.apps.title");
     //% "Discover and save Farcaster Mini Apps, then launch them in the Genycaster host."
     (void)qtTrId("genycaster.apps.description");
-    //% "Farcaster Mini Apps"
-    (void)qtTrId("genycaster.apps.farcaster");
     //% "Native Apps"
     (void)qtTrId("genycaster.apps.native");
     //% "Native Genycaster Apps are in development."
@@ -287,8 +316,6 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.cast.open_author_profile");
     //% "Open conversation context"
     (void)qtTrId("genycaster.cast.open_conversation_context");
-    //% "Open first link"
-    (void)qtTrId("genycaster.cast.open_first_link");
     //% "Open original cast"
     (void)qtTrId("genycaster.cast.open_original_cast");
     //% "Publish failed · saved locally"
@@ -309,8 +336,6 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.cast.replying_saved_locally");
     //% "Replying to another cast"
     (void)qtTrId("genycaster.cast.replying_to_another_cast");
-    //% "Replying to a parent link"
-    (void)qtTrId("genycaster.cast.replying_to_parent_link");
     //% "Replying to %1"
     (void)qtTrId("genycaster.cast.replying_to_value");
     //% "Unknown"
@@ -345,8 +370,6 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.search.not_followed_by");
     //% "Relationship unknown"
     (void)qtTrId("genycaster.search.relationship_unknown");
-    //% "Mini App · opens externally"
-    (void)qtTrId("genycaster.embed.miniapp_external");
     //% "No matching posts in the loaded feed"
     (void)qtTrId("genycaster.feed.filtered_empty");
     //% "These tabs filter the loaded feed. Load more posts or change the source; unavailable data is not an empty category."
@@ -475,10 +498,6 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.feed_header.universal_search");
     //% "Loading more"
     (void)qtTrId("genycaster.feed_surface.loading_more");
-    //% "Pull to refresh"
-    (void)qtTrId("genycaster.feed_surface.pull_to_refresh");
-    //% "Release to refresh"
-    (void)qtTrId("genycaster.feed_surface.release_to_refresh");
     //% "Account"
     (void)qtTrId("genycaster.header.account");
     //% "Genycaster"
@@ -623,16 +642,12 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.profile.popular");
     //% "Posts"
     (void)qtTrId("genycaster.profile.posts");
-    //% "Pull to refresh"
-    (void)qtTrId("genycaster.profile.pull_to_refresh");
     //% "Quotes"
     (void)qtTrId("genycaster.profile.quotes");
     //% "Refresh"
     (void)qtTrId("genycaster.profile.refresh");
     //% "Refreshing…"
     (void)qtTrId("genycaster.profile.refreshing");
-    //% "Release to refresh"
-    (void)qtTrId("genycaster.profile.release_to_refresh");
     //% "Replies"
     (void)qtTrId("genycaster.profile.replies");
     //% "Saved profile data is empty. Retry when the live source responds."
@@ -1167,8 +1182,6 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.composer.fid");
     //% "Optional title"
     (void)qtTrId("genycaster.composer.title_optional");
-    //% "Optional alt text"
-    (void)qtTrId("genycaster.composer.alt_text_optional");
     //% "Apply"
     (void)qtTrId("genycaster.composer.apply");
     //% "Published %1 / %2 bytes"
@@ -1316,10 +1329,6 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.context.geny_holder");
     //% "Sellers 24h"
     (void)qtTrId("genycaster.context.sellers_24h");
-    //% "All"
-    (void)qtTrId("genycaster.home.visual_filter_all");
-    //% "Images"
-    (void)qtTrId("genycaster.home.visual_filter_images");
     //% "NFTs"
     (void)qtTrId("genycaster.home.visual_filter_nfts");
     //% "All engagement"

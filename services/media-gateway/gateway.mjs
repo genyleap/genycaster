@@ -1,0 +1,629 @@
+import http from 'node:http';
+import {
+  createHash,
+  createHmac,
+  createPublicKey,
+  randomUUID,
+  timingSafeEqual,
+  verify,
+} from 'node:crypto';
+
+const mediaTypes = new Map([
+  ['image/jpeg', { kind: 'image', extension: '.jpg' }],
+  ['image/png', { kind: 'image', extension: '.png' }],
+  ['image/webp', { kind: 'image', extension: '.webp' }],
+  ['image/gif', { kind: 'image', extension: '.gif' }],
+  ['image/avif', { kind: 'image', extension: '.avif' }],
+  ['video/mp4', { kind: 'video', extension: '.mp4' }],
+  ['video/webm', { kind: 'video', extension: '.webm' }],
+  ['video/quicktime', { kind: 'video', extension: '.mov' }],
+]);
+
+function positiveInteger(value, fallback, name) {
+  if (value === undefined || value === '') return fallback;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new Error(`${name} must be a positive integer.`);
+  return parsed;
+}
+
+function normalizeOrigin(value, name) {
+  const url = new URL(value);
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new Error(`${name} must use http or https.`);
+  if (url.username || url.password || url.search || url.hash) throw new Error(`${name} must be a credential-free origin.`);
+  url.pathname = url.pathname.replace(/\/+$/, '');
+  return url;
+}
+
+export function loadConfig(env = process.env) {
+  const ticketSecret = String(env.GENYLEAP_MEDIA_TICKET_SECRET || '');
+  if (ticketSecret.length < 32) throw new Error('GENYLEAP_MEDIA_TICKET_SECRET must contain at least 32 characters.');
+  const multipartPartBytes = positiveInteger(
+    env.GENYLEAP_MEDIA_MULTIPART_PART_BYTES,
+    8 * 1024 * 1024,
+    'GENYLEAP_MEDIA_MULTIPART_PART_BYTES',
+  );
+  if (multipartPartBytes < 5 * 1024 * 1024 || multipartPartBytes > 64 * 1024 * 1024) {
+    throw new Error('GENYLEAP_MEDIA_MULTIPART_PART_BYTES must be between 5 MiB and 64 MiB.');
+  }
+  return Object.freeze({
+    host: env.GENYLEAP_MEDIA_HOST?.trim() || '127.0.0.1',
+    port: positiveInteger(env.GENYLEAP_MEDIA_PORT, 8790, 'GENYLEAP_MEDIA_PORT'),
+    publicBaseUrl: normalizeOrigin(
+      env.GENYLEAP_MEDIA_PUBLIC_BASE_URL || 'https://media-farcaster.genyleap.com',
+      'GENYLEAP_MEDIA_PUBLIC_BASE_URL',
+    ),
+    snapchainBaseUrl: normalizeOrigin(
+      env.GENYLEAP_MEDIA_SNAPCHAIN_BASE_URL || 'https://snapchain.genyleap.com',
+      'GENYLEAP_MEDIA_SNAPCHAIN_BASE_URL',
+    ),
+    ticketSecret,
+    proofLifetimeSeconds: positiveInteger(env.GENYLEAP_MEDIA_PROOF_LIFETIME_SECONDS, 300, 'GENYLEAP_MEDIA_PROOF_LIFETIME_SECONDS'),
+    multipartPartBytes,
+    downloadUrlLifetimeSeconds: positiveInteger(env.GENYLEAP_MEDIA_DOWNLOAD_URL_LIFETIME_SECONDS, 900, 'GENYLEAP_MEDIA_DOWNLOAD_URL_LIFETIME_SECONDS'),
+    ticketLifetimeSeconds: positiveInteger(env.GENYLEAP_MEDIA_TICKET_LIFETIME_SECONDS, 1800, 'GENYLEAP_MEDIA_TICKET_LIFETIME_SECONDS'),
+    maxImageBytes: positiveInteger(env.GENYLEAP_MEDIA_MAX_IMAGE_BYTES, 25 * 1024 * 1024, 'GENYLEAP_MEDIA_MAX_IMAGE_BYTES'),
+    maxVideoBytes: positiveInteger(env.GENYLEAP_MEDIA_MAX_VIDEO_BYTES, 512 * 1024 * 1024, 'GENYLEAP_MEDIA_MAX_VIDEO_BYTES'),
+    maxJsonBytes: positiveInteger(env.GENYLEAP_MEDIA_MAX_JSON_BYTES, 64 * 1024, 'GENYLEAP_MEDIA_MAX_JSON_BYTES'),
+    rateWindowMs: positiveInteger(env.GENYLEAP_MEDIA_RATE_WINDOW_MS, 60_000, 'GENYLEAP_MEDIA_RATE_WINDOW_MS'),
+    rateLimit: positiveInteger(env.GENYLEAP_MEDIA_RATE_LIMIT, 60, 'GENYLEAP_MEDIA_RATE_LIMIT'),
+    partRateLimit: positiveInteger(env.GENYLEAP_MEDIA_PART_RATE_LIMIT, 240, 'GENYLEAP_MEDIA_PART_RATE_LIMIT'),
+    trustCloudflare: env.GENYLEAP_MEDIA_TRUST_CLOUDFLARE === '1',
+  });
+}
+
+function sha256Hex(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function hexBytes(text, expectedBytes) {
+  const value = String(text || '').replace(/^0x/i, '');
+  if (value.length !== expectedBytes * 2 || !/^[0-9a-f]+$/i.test(value)) return null;
+  return Buffer.from(value, 'hex');
+}
+
+export function buildUploadChallenge({ method, pathname, fid, signerKey, timestamp, nonce, body }) {
+  return [
+    'genycaster-media-upload-v1',
+    method,
+    pathname,
+    String(fid),
+    signerKey.toLowerCase().replace(/^0x/, ''),
+    String(timestamp),
+    nonce,
+    sha256Hex(body),
+  ].join('\n');
+}
+
+function signerPublicKey(keyBytes) {
+  const prefix = Buffer.from('302a300506032b6570032100', 'hex');
+  return createPublicKey({ key: Buffer.concat([prefix, keyBytes]), format: 'der', type: 'spki' });
+}
+
+class ReplayCache {
+  constructor(lifetimeSeconds) {
+    this.lifetimeMs = lifetimeSeconds * 1000;
+    this.entries = new Map();
+  }
+  claim(key, nowMs) {
+    for (const [entryKey, expiry] of this.entries) if (expiry <= nowMs) this.entries.delete(entryKey);
+    if (this.entries.has(key)) return false;
+    this.entries.set(key, nowMs + this.lifetimeMs);
+    return true;
+  }
+}
+
+class FixedWindowRateLimiter {
+  constructor(windowMs, limit) {
+    this.windowMs = windowMs;
+    this.limit = limit;
+    this.entries = new Map();
+  }
+  check(key, now = Date.now()) {
+    let entry = this.entries.get(key);
+    if (!entry || now >= entry.resetAt) entry = { count: 0, resetAt: now + this.windowMs };
+    entry.count += 1;
+    this.entries.set(key, entry);
+    return { allowed: entry.count <= this.limit, remaining: Math.max(0, this.limit - entry.count) };
+  }
+}
+
+function clientAddress(request, trustCloudflare) {
+  if (trustCloudflare) {
+    const address = request.headers['cf-connecting-ip'];
+    if (typeof address === 'string' && address.trim()) return address.trim();
+  }
+  return request.socket.remoteAddress || 'unknown';
+}
+
+function writeJson(response, status, payload, headers = {}) {
+  const body = Buffer.from(JSON.stringify(payload));
+  response.writeHead(status, {
+    'content-type': 'application/json; charset=utf-8',
+    'content-length': String(body.length),
+    'cache-control': 'no-store',
+    'x-content-type-options': 'nosniff',
+    ...headers,
+  });
+  response.end(body);
+}
+
+async function readBody(request, maxBytes) {
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of request) {
+    total += chunk.length;
+    if (total > maxBytes) {
+      const error = new Error('request body too large');
+      error.statusCode = 413;
+      throw error;
+    }
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks, total);
+}
+
+function safeJson(body) {
+  try {
+    const parsed = JSON.parse(body.toString('utf8'));
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function validObjectKey(key) {
+  return /^v1\/[0-9]{4}\/[0-9]{2}\/[0-9a-f-]{36}\.[a-z0-9]{2,5}$/i.test(String(key || ''));
+}
+
+function assetUrl(config, key) {
+  const url = new URL(config.publicBaseUrl);
+  url.pathname = `${url.pathname}/m/${key}`.replace(/\/{2,}/g, '/');
+  return url.toString();
+}
+
+function sanitizeFileName(value) {
+  const base = String(value || 'media').split(/[\\/]/).pop().trim();
+  return base.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 180) || 'media';
+}
+
+function encodeTicket(config, payload) {
+  const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = createHmac('sha256', config.ticketSecret).update(encoded).digest('base64url');
+  return `${encoded}.${signature}`;
+}
+
+function decodeTicket(config, token, nowSeconds) {
+  const [encoded, signature, extra] = String(token || '').split('.');
+  if (!encoded || !signature || extra) return null;
+  const expected = createHmac('sha256', config.ticketSecret).update(encoded).digest();
+  let provided;
+  try { provided = Buffer.from(signature, 'base64url'); } catch { return null; }
+  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) return null;
+  let payload;
+  try { payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')); } catch { return null; }
+  if (!payload || ![1, 2].includes(payload.v) || !Number.isSafeInteger(payload.exp) || payload.exp < nowSeconds) return null;
+  return payload;
+}
+
+function encodeAssetManagementToken(config, payload) {
+  const encoded = Buffer.from(JSON.stringify({
+    v: 1,
+    kind: 'managed-media-asset',
+    key: payload.key,
+    fid: payload.fid,
+  })).toString('base64url');
+  const signature = createHmac('sha256', config.ticketSecret).update(encoded).digest('base64url');
+  return `${encoded}.${signature}`;
+}
+
+function decodeAssetManagementToken(config, token) {
+  const [encoded, signature, extra] = String(token || '').split('.');
+  if (!encoded || !signature || extra) return null;
+  const expected = createHmac('sha256', config.ticketSecret).update(encoded).digest();
+  let provided;
+  try { provided = Buffer.from(signature, 'base64url'); } catch { return null; }
+  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) return null;
+  let payload;
+  try { payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')); } catch { return null; }
+  if (!payload || payload.v !== 1 || payload.kind !== 'managed-media-asset' ||
+      !Number.isSafeInteger(payload.fid) || payload.fid <= 0 || !validObjectKey(payload.key)) {
+    return null;
+  }
+  return payload;
+}
+
+async function signerIsAuthorized(config, fid, signerKey, fetchImpl, nowSeconds) {
+  let pageToken = '';
+  for (let page = 0; page < 10; page += 1) {
+    const url = new URL(config.snapchainBaseUrl);
+    url.pathname = `${url.pathname}/v1/signersByFid`.replace(/\/{2,}/g, '/');
+    url.searchParams.set('fid', String(fid));
+    url.searchParams.set('pageSize', '100');
+    if (pageToken) url.searchParams.set('pageToken', pageToken);
+    const response = await fetchImpl(url, { headers: { accept: 'application/json' } });
+    if (!response.ok) {
+      const error = new Error(`signer verification failed with HTTP ${response.status}`);
+      error.statusCode = response.status >= 500 ? 503 : 401;
+      throw error;
+    }
+    const document = await response.json();
+    if (!Array.isArray(document.signers)) throw new Error('Snapchain signer response is malformed.');
+    for (const signer of document.signers) {
+      const key = String(signer?.key || '').toLowerCase().replace(/^0x/, '');
+      if (key !== signerKey || Number(signer?.fid) !== fid) continue;
+      if (signer.source === 'SIGNER_SOURCE_ONCHAIN') return true;
+      if (signer.source !== 'SIGNER_SOURCE_OFFCHAIN') continue;
+      if (!Array.isArray(signer.scopes) || !signer.scopes.includes('MESSAGE_TYPE_CAST_ADD')) continue;
+      if (signer.expiresAt !== undefined && signer.expiresAt !== null && Number(signer.expiresAt) <= nowSeconds) continue;
+      return true;
+    }
+    pageToken = String(document.nextPageToken || '');
+    if (!pageToken) break;
+  }
+  return false;
+}
+
+async function verifyProof(config, request, body, pathname, dependencies, replayCache, options = {}) {
+  const fid = Number.parseInt(String(request.headers['x-genycaster-fid'] || ''), 10);
+  const signerKeyText = String(request.headers['x-genycaster-signer-key'] || '').toLowerCase().replace(/^0x/, '');
+  const timestamp = Number.parseInt(String(request.headers['x-genycaster-timestamp'] || ''), 10);
+  const nonce = String(request.headers['x-genycaster-nonce'] || '');
+  const signatureText = String(request.headers['x-genycaster-signature'] || '');
+  const publicKeyBytes = hexBytes(signerKeyText, 32);
+  const signatureBytes = hexBytes(signatureText, 64);
+  const nowMs = dependencies.now();
+  const nowSeconds = Math.floor(nowMs / 1000);
+  if (!Number.isSafeInteger(fid) || fid <= 0 || !publicKeyBytes || !signatureBytes ||
+      !Number.isSafeInteger(timestamp) || Math.abs(nowSeconds - timestamp) > config.proofLifetimeSeconds ||
+      !/^[A-Za-z0-9_-]{16,128}$/.test(nonce)) {
+    const error = new Error('invalid media upload authorization proof');
+    error.statusCode = 401;
+    throw error;
+  }
+  const replayKey = `${fid}:${signerKeyText}:${timestamp}:${nonce}`;
+  if (!replayCache.claim(replayKey, nowMs)) {
+    const error = new Error('media upload authorization proof was already used');
+    error.statusCode = 409;
+    throw error;
+  }
+  const challenge = buildUploadChallenge({
+    method: request.method,
+    pathname,
+    fid,
+    signerKey: signerKeyText,
+    timestamp,
+    nonce,
+    body,
+  });
+  if (!verify(null, Buffer.from(challenge), signerPublicKey(publicKeyBytes), signatureBytes)) {
+    const error = new Error('media upload authorization signature is invalid');
+    error.statusCode = 401;
+    throw error;
+  }
+  if (options.verifySignerState !== false && !await signerIsAuthorized(config, fid, signerKeyText, dependencies.fetchImpl, nowSeconds)) {
+    const error = new Error('media upload signer is not active for this Farcaster account');
+    error.statusCode = 403;
+    throw error;
+  }
+  return { fid, signerKey: signerKeyText };
+}
+
+function mediaDefinition(contentType, sizeBytes, config) {
+  const definition = mediaTypes.get(contentType);
+  if (!definition) return null;
+  const limit = definition.kind === 'image' ? config.maxImageBytes : config.maxVideoBytes;
+  return sizeBytes > 0 && sizeBytes <= limit ? definition : null;
+}
+
+function objectKey(definition, nowMs) {
+  const date = new Date(nowMs);
+  const year = String(date.getUTCFullYear());
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  return `v1/${year}/${month}/${randomUUID()}${definition.extension}`;
+}
+
+function multipartPartCount(sizeBytes, partSizeBytes) {
+  return Math.ceil(sizeBytes / partSizeBytes);
+}
+
+function expectedPartBytes(sizeBytes, partSizeBytes, partNumber) {
+  const count = multipartPartCount(sizeBytes, partSizeBytes);
+  if (!Number.isSafeInteger(partNumber) || partNumber < 1 || partNumber > count) return null;
+  if (partNumber < count) return partSizeBytes;
+  return sizeBytes - (count - 1) * partSizeBytes;
+}
+
+function ticketMatchesAuthorization(ticket, authorization) {
+  return ticket.fid === authorization.fid &&
+    (!ticket.signerKey || ticket.signerKey === authorization.signerKey);
+}
+
+function validatedCompletionParts(value, expectedCount) {
+  if (!Array.isArray(value) || value.length !== expectedCount) return null;
+  const parts = [];
+  for (let index = 0; index < value.length; index += 1) {
+    const candidate = value[index];
+    const expectedPartNumber = index + 1;
+    if (!candidate || Number(candidate.partNumber) !== expectedPartNumber) return null;
+    const etag = String(candidate.etag || '').trim();
+    if (!etag || etag.length > 512 || /[\r\n]/.test(etag)) return null;
+    parts.push({ partNumber: expectedPartNumber, etag });
+  }
+  return parts;
+}
+
+export function createMediaGateway(config, storage, dependencies = {}) {
+  const runtime = {
+    fetchImpl: dependencies.fetchImpl ?? globalThis.fetch,
+    now: dependencies.now ?? (() => Date.now()),
+  };
+  const replayCache = dependencies.replayCache ?? new ReplayCache(config.proofLifetimeSeconds);
+  const limiter = dependencies.limiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.rateLimit);
+  const partLimiter = dependencies.partLimiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.partRateLimit);
+
+  return http.createServer(async (request, response) => {
+    response.setHeader('server', '');
+    let requestUrl;
+    try { requestUrl = new URL(request.url || '/', 'http://media.invalid'); }
+    catch { writeJson(response, 400, { error: 'invalid_request_url' }); return; }
+
+    if (requestUrl.pathname === '/healthz' && request.method === 'GET') {
+      writeJson(response, 200, { status: 'ok', storage: 'configured' });
+      return;
+    }
+
+    if (requestUrl.pathname.startsWith('/m/') && (request.method === 'GET' || request.method === 'HEAD')) {
+      let key;
+      try {
+        key = decodeURIComponent(requestUrl.pathname.slice(3));
+      } catch {
+        writeJson(response, 404, { error: 'asset_not_found' });
+        return;
+      }
+      if (!validObjectKey(key)) {
+        writeJson(response, 404, { error: 'asset_not_found' });
+        return;
+      }
+      try {
+        if (request.method === 'HEAD') {
+          const object = await storage.headObject(key);
+          const headers = {
+            'cache-control': 'public, max-age=300',
+            'x-content-type-options': 'nosniff',
+          };
+          if (object.contentType) headers['content-type'] = object.contentType;
+          if (Number.isSafeInteger(object.sizeBytes) && object.sizeBytes >= 0) {
+            headers['content-length'] = String(object.sizeBytes);
+          }
+          if (object.etag) headers.etag = object.etag;
+          response.writeHead(200, headers);
+          response.end();
+          return;
+        }
+
+        const location = storage.createDownload({
+          key,
+          method: 'GET',
+          expiresSeconds: config.downloadUrlLifetimeSeconds,
+        });
+        const redirectMaxAge = Math.max(0, Math.min(300, config.downloadUrlLifetimeSeconds - 30));
+        response.writeHead(307, {
+          location,
+          'cache-control': `public, max-age=${redirectMaxAge}`,
+          'x-content-type-options': 'nosniff',
+        });
+        response.end();
+      } catch {
+        writeJson(response, 503, { error: 'media_gateway_unavailable' });
+      }
+      return;
+    }
+
+    const partMatch = /^\/v1\/uploads\/([^/]+)\/parts\/([1-9][0-9]{0,4})$/.exec(requestUrl.pathname);
+    const createRoute = request.method === 'POST' && requestUrl.pathname === '/v1/uploads';
+    const completeRoute = request.method === 'POST' && requestUrl.pathname === '/v1/uploads/complete';
+    const abortRoute = request.method === 'DELETE' && requestUrl.pathname === '/v1/uploads';
+    const deleteAssetRoute = request.method === 'DELETE' && requestUrl.pathname === '/v1/assets';
+    const partRoute = request.method === 'PUT' && partMatch !== null;
+    if (!createRoute && !completeRoute && !abortRoute && !deleteAssetRoute && !partRoute) {
+      writeJson(response, 404, { error: 'route_not_available' });
+      return;
+    }
+
+    const clientKey = clientAddress(request, config.trustCloudflare);
+    const rate = (partRoute ? partLimiter : limiter).check(clientKey, runtime.now());
+    response.setHeader('ratelimit-limit', String(partRoute ? config.partRateLimit : config.rateLimit));
+    response.setHeader('ratelimit-remaining', String(rate.remaining));
+    if (!rate.allowed) {
+      writeJson(response, 429, { error: 'rate_limited' }, { 'retry-after': String(Math.ceil(config.rateWindowMs / 1000)) });
+      return;
+    }
+
+    try {
+      if (partRoute) {
+        const nowSeconds = Math.floor(runtime.now() / 1000);
+        const ticket = decodeTicket(config, partMatch[1], nowSeconds);
+        if (!ticket || ticket.v !== 2 || !ticket.providerUploadId ||
+            !Number.isSafeInteger(ticket.sizeBytes) || !Number.isSafeInteger(ticket.partSizeBytes)) {
+          writeJson(response, 403, { error: 'invalid_upload_ticket' });
+          return;
+        }
+        const partNumber = Number.parseInt(partMatch[2], 10);
+        const expectedBytes = expectedPartBytes(ticket.sizeBytes, ticket.partSizeBytes, partNumber);
+        if (!Number.isSafeInteger(expectedBytes) || expectedBytes <= 0) {
+          writeJson(response, 422, { error: 'invalid_upload_part' });
+          return;
+        }
+        const body = await readBody(request, expectedBytes);
+        if (body.length !== expectedBytes) {
+          writeJson(response, 409, {
+            error: 'upload_part_size_mismatch',
+            message: `Upload part ${partNumber} must contain exactly ${expectedBytes} bytes.`,
+          });
+          return;
+        }
+        const authorization = await verifyProof(
+          config,
+          request,
+          body,
+          requestUrl.pathname,
+          runtime,
+          replayCache,
+          { verifySignerState: false },
+        );
+        if (!ticketMatchesAuthorization(ticket, authorization)) {
+          writeJson(response, 403, { error: 'invalid_upload_ticket' });
+          return;
+        }
+        const uploaded = await storage.uploadPart({
+          key: ticket.key,
+          providerUploadId: ticket.providerUploadId,
+          partNumber,
+          body,
+        });
+        writeJson(response, 200, {
+          partNumber,
+          etag: uploaded.etag,
+          sizeBytes: body.length,
+        });
+        return;
+      }
+
+      const body = await readBody(request, config.maxJsonBytes);
+      const authorization = await verifyProof(
+        config,
+        request,
+        body,
+        requestUrl.pathname,
+        runtime,
+        replayCache,
+        { verifySignerState: createRoute || deleteAssetRoute },
+      );
+      const document = safeJson(body);
+      if (!document) {
+        writeJson(response, 400, { error: 'invalid_json' });
+        return;
+      }
+
+      if (deleteAssetRoute) {
+        const managed = decodeAssetManagementToken(config, document.managementToken);
+        if (!managed || managed.fid !== authorization.fid) {
+          writeJson(response, 403, { error: 'invalid_asset_management_token' });
+          return;
+        }
+        await storage.deleteObject(managed.key);
+        response.writeHead(204, { 'cache-control': 'no-store' });
+        response.end();
+        return;
+      }
+
+      if (createRoute) {
+        const fileName = sanitizeFileName(document.fileName);
+        const contentType = String(document.contentType || '').toLowerCase().trim();
+        const sizeBytes = Number(document.sizeBytes);
+        const definition = Number.isSafeInteger(sizeBytes) ? mediaDefinition(contentType, sizeBytes, config) : null;
+        if (!definition) {
+          writeJson(response, 422, { error: 'unsupported_media', message: 'Unsupported media type or file size.' });
+          return;
+        }
+        const partCount = multipartPartCount(sizeBytes, config.multipartPartBytes);
+        if (partCount < 1 || partCount > 10000) {
+          writeJson(response, 422, { error: 'unsupported_media', message: 'Media requires too many upload parts.' });
+          return;
+        }
+        const key = objectKey(definition, runtime.now());
+        const stableAssetUrl = assetUrl(config, key);
+        const multipart = await storage.beginMultipartUpload({ key, contentType });
+        const nowSeconds = Math.floor(runtime.now() / 1000);
+        const ticket = encodeTicket(config, {
+          v: 2,
+          key,
+          fileName,
+          contentType,
+          sizeBytes,
+          assetUrl: stableAssetUrl,
+          fid: authorization.fid,
+          signerKey: authorization.signerKey,
+          providerUploadId: multipart.providerUploadId,
+          partSizeBytes: config.multipartPartBytes,
+          exp: nowSeconds + config.ticketLifetimeSeconds,
+        });
+        writeJson(response, 201, {
+          uploadId: ticket,
+          mode: 'gateway-multipart',
+          partSizeBytes: config.multipartPartBytes,
+          partCount,
+          assetUrl: stableAssetUrl,
+          expiresIn: config.ticketLifetimeSeconds,
+        });
+        return;
+      }
+
+      const nowSeconds = Math.floor(runtime.now() / 1000);
+      const ticket = decodeTicket(config, document.uploadId, nowSeconds);
+      if (!ticket || ticket.v !== 2 || !ticket.providerUploadId ||
+          !ticketMatchesAuthorization(ticket, authorization)) {
+        writeJson(response, 403, { error: 'invalid_upload_ticket' });
+        return;
+      }
+
+      if (abortRoute) {
+        await storage.abortMultipartUpload({
+          key: ticket.key,
+          providerUploadId: ticket.providerUploadId,
+        });
+        response.writeHead(204, { 'cache-control': 'no-store' });
+        response.end();
+        return;
+      }
+
+      const expectedCount = multipartPartCount(ticket.sizeBytes, ticket.partSizeBytes);
+      const parts = validatedCompletionParts(document.parts, expectedCount);
+      if (!parts) {
+        writeJson(response, 422, {
+          error: 'invalid_upload_parts',
+          message: 'Completion must contain one ordered ETag for every uploaded part.',
+        });
+        return;
+      }
+
+      await storage.completeMultipartUpload({
+        key: ticket.key,
+        providerUploadId: ticket.providerUploadId,
+        parts,
+      });
+      const object = await storage.headObject(ticket.key);
+      if (object.sizeBytes !== ticket.sizeBytes) {
+        writeJson(response, 409, { error: 'upload_size_mismatch', message: 'Uploaded object size does not match the ticket.' });
+        return;
+      }
+      if (object.contentType && object.contentType.split(';', 1)[0].trim().toLowerCase() !== ticket.contentType) {
+        writeJson(response, 409, { error: 'upload_type_mismatch', message: 'Uploaded object content type does not match the ticket.' });
+        return;
+      }
+      writeJson(response, 200, {
+        assetUrl: ticket.assetUrl,
+        contentType: ticket.contentType,
+        fileName: ticket.fileName,
+        sizeBytes: ticket.sizeBytes,
+        managementToken: encodeAssetManagementToken(config, {
+          key: ticket.key,
+          fid: ticket.fid,
+        }),
+      });
+    } catch (error) {
+      const status = Number.isSafeInteger(error?.statusCode) ? error.statusCode : 500;
+      console.error('Genycaster media gateway request failed', {
+        method: request.method,
+        path: requestUrl.pathname,
+        status,
+        message: String(error?.message || 'unknown error').slice(0, 500),
+      });
+      writeJson(response, status, {
+        error: status >= 500 ? 'media_gateway_unavailable' : 'media_upload_rejected',
+        message: status >= 500 ? 'Media storage is temporarily unavailable.' : String(error.message || 'Media upload rejected.'),
+      });
+    }
+  });
+}

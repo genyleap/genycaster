@@ -1,0 +1,1276 @@
+{
+  "name": "Genyleap Icon & Contextual Reaction System",
+  "version": "0.2.1",
+  "grid": 24,
+  "strokeWidth": 1.75,
+  "strokeLinecap": "round",
+  "strokeLinejoin": "round",
+  "color": "currentColor",
+  "license": "Original starter set generated for Genyleap projects.",
+  "icons": [
+    {
+      "name": "bookmark",
+      "category": "actions",
+      "path": "icons/actions/bookmark.svg",
+      "style": "outline",
+      "tags": [
+        "save"
+      ]
+    },
+    {
+      "name": "bookmark-filled",
+      "category": "actions",
+      "path": "icons/actions/bookmark-filled.svg",
+      "style": "filled",
+      "tags": [
+        "save",
+        "active"
+      ]
+    },
+    {
+      "name": "copy",
+      "category": "actions",
+      "path": "icons/actions/copy.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "download",
+      "category": "actions",
+      "path": "icons/actions/download.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "edit",
+      "category": "actions",
+      "path": "icons/actions/edit.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "heart",
+      "category": "actions",
+      "path": "icons/actions/heart.svg",
+      "style": "outline",
+      "tags": [
+        "like",
+        "favorite"
+      ]
+    },
+    {
+      "name": "heart-filled",
+      "category": "actions",
+      "path": "icons/actions/heart-filled.svg",
+      "style": "filled",
+      "tags": [
+        "like",
+        "favorite",
+        "active"
+      ]
+    },
+    {
+      "name": "minus",
+      "category": "actions",
+      "path": "icons/actions/minus.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "plus",
+      "category": "actions",
+      "path": "icons/actions/plus.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "reply",
+      "category": "actions",
+      "path": "icons/actions/reply.svg",
+      "style": "outline",
+      "tags": [
+        "comment",
+        "reply"
+      ]
+    },
+    {
+      "name": "repost",
+      "category": "actions",
+      "path": "icons/actions/repost.svg",
+      "style": "outline",
+      "tags": [
+        "recast",
+        "repeat"
+      ]
+    },
+    {
+      "name": "send",
+      "category": "actions",
+      "path": "icons/actions/send.svg",
+      "style": "outline",
+      "tags": [
+        "message",
+        "paper-plane"
+      ]
+    },
+    {
+      "name": "share",
+      "category": "actions",
+      "path": "icons/actions/share.svg",
+      "style": "outline",
+      "tags": [
+        "send",
+        "share"
+      ]
+    },
+    {
+      "name": "trash",
+      "category": "actions",
+      "path": "icons/actions/trash.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "upload",
+      "category": "actions",
+      "path": "icons/actions/upload.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "degen",
+      "category": "brands",
+      "path": "icons/brands/degen.svg",
+      "style": "outline",
+      "tags": [
+        "degen",
+        "web3"
+      ],
+      "aliases": [
+        "Degen",
+        "DEGEN"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "farcaster",
+      "category": "brands",
+      "path": "icons/brands/farcaster.svg",
+      "style": "outline",
+      "tags": [
+        "farcaster",
+        "fc",
+        "social"
+      ],
+      "aliases": [
+        "Farcaster",
+        "FC",
+        "Warpcast"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "fc",
+      "category": "brands",
+      "path": "icons/brands/fc.svg",
+      "style": "outline",
+      "tags": [
+        "fc",
+        "farcaster",
+        "social"
+      ],
+      "aliases": [
+        "FC"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "geny",
+      "category": "brands",
+      "path": "icons/brands/geny.svg",
+      "style": "outline",
+      "tags": [
+        "geny",
+        "dna",
+        "token"
+      ],
+      "aliases": [
+        "GENY",
+        "Geny",
+        "Geny DNA"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "genyleap",
+      "category": "brands",
+      "path": "icons/brands/genyleap.svg",
+      "style": "outline",
+      "tags": [
+        "genyleap",
+        "dna",
+        "brand"
+      ],
+      "aliases": [
+        "Genyleap",
+        "Genyleap DNA"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "github",
+      "category": "brands",
+      "path": "icons/brands/github.svg",
+      "style": "outline",
+      "tags": [
+        "github",
+        "git",
+        "code"
+      ],
+      "aliases": [
+        "GitHub",
+        "Github"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "telegram",
+      "category": "brands",
+      "path": "icons/brands/telegram.svg",
+      "style": "outline",
+      "tags": [
+        "telegram",
+        "messaging",
+        "social"
+      ],
+      "aliases": [
+        "Telegram",
+        "TG"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "youtube",
+      "category": "brands",
+      "path": "icons/brands/youtube.svg",
+      "style": "outline",
+      "tags": [
+        "youtube",
+        "video"
+      ],
+      "aliases": [
+        "YouTube",
+        "Youtube",
+        "YT"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "base",
+      "category": "crypto",
+      "path": "icons/crypto/base.svg",
+      "style": "outline",
+      "tags": [
+        "base",
+        "base-chain",
+        "ethereum-l2",
+        "crypto"
+      ],
+      "aliases": [
+        "Base",
+        "Base Chain"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "bitcoin",
+      "category": "crypto",
+      "path": "icons/crypto/bitcoin.svg",
+      "style": "outline",
+      "tags": [
+        "bitcoin",
+        "btc",
+        "crypto"
+      ],
+      "aliases": [
+        "Bitcoin",
+        "BTC",
+        "\u20bf"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "eth-base",
+      "category": "crypto",
+      "path": "icons/crypto/eth-base.svg",
+      "style": "filled",
+      "tags": [
+        "base",
+        "eth-base",
+        "base-chain",
+        "crypto"
+      ],
+      "aliases": [
+        "ETH Base",
+        "Base"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "ether",
+      "category": "crypto",
+      "path": "icons/crypto/ether.svg",
+      "style": "outline",
+      "tags": [
+        "ether",
+        "ethereum",
+        "eth",
+        "crypto"
+      ],
+      "aliases": [
+        "Ether",
+        "ETH"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "ethereum",
+      "category": "crypto",
+      "path": "icons/crypto/ethereum.svg",
+      "style": "outline",
+      "tags": [
+        "ethereum",
+        "eth",
+        "ether",
+        "crypto"
+      ],
+      "aliases": [
+        "Ethereum",
+        "Ether",
+        "ETH"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "nft",
+      "category": "crypto",
+      "path": "icons/crypto/nft.svg",
+      "style": "outline",
+      "tags": [
+        "nft",
+        "collectible",
+        "web3"
+      ],
+      "aliases": [
+        "NFT",
+        "NFTs"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "solana",
+      "category": "crypto",
+      "path": "icons/crypto/solana.svg",
+      "style": "outline",
+      "tags": [
+        "solana",
+        "sol",
+        "crypto"
+      ],
+      "aliases": [
+        "Solana",
+        "SOL"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "cplusplus",
+      "category": "languages",
+      "path": "icons/languages/cplusplus.svg",
+      "style": "outline",
+      "tags": [
+        "c++",
+        "cplusplus",
+        "language",
+        "cpp"
+      ],
+      "aliases": [
+        "C++",
+        "CPP",
+        "CXX",
+        "CPlusPlus"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "javascript",
+      "category": "languages",
+      "path": "icons/languages/javascript.svg",
+      "style": "outline",
+      "tags": [
+        "javascript",
+        "js",
+        "language"
+      ],
+      "aliases": [
+        "JavaScript",
+        "JS",
+        "ECMAScript"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "php",
+      "category": "languages",
+      "path": "icons/languages/php.svg",
+      "style": "outline",
+      "tags": [
+        "php",
+        "language"
+      ],
+      "aliases": [
+        "PHP"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "qml",
+      "category": "languages",
+      "path": "icons/languages/qml.svg",
+      "style": "outline",
+      "tags": [
+        "qml",
+        "qt",
+        "language"
+      ],
+      "aliases": [
+        "QML",
+        "Qt Quick"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "typescript",
+      "category": "languages",
+      "path": "icons/languages/typescript.svg",
+      "style": "outline",
+      "tags": [
+        "typescript",
+        "ts",
+        "language"
+      ],
+      "aliases": [
+        "TypeScript",
+        "TS"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "attachment",
+      "category": "media",
+      "path": "icons/media/attachment.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "camera",
+      "category": "media",
+      "path": "icons/media/camera.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "image",
+      "category": "media",
+      "path": "icons/media/image.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "mic",
+      "category": "media",
+      "path": "icons/media/mic.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "mute",
+      "category": "media",
+      "path": "icons/media/mute.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "pause",
+      "category": "media",
+      "path": "icons/media/pause.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "play",
+      "category": "media",
+      "path": "icons/media/play.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "video",
+      "category": "media",
+      "path": "icons/media/video.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "volume",
+      "category": "media",
+      "path": "icons/media/volume.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "arrow-left",
+      "category": "navigation",
+      "path": "icons/navigation/arrow-left.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "arrow-right",
+      "category": "navigation",
+      "path": "icons/navigation/arrow-right.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "chevron-down",
+      "category": "navigation",
+      "path": "icons/navigation/chevron-down.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "chevron-left",
+      "category": "navigation",
+      "path": "icons/navigation/chevron-left.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "chevron-right",
+      "category": "navigation",
+      "path": "icons/navigation/chevron-right.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "chevron-up",
+      "category": "navigation",
+      "path": "icons/navigation/chevron-up.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "explore",
+      "category": "navigation",
+      "path": "icons/navigation/explore.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "home",
+      "category": "navigation",
+      "path": "icons/navigation/home.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "home-filled",
+      "category": "navigation",
+      "path": "icons/navigation/home-filled.svg",
+      "style": "filled",
+      "tags": []
+    },
+    {
+      "name": "menu",
+      "category": "navigation",
+      "path": "icons/navigation/menu.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "notifications",
+      "category": "navigation",
+      "path": "icons/navigation/notifications.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "notifications-filled",
+      "category": "navigation",
+      "path": "icons/navigation/notifications-filled.svg",
+      "style": "filled",
+      "tags": []
+    },
+    {
+      "name": "profile",
+      "category": "navigation",
+      "path": "icons/navigation/profile.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "search",
+      "category": "navigation",
+      "path": "icons/navigation/search.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "android",
+      "category": "platforms",
+      "path": "icons/platforms/android.svg",
+      "style": "outline",
+      "tags": [
+        "android",
+        "platform",
+        "mobile"
+      ],
+      "aliases": [
+        "Android"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "ios",
+      "category": "platforms",
+      "path": "icons/platforms/ios.svg",
+      "style": "outline",
+      "tags": [
+        "ios",
+        "platform",
+        "mobile"
+      ],
+      "aliases": [
+        "iOS",
+        "iPhone",
+        "iPadOS"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "linux",
+      "category": "platforms",
+      "path": "icons/platforms/linux.svg",
+      "style": "outline",
+      "tags": [
+        "linux",
+        "platform",
+        "os"
+      ],
+      "aliases": [
+        "Linux",
+        "GNU/Linux"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "macos",
+      "category": "platforms",
+      "path": "icons/platforms/macos.svg",
+      "style": "outline",
+      "tags": [
+        "macos",
+        "platform",
+        "os",
+        "apple"
+      ],
+      "aliases": [
+        "macOS",
+        "Mac",
+        "OS X"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "windows",
+      "category": "platforms",
+      "path": "icons/platforms/windows.svg",
+      "style": "outline",
+      "tags": [
+        "windows",
+        "platform",
+        "os"
+      ],
+      "aliases": [
+        "Windows",
+        "Win",
+        "Win32",
+        "Win64"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "hypersnap",
+      "category": "quilibrium",
+      "path": "icons/quilibrium/hypersnap.svg",
+      "style": "filled",
+      "tags": [
+        "quilibrium",
+        "ecosystem",
+        "hypersnap"
+      ],
+      "aliases": [
+        "Hypersnap",
+        "HyperSnap"
+      ],
+      "source": "User-provided Quilibrium ecosystem mark",
+      "official": false
+    },
+    {
+      "name": "qkms",
+      "category": "quilibrium",
+      "path": "icons/quilibrium/qkms.svg",
+      "style": "filled",
+      "tags": [
+        "quilibrium",
+        "ecosystem",
+        "qkms"
+      ],
+      "aliases": [
+        "QKMS",
+        "Q KMS"
+      ],
+      "source": "User-provided Quilibrium ecosystem mark",
+      "official": false
+    },
+    {
+      "name": "qping",
+      "category": "quilibrium",
+      "path": "icons/quilibrium/qping.svg",
+      "style": "filled",
+      "tags": [
+        "quilibrium",
+        "ecosystem",
+        "qping"
+      ],
+      "aliases": [
+        "QPing",
+        "Q Ping"
+      ],
+      "source": "User-provided Quilibrium ecosystem mark",
+      "official": false
+    },
+    {
+      "name": "qstore",
+      "category": "quilibrium",
+      "path": "icons/quilibrium/qstore.svg",
+      "style": "filled",
+      "tags": [
+        "quilibrium",
+        "ecosystem",
+        "qstore"
+      ],
+      "aliases": [
+        "QStore",
+        "Q Store"
+      ],
+      "source": "User-provided Quilibrium ecosystem mark",
+      "official": false
+    },
+    {
+      "name": "quark",
+      "category": "quilibrium",
+      "path": "icons/quilibrium/quark.svg",
+      "style": "filled",
+      "tags": [
+        "quilibrium",
+        "ecosystem",
+        "quark"
+      ],
+      "aliases": [
+        "Quark"
+      ],
+      "source": "User-provided Quilibrium ecosystem mark",
+      "official": false
+    },
+    {
+      "name": "quilibrium",
+      "category": "quilibrium",
+      "path": "icons/quilibrium/quilibrium.svg",
+      "style": "filled",
+      "tags": [
+        "quilibrium",
+        "ecosystem",
+        "quilibrium"
+      ],
+      "aliases": [
+        "Quilibrium",
+        "Q"
+      ],
+      "source": "User-provided Quilibrium ecosystem mark",
+      "official": false
+    },
+    {
+      "name": "ai",
+      "category": "reactions",
+      "path": "icons/reactions/ai.svg",
+      "style": "outline",
+      "tags": [
+        "ai",
+        "artificial-intelligence",
+        "ml"
+      ],
+      "aliases": [
+        "AI",
+        "Artificial Intelligence",
+        "LLM"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "art",
+      "category": "reactions",
+      "path": "icons/reactions/art.svg",
+      "style": "outline",
+      "tags": [
+        "art",
+        "artist",
+        "creative"
+      ],
+      "aliases": [
+        "Art",
+        "Artist",
+        "Artwork"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "code",
+      "category": "reactions",
+      "path": "icons/reactions/code.svg",
+      "style": "outline",
+      "tags": [
+        "code",
+        "programming",
+        "developer"
+      ],
+      "aliases": [
+        "Code",
+        "Programming",
+        "Developer"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "gem",
+      "category": "reactions",
+      "path": "icons/reactions/gem.svg",
+      "style": "outline",
+      "tags": [
+        "gem",
+        "superrare",
+        "reaction"
+      ],
+      "aliases": [
+        "GEM",
+        "Gem",
+        "SuperRare"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "nft",
+      "category": "reactions",
+      "path": "icons/reactions/nft.svg",
+      "style": "outline",
+      "tags": [
+        "nft",
+        "token",
+        "reaction"
+      ],
+      "aliases": [
+        "NFT",
+        "NFTs"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "security",
+      "category": "reactions",
+      "path": "icons/reactions/security.svg",
+      "style": "outline",
+      "tags": [
+        "security",
+        "safe",
+        "privacy"
+      ],
+      "aliases": [
+        "Security",
+        "Privacy",
+        "Secure"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "wow",
+      "category": "reactions",
+      "path": "icons/reactions/wow.svg",
+      "style": "outline",
+      "tags": [
+        "wow",
+        "amazing",
+        "reaction"
+      ],
+      "aliases": [
+        "Wow",
+        "WOW",
+        "Amazing"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "at",
+      "category": "social",
+      "path": "icons/social/at.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "globe",
+      "category": "social",
+      "path": "icons/social/globe.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "hashtag",
+      "category": "social",
+      "path": "icons/social/hashtag.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "message",
+      "category": "social",
+      "path": "icons/social/message.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "sparkles",
+      "category": "social",
+      "path": "icons/social/sparkles.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "user-add",
+      "category": "social",
+      "path": "icons/social/user-add.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "users",
+      "category": "social",
+      "path": "icons/social/users.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "verified",
+      "category": "social",
+      "path": "icons/social/verified.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "wallet",
+      "category": "social",
+      "path": "icons/social/wallet.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "calendar",
+      "category": "system",
+      "path": "icons/system/calendar.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "check",
+      "category": "system",
+      "path": "icons/system/check.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "clock",
+      "category": "system",
+      "path": "icons/system/clock.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "close",
+      "category": "system",
+      "path": "icons/system/close.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "external-link",
+      "category": "system",
+      "path": "icons/system/external-link.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "eye",
+      "category": "system",
+      "path": "icons/system/eye.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "eye-off",
+      "category": "system",
+      "path": "icons/system/eye-off.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "info",
+      "category": "system",
+      "path": "icons/system/info.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "link",
+      "category": "system",
+      "path": "icons/system/link.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "lock",
+      "category": "system",
+      "path": "icons/system/lock.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "more-horizontal",
+      "category": "system",
+      "path": "icons/system/more-horizontal.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "more-vertical",
+      "category": "system",
+      "path": "icons/system/more-vertical.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "settings",
+      "category": "system",
+      "path": "icons/system/settings.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "unlock",
+      "category": "system",
+      "path": "icons/system/unlock.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "warning",
+      "category": "system",
+      "path": "icons/system/warning.svg",
+      "style": "outline",
+      "tags": []
+    },
+    {
+      "name": "cmake",
+      "category": "tech",
+      "path": "icons/tech/cmake.svg",
+      "style": "outline",
+      "tags": [
+        "cmake",
+        "build",
+        "c++"
+      ],
+      "aliases": [
+        "CMake"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "docker",
+      "category": "tech",
+      "path": "icons/tech/docker.svg",
+      "style": "outline",
+      "tags": [
+        "docker",
+        "container"
+      ],
+      "aliases": [
+        "Docker"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "git",
+      "category": "tech",
+      "path": "icons/tech/git.svg",
+      "style": "outline",
+      "tags": [
+        "git",
+        "vcs"
+      ],
+      "aliases": [
+        "Git"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "python",
+      "category": "tech",
+      "path": "icons/tech/python.svg",
+      "style": "outline",
+      "tags": [
+        "python",
+        "programming"
+      ],
+      "aliases": [
+        "Python"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "qt",
+      "category": "tech",
+      "path": "icons/tech/qt.svg",
+      "style": "outline",
+      "tags": [
+        "qt",
+        "framework",
+        "c++"
+      ],
+      "aliases": [
+        "Qt"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "rust",
+      "category": "tech",
+      "path": "icons/tech/rust.svg",
+      "style": "outline",
+      "tags": [
+        "rust",
+        "programming"
+      ],
+      "aliases": [
+        "Rust"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    },
+    {
+      "name": "terminal",
+      "category": "tech",
+      "path": "icons/tech/terminal.svg",
+      "style": "outline",
+      "tags": [
+        "terminal",
+        "shell",
+        "cli"
+      ],
+      "aliases": [
+        "Terminal",
+        "CLI",
+        "Shell"
+      ],
+      "source": "Genyleap normalized glyph",
+      "official": false
+    }
+  ],
+  "totalIcons": 94,
+  "categories": [
+    "actions",
+    "brands",
+    "crypto",
+    "languages",
+    "media",
+    "navigation",
+    "platforms",
+    "quilibrium",
+    "reactions",
+    "social",
+    "system"
+  ],
+  "reactionRules": "reactions/reaction-rules.json",
+  "stats": {
+    "total": 107,
+    "categories": {
+      "actions": 15,
+      "brands": 8,
+      "crypto": 7,
+      "languages": 5,
+      "media": 9,
+      "navigation": 14,
+      "platforms": 5,
+      "quilibrium": 6,
+      "reactions": 7,
+      "social": 9,
+      "system": 15,
+      "tech": 7
+    }
+  },
+  "aliases": "icons/aliases.json"
+}

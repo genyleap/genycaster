@@ -1,16 +1,14 @@
 # Build output
 /graphify-out/
 /build/
+/build-*/
 /out/
 /cmake-build-*/
 /CMakeFiles/
 /CMakeCache.txt
 /cmake_install.cmake
 /Testing/
-/docs/
-/tests/
-
-# CMake generated files
+CMakeUserPresets.json
 compile_commands.json
 CTestTestfile.cmake
 DartConfiguration.tcl
@@ -49,6 +47,7 @@ install_manifest.txt
 /mcp/.cache/
 /mcp/.npm/
 /mcp/.turbo/
+**/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -65,13 +64,16 @@ pnpm-debug.log*
 rules.ninja
 build.ninja
 
+# Python tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
 # Logs
 *.log
 logs/
 
-# Local demo runtime (SQLite database, uploaded media, smoke temp files).
-# Covered by /build/ above; listed explicitly so the runtime state is never
-# committed even if the demo root moves.
+# Local demo/runtime state
 /build/demo/
 *.sqlite
 *.sqlite-shm
@@ -88,15 +90,22 @@ logs/
 *.p12
 *.pfx
 
-# OS
+# Generated packaging artifacts
+*.dmg
+*.app/
+*.pkg
+
+# OS / archive metadata
 .DS_Store
+._*
+__MACOSX/
 .AppleDouble
 .LSOverride
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# IDE
+# IDE/editor
 .idea/
 .vscode/
 *.swp
