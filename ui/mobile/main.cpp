@@ -248,6 +248,12 @@ using genycaster::ui::runtime::makeRuntime;
     return qtTrId("genycaster.runtime.the_read_could_not_be_completed");
 }
 
+[[nodiscard]] bool isBusy(const application::read::model::ReadMetadata& metadata) noexcept
+{
+    return metadata.phase == application::read::model::ReadPhase::LoadingCache
+        || metadata.phase == application::read::model::ReadPhase::Refreshing;
+}
+
 [[nodiscard]] QString diagnosticText(const application::read::model::ReadMetadata& metadata)
 {
     if (!metadata.error) { return {}; }
@@ -2428,7 +2434,7 @@ void connectRuntime(
                 auto request = runtime->service->openFeed(
                     std::move(query),
                     [&bridge, runtime, requestGeneration, channelId,
-                     completedMutex, completedChannels, artChannelCount](application::read::model::FeedState state) {
+                     completedMutex, completedChannels](application::read::model::FeedState state) {
                         if (!runtime->isCurrentExplorerArtRequestGeneration(requestGeneration)) {
                             return;
                         }
