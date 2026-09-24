@@ -38,6 +38,9 @@ for token in (
     'const source = presentationBridge.isAuthenticated && root.identityAvailable',
     '? "following" : "trending"',
     'presentationBridge.activeFeed !== source',
+    'const emptySettledSource = presentationBridge.feedStarted',
+    '&& presentationBridge.rows.length === 0',
+    '|| !presentationBridge.feedStarted || emptySettledSource',
 ):
     if token not in shell:
         errors.append(f"Explorer source selection missing {token!r}")

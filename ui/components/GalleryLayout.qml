@@ -27,7 +27,9 @@ Item {
     signal openRequested(var mediaItems, int index)
 
     function embedAt(index) {
-        return root.itemCount > index ? root.embeds[index] : ({})
+        if (index < 0 || index >= root.itemCount)
+            return ({})
+        return root.embeds[index] || ({})
     }
 
     function mediaKey(index) {

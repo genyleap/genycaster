@@ -223,8 +223,11 @@ Item {
         // healthy source merely to reclassify rows already available locally.
         const source = presentationBridge.isAuthenticated && root.identityAvailable
                        ? "following" : "trending"
+        const emptySettledSource = presentationBridge.feedStarted
+                                   && !presentationBridge.isBusy
+                                   && presentationBridge.rows.length === 0
         if (presentationBridge.activeView !== "feed" || presentationBridge.activeFeed !== source
-                || !presentationBridge.feedStarted)
+                || !presentationBridge.feedStarted || emptySettledSource)
             presentationBridge.selectFeed(source)
         if (nextMode === "visuals")
             presentationBridge.requestExplorerArt()

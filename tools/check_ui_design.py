@@ -248,6 +248,9 @@ if 'visible: root.idleHome || root.trendingUnavailable' in empty_state:
 app_shell = (ui/'components'/'AppShell.qml').read_text(encoding='utf-8')
 if 'passiveGuestDiscoveryFailure' not in app_shell:
     errors.append('Guest Explore source failures must stay inline instead of becoming a global status warning')
+gallery_layout = (ui/'components'/'GalleryLayout.qml').read_text(encoding='utf-8')
+if 'return root.embeds[index] || ({})' not in gallery_layout:
+    errors.append('GalleryLayout must normalize sparse/null embed entries before media property access')
 if 'profileList.verticalOvershoot' not in profile_surface or 'readList.verticalOvershoot' not in feed_surface:
     errors.append('Pull-to-refresh hints must use overshoot rather than absolute contentY')
 if 'fillColor: "transparent"' not in cast_item \
