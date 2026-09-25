@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 import Farcaster.Client
 
 Item {
@@ -23,6 +24,10 @@ Item {
     property bool curveTopRight: true
     property bool curveBottomRight: true
     property bool curveBottomLeft: true
+    // Small focal controls can opt into Qt's CurveRenderer for native analytic
+    // antialiasing. Timeline/card surfaces stay on the retained QSG geometry
+    // path so scrolling does not recreate Shape/ShapePath object trees.
+    property bool highQualityEdges: false
 
     // A shared QML Superellipse is instantiated hundreds of times in timelines.
     // Keep the QML object tree to one retained scene-graph item instead of a Shape,
@@ -35,7 +40,7 @@ Item {
     SceneGraphSuperellipse {
         id: renderedShape
         anchors.fill: parent
-        visible: root.width > 0 && root.height > 0
+        visible: !root.highQualityEdges && root.width > 0 && root.height > 0
         fillColor: root.fillColor
         borderColor: root.borderColor
         borderWidth: root.borderWidth
@@ -47,5 +52,112 @@ Item {
         curveTopRight: root.curveTopRight
         curveBottomRight: root.curveBottomRight
         curveBottomLeft: root.curveBottomLeft
+    }
+
+    Loader {
+        anchors.fill: parent
+        active: root.highQualityEdges
+        asynchronous: false
+
+        sourceComponent: Component {
+            Shape {
+                id: precisionShape
+                anchors.fill: parent
+                preferredRendererType: Shape.CurveRenderer
+                asynchronous: false
+
+                readonly property real pathInset: root.borderWidth > 0 ? root.borderWidth / 2 : 0
+                readonly property real pathLeft: pathInset
+                readonly property real pathTop: pathInset
+                readonly property real pathRight: Math.max(pathLeft, width - pathInset)
+                readonly property real pathBottom: Math.max(pathTop, height - pathInset)
+                readonly property real pathWidth: Math.max(0, pathRight - pathLeft)
+                readonly property real pathHeight: Math.max(0, pathBottom - pathTop)
+                readonly property real cornerRadius: Math.max(
+                                                        0,
+                                                        Math.min(root.curveDepth - pathInset,
+                                                                 pathWidth / 2,
+                                                                 pathHeight / 2))
+                readonly property real topLeftRadius: root.curveTopLeft ? cornerRadius : 0
+                readonly property real topRightRadius: root.curveTopRight ? cornerRadius : 0
+                readonly property real bottomRightRadius: root.curveBottomRight ? cornerRadius : 0
+                readonly property real bottomLeftRadius: root.curveBottomLeft ? cornerRadius : 0
+                readonly property real cubicFactor: {
+                    const safeExponent = Math.max(2.0, root.exponent)
+                    const diagonal = Math.pow(0.5, 1 / safeExponent)
+                    return Math.max(0.5522847498,
+                                    Math.min(0.985, (8 * diagonal - 4) / 3))
+                }
+
+                ShapePath {
+                    fillColor: root.fillColor
+                    fillRule: ShapePath.WindingFill
+                    strokeColor: root.borderWidth > 0 ? root.borderColor : "transparent"
+                    strokeWidth: root.borderWidth > 0 ? root.borderWidth : -1
+                    joinStyle: ShapePath.MiterJoin
+                    capStyle: ShapePath.FlatCap
+
+                    startX: precisionShape.pathLeft + precisionShape.topLeftRadius
+                    startY: precisionShape.pathTop
+
+                    PathLine {
+                        x: precisionShape.pathRight - precisionShape.topRightRadius
+                        y: precisionShape.pathTop
+                    }
+                    PathCubic {
+                        x: precisionShape.pathRight
+                        y: precisionShape.pathTop + precisionShape.topRightRadius
+                        control1X: precisionShape.pathRight - precisionShape.topRightRadius
+                                   + precisionShape.cubicFactor * precisionShape.topRightRadius
+                        control1Y: precisionShape.pathTop
+                        control2X: precisionShape.pathRight
+                        control2Y: precisionShape.pathTop + precisionShape.topRightRadius
+                                   - precisionShape.cubicFactor * precisionShape.topRightRadius
+                    }
+                    PathLine {
+                        x: precisionShape.pathRight
+                        y: precisionShape.pathBottom - precisionShape.bottomRightRadius
+                    }
+                    PathCubic {
+                        x: precisionShape.pathRight - precisionShape.bottomRightRadius
+                        y: precisionShape.pathBottom
+                        control1X: precisionShape.pathRight
+                        control1Y: precisionShape.pathBottom - precisionShape.bottomRightRadius
+                                   + precisionShape.cubicFactor * precisionShape.bottomRightRadius
+                        control2X: precisionShape.pathRight - precisionShape.bottomRightRadius
+                                   + precisionShape.cubicFactor * precisionShape.bottomRightRadius
+                        control2Y: precisionShape.pathBottom
+                    }
+                    PathLine {
+                        x: precisionShape.pathLeft + precisionShape.bottomLeftRadius
+                        y: precisionShape.pathBottom
+                    }
+                    PathCubic {
+                        x: precisionShape.pathLeft
+                        y: precisionShape.pathBottom - precisionShape.bottomLeftRadius
+                        control1X: precisionShape.pathLeft + precisionShape.bottomLeftRadius
+                                   - precisionShape.cubicFactor * precisionShape.bottomLeftRadius
+                        control1Y: precisionShape.pathBottom
+                        control2X: precisionShape.pathLeft
+                        control2Y: precisionShape.pathBottom - precisionShape.bottomLeftRadius
+                                   + precisionShape.cubicFactor * precisionShape.bottomLeftRadius
+                    }
+                    PathLine {
+                        x: precisionShape.pathLeft
+                        y: precisionShape.pathTop + precisionShape.topLeftRadius
+                    }
+                    PathCubic {
+                        x: precisionShape.pathLeft + precisionShape.topLeftRadius
+                        y: precisionShape.pathTop
+                        control1X: precisionShape.pathLeft
+                        control1Y: precisionShape.pathTop + precisionShape.topLeftRadius
+                                   - precisionShape.cubicFactor * precisionShape.topLeftRadius
+                        control2X: precisionShape.pathLeft + precisionShape.topLeftRadius
+                                   - precisionShape.cubicFactor * precisionShape.topLeftRadius
+                        control2Y: precisionShape.pathTop
+                    }
+                }
+            }
+        }
     }
 }

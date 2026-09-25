@@ -9,6 +9,10 @@ Item {
     property bool compact: false
     property bool interactionsAvailable: false
     property double accountFid: 0
+    property var scrollHost: null
+    property bool supportingAdmitted: false
+    readonly property bool scrollMoving: root.scrollHost !== null
+                                         && Boolean(root.scrollHost.moving)
 
     // Cast content owns its own bidi flow. The application shell may be RTL,
     // but a Latin cast must remain an LTR message and vice versa.
@@ -23,6 +27,41 @@ Item {
     signal externalRequested(string url)
     signal mediaRequested(var mediaItems, int index)
     signal authenticationRequested()
+
+    function resolveScrollHost() {
+        let candidate = root.parent
+        while (candidate !== null) {
+            if (candidate.moving !== undefined && candidate.contentY !== undefined) {
+                root.scrollHost = candidate
+                return
+            }
+            candidate = candidate.parent
+        }
+        root.scrollHost = null
+    }
+
+    function synchronizeSupportingAdmission() {
+        if (root.supportingEmbeds.length === 0) {
+            root.supportingAdmitted = false
+            return
+        }
+        if (!root.scrollMoving)
+            root.supportingAdmitted = true
+    }
+
+    Component.onCompleted: {
+        root.resolveScrollHost()
+        root.synchronizeSupportingAdmission()
+    }
+    onParentChanged: root.resolveScrollHost()
+    onScrollMovingChanged: root.synchronizeSupportingAdmission()
+    onSupportingEmbedsChanged: {
+        // A recycled row must not retain the previous cast's rich/link subtree.
+        // If reuse happens mid-flick, reserve geometry and defer the replacement
+        // until movement ends instead of doing classification/Loader work now.
+        root.supportingAdmitted = false
+        root.synchronizeSupportingAdmission()
+    }
 
     readonly property bool isOwnCast: Number(root.modelData.authorFid || 0) > 0
                                       && Number(root.modelData.authorFid || 0) === Number(root.accountFid)
@@ -352,15 +391,10 @@ Item {
             }
         }
 
-        Superellipse {
+        Item {
             id: messageSurface
             Layout.fillWidth: true
             implicitHeight: messageContent.implicitHeight + Theme.space2 * 2
-            fillColor: "transparent"
-            borderWidth: 0
-            borderColor: Theme.borderMuted
-            curveDepth: Theme.curveCompact
-
 
             ColumnLayout {
                 id: messageContent
@@ -667,6 +701,7 @@ Item {
                 Loader {
                     active: !root.mediaFirst && root.displayText.length > 0
                     visible: active
+                    asynchronous: true
                     Layout.fillWidth: true
                     sourceComponent: Component {
                         RichCastRenderer {
@@ -687,6 +722,7 @@ Item {
                 Loader {
                     active: root.mediaFirst
                     visible: active
+                    asynchronous: true
                     Layout.fillWidth: true
                     Layout.leftMargin: root.mediaContentInset
                     Layout.rightMargin: root.mediaContentInset
@@ -742,6 +778,7 @@ Item {
                 Loader {
                     active: root.mediaFirst && root.displayText.length > 0
                     visible: active
+                    asynchronous: true
                     Layout.fillWidth: true
                     Layout.leftMargin: root.mediaContentInset
                     Layout.rightMargin: root.mediaContentInset
@@ -760,7 +797,9 @@ Item {
 
                 Loader {
                     active: root.mediaFirst && root.supportingEmbeds.length > 0
+                            && root.supportingAdmitted
                     visible: active
+                    asynchronous: true
                     Layout.fillWidth: true
                     Layout.leftMargin: root.mediaContentInset
                     Layout.rightMargin: root.mediaContentInset
@@ -778,7 +817,9 @@ Item {
 
                 Loader {
                     active: !root.mediaFirst && root.supportingEmbeds.length > 0
+                            && root.supportingAdmitted
                     visible: active
+                    asynchronous: true
                     Layout.fillWidth: true
                     sourceComponent: Component {
                         CastEmbedsPanel {

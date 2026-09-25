@@ -25,6 +25,8 @@
 #include <QUrlQuery>
 
 #include <algorithm>
+#include <cstdint>
+#include <functional>
 #include <memory>
 #include <utility>
 
@@ -34,7 +36,8 @@ constexpr qsizetype maximumHtmlBytes = 256 * 1024;
 constexpr int requestTimeoutMilliseconds = 6'000;
 constexpr int absoluteRequestDeadlineMilliseconds = 9'000;
 constexpr int maximumRedirects = 4;
-constexpr qsizetype maximumConcurrentPreviewRequests = 4;
+constexpr qsizetype maximumConcurrentPreviewRequests = 2;
+constexpr qsizetype maximumJsonBytes = 128 * 1024;
 
 [[nodiscard]] QString normalizedUrl(const QString& rawUrl)
 {
@@ -454,6 +457,199 @@ void mergeNonEmpty(QVariantMap& target, const QVariantMap& incoming)
     }
 }
 
+enum class PreviewFetchKind : std::uint8_t {
+    Html,
+    Json,
+};
+
+struct PreviewFetchResult final {
+    QUrl finalUrl{};
+    QByteArray payload{};
+    QString contentType{};
+    bool usable{};
+};
+
+/**
+ * Dedicated low-priority Qt Network reactor for link-preview discovery.
+ *
+ * QNetworkAccessManager and every readyRead/finished handler live on this worker
+ * thread. The GUI thread sees only one bounded completion per URL, so scrolling
+ * cannot be interrupted by TLS/socket callbacks or HTML chunk accumulation.
+ */
+class LinkPreviewNetworkWorker final : public QObject {
+public:
+    using Completion = std::function<void(PreviewFetchResult)>;
+
+    void initialize(const bool useDirectProxy)
+    {
+        if (m_network != nullptr) {
+            return;
+        }
+        m_network = new QNetworkAccessManager{this};
+        if (useDirectProxy) {
+            m_network->setProxy(QNetworkProxy{QNetworkProxy::NoProxy});
+        } else {
+            QNetworkProxyFactory::setUseSystemConfiguration(true);
+        }
+    }
+
+    void shutdown()
+    {
+        m_shuttingDown = true;
+        if (m_network == nullptr) {
+            return;
+        }
+        const auto replies = m_network->findChildren<QNetworkReply*>();
+        for (QNetworkReply* const reply : replies) {
+            if (reply != nullptr && reply->isRunning()) {
+                reply->abort();
+            }
+        }
+    }
+
+    void fetch(
+        QUrl url,
+        const PreviewFetchKind kind,
+        const qint64 deadlineMs,
+        Completion completion,
+        const int redirectCount = 0)
+    {
+        if (m_shuttingDown || m_network == nullptr || !completion) {
+            return;
+        }
+        if (!publicHttpUrl(url) || redirectCount > maximumRedirects) {
+            completion(PreviewFetchResult{.finalUrl = std::move(url)});
+            return;
+        }
+
+        const qint64 remainingMs = deadlineMs - QDateTime::currentMSecsSinceEpoch();
+        if (remainingMs <= 0) {
+            completion(PreviewFetchResult{.finalUrl = std::move(url)});
+            return;
+        }
+
+        QNetworkRequest request{url};
+        request.setHeader(
+            QNetworkRequest::UserAgentHeader,
+            QStringLiteral("Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit/537.36 "
+                           "(KHTML, like Gecko) Genycaster/1.0 LinkPreview Safari/537.36"));
+        request.setRawHeader(
+            "Accept",
+            kind == PreviewFetchKind::Json
+                ? QByteArrayLiteral("application/json")
+                : QByteArrayLiteral("text/html,application/xhtml+xml;q=0.9,*/*;q=0.1"));
+        request.setAttribute(
+            QNetworkRequest::RedirectPolicyAttribute,
+            QNetworkRequest::ManualRedirectPolicy);
+        request.setTransferTimeout(static_cast<int>(
+            std::min<qint64>(remainingMs, requestTimeoutMilliseconds)));
+
+        QNetworkReply* const reply = m_network->get(request);
+        if (reply == nullptr) {
+            completion(PreviewFetchResult{.finalUrl = std::move(url)});
+            return;
+        }
+
+        const qsizetype maximumBytes =
+            kind == PreviewFetchKind::Json ? maximumJsonBytes : maximumHtmlBytes;
+        auto payload = std::make_shared<QByteArray>();
+        auto truncated = std::make_shared<bool>(false);
+
+        QTimer::singleShot(
+            static_cast<int>(std::min<qint64>(
+                remainingMs, absoluteRequestDeadlineMilliseconds)),
+            reply,
+            [reply] {
+                if (reply->isRunning()) {
+                    reply->abort();
+                }
+            });
+
+        QObject::connect(
+            reply,
+            &QNetworkReply::readyRead,
+            this,
+            [reply, payload, truncated, maximumBytes] {
+                if (!reply->isOpen()) {
+                    return;
+                }
+                const QByteArray chunk = reply->readAll();
+                if (chunk.isEmpty()) {
+                    return;
+                }
+                if (payload->size() < maximumBytes) {
+                    const qsizetype remaining = maximumBytes - payload->size();
+                    payload->append(chunk.constData(), std::min(chunk.size(), remaining));
+                    if (chunk.size() > remaining) {
+                        *truncated = true;
+                    }
+                } else {
+                    *truncated = true;
+                }
+                // Link metadata is expected in the bounded prefix. Stop socket
+                // delivery as soon as it is full; this callback runs off-GUI.
+                if (*truncated && reply->isRunning()) {
+                    reply->abort();
+                }
+            });
+
+        QObject::connect(
+            reply,
+            &QNetworkReply::finished,
+            this,
+            [this, reply, url = std::move(url), kind, deadlineMs,
+             redirectCount, payload, truncated, maximumBytes,
+             completion = std::move(completion)]() mutable {
+                const QVariant redirectValue =
+                    reply->attribute(QNetworkRequest::RedirectionTargetAttribute);
+                if (redirectValue.isValid() && redirectCount < maximumRedirects) {
+                    const QUrl target = url.resolved(redirectValue.toUrl());
+                    reply->deleteLater();
+                    if (publicHttpUrl(target)) {
+                        fetch(
+                            target,
+                            kind,
+                            deadlineMs,
+                            std::move(completion),
+                            redirectCount + 1);
+                        return;
+                    }
+                    completion(PreviewFetchResult{.finalUrl = std::move(url)});
+                    return;
+                }
+
+                if (reply->isOpen() && payload->size() < maximumBytes) {
+                    const QByteArray tail = reply->readAll();
+                    const qsizetype remaining = maximumBytes - payload->size();
+                    payload->append(tail.constData(), std::min(tail.size(), remaining));
+                    if (tail.size() > remaining) {
+                        *truncated = true;
+                    }
+                }
+
+                const QString contentType =
+                    reply->header(QNetworkRequest::ContentTypeHeader)
+                        .toString()
+                        .toLower();
+                const bool usable =
+                    reply->error() == QNetworkReply::NoError
+                    || (*truncated
+                        && reply->error() == QNetworkReply::OperationCanceledError);
+                reply->deleteLater();
+                completion(PreviewFetchResult{
+                    .finalUrl = std::move(url),
+                    .payload = std::move(*payload),
+                    .contentType = contentType,
+                    .usable = usable,
+                });
+            });
+    }
+
+private:
+    QNetworkAccessManager* m_network{};
+    bool m_shuttingDown{};
+};
+
 } // namespace
 
 class LinkPreviewResolver::Impl final {
@@ -464,13 +660,18 @@ public:
     };
 
     Impl(LinkPreviewResolver& owner, const bool useDirectProxy)
-        : q(owner)
+        : q(owner),
+          networkWorker(new LinkPreviewNetworkWorker{})
     {
-        if (useDirectProxy) {
-            network.setProxy(QNetworkProxy{QNetworkProxy::NoProxy});
-        } else {
-            QNetworkProxyFactory::setUseSystemConfiguration(true);
-        }
+        networkWorker->moveToThread(&networkThread);
+        networkThread.start(QThread::LowPriority);
+        QMetaObject::invokeMethod(
+            networkWorker,
+            [worker = networkWorker, useDirectProxy] {
+                worker->initialize(useDirectProxy);
+            },
+            Qt::BlockingQueuedConnection);
+
         // HTML/OpenGraph parsing is regex-heavy and must never consume the GUI
         // thread's frame budget. One low-priority worker is sufficient because
         // previews are opportunistic and serial parsing avoids CPU bursts while
@@ -478,6 +679,28 @@ public:
         parsePool.setMaxThreadCount(1);
         parsePool.setThreadPriority(QThread::LowPriority);
         parsePool.setExpiryTimeout(10'000);
+    }
+
+    ~Impl()
+    {
+        parsePool.waitForDone();
+        if (networkWorker != nullptr && networkThread.isRunning()) {
+            QThread* const ownerThread = q.thread();
+            QMetaObject::invokeMethod(
+                networkWorker,
+                [worker = networkWorker, ownerThread] {
+                    worker->shutdown();
+                    // QObject destruction must happen on the resolver's thread.
+                    // Moving the worker (and its QNAM child) before stopping the
+                    // reactor avoids cross-thread timer/socket teardown warnings.
+                    worker->moveToThread(ownerThread);
+                },
+                Qt::BlockingQueuedConnection);
+            networkThread.quit();
+            networkThread.wait();
+        }
+        delete networkWorker;
+        networkWorker = nullptr;
     }
 
     [[nodiscard]] QVariantMap previewFor(const QString& rawUrl) const
@@ -532,7 +755,7 @@ public:
             if (!youtubeVideoId(request.url).isEmpty()) {
                 startYoutubeOEmbed(request.key, request.url, deadlineMs);
             } else {
-                startFetch(request.key, request.url, 0, deadlineMs);
+                startFetch(request.key, request.url, deadlineMs);
             }
         }
     }
@@ -572,167 +795,143 @@ public:
         query.addQueryItem(QStringLiteral("format"), QStringLiteral("json"));
         endpoint.setQuery(query);
 
-        QNetworkRequest request{endpoint};
-        request.setHeader(QNetworkRequest::UserAgentHeader,
-            QStringLiteral("Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit/537.36 "
-                           "(KHTML, like Gecko) Genycaster/1.0 LinkPreview Safari/537.36"));
-        request.setRawHeader("Accept", "application/json");
-        request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
-        request.setTransferTimeout(requestTimeoutMilliseconds);
-
-        const qint64 remainingMs = deadlineMs - QDateTime::currentMSecsSinceEpoch();
-        if (remainingMs <= 0) {
+        LinkPreviewResolver* const owner = &q;
+        const bool queuedRequest = QMetaObject::invokeMethod(
+            networkWorker,
+            [worker = networkWorker, owner, key, endpoint = std::move(endpoint), deadlineMs]() mutable {
+                worker->fetch(
+                    std::move(endpoint),
+                    PreviewFetchKind::Json,
+                    deadlineMs,
+                    [owner, key](PreviewFetchResult fetched) mutable {
+                        QVariantMap delta{};
+                        if (fetched.usable) {
+                            const QJsonObject object =
+                                QJsonDocument::fromJson(fetched.payload).object();
+                            const QString title =
+                                object.value(QStringLiteral("title")).toString().trimmed();
+                            const QString author =
+                                object.value(QStringLiteral("author_name")).toString().trimmed();
+                            const QUrl thumbnail{
+                                object.value(QStringLiteral("thumbnail_url")).toString()};
+                            if (!title.isEmpty()) {
+                                delta.insert(QStringLiteral("title"), title);
+                            }
+                            if (!author.isEmpty()) {
+                                delta.insert(QStringLiteral("author"), author);
+                            }
+                            if (publicHttpUrl(thumbnail)) {
+                                delta.insert(
+                                    QStringLiteral("previewImage"),
+                                    remoteImageSource(thumbnail));
+                            }
+                            const int width =
+                                object.value(QStringLiteral("thumbnail_width")).toInt();
+                            const int height =
+                                object.value(QStringLiteral("thumbnail_height")).toInt();
+                            if (width > 0 && height > 0) {
+                                delta.insert(QStringLiteral("imageWidth"), width);
+                                delta.insert(QStringLiteral("imageHeight"), height);
+                            }
+                            delta.insert(
+                                QStringLiteral("siteName"),
+                                QStringLiteral("YouTube"));
+                            delta.insert(
+                                QStringLiteral("providerKind"),
+                                QStringLiteral("youtube"));
+                        }
+                        QMetaObject::invokeMethod(
+                            owner,
+                            [owner, key, delta = std::move(delta)]() mutable {
+                                QVariantMap result = owner->m_impl->cache.value(key);
+                                mergeNonEmpty(result, delta);
+                                owner->m_impl->finish(key, std::move(result));
+                            },
+                            Qt::QueuedConnection);
+                    });
+            },
+            Qt::QueuedConnection);
+        if (!queuedRequest) {
             finish(key, cache.value(key));
-            return;
         }
-
-        QNetworkReply* const reply = network.get(request);
-        QTimer::singleShot(static_cast<int>(std::min<qint64>(remainingMs, absoluteRequestDeadlineMilliseconds)), reply, [reply] {
-            if (reply->isRunning()) {
-                reply->abort();
-            }
-        });
-        QObject::connect(reply, &QNetworkReply::finished, &q, [this, reply, key] {
-            QVariantMap result = cache.value(key);
-            if (reply->error() == QNetworkReply::NoError) {
-                const QJsonObject object = QJsonDocument::fromJson(reply->readAll()).object();
-                const QString title = object.value(QStringLiteral("title")).toString().trimmed();
-                const QString author = object.value(QStringLiteral("author_name")).toString().trimmed();
-                const QUrl thumbnail{object.value(QStringLiteral("thumbnail_url")).toString()};
-                if (!title.isEmpty()) {
-                    result.insert(QStringLiteral("title"), title);
-                }
-                if (!author.isEmpty()) {
-                    result.insert(QStringLiteral("author"), author);
-                }
-                if (publicHttpUrl(thumbnail)) {
-                    result.insert(QStringLiteral("previewImage"), remoteImageSource(thumbnail));
-                }
-                const int width = object.value(QStringLiteral("thumbnail_width")).toInt();
-                const int height = object.value(QStringLiteral("thumbnail_height")).toInt();
-                if (width > 0 && height > 0) {
-                    result.insert(QStringLiteral("imageWidth"), width);
-                    result.insert(QStringLiteral("imageHeight"), height);
-                }
-                result.insert(QStringLiteral("siteName"), QStringLiteral("YouTube"));
-                result.insert(QStringLiteral("providerKind"), QStringLiteral("youtube"));
-            }
-            reply->deleteLater();
-            finish(key, std::move(result));
-        });
     }
 
-    void startFetch(const QString& key, const QUrl& url, const int redirectCount, const qint64 deadlineMs)
+    void startFetch(const QString& key, const QUrl& url, const qint64 deadlineMs)
     {
-        if (!publicHttpUrl(url) || redirectCount > maximumRedirects) {
+        if (!publicHttpUrl(url)) {
             finish(key, cache.value(key));
             return;
         }
 
-        QNetworkRequest request{url};
-        request.setHeader(QNetworkRequest::UserAgentHeader,
-            QStringLiteral("Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit/537.36 "
-                           "(KHTML, like Gecko) Genycaster/1.0 LinkPreview Safari/537.36"));
-        request.setRawHeader("Accept", "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1");
-        request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-        request.setTransferTimeout(requestTimeoutMilliseconds);
+        LinkPreviewResolver* const owner = &q;
+        const bool queuedRequest = QMetaObject::invokeMethod(
+            networkWorker,
+            [worker = networkWorker, owner, key, url, deadlineMs] {
+                worker->fetch(
+                    url,
+                    PreviewFetchKind::Html,
+                    deadlineMs,
+                    [owner, key](PreviewFetchResult fetched) mutable {
+                        QMetaObject::invokeMethod(
+                            owner,
+                            [owner, key, fetched = std::move(fetched)]() mutable {
+                                QVariantMap result = owner->m_impl->cache.value(key);
+                                if (!fetched.usable) {
+                                    owner->m_impl->finish(key, std::move(result));
+                                    return;
+                                }
 
-        const qint64 remainingMs = deadlineMs - QDateTime::currentMSecsSinceEpoch();
-        if (remainingMs <= 0) {
+                                const QString contentType =
+                                    fetched.contentType.section(QLatin1Char(';'), 0, 0)
+                                        .trimmed()
+                                        .toLower();
+                                if (contentType.isEmpty()
+                                    || contentType.contains(QStringLiteral("html"))) {
+                                    owner->m_impl->parseHtmlAsync(
+                                        key,
+                                        std::move(fetched.finalUrl),
+                                        std::move(fetched.payload),
+                                        std::move(result));
+                                    return;
+                                }
+
+                                if (contentType.startsWith(QStringLiteral("image/"))) {
+                                    result.insert(
+                                        QStringLiteral("providerKind"),
+                                        QStringLiteral("image"));
+                                    result.insert(
+                                        QStringLiteral("previewImage"),
+                                        remoteImageSource(fetched.finalUrl));
+                                } else if (contentType.startsWith(QStringLiteral("video/"))) {
+                                    result.insert(
+                                        QStringLiteral("providerKind"),
+                                        QStringLiteral("video"));
+                                } else if (contentType.startsWith(QStringLiteral("audio/"))) {
+                                    result.insert(
+                                        QStringLiteral("providerKind"),
+                                        QStringLiteral("audio"));
+                                }
+
+                                if ((contentType.startsWith(QStringLiteral("image/"))
+                                     || contentType.startsWith(QStringLiteral("video/"))
+                                     || contentType.startsWith(QStringLiteral("audio/")))
+                                    && result.value(QStringLiteral("title"))
+                                           .toString()
+                                           .trimmed()
+                                           .isEmpty()) {
+                                    result.insert(
+                                        QStringLiteral("title"),
+                                        prettifySlug(fetched.finalUrl.fileName()));
+                                }
+                                owner->m_impl->finish(key, std::move(result));
+                            },
+                            Qt::QueuedConnection);
+                    });
+            },
+            Qt::QueuedConnection);
+        if (!queuedRequest) {
             finish(key, cache.value(key));
-            return;
         }
-
-        QNetworkReply* const reply = network.get(request);
-        reply->setProperty("genycasterKey", key);
-        reply->setProperty("genycasterRedirectCount", redirectCount);
-        auto payload = std::make_shared<QByteArray>();
-        auto truncated = std::make_shared<bool>(false);
-        QTimer::singleShot(static_cast<int>(std::min<qint64>(remainingMs, absoluteRequestDeadlineMilliseconds)), reply, [reply] {
-            if (reply->isRunning()) {
-                reply->setProperty("genycasterHardTimeout", true);
-                reply->abort();
-            }
-        });
-
-        QObject::connect(reply, &QNetworkReply::readyRead, &q, [reply, payload, truncated] {
-            if (!reply->isOpen()) {
-                return;
-            }
-
-            const QByteArray chunk = reply->readAll();
-            if (payload->size() < maximumHtmlBytes) {
-                const qsizetype remaining = maximumHtmlBytes - payload->size();
-                payload->append(chunk.constData(), std::min(chunk.size(), remaining));
-                if (chunk.size() > remaining) {
-                    *truncated = true;
-                }
-            } else if (!chunk.isEmpty()) {
-                *truncated = true;
-            }
-
-            // Metadata lives in the document head. Once the bounded prefix is
-            // full, stop downloading the remainder instead of generating more
-            // GUI-thread readyRead callbacks for content we will discard.
-            if (*truncated && reply->isRunning()) {
-                reply->abort();
-            }
-        });
-
-        QObject::connect(reply, &QNetworkReply::finished, &q,
-            [this, reply, key, url, redirectCount, deadlineMs, payload, truncated] {
-            const QVariant redirectValue = reply->attribute(QNetworkRequest::RedirectionTargetAttribute);
-            if (redirectValue.isValid() && redirectCount < maximumRedirects) {
-                const QUrl target = url.resolved(redirectValue.toUrl());
-                reply->deleteLater();
-                if (publicHttpUrl(target)) {
-                    startFetch(key, target, redirectCount + 1, deadlineMs);
-                    return;
-                }
-                finish(key, cache.value(key));
-                return;
-            }
-
-            // The final finished signal may carry bytes that did not produce
-            // a separate readyRead callback. Consume only the remaining bounded
-            // prefix; no accumulated QByteArray is copied through QObject properties.
-            if (reply->isOpen() && payload->size() < maximumHtmlBytes) {
-                const QByteArray tail = reply->readAll();
-                const qsizetype remaining = maximumHtmlBytes - payload->size();
-                payload->append(tail.constData(), std::min(tail.size(), remaining));
-                if (tail.size() > remaining) {
-                    *truncated = true;
-                }
-            }
-
-            QVariantMap result = cache.value(key);
-            const QString contentType = reply->header(QNetworkRequest::ContentTypeHeader).toString().toLower();
-            const bool usableResponse = reply->error() == QNetworkReply::NoError
-                || (*truncated && reply->error() == QNetworkReply::OperationCanceledError);
-            if (usableResponse && (contentType.isEmpty() || contentType.contains(QStringLiteral("html")))) {
-                reply->deleteLater();
-                parseHtmlAsync(key, url, std::move(*payload), std::move(result));
-                return;
-            } else if (usableResponse && contentType.startsWith(QStringLiteral("image/"))) {
-                result.insert(QStringLiteral("providerKind"), QStringLiteral("image"));
-                result.insert(QStringLiteral("previewImage"), remoteImageSource(url));
-                if (result.value(QStringLiteral("title")).toString().trimmed().isEmpty()) {
-                    result.insert(QStringLiteral("title"), prettifySlug(url.fileName()));
-                }
-            } else if (usableResponse && contentType.startsWith(QStringLiteral("video/"))) {
-                result.insert(QStringLiteral("providerKind"), QStringLiteral("video"));
-                if (result.value(QStringLiteral("title")).toString().trimmed().isEmpty()) {
-                    result.insert(QStringLiteral("title"), prettifySlug(url.fileName()));
-                }
-            } else if (usableResponse && contentType.startsWith(QStringLiteral("audio/"))) {
-                result.insert(QStringLiteral("providerKind"), QStringLiteral("audio"));
-                if (result.value(QStringLiteral("title")).toString().trimmed().isEmpty()) {
-                    result.insert(QStringLiteral("title"), prettifySlug(url.fileName()));
-                }
-            }
-            reply->deleteLater();
-            finish(key, std::move(result));
-        });
     }
 
     void finish(const QString& key, QVariantMap result)
@@ -752,7 +951,8 @@ public:
     }
 
     LinkPreviewResolver& q;
-    QNetworkAccessManager network{};
+    QThread networkThread{};
+    LinkPreviewNetworkWorker* networkWorker{};
     QThreadPool parsePool{};
     QHash<QString, QVariantMap> cache{};
     QQueue<PendingPreview> pending{};

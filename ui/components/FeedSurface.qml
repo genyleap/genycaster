@@ -481,6 +481,11 @@ Item {
         const textLines = textLength > 0
             ? Math.max(1, Math.min(8, Math.ceil(textLength / charactersPerLine))) : 0
         const embeds = value.embeds || []
+        let supportingEmbedCount = 0
+        for (let index = 0; index < embeds.length; ++index) {
+            if (root.classifiedFamily(embeds[index], ({})) !== "image")
+                ++supportingEmbedCount
+        }
         let reservation = 112 + textLines * lineHeight
 
         if (layoutKind === "single-image") {
@@ -517,8 +522,21 @@ Item {
                 const rows = Math.ceil(visibleCount / 2)
                 reservation += rows * tileHeight + Math.max(0, rows - 1) * gap
             }
-        } else if (embeds.length > 0) {
+        } else if (embeds.length > 0 || /https?:\/\//i.test(String(value.text || ""))) {
+            // CastItem can infer a link preview directly from cast text even when
+            // the protocol embed list is empty. Reserve that card before the
+            // async supporting subtree is admitted so a cold link row does not
+            // change ListView geometry underneath the scroll gesture.
             reservation += root.compact ? 210 : 230
+        }
+
+        if ((layoutKind === "single-image" || layoutKind === "gallery")
+                && supportingEmbedCount > 0) {
+            // Mixed media + link rows need room for their deferred supporting
+            // cards too. Capping at two avoids pathological reservation while
+            // keeping the common image+destination case geometry-stable.
+            reservation += Math.min(2, supportingEmbedCount)
+                         * (root.compact ? 132 : 152)
         }
 
         if (presentationKind === "visual")

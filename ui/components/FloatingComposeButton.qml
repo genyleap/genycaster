@@ -68,6 +68,7 @@ Button {
         borderColor: control.activeFocus ? Theme.focusOnAccent : Qt.rgba(Theme.accentInk.r, Theme.accentInk.g, Theme.accentInk.b, 0.16)
         curveDepth: control.height / 2
         exponent: Theme.superellipseExponent
+        highQualityEdges: true
         elevation: Theme.elevationPopover
         shadowColor: control.activeFocus ? Theme.focusHalo : Theme.shadow
         shadowOpacityScale: control.down ? 0.40 : (control.hovered ? 1.08 : 0.94)

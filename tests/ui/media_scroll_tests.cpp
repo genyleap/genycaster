@@ -715,6 +715,44 @@ int main(int argc, char** argv)
         }
     }
 
+    // A cast that combines visual media with a supporting external link is the
+    // most expensive common feed shape. Entering it during kinetic motion must
+    // reserve geometry without constructing the LinkPreview subtree; admission
+    // happens asynchronously only after the scroll settles.
+    host->setProperty("moving", true);
+    auto mixedCast = createSurface(
+        engine,
+        QStringLiteral("CastItem"),
+        *scroll,
+        {{QStringLiteral("modelData"), QVariantMap{
+            {QStringLiteral("castId"), QStringLiteral("mixed-image-link")},
+            {QStringLiteral("displayName"), QStringLiteral("Mixed Cast")},
+            {QStringLiteral("author"), QStringLiteral("mixed")},
+            {QStringLiteral("text"), QString{}},
+            {QStringLiteral("embeds"), QVariantList{
+                QVariantMap{
+                    {QStringLiteral("kind"), QStringLiteral("image")},
+                    {QStringLiteral("imageSource"), QStringLiteral("image://remote/mixed-image")},
+                    {QStringLiteral("aspectRatio"), 1.5},
+                },
+                QVariantMap{
+                    {QStringLiteral("kind"), QStringLiteral("url")},
+                    {QStringLiteral("url"), QStringLiteral("https://example.invalid/mixed-link")},
+                },
+            }},
+        }}});
+    if (!mixedCast) { return 1; }
+    auto* mixedCastItem = qobject_cast<QQuickItem*>(mixedCast.get());
+    QTest::qWait(120);
+    expect(countVisualItemsWithClass(*mixedCastItem, QStringLiteral("LinkPreview")) == 0,
+        "mixed image+link cast defers its supporting LinkPreview while scrolling");
+    host->setProperty("moving", false);
+    expect(QTest::qWaitFor([&] {
+        return countVisualItemsWithClass(*mixedCastItem, QStringLiteral("LinkPreview")) == 1;
+    }), "mixed image+link cast asynchronously admits one LinkPreview after settling");
+    mixedCast.reset();
+    QCoreApplication::processEvents();
+
     const int requestsBeforeVideo = images->requestCount();
     auto video = createSurface(engine, QStringLiteral("VideoPreview"), *scroll,
         {{QStringLiteral("embed"), QVariantMap{
@@ -1171,14 +1209,22 @@ int main(int argc, char** argv)
         }
         for (auto* child : item->childItems()) { findLink(child); }
     };
-    findLink(qobject_cast<QQuickItem*>(supportingPanel.get()));
-    expect(retainedLink != nullptr, "supporting panel creates a real link card");
+    expect(QTest::qWaitFor([&] {
+        retainedLink.clear();
+        findLink(qobject_cast<QQuickItem*>(supportingPanel.get()));
+        return retainedLink != nullptr;
+    }), "supporting panel asynchronously creates a real link card after admission");
+    const QPointer<QObject> firstLink = retainedLink;
     supportingPanel->setProperty("supportingEmbeds", QVariantList{QVariantMap{
         {QStringLiteral("kind"), QStringLiteral("link")},
         {QStringLiteral("url"), QStringLiteral("https://example.test/second")}}});
-    QTest::qWait(80);
-    expect(retainedLink && retainedLink->property("targetUrl").toString() == QStringLiteral("https://example.test/second"),
-        "recycling a supporting link updates its existing card without rebuilding it");
+    expect(QTest::qWaitFor([&] {
+        return firstLink
+            && firstLink->property("targetUrl").toString()
+                   == QStringLiteral("https://example.test/second");
+    }), "recycling a supporting link updates its admitted card without rebuilding it");
+    expect(retainedLink == firstLink,
+        "supporting link reuse preserves the admitted preview object");
     qobject_cast<QQuickItem*>(supportingPanel.get())->setVisible(false);
 
     const QVariantMap menuRow{{QStringLiteral("castId"), QStringLiteral("menu-first")},

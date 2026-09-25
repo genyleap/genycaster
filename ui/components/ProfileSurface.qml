@@ -184,6 +184,7 @@ Item {
 
         if (embeds.length > 0) {
             let visualCount = 0
+            let supportingCount = 0
             let firstVisual = null
             for (let index = 0; index < embeds.length; ++index) {
                 const embed = embeds[index] || ({})
@@ -193,6 +194,8 @@ Item {
                     ++visualCount
                     if (firstVisual === null)
                         firstVisual = embed
+                } else {
+                    ++supportingCount
                 }
             }
             if (visualCount === 1 && firstVisual !== null) {
@@ -215,6 +218,12 @@ Item {
             } else {
                 reservation += root.compact ? 132 : 152
             }
+            if (visualCount > 0 && supportingCount > 0)
+                reservation += Math.min(2, supportingCount) * (root.compact ? 132 : 152)
+        } else if (/https?:\/\//i.test(String(value.text || ""))) {
+            // Match CastItem's inferred-link behavior even when protocol embeds
+            // are absent so Profile rows reserve their preview geometry early.
+            reservation += root.compact ? 132 : 152
         }
         return Math.max(88, Math.ceil(reservation))
     }

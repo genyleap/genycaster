@@ -182,9 +182,11 @@ if 'cornerSamples: 96' not in superellipse:
 if ('SceneGraphSuperellipse {' not in superellipse
         or 'id: renderedShape' not in superellipse
         or 'qualityScale:' not in superellipse
-        or 'Shape {' in superellipse
-        or 'PathCubic {' in superellipse):
-    errors.append('Shared Superellipse must stay on the single-item retained QSG renderer; per-instance Qt Shape object trees are forbidden in scrolling UI')
+        or 'property bool highQualityEdges: false' not in superellipse
+        or 'visible: !root.highQualityEdges' not in superellipse
+        or 'active: root.highQualityEdges' not in superellipse
+        or 'preferredRendererType: Shape.CurveRenderer' not in superellipse):
+    errors.append('Shared Superellipse must default to retained QSG geometry and expose only an explicit CurveRenderer precision opt-in')
 
 scene_graph_stroke = (ui/'render'/'scene_graph_stroke_item.cpp').read_text(encoding='utf-8')
 scene_graph_surface = (ui/'render'/'scene_graph_superellipse_item.cpp').read_text(encoding='utf-8')
@@ -271,11 +273,11 @@ for token in (
         errors.append(f'GalleryLayout scroll-time tile admission missing {token!r}')
 if 'profileList.verticalOvershoot' not in profile_surface or 'readList.verticalOvershoot' not in feed_surface:
     errors.append('Pull-to-refresh hints must use overshoot rather than absolute contentY')
-if 'fillColor: "transparent"' not in cast_item \
+if 'Item {\n            id: messageSurface' not in cast_item \
         or 'HoverHandler { id: messageHover }' in cast_item \
         or 'anchors.leftMargin: root.contentRtl ? Theme.space3 : 58' not in cast_item \
         or 'anchors.rightMargin: root.contentRtl ? 58 : Theme.space3' not in cast_item:
-    errors.append('Cast timeline must remain flat without hover recoloring and use a direction-aware content divider')
+    errors.append('Cast timeline must keep its transparent message wrapper as a plain Item, avoid hover recoloring, and use a direction-aware content divider')
 if 'root.modelData.parentCastId || ""' in cast_item and 'text: root.ltrText(root.modelData.parentCastId' in cast_item:
     errors.append('Reply context must not expose raw parent cast identifiers')
 
@@ -423,6 +425,8 @@ if ('width: implicitWidth' not in floating_compose
         or re.search(r'anchors\.(?:left|right)\s*:\s*Theme\.rtl', floating_block)
         or 'x: Theme.rtl' not in floating_block):
     errors.append('Floating compose geometry must use explicit size/x positioning and never swap left/right anchors during live RTL changes')
+if 'highQualityEdges: true' not in floating_compose:
+    errors.append('Floating compose must opt into CurveRenderer edge quality without forcing Shape cost onto timeline surfaces')
 if 'header.new_cast' in side_nav:
     errors.append('R6 sidebar must not contain the New Cast primary action')
 backdrop_blur_path = ui/'components'/'BackdropBlur.qml'
@@ -514,17 +518,38 @@ if ('QThreadPool parsePool' not in link_preview_resolver
         or 'parseHtmlAsync' not in link_preview_resolver):
     errors.append('Link preview HTML parsing must stay on the bounded low-priority worker instead of the GUI thread')
 for token in (
-    'maximumConcurrentPreviewRequests = 4',
+    'maximumConcurrentPreviewRequests = 2',
     'QQueue<PendingPreview> pending',
     'QSet<QString> queued',
+    'class LinkPreviewNetworkWorker final : public QObject',
+    'QThread networkThread',
+    'networkWorker->moveToThread(&networkThread)',
+    'networkThread.start(QThread::LowPriority)',
     'std::make_shared<QByteArray>()',
     'payload->append(',
     'if (*truncated && reply->isRunning())',
 ):
     if token not in link_preview_resolver:
         errors.append(f'Link preview queue/buffer hot-path contract missing {token!r}')
+if 'QNetworkAccessManager network{}' in link_preview_resolver:
+    errors.append('Link preview networking must not keep QNetworkAccessManager on the GUI-owned resolver object')
 if 'genycasterPayload' in link_preview_resolver:
     errors.append('Link preview readyRead must not round-trip the accumulated HTML through QObject dynamic properties')
+if cast_item.count('asynchronous: true') < 5:
+    errors.append('CastItem rich text/media/supporting subtrees must incubate asynchronously instead of blocking delegate creation')
+for token in (
+    'property bool supportingAdmitted: false',
+    'readonly property bool scrollMoving:',
+    'onSupportingEmbedsChanged:',
+    '&& root.supportingAdmitted',
+):
+    if token not in cast_item:
+        errors.append(f'CastItem mixed-media supporting admission contract missing {token!r}')
+if ('/https?:\\/\\//i.test(String(value.text || ""))' not in feed_surface
+        or 'supportingEmbedCount' not in feed_surface):
+    errors.append('Feed row reservation must account for inferred links and mixed image+supporting-card geometry before async admission')
+if 'id: messageSurface' in cast_item and re.search(r'Superellipse\s*\{\s*\n\s*id:\s*messageSurface', cast_item):
+    errors.append('CastItem transparent messageSurface must remain a plain Item; invisible scene-graph surfaces are forbidden per-row')
 
 appearance_header = (root/'src'/'presentation'/'qt'/'appearance_controller.hpp').read_text(encoding='utf-8')
 appearance_source = (root/'src'/'presentation'/'qt'/'appearance_controller.cpp').read_text(encoding='utf-8')
@@ -560,11 +585,12 @@ if 'LocaleFormat.formatInteger(root.valuePercent)' not in display_scale:
 superellipse_qml = (ui/'components'/'Superellipse.qml').read_text(encoding='utf-8')
 if ('SceneGraphSuperellipse {' not in superellipse_qml
         or 'qualityScale:' not in superellipse_qml
-        or 'Shape {' in superellipse_qml
-        or 'PathCubic {' in superellipse_qml
+        or 'property bool highQualityEdges: false' not in superellipse_qml
+        or 'active: root.highQualityEdges' not in superellipse_qml
+        or 'preferredRendererType: Shape.CurveRenderer' not in superellipse_qml
         or 'PathSvg {' in superellipse_qml
         or 'containmentMask: renderedShape' in superellipse_qml):
-    errors.append('Superellipse visuals must use the retained SceneGraphSuperellipse item without per-instance Shape/path QObject trees or path-aware shared hit testing')
+    errors.append('Superellipse must keep retained QSG as the default and isolate CurveRenderer to the explicit high-quality edge opt-in')
 if 'allowsBackForwardNavigationGestures = disableNativeGestures' in miniapp_macos:
     errors.append('Farcaster disableNativeGestures must not be misapplied to WebKit history-navigation gestures')
 show_status_block = miniapp_macos.split('- (void)showStatus:', 1)[1].split('- (void)showReady', 1)[0]

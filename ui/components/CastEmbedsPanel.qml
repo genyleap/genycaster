@@ -7,6 +7,9 @@ ColumnLayout {
     property var visualEmbeds: []
     property var supportingEmbeds: []
     property bool compact: false
+    property var scrollHost: null
+    readonly property bool scrollMoving: root.scrollHost !== null
+                                         && Boolean(root.scrollHost.moving)
 
     readonly property var rawVisualEmbeds: root.deduplicatedEmbeds(root.visualEmbeds)
     readonly property var rawSupportingEmbeds: root.deduplicatedEmbeds(root.supportingEmbeds)
@@ -37,6 +40,35 @@ ColumnLayout {
     signal castRequested(string castId)
 
     spacing: Theme.space2
+
+    function resolveScrollHost() {
+        let candidate = root.parent
+        while (candidate !== null) {
+            if (candidate.moving !== undefined && candidate.contentY !== undefined) {
+                root.scrollHost = candidate
+                return
+            }
+            candidate = candidate.parent
+        }
+        root.scrollHost = null
+    }
+
+    function supportingReservation(embed, availableWidth) {
+        const value = embed || ({})
+        const kind = String(value.kind || "").toLowerCase()
+        if (kind === "token-address" || kind === "token" || kind === "collectible" || kind === "nft")
+            return root.compact ? 170 : 196
+        if (kind === "cast-reference")
+            return root.compact ? 118 : 132
+        // Generic external links in media posts suppress duplicate artwork and
+        // are intentionally compact. Reserving their final neighborhood keeps
+        // ListView geometry stable while the heavy preview subtree is incubated
+        // only after kinetic scrolling settles.
+        return root.compact ? 126 : 146
+    }
+
+    Component.onCompleted: root.resolveScrollHost()
+    onParentChanged: root.resolveScrollHost()
 
     function canonicalUrl(value) {
         let text = String(value || "").trim()
@@ -239,18 +271,57 @@ ColumnLayout {
                     id: tile
                     required property int index
                     readonly property var embedData: root.effectiveSupportingEmbeds[index] || ({})
+                    property bool admitted: false
+                    readonly property real reservedHeight: root.supportingReservation(
+                                                               tile.embedData, tile.width)
                     width: root.tileWidthFor(index)
-                    height: preview.implicitHeight
+                    height: previewLoader.item && previewLoader.item.implicitHeight > 0
+                            ? previewLoader.item.implicitHeight : tile.reservedHeight
 
-                    EmbedPreview {
-                        id: preview
-                        width: parent.width
-                        embed: tile.embedData
-                        compact: tile.width < 520
-                        suppressArtwork: root.visualCount > 0
-                        onOpenRequested: url => root.externalRequested(url)
-                        onMediaRequested: (mediaItems, itemIndex) => root.mediaRequested(mediaItems, itemIndex)
-                        onCastRequested: castId => root.castRequested(castId)
+                    function scheduleAdmission() {
+                        if (tile.admitted || root.scrollMoving)
+                            return
+                        previewAdmission.restart()
+                    }
+
+                    Component.onCompleted: tile.scheduleAdmission()
+
+                    Connections {
+                        target: root
+                        function onScrollMovingChanged() {
+                            if (!root.scrollMoving)
+                                tile.scheduleAdmission()
+                            else
+                                previewAdmission.stop()
+                        }
+                    }
+
+                    Timer {
+                        id: previewAdmission
+                        interval: 24 + tile.index * 28
+                        repeat: false
+                        onTriggered: {
+                            if (!root.scrollMoving)
+                                tile.admitted = true
+                        }
+                    }
+
+                    Loader {
+                        id: previewLoader
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        active: tile.admitted
+                        asynchronous: true
+                        sourceComponent: Component {
+                            EmbedPreview {
+                                embed: tile.embedData
+                                compact: tile.width < 520
+                                suppressArtwork: root.visualCount > 0
+                                onOpenRequested: url => root.externalRequested(url)
+                                onMediaRequested: (mediaItems, itemIndex) => root.mediaRequested(mediaItems, itemIndex)
+                                onCastRequested: castId => root.castRequested(castId)
+                            }
+                        }
                     }
                 }
             }
