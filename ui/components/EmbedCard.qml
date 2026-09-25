@@ -6,6 +6,7 @@ Superellipse {
     id: root
 
     property var embed
+    property bool scrollMoving: false
     readonly property bool isCastReference: root.embed && root.embed.kind === "cast-reference"
     readonly property bool isImage: root.embed && root.embed.kind === "image"
     readonly property bool isVideo: root.embed && root.embed.kind === "video"
@@ -71,10 +72,13 @@ Superellipse {
     Layout.fillWidth: true
     implicitHeight: content.implicitHeight + Theme.space2 * 2
     curveDepth: Theme.shapeMedia
-    fillColor: hover.hovered ? Theme.surfaceHover : Theme.surfaceMuted
+    fillColor: !root.scrollMoving && hover.hovered ? Theme.surfaceHover : Theme.surfaceMuted
     borderWidth: 1
     borderColor: Theme.borderMuted
-    Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
+    Behavior on fillColor {
+        enabled: !root.scrollMoving
+        ColorAnimation { duration: Theme.motionFast }
+    }
 
     ColumnLayout {
         id: content
@@ -360,7 +364,10 @@ Superellipse {
         }
     }
 
-    HoverHandler { id: hover }
+    HoverHandler {
+        id: hover
+        enabled: !root.scrollMoving
+    }
     TapHandler {
         enabled: !root.isVideo
         gesturePolicy: TapHandler.ReleaseWithinBounds

@@ -13,17 +13,39 @@ Item {
     property color color: Theme.accent
     property real strokeWidth: 2
     property bool running: visible
-
+    property var scrollHost: null
+    readonly property bool scrollMoving: root.scrollHost !== null
+                                         && Boolean(root.scrollHost.moving)
     readonly property real arcRadius: Math.max(0, Math.min(width, height) / 2 - root.strokeWidth / 2)
+
+    function resolveScrollHost() {
+        let candidate = root.parent
+        while (candidate !== null) {
+            if (candidate.moving !== undefined && candidate.contentY !== undefined) {
+                root.scrollHost = candidate
+                return
+            }
+            candidate = candidate.parent
+        }
+        root.scrollHost = null
+    }
+
+    Component.onCompleted: root.resolveScrollHost()
+    onParentChanged: root.resolveScrollHost()
 
     implicitWidth: 18
     implicitHeight: 18
     Accessible.role: Accessible.ProgressBar
 
+    // One Shape owns both static paths. Rotating the full-circle track together
+    // with the active arc is visually identical, and avoids a second Shape node
+    // for every pending row in a timeline.
     Shape {
+        id: spinnerShape
         anchors.fill: parent
         preferredRendererType: Shape.CurveRenderer
         asynchronous: false
+        transformOrigin: Item.Center
 
         ShapePath {
             fillColor: "transparent"
@@ -40,14 +62,6 @@ Item {
                 sweepAngle: 359.999
             }
         }
-    }
-
-    Shape {
-        id: activeArc
-        anchors.fill: parent
-        preferredRendererType: Shape.CurveRenderer
-        asynchronous: false
-        transformOrigin: Item.Center
 
         ShapePath {
             fillColor: "transparent"
@@ -71,7 +85,7 @@ Item {
             to: 360
             duration: 760
             loops: Animation.Infinite
-            running: root.running && root.visible && !Theme.reduceMotion
+            running: root.running && root.visible && !root.scrollMoving && !Theme.reduceMotion
         }
     }
 }

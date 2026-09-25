@@ -15,6 +15,8 @@ Superellipse {
     property var externalPreview: ({})
     property bool metadataManagedExternally: false
     property var resolvedPreview: ({})
+    property var pendingResolvedPreview: ({})
+    property bool resolvedPreviewPending: false
     property bool metadataTimedOut: false
     property var layoutReservation: null
     readonly property var reservedLayout: root.layoutReservation || root.initialLayout()
@@ -208,6 +210,8 @@ Superellipse {
         root.layoutReservation = null
         layoutReservationTimer.restart()
         root.metadataTimedOut = false
+        root.pendingResolvedPreview = ({})
+        root.resolvedPreviewPending = false
         metadataDeadline.stop()
         root.refreshMetadata()
     }
@@ -228,6 +232,11 @@ Superellipse {
         if (root.scrollMoving) {
             metadataDeadline.stop()
         } else {
+            if (root.resolvedPreviewPending) {
+                root.resolvedPreviewPending = false
+                root.resolvedPreview = root.pendingResolvedPreview
+                root.pendingResolvedPreview = ({})
+            }
             metadataRequestTimer.restart()
             if (root.metadataLoading)
                 metadataDeadline.restart()
@@ -246,8 +255,14 @@ Superellipse {
         function onPreviewReady(url, preview) {
             const requested = String(root.targetUrl || "").split("#")[0]
             const resolved = String(url || "").split("#")[0]
-            if (requested === resolved)
-                root.resolvedPreview = preview
+            if (requested !== resolved)
+                return
+            if (root.scrollMoving) {
+                root.pendingResolvedPreview = preview || ({})
+                root.resolvedPreviewPending = true
+                return
+            }
+            root.resolvedPreview = preview || ({})
         }
     }
 
@@ -255,13 +270,19 @@ Superellipse {
     Layout.maximumWidth: Number.POSITIVE_INFINITY
     Layout.alignment: Qt.AlignVCenter
     implicitHeight: content.implicitHeight + Theme.space3 * 2
-    fillColor: hover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
+    fillColor: !root.scrollMoving && hover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
     borderWidth: Theme.strokeHairline
-    borderColor: hover.hovered ? Theme.borderDefault : Theme.borderSubtle
+    borderColor: !root.scrollMoving && hover.hovered ? Theme.borderDefault : Theme.borderSubtle
     curveDepth: Theme.shapeMedia
 
-    Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
-    Behavior on borderColor { ColorAnimation { duration: Theme.motionFast } }
+    Behavior on fillColor {
+        enabled: !root.scrollMoving
+        ColorAnimation { duration: Theme.motionFast }
+    }
+    Behavior on borderColor {
+        enabled: !root.scrollMoving
+        ColorAnimation { duration: Theme.motionFast }
+    }
 
     Superellipse {
         width: 3
@@ -392,7 +413,7 @@ Superellipse {
                     height: 22
                     visible: miniAppPosterFrame.visible && !miniAppPoster.ready && !miniAppPoster.loadFailed
                              && (root.metadataLoading || miniAppPoster.loading)
-                    running: visible
+                    running: visible && !root.scrollMoving
                     color: Theme.accent
                     strokeWidth: 2
                 }
@@ -459,6 +480,7 @@ Superellipse {
             id: webPreviewLoader
             visible: !root.layoutMiniApp
             Layout.fillWidth: true
+            asynchronous: true
             sourceComponent: root.preferPosterLayout ? richMediaLinkCard : genericLinkCard
         }
     }
@@ -536,7 +558,7 @@ Superellipse {
                     height: 24
                     visible: richPosterFrame.visible && !richPoster.ready && !richPoster.loadFailed
                              && (root.metadataLoading || richPoster.loading)
-                    running: visible
+                    running: visible && !root.scrollMoving
                     color: root.providerColor
                     strokeWidth: 2.2
                 }
@@ -798,7 +820,7 @@ Superellipse {
                     height: 20
                     visible: genericThumbFrame.visible && !genericThumb.ready && !genericThumb.loadFailed
                              && (root.metadataLoading || genericThumb.loading)
-                    running: visible
+                    running: visible && !root.scrollMoving
                     color: Theme.textTertiary
                     strokeWidth: 1.8
                 }
@@ -962,7 +984,11 @@ Superellipse {
         return root.pointInsideItem(loaded.artworkFrameItem, point) && !loaded.artworkItem.ready
     }
 
-    HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
+    HoverHandler {
+        id: hover
+        enabled: !root.scrollMoving
+        cursorShape: Qt.PointingHandCursor
+    }
     TapHandler {
         enabled: root.targetUrl.length > 0
         gesturePolicy: TapHandler.ReleaseWithinBounds

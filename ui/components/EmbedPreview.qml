@@ -24,6 +24,8 @@ Item {
     // already-inferred one for the same cast.
     readonly property string explicitTokenLocator: TokenSemantic.locatorFromEmbed(root.embed)
     property var linkMetadata: ({})
+    property var pendingLinkMetadata: ({})
+    property bool metadataUpdatePending: false
     property var scrollHost: null
     readonly property bool scrollMoving: root.scrollHost !== null
                                          && Boolean(root.scrollHost.moving)
@@ -189,14 +191,33 @@ Item {
             liveInsights.requestToken(nextToken)
     }
 
+    function applyLinkMetadata(metadata) {
+        root.linkMetadata = metadata || ({})
+        root.classify(root.linkMetadata)
+    }
+
+    function acceptLinkMetadata(metadata) {
+        const nextMetadata = metadata || ({})
+        if (root.scrollMoving) {
+            // Metadata may promote a generic card into image/video/collectible
+            // presentation. Never replace that Loader subtree while a Flickable
+            // is moving; commit the newest snapshot once the gesture settles.
+            root.pendingLinkMetadata = nextMetadata
+            root.metadataUpdatePending = true
+            return
+        }
+        root.metadataUpdatePending = false
+        root.pendingLinkMetadata = ({})
+        root.applyLinkMetadata(nextMetadata)
+    }
+
     function refreshLinkMetadata(requestRemote) {
         let nextMetadata = ({})
         if (root.targetUrl.length > 0
                 && typeof linkPreviewResolver !== "undefined" && linkPreviewResolver !== null) {
             nextMetadata = linkPreviewResolver.previewFor(root.targetUrl) || ({})
         }
-        root.linkMetadata = nextMetadata
-        root.classify(nextMetadata)
+        root.applyLinkMetadata(nextMetadata)
 
         // Only generic web pages need a remote resolution round-trip. Direct
         // media (video/image/audio/file) is already playable without one.
@@ -227,12 +248,18 @@ Item {
         // media state; toggling Loader.active would destroy the entire card.
         root.promotedMediaHeight = 0
         root.linkMetadata = ({})
+        root.pendingLinkMetadata = ({})
+        root.metadataUpdatePending = false
         root.tokenLocator = ""
         root.refreshLinkMetadata(root.needsRemoteMetadata)
     }
     onScrollMovingChanged: {
-        if (!root.scrollMoving && root.needsRemoteMetadata && !Boolean(root.linkMetadata.resolved))
-            metadataRequestTimer.restart()
+        if (!root.scrollMoving) {
+            if (root.metadataUpdatePending)
+                root.acceptLinkMetadata(root.pendingLinkMetadata)
+            if (root.needsRemoteMetadata && !Boolean(root.linkMetadata.resolved))
+                metadataRequestTimer.restart()
+        }
     }
     onEmbedChanged: {
         if (!root.componentReady)
@@ -253,10 +280,8 @@ Item {
     Connections {
         target: typeof linkPreviewResolver !== "undefined" ? linkPreviewResolver : null
         function onPreviewReady(url, preview) {
-            if (String(url) === root.targetUrl) {
-                root.linkMetadata = preview || ({})
-                root.classify(root.linkMetadata)
-            }
+            if (String(url) === root.targetUrl)
+                root.acceptLinkMetadata(preview)
         }
     }
 
@@ -265,6 +290,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         active: root.classificationReady
+        asynchronous: true
         sourceComponent: root.resolvedKind === "cast-reference" ? castReferenceComponent
                        : root.resolvedKind === "token-address" ? tokenAddressComponent
                        : root.resolvedKind === "collectible" ? collectibleComponent
@@ -279,6 +305,7 @@ Item {
         id: castReferenceComponent
         EmbedCard {
             embed: root.embed
+            scrollMoving: root.scrollMoving
             onOpenRequested: url => root.openRequested(url)
             onCastRequested: castId => root.castRequested(castId)
         }
@@ -299,6 +326,7 @@ Item {
         CollectiblePreview {
             embed: root.collectibleEmbed
             compact: root.compact
+            scrollMoving: root.scrollMoving
             onOpenRequested: url => root.openRequested(url)
             onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
         }

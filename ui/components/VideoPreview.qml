@@ -49,6 +49,18 @@ Item {
             root.playbackRequested = true
     }
 
+    onVisibleChanged: {
+        // A reused ListView delegate can stay alive in the pool. Stop decoder,
+        // audio and presentation-clock work as soon as the row inherits
+        // invisible from its pooled parent; returning to the row leaves playback
+        // paused rather than silently consuming resources offscreen.
+        if (!root.visible && root.playerReady) {
+            const loadedPlayer = playerLoader.item as GenyVideoPlayer
+            if (loadedPlayer)
+                loadedPlayer.pausePlayback()
+        }
+    }
+
     // A reused delegate must neither finish activating nor retain the previous
     // Cast's media session. Loader owns and releases the complete player tree.
     onTargetUrlChanged: {
@@ -106,7 +118,7 @@ Item {
         visible: !root.playerReady
         enabled: root.hasSource && !root.playbackRequested
         padding: 0
-        hoverEnabled: true
+        hoverEnabled: !poster.scrollMoving
         text: qsTrId("genycaster.player.play")
         Accessible.name: text
         onClicked: root.requestPlayback()
@@ -186,7 +198,7 @@ Item {
         padding: 0
         visible: !root.playerReady
         enabled: root.targetUrl.length > 0
-        hoverEnabled: true
+        hoverEnabled: !poster.scrollMoving
         text: qsTrId("genycaster.player.open_original")
         Accessible.name: text
         onClicked: root.openRequested(root.targetUrl)

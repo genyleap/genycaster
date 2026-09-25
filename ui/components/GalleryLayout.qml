@@ -304,10 +304,11 @@ Item {
                         // Single-media casts must show the complete image at every
                         // breakpoint. Multi-image galleries intentionally crop tiles.
                         preserveAspect: root.visibleCount === 1
-                        // Per-image mask layers and ambient captures multiply the
-                        // render-target cost of a gallery. Multi-image tiles use the
-                        // direct texture path and vector corner covers instead.
-                        useLayeredMask: root.visibleCount === 1
+                        // Keep feed artwork on the direct scene-graph texture path.
+                        // GalleryTile's vector corner covers provide the visual crop
+                        // without allocating a full-size offscreen layer + MultiEffect,
+                        // including the very common single-image post.
+                        useLayeredMask: false
                         ambientEnabled: root.visibleCount === 1
                         loadDelayMs: tileSlot.index * 48
                         continuationText: tileSlot.index === root.visibleCount - 1

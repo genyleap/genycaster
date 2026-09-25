@@ -54,6 +54,8 @@ if ("deferNewLoadsWhileScrolling" not in superellipse_image
 media_scale_block = rendering.split("double RenderingController::mediaDecodeScale() const noexcept", 1)[1].split("double RenderingController::geometryQualityScale() const noexcept", 1)[0]
 if "m_effectiveQuality" in media_scale_block:
     errors.append("Adaptive frame-quality transitions must not change mediaDecodeScale because changing Image.sourceSize reloads images.")
+if 'm_devicePixelRatio >= 1.5 ? 0.88 : 1.0' not in media_scale_block:
+    errors.append("Adaptive media decode must keep native 1x detail while using the fixed HiDPI upload budget.")
 if "QEventLoop" in media or "QNetworkAccessManager" in media:
     errors.append("Media upload must reuse the shared async HTTP transport rather than a private nested Qt event loop.")
 for token in (
@@ -78,12 +80,12 @@ if "JSON.stringify" in feed:
     errors.append("Feed reconciliation must not serialize nested QVariant payloads in JavaScript.")
 if "scrollWorkThrottle" not in feed:
     errors.append("Feed scroll work must remain coalesced rather than running for every contentY change.")
-if ("cacheBuffer: Math.min(Math.max(height * 0.32, 280), 520)" not in feed
+if ("cacheBuffer: Math.min(Math.max(height * 0.75, 560), 960)" not in feed
         or "pixelAligned: false" not in feed):
-    errors.append("Feed must keep a shallow delegate runway and subpixel scrolling instead of retaining image-heavy offscreen trees.")
-if ("cacheBuffer: Math.min(Math.max(height * 0.32, 280), 520)" not in profile
-        or "if (!root.restoringViewport && !scrollWorkThrottle.running)" not in profile):
-    errors.append("Profile feed scroll work must be throttled and use the same shallow delegate cache policy as the main feed.")
+    errors.append("Feed must retain a bounded pre-incubation runway for complex delegates and preserve subpixel scrolling.")
+if ("cacheBuffer: Math.min(Math.max(height * 0.75, 560), 960)" not in profile
+        or "if (!profileList.moving && !root.restoringViewport && !scrollWorkThrottle.running)" not in profile):
+    errors.append("Profile feed scroll work must stay idle during kinetic motion and use the bounded pre-incubation runway shared with the main feed.")
 if "INSERT OR IGNORE INTO timeline_entries" not in storage or "idx_timeline_entries_identity" not in storage:
     errors.append("Feed pagination must append unseen rows incrementally with a stable identity index.")
 if "INSERT OR IGNORE INTO social_list_entries" not in storage or "idx_social_list_identity" not in storage:

@@ -167,6 +167,58 @@ Item {
                 String(Boolean(value.recastedByMe)), String(value.writeState || "")].join("\u001f")
     }
 
+    function rowIncubationHeight(row, availableWidth) {
+        const value = row || ({})
+        const rowWidth = Math.max(root.compact ? 320 : 480, Number(availableWidth || 0))
+        const horizontalInset = root.compact ? Theme.mobileGutter * 2
+                                             : Theme.space3 * 2 + 42 + Theme.space3
+        const contentWidth = Math.max(180, rowWidth - horizontalInset)
+        const lineHeight = Math.ceil(Theme.typeBodySize * Theme.typeBodyLineHeight)
+        const charactersPerLine = Math.max(18,
+            Math.floor(contentWidth / Math.max(7, Theme.typeBodySize * 0.55)))
+        const textLength = Math.min(600, String(value.text || "").length)
+        const textLines = textLength > 0
+            ? Math.max(1, Math.min(8, Math.ceil(textLength / charactersPerLine))) : 0
+        const embeds = value.embeds || []
+        let reservation = 112 + textLines * lineHeight
+
+        if (embeds.length > 0) {
+            let visualCount = 0
+            let firstVisual = null
+            for (let index = 0; index < embeds.length; ++index) {
+                const embed = embeds[index] || ({})
+                const kind = String(embed.kind || "").toLowerCase()
+                if (kind === "image" || kind === "video" || kind === "media"
+                        || String(embed.imageSource || embed.previewImage || "").length > 0) {
+                    ++visualCount
+                    if (firstVisual === null)
+                        firstVisual = embed
+                }
+            }
+            if (visualCount === 1 && firstVisual !== null) {
+                let aspect = Number(firstVisual.aspectRatio || 0)
+                const declaredWidth = Number(firstVisual.width || 0)
+                const declaredHeight = Number(firstVisual.height || 0)
+                if (!(aspect > 0) && declaredWidth > 0 && declaredHeight > 0)
+                    aspect = declaredWidth / declaredHeight
+                if (!(aspect > 0))
+                    aspect = 16 / 9
+                aspect = Math.max(0.5, Math.min(2.8, aspect))
+                reservation += Math.max(root.compact ? 180 : 220,
+                                        Math.min(root.compact ? 420 : 520, contentWidth / aspect))
+            } else if (visualCount > 1) {
+                const columns = contentWidth < (root.compact ? 360 : 430) ? 1 : 2
+                const tileWidth = columns === 1 ? contentWidth : (contentWidth - Theme.space2) / 2
+                const rows = Math.ceil(Math.min(6, visualCount) / columns)
+                reservation += rows * Math.max(120, Math.min(320, tileWidth / (4 / 3)))
+                             + Math.max(0, rows - 1) * Theme.space2
+            } else {
+                reservation += root.compact ? 132 : 152
+            }
+        }
+        return Math.max(88, Math.ceil(reservation))
+    }
+
     // The list keeps a stable ListModel and diff-synchronizes it against the
     // sorted source rows. Feeding the ListView a freshly allocated array on every
     // rows change made it reset contentY to the top mid-scroll, which read as a
@@ -368,7 +420,6 @@ Item {
 
     ListModel {
         id: profileRowsModel
-        dynamicRoles: true
     }
 
     ListView {
@@ -380,7 +431,7 @@ Item {
         boundsBehavior: Flickable.DragOverBounds
         boundsMovement: Flickable.FollowBoundsBehavior
         reuseItems: true
-        cacheBuffer: Math.min(Math.max(height * 0.32, 280), 520)
+        cacheBuffer: Math.min(Math.max(height * 0.75, 560), 960)
         pixelAligned: false
 
         onMovementEnded: {
@@ -392,14 +443,19 @@ Item {
             root.captureViewportAnchor()
             root.scheduleLoadMore()
         }
+        // Do not probe indexAt()/itemAtIndex() every ~96 ms during a flick.
+        // The anchor is captured once when movement ends; geometry stabilization
+        // is only meaningful while the viewport is stationary.
         onContentYChanged: {
-            if (!root.restoringViewport && !scrollWorkThrottle.running)
+            if (!profileList.moving && !root.restoringViewport && !scrollWorkThrottle.running)
                 scrollWorkThrottle.start()
         }
         onContentHeightChanged: {
-            root.stabilizeViewportAfterGeometryChange()
-            if (!scrollWorkThrottle.running)
-                scrollWorkThrottle.start()
+            if (!profileList.moving) {
+                root.stabilizeViewportAfterGeometryChange()
+                if (!scrollWorkThrottle.running)
+                    scrollWorkThrottle.start()
+            }
         }
 
         header: ColumnLayout {
@@ -899,30 +955,65 @@ Item {
         delegate: Item {
             id: profileCastDelegate
             required property var payload
+            required property string stableKey
             readonly property var modelData: payload
+            readonly property real reservedHeight: root.rowIncubationHeight(
+                                                       profileCastDelegate.modelData,
+                                                       profileCastDelegate.width)
+            readonly property real resolvedHeight: profileCastLoader.item
+                                                   && profileCastLoader.item.implicitHeight > 0
+                                                   ? profileCastLoader.item.implicitHeight : 0
+            property real committedHeight: reservedHeight
+
+            function synchronizeHeight() {
+                if (profileCastDelegate.resolvedHeight > 0 && !profileList.moving)
+                    profileCastDelegate.committedHeight = profileCastDelegate.resolvedHeight
+                else if (profileCastLoader.status === Loader.Loading
+                         || profileCastDelegate.resolvedHeight <= 0)
+                    profileCastDelegate.committedHeight = profileCastDelegate.reservedHeight
+            }
+
             // On mobile the ListView owns the viewport width and CastItem owns
             // the single symmetric content gutter. Keeping profileContentX here
             // produced a second inset that Explorer no longer has.
             x: root.compact ? 0 : root.profileContentX
             width: root.compact ? profileList.width : root.profileContentWidth
-            height: profileCast.implicitHeight
+            height: Math.max(1, committedHeight)
+            ListView.onPooled: profileCastDelegate.visible = false
+            ListView.onReused: profileCastDelegate.visible = true
+            onReservedHeightChanged: profileCastDelegate.synchronizeHeight()
+            onResolvedHeightChanged: profileCastDelegate.synchronizeHeight()
+            onStableKeyChanged: profileCastDelegate.committedHeight = profileCastDelegate.reservedHeight
 
-            CastItem {
-                id: profileCast
-                anchors.left: parent.left
-                anchors.right: parent.right
-                modelData: profileCastDelegate.modelData
-                compact: root.compact
-                interactionsAvailable: root.interactionsAvailable
-                accountFid: root.accountFid
-                onOpenRequested: castId => root.castRequested(castId)
-                onProfileRequested: fid => root.profileRequested(fid)
-                onReplyRequested: cast => root.replyRequested(cast)
-                onReactionRequested: (kind, cast, active) => root.reactionRequested(kind, cast, active)
-                onRemoveRequested: cast => root.removeCastRequested(cast)
-                onExternalRequested: url => root.externalRequested(url)
-                onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
-                onAuthenticationRequested: root.authenticationRequested()
+            Loader {
+                id: profileCastLoader
+                anchors.fill: parent
+                asynchronous: true
+                sourceComponent: Component {
+                    CastItem {
+                        implicitWidth: profileCastDelegate.width
+                        modelData: profileCastDelegate.modelData
+                        compact: root.compact
+                        interactionsAvailable: root.interactionsAvailable
+                        accountFid: root.accountFid
+                        onOpenRequested: castId => root.castRequested(castId)
+                        onProfileRequested: fid => root.profileRequested(fid)
+                        onReplyRequested: cast => root.replyRequested(cast)
+                        onReactionRequested: (kind, cast, active) => root.reactionRequested(kind, cast, active)
+                        onRemoveRequested: cast => root.removeCastRequested(cast)
+                        onExternalRequested: url => root.externalRequested(url)
+                        onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
+                        onAuthenticationRequested: root.authenticationRequested()
+                    }
+                }
+            }
+
+            Connections {
+                target: profileList
+                function onMovingChanged() {
+                    if (!profileList.moving)
+                        profileCastDelegate.synchronizeHeight()
+                }
             }
         }
 
@@ -972,7 +1063,7 @@ Item {
             GenySpinner {
                 anchors.centerIn: parent
                 visible: root.busy
-                running: visible
+                running: visible && !profileList.moving
                 Accessible.name: qsTrId("genycaster.profile.loading_more_profile_posts")
             }
         }

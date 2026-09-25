@@ -84,7 +84,9 @@ Item {
             readonly property int emojiPosition: emojiRect.position === undefined
                 ? -1 : Number(emojiRect.position)
             property bool spriteFallbackArmed: false
-            readonly property bool artworkReady: lottieEmoji.animationReady || spriteEmoji.animationReady
+            readonly property bool spriteReady: spriteEmojiLoader.item !== null
+                                                && Boolean(spriteEmojiLoader.item.animationReady)
+            readonly property bool artworkReady: lottieEmoji.animationReady || emojiOverlay.spriteReady
 
             function syncAnimatedState() {
                 if (emojiPosition >= 0)
@@ -124,20 +126,27 @@ Item {
                 }
             }
 
-            SpriteEmoji {
-                id: spriteEmoji
+            Loader {
+                id: spriteEmojiLoader
                 anchors.fill: parent
                 z: 1
-                visible: !lottieEmoji.animationReady
-                unicodeSequence: String(emojiOverlay.emojiRect.sequence || "")
-                surface: root.emojiSurface
-                preserveArtwork: true
-                viewportVisible: emojiOverlay.visible
-                active: emojiOverlay.spriteFallbackArmed
-                        && root.visible && root.width > 0 && root.height > 0
-                        && Qt.application.state === Qt.ApplicationActive
-                reducedMotion: root.reducedMotion
-                onAnimationReadyChanged: emojiOverlay.syncAnimatedState()
+                active: emojiOverlay.spriteFallbackArmed && !lottieEmoji.animationReady
+                asynchronous: true
+
+                sourceComponent: Component {
+                    SpriteEmoji {
+                        unicodeSequence: String(emojiOverlay.emojiRect.sequence || "")
+                        surface: root.emojiSurface
+                        preserveArtwork: true
+                        viewportVisible: emojiOverlay.visible
+                        active: root.visible && root.width > 0 && root.height > 0
+                                && Qt.application.state === Qt.ApplicationActive
+                        reducedMotion: root.reducedMotion
+                        onAnimationReadyChanged: emojiOverlay.syncAnimatedState()
+                    }
+                }
+
+                onLoaded: emojiOverlay.syncAnimatedState()
             }
 
             Timer {

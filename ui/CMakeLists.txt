@@ -921,7 +921,11 @@ endif()
 
 if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
     find_package(Qt6 REQUIRED COMPONENTS Test)
-    add_executable(farcaster_media_scroll_tests ../tests/ui/media_scroll_tests.cpp)
+    add_executable(farcaster_media_scroll_tests
+        ../tests/ui/media_scroll_tests.cpp
+        render/scene_graph_superellipse_item.cpp)
+    target_include_directories(farcaster_media_scroll_tests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/render")
     target_link_libraries(farcaster_media_scroll_tests PRIVATE
         farcaster::presentation Qt6::Test Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia)
     target_compile_definitions(farcaster_media_scroll_tests PRIVATE

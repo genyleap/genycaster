@@ -118,6 +118,7 @@ ColumnLayout {
         delegate: Loader {
             required property var modelData
             Layout.fillWidth: true
+            asynchronous: true
             active: !root.blockSuppressed(modelData)
             sourceComponent: active ? root.componentFor(modelData.kind) : null
             property var blockData: modelData

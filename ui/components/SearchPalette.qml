@@ -37,7 +37,7 @@ Drawer {
     }
     onResultsChanged: Qt.callLater(root.syncResults)
     Component.onCompleted: root.syncResults()
-    ListModel { id: resultRows; dynamicRoles: true }
+    ListModel { id: resultRows }
 
     function submit(query) {
         const value = String(query || searchField.text).trim()

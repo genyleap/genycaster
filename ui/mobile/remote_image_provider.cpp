@@ -636,11 +636,16 @@ public:
           m_decodeExecutor(imageDecodeWorkerCount, 48U, 64U * 1024U * 1024U)
     {
         farcaster::transport::qtnetwork::async::NetworkLimits limits{};
-        limits.maximumActiveRequests = 32U;
-        limits.maximumActiveRequestsPerOrigin = 12U;
-        limits.maximumBackgroundActiveRequests = 20U;
-        limits.maximumBackgroundActiveRequestsPerOrigin = 8U;
-        limits.maximumAcceptedRequests = 96U;
+        // The decode stage intentionally has only two workers. Letting dozens
+        // of images complete HTTP concurrently creates a response/decode backlog
+        // that competes with the render thread exactly when a rich timeline settles.
+        // Keep network admission close enough to downstream capacity that scrolling
+        // sees steady work instead of large completion bursts.
+        limits.maximumActiveRequests = 8U;
+        limits.maximumActiveRequestsPerOrigin = 4U;
+        limits.maximumBackgroundActiveRequests = 4U;
+        limits.maximumBackgroundActiveRequestsPerOrigin = 2U;
+        limits.maximumAcceptedRequests = 32U;
         limits.maximumAcceptedRequestBodyBytes = 8U * 1024U * 1024U;
         limits.maximumBufferedResponseBytes = 64U * 1024U * 1024U;
         limits.replyReadBufferBytes = 128U * 1024U;
@@ -731,29 +736,19 @@ public:
 
     void cancel() override
     {
+        // QQuickImageResponse cancellation is primarily a presentation-lifecycle
+        // event: ListView recycling and scroll-time detachment cancel the QML
+        // consumer even though the URL itself is still useful. Mark this response
+        // cancelled so it can never expose a texture, but let already-admitted
+        // bounded network/decode work finish and populate the provider cache.
+        // A post-fling request then becomes a cache hit instead of restarting I/O.
         m_cancelled.store(true, std::memory_order_release);
-        m_control->cancel();
-        std::optional<farcaster::transport::async_http::Operation> operation{};
-        {
-            const std::scoped_lock lock{m_operationMutex};
-            operation = m_operation;
-        }
-        if (operation) {
-            operation->cancel();
-        }
     }
 
     void setOperation(farcaster::transport::async_http::Operation operation)
     {
-        if (m_cancelled.load(std::memory_order_relaxed)) {
-            operation.cancel();
-            return;
-        }
         const std::scoped_lock lock{m_operationMutex};
         m_operation = std::move(operation);
-        if (m_cancelled.load(std::memory_order_relaxed) && m_operation) {
-            m_operation->cancel();
-        }
     }
 
     void complete(QImage image)
@@ -1024,7 +1019,7 @@ void RemoteImageProvider::Impl::decodeNetworkResponse(
     const auto self = shared_from_this();
     auto queued = m_decodeExecutor.post(
         retainedBytes,
-        [self, control, urlText, category, manual, networkAtStart, decodeRequest, cacheKey, responseHolder,
+        [self, control, urlText, category, manual, decodeRequest, cacheKey, responseHolder,
          compatibilityAttempt]() mutable {
             if (control->cancelled.load(std::memory_order_acquire)) {
                 deliverResponse(control, QImage{});

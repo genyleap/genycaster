@@ -15,7 +15,10 @@ Button {
     implicitWidth: Math.max(Theme.controlHeight, content.implicitWidth + Theme.space2 * 2)
     implicitHeight: Theme.controlHeight
     padding: 0
-    hoverEnabled: true
+    // No engagement visual depends on hover. Tracking hover for three
+    // controls in every recycled post only makes stationary desktop pointers
+    // generate state churn while the timeline moves underneath them.
+    hoverEnabled: false
     containmentMask: background
     scale: control.down ? 0.985 : 1.0
 

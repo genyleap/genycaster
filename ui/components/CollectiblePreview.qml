@@ -7,6 +7,7 @@ Superellipse {
 
     property var embed: ({})
     property bool compact: false
+    property bool scrollMoving: false
 
     readonly property string targetUrl: String(root.embed.url || root.embed.value || "")
     readonly property string artworkSource: String(root.embed.imageSource || root.embed.artwork || root.embed.previewImage || "")
@@ -74,13 +75,19 @@ Superellipse {
 
     Layout.fillWidth: true
     implicitHeight: cardLayout.implicitHeight + root.cardPadding * 2
-    fillColor: collectibleHover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
+    fillColor: !root.scrollMoving && collectibleHover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
     borderWidth: Theme.strokeHairline
-    borderColor: collectibleHover.hovered ? Theme.borderDefault : Theme.borderSubtle
+    borderColor: !root.scrollMoving && collectibleHover.hovered ? Theme.borderDefault : Theme.borderSubtle
     curveDepth: Theme.shapeMedia
 
-    Behavior on fillColor { ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast } }
-    Behavior on borderColor { ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast } }
+    Behavior on fillColor {
+        enabled: !root.scrollMoving
+        ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+    }
+    Behavior on borderColor {
+        enabled: !root.scrollMoving
+        ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+    }
 
     GridLayout {
         id: cardLayout
@@ -125,7 +132,7 @@ Superellipse {
             GenySpinner {
                 anchors.centerIn: parent
                 visible: root.artworkSource.length === 0 && !Boolean(root.embed.metadataResolved)
-                running: visible
+                running: visible && !root.scrollMoving
             }
 
             Icon {
@@ -284,6 +291,7 @@ Superellipse {
 
     HoverHandler {
         id: collectibleHover
+        enabled: !root.scrollMoving
         cursorShape: root.targetUrl.length > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
     }
 

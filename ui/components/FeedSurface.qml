@@ -25,6 +25,7 @@ Item {
     property double accountFid: 0
     property bool loadMorePending: false
     property bool stableModelSyncPending: false
+    property bool previewSyncPending: false
     property string presentationMode: "for-you"
     property string visualFilter: "nfts"
     property int forYouPrefetchPages: 0
@@ -770,23 +771,34 @@ Item {
         id: previewSyncDebounce
         interval: 80
         repeat: false
-        onTriggered: root.requestStableModelSync()
+        onTriggered: {
+            if (readList.moving) {
+                root.previewSyncPending = true
+                return
+            }
+            root.previewSyncPending = false
+            root.requestStableModelSync()
+        }
     }
 
     Connections {
         target: typeof linkPreviewResolver !== "undefined" ? linkPreviewResolver : null
         function onPreviewReady(url, preview) {
-            // A metadata burst can resolve several URLs in one event-loop turn.
-            // Coalesce those notifications so the full semantic partition is not
-            // rebuilt once per preview.
-            if (root.presentationActive && root.presentationMode === "visuals")
-                previewSyncDebounce.restart()
+            // Metadata may change NFT/media classification. Never run the full
+            // semantic partition while kinetic scrolling owns the frame budget.
+            // Coalesce all completions into one reconciliation after settle.
+            if (!root.presentationActive || root.presentationMode !== "visuals")
+                return
+            if (readList.moving) {
+                root.previewSyncPending = true
+                return
+            }
+            previewSyncDebounce.restart()
         }
     }
 
     ListModel {
         id: stableRows
-        dynamicRoles: true
     }
 
     Timer {
@@ -864,29 +876,33 @@ Item {
         // Keep only a shallow reusable runway. Rich embeds, animated emoji and
         // image masks are expensive delegate trees; pagination continuity must
         // come from stable model reconciliation rather than a large offscreen cache.
-        cacheBuffer: Math.min(Math.max(height * 0.32, 280), 520)
+        cacheBuffer: Math.min(Math.max(height * 0.75, 560), 960)
         pixelAligned: false
 
         onMovementEnded: {
             scrollWorkThrottle.stop()
             if (root.stableModelSyncPending)
                 root.requestStableModelSync()
+            if (root.previewSyncPending) {
+                root.previewSyncPending = false
+                previewSyncDebounce.restart()
+            }
             if (verticalOvershoot < -72 && !root.busy) {
                 root.resetAllFilterPrefetchBudgets()
                 root.refreshRequested()
             }
             root.scheduleLoadMore()
         }
-        onContentYChanged: {
-            if (!scrollWorkThrottle.running)
-                scrollWorkThrottle.start()
-        }
+        // Kinetic scrolling itself performs no pagination work. MovementEnded
+        // is the single scroll-triggered admission point; geometry/viewport changes
+        // only schedule work while the view is already at rest. This removes a
+        // periodic JavaScript timer from every active flick.
         onContentHeightChanged: {
-            if (!scrollWorkThrottle.running)
+            if (!readList.moving && !scrollWorkThrottle.running)
                 scrollWorkThrottle.start()
         }
         onHeightChanged: {
-            if (!scrollWorkThrottle.running)
+            if (!readList.moving && !scrollWorkThrottle.running)
                 scrollWorkThrottle.start()
         }
 
@@ -963,6 +979,11 @@ Item {
             }
 
             width: readList.width
+            // Reused delegates stay alive in ListView's pool. Explicitly hide
+            // pooled rows so inherited visibility pauses animated emoji, spinners,
+            // and other presentation-only work until the row is reused.
+            ListView.onPooled: rowDelegate.visible = false
+            ListView.onReused: rowDelegate.visible = true
             // ListView must never see a zero-height row while Qt spreads the
             // expensive Cast subtree construction across multiple frames.
             // Commit the measured height only while the viewport is at rest;
@@ -1044,7 +1065,7 @@ Item {
             GenySpinner {
                 anchors.centerIn: parent
                 visible: root.busy && stableRows.count > 0
-                running: visible
+                running: visible && !readList.moving
                 Accessible.name: qsTrId("genycaster.feed_surface.loading_more")
             }
         }

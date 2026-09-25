@@ -144,9 +144,9 @@ Item {
             return
         }
 
-        // A recycled delegate must not retain a previous user's image. If this
-        // request is unfinished, leave the placeholder visible until the fling
-        // ends. Preserve the same URL only when presented or showing an error.
+        // New/recycled URLs never start while the Flickable is moving.
+        // An unfinished current request is detached by onScrollMovingChanged so
+        // Qt cannot prepare/upload its texture inside the kinetic-scroll frame.
         if (current !== requested || (!root.ready && !root.loadFailed))
             root.activeSource = ""
     }
@@ -270,14 +270,16 @@ Item {
         sourceStartTimer.restart()
     }
     onScrollMovingChanged: {
-        if (root.scrollMoving && root.deferNewLoadsWhileScrolling && !root.ready && !root.loadFailed) {
-            // Qt Quick can prepare a response's texture even for an invisible
-            // Image. Detach unfinished requests when a gesture begins, before
-            // their completion can enqueue render work. Clearing the source
-            // uses QQuickImageResponse cancellation, not a URL failure.
-            root.invalidatePresentationAdmission()
-            root.activeSource = ""
+        if (root.scrollMoving && root.deferNewLoadsWhileScrolling) {
             sourceStartTimer.stop()
+            if (!root.ready && !root.loadFailed) {
+                // Detach the QML Image so Qt cannot build/upload a texture while
+                // the render thread is animating the Flickable. The provider's
+                // cancellation handle deliberately keeps already-admitted
+                // fetch/decode work alive to populate its bounded cache.
+                root.invalidatePresentationAdmission()
+                root.activeSource = ""
+            }
         } else if (!root.scrollMoving) {
             sourceStartTimer.restart()
         }
@@ -423,9 +425,10 @@ Item {
             objectName: "mediaLoadingSpinner"
             anchors.fill: parent
             visible: loadingIndicator.availableSize >= 56 && !Theme.reduceMotion
-            // RotationAnimator runs on the render thread. Keep progress alive
-            // even while admission is deferred so a slow image never looks hung.
-            running: visible
+            // Keep the placeholder visible during a fling but freeze its
+            // indeterminate animation. Several pending media rows can otherwise
+            // keep multiple Shape/RotationAnimator trees active every frame.
+            running: visible && !root.scrollMoving
             strokeWidth: Math.max(1.5, width * 0.10)
             color: Theme.accent
         }

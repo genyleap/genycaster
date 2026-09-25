@@ -88,12 +88,15 @@ double RenderingController::mediaDecodeScale() const noexcept {
   if (m_profile == QStringLiteral("efficiency")) {
     return 0.72;
   }
-  // Keep image decode size stable while Adaptive changes effect/geometry quality.
-  // Qt reloads an Image whenever sourceSize changes; coupling decode size to the
-  // frame-time state machine caused visible flicker and bursts of duplicate image
-  // requests. Adaptive and Fidelity therefore decode to the DPR-backed display
-  // requirement, while only the explicit Efficiency profile opts into reduction.
-  return 1.0;
+  if (m_profile == QStringLiteral("fidelity")) {
+    return 1.0;
+  }
+  // Keep the Adaptive budget static with respect to frame telemetry: changing an
+  // Image.sourceSize as frame quality fluctuates would itself trigger reloads.
+  // On HiDPI screens a modest fixed reduction still leaves substantially more
+  // than one decoded pixel per logical pixel while reducing decode memory and
+  // render-thread texture-upload bandwidth. Ordinary 1x displays remain native.
+  return m_devicePixelRatio >= 1.5 ? 0.88 : 1.0;
 }
 
 double RenderingController::geometryQualityScale() const noexcept {

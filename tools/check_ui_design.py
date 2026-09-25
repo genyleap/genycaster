@@ -175,16 +175,16 @@ if 'containmentMask: background' not in tab_button or 'background: Superellipse'
     errors.append('GenyTabButton must use its Superellipse background as the containment mask')
 
 superellipse = (ui/'components'/'Superellipse.qml').read_text(encoding='utf-8')
-if 'containsMode: Shape.FillContains' in superellipse or 'containmentMask: renderedShape' in superellipse:
-    errors.append('Superellipse hit testing must stay on lightweight QQuickItem bounds; Shape.FillContains is forbidden in shared controls')
+if 'containmentMask: renderedShape' in superellipse:
+    errors.append('Superellipse hit testing must stay on lightweight QQuickItem bounds; shared controls must not install the visual renderer as a containment mask')
 if 'cornerSamples: 96' not in superellipse:
     errors.append('Superellipse sampling quality regression')
-if ('import QtQuick.Shapes' not in superellipse
+if ('SceneGraphSuperellipse {' not in superellipse
         or 'id: renderedShape' not in superellipse
-        or 'preferredRendererType: Shape.CurveRenderer' not in superellipse):
-    errors.append('Superellipse visuals must use Qt Quick Shapes CurveRenderer for native high-quality edge antialiasing')
-if superellipse.find('SceneGraphSuperellipse {') > superellipse.find('Shape {\n        id: renderedShape'):
-    errors.append('SceneGraphSuperellipse may only remain as the non-visual containment helper, never the visual surface')
+        or 'qualityScale:' not in superellipse
+        or 'Shape {' in superellipse
+        or 'PathCubic {' in superellipse):
+    errors.append('Shared Superellipse must stay on the single-item retained QSG renderer; per-instance Qt Shape object trees are forbidden in scrolling UI')
 
 scene_graph_stroke = (ui/'render'/'scene_graph_stroke_item.cpp').read_text(encoding='utf-8')
 scene_graph_surface = (ui/'render'/'scene_graph_superellipse_item.cpp').read_text(encoding='utf-8')
@@ -230,6 +230,14 @@ app_header = (ui/'components'/'AppHeader.qml').read_text(encoding='utf-8')
 feed_header = (ui/'components'/'FeedHeader.qml').read_text(encoding='utf-8')
 profile_surface = (ui/'components'/'ProfileSurface.qml').read_text(encoding='utf-8')
 feed_surface = (ui/'components'/'FeedSurface.qml').read_text(encoding='utf-8')
+notification_surface = (ui/'components'/'NotificationSurface.qml').read_text(encoding='utf-8')
+for model_name, model_text in (
+    ('FeedSurface', feed_surface),
+    ('ProfileSurface', profile_surface),
+    ('NotificationSurface', notification_surface),
+):
+    if 'dynamicRoles: true' in model_text:
+        errors.append(f'{model_name} timeline models must keep stable role types; dynamicRoles is forbidden on scrolling surfaces')
 if 'ProfileTrustCard {' not in side_navigation:
     errors.append('Desktop navigation must include the compact Trust/Profile card required by the social shell')
 if 'genycaster.feed_header.search_people_channels_casts' not in feed_header or 'signal searchRequested(string query)' not in feed_header:
@@ -257,6 +265,7 @@ for token in (
     'property bool admitted: false',
     'active: tileSlot.admitted',
     'interval: 16 + tileSlot.index * 32',
+    'useLayeredMask: false',
 ):
     if token not in gallery_layout:
         errors.append(f'GalleryLayout scroll-time tile admission missing {token!r}')
@@ -467,6 +476,55 @@ if 'QtQuick.Effects' in video_player or 'layer.effect: MultiEffect' in video_pla
     errors.append('Canonical video playback must keep decoded frames off the offscreen MultiEffect hot path')
 if 'return stableRows.count < root.filterTargetCount' not in feed_surface:
     errors.append('Filtered feed prefetch must reuse stableRows instead of reclassifying sourceRows during scroll')
+superellipse_image = (ui/'components'/'SuperellipseImage.qml').read_text(encoding='utf-8')
+if ('if (current !== requested || (!root.ready && !root.loadFailed))' not in superellipse_image
+        or 'if (!root.ready && !root.loadFailed)' not in superellipse_image
+        or 'root.activeSource = ""' not in superellipse_image):
+    errors.append('SuperellipseImage must detach unfinished QML image consumers during flicks so texture preparation cannot enter the scroll frame')
+remote_cancel_block = remote_provider.split('void cancel() override', 1)[1].split('void setOperation', 1)[0]
+if ('m_cancelled.store(true' not in remote_cancel_block
+        or 'm_control->cancel()' in remote_cancel_block
+        or 'operation->cancel()' in remote_cancel_block):
+    errors.append('QML image cancellation must detach presentation without aborting already-admitted bounded provider work; post-fling reads should hit provider cache')
+embed_preview = (ui/'components'/'EmbedPreview.qml').read_text(encoding='utf-8')
+if ('property bool metadataUpdatePending: false' not in embed_preview
+        or 'root.acceptLinkMetadata(preview)' not in embed_preview
+        or 'asynchronous: true' not in embed_preview):
+    errors.append('EmbedPreview must defer metadata-driven renderer changes during scroll and incubate renderer swaps asynchronously')
+if ('asynchronous: true' not in link_preview_media
+        or 'property bool resolvedPreviewPending: false' not in link_preview_media
+        or 'enabled: !root.scrollMoving' not in link_preview_media):
+    errors.append('LinkPreview must defer metadata/hover churn while scrolling and incubate rich cards asynchronously')
+if ('asynchronous: true' not in profile_surface
+        or 'rowIncubationHeight' not in profile_surface
+        or 'if (!profileList.moving)' not in profile_surface):
+    errors.append('Profile timeline must asynchronously incubate rich CastItem delegates and freeze measured heights during flicks')
+if ('property bool previewSyncPending: false' not in feed_surface
+        or 'if (readList.moving)' not in feed_surface
+        or 'root.previewSyncPending = true' not in feed_surface):
+    errors.append('Feed metadata-driven semantic reconciliation must stay deferred while kinetic scrolling is active')
+rich_inline_text = (ui/'components'/'RichInlineText.qml').read_text(encoding='utf-8')
+if ('id: spriteEmojiLoader' not in rich_inline_text
+        or 'active: emojiOverlay.spriteFallbackArmed && !lottieEmoji.animationReady' not in rich_inline_text
+        or 'asynchronous: true' not in rich_inline_text):
+    errors.append('Inline emoji sprite fallback must stay lazy so healthy Lottie rows do not build two renderer trees per emoji')
+link_preview_resolver = (ui/'mobile'/'link_preview_resolver.cpp').read_text(encoding='utf-8')
+if ('QThreadPool parsePool' not in link_preview_resolver
+        or 'parsePool.setThreadPriority(QThread::LowPriority)' not in link_preview_resolver
+        or 'parseHtmlAsync' not in link_preview_resolver):
+    errors.append('Link preview HTML parsing must stay on the bounded low-priority worker instead of the GUI thread')
+for token in (
+    'maximumConcurrentPreviewRequests = 4',
+    'QQueue<PendingPreview> pending',
+    'QSet<QString> queued',
+    'std::make_shared<QByteArray>()',
+    'payload->append(',
+    'if (*truncated && reply->isRunning())',
+):
+    if token not in link_preview_resolver:
+        errors.append(f'Link preview queue/buffer hot-path contract missing {token!r}')
+if 'genycasterPayload' in link_preview_resolver:
+    errors.append('Link preview readyRead must not round-trip the accumulated HTML through QObject dynamic properties')
 
 appearance_header = (root/'src'/'presentation'/'qt'/'appearance_controller.hpp').read_text(encoding='utf-8')
 appearance_source = (root/'src'/'presentation'/'qt'/'appearance_controller.cpp').read_text(encoding='utf-8')
@@ -500,13 +558,13 @@ if 'LocaleFormat.formatInteger(root.valuePercent)' not in display_scale:
     errors.append('Display scale percentage labels must react to runtime locale digit changes')
 
 superellipse_qml = (ui/'components'/'Superellipse.qml').read_text(encoding='utf-8')
-if ('preferredRendererType: Shape.CurveRenderer' not in superellipse_qml
-        or 'PathCubic {' not in superellipse_qml
+if ('SceneGraphSuperellipse {' not in superellipse_qml
+        or 'qualityScale:' not in superellipse_qml
+        or 'Shape {' in superellipse_qml
+        or 'PathCubic {' in superellipse_qml
         or 'PathSvg {' in superellipse_qml
-        or 'SceneGraphSuperellipse {' in superellipse_qml
-        or 'Shape.FillContains' in superellipse_qml
-        or 'cubicFactor' not in superellipse_qml):
-    errors.append('Superellipse visuals must use one stable declarative Qt Shape.CurveRenderer path without legacy QSG geometry, dynamic SVG paths, or expensive shared FillContains hit testing')
+        or 'containmentMask: renderedShape' in superellipse_qml):
+    errors.append('Superellipse visuals must use the retained SceneGraphSuperellipse item without per-instance Shape/path QObject trees or path-aware shared hit testing')
 if 'allowsBackForwardNavigationGestures = disableNativeGestures' in miniapp_macos:
     errors.append('Farcaster disableNativeGestures must not be misapplied to WebKit history-navigation gestures')
 show_status_block = miniapp_macos.split('- (void)showStatus:', 1)[1].split('- (void)showReady', 1)[0]

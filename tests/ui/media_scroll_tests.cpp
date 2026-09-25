@@ -3,6 +3,7 @@
 #include "media_playback_coordinator.hpp"
 #include "rendering_controller.hpp"
 #include "rich_inline_text_item.hpp"
+#include "scene_graph_superellipse_item.hpp"
 
 #include <QGuiApplication>
 #include <QDir>
@@ -205,6 +206,8 @@ int main(int argc, char** argv)
     QGuiApplication application{argc, argv};
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     qmlRegisterType<RichInlineTextItem>("Farcaster.Client", 1, 0, "RichInlineTextItem");
+    qmlRegisterType<SceneGraphSuperellipseItem>(
+        "Farcaster.Client", 1, 0, "SceneGraphSuperellipse");
     // Source-loaded components normally get native types from their enclosing
     // application module. Supply that import in this standalone test engine.
     qmlRegisterModuleImport("QtQuick", QQmlModuleImportModuleAny, "Farcaster.Client", 1, 0);
@@ -348,29 +351,32 @@ int main(int argc, char** argv)
     expect(flag(*image, "loading") && flag(*loadingIndicator, "visible")
                && flag(*loadingSpinner, "visible") && !flag(*loadingFallback, "visible"),
         "scroll motion keeps the same media spinner visible");
-    expect(flag(*loadingSpinner, "running"),
-        "pending media keeps visible progress animation during scroll motion");
+    expect(!flag(*loadingSpinner, "running"),
+        "pending media freezes indeterminate animation during scroll motion");
     const int uploadsBeforeCompletion = images->textureUploads();
     images->completePending();
     expect(QTest::qWaitFor([&] { return image->property("status").toInt() == 0; }),
-        "motion detaches unfinished image responses before texture preparation");
-    expect(!flag(*image, "ready"), "decode completion cannot admit a new texture while scrolling");
-    expect(!flag(*image, "maskActive"), "decode completion cannot allocate a mask layer while scrolling");
+        "motion detaches the QML image response before texture preparation");
+    expect(!flag(*image, "ready"), "detached completion cannot admit a new texture while scrolling");
+    expect(!flag(*image, "maskActive"), "detached completion cannot allocate a mask layer while scrolling");
     expect(flag(*image, "loading"), "placeholder persists until presentation admission");
     QTest::qWait(80);
     expect(images->textureUploads() == uploadsBeforeCompletion,
-        "completed image does not upload a GPU texture during motion");
+        "detached media does not upload a GPU texture during motion");
+    expect(images->requestCount() == 1,
+        "scroll detachment creates no replacement QML request during motion");
     expect(qobject_cast<QQuickItem*>(image.get())->size() == originalSize,
-        "decode completion preserves reserved image geometry");
+        "scroll detachment preserves reserved image geometry");
     host->setProperty("moving", false);
     expect(flag(*image, "loading") && flag(*loadingIndicator, "visible")
                && flag(*loadingSpinner, "visible") && !flag(*loadingFallback, "visible"),
         "post-fling admission delay cannot blank or replace the media spinner");
     expect(flag(*loadingSpinner, "running"),
         "spinner animation resumes after scrolling settles");
-    expect(QTest::qWaitFor([&] { return images->requestCount() == 2; }), "unfinished request resumes after settling");
+    expect(QTest::qWaitFor([&] { return images->requestCount() == 2; }),
+        "settling reattaches the QML image consumer");
     images->completePending();
-    expect(QTest::qWaitFor([&] { return flag(*image, "ready"); }), "settling admits the completed image");
+    expect(QTest::qWaitFor([&] { return flag(*image, "ready"); }), "settling admits the reattached image");
     expect(maskLoader && flag(*maskLoader, "active") && maskLoader->property("item").value<QObject*>(),
         "ready media constructs its mask only after scrolling settles");
     expect(countVisualItemsWithClass(*qobject_cast<QQuickItem*>(image.get()), QStringLiteral("MultiEffect")) == 1,
@@ -580,6 +586,16 @@ int main(int argc, char** argv)
     QTest::qWait(100);
     expect(gallery->property("implicitHeight").toDouble() == galleryHeight,
         "decoded aspect ratio cannot reflow the feed gallery");
+    auto* galleryItem = qobject_cast<QQuickItem*>(gallery.get());
+    const auto singleGalleryPreviews = visualItemsNamed(*galleryItem, QStringLiteral("galleryPreview"));
+    expect(singleGalleryPreviews.size() == 1 && !flag(*singleGalleryPreviews.front(), "clipToSuperellipse"),
+        "single-image feed artwork stays on the direct texture path without an offscreen mask");
+    const auto singleMaskLoaders = visualItemsNamed(*galleryItem, QStringLiteral("mediaMaskLoader"));
+    expect(singleMaskLoaders.size() == 1 && !flag(*singleMaskLoaders.front(), "active")
+               && !singleMaskLoaders.front()->property("item").value<QObject*>(),
+        "single-image gallery does not allocate a mask item or MultiEffect");
+    expect(countVisualItemsWithClass(*galleryItem, QStringLiteral("MultiEffect")) == 0,
+        "single-image gallery constructs no hidden MultiEffect object");
 
     // The production failure case is a cast with adjacent images. This controlled
     // provider deliberately releases both responses in one turn to prove that
@@ -942,9 +958,11 @@ int main(int argc, char** argv)
     expect(deferredLinkSpinner && deferredLinkFallback
                && flag(*deferredLinkSpinner, "visible") && !flag(*deferredLinkFallback, "visible"),
         "deferred link keeps its spinner instead of flashing an image glyph");
-    expect(deferredLinkSpinner && flag(*deferredLinkSpinner, "running"),
-        "deferred link keeps visible progress animation during the fling");
+    expect(deferredLinkSpinner && !flag(*deferredLinkSpinner, "running"),
+        "deferred link freezes indeterminate animation during the fling");
     host->setProperty("moving", false);
+    expect(deferredLinkSpinner && flag(*deferredLinkSpinner, "running"),
+        "deferred link resumes progress animation after the fling");
     expect(flag(*deferredLink, "metadataLoading") && deferredLinkSpinner && deferredLinkFallback
                && flag(*deferredLinkSpinner, "visible") && !flag(*deferredLinkFallback, "visible"),
         "link request debounce preserves the same loading placeholder after the fling");

@@ -16,6 +16,7 @@ Item {
     property string viewportAnchorKey: ""
     property real viewportAnchorOffset: 0
     property bool restoringViewport: false
+    property bool stableModelSyncPending: false
 
     signal refreshRequested()
     signal loadMoreRequested()
@@ -378,6 +379,15 @@ Item {
         list.contentY = Math.max(minimum, Math.min(maximum, item.y - anchorOffset))
     }
 
+    function requestStableModelSync() {
+        if (list.moving) {
+            root.stableModelSyncPending = true
+            return
+        }
+        root.stableModelSyncPending = false
+        root.synchronizeStableModel()
+    }
+
     function synchronizeStableModel() {
         const source = root.displayRows || []
         let anchorKey = ""
@@ -432,7 +442,7 @@ Item {
             Qt.callLater(function() { root.restoreViewportAnchor(anchorKey, anchorOffset) })
     }
 
-    onRowsChanged: Qt.callLater(root.synchronizeStableModel)
+    onRowsChanged: Qt.callLater(root.requestStableModelSync)
 
     ColumnLayout {
         anchors.fill: parent
@@ -566,7 +576,6 @@ Item {
 
         ListModel {
             id: notificationModel
-            dynamicRoles: true
         }
 
         ListView {
@@ -586,16 +595,24 @@ Item {
             ScrollBar.vertical: GenyScrollBar {}
 
             onContentYChanged: {
-                if (!root.restoringViewport)
-                    scrollWorkThrottle.restart()
-                if (!root.busy && root.hasMore && contentY + height >= contentHeight - 260)
-                    root.loadMoreRequested()
+                if (!list.moving && !root.restoringViewport && !scrollWorkThrottle.running)
+                    scrollWorkThrottle.start()
             }
             onMovementEnded: {
                 scrollWorkThrottle.stop()
+                if (root.stableModelSyncPending)
+                    root.requestStableModelSync()
                 root.captureViewportAnchor()
+                if (!root.busy && root.hasMore && contentY + height >= contentHeight - 260)
+                    root.loadMoreRequested()
             }
-            onContentHeightChanged: root.stabilizeViewportAfterGeometryChange()
+            onContentHeightChanged: {
+                if (!list.moving) {
+                    root.stabilizeViewportAfterGeometryChange()
+                    if (!root.busy && root.hasMore && contentY + height >= contentHeight - 260)
+                        root.loadMoreRequested()
+                }
+            }
 
             delegate: Superellipse {
                 id: notificationRow
@@ -902,6 +919,7 @@ Item {
 
                 HoverHandler {
                     id: rowHover
+                    enabled: !list.moving
                     cursorShape: String(notificationRow.modelData.castId || "").length > 0
                                  ? Qt.PointingHandCursor : Qt.ArrowCursor
                 }
