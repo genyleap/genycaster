@@ -586,6 +586,7 @@ int main(int argc, char** argv)
     // the QML direct path constructs no per-tile offscreen effects and that the
     // render-generation handshake separates their visibility across renders.
     const int requestsBeforeMultiGallery = images->requestCount();
+    host->setProperty("moving", true);
     auto multiGallery = createSurface(engine, QStringLiteral("GalleryLayout"), *scroll,
         {{QStringLiteral("embeds"), QVariantList{
             QVariantMap{{QStringLiteral("imageSource"), QStringLiteral("image://remote/gallery-left")}},
@@ -594,9 +595,16 @@ int main(int argc, char** argv)
     if (!multiGallery) { return 1; }
     auto* multiGalleryItem = qobject_cast<QQuickItem*>(multiGallery.get());
     expect(QTest::qWaitFor([&] {
-        return visualItemsNamed(*multiGalleryItem, QStringLiteral("galleryTileLoader")).size() == 2
-            && visualItemsNamed(*multiGalleryItem, QStringLiteral("galleryPreview")).size() == 2;
-    }), "multi-image gallery incubates both reserved tile surfaces");
+        return visualItemsNamed(*multiGalleryItem, QStringLiteral("galleryTileLoader")).size() == 2;
+    }), "multi-image gallery reserves both tile slots while moving");
+    QTest::qWait(140);
+    expect(visualItemsNamed(*multiGalleryItem, QStringLiteral("galleryPreview")).empty()
+               && images->requestCount() == requestsBeforeMultiGallery,
+        "new gallery rows construct no heavy tile subtree or image request during scrolling");
+    host->setProperty("moving", false);
+    expect(QTest::qWaitFor([&] {
+        return visualItemsNamed(*multiGalleryItem, QStringLiteral("galleryPreview")).size() == 2;
+    }), "multi-image gallery admits both heavy tile surfaces after settling");
 
     const auto tileLoaders = visualItemsNamed(*multiGalleryItem, QStringLiteral("galleryTileLoader"));
     expect(std::ranges::all_of(tileLoaders, [](const QObject* loader) {

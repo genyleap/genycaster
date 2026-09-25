@@ -251,6 +251,15 @@ if 'passiveGuestDiscoveryFailure' not in app_shell:
 gallery_layout = (ui/'components'/'GalleryLayout.qml').read_text(encoding='utf-8')
 if 'return root.embeds[index] || ({})' not in gallery_layout:
     errors.append('GalleryLayout must normalize sparse/null embed entries before media property access')
+for token in (
+    'property bool scrollHostResolved: false',
+    'readonly property bool scrollMoving:',
+    'property bool admitted: false',
+    'active: tileSlot.admitted',
+    'interval: 16 + tileSlot.index * 32',
+):
+    if token not in gallery_layout:
+        errors.append(f'GalleryLayout scroll-time tile admission missing {token!r}')
 if 'profileList.verticalOvershoot' not in profile_surface or 'readList.verticalOvershoot' not in feed_surface:
     errors.append('Pull-to-refresh hints must use overshoot rather than absolute contentY')
 if 'fillColor: "transparent"' not in cast_item \

@@ -14,6 +14,14 @@ Item {
     property var discoveredAspects: ({})
     property var pendingAspects: ({})
     property var reservedAspects: ({})
+    // Building a GalleryTile allocates image state, vector corner geometry and
+    // optional effect machinery. Do not construct that subtree while the owning
+    // ListView is moving; keep the already-reserved slot as a cheap placeholder
+    // and admit tiles in small batches after the gesture settles.
+    property var scrollHost: null
+    property bool scrollHostResolved: false
+    readonly property bool scrollMoving: root.scrollHost !== null
+                                         && Boolean(root.scrollHost.moving)
     readonly property int itemCount: root.embeds ? root.embeds.length : 0
     readonly property int visibleCount: Math.min(root.itemCount, 6)
     readonly property real gap: Theme.space2
@@ -25,6 +33,26 @@ Item {
                                           : Theme.space2) : 0
 
     signal openRequested(var mediaItems, int index)
+
+    function resolveScrollHost() {
+        let candidate = root.parent
+        while (candidate !== null) {
+            if (candidate.moving !== undefined && candidate.contentY !== undefined) {
+                root.scrollHost = candidate
+                root.scrollHostResolved = true
+                return
+            }
+            candidate = candidate.parent
+        }
+        root.scrollHost = null
+        root.scrollHostResolved = true
+    }
+
+    Component.onCompleted: root.resolveScrollHost()
+    onParentChanged: {
+        if (root.scrollHostResolved)
+            root.resolveScrollHost()
+    }
 
     function embedAt(index) {
         if (index < 0 || index >= root.itemCount)
@@ -212,6 +240,42 @@ Item {
             id: tileSlot
             required property int index
             readonly property var slot: root.layoutPlan[index] || ({ x: 0, y: 0, width: 1, height: 1 })
+            property bool admitted: false
+
+            function scheduleAdmission() {
+                if (tileSlot.admitted || !root.scrollHostResolved || root.scrollMoving)
+                    return
+                tileAdmission.restart()
+            }
+
+            Component.onCompleted: tileSlot.scheduleAdmission()
+
+            Connections {
+                target: root
+                function onScrollMovingChanged() {
+                    if (!root.scrollMoving)
+                        tileSlot.scheduleAdmission()
+                    else
+                        tileAdmission.stop()
+                }
+                function onScrollHostResolvedChanged() {
+                    tileSlot.scheduleAdmission()
+                }
+            }
+
+            Timer {
+                id: tileAdmission
+                // Stagger component creation independently from the image request
+                // delay. This keeps Shape/QML object construction and later texture
+                // work from landing in the same frame for adjacent gallery tiles.
+                interval: 16 + tileSlot.index * 32
+                repeat: false
+                onTriggered: {
+                    if (root.scrollMoving)
+                        return
+                    tileSlot.admitted = true
+                }
+            }
 
             x: Number(slot.x || 0)
             y: Number(slot.y || 0)
@@ -231,7 +295,8 @@ Item {
                 id: tileLoader
                 objectName: "galleryTileLoader"
                 anchors.fill: parent
-                asynchronous: root.visibleCount > 1
+                active: tileSlot.admitted
+                asynchronous: true
 
                 sourceComponent: Component {
                     GalleryTile {
