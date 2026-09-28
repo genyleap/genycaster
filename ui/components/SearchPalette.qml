@@ -12,6 +12,7 @@ Drawer {
     property var results: []
     property bool resultsBusy: false
     property string resultsErrorText: ""
+    property var resultPayloads: ({})
     signal searchRequested(string query)
     signal suggestionsRequested(string query)
     signal suggestionsCleared()
@@ -22,18 +23,19 @@ Drawer {
     // Relationship replies patch existing rows instead of rebuilding every
     // avatar/delegate for each asynchronous field update.
     function syncResults() {
+        const payloads = ({})
         for (let index = 0; index < root.results.length; ++index) {
             const value = root.results[index] || ({})
             const key = String(value.kind || "") + ":" + String(value.fid || value.id || index)
+            payloads[key] = value
             if (index >= resultRows.count)
-                resultRows.append({ key: key, payload: value })
-            else if (resultRows.get(index).key === key)
-                resultRows.setProperty(index, "payload", value)
-            else
-                resultRows.set(index, { key: key, payload: value })
+                resultRows.append({ key: key })
+            else if (resultRows.get(index).key !== key)
+                resultRows.set(index, { key: key })
         }
         while (resultRows.count > root.results.length)
             resultRows.remove(resultRows.count - 1)
+        root.resultPayloads = payloads
     }
     onResultsChanged: Qt.callLater(root.syncResults)
     Component.onCompleted: root.syncResults()
@@ -260,8 +262,8 @@ Drawer {
                     model: resultRows
                     delegate: Item {
                         id: resultRow
-                        required property var payload
-                        readonly property var modelData: payload || ({})
+                        required property string key
+                        readonly property var modelData: root.resultPayloads[resultRow.key] || ({})
                         readonly property string kind: String(modelData.kind || "")
                         readonly property bool profileResult: kind === "profile"
                         Layout.fillWidth: true

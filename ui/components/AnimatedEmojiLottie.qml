@@ -12,23 +12,17 @@ VectorImage {
     animations.loops: root.playCount < 0 ? Animation.Infinite : root.playCount
 
     function pauseSafely() {
-        if (!root.renderReady)
-            return
-        // Restart first because Qt rejects setPaused(true) for an animation
-        // that has already reached its finite end state.
-        root.animations.restart()
-        Qt.callLater(() => {
-            if (root.renderReady && !root.animationActive)
-                root.animations.paused = true
-        })
+        if (root.renderReady && !root.animationActive)
+            root.animations.paused = true
     }
 
     onAnimationActiveChanged: {
+        // Qt 6.11 VectorImage defines paused as a true pause/resume control:
+        // clearing it continues from the current frame. Never restart here;
+        // restarting on every ListView flick caused visible jumps and repeated
+        // scene-graph work for every animated emoji in the row.
         if (root.animationActive) {
-            if (root.animations.paused)
-                root.animations.paused = false
-            if (root.renderReady)
-                root.animations.restart()
+            root.animations.paused = false
         } else {
             root.pauseSafely()
         }

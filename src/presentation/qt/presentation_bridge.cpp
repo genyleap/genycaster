@@ -1296,7 +1296,10 @@ void PresentationBridge::showFeed()
 
 void PresentationBridge::requestExplorerArt()
 {
-    if (m_explorerArtBusy || !m_explorerArtRows.isEmpty() || !m_runtimeReady) {
+    // Existing art rows are a cache, not a reason to suppress freshness.
+    // Re-entering Visuals requests a new authoritative sample and merges it by
+    // cast id/createdAt so the tab can surface newly published collectibles.
+    if (m_explorerArtBusy || !m_runtimeReady) {
         return;
     }
     m_explorerArtBusy = true;

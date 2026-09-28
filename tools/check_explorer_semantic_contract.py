@@ -37,10 +37,14 @@ hypersnap_request = read("src/providers/hypersnap/async_request.cpp")
 for token in (
     'const source = presentationBridge.isAuthenticated && root.identityAvailable',
     '? "following" : "trending"',
-    'presentationBridge.activeFeed !== source',
+    'const modeChanged = root.explorerPresentationMode !== nextMode',
     'const emptySettledSource = presentationBridge.feedStarted',
     '&& presentationBridge.rows.length === 0',
-    '|| !presentationBridge.feedStarted || emptySettledSource',
+    'const sameHealthySource = presentationBridge.activeView === "feed"',
+    '&& presentationBridge.activeFeed === source',
+    'const refreshRequested = Boolean(forceRefresh)',
+    'if (!sameHealthySource || ((modeChanged || refreshRequested) && !presentationBridge.isBusy))',
+    'root.selectExplorerPresentationMode(root.explorerPresentationMode, true)',
 ):
     if token not in shell:
         errors.append(f"Explorer source selection missing {token!r}")
@@ -54,7 +58,7 @@ for token in (
     "property int conversationPrefetchPages: 0",
     "property int developerPrefetchPages: 0",
     "property int automaticPrefetchPages: 0",
-    "readonly property int filterPrefetchLimit: 2",
+    "readonly property int filterPrefetchLimit: 4",
     "readonly property int automaticPrefetchLimit: 4",
     "function resetAllFilterPrefetchBudgets()",
     'root.isRootPost(row) && root.semanticKind(row) === "other"',
@@ -102,8 +106,11 @@ for token in (
 if re.search(r'kind === "collectible" \|\| kind === "nft" \|\| kind === "token"', feed):
     errors.append("Fungible token embeds must not classify as NFT art")
 
-if re.search(r"onPresentationModeChanged\s*:\s*\{[^}]*PrefetchPages\s*=\s*0", feed, re.DOTALL):
-    errors.append("Explorer tab switching must not reset semantic pagination budgets")
+presentation_mode_block = re.search(
+    r"onPresentationModeChanged\s*:\s*\{(?P<body>.*?)\n\s*\}", feed, re.DOTALL
+)
+if not presentation_mode_block or "root.resetCurrentFilterPrefetchBudget()" not in presentation_mode_block.group("body"):
+    errors.append("Each Explorer semantic-tab visit must receive a fresh bounded pagination budget")
 
 for_you_match = re.search(
     r'if \(root\.presentationMode === "for-you"\) \{(?P<body>.*?)\n\s*\}',
@@ -124,7 +131,7 @@ for token in (
     "beginFeedRequestGeneration()",
     "isCurrentFeedRequestGeneration(requestGeneration)",
     "maximumContextHydrationsPerFeedState{24U}",
-    "maximumVisibleReactionHydrations{12U}",
+    "maximumVisibleReactionHydrations{64U}",
     "keepReferencedPreviewRequest",
     ".intent = application::read::model::ReadIntent::Prefetch",
     "allowRecoveryProbe && !continuationRequest",
@@ -182,6 +189,12 @@ for token in (
 ):
     if token not in bridge_header or token not in bridge:
         errors.append(f"Explorer art-channel discovery bridge missing {token!r}")
+art_request_match = re.search(
+    r"void PresentationBridge::requestExplorerArt\(\)\s*\{(?P<body>.*?)\n\}",
+    bridge, re.DOTALL
+)
+if not art_request_match or "!m_explorerArtRows.isEmpty()" in art_request_match.group("body"):
+    errors.append("Visuals/NFT Explorer must refresh its art source even when cached art rows already exist")
 
 for token in (
     '"art", "photography", "basepaint", "design", "superrare"',

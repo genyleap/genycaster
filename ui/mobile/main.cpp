@@ -2549,7 +2549,11 @@ void connectRuntime(
                         session && session->fid.value != 0 && !state.casts.empty()
                         && state.metadata.phase == application::read::model::ReadPhase::Ready) {
                         std::vector<domain::cast::CastReference> visibleTargets{};
-                        constexpr std::size_t maximumVisibleReactionHydrations{12U};
+                        // Hydrate viewer reaction state for the complete current page
+                        // whenever the provider batch contract allows it. Limiting this to the
+                        // first 12 casts made liked/recast state disappear on later rows and on
+                        // sparse Explorer projections (Devs/NFTs often select rows well past 12).
+                        constexpr std::size_t maximumVisibleReactionHydrations{64U};
                         const std::size_t visibleReactionLimit = std::min<std::size_t>(
                             {state.casts.size(), static_cast<std::size_t>(bridge.feedPageSize()),
                              maximumVisibleReactionHydrations});

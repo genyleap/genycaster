@@ -26,6 +26,9 @@ Item {
     property real viewportAnchorOffset: 0
     property bool restoringViewport: false
     property bool stableModelSyncPending: false
+    // Keep QVariantMap payloads out of ListModel roles; the model itself stays
+    // type-stable and delegates re-read only when their revision role changes.
+    property var stablePayloads: ({})
 
     signal backRequested()
     signal followersRequested()
@@ -276,6 +279,10 @@ Item {
         profileList.contentY = Math.max(minimum, Math.min(maximum, item.y - anchorOffset))
     }
 
+    function payloadForStableKey(key) {
+        return root.stablePayloads[String(key || "")] || ({})
+    }
+
     function requestStableModelSync() {
         if (profileList.moving) {
             root.stableModelSyncPending = true
@@ -302,11 +309,11 @@ Item {
         for (let index = 0; index < source.length; ++index) {
             const key = root.rowKey(source[index], index)
             const revision = root.rowRevision(source[index])
+            root.stablePayloads[key] = source[index]
             if (index < profileRowsModel.count
                     && String(profileRowsModel.get(index).stableKey) === key) {
                 if (String(profileRowsModel.get(index).revisionKey || "") !== revision) {
                     profileRowsModel.setProperty(index, "revisionKey", revision)
-                    profileRowsModel.setProperty(index, "payload", source[index])
                 }
                 continue
             }
@@ -323,10 +330,9 @@ Item {
                 structureChanged = true
                 if (String(profileRowsModel.get(index).revisionKey || "") !== revision) {
                     profileRowsModel.setProperty(index, "revisionKey", revision)
-                    profileRowsModel.setProperty(index, "payload", source[index])
                 }
             } else {
-                profileRowsModel.insert(index, { stableKey: key, revisionKey: revision, payload: source[index] })
+                profileRowsModel.insert(index, { stableKey: key, revisionKey: revision })
                 structureChanged = true
             }
         }
@@ -963,9 +969,12 @@ Item {
 
         delegate: Item {
             id: profileCastDelegate
-            required property var payload
             required property string stableKey
-            readonly property var modelData: payload
+            required property string revisionKey
+            readonly property var modelData: {
+                const revision = profileCastDelegate.revisionKey
+                return root.payloadForStableKey(profileCastDelegate.stableKey)
+            }
             readonly property real reservedHeight: root.rowIncubationHeight(
                                                        profileCastDelegate.modelData,
                                                        profileCastDelegate.width)

@@ -82,6 +82,10 @@ Item {
     property string primaryDestination: "home"
     property string explorerPresentationMode: "for-you"
     property string explorerVisualFilter: "nfts"
+    // Keep the notifications busy flag as an imperative snapshot. Feeding the
+    // bridge property directly into the lazily-instantiated route produced a QML
+    // binding cycle during notificationsChanged delivery on Qt 6.11.
+    property bool notificationBusySnapshot: false
     readonly property bool localeSettingsOpen: localePopupLoader.item !== null && localePopupLoader.item.opened
     readonly property bool dataStorageSettingsOpen: dataStoragePopupLoader.item !== null && dataStoragePopupLoader.item.opened
     readonly property bool overlayOpen: root.localeSettingsOpen || root.dataStorageSettingsOpen
@@ -212,8 +216,10 @@ Item {
         root.homeVisualFilter = "nfts"
     }
 
-    function selectExplorerPresentationMode(mode) {
+    function selectExplorerPresentationMode(mode, forceRefresh) {
         const nextMode = String(mode || "for-you")
+        const modeChanged = root.explorerPresentationMode !== nextMode
+        const refreshRequested = Boolean(forceRefresh)
         root.explorerPresentationMode = nextMode
         root.explorerVisualFilter = "nfts"
 
@@ -226,8 +232,14 @@ Item {
         const emptySettledSource = presentationBridge.feedStarted
                                    && !presentationBridge.isBusy
                                    && presentationBridge.rows.length === 0
-        if (presentationBridge.activeView !== "feed" || presentationBridge.activeFeed !== source
-                || !presentationBridge.feedStarted || emptySettledSource)
+        const sameHealthySource = presentationBridge.activeView === "feed"
+                                  && presentationBridge.activeFeed === source
+                                  && presentationBridge.feedStarted
+                                  && !emptySettledSource
+        // Explorer projections are sparse. Re-entering a semantic tab must also
+        // refresh the source first page; otherwise Devs/NFTs can keep projecting
+        // an old cached timeline forever even though the tab itself changed.
+        if (!sameHealthySource || ((modeChanged || refreshRequested) && !presentationBridge.isBusy))
             presentationBridge.selectFeed(source)
         if (nextMode === "visuals")
             presentationBridge.requestExplorerArt()
@@ -237,7 +249,7 @@ Item {
         root.clearPendingShellReturn()
         root.primaryDestination = "explorer"
         root.shellRoute = ""
-        root.selectExplorerPresentationMode(root.explorerPresentationMode)
+        root.selectExplorerPresentationMode(root.explorerPresentationMode, true)
     }
 
     function openSuggestedProfile(username) {
@@ -635,7 +647,7 @@ Item {
                                     sourceComponent: Component {
                                         NotificationSurface {
                                             rows: presentationBridge.notificationRows
-                                            busy: presentationBridge.notificationsBusy
+                                            busy: root.notificationBusySnapshot
                                             hasMore: presentationBridge.notificationsHasMore
                                             errorText: presentationBridge.notificationsErrorText
                                             authenticated: presentationBridge.isAuthenticated
@@ -1557,8 +1569,16 @@ Item {
         parent: Overlay.overlay
     }
 
+    Component.onCompleted: {
+        root.notificationBusySnapshot = presentationBridge.notificationsBusy
+    }
+
     Connections {
         target: presentationBridge
+
+        function onNotificationsChanged() {
+            root.notificationBusySnapshot = presentationBridge.notificationsBusy
+        }
 
         function onCastQueued() {
             if (composerDrawer.opened) {

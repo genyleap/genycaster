@@ -501,7 +501,14 @@ public:
         }
         const auto replies = m_network->findChildren<QNetworkReply*>();
         for (QNetworkReply* const reply : replies) {
-            if (reply != nullptr && reply->isRunning()) {
+            if (reply == nullptr) {
+                continue;
+            }
+            // No completion callback is useful once the owner is tearing down,
+            // and a late readAll() after abort is exactly what produces the
+            // QSslSocket "device not open" diagnostics on macOS.
+            QObject::disconnect(reply, nullptr, this, nullptr);
+            if (reply->isRunning()) {
                 reply->abort();
             }
         }
@@ -554,13 +561,15 @@ public:
             kind == PreviewFetchKind::Json ? maximumJsonBytes : maximumHtmlBytes;
         auto payload = std::make_shared<QByteArray>();
         auto truncated = std::make_shared<bool>(false);
+        auto stopped = std::make_shared<bool>(false);
 
         QTimer::singleShot(
             static_cast<int>(std::min<qint64>(
                 remainingMs, absoluteRequestDeadlineMilliseconds)),
             reply,
-            [reply] {
+            [reply, stopped] {
                 if (reply->isRunning()) {
+                    *stopped = true;
                     reply->abort();
                 }
             });
@@ -569,8 +578,8 @@ public:
             reply,
             &QNetworkReply::readyRead,
             this,
-            [reply, payload, truncated, maximumBytes] {
-                if (!reply->isOpen()) {
+            [reply, payload, truncated, stopped, maximumBytes] {
+                if (*stopped || reply->error() != QNetworkReply::NoError || !reply->isOpen()) {
                     return;
                 }
                 const QByteArray chunk = reply->readAll();
@@ -589,6 +598,7 @@ public:
                 // Link metadata is expected in the bounded prefix. Stop socket
                 // delivery as soon as it is full; this callback runs off-GUI.
                 if (*truncated && reply->isRunning()) {
+                    *stopped = true;
                     reply->abort();
                 }
             });
@@ -598,7 +608,7 @@ public:
             &QNetworkReply::finished,
             this,
             [this, reply, url = std::move(url), kind, deadlineMs,
-             redirectCount, payload, truncated, maximumBytes,
+             redirectCount, payload, truncated, stopped, maximumBytes,
              completion = std::move(completion)]() mutable {
                 const QVariant redirectValue =
                     reply->attribute(QNetworkRequest::RedirectionTargetAttribute);
@@ -618,7 +628,8 @@ public:
                     return;
                 }
 
-                if (reply->isOpen() && payload->size() < maximumBytes) {
+                if (!*stopped && reply->error() == QNetworkReply::NoError
+                    && reply->isOpen() && payload->size() < maximumBytes) {
                     const QByteArray tail = reply->readAll();
                     const qsizetype remaining = maximumBytes - payload->size();
                     payload->append(tail.constData(), std::min(tail.size(), remaining));
@@ -664,6 +675,10 @@ public:
           networkWorker(new LinkPreviewNetworkWorker{})
     {
         networkWorker->moveToThread(&networkThread);
+        QObject::connect(
+            &networkThread, &QThread::finished,
+            networkWorker, &QObject::deleteLater);
+        networkThread.setObjectName(QStringLiteral("link-preview-network"));
         networkThread.start(QThread::LowPriority);
         QMetaObject::invokeMethod(
             networkWorker,
@@ -683,23 +698,37 @@ public:
 
     ~Impl()
     {
+        // Prevent queued parse work from extending application shutdown. Running
+        // tasks are bounded to the 256 KiB metadata prefix and finish promptly.
+        parsePool.clear();
         parsePool.waitForDone();
+
         if (networkWorker != nullptr && networkThread.isRunning()) {
-            QThread* const ownerThread = q.thread();
+            // Never block the GUI thread waiting for a network-thread callback
+            // during application teardown. Run shutdown and quit in-order on the
+            // worker event loop, then wait with a hard bound below.
             QMetaObject::invokeMethod(
                 networkWorker,
-                [worker = networkWorker, ownerThread] {
+                [worker = networkWorker] {
                     worker->shutdown();
-                    // QObject destruction must happen on the resolver's thread.
-                    // Moving the worker (and its QNAM child) before stopping the
-                    // reactor avoids cross-thread timer/socket teardown warnings.
-                    worker->moveToThread(ownerThread);
+                    QThread::currentThread()->quit();
                 },
-                Qt::BlockingQueuedConnection);
-            networkThread.quit();
-            networkThread.wait();
+                Qt::QueuedConnection);
+            // The worker owns no blocking operation: network replies were
+            // aborted above and all callbacks were disconnected. Keep a bounded
+            // exit anyway so a broken platform socket cannot strand the GUI
+            // process after its last window has closed.
+            if (!networkThread.wait(2'000)) {
+                networkThread.requestInterruption();
+                networkThread.quit();
+                if (!networkThread.wait(1'000)) {
+                    networkThread.terminate();
+                    networkThread.wait();
+                }
+            }
         }
-        delete networkWorker;
+        // QThread::finished -> deleteLater destroys the worker and QNAM in their
+        // own affinity thread. Never move live sockets back onto the GUI thread.
         networkWorker = nullptr;
     }
 

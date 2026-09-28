@@ -143,7 +143,7 @@ def main() -> int:
             required_home_paths = {
                 "/v2/farcaster/user/by-username?username=alice",
                 "/v2/farcaster/user?fid=42",
-                "/v2/farcaster/feed/following?fid=42&limit=10",
+                "/v2/farcaster/feed/following?fid=42&limit=20",
             }
             if not required_home_paths.issubset(first_home_paths):
                 print(

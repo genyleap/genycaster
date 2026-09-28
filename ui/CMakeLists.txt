@@ -950,6 +950,16 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
             LABELS "ui;media;scroll;metal"
             ENVIRONMENT "QT_QPA_PLATFORM=cocoa;QSG_RHI_BACKEND=metal;QT_QUICK_BACKEND=;QT_QUICK_CONTROLS_STYLE=Basic;QT_FATAL_WARNINGS=1")
     endif()
+    add_executable(farcaster_link_preview_shutdown_tests
+        ../tests/ui/link_preview_shutdown_tests.cpp
+        mobile/link_preview_resolver.cpp)
+    target_include_directories(farcaster_link_preview_shutdown_tests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/mobile")
+    target_link_libraries(farcaster_link_preview_shutdown_tests PRIVATE Qt6::Core Qt6::Network)
+    add_test(NAME ui.link_preview_shutdown COMMAND farcaster_link_preview_shutdown_tests)
+    set_tests_properties(ui.link_preview_shutdown PROPERTIES TIMEOUT 8
+        LABELS "ui;network;shutdown")
+
     add_executable(farcaster_emoji_ui_tests ../tests/ui/emoji_runtime_tests.cpp)
     target_link_libraries(farcaster_emoji_ui_tests PRIVATE farcaster_emoji_runtime farcaster::provider_emoji Qt6::Test Qt6::Quick)
     target_compile_definitions(farcaster_emoji_ui_tests PRIVATE

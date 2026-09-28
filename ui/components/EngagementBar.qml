@@ -3,6 +3,7 @@ import QtQuick.Layouts
 
 RowLayout {
     id: root
+    objectName: "engagementBar"
     layoutDirection: Theme.uiDirection
 
     property int replyCount: 0

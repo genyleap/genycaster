@@ -86,7 +86,12 @@ Item {
             property bool spriteFallbackArmed: false
             readonly property bool spriteReady: spriteEmojiLoader.item !== null
                                                 && Boolean(spriteEmojiLoader.item.animationReady)
-            readonly property bool artworkReady: lottieEmoji.animationReady || emojiOverlay.spriteReady
+            // Exactly one overlay renderer may own the emoji box. Unicode
+            // remains the fallback until either Lottie succeeds or an explicit
+            // failure selects the sprite path.
+            readonly property bool artworkReady: lottieEmoji.animationReady
+                                                 || (!lottieEmoji.animationReady
+                                                     && emojiOverlay.spriteReady)
 
             function syncAnimatedState() {
                 if (emojiPosition >= 0)
@@ -111,18 +116,14 @@ Item {
                 active: root.visible && root.width > 0 && root.height > 0
                         && Qt.application.state === Qt.ApplicationActive
                 reducedMotion: root.reducedMotion
-                onAnimationReadyChanged: {
-                    if (animationReady)
-                        spriteFallbackTimer.stop()
+                onAnimationReadyChanged: emojiOverlay.syncAnimatedState()
+                onRequestFailedChanged: {
+                    emojiOverlay.spriteFallbackArmed = requestFailed || !rendererUsable
                     emojiOverlay.syncAnimatedState()
                 }
-                onRequestFailedChanged: {
-                    if (requestFailed)
-                        emojiOverlay.spriteFallbackArmed = true
-                }
                 onRendererUsableChanged: {
-                    if (!rendererUsable)
-                        emojiOverlay.spriteFallbackArmed = true
+                    emojiOverlay.spriteFallbackArmed = !rendererUsable || requestFailed
+                    emojiOverlay.syncAnimatedState()
                 }
             }
 
@@ -131,10 +132,12 @@ Item {
                 anchors.fill: parent
                 z: 1
                 active: emojiOverlay.spriteFallbackArmed && !lottieEmoji.animationReady
+                visible: active && !lottieEmoji.animationReady
                 asynchronous: true
 
                 sourceComponent: Component {
                     SpriteEmoji {
+                        visible: !lottieEmoji.animationReady
                         unicodeSequence: String(emojiOverlay.emojiRect.sequence || "")
                         surface: root.emojiSurface
                         preserveArtwork: true
@@ -147,18 +150,6 @@ Item {
                 }
 
                 onLoaded: emojiOverlay.syncAnimatedState()
-            }
-
-            Timer {
-                id: spriteFallbackTimer
-                interval: 850
-                repeat: false
-                running: emojiOverlay.visible && !lottieEmoji.animationReady
-                         && !emojiOverlay.spriteFallbackArmed
-                onTriggered: {
-                    if (!lottieEmoji.animationReady)
-                        emojiOverlay.spriteFallbackArmed = true
-                }
             }
 
             Component.onCompleted: {

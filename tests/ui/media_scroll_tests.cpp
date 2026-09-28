@@ -753,6 +753,59 @@ int main(int argc, char** argv)
     mixedCast.reset();
     QCoreApplication::processEvents();
 
+    // Static-role ListModels keep complex payloads in an external side store.
+    // A viewer-reaction update must therefore reach the existing delegate
+    // without dynamicRoles or a [List -> VariantMap] role conversion.
+    QVariantMap reactionRow{
+        {QStringLiteral("castId"), QStringLiteral("reaction-row")},
+        {QStringLiteral("authorFid"), 42},
+        {QStringLiteral("author"), QStringLiteral("reader")},
+        {QStringLiteral("displayName"), QStringLiteral("Reader")},
+        {QStringLiteral("text"), QString{}},
+        {QStringLiteral("embeds"), QVariantList{}},
+        {QStringLiteral("replyCount"), 0},
+        {QStringLiteral("recastCount"), 2},
+        {QStringLiteral("likeCount"), 3},
+        {QStringLiteral("likedByMe"), false},
+        {QStringLiteral("recastedByMe"), false},
+    };
+    auto reactionFeed = createSurface(engine, QStringLiteral("FeedSurface"), *scroll,
+        {{QStringLiteral("rows"), QVariantList{reactionRow}},
+         {QStringLiteral("runtimeReady"), true},
+         {QStringLiteral("feedStarted"), true},
+         {QStringLiteral("interactionsAvailable"), true},
+         {QStringLiteral("presentationMode"), QStringLiteral("all")}});
+    if (!reactionFeed) { return 1; }
+    auto* reactionFeedItem = qobject_cast<QQuickItem*>(reactionFeed.get());
+    QQuickItem* reactionFeedRow = nullptr;
+    expect(QTest::qWaitFor([&] {
+        const auto rows = visualItemsNamed(*reactionFeedItem, QStringLiteral("feedRow"));
+        if (rows.empty())
+            return false;
+        reactionFeedRow = rows.front();
+        return true;
+    }), "feed constructs one stable delegate for reaction test row");
+    auto reactionPayload = [&]() {
+        return reactionFeedRow ? reactionFeedRow->property("payload").toMap() : QVariantMap{};
+    };
+    expect(!reactionPayload().value(QStringLiteral("likedByMe")).toBool()
+               && !reactionPayload().value(QStringLiteral("recastedByMe")).toBool(),
+        "reaction row starts inactive");
+    reactionRow.insert(QStringLiteral("likedByMe"), true);
+    reactionRow.insert(QStringLiteral("recastedByMe"), true);
+    reactionRow.insert(QStringLiteral("likeCount"), 4);
+    reactionRow.insert(QStringLiteral("recastCount"), 3);
+    reactionFeed->setProperty("rows", QVariantList{reactionRow});
+    expect(QTest::qWaitFor([&] {
+        const QVariantMap payload = reactionPayload();
+        return payload.value(QStringLiteral("likedByMe")).toBool()
+            && payload.value(QStringLiteral("recastedByMe")).toBool()
+            && payload.value(QStringLiteral("likeCount")).toInt() == 4
+            && payload.value(QStringLiteral("recastCount")).toInt() == 3;
+    }), "viewer like/recast state patches the existing stable feed delegate");
+    reactionFeed.reset();
+    QCoreApplication::processEvents();
+
     const int requestsBeforeVideo = images->requestCount();
     auto video = createSurface(engine, QStringLiteral("VideoPreview"), *scroll,
         {{QStringLiteral("embed"), QVariantMap{

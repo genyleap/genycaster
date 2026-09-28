@@ -17,6 +17,7 @@ Item {
     property real viewportAnchorOffset: 0
     property bool restoringViewport: false
     property bool stableModelSyncPending: false
+    property var stablePayloads: ({})
 
     signal refreshRequested()
     signal loadMoreRequested()
@@ -379,6 +380,10 @@ Item {
         list.contentY = Math.max(minimum, Math.min(maximum, item.y - anchorOffset))
     }
 
+    function payloadForStableKey(key) {
+        return root.stablePayloads[String(key || "")] || ({})
+    }
+
     function requestStableModelSync() {
         if (list.moving) {
             root.stableModelSyncPending = true
@@ -404,11 +409,11 @@ Item {
         for (let index = 0; index < source.length; ++index) {
             const key = root.notificationKey(source[index], index)
             const revision = root.notificationRevision(source[index])
+            root.stablePayloads[key] = source[index]
             if (index < notificationModel.count
                     && String(notificationModel.get(index).stableKey) === key) {
                 if (String(notificationModel.get(index).revisionKey || "") !== revision) {
                     notificationModel.setProperty(index, "revisionKey", revision)
-                    notificationModel.setProperty(index, "payload", source[index])
                 }
                 continue
             }
@@ -425,10 +430,9 @@ Item {
                 structureChanged = true
                 if (String(notificationModel.get(index).revisionKey || "") !== revision) {
                     notificationModel.setProperty(index, "revisionKey", revision)
-                    notificationModel.setProperty(index, "payload", source[index])
                 }
             } else {
-                notificationModel.insert(index, { stableKey: key, revisionKey: revision, payload: source[index] })
+                notificationModel.insert(index, { stableKey: key, revisionKey: revision })
                 structureChanged = true
             }
         }
@@ -616,8 +620,12 @@ Item {
 
             delegate: Superellipse {
                 id: notificationRow
-                required property var payload
-                readonly property var modelData: payload
+                required property string stableKey
+                required property string revisionKey
+                readonly property var modelData: {
+                    const revision = notificationRow.revisionKey
+                    return root.payloadForStableKey(notificationRow.stableKey)
+                }
                 readonly property string kindKey: String(modelData.kind || "")
                 readonly property color kindColor: root.kindColor(kindKey)
                 readonly property string kindGlyph: root.kindGlyph(kindKey)

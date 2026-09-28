@@ -73,7 +73,7 @@ int main(int argc, char** argv)
     expect(controller.searchSpecial(QStringLiteral("fire"), 64)
         .contains(QString::fromUtf8("🔥")), "special search finds curated animation metadata");
     expect(controller.searchSpecial(QStringLiteral("grinning"), 64)
-        .contains(QString::fromUtf8("😀")), "special search covers the full provider catalog");
+        .contains(QString::fromUtf8("😁")), "special search covers the full provider catalog");
     qsizetype classicEmojiCount{};
     for (const auto& group : controller.emojiGroups()) {
         const auto row = group.toMap();

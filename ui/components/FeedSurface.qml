@@ -25,6 +25,11 @@ Item {
     property double accountFid: 0
     property bool loadMorePending: false
     property bool stableModelSyncPending: false
+    // Complex QVariantMap/QJSValue payloads must not live inside ListModel roles:
+    // Qt fixes a role's type from its first value and later C++ QVariantMap vs
+    // JS object/list wrappers can otherwise be rejected. Keep only primitive,
+    // type-stable roles in ListModel and store row payloads externally by key.
+    property var stablePayloads: ({})
     property bool previewSyncPending: false
     property string presentationMode: "for-you"
     property string visualFilter: "nfts"
@@ -49,7 +54,7 @@ Item {
     readonly property bool curateHomeForYou: false
     readonly property bool presentationFilterActive: !root.socialMode
     readonly property int filterTargetCount: root.compact ? 5 : 8
-    readonly property int filterPrefetchLimit: 2
+    readonly property int filterPrefetchLimit: 4
     readonly property int automaticPrefetchLimit: 4
     property Component headerContent: null
     // Presentation filters preserve provider order; they only select eligible
@@ -565,17 +570,24 @@ Item {
                 String(Boolean(value.recastedByMe)), String(value.writeState || "")].join("\u001f")
     }
 
+    function payloadForStableKey(key) {
+        return root.stablePayloads[String(key || "")] || ({})
+    }
+
     function rebuildStableModel(source) {
+        const payloads = ({})
         stableRows.clear()
         for (let index = 0; index < source.length; ++index) {
             const entry = source[index] || ({})
             const payload = entry.payload || ({})
-            stableRows.append({ stableKey: root.rowKey(payload, index),
+            const key = root.rowKey(payload, index)
+            payloads[key] = payload
+            stableRows.append({ stableKey: key,
                                 revisionKey: root.rowRevision(payload),
                                 presentationKind: String(entry.presentationKind || "conversation"),
-                                mediaLayoutKind: root.mediaLayoutKind(payload),
-                                payload: payload })
+                                mediaLayoutKind: root.mediaLayoutKind(payload) })
         }
+        root.stablePayloads = payloads
     }
 
     function requestStableModelSync() {
@@ -603,6 +615,9 @@ Item {
             const presentationKind = String(entry.presentationKind || "conversation")
             const key = root.rowKey(payload, index)
             const revision = root.rowRevision(payload)
+            // Mutate the side store before changing revisionKey. Delegates bind
+            // through revisionKey, so only the affected row re-reads its payload.
+            root.stablePayloads[key] = payload
             if (index < stableRows.count && String(stableRows.get(index).stableKey) === key) {
                 const revisionChanged = String(stableRows.get(index).revisionKey || "") !== revision
                 const presentationChanged = String(stableRows.get(index).presentationKind || "") !== presentationKind
@@ -610,10 +625,8 @@ Item {
                     stableRows.setProperty(index, "revisionKey", revision)
                 if (presentationChanged)
                     stableRows.setProperty(index, "presentationKind", presentationKind)
-                if (revisionChanged) {
+                if (revisionChanged)
                     stableRows.setProperty(index, "mediaLayoutKind", root.mediaLayoutKind(payload))
-                    stableRows.setProperty(index, "payload", payload)
-                }
                 continue
             }
 
@@ -632,14 +645,12 @@ Item {
                     stableRows.setProperty(index, "revisionKey", revision)
                 if (presentationChanged)
                     stableRows.setProperty(index, "presentationKind", presentationKind)
-                if (revisionChanged) {
+                if (revisionChanged)
                     stableRows.setProperty(index, "mediaLayoutKind", root.mediaLayoutKind(payload))
-                    stableRows.setProperty(index, "payload", payload)
-                }
             } else {
                 stableRows.insert(index, { stableKey: key, revisionKey: revision,
                                            presentationKind: presentationKind,
-                                           mediaLayoutKind: root.mediaLayoutKind(payload), payload: payload })
+                                           mediaLayoutKind: root.mediaLayoutKind(payload) })
             }
         }
 
@@ -734,6 +745,10 @@ Item {
     }
     onPresentationModeChanged: {
         filterPrefetchDebounce.stop()
+        // Each semantic tab visit gets a fresh bounded continuation budget.
+        // Without this, a sparse Devs/NFTs visit could permanently exhaust its
+        // two-page allowance and only ever show old cached matches afterward.
+        root.resetCurrentFilterPrefetchBudget()
         stableRows.clear()
         Qt.callLater(function() {
             if (root.presentationMode === "visuals")
@@ -974,11 +989,15 @@ Item {
         component FeedRow: Loader {
             id: rowDelegate
             objectName: "feedRow"
-            required property var payload
             required property string presentationKind
             required property string mediaLayoutKind
             required property string stableKey
+            required property string revisionKey
             required property int index
+            readonly property var payload: {
+                const revision = rowDelegate.revisionKey
+                return root.payloadForStableKey(rowDelegate.stableKey)
+            }
             readonly property bool sectionRow: Boolean(payload && payload._genySection)
             readonly property bool incubating: status === Loader.Loading || item === null
             readonly property real reservedHeight: root.rowIncubationHeight(

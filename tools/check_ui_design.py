@@ -240,6 +240,10 @@ for model_name, model_text in (
 ):
     if 'dynamicRoles: true' in model_text:
         errors.append(f'{model_name} timeline models must keep stable role types; dynamicRoles is forbidden on scrolling surfaces')
+    if 'setProperty(index, "payload"' in model_text or re.search(r'(?:append|insert)\([^\n]*payload\s*:', model_text):
+        errors.append(f'{model_name} must keep complex QVariant/JS payloads outside ListModel roles to preserve stable role typing')
+    if 'stablePayloads' not in model_text or 'payloadForStableKey' not in model_text:
+        errors.append(f'{model_name} must resolve complex row payloads from a stable-key side store')
 if 'ProfileTrustCard {' not in side_navigation:
     errors.append('Desktop navigation must include the compact Trust/Profile card required by the social shell')
 if 'genycaster.feed_header.search_people_channels_casts' not in feed_header or 'signal searchRequested(string query)' not in feed_header:
@@ -247,6 +251,9 @@ if 'genycaster.feed_header.search_people_channels_casts' not in feed_header or '
 search_palette = (ui/'components'/'SearchPalette.qml').read_text(encoding='utf-8')
 if 'signal searchRequested(string query)' not in search_palette or 'feed_header.search_people_channels_casts' not in search_palette:
     errors.append('First-class search palette must support people, channels, and casts')
+if ('property var resultPayloads: ({})' not in search_palette
+        or re.search(r'resultRows\.(?:append|set|setProperty)\([^\n]*payload', search_palette)):
+    errors.append('SearchPalette must keep complex result payloads outside type-stable ListModel roles')
 if 'showProfileUrl' not in profile_surface or 'showLocation' not in profile_surface or 'metadataKey' not in profile_surface:
     errors.append('Profile metadata must de-duplicate username, URL, and location values')
 if re.search(r'RichText\s*\{[^{}]*onAuthenticationRequested\s*:', profile_surface, re.S):
@@ -258,6 +265,16 @@ if 'visible: root.idleHome || root.trendingUnavailable' in empty_state:
 app_shell = (ui/'components'/'AppShell.qml').read_text(encoding='utf-8')
 if 'passiveGuestDiscoveryFailure' not in app_shell:
     errors.append('Guest Explore source failures must stay inline instead of becoming a global status warning')
+if ('property bool notificationBusySnapshot: false' not in app_shell
+        or 'busy: root.notificationBusySnapshot' not in app_shell
+        or 'function onNotificationsChanged()' not in app_shell):
+    errors.append('Notifications route must snapshot bridge busy state imperatively to avoid the Qt 6.11 lazy-loader binding cycle')
+if ('const modeChanged = root.explorerPresentationMode !== nextMode' not in app_shell
+        or 'const refreshRequested = Boolean(forceRefresh)' not in app_shell
+        or '((modeChanged || refreshRequested) && !presentationBridge.isBusy)' not in app_shell
+        or 'root.selectExplorerPresentationMode(root.explorerPresentationMode, true)' not in app_shell
+        or 'presentationBridge.selectFeed(source)' not in app_shell):
+    errors.append('Explorer semantic tabs must refresh their source first page when the presentation mode changes')
 gallery_layout = (ui/'components'/'GalleryLayout.qml').read_text(encoding='utf-8')
 if 'return root.embeds[index] || ({})' not in gallery_layout:
     errors.append('GalleryLayout must normalize sparse/null embed entries before media property access')
@@ -510,8 +527,15 @@ if ('property bool previewSyncPending: false' not in feed_surface
 rich_inline_text = (ui/'components'/'RichInlineText.qml').read_text(encoding='utf-8')
 if ('id: spriteEmojiLoader' not in rich_inline_text
         or 'active: emojiOverlay.spriteFallbackArmed && !lottieEmoji.animationReady' not in rich_inline_text
+        or 'visible: active && !lottieEmoji.animationReady' not in rich_inline_text
+        or 'spriteFallbackTimer' in rich_inline_text
         or 'asynchronous: true' not in rich_inline_text):
-    errors.append('Inline emoji sprite fallback must stay lazy so healthy Lottie rows do not build two renderer trees per emoji')
+    errors.append('Inline emoji must keep exactly one overlay renderer: sprite fallback is failure-driven, never timer-driven or layered over healthy Lottie')
+animated_emoji_lottie = (ui/'components'/'AnimatedEmojiLottie.qml').read_text(encoding='utf-8')
+if ('root.animations.paused = true' not in animated_emoji_lottie
+        or 'root.animations.paused = false' not in animated_emoji_lottie
+        or 'animations.restart()' in animated_emoji_lottie):
+    errors.append('Animated emoji scrolling must pause/resume the current VectorImage frame instead of restarting animation on every flick')
 link_preview_resolver = (ui/'mobile'/'link_preview_resolver.cpp').read_text(encoding='utf-8')
 if ('QThreadPool parsePool' not in link_preview_resolver
         or 'parsePool.setThreadPriority(QThread::LowPriority)' not in link_preview_resolver
@@ -533,8 +557,16 @@ for token in (
         errors.append(f'Link preview queue/buffer hot-path contract missing {token!r}')
 if 'QNetworkAccessManager network{}' in link_preview_resolver:
     errors.append('Link preview networking must not keep QNetworkAccessManager on the GUI-owned resolver object')
+if ('&QThread::finished' not in link_preview_resolver
+        or '&QObject::deleteLater' not in link_preview_resolver
+        or 'QObject::disconnect(reply, nullptr, this, nullptr)' not in link_preview_resolver
+        or "networkThread.wait(2'000)" not in link_preview_resolver
+        or '*stopped = true' not in link_preview_resolver):
+    errors.append('Link preview shutdown must disconnect/abort replies on their worker thread and bound thread exit without late TLS reads')
 if 'genycasterPayload' in link_preview_resolver:
     errors.append('Link preview readyRead must not round-trip the accumulated HTML through QObject dynamic properties')
+if 'readonly property int filterPrefetchLimit: 4' not in feed_surface:
+    errors.append('Sparse Explorer semantic tabs must retain a bounded four-page freshness/prefetch budget per visit')
 if cast_item.count('asynchronous: true') < 5:
     errors.append('CastItem rich text/media/supporting subtrees must incubate asynchronously instead of blocking delegate creation')
 for token in (

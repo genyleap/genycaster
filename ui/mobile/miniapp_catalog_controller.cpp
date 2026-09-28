@@ -518,8 +518,8 @@ public:
         auto oversized = std::make_shared<bool>(false);
 
         const auto appendAvailable = [activeReply, bytes, oversized] {
-            if (*oversized) {
-                activeReply->readAll();
+            if (*oversized || activeReply->error() != QNetworkReply::NoError
+                || !activeReply->isOpen()) {
                 return;
             }
             const qsizetype remaining = (responseByteLimit + 1) - bytes->size();
@@ -641,10 +641,21 @@ public:
     {
         ++generation;
         if (networkWorker != nullptr && networkThread.isRunning()) {
+            // Teardown must not block the GUI thread on a queued network callback.
+            // Cancel the reply and stop the event loop in-order on its own thread.
             QMetaObject::invokeMethod(networkWorker,
-                [worker = networkWorker] { worker->cancel(); }, Qt::BlockingQueuedConnection);
-            networkThread.quit();
-            networkThread.wait();
+                [worker = networkWorker] {
+                    worker->cancel();
+                    QThread::currentThread()->quit();
+                }, Qt::QueuedConnection);
+            if (!networkThread.wait(2'000)) {
+                networkThread.requestInterruption();
+                networkThread.quit();
+                if (!networkThread.wait(1'000)) {
+                    networkThread.terminate();
+                    networkThread.wait();
+                }
+            }
         }
         networkWorker = nullptr;
     }
