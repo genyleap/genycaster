@@ -15,11 +15,14 @@ Item {
     property int loadDelayMs: 0
     property color cornerCoverColor: Theme.background
 
+    readonly property rect cornerTargetRect: root.preserveAspect && preview.ready
+                                                     ? preview.visibleContentRect
+                                                     : Qt.rect(0, 0, root.width, root.height)
     readonly property real cornerRadius: Math.max(
                                                     0,
                                                     Math.min(Theme.shapeMedia,
-                                                             root.width / 2,
-                                                             root.height / 2))
+                                                             root.cornerTargetRect.width / 2,
+                                                             root.cornerTargetRect.height / 2))
     readonly property real cornerCubicFactor: {
         const safeExponent = Math.max(2.0, Theme.superellipseExponent)
         const diagonal = Math.pow(0.5, 1 / safeExponent)
@@ -103,12 +106,16 @@ Item {
     // Cover only the few corner pixels with a vector inverse instead of allocating
     // a full-size image layer, a full-size mask layer and a MultiEffect per tile.
     Shape {
-        anchors.fill: parent
+        id: cornerCover
+        x: root.cornerTargetRect.x
+        y: root.cornerTargetRect.y
+        width: root.cornerTargetRect.width
+        height: root.cornerTargetRect.height
         z: 2
-        // Keep the vector geometry resident from the asynchronously incubated
-        // tile's first frame. Image completion then changes only the direct
-        // texture visibility and cannot trigger another corner-path build wave.
-        visible: !root.useLayeredMask
+        // PreserveAspectFit can paint a single image inside a smaller rectangle
+        // than the reserved tile. Round that painted rectangle itself; masking
+        // only the outer tile leaves the visible image with square corners.
+        visible: !root.useLayeredMask && preview.ready && width > 0 && height > 0
         preferredRendererType: Shape.CurveRenderer
         asynchronous: false
 
@@ -120,41 +127,41 @@ Item {
 
             startX: 0
             startY: 0
-            PathLine { x: root.width; y: 0 }
-            PathLine { x: root.width; y: root.height }
-            PathLine { x: 0; y: root.height }
+            PathLine { x: cornerCover.width; y: 0 }
+            PathLine { x: cornerCover.width; y: cornerCover.height }
+            PathLine { x: 0; y: cornerCover.height }
             PathLine { x: 0; y: 0 }
 
             PathMove { x: root.cornerRadius; y: 0 }
-            PathLine { x: root.width - root.cornerRadius; y: 0 }
+            PathLine { x: cornerCover.width - root.cornerRadius; y: 0 }
             PathCubic {
-                x: root.width
+                x: cornerCover.width
                 y: root.cornerRadius
-                control1X: root.width - root.cornerRadius
+                control1X: cornerCover.width - root.cornerRadius
                            + root.cornerCubicFactor * root.cornerRadius
                 control1Y: 0
-                control2X: root.width
+                control2X: cornerCover.width
                 control2Y: root.cornerRadius - root.cornerCubicFactor * root.cornerRadius
             }
-            PathLine { x: root.width; y: root.height - root.cornerRadius }
+            PathLine { x: cornerCover.width; y: cornerCover.height - root.cornerRadius }
             PathCubic {
-                x: root.width - root.cornerRadius
-                y: root.height
-                control1X: root.width
-                control1Y: root.height - root.cornerRadius
+                x: cornerCover.width - root.cornerRadius
+                y: cornerCover.height
+                control1X: cornerCover.width
+                control1Y: cornerCover.height - root.cornerRadius
                            + root.cornerCubicFactor * root.cornerRadius
-                control2X: root.width - root.cornerRadius
+                control2X: cornerCover.width - root.cornerRadius
                            + root.cornerCubicFactor * root.cornerRadius
-                control2Y: root.height
+                control2Y: cornerCover.height
             }
-            PathLine { x: root.cornerRadius; y: root.height }
+            PathLine { x: root.cornerRadius; y: cornerCover.height }
             PathCubic {
                 x: 0
-                y: root.height - root.cornerRadius
+                y: cornerCover.height - root.cornerRadius
                 control1X: root.cornerRadius - root.cornerCubicFactor * root.cornerRadius
-                control1Y: root.height
+                control1Y: cornerCover.height
                 control2X: 0
-                control2Y: root.height - root.cornerRadius
+                control2Y: cornerCover.height - root.cornerRadius
                            + root.cornerCubicFactor * root.cornerRadius
             }
             PathLine { x: 0; y: root.cornerRadius }

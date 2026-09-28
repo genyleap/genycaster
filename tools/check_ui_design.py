@@ -293,8 +293,19 @@ if ('const modeChanged = root.explorerPresentationMode !== nextMode' not in app_
 if 'presentationBridge.requestExplorerArt()' in app_shell:
     errors.append('Explorer Visuals must not inject the legacy cached art-channel source')
 gallery_layout = (ui/'components'/'GalleryLayout.qml').read_text(encoding='utf-8')
+gallery_tile = (ui/'components'/'GalleryTile.qml').read_text(encoding='utf-8')
 if 'return root.embeds[index] || ({})' not in gallery_layout:
     errors.append('GalleryLayout must normalize sparse/null embed entries before media property access')
+if ('readonly property rect cornerTargetRect:' not in gallery_tile
+        or '? preview.visibleContentRect' not in gallery_tile
+        or 'id: cornerCover' not in gallery_tile
+        or 'x: root.cornerTargetRect.x' not in gallery_tile
+        or 'y: root.cornerTargetRect.y' not in gallery_tile):
+    errors.append('GalleryTile must round the actual painted PreserveAspectFit image rectangle, not only the reserved tile bounds')
+if ('id: newPostsSlot' not in feed_surface
+        or 'implicitHeight: feedHeaderLoader.implicitHeight + newPostsSlot.height' not in feed_surface
+        or 'newPostsSlot.mapToItem(root, 0, 0).y' not in feed_surface):
+    errors.append('New-post affordance must reserve header space and pin to the viewport instead of overlaying the first cast')
 for token in (
     'property bool scrollHostResolved: false',
     'readonly property bool scrollMoving:',

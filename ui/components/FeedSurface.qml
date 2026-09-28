@@ -933,7 +933,11 @@ Item {
         header: Item {
             id: pinnedHeader
             width: readList.width
-            implicitHeight: feedHeaderLoader.implicitHeight
+            // Reserve the new-post affordance in the list header itself so the
+            // first cast can never slide underneath it. The visible banner is a
+            // viewport overlay that tracks this slot until it reaches the top,
+            // then remains pinned while older posts continue scrolling.
+            implicitHeight: feedHeaderLoader.implicitHeight + newPostsSlot.height
             z: 20
 
             Rectangle {
@@ -955,6 +959,15 @@ Item {
                 anchors.right: parent.right
                 anchors.top: parent.top
                 sourceComponent: root.headerContent
+            }
+
+            Item {
+                id: newPostsSlot
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: feedHeaderLoader.bottom
+                height: root.pendingNewPostCount > 0 && !root.socialMode ? 52 : 0
+                visible: height > 0
             }
         }
 
@@ -1102,31 +1115,32 @@ Item {
         id: newPostsBanner
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.topMargin: readList.headerItem ? readList.headerItem.implicitHeight : 0
-        height: 48
+        height: 52
         z: 31
         visible: root.pendingNewPostCount > 0 && !root.socialMode
 
-        Rectangle {
-            anchors.fill: parent
-            color: Theme.background
-        }
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: Theme.strokeHairline
-            color: Theme.divider
+        // Depend explicitly on contentY so mapToItem() is reevaluated as the
+        // ListView scrolls. Before the header leaves the viewport the banner
+        // occupies its reserved slot; afterwards it sticks to the feed top.
+        y: {
+            const scrollRevision = readList.contentY
+            if (!readList.headerItem || !newPostsSlot.visible)
+                return 0
+            return Math.max(0, newPostsSlot.mapToItem(root, 0, 0).y)
         }
 
         HoverHandler { id: newPostsHover }
 
-        Rectangle {
+        Superellipse {
             anchors.fill: parent
-            color: newPostsHover.hovered ? Theme.surfaceHover : "transparent"
-            opacity: newPostsHover.hovered ? 0.42 : 0
+            anchors.leftMargin: root.compact ? Theme.mobileGutter : Theme.space3
+            anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space3
+            anchors.topMargin: Theme.space1
+            anchors.bottomMargin: Theme.space1
+            fillColor: newPostsHover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
+            borderWidth: 0
+            curveDepth: Theme.shapeControlSmall
+            highQualityEdges: true
         }
 
         DirectionAwareLabel {
