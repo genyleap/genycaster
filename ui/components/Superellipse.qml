@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import QtQuick.Shapes
 import Farcaster.Client
 
@@ -73,11 +74,23 @@ Item {
                 readonly property real pathBottom: Math.max(pathTop, height - pathInset)
                 readonly property real pathWidth: Math.max(0, pathRight - pathLeft)
                 readonly property real pathHeight: Math.max(0, pathBottom - pathTop)
+                // Qt 6.11 CurveRenderer can produce a tiny axial spike when a
+                // continuous corner consumes an edge exactly (pill/circle case).
+                // Leave half a physical pixel of total straight-edge length so
+                // no PathLine join degenerates to zero length.
+                readonly property real edgeGuard: 0.25 / Math.max(1, Screen.devicePixelRatio)
+                readonly property real requestedCornerRadius: Math.max(
+                    0,
+                    Math.min(root.curveDepth - pathInset, pathWidth / 2, pathHeight / 2))
+                readonly property bool saturatesWidth: requestedCornerRadius > 0
+                                                       && requestedCornerRadius >= pathWidth / 2 - 0.0001
+                readonly property bool saturatesHeight: requestedCornerRadius > 0
+                                                        && requestedCornerRadius >= pathHeight / 2 - 0.0001
                 readonly property real cornerRadius: Math.max(
-                                                        0,
-                                                        Math.min(root.curveDepth - pathInset,
-                                                                 pathWidth / 2,
-                                                                 pathHeight / 2))
+                    0,
+                    Math.min(root.curveDepth - pathInset,
+                             pathWidth / 2 - (saturatesWidth ? edgeGuard : 0),
+                             pathHeight / 2 - (saturatesHeight ? edgeGuard : 0)))
                 readonly property real topLeftRadius: root.curveTopLeft ? cornerRadius : 0
                 readonly property real topRightRadius: root.curveTopRight ? cornerRadius : 0
                 readonly property real bottomRightRadius: root.curveBottomRight ? cornerRadius : 0

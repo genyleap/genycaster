@@ -545,14 +545,14 @@ Item {
                                                     source: String(cardCell.modelData.iconSource || "")
                                                     fillMode: Image.PreserveAspectFit
                                                     mediaCategory: "miniapps"
+                                                    forceAutomaticDownload: true
                                                     showManualLoadIndicator: false
                                                     showFailureIndicator: false
                                                     requestedSourceWidth: 44
                                                     requestedSourceHeight: 44
                                                     curveDepth: Theme.curveControl
                                                     fillColor: Theme.primarySurface
-                                                    borderWidth: 1
-                                                    borderColor: Theme.borderMuted
+                                                    borderWidth: 0
                                                 }
                                                 ColumnLayout {
                                                     Layout.fillWidth: true

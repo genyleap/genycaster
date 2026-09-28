@@ -16,6 +16,11 @@ Item {
     property var scrollHost: null
     readonly property bool scrollMoving: root.scrollHost !== null
                                          && Boolean(root.scrollHost.moving)
+    // Brief delegate/state churn must not restart the indeterminate phase from
+    // zero. Keep the renderer alive for a short grace period, while still
+    // respecting scroll-time animation throttling.
+    readonly property bool animationRequested: root.running && root.visible && !root.scrollMoving
+    property bool animationActive: false
     readonly property real arcRadius: Math.max(0, Math.min(width, height) / 2 - root.strokeWidth / 2)
 
     function resolveScrollHost() {
@@ -30,8 +35,28 @@ Item {
         root.scrollHost = null
     }
 
-    Component.onCompleted: root.resolveScrollHost()
+    function synchronizeAnimationState() {
+        if (root.animationRequested) {
+            animationGraceStop.stop()
+            root.animationActive = true
+        } else if (root.animationActive) {
+            animationGraceStop.restart()
+        }
+    }
+
+    Component.onCompleted: {
+        root.resolveScrollHost()
+        root.synchronizeAnimationState()
+    }
     onParentChanged: root.resolveScrollHost()
+    onAnimationRequestedChanged: root.synchronizeAnimationState()
+
+    Timer {
+        id: animationGraceStop
+        interval: 180
+        repeat: false
+        onTriggered: root.animationActive = root.animationRequested
+    }
 
     implicitWidth: 18
     implicitHeight: 18
@@ -85,7 +110,7 @@ Item {
             to: 360
             duration: 760
             loops: Animation.Infinite
-            running: root.running && root.visible && !root.scrollMoving && !Theme.reduceMotion
+            running: root.animationActive && !Theme.reduceMotion
         }
     }
 }

@@ -15,6 +15,7 @@
 namespace {
 
 constexpr qreal Epsilon = 0.0001;
+constexpr qreal EdgeGuardPhysicalPixels = 0.25;
 constexpr int MinimumCornerSegments = 8;
 constexpr int MaximumCornerSegments = 256;
 
@@ -192,7 +193,25 @@ void appendSuperellipseCorner(
     const qreal innerHeight = std::max<qreal>(0.0, bottom - top);
     if (innerWidth <= Epsilon || innerHeight <= Epsilon) return points;
 
-    const qreal radius = std::max<qreal>(0.0, std::min({curveDepth - inset, innerWidth / 2.0, innerHeight / 2.0}));
+    const qreal requestedRadius = std::max<qreal>(
+        0.0,
+        std::min({curveDepth - inset, innerWidth / 2.0, innerHeight / 2.0}));
+    // A pill/circle can make the straight segment between adjacent corners
+    // exactly zero length. The feather normal then has a duplicate vertex at
+    // that join and may produce a tiny axial spike on HiDPI backends. Preserve
+    // half a physical pixel of total straight-edge length so every boundary
+    // segment remains well-defined without visibly changing the shape.
+    const qreal edgeGuard = EdgeGuardPhysicalPixels / std::max<qreal>(1.0, devicePixelRatio);
+    const bool saturatesWidth = requestedRadius > Epsilon
+        && requestedRadius >= innerWidth / 2.0 - Epsilon;
+    const bool saturatesHeight = requestedRadius > Epsilon
+        && requestedRadius >= innerHeight / 2.0 - Epsilon;
+    const qreal radius = std::max<qreal>(
+        0.0,
+        std::min({
+            requestedRadius,
+            innerWidth / 2.0 - (saturatesWidth ? edgeGuard : 0.0),
+            innerHeight / 2.0 - (saturatesHeight ? edgeGuard : 0.0)}));
     if (radius <= Epsilon && cornerSegmentsOverride <= 0) {
         return {{left, top}, {right, top}, {right, bottom}, {left, bottom}, {left, top}};
     }

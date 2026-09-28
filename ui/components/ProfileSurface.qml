@@ -531,7 +531,7 @@ Item {
                         anchors.fill: parent
                         curveDepth: Theme.shapeMedia
                         fillColor: Theme.surfaceRaised
-                        borderWidth: Theme.strokeHairline
+                        borderWidth: Boolean(root.detail.bannerUrl) ? 0 : Theme.strokeHairline
                         borderColor: Theme.borderMuted
 
                         // Keep the no-banner state deliberately quiet. It must read
@@ -570,10 +570,10 @@ Item {
                         retainPreviousWhileLoading: false
                     }
 
-                    // The cover itself stays on the direct Image path to avoid
-                    // the wide-texture MultiEffect failure. An inverse vector
-                    // superellipse masks only the four corners afterward, so the
-                    // visual geometry remains identical without another texture/FBO.
+                    // Keep the cover on the direct Image path, but mask only the
+                    // four outside corner patches. A full-frame odd/even mask
+                    // shares its inner path with the image edge and CurveRenderer
+                    // can antialias that coincidence into a visible hairline.
                     Shape {
                         anchors.fill: parent
                         z: 2
@@ -581,20 +581,34 @@ Item {
                         preferredRendererType: Shape.CurveRenderer
                         asynchronous: false
 
+                        // Top-left outside patch.
                         ShapePath {
                             fillColor: Theme.background
-                            fillRule: ShapePath.OddEvenFill
                             strokeColor: "transparent"
                             strokeWidth: -1
-
                             startX: 0
                             startY: 0
-                            PathLine { x: bannerFrame.width; y: 0 }
-                            PathLine { x: bannerFrame.width; y: bannerFrame.height }
-                            PathLine { x: 0; y: bannerFrame.height }
+                            PathLine { x: bannerFrame.coverRadius; y: 0 }
+                            PathCubic {
+                                x: 0
+                                y: bannerFrame.coverRadius
+                                control1X: bannerFrame.coverRadius
+                                           - bannerFrame.coverCubicFactor * bannerFrame.coverRadius
+                                control1Y: 0
+                                control2X: 0
+                                control2Y: bannerFrame.coverRadius
+                                           - bannerFrame.coverCubicFactor * bannerFrame.coverRadius
+                            }
                             PathLine { x: 0; y: 0 }
+                        }
 
-                            PathMove { x: bannerFrame.coverRadius; y: 0 }
+                        // Top-right outside patch.
+                        ShapePath {
+                            fillColor: Theme.background
+                            strokeColor: "transparent"
+                            strokeWidth: -1
+                            startX: bannerFrame.width
+                            startY: 0
                             PathLine { x: bannerFrame.width - bannerFrame.coverRadius; y: 0 }
                             PathCubic {
                                 x: bannerFrame.width
@@ -606,6 +620,16 @@ Item {
                                 control2Y: bannerFrame.coverRadius
                                            - bannerFrame.coverCubicFactor * bannerFrame.coverRadius
                             }
+                            PathLine { x: bannerFrame.width; y: 0 }
+                        }
+
+                        // Bottom-right outside patch.
+                        ShapePath {
+                            fillColor: Theme.background
+                            strokeColor: "transparent"
+                            strokeWidth: -1
+                            startX: bannerFrame.width
+                            startY: bannerFrame.height
                             PathLine { x: bannerFrame.width; y: bannerFrame.height - bannerFrame.coverRadius }
                             PathCubic {
                                 x: bannerFrame.width - bannerFrame.coverRadius
@@ -617,6 +641,16 @@ Item {
                                            + bannerFrame.coverCubicFactor * bannerFrame.coverRadius
                                 control2Y: bannerFrame.height
                             }
+                            PathLine { x: bannerFrame.width; y: bannerFrame.height }
+                        }
+
+                        // Bottom-left outside patch.
+                        ShapePath {
+                            fillColor: Theme.background
+                            strokeColor: "transparent"
+                            strokeWidth: -1
+                            startX: 0
+                            startY: bannerFrame.height
                             PathLine { x: bannerFrame.coverRadius; y: bannerFrame.height }
                             PathCubic {
                                 x: 0
@@ -628,28 +662,8 @@ Item {
                                 control2Y: bannerFrame.height - bannerFrame.coverRadius
                                            + bannerFrame.coverCubicFactor * bannerFrame.coverRadius
                             }
-                            PathLine { x: 0; y: bannerFrame.coverRadius }
-                            PathCubic {
-                                x: bannerFrame.coverRadius
-                                y: 0
-                                control1X: 0
-                                control1Y: bannerFrame.coverRadius
-                                           - bannerFrame.coverCubicFactor * bannerFrame.coverRadius
-                                control2X: bannerFrame.coverRadius
-                                           - bannerFrame.coverCubicFactor * bannerFrame.coverRadius
-                                control2Y: 0
-                            }
+                            PathLine { x: 0; y: bannerFrame.height }
                         }
-                    }
-
-                    Superellipse {
-                        anchors.fill: parent
-                        z: 3
-                        visible: bannerImage.visible
-                        fillColor: "transparent"
-                        borderWidth: Theme.strokeHairline
-                        borderColor: Theme.borderMuted
-                        curveDepth: Theme.shapeMedia
                     }
 
                     TapHandler {

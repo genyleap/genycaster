@@ -91,8 +91,7 @@ Item {
         curveDepth: Theme.shapeMedia
         clipToSuperellipse: root.useLayeredMask
         fillColor: preview.ready && root.preserveAspect ? "transparent" : Theme.surface
-        borderWidth: root.preserveAspect ? 0 : Theme.strokeHairline
-        borderColor: Theme.borderSubtle
+        borderWidth: 0
         onStatusChanged: root.reportDecodedAspect()
         onSourceImplicitWidthChanged: root.reportDecodedAspect()
         onSourceImplicitHeightChanged: root.reportDecodedAspect()

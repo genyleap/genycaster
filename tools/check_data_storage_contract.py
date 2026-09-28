@@ -157,6 +157,13 @@ if "loadingHeight" in link_preview:
     errors.append("LinkPreview must reserve final poster geometry while artwork is loading")
 if "visible: root.manualLoadRequired" not in image_surface:
     errors.append("Tap-to-load overlay must wait for an automatic cache miss before appearing")
+if ('property bool forceAutomaticDownload: false' not in image_surface
+        or 'root.manualLoadRequested || root.forceAutomaticDownload' not in image_surface):
+    errors.append("SuperellipseImage must support explicit presentation-critical automatic downloads")
+if ('mediaCategory: "miniapps"' not in link_preview
+        or 'forceAutomaticDownload: true' not in link_preview
+        or 'showManualLoadIndicator: false' not in link_preview):
+    errors.append("Mini App discovery artwork must load automatically instead of exposing Tap to load")
 if "if (!preview.ready)" not in gallery_tile:
     errors.append("GalleryTile must consume first tap for manual loading before gallery navigation")
 if "artworkStillLoadingAt" not in link_preview:

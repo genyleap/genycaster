@@ -28,6 +28,9 @@ Item {
     property bool retainPreviousWhileLoading: false
     property string mediaCategory: "other"
     property bool manualLoadRequested: false
+    // Presentation-critical artwork (notably Mini App discovery images/icons)
+    // can opt into an unconditional fetch without changing the global data policy.
+    property bool forceAutomaticDownload: false
     // Large cover surfaces can opt out of the scene-graph mask pass. Qt Quick's
     // MultiEffect mask is reliable for ordinary thumbnails/avatars, but very
     // wide textures can be reported Ready while the effect layer itself paints
@@ -55,17 +58,22 @@ Item {
     readonly property bool remoteSource: /^image:\/\/remote\//i.test(root.source.toString())
     readonly property bool automaticDownloadAllowed: !root.remoteSource
                                                     || root.manualLoadRequested
+                                                    || root.forceAutomaticDownload
                                                     || dataStorage.autoDownloadAllowed(root.mediaCategory)
     // Automatic policy blocks only the network leg. The provider is still
     // allowed to satisfy the request from RAM/disk cache first. Keep that cache
     // lookup visually indistinguishable from an ordinary image load and show
     // Tap-to-load only after the automatic request has confirmed a cache miss.
-    readonly property bool automaticPolicyBlocked: root.remoteSource && !root.manualLoadRequested
+    readonly property bool automaticPolicyBlocked: root.remoteSource
+                                                   && !root.manualLoadRequested
+                                                   && !root.forceAutomaticDownload
                                                    && !dataStorage.autoDownloadAllowed(root.mediaCategory)
     readonly property bool manualLoadRequired: root.automaticPolicyBlocked && root.loadFailed
     readonly property bool policyBlocked: root.automaticPolicyBlocked && !root.ready
     readonly property string effectiveSource: root.remoteSource
-                                              ? dataStorage.remoteImageSource(root.source.toString(), root.mediaCategory, root.manualLoadRequested)
+                                              ? dataStorage.remoteImageSource(
+                                                    root.source.toString(), root.mediaCategory,
+                                                    root.manualLoadRequested || root.forceAutomaticDownload)
                                               : root.source.toString()
     // An empty activeSource can last beyond the moving signal while the
     // post-fling admission timer is running. Treat that whole interval as one
@@ -415,20 +423,24 @@ Item {
         id: loadingIndicator
         objectName: "mediaLoadingIndicator"
         z: 2
-        anchors.centerIn: parent
         readonly property real availableSize: Math.min(root.width, root.height)
-        width: Math.max(14, Math.min(28, availableSize * 0.34))
-        height: width
+        readonly property real devicePixelRatio: Math.max(1, Screen.devicePixelRatio)
+        readonly property real requestedSize: Math.max(14, Math.min(28, availableSize * 0.34))
+        readonly property real snappedSize: Math.max(1,
+            Math.round(requestedSize * devicePixelRatio) / devicePixelRatio)
+        width: snappedSize
+        height: snappedSize
+        x: Math.round(((root.width - width) / 2) * devicePixelRatio) / devicePixelRatio
+        y: Math.round(((root.height - height) / 2) * devicePixelRatio) / devicePixelRatio
         visible: root.showLoadingIndicator && root.loading && !root.manualLoadRequired
 
         GenySpinner {
             objectName: "mediaLoadingSpinner"
             anchors.fill: parent
             visible: loadingIndicator.availableSize >= 56 && !Theme.reduceMotion
-            // Keep the placeholder visible during a fling but freeze its
-            // indeterminate animation. Several pending media rows can otherwise
-            // keep multiple Shape/RotationAnimator trees active every frame.
-            running: visible && !root.scrollMoving
+            // GenySpinner resolves the enclosing Flickable itself and keeps
+            // animation phase stable through brief state/visibility churn.
+            running: visible
             strokeWidth: Math.max(1.5, width * 0.10)
             color: Theme.accent
         }

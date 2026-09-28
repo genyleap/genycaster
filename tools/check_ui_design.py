@@ -175,6 +175,7 @@ if 'containmentMask: background' not in tab_button or 'background: Superellipse'
     errors.append('GenyTabButton must use its Superellipse background as the containment mask')
 
 superellipse = (ui/'components'/'Superellipse.qml').read_text(encoding='utf-8')
+geny_spinner = (ui/'components'/'GenySpinner.qml').read_text(encoding='utf-8')
 if 'containmentMask: renderedShape' in superellipse:
     errors.append('Superellipse hit testing must stay on lightweight QQuickItem bounds; shared controls must not install the visual renderer as a containment mask')
 if 'cornerSamples: 96' not in superellipse:
@@ -187,9 +188,22 @@ if ('SceneGraphSuperellipse {' not in superellipse
         or 'active: root.highQualityEdges' not in superellipse
         or 'preferredRendererType: Shape.CurveRenderer' not in superellipse):
     errors.append('Shared Superellipse must default to retained QSG geometry and expose only an explicit CurveRenderer precision opt-in')
+if ('readonly property real edgeGuard:' not in superellipse
+        or 'saturatesWidth' not in superellipse
+        or 'saturatesHeight' not in superellipse):
+    errors.append('CurveRenderer pill/circle precision path must guard against zero-length edge joins')
+if ('readonly property bool animationRequested:' not in geny_spinner
+        or 'id: animationGraceStop' not in geny_spinner
+        or 'running: root.animationActive && !Theme.reduceMotion' not in geny_spinner):
+    errors.append('GenySpinner must preserve animation phase through transient visibility churn')
 
 scene_graph_stroke = (ui/'render'/'scene_graph_stroke_item.cpp').read_text(encoding='utf-8')
 scene_graph_surface = (ui/'render'/'scene_graph_superellipse_item.cpp').read_text(encoding='utf-8')
+if ('EdgeGuardPhysicalPixels' not in scene_graph_surface
+        or 'saturatesWidth' not in scene_graph_surface
+        or 'saturatesHeight' not in scene_graph_surface):
+    errors.append('SceneGraphSuperellipse pill/circle paths must guard zero-length feather joins')
+
 for renderer_name, renderer_text in (
     ('SceneGraphStroke', scene_graph_stroke),
     ('SceneGraphSuperellipse', scene_graph_surface),
@@ -271,10 +285,13 @@ if ('property bool notificationBusySnapshot: false' not in app_shell
     errors.append('Notifications route must snapshot bridge busy state imperatively to avoid the Qt 6.11 lazy-loader binding cycle')
 if ('const modeChanged = root.explorerPresentationMode !== nextMode' not in app_shell
         or 'const refreshRequested = Boolean(forceRefresh)' not in app_shell
-        or '((modeChanged || refreshRequested) && !presentationBridge.isBusy)' not in app_shell
+        or 'if (!sameHealthySource)' not in app_shell
+        or 'presentationBridge.retry()' not in app_shell
         or 'root.selectExplorerPresentationMode(root.explorerPresentationMode, true)' not in app_shell
         or 'presentationBridge.selectFeed(source)' not in app_shell):
-    errors.append('Explorer semantic tabs must refresh their source first page when the presentation mode changes')
+    errors.append('Explorer semantic tabs must keep one live source and refresh it in place when required')
+if 'presentationBridge.requestExplorerArt()' in app_shell:
+    errors.append('Explorer Visuals must not inject the legacy cached art-channel source')
 gallery_layout = (ui/'components'/'GalleryLayout.qml').read_text(encoding='utf-8')
 if 'return root.embeds[index] || ({})' not in gallery_layout:
     errors.append('GalleryLayout must normalize sparse/null embed entries before media property access')
@@ -565,8 +582,9 @@ if ('&QThread::finished' not in link_preview_resolver
     errors.append('Link preview shutdown must disconnect/abort replies on their worker thread and bound thread exit without late TLS reads')
 if 'genycasterPayload' in link_preview_resolver:
     errors.append('Link preview readyRead must not round-trip the accumulated HTML through QObject dynamic properties')
-if 'readonly property int filterPrefetchLimit: 4' not in feed_surface:
-    errors.append('Sparse Explorer semantic tabs must retain a bounded four-page freshness/prefetch budget per visit')
+if ('readonly property int filterPrefetchLimit: 6' not in feed_surface
+        or 'readonly property int automaticPrefetchLimit: 12' not in feed_surface):
+    errors.append('Sparse Explorer semantic tabs must retain the bounded six-page/per-filter and twelve-page global prefetch budget')
 if cast_item.count('asynchronous: true') < 5:
     errors.append('CastItem rich text/media/supporting subtrees must incubate asynchronously instead of blocking delegate creation')
 for token in (

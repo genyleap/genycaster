@@ -327,7 +327,8 @@ Superellipse {
                     Layout.preferredWidth: visible ? 22 : 0
                     Layout.preferredHeight: visible ? 22 : 0
                     source: root.faviconSource
-                    mediaCategory: "link-previews"
+                    mediaCategory: "miniapps"
+                    forceAutomaticDownload: true
                     requestedSourceWidth: 64
                     requestedSourceHeight: 64
                     fillMode: Image.PreserveAspectFit
@@ -335,6 +336,7 @@ Superellipse {
                     borderWidth: 0
                     curveDepth: Theme.shapeControlSmall
                     showLoadingIndicator: false
+                    showManualLoadIndicator: false
                     showFailureIndicator: false
                 }
 
@@ -373,8 +375,9 @@ Superellipse {
                 Superellipse {
                     anchors.fill: parent
                     fillColor: Theme.backgroundSecondary
-                    borderWidth: Theme.strokeHairline
-                    borderColor: Theme.borderSubtle
+                    // The card already owns the outline. A second outline under
+                    // the clipped poster bleeds through antialiased corners.
+                    borderWidth: 0
                     curveDepth: Theme.shapeMedia
                 }
 
@@ -384,6 +387,7 @@ Superellipse {
                     visible: root.previewSource.length > 0
                     source: root.previewSource
                     mediaCategory: "miniapps"
+                    forceAutomaticDownload: true
                     requestedSourceWidth: Math.max(640, Math.round(width))
                     requestedSourceHeight: Math.max(426, Math.round(height))
                     // Mini App discovery art can contain UI/text that must remain
@@ -394,6 +398,7 @@ Superellipse {
                     borderWidth: 0
                     curveDepth: Theme.shapeMedia
                     showLoadingIndicator: false
+                    showManualLoadIndicator: false
                     showFailureIndicator: true
                 }
 

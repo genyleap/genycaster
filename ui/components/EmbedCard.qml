@@ -213,8 +213,7 @@ Superellipse {
                     mediaCategory: "photos"
                     fillMode: Image.PreserveAspectCrop
                     fillColor: Theme.backgroundSecondary
-                    borderWidth: Theme.strokeHairline
-                    borderColor: Theme.borderSubtle
+                    borderWidth: 0
                     curveDepth: Theme.shapeMedia
                     showLoadingIndicator: false
                     showFailureIndicator: false

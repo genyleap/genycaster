@@ -299,8 +299,7 @@ Drawer {
                                 mediaCategory: "photos"
                                 fillMode: Image.PreserveAspectCrop
                                 fillColor: Theme.primarySurface
-                                borderWidth: Theme.strokeHairline
-                                borderColor: Theme.borderSubtle
+                                borderWidth: 0
                                 curveDepth: 11
                                 exponent: 3.8
                             }

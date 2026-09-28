@@ -54,8 +54,8 @@ Item {
     readonly property bool curateHomeForYou: false
     readonly property bool presentationFilterActive: !root.socialMode
     readonly property int filterTargetCount: root.compact ? 5 : 8
-    readonly property int filterPrefetchLimit: 4
-    readonly property int automaticPrefetchLimit: 4
+    readonly property int filterPrefetchLimit: 6
+    readonly property int automaticPrefetchLimit: 12
     property Component headerContent: null
     // Presentation filters preserve provider order; they only select eligible
     // rows. Pagination therefore remains provider-stable across every branch.
@@ -85,6 +85,11 @@ Item {
         if (url.length === 0)
             return false
 
+        // Explicit mint routes are collectible evidence even when the mint is
+        // hosted on a project-owned domain rather than a known marketplace.
+        if (/https?:\/\/[^\s?#]+\/(?:[^\s?#]+\/)*mint(?:\/|[?#\s]|$)/i.test(url))
+            return true
+
         // Zora serves both NFT collectibles and fungible/social coins. Coin
         // routes must never leak into Explorer's NFT-art branch.
         if (url.indexOf("zora.co/") >= 0) {
@@ -111,6 +116,10 @@ Item {
                 || url.indexOf("objkt.com/tokens/") >= 0
                 || url.indexOf("objkt.com/collections/") >= 0
                 || url.indexOf("transient.xyz/") >= 0
+                || url.indexOf("fxhash.xyz/") >= 0
+                || url.indexOf("sound.xyz/") >= 0
+                || url.indexOf("rodeo.club/") >= 0
+                || url.indexOf("scatter.art/") >= 0
     }
 
     function isNftAssetLocator(value) {
@@ -212,57 +221,55 @@ Item {
         return false
     }
 
-    function hasCollectible(data) {
+    function rowHasImage(data) {
         const row = data || ({})
         const embeds = row.embeds || []
-        let rowHasArtwork = false
-        let strongCollectibleEvidence = false
-        let artworkDependentEvidence = false
-
-        // Classify each embed once. The previous implementation scanned the same
-        // row up to three times and repeated preview/classifier lookups in the feed
-        // synchronization path. Keep fungible-token rejection authoritative while
-        // accumulating the remaining NFT/art evidence in one pass.
         for (let index = 0; index < embeds.length; ++index) {
             const embed = embeds[index] || ({})
             const metadata = root.collectiblePreview(embed)
-            if (root.isFungibleTokenEvidence(embed, metadata))
-                return false
-
             const kind = String(embed.kind || "").toLowerCase()
             const value = root.embedUrl(embed)
             const family = root.classifiedFamily(embed, metadata)
             const directArtwork = String(embed.imageSource || embed.previewImage
                                          || metadata.previewImage || metadata.imageSource || "")
-            const embedHasArtwork = directArtwork.length > 0 || kind === "image"
-                    || kind === "collectible" || kind === "nft"
-                    || root.looksLikeArtworkUrl(value)
-                    || /\.(?:avif|gif|jpe?g|png|webp)(?:$|[?#])/i.test(value)
-                    || family === "image"
-            if (embedHasArtwork)
-                rowHasArtwork = true
-
-            const assetKind = String(metadata.assetKind || embed.assetKind || "").toLowerCase()
-            const tokenId = String(embed.tokenId || metadata.tokenId || "").trim()
-            const contract = String(embed.contractAddress || metadata.contractAddress || "").trim()
-
-            if (root.isNftAssetLocator(value) || root.isCollectibleMarketplaceUrl(value))
-                strongCollectibleEvidence = true
-            if ((kind === "collectible" || kind === "nft") && tokenId.length > 0)
-                strongCollectibleEvidence = true
-            if (kind === "collectible" || kind === "nft"
-                    || assetKind === "artwork" || assetKind === "collectible"
-                    || (contract.length > 0 && tokenId.length > 0))
-                artworkDependentEvidence = true
+            if (directArtwork.length > 0 || kind === "image" || family === "image"
+                    || /\.(?:avif|gif|jpe?g|png|webp)(?:$|[?#])/i.test(value))
+                return true
         }
+        return false
+    }
 
-        if (strongCollectibleEvidence || (artworkDependentEvidence && rowHasArtwork))
+    function containsCollectibleLink(data) {
+        const row = data || ({})
+        if (root.isCollectibleMarketplaceUrl(row.text)
+                || root.isCollectibleMarketplaceUrl(row.parentUrl))
             return true
 
-        // Curated Farcaster art channels are an explicit discovery source. Many
-        // artists post the artwork first and mint later, so image-bearing channel
-        // casts remain useful even when no token locator is embedded yet.
-        return root.isArtChannelCast(row) && (rowHasArtwork || root.hasArtChannelMediaCandidate(row))
+        const embeds = row.embeds || []
+        for (let index = 0; index < embeds.length; ++index) {
+            const embed = embeds[index] || ({})
+            const metadata = root.collectiblePreview(embed)
+            if (root.isFungibleTokenEvidence(embed, metadata))
+                continue
+            const value = root.embedUrl(embed)
+            const kind = String(embed.kind || "").toLowerCase()
+            const tokenId = String(embed.tokenId || metadata.tokenId || "").trim()
+            const contract = String(embed.contractAddress || metadata.contractAddress || "").trim()
+            const assetKind = String(metadata.assetKind || embed.assetKind || "").toLowerCase()
+            if (root.isNftAssetLocator(value) || root.isCollectibleMarketplaceUrl(value)
+                    || ((kind === "collectible" || kind === "nft") && tokenId.length > 0)
+                    || (contract.length > 0 && tokenId.length > 0)
+                    || assetKind === "artwork" || assetKind === "collectible")
+                return true
+        }
+        return false
+    }
+
+    function hasCollectible(data) {
+        // NFTs is a live semantic projection of the current feed. Require both
+        // visual media and NFT/mint evidence so generic art-channel posts do not
+        // keep stale, unrelated content in this tab.
+        return root.rowHasImage(data) && root.containsCollectibleLink(data)
     }
 
     function primeArtPreviews() {
@@ -312,7 +319,6 @@ Item {
     function looksDeveloper(data) {
         const row = data || ({})
         let haystack = String(row.text || "") + " " + String(row.parentUrl || "")
-                     + " " + String(row.channelId || "")
         const embeds = row.embeds || []
         for (let index = 0; index < embeds.length; ++index)
             haystack += " " + root.embedUrl(embeds[index])
@@ -321,28 +327,12 @@ Item {
         const parentEmbeds = parentPreview.embeds || []
         for (let index = 0; index < parentEmbeds.length; ++index)
             haystack += " " + root.embedUrl(parentEmbeds[index])
+
+        // Devs is evidence-based: a post belongs here when it actually links
+        // to GitHub (repository, issue, PR, commit, gist, raw file, etc.).
         haystack = haystack.toLowerCase()
-
-        const channelMatch = haystack.indexOf("/channel/dev") >= 0
-                || haystack.indexOf("/channel/developers") >= 0
-                || haystack.indexOf("/channel/programming") >= 0
-                || haystack.indexOf("/channel/builders") >= 0
-        if (channelMatch)
-            return true
-
-        const markers = [
-            "github", "gitlab", "sourcehut", "repository", "commit", "pull request",
-            "sdk", " api ", "protocol", "release", "package", "npm", "crates.io",
-            "programming", "developer", "software", "source code", "codebase",
-            "c++", "rust", "swift", "qt", "qml", "javascript", "typescript",
-            "python", "golang", "solidity", "smart contract"
-        ]
-        const padded = " " + haystack + " "
-        for (let index = 0; index < markers.length; ++index) {
-            if (padded.indexOf(markers[index]) >= 0)
-                return true
-        }
-        return false
+        return haystack.indexOf("github.com/") >= 0
+                || haystack.indexOf("raw.githubusercontent.com/") >= 0
     }
 
     function semanticKind(data) {

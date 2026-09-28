@@ -43,7 +43,9 @@ for token in (
     'const sameHealthySource = presentationBridge.activeView === "feed"',
     '&& presentationBridge.activeFeed === source',
     'const refreshRequested = Boolean(forceRefresh)',
-    'if (!sameHealthySource || ((modeChanged || refreshRequested) && !presentationBridge.isBusy))',
+    'if (!sameHealthySource)',
+    'presentationBridge.isStale',
+    'presentationBridge.retry()',
     'root.selectExplorerPresentationMode(root.explorerPresentationMode, true)',
 ):
     if token not in shell:
@@ -58,8 +60,8 @@ for token in (
     "property int conversationPrefetchPages: 0",
     "property int developerPrefetchPages: 0",
     "property int automaticPrefetchPages: 0",
-    "readonly property int filterPrefetchLimit: 4",
-    "readonly property int automaticPrefetchLimit: 4",
+    "readonly property int filterPrefetchLimit: 6",
+    "readonly property int automaticPrefetchLimit: 12",
     "function resetAllFilterPrefetchBudgets()",
     'root.isRootPost(row) && root.semanticKind(row) === "other"',
     "id: automaticPrefetchCooldown",
@@ -92,6 +94,13 @@ if semantic_match:
 else:
     errors.append("Explorer semanticKind() body is not structurally readable")
 
+if 'presentationBridge.requestExplorerArt()' in shell:
+    errors.append("Explorer Visuals must classify the live primary feed instead of injecting cached art-channel rows")
+if 'supplementalRows: []' not in shell or 'supplementalBusy: false' not in shell:
+    errors.append("Explorer must not bind the legacy art supplement into the semantic feed")
+if 'github.com/' not in feed or 'raw.githubusercontent.com/' not in feed:
+    errors.append("Explorer Devs must require explicit GitHub-link evidence")
+
 for token in (
     'kind === "token" || kind === "token-address" || kind === "fungible-token"',
     'provider === "geckoterminal"',
@@ -99,6 +108,9 @@ for token in (
     'erc(?:721|1155)',
     'assetKind === "artwork" || assetKind === "collectible"',
     'root.isCollectibleMarketplaceUrl(value)',
+    'function rowHasImage(data)',
+    'function containsCollectibleLink(data)',
+    'return root.rowHasImage(data) && root.containsCollectibleLink(data)',
 ):
     if token not in feed:
         errors.append(f"NFT-art filtering contract missing {token!r}")
@@ -208,13 +220,12 @@ for token in (
 for token in (
     "property var supplementalRows: []",
     "property bool supplementalBusy: false",
-    "function isArtChannelCast(data)",
-    "function hasArtChannelMediaCandidate(data)",
-    "return root.isArtChannelCast(row) && (rowHasArtwork || root.hasArtChannelMediaCandidate(row))",
-    "return false",
+    "function rowHasImage(data)",
+    "function containsCollectibleLink(data)",
+    "return root.rowHasImage(data) && root.containsCollectibleLink(data)",
 ):
     if token not in feed:
-        errors.append(f"NFT/art supplemental filtering missing {token!r}")
+        errors.append(f"NFT live-feed filtering missing {token!r}")
 
 for surface_name, surface in (("FeedSurface", feed), ("ProfileSurface", profile), ("DetailSurface", detail)):
     if "ScrollBar.vertical: GenyScrollBar" in surface:

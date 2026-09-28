@@ -230,9 +230,10 @@ Item {
                                 source: String(taskCard.modelData.iconSource || "")
                                 fillMode: Image.PreserveAspectFit
                                 mediaCategory: "miniapps"
+                                forceAutomaticDownload: true
+                                showManualLoadIndicator: false
                                 fillColor: Theme.surfaceMuted
-                                borderWidth: Theme.strokeHairline
-                                borderColor: Theme.borderSubtle
+                                borderWidth: 0
                                 curveDepth: Theme.curveControl
 
                                 Icon {

@@ -239,10 +239,14 @@ Item {
         // Explorer projections are sparse. Re-entering a semantic tab must also
         // refresh the source first page; otherwise Devs/NFTs can keep projecting
         // an old cached timeline forever even though the tab itself changed.
-        if (!sameHealthySource || ((modeChanged || refreshRequested) && !presentationBridge.isBusy))
+        if (!sameHealthySource) {
             presentationBridge.selectFeed(source)
-        if (nextMode === "visuals")
-            presentationBridge.requestExplorerArt()
+        } else if ((refreshRequested || (modeChanged && presentationBridge.isStale))
+                   && !presentationBridge.isBusy) {
+            // Refresh the live feed in place. Visuals no longer injects the
+            // independently cached art channel, which could surface old NFTs.
+            presentationBridge.retry()
+        }
     }
 
     function openExplorer() {
@@ -784,10 +788,11 @@ Item {
                                         FeedSurface {
                                             presentationActive: feedSurfaceLoader.surfaceRequested
                                             rows: presentationBridge.rows
-                                            supplementalRows: root.primaryDestination === "explorer"
-                                                              ? presentationBridge.explorerArtRows : []
-                                            supplementalBusy: root.primaryDestination === "explorer"
-                                                              && presentationBridge.explorerArtBusy
+                                            // Explorer semantics classify only the live primary feed.
+                                            // The legacy art supplement can remain cached for a whole
+                                            // session and is therefore intentionally excluded here.
+                                            supplementalRows: []
+                                            supplementalBusy: false
                                             runtimeReady: presentationBridge.runtimeReady
                                             socialMode: presentationBridge.activeView !== "feed"
                                             busy: presentationBridge.isBusy

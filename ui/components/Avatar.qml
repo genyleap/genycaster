@@ -45,8 +45,7 @@ Item {
         curveDepth: root.avatarCurveDepth
         exponent: root.avatarExponent
         fillColor: "transparent"
-        borderWidth: 1
-        borderColor: Theme.borderMuted
+        borderWidth: 0
         showLoadingIndicator: false
         showFailureIndicator: false
     }
