@@ -169,6 +169,8 @@ CREATE TABLE IF NOT EXISTS social_list_entries (
 CREATE INDEX IF NOT EXISTS idx_social_list_target ON social_list_entries(target_fid);
 CREATE TABLE IF NOT EXISTS client_session (
     singleton_id INTEGER PRIMARY KEY NOT NULL CHECK (singleton_id = 1),
+    identity_issuer TEXT,
+    identity_subject TEXT,
     fid INTEGER NOT NULL,
     username TEXT,
     display_name TEXT,
@@ -655,6 +657,22 @@ WHERE current.kind IN ('follow', 'unfollow')
         if (auto status = recordMigration(connection, 23, appliedAt); !status) {
             return status;
         }
+    }
+
+    // OpenProof is the canonical account authority. Existing Farcaster-only
+    // sessions retain NULL issuer/subject until their next OpenProof sign-in.
+    for (const auto column : std::array{std::string_view{"identity_issuer"},
+                                        std::string_view{"identity_subject"}}) {
+        auto exists = tableHasColumn(connection, "client_session", column);
+        if (!exists) { return std::unexpected(exists.error()); }
+        if (!*exists) {
+            const std::string statement =
+                "ALTER TABLE client_session ADD COLUMN " + std::string{column} + " TEXT;";
+            if (auto status = connection.execute(statement); !status) { return status; }
+        }
+    }
+    if (auto status = recordMigration(connection, 24, appliedAt); !status) {
+        return status;
     }
 
     // Copy legacy URL embeds only after all columns required by the current

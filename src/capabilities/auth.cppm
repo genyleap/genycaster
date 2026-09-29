@@ -1,5 +1,6 @@
 module;
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -13,26 +14,40 @@ import farcaster.foundation.time;
 
 export namespace farcaster::capability::auth {
 
-/** @brief App-owned relying-party values used to create a SIWF challenge. */
+/**
+ * @brief Product-selected identity entry point.
+ *
+ * OpenProof is the canonical Genycaster account authority. The Farcaster route
+ * is retained as a direct onboarding convenience, but an OpenProof-backed
+ * implementation still turns that Farcaster proof into a canonical identity.
+ */
+enum class SignInRoute : std::uint8_t {
+    OpenProof,
+    Farcaster,
+};
+
+/** @brief App-owned values used to start one authentication route. */
 struct SignInRequest final {
+    SignInRoute route{SignInRoute::Farcaster};
     std::string domain{};
     std::string siweUri{};
 };
 
 /**
- * @brief Transient user-facing approval information for a compatibility sign-in.
+ * @brief Transient user-facing approval information for an authentication flow.
  *
- * The opaque approval URI may contain relay-defined challenge material. It is
- * not a persisted session credential and must not be logged or exposed as
+ * The opaque approval URI may contain short-lived provider challenge material.
+ * It is not a persisted session credential and must not be logged or exposed as
  * editable/readable presentation text.
  */
 struct AuthenticationChallenge final {
     std::string approvalUrl{};
 };
 
-/** @brief Observable state of one compatibility authentication attempt. */
-enum class PollState {
+/** @brief Observable state of one authentication attempt. */
+enum class PollState : std::uint8_t {
     Pending,
+    FarcasterLinkRequired,
     Completed,
 };
 
@@ -40,20 +55,20 @@ enum class PollState {
 struct PollResult final {
     PollState state{PollState::Pending};
     std::optional<domain::session::ClientSession> session{};
+    std::optional<std::string> approvalUrl{};
 };
 
 /**
- * @brief Opaque in-progress compatibility authentication attempt.
+ * @brief Opaque in-progress authentication attempt.
  *
- * Concrete implementations retain relay/provider tokens inside this object.
- * Polling may block and must execute away from the Qt GUI thread.
+ * Concrete implementations retain provider tokens inside this object. Polling
+ * may block and must execute away from the Qt GUI thread.
  */
 class IAuthenticationAttempt {
 public:
-    /** @brief Destroys the attempt and any provider-private transient state. */
     virtual ~IAuthenticationAttempt() = default;
 
-    /** @brief Polls once for user approval and returns only normalized state. */
+    /** @brief Polls once for user action and returns only normalized state. */
     [[nodiscard]] virtual foundation::result::Result<PollResult> poll() = 0;
 };
 
@@ -64,34 +79,49 @@ struct StartedAuthentication final {
 };
 
 /**
- * @brief Optional compatibility login boundary, independent from protocol signing.
+ * @brief Provider-neutral client authentication boundary.
  *
- * Implementations may use a managed relay, QR/deep-link approval or another
- * compatibility mechanism. They must verify the returned identity before
- * producing a ClientSession.
+ * Implementations may use OpenID/OAuth device authorization, a Farcaster proof
+ * flow or another mechanism. A completed result must contain a verified
+ * Farcaster-linked ClientSession because Farcaster identity is a Genycaster
+ * product prerequisite.
  */
-class ICompatibilityAuthentication {
+class IAuthenticationProvider {
 public:
-    /** @brief Destroys the authentication adapter. */
-    virtual ~ICompatibilityAuthentication() = default;
+    virtual ~IAuthenticationProvider() = default;
 
-    /**
-     * @brief Starts one login challenge.
-     * @param request App-owned SIWF domain and URI.
-     * @return User-facing challenge plus an opaque pollable attempt.
-     */
+    /** @brief Starts one product-selected authentication route. */
     [[nodiscard]] virtual foundation::result::Result<StartedAuthentication> begin(
         const SignInRequest& request) = 0;
+};
 
-    /**
-     * @brief Resolves the current authoritative custody address for an existing FID.
-     *
-     * This is used to upgrade legacy persisted sessions without forcing a new SIWF
-     * ceremony. Failure must not invalidate the already verified read session; it only
-     * prevents custody-authorized signer provisioning until verification succeeds.
-     */
+/**
+ * @brief Farcaster identity metadata resolver used after authentication.
+ *
+ * Authentication and protocol custody metadata are deliberately independent:
+ * OpenProof owns the account identity while signer provisioning still needs the
+ * canonical Farcaster custody address.
+ */
+class IFarcasterIdentityResolver {
+public:
+    virtual ~IFarcasterIdentityResolver() = default;
+
     [[nodiscard]] virtual foundation::result::Result<std::string> resolveCustodyAddress(
         domain::identity::Fid fid) = 0;
+};
+
+/**
+ * @brief Legacy Farcaster compatibility adapter.
+ *
+ * Kept as a separate optional boundary for self-hosted/compatibility builds and
+ * custody-address resolution. Shipping Genycaster composes OpenProof as the
+ * primary IAuthenticationProvider.
+ */
+class ICompatibilityAuthentication
+    : public IAuthenticationProvider,
+      public IFarcasterIdentityResolver {
+public:
+    ~ICompatibilityAuthentication() override = default;
 };
 
 }

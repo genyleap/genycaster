@@ -46,7 +46,7 @@ namespace {
 {
     return foundation::error::Error::make(
         foundation::error::ErrorCode::Unsupported,
-        "Compatibility sign-in is not available in this build or deployment profile.");
+        "Authentication is not available in this build or deployment profile.");
 }
 
 }
@@ -54,7 +54,8 @@ namespace {
 struct SessionService::Impl final {
     executor::IExecutor& executor;
     local::session::IClientSessionStore& store;
-    capability::auth::ICompatibilityAuthentication* compatibilityAuth{};
+    capability::auth::IAuthenticationProvider* authentication{};
+    capability::auth::IFarcasterIdentityResolver* farcasterIdentityResolver{};
     std::unique_ptr<capability::auth::IAuthenticationAttempt> attempt{};
     std::optional<domain::session::ClientSession> current{};
     std::string approvalUrl{};
@@ -75,11 +76,13 @@ WriteAccess evaluateWriteAccess(const SessionState& state, const bool signerRead
 SessionService::SessionService(
     executor::IExecutor& executor,
     local::session::IClientSessionStore& store,
-    capability::auth::ICompatibilityAuthentication* const compatibilityAuth)
+    capability::auth::IAuthenticationProvider* const authentication,
+    capability::auth::IFarcasterIdentityResolver* const farcasterIdentityResolver)
     : m_impl(std::make_unique<Impl>(Impl{
           .executor = executor,
           .store = store,
-          .compatibilityAuth = compatibilityAuth,
+          .authentication = authentication,
+          .farcasterIdentityResolver = farcasterIdentityResolver,
       }))
 {
 }
@@ -110,17 +113,15 @@ foundation::result::Status SessionService::restore(Observer observer)
             return;
         }
         m_impl->current = std::move(**loaded);
-        if (!m_impl->current->custodyAddress && m_impl->compatibilityAuth != nullptr) {
+        if (!m_impl->current->custodyAddress && m_impl->farcasterIdentityResolver != nullptr) {
             auto custodyAddress =
-                m_impl->compatibilityAuth->resolveCustodyAddress(m_impl->current->fid);
-            if (!custodyAddress) {
-                observer(failedState(std::move(custodyAddress.error()), m_impl->current));
-                return;
-            }
-            m_impl->current->custodyAddress = std::move(*custodyAddress);
-            if (auto saved = m_impl->store.save(*m_impl->current); !saved) {
-                observer(failedState(std::move(saved.error()), m_impl->current));
-                return;
+                m_impl->farcasterIdentityResolver->resolveCustodyAddress(m_impl->current->fid);
+            if (custodyAddress) {
+                m_impl->current->custodyAddress = std::move(*custodyAddress);
+                if (auto saved = m_impl->store.save(*m_impl->current); !saved) {
+                    observer(failedState(std::move(saved.error()), m_impl->current));
+                    return;
+                }
             }
         }
         observer(SessionState{
@@ -136,7 +137,7 @@ foundation::result::Status SessionService::beginSignIn(
 {
     return m_impl->executor.post(
         [this, request = std::move(request), observer = std::move(observer)]() mutable {
-            if (m_impl->compatibilityAuth == nullptr) {
+            if (m_impl->authentication == nullptr) {
                 observer(failedState(unavailableAuthError(), m_impl->current));
                 return;
             }
@@ -144,7 +145,7 @@ foundation::result::Status SessionService::beginSignIn(
                 .phase = SessionPhase::Starting,
                 .session = m_impl->current,
             });
-            auto started = m_impl->compatibilityAuth->begin(request);
+            auto started = m_impl->authentication->begin(request);
             if (!started) {
                 observer(failedState(std::move(started.error()), m_impl->current));
                 return;
@@ -190,6 +191,25 @@ foundation::result::Status SessionService::pollSignIn(Observer observer)
             });
             return;
         }
+        if (polled->state == capability::auth::PollState::FarcasterLinkRequired) {
+            if (polled->approvalUrl && !polled->approvalUrl->empty()) {
+                m_impl->approvalUrl = *polled->approvalUrl;
+            }
+            if (m_impl->approvalUrl.empty()) {
+                m_impl->attempt.reset();
+                observer(failedState(foundation::error::Error::make(
+                    foundation::error::ErrorCode::ProtocolFailure,
+                    "OpenProof authenticated the account but did not provide a Farcaster-link action."),
+                    m_impl->current));
+                return;
+            }
+            observer(SessionState{
+                .phase = SessionPhase::LinkingFarcaster,
+                .session = m_impl->current,
+                .approvalUrl = m_impl->approvalUrl,
+            });
+            return;
+        }
         if (!polled->session) {
             m_impl->attempt.reset();
             m_impl->approvalUrl.clear();
@@ -205,6 +225,13 @@ foundation::result::Status SessionService::pollSignIn(Observer observer)
                 foundation::error::ErrorCode::Unauthorized,
                 "The completed authentication challenge is already expired."), m_impl->current));
             return;
+        }
+        if (!polled->session->custodyAddress && m_impl->farcasterIdentityResolver != nullptr) {
+            auto custodyAddress =
+                m_impl->farcasterIdentityResolver->resolveCustodyAddress(polled->session->fid);
+            if (custodyAddress) {
+                polled->session->custodyAddress = std::move(*custodyAddress);
+            }
         }
         if (auto saved = m_impl->store.save(*polled->session); !saved) {
             m_impl->attempt.reset();

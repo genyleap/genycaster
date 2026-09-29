@@ -20,6 +20,7 @@ import farcaster.application.read.async_service;
 import farcaster.application.session;
 import farcaster.application.signer;
 import farcaster.application.write;
+import farcaster.capability.auth;
 import farcaster.capability.signer;
 import farcaster.capability.signer_attestation;
 import farcaster.capability.write;
@@ -41,10 +42,6 @@ import farcaster.routing.read.async_gateway;
 import farcaster.transport.async_http;
 import farcaster.transport.http;
 import farcaster.transport.qtnetwork;
-
-#if FARCASTER_HAS_FARCASTER_AUTH
-import farcaster.capability.auth;
-#endif
 
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
 import farcaster.provider.hypersnap.async_gateway;
@@ -75,8 +72,11 @@ struct Runtime final {
     std::unique_ptr<farcaster::local::session::IClientSessionStore> sessionStore{};
     std::unique_ptr<farcaster::transport::http::IHttpTransport> transport{};
     std::unique_ptr<farcaster::transport::async_http::IAsyncHttpTransport> asyncTransport{};
+#if GENYCASTER_HAS_OPENPROOF_AUTH
+    std::unique_ptr<farcaster::capability::auth::IAuthenticationProvider> openProofAuthentication{};
+#endif
 #if FARCASTER_HAS_FARCASTER_AUTH
-    std::unique_ptr<farcaster::capability::auth::ICompatibilityAuthentication> authentication{};
+    std::unique_ptr<farcaster::capability::auth::ICompatibilityAuthentication> farcasterAuthentication{};
 #endif
     std::unique_ptr<farcaster::application::session::SessionService> sessionService{};
     std::unique_ptr<farcaster::execution::serial::SerialExecutor> signerExecutor{};

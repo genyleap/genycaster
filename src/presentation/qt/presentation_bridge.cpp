@@ -629,14 +629,17 @@ bool PresentationBridge::isAuthenticated() const noexcept { return m_isAuthentic
 bool PresentationBridge::authenticationBusy() const noexcept
 {
     return m_authenticationPhase == QStringLiteral("starting") ||
-        m_authenticationPhase == QStringLiteral("awaiting-approval");
+        m_authenticationPhase == QStringLiteral("awaiting-approval") ||
+        m_authenticationPhase == QStringLiteral("linking-farcaster");
 }
 QString PresentationBridge::authenticationPhase() const { return m_authenticationPhase; }
+QString PresentationBridge::authenticationRoute() const { return m_authenticationRoute; }
 bool PresentationBridge::authenticationApprovalAvailable() const noexcept
 {
     return !m_authenticationApprovalUrl.isEmpty();
 }
 QString PresentationBridge::authenticationErrorText() const { return m_authenticationErrorText; }
+QString PresentationBridge::accountIdentityIssuer() const { return m_accountIdentityIssuer; }
 QString PresentationBridge::accountName() const { return m_accountName; }
 QString PresentationBridge::accountUsername() const { return m_accountUsername; }
 QString PresentationBridge::accountAvatarUrl() const { return m_accountAvatarUrl; }
@@ -1363,8 +1366,31 @@ void PresentationBridge::beginSignIn()
         emit stateChanged();
         return;
     }
+    m_authenticationRoute = QStringLiteral("openproof");
     m_authenticationErrorText.clear();
-    emit signInRequested();
+    emit authenticationStateChanged();
+    emit signInRequested(m_authenticationRoute);
+}
+
+void PresentationBridge::beginFarcasterSignIn()
+{
+    if (!m_runtimeReady) {
+        m_authenticationErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
+        emit authenticationStateChanged();
+        emit stateChanged();
+        return;
+    }
+    if (!m_authenticationAvailable) {
+        m_authenticationErrorText = qtTrId(
+            "genycaster.bridge.sign_in_is_not_configured_guest_reading_remains_available");
+        emit authenticationStateChanged();
+        emit stateChanged();
+        return;
+    }
+    m_authenticationRoute = QStringLiteral("farcaster");
+    m_authenticationErrorText.clear();
+    emit authenticationStateChanged();
+    emit signInRequested(m_authenticationRoute);
 }
 
 void PresentationBridge::cancelSignIn()
@@ -1762,6 +1788,7 @@ void PresentationBridge::applyAuthenticationState(
     QString username,
     QString displayName,
     QString avatarUrl,
+    QString identityIssuer,
     QString approvalUrl,
     QString errorText)
 {
@@ -1778,6 +1805,7 @@ void PresentationBridge::applyAuthenticationState(
         ? (displayName.isEmpty() ? m_accountUsername : std::move(displayName))
         : QString{};
     m_accountAvatarUrl = m_isAuthenticated ? std::move(avatarUrl) : QString{};
+    m_accountIdentityIssuer = m_isAuthenticated ? std::move(identityIssuer) : QString{};
     m_authenticationApprovalUrl = std::move(approvalUrl);
     m_authenticationErrorText = std::move(errorText);
     if (!m_isAuthenticated || (previousAccountFid != 0 && previousAccountFid != m_accountFid)) {

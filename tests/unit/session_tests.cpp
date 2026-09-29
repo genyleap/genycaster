@@ -110,6 +110,56 @@ private:
     bool m_pendingReturned{false};
 };
 
+class FakeLinkingAttempt final : public capability::auth::IAuthenticationAttempt {
+public:
+    explicit FakeLinkingAttempt(domain::session::ClientSession session)
+        : m_session(std::move(session))
+    {
+    }
+
+    [[nodiscard]] foundation::result::Result<capability::auth::PollResult> poll() override
+    {
+        if (!m_linkReturned) {
+            m_linkReturned = true;
+            return capability::auth::PollResult{
+                .state = capability::auth::PollState::FarcasterLinkRequired,
+                .approvalUrl = std::string{"https://farcaster.example/link"},
+            };
+        }
+        return capability::auth::PollResult{
+            .state = capability::auth::PollState::Completed,
+            .session = m_session,
+        };
+    }
+
+private:
+    domain::session::ClientSession m_session;
+    bool m_linkReturned{false};
+};
+
+class FakeLinkingAuthentication final : public capability::auth::IAuthenticationProvider {
+public:
+    explicit FakeLinkingAuthentication(domain::session::ClientSession session)
+        : m_session(std::move(session))
+    {
+    }
+
+    [[nodiscard]] foundation::result::Result<capability::auth::StartedAuthentication> begin(
+        const capability::auth::SignInRequest& request) override
+    {
+        assert(request.route == capability::auth::SignInRoute::OpenProof);
+        return capability::auth::StartedAuthentication{
+            .challenge = capability::auth::AuthenticationChallenge{
+                .approvalUrl = "https://genyleap.example/account",
+            },
+            .attempt = std::make_unique<FakeLinkingAttempt>(m_session),
+        };
+    }
+
+private:
+    domain::session::ClientSession m_session;
+};
+
 class FakeAuthentication final : public capability::auth::ICompatibilityAuthentication {
 public:
     explicit FakeAuthentication(domain::session::ClientSession session)
@@ -135,12 +185,22 @@ public:
     {
         ++m_custodyResolutionCount;
         m_lastResolvedFid = fid;
+        if (m_failCustodyResolution) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::ProtocolFailure,
+                "Synthetic custody lookup failure."));
+        }
         return m_resolvedCustodyAddress;
     }
 
     void setResolvedCustodyAddress(std::string value)
     {
         m_resolvedCustodyAddress = std::move(value);
+    }
+
+    void setCustodyResolutionFailure(const bool value) noexcept
+    {
+        m_failCustodyResolution = value;
     }
 
     [[nodiscard]] std::size_t custodyResolutionCount() const noexcept
@@ -156,6 +216,7 @@ public:
 private:
     domain::session::ClientSession m_session;
     std::string m_resolvedCustodyAddress{"0x2222222222222222222222222222222222222222"};
+    bool m_failCustodyResolution{false};
     std::size_t m_custodyResolutionCount{};
     std::optional<domain::identity::Fid> m_lastResolvedFid{};
 };
@@ -204,7 +265,7 @@ void expiredRestoreFallsBackToGuest()
     auto expired = makeSession(42);
     expired.expiresAt = foundation::time::now() - std::chrono::milliseconds{1};
     store.value = expired;
-    application::session::SessionService service{executor, store, nullptr};
+    application::session::SessionService service{executor, store, nullptr, nullptr};
 
     std::vector<application::session::SessionState> states{};
     assert(service.restore([&states](auto state) { states.push_back(std::move(state)); }));
@@ -225,7 +286,7 @@ void legacyRestoreRefreshesCustodyWithoutNewSignIn()
     FakeAuthentication authentication{makeSession(777)};
     authentication.setResolvedCustodyAddress(
         "0x3333333333333333333333333333333333333333");
-    application::session::SessionService service{executor, store, &authentication};
+    application::session::SessionService service{executor, store, &authentication, &authentication};
 
     std::vector<application::session::SessionState> states{};
     assert(service.restore([&states](auto state) { states.push_back(std::move(state)); }));
@@ -246,7 +307,7 @@ void signInPersistsOnlyAfterVerifiedCompletion()
     ImmediateExecutor executor{};
     MemorySessionStore store{};
     FakeAuthentication authentication{makeSession(777)};
-    application::session::SessionService service{executor, store, &authentication};
+    application::session::SessionService service{executor, store, &authentication, &authentication};
     std::vector<application::session::SessionState> states{};
     const auto observer = [&states](auto state) { states.push_back(std::move(state)); };
 
@@ -278,13 +339,104 @@ void signInPersistsOnlyAfterVerifiedCompletion()
     assert(store.clearCount == 1);
 }
 
+void openProofSignInBlocksOnRequiredFarcasterLink()
+{
+    ImmediateExecutor executor{};
+    MemorySessionStore store{};
+    auto session = makeSession(888);
+    session.identityIssuer = std::string{"https://openproof.example"};
+    session.identitySubject = std::string{"identity-888"};
+    FakeLinkingAuthentication authentication{session};
+    application::session::SessionService service{executor, store, &authentication, nullptr};
+    std::vector<application::session::SessionState> states{};
+    const auto observer = [&states](auto state) { states.push_back(std::move(state)); };
+
+    assert(service.beginSignIn(
+        capability::auth::SignInRequest{
+            .route = capability::auth::SignInRoute::OpenProof,
+        },
+        observer));
+    assert(states.size() == 2U);
+    assert(states.back().phase == application::session::SessionPhase::AwaitingApproval);
+    assert(states.back().approvalUrl == "https://genyleap.example/account");
+    assert(!store.value);
+
+    assert(service.pollSignIn(observer));
+    assert(states.back().phase == application::session::SessionPhase::LinkingFarcaster);
+    assert(states.back().approvalUrl == "https://farcaster.example/link");
+    assert(!store.value);
+
+    assert(service.pollSignIn(observer));
+    assert(states.back().phase == application::session::SessionPhase::Authenticated);
+    assert(states.back().session && states.back().session->fid.value == 888U);
+    assert(states.back().session->identitySubject &&
+        *states.back().session->identitySubject == "identity-888");
+    assert(store.value && store.value->fid.value == 888U);
+}
+
+void custodyResolutionFailureDoesNotInvalidateOpenProofAuthentication()
+{
+    ImmediateExecutor executor{};
+    MemorySessionStore store{};
+    auto session = makeSession(889);
+    session.identityIssuer = std::string{"https://openproof.example"};
+    session.identitySubject = std::string{"identity-889"};
+    session.custodyAddress.reset();
+
+    FakeLinkingAuthentication authentication{session};
+    FakeAuthentication resolver{makeSession(777)};
+    resolver.setCustodyResolutionFailure(true);
+    application::session::SessionService service{executor, store, &authentication, &resolver};
+    std::vector<application::session::SessionState> states{};
+    const auto observer = [&states](auto state) { states.push_back(std::move(state)); };
+
+    assert(service.beginSignIn(
+        capability::auth::SignInRequest{
+            .route = capability::auth::SignInRoute::OpenProof,
+        },
+        observer));
+    assert(service.pollSignIn(observer));
+    assert(states.back().phase == application::session::SessionPhase::LinkingFarcaster);
+    assert(service.pollSignIn(observer));
+    assert(states.back().phase == application::session::SessionPhase::Authenticated);
+    assert(states.back().session && states.back().session->fid.value == 889U);
+    assert(!states.back().session->custodyAddress);
+    assert(store.value && store.value->fid.value == 889U);
+    assert(!store.value->custodyAddress);
+    assert(resolver.custodyResolutionCount() == 1U);
+}
+
+void custodyResolutionFailureDoesNotInvalidateRestore()
+{
+    ImmediateExecutor executor{};
+    MemorySessionStore store{};
+    auto session = makeSession(890);
+    session.identityIssuer = std::string{"https://openproof.example"};
+    session.identitySubject = std::string{"identity-890"};
+    session.custodyAddress.reset();
+    store.value = session;
+
+    FakeAuthentication resolver{makeSession(777)};
+    resolver.setCustodyResolutionFailure(true);
+    application::session::SessionService service{executor, store, nullptr, &resolver};
+    std::vector<application::session::SessionState> states{};
+
+    assert(service.restore([&states](auto state) { states.push_back(std::move(state)); }));
+    assert(states.size() == 1U);
+    assert(states.back().phase == application::session::SessionPhase::Authenticated);
+    assert(states.back().session && states.back().session->fid.value == 890U);
+    assert(!states.back().session->custodyAddress);
+    assert(store.saveCount == 0U);
+    assert(resolver.custodyResolutionCount() == 1U);
+}
+
 void reauthenticationKeepsExistingSessionUntilReplacementCompletes()
 {
     ImmediateExecutor executor{};
     MemorySessionStore store{};
     store.value = makeSession(42);
     FakeAuthentication authentication{makeSession(777)};
-    application::session::SessionService service{executor, store, &authentication};
+    application::session::SessionService service{executor, store, &authentication, &authentication};
     std::vector<application::session::SessionState> states{};
     const auto observer = [&states](auto state) { states.push_back(std::move(state)); };
 
@@ -317,7 +469,7 @@ void missingCompatibilityAuthDoesNotCreateSession()
 {
     ImmediateExecutor executor{};
     MemorySessionStore store{};
-    application::session::SessionService service{executor, store, nullptr};
+    application::session::SessionService service{executor, store, nullptr, nullptr};
     std::vector<application::session::SessionState> states{};
     assert(service.beginSignIn(
         capability::auth::SignInRequest{
@@ -342,11 +494,17 @@ void sqliteSessionRoundTrip()
     assert(!*initial);
 
     auto session = makeSession(991);
+    session.identityIssuer = std::string{"https://openproof.example"};
+    session.identitySubject = std::string{"identity-991"};
     session.method = domain::session::AuthenticationMethod::AuthAddress;
     assert((*store)->save(session));
 
     auto loaded = (*store)->load();
     assert(loaded && *loaded);
+    assert((*loaded)->identityIssuer &&
+        *(*loaded)->identityIssuer == "https://openproof.example");
+    assert((*loaded)->identitySubject &&
+        *(*loaded)->identitySubject == "identity-991");
     assert((*loaded)->fid.value == 991);
     assert((*loaded)->username && *(*loaded)->username == "alice");
     assert((*loaded)->custodyAddress && *(*loaded)->custodyAddress ==
@@ -367,6 +525,9 @@ int main()
     expiredRestoreFallsBackToGuest();
     legacyRestoreRefreshesCustodyWithoutNewSignIn();
     signInPersistsOnlyAfterVerifiedCompletion();
+    openProofSignInBlocksOnRequiredFarcasterLink();
+    custodyResolutionFailureDoesNotInvalidateOpenProofAuthentication();
+    custodyResolutionFailureDoesNotInvalidateRestore();
     reauthenticationKeepsExistingSessionUntilReplacementCompletes();
     missingCompatibilityAuthDoesNotCreateSession();
     sqliteSessionRoundTrip();

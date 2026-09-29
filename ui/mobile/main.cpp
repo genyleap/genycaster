@@ -744,7 +744,8 @@ void applyProfileVerificationFixture(PresentationBridge& bridge)
     const QString banner = QStringLiteral(
         "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/farcaster.svg");
     bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), fixtureFid,
-        QStringLiteral("protocolnotes"), QStringLiteral("Protocol Field Notes"), avatar, {}, {});
+        QStringLiteral("protocolnotes"), QStringLiteral("Protocol Field Notes"), avatar,
+        QStringLiteral("https://openproof.genyleap.com"), {}, {});
     bridge.applyDetail(QStringLiteral("profile"), QVariantMap{
         {QStringLiteral("fid"), fixtureFid},
         {QStringLiteral("displayName"), QStringLiteral("Protocol Field Notes")},
@@ -1026,6 +1027,8 @@ void applySocialState(PresentationBridge& bridge, application::read::model::Soci
         return QStringLiteral("starting");
     case application::session::SessionPhase::AwaitingApproval:
         return QStringLiteral("awaiting-approval");
+    case application::session::SessionPhase::LinkingFarcaster:
+        return QStringLiteral("linking-farcaster");
     case application::session::SessionPhase::Authenticated:
         return QStringLiteral("authenticated");
     case application::session::SessionPhase::Failed:
@@ -1701,6 +1704,7 @@ void applySessionState(
     QString username{};
     QString displayName{};
     QString avatarUrl{};
+    QString identityIssuer{};
     if (state.session) {
         fid = static_cast<qulonglong>(state.session->fid.value);
         if (state.session->username) {
@@ -1712,6 +1716,9 @@ void applySessionState(
         if (state.session->avatarUrl) {
             avatarUrl = remoteImageSource(QString::fromStdString(*state.session->avatarUrl));
         }
+        if (state.session->identityIssuer) {
+            identityIssuer = QString::fromStdString(*state.session->identityIssuer);
+        }
     }
     bridge.applyAuthenticationState(
         authenticationAvailable,
@@ -1720,6 +1727,7 @@ void applySessionState(
         std::move(username),
         std::move(displayName),
         std::move(avatarUrl),
+        std::move(identityIssuer),
         QString::fromStdString(state.approvalUrl),
         authenticationErrorText(state));
 }
@@ -1921,9 +1929,13 @@ void connectRuntime(
         };
 
     QObject::connect(&bridge, &PresentationBridge::signInRequested, &bridge,
-        [&bridge, runtime, sessionObserver, siwfDomain, siwfUri] {
+        [&bridge, runtime, sessionObserver, siwfDomain, siwfUri](const QString& route) {
+            const auto signInRoute = route == QStringLiteral("farcaster")
+                ? capability::auth::SignInRoute::Farcaster
+                : capability::auth::SignInRoute::OpenProof;
             auto status = runtime->sessionService->beginSignIn(
                 capability::auth::SignInRequest{
+                    .route = signInRoute,
                     .domain = siwfDomain,
                     .siweUri = siwfUri,
                 },
@@ -2294,7 +2306,8 @@ void connectRuntime(
     authenticationPollTimer->setInterval(1'000);
     QObject::connect(authenticationPollTimer, &QTimer::timeout, &bridge,
         [&bridge, runtime, sessionObserver] {
-            if (bridge.authenticationPhase() != QStringLiteral("awaiting-approval")) {
+            if (bridge.authenticationPhase() != QStringLiteral("awaiting-approval") &&
+                bridge.authenticationPhase() != QStringLiteral("linking-farcaster")) {
                 return;
             }
             bool expected = false;
@@ -3598,7 +3611,9 @@ int main(int argc, char* argv[])
         ? std::nullopt : std::optional<std::string>{optimismRpcUrlText.toStdString()};
     const std::string siwfDomain = siwfDomainText.toStdString();
     const std::string siwfUri = siwfUriText.toStdString();
-#if FARCASTER_HAS_FARCASTER_AUTH
+#if GENYCASTER_HAS_OPENPROOF_AUTH
+    const bool authenticationAvailable = true;
+#elif FARCASTER_HAS_FARCASTER_AUTH
     const bool authenticationAvailable = !siwfDomain.empty() && !siwfUri.empty();
 #else
     const bool authenticationAvailable = false;
@@ -4055,7 +4070,7 @@ int main(int argc, char* argv[])
                                   mediaGatewayBaseUrl, snapchainAuthorizationHeader,
                                   snapchainAuthorizationValue, appFid,
                                   signerAttestationUrl, walletLaunchTemplate,
-                                  siwfDomain, siwfUri, authenticationAvailable, startupIdentity,
+                                  siwfDomain, siwfUri, startupIdentity,
                                   openExploreForTest] {
             auto made = makeRuntime(
                 databasePath,
@@ -4081,7 +4096,7 @@ int main(int argc, char* argv[])
             QMetaObject::invokeMethod(&presentationBridge,
                 [&presentationBridge, &richComposerController, &mediaUploadController,
                  &mediaPlayback, &runtime, readyRuntime = std::move(readyRuntime),
-                 siwfDomain, siwfUri, authenticationAvailable, startupIdentity,
+                 siwfDomain, siwfUri, startupIdentity,
                  openExploreForTest]() mutable {
                     runtime = std::move(readyRuntime);
                     connectRuntime(

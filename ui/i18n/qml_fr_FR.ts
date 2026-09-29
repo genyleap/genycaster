@@ -3270,5 +3270,41 @@
             <source>People in your orbit</source>
             <translation>Personnes dans votre cercle</translation>
         </message>
+        <message id="genycaster.shell.your_genyleap_account">
+            <source>Your Genyleap account</source>
+            <translation>Votre compte Genyleap</translation>
+        </message>
+        <message id="genycaster.shell.continue_with_genyleap">
+            <source>Continue with Genyleap</source>
+            <translation>Continuer avec Genyleap</translation>
+        </message>
+        <message id="genycaster.shell.open_genyleap">
+            <source>Open Genyleap</source>
+            <translation>Ouvrir Genyleap</translation>
+        </message>
+        <message id="genycaster.shell.connecting_securely_to_genyleap">
+            <source>Connecting securely to Genyleap…</source>
+            <translation>Connexion sécurisée à Genyleap…</translation>
+        </message>
+        <message id="genycaster.shell.approve_genyleap_sign_in_in_your_browser">
+            <source>Approve Genyleap sign-in in your browser. If you’re already signed in on genyleap.com, you won’t need to sign in again.</source>
+            <translation>Approuvez la connexion Genyleap dans votre navigateur. Si vous êtes déjà connecté à genyleap.com, vous n’aurez pas besoin de vous reconnecter.</translation>
+        </message>
+        <message id="genycaster.shell.link_your_farcaster_account">
+            <source>Link your Farcaster account</source>
+            <translation>Lier votre compte Farcaster</translation>
+        </message>
+        <message id="genycaster.shell.genyleap_verified_link_farcaster_to_continue">
+            <source>Your Genyleap account is verified. Link Farcaster to continue using Genycaster.</source>
+            <translation>Votre compte Genyleap est vérifié. Liez Farcaster pour continuer à utiliser Genycaster.</translation>
+        </message>
+        <message id="genycaster.shell.verified_by_openproof">
+            <source>Verified by OpenProof</source>
+            <translation>Vérifié par OpenProof</translation>
+        </message>
+        <message id="genycaster.shell.openproof_account_farcaster_protocol_identity">
+            <source>OpenProof owns your account identity; Farcaster is the required linked protocol identity.</source>
+            <translation>OpenProof est l’autorité d’identité de votre compte ; Farcaster est l’identité de protocole liée requise.</translation>
+        </message>
     </context>
 </TS>

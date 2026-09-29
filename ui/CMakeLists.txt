@@ -321,6 +321,13 @@ else()
     target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_HYPERSNAP_PROVIDER=0)
 endif()
 
+if(GENYCASTER_ENABLE_OPENPROOF_AUTH)
+    target_compile_definitions(farcaster_client PRIVATE GENYCASTER_HAS_OPENPROOF_AUTH=1)
+    target_link_libraries(farcaster_client PRIVATE farcaster::provider_openproof_auth)
+else()
+    target_compile_definitions(farcaster_client PRIVATE GENYCASTER_HAS_OPENPROOF_AUTH=0)
+endif()
+
 if(FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS)
     target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_FARCASTER_AUTH=1)
     target_link_libraries(farcaster_client PRIVATE farcaster::provider_compatibility_auth)

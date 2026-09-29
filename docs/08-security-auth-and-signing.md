@@ -15,8 +15,16 @@ IIdentityResolver
 ISignerService
 IProviderCredentialStore
 IClientSessionService
+IAuthenticationProvider
+IFarcasterIdentityResolver
 ICompatibilityAuthentication
 ```
+
+For shipping Genycaster, OpenProof is the canonical account authority. A local
+client session may therefore carry an OpenProof issuer/subject pair together
+with the required linked Farcaster FID. Farcaster remains the protocol identity
+used for reads/writes and signer authorization; it is not the canonical account
+authority when OpenProof composition is enabled.
 
 For wallet functionality, separate concerns may include:
 
@@ -46,7 +54,28 @@ Authenticated client session + valid protocol signer
 
 Browsing or resolving another Farcaster identity must never establish a client session. A client session must never be treated as a protocol signer.
 
-During Sign In With Farcaster compatibility login, the relay's raw channel token remains private to the authentication attempt. The user-facing approval URI is an opaque transient artifact and may encode relay challenge material by protocol design; do not persist it, log it, or expose it as readable/editable QML text.
+The normal native sign-in path uses OpenProof OAuth device authorization. Genycaster
+opens the first-party Genyleap account surface with a local `return_to` target;
+an existing `genyleap.com` OpenProof session is reused by that browser flow, so
+the user is not asked to authenticate again merely because they opened the native
+client. OAuth access/refresh tokens remain transient inside the authentication
+attempt and are not persisted in the domain/session store.
+
+A completed OpenProof account is not sufficient for Genycaster until it has a
+linked Farcaster connection. If the connection is missing, the same OpenProof
+attempt starts a bearer-bound `/account/connections/web3/*` ceremony, obtains a
+Farcaster proof, and commits the client session only after OpenProof reports the
+linked FID.
+
+The direct “Sign in with Farcaster” route is retained as onboarding convenience,
+but it starts from an OpenProof Farcaster challenge and completes through
+OpenProof. It therefore also produces an OpenProof issuer/subject plus linked
+FID rather than creating a separate Farcaster-only account authority.
+
+During any Farcaster relay step, the raw channel token remains private to the
+authentication attempt. The user-facing approval URI is an opaque transient
+artifact and may encode relay challenge material by protocol design; do not
+persist it, log it, or expose it as readable/editable QML text.
 
 ## Protocol signing
 

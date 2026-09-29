@@ -153,6 +153,17 @@ option(
 )
 unset(_farcasterCompatibilityProviderDefault)
 
+set(_genycasterOpenProofAuthDefault OFF)
+if(FARCASTER_BUILD_UI)
+    set(_genycasterOpenProofAuthDefault ON)
+endif()
+option(
+    GENYCASTER_ENABLE_OPENPROOF_AUTH
+    "Use OpenProof/Genyleap as the canonical Genycaster account authority"
+    ${_genycasterOpenProofAuthDefault}
+)
+unset(_genycasterOpenProofAuthDefault)
+
 set(_farcasterProtocolSigningDefault OFF)
 if(FARCASTER_BUILD_UI)
     # Graphical builds include the native secure signer vault boundary. Writes
@@ -315,6 +326,10 @@ endif()
 
 if(GENYCASTER_ENABLE_PUBLIC_DATA_PROVIDER)
     add_subdirectory(src/providers/public_data)
+endif()
+
+if(GENYCASTER_ENABLE_OPENPROOF_AUTH)
+    add_subdirectory(src/providers/openproof_auth)
 endif()
 
 if(FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS)

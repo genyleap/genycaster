@@ -2,6 +2,10 @@ if(FARCASTER_ENABLE_HYPERSNAP_PROVIDER)
     add_subdirectory(hypersnap)
 endif()
 
+if(GENYCASTER_ENABLE_OPENPROOF_AUTH)
+    add_subdirectory(openproof_auth)
+endif()
+
 if(FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS)
     add_subdirectory(farcaster_auth)
 endif()

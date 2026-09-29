@@ -61,8 +61,8 @@ public:
     load() override
     {
         auto prepared = sqlite::Statement::prepare(m_connection, R"SQL(
-SELECT fid, username, display_name, avatar_url, custody_address, auth_method,
-       authenticated_at_ms, expires_at_ms
+SELECT identity_issuer, identity_subject, fid, username, display_name, avatar_url,
+       custody_address, auth_method, authenticated_at_ms, expires_at_ms
 FROM client_session WHERE singleton_id = 1;
 )SQL");
         if (!prepared) {
@@ -77,24 +77,26 @@ FROM client_session WHERE singleton_id = 1;
             return std::unexpected(toFoundationError(sqlite::makeError(
                 m_connection.native(), "Failed to read client session")));
         }
-        const auto fidValue = sqlite3_column_int64(statement.native(), 0);
-        const auto authenticatedAt = sqlite3_column_int64(statement.native(), 6);
-        const auto expiresAt = sqlite3_column_int64(statement.native(), 7);
+        const auto fidValue = sqlite3_column_int64(statement.native(), 2);
+        const auto authenticatedAt = sqlite3_column_int64(statement.native(), 8);
+        const auto expiresAt = sqlite3_column_int64(statement.native(), 9);
         if (fidValue <= 0 || authenticatedAt < 0 || expiresAt < 0) {
             return std::unexpected(foundation::error::Error::make(
                 foundation::error::ErrorCode::StorageFailure,
                 "Persisted client session contains invalid scalar values."));
         }
-        auto method = parseMethod(sqlite::columnText(statement.native(), 5));
+        auto method = parseMethod(sqlite::columnText(statement.native(), 7));
         if (!method) {
             return std::unexpected(std::move(method.error()));
         }
         domain::session::ClientSession session{
+            .identityIssuer = sqlite::optionalColumnText(statement.native(), 0),
+            .identitySubject = sqlite::optionalColumnText(statement.native(), 1),
             .fid = domain::identity::Fid{static_cast<std::uint64_t>(fidValue)},
-            .username = sqlite::optionalColumnText(statement.native(), 1),
-            .displayName = sqlite::optionalColumnText(statement.native(), 2),
-            .avatarUrl = sqlite::optionalColumnText(statement.native(), 3),
-            .custodyAddress = sqlite::optionalColumnText(statement.native(), 4),
+            .username = sqlite::optionalColumnText(statement.native(), 3),
+            .displayName = sqlite::optionalColumnText(statement.native(), 4),
+            .avatarUrl = sqlite::optionalColumnText(statement.native(), 5),
+            .custodyAddress = sqlite::optionalColumnText(statement.native(), 6),
             .method = *method,
             .authenticatedAt = foundation::time::Timestamp{
                 std::chrono::milliseconds{authenticatedAt}},
@@ -114,10 +116,12 @@ FROM client_session WHERE singleton_id = 1;
         }
         auto prepared = sqlite::Statement::prepare(m_connection, R"SQL(
 INSERT INTO client_session(
-    singleton_id, fid, username, display_name, avatar_url, custody_address, auth_method,
-    authenticated_at_ms, expires_at_ms)
-VALUES(1, ?, ?, ?, ?, ?, ?, ?, ?)
+    singleton_id, identity_issuer, identity_subject, fid, username, display_name,
+    avatar_url, custody_address, auth_method, authenticated_at_ms, expires_at_ms)
+VALUES(1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(singleton_id) DO UPDATE SET
+    identity_issuer = excluded.identity_issuer,
+    identity_subject = excluded.identity_subject,
     fid = excluded.fid,
     username = excluded.username,
     display_name = excluded.display_name,
@@ -131,31 +135,39 @@ ON CONFLICT(singleton_id) DO UPDATE SET
             return std::unexpected(toFoundationError(std::move(prepared.error())));
         }
         auto statement = std::move(*prepared);
+        if (auto status = sqlite::bindOptionalText(
+                statement.native(), 1, session.identityIssuer); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+        if (auto status = sqlite::bindOptionalText(
+                statement.native(), 2, session.identitySubject); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
         if (sqlite3_bind_int64(
-                statement.native(), 1, static_cast<sqlite3_int64>(session.fid.value)) != SQLITE_OK) {
+                statement.native(), 3, static_cast<sqlite3_int64>(session.fid.value)) != SQLITE_OK) {
             return std::unexpected(toFoundationError(sqlite::makeError(
                 m_connection.native(), "Failed to bind client-session FID")));
         }
-        if (auto status = sqlite::bindOptionalText(statement.native(), 2, session.username); !status) {
+        if (auto status = sqlite::bindOptionalText(statement.native(), 4, session.username); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
-        if (auto status = sqlite::bindOptionalText(statement.native(), 3, session.displayName); !status) {
+        if (auto status = sqlite::bindOptionalText(statement.native(), 5, session.displayName); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
-        if (auto status = sqlite::bindOptionalText(statement.native(), 4, session.avatarUrl); !status) {
+        if (auto status = sqlite::bindOptionalText(statement.native(), 6, session.avatarUrl); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
-        if (auto status = sqlite::bindOptionalText(statement.native(), 5, session.custodyAddress); !status) {
+        if (auto status = sqlite::bindOptionalText(statement.native(), 7, session.custodyAddress); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
-        if (auto status = sqlite::bindText(statement.native(), 6, methodText(session.method)); !status) {
+        if (auto status = sqlite::bindText(statement.native(), 8, methodText(session.method)); !status) {
             return std::unexpected(toFoundationError(std::move(status.error())));
         }
         if (sqlite3_bind_int64(
-                statement.native(), 7,
+                statement.native(), 9,
                 static_cast<sqlite3_int64>(session.authenticatedAt.time_since_epoch().count())) != SQLITE_OK ||
             sqlite3_bind_int64(
-                statement.native(), 8,
+                statement.native(), 10,
                 static_cast<sqlite3_int64>(session.expiresAt.time_since_epoch().count())) != SQLITE_OK) {
             return std::unexpected(toFoundationError(sqlite::makeError(
                 m_connection.native(), "Failed to bind client-session timestamps")));

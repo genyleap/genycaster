@@ -24,6 +24,15 @@ enum class AuthenticationMethod : std::uint8_t {
  * and therefore does not by itself authorize Cast, Reaction or Link messages.
  */
 struct ClientSession final {
+    /**
+     * @brief Canonical account issuer when the session is OpenProof-backed.
+     *
+     * The pair (identityIssuer, identitySubject) is the durable account identity.
+     * Farcaster remains a required linked protocol identity and is represented by
+     * fid below.
+     */
+    std::optional<std::string> identityIssuer{};
+    std::optional<std::string> identitySubject{};
     domain::identity::Fid fid{};
     std::optional<std::string> username{};
     std::optional<std::string> displayName{};

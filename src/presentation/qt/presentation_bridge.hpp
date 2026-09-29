@@ -20,8 +20,10 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool isAuthenticated READ isAuthenticated NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool authenticationBusy READ authenticationBusy NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString authenticationPhase READ authenticationPhase NOTIFY authenticationStateChanged)
+    Q_PROPERTY(QString authenticationRoute READ authenticationRoute NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool authenticationApprovalAvailable READ authenticationApprovalAvailable NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString authenticationErrorText READ authenticationErrorText NOTIFY authenticationStateChanged)
+    Q_PROPERTY(QString accountIdentityIssuer READ accountIdentityIssuer NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountName READ accountName NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountUsername READ accountUsername NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountAvatarUrl READ accountAvatarUrl NOTIFY authenticationStateChanged)
@@ -88,8 +90,10 @@ public:
     [[nodiscard]] bool isAuthenticated() const noexcept;
     [[nodiscard]] bool authenticationBusy() const noexcept;
     [[nodiscard]] QString authenticationPhase() const;
+    [[nodiscard]] QString authenticationRoute() const;
     [[nodiscard]] bool authenticationApprovalAvailable() const noexcept;
     [[nodiscard]] QString authenticationErrorText() const;
+    [[nodiscard]] QString accountIdentityIssuer() const;
     [[nodiscard]] QString accountName() const;
     [[nodiscard]] QString accountUsername() const;
     [[nodiscard]] QString accountAvatarUrl() const;
@@ -193,7 +197,10 @@ public:
     Q_INVOKABLE void copyText(const QString& text);
     /** @brief Selects the approved contextual glyph for the existing Like action without changing reaction semantics. */
     [[nodiscard]] Q_INVOKABLE QString contextualReactionIcon(const QString& text) const;
+    /** @brief Starts canonical Genyleap/OpenProof sign-in. */
     Q_INVOKABLE void beginSignIn();
+    /** @brief Starts the direct Farcaster onboarding route through OpenProof. */
+    Q_INVOKABLE void beginFarcasterSignIn();
     Q_INVOKABLE void cancelSignIn();
     Q_INVOKABLE void signOut();
     Q_INVOKABLE void openAuthenticationApproval();
@@ -236,6 +243,7 @@ public:
         QString username,
         QString displayName,
         QString avatarUrl,
+        QString identityIssuer,
         QString approvalUrl,
         QString errorText);
     /** @brief Reports an authentication worker failure without replacing a valid account session. */
@@ -317,7 +325,7 @@ signals:
     void explorerArtRequested();
     void castRequested(QString castId, bool allowRecoveryProbe);
     void profileRequested(qulonglong fid, bool allowRecoveryProbe);
-    void signInRequested();
+    void signInRequested(QString route);
     void signInCancelRequested();
     void signOutRequested();
     void signerProvisionRequested();
@@ -344,8 +352,10 @@ private:
     bool m_authenticationAvailable{false};
     bool m_isAuthenticated{false};
     QString m_authenticationPhase{QStringLiteral("guest")};
+    QString m_authenticationRoute{QStringLiteral("openproof")};
     QString m_authenticationApprovalUrl{};
     QString m_authenticationErrorText{};
+    QString m_accountIdentityIssuer{};
     QString m_accountName{};
     QString m_accountUsername{};
     QString m_accountAvatarUrl{};

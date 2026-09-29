@@ -18,7 +18,8 @@ Guest
 
 Authenticated
   ├─ retains every guest read capability
-  ├─ owns a verified Farcaster account session
+  ├─ owns a verified canonical OpenProof account session
+  ├─ has a required linked Farcaster FID
   └─ still requires a valid protocol signer before a write can be submitted
 ```
 
@@ -26,15 +27,33 @@ Opening or resolving an arbitrary Farcaster identity is browsing context. It MUS
 
 ## Authority and compatibility behavior
 
-The compatibility implementation follows the current Farcaster auth-client flow:
+Shipping Genycaster is OpenProof-centric and exposes two entry routes:
 
-1. create an authentication channel through the Farcaster relay;
+1. **Continue with Genyleap** starts OpenProof OAuth device authorization. The
+   browser opens the Genyleap account surface with a local return target for the
+   OpenProof device approval. If a valid Genyleap/OpenProof browser session
+   already exists, that session is reused without another login prompt.
+2. **Sign in with Farcaster** starts a Farcaster challenge from OpenProof,
+   obtains the SIWF signature through the Farcaster relay, and completes the
+   proof back at OpenProof.
+
+Both routes converge on the same canonical result: an OpenProof issuer/subject
+with a linked Farcaster FID. A Genyleap-authenticated identity that has no
+Farcaster connection enters `LinkingFarcaster`; Genycaster starts
+`/account/connections/web3/start`, obtains the Farcaster proof, completes
+`/account/connections/web3/complete`, and only then persists the client session.
+
+The legacy Farcaster compatibility adapter remains an optional infrastructure
+boundary for standalone compatibility verification and authoritative custody
+address resolution. During any relay flow:
+
+1. create an authentication/link channel through the Farcaster relay;
 2. present the returned approval URL to the user;
-3. keep the raw channel token inside the compatibility attempt and use it as the bearer credential for status polling;
-4. treat the returned approval URI as a transient protocol artifact (the official relay URI may itself encode the channel token);
-5. validate the returned Sign-In With Farcaster message;
-6. verify the signature and that the signing address is authorized for the returned FID;
-7. persist only the normalized local client session, never the relay channel token, approval URI, signed SIWF message, or signature material required only for the completed challenge.
+3. keep the raw channel token inside the authentication attempt and use it as the bearer credential for status polling;
+4. treat the returned approval URI as a transient protocol artifact;
+5. complete the exact OpenProof-issued SIWF challenge;
+6. let OpenProof verify and bind the returned Farcaster proof to the canonical identity;
+7. persist only the normalized local client session, never OAuth tokens, relay channel tokens, approval URIs, SIWF messages, signatures, or ceremony cookies.
 
 The SIWF validation policy matches the current auth-client source contract:
 
@@ -53,11 +72,18 @@ Signature verification uses the same deployless universal-signature model as the
 
 ### Domain
 
-Owns the normalized session identity and authentication method. It contains no provider URL, relay token, signature, wallet private key, or provider DTO.
+Owns the normalized session identity and authentication method. An
+OpenProof-backed session stores only the canonical issuer/subject plus linked
+FID and presentation metadata. It contains no OAuth token, relay token,
+signature, ceremony cookie, wallet private key, or provider DTO.
 
 ### Capability
 
-`ICompatibilityAuthentication` owns the provider-neutral compatibility-auth contract. An attempt object keeps provider tokens opaque inside its concrete adapter.
+`IAuthenticationProvider` owns the provider-neutral account-authentication
+contract. `IFarcasterIdentityResolver` independently resolves protocol custody
+metadata. `ICompatibilityAuthentication` combines those roles only for the
+legacy Farcaster adapter. Attempt objects keep OAuth/relay credentials opaque
+inside concrete adapters.
 
 ### Application
 
@@ -65,9 +91,10 @@ Owns the normalized session identity and authentication method. It contains no p
 
 ```text
 Guest -> Starting -> AwaitingApproval -> Authenticated
-  ^          |             |                |
-  |          +---failure---+                |
-  +------------------- sign out ------------+
+  ^                          |
+  |                          +-> LinkingFarcaster -> Authenticated
+  |                                  |
+  +-------------- failure/sign out --+
 ```
 
 If a user who already has a verified session starts a replacement/re-authentication attempt, that established session remains authoritative until the new proof succeeds. Attempt phase and authenticated-account state are therefore independent.
@@ -78,15 +105,20 @@ Application session state and future protocol signer state remain separate.
 
 `IClientSessionStore` is the persistence port. SQLite stores only the normalized session snapshot and expiry.
 
-### Provider compatibility adapter
+### Provider adapters
 
-The Farcaster SIWF adapter owns:
+The OpenProof authentication adapter owns:
 
-- relay URLs and channel semantics;
-- JSON request/response DTOs;
-- channel token lifetime;
-- SIWF parsing/validation;
-- Optimism RPC verification of custody/auth-address ownership.
+- OAuth device authorization/token exchange;
+- first-party Genyleap SSO approval routing;
+- canonical OpenProof issuer/subject resolution;
+- required Farcaster-connection discovery and linking;
+- direct Farcaster onboarding through an OpenProof-issued challenge;
+- transient OAuth, ceremony-cookie and relay-token lifetime.
+
+The legacy Farcaster compatibility adapter owns relay compatibility semantics
+and Optimism RPC custody/auth-address resolution. It is not the shipping
+canonical account authority when OpenProof authentication is enabled.
 
 ### Presentation
 
@@ -97,12 +129,16 @@ QML receives only normalized account state and user intents. QML performs no net
 - Guest reads do not require an auth session or an auth provider.
 - Authentication success does not imply write readiness.
 - Write readiness will require an authenticated session **and** a valid protocol signer in later Phase 5 slices.
+- OpenProof OAuth access/refresh tokens and ceremony cookies remain adapter-private and are never persisted in the client-session database, logged, or exposed to QML.
 - The raw relay `channelToken` remains adapter-private and is never persisted, logged, or exposed as a standalone Domain/Application/QML value.
+- A canonical OpenProof identity without a linked Farcaster FID cannot become an authenticated Genycaster session.
+- Custody-address enrichment is signer metadata, not account authentication. If custody lookup is temporarily unavailable, the verified OpenProof + Farcaster-linked session remains authenticated while protocol-write readiness stays fail-closed.
 - The Farcaster approval URI is a transient user-facing protocol artifact and may encode the channel token by protocol design; it is never persisted or rendered as readable/editable QML text.
 - Returned SIWF `message` / `signature` values are verified before an authenticated session is committed.
 - Authentication polling has a bounded local approval window; an abandoned challenge cannot remain pending indefinitely.
 - Private keys are never requested or stored by this phase.
-- Sign-out clears the persisted client session but does not delete cached public content.
+- Sign-out clears the persisted Genycaster client session and destroys any in-process authentication attempt, but does not sign the browser out of Genyleap/OpenProof and does not delete cached public content.
+- OAuth access/refresh tokens are attempt-scoped only; they are not written to SQLite or exposed to presentation code. A later native sign-in reuses the first-party Genyleap browser session instead of persisting a provider token in Genycaster.
 - Compatibility auth can be compiled out; the client remains usable as a guest.
 
 ## UI contract
@@ -113,17 +149,27 @@ The existing `Open identity` flow remains a separate browse action.
 
 During authentication the UI shows:
 
-- an `Open Farcaster` action handled through the C++/platform URL opener without rendering the opaque approval URI as text;
+- **Continue with Genyleap** as the primary OpenProof/SSO route;
+- **Sign in with Farcaster** as the direct onboarding route;
+- an `Open Genyleap` or `Open Farcaster` action handled through the C++/platform URL opener without rendering the opaque approval URI as text;
+- a dedicated `LinkingFarcaster` state when the canonical Genyleap identity is verified but lacks the required Farcaster connection;
 - pending / failed / completed state;
 - cancel/close behavior that does not affect guest reads.
 
-An authenticated account surface shows the verified username/FID and a `Sign out` action.
+An authenticated account surface identifies OpenProof as the account authority,
+shows the linked Farcaster username/FID, and exposes a `Sign out` action.
 
 No Like/Recast/Reply/Follow/Composer control becomes active in this phase merely because authentication exists. Those controls are enabled only when the Phase 5 signer/write pipeline is real.
 
 ## Build policy
 
-`FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS` controls the SIWF relay adapter. Provider-free and strict-self-hosted core presets keep it disabled. The normal Qt UI preset enables it.
+`GENYCASTER_ENABLE_OPENPROOF_AUTH` controls the canonical OpenProof account
+adapter and is enabled by default for the normal Qt UI composition.
+
+`FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS` controls the legacy SIWF/custody
+compatibility adapter. Provider-free and strict-self-hosted core presets may
+keep it disabled; normal Qt builds currently retain it for custody-address
+resolution and compatibility testing.
 
 The app-owned SIWF relying-party identity is first-party deployment configuration, not a provider constant. Shipping builds default to:
 

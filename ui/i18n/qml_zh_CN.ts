@@ -3270,5 +3270,41 @@
             <source>People in your orbit</source>
             <translation>你圈子里的人</translation>
         </message>
+        <message id="genycaster.shell.your_genyleap_account">
+            <source>Your Genyleap account</source>
+            <translation>您的 Genyleap 账户</translation>
+        </message>
+        <message id="genycaster.shell.continue_with_genyleap">
+            <source>Continue with Genyleap</source>
+            <translation>使用 Genyleap 继续</translation>
+        </message>
+        <message id="genycaster.shell.open_genyleap">
+            <source>Open Genyleap</source>
+            <translation>打开 Genyleap</translation>
+        </message>
+        <message id="genycaster.shell.connecting_securely_to_genyleap">
+            <source>Connecting securely to Genyleap…</source>
+            <translation>正在安全连接到 Genyleap…</translation>
+        </message>
+        <message id="genycaster.shell.approve_genyleap_sign_in_in_your_browser">
+            <source>Approve Genyleap sign-in in your browser. If you’re already signed in on genyleap.com, you won’t need to sign in again.</source>
+            <translation>请在浏览器中批准 Genyleap 登录。如果您已登录 genyleap.com，则无需再次登录。</translation>
+        </message>
+        <message id="genycaster.shell.link_your_farcaster_account">
+            <source>Link your Farcaster account</source>
+            <translation>关联您的 Farcaster 账户</translation>
+        </message>
+        <message id="genycaster.shell.genyleap_verified_link_farcaster_to_continue">
+            <source>Your Genyleap account is verified. Link Farcaster to continue using Genycaster.</source>
+            <translation>您的 Genyleap 账户已验证。关联 Farcaster 后即可继续使用 Genycaster。</translation>
+        </message>
+        <message id="genycaster.shell.verified_by_openproof">
+            <source>Verified by OpenProof</source>
+            <translation>已由 OpenProof 验证</translation>
+        </message>
+        <message id="genycaster.shell.openproof_account_farcaster_protocol_identity">
+            <source>OpenProof owns your account identity; Farcaster is the required linked protocol identity.</source>
+            <translation>OpenProof 是您的账户身份权威；Farcaster 是必须关联的协议身份。</translation>
+        </message>
     </context>
 </TS>

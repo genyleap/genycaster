@@ -1085,6 +1085,11 @@ public:
     [[nodiscard]] foundation::result::Result<capability::auth::StartedAuthentication> begin(
         const capability::auth::SignInRequest& request) override
     {
+        if (request.route != capability::auth::SignInRoute::Farcaster) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::Unsupported,
+                "This compatibility adapter only supports direct Farcaster sign-in."));
+        }
         const std::string domain = normalizeConfigurationValue(request.domain);
         const std::string siweUri = normalizeConfigurationValue(request.siweUri);
         if (domain.empty() || siweUri.empty() || !isValidHttpUri(siweUri)) {

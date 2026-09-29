@@ -21,6 +21,7 @@ enum class SessionPhase {
     Guest,
     Starting,
     AwaitingApproval,
+    LinkingFarcaster,
     Authenticated,
     Failed,
 };
@@ -65,7 +66,8 @@ public:
     SessionService(
         executor::IExecutor& executor,
         local::session::IClientSessionStore& store,
-        capability::auth::ICompatibilityAuthentication* compatibilityAuth);
+        capability::auth::IAuthenticationProvider* authentication,
+        capability::auth::IFarcasterIdentityResolver* farcasterIdentityResolver);
     /** @brief Destroys the service after its executor has drained owned work. */
     ~SessionService();
 
@@ -77,12 +79,12 @@ public:
     /** @brief Restores a non-expired persisted session or reports Guest. */
     [[nodiscard]] foundation::result::Status restore(Observer observer);
 
-    /** @brief Starts an optional compatibility sign-in flow. */
+    /** @brief Starts the requested canonical identity sign-in flow. */
     [[nodiscard]] foundation::result::Status beginSignIn(
         capability::auth::SignInRequest request,
         Observer observer);
 
-    /** @brief Polls the active compatibility attempt once. */
+    /** @brief Polls the active authentication/linking attempt once. */
     [[nodiscard]] foundation::result::Status pollSignIn(Observer observer);
 
     /** @brief Cancels transient approval state while retaining any prior session. */

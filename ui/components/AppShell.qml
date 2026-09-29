@@ -1338,12 +1338,18 @@ Item {
                 ModalHeader {
                     Layout.fillWidth: true
                     title: presentationBridge.isAuthenticated
-                           ? qsTrId("genycaster.shell.your_farcaster_account")
-                           : presentationBridge.authenticationPhase === "awaiting-approval"
-                             ? qsTrId("genycaster.shell.approve_sign_in")
-                             : qsTrId("genycaster.shell.sign_in_to_interact")
+                           ? (presentationBridge.accountIdentityIssuer.length > 0
+                              ? qsTrId("genycaster.shell.your_genyleap_account")
+                              : qsTrId("genycaster.shell.your_farcaster_account"))
+                           : presentationBridge.authenticationPhase === "linking-farcaster"
+                             ? qsTrId("genycaster.shell.link_your_farcaster_account")
+                             : presentationBridge.authenticationPhase === "awaiting-approval"
+                               ? qsTrId("genycaster.shell.approve_sign_in")
+                               : qsTrId("genycaster.shell.sign_in_to_interact")
                     subtitle: presentationBridge.isAuthenticated
-                              ? qsTrId("genycaster.shell.this_verified_session_identifies_your_account_protocol")
+                              ? (presentationBridge.accountIdentityIssuer.length > 0
+                                 ? qsTrId("genycaster.shell.openproof_account_farcaster_protocol_identity")
+                                 : qsTrId("genycaster.shell.this_verified_session_identifies_your_account_protocol"))
                               : qsTrId("genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_")
                     onCloseRequested: accountPopup.close()
                 }
@@ -1397,6 +1403,16 @@ Item {
                                 }
 
                                 DirectionAwareLabel {
+                                    visible: presentationBridge.accountIdentityIssuer.length > 0
+                                    Layout.fillWidth: true
+                                    text: qsTrId("genycaster.shell.verified_by_openproof")
+                                    color: Theme.accent
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: Theme.weightDemiBold
+                                    wrapMode: Text.Wrap
+                                }
+
+                                DirectionAwareLabel {
                                     Layout.fillWidth: true
                                     text: presentationBridge.signerStatusText
                                     color: presentationBridge.writeReady ? Theme.success : Theme.inkMuted
@@ -1439,7 +1455,9 @@ Item {
                         DirectionAwareLabel {
                             visible: presentationBridge.authenticationPhase === "starting"
                             Layout.fillWidth: true
-                            text: qsTrId("genycaster.shell.creating_a_secure_farcaster_sign_in_request")
+                            text: presentationBridge.authenticationRoute === "openproof"
+                                  ? qsTrId("genycaster.shell.connecting_securely_to_genyleap")
+                                  : qsTrId("genycaster.shell.creating_a_secure_farcaster_sign_in_request")
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeMetaSize
                             wrapMode: Text.Wrap
@@ -1452,7 +1470,9 @@ Item {
 
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: qsTrId("genycaster.shell.approve_the_request_in_a_farcaster_compatible_client_t")
+                                text: presentationBridge.authenticationRoute === "openproof"
+                                      ? qsTrId("genycaster.shell.approve_genyleap_sign_in_in_your_browser")
+                                      : qsTrId("genycaster.shell.approve_the_request_in_a_farcaster_compatible_client_t")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeMetaSize
                                 lineHeight: 1.35
@@ -1467,6 +1487,16 @@ Item {
                                 lineHeight: 1.3
                                 wrapMode: Text.Wrap
                             }
+                        }
+
+                        DirectionAwareLabel {
+                            visible: presentationBridge.authenticationPhase === "linking-farcaster"
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.shell.genyleap_verified_link_farcaster_to_continue")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeMetaSize
+                            lineHeight: 1.35
+                            wrapMode: Text.Wrap
                         }
 
                         DirectionAwareLabel {
@@ -1496,6 +1526,7 @@ Item {
 
                     ActionButton {
                         visible: presentationBridge.authenticationPhase === "awaiting-approval"
+                                 || presentationBridge.authenticationPhase === "linking-farcaster"
                         text: qsTrId("genycaster.shell.cancel")
                         quiet: true
                         onClicked: {
@@ -1508,17 +1539,31 @@ Item {
                         visible: !presentationBridge.isAuthenticated
                                  && presentationBridge.authenticationPhase !== "starting"
                                  && presentationBridge.authenticationPhase !== "awaiting-approval"
-                        text: presentationBridge.authenticationPhase === "failed"
-                              ? qsTrId("genycaster.shell.try_again")
-                              : qsTrId("genycaster.shell.sign_in_with_farcaster")
+                                 && presentationBridge.authenticationPhase !== "linking-farcaster"
+                        text: qsTrId("genycaster.shell.continue_with_genyleap")
                         prominent: true
                         enabled: presentationBridge.runtimeReady && presentationBridge.authenticationAvailable
                         onClicked: presentationBridge.beginSignIn()
                     }
 
                     ActionButton {
+                        visible: !presentationBridge.isAuthenticated
+                                 && presentationBridge.authenticationPhase !== "starting"
+                                 && presentationBridge.authenticationPhase !== "awaiting-approval"
+                                 && presentationBridge.authenticationPhase !== "linking-farcaster"
+                        text: qsTrId("genycaster.shell.sign_in_with_farcaster")
+                        quiet: true
+                        enabled: presentationBridge.runtimeReady && presentationBridge.authenticationAvailable
+                        onClicked: presentationBridge.beginFarcasterSignIn()
+                    }
+
+                    ActionButton {
                         visible: presentationBridge.authenticationPhase === "awaiting-approval"
-                        text: qsTrId("genycaster.shell.open_farcaster")
+                                 || presentationBridge.authenticationPhase === "linking-farcaster"
+                        text: presentationBridge.authenticationPhase === "linking-farcaster"
+                              || presentationBridge.authenticationRoute === "farcaster"
+                              ? qsTrId("genycaster.shell.open_farcaster")
+                              : qsTrId("genycaster.shell.open_genyleap")
                         prominent: true
                         enabled: presentationBridge.authenticationApprovalAvailable
                         onClicked: presentationBridge.openAuthenticationApproval()

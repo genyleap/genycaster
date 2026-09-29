@@ -3270,5 +3270,41 @@
             <source>People in your orbit</source>
             <translation>내 주변 사람들</translation>
         </message>
+        <message id="genycaster.shell.your_genyleap_account">
+            <source>Your Genyleap account</source>
+            <translation>내 Genyleap 계정</translation>
+        </message>
+        <message id="genycaster.shell.continue_with_genyleap">
+            <source>Continue with Genyleap</source>
+            <translation>Genyleap로 계속</translation>
+        </message>
+        <message id="genycaster.shell.open_genyleap">
+            <source>Open Genyleap</source>
+            <translation>Genyleap 열기</translation>
+        </message>
+        <message id="genycaster.shell.connecting_securely_to_genyleap">
+            <source>Connecting securely to Genyleap…</source>
+            <translation>Genyleap에 안전하게 연결하는 중…</translation>
+        </message>
+        <message id="genycaster.shell.approve_genyleap_sign_in_in_your_browser">
+            <source>Approve Genyleap sign-in in your browser. If you’re already signed in on genyleap.com, you won’t need to sign in again.</source>
+            <translation>브라우저에서 Genyleap 로그인을 승인하세요. genyleap.com에 이미 로그인되어 있으면 다시 로그인할 필요가 없습니다.</translation>
+        </message>
+        <message id="genycaster.shell.link_your_farcaster_account">
+            <source>Link your Farcaster account</source>
+            <translation>Farcaster 계정 연결</translation>
+        </message>
+        <message id="genycaster.shell.genyleap_verified_link_farcaster_to_continue">
+            <source>Your Genyleap account is verified. Link Farcaster to continue using Genycaster.</source>
+            <translation>Genyleap 계정이 확인되었습니다. Genycaster를 계속 사용하려면 Farcaster를 연결하세요.</translation>
+        </message>
+        <message id="genycaster.shell.verified_by_openproof">
+            <source>Verified by OpenProof</source>
+            <translation>OpenProof에서 확인됨</translation>
+        </message>
+        <message id="genycaster.shell.openproof_account_farcaster_protocol_identity">
+            <source>OpenProof owns your account identity; Farcaster is the required linked protocol identity.</source>
+            <translation>OpenProof가 계정 ID의 기준이며, Farcaster는 필수로 연결된 프로토콜 ID입니다.</translation>
+        </message>
     </context>
 </TS>

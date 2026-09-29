@@ -246,6 +246,7 @@ void testAuthenticatedProfilePresentationIsCached()
         QStringLiteral("geny"),
         QStringLiteral("Geny"),
         QStringLiteral("https://example.test/avatar.png"),
+        QStringLiteral("https://openproof.genyleap.com"),
         {},
         {});
 

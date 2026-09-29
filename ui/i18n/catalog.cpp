@@ -964,6 +964,22 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.sign_in_to_interact");
     //% "Sign in with Farcaster"
     (void)qtTrId("genycaster.shell.sign_in_with_farcaster");
+    //% "Continue with Genyleap"
+    (void)qtTrId("genycaster.shell.continue_with_genyleap");
+    //% "Open Genyleap"
+    (void)qtTrId("genycaster.shell.open_genyleap");
+    //% "Connecting securely to Genyleap…"
+    (void)qtTrId("genycaster.shell.connecting_securely_to_genyleap");
+    //% "Approve Genyleap sign-in in your browser. If you’re already signed in on genyleap.com, you won’t need to sign in again."
+    (void)qtTrId("genycaster.shell.approve_genyleap_sign_in_in_your_browser");
+    //% "Link your Farcaster account"
+    (void)qtTrId("genycaster.shell.link_your_farcaster_account");
+    //% "Your Genyleap account is verified. Link Farcaster to continue using Genycaster."
+    (void)qtTrId("genycaster.shell.genyleap_verified_link_farcaster_to_continue");
+    //% "Verified by OpenProof"
+    (void)qtTrId("genycaster.shell.verified_by_openproof");
+    //% "OpenProof owns your account identity; Farcaster is the required linked protocol identity."
+    (void)qtTrId("genycaster.shell.openproof_account_farcaster_protocol_identity");
     //% "Sign out"
     (void)qtTrId("genycaster.shell.sign_out");
     //% "Signed-in account"
@@ -982,6 +998,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_");
     //% "Your Farcaster account"
     (void)qtTrId("genycaster.shell.your_farcaster_account");
+    //% "Your Genyleap account"
+    (void)qtTrId("genycaster.shell.your_genyleap_account");
     //% "Account"
     (void)qtTrId("genycaster.side_nav.account");
     //% "Bookmarks"

@@ -43,6 +43,10 @@ import farcaster.storage.signer;
 import farcaster.transport.qtnetwork;
 import farcaster.transport.qtnetwork.async;
 
+#if GENYCASTER_HAS_OPENPROOF_AUTH
+import farcaster.provider.identity.openproof;
+#endif
+
 #if FARCASTER_HAS_FARCASTER_AUTH
 import farcaster.provider.compatibility.auth;
 #endif
@@ -419,30 +423,48 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     }
     runtime->asyncTransport = std::move(*asyncTransport);
 
+    capability::auth::IAuthenticationProvider* primaryAuthentication = nullptr;
+    capability::auth::IFarcasterIdentityResolver* farcasterIdentityResolver = nullptr;
+
 #if FARCASTER_HAS_FARCASTER_AUTH
-    farcaster::provider::compatibility::auth::Config authConfig{};
+    farcaster::provider::compatibility::auth::Config farcasterAuthConfig{};
     if (authRelayUrl) {
-        authConfig.relayBaseUrl = *authRelayUrl;
+        farcasterAuthConfig.relayBaseUrl = *authRelayUrl;
     }
     if (optimismRpcUrl) {
-        authConfig.optimismRpcUrl = *optimismRpcUrl;
+        farcasterAuthConfig.optimismRpcUrl = *optimismRpcUrl;
     }
-    auto authentication = farcaster::provider::compatibility::auth::makeAuthentication(
-        *runtime->transport, std::move(authConfig));
-    if (!authentication) {
-        return std::unexpected(std::move(authentication.error()));
+    auto farcasterAuthentication =
+        farcaster::provider::compatibility::auth::makeAuthentication(
+            *runtime->transport, std::move(farcasterAuthConfig));
+    if (!farcasterAuthentication) {
+        return std::unexpected(std::move(farcasterAuthentication.error()));
     }
-    runtime->authentication = std::move(*authentication);
+    runtime->farcasterAuthentication = std::move(*farcasterAuthentication);
+    primaryAuthentication = runtime->farcasterAuthentication.get();
+    farcasterIdentityResolver = runtime->farcasterAuthentication.get();
 #endif
+
+#if GENYCASTER_HAS_OPENPROOF_AUTH
+    farcaster::provider::identity::openproof::Config openProofConfig{};
+    if (authRelayUrl) {
+        openProofConfig.farcasterRelayBaseUrl = *authRelayUrl;
+    }
+    auto openProofAuthentication =
+        farcaster::provider::identity::openproof::makeAuthentication(
+            *runtime->transport, std::move(openProofConfig));
+    if (!openProofAuthentication) {
+        return std::unexpected(std::move(openProofAuthentication.error()));
+    }
+    runtime->openProofAuthentication = std::move(*openProofAuthentication);
+    primaryAuthentication = runtime->openProofAuthentication.get();
+#endif
+
     runtime->sessionService = std::make_unique<application::session::SessionService>(
         *runtime->executor,
         *runtime->sessionStore,
-#if FARCASTER_HAS_FARCASTER_AUTH
-        runtime->authentication.get()
-#else
-        nullptr
-#endif
-    );
+        primaryAuthentication,
+        farcasterIdentityResolver);
 
 #if FARCASTER_HAS_PROTOCOL_SIGNING
     runtime->signerExecutor = std::make_unique<farcaster::execution::serial::SerialExecutor>();
