@@ -1157,7 +1157,7 @@ makeAuthentication(transport::http::IHttpTransport& transport, Config config)
     if (!validHttpsUrl(config.issuer)
         || !validHttpsUrl(config.genyleapAccountUrl)
         || !validHttpsUrl(config.farcasterRelayBaseUrl)
-        || config.issuer.find_first_of("?#") != std::string::npos
+        || config.issuer.find_first_of("/?#", std::string_view{"https://"}.size()) != std::string::npos
         || config.genyleapAccountUrl.find_first_of("?#") != std::string::npos
         || config.clientId.empty()
         || config.clientId.size() > 256U

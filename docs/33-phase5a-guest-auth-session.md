@@ -37,6 +37,8 @@ Shipping Genycaster is OpenProof-centric and exposes two entry routes:
    obtains the SIWF signature through the Farcaster relay, and completes the
    proof back at OpenProof.
 
+Genycaster deliberately uses OpenProof RFC 8628 device authorization for the first-party Genyleap route rather than copying the OpenProof browser session into the desktop app. The endpoint is part of the deployed OpenProof OAuth surface and the native client remains public: no client secret is shipped. The generic OpenProof native-client guide also supports Authorization Code + PKCE for loopback clients; if this product route is migrated to that flow later, state, returned issuer, nonce, PKCE and JWKS ID-token validation become mandatory callback invariants.
+
 Both routes converge on the same canonical result: an OpenProof issuer/subject
 with a linked Farcaster FID. A Genyleap-authenticated identity that has no
 Farcaster connection enters `LinkingFarcaster`; Genycaster starts

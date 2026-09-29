@@ -265,6 +265,17 @@ void deviceAuthorizationRequiresAndCompletesFarcasterLink()
     assert(transport.empty());
 }
 
+void rejectsIssuerThatIsNotAnOrigin()
+{
+    ScriptedTransport transport{{}};
+    auto invalid = config();
+    invalid.issuer = "https://openproof.example/tenant";
+
+    auto authentication = provider::makeAuthentication(transport, std::move(invalid));
+    assert(!authentication);
+    assert(transport.empty());
+}
+
 void directFarcasterStillCreatesCanonicalOpenProofIdentity()
 {
     ScriptedTransport transport{{
@@ -340,6 +351,7 @@ int main()
 {
     deviceAuthorizationCompletesForAlreadyLinkedAccount();
     deviceAuthorizationRequiresAndCompletesFarcasterLink();
+    rejectsIssuerThatIsNotAnOrigin();
     directFarcasterStillCreatesCanonicalOpenProofIdentity();
     return 0;
 }
