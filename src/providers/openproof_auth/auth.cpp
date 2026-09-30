@@ -265,8 +265,15 @@ struct AccountSnapshot final {
     return value.empty() ? std::nullopt : std::optional<std::string>{value};
 }
 
-[[nodiscard]] foundation::result::Result<std::optional<std::uint64_t>>
-farcasterFidFromConnections(const Json& json)
+struct FarcasterConnectionSnapshot final {
+    std::uint64_t fid{};
+    std::optional<std::string> username{};
+    std::optional<std::string> displayName{};
+    std::optional<std::string> avatarUrl{};
+};
+
+[[nodiscard]] foundation::result::Result<std::optional<FarcasterConnectionSnapshot>>
+farcasterConnectionFromConnections(const Json& json)
 {
     const auto connections = json.get_child_optional("connections");
     if (!connections) {
@@ -274,11 +281,19 @@ farcasterFidFromConnections(const Json& json)
             foundation::error::ErrorCode::ProtocolFailure,
             "OpenProof account response omitted the connections list."));
     }
+
+    std::optional<FarcasterConnectionSnapshot> farcaster{};
     for (const auto& entry : *connections) {
         const Json& connection = entry.second;
         if (lower(connection.get("provider", std::string{})) != "farcaster") {
             continue;
         }
+        if (farcaster) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::Conflict,
+                "Genycaster requires exactly one linked Farcaster identity."));
+        }
+
         const std::string fidText = trim(connection.get("fid", std::string{}));
         if (fidText.empty()) {
             return std::unexpected(makeError(
@@ -289,9 +304,14 @@ farcasterFidFromConnections(const Json& json)
         if (!fid) {
             return std::unexpected(std::move(fid.error()));
         }
-        return std::optional<std::uint64_t>{*fid};
+        farcaster = FarcasterConnectionSnapshot{
+            .fid = *fid,
+            .username = optionalJsonText(connection, "preferred_username"),
+            .displayName = optionalJsonText(connection, "display_name"),
+            .avatarUrl = optionalJsonText(connection, "picture_url"),
+        };
     }
-    return std::optional<std::uint64_t>{};
+    return farcaster;
 }
 
 [[nodiscard]] std::vector<std::string> bearerHeaders(const std::string& accessToken)
@@ -346,17 +366,20 @@ farcasterFidFromConnections(const Json& json)
     if (!connectionJson) {
         return std::unexpected(std::move(connectionJson.error()));
     }
-    auto fid = farcasterFidFromConnections(*connectionJson);
-    if (!fid) {
-        return std::unexpected(std::move(fid.error()));
+    auto farcaster = farcasterConnectionFromConnections(*connectionJson);
+    if (!farcaster) {
+        return std::unexpected(std::move(farcaster.error()));
     }
-
+    if (!*farcaster) {
+        return AccountSnapshot{.subject = subject};
+    }
+    const auto& connection = **farcaster;
     return AccountSnapshot{
         .subject = subject,
-        .username = optionalJsonText(*claims, "preferred_username"),
-        .displayName = optionalJsonText(*claims, "name"),
-        .avatarUrl = optionalJsonText(*claims, "picture"),
-        .farcasterFid = *fid,
+        .username = connection.username,
+        .displayName = connection.displayName,
+        .avatarUrl = connection.avatarUrl,
+        .farcasterFid = connection.fid,
     };
 }
 
@@ -417,34 +440,32 @@ farcasterFidFromConnections(const Json& json)
     if (!connectionJson) {
         return std::unexpected(std::move(connectionJson.error()));
     }
-    auto fid = farcasterFidFromConnections(*connectionJson);
-    if (!fid) {
-        return std::unexpected(std::move(fid.error()));
+    auto farcaster = farcasterConnectionFromConnections(*connectionJson);
+    if (!farcaster) {
+        return std::unexpected(std::move(farcaster.error()));
     }
-    if (!*fid) {
+    if (!*farcaster) {
         return std::unexpected(makeError(
             foundation::error::ErrorCode::ProtocolFailure,
             "OpenProof completed Farcaster authentication without linking a Farcaster identity."));
     }
-    if (expectedFid && **fid != *expectedFid) {
+    const auto& connection = **farcaster;
+    if (expectedFid && connection.fid != *expectedFid) {
         return std::unexpected(makeError(
             foundation::error::ErrorCode::Unauthorized,
             "The OpenProof Farcaster link does not match the approved Farcaster identity."));
     }
 
-    auto username = optionalJsonText(*profileJson, "preferred_username");
-    auto displayName = optionalJsonText(*profileJson, "display_name");
-    auto avatar = optionalJsonText(*profileJson, "picture");
-    if (!username) username = std::move(relayUsername);
-    if (!displayName) displayName = std::move(relayDisplayName);
-    if (!avatar) avatar = std::move(relayAvatar);
+    auto username = connection.username ? connection.username : std::move(relayUsername);
+    auto displayName = connection.displayName ? connection.displayName : std::move(relayDisplayName);
+    auto avatar = connection.avatarUrl ? connection.avatarUrl : std::move(relayAvatar);
 
     return AccountSnapshot{
         .subject = subject,
         .username = std::move(username),
         .displayName = std::move(displayName),
         .avatarUrl = std::move(avatar),
-        .farcasterFid = *fid,
+        .farcasterFid = connection.fid,
     };
 }
 

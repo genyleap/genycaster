@@ -1732,6 +1732,46 @@ void applySessionState(
         authenticationErrorText(state));
 }
 
+void hydrateAuthenticatedAccountProfile(
+    PresentationBridge& bridge, const std::shared_ptr<Runtime>& runtime)
+{
+    runtime->cancelAccountProfileRequest();
+    if (!bridge.isAuthenticated() || bridge.accountFid() == 0 || !runtime->service) {
+        return;
+    }
+
+    const qulonglong accountFid = bridge.accountFid();
+    auto request = runtime->service->openProfile(
+        domain::identity::Fid{static_cast<std::uint64_t>(accountFid)},
+        [&bridge, accountFid](application::read::model::ProfileState state) mutable {
+            if (!state.profile || state.profile->fid.value != static_cast<std::uint64_t>(accountFid)) {
+                return;
+            }
+            const auto* profile = &*state.profile;
+            QString profileDisplayName = displayName(profile);
+            QString profileUsername = username(profile);
+            QString profileAvatarUrl = avatarUrl(profile);
+            QVariantMap profileDetail = profilePresentation(profile);
+            QMetaObject::invokeMethod(
+                &bridge,
+                [&bridge, accountFid, profileDisplayName = std::move(profileDisplayName),
+                    profileUsername = std::move(profileUsername),
+                    profileAvatarUrl = std::move(profileAvatarUrl),
+                    profileDetail = std::move(profileDetail)]() mutable {
+                    if (!bridge.isAuthenticated() || bridge.accountFid() != accountFid) {
+                        return;
+                    }
+                    bridge.applyAccountProfile(
+                        accountFid, std::move(profileDisplayName), std::move(profileUsername),
+                        std::move(profileAvatarUrl), std::move(profileDetail));
+                },
+                Qt::QueuedConnection);
+        });
+    if (request) {
+        runtime->keepAccountProfileRequest(std::move(*request));
+    }
+}
+
 #if FARCASTER_HAS_MEDIA_UPLOAD
 void scheduleManagedMediaCleanup(
     RichComposerController& richComposer,
@@ -1891,15 +1931,7 @@ void connectRuntime(
                 [&bridge, runtime, state = std::move(state), authenticationAvailable]() mutable {
                     applySessionState(bridge, std::move(state), authenticationAvailable);
                     runtime->authenticationPollInFlight.store(false, std::memory_order_release);
-                    if (bridge.isAuthenticated() && bridge.identityFid() == 0 &&
-                        !bridge.accountUsername().isEmpty()) {
-                        const QString accountUsername = bridge.accountUsername();
-                        QTimer::singleShot(0, &bridge, [&bridge, accountUsername] {
-                            if (bridge.isAuthenticated() && bridge.identityFid() == 0) {
-                                bridge.openIdentity(accountUsername);
-                            }
-                        });
-                    }
+                    hydrateAuthenticatedAccountProfile(bridge, runtime);
                 },
                 Qt::QueuedConnection);
             hydrateWriteProjections(bridge, runtime, signerSession);

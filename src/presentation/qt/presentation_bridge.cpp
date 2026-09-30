@@ -1863,6 +1863,21 @@ void PresentationBridge::applyAuthenticationState(
     emit stateChanged();
 }
 
+void PresentationBridge::applyAccountProfile(
+    const qulonglong fid, QString displayName, QString username, QString avatarUrl, QVariantMap profile)
+{
+    if (!m_isAuthenticated || fid == 0 || fid != m_accountFid || profile.isEmpty()) {
+        return;
+    }
+    m_accountUsername = std::move(username);
+    m_accountName = displayName.isEmpty() ? m_accountUsername : std::move(displayName);
+    m_accountAvatarUrl = std::move(avatarUrl);
+    m_accountProfile = std::move(profile);
+    m_profileDetailCache.insert(fid, m_accountProfile);
+    emit authenticationStateChanged();
+    emit stateChanged();
+}
+
 void PresentationBridge::applyAuthenticationError(QString errorText)
 {
     m_authenticationErrorText = std::move(errorText);
@@ -2123,6 +2138,11 @@ void PresentationBridge::applyIdentity(const qulonglong fid, QString displayName
     if (updatesAccountProfile) {
         m_accountProfile = std::move(profile);
         m_profileDetailCache.insert(fid, m_accountProfile);
+        m_accountUsername = m_accountProfile.value(QStringLiteral("username")).toString();
+        const QString accountDisplayName =
+            m_accountProfile.value(QStringLiteral("displayName")).toString();
+        m_accountName = accountDisplayName.isEmpty() ? m_accountUsername : accountDisplayName;
+        m_accountAvatarUrl = m_accountProfile.value(QStringLiteral("avatarUrl")).toString();
         emit authenticationStateChanged();
     }
     emit stateChanged();
@@ -2470,6 +2490,11 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
         m_profileDetailCache.insert(m_profileFid, m_detail);
         if (m_profileFid == m_accountFid) {
             m_accountProfile = m_detail;
+            m_accountUsername = m_accountProfile.value(QStringLiteral("username")).toString();
+            const QString accountDisplayName =
+                m_accountProfile.value(QStringLiteral("displayName")).toString();
+            m_accountName = accountDisplayName.isEmpty() ? m_accountUsername : accountDisplayName;
+            m_accountAvatarUrl = m_accountProfile.value(QStringLiteral("avatarUrl")).toString();
             emit authenticationStateChanged();
         }
     }

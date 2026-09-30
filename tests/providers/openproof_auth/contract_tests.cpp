@@ -136,7 +136,7 @@ void deviceAuthorizationCompletesForAlreadyLinkedAccount()
             .urlSuffix = "/account/connections",
             .status = 200,
             .responseBody =
-                R"({"connections":[{"provider":"farcaster","subject":"fid:42","fid":"42"}]})",
+                R"({"connections":[{"provider":"farcaster","subject":"42","fid":"42","preferred_username":"alice-farcaster","display_name":"Alice on Farcaster","picture_url":"https://cdn.example/farcaster-alice.png"}]})",
             .requestHeaderContains = "Authorization: Bearer access-1",
         },
     }};
@@ -159,8 +159,55 @@ void deviceAuthorizationCompletesForAlreadyLinkedAccount()
     assert(polled->session->identitySubject &&
         *polled->session->identitySubject == "identity-1");
     assert(polled->session->fid.value == 42U);
-    assert(polled->session->username && *polled->session->username == "alice");
+    assert(polled->session->username && *polled->session->username == "alice-farcaster");
+    assert(polled->session->displayName && *polled->session->displayName == "Alice on Farcaster");
+    assert(polled->session->avatarUrl
+        && *polled->session->avatarUrl == "https://cdn.example/farcaster-alice.png");
     assert(!polled->session->custodyAddress);
+    assert(transport.empty());
+}
+
+void rejectsAmbiguousFarcasterConnections()
+{
+    ScriptedTransport transport{{
+        Step{
+            .method = Method::Post,
+            .urlSuffix = "/oauth/device_authorization",
+            .status = 200,
+            .responseBody =
+                R"({"device_code":"device-ambiguous","user_code":"MULTI-1234","expires_in":600,"interval":1})",
+        },
+        Step{
+            .method = Method::Post,
+            .urlSuffix = "/oauth/token",
+            .status = 200,
+            .responseBody =
+                R"({"access_token":"access-ambiguous","token_type":"Bearer","expires_in":300})",
+        },
+        Step{
+            .method = Method::Get,
+            .urlSuffix = "/oauth/userinfo",
+            .status = 200,
+            .responseBody = R"({"sub":"identity-ambiguous","preferred_username":"openproof-user"})",
+        },
+        Step{
+            .method = Method::Get,
+            .urlSuffix = "/account/connections",
+            .status = 200,
+            .responseBody =
+                R"({"connections":[{"provider":"farcaster","subject":"42","fid":"42"},{"provider":"farcaster","subject":"84","fid":"84"}]})",
+        },
+    }};
+
+    auto authentication = provider::makeAuthentication(transport, config());
+    assert(authentication);
+    auto started = (*authentication)->begin(capability::auth::SignInRequest{
+        .route = capability::auth::SignInRoute::OpenProof,
+    });
+    assert(started);
+
+    auto polled = started->attempt->poll();
+    assert(!polled);
     assert(transport.empty());
 }
 
@@ -342,6 +389,9 @@ void directFarcasterStillCreatesCanonicalOpenProofIdentity()
     assert(completed->session->identitySubject &&
         *completed->session->identitySubject == "identity-126");
     assert(completed->session->fid.value == 126U);
+    assert(completed->session->username && *completed->session->username == "carol");
+    assert(completed->session->displayName && *completed->session->displayName == "Carol");
+    assert(!completed->session->avatarUrl);
     assert(transport.empty());
 }
 
@@ -350,6 +400,7 @@ void directFarcasterStillCreatesCanonicalOpenProofIdentity()
 int main()
 {
     deviceAuthorizationCompletesForAlreadyLinkedAccount();
+    rejectsAmbiguousFarcasterConnections();
     deviceAuthorizationRequiresAndCompletesFarcasterLink();
     rejectsIssuerThatIsNotAnOrigin();
     directFarcasterStillCreatesCanonicalOpenProofIdentity();

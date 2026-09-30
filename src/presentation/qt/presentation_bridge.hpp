@@ -246,6 +246,8 @@ public:
         QString identityIssuer,
         QString approvalUrl,
         QString errorText);
+    /** @brief Replaces account presentation with the Farcaster profile resolved from the verified session FID. */
+    void applyAccountProfile(qulonglong fid, QString displayName, QString username, QString avatarUrl, QVariantMap profile);
     /** @brief Reports an authentication worker failure without replacing a valid account session. */
     void applyAuthenticationError(QString errorText);
     /** @brief Commits normalized protocol-signer readiness without exposing provider details. */

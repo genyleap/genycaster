@@ -96,6 +96,7 @@ namespace routing = farcaster::routing;
 Runtime::~Runtime()
 {
     cancelAllRequests();
+    cancelAccountProfileRequest();
 #if FARCASTER_HAS_MEDIA_UPLOAD
     {
         std::scoped_lock lock{mediaUploadMutex};
@@ -364,6 +365,24 @@ void Runtime::keepNotificationBadgeRequest(application::read::async_service::Rea
         activeNotificationBadgeRequest->cancel();
     }
     activeNotificationBadgeRequest = std::move(request);
+}
+
+void Runtime::cancelAccountProfileRequest()
+{
+    std::scoped_lock lock{requestMutex};
+    if (activeAccountProfileRequest) {
+        activeAccountProfileRequest->cancel();
+    }
+    activeAccountProfileRequest.reset();
+}
+
+void Runtime::keepAccountProfileRequest(application::read::async_service::ReadRequest request)
+{
+    std::scoped_lock lock{requestMutex};
+    if (activeAccountProfileRequest) {
+        activeAccountProfileRequest->cancel();
+    }
+    activeAccountProfileRequest = std::move(request);
 }
 
 foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(

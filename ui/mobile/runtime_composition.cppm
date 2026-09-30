@@ -139,6 +139,7 @@ struct Runtime final {
     std::optional<farcaster::application::read::async_service::ReadRequest> activeFeedRequest{};
     std::optional<farcaster::application::read::async_service::ReadRequest> activeSearchRequest{};
     std::optional<farcaster::application::read::async_service::ReadRequest> activeNotificationBadgeRequest{};
+    std::optional<farcaster::application::read::async_service::ReadRequest> activeAccountProfileRequest{};
 
     Runtime() = default;
     Runtime(const Runtime&) = delete;
@@ -172,6 +173,8 @@ struct Runtime final {
     void keepFeedRequest(farcaster::application::read::async_service::ReadRequest request);
     void keepSearchRequest(farcaster::application::read::async_service::ReadRequest request);
     void keepNotificationBadgeRequest(farcaster::application::read::async_service::ReadRequest request);
+    void cancelAccountProfileRequest();
+    void keepAccountProfileRequest(farcaster::application::read::async_service::ReadRequest request);
 };
 
 /**
