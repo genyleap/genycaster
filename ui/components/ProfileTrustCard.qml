@@ -295,6 +295,15 @@ Superellipse {
                     onClicked: root.requestProfile()
                 }
             }
+
+            ActionButton {
+                objectName: "profileTrustCardAccountButton"
+                Layout.fillWidth: true
+                compact: true
+                quiet: true
+                text: qsTrId("genycaster.header.account")
+                onClicked: root.accountRequested()
+            }
         }
     }
 
@@ -439,6 +448,14 @@ Superellipse {
                     text: qsTrId("genycaster.side_nav.profile")
                     onClicked: root.requestProfile()
                 }
+            }
+
+            ActionButton {
+                Layout.fillWidth: true
+                compact: true
+                quiet: true
+                text: qsTrId("genycaster.header.account")
+                onClicked: root.accountRequested()
             }
         }
     }
