@@ -189,6 +189,16 @@ using Json = boost::property_tree::ptree;
         std::string{context} + " returned HTTP " + std::to_string(response.statusCode) + "."));
 }
 
+[[nodiscard]] foundation::result::Status requireSuccessStatus(
+    const transport::http::HttpResponse& response,
+    const std::string_view context)
+{
+    if (response.statusCode >= 200U && response.statusCode < 300U) {
+        return {};
+    }
+    return requireStatus(response, 200U, context);
+}
+
 class CookieJar final {
 public:
     void absorb(const transport::http::HttpResponse& response)
@@ -671,7 +681,7 @@ private:
         if (!relay) {
             return std::unexpected(std::move(relay.error()));
         }
-        if (auto status = requireStatus(*relay, 200U, "Farcaster authentication relay"); !status) {
+        if (auto status = requireSuccessStatus(*relay, "Farcaster authentication relay"); !status) {
             return std::unexpected(std::move(status.error()));
         }
         auto relayJson = parseJson(relay->body, "Farcaster authentication relay");
@@ -1130,7 +1140,7 @@ private:
         if (!relay) {
             return std::unexpected(std::move(relay.error()));
         }
-        if (auto status = requireStatus(*relay, 200U, "Farcaster authentication relay"); !status) {
+        if (auto status = requireSuccessStatus(*relay, "Farcaster authentication relay"); !status) {
             return std::unexpected(std::move(status.error()));
         }
         auto relayJson = parseJson(relay->body, "Farcaster authentication relay");

@@ -252,7 +252,7 @@ void deviceAuthorizationRequiresAndCompletesFarcasterLink()
         Step{
             .method = Method::Post,
             .urlSuffix = "/v1/channel",
-            .status = 200,
+            .status = 201,
             .responseBody =
                 R"({"channelToken":"relay-2","url":"https://farcaster.xyz/~/sign-in-with-farcaster?channelToken=relay-2","nonce":"nonce-12345678"})",
             .requestBodyContains = "nonce-12345678",
@@ -337,7 +337,7 @@ void directFarcasterStillCreatesCanonicalOpenProofIdentity()
         Step{
             .method = Method::Post,
             .urlSuffix = "/v1/channel",
-            .status = 200,
+            .status = 201,
             .responseBody =
                 R"({"channelToken":"relay-direct","url":"https://farcaster.xyz/~/sign-in-with-farcaster?channelToken=relay-direct","nonce":"direct-nonce-1234"})",
         },
