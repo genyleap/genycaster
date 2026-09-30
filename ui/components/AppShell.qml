@@ -1519,14 +1519,28 @@ Item {
                     color: Theme.divider
                 }
 
-                Flow {
+                ColumnLayout {
+                    id: accountActions
                     Layout.fillWidth: true
-                    layoutDirection: Theme.uiDirection
                     spacing: Theme.space2
 
                     ActionButton {
                         visible: presentationBridge.authenticationPhase === "awaiting-approval"
                                  || presentationBridge.authenticationPhase === "linking-farcaster"
+                        Layout.fillWidth: true
+                        text: presentationBridge.authenticationPhase === "linking-farcaster"
+                              || presentationBridge.authenticationRoute === "farcaster"
+                              ? qsTrId("genycaster.shell.open_farcaster")
+                              : qsTrId("genycaster.shell.open_genyleap")
+                        prominent: true
+                        enabled: presentationBridge.authenticationApprovalAvailable
+                        onClicked: presentationBridge.openAuthenticationApproval()
+                    }
+
+                    ActionButton {
+                        visible: presentationBridge.authenticationPhase === "awaiting-approval"
+                                 || presentationBridge.authenticationPhase === "linking-farcaster"
+                        Layout.fillWidth: true
                         text: qsTrId("genycaster.shell.cancel")
                         quiet: true
                         onClicked: {
@@ -1540,6 +1554,7 @@ Item {
                                  && presentationBridge.authenticationPhase !== "starting"
                                  && presentationBridge.authenticationPhase !== "awaiting-approval"
                                  && presentationBridge.authenticationPhase !== "linking-farcaster"
+                        Layout.fillWidth: true
                         text: qsTrId("genycaster.shell.continue_with_genyleap")
                         prominent: true
                         enabled: presentationBridge.runtimeReady && presentationBridge.authenticationAvailable
@@ -1551,6 +1566,7 @@ Item {
                                  && presentationBridge.authenticationPhase !== "starting"
                                  && presentationBridge.authenticationPhase !== "awaiting-approval"
                                  && presentationBridge.authenticationPhase !== "linking-farcaster"
+                        Layout.fillWidth: true
                         text: qsTrId("genycaster.shell.sign_in_with_farcaster")
                         quiet: true
                         enabled: presentationBridge.runtimeReady && presentationBridge.authenticationAvailable
@@ -1558,19 +1574,8 @@ Item {
                     }
 
                     ActionButton {
-                        visible: presentationBridge.authenticationPhase === "awaiting-approval"
-                                 || presentationBridge.authenticationPhase === "linking-farcaster"
-                        text: presentationBridge.authenticationPhase === "linking-farcaster"
-                              || presentationBridge.authenticationRoute === "farcaster"
-                              ? qsTrId("genycaster.shell.open_farcaster")
-                              : qsTrId("genycaster.shell.open_genyleap")
-                        prominent: true
-                        enabled: presentationBridge.authenticationApprovalAvailable
-                        onClicked: presentationBridge.openAuthenticationApproval()
-                    }
-
-                    ActionButton {
                         visible: presentationBridge.isAuthenticated && !presentationBridge.writeReady
+                        Layout.fillWidth: true
                         text: presentationBridge.signerBusy
                               ? qsTrId("genycaster.shell.enabling")
                               : qsTrId("genycaster.shell.enable_interactions")
@@ -1581,20 +1586,29 @@ Item {
 
                     ActionButton {
                         visible: presentationBridge.isAuthenticated && presentationBridge.writeReady
+                        Layout.fillWidth: true
                         text: presentationBridge.signerBusy
                               ? qsTrId("genycaster.shell.revoking")
                               : qsTrId("genycaster.shell.revoke_signer")
+                        destructive: true
                         enabled: !presentationBridge.signerBusy
                         onClicked: presentationBridge.revokeSigner()
                     }
 
                     ActionButton {
+                        id: accountSignOutButton
+                        objectName: "accountSignOutButton"
                         visible: presentationBridge.isAuthenticated
+                        Layout.fillWidth: true
                         text: qsTrId("genycaster.shell.sign_out")
-                        onClicked: presentationBridge.signOut()
+                        onClicked: {
+                            presentationBridge.signOut()
+                            accountPopup.close()
+                        }
                     }
 
                     ActionButton {
+                        Layout.fillWidth: true
                         text: qsTrId("genycaster.shell.close")
                         quiet: true
                         onClicked: accountPopup.close()
