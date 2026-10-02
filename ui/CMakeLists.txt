@@ -77,6 +77,7 @@ set(farcasterQmlFiles
     components/HomeComposer.qml
     components/HomeDashboard.qml
     components/HomeFeedHeader.qml
+    components/InitialSetup.qml
     components/LinkPreview.qml
     components/MobileCreateMenu.qml
     components/GenyComboBox.qml

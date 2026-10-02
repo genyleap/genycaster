@@ -17,6 +17,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool diagnosticsEnabled READ diagnosticsEnabled CONSTANT)
     Q_PROPERTY(bool runtimeReady READ runtimeReady NOTIFY runtimeStateChanged)
     Q_PROPERTY(bool authenticationAvailable READ authenticationAvailable NOTIFY authenticationStateChanged)
+    Q_PROPERTY(bool initialSetupRequired READ initialSetupRequired NOTIFY setupStateChanged)
     Q_PROPERTY(bool isAuthenticated READ isAuthenticated NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool authenticationBusy READ authenticationBusy NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString authenticationPhase READ authenticationPhase NOTIFY authenticationStateChanged)
@@ -87,6 +88,7 @@ public:
     [[nodiscard]] bool diagnosticsEnabled() const noexcept;
     [[nodiscard]] bool runtimeReady() const noexcept;
     [[nodiscard]] bool authenticationAvailable() const noexcept;
+    [[nodiscard]] bool initialSetupRequired() const noexcept;
     [[nodiscard]] bool isAuthenticated() const noexcept;
     [[nodiscard]] bool authenticationBusy() const noexcept;
     [[nodiscard]] QString authenticationPhase() const;
@@ -197,6 +199,8 @@ public:
     Q_INVOKABLE void copyText(const QString& text);
     /** @brief Selects the approved contextual glyph for the existing Like action without changing reaction semantics. */
     [[nodiscard]] Q_INVOKABLE QString contextualReactionIcon(const QString& text) const;
+    /** @brief Permanently dismisses the first-run setup experience on this installation. */
+    Q_INVOKABLE void completeInitialSetup();
     /** @brief Starts canonical Genyleap/OpenProof sign-in. */
     Q_INVOKABLE void beginSignIn();
     /** @brief Starts the direct Farcaster onboarding route through OpenProof. */
@@ -303,6 +307,8 @@ signals:
     void runtimeStateChanged();
     /** @brief Authentication/account presentation changed; isolated from feed/write invalidation. */
     void authenticationStateChanged();
+    /** @brief First-run setup visibility changed after completion or verification fixture activation. */
+    void setupStateChanged();
     void stateChanged();
     void searchChanged();
     void notificationsChanged();
@@ -352,6 +358,7 @@ private:
     [[nodiscard]] bool consumeRecoveryProbe() noexcept;
     bool m_runtimeReady{false};
     bool m_authenticationAvailable{false};
+    bool m_initialSetupCompleted{false};
     bool m_isAuthenticated{false};
     QString m_authenticationPhase{QStringLiteral("guest")};
     QString m_authenticationRoute{QStringLiteral("openproof")};

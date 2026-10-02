@@ -88,7 +88,8 @@ Item {
     property bool notificationBusySnapshot: false
     readonly property bool localeSettingsOpen: localePopupLoader.item !== null && localePopupLoader.item.opened
     readonly property bool dataStorageSettingsOpen: dataStoragePopupLoader.item !== null && dataStoragePopupLoader.item.opened
-    readonly property bool overlayOpen: root.localeSettingsOpen || root.dataStorageSettingsOpen
+    readonly property bool initialSetupOpen: initialSetup.visible
+    readonly property bool overlayOpen: root.initialSetupOpen || root.localeSettingsOpen || root.dataStorageSettingsOpen
                                         || composerDrawer.opened || accountPopup.opened
                                         || renderingSettingsPopup.opened || taskManagerPopup.opened || feedbackDialog.opened
                                              || searchPalette.opened || mobileCreateMenu.opened || contextDrawer.opened
@@ -1616,6 +1617,24 @@ Item {
                 }
             }
         }
+    }
+
+    InitialSetup {
+        id: initialSetup
+        anchors.fill: parent
+        z: 10_000
+        visible: presentationBridge.initialSetupRequired && !presentationBridge.isAuthenticated
+        runtimeReady: presentationBridge.runtimeReady
+        authenticationAvailable: presentationBridge.authenticationAvailable
+        authenticationPhase: presentationBridge.authenticationPhase
+        authenticationRoute: presentationBridge.authenticationRoute
+        authenticationApprovalAvailable: presentationBridge.authenticationApprovalAvailable
+        authenticationErrorText: presentationBridge.authenticationErrorText
+        onContinueWithGenyleap: presentationBridge.beginSignIn()
+        onContinueWithFarcaster: presentationBridge.beginFarcasterSignIn()
+        onContinueAsGuest: presentationBridge.completeInitialSetup()
+        onOpenApproval: presentationBridge.openAuthenticationApproval()
+        onCancelAuthentication: presentationBridge.cancelSignIn()
     }
 
     TaskManagerPopup {

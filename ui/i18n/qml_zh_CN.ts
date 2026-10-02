@@ -3306,5 +3306,17 @@
             <source>OpenProof owns your account identity; Farcaster is the required linked protocol identity.</source>
             <translation>OpenProof 是您的账户身份权威；Farcaster 是必须关联的协议身份。</translation>
         </message>
+        <message id="genycaster.setup.title">
+            <source>Set up Genycaster</source>
+            <translation>设置 Genycaster</translation>
+        </message>
+        <message id="genycaster.setup.subtitle">
+            <source>Connect your Genyleap identity once. Genycaster will use its linked Farcaster account for your social profile and interactions.</source>
+            <translation>只需连接一次 Genyleap 身份。Genycaster 会使用已关联的 Farcaster 账户作为你的社交资料和互动身份。</translation>
+        </message>
+        <message id="genycaster.setup.explore_as_guest">
+            <source>Explore as guest</source>
+            <translation>以访客身份浏览</translation>
+        </message>
     </context>
 </TS>

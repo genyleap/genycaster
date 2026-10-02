@@ -265,6 +265,72 @@ void testAuthenticatedProfilePresentationIsCached()
         == QStringLiteral("neynar"));
 }
 
+void testInitialSetupPersistsAndDoesNotReturnAfterSignOut()
+{
+    QTemporaryDir directory{};
+    assert(directory.isValid());
+    const QString settingsPath = directory.filePath(QStringLiteral("setup.ini"));
+    QSettings settings{settingsPath, QSettings::IniFormat};
+
+    {
+        PresentationBridge bridge{nullptr, &settings};
+        assert(bridge.initialSetupRequired());
+        bridge.completeInitialSetup();
+        assert(!bridge.initialSetupRequired());
+        bridge.applyAuthenticationState(
+            true,
+            QStringLiteral("authenticated"),
+            42,
+            {},
+            {},
+            {},
+            QStringLiteral("https://openproof.genyleap.com"),
+            {},
+            {});
+        bridge.applyAuthenticationState(
+            true,
+            QStringLiteral("guest"),
+            0,
+            {},
+            {},
+            {},
+            {},
+            {},
+            {});
+        assert(!bridge.initialSetupRequired());
+    }
+
+    settings.sync();
+    assert(settings.value(QStringLiteral("setup/initialSetupCompleted")).toBool());
+
+    PresentationBridge restored{nullptr, &settings};
+    assert(!restored.initialSetupRequired());
+}
+
+void testSuccessfulAuthenticationCompletesInitialSetup()
+{
+    QTemporaryDir directory{};
+    assert(directory.isValid());
+    const QString settingsPath = directory.filePath(QStringLiteral("setup-auth.ini"));
+    QSettings settings{settingsPath, QSettings::IniFormat};
+
+    PresentationBridge bridge{nullptr, &settings};
+    assert(bridge.initialSetupRequired());
+    bridge.applyAuthenticationState(
+        true,
+        QStringLiteral("authenticated"),
+        77,
+        {},
+        {},
+        {},
+        QStringLiteral("https://openproof.genyleap.com"),
+        {},
+        {});
+    assert(!bridge.initialSetupRequired());
+    settings.sync();
+    assert(settings.value(QStringLiteral("setup/initialSetupCompleted")).toBool());
+}
+
 } // namespace
 
 int main(int argc, char* argv[])
@@ -277,5 +343,7 @@ int main(int argc, char* argv[])
     testBufferedRefreshPreservesTimelineUntilReveal();
     testReferencedPreviewHydratesReplyAndQuoteMetrics();
     testAuthenticatedProfilePresentationIsCached();
+    testInitialSetupPersistsAndDoesNotReturnAfterSignOut();
+    testSuccessfulAuthenticationCompletesInitialSetup();
     return 0;
 }

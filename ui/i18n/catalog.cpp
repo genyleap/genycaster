@@ -1000,6 +1000,12 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.your_farcaster_account");
     //% "Your Genyleap account"
     (void)qtTrId("genycaster.shell.your_genyleap_account");
+    //% "Set up Genycaster"
+    (void)qtTrId("genycaster.setup.title");
+    //% "Connect your Genyleap identity once. Genycaster will use its linked Farcaster account for your social profile and interactions."
+    (void)qtTrId("genycaster.setup.subtitle");
+    //% "Explore as guest"
+    (void)qtTrId("genycaster.setup.explore_as_guest");
     //% "Account"
     (void)qtTrId("genycaster.side_nav.account");
     //% "Bookmarks"
