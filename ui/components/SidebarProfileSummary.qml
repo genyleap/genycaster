@@ -21,7 +21,7 @@ Superellipse {
     readonly property string shownName: root.displayName.length > 0
                                         ? root.displayName
                                         : qsTrId("genycaster.side_nav.no_identity_open")
-    readonly property string shownUsername: root.username.length > 0 ? root.username : "guest"
+    readonly property string shownUsername: root.username
     readonly property bool verified: root.ownsDetail && Boolean(root.profileDetail.verified || false)
 
     implicitHeight: root.compact ? 52 : 60

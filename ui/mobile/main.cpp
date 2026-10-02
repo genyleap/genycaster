@@ -1022,7 +1022,7 @@ void applySocialState(PresentationBridge& bridge, application::read::model::Soci
 {
     switch (phase) {
     case application::session::SessionPhase::Guest:
-        return QStringLiteral("guest");
+        return QStringLiteral("signed-out");
     case application::session::SessionPhase::Starting:
         return QStringLiteral("starting");
     case application::session::SessionPhase::AwaitingApproval:
@@ -4026,7 +4026,23 @@ int main(int argc, char* argv[])
         sourceRecoveryTimer->start();
     }
     if (isSmokeTest || isVisualTest) {
-        presentationBridge.applyVerificationFixture();
+        const bool showInitialSetup =
+            isVisualTest && arguments.contains(QStringLiteral("--open-initial-setup"));
+        if (showInitialSetup) {
+            presentationBridge.applyRuntimeState(true);
+            presentationBridge.applyAuthenticationState(
+                true,
+                QStringLiteral("signed-out"),
+                0,
+                {},
+                {},
+                {},
+                {},
+                {},
+                {});
+        } else {
+            presentationBridge.applyVerificationFixture();
+        }
         if (isVisualTest && arguments.contains(QStringLiteral("--open-profile"))) {
             applyProfileVerificationFixture(presentationBridge);
         }

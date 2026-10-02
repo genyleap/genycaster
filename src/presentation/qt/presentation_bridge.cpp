@@ -592,8 +592,6 @@ PresentationBridge::PresentationBridge(QObject* const parent, QSettings* const s
       m_settings{settings}
 {
     if (m_settings != nullptr) {
-        m_initialSetupCompleted = m_settings->value(
-            QStringLiteral("setup/initialSetupCompleted"), false).toBool();
         m_feedPageSize = std::clamp(m_settings->value(QStringLiteral("read/feedPageSize"), 20).toInt(), 1, 100);
         m_contextHydrationLimit = std::clamp(
             m_settings->value(QStringLiteral("read/contextHydrationLimit"), 40).toInt(), 1, 100);
@@ -627,7 +625,7 @@ bool PresentationBridge::diagnosticsEnabled() const noexcept
 
 bool PresentationBridge::runtimeReady() const noexcept { return m_runtimeReady; }
 bool PresentationBridge::authenticationAvailable() const noexcept { return m_authenticationAvailable; }
-bool PresentationBridge::initialSetupRequired() const noexcept { return !m_initialSetupCompleted; }
+bool PresentationBridge::initialSetupRequired() const noexcept { return !m_isAuthenticated && !m_setupBypassedForVerification; }
 bool PresentationBridge::isAuthenticated() const noexcept { return m_isAuthenticated; }
 bool PresentationBridge::authenticationBusy() const noexcept
 {
@@ -1354,19 +1352,6 @@ QString PresentationBridge::contextualReactionIcon(const QString& text) const
     return resolveContextualReaction(text);
 }
 
-void PresentationBridge::completeInitialSetup()
-{
-    if (m_initialSetupCompleted) {
-        return;
-    }
-    m_initialSetupCompleted = true;
-    if (m_settings != nullptr) {
-        m_settings->setValue(QStringLiteral("setup/initialSetupCompleted"), true);
-        m_settings->sync();
-    }
-    emit setupStateChanged();
-}
-
 void PresentationBridge::beginSignIn()
 {
     if (!m_runtimeReady) {
@@ -1824,9 +1809,6 @@ void PresentationBridge::applyAuthenticationState(
     m_accountIdentityIssuer = m_isAuthenticated ? std::move(identityIssuer) : QString{};
     m_authenticationApprovalUrl = std::move(approvalUrl);
     m_authenticationErrorText = std::move(errorText);
-    if (m_isAuthenticated && !m_initialSetupCompleted) {
-        completeInitialSetup();
-    }
     if (!m_isAuthenticated || (previousAccountFid != 0 && previousAccountFid != m_accountFid)) {
         if (!m_writeRows.isEmpty() && !m_rows.isEmpty()) {
             QVariantList retained{};
@@ -2582,10 +2564,7 @@ void PresentationBridge::applyProfileFollowsMe(const qulonglong fid, const bool 
 
 void PresentationBridge::applyVerificationFixture()
 {
-    if (!m_initialSetupCompleted) {
-        m_initialSetupCompleted = true;
-        emit setupStateChanged();
-    }
+    m_setupBypassedForVerification = true;
     m_runtimeReady = true;
     m_hasReadActivity = true;
     m_feedStarted = true;
@@ -2607,5 +2586,6 @@ void PresentationBridge::applyVerificationFixture()
     };
     m_next = QStringLiteral("fixture-next");
     emit runtimeStateChanged();
+    emit authenticationStateChanged();
     emit stateChanged();
 }

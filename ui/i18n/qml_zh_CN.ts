@@ -275,8 +275,8 @@
             <translation>回复 Cast 前请先登录。</translation>
         </message>
         <message id="genycaster.bridge.sign_in_is_not_configured_guest_reading_remains_available">
-            <source>Sign in is not configured in this build. Guest reading remains available.</source>
-            <translation>此版本未配置登录。仍可继续以访客身份浏览。</translation>
+            <source>Sign in is not configured in this build. A verified account is required to continue.</source>
+            <translation>此构建未配置登录。继续操作需要已验证的账户。</translation>
         </message>
         <message id="genycaster.bridge.starting_local_read_runtime">
             <source>Starting local read runtime…</source>
@@ -899,8 +899,8 @@
             <translation>浏览“探索”</translation>
         </message>
         <message id="genycaster.empty.explore_is_temporarily_unavailable_open_an_identity_fo">
-            <source>Public discovery is temporarily unavailable. Stay in guest mode and retry; sign-in is only required for interactions.</source>
-            <translation>公开发现暂时不可用。你可以保持访客模式并重试；只有互动时才需要登录。</translation>
+            <source>Public discovery is temporarily unavailable. Retry when the service is available.</source>
+            <translation>公开发现暂时不可用。请在服务恢复后重试。</translation>
         </message>
         <message id="genycaster.empty.explore_is_temporarily_unavailable_your_home_feed_rema">
             <source>Explore is temporarily unavailable. Your Home feed remains independent while discovery recovers.</source>
@@ -2127,12 +2127,12 @@
             <translation>无法完成登录。</translation>
         </message>
         <message id="genycaster.runtime.sign_in_is_not_available_in_this_build_guest_reading_is_stil">
-            <source>Sign in is not available in this build. Guest reading is still available.</source>
-            <translation>此版本不支持登录。仍可继续以访客身份浏览。</translation>
+            <source>Sign in is not available in this build. A verified account is required to continue.</source>
+            <translation>此构建无法使用登录。继续操作需要已验证的账户。</translation>
         </message>
         <message id="genycaster.runtime.sign_in_is_temporarily_rate_limited_guest_reading_is_still_a">
-            <source>Sign in is temporarily rate limited. Guest reading is still available.</source>
-            <translation>登录暂时受到频率限制。仍可继续以访客身份浏览。</translation>
+            <source>Sign in is temporarily rate limited. Please wait a moment and try again.</source>
+            <translation>登录暂时受到速率限制。请稍候片刻再试。</translation>
         </message>
         <message id="genycaster.runtime.signer_attestation_not_configured">
             <source>Secure Genycaster client attribution is not configured yet. Reading remains available.</source>
@@ -2231,12 +2231,12 @@
             <translation>无法安全验证登录证明。</translation>
         </message>
         <message id="genycaster.runtime.the_sign_in_request_timed_out_guest_reading_is_still_availab">
-            <source>The sign-in request timed out. Guest reading is still available.</source>
-            <translation>登录请求超时。仍可继续以访客身份浏览。</translation>
+            <source>The sign-in request timed out. Try again.</source>
+            <translation>登录请求已超时。请重试。</translation>
         </message>
         <message id="genycaster.runtime.the_sign_in_service_is_temporarily_unavailable_guest_reading">
-            <source>The sign-in service is temporarily unavailable. Guest reading is still available.</source>
-            <translation>登录服务暂时不可用。仍可继续以访客身份浏览。</translation>
+            <source>The sign-in service is temporarily unavailable. Try again shortly.</source>
+            <translation>登录服务暂时不可用。请稍后再试。</translation>
         </message>
         <message id="genycaster.runtime.the_signer_authorization_configuration_is_invalid">
             <source>The signer authorization configuration is invalid.</source>
@@ -2255,8 +2255,8 @@
             <translation>此版本缺少所需的签名器能力或端点配置。</translation>
         </message>
         <message id="genycaster.runtime.this_build_is_missing_valid_sign_in_with_farcaster_app_confi">
-            <source>Sign-in configuration could not be used. Guest reading remains available.</source>
-            <translation>登录配置无法使用。仍可继续以访客身份浏览。</translation>
+            <source>Sign-in configuration could not be used. A verified account is required to continue.</source>
+            <translation>无法使用登录配置。继续操作需要已验证的账户。</translation>
         </message>
         <message id="genycaster.runtime.this_interaction_does_not_satisfy_the_current_farcaster_prot">
             <source>This interaction does not satisfy the current Farcaster protocol contract.</source>
@@ -2555,12 +2555,12 @@
             <translation>先保存到本地，再从网络刷新</translation>
         </message>
         <message id="genycaster.shell.sign_in_is_not_configured_in_this_build_guest_reading_">
-            <source>Sign in is not configured in this build. Guest reading remains fully available.</source>
-            <translation>此版本未配置登录。访客浏览仍完全可用。</translation>
+            <source>Sign in is not configured in this build. Genycaster requires a verified account to continue.</source>
+            <translation>此构建未配置登录。Genycaster 要求使用已验证的账户才能继续。</translation>
         </message>
         <message id="genycaster.shell.sign_in_to_interact">
-            <source>Sign in to interact</source>
-            <translation>登录后互动</translation>
+            <source>Sign in to continue</source>
+            <translation>登录以继续</translation>
         </message>
         <message id="genycaster.shell.sign_in_with_farcaster">
             <source>Sign in with Farcaster</source>
@@ -2595,8 +2595,8 @@
             <translation>有什么新鲜事？</translation>
         </message>
         <message id="genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_">
-            <source>You can keep reading Genycaster as a guest. Sign in is required before Like, Recast, Reply, Follow, or Publish; protocol signing is a separate security step.</source>
-            <translation>你可以继续以访客身份浏览 Genycaster。点赞、转发、回复、关注或发布前需要登录；协议签名是独立的安全步骤。</translation>
+            <source>A verified account is required to use Genycaster. Continue with Genyleap/OpenProof or Farcaster to finish setup.</source>
+            <translation>使用 Genycaster 需要已验证的账户。请通过 Genyleap/OpenProof 或 Farcaster 继续完成设置。</translation>
         </message>
         <message id="genycaster.shell.your_farcaster_account">
             <source>Your Farcaster account</source>
@@ -3295,8 +3295,8 @@
             <translation>关联您的 Farcaster 账户</translation>
         </message>
         <message id="genycaster.shell.genyleap_verified_link_farcaster_to_continue">
-            <source>Your Genyleap account is verified. Link Farcaster to continue using Genycaster.</source>
-            <translation>您的 Genyleap 账户已验证。关联 Farcaster 后即可继续使用 Genycaster。</translation>
+            <source>Connect your Farcaster identity to continue. Genycaster requires it for your profile and protocol actions.</source>
+            <translation>连接你的 Farcaster 身份以继续。Genycaster 的个人资料和协议操作需要该身份。</translation>
         </message>
         <message id="genycaster.shell.verified_by_openproof">
             <source>Verified by OpenProof</source>
@@ -3311,12 +3311,8 @@
             <translation>设置 Genycaster</translation>
         </message>
         <message id="genycaster.setup.subtitle">
-            <source>Connect your Genyleap identity once. Genycaster will use its linked Farcaster account for your social profile and interactions.</source>
-            <translation>只需连接一次 Genyleap 身份。Genycaster 会使用已关联的 Farcaster 账户作为你的社交资料和互动身份。</translation>
-        </message>
-        <message id="genycaster.setup.explore_as_guest">
-            <source>Explore as guest</source>
-            <translation>以访客身份浏览</translation>
+            <source>Sign in to continue. OpenProof verifies your Genyleap identity, and a linked Farcaster account is required for Genycaster.</source>
+            <translation>请登录以继续。OpenProof 会验证你的 Genyleap 身份，Genycaster 还需要已关联的 Farcaster 账户。</translation>
         </message>
     </context>
 </TS>

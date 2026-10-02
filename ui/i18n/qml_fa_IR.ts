@@ -275,8 +275,8 @@
             <translation>پیش از پاسخ به کست وارد شوید.</translation>
         </message>
         <message id="genycaster.bridge.sign_in_is_not_configured_guest_reading_remains_available">
-            <source>Sign in is not configured in this build. Guest reading remains available.</source>
-            <translation>ورود به حساب در این بیلد پیکربندی نشده است. خواندن به‌صورت مهمان همچنان در دسترس است.</translation>
+            <source>Sign in is not configured in this build. A verified account is required to continue.</source>
+            <translation>ورود در این نسخه پیکربندی نشده است. برای ادامه به یک حساب تأییدشده نیاز دارید.</translation>
         </message>
         <message id="genycaster.bridge.starting_local_read_runtime">
             <source>Starting local read runtime…</source>
@@ -899,8 +899,8 @@
             <translation>مرور کاوش</translation>
         </message>
         <message id="genycaster.empty.explore_is_temporarily_unavailable_open_an_identity_fo">
-            <source>Public discovery is temporarily unavailable. Stay in guest mode and retry; sign-in is only required for interactions.</source>
-            <translation>کاوش عمومی موقتاً در دسترس نیست. می‌توانید مهمان بمانید و دوباره تلاش کنید؛ ورود فقط برای تعامل لازم است.</translation>
+            <source>Public discovery is temporarily unavailable. Retry when the service is available.</source>
+            <translation>کاوش عمومی موقتاً در دسترس نیست. وقتی سرویس در دسترس شد دوباره تلاش کنید.</translation>
         </message>
         <message id="genycaster.empty.explore_is_temporarily_unavailable_your_home_feed_rema">
             <source>Explore is temporarily unavailable. Your Home feed remains independent while discovery recovers.</source>
@@ -2127,12 +2127,12 @@
             <translation>ورود کامل نشد.</translation>
         </message>
         <message id="genycaster.runtime.sign_in_is_not_available_in_this_build_guest_reading_is_stil">
-            <source>Sign in is not available in this build. Guest reading is still available.</source>
-            <translation>ورود در این ساخت در دسترس نیست. خواندن به‌عنوان مهمان همچنان در دسترس است.</translation>
+            <source>Sign in is not available in this build. A verified account is required to continue.</source>
+            <translation>ورود در این نسخه در دسترس نیست. برای ادامه به یک حساب تأییدشده نیاز دارید.</translation>
         </message>
         <message id="genycaster.runtime.sign_in_is_temporarily_rate_limited_guest_reading_is_still_a">
-            <source>Sign in is temporarily rate limited. Guest reading is still available.</source>
-            <translation>ورود موقتاً محدود شده است. خواندن مهمان همچنان در دسترس است.</translation>
+            <source>Sign in is temporarily rate limited. Please wait a moment and try again.</source>
+            <translation>ورود موقتاً با محدودیت نرخ مواجه شده است. کمی صبر کنید و دوباره تلاش کنید.</translation>
         </message>
         <message id="genycaster.runtime.signer_attestation_not_configured">
             <source>Secure Genycaster client attribution is not configured yet. Reading remains available.</source>
@@ -2231,12 +2231,12 @@
             <translation>اثبات ورود به‌صورت امن قابل اعتبارسنجی نبود.</translation>
         </message>
         <message id="genycaster.runtime.the_sign_in_request_timed_out_guest_reading_is_still_availab">
-            <source>The sign-in request timed out. Guest reading is still available.</source>
-            <translation>زمان درخواست ورود به پایان رسید. خواندن مهمان همچنان در دسترس است.</translation>
+            <source>The sign-in request timed out. Try again.</source>
+            <translation>مهلت درخواست ورود به پایان رسید. دوباره تلاش کنید.</translation>
         </message>
         <message id="genycaster.runtime.the_sign_in_service_is_temporarily_unavailable_guest_reading">
-            <source>The sign-in service is temporarily unavailable. Guest reading is still available.</source>
-            <translation>سرویس ورود موقتاً در دسترس نیست. خواندن مهمان همچنان در دسترس است.</translation>
+            <source>The sign-in service is temporarily unavailable. Try again shortly.</source>
+            <translation>سرویس ورود موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید.</translation>
         </message>
         <message id="genycaster.runtime.the_signer_authorization_configuration_is_invalid">
             <source>The signer authorization configuration is invalid.</source>
@@ -2255,8 +2255,8 @@
             <translation>این ساخت فاقد قابلیت لازم امضاکننده یا پیکربندی نقطهٔ پایانی است.</translation>
         </message>
         <message id="genycaster.runtime.this_build_is_missing_valid_sign_in_with_farcaster_app_confi">
-            <source>Sign-in configuration could not be used. Guest reading remains available.</source>
-            <translation>پیکربندی ورود قابل استفاده نیست. مطالعه در حالت مهمان همچنان در دسترس است.</translation>
+            <source>Sign-in configuration could not be used. A verified account is required to continue.</source>
+            <translation>پیکربندی ورود قابل استفاده نیست. برای ادامه به یک حساب تأییدشده نیاز دارید.</translation>
         </message>
         <message id="genycaster.runtime.this_interaction_does_not_satisfy_the_current_farcaster_prot">
             <source>This interaction does not satisfy the current Farcaster protocol contract.</source>
@@ -2555,12 +2555,12 @@
             <translation>ابتدا محلی ذخیره می‌شود، سپس از شبکه تازه‌سازی می‌شود</translation>
         </message>
         <message id="genycaster.shell.sign_in_is_not_configured_in_this_build_guest_reading_">
-            <source>Sign in is not configured in this build. Guest reading remains fully available.</source>
-            <translation>ورود در این ساخت پیکربندی نشده است. خواندن مهمان کاملاً در دسترس می‌ماند.</translation>
+            <source>Sign in is not configured in this build. Genycaster requires a verified account to continue.</source>
+            <translation>ورود در این نسخه پیکربندی نشده است. برای ادامه در Genycaster به یک حساب تأییدشده نیاز دارید.</translation>
         </message>
         <message id="genycaster.shell.sign_in_to_interact">
-            <source>Sign in to interact</source>
-            <translation>برای تعامل وارد شوید</translation>
+            <source>Sign in to continue</source>
+            <translation>برای ادامه وارد شوید</translation>
         </message>
         <message id="genycaster.shell.sign_in_with_farcaster">
             <source>Sign in with Farcaster</source>
@@ -2595,8 +2595,8 @@
             <translation>چه خبر؟</translation>
         </message>
         <message id="genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_">
-            <source>You can keep reading Genycaster as a guest. Sign in is required before Like, Recast, Reply, Follow, or Publish; protocol signing is a separate security step.</source>
-            <translation>می‌توانید به‌عنوان مهمان به خواندن Genycaster ادامه دهید. برای پسند، بازنشر، پاسخ، دنبال‌کردن یا انتشار باید وارد شوید؛ امضای پروتکل یک مرحلهٔ امنیتی جداگانه است.</translation>
+            <source>A verified account is required to use Genycaster. Continue with Genyleap/OpenProof or Farcaster to finish setup.</source>
+            <translation>برای استفاده از Genycaster به یک حساب تأییدشده نیاز دارید. برای تکمیل راه‌اندازی با Genyleap/OpenProof یا Farcaster ادامه دهید.</translation>
         </message>
         <message id="genycaster.shell.your_farcaster_account">
             <source>Your Farcaster account</source>
@@ -3295,8 +3295,8 @@
             <translation>حساب Farcaster خود را لینک کنید</translation>
         </message>
         <message id="genycaster.shell.genyleap_verified_link_farcaster_to_continue">
-            <source>Your Genyleap account is verified. Link Farcaster to continue using Genycaster.</source>
-            <translation>حساب Genyleap شما تأیید شده است. برای ادامه استفاده از Genycaster، Farcaster را لینک کنید.</translation>
+            <source>Connect your Farcaster identity to continue. Genycaster requires it for your profile and protocol actions.</source>
+            <translation>برای ادامه، هویت Farcaster خود را متصل کنید. Genycaster برای پروفایل و عملیات پروتکل به آن نیاز دارد.</translation>
         </message>
         <message id="genycaster.shell.verified_by_openproof">
             <source>Verified by OpenProof</source>
@@ -3311,12 +3311,8 @@
             <translation>راه‌اندازی Genycaster</translation>
         </message>
         <message id="genycaster.setup.subtitle">
-            <source>Connect your Genyleap identity once. Genycaster will use its linked Farcaster account for your social profile and interactions.</source>
-            <translation>یک‌بار هویت Genyleap خود را متصل کنید. Genycaster از حساب Farcaster پیوندخورده برای پروفایل اجتماعی و تعاملات شما استفاده می‌کند.</translation>
-        </message>
-        <message id="genycaster.setup.explore_as_guest">
-            <source>Explore as guest</source>
-            <translation>کاوش به‌عنوان مهمان</translation>
+            <source>Sign in to continue. OpenProof verifies your Genyleap identity, and a linked Farcaster account is required for Genycaster.</source>
+            <translation>برای ادامه وارد شوید. OpenProof هویت Genyleap شما را تأیید می‌کند و برای Genycaster یک حساب Farcaster پیوندشده لازم است.</translation>
         </message>
     </context>
 </TS>

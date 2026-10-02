@@ -274,11 +274,11 @@ if re.search(r'RichText\s*\{[^{}]*onAuthenticationRequested\s*:', profile_surfac
     errors.append('Profile RichText cannot handle authenticationRequested; route auth only through interactive controls')
 empty_state = (ui/'components'/'EmptyState.qml').read_text(encoding='utf-8')
 if 'visible: root.idleHome || root.trendingUnavailable' in empty_state:
-    errors.append('Guest Explore source failure must not expose identity as a recovery action')
+    errors.append('Signed-out Explore source failure must not expose identity as a recovery action')
 
 app_shell = (ui/'components'/'AppShell.qml').read_text(encoding='utf-8')
-if 'passiveGuestDiscoveryFailure' not in app_shell:
-    errors.append('Guest Explore source failures must stay inline instead of becoming a global status warning')
+if 'passiveSignedOutDiscoveryFailure' not in app_shell:
+    errors.append('Signed-out Explore source failures must stay inline instead of becoming a global status warning')
 if ('property bool notificationBusySnapshot: false' not in app_shell
         or 'busy: root.notificationBusySnapshot' not in app_shell
         or 'function onNotificationsChanged()' not in app_shell):

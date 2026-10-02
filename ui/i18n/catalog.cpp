@@ -278,7 +278,7 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.bridge.sign_in_before_publishing_a_cast");
     //% "Sign in before replying to a cast."
     (void)qtTrId("genycaster.bridge.sign_in_before_replying_to_a_cast");
-    //% "Sign in is not configured in this build. Guest reading remains available."
+    //% "Sign in is not configured in this build. A verified account is required to continue."
     (void)qtTrId("genycaster.bridge.sign_in_is_not_configured_guest_reading_remains_available");
     //% "Starting local read runtime…"
     (void)qtTrId("genycaster.bridge.starting_local_read_runtime");
@@ -418,7 +418,7 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.embed.view_quoted_cast_next");
     //% "Browse Explore"
     (void)qtTrId("genycaster.empty.browse_explore");
-    //% "Public discovery is temporarily unavailable. Stay in guest mode and retry; sign-in is only required for interactions."
+    //% "Public discovery is temporarily unavailable. Retry when the service is available."
     (void)qtTrId("genycaster.empty.explore_is_temporarily_unavailable_open_an_identity_fo");
     //% "Explore is temporarily unavailable. Your Home feed remains independent while discovery recovers."
     (void)qtTrId("genycaster.empty.explore_is_temporarily_unavailable_your_home_feed_rema");
@@ -788,9 +788,9 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.runtime.sign_in_before_enabling_interactions");
     //% "Sign in could not be completed."
     (void)qtTrId("genycaster.runtime.sign_in_could_not_be_completed");
-    //% "Sign in is not available in this build. Guest reading is still available."
+    //% "Sign in is not available in this build. A verified account is required to continue."
     (void)qtTrId("genycaster.runtime.sign_in_is_not_available_in_this_build_guest_reading_is_stil");
-    //% "Sign in is temporarily rate limited. Guest reading is still available."
+    //% "Sign in is temporarily rate limited. Please wait a moment and try again."
     (void)qtTrId("genycaster.runtime.sign_in_is_temporarily_rate_limited_guest_reading_is_still_a");
     //% "Secure Genycaster client attribution is not configured yet. Reading remains available."
     (void)qtTrId("genycaster.runtime.signer_attestation_not_configured");
@@ -840,9 +840,9 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.runtime.the_selected_source_rejected_this_read");
     //% "The sign-in proof could not be validated safely."
     (void)qtTrId("genycaster.runtime.the_sign_in_proof_could_not_be_validated_safely");
-    //% "The sign-in request timed out. Guest reading is still available."
+    //% "The sign-in request timed out. Try again."
     (void)qtTrId("genycaster.runtime.the_sign_in_request_timed_out_guest_reading_is_still_availab");
-    //% "The sign-in service is temporarily unavailable. Guest reading is still available."
+    //% "The sign-in service is temporarily unavailable. Try again shortly."
     (void)qtTrId("genycaster.runtime.the_sign_in_service_is_temporarily_unavailable_guest_reading");
     //% "The signer authorization configuration is invalid."
     (void)qtTrId("genycaster.runtime.the_signer_authorization_configuration_is_invalid");
@@ -852,7 +852,7 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.runtime.the_write_could_not_be_saved_safely_to_the_durable_outbox");
     //% "This build is missing a required signer capability or endpoint configuration."
     (void)qtTrId("genycaster.runtime.this_build_is_missing_a_required_signer_capability_or_endpoi");
-    //% "Sign-in configuration could not be used. Guest reading remains available."
+    //% "Sign-in configuration could not be used. A verified account is required to continue."
     (void)qtTrId("genycaster.runtime.this_build_is_missing_valid_sign_in_with_farcaster_app_confi");
     //% "This interaction does not satisfy the current Farcaster protocol contract."
     (void)qtTrId("genycaster.runtime.this_interaction_does_not_satisfy_the_current_farcaster_prot");
@@ -958,9 +958,9 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.revoking");
     //% "Saved locally first, then refreshed from the network"
     (void)qtTrId("genycaster.shell.saved_locally_first_then_refreshed_from_the_network");
-    //% "Sign in is not configured in this build. Guest reading remains fully available."
+    //% "Sign in is not configured in this build. Genycaster requires a verified account to continue."
     (void)qtTrId("genycaster.shell.sign_in_is_not_configured_in_this_build_guest_reading_");
-    //% "Sign in to interact"
+    //% "Sign in to continue"
     (void)qtTrId("genycaster.shell.sign_in_to_interact");
     //% "Sign in with Farcaster"
     (void)qtTrId("genycaster.shell.sign_in_with_farcaster");
@@ -974,7 +974,7 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.approve_genyleap_sign_in_in_your_browser");
     //% "Link your Farcaster account"
     (void)qtTrId("genycaster.shell.link_your_farcaster_account");
-    //% "Your Genyleap account is verified. Link Farcaster to continue using Genycaster."
+    //% "Connect your Farcaster identity to continue. Genycaster requires it for your profile and protocol actions."
     (void)qtTrId("genycaster.shell.genyleap_verified_link_farcaster_to_continue");
     //% "Verified by OpenProof"
     (void)qtTrId("genycaster.shell.verified_by_openproof");
@@ -994,7 +994,7 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.try_again");
     //% "What’s happening?"
     (void)qtTrId("genycaster.shell.whats_happening");
-    //% "You can keep reading Genycaster as a guest. Sign in is required before Like, Recast, Reply, Follow, or Publish; protocol signing is a separate security step."
+    //% "A verified account is required to use Genycaster. Continue with Genyleap/OpenProof or Farcaster to finish setup."
     (void)qtTrId("genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_");
     //% "Your Farcaster account"
     (void)qtTrId("genycaster.shell.your_farcaster_account");
@@ -1002,10 +1002,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.your_genyleap_account");
     //% "Set up Genycaster"
     (void)qtTrId("genycaster.setup.title");
-    //% "Connect your Genyleap identity once. Genycaster will use its linked Farcaster account for your social profile and interactions."
+    //% "Sign in to continue. OpenProof verifies your Genyleap identity, and a linked Farcaster account is required for Genycaster."
     (void)qtTrId("genycaster.setup.subtitle");
-    //% "Explore as guest"
-    (void)qtTrId("genycaster.setup.explore_as_guest");
     //% "Account"
     (void)qtTrId("genycaster.side_nav.account");
     //% "Bookmarks"

@@ -275,8 +275,8 @@
             <translation>Cast का उत्तर देने से पहले साइन इन करें।</translation>
         </message>
         <message id="genycaster.bridge.sign_in_is_not_configured_guest_reading_remains_available">
-            <source>Sign in is not configured in this build. Guest reading remains available.</source>
-            <translation>इस बिल्ड में साइन इन कॉन्फ़िगर नहीं है। अतिथि के रूप में पढ़ना उपलब्ध रहेगा।</translation>
+            <source>Sign in is not configured in this build. A verified account is required to continue.</source>
+            <translation>इस बिल्ड में साइन-इन कॉन्फ़िगर नहीं है। आगे बढ़ने के लिए सत्यापित खाता आवश्यक है।</translation>
         </message>
         <message id="genycaster.bridge.starting_local_read_runtime">
             <source>Starting local read runtime…</source>
@@ -899,8 +899,8 @@
             <translation>Explore ब्राउज़ करें</translation>
         </message>
         <message id="genycaster.empty.explore_is_temporarily_unavailable_open_an_identity_fo">
-            <source>Public discovery is temporarily unavailable. Stay in guest mode and retry; sign-in is only required for interactions.</source>
-            <translation>सार्वजनिक खोज अस्थायी रूप से उपलब्ध नहीं है। अतिथि मोड में रहें और फिर प्रयास करें; साइन इन केवल इंटरैक्शन के लिए आवश्यक है।</translation>
+            <source>Public discovery is temporarily unavailable. Retry when the service is available.</source>
+            <translation>सार्वजनिक खोज अस्थायी रूप से उपलब्ध नहीं है। सेवा उपलब्ध होने पर फिर से प्रयास करें।</translation>
         </message>
         <message id="genycaster.empty.explore_is_temporarily_unavailable_your_home_feed_rema">
             <source>Explore is temporarily unavailable. Your Home feed remains independent while discovery recovers.</source>
@@ -2127,12 +2127,12 @@
             <translation>साइन इन पूरा नहीं हो सका।</translation>
         </message>
         <message id="genycaster.runtime.sign_in_is_not_available_in_this_build_guest_reading_is_stil">
-            <source>Sign in is not available in this build. Guest reading is still available.</source>
-            <translation>इस बिल्ड में साइन इन उपलब्ध नहीं है। अतिथि पढ़ना उपलब्ध रहेगा।</translation>
+            <source>Sign in is not available in this build. A verified account is required to continue.</source>
+            <translation>इस बिल्ड में साइन-इन उपलब्ध नहीं है। आगे बढ़ने के लिए सत्यापित खाता आवश्यक है।</translation>
         </message>
         <message id="genycaster.runtime.sign_in_is_temporarily_rate_limited_guest_reading_is_still_a">
-            <source>Sign in is temporarily rate limited. Guest reading is still available.</source>
-            <translation>साइन इन पर अस्थायी दर सीमा है। अतिथि पढ़ना उपलब्ध रहेगा।</translation>
+            <source>Sign in is temporarily rate limited. Please wait a moment and try again.</source>
+            <translation>साइन-इन पर अस्थायी दर-सीमा लागू है। थोड़ी देर प्रतीक्षा करें और फिर प्रयास करें।</translation>
         </message>
         <message id="genycaster.runtime.signer_attestation_not_configured">
             <source>Secure Genycaster client attribution is not configured yet. Reading remains available.</source>
@@ -2231,12 +2231,12 @@
             <translation>साइन-इन प्रमाण सुरक्षित रूप से मान्य नहीं किया जा सका।</translation>
         </message>
         <message id="genycaster.runtime.the_sign_in_request_timed_out_guest_reading_is_still_availab">
-            <source>The sign-in request timed out. Guest reading is still available.</source>
-            <translation>साइन-इन अनुरोध का समय समाप्त हो गया। अतिथि पढ़ना उपलब्ध रहेगा।</translation>
+            <source>The sign-in request timed out. Try again.</source>
+            <translation>साइन-इन अनुरोध का समय समाप्त हो गया। फिर से प्रयास करें।</translation>
         </message>
         <message id="genycaster.runtime.the_sign_in_service_is_temporarily_unavailable_guest_reading">
-            <source>The sign-in service is temporarily unavailable. Guest reading is still available.</source>
-            <translation>साइन-इन सेवा अस्थायी रूप से उपलब्ध नहीं है। अतिथि पढ़ना उपलब्ध रहेगा।</translation>
+            <source>The sign-in service is temporarily unavailable. Try again shortly.</source>
+            <translation>साइन-इन सेवा अस्थायी रूप से उपलब्ध नहीं है। थोड़ी देर बाद फिर प्रयास करें।</translation>
         </message>
         <message id="genycaster.runtime.the_signer_authorization_configuration_is_invalid">
             <source>The signer authorization configuration is invalid.</source>
@@ -2255,8 +2255,8 @@
             <translation>इस बिल्ड में आवश्यक signer क्षमता या endpoint कॉन्फ़िगरेशन नहीं है।</translation>
         </message>
         <message id="genycaster.runtime.this_build_is_missing_valid_sign_in_with_farcaster_app_confi">
-            <source>Sign-in configuration could not be used. Guest reading remains available.</source>
-            <translation>साइन-इन कॉन्फ़िगरेशन उपयोग नहीं किया जा सका। अतिथि पढ़ना उपलब्ध रहेगा।</translation>
+            <source>Sign-in configuration could not be used. A verified account is required to continue.</source>
+            <translation>साइन-इन कॉन्फ़िगरेशन का उपयोग नहीं किया जा सका। आगे बढ़ने के लिए सत्यापित खाता आवश्यक है।</translation>
         </message>
         <message id="genycaster.runtime.this_interaction_does_not_satisfy_the_current_farcaster_prot">
             <source>This interaction does not satisfy the current Farcaster protocol contract.</source>
@@ -2555,12 +2555,12 @@
             <translation>पहले स्थानीय रूप से सहेजा, फिर नेटवर्क से रीफ़्रेश किया</translation>
         </message>
         <message id="genycaster.shell.sign_in_is_not_configured_in_this_build_guest_reading_">
-            <source>Sign in is not configured in this build. Guest reading remains fully available.</source>
-            <translation>इस बिल्ड में साइन इन कॉन्फ़िगर नहीं है। अतिथि पढ़ना पूरी तरह उपलब्ध रहेगा।</translation>
+            <source>Sign in is not configured in this build. Genycaster requires a verified account to continue.</source>
+            <translation>इस बिल्ड में साइन-इन कॉन्फ़िगर नहीं है। Genycaster में आगे बढ़ने के लिए सत्यापित खाता आवश्यक है।</translation>
         </message>
         <message id="genycaster.shell.sign_in_to_interact">
-            <source>Sign in to interact</source>
-            <translation>इंटरैक्ट करने के लिए साइन इन करें</translation>
+            <source>Sign in to continue</source>
+            <translation>आगे बढ़ने के लिए साइन इन करें</translation>
         </message>
         <message id="genycaster.shell.sign_in_with_farcaster">
             <source>Sign in with Farcaster</source>
@@ -2595,8 +2595,8 @@
             <translation>क्या हो रहा है?</translation>
         </message>
         <message id="genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_">
-            <source>You can keep reading Genycaster as a guest. Sign in is required before Like, Recast, Reply, Follow, or Publish; protocol signing is a separate security step.</source>
-            <translation>आप Genycaster को अतिथि के रूप में पढ़ते रह सकते हैं। Like, Recast, Reply, Follow या Publish से पहले साइन इन आवश्यक है; प्रोटोकॉल signing एक अलग सुरक्षा चरण है।</translation>
+            <source>A verified account is required to use Genycaster. Continue with Genyleap/OpenProof or Farcaster to finish setup.</source>
+            <translation>Genycaster का उपयोग करने के लिए सत्यापित खाता आवश्यक है। सेटअप पूरा करने के लिए Genyleap/OpenProof या Farcaster के साथ आगे बढ़ें।</translation>
         </message>
         <message id="genycaster.shell.your_farcaster_account">
             <source>Your Farcaster account</source>
@@ -3295,8 +3295,8 @@
             <translation>अपना Farcaster खाता लिंक करें</translation>
         </message>
         <message id="genycaster.shell.genyleap_verified_link_farcaster_to_continue">
-            <source>Your Genyleap account is verified. Link Farcaster to continue using Genycaster.</source>
-            <translation>आपका Genyleap खाता सत्यापित है। Genycaster का उपयोग जारी रखने के लिए Farcaster लिंक करें।</translation>
+            <source>Connect your Farcaster identity to continue. Genycaster requires it for your profile and protocol actions.</source>
+            <translation>आगे बढ़ने के लिए अपनी Farcaster पहचान कनेक्ट करें। Genycaster को आपके प्रोफ़ाइल और प्रोटोकॉल क्रियाओं के लिए इसकी आवश्यकता है।</translation>
         </message>
         <message id="genycaster.shell.verified_by_openproof">
             <source>Verified by OpenProof</source>
@@ -3311,12 +3311,8 @@
             <translation>Genycaster सेट अप करें</translation>
         </message>
         <message id="genycaster.setup.subtitle">
-            <source>Connect your Genyleap identity once. Genycaster will use its linked Farcaster account for your social profile and interactions.</source>
-            <translation>अपनी Genyleap पहचान को एक बार कनेक्ट करें। Genycaster आपके सोशल प्रोफ़ाइल और इंटरैक्शन के लिए लिंक किए गए Farcaster खाते का उपयोग करेगा।</translation>
-        </message>
-        <message id="genycaster.setup.explore_as_guest">
-            <source>Explore as guest</source>
-            <translation>अतिथि के रूप में देखें</translation>
+            <source>Sign in to continue. OpenProof verifies your Genyleap identity, and a linked Farcaster account is required for Genycaster.</source>
+            <translation>आगे बढ़ने के लिए साइन इन करें। OpenProof आपकी Genyleap पहचान सत्यापित करता है, और Genycaster के लिए लिंक किया हुआ Farcaster खाता आवश्यक है।</translation>
         </message>
     </context>
 </TS>

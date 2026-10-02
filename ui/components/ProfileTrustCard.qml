@@ -42,7 +42,7 @@ Superellipse {
                                                     : root.fallbackTrustSource
     readonly property string shownName: root.displayName.length > 0
                                         ? root.displayName : qsTrId("genycaster.side_nav.no_identity_open")
-    readonly property string shownUsername: root.username.length > 0 ? root.username : "guest"
+    readonly property string shownUsername: root.username.length > 0 ? root.username : "genycaster"
     readonly property real contentPadding: root.compact ? Theme.space3 : Theme.space4
     readonly property real faceHeight: Math.max(frontContent.implicitHeight, backContent.implicitHeight, root.compact ? 194 : 218)
 

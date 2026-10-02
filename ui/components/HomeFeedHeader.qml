@@ -56,7 +56,7 @@ Item {
 
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    readonly property string guestName: root.displayName.length > 0
+                    readonly property string greetingName: root.displayName.length > 0
                                                                ? root.displayName : qsTrId("genycaster.app.genycaster")
                     text: (root.localHour < 5
                            ? qsTrId("genycaster.home.greeting_night")
@@ -66,7 +66,7 @@ Item {
                                ? qsTrId("genycaster.home.greeting_afternoon")
                                : root.localHour < 21
                                  ? qsTrId("genycaster.home.greeting_evening")
-                                 : qsTrId("genycaster.home.greeting_night")).arg(guestName)
+                                 : qsTrId("genycaster.home.greeting_night")).arg(greetingName)
                     color: Theme.textPrimary
                     font.pixelSize: root.compact ? Theme.typeTitle3Size : Theme.typeTitle2Size
                     font.weight: Theme.weightBold

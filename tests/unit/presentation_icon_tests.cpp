@@ -265,49 +265,7 @@ void testAuthenticatedProfilePresentationIsCached()
         == QStringLiteral("neynar"));
 }
 
-void testInitialSetupPersistsAndDoesNotReturnAfterSignOut()
-{
-    QTemporaryDir directory{};
-    assert(directory.isValid());
-    const QString settingsPath = directory.filePath(QStringLiteral("setup.ini"));
-    QSettings settings{settingsPath, QSettings::IniFormat};
-
-    {
-        PresentationBridge bridge{nullptr, &settings};
-        assert(bridge.initialSetupRequired());
-        bridge.completeInitialSetup();
-        assert(!bridge.initialSetupRequired());
-        bridge.applyAuthenticationState(
-            true,
-            QStringLiteral("authenticated"),
-            42,
-            {},
-            {},
-            {},
-            QStringLiteral("https://openproof.genyleap.com"),
-            {},
-            {});
-        bridge.applyAuthenticationState(
-            true,
-            QStringLiteral("guest"),
-            0,
-            {},
-            {},
-            {},
-            {},
-            {},
-            {});
-        assert(!bridge.initialSetupRequired());
-    }
-
-    settings.sync();
-    assert(settings.value(QStringLiteral("setup/initialSetupCompleted")).toBool());
-
-    PresentationBridge restored{nullptr, &settings};
-    assert(!restored.initialSetupRequired());
-}
-
-void testSuccessfulAuthenticationCompletesInitialSetup()
+void testInitialSetupRequiresAuthenticatedSession()
 {
     QTemporaryDir directory{};
     assert(directory.isValid());
@@ -316,6 +274,7 @@ void testSuccessfulAuthenticationCompletesInitialSetup()
 
     PresentationBridge bridge{nullptr, &settings};
     assert(bridge.initialSetupRequired());
+
     bridge.applyAuthenticationState(
         true,
         QStringLiteral("authenticated"),
@@ -327,8 +286,21 @@ void testSuccessfulAuthenticationCompletesInitialSetup()
         {},
         {});
     assert(!bridge.initialSetupRequired());
+
+    bridge.applyAuthenticationState(
+        true,
+        QStringLiteral("signed-out"),
+        0,
+        {},
+        {},
+        {},
+        {},
+        {},
+        {});
+    assert(bridge.initialSetupRequired());
+
     settings.sync();
-    assert(settings.value(QStringLiteral("setup/initialSetupCompleted")).toBool());
+    assert(!settings.contains(QStringLiteral("setup/initialSetupCompleted")));
 }
 
 } // namespace
@@ -343,7 +315,6 @@ int main(int argc, char* argv[])
     testBufferedRefreshPreservesTimelineUntilReveal();
     testReferencedPreviewHydratesReplyAndQuoteMetrics();
     testAuthenticatedProfilePresentationIsCached();
-    testInitialSetupPersistsAndDoesNotReturnAfterSignOut();
-    testSuccessfulAuthenticationCompletesInitialSetup();
+    testInitialSetupRequiresAuthenticatedSession();
     return 0;
 }

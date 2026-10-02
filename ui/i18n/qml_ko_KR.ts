@@ -275,8 +275,8 @@
             <translation>캐스트에 답글을 달기 전에 로그인하세요.</translation>
         </message>
         <message id="genycaster.bridge.sign_in_is_not_configured_guest_reading_remains_available">
-            <source>Sign in is not configured in this build. Guest reading remains available.</source>
-            <translation>이 빌드에는 로그인이 구성되어 있지 않습니다. 게스트 읽기는 계속 사용할 수 있습니다.</translation>
+            <source>Sign in is not configured in this build. A verified account is required to continue.</source>
+            <translation>이 빌드에는 로그인이 구성되어 있지 않습니다. 계속하려면 인증된 계정이 필요합니다.</translation>
         </message>
         <message id="genycaster.bridge.starting_local_read_runtime">
             <source>Starting local read runtime…</source>
@@ -899,8 +899,8 @@
             <translation>탐색 둘러보기</translation>
         </message>
         <message id="genycaster.empty.explore_is_temporarily_unavailable_open_an_identity_fo">
-            <source>Public discovery is temporarily unavailable. Stay in guest mode and retry; sign-in is only required for interactions.</source>
-            <translation>공개 탐색을 일시적으로 사용할 수 없습니다. 게스트 모드에서 재시도할 수 있으며, 로그인은 상호작용할 때만 필요합니다.</translation>
+            <source>Public discovery is temporarily unavailable. Retry when the service is available.</source>
+            <translation>공개 탐색을 일시적으로 사용할 수 없습니다. 서비스가 사용 가능해지면 다시 시도하세요.</translation>
         </message>
         <message id="genycaster.empty.explore_is_temporarily_unavailable_your_home_feed_rema">
             <source>Explore is temporarily unavailable. Your Home feed remains independent while discovery recovers.</source>
@@ -2127,12 +2127,12 @@
             <translation>로그인을 완료할 수 없습니다.</translation>
         </message>
         <message id="genycaster.runtime.sign_in_is_not_available_in_this_build_guest_reading_is_stil">
-            <source>Sign in is not available in this build. Guest reading is still available.</source>
-            <translation>이 빌드에서는 로그인을 사용할 수 없습니다. 게스트 읽기는 계속 사용할 수 있습니다.</translation>
+            <source>Sign in is not available in this build. A verified account is required to continue.</source>
+            <translation>이 빌드에서는 로그인을 사용할 수 없습니다. 계속하려면 인증된 계정이 필요합니다.</translation>
         </message>
         <message id="genycaster.runtime.sign_in_is_temporarily_rate_limited_guest_reading_is_still_a">
-            <source>Sign in is temporarily rate limited. Guest reading is still available.</source>
-            <translation>로그인이 일시적으로 속도 제한되었습니다. 게스트 읽기는 계속 사용할 수 있습니다.</translation>
+            <source>Sign in is temporarily rate limited. Please wait a moment and try again.</source>
+            <translation>로그인이 일시적으로 요청 제한 상태입니다. 잠시 기다린 후 다시 시도하세요.</translation>
         </message>
         <message id="genycaster.runtime.signer_attestation_not_configured">
             <source>Secure Genycaster client attribution is not configured yet. Reading remains available.</source>
@@ -2231,12 +2231,12 @@
             <translation>로그인 증명을 안전하게 검증할 수 없습니다.</translation>
         </message>
         <message id="genycaster.runtime.the_sign_in_request_timed_out_guest_reading_is_still_availab">
-            <source>The sign-in request timed out. Guest reading is still available.</source>
-            <translation>로그인 요청 시간이 초과되었습니다. 게스트 읽기는 계속 사용할 수 있습니다.</translation>
+            <source>The sign-in request timed out. Try again.</source>
+            <translation>로그인 요청 시간이 초과되었습니다. 다시 시도하세요.</translation>
         </message>
         <message id="genycaster.runtime.the_sign_in_service_is_temporarily_unavailable_guest_reading">
-            <source>The sign-in service is temporarily unavailable. Guest reading is still available.</source>
-            <translation>로그인 서비스를 일시적으로 사용할 수 없습니다. 게스트 읽기는 계속 사용할 수 있습니다.</translation>
+            <source>The sign-in service is temporarily unavailable. Try again shortly.</source>
+            <translation>로그인 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도하세요.</translation>
         </message>
         <message id="genycaster.runtime.the_signer_authorization_configuration_is_invalid">
             <source>The signer authorization configuration is invalid.</source>
@@ -2255,8 +2255,8 @@
             <translation>이 빌드에 필요한 서명자 기능 또는 엔드포인트 구성이 없습니다.</translation>
         </message>
         <message id="genycaster.runtime.this_build_is_missing_valid_sign_in_with_farcaster_app_confi">
-            <source>Sign-in configuration could not be used. Guest reading remains available.</source>
-            <translation>로그인 구성을 사용할 수 없습니다. 게스트 읽기는 계속 사용할 수 있습니다.</translation>
+            <source>Sign-in configuration could not be used. A verified account is required to continue.</source>
+            <translation>로그인 구성을 사용할 수 없습니다. 계속하려면 인증된 계정이 필요합니다.</translation>
         </message>
         <message id="genycaster.runtime.this_interaction_does_not_satisfy_the_current_farcaster_prot">
             <source>This interaction does not satisfy the current Farcaster protocol contract.</source>
@@ -2555,12 +2555,12 @@
             <translation>먼저 로컬에 저장한 뒤 네트워크에서 새로고침</translation>
         </message>
         <message id="genycaster.shell.sign_in_is_not_configured_in_this_build_guest_reading_">
-            <source>Sign in is not configured in this build. Guest reading remains fully available.</source>
-            <translation>이 빌드에는 로그인이 구성되어 있지 않습니다. 게스트 읽기는 완전히 사용할 수 있습니다.</translation>
+            <source>Sign in is not configured in this build. Genycaster requires a verified account to continue.</source>
+            <translation>이 빌드에는 로그인이 구성되어 있지 않습니다. Genycaster를 계속 사용하려면 인증된 계정이 필요합니다.</translation>
         </message>
         <message id="genycaster.shell.sign_in_to_interact">
-            <source>Sign in to interact</source>
-            <translation>상호작용하려면 로그인</translation>
+            <source>Sign in to continue</source>
+            <translation>계속하려면 로그인</translation>
         </message>
         <message id="genycaster.shell.sign_in_with_farcaster">
             <source>Sign in with Farcaster</source>
@@ -2595,8 +2595,8 @@
             <translation>무슨 일이 있나요?</translation>
         </message>
         <message id="genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_">
-            <source>You can keep reading Genycaster as a guest. Sign in is required before Like, Recast, Reply, Follow, or Publish; protocol signing is a separate security step.</source>
-            <translation>Genycaster는 게스트로 계속 읽을 수 있습니다. 좋아요, 리캐스트, 답글, 팔로우 또는 게시 전에는 로그인이 필요하며 프로토콜 서명은 별도의 보안 단계입니다.</translation>
+            <source>A verified account is required to use Genycaster. Continue with Genyleap/OpenProof or Farcaster to finish setup.</source>
+            <translation>Genycaster를 사용하려면 인증된 계정이 필요합니다. Genyleap/OpenProof 또는 Farcaster로 계속하여 설정을 완료하세요.</translation>
         </message>
         <message id="genycaster.shell.your_farcaster_account">
             <source>Your Farcaster account</source>
@@ -3295,8 +3295,8 @@
             <translation>Farcaster 계정 연결</translation>
         </message>
         <message id="genycaster.shell.genyleap_verified_link_farcaster_to_continue">
-            <source>Your Genyleap account is verified. Link Farcaster to continue using Genycaster.</source>
-            <translation>Genyleap 계정이 확인되었습니다. Genycaster를 계속 사용하려면 Farcaster를 연결하세요.</translation>
+            <source>Connect your Farcaster identity to continue. Genycaster requires it for your profile and protocol actions.</source>
+            <translation>계속하려면 Farcaster ID를 연결하세요. Genycaster는 프로필 및 프로토콜 작업에 이 ID를 사용합니다.</translation>
         </message>
         <message id="genycaster.shell.verified_by_openproof">
             <source>Verified by OpenProof</source>
@@ -3311,12 +3311,8 @@
             <translation>Genycaster 설정</translation>
         </message>
         <message id="genycaster.setup.subtitle">
-            <source>Connect your Genyleap identity once. Genycaster will use its linked Farcaster account for your social profile and interactions.</source>
-            <translation>Genyleap ID를 한 번 연결하세요. Genycaster는 연결된 Farcaster 계정을 소셜 프로필과 상호작용에 사용합니다.</translation>
-        </message>
-        <message id="genycaster.setup.explore_as_guest">
-            <source>Explore as guest</source>
-            <translation>게스트로 둘러보기</translation>
+            <source>Sign in to continue. OpenProof verifies your Genyleap identity, and a linked Farcaster account is required for Genycaster.</source>
+            <translation>계속하려면 로그인하세요. OpenProof가 Genyleap ID를 검증하며, Genycaster에는 연결된 Farcaster 계정이 필요합니다.</translation>
         </message>
     </context>
 </TS>

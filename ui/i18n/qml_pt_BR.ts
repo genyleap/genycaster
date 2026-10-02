@@ -275,8 +275,8 @@
             <translation>Entre na conta antes de responder a um cast.</translation>
         </message>
         <message id="genycaster.bridge.sign_in_is_not_configured_guest_reading_remains_available">
-            <source>Sign in is not configured in this build. Guest reading remains available.</source>
-            <translation>O login não está configurado nesta compilação. A leitura como convidado continua disponível.</translation>
+            <source>Sign in is not configured in this build. A verified account is required to continue.</source>
+            <translation>O login não está configurado nesta compilação. É necessária uma conta verificada para continuar.</translation>
         </message>
         <message id="genycaster.bridge.starting_local_read_runtime">
             <source>Starting local read runtime…</source>
@@ -899,8 +899,8 @@
             <translation>Explorar</translation>
         </message>
         <message id="genycaster.empty.explore_is_temporarily_unavailable_open_an_identity_fo">
-            <source>Public discovery is temporarily unavailable. Stay in guest mode and retry; sign-in is only required for interactions.</source>
-            <translation>A descoberta pública está temporariamente indisponível. Continue como convidado e tente novamente; o login só é necessário para interações.</translation>
+            <source>Public discovery is temporarily unavailable. Retry when the service is available.</source>
+            <translation>A descoberta pública está temporariamente indisponível. Tente novamente quando o serviço estiver disponível.</translation>
         </message>
         <message id="genycaster.empty.explore_is_temporarily_unavailable_your_home_feed_rema">
             <source>Explore is temporarily unavailable. Your Home feed remains independent while discovery recovers.</source>
@@ -2127,12 +2127,12 @@
             <translation>Não foi possível concluir o login.</translation>
         </message>
         <message id="genycaster.runtime.sign_in_is_not_available_in_this_build_guest_reading_is_stil">
-            <source>Sign in is not available in this build. Guest reading is still available.</source>
-            <translation>O login não está disponível nesta compilação. A leitura como convidado continua disponível.</translation>
+            <source>Sign in is not available in this build. A verified account is required to continue.</source>
+            <translation>O login não está disponível nesta compilação. É necessária uma conta verificada para continuar.</translation>
         </message>
         <message id="genycaster.runtime.sign_in_is_temporarily_rate_limited_guest_reading_is_still_a">
-            <source>Sign in is temporarily rate limited. Guest reading is still available.</source>
-            <translation>O login está temporariamente limitado por frequência. A leitura como convidado continua disponível.</translation>
+            <source>Sign in is temporarily rate limited. Please wait a moment and try again.</source>
+            <translation>O login está temporariamente limitado. Aguarde um momento e tente novamente.</translation>
         </message>
         <message id="genycaster.runtime.signer_attestation_not_configured">
             <source>Secure Genycaster client attribution is not configured yet. Reading remains available.</source>
@@ -2231,12 +2231,12 @@
             <translation>Não foi possível validar com segurança a prova de login.</translation>
         </message>
         <message id="genycaster.runtime.the_sign_in_request_timed_out_guest_reading_is_still_availab">
-            <source>The sign-in request timed out. Guest reading is still available.</source>
-            <translation>A solicitação de login excedeu o tempo limite. A leitura como convidado continua disponível.</translation>
+            <source>The sign-in request timed out. Try again.</source>
+            <translation>A solicitação de login expirou. Tente novamente.</translation>
         </message>
         <message id="genycaster.runtime.the_sign_in_service_is_temporarily_unavailable_guest_reading">
-            <source>The sign-in service is temporarily unavailable. Guest reading is still available.</source>
-            <translation>O serviço de login está temporariamente indisponível. A leitura como convidado continua disponível.</translation>
+            <source>The sign-in service is temporarily unavailable. Try again shortly.</source>
+            <translation>O serviço de login está temporariamente indisponível. Tente novamente em instantes.</translation>
         </message>
         <message id="genycaster.runtime.the_signer_authorization_configuration_is_invalid">
             <source>The signer authorization configuration is invalid.</source>
@@ -2255,8 +2255,8 @@
             <translation>Esta compilação não tem uma capacidade necessária do assinante ou configuração de endpoint.</translation>
         </message>
         <message id="genycaster.runtime.this_build_is_missing_valid_sign_in_with_farcaster_app_confi">
-            <source>Sign-in configuration could not be used. Guest reading remains available.</source>
-            <translation>A configuração de login não pôde ser usada. A leitura como convidado continua disponível.</translation>
+            <source>Sign-in configuration could not be used. A verified account is required to continue.</source>
+            <translation>Não foi possível usar a configuração de login. É necessária uma conta verificada para continuar.</translation>
         </message>
         <message id="genycaster.runtime.this_interaction_does_not_satisfy_the_current_farcaster_prot">
             <source>This interaction does not satisfy the current Farcaster protocol contract.</source>
@@ -2555,12 +2555,12 @@
             <translation>Salvo primeiro localmente e depois atualizado pela rede</translation>
         </message>
         <message id="genycaster.shell.sign_in_is_not_configured_in_this_build_guest_reading_">
-            <source>Sign in is not configured in this build. Guest reading remains fully available.</source>
-            <translation>O login não está configurado nesta compilação. A leitura como convidado continua totalmente disponível.</translation>
+            <source>Sign in is not configured in this build. Genycaster requires a verified account to continue.</source>
+            <translation>O login não está configurado nesta compilação. O Genycaster exige uma conta verificada para continuar.</translation>
         </message>
         <message id="genycaster.shell.sign_in_to_interact">
-            <source>Sign in to interact</source>
-            <translation>Entre para interagir</translation>
+            <source>Sign in to continue</source>
+            <translation>Entre para continuar</translation>
         </message>
         <message id="genycaster.shell.sign_in_with_farcaster">
             <source>Sign in with Farcaster</source>
@@ -2595,8 +2595,8 @@
             <translation>O que está acontecendo?</translation>
         </message>
         <message id="genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_">
-            <source>You can keep reading Genycaster as a guest. Sign in is required before Like, Recast, Reply, Follow, or Publish; protocol signing is a separate security step.</source>
-            <translation>Você pode continuar lendo o Genycaster como convidado. É necessário entrar antes de Curtir, Recast, Responder, Seguir ou Publicar; a assinatura do protocolo é uma etapa de segurança separada.</translation>
+            <source>A verified account is required to use Genycaster. Continue with Genyleap/OpenProof or Farcaster to finish setup.</source>
+            <translation>É necessária uma conta verificada para usar o Genycaster. Continue com Genyleap/OpenProof ou Farcaster para concluir a configuração.</translation>
         </message>
         <message id="genycaster.shell.your_farcaster_account">
             <source>Your Farcaster account</source>
@@ -3295,8 +3295,8 @@
             <translation>Vincular sua conta Farcaster</translation>
         </message>
         <message id="genycaster.shell.genyleap_verified_link_farcaster_to_continue">
-            <source>Your Genyleap account is verified. Link Farcaster to continue using Genycaster.</source>
-            <translation>Sua conta Genyleap foi verificada. Vincule o Farcaster para continuar usando o Genycaster.</translation>
+            <source>Connect your Farcaster identity to continue. Genycaster requires it for your profile and protocol actions.</source>
+            <translation>Conecte sua identidade Farcaster para continuar. O Genycaster precisa dela para seu perfil e ações de protocolo.</translation>
         </message>
         <message id="genycaster.shell.verified_by_openproof">
             <source>Verified by OpenProof</source>
@@ -3311,12 +3311,8 @@
             <translation>Configurar o Genycaster</translation>
         </message>
         <message id="genycaster.setup.subtitle">
-            <source>Connect your Genyleap identity once. Genycaster will use its linked Farcaster account for your social profile and interactions.</source>
-            <translation>Conecte sua identidade Genyleap uma vez. O Genycaster usará a conta Farcaster vinculada para seu perfil social e suas interações.</translation>
-        </message>
-        <message id="genycaster.setup.explore_as_guest">
-            <source>Explore as guest</source>
-            <translation>Explorar como visitante</translation>
+            <source>Sign in to continue. OpenProof verifies your Genyleap identity, and a linked Farcaster account is required for Genycaster.</source>
+            <translation>Entre para continuar. O OpenProof verifica sua identidade Genyleap, e o Genycaster exige uma conta Farcaster vinculada.</translation>
         </message>
     </context>
 </TS>

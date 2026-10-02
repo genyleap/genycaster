@@ -32,7 +32,7 @@ Item {
     readonly property bool showSocialContextRail: root.contextRailFits && root.socialSurfaceActive
     readonly property bool showContextRail: root.showHomeContextRail || root.showSocialContextRail
     readonly property bool identityAvailable: presentationBridge.identityFid > 0
-    readonly property bool passiveGuestDiscoveryFailure: presentationBridge.activeView === "feed" && presentationBridge.activeFeed === "trending" && !presentationBridge.isAuthenticated && presentationBridge.sourceUnavailable
+    readonly property bool passiveSignedOutDiscoveryFailure: presentationBridge.activeView === "feed" && presentationBridge.activeFeed === "trending" && !presentationBridge.isAuthenticated && presentationBridge.sourceUnavailable
     readonly property int desktopNavigationWidth: root.desktop
                                                   ? Math.round(Math.min(460, Math.max(264, appearanceController.socialNavigationWidth)))
                                                   : Theme.navigationWidth
@@ -225,8 +225,9 @@ Item {
         root.explorerVisualFilter = "nfts"
 
         // Explorer tabs are presentation projections of one stable source. An
-        // authenticated session stays on Following for every tab; guests stay on
-        // Trending. Switching Visuals/Conversations/Devs must never tear down a
+        // An authenticated session stays on Following for every tab. A signed-out
+        // verification fixture may use Trending; production setup blocks this state.
+        // Switching Visuals/Conversations/Devs must never tear down a
         // healthy source merely to reclassify rows already available locally.
         const source = presentationBridge.isAuthenticated && root.identityAvailable
                        ? "following" : "trending"
@@ -447,12 +448,12 @@ Item {
             profileLoading: presentationBridge.isAuthenticated
                             && Number(presentationBridge.accountProfile.fid || 0) !== Number(presentationBridge.accountFid)
             statusText: presentationBridge.statusText
-            errorText: root.passiveGuestDiscoveryFailure ? "" : presentationBridge.errorText
+            errorText: root.passiveSignedOutDiscoveryFailure ? "" : presentationBridge.errorText
             diagnosticText: presentationBridge.diagnosticText
             diagnosticsEnabled: presentationBridge.diagnosticsEnabled
             runtimeReady: presentationBridge.runtimeReady
             offline: presentationBridge.isOffline
-            sourceUnavailable: root.passiveGuestDiscoveryFailure ? false : presentationBridge.sourceUnavailable
+            sourceUnavailable: root.passiveSignedOutDiscoveryFailure ? false : presentationBridge.sourceUnavailable
             networkKnown: presentationBridge.networkReachabilityKnown
             stale: presentationBridge.isStale
             busy: presentationBridge.isBusy
@@ -1143,10 +1144,10 @@ Item {
         anchors.bottom: parent.bottom
         compactMode: root.mobile
         statusText: presentationBridge.statusText
-        errorText: root.passiveGuestDiscoveryFailure ? "" : presentationBridge.errorText
+        errorText: root.passiveSignedOutDiscoveryFailure ? "" : presentationBridge.errorText
         runtimeReady: presentationBridge.runtimeReady
         offline: presentationBridge.isOffline
-        sourceUnavailable: root.passiveGuestDiscoveryFailure ? false : presentationBridge.sourceUnavailable
+        sourceUnavailable: root.passiveSignedOutDiscoveryFailure ? false : presentationBridge.sourceUnavailable
         networkKnown: presentationBridge.networkReachabilityKnown
         stale: presentationBridge.isStale
         busy: presentationBridge.isBusy
@@ -1623,7 +1624,7 @@ Item {
         id: initialSetup
         anchors.fill: parent
         z: 10_000
-        visible: presentationBridge.initialSetupRequired && !presentationBridge.isAuthenticated
+        visible: presentationBridge.initialSetupRequired
         runtimeReady: presentationBridge.runtimeReady
         authenticationAvailable: presentationBridge.authenticationAvailable
         authenticationPhase: presentationBridge.authenticationPhase
@@ -1632,7 +1633,6 @@ Item {
         authenticationErrorText: presentationBridge.authenticationErrorText
         onContinueWithGenyleap: presentationBridge.beginSignIn()
         onContinueWithFarcaster: presentationBridge.beginFarcasterSignIn()
-        onContinueAsGuest: presentationBridge.completeInitialSetup()
         onOpenApproval: presentationBridge.openAuthenticationApproval()
         onCancelAuthentication: presentationBridge.cancelSignIn()
     }

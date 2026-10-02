@@ -7,7 +7,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 
-/** @brief QML presentation facade for guest-first reads, session state, and feature-scoped models. */
+/** @brief QML presentation facade for verified-session state and feature-scoped models. */
 class QSettings;
 
 class PresentationBridge final : public QObject {
@@ -17,7 +17,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool diagnosticsEnabled READ diagnosticsEnabled CONSTANT)
     Q_PROPERTY(bool runtimeReady READ runtimeReady NOTIFY runtimeStateChanged)
     Q_PROPERTY(bool authenticationAvailable READ authenticationAvailable NOTIFY authenticationStateChanged)
-    Q_PROPERTY(bool initialSetupRequired READ initialSetupRequired NOTIFY setupStateChanged)
+    Q_PROPERTY(bool initialSetupRequired READ initialSetupRequired NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool isAuthenticated READ isAuthenticated NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool authenticationBusy READ authenticationBusy NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString authenticationPhase READ authenticationPhase NOTIFY authenticationStateChanged)
@@ -199,8 +199,6 @@ public:
     Q_INVOKABLE void copyText(const QString& text);
     /** @brief Selects the approved contextual glyph for the existing Like action without changing reaction semantics. */
     [[nodiscard]] Q_INVOKABLE QString contextualReactionIcon(const QString& text) const;
-    /** @brief Permanently dismisses the first-run setup experience on this installation. */
-    Q_INVOKABLE void completeInitialSetup();
     /** @brief Starts canonical Genyleap/OpenProof sign-in. */
     Q_INVOKABLE void beginSignIn();
     /** @brief Starts the direct Farcaster onboarding route through OpenProof. */
@@ -239,7 +237,7 @@ public:
     void applyRuntimeState(bool ready, QString errorText = {});
     /** @brief Commits OS/network reachability without conflating provider failures with offline state. */
     void applyNetworkReachability(bool known, bool online);
-    /** @brief Commits normalized guest/authenticated client-session state. */
+    /** @brief Commits normalized signed-out/authenticated client-session state. */
     void applyAuthenticationState(
         bool available,
         QString phase,
@@ -307,8 +305,6 @@ signals:
     void runtimeStateChanged();
     /** @brief Authentication/account presentation changed; isolated from feed/write invalidation. */
     void authenticationStateChanged();
-    /** @brief First-run setup visibility changed after completion or verification fixture activation. */
-    void setupStateChanged();
     void stateChanged();
     void searchChanged();
     void notificationsChanged();
@@ -358,9 +354,9 @@ private:
     [[nodiscard]] bool consumeRecoveryProbe() noexcept;
     bool m_runtimeReady{false};
     bool m_authenticationAvailable{false};
-    bool m_initialSetupCompleted{false};
+    bool m_setupBypassedForVerification{false};
     bool m_isAuthenticated{false};
-    QString m_authenticationPhase{QStringLiteral("guest")};
+    QString m_authenticationPhase{QStringLiteral("signed-out")};
     QString m_authenticationRoute{QStringLiteral("openproof")};
     QString m_authenticationApprovalUrl{};
     QString m_authenticationErrorText{};
