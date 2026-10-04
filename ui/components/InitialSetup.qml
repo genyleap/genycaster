@@ -40,6 +40,21 @@ Item {
 
     readonly property bool phone: width < 680
     readonly property bool compact: width < 920
+
+    // Setup design-system layer: every stage composes the same neutral surfaces,
+    // typography scale and spacing rhythm. Accent is reserved for focus/action,
+    // while semantic colors are used only for compact status feedback.
+    readonly property int setupContentWidth: 720
+    readonly property int setupPageTitleSize: Theme.typeTitle2Size
+    readonly property int setupBodySize: Theme.typeLabelSize
+    readonly property int setupSectionTitleSize: Theme.typeTitle3Size
+    readonly property int setupCardPadding: Theme.space4
+    readonly property int setupGap: Theme.space4
+    readonly property color setupCard: Theme.surface
+    readonly property color setupCardRaised: Theme.surfaceRaised
+    readonly property color setupBorder: Theme.borderMuted
+    readonly property color setupSelectedBorder: Theme.accent
+
     readonly property bool authenticationStarting: authenticationPhase === "starting"
     readonly property bool awaitingApproval: authenticationPhase === "awaiting-approval"
     readonly property bool linkingFarcaster: authenticationPhase === "linking-farcaster"
@@ -104,6 +119,18 @@ Item {
 
     function accentCode() {
         return String(Theme.accent).toUpperCase()
+    }
+
+    function greetingOrbitOffset(index, currentIndex) {
+        const count = greetings.length
+        if (count <= 0)
+            return 0
+        let delta = index - currentIndex
+        if (delta > count / 2)
+            delta -= count
+        else if (delta < -count / 2)
+            delta += count
+        return delta
     }
 
     function stepComplete(index) {
@@ -346,7 +373,7 @@ Item {
 
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: root.phone ? 70 : 76
+            Layout.preferredHeight: 64
 
             RowLayout {
                 anchors.fill: parent
@@ -360,16 +387,18 @@ Item {
                     layoutDirection: Theme.uiDirection
 
                     Superellipse {
-                        Layout.preferredWidth: 36
-                        Layout.preferredHeight: 36
-                        fillColor: Theme.primaryFill
-                        curveDepth: 12
+                        Layout.preferredWidth: 32
+                        Layout.preferredHeight: 32
+                        fillColor: Theme.surfaceRaised
+                        borderWidth: Theme.strokeStandard
+                        borderColor: Theme.borderMuted
+                        curveDepth: Theme.curveCompact
 
                         Icon {
                             anchors.centerIn: parent
                             text: "social/sparkles"
-                            color: Theme.accentInk
-                            preferredSize: 18
+                            color: Theme.accent
+                            preferredSize: Theme.iconSize
                         }
                     }
 
@@ -399,11 +428,11 @@ Item {
                         model: root.wizardSteps
                         delegate: Rectangle {
                             required property int modelData
-                            width: modelData === root.currentStep ? 20 : 6
-                            height: 6
-                            radius: 3
-                            color: modelData < root.currentStep ? Theme.success
-                                 : modelData === root.currentStep ? Theme.accent
+                            width: modelData === root.currentStep ? 28 : 12
+                            height: 4
+                            radius: 2
+                            color: modelData === root.currentStep ? Theme.accent
+                                 : modelData < root.currentStep ? Theme.inkMuted
                                  : Theme.borderStrong
                             Behavior on width {
                                 NumberAnimation { duration: Theme.motionStandard; easing.type: Easing.OutCubic }
@@ -436,7 +465,7 @@ Item {
 
             Rectangle {
                 visible: !root.compact
-                Layout.preferredWidth: 248
+                Layout.preferredWidth: 224
                 Layout.fillHeight: true
                 color: Theme.surface
                 border.width: 0
@@ -514,12 +543,10 @@ Item {
 
                                     background: Superellipse {
                                         fillColor: stepButton.current
-                                                   ? Theme.primarySurface
+                                                   ? Theme.surfaceRaised
                                                    : stepButton.hovered ? Theme.surfaceHover : "transparent"
-                                        borderWidth: stepButton.current ? 1 : 0
-                                        borderColor: stepButton.current
-                                                     ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.24)
-                                                     : "transparent"
+                                        borderWidth: stepButton.current ? Theme.strokeStandard : 0
+                                        borderColor: stepButton.current ? Theme.borderStrong : "transparent"
                                         curveDepth: Theme.curveControl
                                     }
 
@@ -531,17 +558,15 @@ Item {
                                             Layout.preferredWidth: 30
                                             Layout.preferredHeight: 30
                                             radius: 15
-                                            color: current ? Theme.accent
-                                                 : complete ? Theme.successSurface : Theme.surfaceMuted
-                                            border.width: current || complete ? 1 : 0
-                                            border.color: current ? Theme.accent
-                                                         : complete ? Theme.success : Theme.borderMuted
+                                            color: current ? Theme.accent : Theme.surfaceMuted
+                                            border.width: Theme.strokeStandard
+                                            border.color: current ? Theme.accent : Theme.borderMuted
 
                                             Icon {
                                                 anchors.centerIn: parent
                                                 visible: complete
                                                 text: "social/verified"
-                                                color: Theme.success
+                                                color: Theme.inkMuted
                                                 preferredSize: 17
                                             }
 
@@ -594,9 +619,9 @@ Item {
                     Superellipse {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 54
-                        fillColor: Theme.primarySurface
-                        borderWidth: 1
-                        borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.18)
+                        fillColor: Theme.surfaceRaised
+                        borderWidth: Theme.strokeStandard
+                        borderColor: Theme.borderMuted
                         curveDepth: Theme.curveControl
 
                         RowLayout {
@@ -650,7 +675,7 @@ Item {
                     Item {
                         id: stageCanvas
                         width: Math.min(stageFlick.width - (root.phone ? Theme.space4 * 2 : Theme.space6 * 2),
-                                        root.compact ? 820 : 980)
+                                        root.compact ? root.setupContentWidth : 820)
                         x: Math.max(root.phone ? Theme.space4 : Theme.space6,
                                     Math.round((stageFlick.width - width) / 2))
                         height: Math.max(stageFlick.height,
@@ -659,10 +684,10 @@ Item {
                         Loader {
                             id: stageLoader
                             width: parent.width
-                            y: root.phone
-                               ? Theme.space4
-                               : Math.max(Theme.space5,
-                                          Math.round((stageFlick.height - implicitHeight) / 2) - Theme.space2)
+                            y: (root.currentStep === 0 || root.currentStep === 5) && !root.phone
+                               ? Math.max(Theme.space5,
+                                          Math.round((stageFlick.height - implicitHeight) / 2) - Theme.space3)
+                               : Theme.space5
                             sourceComponent: root.currentStep === 0 ? welcomeStage
                                            : root.currentStep === 1 ? personalizeStage
                                            : root.currentStep === 2 ? privacyStage
@@ -675,7 +700,7 @@ Item {
 
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.phone ? 70 : 76
+                    Layout.preferredHeight: 64
 
                     Rectangle {
                         anchors.top: parent.top
@@ -994,268 +1019,255 @@ Item {
         id: welcomeStage
 
         ColumnLayout {
-            spacing: Theme.space3
+            spacing: Theme.space4
 
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTrId("genycaster.setup.welcome_eyebrow")
                 color: Theme.accent
                 font.pixelSize: Theme.typeCaptionSize
-                font.weight: Theme.weightBold
+                font.weight: Theme.weightDemiBold
             }
 
             Label {
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.setup.welcome_title")
                 color: Theme.ink
-                font.pixelSize: root.phone ? Theme.typeTitle1Size : Theme.typeDisplaySize
+                font.pixelSize: root.setupPageTitleSize
                 font.weight: Theme.weightBold
                 horizontalAlignment: Text.AlignHCenter
+                lineHeight: Theme.typeTitle2LineHeight
                 wrapMode: Text.WordWrap
             }
 
             Label {
                 Layout.fillWidth: true
-                Layout.maximumWidth: 600
+                Layout.maximumWidth: 520
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTrId("genycaster.setup.language_orbit_hint")
                 color: Theme.inkMuted
-                font.pixelSize: Theme.typeBodySize
+                font.pixelSize: root.setupBodySize
                 horizontalAlignment: Text.AlignHCenter
+                lineHeight: Theme.typeLabelLineHeight
                 wrapMode: Text.WordWrap
-            }
-
-            Item {
-                id: orbitFrame
-                Layout.fillWidth: true
-                Layout.preferredHeight: root.phone ? 350 : 420
-                Layout.topMargin: root.phone ? 0 : Theme.space2
-
-                readonly property real sphereSize: Math.min(width - Theme.space4,
-                                                            root.phone ? 320 : 390)
-
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: orbitFrame.sphereSize
-                    height: orbitFrame.sphereSize
-                    radius: width / 2
-                    color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.025)
-                    border.width: 1
-                    border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.20)
-                }
-
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: orbitFrame.sphereSize * 0.94
-                    height: orbitFrame.sphereSize * 0.33
-                    radius: height / 2
-                    color: "transparent"
-                    border.width: 1
-                    border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.15)
-                }
-
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: orbitFrame.sphereSize * 0.94
-                    height: orbitFrame.sphereSize * 0.33
-                    radius: height / 2
-                    rotation: 90
-                    color: "transparent"
-                    border.width: 1
-                    border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.14)
-                }
-
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: orbitFrame.sphereSize * 0.72
-                    height: orbitFrame.sphereSize * 0.72
-                    radius: width / 2
-                    color: "transparent"
-                    border.width: 1
-                    border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.09)
-                }
-
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: root.phone ? 210 : 238
-                    height: root.phone ? 78 : 84
-                    radius: height / 2
-                    color: Theme.primarySurface
-                    border.width: 1
-                    border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.36)
-                }
-
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: 8
-                    height: 8
-                    radius: 4
-                    color: Theme.accent
-                    opacity: 0.22
-                    anchors.horizontalCenterOffset: -(orbitFrame.sphereSize * 0.47)
-                }
-
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: 8
-                    height: 8
-                    radius: 4
-                    color: Theme.accent
-                    opacity: 0.22
-                    anchors.horizontalCenterOffset: orbitFrame.sphereSize * 0.47
-                }
-
-                PathView {
-                    id: languageOrbit
-                    width: orbitFrame.sphereSize
-                    height: orbitFrame.sphereSize
-                    anchors.centerIn: parent
-                    model: root.greetings
-                    pathItemCount: 7
-                    preferredHighlightBegin: 0.5
-                    preferredHighlightEnd: 0.5
-                    highlightRangeMode: PathView.StrictlyEnforceRange
-                    snapMode: PathView.SnapToItem
-                    maximumFlickVelocity: 1250
-
-                    onMovementStarted: root.languageOrbitUserControlled = true
-
-                    path: Path {
-                        startX: languageOrbit.width / 2
-                        startY: 22
-                        PathAttribute { name: "itemScale"; value: 0.56 }
-                        PathAttribute { name: "itemOpacity"; value: 0.12 }
-                        PathAttribute { name: "itemAngle"; value: -72 }
-
-                        PathCubic {
-                            control1X: languageOrbit.width * 0.15
-                            control1Y: languageOrbit.height * 0.18
-                            control2X: languageOrbit.width * 0.18
-                            control2Y: languageOrbit.height * 0.40
-                            x: languageOrbit.width / 2
-                            y: languageOrbit.height / 2
-                        }
-                        PathAttribute { name: "itemScale"; value: 1.08 }
-                        PathAttribute { name: "itemOpacity"; value: 1.0 }
-                        PathAttribute { name: "itemAngle"; value: 0 }
-
-                        PathCubic {
-                            control1X: languageOrbit.width * 0.82
-                            control1Y: languageOrbit.height * 0.60
-                            control2X: languageOrbit.width * 0.85
-                            control2Y: languageOrbit.height * 0.82
-                            x: languageOrbit.width / 2
-                            y: languageOrbit.height - 22
-                        }
-                        PathAttribute { name: "itemScale"; value: 0.56 }
-                        PathAttribute { name: "itemOpacity"; value: 0.12 }
-                        PathAttribute { name: "itemAngle"; value: 72 }
-                    }
-
-                    delegate: Item {
-                        required property int index
-                        required property var modelData
-                        width: root.phone ? 190 : 220
-                        height: 72
-                        scale: PathView.itemScale
-                        opacity: PathView.itemOpacity
-                        z: PathView.isCurrentItem ? 5 : Math.round(PathView.itemScale * 3)
-
-                        transform: Rotation {
-                            origin.x: width / 2
-                            origin.y: height / 2
-                            axis.x: 1
-                            axis.y: 0
-                            axis.z: 0
-                            angle: PathView.itemAngle
-                        }
-
-                        Label {
-                            anchors.centerIn: parent
-                            text: modelData.hello
-                            color: PathView.isCurrentItem ? Theme.ink : Theme.inkMuted
-                            font.family: Theme.fontFamilyForText(modelData.hello)
-                            font.pixelSize: PathView.isCurrentItem ? (root.phone ? 32 : 36) : 22
-                            font.weight: PathView.isCurrentItem ? Theme.weightBold : Theme.weightMedium
-                        }
-
-                        TapHandler {
-                            onPressedChanged: {
-                                if (pressed)
-                                    root.languageOrbitUserControlled = true
-                            }
-                            onTapped: {
-                                root.languageOrbitUserControlled = true
-                                languageOrbit.currentIndex = index
-                                localizationController.setLanguageTag(modelData.tag)
-                            }
-                        }
-                    }
-
-                    Timer {
-                        interval: 1900
-                        repeat: true
-                        running: root.visible
-                                 && root.currentStep === 0
-                                 && !root.languageOrbitUserControlled
-                                 && !Theme.reduceMotion
-                        onTriggered: {
-                            if (languageOrbit.count > 0)
-                                languageOrbit.currentIndex =
-                                    (languageOrbit.currentIndex + 1) % languageOrbit.count
-                        }
-                    }
-
-                    Component.onCompleted: currentIndex =
-                        root.greetingIndexForTag(localizationController.effectiveLanguageTag)
-
-                    onCurrentIndexChanged: {
-                        if (!root.languageOrbitUserControlled
-                                || currentIndex < 0
-                                || currentIndex >= root.greetings.length)
-                            return
-                        const selected = root.greetings[currentIndex]
-                        if (selected && selected.tag)
-                            localizationController.setLanguageTag(selected.tag)
-                    }
-                }
             }
 
             Superellipse {
+                Layout.fillWidth: true
+                Layout.maximumWidth: 560
                 Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: Math.min(parent.width, 300)
-                Layout.preferredHeight: 50
-                fillColor: Theme.surface
-                borderWidth: 1
-                borderColor: Theme.borderMuted
-                curveDepth: Theme.curveControl
+                Layout.preferredHeight: root.phone ? 310 : 330
+                fillColor: root.setupCard
+                borderWidth: Theme.strokeStandard
+                borderColor: root.setupBorder
+                curveDepth: Theme.curveContainer
 
-                RowLayout {
-                    anchors.centerIn: parent
-                    spacing: Theme.space2
+                Item {
+                    id: orbitFrame
+                    anchors.fill: parent
+                    anchors.margins: Theme.space4
 
-                    Icon {
-                        text: "social/verified"
-                        color: Theme.success
-                        preferredSize: 18
+                    readonly property real sphereSize: Math.min(width, height - 48, root.phone ? 232 : 252)
+
+                    Rectangle {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        anchors.topMargin: 4
+                        width: orbitFrame.sphereSize
+                        height: orbitFrame.sphereSize
+                        radius: width / 2
+                        color: "transparent"
+                        border.width: Theme.strokeStandard
+                        border.color: Theme.borderMuted
                     }
 
-                    Label {
-                        text: localizationController.languageLabel
-                        color: Theme.ink
-                        font.pixelSize: Theme.typeLabelSize
-                        font.weight: Theme.weightBold
+                    Rectangle {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        anchors.topMargin: 4 + orbitFrame.sphereSize * 0.33
+                        width: orbitFrame.sphereSize
+                        height: orbitFrame.sphereSize * 0.34
+                        radius: height / 2
+                        color: "transparent"
+                        border.width: Theme.strokeHairline
+                        border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.20)
+                    }
+
+                    Rectangle {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        anchors.topMargin: 4 + orbitFrame.sphereSize * 0.12
+                        width: orbitFrame.sphereSize * 0.48
+                        height: orbitFrame.sphereSize * 0.76
+                        radius: width / 2
+                        color: "transparent"
+                        border.width: Theme.strokeHairline
+                        border.color: Theme.borderMuted
+                    }
+
+                    Superellipse {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        anchors.topMargin: 4 + (orbitFrame.sphereSize - 54) / 2
+                        width: 154
+                        height: 54
+                        fillColor: Theme.surfaceRaised
+                        borderWidth: Theme.strokeStandard
+                        borderColor: Theme.accent
+                        curveDepth: Theme.curveControl
+                    }
+
+                    PathView {
+                        id: languageOrbit
+                        width: orbitFrame.sphereSize
+                        height: orbitFrame.sphereSize
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        anchors.topMargin: 4
+                        model: root.greetings
+                        pathItemCount: 5
+                        preferredHighlightBegin: 0.5
+                        preferredHighlightEnd: 0.5
+                        highlightRangeMode: PathView.StrictlyEnforceRange
+                        snapMode: PathView.SnapToItem
+                        maximumFlickVelocity: 1100
+
+                        onMovementStarted: root.languageOrbitUserControlled = true
+
+                        path: Path {
+                            startX: languageOrbit.width / 2
+                            startY: 16
+
+                            PathCubic {
+                                control1X: languageOrbit.width * 0.20
+                                control1Y: languageOrbit.height * 0.22
+                                control2X: languageOrbit.width * 0.24
+                                control2Y: languageOrbit.height * 0.40
+                                x: languageOrbit.width / 2
+                                y: languageOrbit.height / 2
+                            }
+
+                            PathCubic {
+                                control1X: languageOrbit.width * 0.76
+                                control1Y: languageOrbit.height * 0.60
+                                control2X: languageOrbit.width * 0.80
+                                control2Y: languageOrbit.height * 0.78
+                                x: languageOrbit.width / 2
+                                y: languageOrbit.height - 16
+                            }
+                        }
+
+                        delegate: Item {
+                            required property int index
+                            required property var modelData
+                            readonly property int orbitOffset:
+                                root.greetingOrbitOffset(index, languageOrbit.currentIndex)
+                            readonly property int orbitDistance: Math.abs(orbitOffset)
+                            width: 150
+                            height: 48
+                            scale: PathView.isCurrentItem ? 1.0 : orbitDistance <= 1 ? 0.82 : 0.70
+                            opacity: PathView.isCurrentItem ? 1.0 : orbitDistance <= 1 ? 0.48 : 0.24
+                            z: PathView.isCurrentItem ? 4 : 1
+
+                            transform: Rotation {
+                                origin.x: width / 2
+                                origin.y: height / 2
+                                axis.x: 1
+                                axis.y: 0
+                                axis.z: 0
+                                angle: Math.max(-52, Math.min(52, orbitOffset * 24))
+                            }
+
+                            Label {
+                                anchors.centerIn: parent
+                                text: modelData.hello
+                                color: PathView.isCurrentItem ? Theme.ink : Theme.inkMuted
+                                font.family: Theme.fontFamilyForText(modelData.hello)
+                                font.pixelSize: PathView.isCurrentItem ? 24 : Theme.typeLabelSize
+                                font.weight: PathView.isCurrentItem ? Theme.weightBold : Theme.weightMedium
+                            }
+
+                            TapHandler {
+                                onPressedChanged: {
+                                    if (pressed)
+                                        root.languageOrbitUserControlled = true
+                                }
+                                onTapped: {
+                                    root.languageOrbitUserControlled = true
+                                    languageOrbit.currentIndex = index
+                                    localizationController.setLanguageTag(modelData.tag)
+                                }
+                            }
+                        }
+
+                        Timer {
+                            interval: 2100
+                            repeat: true
+                            running: root.visible
+                                     && root.currentStep === 0
+                                     && !root.languageOrbitUserControlled
+                                     && !Theme.reduceMotion
+                            onTriggered: {
+                                if (languageOrbit.count > 0)
+                                    languageOrbit.currentIndex =
+                                        (languageOrbit.currentIndex + 1) % languageOrbit.count
+                            }
+                        }
+
+                        Component.onCompleted: currentIndex =
+                            root.greetingIndexForTag(localizationController.effectiveLanguageTag)
+
+                        onCurrentIndexChanged: {
+                            if (!root.languageOrbitUserControlled
+                                    || currentIndex < 0
+                                    || currentIndex >= root.greetings.length)
+                                return
+                            const selected = root.greetings[currentIndex]
+                            if (selected && selected.tag)
+                                localizationController.setLanguageTag(selected.tag)
+                        }
+                    }
+
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: languageRow.top
+                        anchors.bottomMargin: Theme.space3
+                        height: Theme.strokeHairline
+                        color: Theme.borderMuted
+                    }
+
+                    RowLayout {
+                        id: languageRow
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        spacing: Theme.space2
+
+                        Icon {
+                            text: Theme.iconLanguage
+                            color: Theme.accent
+                            preferredSize: Theme.iconSize
+                        }
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: localizationController.languageLabel
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
+                            elide: Text.ElideRight
+                        }
+
+                        Label {
+                            text: qsTrId("genycaster.setup.language_applies_now")
+                            color: Theme.inkSubtle
+                            font.pixelSize: Theme.typeCaptionSize
+                            elide: Text.ElideRight
+                            visible: !root.phone
+                        }
                     }
                 }
-            }
-
-            Label {
-                Layout.fillWidth: true
-                text: qsTrId("genycaster.setup.language_applies_now")
-                color: Theme.inkSubtle
-                font.pixelSize: Theme.typeCaptionSize
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
             }
         }
     }
@@ -1273,26 +1285,28 @@ Item {
                 Label {
                     text: qsTrId("genycaster.setup.welcome_personal_title")
                     color: Theme.ink
-                    font.pixelSize: Theme.typeTitle1Size
+                    font.pixelSize: root.setupPageTitleSize
                     font.weight: Theme.weightBold
+                    lineHeight: Theme.typeTitle2LineHeight
                 }
 
                 Label {
                     Layout.fillWidth: true
-                    Layout.maximumWidth: 720
+                    Layout.maximumWidth: 620
                     text: qsTrId("genycaster.setup.personalize_body")
                     color: Theme.inkMuted
-                    font.pixelSize: Theme.typeBodySize
+                    font.pixelSize: root.setupBodySize
+                    lineHeight: Theme.typeLabelLineHeight
                     wrapMode: Text.WordWrap
                 }
             }
 
             Superellipse {
                 Layout.fillWidth: true
-                implicitHeight: personalizeGrid.implicitHeight + Theme.space5 * 2
-                fillColor: Theme.primarySurface
-                borderWidth: 1
-                borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.18)
+                implicitHeight: personalizeGrid.implicitHeight + root.setupCardPadding * 2
+                fillColor: root.setupCard
+                borderWidth: Theme.strokeStandard
+                borderColor: root.setupBorder
                 curveDepth: Theme.curveContainer
 
                 GridLayout {
@@ -1300,18 +1314,19 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: Theme.space5
+                    anchors.margins: root.setupCardPadding
                     columns: root.phone ? 1 : 2
-                    columnSpacing: Theme.space6
-                    rowSpacing: Theme.space5
+                    columnSpacing: Theme.space5
+                    rowSpacing: Theme.space4
 
                     Item {
+                        visible: !root.phone
                         Layout.fillWidth: true
-                        Layout.preferredHeight: root.phone ? 210 : 310
+                        Layout.preferredHeight: 176
 
                         Rectangle {
                             anchors.centerIn: parent
-                            width: root.phone ? 178 : 230
+                            width: 142
                             height: width
                             radius: width / 2
                             color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.035)
@@ -1321,7 +1336,7 @@ Item {
 
                         Rectangle {
                             anchors.centerIn: parent
-                            width: root.phone ? 126 : 168
+                            width: 104
                             height: width
                             radius: width / 2
                             color: "transparent"
@@ -1331,7 +1346,7 @@ Item {
 
                         Rectangle {
                             anchors.centerIn: parent
-                            width: root.phone ? 78 : 104
+                            width: 62
                             height: width
                             radius: width / 2
                             color: Theme.accent
@@ -1340,15 +1355,15 @@ Item {
                                 anchors.centerIn: parent
                                 text: Theme.iconPalette
                                 color: Theme.contrastInk(Theme.accent)
-                                preferredSize: root.phone ? 28 : 34
+                                preferredSize: Theme.iconSizeLarge
                             }
                         }
 
                         Superellipse {
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.bottom: parent.bottom
-                            width: Math.min(parent.width, 240)
-                            height: 48
+                            width: Math.min(parent.width, 180)
+                            height: 40
                             fillColor: Theme.surface
                             borderWidth: 1
                             borderColor: Theme.borderMuted
@@ -1359,9 +1374,9 @@ Item {
                                 spacing: Theme.space2
 
                                 Rectangle {
-                                    Layout.preferredWidth: 18
-                                    Layout.preferredHeight: 18
-                                    radius: 9
+                                    Layout.preferredWidth: 14
+                                    Layout.preferredHeight: 14
+                                    radius: 7
                                     color: Theme.accent
                                     border.width: 1
                                     border.color: Theme.borderStrong
@@ -1407,8 +1422,8 @@ Item {
                                 Label {
                                     text: qsTrId("genycaster.settings.language_region")
                                     color: Theme.ink
-                                    font.pixelSize: Theme.typeTitle3Size
-                                    font.weight: Theme.weightBold
+                                    font.pixelSize: root.setupSectionTitleSize
+                                    font.weight: Theme.weightDemiBold
                                 }
 
                                 Label {
@@ -1494,8 +1509,8 @@ Item {
                                 Layout.fillWidth: true
                                 text: qsTrId("genycaster.settings.appearance")
                                 color: Theme.ink
-                                font.pixelSize: Theme.typeTitle3Size
-                                font.weight: Theme.weightBold
+                                font.pixelSize: root.setupSectionTitleSize
+                                font.weight: Theme.weightDemiBold
                             }
                         }
 
@@ -1540,8 +1555,8 @@ Item {
                                 delegate: Button {
                                     required property var modelData
                                     Layout.fillWidth: true
-                                    Layout.maximumWidth: 58
-                                    implicitHeight: 46
+                                    Layout.maximumWidth: 48
+                                    implicitHeight: 40
                                     Accessible.name: modelData.id
                                     onClicked: appearanceController.setColorThemeId(modelData.id)
 
@@ -1550,7 +1565,7 @@ Item {
                                     contentItem: Item {
                                         Rectangle {
                                             anchors.centerIn: parent
-                                            width: appearanceController.colorThemeId === modelData.id ? 34 : 26
+                                            width: appearanceController.colorThemeId === modelData.id ? 30 : 24
                                             height: width
                                             radius: width / 2
                                             color: modelData.color
@@ -1619,16 +1634,18 @@ Item {
                 Label {
                     text: qsTrId("genycaster.setup.legal_title")
                     color: Theme.ink
-                    font.pixelSize: Theme.typeTitle1Size
+                    font.pixelSize: root.setupPageTitleSize
                     font.weight: Theme.weightBold
+                    lineHeight: Theme.typeTitle2LineHeight
                 }
 
                 Label {
                     Layout.fillWidth: true
-                    Layout.maximumWidth: 700
+                    Layout.maximumWidth: 620
                     text: qsTrId("genycaster.setup.privacy_compact_intro")
                     color: Theme.inkMuted
-                    font.pixelSize: Theme.typeBodySize
+                    font.pixelSize: root.setupBodySize
+                    lineHeight: Theme.typeLabelLineHeight
                     wrapMode: Text.WordWrap
                 }
             }
@@ -1662,19 +1679,17 @@ Item {
                                                          ? root.legalPrivacyReviewed
                                                          : root.legalTermsReviewed
                         Layout.fillWidth: true
-                        Layout.preferredHeight: root.phone ? 150 : 176
+                        Layout.preferredHeight: root.phone ? 128 : 138
                         enabled: !root.legalConsentAccepted
                         hoverEnabled: true
                         onClicked: root.openLegalReader(modelData.privacy ? "privacy" : "terms")
 
                         background: Superellipse {
-                            fillColor: legalCardButton.reviewed
-                                       ? Theme.successSurface
-                                       : legalCardButton.hovered ? Theme.surfaceHover : Theme.surface
-                            borderWidth: 1
+                            fillColor: legalCardButton.hovered ? Theme.surfaceHover : root.setupCard
+                            borderWidth: Theme.strokeStandard
                             borderColor: legalCardButton.reviewed
-                                         ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.40)
-                                         : Theme.borderMuted
+                                         ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.30)
+                                         : root.setupBorder
                             curveDepth: Theme.curveContainer
                         }
 
@@ -1688,11 +1703,7 @@ Item {
                                 Superellipse {
                                     Layout.preferredWidth: 42
                                     Layout.preferredHeight: 42
-                                    fillColor: reviewed
-                                               ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.12)
-                                               : modelData.privacy
-                                                 ? Qt.rgba(Theme.info.r, Theme.info.g, Theme.info.b, 0.10)
-                                                 : Qt.rgba(Theme.warning.r, Theme.warning.g, Theme.warning.b, 0.10)
+                                    fillColor: Theme.surfaceRaised
                                     curveDepth: Theme.curveCompact
 
                                     Icon {
@@ -1708,8 +1719,8 @@ Item {
                                     Layout.fillWidth: true
                                     text: modelData.title
                                     color: Theme.ink
-                                    font.pixelSize: Theme.typeTitle3Size
-                                    font.weight: Theme.weightBold
+                                    font.pixelSize: root.setupSectionTitleSize
+                                    font.weight: Theme.weightDemiBold
                                     elide: Text.ElideRight
                                 }
 
@@ -1763,73 +1774,44 @@ Item {
 
             Superellipse {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 72
-                fillColor: root.legalTermsChecked && root.legalPrivacyChecked
-                           ? Theme.successSurface : Theme.primarySurface
-                borderWidth: 1
-                borderColor: root.legalTermsChecked && root.legalPrivacyChecked
-                             ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.32)
-                             : Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.18)
+                Layout.preferredHeight: 56
+                fillColor: Theme.surfaceRaised
+                borderWidth: Theme.strokeStandard
+                borderColor: root.setupBorder
                 curveDepth: Theme.curveControl
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.margins: Theme.space3
+                    anchors.leftMargin: Theme.space4
+                    anchors.rightMargin: Theme.space4
                     spacing: Theme.space3
 
-                    Item {
-                        Layout.preferredWidth: 40
-                        Layout.preferredHeight: 40
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: width / 2
-                            color: "transparent"
-                            border.width: 3
-                            border.color: root.legalTermsChecked && root.legalPrivacyChecked
-                                          ? Theme.success : Theme.borderStrong
-                        }
-
-                        Label {
-                            anchors.centerIn: parent
-                            text: (root.legalTermsChecked ? 1 : 0) + (root.legalPrivacyChecked ? 1 : 0) + "/2"
-                            color: root.legalTermsChecked && root.legalPrivacyChecked
-                                   ? Theme.success : Theme.inkMuted
-                            font.family: Theme.latinFontFamily
-                            font.pixelSize: Theme.typeCaptionSize
-                            font.weight: Theme.weightBold
-                        }
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 1
-
-                        Label {
-                            Layout.fillWidth: true
-                            text: root.legalConsentAccepted
-                                  ? qsTrId("genycaster.setup.consent_recorded")
-                                  : qsTrId("genycaster.setup.privacy_local_note")
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeLabelSize
-                            font.weight: Theme.weightDemiBold
-                            wrapMode: Text.WordWrap
-                        }
-
-                        Label {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.setup.privacy_compact_intro")
-                            color: Theme.inkSubtle
-                            font.pixelSize: Theme.typeCaptionSize
-                            elide: Text.ElideRight
-                        }
-                    }
-
                     Icon {
-                        visible: root.legalTermsChecked && root.legalPrivacyChecked
-                        text: "social/verified"
-                        color: Theme.success
-                        preferredSize: 22
+                        text: root.legalTermsChecked && root.legalPrivacyChecked
+                              ? "social/verified" : Theme.iconInfo
+                        color: root.legalTermsChecked && root.legalPrivacyChecked
+                               ? Theme.success : Theme.inkSubtle
+                        preferredSize: Theme.iconSize
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        text: root.legalConsentAccepted
+                              ? qsTrId("genycaster.setup.consent_recorded")
+                              : qsTrId("genycaster.setup.privacy_local_note")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        font.weight: Theme.weightMedium
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Label {
+                        text: (root.legalTermsChecked ? 1 : 0) + (root.legalPrivacyChecked ? 1 : 0) + "/2"
+                        color: root.legalTermsChecked && root.legalPrivacyChecked
+                               ? Theme.success : Theme.inkSubtle
+                        font.family: Theme.latinFontFamily
+                        font.pixelSize: Theme.typeCaptionSize
+                        font.weight: Theme.weightBold
                     }
                 }
             }
@@ -1858,27 +1840,28 @@ Item {
                     Label {
                         text: qsTrId("genycaster.setup.network_title")
                         color: Theme.ink
-                        font.pixelSize: Theme.typeTitle1Size
+                        font.pixelSize: root.setupPageTitleSize
                         font.weight: Theme.weightBold
                     }
                 }
 
                 Label {
                     Layout.fillWidth: true
-                    Layout.maximumWidth: 720
+                    Layout.maximumWidth: 620
                     text: qsTrId("genycaster.setup.network_body")
                     color: Theme.inkMuted
-                    font.pixelSize: Theme.typeBodySize
+                    font.pixelSize: root.setupBodySize
+                    lineHeight: Theme.typeLabelLineHeight
                     wrapMode: Text.WordWrap
                 }
             }
 
             Superellipse {
                 Layout.fillWidth: true
-                implicitHeight: networkHero.implicitHeight + Theme.space4 * 2
-                fillColor: Theme.primarySurface
-                borderWidth: 1
-                borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.18)
+                implicitHeight: networkHero.implicitHeight + root.setupCardPadding * 2
+                fillColor: root.setupCard
+                borderWidth: Theme.strokeStandard
+                borderColor: root.setupBorder
                 curveDepth: Theme.curveContainer
 
                 GridLayout {
@@ -1886,18 +1869,19 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: Theme.space4
+                    anchors.margins: root.setupCardPadding
                     columns: root.phone ? 1 : 2
-                    columnSpacing: Theme.space5
-                    rowSpacing: Theme.space4
+                    columnSpacing: Theme.space4
+                    rowSpacing: Theme.space3
 
                     Item {
+                        visible: !root.phone
                         Layout.fillWidth: true
-                        Layout.preferredHeight: root.phone ? 164 : 190
+                        Layout.preferredHeight: 142
 
                         Rectangle {
                             anchors.centerIn: parent
-                            width: root.phone ? 150 : 174
+                            width: 126
                             height: width
                             radius: width / 2
                             color: "transparent"
@@ -1907,7 +1891,7 @@ Item {
 
                         Rectangle {
                             anchors.centerIn: parent
-                            width: root.phone ? 104 : 122
+                            width: 88
                             height: width
                             radius: width / 2
                             color: "transparent"
@@ -1917,7 +1901,7 @@ Item {
 
                         Rectangle {
                             anchors.centerIn: parent
-                            width: root.phone ? 64 : 72
+                            width: 52
                             height: width
                             radius: width / 2
                             color: Theme.surface
@@ -1928,7 +1912,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: "quilibrium/hypersnap"
                                 color: nodeSelectionController.probing ? Theme.inkMuted : Theme.accent
-                                preferredSize: root.phone ? 30 : 34
+                                preferredSize: Theme.iconSizeLarge
                             }
                         }
 
@@ -1938,8 +1922,8 @@ Item {
                             height: 8
                             radius: 4
                             color: Theme.success
-                            anchors.horizontalCenterOffset: -(root.phone ? 69 : 81)
-                            anchors.verticalCenterOffset: root.phone ? 18 : 22
+                            anchors.horizontalCenterOffset: -58
+                            anchors.verticalCenterOffset: 16
                         }
 
                         Rectangle {
@@ -1949,8 +1933,8 @@ Item {
                             radius: 3
                             color: Theme.accent
                             opacity: 0.55
-                            anchors.horizontalCenterOffset: root.phone ? 54 : 66
-                            anchors.verticalCenterOffset: -(root.phone ? 48 : 58)
+                            anchors.horizontalCenterOffset: 46
+                            anchors.verticalCenterOffset: -42
                         }
                     }
 
@@ -2028,13 +2012,9 @@ Item {
                         onClicked: nodeSelectionController.selectNode(modelData.id)
 
                         background: Superellipse {
-                            fillColor: modelData.selected
-                                       ? Theme.successSurface
-                                       : nodeButton.hovered ? Theme.surfaceHover : Theme.surface
-                            borderWidth: modelData.selected ? 1 : 1
-                            borderColor: modelData.selected
-                                         ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.42)
-                                         : Theme.borderMuted
+                            fillColor: nodeButton.hovered ? Theme.surfaceHover : root.setupCard
+                            borderWidth: Theme.strokeStandard
+                            borderColor: modelData.selected ? root.setupSelectedBorder : root.setupBorder
                             curveDepth: Theme.curveControl
                         }
 
@@ -2045,9 +2025,7 @@ Item {
                             Superellipse {
                                 Layout.preferredWidth: 42
                                 Layout.preferredHeight: 42
-                                fillColor: modelData.online
-                                           ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.10)
-                                           : Theme.surfaceMuted
+                                fillColor: Theme.surfaceRaised
                                 curveDepth: Theme.curveCompact
 
                                 Icon {
@@ -2135,9 +2113,11 @@ Item {
             Superellipse {
                 Layout.fillWidth: true
                 implicitHeight: networkStateRow.implicitHeight + Theme.space3 * 2
-                fillColor: nodeSelectionController.restartRequired
-                           ? Theme.warningSurface : Theme.successSurface
-                borderWidth: 0
+                fillColor: Theme.surfaceRaised
+                borderWidth: Theme.strokeStandard
+                borderColor: nodeSelectionController.restartRequired
+                             ? Qt.rgba(Theme.warning.r, Theme.warning.g, Theme.warning.b, 0.28)
+                             : root.setupBorder
                 curveDepth: Theme.curveControl
 
                 RowLayout {
@@ -2183,16 +2163,18 @@ Item {
                           ? qsTrId("genycaster.setup.account_verified")
                           : qsTrId("genycaster.setup.sign_in_required")
                     color: Theme.ink
-                    font.pixelSize: Theme.typeTitle1Size
+                    font.pixelSize: root.setupPageTitleSize
                     font.weight: Theme.weightBold
+                    lineHeight: Theme.typeTitle2LineHeight
                 }
 
                 Label {
                     Layout.fillWidth: true
-                    Layout.maximumWidth: 760
+                    Layout.maximumWidth: 620
                     text: root.phaseBody()
                     color: Theme.inkMuted
-                    font.pixelSize: Theme.typeBodySize
+                    font.pixelSize: root.setupBodySize
+                    lineHeight: Theme.typeLabelLineHeight
                     wrapMode: Text.WordWrap
                 }
             }
@@ -2200,10 +2182,10 @@ Item {
             Superellipse {
                 visible: root.authenticated
                 Layout.fillWidth: true
-                implicitHeight: verifiedGrid.implicitHeight + Theme.space5 * 2
-                fillColor: Theme.successSurface
-                borderWidth: 1
-                borderColor: Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.34)
+                implicitHeight: verifiedGrid.implicitHeight + root.setupCardPadding * 2
+                fillColor: root.setupCard
+                borderWidth: Theme.strokeStandard
+                borderColor: root.setupBorder
                 curveDepth: Theme.curveContainer
 
                 GridLayout {
@@ -2211,18 +2193,19 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: Theme.space5
+                    anchors.margins: root.setupCardPadding
                     columns: root.phone ? 1 : 2
-                    columnSpacing: Theme.space6
-                    rowSpacing: Theme.space4
+                    columnSpacing: Theme.space4
+                    rowSpacing: Theme.space3
 
                     Item {
+                        visible: !root.phone
                         Layout.fillWidth: true
-                        Layout.preferredHeight: root.phone ? 190 : 230
+                        Layout.preferredHeight: 160
 
                         Rectangle {
                             anchors.centerIn: parent
-                            width: root.phone ? 158 : 190
+                            width: 124
                             height: width
                             radius: width / 2
                             color: "transparent"
@@ -2232,7 +2215,7 @@ Item {
 
                         Rectangle {
                             anchors.centerIn: parent
-                            width: root.phone ? 122 : 148
+                            width: 92
                             height: width
                             radius: width / 2
                             color: "transparent"
@@ -2244,19 +2227,19 @@ Item {
                             anchors.centerIn: parent
                             sourceUrl: root.accountAvatarUrl
                             displayName: root.accountName.length > 0 ? root.accountName : root.accountUsername
-                            avatarSize: root.phone ? 92 : 108
+                            avatarSize: 74
                         }
 
                         Superellipse {
                             width: 32
                             height: 32
                             anchors.centerIn: parent
-                            anchors.horizontalCenterOffset: root.phone ? 38 : 46
-                            anchors.verticalCenterOffset: root.phone ? 38 : 46
+                            anchors.horizontalCenterOffset: 30
+                            anchors.verticalCenterOffset: 30
                             fillColor: Theme.success
                             curveDepth: 11
                             borderWidth: 3
-                            borderColor: Theme.successSurface
+                            borderColor: root.setupCard
 
                             Icon {
                                 anchors.centerIn: parent
@@ -2343,7 +2326,6 @@ Item {
                             Layout.fillWidth: true
                             text: qsTrId("genycaster.setup.continue")
                             prominent: true
-                            positive: true
                             iconGlyph: Theme.iconArrowRight
                             onClicked: root.nextStep()
                         }
@@ -2400,7 +2382,7 @@ Item {
                                 Superellipse {
                                     Layout.preferredWidth: 46
                                     Layout.preferredHeight: 46
-                                    fillColor: Theme.primarySurface
+                                    fillColor: Theme.surfaceRaised
                                     curveDepth: Theme.curveCompact
 
                                     Icon {
@@ -2415,8 +2397,8 @@ Item {
                                     Layout.fillWidth: true
                                     text: modelData.title
                                     color: Theme.ink
-                                    font.pixelSize: Theme.typeTitle3Size
-                                    font.weight: Theme.weightBold
+                                    font.pixelSize: root.setupSectionTitleSize
+                                    font.weight: Theme.weightDemiBold
                                 }
                             }
 
@@ -2464,9 +2446,9 @@ Item {
                 visible: root.authenticationApprovalAvailable
                 Layout.fillWidth: true
                 implicitHeight: approvalRow.implicitHeight + Theme.space3 * 2
-                fillColor: Theme.primarySurface
-                borderWidth: 1
-                borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.20)
+                fillColor: Theme.surfaceRaised
+                borderWidth: Theme.strokeStandard
+                borderColor: root.setupBorder
                 curveDepth: Theme.curveControl
 
                 RowLayout {
@@ -2566,10 +2548,10 @@ Item {
 
             Superellipse {
                 Layout.fillWidth: true
-                implicitHeight: readyHero.implicitHeight + Theme.space5 * 2
-                fillColor: Theme.primarySurface
-                borderWidth: 1
-                borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.18)
+                implicitHeight: readyHero.implicitHeight + root.setupCardPadding * 2
+                fillColor: root.setupCard
+                borderWidth: Theme.strokeStandard
+                borderColor: root.setupBorder
                 curveDepth: Theme.curveContainer
 
                 GridLayout {
@@ -2577,18 +2559,18 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: Theme.space5
+                    anchors.margins: root.setupCardPadding
                     columns: root.phone ? 1 : 2
-                    columnSpacing: Theme.space6
-                    rowSpacing: Theme.space4
+                    columnSpacing: Theme.space4
+                    rowSpacing: Theme.space3
 
                     Item {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: root.phone ? 210 : 250
+                        Layout.preferredHeight: root.phone ? 136 : 156
 
                         Rectangle {
                             anchors.centerIn: parent
-                            width: root.phone ? 172 : 206
+                            width: root.phone ? 112 : 128
                             height: width
                             radius: width / 2
                             color: "transparent"
@@ -2598,7 +2580,7 @@ Item {
 
                         Rectangle {
                             anchors.centerIn: parent
-                            width: root.phone ? 132 : 160
+                            width: root.phone ? 88 : 100
                             height: width
                             radius: width / 2
                             color: "transparent"
@@ -2610,19 +2592,19 @@ Item {
                             anchors.centerIn: parent
                             sourceUrl: root.accountAvatarUrl
                             displayName: root.accountName.length > 0 ? root.accountName : root.accountUsername
-                            avatarSize: root.phone ? 96 : 112
+                            avatarSize: root.phone ? 72 : 80
                         }
 
                         Superellipse {
                             width: 34
                             height: 34
                             anchors.centerIn: parent
-                            anchors.horizontalCenterOffset: root.phone ? 40 : 48
-                            anchors.verticalCenterOffset: root.phone ? 40 : 48
+                            anchors.horizontalCenterOffset: root.phone ? 28 : 32
+                            anchors.verticalCenterOffset: root.phone ? 28 : 32
                             fillColor: Theme.success
                             curveDepth: 12
                             borderWidth: 3
-                            borderColor: Theme.primarySurface
+                            borderColor: root.setupCard
 
                             Icon {
                                 anchors.centerIn: parent
@@ -2641,8 +2623,9 @@ Item {
                             Layout.fillWidth: true
                             text: qsTrId("genycaster.status.ready")
                             color: Theme.ink
-                            font.pixelSize: Theme.typeDisplaySize
+                            font.pixelSize: root.setupPageTitleSize
                             font.weight: Theme.weightBold
+                            lineHeight: Theme.typeTitle2LineHeight
                             wrapMode: Text.WordWrap
                         }
 
@@ -2652,7 +2635,8 @@ Item {
                                   ? qsTrId("genycaster.setup.ready_for").arg(root.accountName)
                                   : qsTrId("genycaster.setup.ready_generic")
                             color: Theme.inkMuted
-                            font.pixelSize: Theme.typeBodySize
+                            font.pixelSize: root.setupBodySize
+                            lineHeight: Theme.typeLabelLineHeight
                             wrapMode: Text.WordWrap
                         }
 
@@ -2703,7 +2687,7 @@ Item {
                         Superellipse {
                             Layout.preferredWidth: 38
                             Layout.preferredHeight: 38
-                            fillColor: Theme.primarySurface
+                            fillColor: Theme.surfaceRaised
                             curveDepth: Theme.curveCompact
 
                             Icon {
@@ -2819,7 +2803,7 @@ Item {
                         Superellipse {
                             Layout.preferredWidth: 38
                             Layout.preferredHeight: 38
-                            fillColor: Theme.successSurface
+                            fillColor: Theme.surfaceRaised
                             curveDepth: Theme.curveCompact
 
                             Icon {
