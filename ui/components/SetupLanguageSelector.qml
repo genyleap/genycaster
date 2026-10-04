@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -18,8 +20,20 @@ Item {
                                         ? model[currentIndex] : null
 
     implicitHeight: 184
+    activeFocusOnTab: true
+    Accessible.name: qsTrId("genycaster.settings.language_region")
+    Accessible.description: currentEntry ? currentEntry.language : ""
     LayoutMirroring.enabled: false
     LayoutMirroring.childrenInherit: true
+
+    Keys.onLeftPressed: event => {
+        previous()
+        event.accepted = true
+    }
+    Keys.onRightPressed: event => {
+        next()
+        event.accepted = true
+    }
 
     function wrappedOffset(index) {
         if (itemCount <= 0)
@@ -96,7 +110,7 @@ Item {
                 }
 
                 contentItem: Icon {
-                    text: Theme.rtl ? Theme.iconArrowRight : Theme.iconArrowLeft
+                    text: Theme.iconArrowLeft
                     color: Theme.inkMuted
                     preferredSize: Theme.iconSizeSmall
                 }
@@ -123,7 +137,7 @@ Item {
                 }
 
                 contentItem: Icon {
-                    text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                    text: Theme.iconArrowRight
                     color: Theme.inkMuted
                     preferredSize: Theme.iconSizeSmall
                 }
@@ -172,10 +186,11 @@ Item {
                 }
 
                 delegate: Item {
+                    id: languageDelegate
                     required property int index
                     required property var modelData
 
-                    readonly property int offsetFromCenter: root.wrappedOffset(index)
+                    readonly property int offsetFromCenter: root.wrappedOffset(languageDelegate.index)
                     readonly property int distanceFromCenter: Math.abs(offsetFromCenter)
 
                     width: 154
@@ -209,9 +224,9 @@ Item {
 
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: modelData.hello
+                            text: languageDelegate.modelData.hello
                             color: PathView.isCurrentItem ? Theme.accentInk : Theme.inkMuted
-                            font.family: Theme.fontFamilyForText(modelData.hello)
+                            font.family: Theme.fontFamilyForText(languageDelegate.modelData.hello)
                             font.pixelSize: PathView.isCurrentItem
                                             ? Theme.typeTitle3Size : Theme.typeLabelSize
                             font.weight: PathView.isCurrentItem
@@ -221,11 +236,11 @@ Item {
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
                             visible: PathView.isCurrentItem
-                            text: modelData.language
+                            text: languageDelegate.modelData.language
                             color: Qt.rgba(Theme.accentInk.r,
                                            Theme.accentInk.g,
                                            Theme.accentInk.b, 0.76)
-                            font.family: Theme.fontFamilyForText(modelData.language)
+                            font.family: Theme.fontFamilyForText(languageDelegate.modelData.language)
                             font.pixelSize: Theme.typeCaptionSize
                             font.weight: Theme.weightMedium
                         }
@@ -234,7 +249,7 @@ Item {
                     TapHandler {
                         onTapped: {
                             root.userInteracted = true
-                            carousel.currentIndex = index
+                            carousel.currentIndex = languageDelegate.index
                         }
                     }
                 }

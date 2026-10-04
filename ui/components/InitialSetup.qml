@@ -418,6 +418,7 @@ Item {
                 Row {
                     visible: true
                     spacing: 6
+                    layoutDirection: Theme.uiDirection
                     Repeater {
                         model: root.wizardSteps
                         delegate: Rectangle {

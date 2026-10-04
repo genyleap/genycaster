@@ -53,3 +53,19 @@ A QML parse/lint pass and targeted unit tests are required for every change.
 A full rendered GUI pass is required before calling the setup polished. If the
 configured Qt/C++ toolchain blocks QML type generation or the application build,
 rendered GUI status must be reported as **NOT VERIFIED** rather than inferred.
+
+### Current verification state
+
+| Surface | Evidence | Result |
+| --- | --- | --- |
+| Setup QML syntax | `qmlformat --ignore-settings` on modified setup components | PASS |
+| Language selector lint | `qmllint` with the generated QML import root | PASS, except missing generated `farcaster_client.qmltypes` |
+| Presentation setup/reset tests | `farcaster_presentation_icon_tests` | PASS |
+| Strict module lint | `farcaster_client_qmllint_strict` | NOT VERIFIED: blocked before QML lint by the existing Qt 6.11.2 / GCC 16 C++ module failure in `emoji_runtime.cppm` |
+| Rendered 390 / 900 / 1280 px, LTR / RTL, light / dark matrix | requires a successful graphical target | NOT VERIFIED |
+
+The selector's horizontal carousel is intentionally a physical interaction
+surface: its left control always moves toward the physically previous item and
+its right control toward the physically next item. Surrounding shell layout,
+copy alignment, back/continue semantics, sidebar placement, and progress order
+follow `Theme.uiDirection`.
