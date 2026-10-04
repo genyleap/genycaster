@@ -26,7 +26,6 @@ Item {
     property bool legalPrivacyReviewed: false
     property string legalReaderKind: ""
     property bool legalReaderReachedEnd: false
-    property bool languageOrbitUserControlled: false
     property int currentStep: 0
     property int highestReachedStep: 0
     property real stageReveal: 1.0
@@ -95,8 +94,8 @@ Item {
         case 2: return Theme.iconDocument
         case 3: return Theme.iconWifi
         case 4: return Theme.iconUser
-        case 5: return "social/verified"
-        default: return "social/verified"
+        case 5: return Theme.iconCheck
+        default: return Theme.iconCheck
         }
     }
 
@@ -119,18 +118,6 @@ Item {
 
     function accentCode() {
         return String(Theme.accent).toUpperCase()
-    }
-
-    function greetingOrbitOffset(index, currentIndex) {
-        const count = greetings.length
-        if (count <= 0)
-            return 0
-        let delta = index - currentIndex
-        if (delta > count / 2)
-            delta -= count
-        else if (delta < -count / 2)
-            delta += count
-        return delta
     }
 
     function stepComplete(index) {
@@ -396,7 +383,7 @@ Item {
 
                         Icon {
                             anchors.centerIn: parent
-                            text: "social/sparkles"
+                            text: "brands/geny"
                             color: Theme.accent
                             preferredSize: Theme.iconSize
                         }
@@ -422,7 +409,7 @@ Item {
                 Item { Layout.fillWidth: true }
 
                 Row {
-                    visible: root.phone
+                    visible: true
                     spacing: 6
                     Repeater {
                         model: root.wizardSteps
@@ -442,7 +429,7 @@ Item {
                 }
 
                 Label {
-                    visible: !root.phone
+                    visible: true
                     text: (root.wizardSteps.indexOf(root.currentStep) + 1) + " / " + root.wizardSteps.length
                     color: Theme.inkSubtle
                     font.family: Theme.latinFontFamily
@@ -465,7 +452,7 @@ Item {
 
             Rectangle {
                 visible: !root.compact
-                Layout.preferredWidth: 224
+                Layout.preferredWidth: 236
                 Layout.fillHeight: true
                 color: Theme.surface
                 border.width: 0
@@ -497,12 +484,8 @@ Item {
                             font.weight: Theme.weightBold
                         }
 
-                        Label {
-                            Layout.fillWidth: true
-                            text: (root.currentStep + 1) + " / " + root.wizardSteps.length
-                            color: Theme.inkSubtle
-                            font.family: Theme.latinFontFamily
-                            font.pixelSize: Theme.typeCaptionSize
+                        Item {
+                            Layout.preferredHeight: 2
                         }
                     }
 
@@ -511,11 +494,11 @@ Item {
                         Layout.fillHeight: true
 
                         Rectangle {
-                            x: 21
-                            y: 23
-                            width: 2
-                            height: Math.max(0, stepRail.height - 46)
-                            radius: 1
+                            x: 14
+                            y: 27
+                            width: 1
+                            height: Math.max(0, stepRail.height - 54)
+                            radius: 0.5
                             color: Theme.borderMuted
                         }
 
@@ -564,51 +547,29 @@ Item {
 
                                             Icon {
                                                 anchors.centerIn: parent
-                                                visible: complete
-                                                text: "social/verified"
-                                                color: Theme.inkMuted
-                                                preferredSize: 17
-                                            }
-
-                                            Label {
-                                                anchors.centerIn: parent
-                                                visible: !complete
-                                                text: String(modelData + 1)
-                                                color: current ? Theme.contrastInk(Theme.accent) : Theme.inkSubtle
-                                                font.family: Theme.latinFontFamily
-                                                font.pixelSize: Theme.typeCaptionSize
-                                                font.weight: Theme.weightBold
+                                                text: root.stepIcon(modelData)
+                                                color: current
+                                                       ? Theme.contrastInk(Theme.accent)
+                                                       : complete ? Theme.inkMuted : Theme.inkSubtle
+                                                preferredSize: Theme.iconSizeSmall
                                             }
                                         }
 
-                                        ColumnLayout {
+                                        Label {
                                             Layout.fillWidth: true
-                                            spacing: 0
-
-                                            Label {
-                                                Layout.fillWidth: true
-                                                text: root.stepTitle(modelData)
-                                                color: current ? Theme.ink : Theme.inkMuted
-                                                font.pixelSize: Theme.typeLabelSize
-                                                font.weight: current ? Theme.weightBold : Theme.weightMedium
-                                                elide: Text.ElideRight
-                                            }
-
-                                            Label {
-                                                visible: current
-                                                Layout.fillWidth: true
-                                                text: qsTrId("genycaster.setup.title")
-                                                color: Theme.accent
-                                                font.pixelSize: Theme.typeCaptionSize
-                                                elide: Text.ElideRight
-                                            }
+                                            text: root.stepTitle(modelData)
+                                            color: current ? Theme.ink : Theme.inkMuted
+                                            font.pixelSize: Theme.typeLabelSize
+                                            font.weight: current ? Theme.weightDemiBold : Theme.weightMedium
+                                            elide: Text.ElideRight
                                         }
 
-                                        Icon {
+                                        Rectangle {
                                             visible: current
-                                            text: Theme.iconArrowRight
+                                            Layout.preferredWidth: 3
+                                            Layout.preferredHeight: 18
+                                            radius: 2
                                             color: Theme.accent
-                                            preferredSize: 15
                                         }
                                     }
                                 }
@@ -616,33 +577,9 @@ Item {
                         }
                     }
 
-                    Superellipse {
+                    Item {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 54
-                        fillColor: Theme.surfaceRaised
-                        borderWidth: Theme.strokeStandard
-                        borderColor: Theme.borderMuted
-                        curveDepth: Theme.curveControl
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: Theme.space3
-                            spacing: Theme.space2
-
-                            Icon {
-                                text: "social/verified"
-                                color: Theme.accent
-                                preferredSize: 18
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.setup.welcome_eyebrow")
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                                wrapMode: Text.WordWrap
-                            }
-                        }
+                        Layout.preferredHeight: Theme.space2
                     }
                 }
             }
@@ -732,7 +669,7 @@ Item {
                             text: root.primaryActionText()
                             prominent: true
                             enabled: root.primaryActionEnabled()
-                            iconGlyph: root.currentStep === 5 ? "social/verified" : ""
+                            iconGlyph: root.currentStep === 5 ? Theme.iconCheck : ""
                             onClicked: root.nextStep()
                         }
                     }
@@ -927,7 +864,7 @@ Item {
                     spacing: Theme.space2
 
                     Icon {
-                        text: root.legalReaderReachedEnd ? "social/verified" : Theme.iconInfo
+                        text: root.legalReaderReachedEnd ? Theme.iconCheck : Theme.iconInfo
                         color: root.legalReaderReachedEnd ? Theme.success : Theme.inkSubtle
                         preferredSize: 16
                     }
@@ -949,7 +886,7 @@ Item {
                           : qsTrId("genycaster.setup.accept_terms")
                     prominent: true
                     enabled: root.legalReaderReachedEnd
-                    iconGlyph: "social/verified"
+                    iconGlyph: Theme.iconCheck
                     onClicked: root.acceptLegalReader()
                 }
             }
@@ -993,220 +930,29 @@ Item {
                 wrapMode: Text.WordWrap
             }
 
-            Superellipse {
+            SetupLanguageSelector {
+                id: setupLanguageSelector
                 Layout.fillWidth: true
-                Layout.maximumWidth: 520
+                Layout.maximumWidth: 620
                 Layout.alignment: Qt.AlignHCenter
-                Layout.preferredHeight: root.phone ? 286 : 306
-                fillColor: "transparent"
-                borderWidth: 0
-                borderColor: "transparent"
-                curveDepth: Theme.curveContainer
+                model: root.greetings
+                selectedLabel: localizationController.languageLabel
+                selectedDetail: localizationController.effectiveLanguageTag
 
-                Item {
-                    id: orbitFrame
-                    anchors.fill: parent
-                    anchors.margins: Theme.space4
+                Component.onCompleted: currentIndex =
+                    root.greetingIndexForTag(localizationController.effectiveLanguageTag)
 
-                    readonly property real sphereSize: Math.min(width, height - 48, root.phone ? 232 : 252)
+                onActivated: (index, entry) => {
+                    if (entry && entry.tag)
+                        localizationController.setLanguageTag(entry.tag)
+                }
 
-                    Rectangle {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.top: parent.top
-                        anchors.topMargin: 4
-                        width: orbitFrame.sphereSize
-                        height: orbitFrame.sphereSize
-                        radius: width / 2
-                        color: "transparent"
-                        border.width: Theme.strokeHairline
-                        border.color: Theme.borderStrong
-                    }
-
-                    Rectangle {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.top: parent.top
-                        anchors.topMargin: 4 + orbitFrame.sphereSize * 0.33
-                        width: orbitFrame.sphereSize
-                        height: orbitFrame.sphereSize * 0.34
-                        radius: height / 2
-                        color: "transparent"
-                        border.width: Theme.strokeHairline
-                        border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.20)
-                    }
-
-                    Rectangle {
-                        visible: false
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.top: parent.top
-                        anchors.topMargin: 4 + orbitFrame.sphereSize * 0.12
-                        width: orbitFrame.sphereSize * 0.48
-                        height: orbitFrame.sphereSize * 0.76
-                        radius: width / 2
-                        color: "transparent"
-                        border.width: Theme.strokeHairline
-                        border.color: Theme.borderMuted
-                    }
-
-                    Superellipse {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.top: parent.top
-                        anchors.topMargin: 4 + (orbitFrame.sphereSize - 54) / 2
-                        width: 154
-                        height: 54
-                        fillColor: "transparent"
-                        borderWidth: 0
-                        borderColor: "transparent"
-                        curveDepth: Theme.curveControl
-                    }
-
-                    PathView {
-                        id: languageOrbit
-                        width: orbitFrame.sphereSize
-                        height: orbitFrame.sphereSize
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.top: parent.top
-                        anchors.topMargin: 4
-                        model: root.greetings
-                        pathItemCount: 5
-                        preferredHighlightBegin: 0.5
-                        preferredHighlightEnd: 0.5
-                        highlightRangeMode: PathView.StrictlyEnforceRange
-                        snapMode: PathView.SnapToItem
-                        maximumFlickVelocity: 1100
-
-                        onMovementStarted: root.languageOrbitUserControlled = true
-
-                        path: Path {
-                            startX: languageOrbit.width / 2
-                            startY: 16
-
-                            PathCubic {
-                                control1X: languageOrbit.width * 0.20
-                                control1Y: languageOrbit.height * 0.22
-                                control2X: languageOrbit.width * 0.24
-                                control2Y: languageOrbit.height * 0.40
-                                x: languageOrbit.width / 2
-                                y: languageOrbit.height / 2
-                            }
-
-                            PathCubic {
-                                control1X: languageOrbit.width * 0.76
-                                control1Y: languageOrbit.height * 0.60
-                                control2X: languageOrbit.width * 0.80
-                                control2Y: languageOrbit.height * 0.78
-                                x: languageOrbit.width / 2
-                                y: languageOrbit.height - 16
-                            }
-                        }
-
-                        delegate: Item {
-                            required property int index
-                            required property var modelData
-                            readonly property int orbitOffset:
-                                root.greetingOrbitOffset(index, languageOrbit.currentIndex)
-                            readonly property int orbitDistance: Math.abs(orbitOffset)
-                            width: 150
-                            height: 48
-                            scale: PathView.isCurrentItem ? 1.0 : orbitDistance <= 1 ? 0.82 : 0.70
-                            opacity: PathView.isCurrentItem ? 1.0 : orbitDistance <= 1 ? 0.48 : 0.24
-                            z: PathView.isCurrentItem ? 4 : 1
-
-                            transform: Rotation {
-                                origin.x: width / 2
-                                origin.y: height / 2
-                                axis.x: 1
-                                axis.y: 0
-                                axis.z: 0
-                                angle: Math.max(-52, Math.min(52, orbitOffset * 24))
-                            }
-
-                            Label {
-                                anchors.centerIn: parent
-                                text: modelData.hello
-                                color: PathView.isCurrentItem ? Theme.ink : Theme.inkMuted
-                                font.family: Theme.fontFamilyForText(modelData.hello)
-                                font.pixelSize: PathView.isCurrentItem ? 24 : Theme.typeLabelSize
-                                font.weight: PathView.isCurrentItem ? Theme.weightBold : Theme.weightMedium
-                            }
-
-                            TapHandler {
-                                onPressedChanged: {
-                                    if (pressed)
-                                        root.languageOrbitUserControlled = true
-                                }
-                                onTapped: {
-                                    root.languageOrbitUserControlled = true
-                                    languageOrbit.currentIndex = index
-                                    localizationController.setLanguageTag(modelData.tag)
-                                }
-                            }
-                        }
-
-                        Timer {
-                            interval: 2100
-                            repeat: true
-                            running: root.visible
-                                     && root.currentStep === 0
-                                     && !root.languageOrbitUserControlled
-                                     && !Theme.reduceMotion
-                            onTriggered: {
-                                if (languageOrbit.count > 0)
-                                    languageOrbit.currentIndex =
-                                        (languageOrbit.currentIndex + 1) % languageOrbit.count
-                            }
-                        }
-
-                        Component.onCompleted: currentIndex =
-                            root.greetingIndexForTag(localizationController.effectiveLanguageTag)
-
-                        onCurrentIndexChanged: {
-                            if (!root.languageOrbitUserControlled
-                                    || currentIndex < 0
-                                    || currentIndex >= root.greetings.length)
-                                return
-                            const selected = root.greetings[currentIndex]
-                            if (selected && selected.tag)
-                                localizationController.setLanguageTag(selected.tag)
-                        }
-                    }
-
-                    Rectangle {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.bottom: languageRow.top
-                        anchors.bottomMargin: Theme.space3
-                        height: Theme.strokeHairline
-                        color: Theme.borderMuted
-                    }
-
-                    RowLayout {
-                        id: languageRow
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        spacing: Theme.space2
-
-                        Icon {
-                            text: Theme.iconLanguage
-                            color: Theme.accent
-                            preferredSize: Theme.iconSize
-                        }
-
-                        Label {
-                            Layout.fillWidth: true
-                            text: localizationController.languageLabel
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeLabelSize
-                            font.weight: Theme.weightDemiBold
-                            elide: Text.ElideRight
-                        }
-
-                        Label {
-                            text: qsTrId("genycaster.setup.language_applies_now")
-                            color: Theme.inkSubtle
-                            font.pixelSize: Theme.typeCaptionSize
-                            elide: Text.ElideRight
-                            visible: !root.phone
+                Connections {
+                    target: localizationController
+                    function onEffectiveLanguageTagChanged() {
+                        if (!setupLanguageSelector.userInteracted) {
+                            setupLanguageSelector.currentIndex =
+                                root.greetingIndexForTag(localizationController.effectiveLanguageTag)
                         }
                     }
                 }
@@ -1260,80 +1006,6 @@ Item {
                     columns: 1
                     columnSpacing: 0
                     rowSpacing: Theme.space4
-
-                    Item {
-                        visible: false
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 0
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 142
-                            height: width
-                            radius: width / 2
-                            color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.035)
-                            border.width: 1
-                            border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22)
-                        }
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 104
-                            height: width
-                            radius: width / 2
-                            color: "transparent"
-                            border.width: 1
-                            border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.14)
-                        }
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 62
-                            height: width
-                            radius: width / 2
-                            color: Theme.accent
-
-                            Icon {
-                                anchors.centerIn: parent
-                                text: Theme.iconPalette
-                                color: Theme.contrastInk(Theme.accent)
-                                preferredSize: Theme.iconSizeLarge
-                            }
-                        }
-
-                        Superellipse {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.bottom: parent.bottom
-                            width: Math.min(parent.width, 180)
-                            height: 40
-                            fillColor: Theme.surface
-                            borderWidth: 1
-                            borderColor: Theme.borderMuted
-                            curveDepth: Theme.curveControl
-
-                            RowLayout {
-                                anchors.centerIn: parent
-                                spacing: Theme.space2
-
-                                Rectangle {
-                                    Layout.preferredWidth: 14
-                                    Layout.preferredHeight: 14
-                                    radius: 7
-                                    color: Theme.accent
-                                    border.width: 1
-                                    border.color: Theme.borderStrong
-                                }
-
-                                Label {
-                                    text: root.accentCode()
-                                    color: Theme.ink
-                                    font.family: Theme.codeFontFamily
-                                    font.pixelSize: Theme.typeLabelSize
-                                    font.weight: Theme.weightBold
-                                }
-                            }
-                        }
-                    }
 
                     ColumnLayout {
                         Layout.fillWidth: true
@@ -1527,7 +1199,7 @@ Item {
                                             Icon {
                                                 anchors.centerIn: parent
                                                 visible: appearanceController.colorThemeId === modelData.id
-                                                text: "social/verified"
+                                                text: Theme.iconCheck
                                                 color: Theme.contrastInk(modelData.color)
                                                 preferredSize: 15
                                             }
@@ -1631,9 +1303,7 @@ Item {
                         background: Superellipse {
                             fillColor: legalCardButton.hovered ? Theme.surfaceHover : root.setupCard
                             borderWidth: Theme.strokeStandard
-                            borderColor: legalCardButton.reviewed
-                                         ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.26)
-                                         : root.setupBorder
+                            borderColor: root.setupBorder
                             curveDepth: Theme.curveControl
                         }
 
@@ -1671,10 +1341,8 @@ Item {
 
                                 Label {
                                     Layout.fillWidth: true
-                                    text: reviewed
-                                          ? qsTrId("genycaster.setup.consent_recorded")
-                                          : modelData.body
-                                    color: reviewed ? Theme.success : Theme.inkSubtle
+                                    text: modelData.body
+                                    color: Theme.inkSubtle
                                     font.pixelSize: Theme.typeCaptionSize
                                     maximumLineCount: 1
                                     elide: Text.ElideRight
@@ -1682,8 +1350,8 @@ Item {
                             }
 
                             Icon {
-                                text: reviewed ? "social/verified" : Theme.iconArrowRight
-                                color: reviewed ? Theme.success : Theme.inkSubtle
+                                text: reviewed ? Theme.iconCheck : Theme.iconArrowRight
+                                color: reviewed ? Theme.accent : Theme.inkSubtle
                                 preferredSize: Theme.iconSize
                             }
                         }
@@ -1707,7 +1375,7 @@ Item {
 
                     Icon {
                         text: root.legalTermsChecked && root.legalPrivacyChecked
-                              ? "social/verified" : Theme.iconInfo
+                              ? Theme.iconCheck : Theme.iconInfo
                         color: root.legalTermsChecked && root.legalPrivacyChecked
                                ? Theme.success : Theme.inkSubtle
                         preferredSize: Theme.iconSize
@@ -1747,21 +1415,12 @@ Item {
                 Layout.fillWidth: true
                 spacing: Theme.space1
 
-                RowLayout {
-                    spacing: Theme.space3
-
-                    Icon {
-                        text: Theme.iconWifi
-                        color: Theme.accent
-                        preferredSize: 25
-                    }
-
-                    Label {
-                        text: qsTrId("genycaster.setup.network_title")
-                        color: Theme.ink
-                        font.pixelSize: root.setupPageTitleSize
-                        font.weight: Theme.weightBold
-                    }
+                Label {
+                    text: qsTrId("genycaster.setup.network_title")
+                    color: Theme.ink
+                    font.pixelSize: root.setupPageTitleSize
+                    font.weight: Theme.weightBold
+                    lineHeight: Theme.typeTitle2LineHeight
                 }
 
                 Label {
@@ -1792,70 +1451,6 @@ Item {
                     columns: 1
                     columnSpacing: 0
                     rowSpacing: Theme.space3
-
-                    Item {
-                        visible: false
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 0
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 126
-                            height: width
-                            radius: width / 2
-                            color: "transparent"
-                            border.width: 1
-                            border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.20)
-                        }
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 88
-                            height: width
-                            radius: width / 2
-                            color: "transparent"
-                            border.width: 1
-                            border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.14)
-                        }
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 52
-                            height: width
-                            radius: width / 2
-                            color: Theme.surface
-                            border.width: 1
-                            border.color: Theme.borderMuted
-
-                            Icon {
-                                anchors.centerIn: parent
-                                text: "quilibrium/hypersnap"
-                                color: nodeSelectionController.probing ? Theme.inkMuted : Theme.accent
-                                preferredSize: Theme.iconSizeLarge
-                            }
-                        }
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 8
-                            height: 8
-                            radius: 4
-                            color: Theme.success
-                            anchors.horizontalCenterOffset: -58
-                            anchors.verticalCenterOffset: 16
-                        }
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 6
-                            height: 6
-                            radius: 3
-                            color: Theme.accent
-                            opacity: 0.55
-                            anchors.horizontalCenterOffset: 46
-                            anchors.verticalCenterOffset: -42
-                        }
-                    }
 
                     ColumnLayout {
                         Layout.fillWidth: true
@@ -1953,9 +1548,8 @@ Item {
                                 Icon {
                                     anchors.centerIn: parent
                                     text: "quilibrium/hypersnap"
-                                    color: modelData.online ? Theme.success
-                                         : modelData.status === "offline" ? Theme.danger
-                                         : Theme.inkMuted
+                                    color: modelData.status === "offline" ? Theme.danger
+                                         : modelData.selected ? Theme.accent : Theme.inkMuted
                                     preferredSize: Theme.iconSize
                                 }
                             }
@@ -1979,7 +1573,7 @@ Item {
                                     Label {
                                         visible: modelData.recommended
                                         text: qsTrId("genycaster.setup.network_best")
-                                        color: Theme.success
+                                        color: Theme.accent
                                         font.pixelSize: Theme.typeCaptionSize
                                         font.weight: Theme.weightBold
                                     }
@@ -2003,9 +1597,7 @@ Item {
                                     text: modelData.status === "checking" ? "…"
                                         : modelData.latencyMs >= 0 ? modelData.latencyMs + " ms"
                                         : "—"
-                                    color: modelData.online ? Theme.success
-                                         : modelData.status === "offline" ? Theme.danger
-                                         : Theme.inkMuted
+                                    color: modelData.status === "offline" ? Theme.danger : Theme.ink
                                     font.family: Theme.latinFontFamily
                                     font.pixelSize: Theme.typeLabelSize
                                     font.weight: Theme.weightBold
@@ -2023,9 +1615,9 @@ Item {
 
                             Icon {
                                 visible: modelData.selected
-                                text: "social/verified"
-                                color: Theme.success
-                                preferredSize: 20
+                                text: Theme.iconCheck
+                                color: Theme.accent
+                                preferredSize: Theme.iconSize
                             }
                         }
                     }
@@ -2048,9 +1640,9 @@ Item {
 
                     Icon {
                         text: nodeSelectionController.restartRequired
-                              ? Theme.iconWarning : "social/verified"
-                        color: nodeSelectionController.restartRequired ? Theme.warning : Theme.success
-                        preferredSize: 18
+                              ? Theme.iconWarning : Theme.iconCheck
+                        color: nodeSelectionController.restartRequired ? Theme.warning : Theme.accent
+                        preferredSize: Theme.iconSize
                     }
 
                     Label {
@@ -2058,7 +1650,7 @@ Item {
                         text: nodeSelectionController.restartRequired
                               ? qsTrId("genycaster.setup.network_restart_note")
                               : qsTrId("genycaster.setup.network_current_note")
-                        color: nodeSelectionController.restartRequired ? Theme.warning : Theme.success
+                        color: nodeSelectionController.restartRequired ? Theme.warning : Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightDemiBold
                         wrapMode: Text.WordWrap
@@ -2108,71 +1700,23 @@ Item {
                 borderColor: root.setupBorder
                 curveDepth: Theme.curveContainer
 
-                GridLayout {
+                RowLayout {
                     id: verifiedGrid
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.margins: root.setupCardPadding
-                    columns: 1
-                    columnSpacing: 0
-                    rowSpacing: Theme.space3
+                    spacing: Theme.space3
 
-                    Item {
-                        visible: false
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 0
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 124
-                            height: width
-                            radius: width / 2
-                            color: "transparent"
-                            border.width: 1
-                            border.color: Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.26)
-                        }
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 92
-                            height: width
-                            radius: width / 2
-                            color: "transparent"
-                            border.width: 1
-                            border.color: Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.16)
-                        }
-
-                        Avatar {
-                            anchors.centerIn: parent
-                            sourceUrl: root.accountAvatarUrl
-                            displayName: root.accountName.length > 0 ? root.accountName : root.accountUsername
-                            avatarSize: 74
-                        }
-
-                        Superellipse {
-                            width: 32
-                            height: 32
-                            anchors.centerIn: parent
-                            anchors.horizontalCenterOffset: 30
-                            anchors.verticalCenterOffset: 30
-                            fillColor: Theme.success
-                            curveDepth: 11
-                            borderWidth: 3
-                            borderColor: root.setupCard
-
-                            Icon {
-                                anchors.centerIn: parent
-                                text: "social/verified"
-                                color: Theme.contrastInk(Theme.success)
-                                preferredSize: 16
-                            }
-                        }
+                    Avatar {
+                        sourceUrl: root.accountAvatarUrl
+                        displayName: root.accountName.length > 0 ? root.accountName : root.accountUsername
+                        avatarSize: 56
                     }
 
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: Theme.space3
+                        spacing: 2
 
                         Label {
                             Layout.fillWidth: true
@@ -2185,73 +1729,34 @@ Item {
 
                         Label {
                             visible: root.accountUsername.length > 0
+                            Layout.fillWidth: true
                             text: "@" + root.accountUsername
                             color: Theme.inkMuted
-                            font.pixelSize: Theme.typeLabelSize
+                            font.pixelSize: Theme.typeCaptionSize
+                            elide: Text.ElideRight
                         }
 
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: Theme.space2
+                        RowLayout {
+                            spacing: Theme.space1
 
-                            Repeater {
-                                model: [
-                                    {
-                                        icon: "brands/geny",
-                                        title: qsTrId("genycaster.shell.verified_by_openproof")
-                                    },
-                                    {
-                                        icon: "brands/farcaster",
-                                        title: qsTrId("genycaster.setup.account_verified_body")
-                                    }
-                                ]
+                            Icon {
+                                text: Theme.iconCheck
+                                color: Theme.accent
+                                preferredSize: Theme.iconSizeSmall
+                            }
 
-                                delegate: RowLayout {
-                                    required property var modelData
-                                    Layout.fillWidth: true
-                                    spacing: Theme.space2
-
-                                    Superellipse {
-                                        Layout.preferredWidth: 30
-                                        Layout.preferredHeight: 30
-                                        fillColor: Theme.surfaceRaised
-                                        borderWidth: Theme.strokeStandard
-                                        borderColor: Theme.borderMuted
-                                        curveDepth: Theme.curveCompact
-
-                                        Icon {
-                                            anchors.centerIn: parent
-                                            text: modelData.icon
-                                            color: Theme.accent
-                                            preferredSize: 18
-                                        }
-                                    }
-
-                                    Label {
-                                        Layout.fillWidth: true
-                                        text: modelData.title
-                                        color: Theme.inkMuted
-                                        font.pixelSize: Theme.typeCaptionSize
-                                        wrapMode: Text.WordWrap
-                                    }
-
-                                    Icon {
-                                        text: "social/verified"
-                                        color: Theme.success
-                                        preferredSize: 18
-                                    }
-                                }
+                            Label {
+                                text: qsTrId("genycaster.shell.verified_by_openproof")
+                                color: Theme.inkSubtle
+                                font.pixelSize: Theme.typeCaptionSize
                             }
                         }
+                    }
 
-                        ActionButton {
-                            visible: false
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.setup.continue")
-                            prominent: true
-                            iconGlyph: Theme.iconArrowRight
-                            onClicked: root.nextStep()
-                        }
+                    Icon {
+                        text: Theme.iconCheck
+                        color: Theme.accent
+                        preferredSize: Theme.iconSize
                     }
                 }
             }
@@ -2259,9 +1764,9 @@ Item {
             GridLayout {
                 visible: !root.authenticated
                 Layout.fillWidth: true
-                columns: root.phone ? 1 : 2
-                columnSpacing: Theme.space3
-                rowSpacing: Theme.space3
+                columns: 1
+                columnSpacing: 0
+                rowSpacing: Theme.space2
 
                 Repeater {
                     model: [
@@ -2286,56 +1791,91 @@ Item {
                     delegate: Superellipse {
                         required property var modelData
                         Layout.fillWidth: true
-                        implicitHeight: authChoiceColumn.implicitHeight + Theme.space4 * 2
-                        fillColor: Theme.surface
-                        borderWidth: 1
-                        borderColor: Theme.borderMuted
-                        curveDepth: Theme.curveContainer
+                        implicitHeight: authChoiceColumn.implicitHeight + Theme.space3 * 2
+                        fillColor: root.setupCard
+                        borderWidth: Theme.strokeStandard
+                        borderColor: root.setupBorder
+                        curveDepth: Theme.curveControl
 
                         ColumnLayout {
                             id: authChoiceColumn
                             anchors.fill: parent
-                            anchors.margins: Theme.space4
-                            spacing: Theme.space3
+                            anchors.margins: Theme.space3
+                            spacing: Theme.space2
 
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: Theme.space3
 
                                 Superellipse {
-                                    Layout.preferredWidth: 46
-                                    Layout.preferredHeight: 46
+                                    Layout.preferredWidth: 40
+                                    Layout.preferredHeight: 40
                                     fillColor: Theme.surfaceRaised
+                                    borderWidth: Theme.strokeStandard
+                                    borderColor: Theme.borderMuted
                                     curveDepth: Theme.curveCompact
 
                                     Icon {
                                         anchors.centerIn: parent
                                         text: modelData.brand
                                         color: Theme.accent
-                                        preferredSize: 24
+                                        preferredSize: Theme.iconSize
                                     }
                                 }
 
-                                Label {
+                                ColumnLayout {
                                     Layout.fillWidth: true
-                                    text: modelData.title
-                                    color: Theme.ink
-                                    font.pixelSize: root.setupSectionTitleSize
-                                    font.weight: Theme.weightDemiBold
+                                    spacing: 1
+
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: modelData.title
+                                        color: Theme.ink
+                                        font.pixelSize: Theme.typeLabelSize
+                                        font.weight: Theme.weightDemiBold
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: modelData.body
+                                        color: Theme.inkMuted
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        maximumLineCount: root.phone ? 2 : 1
+                                        elide: Text.ElideRight
+                                        wrapMode: Text.WordWrap
+                                    }
+
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: modelData.comingSoon
+                                        color: Theme.inkSubtle
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        elide: Text.ElideRight
+                                    }
+                                }
+
+                                ActionButton {
+                                    visible: !root.phone
+                                    text: modelData.action
+                                    prominent: !modelData.farcaster
+                                    iconGlyph: Theme.iconSignIn
+                                    enabled: root.authenticationAvailable && !root.authenticationInProgress
+                                    busy: root.authenticationInProgress
+                                          && (modelData.farcaster
+                                              ? root.authenticationRoute === "farcaster"
+                                              : root.authenticationRoute !== "farcaster")
+                                    onClicked: {
+                                        if (modelData.farcaster)
+                                            root.continueWithFarcaster()
+                                        else
+                                            root.continueWithGenyleap()
+                                    }
                                 }
                             }
 
-                            Label {
-                                Layout.fillWidth: true
-                                text: modelData.body
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                                wrapMode: Text.WordWrap
-                            }
-
-                            Item { Layout.fillHeight: true }
-
                             ActionButton {
+                                visible: root.phone
                                 Layout.fillWidth: true
                                 text: modelData.action
                                 prominent: !modelData.farcaster
@@ -2351,14 +1891,6 @@ Item {
                                     else
                                         root.continueWithGenyleap()
                                 }
-                            }
-
-                            ActionButton {
-                                Layout.fillWidth: true
-                                text: modelData.comingSoon
-                                iconGlyph: Theme.iconPlus
-                                quiet: true
-                                enabled: false
                             }
                         }
                     }
@@ -2491,28 +2023,6 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: root.phone ? 136 : 156
 
-                        Rectangle {
-                            visible: false
-                            anchors.centerIn: parent
-                            width: root.phone ? 112 : 128
-                            height: width
-                            radius: width / 2
-                            color: "transparent"
-                            border.width: 1
-                            border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22)
-                        }
-
-                        Rectangle {
-                            visible: false
-                            anchors.centerIn: parent
-                            width: root.phone ? 88 : 100
-                            height: width
-                            radius: width / 2
-                            color: "transparent"
-                            border.width: 1
-                            border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.12)
-                        }
-
                         Avatar {
                             anchors.centerIn: parent
                             sourceUrl: root.accountAvatarUrl
@@ -2533,7 +2043,7 @@ Item {
 
                             Icon {
                                 anchors.centerIn: parent
-                                text: "social/verified"
+                                text: Theme.iconCheck
                                 color: Theme.contrastInk(Theme.success)
                                 preferredSize: 17
                             }
@@ -2568,21 +2078,20 @@ Item {
                         }
 
                         RowLayout {
-                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignHCenter
                             spacing: Theme.space2
 
                             Icon {
-                                text: "social/verified"
-                                color: Theme.success
-                                preferredSize: 18
+                                text: Theme.iconCheck
+                                color: Theme.accent
+                                preferredSize: Theme.iconSizeSmall
                             }
 
                             Label {
-                                Layout.fillWidth: true
                                 text: qsTrId("genycaster.setup.consent_recorded")
-                                color: Theme.success
+                                color: Theme.inkSubtle
                                 font.pixelSize: Theme.typeCaptionSize
-                                font.weight: Theme.weightDemiBold
+                                font.weight: Theme.weightMedium
                             }
                         }
                     }
@@ -2736,8 +2245,8 @@ Item {
                             Icon {
                                 anchors.centerIn: parent
                                 text: Theme.iconWifi
-                                color: Theme.success
-                                preferredSize: 19
+                                color: Theme.accent
+                                preferredSize: Theme.iconSize
                             }
                         }
 
@@ -2763,7 +2272,7 @@ Item {
                                     }
                                     return qsTrId("genycaster.setup.network_selected")
                                 }
-                                color: Theme.success
+                                color: Theme.inkSubtle
                                 font.pixelSize: Theme.typeCaptionSize
                             }
                         }
@@ -2814,16 +2323,16 @@ Item {
                             Label {
                                 Layout.fillWidth: true
                                 text: qsTrId("genycaster.shell.verified_by_openproof")
-                                color: Theme.success
+                                color: Theme.inkSubtle
                                 font.pixelSize: Theme.typeCaptionSize
                                 elide: Text.ElideRight
                             }
                         }
 
                         Icon {
-                            text: "social/verified"
-                            color: Theme.success
-                            preferredSize: 18
+                            text: Theme.iconCheck
+                            color: Theme.accent
+                            preferredSize: Theme.iconSize
                         }
                     }
                 }
