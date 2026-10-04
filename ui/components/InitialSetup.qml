@@ -22,8 +22,13 @@ Item {
 
     property bool legalTermsChecked: false
     property bool legalPrivacyChecked: false
+    property bool legalTermsReviewed: false
+    property bool legalPrivacyReviewed: false
+    property string legalReaderKind: ""
+    property bool legalReaderReachedEnd: false
     property bool languageOrbitUserControlled: false
     property int currentStep: 0
+    property int highestReachedStep: 0
     property real stageReveal: 1.0
 
     signal continueWithGenyleap()
@@ -75,8 +80,8 @@ Item {
         case 2: return Theme.iconDocument
         case 3: return Theme.iconWifi
         case 4: return Theme.iconUser
-        case 5: return Theme.iconCheck
-        default: return Theme.iconCheck
+        case 5: return "social/verified"
+        default: return "social/verified"
         }
     }
 
@@ -101,12 +106,54 @@ Item {
         return String(Theme.accent).toUpperCase()
     }
 
+    function stepComplete(index) {
+        if (index === 0)
+            return highestReachedStep > 0
+        if (index === 1)
+            return highestReachedStep > 1
+        if (index === 2)
+            return legalConsentAccepted || (legalTermsChecked && legalPrivacyChecked)
+        if (index === 3)
+            return highestReachedStep > 3
+        if (index === 4)
+            return authenticated
+        return setupCompleted
+    }
+
+    function stepUnlocked(index) {
+        if (index <= highestReachedStep)
+            return true
+        if (index === highestReachedStep + 1)
+            return true
+        if (index === 5)
+            return authenticated && highestReachedStep >= 4
+        return false
+    }
+
+    function openLegalReader(kind) {
+        legalReaderKind = kind
+        legalReaderReachedEnd = false
+        legalReader.open()
+    }
+
+    function acceptLegalReader() {
+        if (legalReaderKind === "privacy") {
+            legalPrivacyReviewed = true
+            legalPrivacyChecked = true
+        } else {
+            legalTermsReviewed = true
+            legalTermsChecked = true
+        }
+        legalReader.close()
+    }
+
     function switchStep(index) {
         index = Math.max(0, Math.min(5, index))
         if (!legalConsentAccepted && !(legalTermsChecked && legalPrivacyChecked) && index > 2)
             index = 2
         if (!authenticated && index > 4)
             index = 4
+        highestReachedStep = Math.max(highestReachedStep, index)
         if (index === currentStep) {
             stageReveal = 1.0
             return
@@ -228,9 +275,11 @@ Item {
 
     onSetupCompletedChanged: {
         if (!setupCompleted) {
+            highestReachedStep = 0
             Qt.callLater(() => switchStep(0))
             return
         }
+        highestReachedStep = 5
         Qt.callLater(synchronizeFlow)
     }
 
@@ -238,6 +287,8 @@ Item {
         if (legalConsentAccepted) {
             legalTermsChecked = true
             legalPrivacyChecked = true
+            legalTermsReviewed = true
+            legalPrivacyReviewed = true
         }
         Qt.callLater(synchronizeFlow)
     }
@@ -248,6 +299,8 @@ Item {
         if (legalConsentAccepted) {
             legalTermsChecked = true
             legalPrivacyChecked = true
+            legalTermsReviewed = true
+            legalPrivacyReviewed = true
         }
         forceActiveFocus()
         if (!setupCompleted)
@@ -259,11 +312,15 @@ Item {
     Component.onCompleted: {
         legalTermsChecked = legalConsentAccepted
         legalPrivacyChecked = legalConsentAccepted
+        legalTermsReviewed = legalConsentAccepted
+        legalPrivacyReviewed = legalConsentAccepted
         synchronizeFlow()
     }
 
     Keys.onEscapePressed: event => {
-        if (authenticationInProgress)
+        if (legalReader.opened)
+            legalReader.close()
+        else if (authenticationInProgress)
             cancelAuthentication()
         event.accepted = true
     }
@@ -377,75 +434,191 @@ Item {
             Layout.fillHeight: true
             spacing: 0
 
-            Item {
+            Rectangle {
                 visible: !root.compact
-                Layout.preferredWidth: 220
+                Layout.preferredWidth: 248
                 Layout.fillHeight: true
-
-                Column {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.topMargin: Theme.space7
-                    anchors.leftMargin: Theme.space5
-                    anchors.rightMargin: Theme.space4
-                    spacing: 4
-
-                    Repeater {
-                        model: root.wizardSteps
-                        delegate: Button {
-                            required property int modelData
-                            width: parent.width
-                            height: 46
-                            enabled: modelData <= root.currentStep
-                                     || (modelData === 5 && root.authenticated)
-                            hoverEnabled: true
-                            onClicked: root.switchStep(modelData)
-
-                            background: Superellipse {
-                                fillColor: parent.hovered || modelData === root.currentStep
-                                           ? Theme.surfaceHover : "transparent"
-                                curveDepth: Theme.curveCompact
-                            }
-
-                            contentItem: RowLayout {
-                                spacing: Theme.space3
-                                layoutDirection: Theme.uiDirection
-
-                                Icon {
-                                    text: root.stepIcon(modelData)
-                                    color: modelData < root.currentStep ? Theme.success
-                                         : modelData === root.currentStep ? Theme.accent
-                                         : Theme.inkSubtle
-                                    preferredSize: 18
-                                }
-
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: root.stepTitle(modelData)
-                                    color: modelData === root.currentStep ? Theme.ink : Theme.inkMuted
-                                    font.pixelSize: Theme.typeLabelSize
-                                    font.weight: modelData === root.currentStep
-                                                 ? Theme.weightDemiBold : Theme.weightMedium
-                                    elide: Text.ElideRight
-                                }
-
-                                Icon {
-                                    visible: modelData < root.currentStep
-                                    text: Theme.iconCheck
-                                    color: Theme.success
-                                    preferredSize: 15
-                                }
-                            }
-                        }
-                    }
-                }
+                color: Theme.surface
+                border.width: 0
 
                 Rectangle {
                     anchors.right: parent.right
                     width: 1
                     height: parent.height
                     color: Theme.borderMuted
+                }
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.topMargin: Theme.space6
+                    anchors.bottomMargin: Theme.space5
+                    anchors.leftMargin: Theme.space4
+                    anchors.rightMargin: Theme.space4
+                    spacing: Theme.space4
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.title")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightBold
+                        }
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: (root.currentStep + 1) + " / " + root.wizardSteps.length
+                            color: Theme.inkSubtle
+                            font.family: Theme.latinFontFamily
+                            font.pixelSize: Theme.typeCaptionSize
+                        }
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        Rectangle {
+                            x: 21
+                            y: 23
+                            width: 2
+                            height: Math.max(0, stepRail.height - 46)
+                            radius: 1
+                            color: Theme.borderMuted
+                        }
+
+                        Column {
+                            id: stepRail
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            spacing: 6
+
+                            Repeater {
+                                model: root.wizardSteps
+
+                                delegate: Button {
+                                    id: stepButton
+                                    required property int modelData
+                                    readonly property bool complete: root.stepComplete(modelData)
+                                    readonly property bool current: modelData === root.currentStep
+                                    width: parent.width
+                                    height: 54
+                                    enabled: root.stepUnlocked(modelData)
+                                    opacity: enabled ? 1.0 : 0.42
+                                    hoverEnabled: true
+                                    onClicked: root.switchStep(modelData)
+
+                                    background: Superellipse {
+                                        fillColor: stepButton.current
+                                                   ? Theme.primarySurface
+                                                   : stepButton.hovered ? Theme.surfaceHover : "transparent"
+                                        borderWidth: stepButton.current ? 1 : 0
+                                        borderColor: stepButton.current
+                                                     ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.24)
+                                                     : "transparent"
+                                        curveDepth: Theme.curveControl
+                                    }
+
+                                    contentItem: RowLayout {
+                                        spacing: Theme.space3
+                                        layoutDirection: Theme.uiDirection
+
+                                        Rectangle {
+                                            Layout.preferredWidth: 30
+                                            Layout.preferredHeight: 30
+                                            radius: 15
+                                            color: current ? Theme.accent
+                                                 : complete ? Theme.successSurface : Theme.surfaceMuted
+                                            border.width: current || complete ? 1 : 0
+                                            border.color: current ? Theme.accent
+                                                         : complete ? Theme.success : Theme.borderMuted
+
+                                            Icon {
+                                                anchors.centerIn: parent
+                                                visible: complete
+                                                text: "social/verified"
+                                                color: Theme.success
+                                                preferredSize: 17
+                                            }
+
+                                            Label {
+                                                anchors.centerIn: parent
+                                                visible: !complete
+                                                text: String(modelData + 1)
+                                                color: current ? Theme.contrastInk(Theme.accent) : Theme.inkSubtle
+                                                font.family: Theme.latinFontFamily
+                                                font.pixelSize: Theme.typeCaptionSize
+                                                font.weight: Theme.weightBold
+                                            }
+                                        }
+
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 0
+
+                                            Label {
+                                                Layout.fillWidth: true
+                                                text: root.stepTitle(modelData)
+                                                color: current ? Theme.ink : Theme.inkMuted
+                                                font.pixelSize: Theme.typeLabelSize
+                                                font.weight: current ? Theme.weightBold : Theme.weightMedium
+                                                elide: Text.ElideRight
+                                            }
+
+                                            Label {
+                                                visible: current
+                                                Layout.fillWidth: true
+                                                text: qsTrId("genycaster.setup.title")
+                                                color: Theme.accent
+                                                font.pixelSize: Theme.typeCaptionSize
+                                                elide: Text.ElideRight
+                                            }
+                                        }
+
+                                        Icon {
+                                            visible: current
+                                            text: Theme.iconArrowRight
+                                            color: Theme.accent
+                                            preferredSize: 15
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Superellipse {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 54
+                        fillColor: Theme.primarySurface
+                        borderWidth: 1
+                        borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.18)
+                        curveDepth: Theme.curveControl
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: Theme.space3
+                            spacing: Theme.space2
+
+                            Icon {
+                                text: "social/verified"
+                                color: Theme.accent
+                                preferredSize: 18
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.setup.welcome_eyebrow")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+                    }
                 }
             }
 
@@ -460,7 +633,7 @@ Item {
                     Layout.fillHeight: true
                     clip: true
                     contentWidth: width
-                    contentHeight: Math.max(height, stageColumn.implicitHeight + Theme.space8)
+                    contentHeight: stageCanvas.height
                     flickableDirection: Flickable.VerticalFlick
                     boundsBehavior: Flickable.StopAtBounds
                     interactive: contentHeight > height
@@ -474,16 +647,22 @@ Item {
                         policy: stageFlick.contentHeight > stageFlick.height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
                     }
 
-                    Column {
-                        id: stageColumn
-                        width: Math.min(stageFlick.width - (root.phone ? Theme.space4 * 2 : Theme.space7 * 2), 820)
-                        x: Math.max(root.phone ? Theme.space4 : Theme.space7,
+                    Item {
+                        id: stageCanvas
+                        width: Math.min(stageFlick.width - (root.phone ? Theme.space4 * 2 : Theme.space6 * 2),
+                                        root.compact ? 820 : 980)
+                        x: Math.max(root.phone ? Theme.space4 : Theme.space6,
                                     Math.round((stageFlick.width - width) / 2))
-                        topPadding: root.phone ? Theme.space5 : Theme.space7
-                        bottomPadding: Theme.space7
+                        height: Math.max(stageFlick.height,
+                                         stageLoader.y + stageLoader.implicitHeight + Theme.space6)
 
                         Loader {
+                            id: stageLoader
                             width: parent.width
+                            y: root.phone
+                               ? Theme.space4
+                               : Math.max(Theme.space5,
+                                          Math.round((stageFlick.height - implicitHeight) / 2) - Theme.space2)
                             sourceComponent: root.currentStep === 0 ? welcomeStage
                                            : root.currentStep === 1 ? personalizeStage
                                            : root.currentStep === 2 ? privacyStage
@@ -524,15 +703,288 @@ Item {
                         Item { Layout.fillWidth: true }
 
                         ActionButton {
-                            visible: root.currentStep !== 4
+                            visible: root.currentStep !== 4 || root.authenticated
                             text: root.primaryActionText()
                             prominent: true
                             positive: root.currentStep === 5
                             enabled: root.primaryActionEnabled()
-                            iconGlyph: root.currentStep === 5 ? Theme.iconCheck : ""
+                            iconGlyph: root.currentStep === 5 ? "social/verified" : ""
                             onClicked: root.nextStep()
                         }
                     }
+                }
+            }
+        }
+    }
+
+    Popup {
+        id: legalReader
+        modal: true
+        focus: true
+        width: Math.min(root.width - (root.phone ? Theme.space3 * 2 : Theme.space7 * 2), 700)
+        height: Math.min(root.height - (root.phone ? Theme.space3 * 2 : Theme.space6 * 2), 720)
+        x: Math.round((root.width - width) / 2)
+        y: Math.round((root.height - height) / 2)
+        padding: 0
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        onOpened: {
+            legalReaderFlick.contentY = 0
+            Qt.callLater(() => {
+                root.legalReaderReachedEnd =
+                    legalReaderFlick.contentHeight <= legalReaderFlick.height + 2
+            })
+        }
+
+        background: Superellipse {
+            fillColor: Theme.surface
+            borderWidth: 1
+            borderColor: Theme.borderStrong
+            curveDepth: Theme.curveContainer
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 0
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 70
+                Layout.leftMargin: Theme.space4
+                Layout.rightMargin: Theme.space3
+                spacing: Theme.space3
+
+                Superellipse {
+                    Layout.preferredWidth: 38
+                    Layout.preferredHeight: 38
+                    fillColor: root.legalReaderKind === "privacy"
+                               ? Qt.rgba(Theme.info.r, Theme.info.g, Theme.info.b, 0.12)
+                               : Qt.rgba(Theme.warning.r, Theme.warning.g, Theme.warning.b, 0.12)
+                    curveDepth: Theme.curveCompact
+
+                    Icon {
+                        anchors.centerIn: parent
+                        text: root.legalReaderKind === "privacy" ? Theme.iconInfo : Theme.iconDocument
+                        color: root.legalReaderKind === "privacy" ? Theme.info : Theme.warning
+                        preferredSize: 20
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 0
+
+                    Label {
+                        Layout.fillWidth: true
+                        text: root.legalReaderKind === "privacy"
+                              ? qsTrId("genycaster.setup.privacy_title")
+                              : qsTrId("genycaster.setup.terms_title")
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeTitle3Size
+                        font.weight: Theme.weightBold
+                        elide: Text.ElideRight
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        text: root.legalReaderKind === "privacy"
+                              ? "genyleap.com/privacy"
+                              : "genyleap.com/terms"
+                        color: Theme.inkSubtle
+                        font.family: Theme.codeFontFamily
+                        font.pixelSize: Theme.typeCaptionSize
+                        elide: Text.ElideMiddle
+                    }
+                }
+
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    text: qsTrId("genycaster.shell.cancel")
+                    onClicked: legalReader.close()
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                color: Theme.borderMuted
+            }
+
+            Flickable {
+                id: legalReaderFlick
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                contentWidth: width
+                contentHeight: legalReaderColumn.implicitHeight + Theme.space5 * 2
+                flickableDirection: Flickable.VerticalFlick
+                boundsBehavior: Flickable.StopAtBounds
+
+                onContentYChanged: {
+                    if (contentY + height >= contentHeight - 4)
+                        root.legalReaderReachedEnd = true
+                }
+                onContentHeightChanged: {
+                    if (contentHeight <= height + 2)
+                        root.legalReaderReachedEnd = true
+                }
+
+                ScrollBar.vertical: ScrollBar {
+                    policy: legalReaderFlick.contentHeight > legalReaderFlick.height
+                            ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
+                }
+
+                Column {
+                    id: legalReaderColumn
+                    width: legalReaderFlick.width - Theme.space5 * 2
+                    x: Theme.space5
+                    y: Theme.space5
+                    spacing: Theme.space4
+
+                    Label {
+                        width: parent.width
+                        text: root.legalReaderKind === "privacy"
+                              ? qsTrId("genycaster.setup.privacy_updated")
+                              : qsTrId("genycaster.setup.terms_updated")
+                        color: Theme.accent
+                        font.pixelSize: Theme.typeCaptionSize
+                        font.weight: Theme.weightDemiBold
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Label {
+                        width: parent.width
+                        text: root.legalReaderKind === "privacy"
+                              ? qsTrId("genycaster.setup.privacy_body")
+                              : qsTrId("genycaster.setup.terms_body")
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeBodySize
+                        font.weight: Theme.weightMedium
+                        lineHeight: 1.34
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Superellipse {
+                        width: parent.width
+                        implicitHeight: readerPointOne.implicitHeight + Theme.space4 * 2
+                        fillColor: Theme.surfaceMuted
+                        borderWidth: 0
+                        curveDepth: Theme.curveControl
+
+                        RowLayout {
+                            id: readerPointOne
+                            anchors.fill: parent
+                            anchors.margins: Theme.space4
+                            spacing: Theme.space3
+
+                            Rectangle {
+                                Layout.preferredWidth: 8
+                                Layout.preferredHeight: 8
+                                radius: 4
+                                color: Theme.accent
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.setup.legal_governing_note")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeLabelSize
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+                    }
+
+                    Superellipse {
+                        width: parent.width
+                        implicitHeight: readerPointTwo.implicitHeight + Theme.space4 * 2
+                        fillColor: Theme.primarySurface
+                        borderWidth: 1
+                        borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.16)
+                        curveDepth: Theme.curveControl
+
+                        RowLayout {
+                            id: readerPointTwo
+                            anchors.fill: parent
+                            anchors.margins: Theme.space4
+                            spacing: Theme.space3
+
+                            Icon {
+                                text: root.legalReaderKind === "privacy" ? "system/lock" : "social/verified"
+                                color: Theme.accent
+                                preferredSize: 20
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: root.legalReaderKind === "privacy"
+                                      ? qsTrId("genycaster.setup.acknowledge_privacy")
+                                      : qsTrId("genycaster.setup.accept_terms")
+                                color: Theme.ink
+                                font.pixelSize: Theme.typeLabelSize
+                                font.weight: Theme.weightDemiBold
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+                    }
+
+                    ActionButton {
+                        width: parent.width
+                        text: root.legalReaderKind === "privacy"
+                              ? qsTrId("genycaster.setup.open_privacy")
+                              : qsTrId("genycaster.setup.open_terms")
+                        iconGlyph: Theme.iconArrowUpRight
+                        quiet: true
+                        onClicked: presentationBridge.openExternalUrl(
+                            root.legalReaderKind === "privacy"
+                            ? "https://genyleap.com/privacy"
+                            : "https://genyleap.com/terms")
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                color: Theme.borderMuted
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 78
+                Layout.leftMargin: Theme.space4
+                Layout.rightMargin: Theme.space4
+                spacing: Theme.space3
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+
+                    Icon {
+                        text: root.legalReaderReachedEnd ? "social/verified" : Theme.iconInfo
+                        color: root.legalReaderReachedEnd ? Theme.success : Theme.inkSubtle
+                        preferredSize: 16
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        text: root.legalReaderReachedEnd
+                              ? qsTrId("genycaster.setup.legal_read_complete")
+                              : qsTrId("genycaster.setup.scroll_to_continue")
+                        color: root.legalReaderReachedEnd ? Theme.success : Theme.inkSubtle
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                }
+
+                ActionButton {
+                    text: root.legalReaderKind === "privacy"
+                          ? qsTrId("genycaster.setup.acknowledge_privacy")
+                          : qsTrId("genycaster.setup.accept_terms")
+                    prominent: true
+                    positive: true
+                    enabled: root.legalReaderReachedEnd
+                    iconGlyph: "social/verified"
+                    onClicked: root.acceptLegalReader()
                 }
             }
         }
@@ -542,14 +994,14 @@ Item {
         id: welcomeStage
 
         ColumnLayout {
-            spacing: Theme.space4
+            spacing: Theme.space3
 
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTrId("genycaster.setup.welcome_eyebrow")
                 color: Theme.accent
                 font.pixelSize: Theme.typeCaptionSize
-                font.weight: Theme.weightDemiBold
+                font.weight: Theme.weightBold
             }
 
             Label {
@@ -564,7 +1016,7 @@ Item {
 
             Label {
                 Layout.fillWidth: true
-                Layout.maximumWidth: 620
+                Layout.maximumWidth: 600
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTrId("genycaster.setup.language_orbit_hint")
                 color: Theme.inkMuted
@@ -576,95 +1028,155 @@ Item {
             Item {
                 id: orbitFrame
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.phone ? 300 : 340
-                Layout.topMargin: Theme.space2
+                Layout.preferredHeight: root.phone ? 350 : 420
+                Layout.topMargin: root.phone ? 0 : Theme.space2
+
+                readonly property real sphereSize: Math.min(width - Theme.space4,
+                                                            root.phone ? 320 : 390)
 
                 Rectangle {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: Math.min(parent.width, 520)
-                    height: 1
-                    color: Theme.borderMuted
-                    opacity: 0.65
+                    anchors.centerIn: parent
+                    width: orbitFrame.sphereSize
+                    height: orbitFrame.sphereSize
+                    radius: width / 2
+                    color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.025)
+                    border.width: 1
+                    border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.20)
                 }
 
                 Rectangle {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: Math.min(parent.width, 400)
-                    height: 94
-                    radius: 47
+                    anchors.centerIn: parent
+                    width: orbitFrame.sphereSize * 0.94
+                    height: orbitFrame.sphereSize * 0.33
+                    radius: height / 2
+                    color: "transparent"
+                    border.width: 1
+                    border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.15)
+                }
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: orbitFrame.sphereSize * 0.94
+                    height: orbitFrame.sphereSize * 0.33
+                    radius: height / 2
+                    rotation: 90
+                    color: "transparent"
+                    border.width: 1
+                    border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.14)
+                }
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: orbitFrame.sphereSize * 0.72
+                    height: orbitFrame.sphereSize * 0.72
+                    radius: width / 2
+                    color: "transparent"
+                    border.width: 1
+                    border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.09)
+                }
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: root.phone ? 210 : 238
+                    height: root.phone ? 78 : 84
+                    radius: height / 2
                     color: Theme.primarySurface
                     border.width: 1
-                    border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.24)
+                    border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.36)
+                }
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 8
+                    height: 8
+                    radius: 4
+                    color: Theme.accent
+                    opacity: 0.22
+                    anchors.horizontalCenterOffset: -(orbitFrame.sphereSize * 0.47)
+                }
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 8
+                    height: 8
+                    radius: 4
+                    color: Theme.accent
+                    opacity: 0.22
+                    anchors.horizontalCenterOffset: orbitFrame.sphereSize * 0.47
                 }
 
                 PathView {
                     id: languageOrbit
-                    anchors.fill: parent
+                    width: orbitFrame.sphereSize
+                    height: orbitFrame.sphereSize
+                    anchors.centerIn: parent
                     model: root.greetings
                     pathItemCount: 7
                     preferredHighlightBegin: 0.5
                     preferredHighlightEnd: 0.5
                     highlightRangeMode: PathView.StrictlyEnforceRange
                     snapMode: PathView.SnapToItem
-                    maximumFlickVelocity: 1100
+                    maximumFlickVelocity: 1250
+
+                    onMovementStarted: root.languageOrbitUserControlled = true
 
                     path: Path {
-                        startX: 24
-                        startY: orbitFrame.height / 2
-                        PathAttribute { name: "itemScale"; value: 0.62 }
-                        PathAttribute { name: "itemOpacity"; value: 0.20 }
-                        PathAttribute { name: "itemAngle"; value: -58 }
-                        PathLine { x: orbitFrame.width / 2; y: orbitFrame.height / 2 }
-                        PathAttribute { name: "itemScale"; value: 1.10 }
+                        startX: languageOrbit.width / 2
+                        startY: 22
+                        PathAttribute { name: "itemScale"; value: 0.56 }
+                        PathAttribute { name: "itemOpacity"; value: 0.12 }
+                        PathAttribute { name: "itemAngle"; value: -72 }
+
+                        PathCubic {
+                            control1X: languageOrbit.width * 0.15
+                            control1Y: languageOrbit.height * 0.18
+                            control2X: languageOrbit.width * 0.18
+                            control2Y: languageOrbit.height * 0.40
+                            x: languageOrbit.width / 2
+                            y: languageOrbit.height / 2
+                        }
+                        PathAttribute { name: "itemScale"; value: 1.08 }
                         PathAttribute { name: "itemOpacity"; value: 1.0 }
                         PathAttribute { name: "itemAngle"; value: 0 }
-                        PathLine { x: orbitFrame.width - 24; y: orbitFrame.height / 2 }
-                        PathAttribute { name: "itemScale"; value: 0.62 }
-                        PathAttribute { name: "itemOpacity"; value: 0.20 }
-                        PathAttribute { name: "itemAngle"; value: 58 }
+
+                        PathCubic {
+                            control1X: languageOrbit.width * 0.82
+                            control1Y: languageOrbit.height * 0.60
+                            control2X: languageOrbit.width * 0.85
+                            control2Y: languageOrbit.height * 0.82
+                            x: languageOrbit.width / 2
+                            y: languageOrbit.height - 22
+                        }
+                        PathAttribute { name: "itemScale"; value: 0.56 }
+                        PathAttribute { name: "itemOpacity"; value: 0.12 }
+                        PathAttribute { name: "itemAngle"; value: 72 }
                     }
 
                     delegate: Item {
                         required property int index
                         required property var modelData
-                        width: Math.min(220, languageOrbit.width * 0.46)
-                        height: 88
+                        width: root.phone ? 190 : 220
+                        height: 72
                         scale: PathView.itemScale
                         opacity: PathView.itemOpacity
-                        z: PathView.isCurrentItem ? 3 : 1
+                        z: PathView.isCurrentItem ? 5 : Math.round(PathView.itemScale * 3)
+
                         transform: Rotation {
                             origin.x: width / 2
                             origin.y: height / 2
-                            axis.x: 0
-                            axis.y: 1
+                            axis.x: 1
+                            axis.y: 0
                             axis.z: 0
                             angle: PathView.itemAngle
                         }
 
-                        Column {
+                        Label {
                             anchors.centerIn: parent
-                            spacing: 2
-
-                            Label {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: modelData.hello
-                                color: PathView.isCurrentItem ? Theme.ink : Theme.inkMuted
-                                font.family: Theme.fontFamilyForText(modelData.hello)
-                                font.pixelSize: PathView.isCurrentItem ? 32 : 22
-                                font.weight: PathView.isCurrentItem ? Theme.weightBold : Theme.weightMedium
-                            }
-
-                            Label {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                visible: PathView.isCurrentItem
-                                text: modelData.language
-                                color: Theme.accent
-                                font.family: Theme.fontFamilyForText(modelData.language)
-                                font.pixelSize: Theme.typeCaptionSize
-                                font.weight: Theme.weightDemiBold
-                            }
+                            text: modelData.hello
+                            color: PathView.isCurrentItem ? Theme.ink : Theme.inkMuted
+                            font.family: Theme.fontFamilyForText(modelData.hello)
+                            font.pixelSize: PathView.isCurrentItem ? (root.phone ? 32 : 36) : 22
+                            font.weight: PathView.isCurrentItem ? Theme.weightBold : Theme.weightMedium
                         }
 
                         TapHandler {
@@ -681,7 +1193,7 @@ Item {
                     }
 
                     Timer {
-                        interval: 1750
+                        interval: 1900
                         repeat: true
                         running: root.visible
                                  && root.currentStep === 0
@@ -709,19 +1221,31 @@ Item {
                 }
             }
 
-            RowLayout {
+            Superellipse {
                 Layout.alignment: Qt.AlignHCenter
-                spacing: Theme.space2
-                Icon {
-                    text: Theme.iconCheck
-                    color: Theme.success
-                    preferredSize: 16
-                }
-                Label {
-                    text: localizationController.languageLabel
-                    color: Theme.success
-                    font.pixelSize: Theme.typeLabelSize
-                    font.weight: Theme.weightDemiBold
+                Layout.preferredWidth: Math.min(parent.width, 300)
+                Layout.preferredHeight: 50
+                fillColor: Theme.surface
+                borderWidth: 1
+                borderColor: Theme.borderMuted
+                curveDepth: Theme.curveControl
+
+                RowLayout {
+                    anchors.centerIn: parent
+                    spacing: Theme.space2
+
+                    Icon {
+                        text: "social/verified"
+                        color: Theme.success
+                        preferredSize: 18
+                    }
+
+                    Label {
+                        text: localizationController.languageLabel
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightBold
+                    }
                 }
             }
 
@@ -740,19 +1264,22 @@ Item {
         id: personalizeStage
 
         ColumnLayout {
-            spacing: Theme.space5
+            spacing: Theme.space4
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Theme.space2
+                spacing: Theme.space1
+
                 Label {
                     text: qsTrId("genycaster.setup.welcome_personal_title")
                     color: Theme.ink
                     font.pixelSize: Theme.typeTitle1Size
                     font.weight: Theme.weightBold
                 }
+
                 Label {
                     Layout.fillWidth: true
+                    Layout.maximumWidth: 720
                     text: qsTrId("genycaster.setup.personalize_body")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeBodySize
@@ -762,227 +1289,316 @@ Item {
 
             Superellipse {
                 Layout.fillWidth: true
-                implicitHeight: localeColumn.implicitHeight + Theme.space5 * 2
-                fillColor: Theme.surface
+                implicitHeight: personalizeGrid.implicitHeight + Theme.space5 * 2
+                fillColor: Theme.primarySurface
                 borderWidth: 1
-                borderColor: Theme.borderMuted
+                borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.18)
                 curveDepth: Theme.curveContainer
 
-                ColumnLayout {
-                    id: localeColumn
+                GridLayout {
+                    id: personalizeGrid
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.margins: Theme.space5
-                    spacing: Theme.space4
+                    columns: root.phone ? 1 : 2
+                    columnSpacing: Theme.space6
+                    rowSpacing: Theme.space5
 
-                    RowLayout {
+                    Item {
                         Layout.fillWidth: true
-                        spacing: Theme.space3
-                        Icon { text: Theme.iconLanguage; color: Theme.accent; preferredSize: 20 }
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 1
-                            Label {
-                                text: qsTrId("genycaster.settings.language_region")
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeTitle3Size
-                                font.weight: Theme.weightDemiBold
-                            }
-                            Label {
-                                Layout.fillWidth: true
-                                text: localizationController.languageLabel
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                                elide: Text.ElideRight
-                            }
-                        }
-                    }
+                        Layout.preferredHeight: root.phone ? 210 : 310
 
-                    GridLayout {
-                        Layout.fillWidth: true
-                        columns: root.phone ? 1 : 2
-                        columnSpacing: Theme.space3
-                        rowSpacing: Theme.space3
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: Theme.space1
-                            Label {
-                                text: qsTrId("genycaster.locale.regional_format")
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                            }
-                            GenyComboBox {
-                                Layout.fillWidth: true
-                                model: localizationController.availableRegionalLocales
-                                textRole: "label"
-                                valueRole: "id"
-                                currentIndex: root.indexFor(
-                                    localizationController.availableRegionalLocales,
-                                    localizationController.regionalLocaleTag)
-                                onActivated: localizationController.setRegionalLocaleTag(
-                                    localizationController.availableRegionalLocales[index].id)
-                            }
-                        }
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: Theme.space1
-                            Label {
-                                text: qsTrId("genycaster.locale.time_zone")
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                            }
-                            GenyComboBox {
-                                Layout.fillWidth: true
-                                model: localizationController.availableTimeZones
-                                textRole: "label"
-                                valueRole: "id"
-                                currentIndex: root.indexFor(
-                                    localizationController.availableTimeZones,
-                                    localizationController.timeZoneId)
-                                onActivated: localizationController.setTimeZoneId(
-                                    localizationController.availableTimeZones[index].id)
-                            }
-                        }
-                    }
-                }
-            }
-
-            Superellipse {
-                Layout.fillWidth: true
-                implicitHeight: appearanceColumn.implicitHeight + Theme.space5 * 2
-                fillColor: Theme.surface
-                borderWidth: 1
-                borderColor: Theme.borderMuted
-                curveDepth: Theme.curveContainer
-
-                ColumnLayout {
-                    id: appearanceColumn
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: Theme.space5
-                    spacing: Theme.space4
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.space3
-                        Icon { text: Theme.iconPalette; color: Theme.accent; preferredSize: 20 }
-                        Label {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.settings.appearance")
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeTitle3Size
-                            font.weight: Theme.weightDemiBold
-                        }
                         Rectangle {
-                            width: 22
-                            height: 22
-                            radius: 11
-                            color: Theme.accent
+                            anchors.centerIn: parent
+                            width: root.phone ? 178 : 230
+                            height: width
+                            radius: width / 2
+                            color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.035)
                             border.width: 1
-                            border.color: Theme.borderStrong
+                            border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22)
                         }
-                        Label {
-                            text: root.accentCode()
-                            color: Theme.inkMuted
-                            font.family: Theme.codeFontFamily
-                            font.pixelSize: Theme.typeCaptionSize
-                        }
-                    }
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.space2
-                        Repeater {
-                            model: [
-                                { id: "system", label: qsTrId("genycaster.settings.mode_system"), icon: Theme.iconSystem },
-                                { id: "light", label: qsTrId("genycaster.settings.mode_light"), icon: Theme.iconSun },
-                                { id: "dark", label: qsTrId("genycaster.settings.mode_dark"), icon: Theme.iconMoon }
-                            ]
-                            delegate: ActionButton {
-                                required property var modelData
-                                Layout.fillWidth: true
-                                compact: true
-                                text: modelData.label
-                                iconGlyph: modelData.icon
-                                selected: appearanceController.themeMode === modelData.id
-                                onClicked: appearanceController.setThemeMode(modelData.id)
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: root.phone ? 126 : 168
+                            height: width
+                            radius: width / 2
+                            color: "transparent"
+                            border.width: 1
+                            border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.14)
+                        }
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: root.phone ? 78 : 104
+                            height: width
+                            radius: width / 2
+                            color: Theme.accent
+
+                            Icon {
+                                anchors.centerIn: parent
+                                text: Theme.iconPalette
+                                color: Theme.contrastInk(Theme.accent)
+                                preferredSize: root.phone ? 28 : 34
                             }
                         }
-                    }
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: root.phone ? Theme.space2 : Theme.space3
+                        Superellipse {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.bottom: parent.bottom
+                            width: Math.min(parent.width, 240)
+                            height: 48
+                            fillColor: Theme.surface
+                            borderWidth: 1
+                            borderColor: Theme.borderMuted
+                            curveDepth: Theme.curveControl
 
-                        Repeater {
-                            model: [
-                                { id: "geny", color: Theme.swatchGeny },
-                                { id: "ocean", color: Theme.swatchOcean },
-                                { id: "violet", color: Theme.swatchViolet },
-                                { id: "ember", color: Theme.swatchEmber },
-                                { id: "rose", color: Theme.swatchRose },
-                                { id: "mint", color: Theme.swatchMint },
-                                { id: "mono", color: Theme.swatchMono }
-                            ]
+                            RowLayout {
+                                anchors.centerIn: parent
+                                spacing: Theme.space2
 
-                            delegate: Button {
-                                required property var modelData
-                                Layout.fillWidth: true
-                                Layout.maximumWidth: 64
-                                implicitHeight: 48
-                                Accessible.name: modelData.id
-                                onClicked: appearanceController.setColorThemeId(modelData.id)
-
-                                background: Superellipse {
-                                    fillColor: Theme.surfaceMuted
-                                    borderWidth: appearanceController.colorThemeId === modelData.id ? 2 : 1
-                                    borderColor: appearanceController.colorThemeId === modelData.id
-                                                 ? Theme.focus : Theme.borderMuted
-                                    curveDepth: Theme.curveCompact
+                                Rectangle {
+                                    Layout.preferredWidth: 18
+                                    Layout.preferredHeight: 18
+                                    radius: 9
+                                    color: Theme.accent
+                                    border.width: 1
+                                    border.color: Theme.borderStrong
                                 }
 
-                                contentItem: Item {
-                                    Rectangle {
-                                        anchors.centerIn: parent
-                                        width: 24
-                                        height: 24
-                                        radius: 12
-                                        color: modelData.color
+                                Label {
+                                    text: root.accentCode()
+                                    color: Theme.ink
+                                    font.family: Theme.codeFontFamily
+                                    font.pixelSize: Theme.typeLabelSize
+                                    font.weight: Theme.weightBold
+                                }
+                            }
+                        }
+                    }
 
-                                        Icon {
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space4
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space3
+
+                            Superellipse {
+                                Layout.preferredWidth: 38
+                                Layout.preferredHeight: 38
+                                fillColor: Theme.surface
+                                curveDepth: Theme.curveCompact
+
+                                Icon {
+                                    anchors.centerIn: parent
+                                    text: Theme.iconLanguage
+                                    color: Theme.accent
+                                    preferredSize: 19
+                                }
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 0
+
+                                Label {
+                                    text: qsTrId("genycaster.settings.language_region")
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeTitle3Size
+                                    font.weight: Theme.weightBold
+                                }
+
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: localizationController.languageLabel
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+
+                        GridLayout {
+                            Layout.fillWidth: true
+                            columns: root.phone ? 1 : 2
+                            columnSpacing: Theme.space3
+                            rowSpacing: Theme.space3
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.space1
+
+                                Label {
+                                    text: qsTrId("genycaster.locale.regional_format")
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                }
+
+                                GenyComboBox {
+                                    Layout.fillWidth: true
+                                    model: localizationController.availableRegionalLocales
+                                    textRole: "label"
+                                    valueRole: "id"
+                                    currentIndex: root.indexFor(
+                                        localizationController.availableRegionalLocales,
+                                        localizationController.regionalLocaleTag)
+                                    onActivated: localizationController.setRegionalLocaleTag(
+                                        localizationController.availableRegionalLocales[index].id)
+                                }
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.space1
+
+                                Label {
+                                    text: qsTrId("genycaster.locale.time_zone")
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                }
+
+                                GenyComboBox {
+                                    Layout.fillWidth: true
+                                    model: localizationController.availableTimeZones
+                                    textRole: "label"
+                                    valueRole: "id"
+                                    currentIndex: root.indexFor(
+                                        localizationController.availableTimeZones,
+                                        localizationController.timeZoneId)
+                                    onActivated: localizationController.setTimeZoneId(
+                                        localizationController.availableTimeZones[index].id)
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 1
+                            color: Theme.borderMuted
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space3
+
+                            Icon {
+                                text: Theme.iconPalette
+                                color: Theme.accent
+                                preferredSize: 20
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.settings.appearance")
+                                color: Theme.ink
+                                font.pixelSize: Theme.typeTitle3Size
+                                font.weight: Theme.weightBold
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space2
+
+                            Repeater {
+                                model: [
+                                    { id: "system", label: qsTrId("genycaster.settings.mode_system"), icon: Theme.iconSystem },
+                                    { id: "light", label: qsTrId("genycaster.settings.mode_light"), icon: Theme.iconSun },
+                                    { id: "dark", label: qsTrId("genycaster.settings.mode_dark"), icon: Theme.iconMoon }
+                                ]
+
+                                delegate: ActionButton {
+                                    required property var modelData
+                                    Layout.fillWidth: true
+                                    compact: true
+                                    text: modelData.label
+                                    iconGlyph: modelData.icon
+                                    selected: appearanceController.themeMode === modelData.id
+                                    onClicked: appearanceController.setThemeMode(modelData.id)
+                                }
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: root.phone ? Theme.space1 : Theme.space2
+
+                            Repeater {
+                                model: [
+                                    { id: "geny", color: Theme.swatchGeny },
+                                    { id: "ocean", color: Theme.swatchOcean },
+                                    { id: "violet", color: Theme.swatchViolet },
+                                    { id: "ember", color: Theme.swatchEmber },
+                                    { id: "rose", color: Theme.swatchRose },
+                                    { id: "mint", color: Theme.swatchMint },
+                                    { id: "mono", color: Theme.swatchMono }
+                                ]
+
+                                delegate: Button {
+                                    required property var modelData
+                                    Layout.fillWidth: true
+                                    Layout.maximumWidth: 58
+                                    implicitHeight: 46
+                                    Accessible.name: modelData.id
+                                    onClicked: appearanceController.setColorThemeId(modelData.id)
+
+                                    background: Item {}
+
+                                    contentItem: Item {
+                                        Rectangle {
                                             anchors.centerIn: parent
-                                            visible: appearanceController.colorThemeId === modelData.id
-                                            text: Theme.iconCheck
-                                            color: Theme.contrastInk(modelData.color)
-                                            preferredSize: 13
+                                            width: appearanceController.colorThemeId === modelData.id ? 34 : 26
+                                            height: width
+                                            radius: width / 2
+                                            color: modelData.color
+                                            border.width: appearanceController.colorThemeId === modelData.id ? 3 : 1
+                                            border.color: appearanceController.colorThemeId === modelData.id
+                                                          ? Theme.surface : Theme.borderStrong
+
+                                            Behavior on width {
+                                                NumberAnimation {
+                                                    duration: Theme.motionStandard
+                                                    easing.type: Easing.OutCubic
+                                                }
+                                            }
+
+                                            Icon {
+                                                anchors.centerIn: parent
+                                                visible: appearanceController.colorThemeId === modelData.id
+                                                text: "social/verified"
+                                                color: Theme.contrastInk(modelData.color)
+                                                preferredSize: 15
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.space3
-                        Icon {
-                            text: Theme.iconAccessibility
-                            color: appearanceController.reduceMotion ? Theme.accent : Theme.inkSubtle
-                            preferredSize: 18
-                        }
-                        Label {
+                        RowLayout {
                             Layout.fillWidth: true
-                            text: qsTrId("genycaster.settings.reduce_motion")
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeLabelSize
-                        }
-                        GenySwitch {
-                            checked: appearanceController.reduceMotion
-                            onToggled: appearanceController.setReduceMotion(checked)
+                            spacing: Theme.space3
+
+                            Icon {
+                                text: Theme.iconAccessibility
+                                color: appearanceController.reduceMotion ? Theme.accent : Theme.inkSubtle
+                                preferredSize: 18
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.settings.reduce_motion")
+                                color: Theme.ink
+                                font.pixelSize: Theme.typeLabelSize
+                            }
+
+                            GenySwitch {
+                                checked: appearanceController.reduceMotion
+                                onToggled: appearanceController.setReduceMotion(checked)
+                            }
                         }
                     }
                 }
@@ -994,19 +1610,22 @@ Item {
         id: privacyStage
 
         ColumnLayout {
-            spacing: Theme.space5
+            spacing: Theme.space4
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Theme.space2
+                spacing: Theme.space1
+
                 Label {
                     text: qsTrId("genycaster.setup.legal_title")
                     color: Theme.ink
                     font.pixelSize: Theme.typeTitle1Size
                     font.weight: Theme.weightBold
                 }
+
                 Label {
                     Layout.fillWidth: true
+                    Layout.maximumWidth: 700
                     text: qsTrId("genycaster.setup.privacy_compact_intro")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeBodySize
@@ -1014,161 +1633,204 @@ Item {
                 }
             }
 
-            Repeater {
-                model: [
-                    {
-                        title: qsTrId("genycaster.setup.terms_title"),
-                        body: qsTrId("genycaster.setup.terms_summary"),
-                        action: qsTrId("genycaster.setup.open_terms"),
-                        icon: Theme.iconDocument,
-                        privacy: false
-                    },
-                    {
-                        title: qsTrId("genycaster.setup.privacy_title"),
-                        body: qsTrId("genycaster.setup.privacy_summary"),
-                        action: qsTrId("genycaster.setup.open_privacy"),
-                        icon: Theme.iconInfo,
-                        privacy: true
-                    }
-                ]
+            GridLayout {
+                Layout.fillWidth: true
+                columns: root.phone ? 1 : 2
+                columnSpacing: Theme.space3
+                rowSpacing: Theme.space3
 
-                delegate: Superellipse {
-                    required property var modelData
-                    Layout.fillWidth: true
-                    implicitHeight: legalCardColumn.implicitHeight + Theme.space4 * 2
-                    fillColor: Theme.surface
-                    borderWidth: 1
-                    borderColor: Theme.borderMuted
-                    curveDepth: Theme.curveContainer
+                Repeater {
+                    model: [
+                        {
+                            title: qsTrId("genycaster.setup.terms_title"),
+                            body: qsTrId("genycaster.setup.terms_summary"),
+                            icon: Theme.iconDocument,
+                            privacy: false
+                        },
+                        {
+                            title: qsTrId("genycaster.setup.privacy_title"),
+                            body: qsTrId("genycaster.setup.privacy_summary"),
+                            icon: "system/lock",
+                            privacy: true
+                        }
+                    ]
 
-                    ColumnLayout {
-                        id: legalCardColumn
-                        anchors.fill: parent
-                        anchors.margins: Theme.space4
-                        spacing: Theme.space2
+                    delegate: Button {
+                        id: legalCardButton
+                        required property var modelData
+                        readonly property bool reviewed: modelData.privacy
+                                                         ? root.legalPrivacyReviewed
+                                                         : root.legalTermsReviewed
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: root.phone ? 150 : 176
+                        enabled: !root.legalConsentAccepted
+                        hoverEnabled: true
+                        onClicked: root.openLegalReader(modelData.privacy ? "privacy" : "terms")
 
-                        RowLayout {
-                            Layout.fillWidth: true
+                        background: Superellipse {
+                            fillColor: legalCardButton.reviewed
+                                       ? Theme.successSurface
+                                       : legalCardButton.hovered ? Theme.surfaceHover : Theme.surface
+                            borderWidth: 1
+                            borderColor: legalCardButton.reviewed
+                                         ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.40)
+                                         : Theme.borderMuted
+                            curveDepth: Theme.curveContainer
+                        }
+
+                        contentItem: ColumnLayout {
                             spacing: Theme.space3
-                            Icon {
-                                text: modelData.icon
-                                color: modelData.privacy ? Theme.info : Theme.warning
-                                preferredSize: 20
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.space3
+
+                                Superellipse {
+                                    Layout.preferredWidth: 42
+                                    Layout.preferredHeight: 42
+                                    fillColor: reviewed
+                                               ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.12)
+                                               : modelData.privacy
+                                                 ? Qt.rgba(Theme.info.r, Theme.info.g, Theme.info.b, 0.10)
+                                                 : Qt.rgba(Theme.warning.r, Theme.warning.g, Theme.warning.b, 0.10)
+                                    curveDepth: Theme.curveCompact
+
+                                    Icon {
+                                        anchors.centerIn: parent
+                                        text: reviewed ? "social/verified" : modelData.icon
+                                        color: reviewed ? Theme.success
+                                             : modelData.privacy ? Theme.info : Theme.warning
+                                        preferredSize: 21
+                                    }
+                                }
+
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: modelData.title
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeTitle3Size
+                                    font.weight: Theme.weightBold
+                                    elide: Text.ElideRight
+                                }
+
+                                Icon {
+                                    text: reviewed ? "social/verified" : Theme.iconArrowRight
+                                    color: reviewed ? Theme.success : Theme.inkSubtle
+                                    preferredSize: 17
+                                }
                             }
+
                             Label {
                                 Layout.fillWidth: true
-                                text: modelData.title
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeTitle3Size
-                                font.weight: Theme.weightDemiBold
+                                text: modelData.body
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeLabelSize
+                                wrapMode: Text.WordWrap
+                                maximumLineCount: root.phone ? 3 : 4
+                                elide: Text.ElideRight
                             }
-                            ActionButton {
-                                compact: true
-                                quiet: true
-                                text: modelData.action
-                                iconGlyph: Theme.iconArrowUpRight
-                                onClicked: presentationBridge.openExternalUrl(
-                                    modelData.privacy
-                                    ? "https://genyleap.com/privacy"
-                                    : "https://genyleap.com/terms")
+
+                            Item { Layout.fillHeight: true }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.space2
+
+                                Rectangle {
+                                    Layout.preferredWidth: 7
+                                    Layout.preferredHeight: 7
+                                    radius: 3.5
+                                    color: reviewed ? Theme.success : Theme.accent
+                                }
+
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: reviewed
+                                          ? qsTrId("genycaster.setup.consent_recorded")
+                                          : modelData.privacy
+                                            ? qsTrId("genycaster.setup.open_privacy")
+                                            : qsTrId("genycaster.setup.open_terms")
+                                    color: reviewed ? Theme.success : Theme.accent
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: Theme.weightDemiBold
+                                    elide: Text.ElideRight
+                                }
                             }
+                        }
+                    }
+                }
+            }
+
+            Superellipse {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 72
+                fillColor: root.legalTermsChecked && root.legalPrivacyChecked
+                           ? Theme.successSurface : Theme.primarySurface
+                borderWidth: 1
+                borderColor: root.legalTermsChecked && root.legalPrivacyChecked
+                             ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.32)
+                             : Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.18)
+                curveDepth: Theme.curveControl
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: Theme.space3
+                    spacing: Theme.space3
+
+                    Item {
+                        Layout.preferredWidth: 40
+                        Layout.preferredHeight: 40
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: "transparent"
+                            border.width: 3
+                            border.color: root.legalTermsChecked && root.legalPrivacyChecked
+                                          ? Theme.success : Theme.borderStrong
+                        }
+
+                        Label {
+                            anchors.centerIn: parent
+                            text: (root.legalTermsChecked ? 1 : 0) + (root.legalPrivacyChecked ? 1 : 0) + "/2"
+                            color: root.legalTermsChecked && root.legalPrivacyChecked
+                                   ? Theme.success : Theme.inkMuted
+                            font.family: Theme.latinFontFamily
+                            font.pixelSize: Theme.typeCaptionSize
+                            font.weight: Theme.weightBold
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 1
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: root.legalConsentAccepted
+                                  ? qsTrId("genycaster.setup.consent_recorded")
+                                  : qsTrId("genycaster.setup.privacy_local_note")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
+                            wrapMode: Text.WordWrap
                         }
 
                         Label {
                             Layout.fillWidth: true
-                            text: modelData.body
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeLabelSize
-                            wrapMode: Text.WordWrap
+                            text: qsTrId("genycaster.setup.privacy_compact_intro")
+                            color: Theme.inkSubtle
+                            font.pixelSize: Theme.typeCaptionSize
+                            elide: Text.ElideRight
                         }
                     }
-                }
-            }
 
-            Button {
-                id: termsConsentButton
-                Layout.fillWidth: true
-                checkable: true
-                checked: root.legalTermsChecked
-                enabled: !root.legalConsentAccepted
-                onToggled: root.legalTermsChecked = checked
-                implicitHeight: 56
-
-                background: Superellipse {
-                    fillColor: parent.checked ? Theme.successSurface : Theme.surface
-                    borderWidth: 1
-                    borderColor: parent.checked ? Theme.success : Theme.borderMuted
-                    curveDepth: Theme.curveControl
-                }
-
-                contentItem: RowLayout {
-                    spacing: Theme.space3
-                    layoutDirection: Theme.uiDirection
                     Icon {
-                        text: termsConsentButton.checked ? Theme.iconCheck : Theme.iconDocument
-                        color: termsConsentButton.checked ? Theme.success : Theme.inkSubtle
-                        preferredSize: 18
+                        visible: root.legalTermsChecked && root.legalPrivacyChecked
+                        text: "social/verified"
+                        color: Theme.success
+                        preferredSize: 22
                     }
-                    Label {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.accept_terms")
-                        color: Theme.ink
-                        font.pixelSize: Theme.typeLabelSize
-                        wrapMode: Text.WordWrap
-                    }
-                }
-            }
-
-            Button {
-                id: privacyConsentButton
-                Layout.fillWidth: true
-                checkable: true
-                checked: root.legalPrivacyChecked
-                enabled: !root.legalConsentAccepted
-                onToggled: root.legalPrivacyChecked = checked
-                implicitHeight: 56
-
-                background: Superellipse {
-                    fillColor: parent.checked ? Theme.successSurface : Theme.surface
-                    borderWidth: 1
-                    borderColor: parent.checked ? Theme.success : Theme.borderMuted
-                    curveDepth: Theme.curveControl
-                }
-
-                contentItem: RowLayout {
-                    spacing: Theme.space3
-                    layoutDirection: Theme.uiDirection
-                    Icon {
-                        text: privacyConsentButton.checked ? Theme.iconCheck : Theme.iconInfo
-                        color: privacyConsentButton.checked ? Theme.success : Theme.inkSubtle
-                        preferredSize: 18
-                    }
-                    Label {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.acknowledge_privacy")
-                        color: Theme.ink
-                        font.pixelSize: Theme.typeLabelSize
-                        wrapMode: Text.WordWrap
-                    }
-                }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Theme.space2
-                Icon {
-                    text: root.legalConsentAccepted ? Theme.iconCheck : Theme.iconInfo
-                    color: root.legalConsentAccepted ? Theme.success : Theme.info
-                    preferredSize: 16
-                }
-                Label {
-                    Layout.fillWidth: true
-                    text: root.legalConsentAccepted
-                          ? qsTrId("genycaster.setup.consent_recorded")
-                          : qsTrId("genycaster.setup.privacy_local_note")
-                    color: root.legalConsentAccepted ? Theme.success : Theme.inkMuted
-                    font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.WordWrap
                 }
             }
         }
@@ -1178,14 +1840,21 @@ Item {
         id: networkStage
 
         ColumnLayout {
-            spacing: Theme.space5
+            spacing: Theme.space4
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Theme.space2
+                spacing: Theme.space1
+
                 RowLayout {
                     spacing: Theme.space3
-                    Icon { text: Theme.iconWifi; color: Theme.accent; preferredSize: 25 }
+
+                    Icon {
+                        text: Theme.iconWifi
+                        color: Theme.accent
+                        preferredSize: 25
+                    }
+
                     Label {
                         text: qsTrId("genycaster.setup.network_title")
                         color: Theme.ink
@@ -1193,8 +1862,10 @@ Item {
                         font.weight: Theme.weightBold
                     }
                 }
+
                 Label {
                     Layout.fillWidth: true
+                    Layout.maximumWidth: 720
                     text: qsTrId("genycaster.setup.network_body")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeBodySize
@@ -1204,44 +1875,139 @@ Item {
 
             Superellipse {
                 Layout.fillWidth: true
-                implicitHeight: experimentalRow.implicitHeight + Theme.space3 * 2
-                fillColor: Theme.warningSurface
+                implicitHeight: networkHero.implicitHeight + Theme.space4 * 2
+                fillColor: Theme.primarySurface
                 borderWidth: 1
-                borderColor: Qt.rgba(Theme.warning.r, Theme.warning.g, Theme.warning.b, 0.35)
-                curveDepth: Theme.curveControl
+                borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.18)
+                curveDepth: Theme.curveContainer
 
-                RowLayout {
-                    id: experimentalRow
-                    anchors.fill: parent
-                    anchors.margins: Theme.space3
-                    spacing: Theme.space3
-                    Icon { text: Theme.iconWarning; color: Theme.warning; preferredSize: 18 }
-                    Label {
+                GridLayout {
+                    id: networkHero
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: Theme.space4
+                    columns: root.phone ? 1 : 2
+                    columnSpacing: Theme.space5
+                    rowSpacing: Theme.space4
+
+                    Item {
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.network_experimental")
-                        color: Theme.ink
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
-                    }
-                }
-            }
+                        Layout.preferredHeight: root.phone ? 164 : 190
 
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Theme.space2
-                ActionButton {
-                    text: qsTrId("genycaster.setup.network_automatic")
-                    iconGlyph: Theme.iconFidelity
-                    selected: nodeSelectionController.automatic
-                    onClicked: nodeSelectionController.useAutomaticSelection()
-                }
-                Item { Layout.fillWidth: true }
-                ActionButton {
-                    text: qsTrId("genycaster.setup.network_retest")
-                    iconGlyph: Theme.iconRefresh
-                    quiet: true
-                    busy: nodeSelectionController.probing
-                    onClicked: nodeSelectionController.refresh()
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: root.phone ? 150 : 174
+                            height: width
+                            radius: width / 2
+                            color: "transparent"
+                            border.width: 1
+                            border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.20)
+                        }
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: root.phone ? 104 : 122
+                            height: width
+                            radius: width / 2
+                            color: "transparent"
+                            border.width: 1
+                            border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.14)
+                        }
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: root.phone ? 64 : 72
+                            height: width
+                            radius: width / 2
+                            color: Theme.surface
+                            border.width: 1
+                            border.color: Theme.borderMuted
+
+                            Icon {
+                                anchors.centerIn: parent
+                                text: "quilibrium/hypersnap"
+                                color: nodeSelectionController.probing ? Theme.inkMuted : Theme.accent
+                                preferredSize: root.phone ? 30 : 34
+                            }
+                        }
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 8
+                            height: 8
+                            radius: 4
+                            color: Theme.success
+                            anchors.horizontalCenterOffset: -(root.phone ? 69 : 81)
+                            anchors.verticalCenterOffset: root.phone ? 18 : 22
+                        }
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 6
+                            height: 6
+                            radius: 3
+                            color: Theme.accent
+                            opacity: 0.55
+                            anchors.horizontalCenterOffset: root.phone ? 54 : 66
+                            anchors.verticalCenterOffset: -(root.phone ? 48 : 58)
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space3
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space2
+
+                            ActionButton {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.setup.network_automatic")
+                                iconGlyph: Theme.iconFidelity
+                                selected: nodeSelectionController.automatic
+                                onClicked: nodeSelectionController.useAutomaticSelection()
+                            }
+
+                            ActionButton {
+                                text: qsTrId("genycaster.setup.network_retest")
+                                iconGlyph: Theme.iconRefresh
+                                quiet: true
+                                busy: nodeSelectionController.probing
+                                onClicked: nodeSelectionController.refresh()
+                            }
+                        }
+
+                        Superellipse {
+                            Layout.fillWidth: true
+                            implicitHeight: experimentalRow.implicitHeight + Theme.space3 * 2
+                            fillColor: Theme.warningSurface
+                            borderWidth: 0
+                            curveDepth: Theme.curveControl
+
+                            RowLayout {
+                                id: experimentalRow
+                                anchors.fill: parent
+                                anchors.margins: Theme.space3
+                                spacing: Theme.space2
+
+                                Icon {
+                                    text: Theme.iconWarning
+                                    color: Theme.warning
+                                    preferredSize: 17
+                                }
+
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: qsTrId("genycaster.setup.network_experimental")
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    wrapMode: Text.WordWrap
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1253,17 +2019,22 @@ Item {
                     model: nodeSelectionController.nodes
 
                     delegate: Button {
+                        id: nodeButton
                         required property var modelData
                         Layout.fillWidth: true
-                        implicitHeight: 72
+                        implicitHeight: 74
                         enabled: modelData.status !== "offline"
+                        hoverEnabled: true
                         onClicked: nodeSelectionController.selectNode(modelData.id)
 
                         background: Superellipse {
-                            fillColor: modelData.selected ? Theme.primarySurface
-                                                       : parent.hovered ? Theme.surfaceHover : Theme.surface
-                            borderWidth: modelData.selected ? 2 : 1
-                            borderColor: modelData.selected ? Theme.focus : Theme.borderMuted
+                            fillColor: modelData.selected
+                                       ? Theme.successSurface
+                                       : nodeButton.hovered ? Theme.surfaceHover : Theme.surface
+                            borderWidth: modelData.selected ? 1 : 1
+                            borderColor: modelData.selected
+                                         ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.42)
+                                         : Theme.borderMuted
                             curveDepth: Theme.curveControl
                         }
 
@@ -1271,27 +2042,40 @@ Item {
                             spacing: Theme.space3
                             layoutDirection: Theme.uiDirection
 
-                            Icon {
-                                text: "quilibrium/hypersnap"
-                                color: modelData.online ? Theme.success
-                                     : modelData.status === "offline" ? Theme.danger
-                                     : Theme.inkMuted
-                                preferredSize: 24
+                            Superellipse {
+                                Layout.preferredWidth: 42
+                                Layout.preferredHeight: 42
+                                fillColor: modelData.online
+                                           ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.10)
+                                           : Theme.surfaceMuted
+                                curveDepth: Theme.curveCompact
+
+                                Icon {
+                                    anchors.centerIn: parent
+                                    text: "quilibrium/hypersnap"
+                                    color: modelData.online ? Theme.success
+                                         : modelData.status === "offline" ? Theme.danger
+                                         : Theme.inkMuted
+                                    preferredSize: 22
+                                }
                             }
 
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 2
+
                                 RowLayout {
                                     Layout.fillWidth: true
+
                                     Label {
                                         Layout.fillWidth: true
                                         text: modelData.label
                                         color: Theme.ink
                                         font.pixelSize: Theme.typeLabelSize
-                                        font.weight: Theme.weightDemiBold
+                                        font.weight: Theme.weightBold
                                         elide: Text.ElideRight
                                     }
+
                                     Label {
                                         visible: modelData.recommended
                                         text: qsTrId("genycaster.setup.network_best")
@@ -1300,6 +2084,7 @@ Item {
                                         font.weight: Theme.weightBold
                                     }
                                 }
+
                                 Label {
                                     Layout.fillWidth: true
                                     text: modelData.endpoint
@@ -1312,6 +2097,7 @@ Item {
 
                             Column {
                                 spacing: 1
+
                                 Label {
                                     anchors.right: parent.right
                                     text: modelData.status === "checking" ? "…"
@@ -1322,8 +2108,9 @@ Item {
                                          : Theme.inkMuted
                                     font.family: Theme.latinFontFamily
                                     font.pixelSize: Theme.typeLabelSize
-                                    font.weight: Theme.weightDemiBold
+                                    font.weight: Theme.weightBold
                                 }
+
                                 Label {
                                     anchors.right: parent.right
                                     text: modelData.status === "online" ? qsTrId("genycaster.setup.network_online")
@@ -1336,31 +2123,46 @@ Item {
 
                             Icon {
                                 visible: modelData.selected
-                                text: Theme.iconCheck
-                                color: Theme.accent
-                                preferredSize: 17
+                                text: "social/verified"
+                                color: Theme.success
+                                preferredSize: 20
                             }
                         }
                     }
                 }
             }
 
-            RowLayout {
+            Superellipse {
                 Layout.fillWidth: true
-                spacing: Theme.space2
-                Icon {
-                    text: nodeSelectionController.restartRequired ? Theme.iconWarning : Theme.iconCheck
-                    color: nodeSelectionController.restartRequired ? Theme.warning : Theme.success
-                    preferredSize: 16
-                }
-                Label {
-                    Layout.fillWidth: true
-                    text: nodeSelectionController.restartRequired
-                          ? qsTrId("genycaster.setup.network_restart_note")
-                          : qsTrId("genycaster.setup.network_current_note")
-                    color: nodeSelectionController.restartRequired ? Theme.warning : Theme.success
-                    font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.WordWrap
+                implicitHeight: networkStateRow.implicitHeight + Theme.space3 * 2
+                fillColor: nodeSelectionController.restartRequired
+                           ? Theme.warningSurface : Theme.successSurface
+                borderWidth: 0
+                curveDepth: Theme.curveControl
+
+                RowLayout {
+                    id: networkStateRow
+                    anchors.fill: parent
+                    anchors.margins: Theme.space3
+                    spacing: Theme.space2
+
+                    Icon {
+                        text: nodeSelectionController.restartRequired
+                              ? Theme.iconWarning : "social/verified"
+                        color: nodeSelectionController.restartRequired ? Theme.warning : Theme.success
+                        preferredSize: 18
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        text: nodeSelectionController.restartRequired
+                              ? qsTrId("genycaster.setup.network_restart_note")
+                              : qsTrId("genycaster.setup.network_current_note")
+                        color: nodeSelectionController.restartRequired ? Theme.warning : Theme.success
+                        font.pixelSize: Theme.typeCaptionSize
+                        font.weight: Theme.weightDemiBold
+                        wrapMode: Text.WordWrap
+                    }
                 }
             }
         }
@@ -1370,11 +2172,12 @@ Item {
         id: accountStage
 
         ColumnLayout {
-            spacing: Theme.space5
+            spacing: Theme.space4
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: Theme.space2
+                spacing: Theme.space1
+
                 Label {
                     text: root.authenticated
                           ? qsTrId("genycaster.setup.account_verified")
@@ -1383,8 +2186,10 @@ Item {
                     font.pixelSize: Theme.typeTitle1Size
                     font.weight: Theme.weightBold
                 }
+
                 Label {
                     Layout.fillWidth: true
+                    Layout.maximumWidth: 760
                     text: root.phaseBody()
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeBodySize
@@ -1395,189 +2200,311 @@ Item {
             Superellipse {
                 visible: root.authenticated
                 Layout.fillWidth: true
-                implicitHeight: 108
+                implicitHeight: verifiedGrid.implicitHeight + Theme.space5 * 2
                 fillColor: Theme.successSurface
                 borderWidth: 1
-                borderColor: Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.38)
+                borderColor: Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.34)
                 curveDepth: Theme.curveContainer
 
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: Theme.space4
-                    spacing: Theme.space4
-                    layoutDirection: Theme.uiDirection
+                GridLayout {
+                    id: verifiedGrid
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: Theme.space5
+                    columns: root.phone ? 1 : 2
+                    columnSpacing: Theme.space6
+                    rowSpacing: Theme.space4
 
-                    Avatar {
-                        sourceUrl: root.accountAvatarUrl
-                        displayName: root.accountName.length > 0 ? root.accountName : root.accountUsername
-                        avatarSize: 68
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: root.phone ? 190 : 230
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: root.phone ? 158 : 190
+                            height: width
+                            radius: width / 2
+                            color: "transparent"
+                            border.width: 1
+                            border.color: Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.26)
+                        }
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: root.phone ? 122 : 148
+                            height: width
+                            radius: width / 2
+                            color: "transparent"
+                            border.width: 1
+                            border.color: Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.16)
+                        }
+
+                        Avatar {
+                            anchors.centerIn: parent
+                            sourceUrl: root.accountAvatarUrl
+                            displayName: root.accountName.length > 0 ? root.accountName : root.accountUsername
+                            avatarSize: root.phone ? 92 : 108
+                        }
+
+                        Superellipse {
+                            width: 32
+                            height: 32
+                            anchors.centerIn: parent
+                            anchors.horizontalCenterOffset: root.phone ? 38 : 46
+                            anchors.verticalCenterOffset: root.phone ? 38 : 46
+                            fillColor: Theme.success
+                            curveDepth: 11
+                            borderWidth: 3
+                            borderColor: Theme.successSurface
+
+                            Icon {
+                                anchors.centerIn: parent
+                                text: "social/verified"
+                                color: Theme.contrastInk(Theme.success)
+                                preferredSize: 16
+                            }
+                        }
                     }
 
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 2
+                        spacing: Theme.space3
+
                         Label {
                             Layout.fillWidth: true
                             text: root.accountName.length > 0 ? root.accountName : root.accountUsername
                             color: Theme.ink
-                            font.pixelSize: Theme.typeTitle3Size
+                            font.pixelSize: Theme.typeTitle2Size
                             font.weight: Theme.weightBold
                             elide: Text.ElideRight
                         }
+
                         Label {
                             visible: root.accountUsername.length > 0
                             text: "@" + root.accountUsername
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeLabelSize
                         }
-                        RowLayout {
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
                             spacing: Theme.space2
-                            Icon { text: Theme.iconCheck; color: Theme.success; preferredSize: 14 }
+
+                            Repeater {
+                                model: [
+                                    {
+                                        icon: "brands/geny",
+                                        title: qsTrId("genycaster.shell.verified_by_openproof")
+                                    },
+                                    {
+                                        icon: "brands/farcaster",
+                                        title: qsTrId("genycaster.setup.account_verified_body")
+                                    }
+                                ]
+
+                                delegate: RowLayout {
+                                    required property var modelData
+                                    Layout.fillWidth: true
+                                    spacing: Theme.space2
+
+                                    Superellipse {
+                                        Layout.preferredWidth: 34
+                                        Layout.preferredHeight: 34
+                                        fillColor: Theme.surface
+                                        curveDepth: Theme.curveCompact
+
+                                        Icon {
+                                            anchors.centerIn: parent
+                                            text: modelData.icon
+                                            color: Theme.accent
+                                            preferredSize: 18
+                                        }
+                                    }
+
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: modelData.title
+                                        color: Theme.inkMuted
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        wrapMode: Text.WordWrap
+                                    }
+
+                                    Icon {
+                                        text: "social/verified"
+                                        color: Theme.success
+                                        preferredSize: 18
+                                    }
+                                }
+                            }
+                        }
+
+                        ActionButton {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.continue")
+                            prominent: true
+                            positive: true
+                            iconGlyph: Theme.iconArrowRight
+                            onClicked: root.nextStep()
+                        }
+                    }
+                }
+            }
+
+            GridLayout {
+                visible: !root.authenticated
+                Layout.fillWidth: true
+                columns: root.phone ? 1 : 2
+                columnSpacing: Theme.space3
+                rowSpacing: Theme.space3
+
+                Repeater {
+                    model: [
+                        {
+                            brand: "brands/geny",
+                            title: "Genyleap · OpenProof",
+                            body: qsTrId("genycaster.setup.account_genyleap_body"),
+                            action: qsTrId("genycaster.shell.continue_with_genyleap"),
+                            comingSoon: qsTrId("genycaster.setup.account_create_openproof_soon"),
+                            farcaster: false
+                        },
+                        {
+                            brand: "brands/farcaster",
+                            title: "Farcaster",
+                            body: qsTrId("genycaster.setup.account_farcaster_body"),
+                            action: qsTrId("genycaster.shell.sign_in_with_farcaster"),
+                            comingSoon: qsTrId("genycaster.setup.account_create_farcaster_soon"),
+                            farcaster: true
+                        }
+                    ]
+
+                    delegate: Superellipse {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        implicitHeight: authChoiceColumn.implicitHeight + Theme.space4 * 2
+                        fillColor: Theme.surface
+                        borderWidth: 1
+                        borderColor: Theme.borderMuted
+                        curveDepth: Theme.curveContainer
+
+                        ColumnLayout {
+                            id: authChoiceColumn
+                            anchors.fill: parent
+                            anchors.margins: Theme.space4
+                            spacing: Theme.space3
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.space3
+
+                                Superellipse {
+                                    Layout.preferredWidth: 46
+                                    Layout.preferredHeight: 46
+                                    fillColor: Theme.primarySurface
+                                    curveDepth: Theme.curveCompact
+
+                                    Icon {
+                                        anchors.centerIn: parent
+                                        text: modelData.brand
+                                        color: Theme.accent
+                                        preferredSize: 24
+                                    }
+                                }
+
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: modelData.title
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeTitle3Size
+                                    font.weight: Theme.weightBold
+                                }
+                            }
+
                             Label {
-                                text: qsTrId("genycaster.shell.verified_by_openproof")
-                                color: Theme.success
+                                Layout.fillWidth: true
+                                text: modelData.body
+                                color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
-                                font.weight: Theme.weightDemiBold
+                                wrapMode: Text.WordWrap
+                            }
+
+                            Item { Layout.fillHeight: true }
+
+                            ActionButton {
+                                Layout.fillWidth: true
+                                text: modelData.action
+                                prominent: !modelData.farcaster
+                                iconGlyph: Theme.iconSignIn
+                                enabled: root.authenticationAvailable && !root.authenticationInProgress
+                                busy: root.authenticationInProgress
+                                      && (modelData.farcaster
+                                          ? root.authenticationRoute === "farcaster"
+                                          : root.authenticationRoute !== "farcaster")
+                                onClicked: {
+                                    if (modelData.farcaster)
+                                        root.continueWithFarcaster()
+                                    else
+                                        root.continueWithGenyleap()
+                                }
+                            }
+
+                            ActionButton {
+                                Layout.fillWidth: true
+                                text: modelData.comingSoon
+                                iconGlyph: Theme.iconPlus
+                                quiet: true
+                                enabled: false
                             }
                         }
                     }
                 }
             }
 
-            ColumnLayout {
-                visible: !root.authenticated
+            Superellipse {
+                visible: root.authenticationApprovalAvailable
                 Layout.fillWidth: true
-                spacing: Theme.space3
+                implicitHeight: approvalRow.implicitHeight + Theme.space3 * 2
+                fillColor: Theme.primarySurface
+                borderWidth: 1
+                borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.20)
+                curveDepth: Theme.curveControl
 
-                Superellipse {
-                    Layout.fillWidth: true
-                    implicitHeight: genyleapColumn.implicitHeight + Theme.space4 * 2
-                    fillColor: Theme.surface
-                    borderWidth: 1
-                    borderColor: Theme.borderMuted
-                    curveDepth: Theme.curveContainer
+                RowLayout {
+                    id: approvalRow
+                    anchors.fill: parent
+                    anchors.margins: Theme.space3
+                    spacing: Theme.space3
 
-                    ColumnLayout {
-                        id: genyleapColumn
-                        anchors.fill: parent
-                        anchors.margins: Theme.space4
-                        spacing: Theme.space3
+                    GenySpinner {
+                        running: root.authenticationInProgress
+                        color: Theme.accent
+                    }
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: Theme.space3
-                            Icon { text: "brands/geny"; color: Theme.accent; preferredSize: 26 }
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 1
-                                Label {
-                                    text: "Genyleap · OpenProof"
-                                    color: Theme.ink
-                                    font.pixelSize: Theme.typeTitle3Size
-                                    font.weight: Theme.weightDemiBold
-                                }
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: qsTrId("genycaster.setup.account_genyleap_body")
-                                    color: Theme.inkMuted
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    wrapMode: Text.WordWrap
-                                }
-                            }
-                        }
+                    Label {
+                        Layout.fillWidth: true
+                        text: root.phaseBody()
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
 
-                        ActionButton {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.shell.continue_with_genyleap")
-                            prominent: true
-                            iconGlyph: Theme.iconSignIn
-                            enabled: root.authenticationAvailable && !root.authenticationInProgress
-                            busy: root.authenticationInProgress && root.authenticationRoute !== "farcaster"
-                            onClicked: root.continueWithGenyleap()
-                        }
-
-                        ActionButton {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.setup.account_create_openproof_soon")
-                            iconGlyph: Theme.iconPlus
-                            enabled: false
-                        }
+                    ActionButton {
+                        text: root.authenticationRoute === "farcaster"
+                              ? qsTrId("genycaster.shell.open_farcaster")
+                              : qsTrId("genycaster.shell.open_genyleap")
+                        prominent: true
+                        iconGlyph: Theme.iconArrowUpRight
+                        onClicked: root.openApproval()
                     }
                 }
+            }
 
-                Superellipse {
-                    Layout.fillWidth: true
-                    implicitHeight: farcasterColumn.implicitHeight + Theme.space4 * 2
-                    fillColor: Theme.surface
-                    borderWidth: 1
-                    borderColor: Theme.borderMuted
-                    curveDepth: Theme.curveContainer
-
-                    ColumnLayout {
-                        id: farcasterColumn
-                        anchors.fill: parent
-                        anchors.margins: Theme.space4
-                        spacing: Theme.space3
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: Theme.space3
-                            Icon { text: "brands/farcaster"; color: Theme.accent; preferredSize: 26 }
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 1
-                                Label {
-                                    text: "Farcaster"
-                                    color: Theme.ink
-                                    font.pixelSize: Theme.typeTitle3Size
-                                    font.weight: Theme.weightDemiBold
-                                }
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: qsTrId("genycaster.setup.account_farcaster_body")
-                                    color: Theme.inkMuted
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    wrapMode: Text.WordWrap
-                                }
-                            }
-                        }
-
-                        ActionButton {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.shell.sign_in_with_farcaster")
-                            iconGlyph: Theme.iconSignIn
-                            enabled: root.authenticationAvailable && !root.authenticationInProgress
-                            busy: root.authenticationInProgress && root.authenticationRoute === "farcaster"
-                            onClicked: root.continueWithFarcaster()
-                        }
-
-                        ActionButton {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.setup.account_create_farcaster_soon")
-                            iconGlyph: Theme.iconPlus
-                            enabled: false
-                        }
-                    }
-                }
-
-                ActionButton {
-                    visible: root.authenticationApprovalAvailable
-                    Layout.fillWidth: true
-                    text: root.authenticationRoute === "farcaster"
-                          ? qsTrId("genycaster.shell.open_farcaster")
-                          : qsTrId("genycaster.shell.open_genyleap")
-                    prominent: true
-                    iconGlyph: Theme.iconArrowUpRight
-                    onClicked: root.openApproval()
-                }
-
-                ActionButton {
-                    visible: root.authenticationInProgress
-                    Layout.alignment: Qt.AlignHCenter
-                    text: qsTrId("genycaster.shell.cancel")
-                    quiet: true
-                    onClicked: root.cancelAuthentication()
-                }
+            ActionButton {
+                visible: root.authenticationInProgress
+                Layout.alignment: Qt.AlignHCenter
+                text: qsTrId("genycaster.shell.cancel")
+                quiet: true
+                onClicked: root.cancelAuthentication()
             }
 
             Superellipse {
@@ -1594,7 +2521,13 @@ Item {
                     anchors.fill: parent
                     anchors.margins: Theme.space3
                     spacing: Theme.space3
-                    Icon { text: Theme.iconWarning; color: Theme.danger; preferredSize: 18 }
+
+                    Icon {
+                        text: Theme.iconWarning
+                        color: Theme.danger
+                        preferredSize: 18
+                    }
+
                     Label {
                         Layout.fillWidth: true
                         text: root.authenticationErrorText
@@ -1609,7 +2542,12 @@ Item {
                 visible: !root.runtimeReady
                 Layout.fillWidth: true
                 spacing: Theme.space2
-                GenySpinner { running: true; color: Theme.accent }
+
+                GenySpinner {
+                    running: true
+                    color: Theme.accent
+                }
+
                 Label {
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.bridge.starting_local_read_runtime")
@@ -1624,206 +2562,359 @@ Item {
         id: readyStage
 
         ColumnLayout {
-            spacing: Theme.space5
+            spacing: Theme.space4
 
-            Item {
+            Superellipse {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 120
+                implicitHeight: readyHero.implicitHeight + Theme.space5 * 2
+                fillColor: Theme.primarySurface
+                borderWidth: 1
+                borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.18)
+                curveDepth: Theme.curveContainer
 
-                Avatar {
-                    anchors.horizontalCenter: parent.horizontalCenter
+                GridLayout {
+                    id: readyHero
+                    anchors.left: parent.left
+                    anchors.right: parent.right
                     anchors.top: parent.top
-                    sourceUrl: root.accountAvatarUrl
-                    displayName: root.accountName.length > 0 ? root.accountName : root.accountUsername
-                    avatarSize: 92
-                }
+                    anchors.margins: Theme.space5
+                    columns: root.phone ? 1 : 2
+                    columnSpacing: Theme.space6
+                    rowSpacing: Theme.space4
 
-                Superellipse {
-                    width: 28
-                    height: 28
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.top: parent.top
-                    anchors.topMargin: 70
-                    anchors.horizontalCenterOffset: 34
-                    fillColor: Theme.success
-                    curveDepth: 10
-                    borderWidth: 3
-                    borderColor: Theme.background
-                    Icon {
-                        anchors.centerIn: parent
-                        text: Theme.iconCheck
-                        color: Theme.contrastInk(Theme.success)
-                        preferredSize: 14
-                    }
-                }
-            }
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: root.phone ? 210 : 250
 
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: Theme.space1
-                Label {
-                    Layout.fillWidth: true
-                    text: qsTrId("genycaster.status.ready")
-                    color: Theme.ink
-                    font.pixelSize: Theme.typeTitle1Size
-                    font.weight: Theme.weightBold
-                    horizontalAlignment: Text.AlignHCenter
-                }
-                Label {
-                    Layout.fillWidth: true
-                    text: root.accountName.length > 0
-                          ? qsTrId("genycaster.setup.ready_for").arg(root.accountName)
-                          : qsTrId("genycaster.setup.ready_generic")
-                    color: Theme.inkMuted
-                    font.pixelSize: Theme.typeBodySize
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
-                }
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: Theme.space2
-
-                Button {
-                    Layout.fillWidth: true
-                    implicitHeight: 60
-                    onClicked: root.switchStep(0)
-                    background: Superellipse {
-                        fillColor: parent.hovered ? Theme.surfaceHover : Theme.surface
-                        borderWidth: 1
-                        borderColor: Theme.borderMuted
-                        curveDepth: Theme.curveControl
-                    }
-                    contentItem: RowLayout {
-                        spacing: Theme.space3
-                        Icon { text: Theme.iconLanguage; color: Theme.accent; preferredSize: 18 }
-                        Label {
-                            Layout.fillWidth: true
-                            text: localizationController.languageLabel
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeLabelSize
-                            font.weight: Theme.weightDemiBold
-                        }
-                        Label {
-                            text: localizationController.regionalLocaleLabel
-                            color: Theme.inkSubtle
-                            font.pixelSize: Theme.typeCaptionSize
-                        }
-                    }
-                }
-
-                Button {
-                    Layout.fillWidth: true
-                    implicitHeight: 60
-                    onClicked: root.switchStep(1)
-                    background: Superellipse {
-                        fillColor: parent.hovered ? Theme.surfaceHover : Theme.surface
-                        borderWidth: 1
-                        borderColor: Theme.borderMuted
-                        curveDepth: Theme.curveControl
-                    }
-                    contentItem: RowLayout {
-                        spacing: Theme.space3
-                        Icon { text: Theme.iconPalette; color: Theme.accent; preferredSize: 18 }
                         Rectangle {
-                            width: 24
-                            height: 24
-                            radius: 12
-                            color: Theme.accent
+                            anchors.centerIn: parent
+                            width: root.phone ? 172 : 206
+                            height: width
+                            radius: width / 2
+                            color: "transparent"
                             border.width: 1
-                            border.color: Theme.borderStrong
+                            border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22)
                         }
-                        Label {
-                            Layout.fillWidth: true
-                            text: root.accentCode()
-                            color: Theme.ink
-                            font.family: Theme.codeFontFamily
-                            font.pixelSize: Theme.typeLabelSize
-                            font.weight: Theme.weightDemiBold
-                        }
-                        Label {
-                            text: appearanceController.themeMode
-                            color: Theme.inkSubtle
-                            font.pixelSize: Theme.typeCaptionSize
-                        }
-                    }
-                }
 
-                Button {
-                    Layout.fillWidth: true
-                    implicitHeight: 60
-                    onClicked: root.switchStep(3)
-                    background: Superellipse {
-                        fillColor: parent.hovered ? Theme.surfaceHover : Theme.surface
-                        borderWidth: 1
-                        borderColor: Theme.borderMuted
-                        curveDepth: Theme.curveControl
-                    }
-                    contentItem: RowLayout {
-                        spacing: Theme.space3
-                        Icon { text: Theme.iconWifi; color: Theme.accent; preferredSize: 18 }
-                        Label {
-                            Layout.fillWidth: true
-                            text: "Hypersnap v2"
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeLabelSize
-                            font.weight: Theme.weightDemiBold
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: root.phone ? 132 : 160
+                            height: width
+                            radius: width / 2
+                            color: "transparent"
+                            border.width: 1
+                            border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.12)
                         }
-                        Label {
-                            text: {
-                                const nodes = nodeSelectionController.nodes
-                                for (let index = 0; index < nodes.length; ++index) {
-                                    if (nodes[index].selected && nodes[index].latencyMs >= 0)
-                                        return nodes[index].latencyMs + " ms"
-                                }
-                                return qsTrId("genycaster.setup.network_selected")
+
+                        Avatar {
+                            anchors.centerIn: parent
+                            sourceUrl: root.accountAvatarUrl
+                            displayName: root.accountName.length > 0 ? root.accountName : root.accountUsername
+                            avatarSize: root.phone ? 96 : 112
+                        }
+
+                        Superellipse {
+                            width: 34
+                            height: 34
+                            anchors.centerIn: parent
+                            anchors.horizontalCenterOffset: root.phone ? 40 : 48
+                            anchors.verticalCenterOffset: root.phone ? 40 : 48
+                            fillColor: Theme.success
+                            curveDepth: 12
+                            borderWidth: 3
+                            borderColor: Theme.primarySurface
+
+                            Icon {
+                                anchors.centerIn: parent
+                                text: "social/verified"
+                                color: Theme.contrastInk(Theme.success)
+                                preferredSize: 17
                             }
-                            color: Theme.success
-                            font.pixelSize: Theme.typeCaptionSize
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space3
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.status.ready")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeDisplaySize
+                            font.weight: Theme.weightBold
+                            wrapMode: Text.WordWrap
+                        }
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: root.accountName.length > 0
+                                  ? qsTrId("genycaster.setup.ready_for").arg(root.accountName)
+                                  : qsTrId("genycaster.setup.ready_generic")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeBodySize
+                            wrapMode: Text.WordWrap
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space2
+
+                            Icon {
+                                text: "social/verified"
+                                color: Theme.success
+                                preferredSize: 18
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.setup.consent_recorded")
+                                color: Theme.success
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: Theme.weightDemiBold
+                            }
+                        }
+                    }
+                }
+            }
+
+            GridLayout {
+                Layout.fillWidth: true
+                columns: root.phone ? 1 : 2
+                columnSpacing: Theme.space2
+                rowSpacing: Theme.space2
+
+                Button {
+                    id: readyLanguageButton
+                    Layout.fillWidth: true
+                    implicitHeight: 72
+                    onClicked: root.switchStep(0)
+
+                    background: Superellipse {
+                        fillColor: readyLanguageButton.hovered ? Theme.surfaceHover : Theme.surface
+                        borderWidth: 1
+                        borderColor: Theme.borderMuted
+                        curveDepth: Theme.curveControl
+                    }
+
+                    contentItem: RowLayout {
+                        spacing: Theme.space3
+
+                        Superellipse {
+                            Layout.preferredWidth: 38
+                            Layout.preferredHeight: 38
+                            fillColor: Theme.primarySurface
+                            curveDepth: Theme.curveCompact
+
+                            Icon {
+                                anchors.centerIn: parent
+                                text: Theme.iconLanguage
+                                color: Theme.accent
+                                preferredSize: 19
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: localizationController.languageLabel
+                                color: Theme.ink
+                                font.pixelSize: Theme.typeLabelSize
+                                font.weight: Theme.weightBold
+                                elide: Text.ElideRight
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: localizationController.regionalLocaleLabel
+                                color: Theme.inkSubtle
+                                font.pixelSize: Theme.typeCaptionSize
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        Icon {
+                            text: Theme.iconArrowRight
+                            color: Theme.inkSubtle
+                            preferredSize: 15
                         }
                     }
                 }
 
                 Button {
+                    id: readyAppearanceButton
                     Layout.fillWidth: true
-                    implicitHeight: 60
-                    onClicked: root.switchStep(4)
+                    implicitHeight: 72
+                    onClicked: root.switchStep(1)
+
                     background: Superellipse {
-                        fillColor: parent.hovered ? Theme.surfaceHover : Theme.surface
+                        fillColor: readyAppearanceButton.hovered ? Theme.surfaceHover : Theme.surface
                         borderWidth: 1
                         borderColor: Theme.borderMuted
                         curveDepth: Theme.curveControl
                     }
+
                     contentItem: RowLayout {
                         spacing: Theme.space3
+
+                        Rectangle {
+                            Layout.preferredWidth: 38
+                            Layout.preferredHeight: 38
+                            radius: 19
+                            color: Theme.accent
+                            border.width: 2
+                            border.color: Theme.surface
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: root.accentCode()
+                                color: Theme.ink
+                                font.family: Theme.codeFontFamily
+                                font.pixelSize: Theme.typeLabelSize
+                                font.weight: Theme.weightBold
+                                elide: Text.ElideRight
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: appearanceController.themeMode
+                                color: Theme.inkSubtle
+                                font.pixelSize: Theme.typeCaptionSize
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        Icon {
+                            text: Theme.iconArrowRight
+                            color: Theme.inkSubtle
+                            preferredSize: 15
+                        }
+                    }
+                }
+
+                Button {
+                    id: readyNetworkButton
+                    Layout.fillWidth: true
+                    implicitHeight: 72
+                    onClicked: root.switchStep(3)
+
+                    background: Superellipse {
+                        fillColor: readyNetworkButton.hovered ? Theme.surfaceHover : Theme.surface
+                        borderWidth: 1
+                        borderColor: Theme.borderMuted
+                        curveDepth: Theme.curveControl
+                    }
+
+                    contentItem: RowLayout {
+                        spacing: Theme.space3
+
+                        Superellipse {
+                            Layout.preferredWidth: 38
+                            Layout.preferredHeight: 38
+                            fillColor: Theme.successSurface
+                            curveDepth: Theme.curveCompact
+
+                            Icon {
+                                anchors.centerIn: parent
+                                text: Theme.iconWifi
+                                color: Theme.success
+                                preferredSize: 19
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: "Hypersnap v2"
+                                color: Theme.ink
+                                font.pixelSize: Theme.typeLabelSize
+                                font.weight: Theme.weightBold
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: {
+                                    const nodes = nodeSelectionController.nodes
+                                    for (let index = 0; index < nodes.length; ++index) {
+                                        if (nodes[index].selected && nodes[index].latencyMs >= 0)
+                                            return nodes[index].latencyMs + " ms"
+                                    }
+                                    return qsTrId("genycaster.setup.network_selected")
+                                }
+                                color: Theme.success
+                                font.pixelSize: Theme.typeCaptionSize
+                            }
+                        }
+
+                        Icon {
+                            text: Theme.iconArrowRight
+                            color: Theme.inkSubtle
+                            preferredSize: 15
+                        }
+                    }
+                }
+
+                Button {
+                    id: readyAccountButton
+                    Layout.fillWidth: true
+                    implicitHeight: 72
+                    onClicked: root.switchStep(4)
+
+                    background: Superellipse {
+                        fillColor: readyAccountButton.hovered ? Theme.surfaceHover : Theme.surface
+                        borderWidth: 1
+                        borderColor: Theme.borderMuted
+                        curveDepth: Theme.curveControl
+                    }
+
+                    contentItem: RowLayout {
+                        spacing: Theme.space3
+
                         Avatar {
                             sourceUrl: root.accountAvatarUrl
                             displayName: root.accountName.length > 0 ? root.accountName : root.accountUsername
-                            avatarSize: 34
+                            avatarSize: 38
                         }
-                        Label {
-                            Layout.fillWidth: true
-                            text: root.accountName.length > 0 ? root.accountName : root.accountUsername
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeLabelSize
-                            font.weight: Theme.weightDemiBold
-                            elide: Text.ElideRight
-                        }
-                        Icon { text: Theme.iconCheck; color: Theme.success; preferredSize: 16 }
-                    }
-                }
-            }
 
-            RowLayout {
-                Layout.alignment: Qt.AlignHCenter
-                spacing: Theme.space2
-                Icon { text: Theme.iconCheck; color: Theme.success; preferredSize: 16 }
-                Label {
-                    text: qsTrId("genycaster.setup.consent_recorded")
-                    color: Theme.success
-                    font.pixelSize: Theme.typeCaptionSize
-                    font.weight: Theme.weightDemiBold
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: root.accountName.length > 0 ? root.accountName : root.accountUsername
+                                color: Theme.ink
+                                font.pixelSize: Theme.typeLabelSize
+                                font.weight: Theme.weightBold
+                                elide: Text.ElideRight
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.shell.verified_by_openproof")
+                                color: Theme.success
+                                font.pixelSize: Theme.typeCaptionSize
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        Icon {
+                            text: "social/verified"
+                            color: Theme.success
+                            preferredSize: 18
+                        }
+                    }
                 }
             }
         }
