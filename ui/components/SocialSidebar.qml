@@ -176,7 +176,10 @@ Item {
                             iconOnly: true
                             iconGlyph: Theme.iconNotification
                             badgeText: root.notificationUnreadCount > 0
-                                       ? (root.notificationUnreadCount > 99 ? "99+" : String(root.notificationUnreadCount)) : ""
+                                       ? (root.notificationUnreadCount > 99
+                                          ? LocaleFormat.formatInteger(99) + "+"
+                                          : LocaleFormat.formatInteger(root.notificationUnreadCount))
+                                       : ""
                             text: qsTrId("genycaster.side_nav.notifications")
                             onClicked: root.notificationsRequested()
                         }

@@ -1636,6 +1636,7 @@ Item {
         authenticationErrorText: presentationBridge.authenticationErrorText
         accountName: presentationBridge.accountName
         accountUsername: presentationBridge.accountUsername
+        accountAvatarUrl: presentationBridge.accountAvatarUrl
         onContinueWithGenyleap: presentationBridge.beginSignIn()
         onContinueWithFarcaster: presentationBridge.beginFarcasterSignIn()
         onOpenApproval: presentationBridge.openAuthenticationApproval()

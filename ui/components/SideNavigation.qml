@@ -178,30 +178,6 @@ Rectangle {
                     onClicked: root.routeRequested("notifications")
                 }
                 NavItem {
-                    objectName: "sidebarAction-store"
-                    Layout.fillWidth: true
-                    text: qsTrId("genycaster.side_nav.store")
-                    iconGlyph: Theme.iconStore
-                    selected: root.shellRoute === "store"
-                    onClicked: root.routeRequested("store")
-                }
-                NavItem {
-                    objectName: "sidebarAction-business"
-                    Layout.fillWidth: true
-                    text: qsTrId("genycaster.side_nav.business")
-                    iconGlyph: Theme.iconBusiness
-                    selected: root.shellRoute === "business"
-                    onClicked: root.routeRequested("business")
-                }
-                NavItem {
-                    objectName: "sidebarAction-messages"
-                    Layout.fillWidth: true
-                    text: qsTrId("genycaster.side_nav.messages")
-                    iconGlyph: Theme.iconMessage
-                    selected: root.shellRoute === "messages"
-                    onClicked: root.routeRequested("messages")
-                }
-                NavItem {
                     objectName: "sidebarAction-bookmarks"
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.side_nav.bookmarks")
@@ -229,29 +205,31 @@ Rectangle {
                     Layout.fillHeight: true
                     Layout.minimumHeight: Theme.space3
                 }
-
-                ProfileTrustCard {
-                    visible: root.isAuthenticated
-                    Layout.fillWidth: true
-                    Layout.topMargin: Theme.space2
-                    authenticated: root.isAuthenticated
-                    fid: root.accountFid
-                    displayName: root.accountName
-                    username: root.accountUsername
-                    avatarUrl: root.accountAvatarUrl
-                    bio: root.ownsProfileDetail ? String(root.profileDetail.bio || "") : ""
-                    location: root.ownsProfileDetail ? String(root.profileDetail.location || "") : ""
-                    verified: root.ownsProfileDetail && Boolean(root.profileDetail.verified || false)
-                    following: root.profileFollowing
-                    followers: root.profileFollowers
-                    trustScore: root.profileTrustScore
-                    trustScoreSource: root.profileTrustScoreSource
-                    loading: root.profileLoading || (root.isAuthenticated && !root.ownsProfileDetail)
-                    compact: true
-                    onProfileRequested: root.profileRequested()
-                    onAccountRequested: root.accountRequested()
-                }
             }
+        }
+
+        ProfileTrustCard {
+            id: fixedProfileCard
+            visible: root.isAuthenticated
+            Layout.fillWidth: true
+            Layout.topMargin: Theme.space1
+            Layout.maximumHeight: implicitHeight
+            authenticated: root.isAuthenticated
+            fid: root.accountFid
+            displayName: root.accountName
+            username: root.accountUsername
+            avatarUrl: root.accountAvatarUrl
+            bio: root.ownsProfileDetail ? String(root.profileDetail.bio || "") : ""
+            location: root.ownsProfileDetail ? String(root.profileDetail.location || "") : ""
+            verified: root.ownsProfileDetail && Boolean(root.profileDetail.verified || false)
+            following: root.profileFollowing
+            followers: root.profileFollowers
+            trustScore: root.profileTrustScore
+            trustScoreSource: root.profileTrustScoreSource
+            loading: root.profileLoading || (root.isAuthenticated && !root.ownsProfileDetail)
+            compact: true
+            onProfileRequested: root.profileRequested()
+            onAccountRequested: root.accountRequested()
         }
     }
 }

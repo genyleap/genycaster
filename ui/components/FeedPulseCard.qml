@@ -131,6 +131,7 @@ Superellipse {
 
         RowLayout {
             Layout.fillWidth: true
+            Layout.rightMargin: 34
             layoutDirection: Theme.uiDirection
             spacing: Theme.space2
 
@@ -144,7 +145,7 @@ Superellipse {
                     anchors.centerIn: parent
                     text: Theme.iconChart
                     color: Theme.accent
-                    preferredSize: Theme.iconSizeSmall
+                    preferredSize: Theme.iconSize
                 }
             }
 

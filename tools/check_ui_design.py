@@ -441,9 +441,11 @@ else:
         if signal_name not in side_nav_signals:
             errors.append(f'AppShell handles SideNavigation.{signal_name}, but SideNavigation does not export that signal')
 
-for nav_id in ('channels', 'notifications', 'store', 'business', 'messages', 'bookmarks'):
+# Store, Business, and Messages are intentionally hidden from desktop
+# navigation until those surfaces are production-ready.
+for nav_id in ('channels', 'notifications', 'bookmarks'):
     if f'routeRequested("{nav_id}")' not in side_nav:
-        errors.append(f'R5 sidebar is missing roadmap destination: {nav_id}')
+        errors.append(f'R5 sidebar is missing active destination: {nav_id}')
 bottom_nav = (ui/'components'/'BottomNavigation.qml').read_text(encoding='utf-8')
 for token in ('bottom_nav.home', 'side_nav.explorer', 'bottom_nav.create', 'apps.title', 'settings.title'):
     if token not in bottom_nav:

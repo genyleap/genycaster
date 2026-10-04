@@ -168,7 +168,7 @@ Button {
             id: badgeLabel
             anchors.centerIn: parent
             text: control.badgeText
-            color: Theme.accentInk
+            color: Theme.dangerInk
             font.family: Theme.fontFamily
             font.pixelSize: Theme.typeCaptionSize
             font.weight: Theme.weightBold

@@ -140,17 +140,18 @@ Item {
             RowLayout {
                 visible: card.headerText.length > 0
                 Layout.fillWidth: true
+                Layout.rightMargin: 34
                 layoutDirection: Theme.uiDirection
                 spacing: Theme.space2
 
                 Superellipse {
                     visible: card.headerIcon.length > 0
-                    Layout.preferredWidth: 32
-                    Layout.preferredHeight: 32
+                    Layout.preferredWidth: 34
+                    Layout.preferredHeight: 34
                     fillColor: card.headerIconSurface
                     curveDepth: 16
                     exponent: 2.01
-                    Icon { anchors.centerIn: parent; text: card.headerIcon; color: card.headerIconColor; preferredSize: Theme.iconSizeSmall }
+                    Icon { anchors.centerIn: parent; text: card.headerIcon; color: card.headerIconColor; preferredSize: Theme.iconSize }
                 }
 
                 ColumnLayout {
@@ -233,24 +234,36 @@ Item {
                         sourceComponent: root.componentForWidget(widgetDelegate.widgetId)
                     }
 
-                    Item {
+                    Superellipse {
                         id: reorderHandle
                         width: 30
-                        height: 24
+                        height: 30
                         anchors.top: parent.top
-                        anchors.right: Theme.rtl ? undefined : parent.right
-                        anchors.left: Theme.rtl ? parent.left : undefined
+                        anchors.right: parent.right
                         anchors.topMargin: Theme.space2
-                        anchors.rightMargin: Theme.rtl ? 0 : Theme.space2
-                        anchors.leftMargin: Theme.rtl ? Theme.space2 : 0
+                        anchors.rightMargin: Theme.space2
                         z: 5
-                        opacity: reorderDrag.active ? 1.0 : (dragHover.hovered ? 0.9 : 0.48)
+                        curveDepth: Theme.curveCompact
+                        fillColor: reorderDrag.active
+                                   ? Theme.primarySurface
+                                   : dragHover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
+                        borderWidth: dragHover.hovered || reorderDrag.active
+                                     ? Theme.strokeHairline : 0
+                        borderColor: reorderDrag.active ? Theme.accent : Theme.borderSubtle
+                        opacity: reorderDrag.active ? 1.0 : (dragHover.hovered ? 0.96 : 0.62)
+
+                        Behavior on fillColor {
+                            ColorAnimation { duration: Theme.motionFast }
+                        }
+                        Behavior on opacity {
+                            NumberAnimation { duration: Theme.motionFast }
+                        }
 
                         Icon {
                             anchors.centerIn: parent
-                            text: Theme.iconSort
+                            text: Theme.iconReorder
                             color: reorderDrag.active ? Theme.accent : Theme.textTertiary
-                            preferredSize: Theme.iconSizeSmall
+                            preferredSize: Theme.iconSize
                         }
 
                         HoverHandler {

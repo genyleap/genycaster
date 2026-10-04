@@ -61,9 +61,6 @@ Rectangle {
                 { key: "apps", icon: Theme.iconApps, label: qsTrId("genycaster.apps.title"), available: true },
                 { key: "channels", icon: Theme.iconGlobe, label: qsTrId("genycaster.side_nav.channels"), available: true },
                 { key: "notifications", icon: Theme.iconNotification, label: qsTrId("genycaster.side_nav.notifications"), available: true },
-                { key: "store", icon: Theme.iconStore, label: qsTrId("genycaster.side_nav.store"), available: true },
-                { key: "business", icon: Theme.iconBusiness, label: qsTrId("genycaster.side_nav.business"), available: true },
-                { key: "messages", icon: Theme.iconMessage, label: qsTrId("genycaster.side_nav.messages"), available: true },
                 { key: "bookmarks", icon: Theme.iconBookmark, label: qsTrId("genycaster.side_nav.bookmarks"), available: true }
             ]
 

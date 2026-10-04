@@ -185,6 +185,7 @@ QtObject {
     readonly property color success: dark ? "#61D194" : "#22845A"
     readonly property color successSurface: dark ? "#1B3026" : "#EAF7F0"
     readonly property color danger: dark ? "#FF7B83" : "#D94D57"
+    readonly property color dangerInk: contrastInk(danger)
     readonly property color dangerSurface: dark ? "#342126" : "#FDEDEF"
 
     // Notification kind accents keep each activity type instantly recognizable,
@@ -423,6 +424,8 @@ QtObject {
     readonly property string iconUpload: "upload"
     readonly property string iconDownload: "download"
     readonly property string iconFile: "file"
+    readonly property string iconDocument: "document"
+    readonly property string iconReorder: "reorder"
     readonly property string iconTrash: "trash"
     readonly property string iconEmoji: "smile"
     readonly property string iconFeedback: "message"
@@ -499,6 +502,8 @@ QtObject {
         case "upload": path = "actions/upload"; break
         case "download": path = "actions/download"; break
         case "file": path = "media/attachment"; break
+        case "document": path = "system/document"; break
+        case "reorder": path = "system/reorder"; break
         case "trash": path = "actions/trash"; break
         case "bold": path = "system/text-bold"; break
         case "italic": path = "system/text-italic"; break
@@ -590,6 +595,8 @@ QtObject {
         case "upload": return "\uf093"
         case "download": return "\uf019"
         case "file": return "\uf15b"
+        case "document": return "\uf15c"
+        case "reorder": return "\uf58d"
         case "trash": return "\uf1f8"
         default: return "\uf111"
         }

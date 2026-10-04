@@ -18,6 +18,7 @@ Item {
     property string authenticationErrorText: ""
     property string accountName: ""
     property string accountUsername: ""
+    property string accountAvatarUrl: ""
     property bool legalReadToEnd: false
     property bool legalTermsChecked: false
     property bool legalPrivacyChecked: false
@@ -63,8 +64,8 @@ Item {
 
     function stepIcon(index) {
         switch (index) {
-        case 0: return Theme.iconLeaf
-        case 1: return Theme.iconFile
+        case 0: return Theme.iconHome
+        case 1: return Theme.iconDocument
         case 2: return Theme.iconUser
         case 3: return Theme.iconPalette
         case 4: return Theme.iconLanguage
@@ -333,12 +334,27 @@ Item {
             layoutDirection: Theme.uiDirection
             spacing: 0
 
-            Rectangle {
+            Item {
                 id: rail
                 visible: !root.phone
                 Layout.preferredWidth: root.compact ? 228 : 252
                 Layout.fillHeight: true
-                color: Theme.surfaceMuted
+
+                Superellipse {
+                    anchors.fill: parent
+                    curveDepth: Theme.curveModal
+                    fillColor: Theme.surfaceMuted
+                    borderWidth: 0
+                }
+
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.right: Theme.rtl ? undefined : parent.right
+                    anchors.left: Theme.rtl ? parent.left : undefined
+                    width: Math.min(Theme.curveModal * 2, parent.width * 0.24)
+                    color: Theme.surfaceMuted
+                }
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -442,8 +458,20 @@ Item {
                                             ColorAnimation { duration: Theme.motionFast }
                                         }
 
+                                        Avatar {
+                                            anchors.centerIn: parent
+                                            visible: railStep.stepNumber === 2 && root.authenticated
+                                            avatarSize: 28
+                                            sourceUrl: root.accountAvatarUrl
+                                            displayName: root.accountName.length > 0
+                                                         ? root.accountName
+                                                         : root.accountUsername
+                                            avatarCurveDepth: 9
+                                        }
+
                                         Icon {
                                             anchors.centerIn: parent
+                                            visible: !(railStep.stepNumber === 2 && root.authenticated)
                                             text: railStep.completed
                                                   ? Theme.iconCheck
                                                   : root.stepIcon(railStep.stepNumber)
@@ -452,7 +480,7 @@ Item {
                                                    : railStep.completed
                                                      ? Theme.accent
                                                      : Theme.inkSubtle
-                                            preferredSize: 15
+                                            preferredSize: Theme.iconSizeSmall
                                         }
                                     }
 
@@ -622,10 +650,9 @@ Item {
 
                         Item {
                             width: stageScroll.availableWidth
-                            implicitHeight: Math.max(
-                                stageScroll.availableHeight,
+                            height: Math.max(
+                                stageScroll.height,
                                 stageColumn.implicitHeight + (root.phone ? Theme.space4 : Theme.space7) * 2)
-                            height: implicitHeight
 
                             ColumnLayout {
                                 id: stageColumn
@@ -659,6 +686,7 @@ Item {
 
                                         ColumnLayout {
                                             Layout.fillWidth: true
+                                            Layout.minimumWidth: 0
                                             spacing: Theme.space3
 
                                             DirectionAwareLabel {
@@ -694,13 +722,15 @@ Item {
                                         }
 
                                         Item {
-                                            Layout.fillWidth: true
-                                            Layout.preferredHeight: root.phone ? 150 : 190
+                                            Layout.fillWidth: root.phone
+                                            Layout.minimumWidth: root.phone ? 0 : 176
+                                            Layout.preferredWidth: root.phone ? 0 : 196
+                                            Layout.preferredHeight: root.phone ? 138 : 172
 
                                             Superellipse {
                                                 id: welcomeOrbit
                                                 anchors.centerIn: parent
-                                                width: root.phone ? 124 : 154
+                                                width: root.phone ? 118 : 136
                                                 height: width
                                                 curveDepth: width / 2
                                                 fillColor: Theme.primarySurface
@@ -736,7 +766,7 @@ Item {
                                                         anchors.centerIn: parent
                                                         text: Theme.iconLeaf
                                                         color: Theme.accentInk
-                                                        preferredSize: root.phone ? 44 : 56
+                                                        preferredSize: root.phone ? 40 : 48
                                                     }
                                                 }
                                             }
@@ -950,7 +980,7 @@ Item {
                                                         borderWidth: 0
                                                         Icon {
                                                             anchors.centerIn: parent
-                                                            text: Theme.iconFile
+                                                            text: Theme.iconDocument
                                                             color: Theme.accent
                                                             preferredSize: 17
                                                         }
@@ -1257,34 +1287,90 @@ Item {
                                             layoutDirection: Theme.uiDirection
                                             spacing: Theme.space4
 
-                                            Superellipse {
-                                                Layout.preferredWidth: root.phone ? 52 : 64
+                                            Item {
+                                                Layout.preferredWidth: root.phone ? 56 : 68
                                                 Layout.preferredHeight: Layout.preferredWidth
-                                                curveDepth: Theme.curveControl
-                                                fillColor: Theme.primaryFill
-                                                borderWidth: 0
 
-                                                Icon {
+                                                Superellipse {
+                                                    id: accountIdentityHalo
                                                     anchors.centerIn: parent
-                                                    text: root.authenticationInProgress
-                                                          ? Theme.iconEnergy : Theme.iconUser
-                                                    color: Theme.accentInk
-                                                    preferredSize: root.phone ? 24 : 30
+                                                    width: parent.width
+                                                    height: parent.height
+                                                    curveDepth: Theme.curveControl
+                                                    fillColor: root.authenticated
+                                                               ? Theme.primarySurface
+                                                               : Theme.primaryFill
+                                                    borderWidth: root.authenticated
+                                                                 ? Theme.strokeStandard
+                                                                 : 0
+                                                    borderColor: Theme.accent
+                                                    opacity: root.authenticationInProgress ? 0.78 : 1.0
+
+                                                    SequentialAnimation on scale {
+                                                        running: (root.authenticationInProgress
+                                                                  || root.authenticated)
+                                                                 && !Theme.reduceMotion
+                                                        loops: root.authenticationInProgress
+                                                               ? Animation.Infinite : 1
+                                                        NumberAnimation {
+                                                            from: root.authenticated ? 0.94 : 1.0
+                                                            to: 1.055
+                                                            duration: root.authenticated ? 260 : 720
+                                                            easing.type: Easing.OutCubic
+                                                        }
+                                                        NumberAnimation {
+                                                            to: 1.0
+                                                            duration: root.authenticated ? 180 : 720
+                                                            easing.type: Easing.InOutSine
+                                                        }
+                                                    }
                                                 }
 
-                                                SequentialAnimation on scale {
-                                                    running: root.authenticationInProgress
-                                                             && !Theme.reduceMotion
-                                                    loops: Animation.Infinite
-                                                    NumberAnimation {
-                                                        to: 1.06
-                                                        duration: 720
-                                                        easing.type: Easing.InOutSine
+                                                Avatar {
+                                                    anchors.centerIn: parent
+                                                    visible: root.authenticated
+                                                    avatarSize: root.phone ? 48 : 58
+                                                    sourceUrl: root.accountAvatarUrl
+                                                    displayName: root.accountName.length > 0
+                                                                 ? root.accountName
+                                                                 : root.accountUsername
+                                                    avatarCurveDepth: Theme.curveControl
+                                                }
+
+                                                Superellipse {
+                                                    anchors.centerIn: parent
+                                                    visible: !root.authenticated
+                                                    width: root.phone ? 48 : 58
+                                                    height: width
+                                                    curveDepth: Theme.curveControl
+                                                    fillColor: Theme.primaryFill
+                                                    borderWidth: 0
+
+                                                    Icon {
+                                                        anchors.centerIn: parent
+                                                        text: root.authenticationInProgress
+                                                              ? Theme.iconEnergy : Theme.iconUser
+                                                        color: Theme.accentInk
+                                                        preferredSize: Theme.iconSizeLarge
                                                     }
-                                                    NumberAnimation {
-                                                        to: 1.0
-                                                        duration: 720
-                                                        easing.type: Easing.InOutSine
+                                                }
+
+                                                Superellipse {
+                                                    visible: root.authenticated
+                                                    width: 20
+                                                    height: 20
+                                                    anchors.right: parent.right
+                                                    anchors.bottom: parent.bottom
+                                                    curveDepth: 10
+                                                    fillColor: Theme.positive
+                                                    borderWidth: 2
+                                                    borderColor: Theme.surfaceRaised
+
+                                                    Icon {
+                                                        anchors.centerIn: parent
+                                                        text: Theme.iconCheck
+                                                        color: Theme.accentInk
+                                                        preferredSize: 11
                                                     }
                                                 }
                                             }
@@ -2012,11 +2098,11 @@ Item {
 
                                     Item {
                                         Layout.fillWidth: true
-                                        implicitHeight: root.phone ? 150 : 190
+                                        implicitHeight: root.phone ? 136 : 156
 
                                         Superellipse {
                                             anchors.centerIn: parent
-                                            width: root.phone ? 112 : 132
+                                            width: root.phone ? 104 : 116
                                             height: width
                                             curveDepth: width / 2
                                             fillColor: Theme.primarySurface
@@ -2034,7 +2120,7 @@ Item {
                                                     anchors.centerIn: parent
                                                     text: Theme.iconCheck
                                                     color: Theme.accentInk
-                                                    preferredSize: root.phone ? 42 : 50
+                                                    preferredSize: root.phone ? 36 : 42
                                                 }
                                             }
 
@@ -2092,13 +2178,14 @@ Item {
                                             model: [
                                                 {
                                                     "icon": Theme.iconUser,
+                                                    "avatar": true,
                                                     "title": qsTrId("genycaster.header.account"),
                                                     "value": root.accountName.length > 0
                                                              ? root.accountName
                                                              : root.accountUsername
                                                 },
                                                 {
-                                                    "icon": Theme.iconFile,
+                                                    "icon": Theme.iconDocument,
                                                     "title": qsTrId("genycaster.setup.privacy_terms"),
                                                     "value": qsTrId("genycaster.setup.consent_recorded")
                                                 },
@@ -2118,36 +2205,79 @@ Item {
                                                 id: summaryCard
                                                 required property var modelData
                                                 Layout.fillWidth: true
-                                                implicitHeight: 92
+                                                implicitHeight: 86
                                                 curveDepth: Theme.curveControl
-                                                fillColor: Theme.surface
+                                                fillColor: summaryHover.hovered
+                                                           ? Theme.surfaceHover : Theme.surface
                                                 borderWidth: Theme.strokeHairline
                                                 borderColor: Theme.borderMuted
 
-                                                ColumnLayout {
+                                                Behavior on fillColor {
+                                                    ColorAnimation { duration: Theme.motionFast }
+                                                }
+
+                                                RowLayout {
                                                     anchors.fill: parent
                                                     anchors.margins: Theme.space3
-                                                    spacing: Theme.space1
-                                                    Icon {
-                                                        text: summaryCard.modelData.icon
-                                                        color: Theme.accent
-                                                        preferredSize: 18
+                                                    layoutDirection: Theme.uiDirection
+                                                    spacing: Theme.space3
+
+                                                    Superellipse {
+                                                        Layout.preferredWidth: 38
+                                                        Layout.preferredHeight: 38
+                                                        curveDepth: Theme.curveControl
+                                                        fillColor: Theme.primarySurface
+                                                        borderWidth: Theme.strokeHairline
+                                                        borderColor: Theme.borderSubtle
+
+                                                        Avatar {
+                                                            anchors.centerIn: parent
+                                                            visible: Boolean(summaryCard.modelData.avatar)
+                                                            avatarSize: 34
+                                                            sourceUrl: root.accountAvatarUrl
+                                                            displayName: root.accountName.length > 0
+                                                                         ? root.accountName
+                                                                         : root.accountUsername
+                                                            avatarCurveDepth: 10
+                                                        }
+
+                                                        Icon {
+                                                            anchors.centerIn: parent
+                                                            visible: !Boolean(summaryCard.modelData.avatar)
+                                                            text: summaryCard.modelData.icon
+                                                            color: Theme.accent
+                                                            preferredSize: Theme.iconSize
+                                                        }
                                                     }
-                                                    DirectionAwareLabel {
+
+                                                    ColumnLayout {
                                                         Layout.fillWidth: true
-                                                        text: summaryCard.modelData.title
-                                                        color: Theme.inkMuted
-                                                        font.pixelSize: Theme.typeCaptionSize
-                                                        font.weight: Theme.weightDemiBold
+                                                        Layout.minimumWidth: 0
+                                                        spacing: 1
+
+                                                        DirectionAwareLabel {
+                                                            Layout.fillWidth: true
+                                                            text: summaryCard.modelData.title
+                                                            color: Theme.inkMuted
+                                                            font.pixelSize: Theme.typeCaptionSize
+                                                            font.weight: Theme.weightDemiBold
+                                                            elide: Text.ElideRight
+                                                        }
+
+                                                        DirectionAwareLabel {
+                                                            Layout.fillWidth: true
+                                                            text: summaryCard.modelData.value
+                                                            color: Theme.ink
+                                                            font.pixelSize: Theme.typeBodySize
+                                                            font.weight: Theme.weightDemiBold
+                                                            elide: Text.ElideRight
+                                                        }
                                                     }
-                                                    DirectionAwareLabel {
-                                                        Layout.fillWidth: true
-                                                        text: summaryCard.modelData.value
-                                                        color: Theme.ink
-                                                        font.pixelSize: Theme.typeMetaSize
-                                                        font.weight: Theme.weightDemiBold
-                                                        elide: Text.ElideRight
-                                                    }
+                                                }
+
+                                                HoverHandler {
+                                                    id: summaryHover
+                                                    cursorShape: Qt.ArrowCursor
                                                 }
                                             }
                                         }
@@ -2157,12 +2287,28 @@ Item {
                         }
                     }
 
-                    Rectangle {
+                    Item {
                         id: setupFooter
                         visible: !root.returningSignIn && !root.setupCompleted
                         Layout.fillWidth: true
                         implicitHeight: root.phone ? 76 : 82
-                        color: Theme.surfaceRaised
+
+                        Superellipse {
+                            anchors.fill: parent
+                            curveDepth: root.phone ? 0 : Theme.curveModal
+                            fillColor: Theme.surfaceRaised
+                            borderWidth: 0
+                        }
+
+                        Rectangle {
+                            visible: !root.phone
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            anchors.left: Theme.rtl ? undefined : parent.left
+                            anchors.right: Theme.rtl ? parent.right : undefined
+                            width: Math.min(Theme.curveModal * 2, parent.width * 0.18)
+                            color: Theme.surfaceRaised
+                        }
 
                         Rectangle {
                             anchors.left: parent.left
@@ -2183,7 +2329,7 @@ Item {
                                 visible: root.currentStep > 0
                                 text: qsTrId("genycaster.setup.back")
                                 quiet: true
-                                iconGlyph: Theme.iconArrowLeft
+                                iconGlyph: Theme.rtl ? Theme.iconArrowRight : Theme.iconArrowLeft
                                 enabled: !root.authenticationInProgress
                                 onClicked: root.previousStep()
                             }
@@ -2203,7 +2349,8 @@ Item {
                                 }
 
                                 DirectionAwareLabel {
-                                    text: (root.currentStep + 1) + " / 6"
+                                    text: LocaleFormat.formatInteger(root.currentStep + 1)
+                                          + " / " + LocaleFormat.formatInteger(6)
                                     color: Theme.inkSubtle
                                     font.pixelSize: Theme.typeCaptionSize
                                     horizontalAlignment: Text.AlignRight
@@ -2217,7 +2364,8 @@ Item {
                                 prominent: true
                                 enabled: root.primaryActionEnabled()
                                 iconGlyph: root.currentStep === 5
-                                           ? Theme.iconCheck : Theme.iconArrowRight
+                                           ? Theme.iconCheck
+                                           : (Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight)
                                 onClicked: root.nextStep()
                             }
                         }

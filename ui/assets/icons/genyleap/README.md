@@ -5,7 +5,7 @@ A reusable, product-grade SVG icon set for web and native UI.
 ## Version
 
 - Current version: `0.2.0`
-- Total icons: **94**
+- Total icons: **163**
 
 ## Design rules
 

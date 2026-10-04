@@ -63,15 +63,26 @@ Button {
             elide: Text.ElideRight
         }
 
-        Label {
+        Superellipse {
             visible: control.badgeText.length > 0
-            text: control.badgeText
-            color: control.enabled ? Theme.inkSubtle : Theme.inkDisabled
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.typeCaptionSize
-            font.weight: Theme.weightMedium
-            horizontalAlignment: Theme.textEndAlignment
-            elide: Text.ElideRight
+            Layout.alignment: Qt.AlignVCenter
+            Layout.preferredWidth: Math.max(22, badgeLabel.implicitWidth + 12)
+            Layout.preferredHeight: 20
+            curveDepth: 10
+            fillColor: control.enabled ? Theme.danger : Theme.borderMuted
+            borderWidth: 0
+
+            Label {
+                id: badgeLabel
+                anchors.centerIn: parent
+                text: control.badgeText
+                color: control.enabled ? Theme.dangerInk : Theme.inkDisabled
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.typeCaptionSize
+                font.weight: Theme.weightBold
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
         }
 
         Superellipse {
