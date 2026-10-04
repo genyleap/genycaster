@@ -313,22 +313,13 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(bridge.initialSetupCompleted());
     assert(!bridge.initialSetupRequired());
 
-    bridge.applyAuthenticationState(
-        true,
-        QStringLiteral("signed-out"),
-        0,
-        {},
-        {},
-        {},
-        {},
-        {},
-        {});
-    assert(bridge.initialSetupRequired());
-
     settings.sync();
     assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 3);
     assert(!settings.contains(QStringLiteral("setup/initialSetupCompleted")));
 
+    // A completed setup survives an ordinary restart while the account can be
+    // restored, but removing the protocol signer deliberately re-opens the
+    // complete setup flow rather than a sign-in-only checkpoint.
     PresentationBridge restored{nullptr, &settings};
     assert(restored.initialSetupCompleted());
     assert(restored.legalConsentAccepted());
@@ -344,6 +335,47 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
         {},
         {});
     assert(!restored.initialSetupRequired());
+
+    restored.applySignerState(
+        QStringLiteral("ready"), false, true, QStringLiteral("ready"), {});
+    assert(restored.initialSetupCompleted());
+    restored.applySignerState(
+        QStringLiteral("revoked"), false, false, QStringLiteral("revoked"), {});
+    assert(!restored.initialSetupCompleted());
+    assert(restored.initialSetupRequired());
+    assert(restored.legalConsentAccepted());
+    settings.sync();
+    assert(!settings.contains(QStringLiteral("setup/onboardingVersion")));
+
+    // Finishing the wizard again is allowed without discarding the durable
+    // legal consent record.
+    restored.completeInitialSetup();
+    assert(restored.initialSetupCompleted());
+    assert(!restored.initialSetupRequired());
+    assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 3);
+
+    // Signing out is also a setup reset boundary. The next run must start from
+    // Welcome and expose all six setup steps again.
+    restored.applyAuthenticationState(
+        true,
+        QStringLiteral("signed-out"),
+        0,
+        {},
+        {},
+        {},
+        {},
+        {},
+        {});
+    assert(!restored.initialSetupCompleted());
+    assert(restored.initialSetupRequired());
+    assert(restored.legalConsentAccepted());
+    settings.sync();
+    assert(!settings.contains(QStringLiteral("setup/onboardingVersion")));
+
+    PresentationBridge afterSignOut{nullptr, &settings};
+    assert(!afterSignOut.initialSetupCompleted());
+    assert(afterSignOut.legalConsentAccepted());
+    assert(afterSignOut.initialSetupRequired());
 }
 
 } // namespace

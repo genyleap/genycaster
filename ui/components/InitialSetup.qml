@@ -121,7 +121,7 @@ Item {
             return
 
         if (currentStep === 0) {
-            switchStep(legalConsentAccepted ? 2 : 1)
+            switchStep(1)
             return
         }
         if (currentStep === 1) {
@@ -203,7 +203,13 @@ Item {
     }
 
     onAuthenticatedChanged: Qt.callLater(synchronizeFlow)
-    onSetupCompletedChanged: Qt.callLater(synchronizeFlow)
+    onSetupCompletedChanged: {
+        if (!setupCompleted) {
+            Qt.callLater(() => switchStep(0))
+            return
+        }
+        Qt.callLater(synchronizeFlow)
+    }
     onLegalConsentAcceptedChanged: {
         if (legalConsentAccepted) {
             legalReadToEnd = true
@@ -221,7 +227,10 @@ Item {
             legalPrivacyChecked = true
         }
         forceActiveFocus()
-        synchronizeFlow()
+        if (!setupCompleted)
+            switchStep(0)
+        else
+            synchronizeFlow()
         shellReveal = Theme.reduceMotion ? 1.0 : 0.0
         if (!Theme.reduceMotion)
             shellEntrance.restart()

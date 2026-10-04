@@ -364,6 +364,7 @@ private:
     void beginIntent(QString status);
     void retryCurrent(bool allowRecoveryProbe);
     void persistReadPreference(const QString& key, const QVariant& value);
+    void resetInitialSetupProgress();
     [[nodiscard]] bool consumeRecoveryProbe() noexcept;
     bool m_runtimeReady{false};
     bool m_authenticationAvailable{false};

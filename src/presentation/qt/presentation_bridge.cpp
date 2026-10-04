@@ -1401,6 +1401,16 @@ void PresentationBridge::completeInitialSetup()
     emit setupStateChanged();
 }
 
+void PresentationBridge::resetInitialSetupProgress()
+{
+    m_initialSetupCompleted = false;
+    if (m_settings != nullptr) {
+        m_settings->remove(QStringLiteral("setup/onboardingVersion"));
+        m_settings->remove(QStringLiteral("setup/initialSetupCompleted"));
+        m_settings->sync();
+    }
+}
+
 void PresentationBridge::beginSignIn()
 {
     if (!m_legalConsentAccepted) {
@@ -1854,6 +1864,7 @@ void PresentationBridge::applyAuthenticationState(
     QString approvalUrl,
     QString errorText)
 {
+    const bool wasAuthenticated = m_isAuthenticated;
     m_authenticationAvailable = available;
     m_authenticationPhase = std::move(phase);
     const qulonglong previousAccountFid = m_accountFid;
@@ -1906,6 +1917,15 @@ void PresentationBridge::applyAuthenticationState(
         clearReplyTarget();
         emit notificationsChanged();
     }
+    // An explicit transition out of an authenticated account starts a fresh
+    // onboarding run next time instead of collapsing the setup surface to a
+    // sign-in-only checkpoint. Legal consent remains recorded, but the six-step
+    // setup flow is presented again so appearance/locale/account choices can be
+    // reviewed from the beginning.
+    if (wasAuthenticated && !m_isAuthenticated) {
+        resetInitialSetupProgress();
+    }
+
     // Authentication proves account ownership only. Sign-out clears write authority
     // immediately; an authenticated session keeps the separately observed signer state.
     if (!m_isAuthenticated) {
@@ -1955,11 +1975,21 @@ void PresentationBridge::applySignerState(
     QString statusText,
     QString errorText)
 {
+    const QString previousPhase = m_signerPhase;
     m_signerPhase = std::move(phase);
     m_signerBusy = busy;
     m_writeReady = m_isAuthenticated && writeReady;
     m_signerStatusText = std::move(statusText);
     m_signerErrorText = std::move(errorText);
+
+    const bool signerWasRemoved =
+        previousPhase != m_signerPhase &&
+        (m_signerPhase == QStringLiteral("revoked") ||
+         m_signerPhase == QStringLiteral("missing"));
+    if (m_isAuthenticated && m_initialSetupCompleted && signerWasRemoved) {
+        resetInitialSetupProgress();
+        emit setupStateChanged();
+    }
     emit stateChanged();
 }
 
