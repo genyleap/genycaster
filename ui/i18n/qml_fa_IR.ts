@@ -3294,25 +3294,9 @@
             <source>Privacy &amp; Terms</source>
             <translation>حریم خصوصی و شرایط</translation>
         </message>
-        <message id="genycaster.setup.welcome_eyebrow">
-            <source>A private, verified social client</source>
-            <translation>یک کلاینت اجتماعی خصوصی و تأییدشده</translation>
-        </message>
         <message id="genycaster.setup.welcome_title">
             <source>Welcome to Genycaster</source>
             <translation>به Genycaster خوش آمدید</translation>
-        </message>
-        <message id="genycaster.setup.welcome_body">
-            <source>Set up your verified identity, personalize the interface, and choose how Genycaster should look and speak before you enter.</source>
-            <translation>پیش از ورود، هویت تأییدشده‌تان را تنظیم کنید، رابط را شخصی‌سازی کنید و ظاهر و زبان Genycaster را انتخاب کنید.</translation>
-        </message>
-        <message id="genycaster.setup.welcome_identity_title">
-            <source>Verified identity</source>
-            <translation>هویت تأییدشده</translation>
-        </message>
-        <message id="genycaster.setup.welcome_identity_body">
-            <source>Connect through OpenProof and the Farcaster identity required for social actions.</source>
-            <translation>از طریق OpenProof و هویت Farcaster لازم برای تعاملات اجتماعی متصل شوید.</translation>
         </message>
         <message id="genycaster.setup.welcome_personal_title">
             <source>Your interface</source>
@@ -3322,25 +3306,9 @@
             <source>Choose appearance, color, motion, and regional preferences before the first session.</source>
             <translation>پیش از اولین نشست، ظاهر، رنگ، حرکت و تنظیمات منطقه‌ای را انتخاب کنید.</translation>
         </message>
-        <message id="genycaster.setup.welcome_control_title">
-            <source>Clear control</source>
-            <translation>کنترل شفاف</translation>
-        </message>
-        <message id="genycaster.setup.welcome_control_body">
-            <source>No guest mode, no hidden setup path, and no interaction before the required checks are complete.</source>
-            <translation>حالت مهمان، مسیر مخفی برای رد کردن راه‌اندازی یا تعامل پیش از تکمیل بررسی‌های الزامی وجود ندارد.</translation>
-        </message>
-        <message id="genycaster.setup.welcome_note">
-            <source>Setup stays on this device except for the account authentication and protocol actions you explicitly approve.</source>
-            <translation>تنظیمات روی همین دستگاه می‌ماند، به‌جز احراز هویت حساب و عملیات پروتکلی که صریحاً تأیید می‌کنید.</translation>
-        </message>
         <message id="genycaster.setup.legal_title">
             <source>Before you continue</source>
             <translation>پیش از ادامه</translation>
-        </message>
-        <message id="genycaster.setup.legal_intro">
-            <source>Review the Genyleap Terms of Use and Privacy Policy. Scroll through this notice before the consent controls are unlocked.</source>
-            <translation>شرایط استفاده و سیاست حریم خصوصی Genyleap را مرور کنید. پیش از فعال شدن گزینه‌های رضایت، این اطلاعیه را تا انتها پیمایش کنید.</translation>
         </message>
         <message id="genycaster.setup.terms_title">
             <source>Terms of Use</source>
@@ -3422,10 +3390,6 @@
             <source>Your Genyleap/OpenProof identity is verified and the required Farcaster identity is linked.</source>
             <translation>هویت Genyleap/OpenProof شما تأیید شده و هویت Farcaster موردنیاز نیز پیوند خورده است.</translation>
         </message>
-        <message id="genycaster.setup.verified_account_ready">
-            <source>Verified account ready for Genycaster.</source>
-            <translation>حساب تأییدشده برای Genycaster آماده است.</translation>
-        </message>
         <message id="genycaster.setup.consent_recorded">
             <source>Consent recorded</source>
             <translation>رضایت ثبت شد</translation>
@@ -3439,20 +3403,32 @@
             <translation>شبکه</translation>
         </message>
         <message id="genycaster.setup.language_orbit_hint">
-            <source>Choose a language by moving the greeting.</source>
-            <translation>با حرکت دادن خوش‌آمدگویی، زبان را انتخاب کنید.</translation>
+            <source>Choose your language. You can change it later.</source>
+            <translation>زبان خود را انتخاب کنید. بعداً هم می‌توانید آن را تغییر دهید.</translation>
         </message>
         <message id="genycaster.setup.language_applies_now">
-            <source>Your choice applies immediately and stays editable later.</source>
-            <translation>انتخاب شما فوراً اعمال می‌شود و بعداً هم قابل تغییر است.</translation>
+            <source>Applied now. You can change it later.</source>
+            <translation>همین حالا اعمال می‌شود؛ بعداً هم قابل تغییر است.</translation>
+        </message>
+        <message id="genycaster.setup.previous_language">
+            <source>Previous language</source>
+            <translation>زبان قبلی</translation>
+        </message>
+        <message id="genycaster.setup.next_language">
+            <source>Next language</source>
+            <translation>زبان بعدی</translation>
+        </message>
+        <message id="genycaster.setup.completed">
+            <source>Completed</source>
+            <translation>تکمیل شد</translation>
         </message>
         <message id="genycaster.setup.personalize_body">
-            <source>Keep the defaults, or tune the few things that change how Genycaster feels.</source>
-            <translation>تنظیمات پیش‌فرض را نگه دارید یا فقط مواردی را که حس Genycaster را تغییر می‌دهند تنظیم کنید.</translation>
+            <source>Choose the language, appearance, and motion settings that feel right to you.</source>
+            <translation>زبان، ظاهر و تنظیمات حرکت را مطابق ترجیح خود انتخاب کنید.</translation>
         </message>
         <message id="genycaster.setup.privacy_compact_intro">
-            <source>Two clear permissions. The full documents stay one tap away.</source>
-            <translation>دو مجوز روشن؛ متن کامل هر سند فقط یک لمس فاصله دارد.</translation>
+            <source>Review the Terms of Use and Privacy Policy before continuing.</source>
+            <translation>پیش از ادامه، شرایط استفاده و سیاست حریم خصوصی را مرور کنید.</translation>
         </message>
         <message id="genycaster.setup.terms_summary">
             <source>Rules for using Genyleap services and product resources.</source>
@@ -3463,20 +3439,20 @@
             <translation>نحوه مدیریت داده‌های حساب، هویت پروتکلی و ترجیحات محلی.</translation>
         </message>
         <message id="genycaster.setup.privacy_local_note">
-            <source>Preferences stay local; authentication and approved protocol actions use the network.</source>
-            <translation>ترجیحات روی دستگاه می‌مانند؛ احراز هویت و عملیات پروتکلیِ تأییدشده از شبکه استفاده می‌کنند.</translation>
+            <source>Preferences stay on this device. Sign-in and approved protocol actions use the network.</source>
+            <translation>ترجیحات روی همین دستگاه می‌مانند. ورود و عملیات پروتکلیِ تأییدشده از شبکه استفاده می‌کنند.</translation>
         </message>
         <message id="genycaster.setup.network_title">
-            <source>Choose a read node</source>
-            <translation>انتخاب نود خواندن</translation>
+            <source>Choose a network node</source>
+            <translation>انتخاب نود شبکه</translation>
         </message>
         <message id="genycaster.setup.network_body">
-            <source>Genycaster measures configured nodes and can prefer the lowest-latency healthy endpoint.</source>
-            <translation>Genycaster نودهای پیکربندی‌شده را اندازه‌گیری می‌کند و می‌تواند endpoint سالم با کمترین تأخیر را ترجیح دهد.</translation>
+            <source>Automatic selects a healthy low-latency node. You can choose one manually.</source>
+            <translation>حالت خودکار یک نود سالم با تأخیر کم را انتخاب می‌کند. در صورت نیاز می‌توانید نود را دستی انتخاب کنید.</translation>
         </message>
         <message id="genycaster.setup.network_experimental">
-            <source>Experimental · HyperSnap is the default read provider. Additional compatible endpoints can be supplied by deployment configuration.</source>
-            <translation>آزمایشی · HyperSnap ارائه‌دهنده پیش‌فرض خواندن است. endpointهای سازگار دیگر را می‌توان از طریق پیکربندی استقرار افزود.</translation>
+            <source>Experimental · HyperSnap is the default provider. Additional compatible nodes can be configured by the deployment.</source>
+            <translation>آزمایشی · HyperSnap ارائه‌دهنده پیش‌فرض است. نودهای سازگار دیگر را می‌توان در پیکربندی استقرار اضافه کرد.</translation>
         </message>
         <message id="genycaster.setup.network_automatic">
             <source>Automatic</source>
@@ -3486,33 +3462,21 @@
             <source>Test again</source>
             <translation>آزمایش دوباره</translation>
         </message>
-        <message id="genycaster.setup.network_best">
-            <source>BEST</source>
-            <translation>بهترین</translation>
-        </message>
-        <message id="genycaster.setup.network_online">
-            <source>online</source>
-            <translation>آنلاین</translation>
-        </message>
         <message id="genycaster.setup.network_unreachable">
             <source>unreachable</source>
             <translation>در دسترس نیست</translation>
         </message>
-        <message id="genycaster.setup.network_checking">
-            <source>checking</source>
-            <translation>در حال بررسی</translation>
-        </message>
         <message id="genycaster.setup.network_restart_note">
-            <source>This endpoint is saved and becomes the runtime source on the next app start.</source>
-            <translation>این endpoint ذخیره می‌شود و در اجرای بعدی برنامه منبع runtime خواهد بود.</translation>
+            <source>This node is saved and will be used after the next app start.</source>
+            <translation>این نود ذخیره می‌شود و از اجرای بعدی برنامه استفاده خواهد شد.</translation>
         </message>
         <message id="genycaster.setup.network_current_note">
-            <source>The selected endpoint is the current runtime source.</source>
-            <translation>endpoint انتخاب‌شده منبع فعلی runtime است.</translation>
+            <source>This node is currently in use.</source>
+            <translation>این نود در حال حاضر استفاده می‌شود.</translation>
         </message>
         <message id="genycaster.setup.account_genyleap_body">
-            <source>Use your Genyleap identity and link Farcaster when required.</source>
-            <translation>از هویت Genyleap خود استفاده کنید و در صورت نیاز Farcaster را پیوند دهید.</translation>
+            <source>Continue with your Genyleap/OpenProof identity. Farcaster will be linked if needed.</source>
+            <translation>با هویت Genyleap/OpenProof خود ادامه دهید؛ در صورت نیاز Farcaster نیز پیوند داده می‌شود.</translation>
         </message>
         <message id="genycaster.setup.account_create_openproof_soon">
             <source>Create an OpenProof account · Coming soon</source>

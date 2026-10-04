@@ -3294,25 +3294,9 @@
             <source>Privacy &amp; Terms</source>
             <translation>개인정보 및 약관</translation>
         </message>
-        <message id="genycaster.setup.welcome_eyebrow">
-            <source>A private, verified social client</source>
-            <translation>개인적이고 검증된 소셜 클라이언트</translation>
-        </message>
         <message id="genycaster.setup.welcome_title">
             <source>Welcome to Genycaster</source>
             <translation>Genycaster에 오신 것을 환영합니다</translation>
-        </message>
-        <message id="genycaster.setup.welcome_body">
-            <source>Set up your verified identity, personalize the interface, and choose how Genycaster should look and speak before you enter.</source>
-            <translation>시작하기 전에 검증된 ID를 설정하고 인터페이스를 개인화한 뒤 Genycaster의 모양과 언어를 선택하세요.</translation>
-        </message>
-        <message id="genycaster.setup.welcome_identity_title">
-            <source>Verified identity</source>
-            <translation>검증된 ID</translation>
-        </message>
-        <message id="genycaster.setup.welcome_identity_body">
-            <source>Connect through OpenProof and the Farcaster identity required for social actions.</source>
-            <translation>OpenProof와 소셜 작업에 필요한 Farcaster ID를 통해 연결합니다.</translation>
         </message>
         <message id="genycaster.setup.welcome_personal_title">
             <source>Your interface</source>
@@ -3322,25 +3306,9 @@
             <source>Choose appearance, color, motion, and regional preferences before the first session.</source>
             <translation>첫 세션 전에 외관, 색상, 모션 및 지역 설정을 선택하세요.</translation>
         </message>
-        <message id="genycaster.setup.welcome_control_title">
-            <source>Clear control</source>
-            <translation>명확한 제어</translation>
-        </message>
-        <message id="genycaster.setup.welcome_control_body">
-            <source>No guest mode, no hidden setup path, and no interaction before the required checks are complete.</source>
-            <translation>게스트 모드나 숨겨진 설정 우회 경로가 없으며 필수 확인이 끝나기 전에는 상호작용할 수 없습니다.</translation>
-        </message>
-        <message id="genycaster.setup.welcome_note">
-            <source>Setup stays on this device except for the account authentication and protocol actions you explicitly approve.</source>
-            <translation>명시적으로 승인한 계정 인증 및 프로토콜 작업을 제외한 설정은 이 기기에 유지됩니다.</translation>
-        </message>
         <message id="genycaster.setup.legal_title">
             <source>Before you continue</source>
             <translation>계속하기 전에</translation>
-        </message>
-        <message id="genycaster.setup.legal_intro">
-            <source>Review the Genyleap Terms of Use and Privacy Policy. Scroll through this notice before the consent controls are unlocked.</source>
-            <translation>Genyleap 이용 약관과 개인정보 처리방침을 검토하세요. 동의 컨트롤이 활성화되기 전에 이 안내를 끝까지 스크롤해야 합니다.</translation>
         </message>
         <message id="genycaster.setup.terms_title">
             <source>Terms of Use</source>
@@ -3422,10 +3390,6 @@
             <source>Your Genyleap/OpenProof identity is verified and the required Farcaster identity is linked.</source>
             <translation>Genyleap/OpenProof ID가 검증되었고 필요한 Farcaster ID가 연결되었습니다.</translation>
         </message>
-        <message id="genycaster.setup.verified_account_ready">
-            <source>Verified account ready for Genycaster.</source>
-            <translation>검증된 계정으로 Genycaster를 사용할 준비가 되었습니다.</translation>
-        </message>
         <message id="genycaster.setup.consent_recorded">
             <source>Consent recorded</source>
             <translation>동의 기록됨</translation>
@@ -3439,19 +3403,31 @@
             <translation>네트워크</translation>
         </message>
         <message id="genycaster.setup.language_orbit_hint">
-            <source>Choose a language by moving the greeting.</source>
+            <source>Choose your language. You can change it later.</source>
             <translation>인사말을 움직여 언어를 선택하세요.</translation>
         </message>
         <message id="genycaster.setup.language_applies_now">
-            <source>Your choice applies immediately and stays editable later.</source>
+            <source>Applied now. You can change it later.</source>
             <translation>선택한 언어가 즉시 적용되며 나중에도 변경할 수 있습니다.</translation>
         </message>
+        <message id="genycaster.setup.previous_language">
+            <source>Previous language</source>
+            <translation>이전 언어</translation>
+        </message>
+        <message id="genycaster.setup.next_language">
+            <source>Next language</source>
+            <translation>다음 언어</translation>
+        </message>
+        <message id="genycaster.setup.completed">
+            <source>Completed</source>
+            <translation>완료</translation>
+        </message>
         <message id="genycaster.setup.personalize_body">
-            <source>Keep the defaults, or tune the few things that change how Genycaster feels.</source>
+            <source>Choose the language, appearance, and motion settings that feel right to you.</source>
             <translation>기본값을 유지하거나 Genycaster의 사용감을 바꾸는 몇 가지 항목만 조정하세요.</translation>
         </message>
         <message id="genycaster.setup.privacy_compact_intro">
-            <source>Two clear permissions. The full documents stay one tap away.</source>
+            <source>Review the Terms of Use and Privacy Policy before continuing.</source>
             <translation>명확한 권한 두 가지입니다. 전체 문서는 한 번의 탭으로 열 수 있습니다.</translation>
         </message>
         <message id="genycaster.setup.terms_summary">
@@ -3463,19 +3439,19 @@
             <translation>계정 데이터, 프로토콜 ID, 로컬 환경설정을 처리하는 방식입니다.</translation>
         </message>
         <message id="genycaster.setup.privacy_local_note">
-            <source>Preferences stay local; authentication and approved protocol actions use the network.</source>
+            <source>Preferences stay on this device. Sign-in and approved protocol actions use the network.</source>
             <translation>환경설정은 로컬에 남고 인증과 승인한 프로토콜 작업만 네트워크를 사용합니다.</translation>
         </message>
         <message id="genycaster.setup.network_title">
-            <source>Choose a read node</source>
+            <source>Choose a network node</source>
             <translation>읽기 노드 선택</translation>
         </message>
         <message id="genycaster.setup.network_body">
-            <source>Genycaster measures configured nodes and can prefer the lowest-latency healthy endpoint.</source>
+            <source>Automatic selects a healthy low-latency node. You can choose one manually.</source>
             <translation>Genycaster가 구성된 노드의 응답 시간을 측정해 정상 상태의 최저 지연 엔드포인트를 우선할 수 있습니다.</translation>
         </message>
         <message id="genycaster.setup.network_experimental">
-            <source>Experimental · HyperSnap is the default read provider. Additional compatible endpoints can be supplied by deployment configuration.</source>
+            <source>Experimental · HyperSnap is the default provider. Additional compatible nodes can be configured by the deployment.</source>
             <translation>실험적 · HyperSnap이 기본 읽기 제공자입니다. 배포 구성에서 추가 호환 엔드포인트를 제공할 수 있습니다.</translation>
         </message>
         <message id="genycaster.setup.network_automatic">
@@ -3486,32 +3462,20 @@
             <source>Test again</source>
             <translation>다시 테스트</translation>
         </message>
-        <message id="genycaster.setup.network_best">
-            <source>BEST</source>
-            <translation>최적</translation>
-        </message>
-        <message id="genycaster.setup.network_online">
-            <source>online</source>
-            <translation>온라인</translation>
-        </message>
         <message id="genycaster.setup.network_unreachable">
             <source>unreachable</source>
             <translation>연결 불가</translation>
         </message>
-        <message id="genycaster.setup.network_checking">
-            <source>checking</source>
-            <translation>확인 중</translation>
-        </message>
         <message id="genycaster.setup.network_restart_note">
-            <source>This endpoint is saved and becomes the runtime source on the next app start.</source>
+            <source>This node is saved and will be used after the next app start.</source>
             <translation>이 엔드포인트가 저장되며 다음 앱 시작부터 런타임 소스로 사용됩니다.</translation>
         </message>
         <message id="genycaster.setup.network_current_note">
-            <source>The selected endpoint is the current runtime source.</source>
+            <source>This node is currently in use.</source>
             <translation>선택한 엔드포인트가 현재 런타임 소스입니다.</translation>
         </message>
         <message id="genycaster.setup.account_genyleap_body">
-            <source>Use your Genyleap identity and link Farcaster when required.</source>
+            <source>Continue with your Genyleap/OpenProof identity. Farcaster will be linked if needed.</source>
             <translation>Genyleap ID를 사용하고 필요할 때 Farcaster를 연결하세요.</translation>
         </message>
         <message id="genycaster.setup.account_create_openproof_soon">

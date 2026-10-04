@@ -3294,25 +3294,9 @@
             <source>Privacy &amp; Terms</source>
             <translation>Confidentialité et conditions</translation>
         </message>
-        <message id="genycaster.setup.welcome_eyebrow">
-            <source>A private, verified social client</source>
-            <translation>Un client social privé et vérifié</translation>
-        </message>
         <message id="genycaster.setup.welcome_title">
             <source>Welcome to Genycaster</source>
             <translation>Bienvenue dans Genycaster</translation>
-        </message>
-        <message id="genycaster.setup.welcome_body">
-            <source>Set up your verified identity, personalize the interface, and choose how Genycaster should look and speak before you enter.</source>
-            <translation>Configurez votre identité vérifiée, personnalisez l’interface et choisissez l’apparence et la langue de Genycaster avant d’entrer.</translation>
-        </message>
-        <message id="genycaster.setup.welcome_identity_title">
-            <source>Verified identity</source>
-            <translation>Identité vérifiée</translation>
-        </message>
-        <message id="genycaster.setup.welcome_identity_body">
-            <source>Connect through OpenProof and the Farcaster identity required for social actions.</source>
-            <translation>Connectez-vous via OpenProof et l’identité Farcaster requise pour les actions sociales.</translation>
         </message>
         <message id="genycaster.setup.welcome_personal_title">
             <source>Your interface</source>
@@ -3322,25 +3306,9 @@
             <source>Choose appearance, color, motion, and regional preferences before the first session.</source>
             <translation>Choisissez l’apparence, la couleur, les animations et les préférences régionales avant la première session.</translation>
         </message>
-        <message id="genycaster.setup.welcome_control_title">
-            <source>Clear control</source>
-            <translation>Contrôle clair</translation>
-        </message>
-        <message id="genycaster.setup.welcome_control_body">
-            <source>No guest mode, no hidden setup path, and no interaction before the required checks are complete.</source>
-            <translation>Aucun mode invité, aucun chemin caché pour ignorer la configuration et aucune interaction avant la fin des vérifications requises.</translation>
-        </message>
-        <message id="genycaster.setup.welcome_note">
-            <source>Setup stays on this device except for the account authentication and protocol actions you explicitly approve.</source>
-            <translation>La configuration reste sur cet appareil, à l’exception de l’authentification du compte et des actions de protocole que vous approuvez explicitement.</translation>
-        </message>
         <message id="genycaster.setup.legal_title">
             <source>Before you continue</source>
             <translation>Avant de continuer</translation>
-        </message>
-        <message id="genycaster.setup.legal_intro">
-            <source>Review the Genyleap Terms of Use and Privacy Policy. Scroll through this notice before the consent controls are unlocked.</source>
-            <translation>Consultez les Conditions d’utilisation et la Politique de confidentialité de Genyleap. Faites défiler cet avis avant que les contrôles de consentement soient activés.</translation>
         </message>
         <message id="genycaster.setup.terms_title">
             <source>Terms of Use</source>
@@ -3422,10 +3390,6 @@
             <source>Your Genyleap/OpenProof identity is verified and the required Farcaster identity is linked.</source>
             <translation>Votre identité Genyleap/OpenProof est vérifiée et l’identité Farcaster requise est liée.</translation>
         </message>
-        <message id="genycaster.setup.verified_account_ready">
-            <source>Verified account ready for Genycaster.</source>
-            <translation>Le compte vérifié est prêt pour Genycaster.</translation>
-        </message>
         <message id="genycaster.setup.consent_recorded">
             <source>Consent recorded</source>
             <translation>Consentement enregistré</translation>
@@ -3439,19 +3403,31 @@
             <translation>Réseau</translation>
         </message>
         <message id="genycaster.setup.language_orbit_hint">
-            <source>Choose a language by moving the greeting.</source>
+            <source>Choose your language. You can change it later.</source>
             <translation>Choisissez une langue en faisant défiler le message de bienvenue.</translation>
         </message>
         <message id="genycaster.setup.language_applies_now">
-            <source>Your choice applies immediately and stays editable later.</source>
+            <source>Applied now. You can change it later.</source>
             <translation>Votre choix s’applique immédiatement et reste modifiable plus tard.</translation>
         </message>
+        <message id="genycaster.setup.previous_language">
+            <source>Previous language</source>
+            <translation>Langue précédente</translation>
+        </message>
+        <message id="genycaster.setup.next_language">
+            <source>Next language</source>
+            <translation>Langue suivante</translation>
+        </message>
+        <message id="genycaster.setup.completed">
+            <source>Completed</source>
+            <translation>Terminé</translation>
+        </message>
         <message id="genycaster.setup.personalize_body">
-            <source>Keep the defaults, or tune the few things that change how Genycaster feels.</source>
+            <source>Choose the language, appearance, and motion settings that feel right to you.</source>
             <translation>Gardez les réglages par défaut ou ajustez seulement ce qui change l’expérience Genycaster.</translation>
         </message>
         <message id="genycaster.setup.privacy_compact_intro">
-            <source>Two clear permissions. The full documents stay one tap away.</source>
+            <source>Review the Terms of Use and Privacy Policy before continuing.</source>
             <translation>Deux autorisations claires. Les documents complets restent accessibles en un geste.</translation>
         </message>
         <message id="genycaster.setup.terms_summary">
@@ -3463,19 +3439,19 @@
             <translation>Comment sont traités les données du compte, l’identité de protocole et les préférences locales.</translation>
         </message>
         <message id="genycaster.setup.privacy_local_note">
-            <source>Preferences stay local; authentication and approved protocol actions use the network.</source>
+            <source>Preferences stay on this device. Sign-in and approved protocol actions use the network.</source>
             <translation>Les préférences restent locales ; l’authentification et les actions de protocole approuvées utilisent le réseau.</translation>
         </message>
         <message id="genycaster.setup.network_title">
-            <source>Choose a read node</source>
+            <source>Choose a network node</source>
             <translation>Choisir un nœud de lecture</translation>
         </message>
         <message id="genycaster.setup.network_body">
-            <source>Genycaster measures configured nodes and can prefer the lowest-latency healthy endpoint.</source>
+            <source>Automatic selects a healthy low-latency node. You can choose one manually.</source>
             <translation>Genycaster mesure les nœuds configurés et peut privilégier le point de terminaison sain à la latence la plus faible.</translation>
         </message>
         <message id="genycaster.setup.network_experimental">
-            <source>Experimental · HyperSnap is the default read provider. Additional compatible endpoints can be supplied by deployment configuration.</source>
+            <source>Experimental · HyperSnap is the default provider. Additional compatible nodes can be configured by the deployment.</source>
             <translation>Expérimental · HyperSnap est le fournisseur de lecture par défaut. Des points de terminaison compatibles supplémentaires peuvent être fournis par la configuration de déploiement.</translation>
         </message>
         <message id="genycaster.setup.network_automatic">
@@ -3486,32 +3462,20 @@
             <source>Test again</source>
             <translation>Tester à nouveau</translation>
         </message>
-        <message id="genycaster.setup.network_best">
-            <source>BEST</source>
-            <translation>MEILLEUR</translation>
-        </message>
-        <message id="genycaster.setup.network_online">
-            <source>online</source>
-            <translation>en ligne</translation>
-        </message>
         <message id="genycaster.setup.network_unreachable">
             <source>unreachable</source>
             <translation>inaccessible</translation>
         </message>
-        <message id="genycaster.setup.network_checking">
-            <source>checking</source>
-            <translation>vérification</translation>
-        </message>
         <message id="genycaster.setup.network_restart_note">
-            <source>This endpoint is saved and becomes the runtime source on the next app start.</source>
+            <source>This node is saved and will be used after the next app start.</source>
             <translation>Ce point de terminaison est enregistré et deviendra la source d’exécution au prochain démarrage de l’application.</translation>
         </message>
         <message id="genycaster.setup.network_current_note">
-            <source>The selected endpoint is the current runtime source.</source>
+            <source>This node is currently in use.</source>
             <translation>Le point de terminaison sélectionné est la source d’exécution actuelle.</translation>
         </message>
         <message id="genycaster.setup.account_genyleap_body">
-            <source>Use your Genyleap identity and link Farcaster when required.</source>
+            <source>Continue with your Genyleap/OpenProof identity. Farcaster will be linked if needed.</source>
             <translation>Utilisez votre identité Genyleap et liez Farcaster lorsque nécessaire.</translation>
         </message>
         <message id="genycaster.setup.account_create_openproof_soon">

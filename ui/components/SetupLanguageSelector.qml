@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 Item {
     id: root
@@ -17,6 +18,8 @@ Item {
                                         ? model[currentIndex] : null
 
     implicitHeight: 184
+    LayoutMirroring.enabled: false
+    LayoutMirroring.childrenInherit: true
 
     function wrappedOffset(index) {
         if (itemCount <= 0)
@@ -74,22 +77,26 @@ Item {
 
             Button {
                 id: previousButton
-                width: 34
-                height: 34
+                width: 40
+                height: 40
                 anchors.left: parent.left
                 anchors.leftMargin: Theme.space3
                 anchors.verticalCenter: parent.verticalCenter
                 hoverEnabled: true
+                focusPolicy: Qt.StrongFocus
+                Accessible.name: qsTrId("genycaster.setup.previous_language")
                 onClicked: root.previous()
 
                 background: Rectangle {
                     radius: width / 2
-                    color: previousButton.hovered ? Theme.surfaceHover : "transparent"
-                    border.width: 0
+                    color: previousButton.down ? Theme.surfacePressed
+                         : previousButton.hovered ? Theme.surfaceHover : "transparent"
+                    border.width: previousButton.activeFocus ? 2 : 0
+                    border.color: Theme.focus
                 }
 
                 contentItem: Icon {
-                    text: Theme.iconArrowLeft
+                    text: Theme.rtl ? Theme.iconArrowRight : Theme.iconArrowLeft
                     color: Theme.inkMuted
                     preferredSize: Theme.iconSizeSmall
                 }
@@ -97,22 +104,26 @@ Item {
 
             Button {
                 id: nextButton
-                width: 34
-                height: 34
+                width: 40
+                height: 40
                 anchors.right: parent.right
                 anchors.rightMargin: Theme.space3
                 anchors.verticalCenter: parent.verticalCenter
                 hoverEnabled: true
+                focusPolicy: Qt.StrongFocus
+                Accessible.name: qsTrId("genycaster.setup.next_language")
                 onClicked: root.next()
 
                 background: Rectangle {
                     radius: width / 2
-                    color: nextButton.hovered ? Theme.surfaceHover : "transparent"
-                    border.width: 0
+                    color: nextButton.down ? Theme.surfacePressed
+                         : nextButton.hovered ? Theme.surfaceHover : "transparent"
+                    border.width: nextButton.activeFocus ? 2 : 0
+                    border.color: Theme.focus
                 }
 
                 contentItem: Icon {
-                    text: Theme.iconArrowRight
+                    text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
                     color: Theme.inkMuted
                     preferredSize: Theme.iconSizeSmall
                 }
@@ -185,7 +196,7 @@ Item {
                     Superellipse {
                         anchors.fill: parent
                         visible: PathView.isCurrentItem
-                        fillColor: Theme.ink
+                        fillColor: Theme.primaryFill
                         borderWidth: 0
                         borderColor: "transparent"
                         curveDepth: Theme.curveControl
@@ -199,8 +210,7 @@ Item {
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: modelData.hello
-                            color: PathView.isCurrentItem
-                                   ? Theme.contrastInk(Theme.ink) : Theme.inkMuted
+                            color: PathView.isCurrentItem ? Theme.accentInk : Theme.inkMuted
                             font.family: Theme.fontFamilyForText(modelData.hello)
                             font.pixelSize: PathView.isCurrentItem
                                             ? Theme.typeTitle3Size : Theme.typeLabelSize
@@ -212,9 +222,9 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                             visible: PathView.isCurrentItem
                             text: modelData.language
-                            color: Qt.rgba(Theme.contrastInk(Theme.ink).r,
-                                           Theme.contrastInk(Theme.ink).g,
-                                           Theme.contrastInk(Theme.ink).b, 0.68)
+                            color: Qt.rgba(Theme.accentInk.r,
+                                           Theme.accentInk.g,
+                                           Theme.accentInk.b, 0.76)
                             font.family: Theme.fontFamilyForText(modelData.language)
                             font.pixelSize: Theme.typeCaptionSize
                             font.weight: Theme.weightMedium
@@ -236,6 +246,7 @@ Item {
             Layout.leftMargin: Theme.space1
             Layout.rightMargin: Theme.space1
             spacing: Theme.space2
+            layoutDirection: Theme.uiDirection
 
             Icon {
                 text: Theme.iconLanguage
@@ -247,7 +258,7 @@ Item {
                 Layout.fillWidth: true
                 spacing: 0
 
-                Label {
+                DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: root.selectedLabel.length > 0
                           ? root.selectedLabel
@@ -255,26 +266,29 @@ Item {
                     color: Theme.ink
                     font.pixelSize: Theme.typeLabelSize
                     font.weight: Theme.weightDemiBold
+                    horizontalAlignment: Theme.textStartAlignment
                     elide: Text.ElideRight
                 }
 
-                Label {
+                DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: root.selectedDetail.length > 0
                           ? root.selectedDetail
                           : root.currentEntry ? root.currentEntry.tag : ""
                     color: Theme.inkSubtle
-                    font.family: Theme.latinFontFamily
                     font.pixelSize: Theme.typeCaptionSize
+                    horizontalAlignment: Theme.textStartAlignment
                     elide: Text.ElideRight
                 }
             }
 
             Label {
                 visible: root.userInteracted
+                Layout.maximumWidth: 220
                 text: qsTrId("genycaster.setup.language_applies_now")
                 color: Theme.inkSubtle
                 font.pixelSize: Theme.typeCaptionSize
+                horizontalAlignment: Theme.textEndAlignment
                 elide: Text.ElideRight
             }
         }

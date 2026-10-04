@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 Button {
     id: root
@@ -16,27 +17,34 @@ Button {
     property bool compactCard: false
 
     hoverEnabled: true
-    implicitHeight: compactCard ? 62 : 78
+    focusPolicy: Qt.StrongFocus
+    implicitHeight: Math.max(compactCard ? 62 : 78,
+                             contentItem.implicitHeight + topPadding + bottomPadding)
     leftPadding: Theme.space4
     rightPadding: Theme.space4
-    topPadding: 0
-    bottomPadding: 0
+    topPadding: Theme.space3
+    bottomPadding: Theme.space3
 
-    readonly property color foreground: primary ? Theme.contrastInk(Theme.ink) : Theme.ink
+    Accessible.name: title
+    Accessible.description: complete
+                            ? subtitle + (subtitle.length > 0 ? " · " : "") + qsTrId("genycaster.setup.completed")
+                            : subtitle
+
+    readonly property color foreground: primary ? Theme.accentInk : Theme.ink
     readonly property color secondaryForeground: primary
-                                                 ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.68)
+                                                 ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.76)
                                                  : Theme.inkMuted
 
     background: Superellipse {
         fillColor: !root.enabled
                    ? Theme.surfaceMuted
                    : root.primary
-                     ? (root.down ? Qt.darker(Theme.ink, 1.06)
-                                  : root.hovered ? Qt.lighter(Theme.ink, 1.10) : Theme.ink)
+                     ? (root.down ? Theme.primaryPressed
+                                  : root.hovered ? Theme.primaryFillHover : Theme.primaryFill)
                      : root.down ? Theme.surfacePressed
                                  : root.hovered ? Theme.surfaceHover : Theme.surface
-        borderWidth: root.primary ? 0 : Theme.strokeStandard
-        borderColor: Theme.borderMuted
+        borderWidth: root.primary ? 0 : (root.activeFocus ? 2 : Theme.strokeStandard)
+        borderColor: root.activeFocus ? Theme.focus : Theme.borderMuted
         curveDepth: Theme.curveContainer
         elevation: root.primary && root.enabled ? Theme.elevationControl : Theme.elevationNone
 
@@ -47,6 +55,7 @@ Button {
 
     contentItem: RowLayout {
         spacing: Theme.space3
+        layoutDirection: Theme.uiDirection
 
         GenySpinner {
             visible: root.busy
@@ -67,24 +76,27 @@ Button {
             Layout.fillWidth: true
             spacing: 2
 
-            Label {
+            DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: root.title
                 color: root.foreground
                 font.pixelSize: Theme.typeLabelSize
                 font.weight: Theme.weightDemiBold
+                horizontalAlignment: Theme.textStartAlignment
                 elide: Text.ElideRight
             }
 
-            Label {
+            DirectionAwareLabel {
                 visible: root.subtitle.length > 0
                 Layout.fillWidth: true
                 text: root.subtitle
                 color: root.secondaryForeground
                 font.pixelSize: Theme.typeCaptionSize
                 font.weight: Theme.weightMedium
+                horizontalAlignment: Theme.textStartAlignment
+                wrapMode: Text.WordWrap
                 elide: Text.ElideRight
-                maximumLineCount: 1
+                maximumLineCount: root.compactCard ? 1 : 2
             }
         }
 
@@ -105,7 +117,7 @@ Button {
 
         Icon {
             visible: root.showChevron && !root.complete && !root.busy
-            text: Theme.iconArrowRight
+            text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
             color: root.primary ? root.secondaryForeground : Theme.inkSubtle
             preferredSize: Theme.iconSizeSmall
         }

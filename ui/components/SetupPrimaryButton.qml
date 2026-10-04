@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 Button {
     id: root
@@ -10,22 +11,26 @@ Button {
     property bool busy: false
 
     hoverEnabled: true
-    implicitHeight: 54
+    focusPolicy: Qt.StrongFocus
+    implicitHeight: Math.max(54, primaryLabel.implicitHeight + Theme.space3 * 2)
+    implicitWidth: Math.max(168, primaryLabel.implicitWidth + Theme.space8)
     leftPadding: Theme.space4
     rightPadding: Theme.space4
 
+    Accessible.name: text
+
     readonly property color foreground: enabled
-                                        ? Theme.contrastInk(Theme.ink)
+                                        ? Theme.accentInk
                                         : Theme.inkDisabled
 
     background: Superellipse {
         fillColor: !root.enabled
                    ? Theme.surfaceMuted
-                   : root.down ? Qt.darker(Theme.ink, 1.06)
-                               : root.hovered ? Qt.lighter(Theme.ink, 1.08)
-                                              : Theme.ink
+                   : root.down ? Theme.primaryPressed
+                               : root.hovered ? Theme.primaryFillHover
+                                              : Theme.primaryFill
         borderWidth: root.activeFocus ? 2 : 0
-        borderColor: Theme.focus
+        borderColor: Theme.focusOnAccent
         curveDepth: Theme.curveContainer
         elevation: root.enabled ? Theme.elevationControl : Theme.elevationNone
 
@@ -36,6 +41,7 @@ Button {
 
     contentItem: RowLayout {
         spacing: Theme.space2
+        layoutDirection: Theme.uiDirection
 
         GenySpinner {
             visible: root.busy
@@ -52,20 +58,22 @@ Button {
             preferredSize: Theme.iconSizeSmall
         }
 
-        Label {
+        DirectionAwareLabel {
+            id: primaryLabel
             Layout.fillWidth: true
             text: root.text
             color: root.foreground
             font.pixelSize: Theme.typeLabelSize
             font.weight: Theme.weightDemiBold
-            horizontalAlignment: Text.AlignLeft
+            horizontalAlignment: Theme.textStartAlignment
             verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
+            wrapMode: Text.WordWrap
+            maximumLineCount: 2
         }
 
         Icon {
             visible: root.showArrow && !root.busy
-            text: Theme.iconArrowRight
+            text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
             color: root.foreground
             preferredSize: Theme.iconSizeSmall
         }

@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -6,6 +8,14 @@ Item {
     id: root
     objectName: "initialSetup"
     focus: visible
+
+    // GUI-* layout contract:
+    // - one bounded task column (640 px compact / 720 px wide maximum)
+    // - 64 px header and responsive safe footer
+    // - sidebar appears only when the viewport can preserve the task width
+    // - horizontal shell regions use Theme.uiDirection for deterministic RTL;
+    //   mixed-language content such as the language carousel stays physical
+    Accessible.name: qsTrId("genycaster.setup.title")
 
     property bool runtimeReady: false
     property bool authenticationAvailable: false
@@ -38,12 +48,12 @@ Item {
     signal finishSetup()
 
     readonly property bool phone: width < 680
-    readonly property bool compact: width < 920
+    readonly property bool compact: width < 1040
 
     // Setup design-system layer: every stage composes the same neutral surfaces,
     // typography scale and spacing rhythm. Accent is reserved for focus/action,
     // while semantic colors are used only for compact status feedback.
-    readonly property int setupContentWidth: 600
+    readonly property int setupContentWidth: 640
     readonly property int setupPageTitleSize: Theme.typeTitle2Size
     readonly property int setupBodySize: Theme.typeLabelSize
     readonly property int setupSectionTitleSize: Theme.typeTitle3Size
@@ -53,6 +63,8 @@ Item {
     readonly property color setupCardRaised: Theme.surfaceRaised
     readonly property color setupBorder: Theme.borderMuted
     readonly property color setupSelectedBorder: Theme.accent
+    readonly property string genyBrandIcon: "brands/geny"
+    readonly property string hypersnapDisplayName: "HyperSnap v2"
 
     readonly property bool authenticationStarting: authenticationPhase === "starting"
     readonly property bool awaitingApproval: authenticationPhase === "awaiting-approval"
@@ -374,24 +386,29 @@ Item {
                     layoutDirection: Theme.uiDirection
 
                     Icon {
-                        text: "brands/geny"
-                        color: Theme.ink
+                        text: root.genyBrandIcon
+                        color: Theme.accent
                         preferredSize: 26
+                        Accessible.name: qsTrId("genycaster.app.genycaster")
                     }
 
                     ColumnLayout {
                         spacing: 0
                         Label {
+                            Layout.fillWidth: true
                             text: qsTrId("genycaster.app.genycaster")
                             color: Theme.ink
                             font.pixelSize: Theme.typeLabelSize
                             font.weight: Theme.weightDemiBold
+                            horizontalAlignment: Theme.textStartAlignment
                         }
                         Label {
                             visible: !root.phone
+                            Layout.fillWidth: true
                             text: qsTrId("genycaster.setup.title")
                             color: Theme.inkSubtle
                             font.pixelSize: Theme.typeCaptionSize
+                            horizontalAlignment: Theme.textStartAlignment
                         }
                     }
                 }
@@ -408,7 +425,7 @@ Item {
                             width: modelData === root.currentStep ? 28 : 12
                             height: 4
                             radius: 2
-                            color: modelData === root.currentStep ? Theme.accent
+                            color: modelData === root.currentStep ? Theme.primaryFill
                                  : modelData < root.currentStep ? Theme.inkMuted
                                  : Theme.borderStrong
                             Behavior on width {
@@ -439,6 +456,7 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             spacing: 0
+            layoutDirection: Theme.uiDirection
 
             Rectangle {
                 visible: !root.compact
@@ -448,7 +466,7 @@ Item {
                 border.width: 0
 
                 Rectangle {
-                    anchors.right: parent.right
+                    x: Theme.rtl ? 0 : parent.width - width
                     width: 1
                     height: parent.height
                     color: Theme.borderMuted
@@ -472,6 +490,7 @@ Item {
                             color: Theme.ink
                             font.pixelSize: Theme.typeLabelSize
                             font.weight: Theme.weightBold
+                            horizontalAlignment: Theme.textStartAlignment
                         }
 
                         Item {
@@ -484,7 +503,7 @@ Item {
                         Layout.fillHeight: true
 
                         Rectangle {
-                            x: 14
+                            x: Theme.rtl ? parent.width - 15 : 14
                             y: 27
                             width: 1
                             height: Math.max(0, stepRail.height - 54)
@@ -512,6 +531,10 @@ Item {
                                     enabled: root.stepUnlocked(modelData)
                                     opacity: enabled ? 1.0 : 0.42
                                     hoverEnabled: true
+                                    focusPolicy: Qt.StrongFocus
+                                    Accessible.name: root.stepTitle(modelData)
+                                    Accessible.description: current
+                                                            ? qsTrId("genycaster.setup.title") : ""
                                     onClicked: root.switchStep(modelData)
 
                                     background: Superellipse {
@@ -529,15 +552,15 @@ Item {
                                             Layout.preferredWidth: 30
                                             Layout.preferredHeight: 30
                                             radius: 15
-                                            color: current ? Theme.ink : Theme.surfaceMuted
+                                            color: current ? Theme.primaryFill : Theme.surfaceMuted
                                             border.width: Theme.strokeStandard
-                                            border.color: current ? Theme.ink : Theme.borderMuted
+                                            border.color: current ? Theme.primaryFill : Theme.borderMuted
 
                                             Icon {
                                                 anchors.centerIn: parent
                                                 text: root.stepIcon(modelData)
                                                 color: current
-                                                       ? Theme.contrastInk(Theme.ink)
+                                                       ? Theme.accentInk
                                                        : complete ? Theme.inkMuted : Theme.inkSubtle
                                                 preferredSize: Theme.iconSizeSmall
                                             }
@@ -549,13 +572,14 @@ Item {
                                             color: current ? Theme.ink : Theme.inkMuted
                                             font.pixelSize: Theme.typeLabelSize
                                             font.weight: current ? Theme.weightDemiBold : Theme.weightMedium
+                                            horizontalAlignment: Theme.textStartAlignment
                                             elide: Text.ElideRight
                                         }
 
                                         Icon {
                                             visible: current
-                                            text: Theme.iconArrowRight
-                                            color: Theme.inkSubtle
+                                            text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                                            color: Theme.accent
                                             preferredSize: Theme.iconSizeSmall
                                         }
                                     }
@@ -599,7 +623,7 @@ Item {
                     Item {
                         id: stageCanvas
                         width: Math.min(stageFlick.width - (root.phone ? Theme.space4 * 2 : Theme.space6 * 2),
-                                        root.compact ? root.setupContentWidth : 820)
+                                        root.compact ? root.setupContentWidth : 720)
                         x: Math.max(root.phone ? Theme.space4 : Theme.space6,
                                     Math.round((stageFlick.width - width) / 2))
                         height: Math.max(stageFlick.height,
@@ -621,7 +645,7 @@ Item {
 
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 64
+                    Layout.preferredHeight: root.phone ? 80 : 72
 
                     Rectangle {
                         anchors.top: parent.top
@@ -640,17 +664,19 @@ Item {
                         ActionButton {
                             visible: root.currentStep > 0
                             text: qsTrId("genycaster.setup.back")
-                            iconGlyph: Theme.iconBack
+                            iconGlyph: Theme.rtl ? Theme.iconArrowRight : Theme.iconArrowLeft
                             quiet: true
                             enabled: !root.authenticationInProgress
                             onClicked: root.previousStep()
                         }
 
-                        Item { Layout.fillWidth: true }
+                        Item { Layout.fillWidth: !root.phone }
 
                         SetupPrimaryButton {
                             visible: root.currentStep !== 4 || root.authenticated
-                            Layout.preferredWidth: root.phone ? 200 : 180
+                            Layout.fillWidth: root.phone
+                            Layout.maximumWidth: root.phone ? 420 : 300
+                            Layout.minimumWidth: root.phone ? 0 : 168
                             text: root.primaryActionText()
                             enabled: root.primaryActionEnabled()
                             iconGlyph: root.currentStep === 5 ? Theme.iconCheck : ""
@@ -697,8 +723,9 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 70
                 Layout.leftMargin: Theme.space4
-                Layout.rightMargin: Theme.space3
+                Layout.rightMargin: Theme.space4
                 spacing: Theme.space3
+                layoutDirection: Theme.uiDirection
 
                 Icon {
                     text: root.legalReaderKind === "privacy" ? "system/lock" : Theme.iconDocument
@@ -718,6 +745,7 @@ Item {
                         color: Theme.ink
                         font.pixelSize: Theme.typeLabelSize
                         font.weight: Theme.weightDemiBold
+                        horizontalAlignment: Theme.textStartAlignment
                         elide: Text.ElideRight
                     }
 
@@ -729,6 +757,7 @@ Item {
                         color: Theme.inkSubtle
                         font.family: Theme.codeFontFamily
                         font.pixelSize: Theme.typeCaptionSize
+                        horizontalAlignment: Theme.textStartAlignment
                         elide: Text.ElideMiddle
                     }
                 }
@@ -786,6 +815,7 @@ Item {
                         color: Theme.accent
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightDemiBold
+                        horizontalAlignment: Theme.textStartAlignment
                         wrapMode: Text.WordWrap
                     }
 
@@ -798,6 +828,7 @@ Item {
                         font.pixelSize: Theme.typeBodySize
                         font.weight: Theme.weightMedium
                         lineHeight: 1.34
+                        horizontalAlignment: Theme.textStartAlignment
                         wrapMode: Text.WordWrap
                     }
 
@@ -813,6 +844,7 @@ Item {
                         color: Theme.inkSubtle
                         font.pixelSize: Theme.typeCaptionSize
                         lineHeight: Theme.typeCaptionLineHeight
+                        horizontalAlignment: Theme.textStartAlignment
                         wrapMode: Text.WordWrap
                     }
 
@@ -839,14 +871,16 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 78
+                Layout.preferredHeight: root.phone ? 96 : 78
                 Layout.leftMargin: Theme.space4
                 Layout.rightMargin: Theme.space4
                 spacing: Theme.space3
+                layoutDirection: Theme.uiDirection
 
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: Theme.space2
+                    layoutDirection: Theme.uiDirection
 
                     Icon {
                         text: root.legalReaderReachedEnd ? Theme.iconCheck : Theme.iconInfo
@@ -866,7 +900,9 @@ Item {
                 }
 
                 SetupPrimaryButton {
-                    Layout.preferredWidth: root.phone ? 160 : 190
+                    Layout.fillWidth: root.phone
+                    Layout.minimumWidth: root.phone ? 0 : 180
+                    Layout.maximumWidth: 300
                     text: root.legalReaderKind === "privacy"
                           ? qsTrId("genycaster.setup.acknowledge_privacy")
                           : qsTrId("genycaster.setup.accept_terms")
@@ -885,30 +921,12 @@ Item {
         ColumnLayout {
             spacing: Theme.space3
 
-            Icon {
-                text: "brands/geny"
-                color: Theme.ink
-                preferredSize: 34
-            }
-
-            Label {
+            SetupPageHeader {
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.setup.welcome_title")
-                color: Theme.ink
-                font.pixelSize: root.setupPageTitleSize
-                font.weight: Theme.weightBold
-                lineHeight: Theme.typeTitle2LineHeight
-                wrapMode: Text.WordWrap
-            }
-
-            Label {
-                Layout.fillWidth: true
-                Layout.maximumWidth: 480
-                text: qsTrId("genycaster.setup.language_orbit_hint")
-                color: Theme.inkMuted
-                font.pixelSize: root.setupBodySize
-                lineHeight: Theme.typeLabelLineHeight
-                wrapMode: Text.WordWrap
+                iconGlyph: root.genyBrandIcon
+                title: qsTrId("genycaster.setup.welcome_title")
+                subtitle: qsTrId("genycaster.setup.language_orbit_hint")
+                maximumTextWidth: 520
             }
 
             Item {
@@ -921,7 +939,7 @@ Item {
                 Layout.fillWidth: true
                 model: root.greetings
                 selectedLabel: localizationController.languageLabel
-                selectedDetail: localizationController.effectiveLanguageTag
+                selectedDetail: localizationController.regionalLocaleLabel
 
                 Component.onCompleted: currentIndex =
                     root.greetingIndexForTag(localizationController.effectiveLanguageTag)
@@ -950,33 +968,11 @@ Item {
         ColumnLayout {
             spacing: Theme.space4
 
-            Icon {
-                text: Theme.iconPalette
-                color: Theme.ink
-                preferredSize: 32
-            }
-
-            ColumnLayout {
+            SetupPageHeader {
                 Layout.fillWidth: true
-                spacing: Theme.space1
-
-                Label {
-                    text: qsTrId("genycaster.setup.welcome_personal_title")
-                    color: Theme.ink
-                    font.pixelSize: root.setupPageTitleSize
-                    font.weight: Theme.weightBold
-                    lineHeight: Theme.typeTitle2LineHeight
-                }
-
-                Label {
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: 620
-                    text: qsTrId("genycaster.setup.personalize_body")
-                    color: Theme.inkMuted
-                    font.pixelSize: root.setupBodySize
-                    lineHeight: Theme.typeLabelLineHeight
-                    wrapMode: Text.WordWrap
-                }
+                iconGlyph: Theme.iconPalette
+                title: qsTrId("genycaster.setup.welcome_personal_title")
+                subtitle: qsTrId("genycaster.setup.personalize_body")
             }
 
             Item {
@@ -1009,6 +1005,7 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: Theme.space3
+                            layoutDirection: Theme.uiDirection
 
                             Icon {
                                 text: Theme.iconLanguage
@@ -1021,10 +1018,12 @@ Item {
                                 spacing: 0
 
                                 Label {
+                                    Layout.fillWidth: true
                                     text: qsTrId("genycaster.settings.language_region")
                                     color: Theme.ink
                                     font.pixelSize: root.setupSectionTitleSize
                                     font.weight: Theme.weightDemiBold
+                                    horizontalAlignment: Theme.textStartAlignment
                                 }
 
                                 Label {
@@ -1032,6 +1031,7 @@ Item {
                                     text: localizationController.languageLabel
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
+                                    horizontalAlignment: Theme.textStartAlignment
                                     elide: Text.ElideRight
                                 }
                             }
@@ -1042,15 +1042,18 @@ Item {
                             columns: root.phone ? 1 : 2
                             columnSpacing: Theme.space3
                             rowSpacing: Theme.space3
+                            layoutDirection: Theme.uiDirection
 
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: Theme.space1
 
                                 Label {
+                                    Layout.fillWidth: true
                                     text: qsTrId("genycaster.locale.regional_format")
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
+                                    horizontalAlignment: Theme.textStartAlignment
                                 }
 
                                 GenyComboBox {
@@ -1071,9 +1074,11 @@ Item {
                                 spacing: Theme.space1
 
                                 Label {
+                                    Layout.fillWidth: true
                                     text: qsTrId("genycaster.locale.time_zone")
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
+                                    horizontalAlignment: Theme.textStartAlignment
                                 }
 
                                 GenyComboBox {
@@ -1099,6 +1104,7 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: Theme.space3
+                            layoutDirection: Theme.uiDirection
 
                             Icon {
                                 text: Theme.iconPalette
@@ -1112,12 +1118,14 @@ Item {
                                 color: Theme.ink
                                 font.pixelSize: root.setupSectionTitleSize
                                 font.weight: Theme.weightDemiBold
+                                horizontalAlignment: Theme.textStartAlignment
                             }
                         }
 
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
 
                             Repeater {
                                 model: [
@@ -1133,24 +1141,30 @@ Item {
                                     Layout.fillWidth: true
                                     implicitHeight: 44
                                     hoverEnabled: true
+                                    focusPolicy: Qt.StrongFocus
+                                    Accessible.name: modelData.label
+                                    Accessible.checked: selected
                                     onClicked: appearanceController.setThemeMode(modelData.id)
 
                                     background: Superellipse {
                                         fillColor: modeButton.selected
-                                                   ? Theme.ink
+                                                   ? Theme.primaryFill
+                                                   : modeButton.down ? Theme.surfacePressed
                                                    : modeButton.hovered ? Theme.surfaceHover : Theme.surface
-                                        borderWidth: modeButton.selected ? 0 : Theme.strokeStandard
-                                        borderColor: Theme.borderMuted
+                                        borderWidth: modeButton.selected ? 0
+                                                   : modeButton.activeFocus ? 2 : Theme.strokeStandard
+                                        borderColor: modeButton.activeFocus ? Theme.focus : Theme.borderMuted
                                         curveDepth: Theme.curveControl
                                     }
 
                                     contentItem: RowLayout {
                                         spacing: Theme.space2
+                                        layoutDirection: Theme.uiDirection
 
                                         Icon {
                                             text: modeButton.modelData.icon
                                             color: modeButton.selected
-                                                   ? Theme.contrastInk(Theme.ink) : Theme.inkMuted
+                                                   ? Theme.accentInk : Theme.inkMuted
                                             preferredSize: Theme.iconSizeSmall
                                         }
 
@@ -1158,7 +1172,7 @@ Item {
                                             Layout.fillWidth: true
                                             text: modeButton.modelData.label
                                             color: modeButton.selected
-                                                   ? Theme.contrastInk(Theme.ink) : Theme.ink
+                                                   ? Theme.accentInk : Theme.ink
                                             font.pixelSize: Theme.typeCaptionSize
                                             font.weight: Theme.weightDemiBold
                                             horizontalAlignment: Text.AlignHCenter
@@ -1172,6 +1186,7 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: root.phone ? Theme.space1 : Theme.space2
+                            layoutDirection: Theme.uiDirection
 
                             Repeater {
                                 model: [
@@ -1185,24 +1200,33 @@ Item {
                                 ]
 
                                 delegate: Button {
+                                    id: swatchButton
                                     required property var modelData
+                                    readonly property bool selected: appearanceController.colorThemeId === modelData.id
                                     Layout.fillWidth: true
                                     Layout.maximumWidth: 48
                                     implicitHeight: 40
+                                    focusPolicy: Qt.StrongFocus
                                     Accessible.name: modelData.id
+                                    Accessible.checked: selected
                                     onClicked: appearanceController.setColorThemeId(modelData.id)
 
-                                    background: Item {}
+                                    background: Rectangle {
+                                        radius: 8
+                                        color: "transparent"
+                                        border.width: swatchButton.activeFocus ? 2 : 0
+                                        border.color: Theme.focus
+                                    }
 
                                     contentItem: Item {
                                         Rectangle {
                                             anchors.centerIn: parent
-                                            width: appearanceController.colorThemeId === modelData.id ? 30 : 24
+                                            width: swatchButton.selected ? 30 : 24
                                             height: width
                                             radius: width / 2
                                             color: modelData.color
-                                            border.width: appearanceController.colorThemeId === modelData.id ? 3 : 1
-                                            border.color: appearanceController.colorThemeId === modelData.id
+                                            border.width: swatchButton.selected ? 3 : 1
+                                            border.color: swatchButton.selected
                                                           ? Theme.surface : Theme.borderStrong
 
                                             Behavior on width {
@@ -1214,7 +1238,7 @@ Item {
 
                                             Icon {
                                                 anchors.centerIn: parent
-                                                visible: appearanceController.colorThemeId === modelData.id
+                                                visible: swatchButton.selected
                                                 text: Theme.iconCheck
                                                 color: Theme.contrastInk(modelData.color)
                                                 preferredSize: 15
@@ -1225,27 +1249,11 @@ Item {
                             }
                         }
 
-                        RowLayout {
+                        GenySwitch {
                             Layout.fillWidth: true
-                            spacing: Theme.space3
-
-                            Icon {
-                                text: Theme.iconAccessibility
-                                color: appearanceController.reduceMotion ? Theme.accent : Theme.inkSubtle
-                                preferredSize: 18
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.settings.reduce_motion")
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeLabelSize
-                            }
-
-                            GenySwitch {
-                                checked: appearanceController.reduceMotion
-                                onToggled: appearanceController.setReduceMotion(checked)
-                            }
+                            text: qsTrId("genycaster.settings.reduce_motion")
+                            checked: appearanceController.reduceMotion
+                            onToggled: appearanceController.setReduceMotion(checked)
                         }
                     }
                 }
@@ -1259,33 +1267,11 @@ Item {
         ColumnLayout {
             spacing: Theme.space4
 
-            Icon {
-                text: "system/lock"
-                color: Theme.ink
-                preferredSize: 32
-            }
-
-            ColumnLayout {
+            SetupPageHeader {
                 Layout.fillWidth: true
-                spacing: Theme.space1
-
-                Label {
-                    text: qsTrId("genycaster.setup.legal_title")
-                    color: Theme.ink
-                    font.pixelSize: root.setupPageTitleSize
-                    font.weight: Theme.weightBold
-                    lineHeight: Theme.typeTitle2LineHeight
-                }
-
-                Label {
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: 620
-                    text: qsTrId("genycaster.setup.privacy_compact_intro")
-                    color: Theme.inkMuted
-                    font.pixelSize: root.setupBodySize
-                    lineHeight: Theme.typeLabelLineHeight
-                    wrapMode: Text.WordWrap
-                }
+                iconGlyph: "system/lock"
+                title: qsTrId("genycaster.setup.legal_title")
+                subtitle: qsTrId("genycaster.setup.privacy_compact_intro")
             }
 
             Item {
@@ -1335,22 +1321,23 @@ Item {
                 Layout.leftMargin: Theme.space1
                 Layout.rightMargin: Theme.space1
                 spacing: Theme.space3
+                layoutDirection: Theme.uiDirection
 
                 Superellipse {
                     Layout.preferredWidth: 24
                     Layout.preferredHeight: 24
                     fillColor: root.legalTermsChecked && root.legalPrivacyChecked
-                               ? Theme.ink : "transparent"
+                               ? Theme.primaryFill : "transparent"
                     borderWidth: Theme.strokeStandard
                     borderColor: root.legalTermsChecked && root.legalPrivacyChecked
-                                 ? Theme.ink : Theme.borderStrong
+                                 ? Theme.primaryFill : Theme.borderStrong
                     curveDepth: Theme.curveCompact
 
                     Icon {
                         anchors.centerIn: parent
                         visible: root.legalTermsChecked && root.legalPrivacyChecked
                         text: Theme.iconCheck
-                        color: Theme.contrastInk(Theme.ink)
+                        color: Theme.accentInk
                         preferredSize: 13
                     }
                 }
@@ -1363,6 +1350,7 @@ Item {
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
                     font.weight: Theme.weightMedium
+                    horizontalAlignment: Theme.textStartAlignment
                     wrapMode: Text.WordWrap
                 }
 
@@ -1383,33 +1371,11 @@ Item {
         ColumnLayout {
             spacing: Theme.space4
 
-            Icon {
-                text: Theme.iconWifi
-                color: Theme.ink
-                preferredSize: 32
-            }
-
-            ColumnLayout {
+            SetupPageHeader {
                 Layout.fillWidth: true
-                spacing: Theme.space1
-
-                Label {
-                    text: qsTrId("genycaster.setup.network_title")
-                    color: Theme.ink
-                    font.pixelSize: root.setupPageTitleSize
-                    font.weight: Theme.weightBold
-                    lineHeight: Theme.typeTitle2LineHeight
-                }
-
-                Label {
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: 620
-                    text: qsTrId("genycaster.setup.network_body")
-                    color: Theme.inkMuted
-                    font.pixelSize: root.setupBodySize
-                    lineHeight: Theme.typeLabelLineHeight
-                    wrapMode: Text.WordWrap
-                }
+                iconGlyph: Theme.iconWifi
+                title: qsTrId("genycaster.setup.network_title")
+                subtitle: qsTrId("genycaster.setup.network_body")
             }
 
             Item {
@@ -1430,12 +1396,14 @@ Item {
             RowLayout {
                 Layout.fillWidth: true
                 spacing: Theme.space2
+                layoutDirection: Theme.uiDirection
 
                 Label {
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.setup.network_body")
                     color: Theme.inkSubtle
                     font.pixelSize: Theme.typeCaptionSize
+                    horizontalAlignment: Theme.textStartAlignment
                     elide: Text.ElideRight
                 }
 
@@ -1486,6 +1454,7 @@ Item {
                     anchors.fill: parent
                     anchors.margins: Theme.space3
                     spacing: Theme.space2
+                    layoutDirection: Theme.uiDirection
 
                     Icon {
                         text: nodeSelectionController.restartRequired
@@ -1502,6 +1471,7 @@ Item {
                         color: nodeSelectionController.restartRequired ? Theme.warning : Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightDemiBold
+                        horizontalAlignment: Theme.textStartAlignment
                         wrapMode: Text.WordWrap
                     }
                 }
@@ -1515,35 +1485,13 @@ Item {
         ColumnLayout {
             spacing: Theme.space4
 
-            Icon {
-                text: Theme.iconUser
-                color: Theme.ink
-                preferredSize: 32
-            }
-
-            ColumnLayout {
+            SetupPageHeader {
                 Layout.fillWidth: true
-                spacing: Theme.space1
-
-                Label {
-                    text: root.authenticated
-                          ? qsTrId("genycaster.setup.account_verified")
-                          : qsTrId("genycaster.setup.sign_in_required")
-                    color: Theme.ink
-                    font.pixelSize: root.setupPageTitleSize
-                    font.weight: Theme.weightBold
-                    lineHeight: Theme.typeTitle2LineHeight
-                }
-
-                Label {
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: 620
-                    text: root.phaseBody()
-                    color: Theme.inkMuted
-                    font.pixelSize: root.setupBodySize
-                    lineHeight: Theme.typeLabelLineHeight
-                    wrapMode: Text.WordWrap
-                }
+                iconGlyph: Theme.iconUser
+                title: root.authenticated
+                       ? qsTrId("genycaster.setup.account_verified")
+                       : qsTrId("genycaster.setup.sign_in_required")
+                subtitle: root.phaseBody()
             }
 
             Item {
@@ -1567,6 +1515,7 @@ Item {
                     anchors.top: parent.top
                     anchors.margins: root.setupCardPadding
                     spacing: Theme.space3
+                    layoutDirection: Theme.uiDirection
 
                     Avatar {
                         sourceUrl: root.accountAvatarUrl
@@ -1578,7 +1527,7 @@ Item {
                         Layout.fillWidth: true
                         spacing: 2
 
-                        Label {
+                        DirectionAwareLabel {
                             Layout.fillWidth: true
                             text: root.accountName.length > 0 ? root.accountName : root.accountUsername
                             color: Theme.ink
@@ -1587,10 +1536,11 @@ Item {
                             elide: Text.ElideRight
                         }
 
-                        Label {
+                        DirectionAwareLabel {
                             visible: root.accountUsername.length > 0
                             Layout.fillWidth: true
                             text: "@" + root.accountUsername
+                            forceLeftToRight: true
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                             elide: Text.ElideRight
@@ -1598,6 +1548,7 @@ Item {
 
                         RowLayout {
                             spacing: Theme.space1
+                            layoutDirection: Theme.uiDirection
 
                             Icon {
                                 text: Theme.iconCheck
@@ -1629,7 +1580,7 @@ Item {
                 Repeater {
                     model: [
                         {
-                            brand: "brands/geny",
+                            brand: root.genyBrandIcon,
                             body: qsTrId("genycaster.setup.account_genyleap_body"),
                             action: qsTrId("genycaster.shell.continue_with_genyleap"),
                             comingSoon: qsTrId("genycaster.setup.account_create_openproof_soon"),
@@ -1668,7 +1619,7 @@ Item {
                             }
                         }
 
-                        Label {
+                        DirectionAwareLabel {
                             Layout.leftMargin: Theme.space4
                             Layout.rightMargin: Theme.space4
                             Layout.fillWidth: true
@@ -1695,13 +1646,14 @@ Item {
                     anchors.fill: parent
                     anchors.margins: Theme.space3
                     spacing: Theme.space3
+                    layoutDirection: Theme.uiDirection
 
                     GenySpinner {
                         running: root.authenticationInProgress
                         color: Theme.accent
                     }
 
-                    Label {
+                    DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: root.phaseBody()
                         color: Theme.inkMuted
@@ -1710,7 +1662,9 @@ Item {
                     }
 
                     SetupPrimaryButton {
-                        Layout.preferredWidth: root.phone ? 150 : 180
+                        Layout.fillWidth: root.phone
+                        Layout.minimumWidth: root.phone ? 0 : 180
+                        Layout.maximumWidth: 300
                         text: root.authenticationRoute === "farcaster"
                               ? qsTrId("genycaster.shell.open_farcaster")
                               : qsTrId("genycaster.shell.open_genyleap")
@@ -1743,6 +1697,7 @@ Item {
                     anchors.fill: parent
                     anchors.margins: Theme.space3
                     spacing: Theme.space3
+                    layoutDirection: Theme.uiDirection
 
                     Icon {
                         text: Theme.iconWarning
@@ -1750,7 +1705,7 @@ Item {
                         preferredSize: 18
                     }
 
-                    Label {
+                    DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: root.authenticationErrorText
                         color: Theme.ink
@@ -1764,13 +1719,14 @@ Item {
                 visible: !root.runtimeReady
                 Layout.fillWidth: true
                 spacing: Theme.space2
+                layoutDirection: Theme.uiDirection
 
                 GenySpinner {
                     running: true
                     color: Theme.accent
                 }
 
-                Label {
+                DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.bridge.starting_local_read_runtime")
                     color: Theme.inkMuted
@@ -1821,7 +1777,7 @@ Item {
                             anchors.centerIn: parent
                             anchors.horizontalCenterOffset: 28
                             anchors.verticalCenterOffset: 28
-                            fillColor: Theme.ink
+                            fillColor: Theme.primaryFill
                             curveDepth: 10
                             borderWidth: 2
                             borderColor: root.setupCard
@@ -1829,7 +1785,7 @@ Item {
                             Icon {
                                 anchors.centerIn: parent
                                 text: Theme.iconCheck
-                                color: Theme.contrastInk(Theme.ink)
+                                color: Theme.accentInk
                                 preferredSize: 17
                             }
                         }
@@ -1888,6 +1844,7 @@ Item {
                 columns: root.phone ? 1 : 2
                 columnSpacing: Theme.space2
                 rowSpacing: Theme.space2
+                layoutDirection: Theme.uiDirection
 
                 SetupActionCard {
                     Layout.fillWidth: true
@@ -1910,7 +1867,7 @@ Item {
                 SetupActionCard {
                     Layout.fillWidth: true
                     compactCard: true
-                    title: "Hypersnap v2"
+                    title: root.hypersnapDisplayName
                     subtitle: {
                         const nodes = nodeSelectionController.nodes
                         for (let index = 0; index < nodes.length; ++index) {
