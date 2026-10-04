@@ -3434,5 +3434,109 @@
             <source>Review and accept the Terms of Use and Privacy Policy before signing in.</source>
             <translation>サインインする前に、利用規約とプライバシーポリシーを確認して同意してください。</translation>
         </message>
+        <message id="genycaster.setup.network">
+            <source>Network</source>
+            <translation>ネットワーク</translation>
+        </message>
+        <message id="genycaster.setup.language_orbit_hint">
+            <source>Choose a language by moving the greeting.</source>
+            <translation>あいさつを動かして言語を選択します。</translation>
+        </message>
+        <message id="genycaster.setup.language_applies_now">
+            <source>Your choice applies immediately and stays editable later.</source>
+            <translation>選択はすぐに反映され、あとから変更できます。</translation>
+        </message>
+        <message id="genycaster.setup.personalize_body">
+            <source>Keep the defaults, or tune the few things that change how Genycaster feels.</source>
+            <translation>初期設定のまま使うか、Genycaster の使い心地に関わる項目だけ調整してください。</translation>
+        </message>
+        <message id="genycaster.setup.privacy_compact_intro">
+            <source>Two clear permissions. The full documents stay one tap away.</source>
+            <translation>確認する権限は2つだけです。全文はワンタップで開けます。</translation>
+        </message>
+        <message id="genycaster.setup.terms_summary">
+            <source>Rules for using Genyleap services and product resources.</source>
+            <translation>Genyleap のサービスと製品リソースを利用するためのルールです。</translation>
+        </message>
+        <message id="genycaster.setup.privacy_summary">
+            <source>How account data, protocol identity and local preferences are handled.</source>
+            <translation>アカウントデータ、プロトコルID、ローカル設定の扱いについてです。</translation>
+        </message>
+        <message id="genycaster.setup.privacy_local_note">
+            <source>Preferences stay local; authentication and approved protocol actions use the network.</source>
+            <translation>設定は端末内に保存され、認証と承認したプロトコル操作のみネットワークを使用します。</translation>
+        </message>
+        <message id="genycaster.setup.network_title">
+            <source>Choose a read node</source>
+            <translation>読み取りノードを選択</translation>
+        </message>
+        <message id="genycaster.setup.network_body">
+            <source>Genycaster measures configured nodes and can prefer the lowest-latency healthy endpoint.</source>
+            <translation>Genycaster は設定済みノードを計測し、正常で最も低遅延なエンドポイントを優先できます。</translation>
+        </message>
+        <message id="genycaster.setup.network_experimental">
+            <source>Experimental · HyperSnap is the default read provider. Additional compatible endpoints can be supplied by deployment configuration.</source>
+            <translation>実験的 · HyperSnap が既定の読み取りプロバイダーです。追加の互換エンドポイントはデプロイ設定で指定できます。</translation>
+        </message>
+        <message id="genycaster.setup.network_automatic">
+            <source>Automatic</source>
+            <translation>自動</translation>
+        </message>
+        <message id="genycaster.setup.network_retest">
+            <source>Test again</source>
+            <translation>再テスト</translation>
+        </message>
+        <message id="genycaster.setup.network_best">
+            <source>BEST</source>
+            <translation>最適</translation>
+        </message>
+        <message id="genycaster.setup.network_online">
+            <source>online</source>
+            <translation>オンライン</translation>
+        </message>
+        <message id="genycaster.setup.network_unreachable">
+            <source>unreachable</source>
+            <translation>到達不可</translation>
+        </message>
+        <message id="genycaster.setup.network_checking">
+            <source>checking</source>
+            <translation>確認中</translation>
+        </message>
+        <message id="genycaster.setup.network_restart_note">
+            <source>This endpoint is saved and becomes the runtime source on the next app start.</source>
+            <translation>このエンドポイントは保存され、次回のアプリ起動時にランタイムの参照先になります。</translation>
+        </message>
+        <message id="genycaster.setup.network_current_note">
+            <source>The selected endpoint is the current runtime source.</source>
+            <translation>選択したエンドポイントが現在のランタイム参照先です。</translation>
+        </message>
+        <message id="genycaster.setup.account_genyleap_body">
+            <source>Use your Genyleap identity and link Farcaster when required.</source>
+            <translation>Genyleap ID を使用し、必要に応じて Farcaster をリンクします。</translation>
+        </message>
+        <message id="genycaster.setup.account_create_openproof_soon">
+            <source>Create an OpenProof account · Coming soon</source>
+            <translation>OpenProof アカウントを作成 · 近日対応</translation>
+        </message>
+        <message id="genycaster.setup.account_farcaster_body">
+            <source>Use a Farcaster-compatible sign-in directly.</source>
+            <translation>Farcaster 互換のサインインを直接使用します。</translation>
+        </message>
+        <message id="genycaster.setup.account_create_farcaster_soon">
+            <source>Create a Farcaster account · Coming soon</source>
+            <translation>Farcaster アカウントを作成 · 近日対応</translation>
+        </message>
+        <message id="genycaster.setup.ready_for">
+            <source>Everything is set for %1.</source>
+            <translation>%1 の準備が整いました。</translation>
+        </message>
+        <message id="genycaster.setup.ready_generic">
+            <source>Everything is set.</source>
+            <translation>準備が整いました。</translation>
+        </message>
+        <message id="genycaster.setup.network_selected">
+            <source>selected</source>
+            <translation>選択済み</translation>
+        </message>
     </context>
 </TS>

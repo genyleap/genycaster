@@ -3434,5 +3434,109 @@
             <source>Review and accept the Terms of Use and Privacy Policy before signing in.</source>
             <translation>Перед входом ознакомьтесь с Условиями использования и Политикой конфиденциальности и примите их.</translation>
         </message>
+        <message id="genycaster.setup.network">
+            <source>Network</source>
+            <translation>Сеть</translation>
+        </message>
+        <message id="genycaster.setup.language_orbit_hint">
+            <source>Choose a language by moving the greeting.</source>
+            <translation>Выберите язык, перемещая приветствие.</translation>
+        </message>
+        <message id="genycaster.setup.language_applies_now">
+            <source>Your choice applies immediately and stays editable later.</source>
+            <translation>Выбор применяется сразу, а изменить его можно позже.</translation>
+        </message>
+        <message id="genycaster.setup.personalize_body">
+            <source>Keep the defaults, or tune the few things that change how Genycaster feels.</source>
+            <translation>Оставьте настройки по умолчанию или измените только то, что влияет на ощущение от Genycaster.</translation>
+        </message>
+        <message id="genycaster.setup.privacy_compact_intro">
+            <source>Two clear permissions. The full documents stay one tap away.</source>
+            <translation>Два понятных разрешения. Полные документы открываются одним нажатием.</translation>
+        </message>
+        <message id="genycaster.setup.terms_summary">
+            <source>Rules for using Genyleap services and product resources.</source>
+            <translation>Правила использования сервисов Genyleap и ресурсов продукта.</translation>
+        </message>
+        <message id="genycaster.setup.privacy_summary">
+            <source>How account data, protocol identity and local preferences are handled.</source>
+            <translation>Как обрабатываются данные аккаунта, протокольная идентичность и локальные настройки.</translation>
+        </message>
+        <message id="genycaster.setup.privacy_local_note">
+            <source>Preferences stay local; authentication and approved protocol actions use the network.</source>
+            <translation>Настройки остаются локальными; аутентификация и подтверждённые протокольные действия используют сеть.</translation>
+        </message>
+        <message id="genycaster.setup.network_title">
+            <source>Choose a read node</source>
+            <translation>Выберите узел чтения</translation>
+        </message>
+        <message id="genycaster.setup.network_body">
+            <source>Genycaster measures configured nodes and can prefer the lowest-latency healthy endpoint.</source>
+            <translation>Genycaster измеряет настроенные узлы и может предпочесть исправный endpoint с минимальной задержкой.</translation>
+        </message>
+        <message id="genycaster.setup.network_experimental">
+            <source>Experimental · HyperSnap is the default read provider. Additional compatible endpoints can be supplied by deployment configuration.</source>
+            <translation>Экспериментально · HyperSnap — провайдер чтения по умолчанию. Дополнительные совместимые endpoints можно задать в конфигурации развёртывания.</translation>
+        </message>
+        <message id="genycaster.setup.network_automatic">
+            <source>Automatic</source>
+            <translation>Автоматически</translation>
+        </message>
+        <message id="genycaster.setup.network_retest">
+            <source>Test again</source>
+            <translation>Проверить снова</translation>
+        </message>
+        <message id="genycaster.setup.network_best">
+            <source>BEST</source>
+            <translation>ЛУЧШИЙ</translation>
+        </message>
+        <message id="genycaster.setup.network_online">
+            <source>online</source>
+            <translation>в сети</translation>
+        </message>
+        <message id="genycaster.setup.network_unreachable">
+            <source>unreachable</source>
+            <translation>недоступен</translation>
+        </message>
+        <message id="genycaster.setup.network_checking">
+            <source>checking</source>
+            <translation>проверка</translation>
+        </message>
+        <message id="genycaster.setup.network_restart_note">
+            <source>This endpoint is saved and becomes the runtime source on the next app start.</source>
+            <translation>Этот endpoint сохранён и станет источником runtime при следующем запуске приложения.</translation>
+        </message>
+        <message id="genycaster.setup.network_current_note">
+            <source>The selected endpoint is the current runtime source.</source>
+            <translation>Выбранный endpoint — текущий источник runtime.</translation>
+        </message>
+        <message id="genycaster.setup.account_genyleap_body">
+            <source>Use your Genyleap identity and link Farcaster when required.</source>
+            <translation>Используйте свою идентичность Genyleap и при необходимости привяжите Farcaster.</translation>
+        </message>
+        <message id="genycaster.setup.account_create_openproof_soon">
+            <source>Create an OpenProof account · Coming soon</source>
+            <translation>Создать аккаунт OpenProof · Скоро</translation>
+        </message>
+        <message id="genycaster.setup.account_farcaster_body">
+            <source>Use a Farcaster-compatible sign-in directly.</source>
+            <translation>Используйте напрямую вход, совместимый с Farcaster.</translation>
+        </message>
+        <message id="genycaster.setup.account_create_farcaster_soon">
+            <source>Create a Farcaster account · Coming soon</source>
+            <translation>Создать аккаунт Farcaster · Скоро</translation>
+        </message>
+        <message id="genycaster.setup.ready_for">
+            <source>Everything is set for %1.</source>
+            <translation>Всё готово для %1.</translation>
+        </message>
+        <message id="genycaster.setup.ready_generic">
+            <source>Everything is set.</source>
+            <translation>Всё готово.</translation>
+        </message>
+        <message id="genycaster.setup.network_selected">
+            <source>selected</source>
+            <translation>выбран</translation>
+        </message>
     </context>
 </TS>

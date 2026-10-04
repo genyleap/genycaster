@@ -66,6 +66,7 @@
 #include "miniapp_catalog_controller.hpp"
 #include "miniapp_task_manager_controller.hpp"
 #include "live_insights_controller.hpp"
+#include "node_selection_controller.hpp"
 #include "remote_image_provider.hpp"
 #include "data_storage_controller.hpp"
 
@@ -3436,6 +3437,13 @@ int main(int argc, char* argv[])
     const qsizetype snapshotIndex = arguments.indexOf(QStringLiteral("--snapshot"));
     const QString snapshotPath = snapshotIndex >= 0 && snapshotIndex + 1 < arguments.size()
         ? arguments[snapshotIndex + 1] : QString{};
+
+    const QString settingsPath = optionValue(arguments, QStringLiteral("--settings-path="));
+    auto settingsStorage = settingsPath.isEmpty()
+        ? std::make_unique<QSettings>()
+        : std::make_unique<QSettings>(settingsPath, QSettings::IniFormat);
+    QSettings& settings = *settingsStorage;
+
     const auto deploymentEndpoints =
         application::configuration::configuredDeploymentEndpoints();
     const auto deploymentIdentity =
@@ -3465,6 +3473,10 @@ int main(int argc, char* argv[])
     if (providerBaseUrlText.isEmpty()) {
         providerBaseUrlText = qEnvironmentVariable("GENYCASTER_HYPERSNAP_BASE_URL").trimmed();
     }
+    if (providerBaseUrlText.isEmpty()) {
+        providerBaseUrlText = settings.value(
+            QStringLiteral("network/hypersnapBaseUrl")).toString().trimmed();
+    }
     providerBaseUrlText = normalizeConfigurationToken(std::move(providerBaseUrlText));
     if (!providerBaseUrlText.isEmpty() && !isValidHttpServiceUrl(providerBaseUrlText)) {
         qWarning().noquote()
@@ -3473,6 +3485,23 @@ int main(int argc, char* argv[])
     }
     const std::optional<std::string> providerBaseUrl = providerBaseUrlText.isEmpty()
         ? std::nullopt : std::optional<std::string>{providerBaseUrlText.toStdString()};
+
+    QStringList nodeCandidateEndpoints{};
+    const QString nodeCandidatesText =
+        qEnvironmentVariable("GENYCASTER_HYPERSNAP_NODE_CANDIDATES").trimmed();
+    if (!nodeCandidatesText.isEmpty()) {
+        nodeCandidateEndpoints = nodeCandidatesText.split(
+            QLatin1Char(','), Qt::SkipEmptyParts);
+        for (QString& endpoint : nodeCandidateEndpoints) {
+            endpoint = endpoint.trimmed();
+        }
+    }
+    if (!providerBaseUrlText.isEmpty()) {
+        nodeCandidateEndpoints.prepend(providerBaseUrlText);
+    }
+    const QString appliedNodeEndpoint = providerBaseUrlText.isEmpty()
+        ? QStringLiteral("https://haatz.quilibrium.com")
+        : providerBaseUrlText;
 
     QString snapchainBaseUrlText = optionValue(arguments, QStringLiteral("--snapchain-base-url="));
     if (snapchainBaseUrlText.isEmpty()) {
@@ -3712,12 +3741,6 @@ int main(int argc, char* argv[])
         appearanceOverrides.reduceMotion = qEnvironmentVariable("GENYCASTER_REDUCE_MOTION").trimmed();
     }
 
-    const QString settingsPath = optionValue(arguments, QStringLiteral("--settings-path="));
-    auto settingsStorage = settingsPath.isEmpty()
-        ? std::make_unique<QSettings>()
-        : std::make_unique<QSettings>(settingsPath, QSettings::IniFormat);
-    QSettings& settings = *settingsStorage;
-
     // The context objects must outlive QQmlApplicationEngine. During orderly
     // teardown the engine reevaluates/destroys QML bindings; destroying these
     // objects first turns every context-property access into a spurious null
@@ -3735,6 +3758,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<MediaClassifierController> mediaClassifierControllerOwner{};
     std::unique_ptr<MediaPlaybackCoordinator> mediaPlaybackCoordinatorOwner{};
     std::unique_ptr<LiveInsightsController> liveInsightsControllerOwner{};
+    std::unique_ptr<NodeSelectionController> nodeSelectionControllerOwner{};
     std::unique_ptr<MiniAppHostController> miniAppHostControllerOwner{};
     std::unique_ptr<MediaWebHostController> mediaWebHostControllerOwner{};
     std::unique_ptr<MiniAppCatalogController> miniAppCatalogControllerOwner{};
@@ -3772,6 +3796,13 @@ int main(int argc, char* argv[])
         return 2;
     }
     LocalizationController& localizationController = *localizationControllerOwner;
+
+    nodeSelectionControllerOwner = std::make_unique<NodeSelectionController>(
+        settings,
+        appliedNodeEndpoint,
+        nodeCandidateEndpoints,
+        !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest);
+    NodeSelectionController& nodeSelectionController = *nodeSelectionControllerOwner;
 
     const auto applicationFontFamilyForLanguage = [&](QString languageTag) -> QString {
         languageTag = languageTag.trimmed().toLower();
@@ -4089,6 +4120,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("miniAppCatalog"), &miniAppCatalog);
     engine.rootContext()->setContextProperty(QStringLiteral("miniAppTaskManager"), &miniAppTaskManager);
     engine.rootContext()->setContextProperty(QStringLiteral("liveInsights"), &liveInsightsController);
+    engine.rootContext()->setContextProperty(QStringLiteral("nodeSelectionController"), &nodeSelectionController);
     engine.rootContext()->setContextProperty(QStringLiteral("appearanceController"), &appearanceController);
     engine.rootContext()->setContextProperty(QStringLiteral("renderingController"), &renderingController);
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER

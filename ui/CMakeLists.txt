@@ -218,6 +218,8 @@ qt_add_executable(farcaster_client
     mobile/miniapp_task_manager_controller.hpp
     mobile/live_insights_controller.cpp
     mobile/live_insights_controller.hpp
+    mobile/node_selection_controller.cpp
+    mobile/node_selection_controller.hpp
     mobile/remote_image_provider.cpp
     mobile/remote_image_provider.hpp
 )

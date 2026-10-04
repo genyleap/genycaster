@@ -3434,5 +3434,109 @@
             <source>Review and accept the Terms of Use and Privacy Policy before signing in.</source>
             <translation>साइन इन करने से पहले उपयोग की शर्तें और गोपनीयता नीति पढ़कर स्वीकार करें।</translation>
         </message>
+        <message id="genycaster.setup.network">
+            <source>Network</source>
+            <translation>नेटवर्क</translation>
+        </message>
+        <message id="genycaster.setup.language_orbit_hint">
+            <source>Choose a language by moving the greeting.</source>
+            <translation>अभिवादन को घुमाकर भाषा चुनें।</translation>
+        </message>
+        <message id="genycaster.setup.language_applies_now">
+            <source>Your choice applies immediately and stays editable later.</source>
+            <translation>आपकी पसंद तुरंत लागू होती है और बाद में बदली जा सकती है।</translation>
+        </message>
+        <message id="genycaster.setup.personalize_body">
+            <source>Keep the defaults, or tune the few things that change how Genycaster feels.</source>
+            <translation>डिफ़ॉल्ट रखें, या केवल वे कुछ चीज़ें बदलें जो Genycaster के अनुभव को प्रभावित करती हैं।</translation>
+        </message>
+        <message id="genycaster.setup.privacy_compact_intro">
+            <source>Two clear permissions. The full documents stay one tap away.</source>
+            <translation>दो स्पष्ट अनुमतियाँ। पूरे दस्तावेज़ बस एक टैप दूर हैं।</translation>
+        </message>
+        <message id="genycaster.setup.terms_summary">
+            <source>Rules for using Genyleap services and product resources.</source>
+            <translation>Genyleap सेवाओं और उत्पाद संसाधनों के उपयोग के नियम।</translation>
+        </message>
+        <message id="genycaster.setup.privacy_summary">
+            <source>How account data, protocol identity and local preferences are handled.</source>
+            <translation>खाता डेटा, प्रोटोकॉल पहचान और स्थानीय प्राथमिकताओं को कैसे संभाला जाता है।</translation>
+        </message>
+        <message id="genycaster.setup.privacy_local_note">
+            <source>Preferences stay local; authentication and approved protocol actions use the network.</source>
+            <translation>प्राथमिकताएँ स्थानीय रहती हैं; प्रमाणीकरण और स्वीकृत प्रोटोकॉल क्रियाएँ नेटवर्क का उपयोग करती हैं।</translation>
+        </message>
+        <message id="genycaster.setup.network_title">
+            <source>Choose a read node</source>
+            <translation>रीड नोड चुनें</translation>
+        </message>
+        <message id="genycaster.setup.network_body">
+            <source>Genycaster measures configured nodes and can prefer the lowest-latency healthy endpoint.</source>
+            <translation>Genycaster कॉन्फ़िगर किए गए नोड मापता है और सबसे कम विलंब वाले स्वस्थ एंडपॉइंट को प्राथमिकता दे सकता है।</translation>
+        </message>
+        <message id="genycaster.setup.network_experimental">
+            <source>Experimental · HyperSnap is the default read provider. Additional compatible endpoints can be supplied by deployment configuration.</source>
+            <translation>प्रायोगिक · HyperSnap डिफ़ॉल्ट रीड प्रदाता है। अतिरिक्त संगत एंडपॉइंट डिप्लॉयमेंट कॉन्फ़िगरेशन से दिए जा सकते हैं।</translation>
+        </message>
+        <message id="genycaster.setup.network_automatic">
+            <source>Automatic</source>
+            <translation>स्वचालित</translation>
+        </message>
+        <message id="genycaster.setup.network_retest">
+            <source>Test again</source>
+            <translation>फिर जाँचें</translation>
+        </message>
+        <message id="genycaster.setup.network_best">
+            <source>BEST</source>
+            <translation>सर्वोत्तम</translation>
+        </message>
+        <message id="genycaster.setup.network_online">
+            <source>online</source>
+            <translation>ऑनलाइन</translation>
+        </message>
+        <message id="genycaster.setup.network_unreachable">
+            <source>unreachable</source>
+            <translation>पहुँच से बाहर</translation>
+        </message>
+        <message id="genycaster.setup.network_checking">
+            <source>checking</source>
+            <translation>जाँच जारी</translation>
+        </message>
+        <message id="genycaster.setup.network_restart_note">
+            <source>This endpoint is saved and becomes the runtime source on the next app start.</source>
+            <translation>यह एंडपॉइंट सहेजा गया है और अगली बार ऐप शुरू होने पर रनटाइम स्रोत बनेगा।</translation>
+        </message>
+        <message id="genycaster.setup.network_current_note">
+            <source>The selected endpoint is the current runtime source.</source>
+            <translation>चुना गया एंडपॉइंट वर्तमान रनटाइम स्रोत है।</translation>
+        </message>
+        <message id="genycaster.setup.account_genyleap_body">
+            <source>Use your Genyleap identity and link Farcaster when required.</source>
+            <translation>अपनी Genyleap पहचान का उपयोग करें और आवश्यकता होने पर Farcaster लिंक करें।</translation>
+        </message>
+        <message id="genycaster.setup.account_create_openproof_soon">
+            <source>Create an OpenProof account · Coming soon</source>
+            <translation>OpenProof खाता बनाएँ · जल्द आ रहा है</translation>
+        </message>
+        <message id="genycaster.setup.account_farcaster_body">
+            <source>Use a Farcaster-compatible sign-in directly.</source>
+            <translation>सीधे Farcaster-संगत साइन-इन का उपयोग करें।</translation>
+        </message>
+        <message id="genycaster.setup.account_create_farcaster_soon">
+            <source>Create a Farcaster account · Coming soon</source>
+            <translation>Farcaster खाता बनाएँ · जल्द आ रहा है</translation>
+        </message>
+        <message id="genycaster.setup.ready_for">
+            <source>Everything is set for %1.</source>
+            <translation>%1 के लिए सब तैयार है।</translation>
+        </message>
+        <message id="genycaster.setup.ready_generic">
+            <source>Everything is set.</source>
+            <translation>सब तैयार है।</translation>
+        </message>
+        <message id="genycaster.setup.network_selected">
+            <source>selected</source>
+            <translation>चयनित</translation>
+        </message>
     </context>
 </TS>

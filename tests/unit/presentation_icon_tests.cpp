@@ -314,7 +314,7 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(!bridge.initialSetupRequired());
 
     settings.sync();
-    assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 3);
+    assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 4);
     assert(!settings.contains(QStringLiteral("setup/initialSetupCompleted")));
 
     // A completed setup survives an ordinary restart while the account can be
@@ -352,7 +352,7 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     restored.completeInitialSetup();
     assert(restored.initialSetupCompleted());
     assert(!restored.initialSetupRequired());
-    assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 3);
+    assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 4);
 
     // Signing out is also a setup reset boundary. The next run must start from
     // Welcome and expose all six setup steps again.

@@ -22,7 +22,7 @@ import farcaster.application.configuration;
 
 namespace {
 
-constexpr int kInitialSetupVersion = 3;
+constexpr int kInitialSetupVersion = 4;
 // Increment when the onboarding legal bundle materially changes so consent is
 // requested again before account authentication.
 constexpr int kLegalConsentVersion = 1;
@@ -1864,7 +1864,6 @@ void PresentationBridge::applyAuthenticationState(
     QString approvalUrl,
     QString errorText)
 {
-    const bool wasAuthenticated = m_isAuthenticated;
     m_authenticationAvailable = available;
     m_authenticationPhase = std::move(phase);
     const qulonglong previousAccountFid = m_accountFid;
@@ -1917,12 +1916,12 @@ void PresentationBridge::applyAuthenticationState(
         clearReplyTarget();
         emit notificationsChanged();
     }
-    // An explicit transition out of an authenticated account starts a fresh
-    // onboarding run next time instead of collapsing the setup surface to a
-    // sign-in-only checkpoint. Legal consent remains recorded, but the six-step
-    // setup flow is presented again so appearance/locale/account choices can be
-    // reviewed from the beginning.
-    if (wasAuthenticated && !m_isAuthenticated) {
+    // Any signed-out authentication state invalidates completed onboarding.
+    // This covers explicit sign-out as well as an expired/missing restored
+    // session at startup, so setup always returns as the complete six-step flow
+    // instead of collapsing to a sign-in-only checkpoint. Legal consent remains
+    // versioned separately and is not discarded.
+    if (!m_isAuthenticated && m_initialSetupCompleted) {
         resetInitialSetupProgress();
     }
 
