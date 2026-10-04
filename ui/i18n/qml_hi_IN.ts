@@ -3286,5 +3286,153 @@
             <source>Sign in to continue. OpenProof verifies your Genyleap identity, and a linked Farcaster account is required for Genycaster.</source>
             <translation>आगे बढ़ने के लिए साइन इन करें। OpenProof आपकी Genyleap पहचान सत्यापित करता है, और Genycaster के लिए लिंक किया हुआ Farcaster खाता आवश्यक है।</translation>
         </message>
+        <message id="genycaster.setup.welcome">
+            <source>Welcome</source>
+            <translation>स्वागत है</translation>
+        </message>
+        <message id="genycaster.setup.privacy_terms">
+            <source>Privacy &amp; Terms</source>
+            <translation>गोपनीयता और शर्तें</translation>
+        </message>
+        <message id="genycaster.setup.welcome_eyebrow">
+            <source>A private, verified social client</source>
+            <translation>एक निजी, सत्यापित सोशल क्लाइंट</translation>
+        </message>
+        <message id="genycaster.setup.welcome_title">
+            <source>Welcome to Genycaster</source>
+            <translation>Genycaster में आपका स्वागत है</translation>
+        </message>
+        <message id="genycaster.setup.welcome_body">
+            <source>Set up your verified identity, personalize the interface, and choose how Genycaster should look and speak before you enter.</source>
+            <translation>अंदर जाने से पहले अपनी सत्यापित पहचान सेट करें, इंटरफ़ेस को वैयक्तिकृत करें और चुनें कि Genycaster कैसा दिखे और किस भाषा में बोले।</translation>
+        </message>
+        <message id="genycaster.setup.welcome_identity_title">
+            <source>Verified identity</source>
+            <translation>सत्यापित पहचान</translation>
+        </message>
+        <message id="genycaster.setup.welcome_identity_body">
+            <source>Connect through OpenProof and the Farcaster identity required for social actions.</source>
+            <translation>OpenProof और सामाजिक कार्रवाइयों के लिए आवश्यक Farcaster पहचान के माध्यम से जुड़ें।</translation>
+        </message>
+        <message id="genycaster.setup.welcome_personal_title">
+            <source>Your interface</source>
+            <translation>आपका इंटरफ़ेस</translation>
+        </message>
+        <message id="genycaster.setup.welcome_personal_body">
+            <source>Choose appearance, color, motion, and regional preferences before the first session.</source>
+            <translation>पहले सत्र से पहले रूप, रंग, मोशन और क्षेत्रीय प्राथमिकताएँ चुनें।</translation>
+        </message>
+        <message id="genycaster.setup.welcome_control_title">
+            <source>Clear control</source>
+            <translation>स्पष्ट नियंत्रण</translation>
+        </message>
+        <message id="genycaster.setup.welcome_control_body">
+            <source>No guest mode, no hidden setup path, and no interaction before the required checks are complete.</source>
+            <translation>कोई गेस्ट मोड नहीं, सेटअप को छोड़ने का कोई छिपा रास्ता नहीं, और आवश्यक जाँच पूरी होने से पहले कोई इंटरैक्शन नहीं।</translation>
+        </message>
+        <message id="genycaster.setup.welcome_note">
+            <source>Setup stays on this device except for the account authentication and protocol actions you explicitly approve.</source>
+            <translation>आपके द्वारा स्पष्ट रूप से स्वीकृत खाता प्रमाणीकरण और प्रोटोकॉल कार्रवाइयों को छोड़कर सेटअप इसी डिवाइस पर रहता है।</translation>
+        </message>
+        <message id="genycaster.setup.legal_title">
+            <source>Before you continue</source>
+            <translation>आगे बढ़ने से पहले</translation>
+        </message>
+        <message id="genycaster.setup.legal_intro">
+            <source>Review the Genyleap Terms of Use and Privacy Policy. Scroll through this notice before the consent controls are unlocked.</source>
+            <translation>Genyleap उपयोग की शर्तें और गोपनीयता नीति पढ़ें। सहमति नियंत्रण सक्रिय होने से पहले इस सूचना को अंत तक स्क्रॉल करें।</translation>
+        </message>
+        <message id="genycaster.setup.terms_title">
+            <source>Terms of Use</source>
+            <translation>उपयोग की शर्तें</translation>
+        </message>
+        <message id="genycaster.setup.terms_updated">
+            <source>Current official website terms</source>
+            <translation>वर्तमान आधिकारिक वेबसाइट शर्तें</translation>
+        </message>
+        <message id="genycaster.setup.terms_body">
+            <source>Genyleap's published Terms of Use cover website information and product resources. Website information is general and product scope may change. Downloads and repositories can carry their own licenses, release notes, and compatibility requirements. Sending a project enquiry does not create a contract or guarantee acceptance. Review the full Terms before continuing.</source>
+            <translation>Genyleap की प्रकाशित उपयोग की शर्तें वेबसाइट जानकारी और उत्पाद संसाधनों पर लागू होती हैं। वेबसाइट की जानकारी सामान्य है और उत्पाद का दायरा बदल सकता है। डाउनलोड और रिपॉज़िटरी की अपनी लाइसेंस, रिलीज़ नोट्स और संगतता आवश्यकताएँ हो सकती हैं। प्रोजेक्ट पूछताछ भेजने से अपने-आप कोई अनुबंध नहीं बनता और स्वीकृति की गारंटी नहीं मिलती। आगे बढ़ने से पहले पूरी शर्तें पढ़ें।</translation>
+        </message>
+        <message id="genycaster.setup.open_terms">
+            <source>Open full Terms of Use</source>
+            <translation>पूरी उपयोग की शर्तें खोलें</translation>
+        </message>
+        <message id="genycaster.setup.privacy_title">
+            <source>Privacy Policy</source>
+            <translation>गोपनीयता नीति</translation>
+        </message>
+        <message id="genycaster.setup.privacy_updated">
+            <source>Current official website privacy notice</source>
+            <translation>वर्तमान आधिकारिक वेबसाइट गोपनीयता सूचना</translation>
+        </message>
+        <message id="genycaster.setup.privacy_body">
+            <source>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</source>
+            <translation>Genyleap की प्रकाशित गोपनीयता सूचना उस जानकारी को कवर करती है जिसे आप संपर्क और प्रोजेक्ट फ़ॉर्म के माध्यम से भेजते हैं, साथ ही बुनियादी दुरुपयोग-रोकथाम डेटा को भी। Genycaster सेटअप में चुने गए Genyleap/OpenProof खाते और लिंक की गई Farcaster पहचान का उपयोग प्रमाणीकरण और प्रोटोकॉल कार्रवाइयों के लिए भी करता है। रूप और क्षेत्रीय प्राथमिकताएँ ऐप में स्थानीय रूप से संग्रहीत रहती हैं, जब तक कोई सुविधा स्पष्ट रूप से अन्यथा न बताए। आगे बढ़ने से पहले पूरी गोपनीयता सूचना पढ़ें।</translation>
+        </message>
+        <message id="genycaster.setup.open_privacy">
+            <source>Open full Privacy Policy</source>
+            <translation>पूरी गोपनीयता नीति खोलें</translation>
+        </message>
+        <message id="genycaster.setup.legal_governing_note">
+            <source>The links above open Genyleap's current published website terms and privacy notice. Product or repository-specific terms still apply where stated.</source>
+            <translation>ऊपर दिए गए लिंक Genyleap की वर्तमान प्रकाशित वेबसाइट शर्तें और गोपनीयता सूचना खोलते हैं। जहाँ उत्पाद या रिपॉज़िटरी-विशिष्ट शर्तें बताई गई हों, वे भी लागू होती हैं।</translation>
+        </message>
+        <message id="genycaster.setup.scroll_to_continue">
+            <source>Scroll to the end to unlock consent.</source>
+            <translation>सहमति सक्रिय करने के लिए अंत तक स्क्रॉल करें।</translation>
+        </message>
+        <message id="genycaster.setup.legal_read_complete">
+            <source>You reached the end. Review and confirm both items below.</source>
+            <translation>आप अंत तक पहुँच गए हैं। नीचे दोनों मदों की समीक्षा करके पुष्टि करें।</translation>
+        </message>
+        <message id="genycaster.setup.accept_terms">
+            <source>I agree to the Genyleap Terms of Use.</source>
+            <translation>मैं Genyleap उपयोग की शर्तों से सहमत हूँ।</translation>
+        </message>
+        <message id="genycaster.setup.acknowledge_privacy">
+            <source>I have read and understood the Genyleap Privacy Policy.</source>
+            <translation>मैंने Genyleap गोपनीयता नीति पढ़ी और समझी है।</translation>
+        </message>
+        <message id="genycaster.setup.agree_continue">
+            <source>Agree &amp; Continue</source>
+            <translation>सहमत होकर जारी रखें</translation>
+        </message>
+        <message id="genycaster.setup.back">
+            <source>Back</source>
+            <translation>वापस</translation>
+        </message>
+        <message id="genycaster.setup.continue">
+            <source>Continue</source>
+            <translation>जारी रखें</translation>
+        </message>
+        <message id="genycaster.setup.finish">
+            <source>Finish setup</source>
+            <translation>सेटअप पूरा करें</translation>
+        </message>
+        <message id="genycaster.setup.sign_in_required">
+            <source>Sign in to continue</source>
+            <translation>जारी रखने के लिए साइन इन करें</translation>
+        </message>
+        <message id="genycaster.setup.account_verified">
+            <source>Account verified</source>
+            <translation>खाता सत्यापित</translation>
+        </message>
+        <message id="genycaster.setup.account_verified_body">
+            <source>Your Genyleap/OpenProof identity is verified and the required Farcaster identity is linked.</source>
+            <translation>आपकी Genyleap/OpenProof पहचान सत्यापित है और आवश्यक Farcaster पहचान लिंक है।</translation>
+        </message>
+        <message id="genycaster.setup.verified_account_ready">
+            <source>Verified account ready for Genycaster.</source>
+            <translation>सत्यापित खाता Genycaster के लिए तैयार है।</translation>
+        </message>
+        <message id="genycaster.setup.consent_recorded">
+            <source>Consent recorded</source>
+            <translation>सहमति दर्ज की गई</translation>
+        </message>
+        <message id="genycaster.setup.legal_required_before_sign_in">
+            <source>Review and accept the Terms of Use and Privacy Policy before signing in.</source>
+            <translation>साइन इन करने से पहले उपयोग की शर्तें और गोपनीयता नीति पढ़कर स्वीकार करें।</translation>
+        </message>
     </context>
 </TS>

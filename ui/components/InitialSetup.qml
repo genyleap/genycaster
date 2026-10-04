@@ -11,48 +11,64 @@ Item {
     property bool authenticationAvailable: false
     property bool authenticated: false
     property bool setupCompleted: false
+    property bool legalConsentAccepted: false
     property string authenticationPhase: "signed-out"
     property string authenticationRoute: "openproof"
     property bool authenticationApprovalAvailable: false
     property string authenticationErrorText: ""
     property string accountName: ""
     property string accountUsername: ""
+    property bool legalReadToEnd: false
+    property bool legalTermsChecked: false
+    property bool legalPrivacyChecked: false
 
     signal continueWithGenyleap()
     signal continueWithFarcaster()
     signal openApproval()
     signal cancelAuthentication()
+    signal acceptLegalConsent(bool termsAccepted, bool privacyAcknowledged, bool reviewCompleted)
     signal finishSetup()
 
     readonly property bool phone: width < 680
     readonly property bool compact: width < 980
+    readonly property bool shortViewport: !phone && height < 720
     readonly property bool returningSignIn: setupCompleted && !authenticated
     readonly property bool authenticationStarting: authenticationPhase === "starting"
     readonly property bool awaitingApproval: authenticationPhase === "awaiting-approval"
     readonly property bool linkingFarcaster: authenticationPhase === "linking-farcaster"
     readonly property bool authenticationInProgress:
         authenticationStarting || awaitingApproval || linkingFarcaster
-    readonly property int wizardStepCount: returningSignIn ? 1 : 4
-    property int currentStep: 0
+    readonly property var wizardSteps: returningSignIn ? [2] : [0, 1, 2, 3, 4, 5]
+    readonly property int wizardStepCount: wizardSteps.length
+    readonly property bool legalGateSatisfied:
+        legalConsentAccepted || (legalReadToEnd && legalTermsChecked && legalPrivacyChecked)
+    readonly property int preferredDesktopHeight:
+        returningSignIn ? 620
+                        : (currentStep === 1 || currentStep === 3 || currentStep === 4 ? 760 : 680)
+    property int currentStep: returningSignIn ? 2 : 0
     property real stageReveal: 1.0
     property real shellReveal: 0.0
 
     function stepTitle(index) {
         switch (index) {
-        case 0: return qsTrId("genycaster.header.account")
-        case 1: return qsTrId("genycaster.settings.appearance")
-        case 2: return qsTrId("genycaster.settings.language_region")
-        case 3: return qsTrId("genycaster.status.ready")
+        case 0: return qsTrId("genycaster.setup.welcome")
+        case 1: return qsTrId("genycaster.setup.privacy_terms")
+        case 2: return qsTrId("genycaster.header.account")
+        case 3: return qsTrId("genycaster.settings.appearance")
+        case 4: return qsTrId("genycaster.settings.language_region")
+        case 5: return qsTrId("genycaster.status.ready")
         default: return ""
         }
     }
 
     function stepIcon(index) {
         switch (index) {
-        case 0: return Theme.iconUser
-        case 1: return Theme.iconPalette
-        case 2: return Theme.iconLanguage
-        case 3: return Theme.iconCheck
+        case 0: return Theme.iconLeaf
+        case 1: return Theme.iconFile
+        case 2: return Theme.iconUser
+        case 3: return Theme.iconPalette
+        case 4: return Theme.iconLanguage
+        case 5: return Theme.iconCheck
         default: return Theme.iconCheck
         }
     }
@@ -66,9 +82,13 @@ Item {
     }
 
     function switchStep(index) {
-        if (returningSignIn || !authenticated)
-            index = 0
-        index = Math.max(0, Math.min(3, index))
+        if (returningSignIn)
+            index = 2
+        index = Math.max(0, Math.min(5, index))
+        if (!legalConsentAccepted && index > 1)
+            index = 1
+        if (!authenticated && index > 2)
+            index = 2
         if (index === currentStep) {
             stageReveal = 1.0
             return
@@ -83,15 +103,79 @@ Item {
     }
 
     function synchronizeFlow() {
-        if (returningSignIn || !authenticated) {
-            switchStep(0)
+        if (returningSignIn) {
+            switchStep(2)
             return
         }
-        if (!setupCompleted && currentStep === 0)
+        if (!legalConsentAccepted && currentStep > 1) {
             switchStep(1)
+            return
+        }
+        if (!authenticated && currentStep > 2)
+            switchStep(2)
+    }
+
+    function nextStep() {
+        if (returningSignIn)
+            return
+
+        if (currentStep === 0) {
+            switchStep(legalConsentAccepted ? 2 : 1)
+            return
+        }
+        if (currentStep === 1) {
+            if (!legalGateSatisfied)
+                return
+            if (!legalConsentAccepted)
+                acceptLegalConsent(legalTermsChecked, legalPrivacyChecked, legalReadToEnd)
+            Qt.callLater(() => switchStep(2))
+            return
+        }
+        if (currentStep === 2) {
+            if (authenticated)
+                switchStep(3)
+            return
+        }
+        if (currentStep < 5) {
+            switchStep(currentStep + 1)
+            return
+        }
+        finishSetup()
+    }
+
+    function previousStep() {
+        if (returningSignIn || currentStep <= 0)
+            return
+        switchStep(currentStep - 1)
+    }
+
+    function primaryActionText() {
+        if (currentStep === 0)
+            return qsTrId("genycaster.setup.continue")
+        if (currentStep === 1)
+            return qsTrId("genycaster.setup.agree_continue")
+        if (currentStep === 2)
+            return authenticated
+                    ? qsTrId("genycaster.setup.continue")
+                    : qsTrId("genycaster.setup.sign_in_required")
+        if (currentStep === 5)
+            return qsTrId("genycaster.setup.finish")
+        return qsTrId("genycaster.setup.continue")
+    }
+
+    function primaryActionEnabled() {
+        if (authenticationInProgress)
+            return false
+        if (currentStep === 1)
+            return legalGateSatisfied
+        if (currentStep === 2)
+            return authenticated
+        return true
     }
 
     function phaseTitle() {
+        if (authenticated)
+            return qsTrId("genycaster.setup.account_verified")
         if (linkingFarcaster)
             return qsTrId("genycaster.shell.link_your_farcaster_account")
         if (awaitingApproval)
@@ -105,6 +189,8 @@ Item {
     }
 
     function phaseBody() {
+        if (authenticated)
+            return qsTrId("genycaster.setup.account_verified_body")
         if (linkingFarcaster)
             return qsTrId("genycaster.shell.genyleap_verified_link_farcaster_to_continue")
         if (awaitingApproval) {
@@ -117,9 +203,22 @@ Item {
 
     onAuthenticatedChanged: Qt.callLater(synchronizeFlow)
     onSetupCompletedChanged: Qt.callLater(synchronizeFlow)
+    onLegalConsentAcceptedChanged: {
+        if (legalConsentAccepted) {
+            legalReadToEnd = true
+            legalTermsChecked = true
+            legalPrivacyChecked = true
+        }
+        Qt.callLater(synchronizeFlow)
+    }
     onVisibleChanged: {
         if (!visible)
             return
+        if (legalConsentAccepted) {
+            legalReadToEnd = true
+            legalTermsChecked = true
+            legalPrivacyChecked = true
+        }
         forceActiveFocus()
         synchronizeFlow()
         shellReveal = Theme.reduceMotion ? 1.0 : 0.0
@@ -211,8 +310,14 @@ Item {
     Superellipse {
         id: setupShell
         anchors.centerIn: parent
-        width: root.phone ? root.width : Math.min(root.width - 48, 1460)
-        height: root.phone ? root.height : Math.min(root.height - 48, 820)
+        width: root.phone ? root.width : Math.min(root.width - 64, 1320)
+        height: root.phone ? root.height : Math.min(root.height - 64, root.preferredDesktopHeight)
+        Behavior on height {
+            NumberAnimation {
+                duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis
+                easing.type: Easing.OutCubic
+            }
+        }
         curveDepth: root.phone ? 0 : Theme.curveModal
         fillColor: Theme.surfaceRaised
         borderWidth: root.phone ? 0 : Theme.strokeHairline
@@ -225,19 +330,22 @@ Item {
 
         RowLayout {
             anchors.fill: parent
+            layoutDirection: Theme.uiDirection
             spacing: 0
 
             Rectangle {
                 id: rail
                 visible: !root.phone
-                Layout.preferredWidth: root.compact ? 236 : 286
+                Layout.preferredWidth: root.compact ? 228 : 252
                 Layout.fillHeight: true
                 color: Theme.surfaceMuted
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: root.compact ? Theme.space4 : Theme.space5
-                    spacing: Theme.space5
+                    anchors.margins: root.shortViewport
+                                     ? Theme.space3
+                                     : root.compact ? Theme.space4 : Theme.space5
+                    spacing: root.shortViewport ? Theme.space3 : Theme.space5
 
                     RowLayout {
                         Layout.fillWidth: true
@@ -285,21 +393,25 @@ Item {
                         spacing: Theme.space1
 
                         Repeater {
-                            model: root.wizardStepCount
+                            model: root.wizardSteps
 
                             delegate: Superellipse {
                                 id: railStep
                                 required property int index
+                                required property var modelData
+                                readonly property int stepNumber: Number(modelData)
+                                readonly property bool selected: root.currentStep === stepNumber
+                                readonly property bool completed: stepNumber < root.currentStep
+                                readonly property bool accessibleStep:
+                                    root.returningSignIn || stepNumber <= root.currentStep
                                 Layout.fillWidth: true
-                                implicitHeight: 58
+                                implicitHeight: root.shortViewport ? 46 : 54
                                 curveDepth: Theme.curveControl
-                                fillColor: root.currentStep === index
+                                fillColor: selected
                                            ? Theme.surfaceSelected
                                            : navHover.hovered ? Theme.surfaceHover : "transparent"
-                                borderWidth: root.currentStep === index ? Theme.strokeHairline : 0
-                                borderColor: Theme.border
-                                readonly property bool accessibleStep:
-                                    index === 0 || (root.authenticated && !root.returningSignIn)
+                                borderWidth: selected ? Theme.strokeHairline : 0
+                                borderColor: selected ? Theme.accent : Theme.border
 
                                 Behavior on fillColor {
                                     ColorAnimation { duration: Theme.motionFast }
@@ -316,35 +428,40 @@ Item {
                                         Layout.preferredWidth: 32
                                         Layout.preferredHeight: 32
                                         curveDepth: 16
-                                        fillColor: root.currentStep === railStep.index
+                                        fillColor: railStep.selected
                                                    ? Theme.primaryFill
-                                                   : railStep.index < root.currentStep
+                                                   : railStep.completed
                                                      ? Theme.primarySurface
                                                      : Theme.surfaceRaised
                                         borderWidth: Theme.strokeHairline
-                                        borderColor: railStep.index <= root.currentStep
+                                        borderColor: railStep.selected || railStep.completed
                                                      ? Theme.accent
                                                      : Theme.borderMuted
 
+                                        Behavior on fillColor {
+                                            ColorAnimation { duration: Theme.motionFast }
+                                        }
+
                                         Icon {
                                             anchors.centerIn: parent
-                                            text: railStep.index < root.currentStep
+                                            text: railStep.completed
                                                   ? Theme.iconCheck
-                                                  : root.stepIcon(railStep.index)
-                                            color: railStep.index <= root.currentStep
-                                                   ? Theme.accent
-                                                   : Theme.inkSubtle
+                                                  : root.stepIcon(railStep.stepNumber)
+                                            color: railStep.selected
+                                                   ? Theme.accentInk
+                                                   : railStep.completed
+                                                     ? Theme.accent
+                                                     : Theme.inkSubtle
                                             preferredSize: 15
                                         }
                                     }
 
                                     DirectionAwareLabel {
                                         Layout.fillWidth: true
-                                        text: root.stepTitle(railStep.index)
-                                        color: root.currentStep === railStep.index
-                                               ? Theme.ink : Theme.inkMuted
-                                        font.pixelSize: Theme.typeBodySize
-                                        font.weight: root.currentStep === railStep.index
+                                        text: root.stepTitle(railStep.stepNumber)
+                                        color: railStep.selected ? Theme.ink : Theme.inkMuted
+                                        font.pixelSize: Theme.typeMetaSize
+                                        font.weight: railStep.selected
                                                      ? Theme.weightDemiBold : Theme.weightMedium
                                     }
                                 }
@@ -357,7 +474,7 @@ Item {
                                 TapHandler {
                                     enabled: railStep.accessibleStep
                                     gesturePolicy: TapHandler.ReleaseWithinBounds
-                                    onTapped: root.switchStep(railStep.index)
+                                    onTapped: root.switchStep(railStep.stepNumber)
                                 }
                             }
                         }
@@ -458,7 +575,7 @@ Item {
                                 spacing: Theme.space2
 
                                 Repeater {
-                                    model: 4
+                                    model: 6
                                     delegate: Superellipse {
                                         id: mobileStep
                                         required property int index
@@ -474,7 +591,7 @@ Item {
                                         }
 
                                         TapHandler {
-                                            enabled: root.authenticated
+                                            enabled: index <= root.currentStep
                                             onTapped: root.switchStep(mobileStep.index)
                                         }
                                     }
@@ -513,19 +630,585 @@ Item {
                             ColumnLayout {
                                 id: stageColumn
                                 width: Math.min(
-                                    root.phone ? parent.width - Theme.space4 * 2 : 900,
+                                    root.phone
+                                            ? parent.width - Theme.space4 * 2
+                                            : root.compact ? 720 : 820,
                                     parent.width - (root.compact ? Theme.space5 : Theme.space8) * 2)
                                 x: (parent.width - width) / 2
-                                y: root.phone ? Theme.space4 : Theme.space7
+                                y: root.phone
+                                   ? Theme.space4
+                                   : Math.max(Theme.space5, (parent.height - implicitHeight) / 2)
                                 spacing: Theme.space5
                                 opacity: root.stageReveal
                                 transform: Translate {
                                     y: Theme.reduceMotion ? 0 : (1.0 - root.stageReveal) * 18
                                 }
 
-                                // Account / authentication
+                                // Welcome
                                 ColumnLayout {
                                     visible: root.currentStep === 0
+                                    Layout.fillWidth: true
+                                    spacing: Theme.space5
+
+                                    GridLayout {
+                                        Layout.fillWidth: true
+                                        layoutDirection: Theme.uiDirection
+                                        columns: root.phone ? 1 : 2
+                                        columnSpacing: Theme.space6
+                                        rowSpacing: Theme.space4
+
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: Theme.space3
+
+                                            DirectionAwareLabel {
+                                                Layout.fillWidth: true
+                                                text: qsTrId("genycaster.setup.welcome_eyebrow")
+                                                color: Theme.accent
+                                                font.pixelSize: Theme.typeMetaSize
+                                                font.weight: Theme.weightBold
+                                            }
+
+                                            DirectionAwareLabel {
+                                                Layout.fillWidth: true
+                                                text: qsTrId("genycaster.setup.welcome_title")
+                                                color: Theme.ink
+                                                font.pixelSize: root.phone
+                                                                ? Theme.typeTitle1Size
+                                                                : Math.round(Theme.typeDisplaySize * 1.18)
+                                                font.weight: Theme.weightBold
+                                                lineHeight: 0.98
+                                                wrapMode: Text.Wrap
+                                            }
+
+                                            DirectionAwareLabel {
+                                                Layout.fillWidth: true
+                                                text: qsTrId("genycaster.setup.welcome_body")
+                                                color: Theme.inkMuted
+                                                font.pixelSize: root.phone
+                                                                ? Theme.typeBodySize
+                                                                : Theme.typeTitle3Size
+                                                lineHeight: 1.42
+                                                wrapMode: Text.Wrap
+                                            }
+                                        }
+
+                                        Item {
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: root.phone ? 150 : 190
+
+                                            Superellipse {
+                                                id: welcomeOrbit
+                                                anchors.centerIn: parent
+                                                width: root.phone ? 124 : 154
+                                                height: width
+                                                curveDepth: width / 2
+                                                fillColor: Theme.primarySurface
+                                                borderWidth: Theme.strokeHairline
+                                                borderColor: Theme.accent
+
+                                                SequentialAnimation on scale {
+                                                    running: root.visible
+                                                             && root.currentStep === 0
+                                                             && !Theme.reduceMotion
+                                                    loops: Animation.Infinite
+                                                    NumberAnimation {
+                                                        to: 1.045
+                                                        duration: 1400
+                                                        easing.type: Easing.InOutSine
+                                                    }
+                                                    NumberAnimation {
+                                                        to: 1.0
+                                                        duration: 1400
+                                                        easing.type: Easing.InOutSine
+                                                    }
+                                                }
+
+                                                Superellipse {
+                                                    anchors.centerIn: parent
+                                                    width: parent.width - 28
+                                                    height: width
+                                                    curveDepth: width / 2
+                                                    fillColor: Theme.primaryFill
+                                                    borderWidth: 0
+
+                                                    Icon {
+                                                        anchors.centerIn: parent
+                                                        text: Theme.iconLeaf
+                                                        color: Theme.accentInk
+                                                        preferredSize: root.phone ? 44 : 56
+                                                    }
+                                                }
+                                            }
+
+                                            Superellipse {
+                                                width: 34
+                                                height: 34
+                                                x: welcomeOrbit.x + welcomeOrbit.width - 12
+                                                y: welcomeOrbit.y + 10
+                                                curveDepth: 17
+                                                fillColor: Theme.surfaceRaised
+                                                borderWidth: Theme.strokeHairline
+                                                borderColor: Theme.border
+                                                Icon {
+                                                    anchors.centerIn: parent
+                                                    text: Theme.iconCheck
+                                                    color: Theme.accent
+                                                    preferredSize: 15
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    GridLayout {
+                                        Layout.fillWidth: true
+                                        layoutDirection: Theme.uiDirection
+                                        columns: root.phone ? 1 : 3
+                                        columnSpacing: Theme.space2
+                                        rowSpacing: Theme.space2
+
+                                        Repeater {
+                                            model: [
+                                                {
+                                                    "icon": Theme.iconUser,
+                                                    "title": qsTrId("genycaster.setup.welcome_identity_title"),
+                                                    "body": qsTrId("genycaster.setup.welcome_identity_body")
+                                                },
+                                                {
+                                                    "icon": Theme.iconPalette,
+                                                    "title": qsTrId("genycaster.setup.welcome_personal_title"),
+                                                    "body": qsTrId("genycaster.setup.welcome_personal_body")
+                                                },
+                                                {
+                                                    "icon": Theme.iconSettings,
+                                                    "title": qsTrId("genycaster.setup.welcome_control_title"),
+                                                    "body": qsTrId("genycaster.setup.welcome_control_body")
+                                                }
+                                            ]
+
+                                            delegate: Superellipse {
+                                                id: welcomeFeature
+                                                required property var modelData
+                                                Layout.fillWidth: true
+                                                implicitHeight: root.phone ? 92 : 126
+                                                curveDepth: Theme.curveControl
+                                                fillColor: featureHover.hovered
+                                                           ? Theme.surfaceHover : Theme.surface
+                                                borderWidth: Theme.strokeHairline
+                                                borderColor: Theme.borderMuted
+                                                scale: featureHover.hovered && !Theme.reduceMotion ? 1.012 : 1.0
+
+                                                Behavior on scale {
+                                                    NumberAnimation {
+                                                        duration: Theme.motionFast
+                                                        easing.type: Easing.OutCubic
+                                                    }
+                                                }
+
+                                                ColumnLayout {
+                                                    anchors.fill: parent
+                                                    anchors.margins: Theme.space3
+                                                    spacing: Theme.space1
+
+                                                    Icon {
+                                                        text: welcomeFeature.modelData.icon
+                                                        color: Theme.accent
+                                                        preferredSize: 20
+                                                    }
+
+                                                    DirectionAwareLabel {
+                                                        Layout.fillWidth: true
+                                                        text: welcomeFeature.modelData.title
+                                                        color: Theme.ink
+                                                        font.pixelSize: Theme.typeBodySize
+                                                        font.weight: Theme.weightDemiBold
+                                                        wrapMode: Text.Wrap
+                                                    }
+
+                                                    DirectionAwareLabel {
+                                                        Layout.fillWidth: true
+                                                        text: welcomeFeature.modelData.body
+                                                        color: Theme.inkMuted
+                                                        font.pixelSize: Theme.typeCaptionSize
+                                                        lineHeight: 1.3
+                                                        wrapMode: Text.Wrap
+                                                    }
+                                                }
+
+                                                HoverHandler {
+                                                    id: featureHover
+                                                    cursorShape: Qt.ArrowCursor
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        layoutDirection: Theme.uiDirection
+                                        spacing: Theme.space2
+
+                                        Icon {
+                                            text: Theme.iconInfo
+                                            color: Theme.inkSubtle
+                                            preferredSize: 15
+                                        }
+
+                                        DirectionAwareLabel {
+                                            Layout.fillWidth: true
+                                            text: qsTrId("genycaster.setup.welcome_note")
+                                            color: Theme.inkSubtle
+                                            font.pixelSize: Theme.typeCaptionSize
+                                            wrapMode: Text.Wrap
+                                        }
+                                    }
+                                }
+
+                                // Privacy and terms
+                                ColumnLayout {
+                                    visible: root.currentStep === 1
+                                    Layout.fillWidth: true
+                                    spacing: Theme.space4
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: Theme.space2
+
+                                        DirectionAwareLabel {
+                                            Layout.fillWidth: true
+                                            text: qsTrId("genycaster.setup.legal_title")
+                                            color: Theme.ink
+                                            font.pixelSize: root.phone
+                                                            ? Theme.typeTitle1Size
+                                                            : Math.round(Theme.typeDisplaySize * 1.06)
+                                            font.weight: Theme.weightBold
+                                            wrapMode: Text.Wrap
+                                        }
+
+                                        DirectionAwareLabel {
+                                            Layout.fillWidth: true
+                                            text: qsTrId("genycaster.setup.legal_intro")
+                                            color: Theme.inkMuted
+                                            font.pixelSize: Theme.typeBodySize
+                                            lineHeight: 1.38
+                                            wrapMode: Text.Wrap
+                                        }
+                                    }
+
+                                    Superellipse {
+                                        Layout.fillWidth: true
+                                        implicitHeight: root.phone ? 330 : 310
+                                        curveDepth: Theme.curveLarge
+                                        fillColor: Theme.surface
+                                        borderWidth: Theme.strokeHairline
+                                        borderColor: root.legalReadToEnd
+                                                     ? Theme.accent : Theme.borderMuted
+
+                                        Flickable {
+                                            id: legalFlick
+                                            anchors.fill: parent
+                                            anchors.margins: Theme.space4
+                                            contentWidth: width
+                                            contentHeight: legalCopy.implicitHeight
+                                            clip: true
+                                            boundsBehavior: Flickable.StopAtBounds
+                                            flickableDirection: Flickable.VerticalFlick
+
+                                            ScrollBar.vertical: GenyScrollBar {
+                                                policy: ScrollBar.AsNeeded
+                                            }
+
+                                            onContentYChanged: {
+                                                if (atYEnd)
+                                                    root.legalReadToEnd = true
+                                            }
+
+                                            onContentHeightChanged: {
+                                                if (contentHeight > 0 && contentHeight <= height)
+                                                    root.legalReadToEnd = true
+                                            }
+                                            onHeightChanged: {
+                                                if (contentHeight > 0 && contentHeight <= height)
+                                                    root.legalReadToEnd = true
+                                            }
+
+                                            ColumnLayout {
+                                                id: legalCopy
+                                                width: legalFlick.width
+                                                spacing: Theme.space4
+
+                                                RowLayout {
+                                                    Layout.fillWidth: true
+                                                    layoutDirection: Theme.uiDirection
+                                                    spacing: Theme.space2
+
+                                                    Superellipse {
+                                                        Layout.preferredWidth: 38
+                                                        Layout.preferredHeight: 38
+                                                        curveDepth: Theme.curveControl
+                                                        fillColor: Theme.primarySurface
+                                                        borderWidth: 0
+                                                        Icon {
+                                                            anchors.centerIn: parent
+                                                            text: Theme.iconFile
+                                                            color: Theme.accent
+                                                            preferredSize: 17
+                                                        }
+                                                    }
+
+                                                    ColumnLayout {
+                                                        Layout.fillWidth: true
+                                                        spacing: 0
+                                                        DirectionAwareLabel {
+                                                            Layout.fillWidth: true
+                                                            text: qsTrId("genycaster.setup.terms_title")
+                                                            color: Theme.ink
+                                                            font.pixelSize: Theme.typeTitle3Size
+                                                            font.weight: Theme.weightBold
+                                                        }
+                                                        DirectionAwareLabel {
+                                                            Layout.fillWidth: true
+                                                            text: qsTrId("genycaster.setup.terms_updated")
+                                                            color: Theme.inkSubtle
+                                                            font.pixelSize: Theme.typeCaptionSize
+                                                        }
+                                                    }
+                                                }
+
+                                                DirectionAwareLabel {
+                                                    Layout.fillWidth: true
+                                                    text: qsTrId("genycaster.setup.terms_body")
+                                                    color: Theme.inkMuted
+                                                    font.pixelSize: Theme.typeMetaSize
+                                                    lineHeight: 1.42
+                                                    wrapMode: Text.Wrap
+                                                }
+
+                                                ActionButton {
+                                                    text: qsTrId("genycaster.setup.open_terms")
+                                                    quiet: true
+                                                    iconGlyph: Theme.iconArrowUpRight
+                                                    onClicked: Qt.openUrlExternally(
+                                                        "https://genyleap.com/terms-of-use")
+                                                }
+
+                                                Rectangle {
+                                                    Layout.fillWidth: true
+                                                    height: 1
+                                                    color: Theme.divider
+                                                }
+
+                                                RowLayout {
+                                                    Layout.fillWidth: true
+                                                    layoutDirection: Theme.uiDirection
+                                                    spacing: Theme.space2
+
+                                                    Superellipse {
+                                                        Layout.preferredWidth: 38
+                                                        Layout.preferredHeight: 38
+                                                        curveDepth: Theme.curveControl
+                                                        fillColor: Theme.primarySurface
+                                                        borderWidth: 0
+                                                        Icon {
+                                                            anchors.centerIn: parent
+                                                            text: Theme.iconInfo
+                                                            color: Theme.accent
+                                                            preferredSize: 17
+                                                        }
+                                                    }
+
+                                                    ColumnLayout {
+                                                        Layout.fillWidth: true
+                                                        spacing: 0
+                                                        DirectionAwareLabel {
+                                                            Layout.fillWidth: true
+                                                            text: qsTrId("genycaster.setup.privacy_title")
+                                                            color: Theme.ink
+                                                            font.pixelSize: Theme.typeTitle3Size
+                                                            font.weight: Theme.weightBold
+                                                        }
+                                                        DirectionAwareLabel {
+                                                            Layout.fillWidth: true
+                                                            text: qsTrId("genycaster.setup.privacy_updated")
+                                                            color: Theme.inkSubtle
+                                                            font.pixelSize: Theme.typeCaptionSize
+                                                        }
+                                                    }
+                                                }
+
+                                                DirectionAwareLabel {
+                                                    Layout.fillWidth: true
+                                                    text: qsTrId("genycaster.setup.privacy_body")
+                                                    color: Theme.inkMuted
+                                                    font.pixelSize: Theme.typeMetaSize
+                                                    lineHeight: 1.42
+                                                    wrapMode: Text.Wrap
+                                                }
+
+                                                ActionButton {
+                                                    text: qsTrId("genycaster.setup.open_privacy")
+                                                    quiet: true
+                                                    iconGlyph: Theme.iconArrowUpRight
+                                                    onClicked: Qt.openUrlExternally(
+                                                        "https://genyleap.com/privacy")
+                                                }
+
+                                                DirectionAwareLabel {
+                                                    Layout.fillWidth: true
+                                                    text: qsTrId("genycaster.setup.legal_governing_note")
+                                                    color: Theme.inkSubtle
+                                                    font.pixelSize: Theme.typeCaptionSize
+                                                    lineHeight: 1.34
+                                                    wrapMode: Text.Wrap
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        layoutDirection: Theme.uiDirection
+                                        spacing: Theme.space2
+
+                                        Icon {
+                                            text: root.legalReadToEnd
+                                                  ? Theme.iconCheck : Theme.iconChevronDown
+                                            color: root.legalReadToEnd ? Theme.accent : Theme.inkSubtle
+                                            preferredSize: 15
+                                        }
+
+                                        DirectionAwareLabel {
+                                            Layout.fillWidth: true
+                                            text: root.legalReadToEnd
+                                                  ? qsTrId("genycaster.setup.legal_read_complete")
+                                                  : qsTrId("genycaster.setup.scroll_to_continue")
+                                            color: root.legalReadToEnd ? Theme.accent : Theme.inkSubtle
+                                            font.pixelSize: Theme.typeCaptionSize
+                                            font.weight: Theme.weightDemiBold
+                                            wrapMode: Text.Wrap
+                                        }
+                                    }
+
+                                    Superellipse {
+                                        id: termsConsentRow
+                                        Layout.fillWidth: true
+                                        implicitHeight: 54
+                                        curveDepth: Theme.curveControl
+                                        fillColor: termsConsentHover.hovered
+                                                   ? Theme.surfaceHover : Theme.surface
+                                        borderWidth: Theme.strokeHairline
+                                        borderColor: root.legalTermsChecked
+                                                     ? Theme.accent : Theme.borderMuted
+                                        opacity: root.legalReadToEnd || root.legalConsentAccepted ? 1.0 : 0.55
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: Theme.space3
+                                            anchors.rightMargin: Theme.space3
+                                            layoutDirection: Theme.uiDirection
+                                            spacing: Theme.space3
+
+                                            Superellipse {
+                                                Layout.preferredWidth: 24
+                                                Layout.preferredHeight: 24
+                                                curveDepth: 7
+                                                fillColor: root.legalTermsChecked
+                                                           ? Theme.primaryFill : Theme.surfaceRaised
+                                                borderWidth: Theme.strokeHairline
+                                                borderColor: root.legalTermsChecked
+                                                             ? Theme.accent : Theme.borderStrong
+                                                Icon {
+                                                    anchors.centerIn: parent
+                                                    visible: root.legalTermsChecked
+                                                    text: Theme.iconCheck
+                                                    color: Theme.accentInk
+                                                    preferredSize: 13
+                                                }
+                                            }
+
+                                            DirectionAwareLabel {
+                                                Layout.fillWidth: true
+                                                text: qsTrId("genycaster.setup.accept_terms")
+                                                color: Theme.ink
+                                                font.pixelSize: Theme.typeMetaSize
+                                                font.weight: Theme.weightDemiBold
+                                                wrapMode: Text.Wrap
+                                            }
+                                        }
+
+                                        HoverHandler {
+                                            id: termsConsentHover
+                                            enabled: root.legalReadToEnd && !root.legalConsentAccepted
+                                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                        }
+                                        TapHandler {
+                                            enabled: root.legalReadToEnd && !root.legalConsentAccepted
+                                            onTapped: root.legalTermsChecked = !root.legalTermsChecked
+                                        }
+                                    }
+
+                                    Superellipse {
+                                        id: privacyConsentRow
+                                        Layout.fillWidth: true
+                                        implicitHeight: 54
+                                        curveDepth: Theme.curveControl
+                                        fillColor: privacyConsentHover.hovered
+                                                   ? Theme.surfaceHover : Theme.surface
+                                        borderWidth: Theme.strokeHairline
+                                        borderColor: root.legalPrivacyChecked
+                                                     ? Theme.accent : Theme.borderMuted
+                                        opacity: root.legalReadToEnd || root.legalConsentAccepted ? 1.0 : 0.55
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: Theme.space3
+                                            anchors.rightMargin: Theme.space3
+                                            layoutDirection: Theme.uiDirection
+                                            spacing: Theme.space3
+
+                                            Superellipse {
+                                                Layout.preferredWidth: 24
+                                                Layout.preferredHeight: 24
+                                                curveDepth: 7
+                                                fillColor: root.legalPrivacyChecked
+                                                           ? Theme.primaryFill : Theme.surfaceRaised
+                                                borderWidth: Theme.strokeHairline
+                                                borderColor: root.legalPrivacyChecked
+                                                             ? Theme.accent : Theme.borderStrong
+                                                Icon {
+                                                    anchors.centerIn: parent
+                                                    visible: root.legalPrivacyChecked
+                                                    text: Theme.iconCheck
+                                                    color: Theme.accentInk
+                                                    preferredSize: 13
+                                                }
+                                            }
+
+                                            DirectionAwareLabel {
+                                                Layout.fillWidth: true
+                                                text: qsTrId("genycaster.setup.acknowledge_privacy")
+                                                color: Theme.ink
+                                                font.pixelSize: Theme.typeMetaSize
+                                                font.weight: Theme.weightDemiBold
+                                                wrapMode: Text.Wrap
+                                            }
+                                        }
+
+                                        HoverHandler {
+                                            id: privacyConsentHover
+                                            enabled: root.legalReadToEnd && !root.legalConsentAccepted
+                                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                        }
+                                        TapHandler {
+                                            enabled: root.legalReadToEnd && !root.legalConsentAccepted
+                                            onTapped: root.legalPrivacyChecked = !root.legalPrivacyChecked
+                                        }
+                                    }
+                                }
+
+                                // Account / authentication
+                                ColumnLayout {
+                                    visible: root.currentStep === 2
                                     Layout.fillWidth: true
                                     spacing: Theme.space5
 
@@ -749,7 +1432,7 @@ Item {
                                             }
 
                                             ColumnLayout {
-                                                visible: !root.authenticationInProgress
+                                                visible: !root.authenticationInProgress && !root.authenticated
                                                 Layout.fillWidth: true
                                                 spacing: Theme.space2
 
@@ -772,6 +1455,63 @@ Item {
                                                     iconGlyph: Theme.iconLink
                                                     enabled: root.runtimeReady && root.authenticationAvailable
                                                     onClicked: root.continueWithFarcaster()
+                                                }
+                                            }
+
+                                            Superellipse {
+                                                visible: root.authenticated
+                                                Layout.fillWidth: true
+                                                implicitHeight: verifiedAccountRow.implicitHeight + Theme.space3 * 2
+                                                curveDepth: Theme.curveControl
+                                                fillColor: Theme.primarySurface
+                                                borderWidth: Theme.strokeHairline
+                                                borderColor: Theme.accent
+
+                                                RowLayout {
+                                                    id: verifiedAccountRow
+                                                    anchors.fill: parent
+                                                    anchors.margins: Theme.space3
+                                                    layoutDirection: Theme.uiDirection
+                                                    spacing: Theme.space3
+
+                                                    Superellipse {
+                                                        Layout.preferredWidth: 34
+                                                        Layout.preferredHeight: 34
+                                                        curveDepth: 17
+                                                        fillColor: Theme.primaryFill
+                                                        borderWidth: 0
+
+                                                        Icon {
+                                                            anchors.centerIn: parent
+                                                            text: Theme.iconCheck
+                                                            color: Theme.accentInk
+                                                            preferredSize: 16
+                                                        }
+                                                    }
+
+                                                    ColumnLayout {
+                                                        Layout.fillWidth: true
+                                                        spacing: 0
+
+                                                        DirectionAwareLabel {
+                                                            Layout.fillWidth: true
+                                                            text: root.accountName.length > 0
+                                                                  ? root.accountName
+                                                                  : root.accountUsername
+                                                            color: Theme.ink
+                                                            font.pixelSize: Theme.typeBodySize
+                                                            font.weight: Theme.weightDemiBold
+                                                            elide: Text.ElideRight
+                                                        }
+
+                                                        DirectionAwareLabel {
+                                                            Layout.fillWidth: true
+                                                            text: qsTrId("genycaster.setup.verified_account_ready")
+                                                            color: Theme.inkMuted
+                                                            font.pixelSize: Theme.typeCaptionSize
+                                                            wrapMode: Text.Wrap
+                                                        }
+                                                    }
                                                 }
                                             }
 
@@ -807,7 +1547,7 @@ Item {
 
                                 // Appearance
                                 ColumnLayout {
-                                    visible: root.currentStep === 1
+                                    visible: root.currentStep === 3
                                     Layout.fillWidth: true
                                     spacing: Theme.space5
 
@@ -1090,7 +1830,7 @@ Item {
 
                                 // Language and region
                                 ColumnLayout {
-                                    visible: root.currentStep === 2
+                                    visible: root.currentStep === 4
                                     Layout.fillWidth: true
                                     spacing: Theme.space5
 
@@ -1266,7 +2006,7 @@ Item {
 
                                 // Ready
                                 ColumnLayout {
-                                    visible: root.currentStep === 3
+                                    visible: root.currentStep === 5
                                     Layout.fillWidth: true
                                     spacing: Theme.space5
 
@@ -1300,7 +2040,7 @@ Item {
 
                                             SequentialAnimation on scale {
                                                 running: root.visible
-                                                         && root.currentStep === 3
+                                                         && root.currentStep === 5
                                                          && !Theme.reduceMotion
                                                 loops: 1
                                                 NumberAnimation {
@@ -1344,7 +2084,7 @@ Item {
                                     GridLayout {
                                         Layout.fillWidth: true
                                         layoutDirection: Theme.uiDirection
-                                        columns: root.phone ? 1 : 3
+                                        columns: root.phone ? 1 : 2
                                         columnSpacing: Theme.space2
                                         rowSpacing: Theme.space2
 
@@ -1356,6 +2096,11 @@ Item {
                                                     "value": root.accountName.length > 0
                                                              ? root.accountName
                                                              : root.accountUsername
+                                                },
+                                                {
+                                                    "icon": Theme.iconFile,
+                                                    "title": qsTrId("genycaster.setup.privacy_terms"),
+                                                    "value": qsTrId("genycaster.setup.consent_recorded")
                                                 },
                                                 {
                                                     "icon": Theme.iconPalette,
@@ -1414,9 +2159,9 @@ Item {
 
                     Rectangle {
                         id: setupFooter
-                        visible: root.authenticated && !root.setupCompleted && root.currentStep > 0
+                        visible: !root.returningSignIn && !root.setupCompleted
                         Layout.fillWidth: true
-                        implicitHeight: root.phone ? 78 : 88
+                        implicitHeight: root.phone ? 76 : 82
                         color: Theme.surfaceRaised
 
                         Rectangle {
@@ -1429,43 +2174,51 @@ Item {
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.leftMargin: root.phone ? Theme.space4 : Theme.space6
-                            anchors.rightMargin: root.phone ? Theme.space4 : Theme.space6
+                            anchors.leftMargin: root.phone ? Theme.space4 : Theme.space5
+                            anchors.rightMargin: root.phone ? Theme.space4 : Theme.space5
                             layoutDirection: Theme.uiDirection
                             spacing: Theme.space2
 
                             ActionButton {
-                                visible: root.currentStep > 1
-                                text: root.stepTitle(root.currentStep - 1)
+                                visible: root.currentStep > 0
+                                text: qsTrId("genycaster.setup.back")
                                 quiet: true
                                 iconGlyph: Theme.iconArrowLeft
-                                onClicked: root.switchStep(root.currentStep - 1)
+                                enabled: !root.authenticationInProgress
+                                onClicked: root.previousStep()
                             }
 
                             Item { Layout.fillWidth: true }
 
-                            DirectionAwareLabel {
+                            ColumnLayout {
                                 visible: !root.phone
-                                text: (root.currentStep + 1) + " / 4"
-                                color: Theme.inkSubtle
-                                font.pixelSize: Theme.typeCaptionSize
+                                spacing: 0
+
+                                DirectionAwareLabel {
+                                    text: root.stepTitle(root.currentStep)
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: Theme.weightDemiBold
+                                    horizontalAlignment: Text.AlignRight
+                                }
+
+                                DirectionAwareLabel {
+                                    text: (root.currentStep + 1) + " / 6"
+                                    color: Theme.inkSubtle
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    horizontalAlignment: Text.AlignRight
+                                }
                             }
 
                             ActionButton {
-                                implicitWidth: root.phone ? 0 : 210
+                                implicitWidth: root.phone ? 0 : 220
                                 Layout.fillWidth: root.phone
-                                text: root.currentStep === 3
-                                      ? qsTrId("genycaster.locale.done")
-                                      : root.stepTitle(root.currentStep + 1)
+                                text: root.primaryActionText()
                                 prominent: true
-                                iconGlyph: root.currentStep === 3
+                                enabled: root.primaryActionEnabled()
+                                iconGlyph: root.currentStep === 5
                                            ? Theme.iconCheck : Theme.iconArrowRight
-                                onClicked: {
-                                    if (root.currentStep === 3)
-                                        root.finishSetup()
-                                    else
-                                        root.switchStep(root.currentStep + 1)
-                                }
+                                onClicked: root.nextStep()
                             }
                         }
                     }

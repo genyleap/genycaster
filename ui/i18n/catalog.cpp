@@ -990,6 +990,80 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.title");
     //% "Sign in to continue. OpenProof verifies your Genyleap identity, and a linked Farcaster account is required for Genycaster."
     (void)qtTrId("genycaster.setup.subtitle");
+    //% "Review and accept the Terms of Use and Privacy Policy before signing in."
+    (void)qtTrId("genycaster.setup.legal_required_before_sign_in");
+    //% "Welcome"
+    (void)qtTrId("genycaster.setup.welcome");
+    //% "Privacy & Terms"
+    (void)qtTrId("genycaster.setup.privacy_terms");
+    //% "A private, verified social client"
+    (void)qtTrId("genycaster.setup.welcome_eyebrow");
+    //% "Welcome to Genycaster"
+    (void)qtTrId("genycaster.setup.welcome_title");
+    //% "Set up your verified identity, personalize the interface, and choose how Genycaster should look and speak before you enter."
+    (void)qtTrId("genycaster.setup.welcome_body");
+    //% "Verified identity"
+    (void)qtTrId("genycaster.setup.welcome_identity_title");
+    //% "Connect through OpenProof and the Farcaster identity required for social actions."
+    (void)qtTrId("genycaster.setup.welcome_identity_body");
+    //% "Your interface"
+    (void)qtTrId("genycaster.setup.welcome_personal_title");
+    //% "Choose appearance, color, motion, and regional preferences before the first session."
+    (void)qtTrId("genycaster.setup.welcome_personal_body");
+    //% "Clear control"
+    (void)qtTrId("genycaster.setup.welcome_control_title");
+    //% "No guest mode, no hidden setup path, and no interaction before the required checks are complete."
+    (void)qtTrId("genycaster.setup.welcome_control_body");
+    //% "Setup stays on this device except for the account authentication and protocol actions you explicitly approve."
+    (void)qtTrId("genycaster.setup.welcome_note");
+    //% "Before you continue"
+    (void)qtTrId("genycaster.setup.legal_title");
+    //% "Review the Genyleap Terms of Use and Privacy Policy. Scroll through this notice before the consent controls are unlocked."
+    (void)qtTrId("genycaster.setup.legal_intro");
+    //% "Terms of Use"
+    (void)qtTrId("genycaster.setup.terms_title");
+    //% "Current official website terms"
+    (void)qtTrId("genycaster.setup.terms_updated");
+    //% "Genyleap's published Terms of Use cover website information and product resources. Website information is general and product scope may change. Downloads and repositories can carry their own licenses, release notes, and compatibility requirements. Sending a project enquiry does not create a contract or guarantee acceptance. Review the full Terms before continuing."
+    (void)qtTrId("genycaster.setup.terms_body");
+    //% "Open full Terms of Use"
+    (void)qtTrId("genycaster.setup.open_terms");
+    //% "Privacy Policy"
+    (void)qtTrId("genycaster.setup.privacy_title");
+    //% "Current official website privacy notice"
+    (void)qtTrId("genycaster.setup.privacy_updated");
+    //% "The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing."
+    (void)qtTrId("genycaster.setup.privacy_body");
+    //% "Open full Privacy Policy"
+    (void)qtTrId("genycaster.setup.open_privacy");
+    //% "The links above open Genyleap's current published website terms and privacy notice. Product or repository-specific terms still apply where stated."
+    (void)qtTrId("genycaster.setup.legal_governing_note");
+    //% "Scroll to the end to unlock consent."
+    (void)qtTrId("genycaster.setup.scroll_to_continue");
+    //% "You reached the end. Review and confirm both items below."
+    (void)qtTrId("genycaster.setup.legal_read_complete");
+    //% "I agree to the Genyleap Terms of Use."
+    (void)qtTrId("genycaster.setup.accept_terms");
+    //% "I have read and understood the Genyleap Privacy Policy."
+    (void)qtTrId("genycaster.setup.acknowledge_privacy");
+    //% "Agree & Continue"
+    (void)qtTrId("genycaster.setup.agree_continue");
+    //% "Back"
+    (void)qtTrId("genycaster.setup.back");
+    //% "Continue"
+    (void)qtTrId("genycaster.setup.continue");
+    //% "Finish setup"
+    (void)qtTrId("genycaster.setup.finish");
+    //% "Sign in to continue"
+    (void)qtTrId("genycaster.setup.sign_in_required");
+    //% "Account verified"
+    (void)qtTrId("genycaster.setup.account_verified");
+    //% "Your Genyleap/OpenProof identity is verified and the required Farcaster identity is linked."
+    (void)qtTrId("genycaster.setup.account_verified_body");
+    //% "Verified account ready for Genycaster."
+    (void)qtTrId("genycaster.setup.verified_account_ready");
+    //% "Consent recorded"
+    (void)qtTrId("genycaster.setup.consent_recorded");
     //% "Account"
     (void)qtTrId("genycaster.side_nav.account");
     //% "Bookmarks"

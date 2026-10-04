@@ -19,6 +19,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool authenticationAvailable READ authenticationAvailable NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool initialSetupRequired READ initialSetupRequired NOTIFY setupStateChanged)
     Q_PROPERTY(bool initialSetupCompleted READ initialSetupCompleted NOTIFY setupStateChanged)
+    Q_PROPERTY(bool legalConsentAccepted READ legalConsentAccepted NOTIFY setupStateChanged)
     Q_PROPERTY(bool isAuthenticated READ isAuthenticated NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool authenticationBusy READ authenticationBusy NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString authenticationPhase READ authenticationPhase NOTIFY authenticationStateChanged)
@@ -91,6 +92,7 @@ public:
     [[nodiscard]] bool authenticationAvailable() const noexcept;
     [[nodiscard]] bool initialSetupRequired() const noexcept;
     [[nodiscard]] bool initialSetupCompleted() const noexcept;
+    [[nodiscard]] bool legalConsentAccepted() const noexcept;
     [[nodiscard]] bool isAuthenticated() const noexcept;
     [[nodiscard]] bool authenticationBusy() const noexcept;
     [[nodiscard]] QString authenticationPhase() const;
@@ -201,7 +203,12 @@ public:
     Q_INVOKABLE void copyText(const QString& text);
     /** @brief Selects the approved contextual glyph for the existing Like action without changing reaction semantics. */
     [[nodiscard]] Q_INVOKABLE QString contextualReactionIcon(const QString& text) const;
-    /** @brief Completes first-run setup after a verified account session exists. */
+    /** @brief Records explicit acceptance of the current legal bundle after the review gate. */
+    Q_INVOKABLE bool acceptLegalConsent(
+        bool termsAccepted,
+        bool privacyAcknowledged,
+        bool reviewCompleted);
+    /** @brief Completes first-run setup after legal consent and a verified account session exist. */
     Q_INVOKABLE void completeInitialSetup();
     /** @brief Starts canonical Genyleap/OpenProof sign-in. */
     Q_INVOKABLE void beginSignIn();
@@ -361,6 +368,7 @@ private:
     bool m_runtimeReady{false};
     bool m_authenticationAvailable{false};
     bool m_initialSetupCompleted{false};
+    bool m_legalConsentAccepted{false};
     bool m_setupBypassedForVerification{false};
     bool m_isAuthenticated{false};
     QString m_authenticationPhase{QStringLiteral("signed-out")};

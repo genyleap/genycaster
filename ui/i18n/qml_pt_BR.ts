@@ -3286,5 +3286,153 @@
             <source>Sign in to continue. OpenProof verifies your Genyleap identity, and a linked Farcaster account is required for Genycaster.</source>
             <translation>Entre para continuar. O OpenProof verifica sua identidade Genyleap, e o Genycaster exige uma conta Farcaster vinculada.</translation>
         </message>
+        <message id="genycaster.setup.welcome">
+            <source>Welcome</source>
+            <translation>Boas-vindas</translation>
+        </message>
+        <message id="genycaster.setup.privacy_terms">
+            <source>Privacy &amp; Terms</source>
+            <translation>Privacidade e Termos</translation>
+        </message>
+        <message id="genycaster.setup.welcome_eyebrow">
+            <source>A private, verified social client</source>
+            <translation>Um cliente social privado e verificado</translation>
+        </message>
+        <message id="genycaster.setup.welcome_title">
+            <source>Welcome to Genycaster</source>
+            <translation>Boas-vindas ao Genycaster</translation>
+        </message>
+        <message id="genycaster.setup.welcome_body">
+            <source>Set up your verified identity, personalize the interface, and choose how Genycaster should look and speak before you enter.</source>
+            <translation>Configure sua identidade verificada, personalize a interface e escolha como o Genycaster deve parecer e se comunicar antes de entrar.</translation>
+        </message>
+        <message id="genycaster.setup.welcome_identity_title">
+            <source>Verified identity</source>
+            <translation>Identidade verificada</translation>
+        </message>
+        <message id="genycaster.setup.welcome_identity_body">
+            <source>Connect through OpenProof and the Farcaster identity required for social actions.</source>
+            <translation>Conecte-se pelo OpenProof e pela identidade Farcaster exigida para ações sociais.</translation>
+        </message>
+        <message id="genycaster.setup.welcome_personal_title">
+            <source>Your interface</source>
+            <translation>Sua interface</translation>
+        </message>
+        <message id="genycaster.setup.welcome_personal_body">
+            <source>Choose appearance, color, motion, and regional preferences before the first session.</source>
+            <translation>Escolha aparência, cor, movimento e preferências regionais antes da primeira sessão.</translation>
+        </message>
+        <message id="genycaster.setup.welcome_control_title">
+            <source>Clear control</source>
+            <translation>Controle claro</translation>
+        </message>
+        <message id="genycaster.setup.welcome_control_body">
+            <source>No guest mode, no hidden setup path, and no interaction before the required checks are complete.</source>
+            <translation>Sem modo convidado, sem caminho oculto para ignorar a configuração e sem interação antes de concluir as verificações obrigatórias.</translation>
+        </message>
+        <message id="genycaster.setup.welcome_note">
+            <source>Setup stays on this device except for the account authentication and protocol actions you explicitly approve.</source>
+            <translation>A configuração permanece neste dispositivo, exceto pela autenticação da conta e pelas ações de protocolo que você aprovar explicitamente.</translation>
+        </message>
+        <message id="genycaster.setup.legal_title">
+            <source>Before you continue</source>
+            <translation>Antes de continuar</translation>
+        </message>
+        <message id="genycaster.setup.legal_intro">
+            <source>Review the Genyleap Terms of Use and Privacy Policy. Scroll through this notice before the consent controls are unlocked.</source>
+            <translation>Revise os Termos de Uso e a Política de Privacidade da Genyleap. Role este aviso antes que os controles de consentimento sejam liberados.</translation>
+        </message>
+        <message id="genycaster.setup.terms_title">
+            <source>Terms of Use</source>
+            <translation>Termos de Uso</translation>
+        </message>
+        <message id="genycaster.setup.terms_updated">
+            <source>Current official website terms</source>
+            <translation>Termos oficiais atuais do site</translation>
+        </message>
+        <message id="genycaster.setup.terms_body">
+            <source>Genyleap's published Terms of Use cover website information and product resources. Website information is general and product scope may change. Downloads and repositories can carry their own licenses, release notes, and compatibility requirements. Sending a project enquiry does not create a contract or guarantee acceptance. Review the full Terms before continuing.</source>
+            <translation>Os Termos de Uso publicados da Genyleap cobrem informações do site e recursos de produto. As informações do site são gerais e o escopo dos produtos pode mudar. Downloads e repositórios podem ter licenças, notas de versão e requisitos de compatibilidade próprios. Enviar uma consulta de projeto não cria contrato nem garante aceitação. Revise os Termos completos antes de continuar.</translation>
+        </message>
+        <message id="genycaster.setup.open_terms">
+            <source>Open full Terms of Use</source>
+            <translation>Abrir os Termos de Uso completos</translation>
+        </message>
+        <message id="genycaster.setup.privacy_title">
+            <source>Privacy Policy</source>
+            <translation>Política de Privacidade</translation>
+        </message>
+        <message id="genycaster.setup.privacy_updated">
+            <source>Current official website privacy notice</source>
+            <translation>Aviso oficial atual de privacidade do site</translation>
+        </message>
+        <message id="genycaster.setup.privacy_body">
+            <source>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</source>
+            <translation>O aviso de privacidade publicado pela Genyleap cobre as informações que você escolhe enviar por formulários de contato e projeto, além de dados básicos de prevenção de abuso. O Genycaster também usa a conta Genyleap/OpenProof e a identidade Farcaster vinculada escolhidas durante a configuração para autenticação e ações de protocolo. Preferências de aparência e região ficam armazenadas localmente no aplicativo, salvo indicação explícita em contrário por algum recurso. Revise o aviso de privacidade completo antes de continuar.</translation>
+        </message>
+        <message id="genycaster.setup.open_privacy">
+            <source>Open full Privacy Policy</source>
+            <translation>Abrir a Política de Privacidade completa</translation>
+        </message>
+        <message id="genycaster.setup.legal_governing_note">
+            <source>The links above open Genyleap's current published website terms and privacy notice. Product or repository-specific terms still apply where stated.</source>
+            <translation>Os links acima abrem os termos do site e o aviso de privacidade atualmente publicados pela Genyleap. Termos específicos de produto ou repositório também se aplicam quando indicados.</translation>
+        </message>
+        <message id="genycaster.setup.scroll_to_continue">
+            <source>Scroll to the end to unlock consent.</source>
+            <translation>Role até o final para liberar o consentimento.</translation>
+        </message>
+        <message id="genycaster.setup.legal_read_complete">
+            <source>You reached the end. Review and confirm both items below.</source>
+            <translation>Você chegou ao final. Revise e confirme os dois itens abaixo.</translation>
+        </message>
+        <message id="genycaster.setup.accept_terms">
+            <source>I agree to the Genyleap Terms of Use.</source>
+            <translation>Concordo com os Termos de Uso da Genyleap.</translation>
+        </message>
+        <message id="genycaster.setup.acknowledge_privacy">
+            <source>I have read and understood the Genyleap Privacy Policy.</source>
+            <translation>Li e compreendi a Política de Privacidade da Genyleap.</translation>
+        </message>
+        <message id="genycaster.setup.agree_continue">
+            <source>Agree &amp; Continue</source>
+            <translation>Concordar e continuar</translation>
+        </message>
+        <message id="genycaster.setup.back">
+            <source>Back</source>
+            <translation>Voltar</translation>
+        </message>
+        <message id="genycaster.setup.continue">
+            <source>Continue</source>
+            <translation>Continuar</translation>
+        </message>
+        <message id="genycaster.setup.finish">
+            <source>Finish setup</source>
+            <translation>Concluir configuração</translation>
+        </message>
+        <message id="genycaster.setup.sign_in_required">
+            <source>Sign in to continue</source>
+            <translation>Entre para continuar</translation>
+        </message>
+        <message id="genycaster.setup.account_verified">
+            <source>Account verified</source>
+            <translation>Conta verificada</translation>
+        </message>
+        <message id="genycaster.setup.account_verified_body">
+            <source>Your Genyleap/OpenProof identity is verified and the required Farcaster identity is linked.</source>
+            <translation>Sua identidade Genyleap/OpenProof foi verificada e a identidade Farcaster obrigatória está vinculada.</translation>
+        </message>
+        <message id="genycaster.setup.verified_account_ready">
+            <source>Verified account ready for Genycaster.</source>
+            <translation>Conta verificada pronta para o Genycaster.</translation>
+        </message>
+        <message id="genycaster.setup.consent_recorded">
+            <source>Consent recorded</source>
+            <translation>Consentimento registrado</translation>
+        </message>
+        <message id="genycaster.setup.legal_required_before_sign_in">
+            <source>Review and accept the Terms of Use and Privacy Policy before signing in.</source>
+            <translation>Revise e aceite os Termos de Uso e a Política de Privacidade antes de entrar.</translation>
+        </message>
     </context>
 </TS>

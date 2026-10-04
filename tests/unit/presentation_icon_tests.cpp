@@ -274,11 +274,13 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     // Legacy setup completion could be written by the old guest-dismissal flow.
     // It must not bypass the new authenticated onboarding wizard.
     settings.setValue(QStringLiteral("setup/initialSetupCompleted"), true);
+    settings.setValue(QStringLiteral("setup/onboardingVersion"), 2);
     settings.sync();
 
     PresentationBridge bridge{nullptr, &settings};
     assert(bridge.initialSetupRequired());
     assert(!bridge.initialSetupCompleted());
+    assert(!bridge.legalConsentAccepted());
 
     bridge.completeInitialSetup();
     assert(bridge.initialSetupRequired());
@@ -297,6 +299,17 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(bridge.initialSetupRequired());
 
     bridge.completeInitialSetup();
+    assert(!bridge.initialSetupCompleted());
+
+    assert(!bridge.acceptLegalConsent(true, true, false));
+    assert(!bridge.legalConsentAccepted());
+    assert(!bridge.acceptLegalConsent(true, false, true));
+    assert(!bridge.legalConsentAccepted());
+    assert(bridge.acceptLegalConsent(true, true, true));
+    assert(bridge.legalConsentAccepted());
+    assert(settings.value(QStringLiteral("setup/legalConsentVersion")).toInt() == 1);
+
+    bridge.completeInitialSetup();
     assert(bridge.initialSetupCompleted());
     assert(!bridge.initialSetupRequired());
 
@@ -313,11 +326,12 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(bridge.initialSetupRequired());
 
     settings.sync();
-    assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 2);
+    assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 3);
     assert(!settings.contains(QStringLiteral("setup/initialSetupCompleted")));
 
     PresentationBridge restored{nullptr, &settings};
     assert(restored.initialSetupCompleted());
+    assert(restored.legalConsentAccepted());
     assert(restored.initialSetupRequired());
     restored.applyAuthenticationState(
         true,

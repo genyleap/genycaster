@@ -3286,5 +3286,153 @@
             <source>Sign in to continue. OpenProof verifies your Genyleap identity, and a linked Farcaster account is required for Genycaster.</source>
             <translation>계속하려면 로그인하세요. OpenProof가 Genyleap ID를 검증하며, Genycaster에는 연결된 Farcaster 계정이 필요합니다.</translation>
         </message>
+        <message id="genycaster.setup.welcome">
+            <source>Welcome</source>
+            <translation>환영합니다</translation>
+        </message>
+        <message id="genycaster.setup.privacy_terms">
+            <source>Privacy &amp; Terms</source>
+            <translation>개인정보 및 약관</translation>
+        </message>
+        <message id="genycaster.setup.welcome_eyebrow">
+            <source>A private, verified social client</source>
+            <translation>개인적이고 검증된 소셜 클라이언트</translation>
+        </message>
+        <message id="genycaster.setup.welcome_title">
+            <source>Welcome to Genycaster</source>
+            <translation>Genycaster에 오신 것을 환영합니다</translation>
+        </message>
+        <message id="genycaster.setup.welcome_body">
+            <source>Set up your verified identity, personalize the interface, and choose how Genycaster should look and speak before you enter.</source>
+            <translation>시작하기 전에 검증된 ID를 설정하고 인터페이스를 개인화한 뒤 Genycaster의 모양과 언어를 선택하세요.</translation>
+        </message>
+        <message id="genycaster.setup.welcome_identity_title">
+            <source>Verified identity</source>
+            <translation>검증된 ID</translation>
+        </message>
+        <message id="genycaster.setup.welcome_identity_body">
+            <source>Connect through OpenProof and the Farcaster identity required for social actions.</source>
+            <translation>OpenProof와 소셜 작업에 필요한 Farcaster ID를 통해 연결합니다.</translation>
+        </message>
+        <message id="genycaster.setup.welcome_personal_title">
+            <source>Your interface</source>
+            <translation>나만의 인터페이스</translation>
+        </message>
+        <message id="genycaster.setup.welcome_personal_body">
+            <source>Choose appearance, color, motion, and regional preferences before the first session.</source>
+            <translation>첫 세션 전에 외관, 색상, 모션 및 지역 설정을 선택하세요.</translation>
+        </message>
+        <message id="genycaster.setup.welcome_control_title">
+            <source>Clear control</source>
+            <translation>명확한 제어</translation>
+        </message>
+        <message id="genycaster.setup.welcome_control_body">
+            <source>No guest mode, no hidden setup path, and no interaction before the required checks are complete.</source>
+            <translation>게스트 모드나 숨겨진 설정 우회 경로가 없으며 필수 확인이 끝나기 전에는 상호작용할 수 없습니다.</translation>
+        </message>
+        <message id="genycaster.setup.welcome_note">
+            <source>Setup stays on this device except for the account authentication and protocol actions you explicitly approve.</source>
+            <translation>명시적으로 승인한 계정 인증 및 프로토콜 작업을 제외한 설정은 이 기기에 유지됩니다.</translation>
+        </message>
+        <message id="genycaster.setup.legal_title">
+            <source>Before you continue</source>
+            <translation>계속하기 전에</translation>
+        </message>
+        <message id="genycaster.setup.legal_intro">
+            <source>Review the Genyleap Terms of Use and Privacy Policy. Scroll through this notice before the consent controls are unlocked.</source>
+            <translation>Genyleap 이용 약관과 개인정보 처리방침을 검토하세요. 동의 컨트롤이 활성화되기 전에 이 안내를 끝까지 스크롤해야 합니다.</translation>
+        </message>
+        <message id="genycaster.setup.terms_title">
+            <source>Terms of Use</source>
+            <translation>이용 약관</translation>
+        </message>
+        <message id="genycaster.setup.terms_updated">
+            <source>Current official website terms</source>
+            <translation>현재 공식 웹사이트 약관</translation>
+        </message>
+        <message id="genycaster.setup.terms_body">
+            <source>Genyleap's published Terms of Use cover website information and product resources. Website information is general and product scope may change. Downloads and repositories can carry their own licenses, release notes, and compatibility requirements. Sending a project enquiry does not create a contract or guarantee acceptance. Review the full Terms before continuing.</source>
+            <translation>Genyleap이 게시한 이용 약관은 웹사이트 정보와 제품 리소스에 적용됩니다. 웹사이트 정보는 일반적인 내용이며 제품 범위는 변경될 수 있습니다. 다운로드와 저장소에는 별도의 라이선스, 릴리스 노트 및 호환성 요구사항이 있을 수 있습니다. 프로젝트 문의 제출만으로 계약이 성립하거나 수락이 보장되지는 않습니다. 계속하기 전에 전체 약관을 확인하세요.</translation>
+        </message>
+        <message id="genycaster.setup.open_terms">
+            <source>Open full Terms of Use</source>
+            <translation>전체 이용 약관 열기</translation>
+        </message>
+        <message id="genycaster.setup.privacy_title">
+            <source>Privacy Policy</source>
+            <translation>개인정보 처리방침</translation>
+        </message>
+        <message id="genycaster.setup.privacy_updated">
+            <source>Current official website privacy notice</source>
+            <translation>현재 공식 웹사이트 개인정보 안내</translation>
+        </message>
+        <message id="genycaster.setup.privacy_body">
+            <source>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</source>
+            <translation>Genyleap이 게시한 개인정보 안내는 연락 및 프로젝트 양식을 통해 사용자가 직접 제출하는 정보와 기본적인 악용 방지 데이터를 다룹니다. Genycaster는 또한 설정 중 선택한 Genyleap/OpenProof 계정과 연결된 Farcaster ID를 인증 및 프로토콜 작업에 사용합니다. 외관과 지역 기본 설정은 기능이 명시적으로 달리 안내하지 않는 한 앱에 로컬로 저장됩니다. 계속하기 전에 전체 개인정보 안내를 확인하세요.</translation>
+        </message>
+        <message id="genycaster.setup.open_privacy">
+            <source>Open full Privacy Policy</source>
+            <translation>전체 개인정보 처리방침 열기</translation>
+        </message>
+        <message id="genycaster.setup.legal_governing_note">
+            <source>The links above open Genyleap's current published website terms and privacy notice. Product or repository-specific terms still apply where stated.</source>
+            <translation>위 링크는 Genyleap이 현재 게시한 웹사이트 약관과 개인정보 안내를 엽니다. 제품 또는 저장소별 별도 조건이 명시된 경우 해당 조건도 적용됩니다.</translation>
+        </message>
+        <message id="genycaster.setup.scroll_to_continue">
+            <source>Scroll to the end to unlock consent.</source>
+            <translation>동의를 활성화하려면 끝까지 스크롤하세요.</translation>
+        </message>
+        <message id="genycaster.setup.legal_read_complete">
+            <source>You reached the end. Review and confirm both items below.</source>
+            <translation>끝까지 확인했습니다. 아래 두 항목을 검토하고 확인하세요.</translation>
+        </message>
+        <message id="genycaster.setup.accept_terms">
+            <source>I agree to the Genyleap Terms of Use.</source>
+            <translation>Genyleap 이용 약관에 동의합니다.</translation>
+        </message>
+        <message id="genycaster.setup.acknowledge_privacy">
+            <source>I have read and understood the Genyleap Privacy Policy.</source>
+            <translation>Genyleap 개인정보 처리방침을 읽고 이해했습니다.</translation>
+        </message>
+        <message id="genycaster.setup.agree_continue">
+            <source>Agree &amp; Continue</source>
+            <translation>동의하고 계속</translation>
+        </message>
+        <message id="genycaster.setup.back">
+            <source>Back</source>
+            <translation>뒤로</translation>
+        </message>
+        <message id="genycaster.setup.continue">
+            <source>Continue</source>
+            <translation>계속</translation>
+        </message>
+        <message id="genycaster.setup.finish">
+            <source>Finish setup</source>
+            <translation>설정 완료</translation>
+        </message>
+        <message id="genycaster.setup.sign_in_required">
+            <source>Sign in to continue</source>
+            <translation>계속하려면 로그인</translation>
+        </message>
+        <message id="genycaster.setup.account_verified">
+            <source>Account verified</source>
+            <translation>계정 확인 완료</translation>
+        </message>
+        <message id="genycaster.setup.account_verified_body">
+            <source>Your Genyleap/OpenProof identity is verified and the required Farcaster identity is linked.</source>
+            <translation>Genyleap/OpenProof ID가 검증되었고 필요한 Farcaster ID가 연결되었습니다.</translation>
+        </message>
+        <message id="genycaster.setup.verified_account_ready">
+            <source>Verified account ready for Genycaster.</source>
+            <translation>검증된 계정으로 Genycaster를 사용할 준비가 되었습니다.</translation>
+        </message>
+        <message id="genycaster.setup.consent_recorded">
+            <source>Consent recorded</source>
+            <translation>동의 기록됨</translation>
+        </message>
+        <message id="genycaster.setup.legal_required_before_sign_in">
+            <source>Review and accept the Terms of Use and Privacy Policy before signing in.</source>
+            <translation>로그인하기 전에 이용 약관과 개인정보 처리방침을 검토하고 동의하세요.</translation>
+        </message>
     </context>
 </TS>

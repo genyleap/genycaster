@@ -1629,6 +1629,7 @@ Item {
         authenticationAvailable: presentationBridge.authenticationAvailable
         authenticated: presentationBridge.isAuthenticated
         setupCompleted: presentationBridge.initialSetupCompleted
+        legalConsentAccepted: presentationBridge.legalConsentAccepted
         authenticationPhase: presentationBridge.authenticationPhase
         authenticationRoute: presentationBridge.authenticationRoute
         authenticationApprovalAvailable: presentationBridge.authenticationApprovalAvailable
@@ -1639,6 +1640,8 @@ Item {
         onContinueWithFarcaster: presentationBridge.beginFarcasterSignIn()
         onOpenApproval: presentationBridge.openAuthenticationApproval()
         onCancelAuthentication: presentationBridge.cancelSignIn()
+        onAcceptLegalConsent: (termsAccepted, privacyAcknowledged, reviewCompleted) =>
+            presentationBridge.acceptLegalConsent(termsAccepted, privacyAcknowledged, reviewCompleted)
         onFinishSetup: presentationBridge.completeInitialSetup()
     }
 

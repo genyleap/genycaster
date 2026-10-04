@@ -22,7 +22,10 @@ import farcaster.application.configuration;
 
 namespace {
 
-constexpr int kInitialSetupVersion = 2;
+constexpr int kInitialSetupVersion = 3;
+// Increment when the onboarding legal bundle materially changes so consent is
+// requested again before account authentication.
+constexpr int kLegalConsentVersion = 1;
 
 struct ContextualReactionRule final {
     const char* icon;
@@ -596,6 +599,8 @@ PresentationBridge::PresentationBridge(QObject* const parent, QSettings* const s
     if (m_settings != nullptr) {
         m_initialSetupCompleted = m_settings->value(
             QStringLiteral("setup/onboardingVersion"), 0).toInt() >= kInitialSetupVersion;
+        m_legalConsentAccepted = m_settings->value(
+            QStringLiteral("setup/legalConsentVersion"), 0).toInt() >= kLegalConsentVersion;
         m_feedPageSize = std::clamp(m_settings->value(QStringLiteral("read/feedPageSize"), 20).toInt(), 1, 100);
         m_contextHydrationLimit = std::clamp(
             m_settings->value(QStringLiteral("read/contextHydrationLimit"), 40).toInt(), 1, 100);
@@ -634,6 +639,7 @@ bool PresentationBridge::initialSetupRequired() const noexcept
     return !m_setupBypassedForVerification && (!m_initialSetupCompleted || !m_isAuthenticated);
 }
 bool PresentationBridge::initialSetupCompleted() const noexcept { return m_initialSetupCompleted; }
+bool PresentationBridge::legalConsentAccepted() const noexcept { return m_legalConsentAccepted; }
 bool PresentationBridge::isAuthenticated() const noexcept { return m_isAuthenticated; }
 bool PresentationBridge::authenticationBusy() const noexcept
 {
@@ -1360,9 +1366,30 @@ QString PresentationBridge::contextualReactionIcon(const QString& text) const
     return resolveContextualReaction(text);
 }
 
+bool PresentationBridge::acceptLegalConsent(
+    const bool termsAccepted,
+    const bool privacyAcknowledged,
+    const bool reviewCompleted)
+{
+    if (m_legalConsentAccepted) {
+        return true;
+    }
+    if (!termsAccepted || !privacyAcknowledged || !reviewCompleted) {
+        return false;
+    }
+
+    m_legalConsentAccepted = true;
+    if (m_settings != nullptr) {
+        m_settings->setValue(QStringLiteral("setup/legalConsentVersion"), kLegalConsentVersion);
+        m_settings->sync();
+    }
+    emit setupStateChanged();
+    return true;
+}
+
 void PresentationBridge::completeInitialSetup()
 {
-    if (!m_isAuthenticated || m_initialSetupCompleted) {
+    if (!m_isAuthenticated || !m_legalConsentAccepted || m_initialSetupCompleted) {
         return;
     }
     m_initialSetupCompleted = true;
@@ -1376,6 +1403,12 @@ void PresentationBridge::completeInitialSetup()
 
 void PresentationBridge::beginSignIn()
 {
+    if (!m_legalConsentAccepted) {
+        m_authenticationErrorText = qtTrId("genycaster.setup.legal_required_before_sign_in");
+        emit authenticationStateChanged();
+        emit stateChanged();
+        return;
+    }
     if (!m_runtimeReady) {
         m_authenticationErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
         emit authenticationStateChanged();
@@ -1397,6 +1430,12 @@ void PresentationBridge::beginSignIn()
 
 void PresentationBridge::beginFarcasterSignIn()
 {
+    if (!m_legalConsentAccepted) {
+        m_authenticationErrorText = qtTrId("genycaster.setup.legal_required_before_sign_in");
+        emit authenticationStateChanged();
+        emit stateChanged();
+        return;
+    }
     if (!m_runtimeReady) {
         m_authenticationErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
         emit authenticationStateChanged();
