@@ -731,7 +731,6 @@ Item {
                             visible: root.currentStep !== 4 || root.authenticated
                             text: root.primaryActionText()
                             prominent: true
-                            positive: root.currentStep === 5
                             enabled: root.primaryActionEnabled()
                             iconGlyph: root.currentStep === 5 ? "social/verified" : ""
                             onClicked: root.nextStep()
@@ -757,7 +756,8 @@ Item {
             legalReaderFlick.contentY = 0
             Qt.callLater(() => {
                 root.legalReaderReachedEnd =
-                    legalReaderFlick.contentHeight <= legalReaderFlick.height + 2
+                    root.legalConsentAccepted
+                    || legalReaderFlick.contentHeight <= legalReaderFlick.height + 2
             })
         }
 
@@ -778,20 +778,10 @@ Item {
                 Layout.rightMargin: Theme.space3
                 spacing: Theme.space3
 
-                Superellipse {
-                    Layout.preferredWidth: 38
-                    Layout.preferredHeight: 38
-                    fillColor: root.legalReaderKind === "privacy"
-                               ? Qt.rgba(Theme.info.r, Theme.info.g, Theme.info.b, 0.12)
-                               : Qt.rgba(Theme.warning.r, Theme.warning.g, Theme.warning.b, 0.12)
-                    curveDepth: Theme.curveCompact
-
-                    Icon {
-                        anchors.centerIn: parent
-                        text: root.legalReaderKind === "privacy" ? Theme.iconInfo : Theme.iconDocument
-                        color: root.legalReaderKind === "privacy" ? Theme.info : Theme.warning
-                        preferredSize: 20
-                    }
+                Icon {
+                    text: root.legalReaderKind === "privacy" ? "system/lock" : Theme.iconDocument
+                    color: Theme.inkMuted
+                    preferredSize: Theme.iconSize
                 }
 
                 ColumnLayout {
@@ -804,8 +794,8 @@ Item {
                               ? qsTrId("genycaster.setup.privacy_title")
                               : qsTrId("genycaster.setup.terms_title")
                         color: Theme.ink
-                        font.pixelSize: Theme.typeTitle3Size
-                        font.weight: Theme.weightBold
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightDemiBold
                         elide: Text.ElideRight
                     }
 
@@ -889,67 +879,19 @@ Item {
                         wrapMode: Text.WordWrap
                     }
 
-                    Superellipse {
+                    Rectangle {
                         width: parent.width
-                        implicitHeight: readerPointOne.implicitHeight + Theme.space4 * 2
-                        fillColor: Theme.surfaceMuted
-                        borderWidth: 0
-                        curveDepth: Theme.curveControl
-
-                        RowLayout {
-                            id: readerPointOne
-                            anchors.fill: parent
-                            anchors.margins: Theme.space4
-                            spacing: Theme.space3
-
-                            Rectangle {
-                                Layout.preferredWidth: 8
-                                Layout.preferredHeight: 8
-                                radius: 4
-                                color: Theme.accent
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.setup.legal_governing_note")
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeLabelSize
-                                wrapMode: Text.WordWrap
-                            }
-                        }
+                        height: Theme.strokeHairline
+                        color: Theme.borderMuted
                     }
 
-                    Superellipse {
+                    Label {
                         width: parent.width
-                        implicitHeight: readerPointTwo.implicitHeight + Theme.space4 * 2
-                        fillColor: Theme.primarySurface
-                        borderWidth: 1
-                        borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.16)
-                        curveDepth: Theme.curveControl
-
-                        RowLayout {
-                            id: readerPointTwo
-                            anchors.fill: parent
-                            anchors.margins: Theme.space4
-                            spacing: Theme.space3
-
-                            Icon {
-                                text: root.legalReaderKind === "privacy" ? "system/lock" : "social/verified"
-                                color: Theme.accent
-                                preferredSize: 20
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: root.legalReaderKind === "privacy"
-                                      ? qsTrId("genycaster.setup.acknowledge_privacy")
-                                      : qsTrId("genycaster.setup.accept_terms")
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeLabelSize
-                                font.weight: Theme.weightDemiBold
-                                wrapMode: Text.WordWrap
-                            }
-                        }
+                        text: qsTrId("genycaster.setup.legal_governing_note")
+                        color: Theme.inkSubtle
+                        font.pixelSize: Theme.typeCaptionSize
+                        lineHeight: Theme.typeCaptionLineHeight
+                        wrapMode: Text.WordWrap
                     }
 
                     ActionButton {
@@ -1006,7 +948,6 @@ Item {
                           ? qsTrId("genycaster.setup.acknowledge_privacy")
                           : qsTrId("genycaster.setup.accept_terms")
                     prominent: true
-                    positive: true
                     enabled: root.legalReaderReachedEnd
                     iconGlyph: "social/verified"
                     onClicked: root.acceptLegalReader()
@@ -1054,12 +995,12 @@ Item {
 
             Superellipse {
                 Layout.fillWidth: true
-                Layout.maximumWidth: 560
+                Layout.maximumWidth: 520
                 Layout.alignment: Qt.AlignHCenter
-                Layout.preferredHeight: root.phone ? 310 : 330
-                fillColor: root.setupCard
-                borderWidth: Theme.strokeStandard
-                borderColor: root.setupBorder
+                Layout.preferredHeight: root.phone ? 286 : 306
+                fillColor: "transparent"
+                borderWidth: 0
+                borderColor: "transparent"
                 curveDepth: Theme.curveContainer
 
                 Item {
@@ -1077,8 +1018,8 @@ Item {
                         height: orbitFrame.sphereSize
                         radius: width / 2
                         color: "transparent"
-                        border.width: Theme.strokeStandard
-                        border.color: Theme.borderMuted
+                        border.width: Theme.strokeHairline
+                        border.color: Theme.borderStrong
                     }
 
                     Rectangle {
@@ -1094,6 +1035,7 @@ Item {
                     }
 
                     Rectangle {
+                        visible: false
                         anchors.horizontalCenter: parent.horizontalCenter
                         anchors.top: parent.top
                         anchors.topMargin: 4 + orbitFrame.sphereSize * 0.12
@@ -1111,9 +1053,9 @@ Item {
                         anchors.topMargin: 4 + (orbitFrame.sphereSize - 54) / 2
                         width: 154
                         height: 54
-                        fillColor: Theme.surfaceRaised
-                        borderWidth: Theme.strokeStandard
-                        borderColor: Theme.accent
+                        fillColor: "transparent"
+                        borderWidth: 0
+                        borderColor: "transparent"
                         curveDepth: Theme.curveControl
                     }
 
@@ -1303,10 +1245,10 @@ Item {
 
             Superellipse {
                 Layout.fillWidth: true
-                implicitHeight: personalizeGrid.implicitHeight + root.setupCardPadding * 2
-                fillColor: root.setupCard
-                borderWidth: Theme.strokeStandard
-                borderColor: root.setupBorder
+                implicitHeight: personalizeGrid.implicitHeight
+                fillColor: "transparent"
+                borderWidth: 0
+                borderColor: "transparent"
                 curveDepth: Theme.curveContainer
 
                 GridLayout {
@@ -1314,15 +1256,15 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: root.setupCardPadding
-                    columns: root.phone ? 1 : 2
-                    columnSpacing: Theme.space5
+                    anchors.margins: 0
+                    columns: 1
+                    columnSpacing: 0
                     rowSpacing: Theme.space4
 
                     Item {
-                        visible: !root.phone
+                        visible: false
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 176
+                        Layout.preferredHeight: 0
 
                         Rectangle {
                             anchors.centerIn: parent
@@ -1402,9 +1344,11 @@ Item {
                             spacing: Theme.space3
 
                             Superellipse {
-                                Layout.preferredWidth: 38
-                                Layout.preferredHeight: 38
-                                fillColor: Theme.surface
+                                Layout.preferredWidth: 34
+                                Layout.preferredHeight: 34
+                                fillColor: Theme.surfaceRaised
+                                borderWidth: Theme.strokeStandard
+                                borderColor: Theme.borderMuted
                                 curveDepth: Theme.curveCompact
 
                                 Icon {
@@ -1652,9 +1596,9 @@ Item {
 
             GridLayout {
                 Layout.fillWidth: true
-                columns: root.phone ? 1 : 2
-                columnSpacing: Theme.space3
-                rowSpacing: Theme.space3
+                columns: 1
+                columnSpacing: 0
+                rowSpacing: Theme.space2
 
                 Repeater {
                     model: [
@@ -1679,8 +1623,8 @@ Item {
                                                          ? root.legalPrivacyReviewed
                                                          : root.legalTermsReviewed
                         Layout.fillWidth: true
-                        Layout.preferredHeight: root.phone ? 128 : 138
-                        enabled: !root.legalConsentAccepted
+                        Layout.preferredHeight: 82
+                        enabled: true
                         hoverEnabled: true
                         onClicked: root.openLegalReader(modelData.privacy ? "privacy" : "terms")
 
@@ -1688,84 +1632,59 @@ Item {
                             fillColor: legalCardButton.hovered ? Theme.surfaceHover : root.setupCard
                             borderWidth: Theme.strokeStandard
                             borderColor: legalCardButton.reviewed
-                                         ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.30)
+                                         ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.26)
                                          : root.setupBorder
-                            curveDepth: Theme.curveContainer
+                            curveDepth: Theme.curveControl
                         }
 
-                        contentItem: ColumnLayout {
+                        contentItem: RowLayout {
                             spacing: Theme.space3
 
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: Theme.space3
+                            Superellipse {
+                                Layout.preferredWidth: 36
+                                Layout.preferredHeight: 36
+                                fillColor: Theme.surfaceRaised
+                                borderWidth: Theme.strokeStandard
+                                borderColor: Theme.borderMuted
+                                curveDepth: Theme.curveCompact
 
-                                Superellipse {
-                                    Layout.preferredWidth: 42
-                                    Layout.preferredHeight: 42
-                                    fillColor: Theme.surfaceRaised
-                                    curveDepth: Theme.curveCompact
-
-                                    Icon {
-                                        anchors.centerIn: parent
-                                        text: reviewed ? "social/verified" : modelData.icon
-                                        color: reviewed ? Theme.success
-                                             : modelData.privacy ? Theme.info : Theme.warning
-                                        preferredSize: 21
-                                    }
+                                Icon {
+                                    anchors.centerIn: parent
+                                    text: modelData.icon
+                                    color: Theme.inkMuted
+                                    preferredSize: Theme.iconSize
                                 }
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 1
 
                                 Label {
                                     Layout.fillWidth: true
                                     text: modelData.title
                                     color: Theme.ink
-                                    font.pixelSize: root.setupSectionTitleSize
+                                    font.pixelSize: Theme.typeLabelSize
                                     font.weight: Theme.weightDemiBold
                                     elide: Text.ElideRight
-                                }
-
-                                Icon {
-                                    text: reviewed ? "social/verified" : Theme.iconArrowRight
-                                    color: reviewed ? Theme.success : Theme.inkSubtle
-                                    preferredSize: 17
-                                }
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: modelData.body
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeLabelSize
-                                wrapMode: Text.WordWrap
-                                maximumLineCount: root.phone ? 3 : 4
-                                elide: Text.ElideRight
-                            }
-
-                            Item { Layout.fillHeight: true }
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: Theme.space2
-
-                                Rectangle {
-                                    Layout.preferredWidth: 7
-                                    Layout.preferredHeight: 7
-                                    radius: 3.5
-                                    color: reviewed ? Theme.success : Theme.accent
                                 }
 
                                 Label {
                                     Layout.fillWidth: true
                                     text: reviewed
                                           ? qsTrId("genycaster.setup.consent_recorded")
-                                          : modelData.privacy
-                                            ? qsTrId("genycaster.setup.open_privacy")
-                                            : qsTrId("genycaster.setup.open_terms")
-                                    color: reviewed ? Theme.success : Theme.accent
+                                          : modelData.body
+                                    color: reviewed ? Theme.success : Theme.inkSubtle
                                     font.pixelSize: Theme.typeCaptionSize
-                                    font.weight: Theme.weightDemiBold
+                                    maximumLineCount: 1
                                     elide: Text.ElideRight
                                 }
+                            }
+
+                            Icon {
+                                text: reviewed ? "social/verified" : Theme.iconArrowRight
+                                color: reviewed ? Theme.success : Theme.inkSubtle
+                                preferredSize: Theme.iconSize
                             }
                         }
                     }
@@ -1858,10 +1777,10 @@ Item {
 
             Superellipse {
                 Layout.fillWidth: true
-                implicitHeight: networkHero.implicitHeight + root.setupCardPadding * 2
-                fillColor: root.setupCard
-                borderWidth: Theme.strokeStandard
-                borderColor: root.setupBorder
+                implicitHeight: networkHero.implicitHeight
+                fillColor: "transparent"
+                borderWidth: 0
+                borderColor: "transparent"
                 curveDepth: Theme.curveContainer
 
                 GridLayout {
@@ -1869,15 +1788,15 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: root.setupCardPadding
-                    columns: root.phone ? 1 : 2
-                    columnSpacing: Theme.space4
+                    anchors.margins: 0
+                    columns: 1
+                    columnSpacing: 0
                     rowSpacing: Theme.space3
 
                     Item {
-                        visible: !root.phone
+                        visible: false
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 142
+                        Layout.preferredHeight: 0
 
                         Rectangle {
                             anchors.centerIn: parent
@@ -1966,8 +1885,9 @@ Item {
                         Superellipse {
                             Layout.fillWidth: true
                             implicitHeight: experimentalRow.implicitHeight + Theme.space3 * 2
-                            fillColor: Theme.warningSurface
-                            borderWidth: 0
+                            fillColor: Theme.surfaceRaised
+                            borderWidth: Theme.strokeStandard
+                            borderColor: Theme.borderMuted
                             curveDepth: Theme.curveControl
 
                             RowLayout {
@@ -2006,7 +1926,7 @@ Item {
                         id: nodeButton
                         required property var modelData
                         Layout.fillWidth: true
-                        implicitHeight: 74
+                        implicitHeight: 64
                         enabled: modelData.status !== "offline"
                         hoverEnabled: true
                         onClicked: nodeSelectionController.selectNode(modelData.id)
@@ -2023,9 +1943,11 @@ Item {
                             layoutDirection: Theme.uiDirection
 
                             Superellipse {
-                                Layout.preferredWidth: 42
-                                Layout.preferredHeight: 42
+                                Layout.preferredWidth: 36
+                                Layout.preferredHeight: 36
                                 fillColor: Theme.surfaceRaised
+                                borderWidth: Theme.strokeStandard
+                                borderColor: Theme.borderMuted
                                 curveDepth: Theme.curveCompact
 
                                 Icon {
@@ -2034,7 +1956,7 @@ Item {
                                     color: modelData.online ? Theme.success
                                          : modelData.status === "offline" ? Theme.danger
                                          : Theme.inkMuted
-                                    preferredSize: 22
+                                    preferredSize: Theme.iconSize
                                 }
                             }
 
@@ -2112,12 +2034,10 @@ Item {
 
             Superellipse {
                 Layout.fillWidth: true
-                implicitHeight: networkStateRow.implicitHeight + Theme.space3 * 2
-                fillColor: Theme.surfaceRaised
-                borderWidth: Theme.strokeStandard
-                borderColor: nodeSelectionController.restartRequired
-                             ? Qt.rgba(Theme.warning.r, Theme.warning.g, Theme.warning.b, 0.28)
-                             : root.setupBorder
+                implicitHeight: networkStateRow.implicitHeight + Theme.space2 * 2
+                fillColor: "transparent"
+                borderWidth: 0
+                borderColor: "transparent"
                 curveDepth: Theme.curveControl
 
                 RowLayout {
@@ -2194,14 +2114,14 @@ Item {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.margins: root.setupCardPadding
-                    columns: root.phone ? 1 : 2
-                    columnSpacing: Theme.space4
+                    columns: 1
+                    columnSpacing: 0
                     rowSpacing: Theme.space3
 
                     Item {
-                        visible: !root.phone
+                        visible: false
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 160
+                        Layout.preferredHeight: 0
 
                         Rectangle {
                             anchors.centerIn: parent
@@ -2258,8 +2178,8 @@ Item {
                             Layout.fillWidth: true
                             text: root.accountName.length > 0 ? root.accountName : root.accountUsername
                             color: Theme.ink
-                            font.pixelSize: Theme.typeTitle2Size
-                            font.weight: Theme.weightBold
+                            font.pixelSize: root.setupSectionTitleSize
+                            font.weight: Theme.weightDemiBold
                             elide: Text.ElideRight
                         }
 
@@ -2292,9 +2212,11 @@ Item {
                                     spacing: Theme.space2
 
                                     Superellipse {
-                                        Layout.preferredWidth: 34
-                                        Layout.preferredHeight: 34
-                                        fillColor: Theme.surface
+                                        Layout.preferredWidth: 30
+                                        Layout.preferredHeight: 30
+                                        fillColor: Theme.surfaceRaised
+                                        borderWidth: Theme.strokeStandard
+                                        borderColor: Theme.borderMuted
                                         curveDepth: Theme.curveCompact
 
                                         Icon {
@@ -2323,6 +2245,7 @@ Item {
                         }
 
                         ActionButton {
+                            visible: false
                             Layout.fillWidth: true
                             text: qsTrId("genycaster.setup.continue")
                             prominent: true
@@ -2548,10 +2471,10 @@ Item {
 
             Superellipse {
                 Layout.fillWidth: true
-                implicitHeight: readyHero.implicitHeight + root.setupCardPadding * 2
-                fillColor: root.setupCard
-                borderWidth: Theme.strokeStandard
-                borderColor: root.setupBorder
+                implicitHeight: readyHero.implicitHeight
+                fillColor: "transparent"
+                borderWidth: 0
+                borderColor: "transparent"
                 curveDepth: Theme.curveContainer
 
                 GridLayout {
@@ -2559,9 +2482,9 @@ Item {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: root.setupCardPadding
-                    columns: root.phone ? 1 : 2
-                    columnSpacing: Theme.space4
+                    anchors.margins: 0
+                    columns: 1
+                    columnSpacing: 0
                     rowSpacing: Theme.space3
 
                     Item {
@@ -2569,6 +2492,7 @@ Item {
                         Layout.preferredHeight: root.phone ? 136 : 156
 
                         Rectangle {
+                            visible: false
                             anchors.centerIn: parent
                             width: root.phone ? 112 : 128
                             height: width
@@ -2579,6 +2503,7 @@ Item {
                         }
 
                         Rectangle {
+                            visible: false
                             anchors.centerIn: parent
                             width: root.phone ? 88 : 100
                             height: width
@@ -2592,18 +2517,18 @@ Item {
                             anchors.centerIn: parent
                             sourceUrl: root.accountAvatarUrl
                             displayName: root.accountName.length > 0 ? root.accountName : root.accountUsername
-                            avatarSize: root.phone ? 72 : 80
+                            avatarSize: 76
                         }
 
                         Superellipse {
-                            width: 34
-                            height: 34
+                            width: 28
+                            height: 28
                             anchors.centerIn: parent
-                            anchors.horizontalCenterOffset: root.phone ? 28 : 32
-                            anchors.verticalCenterOffset: root.phone ? 28 : 32
+                            anchors.horizontalCenterOffset: 28
+                            anchors.verticalCenterOffset: 28
                             fillColor: Theme.success
-                            curveDepth: 12
-                            borderWidth: 3
+                            curveDepth: 10
+                            borderWidth: 2
                             borderColor: root.setupCard
 
                             Icon {
@@ -2626,6 +2551,7 @@ Item {
                             font.pixelSize: root.setupPageTitleSize
                             font.weight: Theme.weightBold
                             lineHeight: Theme.typeTitle2LineHeight
+                            horizontalAlignment: Text.AlignHCenter
                             wrapMode: Text.WordWrap
                         }
 
@@ -2637,6 +2563,7 @@ Item {
                             color: Theme.inkMuted
                             font.pixelSize: root.setupBodySize
                             lineHeight: Theme.typeLabelLineHeight
+                            horizontalAlignment: Text.AlignHCenter
                             wrapMode: Text.WordWrap
                         }
 
@@ -2671,7 +2598,7 @@ Item {
                 Button {
                     id: readyLanguageButton
                     Layout.fillWidth: true
-                    implicitHeight: 72
+                    implicitHeight: 64
                     onClicked: root.switchStep(0)
 
                     background: Superellipse {
@@ -2731,7 +2658,7 @@ Item {
                 Button {
                     id: readyAppearanceButton
                     Layout.fillWidth: true
-                    implicitHeight: 72
+                    implicitHeight: 64
                     onClicked: root.switchStep(1)
 
                     background: Superellipse {
@@ -2787,7 +2714,7 @@ Item {
                 Button {
                     id: readyNetworkButton
                     Layout.fillWidth: true
-                    implicitHeight: 72
+                    implicitHeight: 64
                     onClicked: root.switchStep(3)
 
                     background: Superellipse {
@@ -2852,7 +2779,7 @@ Item {
                 Button {
                     id: readyAccountButton
                     Layout.fillWidth: true
-                    implicitHeight: 72
+                    implicitHeight: 64
                     onClicked: root.switchStep(4)
 
                     background: Superellipse {
