@@ -57,6 +57,8 @@ set(farcasterQmlFiles
     components/MiniAppPresentationPreview.qml
     components/LanguageSelector.qml
     components/SetupLanguageSelector.qml
+    components/SetupActionCard.qml
+    components/SetupPrimaryButton.qml
     components/ModalHeader.qml
     components/LocalizedPrice.qml
     components/MarketAssetIcon.qml

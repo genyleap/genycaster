@@ -43,7 +43,7 @@ Item {
     // Setup design-system layer: every stage composes the same neutral surfaces,
     // typography scale and spacing rhythm. Accent is reserved for focus/action,
     // while semantic colors are used only for compact status feedback.
-    readonly property int setupContentWidth: 720
+    readonly property int setupContentWidth: 600
     readonly property int setupPageTitleSize: Theme.typeTitle2Size
     readonly property int setupBodySize: Theme.typeLabelSize
     readonly property int setupSectionTitleSize: Theme.typeTitle3Size
@@ -373,20 +373,10 @@ Item {
                     spacing: Theme.space2
                     layoutDirection: Theme.uiDirection
 
-                    Superellipse {
-                        Layout.preferredWidth: 32
-                        Layout.preferredHeight: 32
-                        fillColor: Theme.surfaceRaised
-                        borderWidth: Theme.strokeStandard
-                        borderColor: Theme.borderMuted
-                        curveDepth: Theme.curveCompact
-
-                        Icon {
-                            anchors.centerIn: parent
-                            text: "brands/geny"
-                            color: Theme.accent
-                            preferredSize: Theme.iconSize
-                        }
+                    Icon {
+                        text: "brands/geny"
+                        color: Theme.ink
+                        preferredSize: 26
                     }
 
                     ColumnLayout {
@@ -452,7 +442,7 @@ Item {
 
             Rectangle {
                 visible: !root.compact
-                Layout.preferredWidth: 236
+                Layout.preferredWidth: 220
                 Layout.fillHeight: true
                 color: Theme.surface
                 border.width: 0
@@ -525,11 +515,9 @@ Item {
                                     onClicked: root.switchStep(modelData)
 
                                     background: Superellipse {
-                                        fillColor: stepButton.current
-                                                   ? Theme.surfaceRaised
-                                                   : stepButton.hovered ? Theme.surfaceHover : "transparent"
-                                        borderWidth: stepButton.current ? Theme.strokeStandard : 0
-                                        borderColor: stepButton.current ? Theme.borderStrong : "transparent"
+                                        fillColor: stepButton.hovered ? Theme.surfaceHover : "transparent"
+                                        borderWidth: 0
+                                        borderColor: "transparent"
                                         curveDepth: Theme.curveControl
                                     }
 
@@ -541,15 +529,15 @@ Item {
                                             Layout.preferredWidth: 30
                                             Layout.preferredHeight: 30
                                             radius: 15
-                                            color: current ? Theme.accent : Theme.surfaceMuted
+                                            color: current ? Theme.ink : Theme.surfaceMuted
                                             border.width: Theme.strokeStandard
-                                            border.color: current ? Theme.accent : Theme.borderMuted
+                                            border.color: current ? Theme.ink : Theme.borderMuted
 
                                             Icon {
                                                 anchors.centerIn: parent
                                                 text: root.stepIcon(modelData)
                                                 color: current
-                                                       ? Theme.contrastInk(Theme.accent)
+                                                       ? Theme.contrastInk(Theme.ink)
                                                        : complete ? Theme.inkMuted : Theme.inkSubtle
                                                 preferredSize: Theme.iconSizeSmall
                                             }
@@ -564,12 +552,11 @@ Item {
                                             elide: Text.ElideRight
                                         }
 
-                                        Rectangle {
+                                        Icon {
                                             visible: current
-                                            Layout.preferredWidth: 3
-                                            Layout.preferredHeight: 18
-                                            radius: 2
-                                            color: Theme.accent
+                                            text: Theme.iconArrowRight
+                                            color: Theme.inkSubtle
+                                            preferredSize: Theme.iconSizeSmall
                                         }
                                     }
                                 }
@@ -621,10 +608,7 @@ Item {
                         Loader {
                             id: stageLoader
                             width: parent.width
-                            y: (root.currentStep === 0 || root.currentStep === 5) && !root.phone
-                               ? Math.max(Theme.space5,
-                                          Math.round((stageFlick.height - implicitHeight) / 2) - Theme.space3)
-                               : Theme.space5
+                            y: root.phone ? Theme.space5 : Theme.space7
                             sourceComponent: root.currentStep === 0 ? welcomeStage
                                            : root.currentStep === 1 ? personalizeStage
                                            : root.currentStep === 2 ? privacyStage
@@ -664,12 +648,13 @@ Item {
 
                         Item { Layout.fillWidth: true }
 
-                        ActionButton {
+                        SetupPrimaryButton {
                             visible: root.currentStep !== 4 || root.authenticated
+                            Layout.preferredWidth: root.phone ? 200 : 180
                             text: root.primaryActionText()
-                            prominent: true
                             enabled: root.primaryActionEnabled()
                             iconGlyph: root.currentStep === 5 ? Theme.iconCheck : ""
+                            showArrow: root.currentStep !== 5
                             onClicked: root.nextStep()
                         }
                     }
@@ -865,7 +850,7 @@ Item {
 
                     Icon {
                         text: root.legalReaderReachedEnd ? Theme.iconCheck : Theme.iconInfo
-                        color: root.legalReaderReachedEnd ? Theme.success : Theme.inkSubtle
+                        color: root.legalReaderReachedEnd ? Theme.ink : Theme.inkSubtle
                         preferredSize: 16
                     }
 
@@ -874,19 +859,20 @@ Item {
                         text: root.legalReaderReachedEnd
                               ? qsTrId("genycaster.setup.legal_read_complete")
                               : qsTrId("genycaster.setup.scroll_to_continue")
-                        color: root.legalReaderReachedEnd ? Theme.success : Theme.inkSubtle
+                        color: root.legalReaderReachedEnd ? Theme.inkMuted : Theme.inkSubtle
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
                     }
                 }
 
-                ActionButton {
+                SetupPrimaryButton {
+                    Layout.preferredWidth: root.phone ? 160 : 190
                     text: root.legalReaderKind === "privacy"
                           ? qsTrId("genycaster.setup.acknowledge_privacy")
                           : qsTrId("genycaster.setup.accept_terms")
-                    prominent: true
                     enabled: root.legalReaderReachedEnd
                     iconGlyph: Theme.iconCheck
+                    showArrow: false
                     onClicked: root.acceptLegalReader()
                 }
             }
@@ -897,14 +883,12 @@ Item {
         id: welcomeStage
 
         ColumnLayout {
-            spacing: Theme.space4
+            spacing: Theme.space3
 
-            Label {
-                Layout.alignment: Qt.AlignHCenter
-                text: qsTrId("genycaster.setup.welcome_eyebrow")
-                color: Theme.accent
-                font.pixelSize: Theme.typeCaptionSize
-                font.weight: Theme.weightDemiBold
+            Icon {
+                text: "brands/geny"
+                color: Theme.ink
+                preferredSize: 34
             }
 
             Label {
@@ -913,28 +897,28 @@ Item {
                 color: Theme.ink
                 font.pixelSize: root.setupPageTitleSize
                 font.weight: Theme.weightBold
-                horizontalAlignment: Text.AlignHCenter
                 lineHeight: Theme.typeTitle2LineHeight
                 wrapMode: Text.WordWrap
             }
 
             Label {
                 Layout.fillWidth: true
-                Layout.maximumWidth: 520
-                Layout.alignment: Qt.AlignHCenter
+                Layout.maximumWidth: 480
                 text: qsTrId("genycaster.setup.language_orbit_hint")
                 color: Theme.inkMuted
                 font.pixelSize: root.setupBodySize
-                horizontalAlignment: Text.AlignHCenter
                 lineHeight: Theme.typeLabelLineHeight
                 wrapMode: Text.WordWrap
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: root.phone ? Theme.space6 : Theme.space8
             }
 
             SetupLanguageSelector {
                 id: setupLanguageSelector
                 Layout.fillWidth: true
-                Layout.maximumWidth: 620
-                Layout.alignment: Qt.AlignHCenter
                 model: root.greetings
                 selectedLabel: localizationController.languageLabel
                 selectedDetail: localizationController.effectiveLanguageTag
@@ -966,6 +950,12 @@ Item {
         ColumnLayout {
             spacing: Theme.space4
 
+            Icon {
+                text: Theme.iconPalette
+                color: Theme.ink
+                preferredSize: 32
+            }
+
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Theme.space1
@@ -987,6 +977,11 @@ Item {
                     lineHeight: Theme.typeLabelLineHeight
                     wrapMode: Text.WordWrap
                 }
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: root.phone ? Theme.space3 : Theme.space5
             }
 
             Superellipse {
@@ -1015,20 +1010,10 @@ Item {
                             Layout.fillWidth: true
                             spacing: Theme.space3
 
-                            Superellipse {
-                                Layout.preferredWidth: 34
-                                Layout.preferredHeight: 34
-                                fillColor: Theme.surfaceRaised
-                                borderWidth: Theme.strokeStandard
-                                borderColor: Theme.borderMuted
-                                curveDepth: Theme.curveCompact
-
-                                Icon {
-                                    anchors.centerIn: parent
-                                    text: Theme.iconLanguage
-                                    color: Theme.accent
-                                    preferredSize: 19
-                                }
+                            Icon {
+                                text: Theme.iconLanguage
+                                color: Theme.inkMuted
+                                preferredSize: Theme.iconSize
                             }
 
                             ColumnLayout {
@@ -1117,8 +1102,8 @@ Item {
 
                             Icon {
                                 text: Theme.iconPalette
-                                color: Theme.accent
-                                preferredSize: 20
+                                color: Theme.inkMuted
+                                preferredSize: Theme.iconSize
                             }
 
                             Label {
@@ -1141,14 +1126,45 @@ Item {
                                     { id: "dark", label: qsTrId("genycaster.settings.mode_dark"), icon: Theme.iconMoon }
                                 ]
 
-                                delegate: ActionButton {
+                                delegate: Button {
+                                    id: modeButton
                                     required property var modelData
+                                    readonly property bool selected: appearanceController.themeMode === modelData.id
                                     Layout.fillWidth: true
-                                    compact: true
-                                    text: modelData.label
-                                    iconGlyph: modelData.icon
-                                    selected: appearanceController.themeMode === modelData.id
+                                    implicitHeight: 44
+                                    hoverEnabled: true
                                     onClicked: appearanceController.setThemeMode(modelData.id)
+
+                                    background: Superellipse {
+                                        fillColor: modeButton.selected
+                                                   ? Theme.ink
+                                                   : modeButton.hovered ? Theme.surfaceHover : Theme.surface
+                                        borderWidth: modeButton.selected ? 0 : Theme.strokeStandard
+                                        borderColor: Theme.borderMuted
+                                        curveDepth: Theme.curveControl
+                                    }
+
+                                    contentItem: RowLayout {
+                                        spacing: Theme.space2
+
+                                        Icon {
+                                            text: modeButton.modelData.icon
+                                            color: modeButton.selected
+                                                   ? Theme.contrastInk(Theme.ink) : Theme.inkMuted
+                                            preferredSize: Theme.iconSizeSmall
+                                        }
+
+                                        Label {
+                                            Layout.fillWidth: true
+                                            text: modeButton.modelData.label
+                                            color: modeButton.selected
+                                                   ? Theme.contrastInk(Theme.ink) : Theme.ink
+                                            font.pixelSize: Theme.typeCaptionSize
+                                            font.weight: Theme.weightDemiBold
+                                            horizontalAlignment: Text.AlignHCenter
+                                            elide: Text.ElideRight
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1243,6 +1259,12 @@ Item {
         ColumnLayout {
             spacing: Theme.space4
 
+            Icon {
+                text: "system/lock"
+                color: Theme.ink
+                preferredSize: 32
+            }
+
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Theme.space1
@@ -1264,6 +1286,11 @@ Item {
                     lineHeight: Theme.typeLabelLineHeight
                     wrapMode: Text.WordWrap
                 }
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: root.phone ? Theme.space3 : Theme.space5
             }
 
             GridLayout {
@@ -1288,118 +1315,63 @@ Item {
                         }
                     ]
 
-                    delegate: Button {
-                        id: legalCardButton
+                    delegate: SetupActionCard {
                         required property var modelData
                         readonly property bool reviewed: modelData.privacy
                                                          ? root.legalPrivacyReviewed
                                                          : root.legalTermsReviewed
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 82
-                        enabled: true
-                        hoverEnabled: true
+                        title: modelData.title
+                        subtitle: modelData.body
+                        iconGlyph: modelData.icon
+                        complete: reviewed
                         onClicked: root.openLegalReader(modelData.privacy ? "privacy" : "terms")
-
-                        background: Superellipse {
-                            fillColor: legalCardButton.hovered ? Theme.surfaceHover : root.setupCard
-                            borderWidth: Theme.strokeStandard
-                            borderColor: root.setupBorder
-                            curveDepth: Theme.curveControl
-                        }
-
-                        contentItem: RowLayout {
-                            spacing: Theme.space3
-
-                            Superellipse {
-                                Layout.preferredWidth: 36
-                                Layout.preferredHeight: 36
-                                fillColor: Theme.surfaceRaised
-                                borderWidth: Theme.strokeStandard
-                                borderColor: Theme.borderMuted
-                                curveDepth: Theme.curveCompact
-
-                                Icon {
-                                    anchors.centerIn: parent
-                                    text: modelData.icon
-                                    color: Theme.inkMuted
-                                    preferredSize: Theme.iconSize
-                                }
-                            }
-
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 1
-
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: modelData.title
-                                    color: Theme.ink
-                                    font.pixelSize: Theme.typeLabelSize
-                                    font.weight: Theme.weightDemiBold
-                                    elide: Text.ElideRight
-                                }
-
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: modelData.body
-                                    color: Theme.inkSubtle
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    maximumLineCount: 1
-                                    elide: Text.ElideRight
-                                }
-                            }
-
-                            Icon {
-                                text: reviewed ? Theme.iconCheck : Theme.iconArrowRight
-                                color: reviewed ? Theme.accent : Theme.inkSubtle
-                                preferredSize: Theme.iconSize
-                            }
-                        }
                     }
                 }
             }
 
-            Superellipse {
+            RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 56
-                fillColor: Theme.surfaceRaised
-                borderWidth: Theme.strokeStandard
-                borderColor: root.setupBorder
-                curveDepth: Theme.curveControl
+                Layout.leftMargin: Theme.space1
+                Layout.rightMargin: Theme.space1
+                spacing: Theme.space3
 
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: Theme.space4
-                    anchors.rightMargin: Theme.space4
-                    spacing: Theme.space3
+                Superellipse {
+                    Layout.preferredWidth: 24
+                    Layout.preferredHeight: 24
+                    fillColor: root.legalTermsChecked && root.legalPrivacyChecked
+                               ? Theme.ink : "transparent"
+                    borderWidth: Theme.strokeStandard
+                    borderColor: root.legalTermsChecked && root.legalPrivacyChecked
+                                 ? Theme.ink : Theme.borderStrong
+                    curveDepth: Theme.curveCompact
 
                     Icon {
-                        text: root.legalTermsChecked && root.legalPrivacyChecked
-                              ? Theme.iconCheck : Theme.iconInfo
-                        color: root.legalTermsChecked && root.legalPrivacyChecked
-                               ? Theme.success : Theme.inkSubtle
-                        preferredSize: Theme.iconSize
+                        anchors.centerIn: parent
+                        visible: root.legalTermsChecked && root.legalPrivacyChecked
+                        text: Theme.iconCheck
+                        color: Theme.contrastInk(Theme.ink)
+                        preferredSize: 13
                     }
+                }
 
-                    Label {
-                        Layout.fillWidth: true
-                        text: root.legalConsentAccepted
-                              ? qsTrId("genycaster.setup.consent_recorded")
-                              : qsTrId("genycaster.setup.privacy_local_note")
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        font.weight: Theme.weightMedium
-                        wrapMode: Text.WordWrap
-                    }
+                Label {
+                    Layout.fillWidth: true
+                    text: root.legalConsentAccepted
+                          ? qsTrId("genycaster.setup.consent_recorded")
+                          : qsTrId("genycaster.setup.privacy_local_note")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    font.weight: Theme.weightMedium
+                    wrapMode: Text.WordWrap
+                }
 
-                    Label {
-                        text: (root.legalTermsChecked ? 1 : 0) + (root.legalPrivacyChecked ? 1 : 0) + "/2"
-                        color: root.legalTermsChecked && root.legalPrivacyChecked
-                               ? Theme.success : Theme.inkSubtle
-                        font.family: Theme.latinFontFamily
-                        font.pixelSize: Theme.typeCaptionSize
-                        font.weight: Theme.weightBold
-                    }
+                Label {
+                    text: (root.legalTermsChecked ? 1 : 0) + (root.legalPrivacyChecked ? 1 : 0) + "/2"
+                    color: Theme.inkSubtle
+                    font.family: Theme.latinFontFamily
+                    font.pixelSize: Theme.typeCaptionSize
+                    font.weight: Theme.weightDemiBold
                 }
             }
         }
@@ -1410,6 +1382,12 @@ Item {
 
         ColumnLayout {
             spacing: Theme.space4
+
+            Icon {
+                text: Theme.iconWifi
+                color: Theme.ink
+                preferredSize: 32
+            }
 
             ColumnLayout {
                 Layout.fillWidth: true
@@ -1434,79 +1412,39 @@ Item {
                 }
             }
 
-            Superellipse {
+            Item {
                 Layout.fillWidth: true
-                implicitHeight: networkHero.implicitHeight
-                fillColor: "transparent"
-                borderWidth: 0
-                borderColor: "transparent"
-                curveDepth: Theme.curveContainer
+                Layout.preferredHeight: root.phone ? Theme.space3 : Theme.space5
+            }
 
-                GridLayout {
-                    id: networkHero
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: 0
-                    columns: 1
-                    columnSpacing: 0
-                    rowSpacing: Theme.space3
+            SetupActionCard {
+                Layout.fillWidth: true
+                title: qsTrId("genycaster.setup.network_automatic")
+                subtitle: qsTrId("genycaster.setup.network_experimental")
+                iconGlyph: Theme.iconFidelity
+                primary: nodeSelectionController.automatic
+                complete: nodeSelectionController.automatic
+                onClicked: nodeSelectionController.useAutomaticSelection()
+            }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.space3
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space2
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: Theme.space2
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.network_body")
+                    color: Theme.inkSubtle
+                    font.pixelSize: Theme.typeCaptionSize
+                    elide: Text.ElideRight
+                }
 
-                            ActionButton {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.setup.network_automatic")
-                                iconGlyph: Theme.iconFidelity
-                                selected: nodeSelectionController.automatic
-                                onClicked: nodeSelectionController.useAutomaticSelection()
-                            }
-
-                            ActionButton {
-                                text: qsTrId("genycaster.setup.network_retest")
-                                iconGlyph: Theme.iconRefresh
-                                quiet: true
-                                busy: nodeSelectionController.probing
-                                onClicked: nodeSelectionController.refresh()
-                            }
-                        }
-
-                        Superellipse {
-                            Layout.fillWidth: true
-                            implicitHeight: experimentalRow.implicitHeight + Theme.space3 * 2
-                            fillColor: Theme.surfaceRaised
-                            borderWidth: Theme.strokeStandard
-                            borderColor: Theme.borderMuted
-                            curveDepth: Theme.curveControl
-
-                            RowLayout {
-                                id: experimentalRow
-                                anchors.fill: parent
-                                anchors.margins: Theme.space3
-                                spacing: Theme.space2
-
-                                Icon {
-                                    text: Theme.iconWarning
-                                    color: Theme.warning
-                                    preferredSize: 17
-                                }
-
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: qsTrId("genycaster.setup.network_experimental")
-                                    color: Theme.inkMuted
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    wrapMode: Text.WordWrap
-                                }
-                            }
-                        }
-                    }
+                ActionButton {
+                    text: qsTrId("genycaster.setup.network_retest")
+                    iconGlyph: Theme.iconRefresh
+                    quiet: true
+                    busy: nodeSelectionController.probing
+                    onClicked: nodeSelectionController.refresh()
                 }
             }
 
@@ -1517,109 +1455,20 @@ Item {
                 Repeater {
                     model: nodeSelectionController.nodes
 
-                    delegate: Button {
-                        id: nodeButton
+                    delegate: SetupActionCard {
                         required property var modelData
                         Layout.fillWidth: true
-                        implicitHeight: 64
+                        title: modelData.label
+                        subtitle: modelData.endpoint
+                        iconGlyph: "quilibrium/hypersnap"
+                        trailingText: modelData.status === "checking" ? "…"
+                                      : modelData.latencyMs >= 0 ? modelData.latencyMs + " ms"
+                                      : modelData.status === "offline"
+                                        ? qsTrId("genycaster.setup.network_unreachable") : "—"
+                        primary: modelData.selected && !nodeSelectionController.automatic
+                        complete: modelData.selected
                         enabled: modelData.status !== "offline"
-                        hoverEnabled: true
                         onClicked: nodeSelectionController.selectNode(modelData.id)
-
-                        background: Superellipse {
-                            fillColor: nodeButton.hovered ? Theme.surfaceHover : root.setupCard
-                            borderWidth: Theme.strokeStandard
-                            borderColor: modelData.selected ? root.setupSelectedBorder : root.setupBorder
-                            curveDepth: Theme.curveControl
-                        }
-
-                        contentItem: RowLayout {
-                            spacing: Theme.space3
-                            layoutDirection: Theme.uiDirection
-
-                            Superellipse {
-                                Layout.preferredWidth: 36
-                                Layout.preferredHeight: 36
-                                fillColor: Theme.surfaceRaised
-                                borderWidth: Theme.strokeStandard
-                                borderColor: Theme.borderMuted
-                                curveDepth: Theme.curveCompact
-
-                                Icon {
-                                    anchors.centerIn: parent
-                                    text: "quilibrium/hypersnap"
-                                    color: modelData.status === "offline" ? Theme.danger
-                                         : modelData.selected ? Theme.accent : Theme.inkMuted
-                                    preferredSize: Theme.iconSize
-                                }
-                            }
-
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 2
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-
-                                    Label {
-                                        Layout.fillWidth: true
-                                        text: modelData.label
-                                        color: Theme.ink
-                                        font.pixelSize: Theme.typeLabelSize
-                                        font.weight: Theme.weightBold
-                                        elide: Text.ElideRight
-                                    }
-
-                                    Label {
-                                        visible: modelData.recommended
-                                        text: qsTrId("genycaster.setup.network_best")
-                                        color: Theme.accent
-                                        font.pixelSize: Theme.typeCaptionSize
-                                        font.weight: Theme.weightBold
-                                    }
-                                }
-
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: modelData.endpoint
-                                    color: Theme.inkSubtle
-                                    font.family: Theme.codeFontFamily
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    elide: Text.ElideMiddle
-                                }
-                            }
-
-                            Column {
-                                spacing: 1
-
-                                Label {
-                                    anchors.right: parent.right
-                                    text: modelData.status === "checking" ? "…"
-                                        : modelData.latencyMs >= 0 ? modelData.latencyMs + " ms"
-                                        : "—"
-                                    color: modelData.status === "offline" ? Theme.danger : Theme.ink
-                                    font.family: Theme.latinFontFamily
-                                    font.pixelSize: Theme.typeLabelSize
-                                    font.weight: Theme.weightBold
-                                }
-
-                                Label {
-                                    anchors.right: parent.right
-                                    text: modelData.status === "online" ? qsTrId("genycaster.setup.network_online")
-                                        : modelData.status === "offline" ? qsTrId("genycaster.setup.network_unreachable")
-                                        : qsTrId("genycaster.setup.network_checking")
-                                    color: Theme.inkSubtle
-                                    font.pixelSize: Theme.typeCaptionSize
-                                }
-                            }
-
-                            Icon {
-                                visible: modelData.selected
-                                text: Theme.iconCheck
-                                color: Theme.accent
-                                preferredSize: Theme.iconSize
-                            }
-                        }
                     }
                 }
             }
@@ -1666,6 +1515,12 @@ Item {
         ColumnLayout {
             spacing: Theme.space4
 
+            Icon {
+                text: Theme.iconUser
+                color: Theme.ink
+                preferredSize: 32
+            }
+
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Theme.space1
@@ -1689,6 +1544,11 @@ Item {
                     lineHeight: Theme.typeLabelLineHeight
                     wrapMode: Text.WordWrap
                 }
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: root.phone ? Theme.space3 : Theme.space5
             }
 
             Superellipse {
@@ -1761,18 +1621,15 @@ Item {
                 }
             }
 
-            GridLayout {
+            ColumnLayout {
                 visible: !root.authenticated
                 Layout.fillWidth: true
-                columns: 1
-                columnSpacing: 0
-                rowSpacing: Theme.space2
+                spacing: Theme.space3
 
                 Repeater {
                     model: [
                         {
                             brand: "brands/geny",
-                            title: "Genyleap · OpenProof",
                             body: qsTrId("genycaster.setup.account_genyleap_body"),
                             action: qsTrId("genycaster.shell.continue_with_genyleap"),
                             comingSoon: qsTrId("genycaster.setup.account_create_openproof_soon"),
@@ -1780,7 +1637,6 @@ Item {
                         },
                         {
                             brand: "brands/farcaster",
-                            title: "Farcaster",
                             body: qsTrId("genycaster.setup.account_farcaster_body"),
                             action: qsTrId("genycaster.shell.sign_in_with_farcaster"),
                             comingSoon: qsTrId("genycaster.setup.account_create_farcaster_soon"),
@@ -1788,110 +1644,38 @@ Item {
                         }
                     ]
 
-                    delegate: Superellipse {
+                    delegate: ColumnLayout {
                         required property var modelData
                         Layout.fillWidth: true
-                        implicitHeight: authChoiceColumn.implicitHeight + Theme.space3 * 2
-                        fillColor: root.setupCard
-                        borderWidth: Theme.strokeStandard
-                        borderColor: root.setupBorder
-                        curveDepth: Theme.curveControl
+                        spacing: Theme.space1
 
-                        ColumnLayout {
-                            id: authChoiceColumn
-                            anchors.fill: parent
-                            anchors.margins: Theme.space3
-                            spacing: Theme.space2
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: Theme.space3
-
-                                Superellipse {
-                                    Layout.preferredWidth: 40
-                                    Layout.preferredHeight: 40
-                                    fillColor: Theme.surfaceRaised
-                                    borderWidth: Theme.strokeStandard
-                                    borderColor: Theme.borderMuted
-                                    curveDepth: Theme.curveCompact
-
-                                    Icon {
-                                        anchors.centerIn: parent
-                                        text: modelData.brand
-                                        color: Theme.accent
-                                        preferredSize: Theme.iconSize
-                                    }
-                                }
-
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 1
-
-                                    Label {
-                                        Layout.fillWidth: true
-                                        text: modelData.title
-                                        color: Theme.ink
-                                        font.pixelSize: Theme.typeLabelSize
-                                        font.weight: Theme.weightDemiBold
-                                        elide: Text.ElideRight
-                                    }
-
-                                    Label {
-                                        Layout.fillWidth: true
-                                        text: modelData.body
-                                        color: Theme.inkMuted
-                                        font.pixelSize: Theme.typeCaptionSize
-                                        maximumLineCount: root.phone ? 2 : 1
-                                        elide: Text.ElideRight
-                                        wrapMode: Text.WordWrap
-                                    }
-
-                                    Label {
-                                        Layout.fillWidth: true
-                                        text: modelData.comingSoon
-                                        color: Theme.inkSubtle
-                                        font.pixelSize: Theme.typeCaptionSize
-                                        elide: Text.ElideRight
-                                    }
-                                }
-
-                                ActionButton {
-                                    visible: !root.phone
-                                    text: modelData.action
-                                    prominent: !modelData.farcaster
-                                    iconGlyph: Theme.iconSignIn
-                                    enabled: root.authenticationAvailable && !root.authenticationInProgress
-                                    busy: root.authenticationInProgress
-                                          && (modelData.farcaster
-                                              ? root.authenticationRoute === "farcaster"
-                                              : root.authenticationRoute !== "farcaster")
-                                    onClicked: {
-                                        if (modelData.farcaster)
-                                            root.continueWithFarcaster()
-                                        else
-                                            root.continueWithGenyleap()
-                                    }
-                                }
+                        SetupActionCard {
+                            Layout.fillWidth: true
+                            title: modelData.action
+                            subtitle: modelData.body
+                            iconGlyph: modelData.brand
+                            primary: !modelData.farcaster
+                            busy: root.authenticationInProgress
+                                  && (modelData.farcaster
+                                      ? root.authenticationRoute === "farcaster"
+                                      : root.authenticationRoute !== "farcaster")
+                            enabled: root.authenticationAvailable && !root.authenticationInProgress
+                            onClicked: {
+                                if (modelData.farcaster)
+                                    root.continueWithFarcaster()
+                                else
+                                    root.continueWithGenyleap()
                             }
+                        }
 
-                            ActionButton {
-                                visible: root.phone
-                                Layout.fillWidth: true
-                                text: modelData.action
-                                prominent: !modelData.farcaster
-                                iconGlyph: Theme.iconSignIn
-                                enabled: root.authenticationAvailable && !root.authenticationInProgress
-                                busy: root.authenticationInProgress
-                                      && (modelData.farcaster
-                                          ? root.authenticationRoute === "farcaster"
-                                          : root.authenticationRoute !== "farcaster")
-                                onClicked: {
-                                    if (modelData.farcaster)
-                                        root.continueWithFarcaster()
-                                    else
-                                        root.continueWithGenyleap()
-                                }
-                            }
+                        Label {
+                            Layout.leftMargin: Theme.space4
+                            Layout.rightMargin: Theme.space4
+                            Layout.fillWidth: true
+                            text: modelData.comingSoon
+                            color: Theme.inkSubtle
+                            font.pixelSize: Theme.typeCaptionSize
+                            elide: Text.ElideRight
                         }
                     }
                 }
@@ -1925,12 +1709,13 @@ Item {
                         wrapMode: Text.WordWrap
                     }
 
-                    ActionButton {
+                    SetupPrimaryButton {
+                        Layout.preferredWidth: root.phone ? 150 : 180
                         text: root.authenticationRoute === "farcaster"
                               ? qsTrId("genycaster.shell.open_farcaster")
                               : qsTrId("genycaster.shell.open_genyleap")
-                        prominent: true
                         iconGlyph: Theme.iconArrowUpRight
+                        showArrow: false
                         onClicked: root.openApproval()
                     }
                 }
@@ -2036,7 +1821,7 @@ Item {
                             anchors.centerIn: parent
                             anchors.horizontalCenterOffset: 28
                             anchors.verticalCenterOffset: 28
-                            fillColor: Theme.success
+                            fillColor: Theme.ink
                             curveDepth: 10
                             borderWidth: 2
                             borderColor: root.setupCard
@@ -2044,7 +1829,7 @@ Item {
                             Icon {
                                 anchors.centerIn: parent
                                 text: Theme.iconCheck
-                                color: Theme.contrastInk(Theme.success)
+                                color: Theme.contrastInk(Theme.ink)
                                 preferredSize: 17
                             }
                         }
@@ -2104,237 +1889,48 @@ Item {
                 columnSpacing: Theme.space2
                 rowSpacing: Theme.space2
 
-                Button {
-                    id: readyLanguageButton
+                SetupActionCard {
                     Layout.fillWidth: true
-                    implicitHeight: 64
+                    compactCard: true
+                    title: localizationController.languageLabel
+                    subtitle: localizationController.regionalLocaleLabel
+                    iconGlyph: Theme.iconLanguage
                     onClicked: root.switchStep(0)
-
-                    background: Superellipse {
-                        fillColor: readyLanguageButton.hovered ? Theme.surfaceHover : Theme.surface
-                        borderWidth: 1
-                        borderColor: Theme.borderMuted
-                        curveDepth: Theme.curveControl
-                    }
-
-                    contentItem: RowLayout {
-                        spacing: Theme.space3
-
-                        Superellipse {
-                            Layout.preferredWidth: 38
-                            Layout.preferredHeight: 38
-                            fillColor: Theme.surfaceRaised
-                            curveDepth: Theme.curveCompact
-
-                            Icon {
-                                anchors.centerIn: parent
-                                text: Theme.iconLanguage
-                                color: Theme.accent
-                                preferredSize: 19
-                            }
-                        }
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 0
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: localizationController.languageLabel
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeLabelSize
-                                font.weight: Theme.weightBold
-                                elide: Text.ElideRight
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: localizationController.regionalLocaleLabel
-                                color: Theme.inkSubtle
-                                font.pixelSize: Theme.typeCaptionSize
-                                elide: Text.ElideRight
-                            }
-                        }
-
-                        Icon {
-                            text: Theme.iconArrowRight
-                            color: Theme.inkSubtle
-                            preferredSize: 15
-                        }
-                    }
                 }
 
-                Button {
-                    id: readyAppearanceButton
+                SetupActionCard {
                     Layout.fillWidth: true
-                    implicitHeight: 64
+                    compactCard: true
+                    title: root.accentCode()
+                    subtitle: appearanceController.themeMode
+                    iconGlyph: Theme.iconPalette
                     onClicked: root.switchStep(1)
-
-                    background: Superellipse {
-                        fillColor: readyAppearanceButton.hovered ? Theme.surfaceHover : Theme.surface
-                        borderWidth: 1
-                        borderColor: Theme.borderMuted
-                        curveDepth: Theme.curveControl
-                    }
-
-                    contentItem: RowLayout {
-                        spacing: Theme.space3
-
-                        Rectangle {
-                            Layout.preferredWidth: 38
-                            Layout.preferredHeight: 38
-                            radius: 19
-                            color: Theme.accent
-                            border.width: 2
-                            border.color: Theme.surface
-                        }
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 0
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: root.accentCode()
-                                color: Theme.ink
-                                font.family: Theme.codeFontFamily
-                                font.pixelSize: Theme.typeLabelSize
-                                font.weight: Theme.weightBold
-                                elide: Text.ElideRight
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: appearanceController.themeMode
-                                color: Theme.inkSubtle
-                                font.pixelSize: Theme.typeCaptionSize
-                                elide: Text.ElideRight
-                            }
-                        }
-
-                        Icon {
-                            text: Theme.iconArrowRight
-                            color: Theme.inkSubtle
-                            preferredSize: 15
-                        }
-                    }
                 }
 
-                Button {
-                    id: readyNetworkButton
+                SetupActionCard {
                     Layout.fillWidth: true
-                    implicitHeight: 64
+                    compactCard: true
+                    title: "Hypersnap v2"
+                    subtitle: {
+                        const nodes = nodeSelectionController.nodes
+                        for (let index = 0; index < nodes.length; ++index) {
+                            if (nodes[index].selected && nodes[index].latencyMs >= 0)
+                                return nodes[index].latencyMs + " ms"
+                        }
+                        return qsTrId("genycaster.setup.network_selected")
+                    }
+                    iconGlyph: Theme.iconWifi
                     onClicked: root.switchStep(3)
-
-                    background: Superellipse {
-                        fillColor: readyNetworkButton.hovered ? Theme.surfaceHover : Theme.surface
-                        borderWidth: 1
-                        borderColor: Theme.borderMuted
-                        curveDepth: Theme.curveControl
-                    }
-
-                    contentItem: RowLayout {
-                        spacing: Theme.space3
-
-                        Superellipse {
-                            Layout.preferredWidth: 38
-                            Layout.preferredHeight: 38
-                            fillColor: Theme.surfaceRaised
-                            curveDepth: Theme.curveCompact
-
-                            Icon {
-                                anchors.centerIn: parent
-                                text: Theme.iconWifi
-                                color: Theme.accent
-                                preferredSize: Theme.iconSize
-                            }
-                        }
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 0
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: "Hypersnap v2"
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeLabelSize
-                                font.weight: Theme.weightBold
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: {
-                                    const nodes = nodeSelectionController.nodes
-                                    for (let index = 0; index < nodes.length; ++index) {
-                                        if (nodes[index].selected && nodes[index].latencyMs >= 0)
-                                            return nodes[index].latencyMs + " ms"
-                                    }
-                                    return qsTrId("genycaster.setup.network_selected")
-                                }
-                                color: Theme.inkSubtle
-                                font.pixelSize: Theme.typeCaptionSize
-                            }
-                        }
-
-                        Icon {
-                            text: Theme.iconArrowRight
-                            color: Theme.inkSubtle
-                            preferredSize: 15
-                        }
-                    }
                 }
 
-                Button {
-                    id: readyAccountButton
+                SetupActionCard {
                     Layout.fillWidth: true
-                    implicitHeight: 64
+                    compactCard: true
+                    title: root.accountName.length > 0 ? root.accountName : root.accountUsername
+                    subtitle: qsTrId("genycaster.shell.verified_by_openproof")
+                    iconGlyph: Theme.iconUser
+                    complete: true
                     onClicked: root.switchStep(4)
-
-                    background: Superellipse {
-                        fillColor: readyAccountButton.hovered ? Theme.surfaceHover : Theme.surface
-                        borderWidth: 1
-                        borderColor: Theme.borderMuted
-                        curveDepth: Theme.curveControl
-                    }
-
-                    contentItem: RowLayout {
-                        spacing: Theme.space3
-
-                        Avatar {
-                            sourceUrl: root.accountAvatarUrl
-                            displayName: root.accountName.length > 0 ? root.accountName : root.accountUsername
-                            avatarSize: 38
-                        }
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 0
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: root.accountName.length > 0 ? root.accountName : root.accountUsername
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeLabelSize
-                                font.weight: Theme.weightBold
-                                elide: Text.ElideRight
-                            }
-
-                            Label {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.shell.verified_by_openproof")
-                                color: Theme.inkSubtle
-                                font.pixelSize: Theme.typeCaptionSize
-                                elide: Text.ElideRight
-                            }
-                        }
-
-                        Icon {
-                            text: Theme.iconCheck
-                            color: Theme.accent
-                            preferredSize: Theme.iconSize
-                        }
-                    }
                 }
             }
         }

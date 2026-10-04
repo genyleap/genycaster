@@ -84,9 +84,8 @@ Item {
 
                 background: Rectangle {
                     radius: width / 2
-                    color: previousButton.hovered ? Theme.surfaceHover : Theme.surfaceRaised
-                    border.width: Theme.strokeStandard
-                    border.color: Theme.borderMuted
+                    color: previousButton.hovered ? Theme.surfaceHover : "transparent"
+                    border.width: 0
                 }
 
                 contentItem: Icon {
@@ -108,9 +107,8 @@ Item {
 
                 background: Rectangle {
                     radius: width / 2
-                    color: nextButton.hovered ? Theme.surfaceHover : Theme.surfaceRaised
-                    border.width: Theme.strokeStandard
-                    border.color: Theme.borderMuted
+                    color: nextButton.hovered ? Theme.surfaceHover : "transparent"
+                    border.width: 0
                 }
 
                 contentItem: Icon {
@@ -187,10 +185,11 @@ Item {
                     Superellipse {
                         anchors.fill: parent
                         visible: PathView.isCurrentItem
-                        fillColor: Theme.surfaceRaised
-                        borderWidth: Theme.strokeStandard
-                        borderColor: Theme.accent
+                        fillColor: Theme.ink
+                        borderWidth: 0
+                        borderColor: "transparent"
                         curveDepth: Theme.curveControl
+                        elevation: Theme.elevationControl
                     }
 
                     Column {
@@ -200,7 +199,8 @@ Item {
                         Label {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: modelData.hello
-                            color: PathView.isCurrentItem ? Theme.ink : Theme.inkMuted
+                            color: PathView.isCurrentItem
+                                   ? Theme.contrastInk(Theme.ink) : Theme.inkMuted
                             font.family: Theme.fontFamilyForText(modelData.hello)
                             font.pixelSize: PathView.isCurrentItem
                                             ? Theme.typeTitle3Size : Theme.typeLabelSize
@@ -212,7 +212,9 @@ Item {
                             anchors.horizontalCenter: parent.horizontalCenter
                             visible: PathView.isCurrentItem
                             text: modelData.language
-                            color: Theme.inkSubtle
+                            color: Qt.rgba(Theme.contrastInk(Theme.ink).r,
+                                           Theme.contrastInk(Theme.ink).g,
+                                           Theme.contrastInk(Theme.ink).b, 0.68)
                             font.family: Theme.fontFamilyForText(modelData.language)
                             font.pixelSize: Theme.typeCaptionSize
                             font.weight: Theme.weightMedium
