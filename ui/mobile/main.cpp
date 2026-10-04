@@ -1037,7 +1037,8 @@ void applySocialState(PresentationBridge& bridge, application::read::model::Soci
     return QStringLiteral("failed");
 }
 
-[[nodiscard]] QString authenticationErrorText(const application::session::SessionState& state)
+[[nodiscard]] QString authenticationErrorText(
+    const application::session::SessionState& state, const QString& route)
 {
     if (!state.error) {
         return {};
@@ -1046,20 +1047,22 @@ void applySocialState(PresentationBridge& bridge, application::read::model::Soci
     QString summary{};
     switch (state.error->code) {
     case ErrorCode::Unauthorized:
-        summary = qtTrId("genycaster.runtime.farcaster_could_not_verify_this_sign_in_start_a_new_request_");
+        summary = route == QStringLiteral("farcaster")
+            ? qtTrId("genycaster.runtime.farcaster_could_not_verify_this_sign_in_start_a_new_request_")
+            : qtTrId("genycaster.runtime.the_sign_in_proof_could_not_be_validated_safely");
         break;
     case ErrorCode::RateLimited:
-        summary = qtTrId("genycaster.runtime.sign_in_is_temporarily_rate_limited_guest_reading_is_still_a");
+        summary = qtTrId("genycaster.runtime.sign_in_could_not_be_completed");
         break;
     case ErrorCode::Timeout:
-        summary = qtTrId("genycaster.runtime.the_sign_in_request_timed_out_guest_reading_is_still_availab");
+        summary = qtTrId("genycaster.runtime.sign_in_could_not_be_completed");
         break;
     case ErrorCode::Unavailable:
     case ErrorCode::TransportFailure:
-        summary = qtTrId("genycaster.runtime.the_sign_in_service_is_temporarily_unavailable_guest_reading");
+        summary = qtTrId("genycaster.runtime.sign_in_could_not_be_completed");
         break;
     case ErrorCode::Unsupported:
-        summary = qtTrId("genycaster.runtime.sign_in_is_not_available_in_this_build_guest_reading_is_stil");
+        summary = qtTrId("genycaster.runtime.sign_in_could_not_be_completed");
         break;
     case ErrorCode::InvalidArgument:
         summary = qtTrId("genycaster.runtime.this_build_is_missing_valid_sign_in_with_farcaster_app_confi");
@@ -1729,7 +1732,7 @@ void applySessionState(
         std::move(avatarUrl),
         std::move(identityIssuer),
         QString::fromStdString(state.approvalUrl),
-        authenticationErrorText(state));
+        authenticationErrorText(state, bridge.authenticationRoute()));
 }
 
 void hydrateAuthenticatedAccountProfile(

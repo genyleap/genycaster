@@ -2126,14 +2126,6 @@
             <source>Sign in could not be completed.</source>
             <translation>Die Anmeldung konnte nicht abgeschlossen werden.</translation>
         </message>
-        <message id="genycaster.runtime.sign_in_is_not_available_in_this_build_guest_reading_is_stil">
-            <source>Sign in is not available in this build. A verified account is required to continue.</source>
-            <translation>Die Anmeldung ist in diesem Build nicht verfügbar. Zum Fortfahren ist ein verifiziertes Konto erforderlich.</translation>
-        </message>
-        <message id="genycaster.runtime.sign_in_is_temporarily_rate_limited_guest_reading_is_still_a">
-            <source>Sign in is temporarily rate limited. Please wait a moment and try again.</source>
-            <translation>Die Anmeldung ist vorübergehend rate-limitiert. Warte einen Moment und versuche es erneut.</translation>
-        </message>
         <message id="genycaster.runtime.signer_attestation_not_configured">
             <source>Secure Genycaster client attribution is not configured yet. Reading remains available.</source>
             <translation>Die sichere Genycaster-Clientzuordnung ist noch nicht konfiguriert. Lesen bleibt verfügbar.</translation>
@@ -2229,14 +2221,6 @@
         <message id="genycaster.runtime.the_sign_in_proof_could_not_be_validated_safely">
             <source>The sign-in proof could not be validated safely.</source>
             <translation>Der Anmeldenachweis konnte nicht sicher validiert werden.</translation>
-        </message>
-        <message id="genycaster.runtime.the_sign_in_request_timed_out_guest_reading_is_still_availab">
-            <source>The sign-in request timed out. Try again.</source>
-            <translation>Die Anmeldeanfrage ist abgelaufen. Versuche es erneut.</translation>
-        </message>
-        <message id="genycaster.runtime.the_sign_in_service_is_temporarily_unavailable_guest_reading">
-            <source>The sign-in service is temporarily unavailable. Try again shortly.</source>
-            <translation>Der Anmeldedienst ist vorübergehend nicht verfügbar. Versuche es in Kürze erneut.</translation>
         </message>
         <message id="genycaster.runtime.the_signer_authorization_configuration_is_invalid">
             <source>The signer authorization configuration is invalid.</source>
@@ -2554,10 +2538,6 @@
             <source>Saved locally first, then refreshed from the network</source>
             <translation>Zuerst lokal gespeichert, dann aus dem Netzwerk aktualisiert</translation>
         </message>
-        <message id="genycaster.shell.sign_in_is_not_configured_in_this_build_guest_reading_">
-            <source>Sign in is not configured in this build. Genycaster requires a verified account to continue.</source>
-            <translation>Die Anmeldung ist in diesem Build nicht konfiguriert. Genycaster benötigt zum Fortfahren ein verifiziertes Konto.</translation>
-        </message>
         <message id="genycaster.shell.sign_in_to_interact">
             <source>Sign in to continue</source>
             <translation>Anmelden, um fortzufahren</translation>
@@ -2586,17 +2566,9 @@
             <source>This verified session identifies your account. Protocol writes remain locked until Genycaster has a valid Farcaster signer for this FID.</source>
             <translation>Diese verifizierte Sitzung identifiziert dein Konto. Protokoll-Schreibvorgänge bleiben gesperrt, bis Genycaster einen gültigen Farcaster-Signer für diese FID hat.</translation>
         </message>
-        <message id="genycaster.shell.try_again">
-            <source>Try again</source>
-            <translation>Noch einmal versuchen</translation>
-        </message>
         <message id="genycaster.shell.whats_happening">
             <source>What’s happening?</source>
             <translation>Was gibt’s Neues?</translation>
-        </message>
-        <message id="genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_">
-            <source>A verified account is required to use Genycaster. Continue with Genyleap/OpenProof or Farcaster to finish setup.</source>
-            <translation>Für Genycaster ist ein verifiziertes Konto erforderlich. Fahre mit Genyleap/OpenProof oder Farcaster fort, um die Einrichtung abzuschließen.</translation>
         </message>
         <message id="genycaster.shell.your_farcaster_account">
             <source>Your Farcaster account</source>

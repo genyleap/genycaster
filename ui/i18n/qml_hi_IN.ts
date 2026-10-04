@@ -2126,14 +2126,6 @@
             <source>Sign in could not be completed.</source>
             <translation>साइन इन पूरा नहीं हो सका।</translation>
         </message>
-        <message id="genycaster.runtime.sign_in_is_not_available_in_this_build_guest_reading_is_stil">
-            <source>Sign in is not available in this build. A verified account is required to continue.</source>
-            <translation>इस बिल्ड में साइन-इन उपलब्ध नहीं है। आगे बढ़ने के लिए सत्यापित खाता आवश्यक है।</translation>
-        </message>
-        <message id="genycaster.runtime.sign_in_is_temporarily_rate_limited_guest_reading_is_still_a">
-            <source>Sign in is temporarily rate limited. Please wait a moment and try again.</source>
-            <translation>साइन-इन पर अस्थायी दर-सीमा लागू है। थोड़ी देर प्रतीक्षा करें और फिर प्रयास करें।</translation>
-        </message>
         <message id="genycaster.runtime.signer_attestation_not_configured">
             <source>Secure Genycaster client attribution is not configured yet. Reading remains available.</source>
             <translation>सुरक्षित Genycaster क्लाइंट एट्रिब्यूशन अभी कॉन्फ़िगर नहीं है। पढ़ना उपलब्ध रहेगा।</translation>
@@ -2229,14 +2221,6 @@
         <message id="genycaster.runtime.the_sign_in_proof_could_not_be_validated_safely">
             <source>The sign-in proof could not be validated safely.</source>
             <translation>साइन-इन प्रमाण सुरक्षित रूप से मान्य नहीं किया जा सका।</translation>
-        </message>
-        <message id="genycaster.runtime.the_sign_in_request_timed_out_guest_reading_is_still_availab">
-            <source>The sign-in request timed out. Try again.</source>
-            <translation>साइन-इन अनुरोध का समय समाप्त हो गया। फिर से प्रयास करें।</translation>
-        </message>
-        <message id="genycaster.runtime.the_sign_in_service_is_temporarily_unavailable_guest_reading">
-            <source>The sign-in service is temporarily unavailable. Try again shortly.</source>
-            <translation>साइन-इन सेवा अस्थायी रूप से उपलब्ध नहीं है। थोड़ी देर बाद फिर प्रयास करें।</translation>
         </message>
         <message id="genycaster.runtime.the_signer_authorization_configuration_is_invalid">
             <source>The signer authorization configuration is invalid.</source>
@@ -2554,10 +2538,6 @@
             <source>Saved locally first, then refreshed from the network</source>
             <translation>पहले स्थानीय रूप से सहेजा, फिर नेटवर्क से रीफ़्रेश किया</translation>
         </message>
-        <message id="genycaster.shell.sign_in_is_not_configured_in_this_build_guest_reading_">
-            <source>Sign in is not configured in this build. Genycaster requires a verified account to continue.</source>
-            <translation>इस बिल्ड में साइन-इन कॉन्फ़िगर नहीं है। Genycaster में आगे बढ़ने के लिए सत्यापित खाता आवश्यक है।</translation>
-        </message>
         <message id="genycaster.shell.sign_in_to_interact">
             <source>Sign in to continue</source>
             <translation>आगे बढ़ने के लिए साइन इन करें</translation>
@@ -2586,17 +2566,9 @@
             <source>This verified session identifies your account. Protocol writes remain locked until Genycaster has a valid Farcaster signer for this FID.</source>
             <translation>यह सत्यापित सत्र आपके खाते की पहचान करता है। जब तक Genycaster के पास इस FID के लिए मान्य Farcaster signer नहीं होता, प्रोटोकॉल लेखन लॉक रहेगा।</translation>
         </message>
-        <message id="genycaster.shell.try_again">
-            <source>Try again</source>
-            <translation>फिर प्रयास करें</translation>
-        </message>
         <message id="genycaster.shell.whats_happening">
             <source>What’s happening?</source>
             <translation>क्या हो रहा है?</translation>
-        </message>
-        <message id="genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_">
-            <source>A verified account is required to use Genycaster. Continue with Genyleap/OpenProof or Farcaster to finish setup.</source>
-            <translation>Genycaster का उपयोग करने के लिए सत्यापित खाता आवश्यक है। सेटअप पूरा करने के लिए Genyleap/OpenProof या Farcaster के साथ आगे बढ़ें।</translation>
         </message>
         <message id="genycaster.shell.your_farcaster_account">
             <source>Your Farcaster account</source>

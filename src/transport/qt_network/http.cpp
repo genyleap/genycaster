@@ -254,6 +254,15 @@ private:
         }
 
         QNetworkRequest networkRequest{url};
+        // IHttpTransport is stateless: callers carry cookie state explicitly.
+        // This also prevents a prior OpenProof session cookie from being mixed
+        // with a later OAuth bearer credential by QNetworkAccessManager.
+        networkRequest.setAttribute(
+            QNetworkRequest::CookieLoadControlAttribute,
+            static_cast<int>(QNetworkRequest::Manual));
+        networkRequest.setAttribute(
+            QNetworkRequest::CookieSaveControlAttribute,
+            static_cast<int>(QNetworkRequest::Manual));
         networkRequest.setAttribute(
             QNetworkRequest::RedirectPolicyAttribute,
             QNetworkRequest::NoLessSafeRedirectPolicy);

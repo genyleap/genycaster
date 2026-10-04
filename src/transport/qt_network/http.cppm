@@ -30,8 +30,10 @@ enum class ProtocolPolicy : std::uint8_t {
  * @brief Creates a Qt Network-backed blocking HTTP transport for graphical runtimes.
  *
  * Each worker thread reuses one QNetworkAccessManager per proxy policy while
- * each request owns its reply/event-loop state on that same worker thread. The
- * application must already have a QCoreApplication instance. TLS certificate
+ * each request owns its reply/event-loop state on that same worker thread.
+ * Cookie persistence is disabled at the QNetworkAccessManager boundary; callers
+ * that require cookies must carry them explicitly through IHttpTransport headers.
+ * The application must already have a QCoreApplication instance. TLS certificate
  * verification remains enabled and Qt uses the platform trust facilities. Proxy
  * participation is an explicit composition policy.
  *

@@ -2126,14 +2126,6 @@
             <source>Sign in could not be completed.</source>
             <translation>로그인을 완료할 수 없습니다.</translation>
         </message>
-        <message id="genycaster.runtime.sign_in_is_not_available_in_this_build_guest_reading_is_stil">
-            <source>Sign in is not available in this build. A verified account is required to continue.</source>
-            <translation>이 빌드에서는 로그인을 사용할 수 없습니다. 계속하려면 인증된 계정이 필요합니다.</translation>
-        </message>
-        <message id="genycaster.runtime.sign_in_is_temporarily_rate_limited_guest_reading_is_still_a">
-            <source>Sign in is temporarily rate limited. Please wait a moment and try again.</source>
-            <translation>로그인이 일시적으로 요청 제한 상태입니다. 잠시 기다린 후 다시 시도하세요.</translation>
-        </message>
         <message id="genycaster.runtime.signer_attestation_not_configured">
             <source>Secure Genycaster client attribution is not configured yet. Reading remains available.</source>
             <translation>안전한 Genycaster 클라이언트 귀속이 아직 설정되지 않았습니다. 읽기는 계속 사용할 수 있습니다.</translation>
@@ -2229,14 +2221,6 @@
         <message id="genycaster.runtime.the_sign_in_proof_could_not_be_validated_safely">
             <source>The sign-in proof could not be validated safely.</source>
             <translation>로그인 증명을 안전하게 검증할 수 없습니다.</translation>
-        </message>
-        <message id="genycaster.runtime.the_sign_in_request_timed_out_guest_reading_is_still_availab">
-            <source>The sign-in request timed out. Try again.</source>
-            <translation>로그인 요청 시간이 초과되었습니다. 다시 시도하세요.</translation>
-        </message>
-        <message id="genycaster.runtime.the_sign_in_service_is_temporarily_unavailable_guest_reading">
-            <source>The sign-in service is temporarily unavailable. Try again shortly.</source>
-            <translation>로그인 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도하세요.</translation>
         </message>
         <message id="genycaster.runtime.the_signer_authorization_configuration_is_invalid">
             <source>The signer authorization configuration is invalid.</source>
@@ -2554,10 +2538,6 @@
             <source>Saved locally first, then refreshed from the network</source>
             <translation>먼저 로컬에 저장한 뒤 네트워크에서 새로고침</translation>
         </message>
-        <message id="genycaster.shell.sign_in_is_not_configured_in_this_build_guest_reading_">
-            <source>Sign in is not configured in this build. Genycaster requires a verified account to continue.</source>
-            <translation>이 빌드에는 로그인이 구성되어 있지 않습니다. Genycaster를 계속 사용하려면 인증된 계정이 필요합니다.</translation>
-        </message>
         <message id="genycaster.shell.sign_in_to_interact">
             <source>Sign in to continue</source>
             <translation>계속하려면 로그인</translation>
@@ -2586,17 +2566,9 @@
             <source>This verified session identifies your account. Protocol writes remain locked until Genycaster has a valid Farcaster signer for this FID.</source>
             <translation>이 검증된 세션이 계정을 식별합니다. Genycaster에 이 FID용 유효한 Farcaster 서명자가 생길 때까지 프로토콜 쓰기는 잠긴 상태로 유지됩니다.</translation>
         </message>
-        <message id="genycaster.shell.try_again">
-            <source>Try again</source>
-            <translation>다시 시도</translation>
-        </message>
         <message id="genycaster.shell.whats_happening">
             <source>What’s happening?</source>
             <translation>무슨 일이 있나요?</translation>
-        </message>
-        <message id="genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_">
-            <source>A verified account is required to use Genycaster. Continue with Genyleap/OpenProof or Farcaster to finish setup.</source>
-            <translation>Genycaster를 사용하려면 인증된 계정이 필요합니다. Genyleap/OpenProof 또는 Farcaster로 계속하여 설정을 완료하세요.</translation>
         </message>
         <message id="genycaster.shell.your_farcaster_account">
             <source>Your Farcaster account</source>

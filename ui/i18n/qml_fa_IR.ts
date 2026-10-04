@@ -2126,14 +2126,6 @@
             <source>Sign in could not be completed.</source>
             <translation>ورود کامل نشد.</translation>
         </message>
-        <message id="genycaster.runtime.sign_in_is_not_available_in_this_build_guest_reading_is_stil">
-            <source>Sign in is not available in this build. A verified account is required to continue.</source>
-            <translation>ورود در این نسخه در دسترس نیست. برای ادامه به یک حساب تأییدشده نیاز دارید.</translation>
-        </message>
-        <message id="genycaster.runtime.sign_in_is_temporarily_rate_limited_guest_reading_is_still_a">
-            <source>Sign in is temporarily rate limited. Please wait a moment and try again.</source>
-            <translation>ورود موقتاً با محدودیت نرخ مواجه شده است. کمی صبر کنید و دوباره تلاش کنید.</translation>
-        </message>
         <message id="genycaster.runtime.signer_attestation_not_configured">
             <source>Secure Genycaster client attribution is not configured yet. Reading remains available.</source>
             <translation>انتساب امن کلاینت Genycaster هنوز پیکربندی نشده است. خواندن محتوا همچنان در دسترس است.</translation>
@@ -2229,14 +2221,6 @@
         <message id="genycaster.runtime.the_sign_in_proof_could_not_be_validated_safely">
             <source>The sign-in proof could not be validated safely.</source>
             <translation>اثبات ورود به‌صورت امن قابل اعتبارسنجی نبود.</translation>
-        </message>
-        <message id="genycaster.runtime.the_sign_in_request_timed_out_guest_reading_is_still_availab">
-            <source>The sign-in request timed out. Try again.</source>
-            <translation>مهلت درخواست ورود به پایان رسید. دوباره تلاش کنید.</translation>
-        </message>
-        <message id="genycaster.runtime.the_sign_in_service_is_temporarily_unavailable_guest_reading">
-            <source>The sign-in service is temporarily unavailable. Try again shortly.</source>
-            <translation>سرویس ورود موقتاً در دسترس نیست. کمی بعد دوباره تلاش کنید.</translation>
         </message>
         <message id="genycaster.runtime.the_signer_authorization_configuration_is_invalid">
             <source>The signer authorization configuration is invalid.</source>
@@ -2554,10 +2538,6 @@
             <source>Saved locally first, then refreshed from the network</source>
             <translation>ابتدا محلی ذخیره می‌شود، سپس از شبکه تازه‌سازی می‌شود</translation>
         </message>
-        <message id="genycaster.shell.sign_in_is_not_configured_in_this_build_guest_reading_">
-            <source>Sign in is not configured in this build. Genycaster requires a verified account to continue.</source>
-            <translation>ورود در این نسخه پیکربندی نشده است. برای ادامه در Genycaster به یک حساب تأییدشده نیاز دارید.</translation>
-        </message>
         <message id="genycaster.shell.sign_in_to_interact">
             <source>Sign in to continue</source>
             <translation>برای ادامه وارد شوید</translation>
@@ -2586,17 +2566,9 @@
             <source>This verified session identifies your account. Protocol writes remain locked until Genycaster has a valid Farcaster signer for this FID.</source>
             <translation>این نشست تأییدشده حساب شما را مشخص می‌کند. نوشتن‌های پروتکل تا زمانی که Genycaster برای این FID یک امضاکنندهٔ معتبر فارکستر داشته باشد قفل می‌مانند.</translation>
         </message>
-        <message id="genycaster.shell.try_again">
-            <source>Try again</source>
-            <translation>دوباره تلاش کنید</translation>
-        </message>
         <message id="genycaster.shell.whats_happening">
             <source>What’s happening?</source>
             <translation>چه خبر؟</translation>
-        </message>
-        <message id="genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_">
-            <source>A verified account is required to use Genycaster. Continue with Genyleap/OpenProof or Farcaster to finish setup.</source>
-            <translation>برای استفاده از Genycaster به یک حساب تأییدشده نیاز دارید. برای تکمیل راه‌اندازی با Genyleap/OpenProof یا Farcaster ادامه دهید.</translation>
         </message>
         <message id="genycaster.shell.your_farcaster_account">
             <source>Your Farcaster account</source>

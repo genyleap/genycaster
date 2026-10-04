@@ -1352,7 +1352,7 @@ Item {
                               ? (presentationBridge.accountIdentityIssuer.length > 0
                                  ? qsTrId("genycaster.shell.openproof_account_farcaster_protocol_identity")
                                  : qsTrId("genycaster.shell.this_verified_session_identifies_your_account_protocol"))
-                              : qsTrId("genycaster.shell.you_can_keep_reading_genycaster_as_a_guest_sign_in_is_")
+                              : qsTrId("genycaster.setup.subtitle")
                     onCloseRequested: accountPopup.close()
                 }
 
@@ -1446,7 +1446,7 @@ Item {
                                 id: unavailableText
                                 anchors.fill: parent
                                 anchors.margins: Theme.space4
-                                text: qsTrId("genycaster.shell.sign_in_is_not_configured_in_this_build_guest_reading_")
+                                text: qsTrId("genycaster.runtime.sign_in_could_not_be_completed")
                                 color: Theme.warning
                                 font.pixelSize: Theme.typeCaptionSize
                                 lineHeight: 1.3
@@ -1627,14 +1627,19 @@ Item {
         visible: presentationBridge.initialSetupRequired
         runtimeReady: presentationBridge.runtimeReady
         authenticationAvailable: presentationBridge.authenticationAvailable
+        authenticated: presentationBridge.isAuthenticated
+        setupCompleted: presentationBridge.initialSetupCompleted
         authenticationPhase: presentationBridge.authenticationPhase
         authenticationRoute: presentationBridge.authenticationRoute
         authenticationApprovalAvailable: presentationBridge.authenticationApprovalAvailable
         authenticationErrorText: presentationBridge.authenticationErrorText
+        accountName: presentationBridge.accountName
+        accountUsername: presentationBridge.accountUsername
         onContinueWithGenyleap: presentationBridge.beginSignIn()
         onContinueWithFarcaster: presentationBridge.beginFarcasterSignIn()
         onOpenApproval: presentationBridge.openAuthenticationApproval()
         onCancelAuthentication: presentationBridge.cancelSignIn()
+        onFinishSetup: presentationBridge.completeInitialSetup()
     }
 
     TaskManagerPopup {

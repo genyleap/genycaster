@@ -22,6 +22,8 @@ import farcaster.application.configuration;
 
 namespace {
 
+constexpr int kInitialSetupVersion = 2;
+
 struct ContextualReactionRule final {
     const char* icon;
     QStringList phrases;
@@ -592,6 +594,8 @@ PresentationBridge::PresentationBridge(QObject* const parent, QSettings* const s
       m_settings{settings}
 {
     if (m_settings != nullptr) {
+        m_initialSetupCompleted = m_settings->value(
+            QStringLiteral("setup/onboardingVersion"), 0).toInt() >= kInitialSetupVersion;
         m_feedPageSize = std::clamp(m_settings->value(QStringLiteral("read/feedPageSize"), 20).toInt(), 1, 100);
         m_contextHydrationLimit = std::clamp(
             m_settings->value(QStringLiteral("read/contextHydrationLimit"), 40).toInt(), 1, 100);
@@ -625,7 +629,11 @@ bool PresentationBridge::diagnosticsEnabled() const noexcept
 
 bool PresentationBridge::runtimeReady() const noexcept { return m_runtimeReady; }
 bool PresentationBridge::authenticationAvailable() const noexcept { return m_authenticationAvailable; }
-bool PresentationBridge::initialSetupRequired() const noexcept { return !m_isAuthenticated && !m_setupBypassedForVerification; }
+bool PresentationBridge::initialSetupRequired() const noexcept
+{
+    return !m_setupBypassedForVerification && (!m_initialSetupCompleted || !m_isAuthenticated);
+}
+bool PresentationBridge::initialSetupCompleted() const noexcept { return m_initialSetupCompleted; }
 bool PresentationBridge::isAuthenticated() const noexcept { return m_isAuthenticated; }
 bool PresentationBridge::authenticationBusy() const noexcept
 {
@@ -1352,6 +1360,20 @@ QString PresentationBridge::contextualReactionIcon(const QString& text) const
     return resolveContextualReaction(text);
 }
 
+void PresentationBridge::completeInitialSetup()
+{
+    if (!m_isAuthenticated || m_initialSetupCompleted) {
+        return;
+    }
+    m_initialSetupCompleted = true;
+    if (m_settings != nullptr) {
+        m_settings->setValue(QStringLiteral("setup/onboardingVersion"), kInitialSetupVersion);
+        m_settings->remove(QStringLiteral("setup/initialSetupCompleted"));
+        m_settings->sync();
+    }
+    emit setupStateChanged();
+}
+
 void PresentationBridge::beginSignIn()
 {
     if (!m_runtimeReady) {
@@ -1861,6 +1883,7 @@ void PresentationBridge::applyAuthenticationState(
         m_writeReady = m_signerPhase == QStringLiteral("ready");
     }
     emit authenticationStateChanged();
+    emit setupStateChanged();
     emit stateChanged();
 }
 
@@ -2587,5 +2610,6 @@ void PresentationBridge::applyVerificationFixture()
     m_next = QStringLiteral("fixture-next");
     emit runtimeStateChanged();
     emit authenticationStateChanged();
+    emit setupStateChanged();
     emit stateChanged();
 }

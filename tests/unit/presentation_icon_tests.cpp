@@ -265,15 +265,24 @@ void testAuthenticatedProfilePresentationIsCached()
         == QStringLiteral("neynar"));
 }
 
-void testInitialSetupRequiresAuthenticatedSession()
+void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
 {
     QTemporaryDir directory{};
     assert(directory.isValid());
     const QString settingsPath = directory.filePath(QStringLiteral("setup-auth.ini"));
     QSettings settings{settingsPath, QSettings::IniFormat};
+    // Legacy setup completion could be written by the old guest-dismissal flow.
+    // It must not bypass the new authenticated onboarding wizard.
+    settings.setValue(QStringLiteral("setup/initialSetupCompleted"), true);
+    settings.sync();
 
     PresentationBridge bridge{nullptr, &settings};
     assert(bridge.initialSetupRequired());
+    assert(!bridge.initialSetupCompleted());
+
+    bridge.completeInitialSetup();
+    assert(bridge.initialSetupRequired());
+    assert(!bridge.initialSetupCompleted());
 
     bridge.applyAuthenticationState(
         true,
@@ -285,6 +294,10 @@ void testInitialSetupRequiresAuthenticatedSession()
         QStringLiteral("https://openproof.genyleap.com"),
         {},
         {});
+    assert(bridge.initialSetupRequired());
+
+    bridge.completeInitialSetup();
+    assert(bridge.initialSetupCompleted());
     assert(!bridge.initialSetupRequired());
 
     bridge.applyAuthenticationState(
@@ -300,7 +313,23 @@ void testInitialSetupRequiresAuthenticatedSession()
     assert(bridge.initialSetupRequired());
 
     settings.sync();
+    assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 2);
     assert(!settings.contains(QStringLiteral("setup/initialSetupCompleted")));
+
+    PresentationBridge restored{nullptr, &settings};
+    assert(restored.initialSetupCompleted());
+    assert(restored.initialSetupRequired());
+    restored.applyAuthenticationState(
+        true,
+        QStringLiteral("authenticated"),
+        77,
+        {},
+        {},
+        {},
+        QStringLiteral("https://openproof.genyleap.com"),
+        {},
+        {});
+    assert(!restored.initialSetupRequired());
 }
 
 } // namespace
@@ -315,6 +344,6 @@ int main(int argc, char* argv[])
     testBufferedRefreshPreservesTimelineUntilReveal();
     testReferencedPreviewHydratesReplyAndQuoteMetrics();
     testAuthenticatedProfilePresentationIsCached();
-    testInitialSetupRequiresAuthenticatedSession();
+    testInitialSetupRequiresAuthenticationAndFirstRunCompletion();
     return 0;
 }
