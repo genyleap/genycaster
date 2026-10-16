@@ -106,7 +106,9 @@ CORS and HTTPS requirements also apply to external Farcaster/Hypersnap nodes.
 The single-threaded WASM Mini App catalogue issues bounded asynchronous
 `QNetworkAccessManager` reads on Qt's GUI event loop, without a `QThread`.
 The first-party Media Gateway exposes only fixed, rate-limited public Neynar
-catalogue/search/relevant routes at `/v1/browser/miniapps`; user-controlled
+catalogue/search/relevant routes at `/v1/browser/miniapps`; the public
+catalogue uses a bounded 20-item response to avoid CDN truncation (deeper
+pagination is not yet implemented). User-controlled
 upstream hosts, credentials and arbitrary paths are not accepted. The upstream
 API key never enters WebAssembly. The browser can open a discovered public
 Mini App in a separate HTTPS tab; this is **not** an embedded Farcaster Mini App

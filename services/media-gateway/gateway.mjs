@@ -415,7 +415,9 @@ export function createMediaGateway(config, storage, dependencies = {}) {
           : '/v2/farcaster/frame/relevant/';
       const upstreamUrl = new URL('https://api.neynar.com' + route);
       if (kind === 'catalog') {
-        upstreamUrl.searchParams.set('limit', '100');
+        // Keep edge/CDN responses small; larger catalogue snapshots were
+        // truncated in the public reverse-proxy path.
+        upstreamUrl.searchParams.set('limit', '20');
         upstreamUrl.searchParams.set('time_window', '7d');
       } else if (kind === 'search') {
         upstreamUrl.searchParams.set('q', query);
@@ -430,6 +432,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
           redirect: 'error',
           headers: {
             accept: 'application/json',
+            'user-agent': 'Genycaster/0.4.0',
             'x-api-key': process.env.GENYCASTER_MINIAPP_NEYNAR_API_KEY || 'NEYNAR_API_DOCS',
           },
           signal: AbortSignal.timeout(10_000),

@@ -487,11 +487,13 @@ test('browser Mini App catalogue uses only fixed public discovery routes', async
     assert.match(calls[0], /api\.neynar\.com\/v2\/farcaster\/frame\/catalog\//);
     assert.match(calls[1], /api\.neynar\.com\/v2\/farcaster\/frame\/search\//);
     assert.match(calls[1], /q=cast/);
+    assert.match(calls[0], /limit=20/);
   }, { fetchImpl: async (url, options) => {
     assert.equal(url.hostname, 'api.neynar.com');
     assert.equal(url.protocol, 'https:');
     assert.equal(options.method, 'GET');
     assert.equal(options.redirect, 'error');
+    assert.equal(options.headers['user-agent'], 'Genycaster/0.4.0');
     calls.push(url.toString());
     return new Response(JSON.stringify({ frames: [] }), {
       status: 200, headers: { 'content-type': 'application/json' },
