@@ -690,6 +690,7 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                                 }
                             }
                             model::FeedState fallback = feedFallbackState(query, existing, *fresh);
+                            fallback.metadata.communityFallback = fresh->communityFallback;
 
                             auto saved = m_store.writeFeed(
                                 localKey, *fresh, query.continuation.has_value());
@@ -710,7 +711,10 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                             state.profiles = std::move(materialized->profiles);
                             state.entries = std::move(materialized->entries);
                             state.next = std::move(materialized->next);
-                            state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
+                            state.metadata = model::ReadMetadata{
+                                .phase = model::ReadPhase::Ready,
+                                .communityFallback = fresh->communityFallback,
+                            };
                             publish(control, observer, std::move(state));
                         });
                     static_cast<void>(status);

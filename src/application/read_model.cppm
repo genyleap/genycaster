@@ -46,6 +46,7 @@ struct ReadMetadata final {
     ReadPhase phase{ReadPhase::LoadingCache};
     bool isStale{false};
     bool isSourceUnavailable{false};
+    bool communityFallback{false};
     std::optional<foundation::error::Error> error{};
 };
 

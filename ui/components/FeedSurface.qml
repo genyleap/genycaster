@@ -17,6 +17,7 @@ Item {
     property bool sourceUnavailable: false
     property string errorText: ""
     property string activeFeed: "trending"
+    property bool communityFallback: false
     property bool identityAvailable: false
     property bool feedStarted: false
     property bool interactionsAvailable: false
@@ -937,7 +938,7 @@ Item {
             // first cast can never slide underneath it. The visible banner is a
             // viewport overlay that tracks this slot until it reaches the top,
             // then remains pinned while older posts continue scrolling.
-            implicitHeight: feedHeaderLoader.implicitHeight + newPostsSlot.height
+            implicitHeight: feedHeaderLoader.implicitHeight + communityNotice.height + newPostsSlot.height
             z: 20
 
             Rectangle {
@@ -961,11 +962,26 @@ Item {
                 sourceComponent: root.headerContent
             }
 
+            DirectionAwareLabel {
+                id: communityNotice
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: feedHeaderLoader.bottom
+                height: visible ? 36 : 0
+                visible: root.communityFallback && root.activeFeed === "trending" && !root.socialMode
+                text: qsTr("Trending is temporarily unavailable. Showing live community posts instead.")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Theme.textStartAlignment
+                wrapMode: Text.WordWrap
+            }
+
             Item {
                 id: newPostsSlot
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.top: feedHeaderLoader.bottom
+                anchors.top: communityNotice.bottom
                 height: root.pendingNewPostCount > 0 && !root.socialMode ? 52 : 0
                 visible: height > 0
             }

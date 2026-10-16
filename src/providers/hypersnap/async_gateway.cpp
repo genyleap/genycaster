@@ -55,6 +55,11 @@ using ErrorCode = foundation::error::ErrorCode;
 // Bound foreground reads to 12s while local-first cache remains interactive.
 constexpr std::chrono::milliseconds followingRequestTimeout{12'000};
 constexpr std::chrono::milliseconds discoveryRequestTimeout{12'000};
+// A ranking query on the public node can stall while other feed reads work.
+// Limit its initial attempt so the supported community discovery fallback has
+// time to return actual signed casts, rather than tripping the whole circuit.
+constexpr std::chrono::milliseconds trendingProbeTimeout{3'500};
+constexpr std::string_view communityCursorPrefix{"community:"};
 constexpr std::chrono::milliseconds profileFeedRequestTimeout{12'000};
 constexpr std::chrono::milliseconds viewerReactionRequestTimeout{7'500};
 // The reaction snapshot is filtered locally, so a bounded but broad window must
@@ -335,6 +340,7 @@ struct FeedSpec final {
     std::vector<std::pair<std::string, std::string>> query{};
     std::optional<std::string> fallbackPath{};
     std::vector<std::pair<std::string, std::string>> fallbackQuery{};
+    bool communityDiscoveryFallback{false};
     std::chrono::milliseconds timeout{profileFeedRequestTimeout};
     enum class Filter { None, Posts, Quotes, Replies } filter{Filter::None};
 };
@@ -588,7 +594,9 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
         spec.path = "/v2/farcaster/feed/trending";
         spec.fallbackPath = "/v2/farcaster/feed";
         spec.fallbackQuery = {{"feed_type", "trending"}};
-        spec.timeout = discoveryRequestTimeout;
+        spec.timeout = m_config.provider.id.value == "hypersnap-v2"
+            ? trendingProbeTimeout : discoveryRequestTimeout;
+        spec.communityDiscoveryFallback = m_config.provider.id.value == "hypersnap-v2";
         break;
     case application::read::model::FeedQuery::Kind::Channel:
         if (!query.channel || query.channel->value.empty()) {
@@ -783,21 +791,31 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
             // Build the feed request inline rather than retaining recursive
             // closure state. The preferred endpoint is the common path; alias
             // fallback is started only for NotFound/Unsupported.
-            const auto resolvedCursor = *cursor;
-            auto preferredQuery = spec.query;
+            auto resolvedCursor = *cursor;
+            const bool communityContinuation = spec.communityDiscoveryFallback && resolvedCursor
+                && std::string_view{*resolvedCursor}.starts_with(communityCursorPrefix);
+            if (communityContinuation) {
+                resolvedCursor = resolvedCursor->substr(communityCursorPrefix.size());
+            }
+            auto preferredQuery = communityContinuation
+                ? std::vector<std::pair<std::string, std::string>>{{"fid", "3"}}
+                : spec.query;
             preferredQuery.emplace_back("limit", std::to_string(pageRequest.limit));
             if (resolvedCursor) {
                 preferredQuery.emplace_back("cursor", *resolvedCursor);
             }
             auto preferred = m_client.getJson(
-                spec.path,
+                communityContinuation ? "/v2/farcaster/feed/following" : spec.path,
                 preferredQuery,
                 [this, group, spec, capabilityId, pageRequest, resolvedCursor, requestPriority,
-                 completion = std::move(completion)](
+                 communityContinuation, completion = std::move(completion)](
                     foundation::result::Result<std::string> body) mutable {
-                    auto process = [this, group, spec, capabilityId, resolvedCursor, requestPriority,
-                                    completion = std::move(completion)](
-                                       foundation::result::Result<std::string> selectedBody) mutable {
+                    auto process = std::make_shared<std::function<void(
+                        foundation::result::Result<std::string>, bool)>>(
+                        [this, group, spec, capabilityId, resolvedCursor, requestPriority,
+                         completion = std::move(completion)](
+                                       foundation::result::Result<std::string> selectedBody,
+                                       const bool communityFallback) mutable {
                         if (group->cancelled.load(std::memory_order_acquire)) {
                             return;
                         }
@@ -817,7 +835,11 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                         if (providerCursor && resolvedCursor && *providerCursor == *resolvedCursor) {
                             providerCursor.reset();
                         }
+                        if (communityFallback && providerCursor) {
+                            *providerCursor = std::string{communityCursorPrefix} + *providerCursor;
+                        }
                         auto page = pageFromPayload(std::move(*payload));
+                        page.communityFallback = communityFallback;
                         switch (spec.filter) {
                         case FeedSpec::Filter::None:
                             break;
@@ -889,11 +911,41 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                             }
                         }
                         finishPage(std::move(page));
-                    };
+                    });
 
-                    if (body || !spec.fallbackPath ||
-                        !supportsAliasFallback(body.error().code)) {
-                        process(std::move(body));
+                    if (body || communityContinuation) {
+                        (*process)(std::move(body), communityContinuation);
+                        return;
+                    }
+
+                    // The public Hypersnap ranking endpoint currently stalls
+                    // even when following and user casts return in < 1 second.
+                    // On a transient ranking failure, show a *community*
+                    // discovery stream (the follows of a public seed FID),
+                    // never an empty fabricated "trending" result. Its cursor
+                    // is marked so subsequent pages stay on the same source.
+                    const bool useCommunity = spec.communityDiscoveryFallback
+                        && (body.error().code == ErrorCode::Timeout
+                            || body.error().code == ErrorCode::Unavailable);
+                    if (useCommunity) {
+                        auto community = m_client.getJson(
+                            "/v2/farcaster/feed/following",
+                            {{"fid", "3"}, {"limit", std::to_string(pageRequest.limit)}},
+                            [process](foundation::result::Result<std::string> result) mutable {
+                                (*process)(std::move(result), true);
+                            },
+                            request::GetOptions{.timeout = followingRequestTimeout},
+                            requestPriority);
+                        if (community) {
+                            group->add(std::move(*community));
+                        } else {
+                            (*process)(std::unexpected(std::move(community.error())), false);
+                        }
+                        return;
+                    }
+
+                    if (!spec.fallbackPath || !supportsAliasFallback(body.error().code)) {
+                        (*process)(std::move(body), false);
                         return;
                     }
                     auto fallbackQuery = spec.fallbackQuery;
@@ -904,20 +956,19 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                     auto fallback = m_client.getJson(
                         *spec.fallbackPath,
                         fallbackQuery,
-                        [process = std::move(process)](
-                            foundation::result::Result<std::string> fallbackBody) mutable {
-                            process(std::move(fallbackBody));
+                        [process](foundation::result::Result<std::string> fallbackBody) mutable {
+                            (*process)(std::move(fallbackBody), false);
                         },
                         request::GetOptions{.timeout = spec.timeout},
                         requestPriority);
-                    if (!fallback) {
-                        process(foundation::result::Result<std::string>{
-                            std::unexpected(std::move(fallback.error()))});
-                        return;
+                    if (fallback) {
+                        group->add(std::move(*fallback));
+                    } else {
+                        (*process)(std::unexpected(std::move(fallback.error())), false);
                     }
-                    group->add(std::move(*fallback));
                 },
-                request::GetOptions{.timeout = spec.timeout},
+                request::GetOptions{
+                    .timeout = communityContinuation ? followingRequestTimeout : spec.timeout},
                 requestPriority);
             if (!preferred) {
                 completion(std::unexpected(std::move(preferred.error())));

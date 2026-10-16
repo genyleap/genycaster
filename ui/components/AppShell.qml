@@ -803,6 +803,7 @@ Item {
                                             sourceUnavailable: presentationBridge.sourceUnavailable
                                             errorText: presentationBridge.errorText
                                             activeFeed: presentationBridge.activeFeed
+                                            communityFallback: presentationBridge.communityFallback
                                             presentationMode: root.primaryDestination === "explorer"
                                                               ? root.explorerPresentationMode : root.homePresentationMode
                                             visualFilter: root.primaryDestination === "explorer"

@@ -850,6 +850,7 @@ void applyProfileVerificationFixture(PresentationBridge& bridge)
 
 void applyFeedState(PresentationBridge& bridge, application::read::model::FeedState state)
 {
+    bridge.setCommunityFallback(state.metadata.communityFallback);
     QVariantList rows = feedPresentationRows(bridge, state);
     QString selector{};
     QString view{QStringLiteral("feed")};

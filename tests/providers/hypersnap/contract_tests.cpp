@@ -243,7 +243,7 @@ void testFeedPaginationAffinity()
     assert(transport.urls().back() ==
         "https://node.test/v2/farcaster/feed/following?fid=42&limit=2");
 
-    assert(transport.requests().back().timeout == std::chrono::milliseconds{5'000});
+    assert(transport.requests().back().timeout == std::chrono::milliseconds{12'000});
 
     auto binding = store.resolve(*first->next);
     assert(binding);
@@ -303,7 +303,7 @@ void testFeedPaginationAffinity()
     assert(trendingUnavailable.error().message.find(
         "Endpoint: /v2/farcaster/feed/trending") != std::string::npos);
     assert(trendingUnavailable.error().message.find("Limit: 10") != std::string::npos);
-    assert(trendingUnavailable.error().message.find("Deadline: 6000ms") != std::string::npos);
+    assert(trendingUnavailable.error().message.find("Deadline: 12000ms") != std::string::npos);
     assert(trendingUnavailable.error().message.find("Attempts: 3") != std::string::npos);
     assert(transport.urls().size() == beforeTransientFailure + 3U);
     for (std::size_t index = beforeTransientFailure; index < transport.urls().size(); ++index) {
@@ -342,7 +342,7 @@ void testFeedPaginationAffinity()
         std::optional<std::string>{"https://farcaster.group/dev/chat"});
     assert(transport.urls().back() ==
         "https://node.test/v2/farcaster/feed/channels?channel_ids=dev%2Fchat&limit=5");
-    assert(transport.requests().back().timeout == std::chrono::milliseconds{6'000});
+    assert(transport.requests().back().timeout == std::chrono::milliseconds{12'000});
 
     transport.enqueue(200, test::hypersnap::fixtures::rootPostFeedResponse());
     auto userPosts = feeds.userPosts(
@@ -351,7 +351,7 @@ void testFeedPaginationAffinity()
     assert(userPosts && userPosts->casts.size() == 1);
     assert(transport.urls().back() ==
         "https://node.test/v2/farcaster/feed/user/casts?fid=42&limit=10");
-    assert(transport.requests().back().timeout == std::chrono::milliseconds{6'000});
+    assert(transport.requests().back().timeout == std::chrono::milliseconds{12'000});
 
     transport.enqueue(200, test::hypersnap::fixtures::quoteFeedResponse());
     auto userQuotes = feeds.userQuotes(

@@ -3507,12 +3507,12 @@
             <translation>Choose a connection</translation>
         </message>
         <message id="genycaster.setup.hypersnap_explainer">
-            <source>Uses Hypersnap for live reads. Sign-in and publishing permissions are verified separately.</source>
-            <translation>Uses Hypersnap for live reads. Sign-in and publishing permissions are verified separately.</translation>
+            <source>A decentralized community-operated network for reading and publishing.</source>
+            <translation>A decentralized community-operated network for reading and publishing.</translation>
         </message>
         <message id="genycaster.setup.farcaster_explainer">
-            <source>Uses the Farcaster/Neynar read API. Your sign-in and publishing keys are separate.</source>
-            <translation>Uses the Farcaster/Neynar read API. Your sign-in and publishing keys are separate.</translation>
+            <source>A centralized service experience for reading and publishing.</source>
+            <translation>A centralized service experience for reading and publishing.</translation>
         </message>
         <message id="genycaster.setup.profile_choice">
             <source>Your profile</source>
@@ -3539,8 +3539,8 @@
             <translation>I have a profile — connect</translation>
         </message>
         <message id="genycaster.setup.network_settings_explainer">
-            <source>Choose your preferred connection. Reads currently use Hypersnap and signed writes use Snapchain. Switching does not migrate your identity or keys.</source>
-            <translation>Choose your preferred connection. Reads currently use Hypersnap and signed writes use Snapchain. Switching does not migrate your identity or keys.</translation>
+            <source>Choose your preferred network. Your identity and keys stay with you when you switch.</source>
+            <translation>Choose your preferred network. Your identity and keys stay with you when you switch.</translation>
         </message>
         <message id="genycaster.setup.advanced_nodes">
             <source>Advanced: choose read node</source>
@@ -3627,20 +3627,20 @@
             <translation>Decentralized</translation>
         </message>
         <message id="genycaster.setup.farcaster_not_configured">
-            <source>Uses Farcaster via Neynar. A read API key is needed; Hypersnap remains available.</source>
-            <translation>Uses Farcaster via Neynar. A read API key is needed; Hypersnap remains available.</translation>
+            <source>A familiar network with centrally operated services and moderation.</source>
+            <translation>A familiar network with centrally operated services and moderation.</translation>
         </message>
         <message id="genycaster.setup.farcaster_hosted_node">
-            <source>Farcaster · Neynar API</source>
-            <translation>Farcaster · Neynar API</translation>
+            <source>Farcaster · Default node</source>
+            <translation>Farcaster · Default node</translation>
         </message>
         <message id="genycaster.setup.farcaster_configured">
             <source>https://api.neynar.com · API credential configured.</source>
             <translation>https://api.neynar.com · API credential configured.</translation>
         </message>
         <message id="genycaster.setup.farcaster_missing_key">
-            <source>https://api.neynar.com · API key not configured. Set GENYCASTER_FARCASTER_READ_API_KEY.</source>
-            <translation>https://api.neynar.com · API key not configured. Set GENYCASTER_FARCASTER_READ_API_KEY.</translation>
+            <source>Not available right now. You can continue with Hypersnap.</source>
+            <translation>Not available right now. You can continue with Hypersnap.</translation>
         </message>
         <message id="genycaster.setup.document_accepted">
             <source>Accepted</source>

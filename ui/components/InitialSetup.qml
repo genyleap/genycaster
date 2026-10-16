@@ -1401,7 +1401,7 @@ Item {
             }
 
             SetupActionCard {
-                visible: root.showAdvancedNodes
+                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === "farcaster"
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.setup.farcaster_hosted_node")
                 subtitle: presentationBridge.farcasterReadConfigured

@@ -61,6 +61,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool hasMore READ hasMore NOTIFY stateChanged)
     Q_PROPERTY(bool hasReadActivity READ hasReadActivity NOTIFY stateChanged)
     Q_PROPERTY(bool feedStarted READ feedStarted NOTIFY stateChanged)
+    Q_PROPERTY(bool communityFallback READ communityFallback NOTIFY stateChanged)
     Q_PROPERTY(QVariantList rows READ rows NOTIFY stateChanged)
     Q_PROPERTY(QVariantList explorerArtRows READ explorerArtRows NOTIFY stateChanged)
     Q_PROPERTY(bool explorerArtBusy READ explorerArtBusy NOTIFY stateChanged)
@@ -303,6 +304,12 @@ public:
     /** @brief Restores the account-scoped local notification seen watermark from durable settings. */
     void restoreNotificationSeenAt(qulonglong accountFid, qlonglong observedAtMs);
     /** @brief Commits normalized rows for a feed or social surface. */
+    [[nodiscard]] bool communityFallback() const noexcept { return m_communityFallback; }
+    void setCommunityFallback(bool active) {
+        if (m_communityFallback == active) return;
+        m_communityFallback = active;
+        emit stateChanged();
+    }
     void applyList(QString view, QString selector, QVariantList rows, QString next,
         QString status, QString error, QString diagnostic, bool busy, bool stale,
         bool sourceUnavailable, bool paginationRequest = false);
@@ -438,6 +445,7 @@ private:
     bool m_networkReachabilityKnown{false};
     bool m_hasReadActivity{false};
     bool m_feedStarted{false};
+    bool m_communityFallback{false};
     bool m_shouldOpenFollowingAfterIdentity{false};
     bool m_allowRecoveryProbeForNextIntent{false};
     QSettings* m_settings{nullptr};

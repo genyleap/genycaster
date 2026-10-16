@@ -3507,12 +3507,12 @@
             <translation>مسیر اتصال</translation>
         </message>
         <message id="genycaster.setup.hypersnap_explainer">
-            <source>Uses Hypersnap for live reads. Sign-in and publishing permissions are verified separately.</source>
-            <translation>داده‌های زنده از هایپراسنپ دریافت می‌شوند. ورود و مجوز انتشار جداگانه تأیید می‌شوند.</translation>
+            <source>A decentralized community-operated network for reading and publishing.</source>
+            <translation>شبکه‌ای غیرمتمرکز با نودهای مستقل برای خواندن و انتشار محتوا.</translation>
         </message>
         <message id="genycaster.setup.farcaster_explainer">
-            <source>Uses the Farcaster/Neynar read API. Your sign-in and publishing keys are separate.</source>
-            <translation>خواندن داده با API فارکستر/نینار؛ ورود و مجوز انتشار از آن جدا هستند.</translation>
+            <source>A centralized service experience for reading and publishing.</source>
+            <translation>تجربه‌ای متمرکز برای خواندن و انتشار محتوا.</translation>
         </message>
         <message id="genycaster.setup.profile_choice">
             <source>Your profile</source>
@@ -3539,8 +3539,8 @@
             <translation>پروفایل دارم؛ اتصال</translation>
         </message>
         <message id="genycaster.setup.network_settings_explainer">
-            <source>Choose your preferred connection. Reads currently use Hypersnap and signed writes use Snapchain. Switching does not migrate your identity or keys.</source>
-            <translation>مسیر اتصال دلخواه ذخیره می‌شود. خواندن داده‌ها فعلاً با هایپراسنپ و انتشار امضاشده با اسنپ‌چین است. تغییر انتخاب، هویت یا کلیدها را جابه‌جا نمی‌کند.</translation>
+            <source>Choose your preferred network. Your identity and keys stay with you when you switch.</source>
+            <translation>شبکه دلخواه را انتخاب کنید. با تغییر شبکه، هویت و کلیدهای شما منتقل نمی‌شوند.</translation>
         </message>
         <message id="genycaster.setup.advanced_nodes">
             <source>Advanced: choose read node</source>
@@ -3627,20 +3627,20 @@
             <translation>غیرمتمرکز</translation>
         </message>
         <message id="genycaster.setup.farcaster_not_configured">
-            <source>Uses Farcaster via Neynar. A read API key is needed; Hypersnap remains available.</source>
-            <translation>دریافت داده از فارکستر با نینار به کلید API نیاز دارد؛ هایپراسنپ در دسترس است.</translation>
+            <source>A familiar network with centrally operated services and moderation.</source>
+            <translation>شبکه‌ای آشنا با سرویس‌ها و مدیریت متمرکز.</translation>
         </message>
         <message id="genycaster.setup.farcaster_hosted_node">
-            <source>Farcaster · Neynar API</source>
-            <translation>فارکستر · API نینار</translation>
+            <source>Farcaster · Default node</source>
+            <translation>فارکستر · نود پیش‌فرض</translation>
         </message>
         <message id="genycaster.setup.farcaster_configured">
             <source>https://api.neynar.com · API credential configured.</source>
             <translation>https://api.neynar.com · کلید API پیکربندی شده است.</translation>
         </message>
         <message id="genycaster.setup.farcaster_missing_key">
-            <source>https://api.neynar.com · API key not configured. Set GENYCASTER_FARCASTER_READ_API_KEY.</source>
-            <translation>https://api.neynar.com · کلید API تنظیم نشده است: GENYCASTER_FARCASTER_READ_API_KEY</translation>
+            <source>Not available right now. You can continue with Hypersnap.</source>
+            <translation>این اتصال فعلاً در دسترس نیست. می‌توانید با هایپراسنپ ادامه دهید.</translation>
         </message>
         <message id="genycaster.setup.document_accepted">
             <source>Accepted</source>

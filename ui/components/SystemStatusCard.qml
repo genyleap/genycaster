@@ -25,7 +25,8 @@ Superellipse {
     readonly property bool setupFailure: !root.runtimeReady && root.hasReadError
     readonly property bool retryable: root.runtimeReady && (root.hasReadError || root.sourceUnavailable || root.offline)
     readonly property bool warningState: root.setupFailure || root.offline || root.hasReadError || root.sourceUnavailable
-    readonly property bool canExpand: root.retryable || (root.diagnosticsEnabled && root.diagnosticText.length > 0)
+    // Diagnostics alone must never expand a healthy Live/Ready card.
+    readonly property bool canExpand: root.warningState && (root.retryable || root.diagnosticsEnabled)
     readonly property string stateLabel: root.setupFailure ? qsTrId("genycaster.status.setup_issue")
                                          : root.offline ? qsTrId("genycaster.status.offline")
                                          : root.sourceUnavailable ? qsTrId("genycaster.status.source_issue")
@@ -45,6 +46,11 @@ Superellipse {
 
     // Network updates must not resize the navigation viewport below this card.
     // Only the user's explicit expansion changes the reserved extent.
+    onWarningStateChanged: {
+        if (!warningState)
+            expanded = false
+    }
+
     readonly property real summaryHeight: Math.max(34, titleMetrics.height + messageMetrics.height)
     readonly property real detailHeight: 152
     implicitHeight: summaryHeight + Theme.space2 * 2 + (root.expanded ? detailHeight + Theme.space2 : 0)
@@ -200,7 +206,7 @@ Superellipse {
                 DirectionAwareLabel {
                     width: statusDetails.availableWidth
                     text: (root.primaryMessage || root.stateLabel)
-                          + (root.diagnosticsEnabled && root.diagnosticText.length > 0
+                          + (root.warningState && root.diagnosticsEnabled && root.diagnosticText.length > 0
                              ? "\n" + root.diagnosticText : "")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize

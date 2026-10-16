@@ -26,6 +26,8 @@ struct FeedPage final {
     std::vector<domain::profile::Profile> profiles{};
     std::vector<domain::feed::FeedEntry> entries{};
     std::optional<pagination::ContinuationToken> next{};
+    // A working community stream is not equivalent to network-wide trending.
+    bool communityFallback{false};
 };
 
 /**
