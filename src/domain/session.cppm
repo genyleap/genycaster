@@ -27,9 +27,9 @@ struct ClientSession final {
     /**
      * @brief Canonical account issuer when the session is OpenProof-backed.
      *
-     * The pair (identityIssuer, identitySubject) is the durable account identity.
-     * Farcaster remains a required linked protocol identity and is represented by
-     * fid below.
+     * The pair (identityIssuer, identitySubject) identifies Genyleap/OpenProof
+     * sessions. Native Farcaster SIWF sessions leave these fields empty and are
+     * keyed by the verified protocol FID below.
      */
     std::optional<std::string> identityIssuer{};
     std::optional<std::string> identitySubject{};

@@ -216,6 +216,11 @@ void verifiedCustodyFlowReturnsNormalizedSession()
     assert(calls[2].url == "https://rpc.example");
     assert(calls[2].body.find("\"method\":\"eth_call\"") != std::string::npos);
     assert(calls[2].body.find("\"to\"") == std::string::npos);
+    // Ethereum Keccak-256 selectors, independently checked with @noble/hashes.
+    // SHA3-256 and missing OpenSSL Keccak would not match these.
+    assert(calls[3].body.find("ac34cc5a") != std::string::npos); // keyDataOf(uint256,bytes)
+    assert(calls[4].body.find("d94fe832") != std::string::npos); // idOf(address)
+    assert(calls[5].body.find("65269e47") != std::string::npos); // custodyOf(uint256)
 }
 
 void currentCustodyCanBeResolvedWithoutNewSignIn()
@@ -238,6 +243,7 @@ void currentCustodyCanBeResolvedWithoutNewSignIn()
     assert(transport.calls().front().url == "https://rpc.example");
     assert(transport.calls().front().body.find("custodyOf") == std::string::npos);
     assert(transport.calls().front().body.find("\"method\":\"eth_call\"") != std::string::npos);
+    assert(transport.calls().front().body.find("65269e47") != std::string::npos);
 }
 
 void activeAuthAddressIsPreferredOverCustodyFallback()

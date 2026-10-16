@@ -3559,8 +3559,8 @@
             <translation>Continue in a compatible registration app, then come back to link your profile.</translation>
         </message>
         <message id="genycaster.setup.authentication_explainer">
-            <source>Sign-in uses a verified OpenProof session and a linked Farcaster FID. Publishing permissions are separate.</source>
-            <translation>Sign-in uses a verified OpenProof session and a linked Farcaster FID. Publishing permissions are separate.</translation>
+            <source>Sign in directly with Farcaster using a verified wallet signature, or use your Genyleap/OpenProof account. Publishing requires separate signer permission.</source>
+            <translation>Sign in directly with Farcaster using a verified wallet signature, or use your Genyleap/OpenProof account. Publishing requires separate signer permission.</translation>
         </message>
         <message id="genycaster.setup.workspace_label">
             <source>Secure account setup</source>

@@ -79,3 +79,34 @@ The healthy sidebar `Live / Ready` card now collapses details automatically and 
 ### Authentication boundary
 
 The 401 observed after Farcaster relay approval is emitted by OpenProof `/auth/web3/complete`, not by the Hypersnap or Neynar data adapter. A direct native client cannot call Mini App SDK `sdk.protocolAuth.getToken()` as a drop-in replacement for an account session; the existing `services/quick-auth` token verifier is intentionally protocol-proof-only and does not mint Genycaster sessions. Keep signer/nonce/expiration/domain/FID ownership validation enabled. Correlate OpenProof request ID `YBp5roTwa1TNUvNNHj2ihA` to secure backend verification logs; remote access to that unit is currently not allowlisted. Before calling Farcaster sign-in resolved, retry with an actual matching custody/auth-address signer and verify the new canonical OpenProof session end to end. The desktop sign-in flow remains independently selectable from data network.
+
+## Direct native Farcaster sign-in — routing and Keccak fix (2026-10-16)
+
+Root cause in Genycaster, not OPP: Runtime constructed both adapters but registered
+only OpenProof as the active authentication provider. Consequently both login
+routes entered OpenProof, and clicking Farcaster sent a completed relay proof to
+the OpenProof verification endpoint (HTTP 401).
+
+SessionService now has two independent authentication ports. Genyleap invokes
+OpenProof OAuth/device authorization; Farcaster invokes the existing native
+FIP-11 relay and EIP-191/Optimism on-chain custody or auth-address verifier.
+Farcaster sessions are identified by their verified FID, without requiring an
+OpenProof issuer or subject. Protocol signer and publishing permissions remain
+separate. A missing direct Farcaster provider fails closed as Unsupported;
+it never silently uses OpenProof instead.
+
+Running the previously unbuilt provider.farcaster_auth.contract test exposed
+the broken OpenSSL EVP_MD_fetch("KECCAK-256") assumption. Ethereum uses
+legacy Keccak-256, NOT the standardized SHA3-256 padding; normal OpenSSL
+providers do not supply the named digest. The adapter now includes Keccak-f[1600]
+with Ethereum padding. Regression tests check independent reference function
+selectors: keyDataOf(uint256,bytes)=ac34cc5a,
+idOf(address)=d94fe832 and custodyOf(uint256)=65269e47.
+Session routing tests cover the two separate routes and failure when direct
+Farcaster auth is not compiled.
+
+@farcasterorg/quick-auth remains available for native Mini App protocol tokens
+with a separately verified domain and hub. It does not replace the approval
+ceremony in a Qt desktop application. Actual macOS wallet approval and network
+availability still require real-device end-to-end checks; contract tests are
+not proof of a live production sign-in.

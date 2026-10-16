@@ -3559,8 +3559,8 @@
             <translation>ساخت پروفایل در برنامه ثبت‌نام انجام می‌شود؛ سپس برای اتصال به جنی‌کستر برگردید.</translation>
         </message>
         <message id="genycaster.setup.authentication_explainer">
-            <source>Sign-in uses a verified OpenProof session and a linked Farcaster FID. Publishing permissions are separate.</source>
-            <translation>ورود با نشست تأییدشده OpenProof و شناسه فارکستر پیوندخورده انجام می‌شود. مجوز انتشار جداگانه است.</translation>
+            <source>Sign in directly with Farcaster using a verified wallet signature, or use your Genyleap/OpenProof account. Publishing requires separate signer permission.</source>
+            <translation>با امضای کیف پول در فارکستر به‌طور مستقیم وارد شوید یا از حساب جنی‌لیپ/OpenProof استفاده کنید. انتشار به مجوز امضاکننده جداگانه نیاز دارد.</translation>
         </message>
         <message id="genycaster.setup.workspace_label">
             <source>Secure account setup</source>

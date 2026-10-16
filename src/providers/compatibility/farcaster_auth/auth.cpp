@@ -6,6 +6,7 @@ module;
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <charconv>
 #include <chrono>
 #include <cctype>
@@ -416,27 +417,87 @@ parseJson(const std::string& body)
     return output;
 }
 
+// Ethereum uses legacy Keccak-256 padding (0x01), NOT FIPS SHA3-256 (0x06).
+// OpenSSL's default providers do not expose EVP_MD_fetch("KECCAK-256").
+// Implement the fixed-width Keccak-f[1600] sponge without optional providers.
 [[nodiscard]] foundation::result::Result<Bytes32> keccak256(const std::span<const unsigned char> bytes)
 {
-    using Digest = std::unique_ptr<EVP_MD, decltype(&EVP_MD_free)>;
-    using Context = std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)>;
-    Digest digest{EVP_MD_fetch(nullptr, "KECCAK-256", nullptr), &EVP_MD_free};
-    Context context{EVP_MD_CTX_new(), &EVP_MD_CTX_free};
-    if (!digest || !context || EVP_DigestInit_ex(context.get(), digest.get(), nullptr) != 1 ||
-        EVP_DigestUpdate(context.get(), bytes.data(), bytes.size()) != 1) {
-        return std::unexpected(makeError(
-            foundation::error::ErrorCode::InternalFailure,
-            "OpenSSL could not initialize Keccak-256 verification."));
+    constexpr std::array<unsigned, 25> rotations{
+        0, 1, 62, 28, 27, 36, 44, 6, 55, 20, 3, 10, 43,
+        25, 39, 41, 45, 15, 21, 8, 18, 2, 61, 56, 14,
+    };
+    constexpr std::array<std::uint64_t, 24> roundConstants{
+        0x0000000000000001ULL, 0x0000000000008082ULL,
+        0x800000000000808aULL, 0x8000000080008000ULL,
+        0x000000000000808bULL, 0x0000000080000001ULL,
+        0x8000000080008081ULL, 0x8000000000008009ULL,
+        0x000000000000008aULL, 0x0000000000000088ULL,
+        0x0000000080008009ULL, 0x000000008000000aULL,
+        0x000000008000808bULL, 0x800000000000008bULL,
+        0x8000000000008089ULL, 0x8000000000008003ULL,
+        0x8000000000008002ULL, 0x8000000000000080ULL,
+        0x000000000000800aULL, 0x800000008000000aULL,
+        0x8000000080008081ULL, 0x8000000000008080ULL,
+        0x0000000080000001ULL, 0x8000000080008008ULL,
+    };
+    auto state = std::array<std::uint64_t, 25>{};
+    const auto permute = [&] {
+        for (const auto round : roundConstants) {
+            std::array<std::uint64_t, 5> columns{};
+            for (std::size_t x = 0; x < 5; ++x) {
+                for (std::size_t y = 0; y < 5; ++y) {
+                    columns[x] ^= state[x + 5 * y];
+                }
+            }
+            for (std::size_t x = 0; x < 5; ++x) {
+                const auto parity = columns[(x + 4) % 5]
+                    ^ std::rotl(columns[(x + 1) % 5], 1);
+                for (std::size_t y = 0; y < 5; ++y) {
+                    state[x + 5 * y] ^= parity;
+                }
+            }
+            std::array<std::uint64_t, 25> shifted{};
+            for (std::size_t x = 0; x < 5; ++x) {
+                for (std::size_t y = 0; y < 5; ++y) {
+                    const auto from = x + 5 * y;
+                    const auto to = y + 5 * ((2 * x + 3 * y) % 5);
+                    shifted[to] = std::rotl(state[from], static_cast<int>(rotations[from]));
+                }
+            }
+            for (std::size_t x = 0; x < 5; ++x) {
+                for (std::size_t y = 0; y < 5; ++y) {
+                    state[x + 5 * y] = shifted[x + 5 * y]
+                        ^ (~shifted[(x + 1) % 5 + 5 * y]
+                           & shifted[(x + 2) % 5 + 5 * y]);
+                }
+            }
+            state[0] ^= round;
+        }
+    };
+    constexpr std::size_t rate = 136;
+    const auto absorb = [&](const std::span<const unsigned char> block) {
+        for (std::size_t i = 0; i < rate; ++i) {
+            state[i / 8] ^= static_cast<std::uint64_t>(block[i]) << (8 * (i % 8));
+        }
+        permute();
+    };
+    std::size_t consumed = 0;
+    while (bytes.size() - consumed >= rate) {
+        absorb(bytes.subspan(consumed, rate));
+        consumed += rate;
     }
-    Bytes32 output{};
-    unsigned int outputSize = 0;
-    if (EVP_DigestFinal_ex(context.get(), output.data(), &outputSize) != 1 ||
-        outputSize != output.size()) {
-        return std::unexpected(makeError(
-            foundation::error::ErrorCode::InternalFailure,
-            "OpenSSL could not complete Keccak-256 verification."));
+    std::array<unsigned char, rate> tail{};
+    for (std::size_t i = consumed; i < bytes.size(); ++i) {
+        tail[i - consumed] = bytes[i];
     }
-    return output;
+    tail[bytes.size() - consumed] = 0x01;
+    tail[rate - 1] |= 0x80;
+    absorb(tail);
+    Bytes32 result{};
+    for (std::size_t i = 0; i < result.size(); ++i) {
+        result[i] = static_cast<unsigned char>(state[i / 8] >> (8 * (i % 8)));
+    }
+    return result;
 }
 
 [[nodiscard]] foundation::result::Result<Bytes32> ethereumMessageHash(const std::string& message)

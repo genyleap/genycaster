@@ -67,7 +67,8 @@ public:
         executor::IExecutor& executor,
         local::session::IClientSessionStore& store,
         capability::auth::IAuthenticationProvider* authentication,
-        capability::auth::IFarcasterIdentityResolver* farcasterIdentityResolver);
+        capability::auth::IFarcasterIdentityResolver* farcasterIdentityResolver,
+        capability::auth::IAuthenticationProvider* directFarcasterAuthentication = nullptr);
     /** @brief Destroys the service after its executor has drained owned work. */
     ~SessionService();
 

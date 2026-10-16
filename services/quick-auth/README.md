@@ -19,11 +19,13 @@ Send POST \`/v1/protocol-auth/verify\`, with
 \`{fid, method, address}\`. Verification failure is 401; missing/unreachable
 hub is 503, so callers can retry without silently falling back to trust.
 
-**Integration boundary**: The native app's canonical session currently
-requires OpenProof issuer+subject and a linked FID. The trusted OpenProof
-integration must perform the FID link/challenge and correlate the proof to
-its authenticated subject before committing a session. Do not make this
-HTTP verification response into a native session or bearer credential.
+**Integration boundary**: Native Genycaster desktop sign-in has two independent
+routes: OpenProof OAuth/device authorization for Genyleap accounts, and a
+Farcaster Relay SIWF ceremony whose EIP-191 signature and FID ownership are
+verified against Optimism in the native client. This internal Quick Auth
+sidecar verifies Mini App protocol tokens; its response **cannot** substitute
+for an authenticated desktop session, signer provisioning, or FID custody.
+Do not treat an arbitrary supplied FID as a credential.
 \`sdk.protocolAuth.getToken()\` exists in Farcaster Mini Apps, not
 automatically in a Qt native process. Native callers need an authorized
 wallet-driven proof ceremony, rather than executing JS in QML.

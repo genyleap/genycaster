@@ -1032,7 +1032,7 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.new_profile_body");
     //% "Continue in a compatible registration app, then come back to link your profile."
     (void)qtTrId("genycaster.setup.registration_handoff");
-    //% "Sign-in uses a verified OpenProof session and a linked Farcaster FID. Publishing permissions are separate."
+    //% "Sign in directly with Farcaster using a verified wallet signature, or use your Genyleap/OpenProof account. Publishing requires separate signer permission."
     (void)qtTrId("genycaster.setup.authentication_explainer");
     //% "Continue with Genyleap"
     (void)qtTrId("genycaster.shell.continue_with_genyleap");

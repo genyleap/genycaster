@@ -55,6 +55,7 @@ struct SessionService::Impl final {
     executor::IExecutor& executor;
     local::session::IClientSessionStore& store;
     capability::auth::IAuthenticationProvider* authentication{};
+    capability::auth::IAuthenticationProvider* directFarcasterAuthentication{};
     capability::auth::IFarcasterIdentityResolver* farcasterIdentityResolver{};
     std::unique_ptr<capability::auth::IAuthenticationAttempt> attempt{};
     std::optional<domain::session::ClientSession> current{};
@@ -77,11 +78,13 @@ SessionService::SessionService(
     executor::IExecutor& executor,
     local::session::IClientSessionStore& store,
     capability::auth::IAuthenticationProvider* const authentication,
-    capability::auth::IFarcasterIdentityResolver* const farcasterIdentityResolver)
+    capability::auth::IFarcasterIdentityResolver* const farcasterIdentityResolver,
+    capability::auth::IAuthenticationProvider* const directFarcasterAuthentication)
     : m_impl(std::make_unique<Impl>(Impl{
           .executor = executor,
           .store = store,
           .authentication = authentication,
+          .directFarcasterAuthentication = directFarcasterAuthentication,
           .farcasterIdentityResolver = farcasterIdentityResolver,
       }))
 {
@@ -137,7 +140,12 @@ foundation::result::Status SessionService::beginSignIn(
 {
     return m_impl->executor.post(
         [this, request = std::move(request), observer = std::move(observer)]() mutable {
-            if (m_impl->authentication == nullptr) {
+            // The Farcaster button uses the protocol-native SIWF adapter.
+            // Genyleap is a distinct OpenProof sign-in route; the selected read
+            // network never selects the account authorization authority.
+            auto* const auth = request.route == capability::auth::SignInRoute::Farcaster
+                ? m_impl->directFarcasterAuthentication : m_impl->authentication;
+            if (auth == nullptr) {
                 observer(failedState(unavailableAuthError(), m_impl->current));
                 return;
             }
@@ -145,7 +153,7 @@ foundation::result::Status SessionService::beginSignIn(
                 .phase = SessionPhase::Starting,
                 .session = m_impl->current,
             });
-            auto started = m_impl->authentication->begin(request);
+            auto started = auth->begin(request);
             if (!started) {
                 observer(failedState(std::move(started.error()), m_impl->current));
                 return;

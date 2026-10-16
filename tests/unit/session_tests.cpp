@@ -286,7 +286,8 @@ void legacyRestoreRefreshesCustodyWithoutNewSignIn()
     FakeAuthentication authentication{makeSession(777)};
     authentication.setResolvedCustodyAddress(
         "0x3333333333333333333333333333333333333333");
-    application::session::SessionService service{executor, store, &authentication, &authentication};
+    application::session::SessionService service{
+        executor, store, &authentication, &authentication, &authentication};
 
     std::vector<application::session::SessionState> states{};
     assert(service.restore([&states](auto state) { states.push_back(std::move(state)); }));
@@ -307,7 +308,8 @@ void signInPersistsOnlyAfterVerifiedCompletion()
     ImmediateExecutor executor{};
     MemorySessionStore store{};
     FakeAuthentication authentication{makeSession(777)};
-    application::session::SessionService service{executor, store, &authentication, &authentication};
+    application::session::SessionService service{
+        executor, store, &authentication, &authentication, &authentication};
     std::vector<application::session::SessionState> states{};
     const auto observer = [&states](auto state) { states.push_back(std::move(state)); };
 
@@ -436,7 +438,8 @@ void reauthenticationKeepsExistingSessionUntilReplacementCompletes()
     MemorySessionStore store{};
     store.value = makeSession(42);
     FakeAuthentication authentication{makeSession(777)};
-    application::session::SessionService service{executor, store, &authentication, &authentication};
+    application::session::SessionService service{
+        executor, store, &authentication, &authentication, &authentication};
     std::vector<application::session::SessionState> states{};
     const auto observer = [&states](auto state) { states.push_back(std::move(state)); };
 
@@ -463,6 +466,72 @@ void reauthenticationKeepsExistingSessionUntilReplacementCompletes()
     assert(states.back().phase == application::session::SessionPhase::Authenticated);
     assert(states.back().session && states.back().session->fid.value == 42);
     assert(store.value && store.value->fid.value == 42);
+}
+
+void independentFarcasterSignInDoesNotInvokeOpenProof()
+{
+    ImmediateExecutor executor{};
+    MemorySessionStore store{};
+    auto genyleapSession = makeSession(901);
+    genyleapSession.identityIssuer = std::string{"https://openproof.example"};
+    genyleapSession.identitySubject = std::string{"genyleap-901"};
+    FakeLinkingAuthentication genyleap{genyleapSession};
+    FakeAuthentication farcaster{makeSession(902)};
+    application::session::SessionService service{
+        executor, store, &genyleap, &farcaster, &farcaster};
+    std::vector<application::session::SessionState> states{};
+    const auto observe = [&states](auto state) { states.push_back(std::move(state)); };
+
+    // This must invoke the native SIWF adapter, never the OpenProof fake
+    // (which asserts that only the OpenProof route is accepted).
+    assert(service.beginSignIn(
+        capability::auth::SignInRequest{
+            .route = capability::auth::SignInRoute::Farcaster,
+            .domain = "genycaster.example",
+            .siweUri = "https://genycaster.example/sign-in",
+        }, observe));
+    assert(states.back().approvalUrl == "https://farcaster.example/approve");
+    assert(store.saveCount == 0U);
+    assert(service.pollSignIn(observe));
+    assert(service.pollSignIn(observe));
+    assert(states.back().session && states.back().session->fid.value == 902U);
+    assert(!states.back().session->identityIssuer);
+    assert(store.saveCount == 1U);
+
+    // Genyleap remains the independent OpenProof route.
+    assert(service.beginSignIn(
+        capability::auth::SignInRequest{
+            .route = capability::auth::SignInRoute::OpenProof,
+        }, observe));
+    assert(states.back().approvalUrl == "https://genyleap.example/account");
+    assert(service.pollSignIn(observe));
+    assert(states.back().phase == application::session::SessionPhase::LinkingFarcaster);
+    assert(service.pollSignIn(observe));
+    assert(states.back().session && states.back().session->fid.value == 901U);
+    assert(states.back().session->identityIssuer);
+    assert(store.saveCount == 2U);
+}
+
+void missingDirectFarcasterProviderNeverFallsBackToOpenProof()
+{
+    ImmediateExecutor executor{};
+    MemorySessionStore store{};
+    FakeLinkingAuthentication openProof{makeSession(999)};
+    application::session::SessionService service{
+        executor, store, &openProof, nullptr, nullptr};
+    std::vector<application::session::SessionState> states{};
+    assert(service.beginSignIn(
+        capability::auth::SignInRequest{
+            .route = capability::auth::SignInRoute::Farcaster,
+            .domain = "genycaster.example",
+            .siweUri = "https://genycaster.example/sign-in",
+        },
+        [&states](auto state) { states.push_back(std::move(state)); }));
+    assert(states.size() == 1U);
+    assert(states.back().phase == application::session::SessionPhase::Failed);
+    assert(states.back().error);
+    assert(states.back().error->code == foundation::error::ErrorCode::Unsupported);
+    assert(store.saveCount == 0U);
 }
 
 void missingCompatibilityAuthDoesNotCreateSession()
@@ -529,6 +598,8 @@ int main()
     custodyResolutionFailureDoesNotInvalidateOpenProofAuthentication();
     custodyResolutionFailureDoesNotInvalidateRestore();
     reauthenticationKeepsExistingSessionUntilReplacementCompletes();
+    independentFarcasterSignInDoesNotInvokeOpenProof();
+    missingDirectFarcasterProviderNeverFallsBackToOpenProof();
     missingCompatibilityAuthDoesNotCreateSession();
     sqliteSessionRoundTrip();
     return 0;

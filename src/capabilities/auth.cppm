@@ -17,9 +17,9 @@ export namespace farcaster::capability::auth {
 /**
  * @brief Product-selected identity entry point.
  *
- * OpenProof is the canonical Genycaster account authority. The Farcaster route
- * is retained as a direct onboarding convenience, but an OpenProof-backed
- * implementation still turns that Farcaster proof into a canonical identity.
+ * The Genyleap route uses an OpenProof account. The Farcaster route uses a
+ * separate native SIWF relay and verifies the wallet signature and on-chain
+ * FID ownership without requiring an OpenProof session.
  */
 enum class SignInRoute : std::uint8_t {
     OpenProof,
@@ -81,10 +81,9 @@ struct StartedAuthentication final {
 /**
  * @brief Provider-neutral client authentication boundary.
  *
- * Implementations may use OpenID/OAuth device authorization, a Farcaster proof
- * flow or another mechanism. A completed result must contain a verified
- * Farcaster-linked ClientSession because Farcaster identity is a Genycaster
- * product prerequisite.
+ * A completed result must contain a verified Farcaster-linked ClientSession.
+ * Genyleap OAuth and direct SIWF use distinct providers, each requiring
+ * authoritative proof before persisting a local session.
  */
 class IAuthenticationProvider {
 public:

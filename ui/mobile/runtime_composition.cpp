@@ -486,7 +486,13 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         *runtime->executor,
         *runtime->sessionStore,
         primaryAuthentication,
-        farcasterIdentityResolver);
+        farcasterIdentityResolver,
+#if FARCASTER_HAS_FARCASTER_AUTH
+        runtime->farcasterAuthentication.get()
+#else
+        nullptr
+#endif
+        );
 
 #if FARCASTER_HAS_PROTOCOL_SIGNING
     runtime->signerExecutor = std::make_unique<farcaster::execution::serial::SerialExecutor>();
