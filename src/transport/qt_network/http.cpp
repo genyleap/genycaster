@@ -11,8 +11,12 @@ module;
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QObject>
+#if !defined(__EMSCRIPTEN__)
+// Qt WebAssembly delegates TLS to the browser (fetch/XHR); Qt's SSL
+// diagnostics, handshake signals and QSslSocket are unavailable there.
 #include <QSslError>
 #include <QSslSocket>
+#endif
 #include <QString>
 #include <QStringList>
 #include <QTimer>
@@ -114,6 +118,7 @@ enum class RequestStage : std::uint8_t {
     return "unknown";
 }
 
+#if !defined(__EMSCRIPTEN__)
 [[nodiscard]] std::string sslErrorSummary(const QList<QSslError>& errors)
 {
     QStringList descriptions{};
@@ -126,6 +131,7 @@ enum class RequestStage : std::uint8_t {
     }
     return toUtf8(descriptions.join(QStringLiteral("; ")));
 }
+#endif
 
 [[nodiscard]] bool appendBodyChunk(
     std::string& body,
@@ -244,6 +250,17 @@ private:
                 "HTTP maximum response-body size must be greater than zero."));
         }
 
+#if defined(__EMSCRIPTEN__)
+        // Qt for WebAssembly uses browser fetch/XHR. A nested QEventLoop on
+        // the browser's main thread cannot synchronously wait for a network
+        // result; doing so can deadlock the browser event loop. All WASM
+        // reads must use the non-blocking IAsyncHttpTransport instead.
+        return std::unexpected(transportError(
+            foundation::error::ErrorCode::Unavailable,
+            "Synchronous HTTP is unavailable in WebAssembly; use the async "
+            "network transport so the browser can deliver the response."));
+#endif
+
         const QUrl url{QString::fromUtf8(
             requestUrl.data(), static_cast<qsizetype>(requestUrl.size()))};
         if (!url.isValid() || url.host().isEmpty() ||
@@ -298,7 +315,9 @@ private:
         responseBody.reserve(std::min<std::size_t>(maxBodyBytes, 64U * 1024U));
         bool bodyLimitExceeded{false};
         bool timedOut{false};
+#if !defined(__EMSCRIPTEN__)
         QList<QSslError> sslErrors{};
+#endif
         RequestStage requestStage{RequestStage::Starting};
         QElapsedTimer elapsedTimer{};
         elapsedTimer.start();
@@ -327,9 +346,11 @@ private:
         QObject::connect(reply.get(), &QNetworkReply::socketStartedConnecting, &loop, [&]() {
             requestStage = RequestStage::Connecting;
         });
+#if !defined(__EMSCRIPTEN__)
         QObject::connect(reply.get(), &QNetworkReply::encrypted, &loop, [&]() {
             requestStage = RequestStage::TlsEstablished;
         });
+#endif
         QObject::connect(reply.get(), &QNetworkReply::requestSent, &loop, [&]() {
             requestStage = RequestStage::RequestSent;
         });
@@ -343,6 +364,7 @@ private:
             requestStage = RequestStage::ResponseBody;
             consumeAvailableBody();
         });
+#if !defined(__EMSCRIPTEN__)
         QObject::connect(
             reply.get(),
             &QNetworkReply::sslErrors,
@@ -352,6 +374,7 @@ private:
                 // Deliberately do not call ignoreSslErrors(). Certificate
                 // verification is a security invariant of this transport.
             });
+#endif
         QObject::connect(reply.get(), &QNetworkReply::finished, &loop, [&]() {
             consumeAvailableBody();
             loop.quit();
@@ -410,6 +433,7 @@ private:
 
         if (reply->error() != QNetworkReply::NoError) {
             std::string message = "Qt Network request failed: " + toUtf8(reply->errorString()) + ".";
+#if !defined(__EMSCRIPTEN__)
             const std::string tlsDetails = sslErrorSummary(sslErrors);
             if (!tlsDetails.empty()) {
                 message.append(" TLS: ");
@@ -421,6 +445,10 @@ private:
                 message.append(toUtf8(QSslSocket::activeBackend()));
                 message.push_back('.');
             }
+#else
+            // In WebAssembly the browser enforces TLS and CORS; a failed
+            // handshake surfaces through QNetworkReply::NetworkError.
+#endif
             const auto code = reply->error() == QNetworkReply::TimeoutError
                 ? foundation::error::ErrorCode::Timeout
                 : foundation::error::ErrorCode::TransportFailure;
@@ -453,12 +481,14 @@ foundation::result::Result<std::unique_ptr<http::IHttpTransport>> makeTransport(
         });
     }
 
+#if !defined(__EMSCRIPTEN__)
     if (!QSslSocket::supportsSsl()) {
         return std::unexpected(transportError(
             foundation::error::ErrorCode::TransportFailure,
             "Qt Network has no usable TLS backend. Active backend: " +
                 toUtf8(QSslSocket::activeBackend()) + "."));
     }
+#endif
 
     std::unique_ptr<http::IHttpTransport> transport =
         std::make_unique<QtHttpTransport>(proxyPolicy, protocolPolicy);

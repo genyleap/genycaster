@@ -25,6 +25,25 @@ compiler (pinned SHA3-256), and links it to the existing SQLite boundary.
 C language is enabled only on the WASM target. For reproducible offline builds,
 seed CMake's FetchContent source directory with the same verified archive.
 
+## Browser-managed TLS and asynchronous HTTP
+
+Qt 6.12 WebAssembly deliberately omits native `QSslSocket`, the
+`QNetworkReply::encrypted` and `sslErrors` signals, and parts of
+`QSslError`. The Genycaster Qt transport therefore compiles TLS diagnostics
+and backend checks only for native targets. For WebAssembly the browser
+performs certificate verification and enforces CORS, secure contexts and
+mixed-content restrictions; the app must **never** suppress those failures
+or treat the missing Qt SSL API as an insecure TLS fallback.
+
+The synchronous `IHttpTransport` returns an explicit `Unavailable` error
+on WebAssembly instead of entering a nested blocking `QEventLoop`.
+`IAsyncHttpTransport` uses the browser's Qt main event loop for the
+`QNetworkAccessManager` reactor, avoiding `QThread` creation and
+`Qt::BlockingQueuedConnection` in single-threaded WASM builds. Requests
+and cancellations remain queued through the event loop. Native builds keep
+their threaded Qt reactor and existing SSL diagnostics. Other unrelated
+application executors are not yet certified on WebAssembly.
+
 The browser cannot expose a native OS keychain or bind the app's localhost
 custody-authorizer server. The wizard therefore has an explicit
 **Continue as guest** path on WebAssembly, after reviewing Terms and Privacy;

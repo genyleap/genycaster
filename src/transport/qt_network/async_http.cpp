@@ -11,9 +11,13 @@ module;
 #include <QObject>
 #include <QPointer>
 #include <QRandomGenerator>
+#if !defined(__EMSCRIPTEN__)
 #include <QSslSocket>
+#endif
 #include <QString>
+#if !defined(__EMSCRIPTEN__)
 #include <QThread>
+#endif
 #include <QTimer>
 #include <QUrl>
 #include <QVariant>
@@ -855,21 +859,32 @@ public:
         const ProtocolPolicy protocolPolicy,
         NetworkLimits limits)
         : m_shared(std::make_shared<SharedCancellationState>()),
+#if !defined(__EMSCRIPTEN__)
           m_thread(std::make_unique<QThread>()),
+#endif
           m_worker(new ReactorWorker(proxyPolicy, protocolPolicy, std::move(limits)))
     {
+#if !defined(__EMSCRIPTEN__)
         m_thread->setObjectName(QStringLiteral("GenycasterNetworkReactor"));
         m_worker->moveToThread(m_thread.get());
         QObject::connect(m_thread.get(), &QThread::finished, m_worker, &QObject::deleteLater);
+#endif
         {
             std::scoped_lock lock{m_shared->mutex};
             m_shared->worker = m_worker;
         }
+#if defined(__EMSCRIPTEN__)
+        // Browser networking must remain on the JS/Qt main event loop:
+        // neither pthread creation nor BlockingQueuedConnection is safe in
+        // the single-threaded Qt WebAssembly configuration.
+        m_worker->initialize();
+#else
         m_thread->start();
         QMetaObject::invokeMethod(
             m_worker,
             [worker = m_worker] { worker->initialize(); },
             Qt::BlockingQueuedConnection);
+#endif
     }
 
     ~AsyncQtHttpTransport() override
@@ -878,20 +893,30 @@ public:
             std::scoped_lock lock{m_shared->mutex};
             m_shared->isAccepting = false;
         }
+#if defined(__EMSCRIPTEN__)
+        if (m_worker) {
+            m_worker->shutdown();
+        }
+#else
         if (m_worker && m_thread && m_thread->isRunning()) {
             QMetaObject::invokeMethod(
                 m_worker,
                 [worker = m_worker] { worker->shutdown(); },
                 Qt::BlockingQueuedConnection);
         }
+#endif
         {
             std::scoped_lock lock{m_shared->mutex};
             m_shared->worker = nullptr;
         }
+#if defined(__EMSCRIPTEN__)
+        delete m_worker;
+#else
         if (m_thread) {
             m_thread->quit();
             m_thread->wait();
         }
+#endif
         m_worker = nullptr;
     }
 
@@ -979,7 +1004,9 @@ public:
 
 private:
     std::shared_ptr<SharedCancellationState> m_shared{};
+#if !defined(__EMSCRIPTEN__)
     std::unique_ptr<QThread> m_thread{};
+#endif
     ReactorWorker* m_worker{};
     std::atomic<std::uint64_t> m_nextId{1U};
 };
@@ -1018,12 +1045,14 @@ makeAsyncTransport(
     if (proxyPolicy == ProxyPolicy::System) {
         QNetworkProxyFactory::setUseSystemConfiguration(true);
     }
+#if !defined(__EMSCRIPTEN__)
     if (!QSslSocket::supportsSsl()) {
         return std::unexpected(makeError(
             ErrorCode::TransportFailure,
             "Qt Network has no usable TLS backend. Active backend: " +
                 toUtf8(QSslSocket::activeBackend()) + "."));
     }
+#endif
     std::unique_ptr<async_http::IAsyncHttpTransport> transport =
         std::make_unique<AsyncQtHttpTransport>(proxyPolicy, protocolPolicy, std::move(limits));
     return transport;
