@@ -194,8 +194,9 @@ if ('readonly property real edgeGuard:' not in superellipse
     errors.append('CurveRenderer pill/circle precision path must guard against zero-length edge joins')
 if ('readonly property bool animationRequested:' not in geny_spinner
         or 'id: animationGraceStop' not in geny_spinner
-        or 'running: root.animationActive && !Theme.reduceMotion' not in geny_spinner):
-    errors.append('GenySpinner must preserve animation phase through transient visibility churn')
+        or 'running: root.animationActive' not in geny_spinner
+        or 'duration: Theme.reduceMotion ? 1400 : 760' not in geny_spinner):
+    errors.append('GenySpinner must retain its grace period and keep essential loading motion under Reduce Motion')
 
 scene_graph_stroke = (ui/'render'/'scene_graph_stroke_item.cpp').read_text(encoding='utf-8')
 scene_graph_surface = (ui/'render'/'scene_graph_superellipse_item.cpp').read_text(encoding='utf-8')

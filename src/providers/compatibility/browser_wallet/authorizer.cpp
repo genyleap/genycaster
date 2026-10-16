@@ -155,15 +155,36 @@ constexpr std::size_t MaximumHandledRequests = 16U;
 {
     std::string page = R"html(<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Genycaster signer approval</title><style nonce=")html";
     page += scriptNonce;
-    page += R"html(">:root{color-scheme:light dark;font-family:system-ui,sans-serif}body{max-width:42rem;margin:3rem auto;padding:0 1.25rem;line-height:1.45}button{font:inherit;padding:.75rem 1rem;border-radius:.65rem;border:1px solid currentColor;cursor:pointer}.muted{opacity:.72}.error{color:#c33}li{margin:.35rem 0}</style></head><body><h1>Connect Genycaster</h1><p>Authorize this device to interact with Farcaster on your behalf.</p><ul><li>Publish and delete casts</li><li>Like and recast</li><li>Follow and unfollow</li></ul><p class="muted">No transaction or gas is required. Your custody private key never enters Genycaster.</p><p><strong>Required Farcaster custody wallet:</strong> <code>)html";
+    page += R"html(">
+:root{color-scheme:dark;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-serif}
+*{box-sizing:border-box}body{margin:0;padding:28px 18px;min-height:100vh;display:grid;place-items:center;background:#0c1017;color:#f4f5f9;line-height:1.5}
+.panel{width:100%;max-width:660px;padding:clamp(22px,5vw,42px);background:#191e29;border:1px solid #333949;border-radius:24px;box-shadow:0 22px 64px #0005}
+.eyebrow{font-size:.75rem;font-weight:750;letter-spacing:.11em;color:#ab92ff;margin-bottom:14px}
+h1{margin:0 0 8px;font-size:clamp(1.65rem,4vw,2.2rem);letter-spacing:-.025em}
+.subtitle{color:#b5bac8;margin:0 0 24px}.scopes{display:flex;flex-wrap:wrap;gap:8px;padding:0;list-style:none;margin:0 0 24px}
+.scopes li{padding:8px 12px;background:#252c39;border:1px solid #384052;border-radius:10px;font-size:.9rem}
+.wallet{padding:16px;background:#111723;border:1px solid #384052;border-radius:14px;margin-bottom:16px}
+.wallet strong{display:block;font-size:.85rem;margin-bottom:8px}.wallet code{font:600 .91rem ui-monospace,SFMono-Regular,Menlo,monospace;color:#bbaaff;overflow-wrap:anywhere}
+p{margin:0 0 16px}.muted{color:#abb3c2;font-size:.91rem}.help{padding:12px 14px;background:#253044;border-left:3px solid #9c7bff;border-radius:8px}
+button{font:700 1rem/1.4 ui-sans-serif,system-ui,sans-serif;border-radius:12px;cursor:pointer;min-height:48px;padding:12px 24px}
+button:focus-visible{outline:3px solid #e2cfff;outline-offset:3px}
+button:disabled{opacity:.55;cursor:wait}
+#approve{width:100%;border:0;background:#8359f7;color:white;margin:10px 0 14px}
+#approve:hover:enabled{background:#9876fa}
+#status{min-height:28px;margin:0;padding:11px 12px;border-radius:10px}
+.error{background:#4c222a;color:#ffb4bc;overflow-wrap:anywhere}
+@media(max-width:460px){.panel{padding:22px;border-radius:18px}.scopes li{font-size:.8rem}body{padding:12px}}
+</style></head><body><main class="panel"><div class="eyebrow">SECURE SIGNER APPROVAL</div><h1>Connect Genycaster</h1><p class="subtitle">Authorize this device to interact with Farcaster on your behalf.</p>
+<ul class="scopes"><li>Publish &amp; delete casts</li><li>Like &amp; recast</li><li>Follow &amp; unfollow</li></ul>
+<div class="wallet"><strong>Farcaster custody wallet required</strong><code>)html";
     page += htmlEscape(expectedCustodyAddress);
-    page += R"html(</code></p>)html";
+    page += R"html(</code></div><p class="muted help">Select the wallet that <strong>owns your Farcaster FID</strong> (not necessarily your verified or sign-in address). You only need this approval for a new, revoked or expired signer. Routine casts and likes use the approved local key.</p><p class="muted">No transaction or gas is required. Your custody private key never enters Genycaster.</p>)html";
     if (needsSignedKeyRequest) {
         page += R"html(<p class="muted">Personal signer authorization: both signatures will come from your custody wallet. This key is requested under your own Farcaster FID, not the Genycaster App FID.</p>)html";
     } else {
         page += R"html(<p class="muted">This signer request is attributed to the Genycaster App FID. Your custody wallet still approves the key authorization.</p>)html";
     }
-    page += R"html(<button id="approve">Authorize</button><p id="status" class="muted">No wallet request has been sent yet.</p><script nonce=")html";
+    page += R"html(<button id="approve">Approve with custody wallet</button><p id="status" class="muted" role="status" aria-live="polite">Choose Authorize when your custody wallet is active in this browser.</p><script nonce=")html";
     page += scriptNonce;
     page += R"html(">const keyAdd=)html";
     page += documents.keyAddJson;
@@ -171,7 +192,7 @@ constexpr std::size_t MaximumHandledRequests = 16U;
     page += htmlEscape(callbackPath);
     page += R"html(";const expectedCustodyAddress=")html";
     page += expectedCustodyAddress;
-    page += R"html(";const status=document.getElementById('status');const reportFailure=async(error)=>{const rejected=error&&Number(error.code)===4001;try{await fetch(callbackPath,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({error:rejected?'rejected':'wallet_error'})});}catch(_ignored){}return rejected;};document.getElementById('approve').addEventListener('click',async()=>{try{if(!window.ethereum){const missing=new Error('No EIP-1193 wallet is available in this browser. Open this page inside a compatible wallet browser or install a wallet extension.');missing.code=-1;throw missing;}status.textContent='Waiting for wallet approval…';const accounts=await window.ethereum.request({method:'eth_requestAccounts'});if(!accounts||!accounts[0])throw new Error('The wallet returned no account.');const account=accounts[0];if(account.toLowerCase()!==expectedCustodyAddress){const mismatch=await fetch(callbackPath,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({error:'wrong_custody',account})});throw new Error(await mismatch.text()||'Select the Farcaster custody wallet shown above.');})html";
+    page += R"html(";const status=document.getElementById('status');const approve=document.getElementById('approve');approve.addEventListener('click',async()=>{approve.disabled=true;status.className='muted';try{if(!window.ethereum){throw new Error('No Ethereum wallet is available in this browser. Open this same local URL in Brave Wallet or Chrome with a wallet extension.');}status.textContent='Waiting for wallet approval…';const accounts=await window.ethereum.request({method:'eth_requestAccounts'});if(!accounts||!accounts[0])throw new Error('The wallet returned no account.');const account=accounts[0];if(account.toLowerCase()!==expectedCustodyAddress){throw new Error('Wrong wallet: '+account+'. Switch the active account to Farcaster custody wallet '+expectedCustodyAddress+' and select Authorize again.');})html";
     if (needsSignedKeyRequest) {
         page += "const signedKeyRequest=";
         page += documents.signedKeyRequestJson;
@@ -179,7 +200,7 @@ constexpr std::size_t MaximumHandledRequests = 16U;
     } else {
         page += R"html(const signedKeyRequestSignature=null;)html";
     }
-    page += R"html(const custodySignature=await window.ethereum.request({method:'eth_signTypedData_v4',params:[account,JSON.stringify(keyAdd)]});const response=await fetch(callbackPath,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({account,signedKeyRequestSignature,custodySignature})});if(!response.ok)throw new Error(await response.text()||'Genycaster rejected the wallet response.');status.textContent='Signer authorization received. You can return to Genycaster.';document.getElementById('approve').disabled=true;}catch(error){const rejected=await reportFailure(error);status.className='error';status.textContent=rejected?'Wallet approval was rejected.':(error&&error.message?error.message:String(error));}});</script></body></html>)html";
+    page += R"html(const custodySignature=await window.ethereum.request({method:'eth_signTypedData_v4',params:[account,JSON.stringify(keyAdd)]});const response=await fetch(callbackPath,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({account,signedKeyRequestSignature,custodySignature})});if(!response.ok)throw new Error(await response.text()||'Genycaster rejected the wallet response.');status.textContent='Signer authorization received. You can return to Genycaster.';approve.disabled=true;}catch(error){status.className='error';status.textContent=error&&Number(error.code)===4001?'Wallet approval declined. You can retry without starting over.':(error&&error.message?error.message:String(error));approve.disabled=false;}});</script></main></body></html>)html";
     return page;
 }
 
@@ -433,7 +454,10 @@ public:
                             expectedCustodyAddress + ". Switch wallet accounts and retry.");
                     writeResponse(http::status::bad_request,
                         error.message, "text/plain; charset=utf-8");
-                    return std::unexpected(error);
+                    // An incorrect wallet is a recoverable attempt; keep this
+                    // one-shot local ceremony open so the user can select the
+                    // custody account and retry without regenerating a key.
+                    continue;
                 }
                 const auto& requestSignerAddress = appAttestation
                     ? appAttestation->requestSignerAddress : wallet->address;

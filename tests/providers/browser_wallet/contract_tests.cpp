@@ -117,6 +117,10 @@ void testApprovalRoundTrip()
                 assert(body.find("eth_signTypedData_v4", secondApproval + 1U) == std::string::npos);
                 assert(body.find("Personal signer authorization") != std::string::npos);
                 assert(body.find("under your own Farcaster FID") != std::string::npos);
+                assert(body.find("approve.disabled=false") != std::string::npos);
+                // Switching wallets must not POST a terminal error callback.
+                assert(body.find("error:'wrong_custody'") == std::string::npos);
+                assert(body.find("const reportFailure=") == std::string::npos);
                 assert(body.find("SignedKeyRequest") != std::string::npos);
                 assert(body.find("KeyAdd") != std::string::npos);
 
@@ -217,7 +221,7 @@ void testAppAttestationRequiresOnlyKeyAddWalletSignature()
         std::string(20U, static_cast<char>(0x44)));
 }
 
-void testWrongWalletIsRejectedBeforeRegistration()
+void testWrongWalletCanRetryWithoutRestarting()
 {
     using provider::compatibility::browser_wallet::authorizer::Config;
     using provider::compatibility::browser_wallet::authorizer::makeAuthorizer;
@@ -244,6 +248,15 @@ void testWrongWalletIsRejectedBeforeRegistration()
                 assert(posted.result() == http::status::bad_request);
                 assert(posted.body().find("Expected 0x1111111111111111111111111111111111111111") !=
                     std::string::npos);
+                // An incorrect account must NOT tear down the pending request.
+                // Switch custody accounts and submit approval on the same URL.
+                const std::string correct =
+                    "{\"account\":\"0x" + repeatedHex(20U, '1') +
+                    "\",\"signedKeyRequestSignature\":\"0x" + repeatedHex(65U, '2') +
+                    "\",\"custodySignature\":\"0x" + repeatedHex(65U, '3') + "\"}";
+                const auto retried = request(
+                    parsed, http::verb::post, callback, correct, "application/json");
+                assert(retried.result() == http::status::ok);
             });
             return {};
         },
@@ -254,10 +267,8 @@ void testWrongWalletIsRejectedBeforeRegistration()
     assert(authorizer);
 
     auto result = (*authorizer)->authorize(keyRequest());
-    assert(!result);
-    assert(result.error().code == foundation::error::ErrorCode::Unauthorized);
-    assert(result.error().message.find("not the current Farcaster custody wallet") !=
-        std::string::npos);
+    assert(result);
+    assert(result->custodySignature.size() == 65U);
 }
 
 void testMalformedCallbackFailsClosed()
@@ -363,7 +374,7 @@ int main()
 {
     testApprovalRoundTrip();
     testAppAttestationRequiresOnlyKeyAddWalletSignature();
-    testWrongWalletIsRejectedBeforeRegistration();
+    testWrongWalletCanRetryWithoutRestarting();
     testMalformedCallbackFailsClosed();
     testWalletRejectionMapsToUnauthorized();
     testPolicyAndLauncherFailures();

@@ -267,3 +267,47 @@ requester-FID metadata, the signer-registration/restart lifecycle, and strict
 denial for external attribution without a trusted attestor. A real user wallet
 approval followed by Snapchain-verified KEY_ADD and a published cast must still
 be tested in the shipped macOS application before marking end-to-end complete.
+
+## 2026-10-16: custody-wallet approval usability and signer lifetime
+
+Farcaster's finalized **FIP 2026 Snapchain Signers** uses `KEY_ADD` with
+EIP-712 custody authorization; the custody wallet (FID owner) approves
+a bounded-scope Ed25519 signer. The approved local key may then sign casts,
+reactions and links without prompting the wallet per interaction. A new
+authorization is required only when the signer is missing, revoked, expired,
+or otherwise no longer eligible. The app retains signer material in the
+platform key vault and verifies registration on restart; ordinary sign-in
+is distinct from a new `KEY_ADD`.
+
+The user-provided Hypersnap signer reference
+(`https://hypersnap.org/docs/reference/reads/signers`) documents
+read-only signer/on-chain event endpoints. Hypersnap's compatibility
+`POST /v2/farcaster/signer*` routes return HTTP 501 and cannot provide
+desktop custody authorization. Repointing KEY_ADD approval to Hypersnap
+is not a valid shortcut. Existing native Snapchain registration stays in
+use for Farcaster permissioned writes regardless of the read provider.
+
+The desktop previously invoked `QDesktopServices::openUrl` for the
+one-shot `http://127.0.0.1:<port>/approve/<capability>` URL, selecting
+the macOS default browser (usually Safari), which does not expose an
+injected EIP-1193 provider. The custody approval launcher now prefers
+installed **Brave Browser**, then **Google Chrome** when no explicit
+wallet URL template is configured. It does not change Mini App wallet
+URL launching or override an explicitly configured template. If neither
+wallet-capable browser can be found it retains the platform fallback,
+and the local approval page explains the extension requirement.
+
+Selecting a wallet other than the on-chain FID custody address is a
+recoverable mismatch, **not** an authorization success. The page
+shows the required custody address and lets the user switch wallet
+accounts and retry without discarding the one-shot loopback ceremony.
+The provider still refuses mismatched callbacks and never issues
+`KEY_ADD` with the wrong address. Browser wallet errors/rejections no
+longer automatically send the fatal `wallet_error` callback from
+JavaScript; the form remains usable until success or timeout. The
+backend still honors an explicit aborted/rejected callback when posted.
+
+Reduced Motion suppresses decorative transitions/shimmer but now
+retains essential progress-spinner movement at a slower 1.4-second
+rotation. Image loading indicators do not become a static placeholder
+solely because Reduce Motion is enabled.

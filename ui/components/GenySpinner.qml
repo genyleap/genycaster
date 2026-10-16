@@ -108,9 +108,12 @@ Item {
         RotationAnimator on rotation {
             from: 0
             to: 360
-            duration: 760
+            // A progress indicator must keep communicating ongoing work even
+            // with reduced motion; just slow the minimal rotation. Decorative
+            // skeleton/shimmer animations remain disabled separately.
+            duration: Theme.reduceMotion ? 1400 : 760
             loops: Animation.Infinite
-            running: root.animationActive && !Theme.reduceMotion
+            running: root.animationActive
         }
     }
 }

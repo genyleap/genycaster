@@ -437,7 +437,7 @@ Item {
         GenySpinner {
             objectName: "mediaLoadingSpinner"
             anchors.fill: parent
-            visible: loadingIndicator.availableSize >= 56 && !Theme.reduceMotion
+            visible: loadingIndicator.availableSize >= 56
             // GenySpinner resolves the enclosing Flickable itself and keeps
             // animation phase stable through brief state/visibility churn.
             running: visible
@@ -451,7 +451,7 @@ Item {
         Text {
             objectName: "mediaLoadingFallbackIcon"
             anchors.fill: parent
-            visible: loadingIndicator.availableSize < 56 || Theme.reduceMotion
+            visible: loadingIndicator.availableSize < 56
             text: Theme.iconGlyph(Theme.iconImage)
             color: Theme.textTertiary
             font.family: Theme.iconFamily(Theme.iconImage)

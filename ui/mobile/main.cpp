@@ -1,11 +1,13 @@
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDesktopServices>
+#include <QDir>
 #include <QDebug>
 #include <QFont>
 #include <QGuiApplication>
 #include <QFontDatabase>
 #include <QFile>
+#include <QFileInfo>
 #include <QMetaObject>
 #include <QNetworkInformation>
 #include <QObject>
@@ -14,6 +16,7 @@
 #include <QQmlContext>
 #include <QQuickStyle>
 #include <QQuickWindow>
+#include <QProcess>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QSurfaceFormat>
@@ -3220,9 +3223,9 @@ void connectMediaPlayback(
 }
 
 [[nodiscard]] std::function<foundation::result::Status(const std::string&)>
-makeWalletApprovalLauncher(QString launchTemplate)
+makeWalletApprovalLauncher(QString launchTemplate, const bool preferCustodyWalletBrowser = false)
 {
-    return [launchTemplate = std::move(launchTemplate)](const std::string& approvalUrl)
+    return [launchTemplate = std::move(launchTemplate), preferCustodyWalletBrowser](const std::string& approvalUrl)
         -> foundation::result::Status {
         const QString rawUrl = QString::fromStdString(approvalUrl);
         QString target = rawUrl;
@@ -3252,7 +3255,34 @@ makeWalletApprovalLauncher(QString launchTemplate)
         }
 
         bool opened{false};
-        const auto open = [&opened, parsed] { opened = QDesktopServices::openUrl(parsed); };
+        const bool preferInstalledWalletBrowser = preferCustodyWalletBrowser && launchTemplate.isEmpty()
+            && parsed.scheme() == QStringLiteral("http")
+            && parsed.host() == QStringLiteral("127.0.0.1");
+        const auto open = [&opened, parsed, preferInstalledWalletBrowser] {
+#if defined(Q_OS_MACOS)
+            if (preferInstalledWalletBrowser) {
+                // Safari has no injected EIP-1193 wallet by default. An
+                // installed wallet-capable browser avoids forcing users to
+                // hand-copy a time-limited loopback URL on every attempt.
+                for (const QString& appName : {
+                         QStringLiteral("Brave Browser"),
+                         QStringLiteral("Google Chrome")}) {
+                    const QString bundle = appName + QStringLiteral(".app");
+                    if (QFileInfo::exists(QStringLiteral("/Applications/") + bundle)
+                        || QFileInfo::exists(QDir::homePath()
+                                            + QStringLiteral("/Applications/") + bundle)) {
+                        opened = QProcess::startDetached(
+                            QStringLiteral("/usr/bin/open"),
+                            {QStringLiteral("-a"), appName, parsed.toString()});
+                        if (opened) break;
+                    }
+                }
+            }
+#else
+            Q_UNUSED(preferInstalledWalletBrowser);
+#endif
+            if (!opened) opened = QDesktopServices::openUrl(parsed);
+        };
         if (auto* app = QCoreApplication::instance(); app != nullptr &&
             QThread::currentThread() != app->thread()) {
             if (!QMetaObject::invokeMethod(app, open, Qt::BlockingQueuedConnection)) {
@@ -4231,7 +4261,7 @@ int main(int argc, char* argv[])
                 snapchainAuthorizationValue,
                 appFid,
                 signerAttestationUrl,
-                makeWalletApprovalLauncher(walletLaunchTemplate));
+                makeWalletApprovalLauncher(walletLaunchTemplate, true));
             if (!made) {
                 const QString message = QString::fromStdString(made.error().message);
                 QMetaObject::invokeMethod(&presentationBridge,
