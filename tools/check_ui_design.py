@@ -840,6 +840,23 @@ if ('metadataManagedExternally' not in link_preview
 if 'width / 6.0' in profile_surface or 'bannerAspectRatio' not in profile_surface:
     errors.append('Profile banners must keep a readable cover aspect instead of the legacy ultra-wide 6:1 strip')
 
+# Setup sign-in ceremonies are independent of the selected read provider.
+setup = (ui / 'components' / 'InitialSetup.qml').read_text(encoding='utf-8')
+setup_card = (ui / 'components' / 'SetupActionCard.qml').read_text(encoding='utf-8')
+if ('root.authenticationInProgress && root.authenticationRoute === "openproof"' not in setup
+        or 'root.authenticationInProgress && root.authenticationRoute === "farcaster"' not in setup
+        or 'readonly property string activeSignInRoute:' not in setup
+        or 'busy: root.authenticationInProgress\n' in setup):
+    errors.append('Setup sign-in spinner must be bound to its own auth route, not shared across providers')
+if ('fillColor: stepButton.current ? Theme.surfaceSelected' not in setup
+        or 'stepButton.current || stepButton.hovered' not in setup
+        or 'stepButton.hovered ? Theme.accent : Theme.inkMuted' not in setup):
+    errors.append('Setup sidebar must maintain explicit hover text/icon contrast and active surface')
+if ('readonly property bool visuallyDisabled: !enabled && !busy' not in setup_card):
+    errors.append('In-flight sign-in action must retain its primary visual state while non-clickable')
+if ('Farcaster (" + qsTrId("genycaster.setup.centralized_service_label")' not in setup):
+    errors.append('Setup must distinguish the centralized Farcaster API from decentralized Hypersnap')
+
 if errors:
     print('UI design guard failed:')
     for e in errors:

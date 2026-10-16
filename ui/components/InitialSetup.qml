@@ -76,6 +76,11 @@ Item {
     readonly property bool linkingFarcaster: authenticationPhase === "linking-farcaster"
     readonly property bool authenticationInProgress:
         authenticationStarting || awaitingApproval || linkingFarcaster
+    // Sign-in is independent of the selected read network. Keep the active
+    // action attached to the route that actually initiated the ceremony.
+    readonly property string activeSignInRoute: authenticationInProgress
+        ? authenticationRoute
+        : (presentationBridge.preferredNetwork === "farcaster" ? "farcaster" : "openproof")
     readonly property var wizardSteps: [0, 1, 2, 3, 4, 5]
     readonly property var greetings: [
         { tag: "en", hello: "Hello", language: "English" },
@@ -559,10 +564,10 @@ Item {
                                     }
 
                                     background: Superellipse {
-                                        fillColor: stepButton.current ? Theme.surfaceMuted
+                                        fillColor: stepButton.current ? Theme.surfaceSelected
                                                    : stepButton.hovered ? Theme.surfaceHover : "transparent"
-                                        borderWidth: 0
-                                        borderColor: "transparent"
+                                        borderWidth: stepButton.activeFocus ? 2 : 0
+                                        borderColor: Theme.focus
                                         curveDepth: Theme.curveControl
                                     }
 
@@ -575,14 +580,17 @@ Item {
                                             Layout.preferredHeight: 30
                                             curveDepth: 15
                                             exponent: 2.01
-                                            fillColor: current ? Theme.primaryFill : Theme.surfaceMuted
+                                            fillColor: stepButton.current ? Theme.primaryFill
+                                                       : stepButton.hovered ? Theme.surfaceHover : Theme.surfaceMuted
                                             borderWidth: Theme.strokeStandard
-                                            borderColor: current ? Theme.primaryFill : Theme.borderMuted
+                                            borderColor: stepButton.current ? Theme.primaryFill
+                                                         : stepButton.hovered ? Theme.accent : Theme.borderMuted
 
                                             Icon {
                                                 anchors.centerIn: parent
                                                 text: root.stepIcon(modelData)
-                                                color: current ? Theme.accentInk : Theme.inkMuted
+                                                color: stepButton.current ? Theme.accentInk
+                                                       : stepButton.hovered ? Theme.accent : Theme.inkMuted
                                                 preferredSize: Theme.iconSizeSmall
                                             }
                                         }
@@ -590,9 +598,11 @@ Item {
                                         Label {
                                             Layout.fillWidth: true
                                             text: root.stepTitle(modelData)
-                                            color: current ? Theme.ink : Theme.inkMuted
+                                            color: stepButton.current || stepButton.hovered
+                                                   ? Theme.ink : Theme.inkMuted
                                             font.pixelSize: Theme.typeLabelSize
-                                            font.weight: current ? Theme.weightDemiBold : Theme.weightMedium
+                                            font.weight: stepButton.current || stepButton.hovered
+                                                         ? Theme.weightDemiBold : Theme.weightMedium
                                             horizontalAlignment: Theme.textStartAlignment
                                             elide: Text.ElideNone
                                             wrapMode: Text.WordWrap
@@ -600,7 +610,7 @@ Item {
                                         }
 
                                         Icon {
-                                            visible: current
+                                            visible: stepButton.current || stepButton.hovered
                                             text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
                                             color: Theme.accent
                                             preferredSize: Theme.iconSizeSmall
@@ -1395,7 +1405,7 @@ Item {
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.setup.farcaster_hosted_node")
                 subtitle: presentationBridge.farcasterReadConfigured
-                          ? qsTrId("genycaster.setup.farcaster_configured")
+                          ? presentationBridge.farcasterReadEndpoint
                           : qsTrId("genycaster.setup.farcaster_missing_key")
                 iconGlyph: "brands/farcaster"
                 selected: presentationBridge.farcasterReadConfigured
@@ -1520,7 +1530,9 @@ Item {
                          : qsTrId("genycaster.setup.sign_in_required")
                 subtitle: !root.authenticated && root.accountIntent === "new"
                           ? qsTrId("genycaster.setup.profile_creation_browser")
-                          : root.phaseBody()
+                          : root.authenticated || root.authenticationInProgress
+                            ? root.phaseBody()
+                            : qsTrId("genycaster.setup.account_methods_explainer")
             }
 
             Item {
@@ -1667,40 +1679,26 @@ Item {
 
                     SetupActionCard {
                         Layout.fillWidth: true
-                        title: presentationBridge.preferredNetwork === "farcaster"
-                               ? qsTrId("genycaster.shell.sign_in_with_farcaster")
-                               : qsTrId("genycaster.shell.continue_with_genyleap")
-                        subtitle: presentationBridge.preferredNetwork === "farcaster"
-                                  ? qsTrId("genycaster.setup.account_farcaster_body")
-                                  : qsTrId("genycaster.setup.account_genyleap_body")
-                        iconGlyph: presentationBridge.preferredNetwork === "farcaster"
-                                   ? "brands/farcaster" : root.genyBrandIcon
-                        primary: true
-                        busy: root.authenticationInProgress
+                        title: qsTrId("genycaster.shell.continue_with_genyleap")
+                        subtitle: qsTrId("genycaster.setup.account_genyleap_body")
+                        iconGlyph: root.genyBrandIcon
+                        primary: root.activeSignInRoute === "openproof"
+                        busy: root.authenticationInProgress && root.authenticationRoute === "openproof"
+                        showChevron: !root.authenticationInProgress
                         enabled: root.authenticationAvailable && !root.authenticationInProgress
-                        onClicked: {
-                            if (presentationBridge.preferredNetwork === "farcaster")
-                                root.continueWithFarcaster()
-                            else
-                                root.continueWithGenyleap()
-                        }
+                        onClicked: root.continueWithGenyleap()
                     }
 
-                    ActionButton {
+                    SetupActionCard {
                         Layout.fillWidth: true
-                        text: presentationBridge.preferredNetwork === "farcaster"
-                              ? qsTrId("genycaster.shell.continue_with_genyleap")
-                              : qsTrId("genycaster.shell.sign_in_with_farcaster")
-                        iconGlyph: Theme.iconSignIn
-                        quiet: true
+                        title: qsTrId("genycaster.shell.sign_in_with_farcaster")
+                        subtitle: qsTrId("genycaster.setup.account_farcaster_body")
+                        iconGlyph: "brands/farcaster"
+                        primary: root.activeSignInRoute === "farcaster"
+                        busy: root.authenticationInProgress && root.authenticationRoute === "farcaster"
+                        showChevron: !root.authenticationInProgress
                         enabled: root.authenticationAvailable && !root.authenticationInProgress
-                        onClicked: {
-                            // Authentication route is not the read-network preference.
-                            if (presentationBridge.preferredNetwork === "farcaster")
-                                root.continueWithGenyleap()
-                            else
-                                root.continueWithFarcaster()
-                        }
+                        onClicked: root.continueWithFarcaster()
                     }
 
                     DirectionAwareLabel {

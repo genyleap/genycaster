@@ -287,6 +287,8 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(!bridge.farcasterReadConfigured());
     bridge.setFarcasterReadConfigured(true);
     assert(bridge.farcasterReadConfigured());
+    bridge.setFarcasterReadEndpoint(QStringLiteral("https://api.neynar.com"));
+    assert(bridge.farcasterReadEndpoint() == QStringLiteral("https://api.neynar.com"));
     bridge.setFarcasterReadConfigured(false);
     assert(!bridge.farcasterReadConfigured());
     assert(!bridge.setPreferredNetwork(QStringLiteral("arbitrary-provider")));

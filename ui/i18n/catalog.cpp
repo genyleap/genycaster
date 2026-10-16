@@ -954,6 +954,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.sign_in_to_interact");
     //% "Sign in with Farcaster"
     (void)qtTrId("genycaster.shell.sign_in_with_farcaster");
+    //% "Use your Farcaster identity or Genyleap account. Each sign-in is verified independently; neither changes your read network."
+    (void)qtTrId("genycaster.setup.account_methods_explainer");
     //% "Product notice summary"
     (void)qtTrId("genycaster.setup.legal_summary_label");
     //% "Hosted / centralized access"

@@ -3511,8 +3511,8 @@
             <translation>داده‌های زنده از هایپراسنپ دریافت می‌شوند. ورود و مجوز انتشار جداگانه تأیید می‌شوند.</translation>
         </message>
         <message id="genycaster.setup.farcaster_explainer">
-            <source>Farcaster hosted read API, when a compatible endpoint is configured; otherwise Hypersnap remains the fallback. Sign-in is separate.</source>
-            <translation>خواندن از سرویس میزبان فارکستر در صورت پیکربندی نود؛ در غیر این صورت هایپراسنپ مسیر جایگزین است. ورود جداست.</translation>
+            <source>Uses the Farcaster/Neynar read API. Your sign-in and publishing keys are separate.</source>
+            <translation>خواندن داده با API فارکستر/نینار؛ ورود و مجوز انتشار از آن جدا هستند.</translation>
         </message>
         <message id="genycaster.setup.profile_choice">
             <source>Your profile</source>
@@ -3615,11 +3615,11 @@
             <translation>روش اتصال را انتخاب کنید</translation>
         </message>
         <message id="genycaster.setup.connection_mode_help">
-            <source>Select your data network. Farcaster uses a hosted service; Hypersnap uses independently operated nodes.</source>
-            <translation>شبکه دریافت داده را انتخاب کنید. فارکستر از سرویس میزبان و هایپراسنپ از نودهای مستقل استفاده می‌کند.</translation>
+            <source>Choose which network Genycaster reads casts and profiles from.</source>
+            <translation>شبکه دریافت پست‌ها و پروفایل‌ها را برای جنی‌کستر انتخاب کنید.</translation>
         </message>
         <message id="genycaster.setup.centralized_service_label">
-            <source>Hosted / centralized access</source>
+            <source>Centralized</source>
             <translation>متمرکز</translation>
         </message>
         <message id="genycaster.setup.decentralized_label">
@@ -3627,20 +3627,20 @@
             <translation>غیرمتمرکز</translation>
         </message>
         <message id="genycaster.setup.farcaster_not_configured">
-            <source>Hosted Farcaster feed requires a configured read endpoint or Neynar API key. Hypersnap remains available.</source>
-            <translation>دریافت داده از فارکستر به نود سازگار یا کلید API نینار نیاز دارد. هایپراسنپ در دسترس است.</translation>
+            <source>Uses Farcaster via Neynar. A read API key is needed; Hypersnap remains available.</source>
+            <translation>دریافت داده از فارکستر با نینار به کلید API نیاز دارد؛ هایپراسنپ در دسترس است.</translation>
         </message>
         <message id="genycaster.setup.farcaster_hosted_node">
-            <source>Farcaster · Hosted read node</source>
-            <translation>فارکستر · نود خواندن میزبان</translation>
+            <source>Farcaster · Neynar API</source>
+            <translation>فارکستر · API نینار</translation>
         </message>
         <message id="genycaster.setup.farcaster_configured">
-            <source>Independent Farcaster read adapter configured. Sign-in credentials are separate.</source>
-            <translation>آداپتور مستقل فارکستر پیکربندی شده است. ورود به حساب جداست.</translation>
+            <source>https://api.neynar.com · API credential configured.</source>
+            <translation>https://api.neynar.com · کلید API پیکربندی شده است.</translation>
         </message>
         <message id="genycaster.setup.farcaster_missing_key">
-            <source>Not configured: add a Neynar API key or a compatible hosted read gateway.</source>
-            <translation>پیکربندی نشده: کلید API نینار یا سرویس خواندن سازگار لازم است.</translation>
+            <source>https://api.neynar.com · API key not configured. Set GENYCASTER_FARCASTER_READ_API_KEY.</source>
+            <translation>https://api.neynar.com · کلید API تنظیم نشده است: GENYCASTER_FARCASTER_READ_API_KEY</translation>
         </message>
         <message id="genycaster.setup.document_accepted">
             <source>Accepted</source>
@@ -3657,6 +3657,10 @@
         <message id="genycaster.setup.legal_summary_label">
             <source>Product notice summary</source>
             <translation>خلاصه اطلاعیه محصول</translation>
+        </message>
+        <message id="genycaster.setup.account_methods_explainer">
+            <source>Use your Farcaster identity or Genyleap account. Each sign-in is verified independently; neither changes your read network.</source>
+            <translation>با حساب فارکستر یا جنی‌لیپ وارد شوید. هر روش جداگانه تأیید می‌شود و شبکه دریافت داده را تغییر نمی‌دهد.</translation>
         </message>
     </context>
 </TS>

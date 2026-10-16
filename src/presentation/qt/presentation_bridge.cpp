@@ -657,6 +657,16 @@ QString PresentationBridge::authenticationRoute() const { return m_authenticatio
 QString PresentationBridge::preferredNetwork() const { return m_preferredNetwork; }
 
 bool PresentationBridge::farcasterReadConfigured() const noexcept { return m_farcasterReadConfigured; }
+QString PresentationBridge::farcasterReadEndpoint() const { return m_farcasterReadEndpoint; }
+
+void PresentationBridge::setFarcasterReadEndpoint(QString endpoint)
+{
+    endpoint = endpoint.trimmed();
+    if (endpoint == m_farcasterReadEndpoint)
+        return;
+    m_farcasterReadEndpoint = std::move(endpoint);
+    emit farcasterReadConfigurationChanged();
+}
 
 void PresentationBridge::setFarcasterReadConfigured(const bool configured)
 {

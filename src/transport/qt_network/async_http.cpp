@@ -456,9 +456,17 @@ private:
             context->request.url.data(),
             static_cast<qsizetype>(context->request.url.size()))};
         QNetworkRequest networkRequest{url};
+        // A hosted API key must not follow cross-host redirects: a 3xx is
+        // surfaced to the provider as an error rather than disclosing the key.
+        const bool credentialedApiRequest = std::any_of(
+            context->request.headers.begin(), context->request.headers.end(),
+            [](const std::string& header) {
+                return std::string_view{header}.starts_with("x-api-key:");
+            });
         networkRequest.setAttribute(
             QNetworkRequest::RedirectPolicyAttribute,
-            QNetworkRequest::NoLessSafeRedirectPolicy);
+            credentialedApiRequest ? QNetworkRequest::ManualRedirectPolicy
+                                   : QNetworkRequest::NoLessSafeRedirectPolicy);
         if (m_protocolPolicy == ProtocolPolicy::Http1Only) {
             networkRequest.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
         }

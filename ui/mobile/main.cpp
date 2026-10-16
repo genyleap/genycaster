@@ -3908,6 +3908,7 @@ int main(int argc, char* argv[])
     presentationBridgeOwner = std::make_unique<PresentationBridge>(nullptr, &settings);
     PresentationBridge& presentationBridge = *presentationBridgeOwner;
     presentationBridge.setFarcasterReadConfigured(farcasterReadBaseUrl.has_value());
+    presentationBridge.setFarcasterReadEndpoint(farcasterReadBaseUrlText);
 
     dataStorageControllerOwner = std::make_unique<DataStorageController>(settings);
     DataStorageController& dataStorageController = *dataStorageControllerOwner;

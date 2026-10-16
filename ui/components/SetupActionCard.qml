@@ -33,24 +33,27 @@ Button {
 
     // Disabled primary actions use a neutral card background; do not paint
     // white-on-white labels just because the enabled state was prominent.
-    readonly property color foreground: !enabled ? Theme.inkMuted
+    // An in-flight action remains visually active while clicks are disabled.
+    // Unrelated sign-in options stay neutral, never inheriting its spinner.
+    readonly property bool visuallyDisabled: !enabled && !busy
+    readonly property color foreground: visuallyDisabled ? Theme.inkMuted
                                       : primary ? Theme.accentInk : Theme.ink
-    readonly property color secondaryForeground: !enabled ? Theme.inkSubtle
+    readonly property color secondaryForeground: visuallyDisabled ? Theme.inkMuted
                                                : primary ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.84)
                                                : Theme.inkMuted
 
     background: Superellipse {
-        fillColor: !root.enabled
+        fillColor: root.visuallyDisabled
                    ? Theme.surfaceMuted
                    : root.primary
                      ? (root.down ? Theme.primaryPressed
                                   : root.hovered ? Theme.primaryFillHover : Theme.primaryFill)
                      : root.down ? Theme.surfacePressed
                                  : root.hovered ? Theme.surfaceHover : Theme.surface
-        borderWidth: root.primary && root.enabled ? 0 : (root.activeFocus ? 2 : Theme.strokeStandard)
+        borderWidth: root.primary && !root.visuallyDisabled ? 0 : (root.activeFocus ? 2 : Theme.strokeStandard)
         borderColor: root.activeFocus ? Theme.focus : Theme.borderMuted
         curveDepth: Theme.curveContainer
-        elevation: root.primary && root.enabled ? Theme.elevationControl : Theme.elevationNone
+        elevation: root.primary && !root.visuallyDisabled ? Theme.elevationControl : Theme.elevationNone
 
         Behavior on fillColor {
             ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
@@ -72,7 +75,7 @@ Button {
         Icon {
             visible: !root.busy && root.iconGlyph.length > 0
             text: root.iconGlyph
-            color: root.enabled && !root.primary ? Theme.inkMuted : root.foreground
+            color: !root.visuallyDisabled && !root.primary ? Theme.inkMuted : root.foreground
             preferredSize: Theme.iconSize
         }
 
@@ -129,7 +132,7 @@ Button {
         Icon {
             visible: root.showChevron && !root.complete && !root.selected && !root.busy
             text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
-            color: !root.enabled ? Theme.inkMuted
+            color: root.visuallyDisabled ? Theme.inkMuted
                    : root.primary ? root.secondaryForeground : Theme.inkSubtle
             preferredSize: Theme.iconSizeSmall
         }
