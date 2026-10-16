@@ -21,6 +21,9 @@ export function validImageUrl(rawUrl, allowedHosts = defaultHosts) {
       || parsed.username || parsed.password || parsed.hash || isIP(parsed.hostname)) return null;
   const hostname = parsed.hostname.toLowerCase().replace(/\.$/, '');
   if (!allowedHosts.some(host => hostname === host || hostname.endsWith('.' + host))) return null;
+  // First-party media must be a published asset, not a recursive gateway URL.
+  if (hostname === 'media-farcaster.genyleap.com' &&
+      !parsed.pathname.startsWith('/m/')) return null;
   parsed.hash = '';
   return parsed;
 }

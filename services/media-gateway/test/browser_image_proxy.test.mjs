@@ -8,8 +8,11 @@ test('public image URL policy rejects credentialed/non-HTTPS/internal destinatio
     'https://127.0.0.1/a', 'https://169.254.169.254/metadata',
     'https://user:pass@imagedelivery.net/a', 'https://imagedelivery.net:8443/a',
     'https://example.com/a', 'https://imagedelivery.net.evil.test/a',
+    'https://media-farcaster.genyleap.com/v1/browser/images?url=https://imagedelivery.net/a',
   ]) assert.equal(validImageUrl(target), null, target);
   assert.equal(validImageUrl('https://imagedelivery.net/x/y/public')?.hostname, 'imagedelivery.net');
+  assert.equal(validImageUrl('https://media-farcaster.genyleap.com/m/v1/file.jpg')?.hostname,
+               'media-farcaster.genyleap.com');
 });
 
 test('DNS pinning denies local/nonpublic and accepts public addresses', () => {
