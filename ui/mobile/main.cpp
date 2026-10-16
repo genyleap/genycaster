@@ -4046,7 +4046,11 @@ int main(int argc, char* argv[])
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
         std::move(primaryMiniAppCatalogue),
         std::move(fallbackMiniAppCatalogue),
+#if defined(__EMSCRIPTEN__)
+        false); // Native-worker Mini App discovery is not available in browsers.
+#else
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest);
+#endif
     MiniAppCatalogController& miniAppCatalog = *miniAppCatalogControllerOwner;
     miniAppTaskManagerControllerOwner = std::make_unique<MiniAppTaskManagerController>();
     MiniAppTaskManagerController& miniAppTaskManager = *miniAppTaskManagerControllerOwner;
@@ -4313,7 +4317,7 @@ int main(int argc, char* argv[])
                   QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation).toStdString()}
                   / "genycaster.sqlite3"
             : std::filesystem::path{databasePathText.toStdString()};
-        bootstrap = std::jthread([&presentationBridge, &richComposerController, &mediaUploadController,
+        auto bootstrapRuntime = [&presentationBridge, &richComposerController, &mediaUploadController,
                                   &mediaPlayback, &runtime,
                                   databasePath, networkProxyPolicy, providerBaseUrl,
                                   farcasterReadBaseUrl, farcasterReadApiKey, authRelayUrl,
@@ -4372,7 +4376,14 @@ int main(int argc, char* argv[])
                     // explicit Explore capability and avoids startup-only orchestration.
                     presentationBridge.openIdentity(startupIdentity);
                 }, Qt::QueuedConnection);
-        });
+        };
+#if defined(__EMSCRIPTEN__)
+        // std::jthread cannot start in a single-threaded WASM browser runtime.
+        // Defer initialization until Qt's main event loop is active.
+        QTimer::singleShot(0, &application, std::move(bootstrapRuntime));
+#else
+        bootstrap = std::jthread(std::move(bootstrapRuntime));
+#endif
     }
 
     if (isSmokeTest) {

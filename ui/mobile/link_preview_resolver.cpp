@@ -671,9 +671,14 @@ public:
     };
 
     Impl(LinkPreviewResolver& owner, const bool useDirectProxy)
-        : q(owner),
-          networkWorker(new LinkPreviewNetworkWorker{})
+        : q(owner)
     {
+#if defined(__EMSCRIPTEN__)
+        // Preview fetching uses a QThread and blocking cross-thread setup on
+        // native platforms. Browser WASM keeps safe URL-only preview seeds.
+        (void)useDirectProxy;
+#else
+        networkWorker = new LinkPreviewNetworkWorker{};
         networkWorker->moveToThread(&networkThread);
         QObject::connect(
             &networkThread, &QThread::finished,
@@ -694,6 +699,7 @@ public:
         parsePool.setMaxThreadCount(1);
         parsePool.setThreadPriority(QThread::LowPriority);
         parsePool.setExpiryTimeout(10'000);
+#endif
     }
 
     ~Impl()
@@ -764,6 +770,17 @@ public:
         if (!cache.contains(key)) {
             cache.insert(key, seedPreview(url));
         }
+#if defined(__EMSCRIPTEN__)
+        // Metadata parsing requires a native worker. Avoid queuing requests
+        // against a non-existent browser thread; keep the clickable URL seed.
+        QVariantMap fallback = cache.value(key);
+        fallback.insert(QStringLiteral("resolved"), true);
+        cache.insert(key, fallback);
+        ++revisionValue;
+        emit q.revisionChanged();
+        emit q.previewReady(key, fallback);
+        return;
+#endif
         queued.insert(key);
         pending.enqueue(PendingPreview{.key = key, .url = url});
         drainPending();

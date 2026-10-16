@@ -12,12 +12,127 @@ module;
 #include <utility>
 #include <vector>
 
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
+
 module farcaster.execution.weighted_thread_pool;
 
 import farcaster.foundation.error;
 import farcaster.foundation.result;
 
 namespace farcaster::execution::weighted_thread_pool {
+#if defined(__EMSCRIPTEN__)
+// Browser builds have no native worker threads. Process one admitted job per
+// browser event-loop turn; the callback owns its queue state until delivery.
+struct CooperativeWeightedState final : std::enable_shared_from_this<CooperativeWeightedState> {
+    struct Entry final {
+        std::size_t retainedBytes{};
+        Job job{};
+    };
+
+    explicit CooperativeWeightedState(
+        const std::size_t maximumJobs,
+        const std::size_t maximumBytes)
+        : maximumPendingJobs(std::max<std::size_t>(maximumJobs, 1U)),
+          maximumQueuedWeightBytes(std::max<std::size_t>(maximumBytes, 1U))
+    {
+    }
+
+    void schedule()
+    {
+        if (!accepting || scheduled || jobs.empty()) {
+            return;
+        }
+        scheduled = true;
+        auto* const ticket = new std::shared_ptr<CooperativeWeightedState>{shared_from_this()};
+        emscripten_async_call([](void* context) {
+            std::unique_ptr<std::shared_ptr<CooperativeWeightedState>> owned{
+                static_cast<std::shared_ptr<CooperativeWeightedState>*>(context)};
+            const auto state = *owned;
+            state->scheduled = false;
+            if (!state->accepting || state->jobs.empty()) {
+                return;
+            }
+            Entry entry = std::move(state->jobs.front());
+            state->jobs.pop_front();
+            state->queuedWeightBytes -= entry.retainedBytes;
+            entry.job();
+            // A job may destroy its executor; the shared state remains valid.
+            state->schedule();
+        }, ticket, 0);
+    }
+
+    std::deque<Entry> jobs{};
+    std::size_t maximumPendingJobs{};
+    std::size_t maximumQueuedWeightBytes{};
+    std::size_t queuedWeightBytes{};
+    bool scheduled{false};
+    bool accepting{true};
+};
+
+struct WeightedThreadPoolExecutor::Impl final {
+    Impl(const std::size_t /*workerCount*/,
+         const std::size_t maximumPendingJobs,
+         const std::size_t maximumQueuedWeightBytes)
+        : state(std::make_shared<CooperativeWeightedState>(
+              maximumPendingJobs, maximumQueuedWeightBytes))
+    {
+    }
+
+    std::shared_ptr<CooperativeWeightedState> state;
+};
+
+WeightedThreadPoolExecutor::WeightedThreadPoolExecutor(
+    const std::size_t workerCount,
+    const std::size_t maximumPendingJobs,
+    const std::size_t maximumQueuedWeightBytes)
+    : m_impl(std::make_unique<Impl>(
+          workerCount, maximumPendingJobs, maximumQueuedWeightBytes))
+{
+}
+
+WeightedThreadPoolExecutor::~WeightedThreadPoolExecutor()
+{
+    // No blocking wait is possible in a single-threaded browser event loop.
+    m_impl->state->accepting = false;
+    m_impl->state->jobs.clear();
+}
+
+foundation::result::Status WeightedThreadPoolExecutor::post(
+    const std::size_t retainedBytes, Job job)
+{
+    if (!job) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Weighted executor job must not be empty."));
+    }
+    const auto& state = m_impl->state;
+    if (!state->accepting) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::Unavailable,
+            "Weighted executor is shutting down."));
+    }
+    if (state->jobs.size() >= state->maximumPendingJobs) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::RateLimited,
+            "Weighted executor pending queue is full."));
+    }
+    if (retainedBytes > state->maximumQueuedWeightBytes ||
+        state->queuedWeightBytes > state->maximumQueuedWeightBytes - retainedBytes) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::RateLimited,
+            "Weighted executor retained-byte budget is exhausted."));
+    }
+    state->queuedWeightBytes += retainedBytes;
+    state->jobs.push_back(CooperativeWeightedState::Entry{
+        .retainedBytes = retainedBytes,
+        .job = std::move(job),
+    });
+    state->schedule();
+    return {};
+}
+#else
 namespace {
 
 struct WeightedJob final {
@@ -149,5 +264,6 @@ foundation::result::Status WeightedThreadPoolExecutor::post(
     m_impl->available.notify_one();
     return {};
 }
+#endif
 
 }

@@ -35,6 +35,23 @@ performs certificate verification and enforces CORS, secure contexts and
 mixed-content restrictions; the app must **never** suppress those failures
 or treat the missing Qt SSL API as an insecure TLS fallback.
 
+## Single-threaded browser execution
+
+Qt's default browser kit may run without native pthread support. The
+application must not construct `std::thread`, `std::jthread`, or start
+`QThread` from that profile. The serial and weighted CPU executors
+dispatch bounded FIFO work through Emscripten's event loop (one job per
+turn); native macOS/Linux builds retain worker threads. WASM CPU jobs
+still execute on the browser main thread and must remain small to avoid
+blocking rendering. On shutdown the browser executors cancel queued
+jobs rather than synchronously waiting on an event loop.
+
+Bootstrap initialization is posted to the Qt event loop instead of
+creating a `std::jthread`. Native-thread-based link metadata preview
+fetching falls back to URL-only previews, while Mini App discovery
+remains disabled. Browser support is intentionally read-first; these
+fallbacks must not be interpreted as full native feature parity.
+
 The synchronous `IHttpTransport` returns an explicit `Unavailable` error
 on WebAssembly instead of entering a nested blocking `QEventLoop`.
 `IAsyncHttpTransport` uses the browser's Qt main event loop for the
