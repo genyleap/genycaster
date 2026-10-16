@@ -23,6 +23,7 @@
 #include <QStringList>
 #include <QString>
 #include <QUrl>
+#include <QUrlQuery>
 
 #include <algorithm>
 #include <atomic>
@@ -915,11 +916,25 @@ void RemoteImageProvider::Impl::startNetwork(
 
     farcaster::transport::async_http::Request request{};
     request.method = farcaster::transport::async_http::Method::Get;
+#if defined(__EMSCRIPTEN__)
+    // Browser fetch cannot read many Farcaster image CDNs directly (CORS)
+    // and forbids setting the native User-Agent header. Use the bounded,
+    // public-raster-only Genycaster gateway, which returns ACAO: *.
+    QUrl browserImageGateway{QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/images")};
+    QUrlQuery browserImageQuery{};
+    browserImageQuery.addQueryItem(QStringLiteral("url"), urlText);
+    browserImageGateway.setQuery(browserImageQuery);
+    request.url = browserImageGateway.toString(QUrl::FullyEncoded).toStdString();
+    request.headers = {
+        compatibilityAttempt ? mediaCompatibilityAcceptHeader() : mediaAcceptHeader(),
+    };
+#else
     request.url = urlText.toStdString();
     request.headers = {
         compatibilityAttempt ? mediaCompatibilityAcceptHeader() : mediaAcceptHeader(),
         mediaUserAgentHeader(),
     };
+#endif
     request.timeout = std::chrono::milliseconds{10'000};
     request.maxBodyBytes = static_cast<std::size_t>(std::min<std::uint64_t>(
         manual ? maximumNetworkImageBytes : rule.maximumBytes, maximumNetworkImageBytes));
@@ -942,6 +957,13 @@ void RemoteImageProvider::Impl::startNetwork(
                 return;
             }
             if (!result || result->statusCode < 200U || result->statusCode >= 300U) {
+#if defined(__EMSCRIPTEN__)
+                // Do not log full URLs: CDNs may put identifying tokens in
+                // paths or queries. Record only host and bounded status.
+                qWarning() << "Browser image request rejected for host"
+                           << QUrl{urlText}.host()
+                           << (result ? static_cast<int>(result->statusCode) : 0);
+#endif
                 if (!control->commitFailure()) {
                     deliverResponse(control, QImage{});
                     return;

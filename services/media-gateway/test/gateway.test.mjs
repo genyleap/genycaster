@@ -411,3 +411,18 @@ test('stable media HEAD is served by gateway metadata verification instead of QS
     assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
   });
 });
+
+test('browser media endpoint permits public CORS but never proxies arbitrary hosts', async () => {
+  await withGateway(async ({ origin }) => {
+    const options = await fetch(`${origin}/v1/browser/images`, {
+      method: 'OPTIONS',
+      headers: { origin: 'http://127.0.0.1:30000' },
+    });
+    assert.equal(options.status, 204);
+    assert.equal(options.headers.get('access-control-allow-origin'), '*');
+    const rejected = await fetch(`${origin}/v1/browser/images?url=${encodeURIComponent('https://127.0.0.1/private')}`);
+    assert.equal(rejected.status, 400);
+    assert.equal(rejected.headers.get('access-control-allow-origin'), '*');
+    assert.equal((await rejected.json()).error, 'image_source_not_allowed');
+  });
+});

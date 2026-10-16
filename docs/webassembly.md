@@ -81,6 +81,24 @@ Browser private mode, quota exhaustion, and sudden tab termination may
 still lose recent writes; **do not claim durable protocol writes in WASM**.
 CORS and HTTPS requirements also apply to external Farcaster/Hypersnap nodes.
 
+## Browser image delivery
+
+The native image provider retains its direct HTTPS/CDN behavior. WASM uses
+`https://storage-farcaster.genyleap.com/v1/browser/images?url=...` for public
+avatar and post-image bytes because cross-origin CDN XHR generally cannot be
+read by Qt WebAssembly. The first-party Media Gateway returns explicit CORS
+headers and permits only bounded raster responses (JPEG, PNG, GIF and WebP).
+The gateway enforces an approved-host policy, HTTPS-only destinations,
+public-DNS validation with pinned lookups, a maximum eight-megabyte response
+and rate limiting. Redirects are revalidated, and credentials/cookies are
+never forwarded. Private-address URLs are rejected; it is not an open proxy.
+Cloud providers that are not on the approved list fail visibly via browser
+console diagnostics instead of being accepted as arbitrary remote hosts.
+
+A browser build alone cannot serve this URL; deploy the matching updated
+Media Gateway before expecting remote images to render. The proxy route does
+not enable browser account sign-in, write capabilities, or authenticated images.
+
 ## Build and acceptance
 
 1. Install the Qt 6.12 **WebAssembly** kit and its exact matching Emscripten

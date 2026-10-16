@@ -19,7 +19,7 @@ RUN cmake -S . -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build/native --parallel --target genyleap_quilibrium_storage \
     && mkdir -p storage/native \
     && cp build/native/genyleap_quilibrium_storage.node storage/native/ \
-    && node --test test/gateway.test.mjs test/quilibrium_sdk_adapter.test.mjs \
+    && node --test test/gateway.test.mjs test/browser_image_proxy.test.mjs test/quilibrium_sdk_adapter.test.mjs \
     && node --test test/native_addon.test.mjs
 
 FROM node:22-trixie-slim AS runtime
@@ -35,6 +35,7 @@ WORKDIR /app
 
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/gateway.mjs ./gateway.mjs
+COPY --from=builder /app/browser_image_proxy.mjs ./browser_image_proxy.mjs
 COPY --from=builder /app/server.mjs ./server.mjs
 COPY --from=builder /app/storage ./storage
 

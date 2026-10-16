@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { retrieveBrowserImage } from './browser_image_proxy.mjs';
 import {
   createHash,
   createHmac,
@@ -367,6 +368,38 @@ export function createMediaGateway(config, storage, dependencies = {}) {
     let requestUrl;
     try { requestUrl = new URL(request.url || '/', 'http://media.invalid'); }
     catch { writeJson(response, 400, { error: 'invalid_request_url' }); return; }
+
+    if (requestUrl.pathname === '/v1/browser/images') {
+      // Public raster bytes only. Browser clients cannot read many external
+      // image CDNs directly because of cross-origin policy.
+      response.setHeader('access-control-allow-origin', '*');
+      response.setHeader('access-control-allow-methods', 'GET, OPTIONS');
+      response.setHeader('access-control-allow-headers', 'accept');
+      response.setHeader('cross-origin-resource-policy', 'cross-origin');
+      response.setHeader('x-content-type-options', 'nosniff');
+      if (request.method === 'OPTIONS') { response.writeHead(204); response.end(); return; }
+      if (request.method !== 'GET') {
+        writeJson(response, 405, { error: 'method_not_allowed' }); return;
+      }
+      const rate = limiter.check(clientAddress(request, config.trustCloudflare), runtime.now());
+      if (!rate.allowed) {
+        writeJson(response, 429, { error: 'rate_limited' }, { 'retry-after': '60' });
+        return;
+      }
+      const requested = requestUrl.searchParams.get('url');
+      const result = await retrieveBrowserImage(requested);
+      if (result.status !== 200) {
+        writeJson(response, result.status, { error: result.error });
+        return;
+      }
+      response.writeHead(200, {
+        'content-type': result.contentType,
+        'content-length': String(result.body.length),
+        'cache-control': 'public, max-age=3600',
+      });
+      response.end(result.body);
+      return;
+    }
 
     if (requestUrl.pathname === '/healthz' && request.method === 'GET') {
       writeJson(response, 200, { status: 'ok', storage: 'configured' });
