@@ -2018,7 +2018,7 @@ void connectRuntime(
         });
 
     const auto sessionObserver = [&bridge, runtime, authenticationAvailable, signerObserver]
-        (application::session::SessionState state) mutable {
+        (application::session::SessionState state) {
             const auto signerSession = state.session;
             runtime->setCurrentSession(signerSession);
             QMetaObject::invokeMethod(
@@ -3702,8 +3702,8 @@ int main(int argc, char* argv[])
         farcasterReadBaseUrlText.clear();
     }
     if (farcasterReadApiKeyText.size() > 256
-        || farcasterReadApiKeyText.contains(QLatin1Char('\\r'))
-        || farcasterReadApiKeyText.contains(QLatin1Char('\\n'))) {
+        || farcasterReadApiKeyText.contains(QLatin1Char('\r'))
+        || farcasterReadApiKeyText.contains(QLatin1Char('\n'))) {
         qCritical().noquote() << "Invalid Farcaster read credential format.";
         return 2;
     }
