@@ -279,10 +279,15 @@ if 'visible: root.idleHome || root.trendingUnavailable' in empty_state:
 app_shell = (ui/'components'/'AppShell.qml').read_text(encoding='utf-8')
 if 'passiveSignedOutDiscoveryFailure' not in app_shell:
     errors.append('Signed-out Explore source failures must stay inline instead of becoming a global status warning')
+notifications_surface = (ui/'components'/'NotificationSurface.qml').read_text(encoding='utf-8')
 if ('property bool notificationBusySnapshot: false' not in app_shell
-        or 'busy: root.notificationBusySnapshot' not in app_shell
-        or 'function onNotificationsChanged()' not in app_shell):
-    errors.append('Notifications route must snapshot bridge busy state imperatively to avoid the Qt 6.11 lazy-loader binding cycle')
+        or 'id: notificationsRouteLoader' not in app_shell
+        or 'loadingNotifications: false' not in app_shell
+        or 'item.loadingNotifications = root.notificationBusySnapshot' not in app_shell
+        or 'function onNotificationsChanged()' not in app_shell
+        or 'property bool loadingNotifications: false' not in notifications_surface
+        or 'root.busy' in notifications_surface):
+    errors.append('Notifications must copy loading state imperatively into the lazy route; never bind it to the bridge notificationsChanged cascade')
 if ('const modeChanged = root.explorerPresentationMode !== nextMode' not in app_shell
         or 'const refreshRequested = Boolean(forceRefresh)' not in app_shell
         or 'if (!sameHealthySource)' not in app_shell
@@ -490,6 +495,13 @@ if 'fillColor: Theme.surfaceElevated' not in geny_drawer:
     errors.append('GenyDrawer surface must remain opaque while the environment behind it is blurred')
 if 'PopupSurface {' not in geny_drawer:
     errors.append('GenyDrawer must retain a tinted PopupSurface over the frosted backdrop')
+if ('enter: Transition {' not in geny_drawer
+        or 'exit: Transition {' not in geny_drawer
+        or geny_drawer.count('property: "position"') != 2
+        or 'Theme.reduceMotion ? 0 : Theme.motionStandard' not in geny_drawer):
+    errors.append('All drawers must share interruptible edge-position enter/exit motion with reduced-motion support')
+if ('presentationBridge.signerPhase !== "unavailable"' not in app_shell):
+    errors.append('Account drawer must disable signer activation when no trusted App-FID attestation service is configured')
 # Read-only code must use TextEdit when mouse selection is enabled. Qt Quick Text
 # does not expose selectByMouse; using it makes the entire QML type chain fail at runtime.
 code_block_view = (ui/'components'/'CodeBlockView.qml').read_text(encoding='utf-8')

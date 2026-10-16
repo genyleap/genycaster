@@ -6,7 +6,9 @@ Item {
     id: root
 
     property var rows: []
-    property bool busy: false
+    // Imperatively refreshed by AppShell. Do not bind this state to the
+    // same bridge notification signal that also changes rows and pagination.
+    property bool loadingNotifications: false
     property bool hasMore: false
     property string errorText: ""
     property bool authenticated: false
@@ -27,7 +29,7 @@ Item {
 
     readonly property int gutter: compact ? Theme.mobileGutter : Theme.space5
     readonly property bool showState: !root.authenticated
-                                      || (!root.busy && root.displayRows.length === 0)
+                                      || (!root.loadingNotifications && root.displayRows.length === 0)
     readonly property bool stateIsError: root.authenticated && root.errorText.length > 0
     readonly property string stateIcon: !root.authenticated ? Theme.iconNotification
                                         : root.stateIsError ? Theme.iconWarning
@@ -488,7 +490,7 @@ Item {
                 iconOnly: root.compact
                 iconGlyph: Theme.iconRefresh
                 text: qsTrId("genycaster.profile.refresh")
-                enabled: root.authenticated && !root.busy
+                enabled: root.authenticated && !root.loadingNotifications
                 onClicked: root.refreshRequested()
             }
         }
@@ -558,7 +560,7 @@ Item {
         }
 
         Item {
-            visible: root.authenticated && root.busy && root.displayRows.length === 0
+            visible: root.authenticated && root.loadingNotifications && root.displayRows.length === 0
             Layout.fillWidth: true
             Layout.fillHeight: true
 
@@ -607,13 +609,13 @@ Item {
                 if (root.stableModelSyncPending)
                     root.requestStableModelSync()
                 root.captureViewportAnchor()
-                if (!root.busy && root.hasMore && contentY + height >= contentHeight - 260)
+                if (!root.loadingNotifications && root.hasMore && contentY + height >= contentHeight - 260)
                     root.loadMoreRequested()
             }
             onContentHeightChanged: {
                 if (!list.moving) {
                     root.stabilizeViewportAfterGeometryChange()
-                    if (!root.busy && root.hasMore && contentY + height >= contentHeight - 260)
+                    if (!root.loadingNotifications && root.hasMore && contentY + height >= contentHeight - 260)
                         root.loadMoreRequested()
                 }
             }
@@ -941,11 +943,11 @@ Item {
 
             footer: Item {
                 width: list.width
-                height: root.busy ? 56 : 16
+                height: root.loadingNotifications ? 56 : 16
 
                 GenySpinner {
                     anchors.centerIn: parent
-                    visible: root.busy
+                    visible: root.loadingNotifications
                     running: visible
                 }
             }

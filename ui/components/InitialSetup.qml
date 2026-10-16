@@ -939,7 +939,7 @@ Item {
                 SetupPrimaryButton {
                     Layout.fillWidth: root.phone
                     Layout.minimumWidth: root.phone ? 0 : 180
-                    Layout.maximumWidth: 300
+                    Layout.maximumWidth: root.phone ? 10000 : 300
                     text: qsTrId("genycaster.setup.mark_document_reviewed")
                     enabled: root.legalReaderReachedEnd
                     iconGlyph: Theme.iconCheck

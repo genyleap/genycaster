@@ -24,11 +24,48 @@ Drawer {
     topPadding: contentPadding + sheetTopInset
     bottomPadding: contentPadding
 
+    // One motion contract for side drawers and bottom sheets. Animate the
+    // Drawer.position property so interactive edge gestures stay in sync;
+    // never animate x/y, which Qt owns for an edge-anchored Drawer.
+    enter: Transition {
+        ParallelAnimation {
+            NumberAnimation {
+                property: "position"
+                from: 0.0
+                to: 1.0
+                duration: Theme.reduceMotion ? 0 : Theme.motionStandard
+                easing.type: Easing.OutCubic
+            }
+            NumberAnimation {
+                property: "opacity"
+                from: 0.9
+                to: 1.0
+                duration: Theme.reduceMotion ? 0 : Theme.motionFast
+            }
+        }
+    }
+    exit: Transition {
+        ParallelAnimation {
+            NumberAnimation {
+                property: "position"
+                to: 0.0
+                duration: Theme.reduceMotion ? 0 : Theme.motionFast
+                easing.type: Easing.InCubic
+            }
+            NumberAnimation {
+                property: "opacity"
+                to: 0.9
+                duration: Theme.reduceMotion ? 0 : Theme.motionFast
+            }
+        }
+    }
+
     // Blur belongs to the environment behind the drawer, not to the drawer
     // surface itself. Qt creates these components underneath visible popups.
     Overlay.modal: DrawerBackdrop {
         sourceItem: control.blurSourceItem
-        active: control.opened
+        active: control.position > 0
+        opacity: control.position
         addScrim: control.dimBackground
         blockInput: true
         onBackgroundTapped: control.close()
@@ -36,7 +73,8 @@ Drawer {
 
     Overlay.modeless: DrawerBackdrop {
         sourceItem: control.blurSourceItem
-        active: control.opened
+        active: control.position > 0
+        opacity: control.position
         addScrim: control.dimBackground
         blockInput: false
     }

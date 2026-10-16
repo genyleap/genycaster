@@ -12,6 +12,8 @@ files = [
     "ui/components/SetupActionCard.qml",
     "ui/components/SetupLanguageSelector.qml",
     "ui/components/InitialSetup.qml",
+    "ui/components/GenyDrawer.qml",
+    "ui/components/NotificationSurface.qml",
     "ui/components/LocaleSettingsPopup.qml",
     "ui/components/AppShell.qml",
     "ui/components/FeedSurface.qml",

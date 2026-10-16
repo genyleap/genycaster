@@ -641,6 +641,7 @@ Item {
                                 }
 
                                 Loader {
+                                    id: notificationsRouteLoader
                                     active: root.shellRoute === "notifications"
                                     visible: active
                                     opacity: active ? 1.0 : 0.0
@@ -650,10 +651,17 @@ Item {
                                     Layout.maximumWidth: root.adaptiveDetailWidth
                                     Layout.alignment: Qt.AlignHCenter
 
+                                    onLoaded: {
+                                        // Snapshot after incubation completes; never form a
+                                        // cross-component QML binding on the loading flag.
+                                        if (item !== null)
+                                            item.loadingNotifications = root.notificationBusySnapshot
+                                    }
+
                                     sourceComponent: Component {
                                         NotificationSurface {
                                             rows: presentationBridge.notificationRows
-                                            busy: root.notificationBusySnapshot
+                                            loadingNotifications: false
                                             hasMore: presentationBridge.notificationsHasMore
                                             errorText: presentationBridge.notificationsErrorText
                                             authenticated: presentationBridge.isAuthenticated
@@ -1326,7 +1334,15 @@ Item {
         blurSourceItem: shellContent
         dimBackground: true
         width: parent ? (bottomSheet ? parent.width : Math.min(440, parent.width * 0.88)) : 440
-        height: parent ? (bottomSheet ? Math.min(660, parent.height * 0.86) : parent.height) : 660
+        // A content-sized mobile account sheet must not leave a huge blank slab
+        // between the identity summary and the actions. ScrollView handles
+        // exceptionally long error messages or large accessibility fonts.
+        height: parent ? (bottomSheet
+                          ? Math.min(parent.height * 0.88,
+                                     Math.max(365, accountActions.implicitHeight
+                                              + (presentationBridge.isAuthenticated
+                                                 ? accountSummary.implicitHeight + 180 : 260)))
+                          : parent.height) : 660
         contentPadding: 0
 
         contentItem: Item {
@@ -1583,7 +1599,11 @@ Item {
                               ? qsTrId("genycaster.shell.enabling")
                               : qsTrId("genycaster.shell.enable_interactions")
                         prominent: true
+                        // The native writer is unavailable until the Genycaster
+                        // App-FID and trusted signer-attestation authority exist.
+                        // Do not offer a clickable action known to fail.
                         enabled: !presentationBridge.signerBusy
+                                 && presentationBridge.signerPhase !== "unavailable"
                         onClicked: presentationBridge.provisionSigner()
                     }
 
@@ -1672,6 +1692,8 @@ Item {
 
         function onNotificationsChanged() {
             root.notificationBusySnapshot = presentationBridge.notificationsBusy
+            if (notificationsRouteLoader.item !== null)
+                notificationsRouteLoader.item.loadingNotifications = root.notificationBusySnapshot
         }
 
         function onCastQueued() {

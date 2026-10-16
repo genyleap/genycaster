@@ -110,3 +110,41 @@ with a separately verified domain and hub. It does not replace the approval
 ceremony in a Qt desktop application. Actual macOS wallet approval and network
 availability still require real-device end-to-end checks; contract tests are
 not proof of a live production sign-in.
+
+## Network selector: exact live-read routing (verified 2026-10-16)
+
+The network choice sets `CapabilityRouter::PreferredNetwork`, not a fixed HTTP
+host. Farcaster is preferred by provider ID `farcaster-snapchain` when registered
+and healthy; otherwise the compatible `hypersnap-v2` provider remains eligible.
+The user can therefore see a Farcaster preference while a read is actually
+served from Hypersnap. That fallback must not be described as a Neynar connection.
+
+- **Hypersnap:** configured `GENYCASTER_HYPERSNAP_BASE_URL`, else
+  `https://haatz.quilibrium.com`, with the v2-indexed Farcaster-compatible
+  paths implemented by the Hypersnap adapter.
+- **Farcaster/Neynar:** registers only with `GENYCASTER_FARCASTER_READ_BASE_URL`
+  or `GENYCASTER_FARCASTER_READ_API_KEY`. Supplying the latter alone selects
+  `https://api.neynar.com`; request credentials use `x-api-key`.
+  Supports `/v2/farcaster/feed/trending`,
+  `/v2/farcaster/feed/following`,
+  `/v2/farcaster/feed/user/casts`,
+  `/v2/farcaster/user` and `/v2/farcaster/cast` through the configured
+  Neynar-compatible JSON gateway. This key must not ship in a distributed
+  desktop binary; a deployment-owned proxy is preferable.
+- **Sign-in:** native FIP-11 SIWF uses Farcaster Relay plus Optimism ownership
+  verification independently of the read network.
+- **Protocol writes:** require signer authorization/attestation and submit
+  signed messages using Snapchain. Changing the read network does not replace
+  signer authorization or publishing destinations.
+
+UI regression (2026-10-16): the lazily loaded notifications route previously
+bound a child `busy` property to a shell snapshot still updated by the shared
+`notificationsChanged` signal and produced QML binding loop warnings.
+The child loading flag now receives *imperative assignments* on loader completion
+and notification updates, never an intra-route QML binding. GenyDrawer now
+animates the Qt-owned `position` property for edge-correct, swipe-compatible
+open/close transitions, respecting the user's reduced-motion preference.
+Mobile account sheets size from their identity/action content instead of always
+occupying a fixed 660px panel. The writer action is disabled when no App-FID
+attestation authority has been configured; this is an honest UI state, not a
+replacement for the missing server-side signer.
