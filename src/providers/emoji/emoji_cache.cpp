@@ -282,7 +282,7 @@ std::optional<CacheLookup> EmojiAssetCache::readEntry(const EntryState& entry) c
     }
     return CacheLookup{
         .path = entry.assetPath,
-        .sizeBytes = entry.sizeBytes,
+        .sizeBytes = static_cast<std::size_t>(entry.sizeBytes),
         .revision = static_cast<std::uint32_t>(std::strtoul(revisionText->c_str(), nullptr, 10)),
         .provider = *provider,
         .assetKey = *key,
