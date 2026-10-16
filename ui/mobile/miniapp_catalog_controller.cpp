@@ -627,6 +627,12 @@ public:
             return;
         }
 
+#if defined(__EMSCRIPTEN__)
+        // Browser networking is asynchronous but has no native QThread.
+        // The QObject and QNetworkAccessManager live on Qt's GUI event loop.
+        networkWorker = new CatalogNetworkWorker{};
+        networkWorker->initialize(useDirectProxy);
+#else
         networkWorker = new CatalogNetworkWorker{};
         networkWorker->moveToThread(&networkThread);
         QObject::connect(&networkThread, &QThread::finished, networkWorker, &QObject::deleteLater);
@@ -635,11 +641,19 @@ public:
         QMetaObject::invokeMethod(networkWorker,
             [worker = networkWorker, useDirectProxy] { worker->initialize(useDirectProxy); },
             Qt::QueuedConnection);
+#endif
     }
 
     ~Impl()
     {
         ++generation;
+#if defined(__EMSCRIPTEN__)
+        if (networkWorker != nullptr) {
+            networkWorker->cancel();
+            delete networkWorker;
+            networkWorker = nullptr;
+        }
+#else
         if (networkWorker != nullptr && networkThread.isRunning()) {
             // Teardown must not block the GUI thread on a queued network callback.
             // Cancel the reply and stop the event loop in-order on its own thread.
@@ -658,6 +672,7 @@ public:
             }
         }
         networkWorker = nullptr;
+#endif
     }
 
     void refresh()
@@ -882,11 +897,17 @@ private:
 
     void cancelWorkerReply()
     {
+#if defined(__EMSCRIPTEN__)
+        if (networkWorker != nullptr) {
+            networkWorker->cancel();
+        }
+#else
         if (networkWorker == nullptr || !networkThread.isRunning()) {
             return;
         }
         QMetaObject::invokeMethod(networkWorker,
             [worker = networkWorker] { worker->cancel(); }, Qt::QueuedConnection);
+#endif
     }
 
     void issue(const QUrl& url,
@@ -896,7 +917,11 @@ private:
                const QString& source,
                const bool allowFallback)
     {
+#if defined(__EMSCRIPTEN__)
+        if (networkWorker == nullptr) {
+#else
         if (networkWorker == nullptr || !networkThread.isRunning()) {
+#endif
             handleNetworkResult(CatalogNetworkResult{.error = QStringLiteral("Discovery worker is unavailable.")},
                                 requestGeneration, source, allowFallback);
             return;
@@ -917,10 +942,14 @@ private:
                 }, Qt::QueuedConnection);
         };
 
+#if defined(__EMSCRIPTEN__)
+        networkWorker->issue(url, headers, source, format, std::move(completion));
+#else
         QMetaObject::invokeMethod(networkWorker,
             [worker = networkWorker, url, headers, source, format, completion = std::move(completion)]() mutable {
                 worker->issue(url, headers, source, format, std::move(completion));
             }, Qt::QueuedConnection);
+#endif
     }
 
     void handleNetworkResult(CatalogNetworkResult result,

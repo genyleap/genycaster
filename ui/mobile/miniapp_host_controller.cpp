@@ -1,6 +1,10 @@
 #include "miniapp_host_controller.hpp"
 #include <QSettings>
 #include <QtTranslation>
+#if defined(__EMSCRIPTEN__)
+#include <QDesktopServices>
+#include <QUrl>
+#endif
 
 namespace {
 bool validPresentationMode(const QString& mode) {
@@ -53,6 +57,23 @@ void MiniAppHostController::openWithMetadata(const QString& url,
     m_launchUrl = url;
     m_error.clear();
     emit stateChanged();
+#if defined(__EMSCRIPTEN__)
+    // WebAssembly has no macOS WebKit host. Launch as an isolated external
+    // browser tab, without claiming Mini App SDK, signer or wallet support.
+    const QUrl destination{url, QUrl::StrictMode};
+    if (!destination.isValid() || destination.scheme() != QStringLiteral("https")
+        || destination.host().isEmpty() || !destination.userName().isEmpty()
+        || !destination.password().isEmpty()) {
+        setState(false, QStringLiteral("Mini App URL must be a public HTTPS address."));
+        return;
+    }
+    if (!QDesktopServices::openUrl(destination)) {
+        setState(false, QStringLiteral("The browser could not open this Mini App."));
+    } else {
+        setState(false);
+    }
+    return;
+#endif
     if (!m_available) {
         setState(false, qtTrId("genycaster.miniapp.unavailable"));
         return;

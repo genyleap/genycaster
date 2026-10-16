@@ -16,6 +16,7 @@
 #include <QQmlContext>
 #include <QQuickStyle>
 #include <QQuickWindow>
+#include <QWheelEvent>
 #include <QProcess>
 #include <QSettings>
 #include <QStandardPaths>
@@ -35,6 +36,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <expected>
 #include <exception>
@@ -176,6 +178,81 @@ import farcaster.provider.compatibility.browser_wallet.bridge;
 
 #if FARCASTER_HAS_SIGNER_ATTESTATION
 import farcaster.provider.compatibility.signer_attestation;
+#endif
+
+#if defined(__EMSCRIPTEN__)
+namespace {
+QPointer<QQuickWindow> browserWheelWindow{};
+}
+
+// Qt's WebAssembly canvas does not expose native HTML scrolling. Bridge DOM
+// wheel events back into Qt's normal hit-tested QQuickWindow dispatch so that
+// every Flickable (including ComboBox popup lists) keeps its own scroll logic.
+extern "C" EMSCRIPTEN_KEEPALIVE void genycaster_browser_wheel(
+    const double horizontalPosition, const double verticalPosition,
+    const double deltaX, const double deltaY, const int browserModifiers)
+{
+    QQuickWindow* const window = browserWheelWindow.data();
+    if (!window || !window->isVisible()
+        || !std::isfinite(horizontalPosition) || !std::isfinite(verticalPosition)
+        || !std::isfinite(deltaX) || !std::isfinite(deltaY)) {
+        return;
+    }
+    const QPointF local{
+        std::clamp(horizontalPosition, 0.0, 1.0) * window->width(),
+        std::clamp(verticalPosition, 0.0, 1.0) * window->height(),
+    };
+    const auto bounded = [](const double value) {
+        return static_cast<int>(std::lround(std::clamp(value, -2'000.0, 2'000.0)));
+    };
+    Qt::KeyboardModifiers modifiers = Qt::NoModifier;
+    if (browserModifiers & 1) modifiers |= Qt::ShiftModifier;
+    if (browserModifiers & 2) modifiers |= Qt::AltModifier;
+    if (browserModifiers & 4) modifiers |= Qt::MetaModifier;
+    const QPoint pixels{bounded(-deltaX), bounded(-deltaY)};
+    const QPoint angles{bounded(-deltaX * 1.2), bounded(-deltaY * 1.2)};
+    QWheelEvent wheel{local, window->mapToGlobal(local.toPoint()), pixels,
+                      angles, Qt::NoButton, modifiers, Qt::NoScrollPhase, false};
+    QCoreApplication::sendEvent(window, &wheel);
+}
+
+namespace {
+void installBrowserWheelBridge(QQuickWindow* window)
+{
+    browserWheelWindow = window;
+    EM_ASM({
+        if (document.__genycasterWheelBridgeInstalled) return;
+        document.__genycasterWheelBridgeInstalled = true;
+        document.addEventListener('wheel', function(event) {
+            // Do not interfere with the rest of the host page or browser zoom.
+            if (event.ctrlKey) return;
+            const host = document.getElementById('qtcanvas');
+            const target = event.target;
+            const isCanvas = target instanceof Element &&
+                (target.tagName.toLowerCase() === 'canvas' || Boolean(target.closest('canvas')));
+            if (!isCanvas && !(host && host.contains(target))) return;
+            const source = host && host.contains(target) ? host
+                : (target instanceof Element ? target.closest('canvas') : null);
+            if (!source) return;
+            const rect = source.getBoundingClientRect();
+            if (!(rect.width > 0 && rect.height > 0)) return;
+            const forward = Module._genycaster_browser_wheel;
+            if (typeof forward !== 'function') return;
+            const multiplier = event.deltaMode === 1 ? 16
+                : (event.deltaMode === 2 ? rect.height : 1);
+            // Capture before Qt's own canvas handlers to prevent duplicate
+            // delivery. Route exactly one QWheelEvent into Qt Quick.
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            forward((event.clientX - rect.left) / rect.width,
+                (event.clientY - rect.top) / rect.height,
+                event.deltaX * multiplier, event.deltaY * multiplier,
+                (event.shiftKey ? 1 : 0) | (event.altKey ? 2 : 0)
+                | (event.metaKey ? 4 : 0));
+        }, { capture: true, passive: false });
+    });
+}
+}
 #endif
 
 namespace {
@@ -3527,6 +3604,15 @@ int main(int argc, char* argv[])
             }
         }
 
+#if defined(__EMSCRIPTEN__)
+        // Qt/WASM does not inherit the browser's native emoji font fallback.
+        // Load our verified Unicode fallback before creating any QML text.
+        if (loadApplicationFont(QStringLiteral(
+                ":/qt/qml/Farcaster/Client/assets/fonts/NotoEmoji-wasm.ttf")).isEmpty()) {
+            return 2;
+        }
+#endif
+
         // Devanagari/CJK resources are optional in source/developer builds.
         // Production packaging can require them through
         // GENYCASTER_REQUIRE_SCRIPT_FONTS; when absent, the platform fallback
@@ -4091,7 +4177,13 @@ int main(int argc, char* argv[])
     dataStorageControllerOwner = std::make_unique<DataStorageController>(settings);
     DataStorageController& dataStorageController = *dataStorageControllerOwner;
 
-    miniAppHostControllerOwner = std::make_unique<MiniAppHostController>(GENYCASTER_HAS_MINIAPP_HOST != 0, settings);
+#if defined(__EMSCRIPTEN__)
+    constexpr bool miniAppLaunchAvailable = true; // External tab, without privileged SDK.
+#else
+    constexpr bool miniAppLaunchAvailable = GENYCASTER_HAS_MINIAPP_HOST != 0;
+#endif
+    miniAppHostControllerOwner = std::make_unique<MiniAppHostController>(
+        miniAppLaunchAvailable, settings);
     MiniAppHostController& miniAppHost = *miniAppHostControllerOwner;
     mediaWebHostControllerOwner = std::make_unique<MediaWebHostController>(
         GENYCASTER_HAS_MINIAPP_HOST != 0, QUrl{siwfUriText});
@@ -4120,16 +4212,24 @@ int main(int argc, char* argv[])
         .providerLabel = QStringLiteral("Farcaster public developer index"),
         .format = MiniAppCatalogFormat::Json,
     };
+#if defined(__EMSCRIPTEN__)
+    // Keep upstream API credentials out of browser binaries and avoid CORS.
+    // The first-party gateway only exposes bounded public catalogue reads.
+    primaryMiniAppCatalogue = MiniAppCatalogEndpoint{
+        .catalogueUrl = QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/miniapps?kind=catalog"),
+        .searchUrl = QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/miniapps?kind=search"),
+        .relevantUrl = QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/miniapps?kind=relevant"),
+        .providerLabel = QStringLiteral("Genycaster public Mini Apps catalogue"),
+        .format = MiniAppCatalogFormat::Json,
+    };
+    fallbackMiniAppCatalogue = MiniAppCatalogEndpoint{};
+#endif
     miniAppCatalogControllerOwner = std::make_unique<MiniAppCatalogController>(
         settings,
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
         std::move(primaryMiniAppCatalogue),
         std::move(fallbackMiniAppCatalogue),
-#if defined(__EMSCRIPTEN__)
-        false); // Native-worker Mini App discovery is not available in browsers.
-#else
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest);
-#endif
     MiniAppCatalogController& miniAppCatalog = *miniAppCatalogControllerOwner;
     miniAppTaskManagerControllerOwner = std::make_unique<MiniAppTaskManagerController>();
     MiniAppTaskManagerController& miniAppTaskManager = *miniAppTaskManagerControllerOwner;
@@ -4385,6 +4485,9 @@ int main(int argc, char* argv[])
     engine.loadFromModule(QStringLiteral("Farcaster.Client"), QStringLiteral("Main"));
     if (engine.rootObjects().isEmpty()) { return 1; }
     renderingController.attachWindow(qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst()));
+#if defined(__EMSCRIPTEN__)
+    installBrowserWheelBridge(qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst()));
+#endif
 
     std::shared_ptr<Runtime> runtime{};
     std::jthread bootstrap{};

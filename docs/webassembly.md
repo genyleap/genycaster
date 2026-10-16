@@ -101,6 +101,32 @@ Browser private mode, quota exhaustion, and sudden tab termination may
 still lose recent writes; **do not claim durable protocol writes in WASM**.
 CORS and HTTPS requirements also apply to external Farcaster/Hypersnap nodes.
 
+## Public Mini Apps in the browser
+
+The single-threaded WASM Mini App catalogue issues bounded asynchronous
+`QNetworkAccessManager` reads on Qt's GUI event loop, without a `QThread`.
+The first-party Media Gateway exposes only fixed, rate-limited public Neynar
+catalogue/search/relevant routes at `/v1/browser/miniapps`; user-controlled
+upstream hosts, credentials and arbitrary paths are not accepted. The upstream
+API key never enters WebAssembly. The browser can open a discovered public
+Mini App in a separate HTTPS tab; this is **not** an embedded Farcaster Mini App
+SDK host, and gives the app no signer, authentication tokens, wallet or
+privileged host capabilities. Native macOS continues to use its existing
+isolated WebKit Mini App runtime.
+
+## Global browser mouse wheel dispatch
+
+The Qt WebAssembly UI is rendered inside a canvas. The application registers
+one non-passive capture-phase `wheel` listener scoped to the Qt canvas. It
+normalizes DOM pixel/line/page deltas, prevents duplicate browser/Qt delivery,
+and forwards the event as a standard `QWheelEvent` to the `QQuickWindow`.
+Qt Quick then routes it to the item under the cursor (feed, ComboBox popup,
+settings ScrollView, etc.). This does **not** use page-level CSS scrolling or
+override individual Flickable `contentY` properties. Touch input and browser
+Ctrl+wheel zoom are left to their existing handlers. The listener is not
+installed for native builds. Browser-wheel and popup hit testing must be
+smoke-tested on the actual Qt 6.12 WASM runtime before parity is claimed.
+
 ## Browser image delivery
 
 The native image provider retains its direct HTTPS/CDN behavior. WASM uses

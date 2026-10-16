@@ -510,6 +510,48 @@ qt_add_resources(farcaster_client genycaster_ui_fonts
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Vazirmatn.txt"
 )
 
+# Qt WebAssembly cannot rely on the browser's installed emoji fonts.
+# Embed a verified monochrome Unicode fallback (including DNA U+1F9EC).
+# The source is SIL OFL 1.1; its license remains with Google Noto Emoji.
+if(EMSCRIPTEN)
+    set(GENYCASTER_WASM_EMOJI_FONT_PATH "" CACHE FILEPATH
+        "Optional pre-downloaded Noto Emoji variable TTF for offline WASM builds")
+    if(GENYCASTER_WASM_EMOJI_FONT_PATH)
+        set(_genycasterWasmEmojiFont "${GENYCASTER_WASM_EMOJI_FONT_PATH}")
+    else()
+        set(_genycasterWasmEmojiFont "${CMAKE_BINARY_DIR}/_deps/NotoEmoji-wasm.ttf")
+        file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/_deps")
+        if(NOT EXISTS "${_genycasterWasmEmojiFont}")
+            file(DOWNLOAD
+                "https://raw.githubusercontent.com/google/fonts/main/ofl/notoemoji/NotoEmoji%5Bwght%5D.ttf"
+                "${_genycasterWasmEmojiFont}"
+                EXPECTED_HASH SHA256=de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551
+                TLS_VERIFY ON TIMEOUT 45
+                STATUS _emojiDownloadStatus)
+            list(GET _emojiDownloadStatus 0 _emojiDownloadCode)
+            if(NOT _emojiDownloadCode EQUAL 0)
+                message(FATAL_ERROR
+                    "Unable to fetch the pinned Noto Emoji font for WASM. "
+                    "Provide -DGENYCASTER_WASM_EMOJI_FONT_PATH=/path/to/NotoEmoji.ttf")
+            endif()
+        endif()
+    endif()
+    file(SHA256 "${_genycasterWasmEmojiFont}" _emojiFontSha256)
+    if(NOT _emojiFontSha256 STREQUAL
+            "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551")
+        message(FATAL_ERROR "Noto Emoji WASM font SHA-256 does not match the pinned resource.")
+    endif()
+    set_source_files_properties("${_genycasterWasmEmojiFont}" PROPERTIES
+        QT_RESOURCE_ALIAS "assets/fonts/NotoEmoji-wasm.ttf")
+    set_source_files_properties(
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt" PROPERTIES
+        QT_RESOURCE_ALIAS "assets/fonts/OFL-NotoEmoji.txt")
+    qt_add_resources(farcaster_client genycaster_wasm_emoji_font
+        PREFIX "/qt/qml/Farcaster/Client"
+        FILES "${_genycasterWasmEmojiFont}"
+              "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt")
+endif()
+
 # Additional script coverage is optional for developer/source builds. Production
 # packages may embed pinned Noto families, but configuring Genycaster must never
 # require network access. When a script font is unavailable the runtime selects a

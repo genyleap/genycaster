@@ -188,6 +188,16 @@ function sanitizeFileName(value) {
   return base.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 180) || 'media';
 }
 
+function decodeCanonicalBase64Url(encoded) {
+  if (typeof encoded !== 'string' || !/^[A-Za-z0-9_-]+$/.test(encoded)) return null;
+  try {
+    const bytes = Buffer.from(encoded, 'base64url');
+    return bytes.toString('base64url') === encoded ? bytes : null;
+  } catch {
+    return null;
+  }
+}
+
 function encodeTicket(config, payload) {
   const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const signature = createHmac('sha256', config.ticketSecret).update(encoded).digest('base64url');
@@ -198,11 +208,13 @@ function decodeTicket(config, token, nowSeconds) {
   const [encoded, signature, extra] = String(token || '').split('.');
   if (!encoded || !signature || extra) return null;
   const expected = createHmac('sha256', config.ticketSecret).update(encoded).digest();
-  let provided;
-  try { provided = Buffer.from(signature, 'base64url'); } catch { return null; }
-  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) return null;
+  const provided = decodeCanonicalBase64Url(signature);
+  if (!provided || provided.length !== expected.length ||
+      !timingSafeEqual(provided, expected)) return null;
+  const raw = decodeCanonicalBase64Url(encoded);
+  if (!raw) return null;
   let payload;
-  try { payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')); } catch { return null; }
+  try { payload = JSON.parse(raw.toString('utf8')); } catch { return null; }
   if (!payload || ![1, 2].includes(payload.v) || !Number.isSafeInteger(payload.exp) || payload.exp < nowSeconds) return null;
   return payload;
 }
@@ -222,11 +234,13 @@ function decodeAssetManagementToken(config, token) {
   const [encoded, signature, extra] = String(token || '').split('.');
   if (!encoded || !signature || extra) return null;
   const expected = createHmac('sha256', config.ticketSecret).update(encoded).digest();
-  let provided;
-  try { provided = Buffer.from(signature, 'base64url'); } catch { return null; }
-  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) return null;
+  const provided = decodeCanonicalBase64Url(signature);
+  if (!provided || provided.length !== expected.length ||
+      !timingSafeEqual(provided, expected)) return null;
+  const raw = decodeCanonicalBase64Url(encoded);
+  if (!raw) return null;
   let payload;
-  try { payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')); } catch { return null; }
+  try { payload = JSON.parse(raw.toString('utf8')); } catch { return null; }
   if (!payload || payload.v !== 1 || payload.kind !== 'managed-media-asset' ||
       !Number.isSafeInteger(payload.fid) || payload.fid <= 0 || !validObjectKey(payload.key)) {
     return null;
@@ -368,6 +382,89 @@ export function createMediaGateway(config, storage, dependencies = {}) {
     let requestUrl;
     try { requestUrl = new URL(request.url || '/', 'http://media.invalid'); }
     catch { writeJson(response, 400, { error: 'invalid_request_url' }); return; }
+
+    if (requestUrl.pathname === '/v1/browser/miniapps') {
+      // A bounded public catalogue relay, not a generic URL proxy. Browser
+      // clients receive no upstream credentials or unrestricted destination.
+      response.setHeader('access-control-allow-origin', '*');
+      response.setHeader('access-control-allow-methods', 'GET, OPTIONS');
+      response.setHeader('access-control-allow-headers', 'accept');
+      response.setHeader('x-content-type-options', 'nosniff');
+      if (request.method === 'OPTIONS') { response.writeHead(204); response.end(); return; }
+      if (request.method !== 'GET') {
+        writeJson(response, 405, { error: 'method_not_allowed' }); return;
+      }
+      const kind = requestUrl.searchParams.get('kind') || 'catalog';
+      if (!['catalog', 'search', 'relevant'].includes(kind)) {
+        writeJson(response, 400, { error: 'invalid_catalogue_kind' }); return;
+      }
+      const query = String(requestUrl.searchParams.get('q') || '').trim();
+      const fid = String(requestUrl.searchParams.get('viewer_fid') || '');
+      if ((kind === 'search' && (query.length === 0 || query.length > 32))
+          || (kind === 'relevant' && !/^[1-9][0-9]{0,18}$/.test(fid))) {
+        writeJson(response, 400, { error: 'invalid_catalogue_parameters' }); return;
+      }
+      const rate = limiter.check(clientAddress(request, config.trustCloudflare), runtime.now());
+      if (!rate.allowed) {
+        writeJson(response, 429, { error: 'rate_limited' }, { 'retry-after': '60' }); return;
+      }
+      const route = kind === 'catalog'
+        ? '/v2/farcaster/frame/catalog/'
+        : kind === 'search'
+          ? '/v2/farcaster/frame/search/'
+          : '/v2/farcaster/frame/relevant/';
+      const upstreamUrl = new URL('https://api.neynar.com' + route);
+      if (kind === 'catalog') {
+        upstreamUrl.searchParams.set('limit', '100');
+        upstreamUrl.searchParams.set('time_window', '7d');
+      } else if (kind === 'search') {
+        upstreamUrl.searchParams.set('q', query);
+        upstreamUrl.searchParams.set('limit', '20');
+      } else {
+        upstreamUrl.searchParams.set('viewer_fid', fid);
+        upstreamUrl.searchParams.set('time_window', '7d');
+      }
+      try {
+        const upstream = await runtime.fetchImpl(upstreamUrl, {
+          method: 'GET',
+          redirect: 'error',
+          headers: {
+            accept: 'application/json',
+            'x-api-key': process.env.GENYCASTER_MINIAPP_NEYNAR_API_KEY || 'NEYNAR_API_DOCS',
+          },
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (!upstream.ok || !String(upstream.headers.get('content-type') || '')
+            .toLowerCase().startsWith('application/json') || !upstream.body) {
+          upstream.body?.cancel();
+          writeJson(response, 502, { error: 'catalogue_unavailable' }); return;
+        }
+        const reader = upstream.body.getReader();
+        const chunks = [];
+        let size = 0;
+        while (true) {
+          const part = await reader.read();
+          if (part.done) break;
+          size += part.value.byteLength;
+          if (size > 2 * 1024 * 1024) {
+            await reader.cancel();
+            writeJson(response, 502, { error: 'catalogue_too_large' }); return;
+          }
+          chunks.push(Buffer.from(part.value));
+        }
+        const payload = Buffer.concat(chunks, size);
+        JSON.parse(payload.toString('utf8'));
+        response.writeHead(200, {
+          'content-type': 'application/json; charset=utf-8',
+          'cache-control': kind === 'catalog' ? 'public, max-age=180' : 'no-store',
+          'content-length': String(payload.length),
+        });
+        response.end(payload);
+      } catch {
+        writeJson(response, 502, { error: 'catalogue_unavailable' });
+      }
+      return;
+    }
 
     if (requestUrl.pathname === '/v1/browser/openproof/connections') {
       // The OpenProof account API intentionally has no browser CORS contract.

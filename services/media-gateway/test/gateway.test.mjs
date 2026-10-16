@@ -464,3 +464,37 @@ test('browser OpenProof connections route requires bearer and permits explicit C
     }), { status: 200, headers: { 'content-type': 'application/json' } });
   } });
 });
+
+test('browser Mini App catalogue uses only fixed public discovery routes', async () => {
+  const calls = [];
+  await withGateway(async ({ origin }) => {
+    const path = '/v1/browser/miniapps';
+    const preflight = await fetch(origin + path, {
+      method: 'OPTIONS',
+      headers: { origin: 'http://127.0.0.1:30000' },
+    });
+    assert.equal(preflight.status, 204);
+    assert.equal(preflight.headers.get('access-control-allow-origin'), '*');
+    const bad = await fetch(origin + path + '?kind=arbitrary&url=https://localhost');
+    assert.equal(bad.status, 400);
+    const catalogue = await fetch(origin + path + '?kind=catalog');
+    assert.equal(catalogue.status, 200);
+    assert.equal(catalogue.headers.get('access-control-allow-origin'), '*');
+    assert.deepEqual(await catalogue.json(), { frames: [] });
+    const search = await fetch(origin + path + '?kind=search&q=cast');
+    assert.equal(search.status, 200);
+    assert.equal(calls.length, 2);
+    assert.match(calls[0], /api\.neynar\.com\/v2\/farcaster\/frame\/catalog\//);
+    assert.match(calls[1], /api\.neynar\.com\/v2\/farcaster\/frame\/search\//);
+    assert.match(calls[1], /q=cast/);
+  }, { fetchImpl: async (url, options) => {
+    assert.equal(url.hostname, 'api.neynar.com');
+    assert.equal(url.protocol, 'https:');
+    assert.equal(options.method, 'GET');
+    assert.equal(options.redirect, 'error');
+    calls.push(url.toString());
+    return new Response(JSON.stringify({ frames: [] }), {
+      status: 200, headers: { 'content-type': 'application/json' },
+    });
+  } });
+});
