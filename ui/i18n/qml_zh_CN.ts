@@ -3511,8 +3511,8 @@
             <translation>Uses Hypersnap for live reads. Sign-in and publishing permissions are verified separately.</translation>
         </message>
         <message id="genycaster.setup.farcaster_explainer">
-            <source>Uses Farcaster sign-in. This build still reads from Hypersnap; no keys are transferred.</source>
-            <translation>Uses Farcaster sign-in. This build still reads from Hypersnap; no keys are transferred.</translation>
+            <source>Farcaster hosted read API, when a compatible endpoint is configured; otherwise Hypersnap remains the fallback. Sign-in is separate.</source>
+            <translation>Farcaster hosted read API, when a compatible endpoint is configured; otherwise Hypersnap remains the fallback. Sign-in is separate.</translation>
         </message>
         <message id="genycaster.setup.profile_choice">
             <source>Your profile</source>
@@ -3615,8 +3615,48 @@
             <translation>Choose how you connect</translation>
         </message>
         <message id="genycaster.setup.connection_mode_help">
-            <source>Select a sign-in route; advanced node settings control where the app reads data.</source>
-            <translation>Select a sign-in route; advanced node settings control where the app reads data.</translation>
+            <source>Select your data network. Farcaster uses a hosted service; Hypersnap uses independently operated nodes.</source>
+            <translation>Select your data network. Farcaster uses a hosted service; Hypersnap uses independently operated nodes.</translation>
+        </message>
+        <message id="genycaster.setup.centralized_service_label">
+            <source>Hosted / centralized access</source>
+            <translation>Hosted / centralized access</translation>
+        </message>
+        <message id="genycaster.setup.decentralized_label">
+            <source>Decentralized</source>
+            <translation>Decentralized</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_not_configured">
+            <source>Hosted Farcaster feed requires a configured read endpoint or Neynar API key. Hypersnap remains available.</source>
+            <translation>Hosted Farcaster feed requires a configured read endpoint or Neynar API key. Hypersnap remains available.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_hosted_node">
+            <source>Farcaster · Hosted read node</source>
+            <translation>Farcaster · Hosted read node</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_configured">
+            <source>Independent Farcaster read adapter configured. Sign-in credentials are separate.</source>
+            <translation>Independent Farcaster read adapter configured. Sign-in credentials are separate.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_missing_key">
+            <source>Not configured: add a Neynar API key or a compatible hosted read gateway.</source>
+            <translation>Not configured: add a Neynar API key or a compatible hosted read gateway.</translation>
+        </message>
+        <message id="genycaster.setup.document_accepted">
+            <source>Accepted</source>
+            <translation>Accepted</translation>
+        </message>
+        <message id="genycaster.setup.confirm_document">
+            <source>Scroll to the end, then confirm this document.</source>
+            <translation>Scroll to the end, then confirm this document.</translation>
+        </message>
+        <message id="genycaster.setup.legal_click_to_review">
+            <source>Open both notices, review the summaries and confirm each one to continue.</source>
+            <translation>Open both notices, review the summaries and confirm each one to continue.</translation>
+        </message>
+        <message id="genycaster.setup.legal_summary_label">
+            <source>Product notice summary</source>
+            <translation>Product notice summary</translation>
         </message>
     </context>
 </TS>

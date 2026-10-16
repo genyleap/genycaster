@@ -3511,8 +3511,8 @@
             <translation>داده‌های زنده از هایپراسنپ دریافت می‌شوند. ورود و مجوز انتشار جداگانه تأیید می‌شوند.</translation>
         </message>
         <message id="genycaster.setup.farcaster_explainer">
-            <source>Uses Farcaster sign-in. This build still reads from Hypersnap; no keys are transferred.</source>
-            <translation>ورود از مسیر فارکستر انجام می‌شود. در این نسخه داده‌ها همچنان از هایپراسنپ دریافت می‌شوند و هیچ کلیدی منتقل نمی‌شود.</translation>
+            <source>Farcaster hosted read API, when a compatible endpoint is configured; otherwise Hypersnap remains the fallback. Sign-in is separate.</source>
+            <translation>خواندن از سرویس میزبان فارکستر در صورت پیکربندی نود؛ در غیر این صورت هایپراسنپ مسیر جایگزین است. ورود جداست.</translation>
         </message>
         <message id="genycaster.setup.profile_choice">
             <source>Your profile</source>
@@ -3615,8 +3615,48 @@
             <translation>روش اتصال را انتخاب کنید</translation>
         </message>
         <message id="genycaster.setup.connection_mode_help">
-            <source>Select a sign-in route; advanced node settings control where the app reads data.</source>
-            <translation>مسیر ورود را انتخاب کنید؛ تنظیمات پیشرفته، منبع دریافت داده‌ها را کنترل می‌کند.</translation>
+            <source>Select your data network. Farcaster uses a hosted service; Hypersnap uses independently operated nodes.</source>
+            <translation>شبکه دریافت داده را انتخاب کنید. فارکستر از سرویس میزبان و هایپراسنپ از نودهای مستقل استفاده می‌کند.</translation>
+        </message>
+        <message id="genycaster.setup.centralized_service_label">
+            <source>Hosted / centralized access</source>
+            <translation>متمرکز</translation>
+        </message>
+        <message id="genycaster.setup.decentralized_label">
+            <source>Decentralized</source>
+            <translation>غیرمتمرکز</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_not_configured">
+            <source>Hosted Farcaster feed requires a configured read endpoint or Neynar API key. Hypersnap remains available.</source>
+            <translation>دریافت داده از فارکستر به نود سازگار یا کلید API نینار نیاز دارد. هایپراسنپ در دسترس است.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_hosted_node">
+            <source>Farcaster · Hosted read node</source>
+            <translation>فارکستر · نود خواندن میزبان</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_configured">
+            <source>Independent Farcaster read adapter configured. Sign-in credentials are separate.</source>
+            <translation>آداپتور مستقل فارکستر پیکربندی شده است. ورود به حساب جداست.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_missing_key">
+            <source>Not configured: add a Neynar API key or a compatible hosted read gateway.</source>
+            <translation>پیکربندی نشده: کلید API نینار یا سرویس خواندن سازگار لازم است.</translation>
+        </message>
+        <message id="genycaster.setup.document_accepted">
+            <source>Accepted</source>
+            <translation>پذیرفته شد</translation>
+        </message>
+        <message id="genycaster.setup.confirm_document">
+            <source>Scroll to the end, then confirm this document.</source>
+            <translation>متن را تا انتها مرور کنید و سپس تأیید کنید.</translation>
+        </message>
+        <message id="genycaster.setup.legal_click_to_review">
+            <source>Open both notices, review the summaries and confirm each one to continue.</source>
+            <translation>هر دو سند را باز کنید، خلاصه‌ها را بخوانید و برای ادامه تأیید کنید.</translation>
+        </message>
+        <message id="genycaster.setup.legal_summary_label">
+            <source>Product notice summary</source>
+            <translation>خلاصه اطلاعیه محصول</translation>
         </message>
     </context>
 </TS>

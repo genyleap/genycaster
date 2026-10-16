@@ -122,6 +122,7 @@ struct Runtime final {
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
     std::optional<farcaster::storage::continuation::ContinuationStore> continuations{};
     std::unique_ptr<farcaster::provider::hypersnap::async_gateway::AsyncGateway> asyncGateway{};
+    std::unique_ptr<farcaster::provider::hypersnap::async_gateway::AsyncGateway> farcasterReadGateway{};
     std::unique_ptr<farcaster::routing::read::async_gateway::RoutedReadGateway> routedAsyncGateway{};
 #endif
     std::unique_ptr<farcaster::application::read::async_service::ReadService> service{};
@@ -185,6 +186,8 @@ struct Runtime final {
     const std::filesystem::path& databasePath,
     farcaster::transport::qtnetwork::ProxyPolicy networkProxyPolicy,
     const std::optional<std::string>& providerBaseUrl,
+    const std::optional<std::string>& farcasterReadBaseUrl,
+    const std::optional<std::string>& farcasterReadApiKey,
     const std::optional<std::string>& authRelayUrl,
     const std::optional<std::string>& optimismRpcUrl,
     const std::optional<std::string>& snapchainBaseUrl,

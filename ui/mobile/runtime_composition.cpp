@@ -126,6 +126,7 @@ Runtime::~Runtime()
     service.reset();
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
     routedAsyncGateway.reset();
+    farcasterReadGateway.reset();
     asyncGateway.reset();
 #endif
     asyncTransport.reset();
@@ -389,6 +390,8 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     const std::filesystem::path& databasePath,
     const farcaster::transport::qtnetwork::ProxyPolicy networkProxyPolicy,
     [[maybe_unused]] const std::optional<std::string>& providerBaseUrl,
+    [[maybe_unused]] const std::optional<std::string>& farcasterReadBaseUrl,
+    [[maybe_unused]] const std::optional<std::string>& farcasterReadApiKey,
     [[maybe_unused]] const std::optional<std::string>& authRelayUrl,
     [[maybe_unused]] const std::optional<std::string>& optimismRpcUrl,
     [[maybe_unused]] const std::optional<std::string>& snapchainBaseUrl,
@@ -683,6 +686,39 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         *runtime->cacheExecutor,
         *runtime->continuations,
         providerConfig);
+
+    // A separate configured Neynar-compatible hosted Farcaster read source.
+    // Endpoint matching is required: plain Farcaster hub /v1 is NOT a
+    // drop-in replacement for the v2 indexed JSON API and must not be bound.
+    if (farcasterReadBaseUrl && !farcasterReadBaseUrl->empty()) {
+        const farcaster::provider::model::ProviderDescriptor farcasterDescriptor{
+            .id = farcaster::provider::model::ProviderId{"farcaster-snapchain"},
+            .displayName = "Farcaster hosted read API",
+            .deployment = farcaster::provider::model::ProviderDeployment::PublicManaged,
+            .privacy = farcaster::provider::model::ProviderPrivacy::Standard,
+            .priority = 20,
+        };
+        auto registered = runtime->registry.registerProvider(
+            routing::registry::ProviderRegistration{
+                .provider = farcasterDescriptor,
+                .capabilities = farcaster::provider::hypersnap::registration::capabilities(),
+            });
+        if (!registered) {
+            return std::unexpected(std::move(registered.error()));
+        }
+        farcaster::provider::hypersnap::config::Config farcasterConfig{
+            .baseUrl = *farcasterReadBaseUrl,
+            .apiKey = farcasterReadApiKey.value_or(std::string{}),
+            .provider = farcasterDescriptor,
+        };
+        runtime->farcasterReadGateway =
+            std::make_unique<farcaster::provider::hypersnap::async_gateway::AsyncGateway>(
+                *runtime->asyncTransport,
+                *runtime->decodeExecutor,
+                *runtime->cacheExecutor,
+                *runtime->continuations,
+                std::move(farcasterConfig));
+    }
 #endif
 
     const bool strict = application::configuration::configuredDeploymentProfile()
@@ -712,12 +748,21 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     runtime->routedAsyncGateway = std::make_unique<routing::read::async_gateway::RoutedReadGateway>(
         *runtime->router,
         runtime->health,
-        std::vector<routing::read::async_gateway::SourceBinding>{
-            routing::read::async_gateway::SourceBinding{
-                .providerId = descriptor.id,
-                .gateway = runtime->asyncGateway.get(),
-            },
-        });
+        [&] {
+            std::vector<routing::read::async_gateway::SourceBinding> bindings{
+                routing::read::async_gateway::SourceBinding{
+                    .providerId = descriptor.id,
+                    .gateway = runtime->asyncGateway.get(),
+                },
+            };
+            if (runtime->farcasterReadGateway) {
+                bindings.push_back(routing::read::async_gateway::SourceBinding{
+                    .providerId = farcaster::provider::model::ProviderId{"farcaster-snapchain"},
+                    .gateway = runtime->farcasterReadGateway.get(),
+                });
+            }
+            return bindings;
+        }());
     runtime->service = std::make_unique<application::read::async_service::ReadService>(
         *runtime->cacheExecutor, *runtime->store, *runtime->routedAsyncGateway);
 #else

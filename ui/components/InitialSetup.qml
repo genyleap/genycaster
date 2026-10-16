@@ -40,7 +40,6 @@ Item {
     property bool legalPrivacyReviewed: false
     property string legalReaderKind: ""
     property bool legalReaderReachedEnd: false
-    property bool legalExternalDocumentOpened: false
     property int currentStep: 0
     property int highestReachedStep: 0
     property real stageReveal: 1.0
@@ -167,17 +166,22 @@ Item {
     function openLegalReader(kind) {
         legalReaderKind = kind
         legalReaderReachedEnd = false
-        legalExternalDocumentOpened = false
         legalReader.open()
     }
 
     function acceptLegalReader() {
+        if (!legalReaderReachedEnd)
+            return
         if (legalReaderKind === "privacy") {
             legalPrivacyReviewed = true
+            legalPrivacyChecked = true
         } else {
             legalTermsReviewed = true
+            legalTermsChecked = true
         }
         legalReader.close()
+        if (legalTermsReviewed && legalPrivacyReviewed && !legalConsentAccepted)
+            acceptLegalConsent(true, true, true)
     }
 
     function switchStep(index) {
@@ -323,6 +327,10 @@ Item {
             legalPrivacyChecked = true
             legalTermsReviewed = true
             legalPrivacyReviewed = true
+            if (currentStep === 2) {
+                Qt.callLater(() => switchStep(3))
+                return
+            }
         }
         Qt.callLater(synchronizeFlow)
     }
@@ -538,14 +546,17 @@ Item {
                                     readonly property bool current: modelData === root.currentStep
                                     width: parent.width
                                     height: 58
-                                    enabled: root.stepUnlocked(modelData)
+                                    enabled: true
                                     opacity: 1.0
                                     hoverEnabled: true
                                     focusPolicy: Qt.StrongFocus
                                     Accessible.name: root.stepTitle(modelData)
                                     Accessible.description: current
                                                             ? qsTrId("genycaster.setup.title") : ""
-                                    onClicked: root.switchStep(modelData)
+                                    onClicked: {
+                                        if (root.stepUnlocked(modelData))
+                                            root.switchStep(modelData)
+                                    }
 
                                     background: Superellipse {
                                         fillColor: stepButton.current ? Theme.surfaceMuted
@@ -571,9 +582,7 @@ Item {
                                             Icon {
                                                 anchors.centerIn: parent
                                                 text: root.stepIcon(modelData)
-                                                color: current
-                                                       ? Theme.accentInk
-                                                       : complete ? Theme.inkMuted : Theme.inkSubtle
+                                                color: current ? Theme.accentInk : Theme.inkMuted
                                                 preferredSize: Theme.iconSizeSmall
                                             }
                                         }
@@ -824,9 +833,7 @@ Item {
 
                     Label {
                         width: parent.width
-                        text: root.legalReaderKind === "privacy"
-                              ? qsTrId("genycaster.setup.privacy_updated")
-                              : qsTrId("genycaster.setup.terms_updated")
+                        text: qsTrId("genycaster.setup.legal_summary_label")
                         color: Theme.accent
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightDemiBold
@@ -853,31 +860,7 @@ Item {
                         color: Theme.borderMuted
                     }
 
-                    Label {
-                        width: parent.width
-                        text: qsTrId("genycaster.setup.legal_governing_note")
-                        color: Theme.inkSubtle
-                        font.pixelSize: Theme.typeCaptionSize
-                        lineHeight: Theme.typeCaptionLineHeight
-                        horizontalAlignment: Theme.textStartAlignment
-                        wrapMode: Text.WordWrap
-                    }
 
-                    ActionButton {
-                        width: parent.width
-                        text: root.legalReaderKind === "privacy"
-                              ? qsTrId("genycaster.setup.open_privacy")
-                              : qsTrId("genycaster.setup.open_terms")
-                        iconGlyph: Theme.iconArrowUpRight
-                        quiet: true
-                        onClicked: {
-                            root.legalExternalDocumentOpened = true
-                            presentationBridge.openExternalUrl(
-                                root.legalReaderKind === "privacy"
-                                ? "https://genyleap.com/privacy"
-                                : "https://genyleap.com/terms-of-use")
-                        }
-                    }
                 }
             }
 
@@ -908,11 +891,9 @@ Item {
 
                     Label {
                         Layout.fillWidth: true
-                        text: !root.legalExternalDocumentOpened
-                              ? qsTrId("genycaster.setup.open_governing_document")
-                              : root.legalReaderReachedEnd
-                                ? qsTrId("genycaster.setup.legal_read_complete")
-                                : qsTrId("genycaster.setup.scroll_to_continue")
+                        text: root.legalReaderReachedEnd
+                              ? qsTrId("genycaster.setup.confirm_document")
+                              : qsTrId("genycaster.setup.scroll_to_continue")
                         color: root.legalReaderReachedEnd ? Theme.inkMuted : Theme.inkSubtle
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
@@ -924,7 +905,7 @@ Item {
                     Layout.minimumWidth: root.phone ? 0 : 180
                     Layout.maximumWidth: 300
                     text: qsTrId("genycaster.setup.mark_document_reviewed")
-                    enabled: root.legalReaderReachedEnd && root.legalExternalDocumentOpened
+                    enabled: root.legalReaderReachedEnd
                     iconGlyph: Theme.iconCheck
                     showArrow: false
                     onClicked: root.acceptLegalReader()
@@ -1330,45 +1311,21 @@ Item {
                         title: modelData.title
                         subtitle: modelData.body
                         iconGlyph: modelData.icon
-                        trailingText: reviewed ? qsTrId("genycaster.setup.legal_read_complete") : ""
+                        selected: reviewed
+                        trailingText: reviewed ? qsTrId("genycaster.setup.document_accepted") : ""
                         onClicked: root.openLegalReader(modelData.privacy ? "privacy" : "terms")
                     }
                 }
             }
 
-            // Acknowledgement is an explicit user choice, not an automatic
-            // side-effect of opening either document.
-            ColumnLayout {
+            DirectionAwareLabel {
                 Layout.fillWidth: true
-                spacing: Theme.space2
-
-                GenySwitch {
-                    Layout.fillWidth: true
-                    text: qsTrId("genycaster.setup.explicit_terms_agreement")
-                    description: qsTrId("genycaster.setup.review_terms_first")
-                    checked: root.legalTermsChecked
-                    enabled: root.legalTermsReviewed && !root.legalConsentAccepted
-                    onToggled: root.legalTermsChecked = checked
-                }
-
-                GenySwitch {
-                    Layout.fillWidth: true
-                    text: qsTrId("genycaster.setup.explicit_privacy_agreement")
-                    description: qsTrId("genycaster.setup.review_privacy_first")
-                    checked: root.legalPrivacyChecked
-                    enabled: root.legalPrivacyReviewed && !root.legalConsentAccepted
-                    onToggled: root.legalPrivacyChecked = checked
-                }
-
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    text: root.legalConsentAccepted
-                          ? qsTrId("genycaster.setup.consent_recorded")
-                          : qsTrId("genycaster.setup.privacy_local_note")
-                    color: Theme.inkMuted
-                    font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.WordWrap
-                }
+                text: root.legalConsentAccepted
+                      ? qsTrId("genycaster.setup.consent_recorded")
+                      : qsTrId("genycaster.setup.legal_click_to_review")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.WordWrap
             }
         }
     }
@@ -1395,7 +1352,7 @@ Item {
 
                 SetupActionCard {
                     Layout.fillWidth: true
-                    title: "Hypersnap"
+                    title: "Hypersnap (" + qsTrId("genycaster.setup.decentralized_label") + ")"
                     subtitle: qsTrId("genycaster.setup.hypersnap_explainer")
                     iconGlyph: "quilibrium/hypersnap"
                     primary: presentationBridge.preferredNetwork === "hypersnap"
@@ -1405,8 +1362,10 @@ Item {
 
                 SetupActionCard {
                     Layout.fillWidth: true
-                    title: "Farcaster"
-                    subtitle: qsTrId("genycaster.setup.farcaster_explainer")
+                    title: "Farcaster (" + qsTrId("genycaster.setup.centralized_service_label") + ")"
+                    subtitle: presentationBridge.farcasterReadConfigured
+                              ? qsTrId("genycaster.setup.farcaster_explainer")
+                              : qsTrId("genycaster.setup.farcaster_not_configured")
                     iconGlyph: "brands/farcaster"
                     primary: presentationBridge.preferredNetwork === "farcaster"
                     selected: presentationBridge.preferredNetwork === "farcaster"
@@ -1434,6 +1393,20 @@ Item {
             SetupActionCard {
                 visible: root.showAdvancedNodes
                 Layout.fillWidth: true
+                title: qsTrId("genycaster.setup.farcaster_hosted_node")
+                subtitle: presentationBridge.farcasterReadConfigured
+                          ? qsTrId("genycaster.setup.farcaster_configured")
+                          : qsTrId("genycaster.setup.farcaster_missing_key")
+                iconGlyph: "brands/farcaster"
+                selected: presentationBridge.farcasterReadConfigured
+                          && presentationBridge.preferredNetwork === "farcaster"
+                enabled: presentationBridge.farcasterReadConfigured
+                onClicked: presentationBridge.setPreferredNetwork("farcaster")
+            }
+
+            SetupActionCard {
+                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === "hypersnap"
+                Layout.fillWidth: true
                 title: qsTrId("genycaster.setup.network_automatic")
                 subtitle: qsTrId("genycaster.setup.network_experimental")
                 iconGlyph: Theme.iconFidelity
@@ -1443,7 +1416,7 @@ Item {
             }
 
             RowLayout {
-                visible: root.showAdvancedNodes
+                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === "hypersnap"
                 Layout.fillWidth: true
                 spacing: Theme.space2
                 layoutDirection: Theme.uiDirection
@@ -1467,7 +1440,7 @@ Item {
             }
 
             ColumnLayout {
-                visible: root.showAdvancedNodes
+                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === "hypersnap"
                 Layout.fillWidth: true
                 spacing: Theme.space2
 
@@ -1493,7 +1466,7 @@ Item {
             }
 
             Superellipse {
-                visible: root.showAdvancedNodes
+                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === "hypersnap"
                 Layout.fillWidth: true
                 implicitHeight: networkStateRow.implicitHeight + Theme.space2 * 2
                 fillColor: "transparent"
@@ -1667,14 +1640,6 @@ Item {
                     visible: root.accountIntent === "new"
                     Layout.fillWidth: true
                     spacing: Theme.space2
-
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.profile_creation_browser")
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeLabelSize
-                        wrapMode: Text.WordWrap
-                    }
 
                     SetupActionCard {
                         Layout.fillWidth: true

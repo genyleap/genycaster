@@ -954,9 +954,29 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.sign_in_to_interact");
     //% "Sign in with Farcaster"
     (void)qtTrId("genycaster.shell.sign_in_with_farcaster");
+    //% "Product notice summary"
+    (void)qtTrId("genycaster.setup.legal_summary_label");
+    //% "Hosted / centralized access"
+    (void)qtTrId("genycaster.setup.centralized_service_label");
+    //% "Decentralized"
+    (void)qtTrId("genycaster.setup.decentralized_label");
+    //% "Hosted Farcaster feed requires a configured read endpoint or Neynar API key. Hypersnap remains available."
+    (void)qtTrId("genycaster.setup.farcaster_not_configured");
+    //% "Farcaster · Hosted read node"
+    (void)qtTrId("genycaster.setup.farcaster_hosted_node");
+    //% "Independent Farcaster read adapter configured. Sign-in credentials are separate."
+    (void)qtTrId("genycaster.setup.farcaster_configured");
+    //% "Not configured: add a Neynar API key or a compatible hosted read gateway."
+    (void)qtTrId("genycaster.setup.farcaster_missing_key");
+    //% "Accepted"
+    (void)qtTrId("genycaster.setup.document_accepted");
+    //% "Scroll to the end, then confirm this document."
+    (void)qtTrId("genycaster.setup.confirm_document");
+    //% "Open each document, scroll through it and confirm. Both confirmations are required to continue."
+    (void)qtTrId("genycaster.setup.legal_click_to_review");
     //% "Choose how you connect"
     (void)qtTrId("genycaster.setup.connection_mode_title");
-    //% "Select a sign-in route; advanced node settings control where the app reads data."
+    //% "Select your data network. Farcaster uses a hosted service; Hypersnap uses independently operated nodes."
     (void)qtTrId("genycaster.setup.connection_mode_help");
     //% "I reviewed the document"
     (void)qtTrId("genycaster.setup.mark_document_reviewed");
@@ -986,7 +1006,7 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.choose_network");
     //% "Uses Hypersnap for live reads. Sign-in and publishing permissions are verified separately."
     (void)qtTrId("genycaster.setup.hypersnap_explainer");
-    //% "Uses Farcaster sign-in. This build still reads from Hypersnap; no keys are transferred."
+    //% "Farcaster hosted read API, when a compatible endpoint is configured; otherwise Hypersnap remains the fallback. Sign-in is separate."
     (void)qtTrId("genycaster.setup.farcaster_explainer");
     //% "Your profile"
     (void)qtTrId("genycaster.setup.profile_choice");

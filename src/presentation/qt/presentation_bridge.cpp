@@ -656,6 +656,16 @@ QString PresentationBridge::authenticationPhase() const { return m_authenticatio
 QString PresentationBridge::authenticationRoute() const { return m_authenticationRoute; }
 QString PresentationBridge::preferredNetwork() const { return m_preferredNetwork; }
 
+bool PresentationBridge::farcasterReadConfigured() const noexcept { return m_farcasterReadConfigured; }
+
+void PresentationBridge::setFarcasterReadConfigured(const bool configured)
+{
+    if (m_farcasterReadConfigured == configured)
+        return;
+    m_farcasterReadConfigured = configured;
+    emit farcasterReadConfigurationChanged();
+}
+
 bool PresentationBridge::setPreferredNetwork(const QString& network)
 {
     if (network != QStringLiteral("farcaster")

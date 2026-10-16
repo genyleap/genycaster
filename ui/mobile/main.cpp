@@ -3508,6 +3508,44 @@ int main(int argc, char* argv[])
     const std::optional<std::string> providerBaseUrl = providerBaseUrlText.isEmpty()
         ? std::nullopt : std::optional<std::string>{providerBaseUrlText.toStdString()};
 
+    // An independent hosted Farcaster v2-compatible indexed API is optional.
+    // Never hardcode/distribute a Neynar key; a deployment supplies it in the
+    // process environment or proxies requests from its own authenticated host.
+    QString farcasterReadBaseUrlText = optionValue(
+        arguments, QStringLiteral("--farcaster-read-base-url="));
+    if (farcasterReadBaseUrlText.isEmpty()) {
+        farcasterReadBaseUrlText = qEnvironmentVariable(
+            "GENYCASTER_FARCASTER_READ_BASE_URL").trimmed();
+    }
+    QString farcasterReadApiKeyText = qEnvironmentVariable(
+        "GENYCASTER_FARCASTER_READ_API_KEY").trimmed();
+    if (!farcasterReadApiKeyText.isEmpty() && farcasterReadBaseUrlText.isEmpty()) {
+        farcasterReadBaseUrlText = QStringLiteral("https://api.neynar.com");
+    }
+    farcasterReadBaseUrlText = normalizeConfigurationToken(std::move(farcasterReadBaseUrlText));
+    if (!farcasterReadBaseUrlText.isEmpty() && !isValidHttpServiceUrl(farcasterReadBaseUrlText)) {
+        qWarning().noquote() << "Farcaster read endpoint is invalid; hosted provider will not be registered.";
+        farcasterReadBaseUrlText.clear();
+    }
+    if (farcasterReadApiKeyText.size() > 256
+        || farcasterReadApiKeyText.contains(QLatin1Char('\\r'))
+        || farcasterReadApiKeyText.contains(QLatin1Char('\\n'))) {
+        qCritical().noquote() << "Invalid Farcaster read credential format.";
+        return 2;
+    }
+    // Never disclose a Neynar API key to a custom host or redirect target.
+    if (!farcasterReadApiKeyText.isEmpty()
+        && QUrl(farcasterReadBaseUrlText).host().compare(
+            QStringLiteral("api.neynar.com"), Qt::CaseInsensitive) != 0) {
+        qCritical().noquote()
+            << "Neynar API key may only be sent to the canonical api.neynar.com host.";
+        return 2;
+    }
+    const std::optional<std::string> farcasterReadBaseUrl = farcasterReadBaseUrlText.isEmpty()
+        ? std::nullopt : std::optional<std::string>{farcasterReadBaseUrlText.toStdString()};
+    const std::optional<std::string> farcasterReadApiKey = farcasterReadApiKeyText.isEmpty()
+        ? std::nullopt : std::optional<std::string>{farcasterReadApiKeyText.toStdString()};
+
     QStringList nodeCandidateEndpoints{};
     const QString nodeCandidatesText =
         qEnvironmentVariable("GENYCASTER_HYPERSNAP_NODE_CANDIDATES").trimmed();
@@ -3869,6 +3907,7 @@ int main(int argc, char* argv[])
     // its initial user-visible status strings are ID-based translations.
     presentationBridgeOwner = std::make_unique<PresentationBridge>(nullptr, &settings);
     PresentationBridge& presentationBridge = *presentationBridgeOwner;
+    presentationBridge.setFarcasterReadConfigured(farcasterReadBaseUrl.has_value());
 
     dataStorageControllerOwner = std::make_unique<DataStorageController>(settings);
     DataStorageController& dataStorageController = *dataStorageControllerOwner;
@@ -4170,7 +4209,8 @@ int main(int argc, char* argv[])
             : std::filesystem::path{databasePathText.toStdString()};
         bootstrap = std::jthread([&presentationBridge, &richComposerController, &mediaUploadController,
                                   &mediaPlayback, &runtime,
-                                  databasePath, networkProxyPolicy, providerBaseUrl, authRelayUrl,
+                                  databasePath, networkProxyPolicy, providerBaseUrl,
+                                  farcasterReadBaseUrl, farcasterReadApiKey, authRelayUrl,
                                   optimismRpcUrl, snapchainBaseUrl,
                                   mediaGatewayBaseUrl, snapchainAuthorizationHeader,
                                   snapchainAuthorizationValue, appFid,
@@ -4181,6 +4221,8 @@ int main(int argc, char* argv[])
                 databasePath,
                 networkProxyPolicy,
                 providerBaseUrl,
+                farcasterReadBaseUrl,
+                farcasterReadApiKey,
                 authRelayUrl,
                 optimismRpcUrl,
                 snapchainBaseUrl,

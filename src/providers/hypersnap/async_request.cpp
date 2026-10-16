@@ -194,7 +194,9 @@ foundation::result::Result<Operation> Client::getJson(
         transport::async_http::Request{
             .method = transport::async_http::Method::Get,
             .url = makeUrl(m_config, path, query),
-            .headers = {"Accept: application/json"},
+            .headers = m_config.apiKey.empty()
+                ? std::vector<std::string>{"Accept: application/json"}
+                : std::vector<std::string>{"Accept: application/json", "x-api-key: " + m_config.apiKey},
             .body = {},
             .timeout = options.timeout,
             .maxBodyBytes = options.maxBodyBytes,
@@ -253,7 +255,10 @@ foundation::result::Result<Operation> Client::postReadJson(
         transport::async_http::Request{
             .method = transport::async_http::Method::Post,
             .url = makeUrl(m_config, path, {}),
-            .headers = {"Accept: application/json", "Content-Type: application/json"},
+            .headers = m_config.apiKey.empty()
+                ? std::vector<std::string>{"Accept: application/json", "Content-Type: application/json"}
+                : std::vector<std::string>{"Accept: application/json", "Content-Type: application/json",
+                                           "x-api-key: " + m_config.apiKey},
             .body = std::move(body),
             .timeout = options.timeout,
             .maxBodyBytes = options.maxBodyBytes,

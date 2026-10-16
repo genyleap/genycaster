@@ -25,6 +25,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QString authenticationPhase READ authenticationPhase NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString authenticationRoute READ authenticationRoute NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString preferredNetwork READ preferredNetwork NOTIFY preferredNetworkChanged)
+    Q_PROPERTY(bool farcasterReadConfigured READ farcasterReadConfigured NOTIFY farcasterReadConfigurationChanged)
     Q_PROPERTY(bool authenticationApprovalAvailable READ authenticationApprovalAvailable NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString authenticationErrorText READ authenticationErrorText NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountIdentityIssuer READ accountIdentityIssuer NOTIFY authenticationStateChanged)
@@ -100,6 +101,8 @@ public:
     [[nodiscard]] QString authenticationRoute() const;
     /** @brief Preferred connection route, independent of account identity and signing authority. */
     [[nodiscard]] QString preferredNetwork() const;
+    [[nodiscard]] bool farcasterReadConfigured() const noexcept;
+    void setFarcasterReadConfigured(bool configured);
     /** @brief Persist a validated Farcaster/Hypersnap preference for subsequent routing. */
     Q_INVOKABLE bool setPreferredNetwork(const QString& network);
     [[nodiscard]] bool authenticationApprovalAvailable() const noexcept;
@@ -322,6 +325,7 @@ signals:
     /** @brief Authentication/account presentation changed; isolated from feed/write invalidation. */
     void authenticationStateChanged();
     void preferredNetworkChanged(QString network);
+    void farcasterReadConfigurationChanged();
     /** @brief First-run setup completion or authentication gate visibility changed. */
     void setupStateChanged();
     void stateChanged();
@@ -381,6 +385,7 @@ private:
     QString m_authenticationPhase{QStringLiteral("signed-out")};
     QString m_authenticationRoute{QStringLiteral("openproof")};
     QString m_preferredNetwork{QStringLiteral("hypersnap")};
+    bool m_farcasterReadConfigured{false};
     QString m_authenticationApprovalUrl{};
     QString m_authenticationErrorText{};
     QString m_accountIdentityIssuer{};

@@ -112,30 +112,11 @@ Button {
             font.weight: Theme.weightDemiBold
         }
 
-        Item {
+        Icon {
             visible: root.selected
-            Layout.preferredWidth: Theme.iconSize
-            Layout.preferredHeight: Theme.iconSize
-
-            Superellipse {
-                anchors.centerIn: parent
-                width: 19
-                height: 19
-                exponent: 2.01
-                curveDepth: width / 2
-                fillColor: "transparent"
-                borderWidth: 2
-                borderColor: root.primary ? root.foreground : Theme.accent
-
-                Superellipse {
-                    anchors.centerIn: parent
-                    width: 9
-                    height: 9
-                    exponent: 2.01
-                    curveDepth: width / 2
-                    fillColor: root.primary ? root.foreground : Theme.accent
-                }
-            }
+            text: Theme.iconCheck
+            color: root.primary ? root.foreground : Theme.accent
+            preferredSize: Theme.iconSize
         }
 
         Icon {

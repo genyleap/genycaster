@@ -284,6 +284,11 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     // The preferred read/sign-in route is a validated preference, never a
     // substitute for a linked FID or signer authority.
     assert(bridge.preferredNetwork() == QStringLiteral("hypersnap"));
+    assert(!bridge.farcasterReadConfigured());
+    bridge.setFarcasterReadConfigured(true);
+    assert(bridge.farcasterReadConfigured());
+    bridge.setFarcasterReadConfigured(false);
+    assert(!bridge.farcasterReadConfigured());
     assert(!bridge.setPreferredNetwork(QStringLiteral("arbitrary-provider")));
     assert(bridge.preferredNetwork() == QStringLiteral("hypersnap"));
     assert(bridge.setPreferredNetwork(QStringLiteral("farcaster")));

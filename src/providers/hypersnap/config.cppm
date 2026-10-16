@@ -17,6 +17,9 @@ export namespace farcaster::provider::hypersnap::config {
  */
 struct Config final {
     std::string baseUrl{"https://haatz.quilibrium.com"};
+    // Optional upstream hosted-service credential. Passed only as an HTTP
+    // header, never embedded in endpoint URLs, logs or persistent settings.
+    std::string apiKey{};
     provider::model::ProviderDescriptor provider{};
 };
 
