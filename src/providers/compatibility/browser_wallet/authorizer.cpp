@@ -157,7 +157,13 @@ constexpr std::size_t MaximumHandledRequests = 16U;
     page += scriptNonce;
     page += R"html(">:root{color-scheme:light dark;font-family:system-ui,sans-serif}body{max-width:42rem;margin:3rem auto;padding:0 1.25rem;line-height:1.45}button{font:inherit;padding:.75rem 1rem;border-radius:.65rem;border:1px solid currentColor;cursor:pointer}.muted{opacity:.72}.error{color:#c33}li{margin:.35rem 0}</style></head><body><h1>Connect Genycaster</h1><p>Authorize this device to interact with Farcaster on your behalf.</p><ul><li>Publish and delete casts</li><li>Like and recast</li><li>Follow and unfollow</li></ul><p class="muted">No transaction or gas is required. Your custody private key never enters Genycaster.</p><p><strong>Required Farcaster custody wallet:</strong> <code>)html";
     page += htmlEscape(expectedCustodyAddress);
-    page += R"html(</code></p><button id="approve">Authorize</button><p id="status" class="muted">No wallet request has been sent yet.</p><script nonce=")html";
+    page += R"html(</code></p>)html";
+    if (needsSignedKeyRequest) {
+        page += R"html(<p class="muted">Personal signer authorization: both signatures will come from your custody wallet. This key is requested under your own Farcaster FID, not the Genycaster App FID.</p>)html";
+    } else {
+        page += R"html(<p class="muted">This signer request is attributed to the Genycaster App FID. Your custody wallet still approves the key authorization.</p>)html";
+    }
+    page += R"html(<button id="approve">Authorize</button><p id="status" class="muted">No wallet request has been sent yet.</p><script nonce=")html";
     page += scriptNonce;
     page += R"html(">const keyAdd=)html";
     page += documents.keyAddJson;

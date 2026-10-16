@@ -543,18 +543,21 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
 
     const bool hasAppFid = appFid.has_value() && *appFid != 0U;
     const bool hasAttestationUrl = signerAttestationUrl.has_value() && !signerAttestationUrl->empty();
-    if (!hasAppFid && !runtime->signerSetupError) {
+    // A custody wallet may authorize a *personal* signer using its own FID
+    // as requestFid. Requiring App-FID attribution for all builds previously
+    // prevented SignerService from being created at all, even though the
+    // native authorizer already supports this verified user-owned flow.
+    //
+    // Never pretend a personal signer has Genycaster App-FID attribution:
+    // only a configured App FID AND its trusted attestor enable that mode.
+    const bool useExternalAppAttribution = hasAppFid && hasAttestationUrl;
+    if (hasAttestationUrl && !hasAppFid && !runtime->signerSetupError) {
         runtime->signerSetupError = foundation::error::Error::make(
             foundation::error::ErrorCode::InvalidArgument,
-            "Genycaster client attribution is not configured. Set the canonical App FID; "
-            "protocol writes stay disabled rather than being attributed to the signed-in user.");
-    } else if (!hasAttestationUrl && !runtime->signerSetupError) {
-        runtime->signerSetupError = foundation::error::Error::make(
-            foundation::error::ErrorCode::InvalidArgument,
-            "Genycaster App-FID attribution requires the SignedKeyRequest attestation service.");
+            "A signer-attestation service was configured without the matching App FID.");
     }
 #if FARCASTER_HAS_SIGNER_ATTESTATION
-    if (hasAppFid && hasAttestationUrl) {
+    if (useExternalAppAttribution) {
         auto attestor = farcaster::provider::compatibility::signer_attestation::makeAttestor(
             *runtime->transport,
             farcaster::provider::compatibility::signer_attestation::Config{
@@ -569,18 +572,23 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         }
     }
 #else
-    if (hasAppFid && hasAttestationUrl && !runtime->signerSetupError) {
+    if (useExternalAppAttribution && !runtime->signerSetupError) {
         runtime->signerSetupError = foundation::error::Error::make(
             foundation::error::ErrorCode::Unsupported,
             "App-FID signer attestation is configured but this build excluded the attestation provider.");
     }
 #endif
 
-    if (hasAppFid && hasAttestationUrl && runtime->signerExecutor &&
-        runtime->signerMetadataStore && runtime->signerVault && !runtime->signerSetupError) {
+    if (runtime->signerExecutor && runtime->signerMetadataStore
+        && runtime->signerVault && !runtime->signerSetupError) {
         application::signer::SignerPolicy signerPolicy{};
-        signerPolicy.requestFid = domain::identity::Fid{*appFid};
-        signerPolicy.requireExternalAppAttribution = true;
+        // Without an external attestor the service retains its default
+        // self-attributed policy. Its requestFid is the viewer's verified FID,
+        // and BrowserWalletAuthorizer requires both EIP-712 wallet signatures.
+        if (useExternalAppAttribution) {
+            signerPolicy.requestFid = domain::identity::Fid{*appFid};
+            signerPolicy.requireExternalAppAttribution = true;
+        }
         runtime->signerService = std::make_unique<application::signer::SignerService>(
             *runtime->signerExecutor,
             *runtime->signerVault,

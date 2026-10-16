@@ -230,3 +230,40 @@ Consequently read-only login works, but real protocol publishing
 requires provisioning and validating that secure server service and
 an end-to-end wallet approval. Do not report writer activation as done
 until KEY_ADD is observed on Snapchain and signed casts are accepted.
+
+## Restoring direct custody-authorized writing without App-FID (2026-10-16)
+
+Regression: Runtime previously required **both** a canonical App FID and a
+SignedKeyRequest attestation URL before it instantiated `SignerService`. As a
+result, an ordinary desktop build without deployment-only App-FID secrets
+could no longer reach the existing wallet-based signer authorization flow.
+The account popup then remained `unavailable`, which looked like a protocol
+failure even though native sign-in worked.
+
+Snapchain supports **self-requested KEY_ADD**: the verified user's custody
+wallet signs both the `SignedKeyRequest` for their **own FID** and the
+`KeyAdd` authorization. These are separate EIP-712 signatures, submitted
+through the existing local browser-wallet approval and verified by Snapchain.
+The secure Ed25519 signing key continues to live in the local OS key vault.
+The signer is attributed to the **user's FID**, not to Genycaster's independent
+App FID. The wallet approval page now states this clearly before consent.
+
+Runtime chooses the strict externally-attributed path **only when both**
+`GENYCASTER_APP_FID` and `GENYCASTER_SIGNER_ATTESTATION_URL` are provided.
+Without a trusted attestation URL, it uses the self-requested custody flow
+instead of disabling all writes. A stray attestation URL without its matching
+App FID is rejected as a configuration error; a fully configured App-FID
+path still fails closed if the attestor is invalid. There is **no** fallback
+from a failed live App-FID signature to a self-attributed signature, and
+no fabricated signature or bypassed custody validation.
+
+This restores an actual route to permissioned publishing while preserving
+the stronger App-FID attribution when available. A production App-FID signing
+authority is only necessary when Genycaster must appear as the attributed
+client, not for user-custody-authorized personal signer registration.
+
+Tests exercise personal and externally attributed wallet approval forms,
+requester-FID metadata, the signer-registration/restart lifecycle, and strict
+denial for external attribution without a trusted attestor. A real user wallet
+approval followed by Snapchain-verified KEY_ADD and a published cast must still
+be tested in the shipped macOS application before marking end-to-end complete.

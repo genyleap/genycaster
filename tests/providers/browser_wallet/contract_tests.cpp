@@ -110,6 +110,13 @@ void testApprovalRoundTrip()
                 assert(body.find("eth_requestAccounts") != std::string::npos);
                 assert(body.find("eth_signTypedData_v4") != std::string::npos);
                 assert(body.find("Farcaster KeyAdd") != std::string::npos);
+                const auto firstApproval = body.find("eth_signTypedData_v4");
+                assert(firstApproval != std::string::npos);
+                const auto secondApproval = body.find("eth_signTypedData_v4", firstApproval + 1U);
+                assert(secondApproval != std::string::npos);
+                assert(body.find("eth_signTypedData_v4", secondApproval + 1U) == std::string::npos);
+                assert(body.find("Personal signer authorization") != std::string::npos);
+                assert(body.find("under your own Farcaster FID") != std::string::npos);
                 assert(body.find("SignedKeyRequest") != std::string::npos);
                 assert(body.find("KeyAdd") != std::string::npos);
 
@@ -165,6 +172,8 @@ void testAppAttestationRequiresOnlyKeyAddWalletSignature()
                 assert(page.result() == http::status::ok);
                 const std::string body = page.body();
                 assert(body.find("const signedKeyRequest=") == std::string::npos);
+                assert(body.find("attributed to the Genycaster App FID") != std::string::npos);
+                assert(body.find("Personal signer authorization") == std::string::npos);
                 const auto firstSignature = body.find("eth_signTypedData_v4");
                 assert(firstSignature != std::string::npos);
                 assert(body.find("eth_signTypedData_v4", firstSignature + 1U) == std::string::npos);
