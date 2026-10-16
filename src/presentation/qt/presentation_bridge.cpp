@@ -609,6 +609,11 @@ PresentationBridge::PresentationBridge(QObject* const parent, QSettings* const s
         m_inlineYouTubeEnabled = m_settings->value(
             QStringLiteral("read/inlineYouTubeEnabled"), true).toBool();
         m_bufferNewPosts = m_settings->value(QStringLiteral("read/bufferNewPosts"), true).toBool();
+        const QString network = m_settings->value(
+            QStringLiteral("connection/preferredNetwork"), QStringLiteral("hypersnap")).toString();
+        if (network == QStringLiteral("farcaster") || network == QStringLiteral("hypersnap")) {
+            m_preferredNetwork = network;
+        }
     }
 }
 
@@ -649,6 +654,24 @@ bool PresentationBridge::authenticationBusy() const noexcept
 }
 QString PresentationBridge::authenticationPhase() const { return m_authenticationPhase; }
 QString PresentationBridge::authenticationRoute() const { return m_authenticationRoute; }
+QString PresentationBridge::preferredNetwork() const { return m_preferredNetwork; }
+
+bool PresentationBridge::setPreferredNetwork(const QString& network)
+{
+    if (network != QStringLiteral("farcaster")
+        && network != QStringLiteral("hypersnap")) {
+        return false;
+    }
+    if (m_preferredNetwork == network) {
+        return true;
+    }
+    m_preferredNetwork = network;
+    if (m_settings != nullptr) {
+        m_settings->setValue(QStringLiteral("connection/preferredNetwork"), network);
+    }
+    emit preferredNetworkChanged(network);
+    return true;
+}
 bool PresentationBridge::authenticationApprovalAvailable() const noexcept
 {
     return !m_authenticationApprovalUrl.isEmpty();

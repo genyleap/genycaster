@@ -1639,6 +1639,7 @@ Item {
         accountAvatarUrl: presentationBridge.accountAvatarUrl
         onContinueWithGenyleap: presentationBridge.beginSignIn()
         onContinueWithFarcaster: presentationBridge.beginFarcasterSignIn()
+        onOpenRegistration: presentationBridge.openExternalUrl("https://farcaster.xyz/~/signup")
         onOpenApproval: presentationBridge.openAuthenticationApproval()
         onCancelAuthentication: presentationBridge.cancelSignIn()
         onAcceptLegalConsent: (termsAccepted, privacyAcknowledged, reviewCompleted) =>

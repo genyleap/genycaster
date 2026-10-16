@@ -1852,6 +1852,22 @@ void connectRuntime(
     std::string siwfDomain,
     std::string siwfUri)
 {
+    const auto applyNetworkAffinity = [runtime](const QString& network) {
+        if (runtime->router) {
+            runtime->router->setPreferredNetwork(
+                network == QStringLiteral("farcaster")
+                    ? routing::policy::PreferredNetwork::Farcaster
+                    : routing::policy::PreferredNetwork::Hypersnap);
+        }
+    };
+    applyNetworkAffinity(bridge.preferredNetwork());
+    QObject::connect(&bridge, &PresentationBridge::preferredNetworkChanged, &bridge,
+        [&bridge, applyNetworkAffinity](const QString& network) {
+            applyNetworkAffinity(network);
+            if (bridge.runtimeReady() && !bridge.isBusy()) {
+                bridge.retryAutomatically();
+            }
+        });
 #if FARCASTER_HAS_MEDIA_UPLOAD
     QObject::connect(
         &richComposer,

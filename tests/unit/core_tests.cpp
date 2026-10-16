@@ -236,6 +236,61 @@ void testCapabilityRouting()
     auto strictRoute = strictRouter.resolve(request);
     assert(strictRoute);
     assert(strictRoute->provider.id.value == "self-hosted");
+
+    // User affinity selects only eligible registered providers and must not
+    // override deployment restrictions, runtime health or absence of an adapter.
+    routing::registry::CapabilityRegistry networkRegistry{};
+    const auto feed = feedCapability(capability::model::CapabilityQuality::Native, true);
+    assert(networkRegistry.registerProvider(routing::registry::ProviderRegistration{
+        .provider = provider::model::ProviderDescriptor{
+            .id = provider::model::ProviderId{"hypersnap-v2"},
+            .displayName = "Hypersnap",
+            .deployment = provider::model::ProviderDeployment::SelfHosted,
+            .privacy = provider::model::ProviderPrivacy::Private,
+            .priority = 1,
+        },
+        .capabilities = {feed},
+    }));
+    assert(networkRegistry.registerProvider(routing::registry::ProviderRegistration{
+        .provider = provider::model::ProviderDescriptor{
+            .id = provider::model::ProviderId{"farcaster-snapchain"},
+            .displayName = "Farcaster",
+            .deployment = provider::model::ProviderDeployment::PublicManaged,
+            .privacy = provider::model::ProviderPrivacy::Managed,
+            .priority = 2,
+        },
+        .capabilities = {feed},
+    }));
+    routing::health::HealthRegistry networkHealth{};
+    routing::router::CapabilityRouter networkRouter{
+        networkRegistry, networkHealth, routing::policy::RoutingPolicy{},
+    };
+    const auto hypersnapRoute = networkRouter.resolve(request);
+    assert(hypersnapRoute);
+    assert(hypersnapRoute->provider.id.value == "hypersnap-v2");
+    networkRouter.setPreferredNetwork(routing::policy::PreferredNetwork::Farcaster);
+    const auto farcasterRoute = networkRouter.resolve(request);
+    assert(farcasterRoute);
+    assert(farcasterRoute->provider.id.value == "farcaster-snapchain");
+    networkHealth.update(routing::health::CapabilityHealth{
+        .providerId = provider::model::ProviderId{"farcaster-snapchain"},
+        .capabilityId = capability::catalog::feedFollowingRead(),
+        .state = routing::health::HealthState::Unavailable,
+    });
+    const auto healthyFallback = networkRouter.resolve(request);
+    assert(healthyFallback);
+    assert(healthyFallback->provider.id.value == "hypersnap-v2");
+    routing::router::CapabilityRouter strictNetworkRouter{
+        networkRegistry, networkHealth,
+        routing::policy::RoutingPolicy{
+            .mode = routing::policy::RoutingMode::StrictSelfHosted,
+            .allowManagedProviders = false,
+        },
+    };
+    strictNetworkRouter.setPreferredNetwork(routing::policy::PreferredNetwork::Farcaster);
+    const auto constrainedRoute = strictNetworkRouter.resolve(request);
+    assert(constrainedRoute);
+    assert(constrainedRoute->provider.id.value == "hypersnap-v2");
 }
 
 void testRoutingFailureDiagnostics()

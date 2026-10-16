@@ -3502,5 +3502,65 @@
             <source>selected</source>
             <translation>चयनित</translation>
         </message>
+        <message id="genycaster.setup.choose_network">
+            <source>Connection network</source>
+            <translation>Connection network</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_explainer">
+            <source>Uses Hypersnap for live reads. Sign-in and publishing permissions are verified separately.</source>
+            <translation>Uses Hypersnap for live reads. Sign-in and publishing permissions are verified separately.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_explainer">
+            <source>Uses Farcaster sign-in. This build still reads from Hypersnap; no keys are transferred.</source>
+            <translation>Uses Farcaster sign-in. This build still reads from Hypersnap; no keys are transferred.</translation>
+        </message>
+        <message id="genycaster.setup.profile_choice">
+            <source>Your profile</source>
+            <translation>Your profile</translation>
+        </message>
+        <message id="genycaster.setup.existing_profile">
+            <source>Use existing</source>
+            <translation>Use existing</translation>
+        </message>
+        <message id="genycaster.setup.new_profile">
+            <source>Create new</source>
+            <translation>Create new</translation>
+        </message>
+        <message id="genycaster.setup.profile_creation_browser">
+            <source>Register your new FID in a compatible app, then return here to connect it. Genycaster never asks for your recovery phrase.</source>
+            <translation>Register your new FID in a compatible app, then return here to connect it. Genycaster never asks for your recovery phrase.</translation>
+        </message>
+        <message id="genycaster.setup.open_registration">
+            <source>Find a registration app</source>
+            <translation>Find a registration app</translation>
+        </message>
+        <message id="genycaster.setup.already_created">
+            <source>I have a profile — connect</source>
+            <translation>I have a profile — connect</translation>
+        </message>
+        <message id="genycaster.setup.network_settings_explainer">
+            <source>Choose your preferred connection. Reads currently use Hypersnap and signed writes use Snapchain. Switching does not migrate your identity or keys.</source>
+            <translation>Choose your preferred connection. Reads currently use Hypersnap and signed writes use Snapchain. Switching does not migrate your identity or keys.</translation>
+        </message>
+        <message id="genycaster.setup.advanced_nodes">
+            <source>Advanced: choose read node</source>
+            <translation>Advanced: choose read node</translation>
+        </message>
+        <message id="genycaster.setup.existing_profile_body">
+            <source>Connect the Farcaster identity you already own.</source>
+            <translation>Connect the Farcaster identity you already own.</translation>
+        </message>
+        <message id="genycaster.setup.new_profile_body">
+            <source>Register a new Farcaster identity in a compatible app.</source>
+            <translation>Register a new Farcaster identity in a compatible app.</translation>
+        </message>
+        <message id="genycaster.setup.registration_handoff">
+            <source>Continue in a compatible registration app, then come back to link your profile.</source>
+            <translation>Continue in a compatible registration app, then come back to link your profile.</translation>
+        </message>
+        <message id="genycaster.setup.authentication_explainer">
+            <source>Sign-in uses a verified OpenProof session and a linked Farcaster FID. Publishing permissions are separate.</source>
+            <translation>Sign-in uses a verified OpenProof session and a linked Farcaster FID. Publishing permissions are separate.</translation>
+        </message>
     </context>
 </TS>

@@ -19,6 +19,12 @@ enum class RoutingMode : std::uint8_t {
     StrictSelfHosted,
 };
 
+/** @brief User routing affinity; it cannot bypass capability eligibility or deployment constraints. */
+enum class PreferredNetwork : std::uint8_t {
+    Hypersnap,
+    Farcaster,
+};
+
 /**
  * @brief Provider-neutral routing policy constraints.
  */

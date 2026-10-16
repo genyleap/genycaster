@@ -954,6 +954,36 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.sign_in_to_interact");
     //% "Sign in with Farcaster"
     (void)qtTrId("genycaster.shell.sign_in_with_farcaster");
+    //% "Connection network"
+    (void)qtTrId("genycaster.setup.choose_network");
+    //% "Uses Hypersnap for live reads. Sign-in and publishing permissions are verified separately."
+    (void)qtTrId("genycaster.setup.hypersnap_explainer");
+    //% "Uses Farcaster sign-in. This build still reads from Hypersnap; no keys are transferred."
+    (void)qtTrId("genycaster.setup.farcaster_explainer");
+    //% "Your profile"
+    (void)qtTrId("genycaster.setup.profile_choice");
+    //% "Use existing"
+    (void)qtTrId("genycaster.setup.existing_profile");
+    //% "Create new"
+    (void)qtTrId("genycaster.setup.new_profile");
+    //% "Register your new FID in a compatible app, then return here to connect it. Genycaster never asks for your recovery phrase."
+    (void)qtTrId("genycaster.setup.profile_creation_browser");
+    //% "Find a registration app"
+    (void)qtTrId("genycaster.setup.open_registration");
+    //% "I have a profile — connect"
+    (void)qtTrId("genycaster.setup.already_created");
+    //% "Choose your preferred connection. Reads currently use Hypersnap and signed writes use Snapchain. Switching does not migrate your identity or keys."
+    (void)qtTrId("genycaster.setup.network_settings_explainer");
+    //% "Advanced: choose read node"
+    (void)qtTrId("genycaster.setup.advanced_nodes");
+    //% "Connect the Farcaster identity you already own."
+    (void)qtTrId("genycaster.setup.existing_profile_body");
+    //% "Register a new Farcaster identity in a compatible app."
+    (void)qtTrId("genycaster.setup.new_profile_body");
+    //% "Continue in a compatible registration app, then come back to link your profile."
+    (void)qtTrId("genycaster.setup.registration_handoff");
+    //% "Sign-in uses a verified OpenProof session and a linked Farcaster FID. Publishing permissions are separate."
+    (void)qtTrId("genycaster.setup.authentication_explainer");
     //% "Continue with Genyleap"
     (void)qtTrId("genycaster.shell.continue_with_genyleap");
     //% "Open Genyleap"

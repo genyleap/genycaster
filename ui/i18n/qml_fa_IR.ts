@@ -3502,5 +3502,65 @@
             <source>selected</source>
             <translation>انتخاب‌شده</translation>
         </message>
+        <message id="genycaster.setup.choose_network">
+            <source>Connection network</source>
+            <translation>شبکه اتصال</translation>
+        </message>
+        <message id="genycaster.setup.hypersnap_explainer">
+            <source>Uses Hypersnap for live reads. Sign-in and publishing permissions are verified separately.</source>
+            <translation>داده‌های زنده از هایپراسنپ دریافت می‌شوند. ورود و مجوز انتشار جداگانه تأیید می‌شوند.</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_explainer">
+            <source>Uses Farcaster sign-in. This build still reads from Hypersnap; no keys are transferred.</source>
+            <translation>ورود از مسیر فارکستر انجام می‌شود. در این نسخه داده‌ها همچنان از هایپراسنپ دریافت می‌شوند و هیچ کلیدی منتقل نمی‌شود.</translation>
+        </message>
+        <message id="genycaster.setup.profile_choice">
+            <source>Your profile</source>
+            <translation>پروفایل شما</translation>
+        </message>
+        <message id="genycaster.setup.existing_profile">
+            <source>Use existing</source>
+            <translation>پروفایل قبلی</translation>
+        </message>
+        <message id="genycaster.setup.new_profile">
+            <source>Create new</source>
+            <translation>ساخت پروفایل</translation>
+        </message>
+        <message id="genycaster.setup.profile_creation_browser">
+            <source>Register your new FID in a compatible app, then return here to connect it. Genycaster never asks for your recovery phrase.</source>
+            <translation>شناسه جدید را در یک برنامه سازگار بسازید و سپس برای اتصال برگردید. جنی‌کستر هرگز عبارت بازیابی را درخواست نمی‌کند.</translation>
+        </message>
+        <message id="genycaster.setup.open_registration">
+            <source>Find a registration app</source>
+            <translation>برنامه ثبت‌نام را پیدا کن</translation>
+        </message>
+        <message id="genycaster.setup.already_created">
+            <source>I have a profile — connect</source>
+            <translation>پروفایل دارم؛ اتصال</translation>
+        </message>
+        <message id="genycaster.setup.network_settings_explainer">
+            <source>Choose your preferred connection. Reads currently use Hypersnap and signed writes use Snapchain. Switching does not migrate your identity or keys.</source>
+            <translation>مسیر اتصال دلخواه ذخیره می‌شود. خواندن داده‌ها فعلاً با هایپراسنپ و انتشار امضاشده با اسنپ‌چین است. تغییر انتخاب، هویت یا کلیدها را جابه‌جا نمی‌کند.</translation>
+        </message>
+        <message id="genycaster.setup.advanced_nodes">
+            <source>Advanced: choose read node</source>
+            <translation>پیشرفته: انتخاب نود دریافت داده</translation>
+        </message>
+        <message id="genycaster.setup.existing_profile_body">
+            <source>Connect the Farcaster identity you already own.</source>
+            <translation>هویت فارکستر فعلی خودتان را متصل کنید.</translation>
+        </message>
+        <message id="genycaster.setup.new_profile_body">
+            <source>Register a new Farcaster identity in a compatible app.</source>
+            <translation>در یک برنامه سازگار، هویت فارکستر جدید بسازید.</translation>
+        </message>
+        <message id="genycaster.setup.registration_handoff">
+            <source>Continue in a compatible registration app, then come back to link your profile.</source>
+            <translation>ساخت پروفایل در برنامه ثبت‌نام انجام می‌شود؛ سپس برای اتصال به جنی‌کستر برگردید.</translation>
+        </message>
+        <message id="genycaster.setup.authentication_explainer">
+            <source>Sign-in uses a verified OpenProof session and a linked Farcaster FID. Publishing permissions are separate.</source>
+            <translation>ورود با نشست تأییدشده OpenProof و شناسه فارکستر پیوندخورده انجام می‌شود. مجوز انتشار جداگانه است.</translation>
+        </message>
     </context>
 </TS>

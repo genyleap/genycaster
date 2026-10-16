@@ -1,5 +1,6 @@
 module;
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <expected>
@@ -30,12 +31,18 @@ CapabilityRouter::CapabilityRouter(
 {
 }
 
+void CapabilityRouter::setPreferredNetwork(const policy::PreferredNetwork network) noexcept
+{
+    m_preferredNetwork.store(network, std::memory_order_relaxed);
+}
+
 foundation::result::Result<ProviderRoute>
 CapabilityRouter::resolve(const policy::CapabilityRequest& request) const
 {
     const auto candidates = m_registry.candidatesFor(request.capabilityId);
     std::optional<ProviderRoute> best{};
     std::uint64_t bestScore{std::numeric_limits<std::uint64_t>::max()};
+    bool bestMatchesPreference{false};
     std::optional<provider::model::ProviderId> coolingProvider{};
     std::chrono::milliseconds shortestCooldown{std::chrono::milliseconds::max()};
 
@@ -57,10 +64,19 @@ CapabilityRouter::resolve(const policy::CapabilityRequest& request) const
             continue;
         }
 
+        // Affinity is a lexicographic preference *after* capability, deployment,
+        // and health eligibility. It never defeats a hard constraint or excludes
+        // a compatible fallback when the preferred adapter is absent.
+        const auto preferred = m_preferredNetwork.load(std::memory_order_relaxed);
+        const bool matchesPreference = preferred == policy::PreferredNetwork::Hypersnap
+            ? candidate.provider.id.value == "hypersnap-v2"
+            : candidate.provider.id.value == "farcaster-snapchain";
         const auto routeScore = m_policyEngine.score(candidate, healthPointer);
-        if (!best || routeScore < bestScore) {
+        if (!best || (matchesPreference && !bestMatchesPreference)
+            || (matchesPreference == bestMatchesPreference && routeScore < bestScore)) {
             best = ProviderRoute{candidate.provider, candidate.capability};
             bestScore = routeScore;
+            bestMatchesPreference = matchesPreference;
         }
     }
 

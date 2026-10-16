@@ -24,6 +24,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool authenticationBusy READ authenticationBusy NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString authenticationPhase READ authenticationPhase NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString authenticationRoute READ authenticationRoute NOTIFY authenticationStateChanged)
+    Q_PROPERTY(QString preferredNetwork READ preferredNetwork NOTIFY preferredNetworkChanged)
     Q_PROPERTY(bool authenticationApprovalAvailable READ authenticationApprovalAvailable NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString authenticationErrorText READ authenticationErrorText NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountIdentityIssuer READ accountIdentityIssuer NOTIFY authenticationStateChanged)
@@ -97,6 +98,10 @@ public:
     [[nodiscard]] bool authenticationBusy() const noexcept;
     [[nodiscard]] QString authenticationPhase() const;
     [[nodiscard]] QString authenticationRoute() const;
+    /** @brief Preferred connection route, independent of account identity and signing authority. */
+    [[nodiscard]] QString preferredNetwork() const;
+    /** @brief Persist a validated Farcaster/Hypersnap preference for subsequent routing. */
+    Q_INVOKABLE bool setPreferredNetwork(const QString& network);
     [[nodiscard]] bool authenticationApprovalAvailable() const noexcept;
     [[nodiscard]] QString authenticationErrorText() const;
     [[nodiscard]] QString accountIdentityIssuer() const;
@@ -316,6 +321,7 @@ signals:
     void runtimeStateChanged();
     /** @brief Authentication/account presentation changed; isolated from feed/write invalidation. */
     void authenticationStateChanged();
+    void preferredNetworkChanged(QString network);
     /** @brief First-run setup completion or authentication gate visibility changed. */
     void setupStateChanged();
     void stateChanged();
@@ -374,6 +380,7 @@ private:
     bool m_isAuthenticated{false};
     QString m_authenticationPhase{QStringLiteral("signed-out")};
     QString m_authenticationRoute{QStringLiteral("openproof")};
+    QString m_preferredNetwork{QStringLiteral("hypersnap")};
     QString m_authenticationApprovalUrl{};
     QString m_authenticationErrorText{};
     QString m_accountIdentityIssuer{};

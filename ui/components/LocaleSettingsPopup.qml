@@ -888,6 +888,49 @@ GenyDrawer {
                         }
                     }
 
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.choose_network")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space2
+
+                            ActionButton {
+                                Layout.fillWidth: true
+                                text: "Hypersnap"
+                                selected: presentationBridge.preferredNetwork === "hypersnap"
+                                elevated: false
+                                onClicked: presentationBridge.setPreferredNetwork("hypersnap")
+                            }
+
+                            ActionButton {
+                                Layout.fillWidth: true
+                                text: "Farcaster"
+                                selected: presentationBridge.preferredNetwork === "farcaster"
+                                elevated: false
+                                onClicked: presentationBridge.setPreferredNetwork("farcaster")
+                            }
+                        }
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.network_settings_explainer")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+
                     GridLayout {
                         id: localeGrid
                         Layout.fillWidth: true

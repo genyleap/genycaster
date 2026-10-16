@@ -1,3 +1,7 @@
+module;
+
+#include <atomic>
+
 export module farcaster.routing.router;
 
 import farcaster.capability.model;
@@ -44,10 +48,14 @@ public:
     [[nodiscard]] foundation::result::Result<ProviderRoute>
     resolve(const policy::CapabilityRequest& request) const;
 
+    /** @brief Changes affinity for future routes atomically; does not alter active requests or signer authority. */
+    void setPreferredNetwork(policy::PreferredNetwork network) noexcept;
+
 private:
     const registry::CapabilityRegistry& m_registry;
     const health::HealthRegistry& m_health;
     policy::RoutingPolicy m_policy{};
+    std::atomic<policy::PreferredNetwork> m_preferredNetwork{policy::PreferredNetwork::Hypersnap};
     policy::PolicyEngine m_policyEngine{};
 };
 

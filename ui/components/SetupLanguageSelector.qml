@@ -5,11 +5,12 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
+// Focused, native-language picker: one control, one selection summary, no carousel.
 Item {
     id: root
 
     property var model: []
-    property alias currentIndex: carousel.currentIndex
+    property alias currentIndex: languageCombo.currentIndex
     property string selectedLabel: ""
     property string selectedDetail: ""
     property bool userInteracted: false
@@ -19,254 +20,91 @@ Item {
     readonly property var currentEntry: currentIndex >= 0 && currentIndex < itemCount
                                         ? model[currentIndex] : null
 
-    implicitHeight: 184
-    activeFocusOnTab: true
-    Accessible.name: qsTrId("genycaster.settings.language_region")
-    Accessible.description: currentEntry ? currentEntry.language : ""
+    implicitHeight: pickerLayout.implicitHeight
     LayoutMirroring.enabled: false
     LayoutMirroring.childrenInherit: true
-
-    Keys.onLeftPressed: event => {
-        previous()
-        event.accepted = true
-    }
-    Keys.onRightPressed: event => {
-        next()
-        event.accepted = true
-    }
-
-    function wrappedOffset(index) {
-        if (itemCount <= 0)
-            return 0
-        let delta = index - carousel.currentIndex
-        if (delta > itemCount / 2)
-            delta -= itemCount
-        else if (delta < -itemCount / 2)
-            delta += itemCount
-        return delta
-    }
-
-    function activateCurrent() {
-        if (!userInteracted || !currentEntry)
-            return
-        activated(currentIndex, currentEntry)
-    }
-
-    function previous() {
-        if (itemCount <= 0)
-            return
-        userInteracted = true
-        carousel.decrementCurrentIndex()
-    }
-
-    function next() {
-        if (itemCount <= 0)
-            return
-        userInteracted = true
-        carousel.incrementCurrentIndex()
-    }
+    Accessible.name: qsTrId("genycaster.settings.language_region")
+    Accessible.description: selectedLabel
 
     ColumnLayout {
+        id: pickerLayout
         anchors.fill: parent
         spacing: Theme.space3
 
         Superellipse {
+            id: pickerCard
             Layout.fillWidth: true
-            Layout.preferredHeight: 124
+            implicitHeight: cardContent.implicitHeight + Theme.space4 * 2
             fillColor: Theme.surface
-            borderWidth: Theme.strokeStandard
             borderColor: Theme.borderMuted
+            borderWidth: Theme.strokeStandard
             curveDepth: Theme.curveContainer
 
-            Rectangle {
+            ColumnLayout {
+                id: cardContent
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: 56
-                anchors.rightMargin: 56
-                height: Theme.strokeHairline
-                color: Theme.borderMuted
-                opacity: 0.72
-            }
-
-            Button {
-                id: previousButton
-                width: 40
-                height: 40
-                anchors.left: parent.left
-                anchors.leftMargin: Theme.space3
-                anchors.verticalCenter: parent.verticalCenter
-                hoverEnabled: true
-                focusPolicy: Qt.StrongFocus
-                Accessible.name: qsTrId("genycaster.setup.previous_language")
-                onClicked: root.previous()
-
-                background: Rectangle {
-                    radius: width / 2
-                    color: previousButton.down ? Theme.surfacePressed
-                         : previousButton.hovered ? Theme.surfaceHover : "transparent"
-                    border.width: previousButton.activeFocus ? 2 : 0
-                    border.color: Theme.focus
-                }
-
-                contentItem: Icon {
-                    text: Theme.iconArrowLeft
-                    color: Theme.inkMuted
-                    preferredSize: Theme.iconSizeSmall
-                }
-            }
-
-            Button {
-                id: nextButton
-                width: 40
-                height: 40
-                anchors.right: parent.right
-                anchors.rightMargin: Theme.space3
-                anchors.verticalCenter: parent.verticalCenter
-                hoverEnabled: true
-                focusPolicy: Qt.StrongFocus
-                Accessible.name: qsTrId("genycaster.setup.next_language")
-                onClicked: root.next()
-
-                background: Rectangle {
-                    radius: width / 2
-                    color: nextButton.down ? Theme.surfacePressed
-                         : nextButton.hovered ? Theme.surfaceHover : "transparent"
-                    border.width: nextButton.activeFocus ? 2 : 0
-                    border.color: Theme.focus
-                }
-
-                contentItem: Icon {
-                    text: Theme.iconArrowRight
-                    color: Theme.inkMuted
-                    preferredSize: Theme.iconSizeSmall
-                }
-            }
-
-            PathView {
-                id: carousel
-                anchors.left: previousButton.right
-                anchors.right: nextButton.left
                 anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                anchors.leftMargin: Theme.space2
-                anchors.rightMargin: Theme.space2
-                model: root.model
-                pathItemCount: Math.min(root.itemCount, 5)
-                preferredHighlightBegin: 0.5
-                preferredHighlightEnd: 0.5
-                highlightRangeMode: PathView.StrictlyEnforceRange
-                snapMode: PathView.SnapToItem
-                maximumFlickVelocity: 1050
+                anchors.margins: Theme.space4
+                spacing: Theme.space3
 
-                onMovementStarted: root.userInteracted = true
-                onCurrentIndexChanged: Qt.callLater(root.activateCurrent)
+                RowLayout {
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space2
 
-                path: Path {
-                    startX: 20
-                    startY: carousel.height * 0.58
-
-                    PathCubic {
-                        control1X: carousel.width * 0.24
-                        control1Y: carousel.height * 0.44
-                        control2X: carousel.width * 0.36
-                        control2Y: carousel.height * 0.44
-                        x: carousel.width / 2
-                        y: carousel.height * 0.50
+                    Icon {
+                        text: Theme.iconLanguage
+                        color: Theme.accent
+                        preferredSize: Theme.iconSize
                     }
 
-                    PathCubic {
-                        control1X: carousel.width * 0.64
-                        control1Y: carousel.height * 0.44
-                        control2X: carousel.width * 0.76
-                        control2Y: carousel.height * 0.44
-                        x: carousel.width - 20
-                        y: carousel.height * 0.58
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.locale.language")
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightDemiBold
                     }
                 }
 
-                delegate: Item {
-                    id: languageDelegate
-                    required property int index
-                    required property var modelData
-
-                    readonly property int offsetFromCenter: root.wrappedOffset(languageDelegate.index)
-                    readonly property int distanceFromCenter: Math.abs(offsetFromCenter)
-
-                    width: 154
-                    height: 64
-                    scale: PathView.isCurrentItem ? 1.0
-                           : distanceFromCenter <= 1 ? 0.86 : 0.74
-                    opacity: PathView.isCurrentItem ? 1.0
-                             : distanceFromCenter <= 1 ? 0.66 : 0.28
-                    z: PathView.isCurrentItem ? 3 : 1
-
-                    Behavior on scale {
-                        NumberAnimation {
-                            duration: Theme.reduceMotion ? 0 : Theme.motionStandard
-                            easing.type: Easing.OutCubic
-                        }
+                GenyComboBox {
+                    id: languageCombo
+                    Layout.fillWidth: true
+                    model: root.model
+                    textRole: "language"
+                    valueRole: "tag"
+                    popupMaximumWidth: 540
+                    Accessible.name: qsTrId("genycaster.locale.language")
+                    onActivated: index => {
+                        if (index < 0 || index >= root.itemCount)
+                            return
+                        root.userInteracted = true
+                        root.activated(index, root.model[index])
                     }
+                }
 
-                    Superellipse {
-                        anchors.fill: parent
-                        visible: PathView.isCurrentItem
-                        fillColor: Theme.primaryFill
-                        borderWidth: 0
-                        borderColor: "transparent"
-                        curveDepth: Theme.curveControl
-                        elevation: Theme.elevationControl
-                    }
-
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 1
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: languageDelegate.modelData.hello
-                            color: PathView.isCurrentItem ? Theme.accentInk : Theme.inkMuted
-                            font.family: Theme.fontFamilyForText(languageDelegate.modelData.hello)
-                            font.pixelSize: PathView.isCurrentItem
-                                            ? Theme.typeTitle3Size : Theme.typeLabelSize
-                            font.weight: PathView.isCurrentItem
-                                         ? Theme.weightBold : Theme.weightMedium
-                        }
-
-                        Label {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            visible: PathView.isCurrentItem
-                            text: languageDelegate.modelData.language
-                            color: Qt.rgba(Theme.accentInk.r,
-                                           Theme.accentInk.g,
-                                           Theme.accentInk.b, 0.76)
-                            font.family: Theme.fontFamilyForText(languageDelegate.modelData.language)
-                            font.pixelSize: Theme.typeCaptionSize
-                            font.weight: Theme.weightMedium
-                        }
-                    }
-
-                    TapHandler {
-                        onTapped: {
-                            root.userInteracted = true
-                            carousel.currentIndex = languageDelegate.index
-                        }
-                    }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: root.currentEntry ? root.currentEntry.hello : ""
+                    color: Theme.inkMuted
+                    font.family: Theme.fontFamilyForText(text)
+                    font.pixelSize: Theme.typeLabelSize
+                    font.weight: Theme.weightMedium
+                    horizontalAlignment: Theme.textStartAlignment
                 }
             }
         }
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.leftMargin: Theme.space1
-            Layout.rightMargin: Theme.space1
-            spacing: Theme.space2
             layoutDirection: Theme.uiDirection
+            spacing: Theme.space2
 
             Icon {
-                text: Theme.iconLanguage
+                text: Theme.iconCheck
                 color: Theme.accent
-                preferredSize: Theme.iconSize
+                preferredSize: Theme.iconSizeSmall
             }
 
             ColumnLayout {
@@ -281,30 +119,23 @@ Item {
                     color: Theme.ink
                     font.pixelSize: Theme.typeLabelSize
                     font.weight: Theme.weightDemiBold
-                    horizontalAlignment: Theme.textStartAlignment
                     elide: Text.ElideRight
                 }
 
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    text: root.selectedDetail.length > 0
-                          ? root.selectedDetail
-                          : root.currentEntry ? root.currentEntry.tag : ""
+                    text: root.selectedDetail
                     color: Theme.inkSubtle
                     font.pixelSize: Theme.typeCaptionSize
-                    horizontalAlignment: Theme.textStartAlignment
                     elide: Text.ElideRight
                 }
             }
 
-            Label {
+            DirectionAwareLabel {
                 visible: root.userInteracted
-                Layout.maximumWidth: 220
                 text: qsTrId("genycaster.setup.language_applies_now")
                 color: Theme.inkSubtle
                 font.pixelSize: Theme.typeCaptionSize
-                horizontalAlignment: Theme.textEndAlignment
-                elide: Text.ElideRight
             }
         }
     }

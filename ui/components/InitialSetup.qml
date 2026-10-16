@@ -30,6 +30,10 @@ Item {
     property string accountUsername: ""
     property string accountAvatarUrl: ""
 
+    // The chosen transport preference is separate from the verified identity and signer.
+    property string accountIntent: "existing"
+    property bool showAdvancedNodes: false
+
     property bool legalTermsChecked: false
     property bool legalPrivacyChecked: false
     property bool legalTermsReviewed: false
@@ -42,6 +46,7 @@ Item {
 
     signal continueWithGenyleap()
     signal continueWithFarcaster()
+    signal openRegistration()
     signal openApproval()
     signal cancelAuthentication()
     signal acceptLegalConsent(bool termsAccepted, bool privacyAcknowledged, bool reviewCompleted)
@@ -421,12 +426,12 @@ Item {
                     layoutDirection: Theme.uiDirection
                     Repeater {
                         model: root.wizardSteps
-                        delegate: Rectangle {
+                        delegate: Superellipse {
                             required property int modelData
                             width: modelData === root.currentStep ? 28 : 12
                             height: 4
-                            radius: 2
-                            color: modelData === root.currentStep ? Theme.primaryFill
+                            curveDepth: 2
+                            fillColor: modelData === root.currentStep ? Theme.primaryFill
                                  : modelData < root.currentStep ? Theme.inkMuted
                                  : Theme.borderStrong
                             Behavior on width {
@@ -508,7 +513,6 @@ Item {
                             y: 27
                             width: 1
                             height: Math.max(0, stepRail.height - 54)
-                            radius: 0.5
                             color: Theme.borderMuted
                         }
 
@@ -549,13 +553,14 @@ Item {
                                         spacing: Theme.space3
                                         layoutDirection: Theme.uiDirection
 
-                                        Rectangle {
+                                        Superellipse {
                                             Layout.preferredWidth: 30
                                             Layout.preferredHeight: 30
-                                            radius: 15
-                                            color: current ? Theme.primaryFill : Theme.surfaceMuted
-                                            border.width: Theme.strokeStandard
-                                            border.color: current ? Theme.primaryFill : Theme.borderMuted
+                                            curveDepth: 15
+                                            exponent: 2.01
+                                            fillColor: current ? Theme.primaryFill : Theme.surfaceMuted
+                                            borderWidth: Theme.strokeStandard
+                                            borderColor: current ? Theme.primaryFill : Theme.borderMuted
 
                                             Icon {
                                                 anchors.centerIn: parent
@@ -617,7 +622,7 @@ Item {
                         y: Theme.reduceMotion ? 0 : (1.0 - root.stageReveal) * 12
                     }
 
-                    ScrollBar.vertical: ScrollBar {
+                    ScrollBar.vertical: GenyScrollBar {
                         policy: stageFlick.contentHeight > stageFlick.height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
                     }
 
@@ -796,7 +801,7 @@ Item {
                         root.legalReaderReachedEnd = true
                 }
 
-                ScrollBar.vertical: ScrollBar {
+                ScrollBar.vertical: GenyScrollBar {
                     policy: legalReaderFlick.contentHeight > legalReaderFlick.height
                             ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
                 }
@@ -1212,22 +1217,23 @@ Item {
                                     Accessible.checked: selected
                                     onClicked: appearanceController.setColorThemeId(modelData.id)
 
-                                    background: Rectangle {
-                                        radius: 8
-                                        color: "transparent"
-                                        border.width: swatchButton.activeFocus ? 2 : 0
-                                        border.color: Theme.focus
+                                    background: Superellipse {
+                                        curveDepth: 8
+                                        fillColor: "transparent"
+                                        borderWidth: swatchButton.activeFocus ? 2 : 0
+                                        borderColor: Theme.focus
                                     }
 
                                     contentItem: Item {
-                                        Rectangle {
+                                        Superellipse {
                                             anchors.centerIn: parent
                                             width: swatchButton.selected ? 30 : 24
                                             height: width
-                                            radius: width / 2
-                                            color: modelData.color
-                                            border.width: swatchButton.selected ? 3 : 1
-                                            border.color: swatchButton.selected
+                                            curveDepth: width / 2
+                                            exponent: 2.01
+                                            fillColor: modelData.color
+                                            borderWidth: swatchButton.selected ? 3 : 1
+                                            borderColor: swatchButton.selected
                                                           ? Theme.surface : Theme.borderStrong
 
                                             Behavior on width {
@@ -1283,6 +1289,7 @@ Item {
             GridLayout {
                 Layout.fillWidth: true
                 columns: 1
+                layoutDirection: Theme.uiDirection
                 columnSpacing: 0
                 rowSpacing: Theme.space2
 
@@ -1376,15 +1383,56 @@ Item {
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconWifi
                 title: qsTrId("genycaster.setup.network_title")
-                subtitle: qsTrId("genycaster.setup.network_body")
+                subtitle: qsTrId("genycaster.setup.choose_network")
             }
 
-            Item {
+            GridLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.phone ? Theme.space3 : Theme.space5
+                columns: root.phone ? 1 : 2
+                columnSpacing: Theme.space2
+                rowSpacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+
+                SetupActionCard {
+                    Layout.fillWidth: true
+                    title: "Hypersnap"
+                    subtitle: qsTrId("genycaster.setup.hypersnap_explainer")
+                    iconGlyph: "quilibrium/hypersnap"
+                    primary: presentationBridge.preferredNetwork === "hypersnap"
+                    complete: presentationBridge.preferredNetwork === "hypersnap"
+                    onClicked: presentationBridge.setPreferredNetwork("hypersnap")
+                }
+
+                SetupActionCard {
+                    Layout.fillWidth: true
+                    title: "Farcaster"
+                    subtitle: qsTrId("genycaster.setup.farcaster_explainer")
+                    iconGlyph: "brands/farcaster"
+                    primary: presentationBridge.preferredNetwork === "farcaster"
+                    complete: presentationBridge.preferredNetwork === "farcaster"
+                    onClicked: presentationBridge.setPreferredNetwork("farcaster")
+                }
+            }
+
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.setup.network_settings_explainer")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Theme.textStartAlignment
+            }
+
+            ActionButton {
+                Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+                text: qsTrId("genycaster.setup.advanced_nodes")
+                iconGlyph: Theme.iconWifi
+                quiet: true
+                onClicked: root.showAdvancedNodes = !root.showAdvancedNodes
             }
 
             SetupActionCard {
+                visible: root.showAdvancedNodes
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.setup.network_automatic")
                 subtitle: qsTrId("genycaster.setup.network_experimental")
@@ -1395,6 +1443,7 @@ Item {
             }
 
             RowLayout {
+                visible: root.showAdvancedNodes
                 Layout.fillWidth: true
                 spacing: Theme.space2
                 layoutDirection: Theme.uiDirection
@@ -1418,6 +1467,7 @@ Item {
             }
 
             ColumnLayout {
+                visible: root.showAdvancedNodes
                 Layout.fillWidth: true
                 spacing: Theme.space2
 
@@ -1443,6 +1493,7 @@ Item {
             }
 
             Superellipse {
+                visible: root.showAdvancedNodes
                 Layout.fillWidth: true
                 implicitHeight: networkStateRow.implicitHeight + Theme.space2 * 2
                 fillColor: "transparent"
@@ -1578,57 +1629,99 @@ Item {
                 Layout.fillWidth: true
                 spacing: Theme.space3
 
-                Repeater {
-                    model: [
-                        {
-                            brand: root.genyBrandIcon,
-                            body: qsTrId("genycaster.setup.account_genyleap_body"),
-                            action: qsTrId("genycaster.shell.continue_with_genyleap"),
-                            comingSoon: qsTrId("genycaster.setup.account_create_openproof_soon"),
-                            farcaster: false
-                        },
-                        {
-                            brand: "brands/farcaster",
-                            body: qsTrId("genycaster.setup.account_farcaster_body"),
-                            action: qsTrId("genycaster.shell.sign_in_with_farcaster"),
-                            comingSoon: qsTrId("genycaster.setup.account_create_farcaster_soon"),
-                            farcaster: true
-                        }
-                    ]
+                GridLayout {
+                    Layout.fillWidth: true
+                    columns: root.phone ? 1 : 2
+                    columnSpacing: Theme.space2
+                    rowSpacing: Theme.space2
+                    layoutDirection: Theme.uiDirection
 
-                    delegate: ColumnLayout {
-                        required property var modelData
+                    SetupActionCard {
                         Layout.fillWidth: true
-                        spacing: Theme.space1
+                        title: qsTrId("genycaster.setup.existing_profile")
+                        subtitle: qsTrId("genycaster.setup.existing_profile_body")
+                        iconGlyph: Theme.iconSignIn
+                        primary: root.accountIntent === "existing"
+                        complete: root.accountIntent === "existing"
+                        onClicked: root.accountIntent = "existing"
+                    }
 
-                        SetupActionCard {
-                            Layout.fillWidth: true
-                            title: modelData.action
-                            subtitle: modelData.body
-                            iconGlyph: modelData.brand
-                            primary: !modelData.farcaster
-                            busy: root.authenticationInProgress
-                                  && (modelData.farcaster
-                                      ? root.authenticationRoute === "farcaster"
-                                      : root.authenticationRoute !== "farcaster")
-                            enabled: root.authenticationAvailable && !root.authenticationInProgress
-                            onClicked: {
-                                if (modelData.farcaster)
-                                    root.continueWithFarcaster()
-                                else
-                                    root.continueWithGenyleap()
-                            }
-                        }
+                    SetupActionCard {
+                        Layout.fillWidth: true
+                        title: qsTrId("genycaster.setup.new_profile")
+                        subtitle: qsTrId("genycaster.setup.new_profile_body")
+                        iconGlyph: Theme.iconUser
+                        primary: root.accountIntent === "new"
+                        complete: root.accountIntent === "new"
+                        onClicked: root.accountIntent = "new"
+                    }
+                }
 
-                        DirectionAwareLabel {
-                            Layout.leftMargin: Theme.space4
-                            Layout.rightMargin: Theme.space4
-                            Layout.fillWidth: true
-                            text: modelData.comingSoon
-                            color: Theme.inkSubtle
-                            font.pixelSize: Theme.typeCaptionSize
-                            elide: Text.ElideRight
+                ColumnLayout {
+                    visible: root.accountIntent === "new"
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.profile_creation_browser")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeLabelSize
+                        wrapMode: Text.WordWrap
+                    }
+
+                    SetupActionCard {
+                        Layout.fillWidth: true
+                        title: qsTrId("genycaster.setup.open_registration")
+                        subtitle: qsTrId("genycaster.setup.registration_handoff")
+                        iconGlyph: "brands/farcaster"
+                        primary: true
+                        enabled: !root.authenticationInProgress
+                        onClicked: root.openRegistration()
+                    }
+
+                    ActionButton {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.already_created")
+                        quiet: true
+                        enabled: !root.authenticationInProgress
+                        onClicked: root.accountIntent = "existing"
+                    }
+                }
+
+                ColumnLayout {
+                    visible: root.accountIntent === "existing"
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+
+                    SetupActionCard {
+                        Layout.fillWidth: true
+                        title: presentationBridge.preferredNetwork === "farcaster"
+                               ? qsTrId("genycaster.shell.sign_in_with_farcaster")
+                               : qsTrId("genycaster.shell.continue_with_genyleap")
+                        subtitle: presentationBridge.preferredNetwork === "farcaster"
+                                  ? qsTrId("genycaster.setup.account_farcaster_body")
+                                  : qsTrId("genycaster.setup.account_genyleap_body")
+                        iconGlyph: presentationBridge.preferredNetwork === "farcaster"
+                                   ? "brands/farcaster" : root.genyBrandIcon
+                        primary: true
+                        busy: root.authenticationInProgress
+                        enabled: root.authenticationAvailable && !root.authenticationInProgress
+                        onClicked: {
+                            if (presentationBridge.preferredNetwork === "farcaster")
+                                root.continueWithFarcaster()
+                            else
+                                root.continueWithGenyleap()
                         }
+                    }
+
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.authentication_explainer")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                        horizontalAlignment: Theme.textStartAlignment
                     }
                 }
             }
@@ -1758,6 +1851,7 @@ Item {
                     anchors.top: parent.top
                     anchors.margins: 0
                     columns: 1
+                    layoutDirection: Theme.uiDirection
                     columnSpacing: 0
                     rowSpacing: Theme.space3
 
@@ -1822,6 +1916,7 @@ Item {
                         RowLayout {
                             Layout.alignment: Qt.AlignHCenter
                             spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
 
                             Icon {
                                 text: Theme.iconCheck
