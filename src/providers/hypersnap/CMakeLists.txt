@@ -1,4 +1,12 @@
-find_package(Boost 1.75 REQUIRED)
+if(EMSCRIPTEN)
+    # Boost.JSON is compiled from header sources (boost/json/src.hpp).
+    # Its headers are portable, but BoostConfig for the wasm sysroot is absent.
+    # Avoid find_package(Boost): Qt Creator's package provider intercepts it
+    # and may attempt to use native macOS binaries during a cross-build.
+    include(WasmBoostHeaders)
+else()
+    find_package(Boost 1.75 REQUIRED)
+endif()
 
 add_library(farcaster_provider_hypersnap)
 add_library(farcaster::provider_hypersnap ALIAS farcaster_provider_hypersnap)

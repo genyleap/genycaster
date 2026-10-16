@@ -7,6 +7,18 @@ Qt kit, so a successful native test does NOT prove WASM execution.
 
 ## Dependency boundaries
 
+The live Hypersnap reader parses JSON with **Boost.JSON**, compiled via
+`boost/json/src.hpp` (header-only). Qt Creator's cross-build may reject
+`find_package(Boost)` because BoostConfig is absent from the WASM sysroot.
+`cmake/WasmBoostHeaders.cmake` supplies only an INTERFACE `Boost::headers`
+target: it first tries native **headers** from the host (not macOS binary
+libraries), then falls back to the official, SHA256-pinned Boost 1.89.0
+source archive (about 155 MB, cached per build directory). Optional
+`GENYCASTER_WASM_BOOST_INCLUDE_DIR` points to an existing include root with
+`boost/json.hpp`. Boost's JSON amalgamation is compiled using em++, so
+no macOS Boost binaries ever enter the browser application. The Qt Creator
+MaintenanceTool platform warning is unrelated to Boost dependency resolution.
+
 Do not resolve Homebrew/macOS SQLite for wasm32. `src/storage/CMakeLists.txt`
 compiles the official SQLite 3.54.0 C amalgamation via the selected Emscripten
 compiler (pinned SHA3-256), and links it to the existing SQLite boundary.
