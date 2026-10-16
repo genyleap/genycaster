@@ -45,6 +45,7 @@ messages = {
     "auth_provider_response_invalid": "The sign-in service could not complete the verification. Retry or use the other sign-in method.",
     "auth_conflict": "Another sign-in request conflicts with this one. Cancel and start again.",
     "auth_missing_link": "No linked Farcaster identity was found. Connect your existing profile after signing in.",
+    "farcaster_relay_unreachable": "Could not reach Farcaster Relay. In Network setup, try Direct instead of System proxy, then restart and retry.",
 }
 fa = {
     "choose_network": "مسیر اتصال",
@@ -87,6 +88,7 @@ fa = {
     "auth_provider_response_invalid": "سرویس ورود نتوانست تأیید را تکمیل کند. دوباره تلاش کنید یا مسیر دیگر را انتخاب کنید.",
     "auth_conflict": "درخواست ورود دیگری تداخل دارد. لغو کنید و دوباره شروع کنید.",
     "auth_missing_link": "هویت فارکستر پیوندخورده پیدا نشد. پس از ورود پروفایل موجود را متصل کنید.",
+    "farcaster_relay_unreachable": "اتصال به رله فارکستر برقرار نشد. در تنظیمات شبکه، به‌جای پراکسی سیستم اتصال مستقیم را انتخاب کنید، برنامه را دوباره باز کنید و مجدداً تلاش کنید.",
 }
 for path in sorted((base / "ui/i18n").glob("qml_*.ts")):
     tree = ET.parse(path)

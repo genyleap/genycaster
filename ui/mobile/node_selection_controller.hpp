@@ -28,12 +28,15 @@ class NodeSelectionController final : public QObject {
     Q_PROPERTY(bool automatic READ automatic NOTIFY selectionChanged)
     Q_PROPERTY(bool probing READ probing NOTIFY nodesChanged)
     Q_PROPERTY(bool restartRequired READ restartRequired NOTIFY selectionChanged)
+    Q_PROPERTY(QString proxyMode READ proxyMode NOTIFY selectionChanged)
+    Q_PROPERTY(bool proxyRestartRequired READ proxyRestartRequired NOTIFY selectionChanged)
 
 public:
     NodeSelectionController(
         QSettings& settings,
         QString appliedEndpoint,
         QStringList candidateEndpoints,
+        QString appliedProxyMode,
         bool probingEnabled,
         QObject* parent = nullptr);
     ~NodeSelectionController() override;
@@ -44,6 +47,9 @@ public:
     [[nodiscard]] bool automatic() const noexcept;
     [[nodiscard]] bool probing() const noexcept;
     [[nodiscard]] bool restartRequired() const;
+    [[nodiscard]] QString proxyMode() const;
+    [[nodiscard]] bool proxyRestartRequired() const;
+    Q_INVOKABLE bool setProxyMode(const QString& proxyMode);
 
     Q_INVOKABLE void refresh();
     Q_INVOKABLE bool selectNode(const QString& nodeId);
@@ -76,6 +82,8 @@ private:
 
     QSettings& m_settings;
     QString m_appliedEndpoint;
+    QString m_appliedProxyMode;
+    QString m_proxyMode;
     QList<Node> m_nodes;
     QString m_selectedNodeId;
     bool m_automatic{true};

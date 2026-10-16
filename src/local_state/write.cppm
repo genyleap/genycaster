@@ -83,6 +83,14 @@ public:
     [[nodiscard]] virtual foundation::result::Result<std::vector<FollowingProjection>>
     listFollowingProjections(domain::identity::Fid author) = 0;
 
+    /**
+     * @brief Returns recent signed CastAdd projections, including retry and
+     * terminal failure, for reconstructing the local timeline after restart.
+     * Never invokes a remote provider or retries an operation as a side effect.
+     */
+    [[nodiscard]] virtual foundation::result::Result<std::vector<domain::write::OutboxRecord>>
+    listCastProjections(domain::identity::Fid author, std::size_t limit) = 0;
+
     /** @brief Lists due pending records in deterministic enqueue order. */
     [[nodiscard]] virtual foundation::result::Result<std::vector<domain::write::OutboxRecord>> listReady(
         domain::identity::Fid author,

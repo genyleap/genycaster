@@ -1409,6 +1409,51 @@ Item {
                 }
             }
 
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space1
+
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTr("Network connection")
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeLabelSize
+                    font.weight: Theme.weightDemiBold
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTr("If Farcaster Relay cannot connect through a system proxy, select Direct and restart Genycaster.")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space2
+                    ActionButton {
+                        Layout.fillWidth: true
+                        text: qsTr("System proxy")
+                        selected: nodeSelectionController.proxyMode === "system"
+                        onClicked: nodeSelectionController.setProxyMode("system")
+                    }
+                    ActionButton {
+                        Layout.fillWidth: true
+                        text: qsTr("Direct")
+                        selected: nodeSelectionController.proxyMode === "direct"
+                        onClicked: nodeSelectionController.setProxyMode("direct")
+                    }
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    visible: nodeSelectionController.proxyRestartRequired
+                    text: qsTr("Restart Genycaster to apply the connection change.")
+                    color: Theme.warning
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                }
+            }
+
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.setup.network_settings_explainer")
@@ -1438,6 +1483,48 @@ Item {
                           && presentationBridge.preferredNetwork === "farcaster"
                 enabled: presentationBridge.farcasterReadConfigured
                 onClicked: presentationBridge.setPreferredNetwork("farcaster")
+            }
+
+            ColumnLayout {
+                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === "farcaster"
+                Layout.fillWidth: true
+                spacing: Theme.space2
+
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTr("Farcaster Hub directory")
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeLabelSize
+                    font.weight: Theme.weightDemiBold
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTr("Raw Hub APIs are for protocol messages and health. They are not interchangeable with the indexed v2 feed API used for Explore and profiles.")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                }
+                SetupActionCard {
+                    Layout.fillWidth: true
+                    enabled: false
+                    title: qsTr("Pinata Hub · Farcaster")
+                    subtitle: qsTr("hub.pinata.cloud · Hub v1 API, not a compatible indexed v2 feed endpoint")
+                    iconGlyph: "brands/farcaster"
+                }
+                SetupActionCard {
+                    Layout.fillWidth: true
+                    enabled: false
+                    title: qsTr("Neynar Hub · Farcaster")
+                    subtitle: qsTr("Authenticated Hub access; separate from the Neynar indexed feed API")
+                    iconGlyph: "brands/farcaster"
+                }
+                SetupActionCard {
+                    Layout.fillWidth: true
+                    enabled: false
+                    title: qsTr("Standard Crypto Hub · Farcaster")
+                    subtitle: qsTr("Hub endpoint; availability and authentication must be verified before use")
+                    iconGlyph: "brands/farcaster"
+                }
             }
 
             SetupActionCard {
@@ -1491,11 +1578,13 @@ Item {
                         iconGlyph: "quilibrium/hypersnap"
                         trailingText: modelData.status === "checking" ? "…"
                                       : modelData.latencyMs >= 0 ? modelData.latencyMs + " ms"
+                                      : modelData.status === "auth-gated" ? qsTr("Requires authentication")
+                                      : modelData.status === "incompatible" ? qsTr("Not a Hypersnap node")
                                       : modelData.status === "offline"
                                         ? qsTrId("genycaster.setup.network_unreachable") : "—"
                         primary: modelData.selected && !nodeSelectionController.automatic
                         selected: modelData.selected
-                        enabled: modelData.status !== "offline"
+                        enabled: modelData.status === "online" || modelData.selected
                         onClicked: nodeSelectionController.selectNode(modelData.id)
                     }
                 }

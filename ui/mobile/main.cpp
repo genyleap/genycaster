@@ -1060,11 +1060,11 @@ void applySocialState(PresentationBridge& bridge, application::read::model::Soci
         summary = qtTrId("genycaster.runtime.sign_in_could_not_be_completed");
         break;
     case ErrorCode::Timeout:
-        summary = qtTrId("genycaster.runtime.sign_in_could_not_be_completed");
-        break;
     case ErrorCode::Unavailable:
     case ErrorCode::TransportFailure:
-        summary = qtTrId("genycaster.runtime.sign_in_could_not_be_completed");
+        summary = route == QStringLiteral("farcaster")
+            ? qtTrId("genycaster.setup.farcaster_relay_unreachable")
+            : qtTrId("genycaster.runtime.sign_in_could_not_be_completed");
         break;
     case ErrorCode::Unsupported:
         summary = qtTrId("genycaster.runtime.sign_in_could_not_be_completed");
@@ -1433,6 +1433,7 @@ void hydrateWriteProjections(
                 if (bridgeGuard) {
                     bridgeGuard->applyReactionProjections({});
                     bridgeGuard->applyFollowingProjections({});
+                    bridgeGuard->applyCastProjections(0, {});
                 }
             },
             Qt::QueuedConnection);
@@ -1440,10 +1441,12 @@ void hydrateWriteProjections(
     }
 
     const domain::identity::Fid accountFid = session->fid;
-    auto scheduled = runtime->signerExecutor->post([bridgeGuard, runtime, accountFid] {
+    const auto accountSession = *session;
+    auto scheduled = runtime->signerExecutor->post([bridgeGuard, runtime, accountFid, accountSession] {
         auto reactions = runtime->writeOutbox->listReactionProjections(accountFid);
         auto following = runtime->writeOutbox->listFollowingProjections(accountFid);
-        if (!reactions || !following) {
+        auto localCasts = runtime->writeOutbox->listCastProjections(accountFid, 200U);
+        if (!reactions || !following || !localCasts) {
 #ifndef NDEBUG
             if (!reactions) {
                 qInfo().noquote() << "Genycaster local reaction projection failure:"
@@ -1453,22 +1456,64 @@ void hydrateWriteProjections(
                 qInfo().noquote() << "Genycaster local following projection failure:"
                                   << QString::fromStdString(following.error().message);
             }
+            if (!localCasts) {
+                qInfo().noquote() << "Genycaster local cast projection failure:"
+                                  << QString::fromStdString(localCasts.error().message);
+            }
 #endif
             return;
         }
         auto reactionRows = reactionProjectionRows(*reactions);
         auto followingRows = followingProjectionRows(*following);
+        // Include retry/failed optimistic casts as well as confirmed casts
+        // waiting for remote indexing. These records are durable in SQLite.
+        // No network submission or retry is performed by this hydration.
+        QVariantList castRows{};
+        for (auto it = localCasts->begin(); it != localCasts->end(); ++it) {
+            if (!it->operation.optimisticCast) continue;
+            application::write::WritePhase phase =
+                it->status == domain::write::OutboxStatus::Failed
+                    ? application::write::WritePhase::Failed
+                    : it->status == domain::write::OutboxStatus::Confirmed
+                        ? application::write::WritePhase::Confirmed
+                        : it->nextAttemptAt
+                            ? application::write::WritePhase::RetryScheduled
+                            : application::write::WritePhase::Queued;
+            application::write::WriteState snapshot{
+                .phase = phase,
+                .record = application::write::WriteRecord{
+                    .idempotencyKey = it->operation.idempotencyKey.value,
+                    .kind = application::write::OperationKind::PublishCast,
+                    .author = it->operation.author,
+                    .optimisticCast = it->operation.optimisticCast,
+                    .target = application::write::OperationTarget{
+                        .cast = it->operation.target.cast,
+                        .fid = it->operation.target.fid,
+                    },
+                    .status = it->status == domain::write::OutboxStatus::Failed
+                        ? application::write::DurableWriteStatus::Failed
+                        : it->status == domain::write::OutboxStatus::Confirmed
+                            ? application::write::DurableWriteStatus::Confirmed
+                            : application::write::DurableWriteStatus::Pending,
+                    .attemptCount = it->attemptCount,
+                    .nextAttemptAt = it->nextAttemptAt,
+                },
+            };
+            castRows.push_back(writePresentation(snapshot, accountSession));
+        }
         PresentationBridge* const target = bridgeGuard.data();
         if (target == nullptr) {
             return;
         }
         QMetaObject::invokeMethod(
             target,
-            [bridgeGuard, reactionRows = std::move(reactionRows),
-             followingRows = std::move(followingRows)]() mutable {
+            [bridgeGuard, accountFid, reactionRows = std::move(reactionRows),
+             followingRows = std::move(followingRows), castRows = std::move(castRows)]() mutable {
                 if (bridgeGuard) {
                     bridgeGuard->applyReactionProjections(std::move(reactionRows));
                     bridgeGuard->applyFollowingProjections(std::move(followingRows));
+                    bridgeGuard->applyCastProjections(
+                        static_cast<qulonglong>(accountFid.value), std::move(castRows));
                 }
             },
             Qt::QueuedConnection);
@@ -1938,6 +1983,19 @@ void connectRuntime(
 #endif
         }
     };
+
+    // Backoff deadlines are persisted in SQLite, not in a Qt timer. The
+    // network can stay "online" while a retry becomes due, so resume must
+    // also be revisited after startup without requiring a reachability edge.
+    auto* const outboxRetryTimer = new QTimer(&bridge);
+    outboxRetryTimer->setInterval(30'000);
+    QObject::connect(outboxRetryTimer, &QTimer::timeout, &bridge,
+        [&bridge, runtime, writeObserver] {
+            if (!bridge.isAuthenticated() || !bridge.writeReady() || bridge.writeBusy() ||
+                !runtime->writeService) return;
+            (void)runtime->writeService->resume(runtime->currentSessionSnapshot(), writeObserver);
+        });
+    outboxRetryTimer->start();
 
     QObject::connect(&bridge, &PresentationBridge::networkReachabilityChanged, &bridge,
         [&bridge, &richComposer, runtime, writeObserver](const bool known, const bool online) {
@@ -3508,7 +3566,8 @@ int main(int argc, char* argv[])
         networkProxyText = qEnvironmentVariable("GENYCASTER_NETWORK_PROXY").trimmed();
     }
     if (networkProxyText.isEmpty()) {
-        networkProxyText = QStringLiteral("system");
+        networkProxyText = settings.value(
+            QStringLiteral("network/proxyMode"), QStringLiteral("system")).toString();
     }
     networkProxyText = networkProxyText.toLower();
     farcaster::transport::qtnetwork::ProxyPolicy networkProxyPolicy{};
@@ -3890,6 +3949,7 @@ int main(int argc, char* argv[])
         settings,
         appliedNodeEndpoint,
         nodeCandidateEndpoints,
+        networkProxyText,
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest);
     NodeSelectionController& nodeSelectionController = *nodeSelectionControllerOwner;
 

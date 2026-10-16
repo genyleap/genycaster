@@ -954,6 +954,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.sign_in_to_interact");
     //% "Sign in with Farcaster"
     (void)qtTrId("genycaster.shell.sign_in_with_farcaster");
+    //% "Could not reach Farcaster Relay. In Network setup, try Direct instead of System proxy, then restart and retry."
+    (void)qtTrId("genycaster.setup.farcaster_relay_unreachable");
     //% "Use your Farcaster identity or Genyleap account. Each sign-in is verified independently; neither changes your read network."
     (void)qtTrId("genycaster.setup.account_methods_explainer");
     //% "Product notice summary"

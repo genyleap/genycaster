@@ -2133,6 +2133,50 @@ void PresentationBridge::applyWriteState(
     emit stateChanged();
 }
 
+void PresentationBridge::applyCastProjections(const qulonglong accountFid, QVariantList casts)
+{
+    if (!m_isAuthenticated || m_accountFid != accountFid) return;
+    // A network or signer restoration may already have emitted a fresher
+    // state for the same signed cast. Never replace that with older SQLite
+    // snapshot state from an asynchronous startup read.
+    for (const auto& value : casts) {
+        const auto row = value.toMap();
+        const QString id = row.value(QStringLiteral("castId")).toString();
+        if (id.isEmpty() || row.value(QStringLiteral("operationKind")).toString()
+                != QStringLiteral("publish-cast")) continue;
+        bool found = false;
+        for (const auto& existing : m_writeRows) {
+            if (existing.toMap().value(QStringLiteral("castId")).toString() == id) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) m_writeRows.push_back(row);
+    }
+    const bool eligibleView = m_activeView == QStringLiteral("feed") ||
+        (m_activeView == QStringLiteral("profile") && m_profileFid == m_accountFid);
+    if (eligibleView) {
+        QVariantList merged{};
+        for (const auto& value : m_writeRows) {
+            const auto row = value.toMap();
+            if (m_activeView == QStringLiteral("profile") &&
+                !writeRowEligibleForProfileFeed(row, m_profileFeed)) continue;
+            bool alreadyOnNetwork = false;
+            for (const auto& networkRow : m_rows) {
+                if (networkRow.toMap().value(QStringLiteral("castId")).toString()
+                    == row.value(QStringLiteral("castId")).toString()) {
+                    alreadyOnNetwork = true;
+                    break;
+                }
+            }
+            if (!alreadyOnNetwork) merged.push_back(value);
+        }
+        for (const auto& value : m_rows) merged.push_back(value);
+        m_rows = std::move(merged);
+    }
+    emit stateChanged();
+}
+
 void PresentationBridge::applyReactionProjections(QVariantList reactions)
 {
     m_reactionOverrides.clear();

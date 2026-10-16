@@ -281,6 +281,8 @@ public:
     /** @brief Commits one durable protocol-write lifecycle plus optional presentation mutation. */
     void applyWriteState(
         QString phase, bool busy, QString statusText, QString errorText, QVariantMap optimisticRow = {});
+    /** @brief Rehydrates locally saved CastAdds after restart without altering write lifecycle. */
+    void applyCastProjections(qulonglong accountFid, QVariantList casts);
     /** @brief Replaces account-scoped durable Like/Recast state used to overlay refreshed reads. */
     void applyReactionProjections(QVariantList reactions);
     /** @brief Replaces network-observed active Like/Recast state for the signed-in viewer. */

@@ -195,6 +195,43 @@ void durableRoundTripAndDuplicateIdempotency()
 }
 
 
+void castProjectionsSurviveRestartAndRetainRetryStatus()
+{
+    DatabaseFixture database{};
+    auto original = operation();
+    original.optimisticCast->parent = domain::cast::CastId{
+        "0x9999888877776666555544443333222211110000"};
+    {
+        auto store = storage::write::openOutboxStore(database.path);
+        assert(store);
+        assert((*store)->enqueue(original, timestamp(1000)));
+        auto attempted = (*store)->beginAttempt(original.idempotencyKey, timestamp(1001));
+        assert(attempted);
+        assert((*store)->markRetry(
+            original.idempotencyKey,
+            domain::write::OutboxFailure{},
+            timestamp(9000)));
+    }
+    auto reopened = storage::write::openOutboxStore(database.path);
+    assert(reopened);
+    auto casts = (*reopened)->listCastProjections(domain::identity::Fid{42U}, 20);
+    assert(casts && casts->size() == 1U);
+    assert(casts->front().status == domain::write::OutboxStatus::Pending);
+    assert(casts->front().nextAttemptAt == timestamp(9000));
+    assert(casts->front().operation.optimisticCast);
+    assert(casts->front().operation.optimisticCast->parent);
+    assert(casts->front().operation.optimisticCast->text == "durable hello");
+    auto isolated = (*reopened)->listCastProjections(domain::identity::Fid{9U}, 20);
+    assert(isolated && isolated->empty());
+    assert((*reopened)->markFailed(original.idempotencyKey, domain::write::OutboxFailure{}, timestamp(10000)));
+    (*reopened).reset();
+    auto again = storage::write::openOutboxStore(database.path);
+    assert(again);
+    auto failed = (*again)->listCastProjections(domain::identity::Fid{42U}, 20);
+    assert(failed && failed->size() == 1U);
+    assert(failed->front().status == domain::write::OutboxStatus::Failed);
+}
+
 void socialTargetsSurviveStoreReopen()
 {
     DatabaseFixture database{};
@@ -660,6 +697,7 @@ void invalidIdentityNeverEnqueues()
 int main()
 {
     durableRoundTripAndDuplicateIdempotency();
+    castProjectionsSurviveRestartAndRetainRetryStatus();
     socialTargetsSurviveStoreReopen();
     reactionProjectionSurvivesRefreshReopenAndOldDuplicate();
     followingProjectionSurvivesRefreshReopenAndOldDuplicate();

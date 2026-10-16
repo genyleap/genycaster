@@ -1054,6 +1054,52 @@ ORDER BY updated_at_ms ASC, target_fid ASC;
         return projections;
     }
 
+    [[nodiscard]] foundation::result::Result<std::vector<domain::write::OutboxRecord>>
+    listCastProjections(const domain::identity::Fid author, const std::size_t limit) override
+    {
+        std::scoped_lock lock{m_mutex};
+        if (author.value == 0U || limit == 0U ||
+            limit > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Local cast projection requires a valid FID and positive limit."));
+        }
+        auto prepared = sqlite::Statement::prepare(m_connection, R"SQL(
+SELECT idempotency_key FROM write_outbox
+WHERE author_fid = ? AND kind = 'publish-cast'
+  AND status IN ('pending', 'failed', 'confirmed')
+ORDER BY enqueued_at_ms DESC, idempotency_key DESC LIMIT ?;
+)SQL");
+        if (!prepared) return std::unexpected(toFoundationError(std::move(prepared.error())));
+        auto statement = std::move(*prepared);
+        if (auto status = bindInt64(m_connection, statement.native(), 1,
+                static_cast<std::int64_t>(author.value), "Local cast projection FID"); !status) {
+            return std::unexpected(std::move(status.error()));
+        }
+        if (sqlite3_bind_int(statement.native(), 2, static_cast<int>(limit)) != SQLITE_OK) {
+            return std::unexpected(toFoundationError(sqlite::makeError(
+                m_connection.native(), "Local cast projection limit")));
+        }
+        std::vector<std::string> keys{};
+        while (true) {
+            const auto step = sqlite3_step(statement.native());
+            if (step == SQLITE_DONE) break;
+            if (step != SQLITE_ROW) {
+                return std::unexpected(toFoundationError(sqlite::makeError(
+                    m_connection.native(), "Local cast projections")));
+            }
+            keys.push_back(sqlite::columnText(statement.native(), 0));
+        }
+        std::vector<domain::write::OutboxRecord> records{};
+        records.reserve(keys.size());
+        for (const auto& key : keys) {
+            auto record = loadRecord(m_connection, key);
+            if (!record) return std::unexpected(std::move(record.error()));
+            records.push_back(std::move(*record));
+        }
+        return records;
+    }
+
     [[nodiscard]] foundation::result::Result<std::vector<domain::write::OutboxRecord>> listReady(
         const domain::identity::Fid author,
         const foundation::time::Timestamp now,

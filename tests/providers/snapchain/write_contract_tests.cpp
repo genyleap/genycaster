@@ -147,7 +147,7 @@ void explicitAuthorizationHeaderIsForwarded()
     assert(http.posts.size() == 1U);
     assert(std::ranges::find(
         http.posts.front().headers,
-        "X-Upstream-Credential: test-secret") != http.posts.front().headers.end());
+        std::string{"X-Upstream-Credential: test-secret"}) != http.posts.front().headers.end());
 }
 
 void reconcileUsesCanonicalCastIdentity()

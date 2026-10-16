@@ -148,3 +148,66 @@ Mobile account sheets size from their identity/action content instead of always
 occupying a fixed 660px panel. The writer action is disabled when no App-FID
 attestation authority has been configured; this is an honest UI state, not a
 replacement for the missing server-side signer.
+
+## 2026-10-16: Farcaster Relay connection and protocol-specific node validation
+
+A direct Farcaster SIWF attempt failed on macOS in QtNetwork's **Connecting**
+stage (about 10 seconds) when using **system proxy configuration**.
+This is a transport connection failure, not an invalid Farcaster signature
+or an OpenProof 401. Independent server-side POST of the documented
+`/v1/channel` request to `https://relay.farcaster.xyz` completed with
+HTTP **201**, demonstrating that the configured relay was operational from
+that network vantage point. It does not prove the user's macOS proxy path works.
+
+The network stage and in-app settings now expose **System proxy / Direct**.
+They persist `network/proxyMode` to QSettings and clearly require a
+restart to rebuild QtNetwork managers with the new policy. The existing
+`GENYCASTER_NETWORK_PROXY` variable or CLI `--network-proxy` option
+still takes precedence when explicitly supplied. Connection errors for
+direct Farcaster SIWF direct users to this recovery path; Genyleap
+OpenProof remains independent and unchanged. No undisclosed proxy bypass
+is performed by the client.
+
+`https://hypersnap.org/network` lists **Hypersnap Public**,
+**Ardea/Arca** (Hypersnap), and **Neynar Hub**, **Pinata Hub**,
+**Standard Crypto Hub** (Farcaster). Pinata's Hub API uses
+`/v1/castsByFid`, `/v1/submitMessage` etc., not the indexed
+Neynar-compatible `/v2/farcaster/feed/*` API used by the current
+Genycaster reader. Raw Farcaster Hubs therefore appear as *informational*
+entries, not selectable read backends that would silently return empty
+feeds. The existing configured Farcaster indexed API is still the only
+switchable Farcaster read source. Hypersnap node selection now validates
+`GET /v1/info` with the expected `version` and `shardInfos` shape,
+rather than treating any HEAD 200/402 host as an online Hypersnap node.
+Auth-gated and incompatible services are labeled instead of being
+offered as healthy Hyper nodes. A proper raw-Hub-to-domain adapter,
+credentials or a trusted indexed proxy would be needed for Pinata to
+serve all feed features; no token is embedded in the desktop app.
+
+## 2026-10-16: durable reply recovery
+
+After a retry-scheduled reply, SQLite retained the signed CastAdd in
+`write_outbox` and its optimistic cast under `casts`, but the startup
+`hydrateWriteProjections` path rehydrated **only reactions and
+following**. The timeline's `m_writeRows` was process-local. This
+made queued/failed replies invisible after restarting, creating an
+incorrect impression that the post was deleted or published.
+
+`listCastProjections(fid, limit)` now reads existing account-scoped
+`publish-cast` records (pending, failed or confirmed), with both
+optimistic text and parent relationship. It does not submit to the
+network. Startup hydration projects these records into the correct
+profile/feed rows, merging by cast ID without overwriting more recent
+in-session states or leaking another FID's drafts. A periodic 30-second
+`resume` on the existing application scheduler revisits due retries
+even if the network stays continuously online and no reachability
+transition is emitted. The existing retry budget and mandatory
+reconciliation before retrying remain intact; a queued Cast is **not**
+reported as network-published until authoritative confirmation.
+
+The storage integration test closes/reopens SQLite and verifies a
+reply's text, parent, scheduled retry deadline, author scope, and
+terminal failure state. Actual legacy unsent entries remain in the
+user's local SQLite database; upgrading Genycaster does not guarantee
+the network will accept an individual reply (e.g., invalid reference
+or provider rejection), only that its retained state will be visible.

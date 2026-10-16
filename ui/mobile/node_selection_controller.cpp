@@ -3,6 +3,8 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QSettings>
 #include <QUrl>
 #include <QVariantMap>
@@ -43,14 +45,22 @@ NodeSelectionController::NodeSelectionController(
     QSettings& settings,
     QString appliedEndpoint,
     QStringList candidateEndpoints,
+    QString appliedProxyMode,
     const bool probingEnabled,
     QObject* const parent)
     : QObject(parent),
       m_settings{settings},
       m_appliedEndpoint{normalizedEndpoint(std::move(appliedEndpoint))},
+      m_appliedProxyMode{std::move(appliedProxyMode)},
       m_probingEnabled{probingEnabled},
       m_network{new QNetworkAccessManager(this)}
 {
+    m_proxyMode = m_settings.value(QStringLiteral("network/proxyMode"),
+                                     m_appliedProxyMode).toString();
+    if (m_proxyMode != QStringLiteral("system") &&
+        m_proxyMode != QStringLiteral("direct")) {
+        m_proxyMode = QStringLiteral("system");
+    }
     if (m_appliedEndpoint.isEmpty()) {
         m_appliedEndpoint = QStringLiteral("https://haatz.quilibrium.com");
     }
@@ -161,6 +171,27 @@ bool NodeSelectionController::restartRequired() const
     return selectedEndpoint().compare(m_appliedEndpoint, Qt::CaseInsensitive) != 0;
 }
 
+QString NodeSelectionController::proxyMode() const
+{
+    return m_proxyMode;
+}
+
+bool NodeSelectionController::proxyRestartRequired() const
+{
+    return m_proxyMode != m_appliedProxyMode;
+}
+
+bool NodeSelectionController::setProxyMode(const QString& mode)
+{
+    if (mode != QStringLiteral("system") && mode != QStringLiteral("direct")) return false;
+    if (m_proxyMode == mode) return true;
+    m_proxyMode = mode;
+    m_settings.setValue(QStringLiteral("network/proxyMode"), m_proxyMode);
+    m_settings.sync();
+    emit selectionChanged();
+    return true;
+}
+
 void NodeSelectionController::refresh()
 {
     for (auto it = m_probes.begin(); it != m_probes.end(); ++it) {
@@ -182,11 +213,15 @@ void NodeSelectionController::refresh()
     }
 
     for (qsizetype index = 0; index < m_nodes.size(); ++index) {
-        QNetworkRequest request{QUrl{m_nodes.at(index).endpoint}};
+        // The network selector is restricted to real Hypersnap nodes.
+        // A HEAD on any host (including a Farcaster Hub or auth gateway)
+        // is not proof that it supports the Hypersnap v2 read protocol.
+        QNetworkRequest request{
+            QUrl{m_nodes.at(index).endpoint + QStringLiteral("/v1/info")}};
         request.setTransferTimeout(2500);
         request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                              QNetworkRequest::NoLessSafeRedirectPolicy);
-        QNetworkReply* const reply = m_network->head(request);
+        QNetworkReply* const reply = m_network->get(request);
         Probe probe{};
         probe.nodeIndex = index;
         probe.timer.start();
@@ -252,10 +287,19 @@ void NodeSelectionController::finishProbe(QNetworkReply* const reply)
     if (probe.nodeIndex >= 0 && probe.nodeIndex < m_nodes.size()) {
         Node& node = m_nodes[probe.nodeIndex];
         const QVariant httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
-        const bool reachedHttpServer = httpStatus.isValid();
-        const bool transportSuccess = reply->error() == QNetworkReply::NoError || reachedHttpServer;
-        node.status = transportSuccess ? QStringLiteral("online") : QStringLiteral("offline");
-        node.latencyMs = transportSuccess
+        const int statusCode = httpStatus.toInt();
+        const auto body = QJsonDocument::fromJson(reply->readAll());
+        const QJsonObject info = body.isObject() ? body.object() : QJsonObject{};
+        const bool hypersnapCompatible = reply->error() == QNetworkReply::NoError &&
+            statusCode >= 200 && statusCode < 300 &&
+            info.value(QStringLiteral("version")).isString() &&
+            info.value(QStringLiteral("shardInfos")).isArray();
+        node.status = hypersnapCompatible ? QStringLiteral("online")
+                     : (statusCode == 401 || statusCode == 402 || statusCode == 403)
+                         ? QStringLiteral("auth-gated")
+                         : statusCode > 0 ? QStringLiteral("incompatible")
+                                          : QStringLiteral("offline");
+        node.latencyMs = hypersnapCompatible
             ? static_cast<int>(std::clamp<qint64>(probe.timer.elapsed(), 0, 9999))
             : -1;
     }

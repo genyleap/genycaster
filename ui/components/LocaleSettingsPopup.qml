@@ -929,6 +929,58 @@ GenyDrawer {
                             font.pixelSize: Theme.typeCaptionSize
                             wrapMode: Text.WordWrap
                         }
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTr("Connection proxy for Farcaster Relay and network reads")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeMetaSize
+                            wrapMode: Text.WordWrap
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space2
+                            ActionButton {
+                                Layout.fillWidth: true
+                                text: qsTr("System proxy")
+                                selected: nodeSelectionController.proxyMode === "system"
+                                onClicked: nodeSelectionController.setProxyMode("system")
+                            }
+                            ActionButton {
+                                Layout.fillWidth: true
+                                text: qsTr("Direct")
+                                selected: nodeSelectionController.proxyMode === "direct"
+                                onClicked: nodeSelectionController.setProxyMode("direct")
+                            }
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: nodeSelectionController.proxyRestartRequired
+                            text: qsTr("Restart Genycaster to apply network changes.")
+                            color: Theme.warning
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: presentationBridge.preferredNetwork === "hypersnap"
+                                  ? qsTr("Hypersnap v2 · only Hypersnap-compatible API nodes are eligible.")
+                                  : presentationBridge.farcasterReadConfigured
+                                    ? qsTr("Farcaster indexed API: ") + presentationBridge.farcasterReadEndpoint
+                                    : qsTr("Farcaster indexed reads require a compatible API. Raw hubs, including Pinata, cannot serve Neynar v2 feeds.")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: presentationBridge.preferredNetwork === "farcaster"
+                            text: qsTr("Known Farcaster hubs: Pinata Hub, Neynar Hub (may require credentials), Standard Crypto Hub. These are Hub APIs, not selectable indexed-feed nodes.")
+                            color: Theme.inkSubtle
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
                     }
 
                     GridLayout {

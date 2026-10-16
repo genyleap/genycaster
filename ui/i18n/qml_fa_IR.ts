@@ -3662,5 +3662,9 @@
             <source>Use your Farcaster identity or Genyleap account. Each sign-in is verified independently; neither changes your read network.</source>
             <translation>با حساب فارکستر یا جنی‌لیپ وارد شوید. هر روش جداگانه تأیید می‌شود و شبکه دریافت داده را تغییر نمی‌دهد.</translation>
         </message>
+        <message id="genycaster.setup.farcaster_relay_unreachable">
+            <source>Could not reach Farcaster Relay. In Network setup, try Direct instead of System proxy, then restart and retry.</source>
+            <translation>اتصال به رله فارکستر برقرار نشد. در تنظیمات شبکه، به‌جای پراکسی سیستم اتصال مستقیم را انتخاب کنید، برنامه را دوباره باز کنید و مجدداً تلاش کنید.</translation>
+        </message>
     </context>
 </TS>
