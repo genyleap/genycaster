@@ -96,47 +96,13 @@ Item {
             }
         }
 
-        RowLayout {
+        DirectionAwareLabel {
+            visible: root.userInteracted
             Layout.fillWidth: true
-            layoutDirection: Theme.uiDirection
-            spacing: Theme.space2
-
-            Icon {
-                text: Theme.iconCheck
-                color: Theme.accent
-                preferredSize: Theme.iconSizeSmall
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 0
-
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    text: root.selectedLabel.length > 0
-                          ? root.selectedLabel
-                          : root.currentEntry ? root.currentEntry.language : ""
-                    color: Theme.ink
-                    font.pixelSize: Theme.typeLabelSize
-                    font.weight: Theme.weightDemiBold
-                    elide: Text.ElideRight
-                }
-
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    text: root.selectedDetail
-                    color: Theme.inkSubtle
-                    font.pixelSize: Theme.typeCaptionSize
-                    elide: Text.ElideRight
-                }
-            }
-
-            DirectionAwareLabel {
-                visible: root.userInteracted
-                text: qsTrId("genycaster.setup.language_applies_now")
-                color: Theme.inkSubtle
-                font.pixelSize: Theme.typeCaptionSize
-            }
+            text: qsTrId("genycaster.setup.language_applies_now")
+            color: Theme.inkMuted
+            font.pixelSize: Theme.typeCaptionSize
+            horizontalAlignment: Theme.textStartAlignment
         }
     }
 }

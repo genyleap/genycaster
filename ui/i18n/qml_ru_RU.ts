@@ -3503,8 +3503,8 @@
             <translation>выбран</translation>
         </message>
         <message id="genycaster.setup.choose_network">
-            <source>Connection network</source>
-            <translation>Connection network</translation>
+            <source>Choose a connection</source>
+            <translation>Choose a connection</translation>
         </message>
         <message id="genycaster.setup.hypersnap_explainer">
             <source>Uses Hypersnap for live reads. Sign-in and publishing permissions are verified separately.</source>
@@ -3561,6 +3561,62 @@
         <message id="genycaster.setup.authentication_explainer">
             <source>Sign-in uses a verified OpenProof session and a linked Farcaster FID. Publishing permissions are separate.</source>
             <translation>Sign-in uses a verified OpenProof session and a linked Farcaster FID. Publishing permissions are separate.</translation>
+        </message>
+        <message id="genycaster.setup.workspace_label">
+            <source>Secure account setup</source>
+            <translation>Secure account setup</translation>
+        </message>
+        <message id="genycaster.setup.progress_label">
+            <source>Setup steps</source>
+            <translation>Setup steps</translation>
+        </message>
+        <message id="genycaster.setup.explicit_terms_agreement">
+            <source>I agree to the Terms of Use</source>
+            <translation>I agree to the Terms of Use</translation>
+        </message>
+        <message id="genycaster.setup.explicit_privacy_agreement">
+            <source>I have read and acknowledge the Privacy Policy</source>
+            <translation>I have read and acknowledge the Privacy Policy</translation>
+        </message>
+        <message id="genycaster.setup.review_terms_first">
+            <source>Open and review the Terms before enabling this agreement.</source>
+            <translation>Open and review the Terms before enabling this agreement.</translation>
+        </message>
+        <message id="genycaster.setup.review_privacy_first">
+            <source>Open and review the Privacy Policy before acknowledging it.</source>
+            <translation>Open and review the Privacy Policy before acknowledging it.</translation>
+        </message>
+        <message id="genycaster.setup.mark_document_reviewed">
+            <source>I reviewed the document</source>
+            <translation>I reviewed the document</translation>
+        </message>
+        <message id="genycaster.setup.open_governing_document">
+            <source>Open the official document and review the summary to continue.</source>
+            <translation>Open the official document and review the summary to continue.</translation>
+        </message>
+        <message id="genycaster.setup.auth_rejected_recover">
+            <source>Genyleap rejected this sign-in. Start a new request or try Farcaster sign-in.</source>
+            <translation>Genyleap rejected this sign-in. Start a new request or try Farcaster sign-in.</translation>
+        </message>
+        <message id="genycaster.setup.auth_provider_response_invalid">
+            <source>The sign-in service could not complete the verification. Retry or use the other sign-in method.</source>
+            <translation>The sign-in service could not complete the verification. Retry or use the other sign-in method.</translation>
+        </message>
+        <message id="genycaster.setup.auth_conflict">
+            <source>Another sign-in request conflicts with this one. Cancel and start again.</source>
+            <translation>Another sign-in request conflicts with this one. Cancel and start again.</translation>
+        </message>
+        <message id="genycaster.setup.auth_missing_link">
+            <source>No linked Farcaster identity was found. Connect your existing profile after signing in.</source>
+            <translation>No linked Farcaster identity was found. Connect your existing profile after signing in.</translation>
+        </message>
+        <message id="genycaster.setup.connection_mode_title">
+            <source>Choose how you connect</source>
+            <translation>Choose how you connect</translation>
+        </message>
+        <message id="genycaster.setup.connection_mode_help">
+            <source>Select a sign-in route; advanced node settings control where the app reads data.</source>
+            <translation>Select a sign-in route; advanced node settings control where the app reads data.</translation>
         </message>
     </context>
 </TS>

@@ -25,7 +25,7 @@ namespace {
 constexpr int kInitialSetupVersion = 4;
 // Increment when the onboarding legal bundle materially changes so consent is
 // requested again before account authentication.
-constexpr int kLegalConsentVersion = 1;
+constexpr int kLegalConsentVersion = 2;
 
 struct ContextualReactionRule final {
     const char* icon;
@@ -1404,6 +1404,12 @@ bool PresentationBridge::acceptLegalConsent(
     m_legalConsentAccepted = true;
     if (m_settings != nullptr) {
         m_settings->setValue(QStringLiteral("setup/legalConsentVersion"), kLegalConsentVersion);
+        m_settings->setValue(QStringLiteral("setup/legalConsentAcceptedAtUtc"),
+                             QDateTime::currentDateTimeUtc().toString(Qt::ISODate));
+        m_settings->setValue(QStringLiteral("setup/legalTermsUrl"),
+                             QStringLiteral("https://genyleap.com/terms-of-use"));
+        m_settings->setValue(QStringLiteral("setup/legalPrivacyUrl"),
+                             QStringLiteral("https://genyleap.com/privacy"));
         m_settings->sync();
     }
     emit setupStateChanged();

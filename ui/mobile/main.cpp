@@ -1050,7 +1050,7 @@ void applySocialState(PresentationBridge& bridge, application::read::model::Soci
     case ErrorCode::Unauthorized:
         summary = route == QStringLiteral("farcaster")
             ? qtTrId("genycaster.runtime.farcaster_could_not_verify_this_sign_in_start_a_new_request_")
-            : qtTrId("genycaster.runtime.the_sign_in_proof_could_not_be_validated_safely");
+            : qtTrId("genycaster.setup.auth_rejected_recover");
         break;
     case ErrorCode::RateLimited:
         summary = qtTrId("genycaster.runtime.sign_in_could_not_be_completed");
@@ -1072,10 +1072,16 @@ void applySocialState(PresentationBridge& bridge, application::read::model::Soci
         summary = qtTrId("genycaster.runtime.the_local_account_session_could_not_be_saved");
         break;
     case ErrorCode::ProtocolFailure:
+        summary = qtTrId("genycaster.setup.auth_provider_response_invalid");
+        break;
     case ErrorCode::Conflict:
+        summary = qtTrId("genycaster.setup.auth_conflict");
+        break;
     case ErrorCode::NotFound:
+        summary = qtTrId("genycaster.setup.auth_missing_link");
+        break;
     case ErrorCode::InternalFailure:
-        summary = qtTrId("genycaster.runtime.the_sign_in_proof_could_not_be_validated_safely");
+        summary = qtTrId("genycaster.runtime.sign_in_could_not_be_completed");
         break;
     }
     return summary.isEmpty() ? qtTrId("genycaster.runtime.sign_in_could_not_be_completed") : summary;

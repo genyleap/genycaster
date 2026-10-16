@@ -954,7 +954,35 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.sign_in_to_interact");
     //% "Sign in with Farcaster"
     (void)qtTrId("genycaster.shell.sign_in_with_farcaster");
-    //% "Connection network"
+    //% "Choose how you connect"
+    (void)qtTrId("genycaster.setup.connection_mode_title");
+    //% "Select a sign-in route; advanced node settings control where the app reads data."
+    (void)qtTrId("genycaster.setup.connection_mode_help");
+    //% "I reviewed the document"
+    (void)qtTrId("genycaster.setup.mark_document_reviewed");
+    //% "Open the official document and review the summary to continue."
+    (void)qtTrId("genycaster.setup.open_governing_document");
+    //% "Genyleap rejected this sign-in. Start a new request or try Farcaster sign-in."
+    (void)qtTrId("genycaster.setup.auth_rejected_recover");
+    //% "The sign-in service could not complete the verification. Retry or use the other sign-in method."
+    (void)qtTrId("genycaster.setup.auth_provider_response_invalid");
+    //% "Another sign-in request conflicts with this one. Cancel and start again."
+    (void)qtTrId("genycaster.setup.auth_conflict");
+    //% "No linked Farcaster identity was found. Connect your existing profile after signing in."
+    (void)qtTrId("genycaster.setup.auth_missing_link");
+    //% "Secure account setup"
+    (void)qtTrId("genycaster.setup.workspace_label");
+    //% "Setup steps"
+    (void)qtTrId("genycaster.setup.progress_label");
+    //% "I agree to the Terms of Use"
+    (void)qtTrId("genycaster.setup.explicit_terms_agreement");
+    //% "I have read and acknowledge the Privacy Policy"
+    (void)qtTrId("genycaster.setup.explicit_privacy_agreement");
+    //% "Open and review the Terms before enabling this agreement."
+    (void)qtTrId("genycaster.setup.review_terms_first");
+    //% "Open and review the Privacy Policy before acknowledging it."
+    (void)qtTrId("genycaster.setup.review_privacy_first");
+    //% "Choose a connection"
     (void)qtTrId("genycaster.setup.choose_network");
     //% "Uses Hypersnap for live reads. Sign-in and publishing permissions are verified separately."
     (void)qtTrId("genycaster.setup.hypersnap_explainer");

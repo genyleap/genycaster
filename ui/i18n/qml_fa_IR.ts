@@ -3503,8 +3503,8 @@
             <translation>انتخاب‌شده</translation>
         </message>
         <message id="genycaster.setup.choose_network">
-            <source>Connection network</source>
-            <translation>شبکه اتصال</translation>
+            <source>Choose a connection</source>
+            <translation>مسیر اتصال</translation>
         </message>
         <message id="genycaster.setup.hypersnap_explainer">
             <source>Uses Hypersnap for live reads. Sign-in and publishing permissions are verified separately.</source>
@@ -3561,6 +3561,62 @@
         <message id="genycaster.setup.authentication_explainer">
             <source>Sign-in uses a verified OpenProof session and a linked Farcaster FID. Publishing permissions are separate.</source>
             <translation>ورود با نشست تأییدشده OpenProof و شناسه فارکستر پیوندخورده انجام می‌شود. مجوز انتشار جداگانه است.</translation>
+        </message>
+        <message id="genycaster.setup.workspace_label">
+            <source>Secure account setup</source>
+            <translation>راه‌اندازی امن حساب</translation>
+        </message>
+        <message id="genycaster.setup.progress_label">
+            <source>Setup steps</source>
+            <translation>مراحل راه‌اندازی</translation>
+        </message>
+        <message id="genycaster.setup.explicit_terms_agreement">
+            <source>I agree to the Terms of Use</source>
+            <translation>با شرایط استفاده موافقم</translation>
+        </message>
+        <message id="genycaster.setup.explicit_privacy_agreement">
+            <source>I have read and acknowledge the Privacy Policy</source>
+            <translation>سیاست حریم خصوصی را مطالعه کردم و تأیید می‌کنم</translation>
+        </message>
+        <message id="genycaster.setup.review_terms_first">
+            <source>Open and review the Terms before enabling this agreement.</source>
+            <translation>پیش از پذیرش، شرایط استفاده را باز کرده و بررسی کنید.</translation>
+        </message>
+        <message id="genycaster.setup.review_privacy_first">
+            <source>Open and review the Privacy Policy before acknowledging it.</source>
+            <translation>پیش از تأیید، سیاست حریم خصوصی را باز کرده و بررسی کنید.</translation>
+        </message>
+        <message id="genycaster.setup.mark_document_reviewed">
+            <source>I reviewed the document</source>
+            <translation>سند را بررسی کردم</translation>
+        </message>
+        <message id="genycaster.setup.open_governing_document">
+            <source>Open the official document and review the summary to continue.</source>
+            <translation>سند رسمی را باز کنید و خلاصه آن را بررسی کنید.</translation>
+        </message>
+        <message id="genycaster.setup.auth_rejected_recover">
+            <source>Genyleap rejected this sign-in. Start a new request or try Farcaster sign-in.</source>
+            <translation>جنی‌لیپ این ورود را نپذیرفت. درخواست جدید ایجاد کنید یا از ورود با فارکستر استفاده کنید.</translation>
+        </message>
+        <message id="genycaster.setup.auth_provider_response_invalid">
+            <source>The sign-in service could not complete the verification. Retry or use the other sign-in method.</source>
+            <translation>سرویس ورود نتوانست تأیید را تکمیل کند. دوباره تلاش کنید یا مسیر دیگر را انتخاب کنید.</translation>
+        </message>
+        <message id="genycaster.setup.auth_conflict">
+            <source>Another sign-in request conflicts with this one. Cancel and start again.</source>
+            <translation>درخواست ورود دیگری تداخل دارد. لغو کنید و دوباره شروع کنید.</translation>
+        </message>
+        <message id="genycaster.setup.auth_missing_link">
+            <source>No linked Farcaster identity was found. Connect your existing profile after signing in.</source>
+            <translation>هویت فارکستر پیوندخورده پیدا نشد. پس از ورود پروفایل موجود را متصل کنید.</translation>
+        </message>
+        <message id="genycaster.setup.connection_mode_title">
+            <source>Choose how you connect</source>
+            <translation>روش اتصال را انتخاب کنید</translation>
+        </message>
+        <message id="genycaster.setup.connection_mode_help">
+            <source>Select a sign-in route; advanced node settings control where the app reads data.</source>
+            <translation>مسیر ورود را انتخاب کنید؛ تنظیمات پیشرفته، منبع دریافت داده‌ها را کنترل می‌کند.</translation>
         </message>
     </context>
 </TS>

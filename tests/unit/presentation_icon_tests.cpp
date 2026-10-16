@@ -281,6 +281,15 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(bridge.initialSetupRequired());
     assert(!bridge.initialSetupCompleted());
     assert(!bridge.legalConsentAccepted());
+    // The preferred read/sign-in route is a validated preference, never a
+    // substitute for a linked FID or signer authority.
+    assert(bridge.preferredNetwork() == QStringLiteral("hypersnap"));
+    assert(!bridge.setPreferredNetwork(QStringLiteral("arbitrary-provider")));
+    assert(bridge.preferredNetwork() == QStringLiteral("hypersnap"));
+    assert(bridge.setPreferredNetwork(QStringLiteral("farcaster")));
+    assert(bridge.preferredNetwork() == QStringLiteral("farcaster"));
+    assert(settings.value(QStringLiteral("connection/preferredNetwork")).toString()
+           == QStringLiteral("farcaster"));
 
     bridge.completeInitialSetup();
     assert(bridge.initialSetupRequired());
@@ -307,7 +316,8 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(!bridge.legalConsentAccepted());
     assert(bridge.acceptLegalConsent(true, true, true));
     assert(bridge.legalConsentAccepted());
-    assert(settings.value(QStringLiteral("setup/legalConsentVersion")).toInt() == 1);
+    assert(settings.value(QStringLiteral("setup/legalConsentVersion")).toInt() == 2);
+    assert(!settings.value(QStringLiteral("setup/legalConsentAcceptedAtUtc")).toString().isEmpty());
 
     bridge.completeInitialSetup();
     assert(bridge.initialSetupCompleted());
@@ -323,6 +333,9 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     PresentationBridge restored{nullptr, &settings};
     assert(restored.initialSetupCompleted());
     assert(restored.legalConsentAccepted());
+    assert(restored.preferredNetwork() == QStringLiteral("farcaster"));
+    assert(restored.setPreferredNetwork(QStringLiteral("hypersnap")));
+    assert(restored.preferredNetwork() == QStringLiteral("hypersnap"));
     assert(restored.initialSetupRequired());
     restored.applyAuthenticationState(
         true,

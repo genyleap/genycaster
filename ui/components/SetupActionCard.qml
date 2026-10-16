@@ -12,6 +12,8 @@ Button {
     property string trailingText: ""
     property bool primary: false
     property bool complete: false
+    // Selection is NOT task completion. This is a single-choice radio indicator.
+    property bool selected: false
     property bool busy: false
     property bool showChevron: true
     property bool compactCard: false
@@ -26,9 +28,8 @@ Button {
     bottomPadding: Theme.space3
 
     Accessible.name: title
-    Accessible.description: complete
-                            ? subtitle + (subtitle.length > 0 ? " · " : "") + qsTrId("genycaster.setup.completed")
-                            : subtitle
+    Accessible.description: subtitle
+    Accessible.checked: root.selected
 
     readonly property color foreground: primary ? Theme.accentInk : Theme.ink
     readonly property color secondaryForeground: primary
@@ -108,15 +109,41 @@ Button {
             font.weight: Theme.weightDemiBold
         }
 
+        Item {
+            visible: root.selected
+            Layout.preferredWidth: Theme.iconSize
+            Layout.preferredHeight: Theme.iconSize
+
+            Superellipse {
+                anchors.centerIn: parent
+                width: 19
+                height: 19
+                exponent: 2.01
+                curveDepth: width / 2
+                fillColor: "transparent"
+                borderWidth: 2
+                borderColor: root.primary ? root.foreground : Theme.accent
+
+                Superellipse {
+                    anchors.centerIn: parent
+                    width: 9
+                    height: 9
+                    exponent: 2.01
+                    curveDepth: width / 2
+                    fillColor: root.primary ? root.foreground : Theme.accent
+                }
+            }
+        }
+
         Icon {
-            visible: root.complete
+            visible: root.complete && !root.selected
             text: Theme.iconCheck
             color: root.primary ? root.foreground : Theme.accent
             preferredSize: Theme.iconSizeSmall
         }
 
         Icon {
-            visible: root.showChevron && !root.complete && !root.busy
+            visible: root.showChevron && !root.complete && !root.selected && !root.busy
             text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
             color: root.primary ? root.secondaryForeground : Theme.inkSubtle
             preferredSize: Theme.iconSizeSmall
