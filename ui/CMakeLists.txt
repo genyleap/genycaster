@@ -224,6 +224,8 @@ qt_add_executable(farcaster_client
     mobile/live_insights_controller.hpp
     mobile/node_selection_controller.cpp
     mobile/node_selection_controller.hpp
+    mobile/update_controller.cpp
+    mobile/update_controller.hpp
     mobile/remote_image_provider.cpp
     mobile/remote_image_provider.hpp
 )
@@ -293,6 +295,7 @@ set_target_properties(farcaster_client
 target_compile_definitions(farcaster_client
     PRIVATE
         FARCASTER_QT_QUICK_CONTROLS_STYLE="Basic"
+        GENYCASTER_APP_VERSION="${PROJECT_VERSION}"
 )
 
 target_link_libraries(farcaster_client
@@ -313,6 +316,16 @@ target_link_libraries(farcaster_client
         farcaster::transport_qt_network
 )
 
+
+if(EMSCRIPTEN)
+    # IDBFS must populate the virtual app directory before SQLite starts.
+    # Emscripten provides the asynchronous IndexedDB file system.
+    target_link_options(farcaster_client PRIVATE
+        "-sFORCE_FILESYSTEM=1"
+        "-lidbfs.js"
+        "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/persistence-pre.js"
+    )
+endif()
 
 if(GENYCASTER_ENABLE_PUBLIC_DATA_PROVIDER)
     target_compile_definitions(farcaster_client PRIVATE GENYCASTER_HAS_PUBLIC_DATA_PROVIDER=1)
@@ -935,6 +948,17 @@ endif()
 
 if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
     find_package(Qt6 REQUIRED COMPONENTS Test)
+    add_executable(farcaster_update_controller_tests
+        ../tests/ui/update_controller_tests.cpp
+        mobile/update_controller.cpp
+        mobile/update_controller.hpp)
+    target_include_directories(farcaster_update_controller_tests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/mobile")
+    target_link_libraries(farcaster_update_controller_tests PRIVATE
+        Qt6::Core Qt6::Network Qt6::Gui)
+    add_test(NAME ui.update_controller COMMAND farcaster_update_controller_tests)
+    set_tests_properties(ui.update_controller PROPERTIES TIMEOUT 8 LABELS "ui;update;security")
+
     add_executable(farcaster_media_scroll_tests
         ../tests/ui/media_scroll_tests.cpp
         render/scene_graph_superellipse_item.cpp)

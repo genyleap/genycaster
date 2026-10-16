@@ -177,7 +177,7 @@ Item {
         id: spriteLoader
         anchors.fill: parent
         active: root.rendererUsable && atlas.status === Image.Ready
-                && (root.artworkWanted || root.retainLoadedRenderer)
+                && root.artworkWanted && root.playbackLoops !== 0
         onStatusChanged: if (status === Loader.Error) {
             // console.warn("Genycaster emoji", root.unicodeSequence, "renderer: sprite component failed")
             root.fail("renderer: sprite component failed")
@@ -191,12 +191,13 @@ Item {
             interpolate: false
             smooth: true
             loops: root.playbackLoops < 0 ? AnimatedSprite.Infinite : 1
-            // AnimatedSprite internally calls setPaused on a NumberAnimation;
-            // pausing before the animation has started warns on Qt 6.12.
-            // Run only when playback is wanted instead of pausing an idle sprite.
-            running: root.playbackLoops !== 0 && root.artworkWanted
+            // Qt 6.12's AnimatedSprite::setPaused() logs when it is asked to
+            // pause its internal NumberAnimation before it has started. Never
+            // bind running to the rapidly changing viewport/active state.
+            // The parent Loader creates this item only for active playback;
+            // unloading stops it safely. Reduced motion uses text fallback.
+            running: true
             finishBehavior: AnimatedSprite.FinishAtInitialFrame
-            // Pause/resume preserves completed loops; no restart on scrolling.
         }
     }
 }

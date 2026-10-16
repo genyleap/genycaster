@@ -70,6 +70,11 @@
 #include "miniapp_task_manager_controller.hpp"
 #include "live_insights_controller.hpp"
 #include "node_selection_controller.hpp"
+#include "update_controller.hpp"
+
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
 #include "remote_image_provider.hpp"
 #include "data_storage_controller.hpp"
 
@@ -3405,6 +3410,7 @@ int main(int argc, char* argv[])
     QGuiApplication application(argc, argv);
     QCoreApplication::setOrganizationName(QStringLiteral("Genycaster"));
     QCoreApplication::setApplicationName(QStringLiteral("Genycaster"));
+    QCoreApplication::setApplicationVersion(QString::fromLatin1(GENYCASTER_APP_VERSION));
     QQuickStyle::setStyle(QStringLiteral(FARCASTER_QT_QUICK_CONTROLS_STYLE));
     QString bundledPersianFontFamily{};
     QString bundledDevanagariFontFamily{};
@@ -3907,6 +3913,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<MediaPlaybackCoordinator> mediaPlaybackCoordinatorOwner{};
     std::unique_ptr<LiveInsightsController> liveInsightsControllerOwner{};
     std::unique_ptr<NodeSelectionController> nodeSelectionControllerOwner{};
+    std::unique_ptr<UpdateController> updateControllerOwner{};
     std::unique_ptr<MiniAppHostController> miniAppHostControllerOwner{};
     std::unique_ptr<MediaWebHostController> mediaWebHostControllerOwner{};
     std::unique_ptr<MiniAppCatalogController> miniAppCatalogControllerOwner{};
@@ -3952,6 +3959,9 @@ int main(int argc, char* argv[])
         networkProxyText,
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest);
     NodeSelectionController& nodeSelectionController = *nodeSelectionControllerOwner;
+    updateControllerOwner = std::make_unique<UpdateController>(
+        settings, !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, &application);
+    UpdateController& updateController = *updateControllerOwner;
 
     const auto applicationFontFamilyForLanguage = [&](QString languageTag) -> QString {
         languageTag = languageTag.trimmed().toLower();
@@ -4272,6 +4282,12 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("miniAppTaskManager"), &miniAppTaskManager);
     engine.rootContext()->setContextProperty(QStringLiteral("liveInsights"), &liveInsightsController);
     engine.rootContext()->setContextProperty(QStringLiteral("nodeSelectionController"), &nodeSelectionController);
+    engine.rootContext()->setContextProperty(QStringLiteral("updateController"), &updateController);
+#if defined(__EMSCRIPTEN__)
+    engine.rootContext()->setContextProperty(QStringLiteral("wasmReadOnly"), true);
+#else
+    engine.rootContext()->setContextProperty(QStringLiteral("wasmReadOnly"), false);
+#endif
     engine.rootContext()->setContextProperty(QStringLiteral("appearanceController"), &appearanceController);
     engine.rootContext()->setContextProperty(QStringLiteral("renderingController"), &renderingController);
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
@@ -4505,5 +4521,19 @@ int main(int argc, char* argv[])
             QCoreApplication::exit(saved ? 0 : 4);
         });
     }
+#if defined(__EMSCRIPTEN__)
+    // IDBFS is async: periodically flush SQLite's virtual file changes to
+    // IndexedDB. The preRun hook restores the directory before main().
+    QTimer wasmPersistenceFlush{&application};
+    wasmPersistenceFlush.setInterval(8'000);
+    QObject::connect(&wasmPersistenceFlush, &QTimer::timeout, &application, [] {
+        EM_ASM({
+            FS.syncfs(false, function(err) {
+                if (err) console.error('[Genycaster] IndexedDB sync failed', err);
+            });
+        });
+    });
+    wasmPersistenceFlush.start();
+#endif
     return application.exec();
 }

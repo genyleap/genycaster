@@ -600,6 +600,18 @@ Item {
             reuseItems: true
             ScrollBar.vertical: GenyScrollBar {}
 
+            // Overlay is viewport-owned and does not feed back into ListView's
+            // footer/contentHeight calculations (the old footer caused a
+            // height binding loop under fast pagination).
+            GenySpinner {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: Theme.space2
+                visible: root.loadingNotifications && root.hasMore
+                running: visible
+                z: 10
+            }
+
             onContentYChanged: {
                 if (!list.moving && !root.restoringViewport && !scrollWorkThrottle.running)
                     scrollWorkThrottle.start()
@@ -941,16 +953,11 @@ Item {
                 }
             }
 
-            footer: Item {
-                width: list.width
-                height: root.loadingNotifications ? 56 : 16
-
-                GenySpinner {
-                    anchors.centerIn: parent
-                    visible: root.loadingNotifications
-                    running: visible
-                }
-            }
+            // Keep pagination loading outside ListView's managed footer.
+            // A footer whose geometry participates in contentHeight can
+            // recursively invalidate the view's own height during model sync.
+            // bottomMargin reserves room for the overlay indicator.
+            footer: null
         }
     }
 }

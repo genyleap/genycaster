@@ -14,7 +14,7 @@ target_compile_features(farcaster_transport PUBLIC cxx_std_26)
 set_property(TARGET farcaster_transport PROPERTY CXX_SCAN_FOR_MODULES ON)
 farcaster_enable_warnings(farcaster_transport)
 
-if(FARCASTER_ENABLE_HYPERSNAP_PROVIDER)
+if(FARCASTER_ENABLE_HYPERSNAP_PROVIDER AND NOT EMSCRIPTEN)
     if(APPLE)
         # The SDK already supplies headers through CMAKE_OSX_SYSROOT. Linking the
         # system curl dylib directly avoids propagating MacOSX.sdk/usr/include as

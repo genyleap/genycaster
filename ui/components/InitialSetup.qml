@@ -54,6 +54,7 @@ Item {
 
     readonly property bool phone: width < 680
     readonly property bool compact: width < 1040
+    readonly property bool browserReadOnly: wasmReadOnly
 
     // Setup design-system layer: every stage composes the same neutral surfaces,
     // typography scale and spacing rhythm. Accent is reserved for focus/action,
@@ -193,7 +194,7 @@ Item {
         index = Math.max(0, Math.min(5, index))
         if (!legalConsentAccepted && index > 2)
             index = 2
-        if (!authenticated && index > 4)
+        if (!authenticated && !root.browserReadOnly && index > 4)
             index = 4
         highestReachedStep = Math.max(highestReachedStep, index)
         if (index === currentStep) {
@@ -217,7 +218,7 @@ Item {
             switchStep(2)
             return
         }
-        if (!authenticated && currentStep > 4)
+        if (!authenticated && !root.browserReadOnly && currentStep > 4)
             switchStep(4)
     }
 
@@ -244,7 +245,7 @@ Item {
         }
 
         if (currentStep === 4) {
-            if (authenticated)
+            if (authenticated || root.browserReadOnly)
                 switchStep(5)
             return
         }
@@ -262,6 +263,8 @@ Item {
     function primaryActionText() {
         if (currentStep === 2 && !legalConsentAccepted)
             return qsTrId("genycaster.setup.agree_continue")
+        if (currentStep === 4 && root.browserReadOnly)
+            return qsTr("Continue as guest")
         if (currentStep === 4 && !authenticated)
             return qsTrId("genycaster.setup.sign_in_required")
         if (currentStep === 5)
@@ -275,9 +278,9 @@ Item {
         if (currentStep === 2)
             return legalConsentAccepted || (legalTermsReviewed && legalPrivacyReviewed && legalTermsChecked && legalPrivacyChecked)
         if (currentStep === 4)
-            return authenticated
+            return authenticated || root.browserReadOnly
         if (currentStep === 5)
-            return authenticated && legalConsentAccepted
+            return (authenticated || root.browserReadOnly) && legalConsentAccepted
         return true
     }
 
@@ -707,7 +710,7 @@ Item {
                         Item { Layout.fillWidth: !root.phone }
 
                         SetupPrimaryButton {
-                            visible: root.currentStep !== 4 || root.authenticated
+                            visible: root.currentStep !== 4 || root.authenticated || root.browserReadOnly
                             Layout.fillWidth: root.phone
                             Layout.maximumWidth: root.phone ? 420 : 300
                             Layout.minimumWidth: root.phone ? 0 : 168
@@ -1638,16 +1641,20 @@ Item {
             SetupPageHeader {
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconUser
-                title: root.authenticated
-                       ? qsTrId("genycaster.setup.account_verified")
-                       : root.accountIntent === "new"
-                         ? qsTrId("genycaster.setup.new_profile")
-                         : qsTrId("genycaster.setup.sign_in_required")
-                subtitle: !root.authenticated && root.accountIntent === "new"
-                          ? qsTrId("genycaster.setup.profile_creation_browser")
-                          : root.authenticated || root.authenticationInProgress
-                            ? root.phaseBody()
-                            : qsTrId("genycaster.setup.account_methods_explainer")
+                title: root.browserReadOnly
+                       ? qsTr("Browser guest mode")
+                       : root.authenticated
+                         ? qsTrId("genycaster.setup.account_verified")
+                         : root.accountIntent === "new"
+                           ? qsTrId("genycaster.setup.new_profile")
+                           : qsTrId("genycaster.setup.sign_in_required")
+                subtitle: root.browserReadOnly
+                          ? qsTr("Continue without an account to explore public feeds.")
+                          : !root.authenticated && root.accountIntent === "new"
+                            ? qsTrId("genycaster.setup.profile_creation_browser")
+                            : root.authenticated || root.authenticationInProgress
+                              ? root.phaseBody()
+                              : qsTrId("genycaster.setup.account_methods_explainer")
             }
 
             Item {
@@ -1728,8 +1735,17 @@ Item {
                 }
             }
 
+            DirectionAwareLabel {
+                visible: root.browserReadOnly && !root.authenticated
+                Layout.fillWidth: true
+                text: qsTr("Browser preview runs in guest/read-only mode. Reading casts and profiles is available where providers allow CORS. Account sign-in and publishing require a future secure browser integration.")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeLabelSize
+                wrapMode: Text.WordWrap
+            }
+
             ColumnLayout {
-                visible: !root.authenticated
+                visible: !root.authenticated && !root.browserReadOnly
                 Layout.fillWidth: true
                 spacing: Theme.space3
 

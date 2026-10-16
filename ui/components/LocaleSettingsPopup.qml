@@ -310,6 +310,16 @@ GenyDrawer {
                     text: qsTrId("genycaster.settings.content_loading")
                     onClicked: root.currentSection = 3
                 }
+                ActionButton {
+                    Layout.fillWidth: true
+                    compact: true
+                    quiet: true
+                    selected: root.currentSection === 4
+                    iconOnly: root.compactLayout
+                    iconGlyph: Theme.iconRefresh
+                    text: qsTr("Updates")
+                    onClicked: root.currentSection = 4
+                }
             }
         }
 
@@ -1732,6 +1742,134 @@ GenyDrawer {
                         onCheckedRequested: checked => presentationBridge.setLinkPreviewPrefetchEnabled(checked)
                     }
 
+                }
+            }
+
+            ScrollView {
+                id: updatesScroll
+                clip: true
+                contentWidth: availableWidth
+                ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
+                ScrollBar.vertical: GenyScrollBar {}
+
+                ColumnLayout {
+                    width: updatesScroll.availableWidth
+                    spacing: Theme.space4
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space1
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTr("App updates")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeTitle2Size
+                            font.weight: Theme.weightBold
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTr("Current version: %1").arg(updateController.appVersion)
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeMetaSize
+                        }
+                    }
+
+                    ReadToggleCard {
+                        titleText: qsTr("Check for updates automatically")
+                        descriptionText: qsTr("Look for published Genycaster releases once per day. No automatic installation without your approval.")
+                        iconGlyph: Theme.iconRefresh
+                        checked: updateController.autoCheckEnabled
+                        onCheckedRequested: checked => updateController.setAutoCheckEnabled(checked)
+                    }
+
+                    Superellipse {
+                        Layout.fillWidth: true
+                        implicitHeight: updaterColumn.implicitHeight + Theme.space3 * 2
+                        fillColor: Theme.surfaceMuted
+                        borderWidth: Theme.strokeHairline
+                        borderColor: Theme.borderSubtle
+                        curveDepth: Theme.curveContainer
+
+                        ColumnLayout {
+                            id: updaterColumn
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: Theme.space3
+                            spacing: Theme.space2
+
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: updateController.status
+                                color: updateController.error.length > 0 ? Theme.warning : Theme.ink
+                                font.pixelSize: Theme.typeMetaSize
+                                wrapMode: Text.WordWrap
+                            }
+
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                visible: updateController.latestVersion.length > 0
+                                text: qsTr("Latest release: %1").arg(updateController.latestVersion)
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                            }
+
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                visible: updateController.error.length > 0
+                                text: updateController.error
+                                color: Theme.warning
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.WordWrap
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                layoutDirection: Theme.uiDirection
+                                spacing: Theme.space2
+                                GenySpinner {
+                                    visible: updateController.checking || updateController.downloading
+                                    running: visible
+                                }
+                                DirectionAwareLabel {
+                                    visible: updateController.downloading
+                                    Layout.fillWidth: true
+                                    text: qsTr("Download: %1%").arg(Math.round(updateController.downloadProgress * 100))
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeCaptionSize
+                                }
+                                Item { Layout.fillWidth: true }
+                            }
+
+                            ActionButton {
+                                Layout.fillWidth: true
+                                text: updateController.checking ? qsTr("Checking…") : qsTr("Check now")
+                                enabled: !updateController.checking && !updateController.downloading
+                                onClicked: updateController.checkForUpdates()
+                            }
+                            ActionButton {
+                                Layout.fillWidth: true
+                                visible: updateController.downloadSupported && updateController.canDownload
+                                enabled: !updateController.checking && !updateController.downloading
+                                prominent: true
+                                text: updateController.downloadedFilePath.length > 0
+                                      ? qsTr("Open verified installer")
+                                      : qsTr("Download verified update")
+                                onClicked: {
+                                    if (updateController.downloadedFilePath.length > 0)
+                                        updateController.openDownloadedUpdate()
+                                    else
+                                        updateController.downloadUpdate()
+                                }
+                            }
+                            ActionButton {
+                                Layout.fillWidth: true
+                                quiet: true
+                                text: qsTr("Release notes and downloads")
+                                onClicked: updateController.openReleasePage()
+                            }
+                        }
+                    }
                 }
             }
         }

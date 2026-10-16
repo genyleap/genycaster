@@ -641,7 +641,13 @@ bool PresentationBridge::runtimeReady() const noexcept { return m_runtimeReady; 
 bool PresentationBridge::authenticationAvailable() const noexcept { return m_authenticationAvailable; }
 bool PresentationBridge::initialSetupRequired() const noexcept
 {
+#if defined(__EMSCRIPTEN__)
+    // Browser guest mode has no native signer/auth adapters. Consent still
+    // gates setup, but a login that cannot run must not trap users in setup.
+    return !m_setupBypassedForVerification && !m_initialSetupCompleted;
+#else
     return !m_setupBypassedForVerification && (!m_initialSetupCompleted || !m_isAuthenticated);
+#endif
 }
 bool PresentationBridge::initialSetupCompleted() const noexcept { return m_initialSetupCompleted; }
 bool PresentationBridge::legalConsentAccepted() const noexcept { return m_legalConsentAccepted; }
@@ -1438,9 +1444,11 @@ bool PresentationBridge::acceptLegalConsent(
 
 void PresentationBridge::completeInitialSetup()
 {
-    if (!m_isAuthenticated || !m_legalConsentAccepted || m_initialSetupCompleted) {
-        return;
-    }
+#if defined(__EMSCRIPTEN__)
+    if (!m_legalConsentAccepted || m_initialSetupCompleted) return;
+#else
+    if (!m_isAuthenticated || !m_legalConsentAccepted || m_initialSetupCompleted) return;
+#endif
     m_initialSetupCompleted = true;
     if (m_settings != nullptr) {
         m_settings->setValue(QStringLiteral("setup/onboardingVersion"), kInitialSetupVersion);
