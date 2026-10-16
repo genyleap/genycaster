@@ -263,7 +263,7 @@ Item {
     function primaryActionText() {
         if (currentStep === 2 && !legalConsentAccepted)
             return qsTrId("genycaster.setup.agree_continue")
-        if (currentStep === 4 && root.browserReadOnly)
+        if (currentStep === 4 && root.browserReadOnly && !authenticated)
             return qsTr("Continue as guest")
         if (currentStep === 4 && !authenticated)
             return qsTrId("genycaster.setup.sign_in_required")
@@ -1641,14 +1641,14 @@ Item {
             SetupPageHeader {
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconUser
-                title: root.browserReadOnly
+                title: root.browserReadOnly && !root.authenticationAvailable
                        ? qsTr("Browser guest mode")
                        : root.authenticated
                          ? qsTrId("genycaster.setup.account_verified")
                          : root.accountIntent === "new"
                            ? qsTrId("genycaster.setup.new_profile")
                            : qsTrId("genycaster.setup.sign_in_required")
-                subtitle: root.browserReadOnly
+                subtitle: root.browserReadOnly && !root.authenticationAvailable
                           ? qsTr("Continue without an account to explore public feeds.")
                           : !root.authenticated && root.accountIntent === "new"
                             ? qsTrId("genycaster.setup.profile_creation_browser")
@@ -1738,14 +1738,16 @@ Item {
             DirectionAwareLabel {
                 visible: root.browserReadOnly && !root.authenticated
                 Layout.fillWidth: true
-                text: qsTr("Browser preview runs in guest/read-only mode. Reading casts and profiles is available where providers allow CORS. Account sign-in and publishing require a future secure browser integration.")
+                text: root.authenticationAvailable
+                      ? qsTr("Browser sign-in verifies your Genyleap/OpenProof account and linked Farcaster FID. Publishing still requires a secure protocol signer and is unavailable in the browser.")
+                      : qsTr("Browser preview runs in guest/read-only mode. Reading casts and profiles is available where providers allow CORS.")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeLabelSize
                 wrapMode: Text.WordWrap
             }
 
             ColumnLayout {
-                visible: !root.authenticated && !root.browserReadOnly
+                visible: !root.authenticated && (!root.browserReadOnly || root.authenticationAvailable)
                 Layout.fillWidth: true
                 spacing: Theme.space3
 
@@ -1830,7 +1832,7 @@ Item {
                         primary: root.activeSignInRoute === "farcaster"
                         busy: root.authenticationInProgress && root.authenticationRoute === "farcaster"
                         showChevron: !root.authenticationInProgress
-                        enabled: root.authenticationAvailable && !root.authenticationInProgress
+                        enabled: !root.browserReadOnly && root.authenticationAvailable && !root.authenticationInProgress
                         onClicked: root.continueWithFarcaster()
                     }
 

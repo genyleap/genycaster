@@ -228,6 +228,8 @@ qt_add_executable(farcaster_client
     mobile/update_controller.hpp
     mobile/remote_image_provider.cpp
     mobile/remote_image_provider.hpp
+    mobile/browser_openproof_auth.cpp
+    mobile/browser_openproof_auth.hpp
 )
 
 target_sources(farcaster_client

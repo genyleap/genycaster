@@ -39,6 +39,10 @@ COPY --from=builder /app/browser_image_proxy.mjs ./browser_image_proxy.mjs
 COPY --from=builder /app/server.mjs ./server.mjs
 COPY --from=builder /app/storage ./storage
 
+# Build context files may be copied from a restrictive deployment umask.
+# The unprivileged runtime must be able to import the browser image module.
+RUN chmod 0644 /app/browser_image_proxy.mjs /app/gateway.mjs /app/server.mjs
+
 USER node
 EXPOSE 8790
 CMD ["node", "server.mjs"]

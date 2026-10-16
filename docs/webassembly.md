@@ -61,6 +61,26 @@ and cancellations remain queued through the event loop. Native builds keep
 their threaded Qt reactor and existing SSL diagnostics. Other unrelated
 application executors are not yet certified on WebAssembly.
 
+## Browser OpenProof sign-in (read-only identity)
+
+The browser uses OpenProof's public `genycaster-native-v1` OAuth device
+grant through `https://openproof.genyleap.com`. The Qt Network adapter
+starts the device challenge, polls the access token, verifies the canonical
+subject via `/oauth/userinfo`, and requires exactly one server-confirmed
+linked Farcaster FID from `/account/connections`. Since that account API
+does not expose CORS directly, the Genycaster-owned HTTPS Media Gateway
+forwards **only** `GET /account/connections` under
+`/v1/browser/openproof/connections`, using the supplied Bearer token and
+no cookies or configurable upstream. The response never includes the token.
+
+The access token is kept transiently in Qt memory and zeroed after
+verification; browser sessions are in-memory and expire, and are not saved
+as durable client credentials. Identity login is not a Farcaster protocol
+signer. Browser publishing, reactions, follows, signing and media uploads
+remain disabled until a secure dedicated signer workflow exists. The
+Genyleap account must already have exactly one linked Farcaster identity;
+linking/registration is completed in Genyleap's owned account experience.
+
 The browser cannot expose a native OS keychain or bind the app's localhost
 custody-authorizer server. The wizard therefore has an explicit
 **Continue as guest** path on WebAssembly, after reviewing Terms and Privacy;

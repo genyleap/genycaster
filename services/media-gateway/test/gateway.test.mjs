@@ -71,7 +71,7 @@ function proofHeaders(method, pathname, body, nonce, contentType = 'application/
   };
 }
 
-async function withGateway(run) {
+async function withGateway(run, overrides = {}) {
   const stored = new Map();
   let createCalls = 0;
   const storage = {
@@ -124,7 +124,7 @@ async function withGateway(run) {
     },
   };
   const server = createMediaGateway(config(), storage, {
-    fetchImpl: signerFetch,
+    fetchImpl: overrides.fetchImpl ?? signerFetch,
     now: () => nowMs,
   });
   await new Promise((resolve, reject) => {
@@ -425,4 +425,42 @@ test('browser media endpoint permits public CORS but never proxies arbitrary hos
     assert.equal(rejected.headers.get('access-control-allow-origin'), '*');
     assert.equal((await rejected.json()).error, 'image_source_not_allowed');
   });
+});
+
+test('browser OpenProof connections route requires bearer and permits explicit CORS', async () => {
+  const calls = [];
+  await withGateway(async ({ origin }) => {
+    const path = '/v1/browser/openproof/connections';
+    const preflight = await fetch(origin + path, {
+      method: 'OPTIONS',
+      headers: { origin: 'http://127.0.0.1:30000',
+                 'access-control-request-headers': 'authorization',
+                 'access-control-request-method': 'GET' },
+    });
+    assert.equal(preflight.status, 204);
+    assert.equal(preflight.headers.get('access-control-allow-origin'), '*');
+    assert.match(preflight.headers.get('access-control-allow-headers') || '', /authorization/);
+    const empty = await fetch(origin + path);
+    assert.equal(empty.status, 401);
+    const bad = await fetch(origin + path, { headers: {
+      authorization: 'Bearer token\\r\\nX-Unsafe: yes',
+    } });
+    assert.equal(bad.status, 401);
+    assert.equal(calls.length, 0);
+    const verified = await fetch(origin + path, { headers: { authorization: 'Bearer token-123' } });
+    assert.equal(verified.status, 200);
+    assert.equal(verified.headers.get('cache-control'), 'no-store');
+    assert.deepEqual(await verified.json(), { connections: [{ provider: 'farcaster', fid: '42' }] });
+    assert.deepEqual(calls, ['token-123']);
+  }, { fetchImpl: async (url, options) => {
+    assert.equal(url, 'https://openproof.genyleap.com/account/connections');
+    assert.equal(options.method, 'GET');
+    assert.equal(options.redirect, 'error');
+    assert.equal(options.headers.authorization.startsWith('Bearer '), true);
+    calls.push(options.headers.authorization.slice(7));
+    return new Response(JSON.stringify({
+      connections: [{ provider: 'farcaster', fid: '42' }],
+      unrelated: 'not transmitted',
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  } });
 });

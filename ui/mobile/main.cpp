@@ -76,6 +76,7 @@
 #include <emscripten.h>
 #endif
 #include "remote_image_provider.hpp"
+#include "browser_openproof_auth.hpp"
 #include "data_storage_controller.hpp"
 
 import farcaster.runtime.emoji;
@@ -2054,6 +2055,70 @@ void connectRuntime(
             }
         };
 
+#if defined(__EMSCRIPTEN__)
+    // A browser-safe OpenProof device grant is independent from the blocking
+    // native authentication adapter and from protocol signer authorization.
+    auto* const browserAuth = new BrowserOpenProofAuth(&bridge);
+    const std::function<void(application::session::SessionState)> applyBrowserSession = sessionObserver;
+    const auto browserObserver = [applyBrowserSession](BrowserOpenProofState event) {
+        application::session::SessionState state{};
+        using Phase = BrowserOpenProofState::Phase;
+        switch (event.phase) {
+        case Phase::Starting:
+            state.phase = application::session::SessionPhase::Starting;
+            break;
+        case Phase::AwaitingApproval:
+            state.phase = application::session::SessionPhase::AwaitingApproval;
+            state.approvalUrl = event.approvalUrl.toStdString();
+            break;
+        case Phase::Authenticated: {
+            const auto authenticatedAt = foundation::time::now();
+            state.phase = application::session::SessionPhase::Authenticated;
+            state.session = domain::session::ClientSession{
+                .identityIssuer = std::string{"https://openproof.genyleap.com"},
+                .identitySubject = event.subject.toStdString(),
+                .fid = domain::identity::Fid{event.fid},
+                .username = event.username.isEmpty()
+                    ? std::nullopt : std::optional<std::string>{event.username.toStdString()},
+                .displayName = event.displayName.isEmpty()
+                    ? std::nullopt : std::optional<std::string>{event.displayName.toStdString()},
+                .avatarUrl = event.avatarUrl.isEmpty()
+                    ? std::nullopt : std::optional<std::string>{event.avatarUrl.toStdString()},
+                .method = domain::session::AuthenticationMethod::Custody,
+                .authenticatedAt = authenticatedAt,
+                .expiresAt = authenticatedAt + std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::seconds{event.tokenExpiresSeconds}),
+            };
+            break;
+        }
+        case Phase::Failed:
+            state.phase = application::session::SessionPhase::Failed;
+            state.error = foundation::error::Error::make(
+                foundation::error::ErrorCode::Unauthorized, event.error.toStdString());
+            break;
+        case Phase::SignedOut:
+            state.phase = application::session::SessionPhase::Guest;
+            break;
+        }
+        applyBrowserSession(std::move(state));
+    };
+    QObject::connect(&bridge, &PresentationBridge::signInRequested, browserAuth,
+        [browserAuth, browserObserver](const QString& route) {
+            if (route == QStringLiteral("openproof")) {
+                browserAuth->begin(browserObserver);
+            } else {
+                BrowserOpenProofState event{};
+                event.phase = BrowserOpenProofState::Phase::Failed;
+                event.error = QStringLiteral(
+                    "Farcaster browser proof is not available. Use verified Genyleap sign-in.");
+                browserObserver(std::move(event));
+            }
+        });
+    QObject::connect(&bridge, &PresentationBridge::signInCancelRequested,
+                     browserAuth, [browserAuth] { browserAuth->cancel(); });
+    QObject::connect(&bridge, &PresentationBridge::signOutRequested,
+                     browserAuth, [browserAuth] { browserAuth->signOut(); });
+#else
     QObject::connect(&bridge, &PresentationBridge::signInRequested, &bridge,
         [&bridge, runtime, sessionObserver, siwfDomain, siwfUri](const QString& route) {
             const auto signInRoute = route == QStringLiteral("farcaster")
@@ -2081,6 +2146,7 @@ void connectRuntime(
         [runtime, sessionObserver] {
             (void)runtime->sessionService->signOut(sessionObserver);
         });
+#endif
 
     QObject::connect(&bridge, &PresentationBridge::signerProvisionRequested, &bridge,
         [&bridge, runtime, signerObserver] {
@@ -2428,6 +2494,10 @@ void connectRuntime(
         });
     runtimeRecoveryTimer->start();
 
+#if !defined(__EMSCRIPTEN__)
+    // Native auth uses SessionService polling and persistent local sessions.
+    // Browser OpenProof uses its own async QNetworkAccessManager device grant;
+    // native polling would cancel its challenge as a spurious Guest response.
     auto* const authenticationPollTimer = new QTimer(&bridge);
     authenticationPollTimer->setInterval(1'000);
     QObject::connect(authenticationPollTimer, &QTimer::timeout, &bridge,
@@ -2449,6 +2519,13 @@ void connectRuntime(
     authenticationPollTimer->start();
 
     (void)runtime->sessionService->restore(sessionObserver);
+#else
+    // Browser identity is intentionally ephemeral and never restored from
+    // native persisted sessions (which might already be expired).
+    sessionObserver(application::session::SessionState{
+        .phase = application::session::SessionPhase::Guest,
+    });
+#endif
 
     QObject::connect(&bridge, &PresentationBridge::searchSuggestionsCancelled, &bridge,
         [runtime] { runtime->cancelSearchRequest(); });
@@ -3829,7 +3906,9 @@ int main(int argc, char* argv[])
         ? std::nullopt : std::optional<std::string>{optimismRpcUrlText.toStdString()};
     const std::string siwfDomain = siwfDomainText.toStdString();
     const std::string siwfUri = siwfUriText.toStdString();
-#if GENYCASTER_HAS_OPENPROOF_AUTH
+#if defined(__EMSCRIPTEN__)
+    const bool authenticationAvailable = true; // OpenProof browser device OAuth, read-only session.
+#elif GENYCASTER_HAS_OPENPROOF_AUTH
     const bool authenticationAvailable = true;
 #elif FARCASTER_HAS_FARCASTER_AUTH
     const bool authenticationAvailable = !siwfDomain.empty() && !siwfUri.empty();

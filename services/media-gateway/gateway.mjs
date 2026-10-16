@@ -369,6 +369,72 @@ export function createMediaGateway(config, storage, dependencies = {}) {
     try { requestUrl = new URL(request.url || '/', 'http://media.invalid'); }
     catch { writeJson(response, 400, { error: 'invalid_request_url' }); return; }
 
+    if (requestUrl.pathname === '/v1/browser/openproof/connections') {
+      // The OpenProof account API intentionally has no browser CORS contract.
+      // Relay only its fixed, bearer-authenticated identity connections route;
+      // never accept a caller-supplied destination or ambient cookie.
+      response.setHeader('access-control-allow-origin', '*');
+      response.setHeader('access-control-allow-methods', 'GET, OPTIONS');
+      response.setHeader('access-control-allow-headers', 'authorization');
+      response.setHeader('cache-control', 'no-store');
+      response.setHeader('x-content-type-options', 'nosniff');
+      if (request.method === 'OPTIONS') { response.writeHead(204); response.end(); return; }
+      if (request.method !== 'GET') {
+        writeJson(response, 405, { error: 'method_not_allowed' }); return;
+      }
+      const authorization = String(request.headers.authorization || '');
+      if (authorization.length > 8192 ||
+          !/^Bearer [A-Za-z0-9._~+\/-]+={0,2}$/.test(authorization)) {
+        writeJson(response, 401, { error: 'bearer_token_required' }); return;
+      }
+      const rate = limiter.check(clientAddress(request, config.trustCloudflare), runtime.now());
+      if (!rate.allowed) {
+        writeJson(response, 429, { error: 'rate_limited' }); return;
+      }
+      try {
+        const upstream = await runtime.fetchImpl(
+          'https://openproof.genyleap.com/account/connections', {
+            method: 'GET',
+            headers: { authorization, accept: 'application/json' },
+            redirect: 'error',
+            signal: AbortSignal.timeout(8_000),
+          },
+        );
+        if (upstream.status === 401 || upstream.status === 403) {
+          writeJson(response, 401, { error: 'openproof_unauthorized' }); return;
+        }
+        if (!upstream.ok || !upstream.body ||
+            !String(upstream.headers.get('content-type') || '').startsWith('application/json')) {
+          upstream.body?.cancel();
+          writeJson(response, 502, { error: 'openproof_unavailable' }); return;
+        }
+        const reader = upstream.body.getReader();
+        const chunks = [];
+        let size = 0;
+        while (true) {
+          const part = await reader.read();
+          if (part.done) break;
+          size += part.value.byteLength;
+          if (size > 256 * 1024) {
+            await reader.cancel();
+            writeJson(response, 502, { error: 'openproof_reply_too_large' });
+            return;
+          }
+          chunks.push(Buffer.from(part.value));
+        }
+        const decoded = JSON.parse(Buffer.concat(chunks, size).toString('utf8'));
+        if (!decoded || !Array.isArray(decoded.connections)) {
+          writeJson(response, 502, { error: 'openproof_invalid_connections' }); return;
+        }
+        // Only the identity linkage document is returned, never the bearer.
+        response.setHeader('content-type', 'application/json; charset=utf-8');
+        response.end(JSON.stringify({ connections: decoded.connections }));
+      } catch {
+        writeJson(response, 502, { error: 'openproof_unavailable' });
+      }
+      return;
+    }
+
     if (requestUrl.pathname === '/v1/browser/images') {
       // Public raster bytes only. Browser clients cannot read many external
       // image CDNs directly because of cross-origin policy.
