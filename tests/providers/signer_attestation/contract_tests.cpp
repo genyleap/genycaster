@@ -129,6 +129,17 @@ void endpointPolicyAndServerFailuresAreExplicit()
         keyRequest.requestFid.value, keyRequest.publicKey.hex, keyRequest.deadline);
     assert(!result);
     assert(result.error().code == foundation::error::ErrorCode::Unavailable);
+
+    // Snapchain's read/write gateway intentionally has no app signing route.
+    // HTTP 404 is missing endpoint configuration, NOT a contradicted signer key.
+    transport.response = transport::http::HttpResponse{
+        .statusCode = 404U,
+        .body = R"({"error":"route_not_available"})",
+    };
+    auto missing = (*attestor)->attest(
+        keyRequest.requestFid.value, keyRequest.publicKey.hex, keyRequest.deadline);
+    assert(!missing);
+    assert(missing.error().code == foundation::error::ErrorCode::NotFound);
 }
 
 } // namespace

@@ -139,6 +139,7 @@ constexpr std::size_t EcdsaSignatureBytes = 65U;
     foundation::error::ErrorCode code = foundation::error::ErrorCode::ProtocolFailure;
     if (statusCode == 401U || statusCode == 403U) code = foundation::error::ErrorCode::Unauthorized;
     else if (statusCode == 408U) code = foundation::error::ErrorCode::Timeout;
+    else if (statusCode == 404U) code = foundation::error::ErrorCode::NotFound;
     else if (statusCode == 429U) code = foundation::error::ErrorCode::RateLimited;
     else if (statusCode >= 500U) code = foundation::error::ErrorCode::Unavailable;
     std::string message = "Signer-attestation endpoint returned HTTP " + std::to_string(statusCode) + ".";

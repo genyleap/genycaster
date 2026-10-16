@@ -727,10 +727,26 @@ Item {
         id: legalReader
         modal: true
         focus: true
-        width: Math.min(root.width - (root.phone ? Theme.space3 * 2 : Theme.space7 * 2), 700)
-        height: Math.min(root.height - (root.phone ? Theme.space3 * 2 : Theme.space6 * 2), 720)
-        x: Math.round((root.width - width) / 2)
-        y: Math.round((root.height - height) / 2)
+        width: root.phone ? root.width : Math.min(root.width - Theme.space7 * 2, 700)
+        height: root.phone ? Math.min(root.height - Theme.space4, 720)
+                           : Math.min(root.height - Theme.space6 * 2, 720)
+        x: root.phone ? 0 : Math.round((root.width - width) / 2)
+        y: root.phone ? root.height - height : Math.round((root.height - height) / 2)
+        enter: Transition {
+            ParallelAnimation {
+                NumberAnimation { property: "y"; from: root.phone ? root.height : Math.round((root.height - legalReader.height) / 2);
+                                  to: root.phone ? root.height - legalReader.height : Math.round((root.height - legalReader.height) / 2);
+                                  duration: Theme.reduceMotion ? 0 : Theme.motionStandard; easing.type: Easing.OutCubic }
+                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+            }
+        }
+        exit: Transition {
+            ParallelAnimation {
+                NumberAnimation { property: "y"; to: root.phone ? root.height : Math.round((root.height - legalReader.height) / 2);
+                                  duration: Theme.reduceMotion ? 0 : Theme.motionFast; easing.type: Easing.InCubic }
+                NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+            }
+        }
         padding: 0
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
@@ -753,9 +769,18 @@ Item {
         contentItem: ColumnLayout {
             spacing: 0
 
+            Rectangle {
+                visible: root.phone
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: Theme.space2
+                width: 40
+                height: 4
+                color: Theme.borderStrong
+            }
+
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 70
+                Layout.preferredHeight: root.phone ? 60 : 70
                 Layout.leftMargin: Theme.space4
                 Layout.rightMargin: Theme.space4
                 spacing: Theme.space3
@@ -882,13 +907,14 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.phone ? 96 : 78
+                Layout.preferredHeight: root.phone ? 76 : 78
                 Layout.leftMargin: Theme.space4
                 Layout.rightMargin: Theme.space4
                 spacing: Theme.space3
                 layoutDirection: Theme.uiDirection
 
                 RowLayout {
+                    visible: !root.phone
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     layoutDirection: Theme.uiDirection
@@ -1641,15 +1667,17 @@ Item {
                         title: qsTrId("genycaster.setup.new_profile")
                         subtitle: qsTrId("genycaster.setup.new_profile_body")
                         iconGlyph: Theme.iconUser
-                        primary: root.accountIntent === "new"
-                        selected: root.accountIntent === "new"
-                        enabled: !root.authenticationInProgress
-                        onClicked: root.accountIntent = "new"
+                        primary: false
+                        selected: false
+                        trailingText: qsTrId("genycaster.shell.coming_soon")
+                        enabled: false
                     }
                 }
 
                 ColumnLayout {
-                    visible: root.accountIntent === "new"
+                    // Registration is not implemented inside Genycaster yet.
+                    // Do not expose a misleading action until secure FID creation exists.
+                    visible: false
                     Layout.fillWidth: true
                     spacing: Theme.space2
 

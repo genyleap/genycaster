@@ -201,3 +201,32 @@ protobufs. Feed/detail controls forward canonical cast/FID values to the C++
 presentation bridge, which invokes Application. Interaction controls remain
 disabled until both account authentication and verified signer readiness are
 true.
+
+## 2026-10-16 attestation routing correction
+
+A public Snapchain read/write gateway does NOT supply
+`POST /v1/farcaster/signer-attestation`. It explicitly returns
+`404 {"error":"route_not_available"}` for unknown routes.
+Previously the desktop client invented this path by appending it to the
+Snapchain base URL when the attestation URL was unset. That produced a
+misleading signer error even though no signing authority was available.
+
+The client now **never synthesizes an attestation URL** from Snapchain.
+`GENYCASTER_SIGNER_ATTESTATION_URL` must point to a **separately deployed
+trusted signer service** that can produce a verifiable
+`SignedKeyRequest` signature for the configured Genycaster App FID,
+bound to the exact `requestFid`, public key and deadline. The private
+App-FID signing key must remain server-side in a restricted signing
+service; it must never be bundled with the Qt app or stored in the
+Snapchain gateway. With no configured service, write enablement fails
+closed with a setup message instead of issuing repeated HTTP 404 calls.
+Explicitly misconfigured endpoints returning HTTP 404 are classified as
+`NotFound` and mapped to the attestation-configuration message, rather
+than a generic Snapchain signer rejection.
+
+**Deployment prerequisite still open:** no such signing endpoint or
+App-FID signing credentials were established by this UI/client fix.
+Consequently read-only login works, but real protocol publishing
+requires provisioning and validating that secure server service and
+an end-to-end wallet approval. Do not report writer activation as done
+until KEY_ADD is observed on Snapchain and signed casts are accepted.

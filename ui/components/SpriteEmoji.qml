@@ -191,7 +191,10 @@ Item {
             interpolate: false
             smooth: true
             loops: root.playbackLoops < 0 ? AnimatedSprite.Infinite : 1
-            paused: root.playbackLoops === 0 || !root.artworkWanted
+            // AnimatedSprite internally calls setPaused on a NumberAnimation;
+            // pausing before the animation has started warns on Qt 6.12.
+            // Run only when playback is wanted instead of pausing an idle sprite.
+            running: root.playbackLoops !== 0 && root.artworkWanted
             finishBehavior: AnimatedSprite.FinishAtInitialFrame
             // Pause/resume preserves completed loops; no restart on scrolling.
         }

@@ -1161,7 +1161,8 @@ void applySocialState(PresentationBridge& bridge, application::read::model::Soci
         return qtTrId("genycaster.runtime.client_attribution_not_configured");
     }
     if (rawMessage.find("App-FID attribution requires") != std::string_view::npos ||
-        rawMessage.find("attestation provider") != std::string_view::npos) {
+        rawMessage.find("attestation provider") != std::string_view::npos ||
+        rawMessage.find("Signer-attestation endpoint returned HTTP 404") != std::string_view::npos) {
         return qtTrId("genycaster.runtime.signer_attestation_not_configured");
     }
 
@@ -3644,14 +3645,11 @@ int main(int argc, char* argv[])
         signerAttestationUrlText =
             qEnvironmentVariable("GENYCASTER_SIGNER_ATTESTATION_URL").trimmed();
     }
-    if (signerAttestationUrlText.isEmpty() && appFid.has_value() &&
-        !snapchainBaseUrlText.isEmpty()) {
-        signerAttestationUrlText = snapchainBaseUrlText;
-        if (signerAttestationUrlText.endsWith(QLatin1Char('/'))) {
-            signerAttestationUrlText.chop(1);
-        }
-        signerAttestationUrlText += QStringLiteral("/v1/farcaster/signer-attestation");
-    }
+    // Snapchain gateways implement signed-message submission, NOT App-FID
+    // SignedKeyRequest attestation. Never infer a signing endpoint from the
+    // public read/write gateway: it returns 404 route_not_available and cannot
+    // produce a valid App-FID signature. Only an explicitly configured trusted
+    // signer-attestation service may authorize a new protocol signer.
     const std::optional<std::string> signerAttestationUrl = signerAttestationUrlText.isEmpty()
         ? std::nullopt : std::optional<std::string>{signerAttestationUrlText.toStdString()};
 

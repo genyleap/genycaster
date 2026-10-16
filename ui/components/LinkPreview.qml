@@ -485,6 +485,7 @@ Superellipse {
             id: webPreviewLoader
             visible: !root.layoutMiniApp
             Layout.fillWidth: true
+            // Large link cards incubate off the frame-critical path.
             asynchronous: true
             sourceComponent: root.preferPosterLayout ? richMediaLinkCard : genericLinkCard
         }

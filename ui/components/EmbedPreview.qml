@@ -290,6 +290,8 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         active: root.classificationReady
+        // Rich preview incubation stays asynchronous to protect feed frame times.
+        // A recycled delegate may be destroyed while Qt cancels its incubator.
         asynchronous: true
         sourceComponent: root.resolvedKind === "cast-reference" ? castReferenceComponent
                        : root.resolvedKind === "token-address" ? tokenAddressComponent

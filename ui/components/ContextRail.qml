@@ -325,7 +325,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: assetsCard.showingDetails
                                             ? Math.min(420, 112 + Math.max(1, assetsCard.addressRows.length) * 78)
-                                            : 170
+                                            : Math.max(202, assetFrontContent.implicitHeight + Theme.space3 * 2)
                     Behavior on Layout.preferredHeight {
                         NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast; easing.type: Easing.OutCubic }
                     }
@@ -349,6 +349,7 @@ Item {
                         Behavior on opacity { NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast } }
 
                         ColumnLayout {
+                            id: assetFrontContent
                             anchors.fill: parent
                             anchors.margins: Theme.space3
                             spacing: Theme.space2
@@ -361,7 +362,10 @@ Item {
                                 SuperellipseImage {
                                     Layout.preferredWidth: 46
                                     Layout.preferredHeight: 46
-                                    source: String(assetsCard.market.imageSource || "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny.svg")
+                                    source: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny.svg"
+                                    showManualLoadIndicator: false
+                                    showLoadingIndicator: false
+                                    showFailureIndicator: false
                                     fillMode: Image.PreserveAspectFit
                                     mediaCategory: "other"
                                     requestedSourceWidth: 96
