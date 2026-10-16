@@ -27,9 +27,10 @@ import farcaster.provider.hypersnap.request;
 namespace farcaster::provider::hypersnap::feed {
 namespace {
 
-constexpr std::chrono::milliseconds followingRequestTimeout{5'000};
-constexpr std::chrono::milliseconds discoveryRequestTimeout{6'000};
-constexpr std::chrono::milliseconds profileFeedRequestTimeout{6'000};
+// Keep the blocking compatibility gateway aligned with asynchronous reads.
+constexpr std::chrono::milliseconds followingRequestTimeout{12'000};
+constexpr std::chrono::milliseconds discoveryRequestTimeout{12'000};
+constexpr std::chrono::milliseconds profileFeedRequestTimeout{12'000};
 constexpr std::chrono::milliseconds viewerReactionRequestTimeout{7'500};
 constexpr std::chrono::milliseconds replyEnrichmentRequestTimeout{4'000};
 

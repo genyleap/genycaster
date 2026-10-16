@@ -46,7 +46,9 @@ Superellipse {
     // Network updates must not resize the navigation viewport below this card.
     // Only the user's explicit expansion changes the reserved extent.
     readonly property real summaryHeight: Math.max(34, titleMetrics.height + messageMetrics.height)
-    implicitHeight: summaryHeight + Theme.space2 * 2 + (root.expanded ? 88 + Theme.space2 : 0)
+    readonly property real detailHeight: 152
+    implicitHeight: summaryHeight + Theme.space2 * 2 + (root.expanded ? detailHeight + Theme.space2 : 0)
+    clip: true
     fillColor: statusHover.hovered ? Theme.surfaceInteractive : Theme.surfaceSecondary
     borderWidth: 0
     curveDepth: Theme.curveControl
@@ -179,8 +181,8 @@ Superellipse {
         RowLayout {
             visible: root.expanded
             Layout.fillWidth: true
-            Layout.minimumHeight: 88
-            Layout.maximumHeight: 88
+            Layout.minimumHeight: root.detailHeight
+            Layout.maximumHeight: root.detailHeight
             Layout.leftMargin: Theme.space1
             Layout.rightMargin: Theme.space1
             layoutDirection: Theme.uiDirection
@@ -193,13 +195,14 @@ Superellipse {
                 clip: true
                 contentWidth: availableWidth
                 ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                ScrollBar.vertical: GenyScrollBar { policy: ScrollBar.AsNeeded }
 
                 DirectionAwareLabel {
                     width: statusDetails.availableWidth
                     text: (root.primaryMessage || root.stateLabel)
                           + (root.diagnosticsEnabled && root.diagnosticText.length > 0
                              ? "\n" + root.diagnosticText : "")
-                    color: Theme.textTertiary
+                    color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.WrapAnywhere
                     textFormat: Text.PlainText

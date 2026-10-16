@@ -182,11 +182,29 @@ using Json = boost::property_tree::ptree;
     if (response.statusCode == expected) {
         return {};
     }
+    // OpenProof deliberately hides verification internals from the public API.
+    // Only surface its opaque, non-secret correlation id for support; never
+    // append the response body, signed message, cookies or bearer credentials.
+    std::string requestId{};
+    if (!response.body.empty() && response.body.size() <= 8'192U) {
+        if (auto parsed = parseJson(response.body, "OpenProof error"); parsed) {
+            requestId = parsed->get<std::string>("error.request_id", "");
+        }
+    }
+    const bool safeId = !requestId.empty() && requestId.size() <= 96U
+        && std::all_of(requestId.begin(), requestId.end(), [](const unsigned char ch) {
+            return std::isalnum(ch) != 0 || ch == '-' || ch == '_';
+        });
+    std::string message = std::string{context} + " returned HTTP "
+        + std::to_string(response.statusCode) + ".";
+    if (safeId) {
+        message.append(" Request ID: ").append(requestId).append(".");
+    }
     return std::unexpected(makeError(
         response.statusCode == 401U || response.statusCode == 403U
             ? foundation::error::ErrorCode::Unauthorized
             : foundation::error::ErrorCode::ProtocolFailure,
-        std::string{context} + " returned HTTP " + std::to_string(response.statusCode) + "."));
+        std::move(message)));
 }
 
 [[nodiscard]] foundation::result::Status requireSuccessStatus(

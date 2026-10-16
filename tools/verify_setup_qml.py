@@ -14,6 +14,8 @@ files = [
     "ui/components/InitialSetup.qml",
     "ui/components/LocaleSettingsPopup.qml",
     "ui/components/AppShell.qml",
+    "ui/components/FeedSurface.qml",
+    "ui/components/SystemStatusCard.qml",
 ]
 failed = False
 for file in files:

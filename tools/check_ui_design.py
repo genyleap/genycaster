@@ -304,7 +304,9 @@ if ('readonly property rect cornerTargetRect:' not in gallery_tile
     errors.append('GalleryTile must round the actual painted PreserveAspectFit image rectangle, not only the reserved tile bounds')
 if ('id: newPostsSlot' not in feed_surface
         or 'implicitHeight: feedHeaderLoader.implicitHeight + newPostsSlot.height' not in feed_surface
-        or 'newPostsSlot.mapToItem(root, 0, 0).y' not in feed_surface):
+        or 'header.mapToItem(root, 0, header.height - newPostsBanner.height).y' not in feed_surface
+        or 'const header = readList.headerItem' not in feed_surface
+        or 'newPostsSlot.mapToItem(root, 0, 0).y' in feed_surface):
     errors.append('New-post affordance must reserve header space and pin to the viewport instead of overlaying the first cast')
 for token in (
     'property bool scrollHostResolved: false',

@@ -312,6 +312,29 @@ void deviceAuthorizationRequiresAndCompletesFarcasterLink()
     assert(transport.empty());
 }
 
+void responseErrorsExposeOnlySafeCorrelationIds()
+{
+    ScriptedTransport transport{{
+        Step{
+            .method = Method::Post,
+            .urlSuffix = "/auth/web3/start",
+            .status = 401,
+            .responseBody = R"({"error":{"code":"AUTHENTICATION_FAILED","message":"Authentication failed.","request_id":"req-ABC_123"}})",
+        },
+    }};
+
+    auto authentication = provider::makeAuthentication(transport, config());
+    assert(authentication);
+    auto started = (*authentication)->begin(capability::auth::SignInRequest{
+        .route = capability::auth::SignInRoute::Farcaster,
+    });
+    assert(!started);
+    assert(started.error().message.contains("HTTP 401"));
+    assert(started.error().message.contains("Request ID: req-ABC_123"));
+    assert(!started.error().message.contains("Authentication failed."));
+    assert(transport.empty());
+}
+
 void rejectsIssuerThatIsNotAnOrigin()
 {
     ScriptedTransport transport{{}};
@@ -402,6 +425,7 @@ int main()
     deviceAuthorizationCompletesForAlreadyLinkedAccount();
     rejectsAmbiguousFarcasterConnections();
     deviceAuthorizationRequiresAndCompletesFarcasterLink();
+    responseErrorsExposeOnlySafeCorrelationIds();
     rejectsIssuerThatIsNotAnOrigin();
     directFarcasterStillCreatesCanonicalOpenProofIdentity();
     return 0;

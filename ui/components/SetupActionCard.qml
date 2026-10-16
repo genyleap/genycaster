@@ -31,10 +31,13 @@ Button {
     Accessible.description: subtitle
     Accessible.checked: root.selected
 
-    readonly property color foreground: primary ? Theme.accentInk : Theme.ink
-    readonly property color secondaryForeground: primary
-                                                 ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.76)
-                                                 : Theme.inkMuted
+    // Disabled primary actions use a neutral card background; do not paint
+    // white-on-white labels just because the enabled state was prominent.
+    readonly property color foreground: !enabled ? Theme.inkMuted
+                                      : primary ? Theme.accentInk : Theme.ink
+    readonly property color secondaryForeground: !enabled ? Theme.inkSubtle
+                                               : primary ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.84)
+                                               : Theme.inkMuted
 
     background: Superellipse {
         fillColor: !root.enabled
@@ -44,7 +47,7 @@ Button {
                                   : root.hovered ? Theme.primaryFillHover : Theme.primaryFill)
                      : root.down ? Theme.surfacePressed
                                  : root.hovered ? Theme.surfaceHover : Theme.surface
-        borderWidth: root.primary ? 0 : (root.activeFocus ? 2 : Theme.strokeStandard)
+        borderWidth: root.primary && root.enabled ? 0 : (root.activeFocus ? 2 : Theme.strokeStandard)
         borderColor: root.activeFocus ? Theme.focus : Theme.borderMuted
         curveDepth: Theme.curveContainer
         elevation: root.primary && root.enabled ? Theme.elevationControl : Theme.elevationNone
@@ -61,7 +64,7 @@ Button {
         GenySpinner {
             visible: root.busy
             running: visible
-            color: root.primary ? root.foreground : Theme.inkMuted
+            color: root.foreground
             Layout.preferredWidth: Theme.iconSize
             Layout.preferredHeight: Theme.iconSize
         }
@@ -69,7 +72,7 @@ Button {
         Icon {
             visible: !root.busy && root.iconGlyph.length > 0
             text: root.iconGlyph
-            color: root.primary ? root.foreground : Theme.inkMuted
+            color: root.enabled && !root.primary ? Theme.inkMuted : root.foreground
             preferredSize: Theme.iconSize
         }
 
@@ -138,14 +141,15 @@ Button {
         Icon {
             visible: root.complete && !root.selected
             text: Theme.iconCheck
-            color: root.primary ? root.foreground : Theme.accent
+            color: root.foreground
             preferredSize: Theme.iconSizeSmall
         }
 
         Icon {
             visible: root.showChevron && !root.complete && !root.selected && !root.busy
             text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
-            color: root.primary ? root.secondaryForeground : Theme.inkSubtle
+            color: !root.enabled ? Theme.inkMuted
+                   : root.primary ? root.secondaryForeground : Theme.inkSubtle
             preferredSize: Theme.iconSizeSmall
         }
     }

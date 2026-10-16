@@ -1124,9 +1124,13 @@ Item {
         // occupies its reserved slot; afterwards it sticks to the feed top.
         y: {
             const scrollRevision = readList.contentY
-            if (!readList.headerItem || !newPostsSlot.visible)
+            // A ListView header is a separately instantiated component: its
+            // ids are not in scope from this sibling overlay. Use the actual
+            // headerItem geometry and the header's reserved banner slot.
+            const header = readList.headerItem
+            if (!header || !root.pendingNewPostCount || root.socialMode)
                 return 0
-            return Math.max(0, newPostsSlot.mapToItem(root, 0, 0).y)
+            return Math.max(0, header.mapToItem(root, 0, header.height - newPostsBanner.height).y)
         }
 
         HoverHandler { id: newPostsHover }

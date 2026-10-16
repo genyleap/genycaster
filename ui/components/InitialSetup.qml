@@ -380,7 +380,7 @@ Item {
 
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 76
+            Layout.preferredHeight: 64
 
             RowLayout {
                 anchors.fill: parent
@@ -491,7 +491,7 @@ Item {
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.topMargin: Theme.space6
+                    anchors.topMargin: Theme.space7
                     anchors.bottomMargin: Theme.space5
                     anchors.leftMargin: Theme.space3
                     anchors.rightMargin: Theme.space3
@@ -519,14 +519,8 @@ Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
 
-                        Rectangle {
-                            x: Theme.rtl ? parent.width - 15 : 14
-                            y: 27
-                            width: 1
-                            height: Math.max(0, stepRail.height - 54)
-                            color: Theme.borderMuted
-                        }
-
+                        // Each step owns its own status icon and text. Avoid a
+                        // decorative rail passing through unrelated hit targets.
                         Column {
                             id: stepRail
                             anchors.left: parent.left
@@ -543,9 +537,9 @@ Item {
                                     readonly property bool complete: root.stepComplete(modelData)
                                     readonly property bool current: modelData === root.currentStep
                                     width: parent.width
-                                    height: 54
+                                    height: 58
                                     enabled: root.stepUnlocked(modelData)
-                                    opacity: enabled ? 1.0 : 0.42
+                                    opacity: 1.0
                                     hoverEnabled: true
                                     focusPolicy: Qt.StrongFocus
                                     Accessible.name: root.stepTitle(modelData)
@@ -554,7 +548,8 @@ Item {
                                     onClicked: root.switchStep(modelData)
 
                                     background: Superellipse {
-                                        fillColor: stepButton.hovered ? Theme.surfaceHover : "transparent"
+                                        fillColor: stepButton.current ? Theme.surfaceMuted
+                                                   : stepButton.hovered ? Theme.surfaceHover : "transparent"
                                         borderWidth: 0
                                         borderColor: "transparent"
                                         curveDepth: Theme.curveControl
@@ -1547,8 +1542,12 @@ Item {
                 iconGlyph: Theme.iconUser
                 title: root.authenticated
                        ? qsTrId("genycaster.setup.account_verified")
-                       : qsTrId("genycaster.setup.sign_in_required")
-                subtitle: root.phaseBody()
+                       : root.accountIntent === "new"
+                         ? qsTrId("genycaster.setup.new_profile")
+                         : qsTrId("genycaster.setup.sign_in_required")
+                subtitle: !root.authenticated && root.accountIntent === "new"
+                          ? qsTrId("genycaster.setup.profile_creation_browser")
+                          : root.phaseBody()
             }
 
             Item {
@@ -1648,6 +1647,7 @@ Item {
                         iconGlyph: Theme.iconSignIn
                         primary: root.accountIntent === "existing"
                         selected: root.accountIntent === "existing"
+                        enabled: !root.authenticationInProgress
                         onClicked: root.accountIntent = "existing"
                     }
 
@@ -1658,6 +1658,7 @@ Item {
                         iconGlyph: Theme.iconUser
                         primary: root.accountIntent === "new"
                         selected: root.accountIntent === "new"
+                        enabled: !root.authenticationInProgress
                         onClicked: root.accountIntent = "new"
                     }
                 }
@@ -1690,11 +1691,7 @@ Item {
                         text: qsTrId("genycaster.setup.already_created")
                         quiet: true
                         enabled: !root.authenticationInProgress
-                        onClicked: {
-                            root.accountIntent = "existing"
-                            // New identities are linked by the same verified ceremony.
-                            presentationBridge.setPreferredNetwork("farcaster")
-                        }
+                        onClicked: root.accountIntent = "existing"
                     }
                 }
 
@@ -1733,13 +1730,11 @@ Item {
                         quiet: true
                         enabled: root.authenticationAvailable && !root.authenticationInProgress
                         onClicked: {
-                            if (presentationBridge.preferredNetwork === "farcaster") {
-                                presentationBridge.setPreferredNetwork("hypersnap")
+                            // Authentication route is not the read-network preference.
+                            if (presentationBridge.preferredNetwork === "farcaster")
                                 root.continueWithGenyleap()
-                            } else {
-                                presentationBridge.setPreferredNetwork("farcaster")
+                            else
                                 root.continueWithFarcaster()
-                            }
                         }
                     }
 
@@ -1806,7 +1801,7 @@ Item {
             }
 
             Superellipse {
-                visible: root.authenticationErrorText.length > 0
+                visible: root.accountIntent === "existing" && root.authenticationErrorText.length > 0
                 Layout.fillWidth: true
                 implicitHeight: authErrorRow.implicitHeight + Theme.space3 * 2
                 fillColor: Theme.dangerSurface

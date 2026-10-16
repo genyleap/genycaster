@@ -51,9 +51,11 @@ using AppRequest = application::read::async_gateway::Request;
 using Error = foundation::error::Error;
 using ErrorCode = foundation::error::ErrorCode;
 
-constexpr std::chrono::milliseconds followingRequestTimeout{5'000};
-constexpr std::chrono::milliseconds discoveryRequestTimeout{6'000};
-constexpr std::chrono::milliseconds profileFeedRequestTimeout{6'000};
+// A 5-6s overall deadline expires during cold startup and proxy/TLS retry.
+// Bound foreground reads to 12s while local-first cache remains interactive.
+constexpr std::chrono::milliseconds followingRequestTimeout{12'000};
+constexpr std::chrono::milliseconds discoveryRequestTimeout{12'000};
+constexpr std::chrono::milliseconds profileFeedRequestTimeout{12'000};
 constexpr std::chrono::milliseconds viewerReactionRequestTimeout{7'500};
 // The reaction snapshot is filtered locally, so a bounded but broad window must
 // cover reactions on casts the viewer engaged with recently. Mirrors the exact
