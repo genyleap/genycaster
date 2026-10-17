@@ -147,6 +147,11 @@ Emscripten's IDBFS stores SQLite files below
 Qt timer asynchronously triggers `FS.syncfs(false)` for persistence.
 Browser private mode, quota exhaustion, and sudden tab termination may
 still lose recent writes; **do not claim durable protocol writes in WASM**.
+Unconfirmed/failed local write projections are no longer resurrected into
+the public feed after a browser reload. Failed writes are removed from the
+optimistic feed immediately on failure on every platform. Durable outbox
+records are retained for diagnostics/recovery rather than silently deleted
+or represented as successfully published Farcaster casts.
 CORS and HTTPS requirements also apply to external Farcaster/Hypersnap nodes.
 
 ## Public Mini Apps in the browser
@@ -158,11 +163,20 @@ catalogue/search/relevant routes at `/v1/browser/miniapps`; the public
 catalogue uses a bounded 20-item response to avoid CDN truncation (deeper
 pagination is not yet implemented). User-controlled
 upstream hosts, credentials and arbitrary paths are not accepted. The upstream
-API key never enters WebAssembly. The browser can open a discovered public
-Mini App in a separate HTTPS tab; this is **not** an embedded Farcaster Mini App
-SDK host, and gives the app no signer, authentication tokens, wallet or
-privileged host capabilities. Native macOS continues to use its existing
-isolated WebKit Mini App runtime.
+API key never enters WebAssembly. An unprivileged in-app browser
+host displays embeddable public Mini Apps inside a sandboxed HTTPS iframe
+with a built-in title/domain bar and explicit close control. It does **not**
+open an external tab. The iframe is isolated from QML account secrets and
+does not silently inherit a Farcaster signer or EVM wallet.
+
+Unlike macOS WKWebView, a browser cannot inject the desktop's
+`ReactNativeWebView` SDK shim at the start of a cross-origin iframe
+document. Accordingly this is **not full Farcaster Mini App SDK parity**:
+privileged SDK calls/wallet/compose are not exposed. Remote sites with
+a restrictive `Content-Security-Policy: frame-ancestors` or X-Frame-Options
+cannot be embedded by an unrelated origin and need a protocol-compliant
+separately authorized host. Native macOS continues using its full isolated
+WebKit Mini App runtime.
 
 ## Global browser mouse wheel dispatch
 
@@ -171,11 +185,12 @@ registers Emscripten's native `emscripten_set_wheel_callback` with capture on
 the window, rather than calling an application export from JavaScript via
 `Module._genycaster_browser_wheel`. That export is not reliably exposed by
 Qt's generated loader. The callback reads the browser-provided wheel deltas,
-normalizes pixel/line/page units, and uses DOM hit testing (including Qt
-shadow-root screens) to map the pointer to canvas-local coordinates. It sends
-a regular `QWheelEvent` to `QQuickWindow`, preserving Qt Quick's own
-Flickable and ComboBox popup targeting. Non-canvas wheel and browser Ctrl+wheel
-zoom are left alone. Native platforms do not install the callback.
+normalizes pixel/line/page units, and uses a passive capture-phase observer
+of the actual DOM event composed path for Qt shadow-root canvas targeting.
+It falls back to DOM hit testing if necessary, sends a regular `QWheelEvent`
+to `QQuickWindow` and allows Qt's native wheel handler to try again if
+the event was not accepted. Non-canvas wheel and browser Ctrl+wheel zoom
+are left alone. Native platforms do not install the callback.
 
 Browser diagnostics: `window.__genycasterWheelDiagnostics.forwarded`
 increments only after a wheel event is delivered to the Qt window. A zero
@@ -185,6 +200,15 @@ Qt's console. Unit tests exercise DOM coordinate mapping, shadow roots,
 non-canvas rejection, and C++ preprocessing, while a Qt native test confirms
 popup hit testing. Real Qt 6.12 WASM mouse testing remains required before
 calling scrolling fixed.
+
+## Required CJK and Devanagari glyph coverage
+
+WASM builds now enable pinned downloads and **require** the Noto Sans CJK
+TTC and Devanagari font. A missing resource is a configure failure instead
+of silently showing □ tofu for Japanese, Korean, Chinese or Hindi names
+in a language selector. Offline builders may supply the two verified files
+via `GENYCASTER_SCRIPT_FONT_DIR`. Qt 6.11 headless glyph checks confirmed
+Japanese, Korean and Simplified Chinese glyph support in the bundled TTC.
 
 ## Emoji coverage in the browser
 

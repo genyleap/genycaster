@@ -73,6 +73,11 @@ Item {
         visible: !root.bundledArtwork && root.remoteSource.length > 0
         source: root.remoteSource
         mediaCategory: "other"
+        // Small token logos must never render the full-size 'Tap to load'
+        // overlay: it escapes a 40px icon and obscures adjacent token text.
+        forceAutomaticDownload: true
+        showManualLoadIndicator: false
+        showLoadingIndicator: false
         requestedSourceWidth: 96
         requestedSourceHeight: 96
         fillMode: Image.PreserveAspectFit

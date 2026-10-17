@@ -2,8 +2,9 @@
 #include <QSettings>
 #include <QtTranslation>
 #if defined(__EMSCRIPTEN__)
-#include <QDesktopServices>
+#include <QHostAddress>
 #include <QUrl>
+#include <emscripten.h>
 #endif
 
 namespace {
@@ -16,6 +17,19 @@ MiniAppHostController::MiniAppHostController(bool runtimeAvailable, QSettings& s
     : QObject(parent), m_settings(settings), m_available(runtimeAvailable) {
     const QString stored = m_settings.value(QStringLiteral("miniapps/presentationMode")).toString();
     if (validPresentationMode(stored)) { m_presentationMode = stored; }
+#if defined(__EMSCRIPTEN__)
+    m_browserVisibilityTimer.setInterval(300);
+    connect(&m_browserVisibilityTimer, &QTimer::timeout, this, [this] {
+        const bool visible = EM_ASM_INT({
+            return window.__genycasterMiniAppOverlay
+                && window.__genycasterMiniAppOverlay.active() ? 1 : 0;
+        }) != 0;
+        if (!visible) {
+            m_browserVisibilityTimer.stop();
+            setState(false);
+        }
+    });
+#endif
 }
 QString MiniAppHostController::presentationMode() const { return m_presentationMode; }
 void MiniAppHostController::setPresentationMode(const QString& mode) {
@@ -58,19 +72,43 @@ void MiniAppHostController::openWithMetadata(const QString& url,
     m_error.clear();
     emit stateChanged();
 #if defined(__EMSCRIPTEN__)
-    // WebAssembly has no macOS WebKit host. Launch as an isolated external
-    // browser tab, without claiming Mini App SDK, signer or wallet support.
+    // WebAssembly cannot create the native macOS WKWebView. Host public,
+    // embeddable Mini Apps in a sandboxed in-page iframe instead of launching
+    // an unrelated browser tab. Do not claim that the unprivileged iframe
+    // has the desktop Mini App SDK or wallet signer permissions.
     const QUrl destination{url, QUrl::StrictMode};
+    QHostAddress numericHost{};
+    const QString host = destination.host().toLower();
     if (!destination.isValid() || destination.scheme() != QStringLiteral("https")
-        || destination.host().isEmpty() || !destination.userName().isEmpty()
+        || destination.port(443) != 443 || !host.contains(QLatin1Char('.'))
+        || host.endsWith(QLatin1Char('.'))
+        || host.endsWith(QStringLiteral(".localhost"))
+        || host.endsWith(QStringLiteral(".local"))
+        || host.endsWith(QStringLiteral(".internal"))
+        || host.endsWith(QStringLiteral(".test"))
+        || host.endsWith(QStringLiteral(".invalid"))
+        || numericHost.setAddress(host)
+        || !destination.userName().isEmpty()
         || !destination.password().isEmpty()) {
-        setState(false, QStringLiteral("Mini App URL must be a public HTTPS address."));
+        setState(false, qtTrId("genycaster.miniapp.unavailable"));
         return;
     }
-    if (!QDesktopServices::openUrl(destination)) {
-        setState(false, QStringLiteral("The browser could not open this Mini App."));
+    const QByteArray launchUtf8 = destination.toString(QUrl::FullyEncoded).toUtf8();
+    const QByteArray titleUtf8 = title.left(160).toUtf8();
+    const QByteArray closeUtf8 = qtTrId("genycaster.locale.close").toUtf8();
+    const int opened = EM_ASM_INT({
+        const host = window.__genycasterMiniAppOverlay;
+        if (!host) return 0;
+        return host.open(UTF8ToString($0, $1), UTF8ToString($2, $3),
+            UTF8ToString($4, $5)) ? 1 : 0;
+    }, launchUtf8.constData(), launchUtf8.size(),
+       titleUtf8.constData(), titleUtf8.size(),
+       closeUtf8.constData(), closeUtf8.size());
+    if (opened == 0) {
+        setState(false, qtTrId("genycaster.miniapp.unavailable"));
     } else {
-        setState(false);
+        setState(true);
+        m_browserVisibilityTimer.start();
     }
     return;
 #endif
@@ -85,11 +123,25 @@ void MiniAppHostController::openWithMetadata(const QString& url,
     emit launchRequested(url, title, iconSource.left(4096));
 }
 void MiniAppHostController::close() {
+#if defined(__EMSCRIPTEN__)
+    m_browserVisibilityTimer.stop();
+    EM_ASM({
+        if (window.__genycasterMiniAppOverlay)
+            window.__genycasterMiniAppOverlay.close();
+    });
+#endif
     emit closeRequested();
     setState(false);
 }
 
 void MiniAppHostController::closeAll() {
+#if defined(__EMSCRIPTEN__)
+    m_browserVisibilityTimer.stop();
+    EM_ASM({
+        if (window.__genycasterMiniAppOverlay)
+            window.__genycasterMiniAppOverlay.close();
+    });
+#endif
     emit closeAllRequested();
     setState(false);
 }

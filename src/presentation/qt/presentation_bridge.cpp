@@ -2064,6 +2064,16 @@ void PresentationBridge::applyWriteState(
     const QString operationKind = presentationMutation.value(QStringLiteral("operationKind")).toString();
     const QString castId = presentationMutation.value(QStringLiteral("castId")).toString();
     if (operationKind == QStringLiteral("publish-cast") && !castId.isEmpty()) {
+        // A rejected local write is not a Farcaster cast. Remove its
+        // optimistic row immediately; retain the durable outbox record for
+        // diagnosis instead of displaying failed drafts in the public feed.
+        if (m_writePhase == QStringLiteral("failed")
+            || m_writePhase == QStringLiteral("blocked")) {
+            removeCastPresentation(m_writeRows, castId);
+            removeCastPresentation(m_rows, castId);
+            emit stateChanged();
+            return;
+        }
         if (m_writePhase == QStringLiteral("confirmed")) {
             m_lastPublishedCastId = castId;
         }

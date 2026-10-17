@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QTimer>
 #include <QVariantMap>
 
 class QSettings;
@@ -77,4 +78,7 @@ private:
     QString m_error{};
     QString m_launchUrl{};
     QVariantMap m_user{};
+#if defined(__EMSCRIPTEN__)
+    QTimer m_browserVisibilityTimer{};
+#endif
 };

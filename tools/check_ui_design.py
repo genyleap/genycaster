@@ -231,6 +231,15 @@ if re.search(r'Layout\.(?:maximumWidth|minimumWidth|preferredWidth)\s*:\s*[^\n]*
     errors.append('LocaleSettingsPopup Layout width constraints must not derive from their RowLayout parent width')
 if 'DisplayScaleControl {' not in locale_popup:
     errors.append('Display settings must use the dedicated Genycaster scale control rather than stock slider rows')
+if ('id: settingsTabs' not in locale_popup
+        or 'columns: root.compactLayout ? 5 : root.width >= 720 ? 3 : 2' not in locale_popup
+        or 'implicitHeight: settingsTabs.implicitHeight' not in locale_popup):
+    errors.append('Settings navigation must show complete labels in a two-row desktop grid and retain compact mobile icons')
+
+market_icon = (ui/'components'/'MarketAssetIcon.qml').read_text(encoding='utf-8')
+if ('showManualLoadIndicator: false' not in market_icon
+        or 'forceAutomaticDownload: true' not in market_icon):
+    errors.append('Compact token logos must never render a full-size manual-load overlay across adjacent cards')
 
 combo = (ui/'components'/'GenyComboBox.qml').read_text(encoding='utf-8')
 if 'required property int index' not in combo:

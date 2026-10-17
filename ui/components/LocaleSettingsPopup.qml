@@ -260,11 +260,18 @@ GenyDrawer {
 
         Superellipse {
             Layout.fillWidth: true
-            implicitHeight: Theme.controlHeight + Theme.space1 * 2
+            implicitHeight: settingsTabs.implicitHeight + Theme.space1 * 2
             fillColor: Theme.surfaceMuted
             curveDepth: Theme.curveControl
 
-            RowLayout {
+            GridLayout {
+                id: settingsTabs
+                columns: root.compactLayout ? 5 : root.width >= 720 ? 3 : 2
+                rowSpacing: Theme.space1
+                columnSpacing: Theme.space1
+                // Desktop labels get their natural line width across two rows;
+                // only truly compact mobile layouts use icon-only navigation.
+                uniformCellWidths: !root.compactLayout
                 anchors.fill: parent
                 anchors.margins: Theme.space1
                 layoutDirection: Theme.uiDirection
@@ -276,6 +283,7 @@ GenyDrawer {
                     quiet: true
                     selected: root.currentSection === 0
                     iconOnly: root.compactLayout
+                    Layout.minimumWidth: 0
                     iconGlyph: Theme.iconPalette
                     text: qsTrId("genycaster.settings.appearance")
                     onClicked: root.currentSection = 0
@@ -286,6 +294,7 @@ GenyDrawer {
                     quiet: true
                     selected: root.currentSection === 1
                     iconOnly: root.compactLayout
+                    Layout.minimumWidth: 0
                     iconGlyph: Theme.iconLanguage
                     text: qsTrId("genycaster.settings.language_region")
                     onClicked: root.currentSection = 1
@@ -296,6 +305,7 @@ GenyDrawer {
                     quiet: true
                     selected: root.currentSection === 2
                     iconOnly: root.compactLayout
+                    Layout.minimumWidth: 0
                     iconGlyph: Theme.iconChart
                     text: qsTrId("genycaster.settings.market_pulse")
                     onClicked: root.currentSection = 2
@@ -306,6 +316,7 @@ GenyDrawer {
                     quiet: true
                     selected: root.currentSection === 3
                     iconOnly: root.compactLayout
+                    Layout.minimumWidth: 0
                     iconGlyph: Theme.iconDownload
                     text: qsTrId("genycaster.settings.content_loading")
                     onClicked: root.currentSection = 3
@@ -316,6 +327,7 @@ GenyDrawer {
                     quiet: true
                     selected: root.currentSection === 4
                     iconOnly: root.compactLayout
+                    Layout.minimumWidth: 0
                     iconGlyph: Theme.iconRefresh
                     text: qsTrId("genycaster.settings.updates")
                     onClicked: root.currentSection = 4

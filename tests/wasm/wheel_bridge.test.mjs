@@ -41,11 +41,12 @@ function environment() {
     let selected = canvas;
     const host = { shadowRoot: { elementFromPoint: () => canvas } };
     const document = { elementFromPoint: () => selected };
+    const window = {};
     const execute = (x, y, axis) => vm.runInNewContext(
         '(function($0, $1, $2) {' + js + '})(' + [x,y,axis].join(',') + ')',
-        { document, HTMLCanvasElement },
+        { window, document, HTMLCanvasElement },
     );
-    return { execute, canvas, host, select: element => { selected = element; } };
+    return { execute, canvas, host, window, select: element => { selected = element; } };
 }
 
 test('mouse coordinates are normalized to actual canvas CSS bounds', () => {
@@ -66,4 +67,15 @@ test('other page targets never forward to the Qt event loop', () => {
     const { execute, select } = environment();
     select({ tagName: 'DIV' });
     assert.equal(execute(500, 250, 0), -1);
+});
+
+test('captured composed-path canvas coordinates win over retargeted document hit', () => {
+    const { execute, select, window } = environment();
+    select({ tagName: 'QT-SCREEN-HOST' });
+    window.__genycasterWheelHit = {
+        clientX: 500, clientY: 250, x: 0.5, y: 0.5
+    };
+    assert.equal(execute(500, 250, 0), 0.5);
+    assert.equal(execute(500, 250, 1), 0.5);
+    assert.equal(execute(600, 250, 0), -1, 'stale cached coordinates are rejected');
 });

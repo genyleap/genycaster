@@ -194,6 +194,13 @@ double normalizedCanvasCoordinate(int clientX, int clientY, int axis)
     return EM_ASM_DOUBLE({
         const x = $0;
         const y = $1;
+        // The capture-phase DOM observer sees the real composed event path
+        // even when Qt's screen canvas lives inside a shadow root or has
+        // pointer-events retargeted to a wrapper. No Module export required.
+        const hit = window.__genycasterWheelHit;
+        if (hit && hit.clientX === x && hit.clientY === y
+            && hit.x >= 0 && hit.y >= 0)
+            return $2 === 0 ? hit.x : hit.y;
         let element = document.elementFromPoint(x, y);
         while (element && element.shadowRoot) {
             const child = element.shadowRoot.elementFromPoint(x, y);
@@ -240,7 +247,12 @@ EM_BOOL browserWheelCallback(int type, const EmscriptenWheelEvent* event, void*)
                         bounded(-event->deltaY * scale * 1.2)};
     QWheelEvent wheel{local, window->mapToGlobal(local.toPoint()), pixels, angles,
                       Qt::NoButton, modifiers, Qt::NoScrollPhase, false};
+    wheel.setAccepted(false);
     QCoreApplication::sendEvent(window, &wheel);
+    // Do not swallow wheel events Qt Quick did not handle. In particular,
+    // popup/list bounds and early screen initialization may leave events
+    // unaccepted; allow Qt's own web event routing to handle those.
+    if (!wheel.isAccepted()) return EM_FALSE;
     EM_ASM({
         if (window.__genycasterWheelDiagnostics)
             window.__genycasterWheelDiagnostics.forwarded += 1;
@@ -251,6 +263,28 @@ EM_BOOL browserWheelCallback(int type, const EmscriptenWheelEvent* event, void*)
 void installBrowserWheelBridge(QQuickWindow* window)
 {
     browserWheelWindow = window;
+    EM_ASM({
+        if (!window.__genycasterWheelPathInstalled) {
+            window.__genycasterWheelPathInstalled = true;
+            window.addEventListener('wheel', function(event) {
+                const path = event.composedPath ? event.composedPath() : [event.target];
+                const canvas = path.find(node => node instanceof HTMLCanvasElement);
+                const hit = Object.create(null);
+                hit.clientX = event.clientX;
+                hit.clientY = event.clientY;
+                hit.x = -1;
+                hit.y = -1;
+                if (canvas) {
+                    const rect = canvas.getBoundingClientRect();
+                    if (rect.width > 0 && rect.height > 0) {
+                        hit.x = (event.clientX - rect.left) / rect.width;
+                        hit.y = (event.clientY - rect.top) / rect.height;
+                    }
+                }
+                window.__genycasterWheelHit = hit;
+            }, {capture: true, passive: true});
+        }
+    });
     EM_ASM({
         if (!window.__genycasterWheelDiagnostics) {
             window.__genycasterWheelDiagnostics = Object.create(null);
@@ -1560,12 +1594,19 @@ void hydrateWriteProjections(
         }
         auto reactionRows = reactionProjectionRows(*reactions);
         auto followingRows = followingProjectionRows(*following);
-        // Include retry/failed optimistic casts as well as confirmed casts
-        // waiting for remote indexing. These records are durable in SQLite.
-        // No network submission or retry is performed by this hydration.
+        // Hydration is not publication. Never promote failed or blocked
+        // local writes back into a public feed after restarting. Preserve
+        // the durable outbox for explicit recovery/diagnostics, not for
+        // impersonating a network-accepted cast in the timeline.
         QVariantList castRows{};
         for (auto it = localCasts->begin(); it != localCasts->end(); ++it) {
-            if (!it->operation.optimisticCast) continue;
+            if (!it->operation.optimisticCast
+                || it->status == domain::write::OutboxStatus::Failed) continue;
+#if defined(__EMSCRIPTEN__)
+            // Browser builds without protocol write authority must not
+            // rehydrate pending drafts as if they were published casts.
+            if (it->status != domain::write::OutboxStatus::Confirmed) continue;
+#endif
             application::write::WritePhase phase =
                 it->status == domain::write::OutboxStatus::Failed
                     ? application::write::WritePhase::Failed

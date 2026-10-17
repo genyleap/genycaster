@@ -326,6 +326,7 @@ if(EMSCRIPTEN)
         "-sFORCE_FILESYSTEM=1"
         "-lidbfs.js"
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/persistence-pre.js"
+        "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/miniapp-host-pre.js"
     )
 
     # Package the origin-bound WebCrypto key vault alongside the generated
@@ -573,11 +574,22 @@ endif()
 # Set GENYCASTER_REQUIRE_SCRIPT_FONTS=ON in release/CI packaging if missing
 # Devanagari/CJK resources should be treated as a packaging failure.
 option(GENYCASTER_FETCH_SCRIPT_FONTS
-    "Best-effort fetch of pinned open-source Devanagari/CJK fonts" OFF)
+    "Best-effort fetch of pinned open-source Devanagari/CJK fonts" ${EMSCRIPTEN})
 option(GENYCASTER_ALLOW_SCRIPT_FONT_DOWNLOADS
-    "Permit configure-time network access for optional script fonts" OFF)
+    "Permit configure-time network access for optional script fonts" ${EMSCRIPTEN})
 option(GENYCASTER_REQUIRE_SCRIPT_FONTS
-    "Require Devanagari/CJK fonts to be embedded (recommended for release packaging)" OFF)
+    "Require Devanagari/CJK fonts to be embedded (recommended for release packaging)" ${EMSCRIPTEN})
+if(EMSCRIPTEN)
+    # Existing Qt Creator WASM build trees may carry cached OFF values from
+    # before the script-font requirement. Never silently ship missing glyphs.
+    # An explicit local GENYCASTER_SCRIPT_FONT_DIR bypasses downloading.
+    set(GENYCASTER_REQUIRE_SCRIPT_FONTS ON CACHE BOOL
+        "WASM needs bundled Devanagari/CJK scripts" FORCE)
+    set(GENYCASTER_FETCH_SCRIPT_FONTS ON CACHE BOOL
+        "WASM fetches pinned fonts when they are not supplied locally" FORCE)
+    set(GENYCASTER_ALLOW_SCRIPT_FONT_DOWNLOADS ON CACHE BOOL
+        "WASM permits script-font downloads for deterministic packaging" FORCE)
+endif()
 set(GENYCASTER_SCRIPT_FONT_DIR "" CACHE PATH
     "Optional directory containing NotoSansDevanagari.ttf and NotoSansCJK-Regular.ttc")
 
@@ -620,7 +632,8 @@ if(GENYCASTER_FETCH_SCRIPT_FONTS AND GENYCASTER_ALLOW_SCRIPT_FONT_DOWNLOADS AND
             file(DOWNLOAD
                 "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansdevanagari/NotoSansDevanagari%5Bwdth%2Cwght%5D.ttf"
                 "${_downloadDevanagariFontPath}"
-                TLS_VERIFY ON TIMEOUT 20 INACTIVITY_TIMEOUT 10
+                EXPECTED_HASH SHA256=14ec4af41f27482216d1c2229f417ff9b1425e1babb014e57d1d40d03229853e
+                TLS_VERIFY ON TIMEOUT 90 INACTIVITY_TIMEOUT 30
                 STATUS _devanagariFontDownloadStatus)
         else()
             set(_devanagariFontDownloadStatus 0 "cached")
@@ -642,7 +655,8 @@ if(GENYCASTER_FETCH_SCRIPT_FONTS AND GENYCASTER_ALLOW_SCRIPT_FONT_DOWNLOADS AND
             file(DOWNLOAD
                 "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTC/NotoSansCJK-Regular.ttc"
                 "${_downloadCjkFontPath}"
-                TLS_VERIFY ON TIMEOUT 30 INACTIVITY_TIMEOUT 15
+                EXPECTED_HASH SHA256=b76b0433203017ca80401b2ee0dd69350349871c4b19d504c34dbdd80541690a
+                TLS_VERIFY ON TIMEOUT 180 INACTIVITY_TIMEOUT 45
                 STATUS _cjkFontDownloadStatus)
         else()
             set(_cjkFontDownloadStatus 0 "cached")
