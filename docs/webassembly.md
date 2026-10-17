@@ -85,15 +85,29 @@ supports non-exportable signer key custody, explicit scoped Farcaster
 authorization, verified Snapchain registration and protocol-native signing.
 The browser sign-in route never claims signer readiness.
 
-For usable, explicit publication while the secure browser signer is not
-available, the account drawer offers **Write a cast in Farcaster (opens a new
-tab)**. This opens the fixed official HTTPS composer
-`https://farcaster.xyz/~/compose` with no draft, account credential,
-or signer data placed in the URL. Publication is performed by the user's
-existing authenticated Farcaster client, not by Genycaster; it cannot be
-mistaken for a successful in-app signed Cast or used for reactions/follows.
-This external handoff is an interim capability, not the internal protocol
-writer.
+## Browser Ed25519 key custody — staged, not a publishing flow
+
+The source includes `ui/wasm/secure_signer_vault.mjs`, which the WASM
+target packages alongside the Qt loader. This is a **cryptographic primitive
+only**, not a completed signer integration or an alternative Cast composer.
+Its asynchronous WebCrypto/IndexedDB API creates a per-FID, non-extractable
+Ed25519 private CryptoKey, persists it via structured cloning, returns only
+the public key to callers, and signs **exactly 20-byte** canonical Farcaster
+hashes. It rejects missing/insecure storage, malformed FIDs, tampered records
+and concurrent key replacement. The JS module requires a secure origin;
+there is no plaintext seed fallback or secret transmission to a gateway.
+
+The module is intentionally **not connected to SignerService or WriteService**
+yet. Desktop `ISignerVault`, custody EIP-712 authorization, registry and write
+transport interfaces are synchronous and rely on an OS credential backend.
+WebCrypto, IndexedDB, EIP-1193 custody requests and browser fetch are
+asynchronous. They need a dedicated event-driven C++/JS adapter that reuses
+the existing canonical protocol builder, scoped KEY_ADD registration, online
+registry verification and submission. Possession of a local key alone cannot
+enable Casts, reactions or follows. `writeReady` must remain false until
+all those conditions are met, including an active verified registration.
+Browser-origin compromise could request signatures from a non-extractable key;
+WebCrypto alone does not provide OS-keychain-equivalent origin isolation.
 
 ## Browser OpenProof sign-in (read-only identity)
 

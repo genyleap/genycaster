@@ -327,6 +327,18 @@ if(EMSCRIPTEN)
         "-lidbfs.js"
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/persistence-pre.js"
     )
+
+    # Package the origin-bound WebCrypto key vault alongside the generated
+    # Qt loader. It remains deliberately separate from signer authorization:
+    # publishing must not become ready until custody approval and a verified
+    # scoped Snapchain registration complete.
+    add_custom_command(TARGET farcaster_client POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/secure_signer_vault.mjs"
+            "$<TARGET_FILE_DIR:farcaster_client>/secure_signer_vault.mjs"
+        COMMENT "Packaging browser non-extractable Ed25519 key-vault module"
+        VERBATIM
+    )
 endif()
 
 if(GENYCASTER_ENABLE_PUBLIC_DATA_PROVIDER)
