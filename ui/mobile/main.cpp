@@ -2120,14 +2120,50 @@ void connectRuntime(
             Qt::QueuedConnection);
     };
 
-    const auto signerObserver = [&bridge, &richComposer, runtime, writeObserver](application::signer::SignerState state) {
+    struct SetupAuthorizationIntent final {
+        bool pending = false;
+        bool challengeSeen = false;
+        std::uint64_t nativeFid = 0U;
+    };
+    const auto setupAuthorization = std::make_shared<SetupAuthorizationIntent>();
+
+    const auto signerObserver = [&bridge, &richComposer, runtime, writeObserver, setupAuthorization](application::signer::SignerState state) {
         const bool ready = state.phase == application::signer::SignerPhase::Ready;
         const bool authorityTerminated = state.phase == application::signer::SignerPhase::Revoked ||
             state.phase == application::signer::SignerPhase::Expired;
+        const auto observedSession = runtime->currentSessionSnapshot();
         QMetaObject::invokeMethod(
             &bridge,
-            [&bridge, state = std::move(state)]() mutable {
+            [&bridge, state = std::move(state), setupAuthorization, observedSession]() mutable {
+                // A queued result from the prior account must not mark the
+                // new account write-ready or launch another custody request.
+                if (state.phase == application::signer::SignerPhase::SignedOut) {
+                    if (bridge.isAuthenticated()) return;
+                } else if (!observedSession || !bridge.isAuthenticated()
+                           || bridge.accountFid() != observedSession->fid.value
+                           || (state.record
+                               && state.record->local.fid.value != bridge.accountFid())) {
+                    return;
+                }
+                const auto pendingFid = setupAuthorization->nativeFid;
+                const bool sameAccount = pendingFid != 0U && bridge.isAuthenticated()
+                    && bridge.accountFid() == pendingFid && observedSession
+                    && observedSession->fid.value == pendingFid;
+                const bool provisionInSetup = sameAccount
+                    && (state.phase == application::signer::SignerPhase::Missing
+                        || state.phase == application::signer::SignerPhase::AuthorizationRequired);
+                if (pendingFid != 0U
+                    && (!sameAccount
+                        || state.phase == application::signer::SignerPhase::Ready
+                        || state.phase == application::signer::SignerPhase::Unavailable
+                        || state.phase == application::signer::SignerPhase::Failed)) {
+                    setupAuthorization->nativeFid = 0U;
+                }
                 applySignerState(bridge, std::move(state));
+                if (provisionInSetup) {
+                    setupAuthorization->nativeFid = 0U; // one attempt, never retry implicitly
+                    bridge.provisionSigner();
+                }
             },
             Qt::QueuedConnection);
         if (authorityTerminated) {
@@ -2175,7 +2211,8 @@ void connectRuntime(
             (void)runtime->writeService->resume(runtime->currentSessionSnapshot(), writeObserver);
         });
 
-    const auto sessionObserver = [&bridge, runtime, authenticationAvailable, signerObserver
+    const auto sessionObserver = [&bridge, runtime, authenticationAvailable, signerObserver,
+                                  setupAuthorization
 #if defined(__EMSCRIPTEN__)
         , browserSigner
 #endif
@@ -2184,14 +2221,33 @@ void connectRuntime(
             runtime->setCurrentSession(signerSession);
             QMetaObject::invokeMethod(
                 &bridge,
-                [&bridge, runtime, state = std::move(state), authenticationAvailable
+                [&bridge, runtime, state = std::move(state), authenticationAvailable,
+                 setupAuthorization
 #if defined(__EMSCRIPTEN__)
                  , browserSigner
 #endif
                 ]() mutable {
-#if defined(__EMSCRIPTEN__)
                     const auto completedPhase = state.phase;
                     const auto verifiedFid = state.session ? state.session->fid.value : 0U;
+                    const bool failed = state.error.has_value()
+                        || completedPhase == application::session::SessionPhase::Failed;
+                    if (setupAuthorization->pending
+                        && completedPhase == application::session::SessionPhase::AwaitingApproval)
+                        setupAuthorization->challengeSeen = true;
+                    // A restored session, cancelled login, and failed account switch
+                    // never implicitly authorize a custody signer.
+                    const bool freshSetupLogin = setupAuthorization->pending
+                        && setupAuthorization->challengeSeen && !failed
+                        && completedPhase == application::session::SessionPhase::Authenticated
+                        && verifiedFid != 0U;
+                    if (failed || completedPhase == application::session::SessionPhase::Guest
+                        || completedPhase == application::session::SessionPhase::Authenticated) {
+                        setupAuthorization->pending = false;
+                        setupAuthorization->challengeSeen = false;
+                    }
+#if !defined(__EMSCRIPTEN__)
+                    if (freshSetupLogin)
+                        setupAuthorization->nativeFid = verifiedFid;
 #endif
                     applySessionState(bridge, std::move(state), authenticationAvailable);
                     runtime->authenticationPollInFlight.store(false, std::memory_order_release);
@@ -2201,7 +2257,9 @@ void connectRuntime(
                     // the actual signed-in FID; never race queued session UI.
                     if (completedPhase == application::session::SessionPhase::Authenticated
                         && verifiedFid != 0U) {
-                        browserSigner->start(QStringLiteral("restore"),
+                        browserSigner->start(
+                            freshSetupLogin ? QStringLiteral("restore-for-setup")
+                                            : QStringLiteral("restore"),
                             QString::number(verifiedFid));
                     } else if (completedPhase == application::session::SessionPhase::Guest) {
                         browserSigner->start(QStringLiteral("signed-out"), {});
@@ -2234,6 +2292,28 @@ void connectRuntime(
                 });
             }
         };
+
+    // Only a user-initiated login from the first-run setup authorizes a
+    // one-time recovery prompt. Startup session restoration is never consent.
+    QObject::connect(&bridge, &PresentationBridge::signInRequested, &bridge,
+        [&bridge, setupAuthorization](const QString&) {
+            setupAuthorization->pending =
+                bridge.initialSetupRequired() && !bridge.isAuthenticated();
+            setupAuthorization->challengeSeen = false;
+            setupAuthorization->nativeFid = 0U;
+        });
+    QObject::connect(&bridge, &PresentationBridge::signInCancelRequested, &bridge,
+        [setupAuthorization] {
+            setupAuthorization->pending = false;
+            setupAuthorization->challengeSeen = false;
+            setupAuthorization->nativeFid = 0U;
+        });
+    QObject::connect(&bridge, &PresentationBridge::signOutRequested, &bridge,
+        [setupAuthorization] {
+            setupAuthorization->pending = false;
+            setupAuthorization->challengeSeen = false;
+            setupAuthorization->nativeFid = 0U;
+        });
 
 #if defined(__EMSCRIPTEN__)
     // A browser-safe OpenProof device grant is independent from the blocking

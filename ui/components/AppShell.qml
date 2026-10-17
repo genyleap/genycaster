@@ -1663,6 +1663,10 @@ Item {
         authenticationRoute: presentationBridge.authenticationRoute
         authenticationApprovalAvailable: presentationBridge.authenticationApprovalAvailable
         authenticationErrorText: presentationBridge.authenticationErrorText
+        signerStatusText: presentationBridge.signerStatusText
+        signerErrorText: presentationBridge.signerErrorText
+        signerBusy: presentationBridge.signerBusy
+        signerReady: presentationBridge.writeReady
         accountName: presentationBridge.accountName
         accountUsername: presentationBridge.accountUsername
         accountAvatarUrl: presentationBridge.accountAvatarUrl
@@ -1671,6 +1675,7 @@ Item {
         onOpenRegistration: presentationBridge.openExternalUrl("https://farcaster.xyz/~/signup")
         onOpenApproval: presentationBridge.openAuthenticationApproval()
         onCancelAuthentication: presentationBridge.cancelSignIn()
+        onAuthorizeSigner: presentationBridge.provisionSigner()
         onAcceptLegalConsent: (termsAccepted, privacyAcknowledged, reviewCompleted) =>
             presentationBridge.acceptLegalConsent(termsAccepted, privacyAcknowledged, reviewCompleted)
         onFinishSetup: presentationBridge.completeInitialSetup()

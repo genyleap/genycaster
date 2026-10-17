@@ -26,6 +26,10 @@ Item {
     property string authenticationRoute: "openproof"
     property bool authenticationApprovalAvailable: false
     property string authenticationErrorText: ""
+    property string signerStatusText: ""
+    property string signerErrorText: ""
+    property bool signerBusy: false
+    property bool signerReady: false
     property string accountName: ""
     property string accountUsername: ""
     property string accountAvatarUrl: ""
@@ -49,6 +53,7 @@ Item {
     signal openRegistration()
     signal openApproval()
     signal cancelAuthentication()
+    signal authorizeSigner()
     signal acceptLegalConsent(bool termsAccepted, bool privacyAcknowledged, bool reviewCompleted)
     signal finishSetup()
 
@@ -1660,6 +1665,36 @@ Item {
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: root.phone ? Theme.space3 : Theme.space5
+            }
+
+            ColumnLayout {
+                visible: root.authenticated
+                Layout.fillWidth: true
+                spacing: Theme.space2
+
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: root.signerStatusText
+                    color: root.signerReady ? Theme.success : Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                }
+                DirectionAwareLabel {
+                    visible: root.signerErrorText.length > 0
+                    Layout.fillWidth: true
+                    text: root.signerErrorText
+                    color: Theme.warning
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                }
+                ActionButton {
+                    visible: !root.signerReady && !root.signerBusy
+                    Layout.fillWidth: true
+                    text: root.browserReadOnly
+                          ? qsTrId("genycaster.shell.enable_publishing_with_recovery_phrase")
+                          : qsTrId("genycaster.shell.enable_interactions")
+                    onClicked: root.authorizeSigner()
+                }
             }
 
             Superellipse {

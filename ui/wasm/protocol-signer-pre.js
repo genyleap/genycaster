@@ -55,6 +55,19 @@
         initializedBase = base;
         return current;
     }
+    async function authorizeRecoveryInSetup(current, fid, thisEpoch) {
+        const controller = new AbortController();
+        recoveryController = controller;
+        const { promptForFarcasterRecovery } =
+            await import('./recovery-phrase-dialog.mjs');
+        if (controller.signal.aborted ||
+            epoch !== thisEpoch || owner !== fid) return;
+        const phrase = await promptForFarcasterRecovery(
+            window, controller.signal);
+        if (epoch !== thisEpoch || owner !== fid) return;
+        await current.provisionFromRecovery(fid, phrase);
+    }
+
     function start(action, fid, base, payloadString = "") {
         // Runtime identities are authoritative in Qt, never JS localStorage.
         // If the identity changes while a wallet is prompting, pending
@@ -81,8 +94,8 @@
         if (inFlight) {
             // The first signed submission may already be at Snapchain.
             // Do not start or cancel a second write and lose its outcome.
-            report({kind: action === "restore" || action === "provision"
-                || action === "revoke" ? "signer" : "write",
+            report({kind: action === "restore" || action === "restore-for-setup"
+                || action === "provision" || action === "revoke" ? "signer" : "write",
                 phase: "failed", fid, busy: true, ready: false,
                 error: "Another signer operation is in progress."});
             return;
@@ -94,23 +107,17 @@
             try {
                 const current = await createClient(base);
                 if (epoch !== thisEpoch || owner !== fid) return;
-                if (action === "restore") {
-                    await current.restore(fid);
+                if (action === "restore" || action === "restore-for-setup") {
+                    const existing = await current.restore(fid);
+                    if (action === "restore-for-setup" && !existing) {
+                        // Never collect a phrase on app reload or a restored session.
+                        // This command is scoped to a verified, explicit setup login.
+                        if (epoch !== thisEpoch || owner !== fid) return;
+                        await authorizeRecoveryInSetup(current, fid, thisEpoch);
+                    }
                 } else if (action === "provision") {
-                    // Quorum Mobile-style phrase recovery, WITHOUT invoking
-                    // ethereum.request or asking for an external wallet.
-                    // The phrase stays entirely in DOM/JS and is never put
-                    // into Qt/C++ memory or persisted to browser storage.
-                    const controller = new AbortController();
-                    recoveryController = controller;
-                    const { promptForFarcasterRecovery } =
-                        await import('./recovery-phrase-dialog.mjs');
-                    if (controller.signal.aborted ||
-                        epoch !== thisEpoch || owner !== fid) return;
-                    const phrase = await promptForFarcasterRecovery(
-                        window,controller.signal);
-                    if (epoch !== thisEpoch || owner !== fid) return;
-                    await current.provisionFromRecovery(fid,phrase);
+                    // Explicit retry in Setup or Account Settings.
+                    await authorizeRecoveryInSetup(current, fid, thisEpoch);
                 } else if (action === "revoke") {
                     await current.revoke(fid);
                 } else {
@@ -140,11 +147,12 @@
                 if (epoch !== thisEpoch || owner !== fid) return;
                 const cancelled = error?.code === 'user-cancelled' ||
                     error?.message === 'Recovery import cancelled';
-                report({kind: action === "restore" || action === "provision"
-                       || action === "revoke" ? "signer" : "write",
+                report({kind: action === "restore" || action === "restore-for-setup"
+                       || action === "provision" || action === "revoke" ? "signer" : "write",
                     phase: cancelled ? "missing"
                          : action === "restore" ? "unavailable"
-                         : action === "provision" ? "authorization-required"
+                         : action === "provision" || action === "restore-for-setup"
+                           ? "authorization-required"
                          : action === "revoke" ? "failed" : "failed",
                     busy:false,ready:false,fid,
                     error:cancelled ? '' : String(error?.message || error).slice(0,700)});
