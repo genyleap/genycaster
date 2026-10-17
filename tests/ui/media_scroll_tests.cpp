@@ -299,6 +299,16 @@ int main(int argc, char** argv)
     context->setContextProperty(QStringLiteral("LocaleFormat"), engine.singletonInstance<QObject*>(localeType));
     context->setContextProperty(QStringLiteral("TokenSemantic"), engine.singletonInstance<QObject*>(tokenSemanticType));
 
+    // Catch import/assignment failures in a transitive AppShell dependency
+    // before shipping WASM. In particular GridLayout has rowSpacing and
+    // columnSpacing but no general 'spacing' property: a bad assignment
+    // prevents LocaleSettingsPopup and consequently AppShell from loading.
+    QQmlComponent settingsDefinition{
+        &engine, QUrl::fromLocalFile(
+            QStringLiteral(MEDIA_COMPONENT_DIRECTORY "/LocaleSettingsPopup.qml"))};
+    expect(settingsDefinition.isReady(),
+           qPrintable(settingsDefinition.errorString()));
+
     // QQmlEngine owns this provider. Requests are held until explicitly released.
     auto* images = new ControlledImages;
     engine.addImageProvider(QStringLiteral("remote"), images);

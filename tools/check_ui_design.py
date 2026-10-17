@@ -428,6 +428,20 @@ for qml_path in ui.rglob('*.qml'):
         nearby = '\n'.join(qml_lines[line_index:line_index + 20])
         if 'layoutDirection:' not in nearby:
             errors.append(f'Horizontal layout lacks explicit direction: {qml_path.relative_to(root)}:{line_index + 1}')
+        # QQuickGridLayout supports rowSpacing and columnSpacing, but unlike
+        # RowLayout/ColumnLayout has NO `spacing` property. QML compiles, yet
+        # instantiation fails and the entire AppShell becomes unavailable.
+        if re.match(r'^\s*GridLayout\s*\{', line):
+            nesting = 1
+            for child_index in range(line_index + 1, len(qml_lines)):
+                code = qml_lines[child_index].split('//', 1)[0]
+                if nesting == 1 and re.match(r'^\s*spacing\s*:', code):
+                    errors.append(
+                        f'GridLayout has no spacing property; use rowSpacing/columnSpacing: '
+                        f'{qml_path.relative_to(root)}:{child_index + 1}')
+                nesting += code.count('{') - code.count('}')
+                if nesting <= 0:
+                    break
 
 combo = (ui/'components'/'GenyComboBox.qml').read_text(encoding='utf-8')
 if 'measuredTextWidth' not in combo or 'naturalPopupWidth' not in combo:

@@ -275,7 +275,6 @@ GenyDrawer {
                 anchors.fill: parent
                 anchors.margins: Theme.space1
                 layoutDirection: Theme.uiDirection
-                spacing: Theme.space1
 
                 ActionButton {
                     Layout.fillWidth: true
