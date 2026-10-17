@@ -94,3 +94,35 @@ python3 tools/check_localization_catalog.py .
 
 An actual Qt WebAssembly build plus tests on mobile browsers and a deployed
 HTTPS origin are required before making production performance claims.
+
+## Mobile browser icons and Firefox runtime logs
+
+Qt Creator's `emrun` server uses the contents of its build `bin/` folder.
+Mobile browsers can request `/apple-touch-icon.png` and
+`/apple-touch-icon-precomposed.png` even when the Web App Manifest has an
+SVG icon. Both real 180×180 PNG files are shipped at the output root, and
+the HTML has an explicit Apple Touch link. They are included in the static
+asset manifest and optional public Service Worker cache.
+
+macOS Firefox messages such as `sandbox_extension_issue_file_to_process`,
+`Firefox GPU Helper ... Connection invalid`, or a GPU-helper process exiting
+on signal 9 are **browser/OS diagnostics**, not evidence of a missing
+Genycaster asset. Likewise the `GLD_TEXTURE_INDEX_2D` warning can indicate
+a WebGL driver issue, but does not establish an application failure by
+itself. Do not silence or reinterpret these warnings as successful startup.
+If the UI fails to render, check Web Console/WebGL errors, Firefox
+`about:support` graphics information, and compare the same release in a
+second WebGL-capable browser. Device-specific reproduction is required to
+decide whether a Qt rendering workaround is warranted.
+
+## Social Workspace startup display
+
+The brand name remains a single header. Warm navigation uses the
+`Initializing Social Workspace` stage with two verified milestones:
+loading the runtime and opening the social interface. On the first
+successful launch or a new release, the timeline shows download, install
+(runtime preparation), and initialization. Completion is driven by the
+WebAssembly Resource Timing and Qt callback events, **never a fabricated
+percent counter**. Actual Qt `onLoaded` is the only successful completion
+criterion. A failed startup stays failed, even if a later asynchronous
+event arrives.

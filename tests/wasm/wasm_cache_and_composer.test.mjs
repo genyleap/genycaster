@@ -47,8 +47,15 @@ test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
         const originalBrand=read(new URL('../../ui/assets/icons/genyleap/icons/brands/geny.svg',import.meta.url),'utf8');
         assert.equal(readFileSync(join(dir,'genycaster-brand.svg'),'utf8'),originalBrand,
             'boot asset must be the actual application SVG');
-        assert.ok(JSON.parse(readFileSync(join(dir,'genycaster-assets.json'),'utf8'))
-            .files.includes('genycaster-brand.svg'));
+        const included=JSON.parse(readFileSync(join(dir,'genycaster-assets.json'),'utf8')).files;
+        assert.ok(included.includes('genycaster-brand.svg'));
+        for(const name of ['apple-touch-icon.png','apple-touch-icon-precomposed.png']){
+            const file=readFileSync(join(dir,name));
+            assert.deepEqual([...file.subarray(0,8)],[137,80,78,71,13,10,26,10]);
+            assert.equal(file.readUInt32BE(16),180);
+            assert.equal(file.readUInt32BE(20),180);
+            assert.ok(included.includes(name),name+' is distributed with the release');
+        }
     }finally{rmSync(dir,{recursive:true,force:true});}
 });
 
@@ -172,6 +179,17 @@ test('menu keeps hover label contrast independent of Qt MenuItem opacity',()=>{
     assert.match(item,/fillColor: root\.highlighted/);
     assert.match(qml,/EditorMenuItem/);
     assert.doesNotMatch(qml,/delegate: MenuItem/);
+});
+
+test('Safari touch icons and responsive stage indicators ship from one public root',()=>{
+    const cmake=read(new URL('../../ui/CMakeLists.txt',import.meta.url),'utf8');
+    assert.match(html,/rel="apple-touch-icon" sizes="180x180" href="\.\/apple-touch-icon\.png"/);
+    assert.match(cmake,/apple-touch-icon-precomposed\.png/);
+    assert.match(cmake,/apple-touch-icon\.png/);
+    assert.match(html,/class="boot-journey install-journey"/);
+    assert.match(html,/class="boot-journey warm-journey"/);
+    assert.match(html,/Initializing|Preparing Social Workspace/);
+    assert.doesNotMatch(html,/Initializing Genycaster/);
 });
 
 test('bootstrap uses actual original Geny SVG, not a home-made DNA',()=>{

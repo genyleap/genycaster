@@ -3,7 +3,8 @@
 const $ = id => document.getElementById(id);
 const boot=$("genycaster-boot"), heading=$("boot-heading"), status=$("boot-status");
 const stage=$("boot-stage"), fill=$("boot-fill"), percent=$("boot-percent"), retry=$("boot-retry");
-let finished=false;
+const track=$("boot-track");
+let finished=false, failed=false;
 const bootStarted=performance.now();
 let wasmResourceUrl;
 let wasmResourceObserver=null;
@@ -39,20 +40,22 @@ if(boot?.dataset){
     boot.dataset.phase=bootPhase;
 }
 function showPhase(phase,title,detail,label){
-    if(finished)return;
-    const order={download:0,install:1,initialize:2,ready:3};
+    if(finished||failed)return;
+    const order={download:0,install:1,initialize:2,interface:3,ready:4};
     if(order[phase] < order[bootPhase])return; // delayed async event
     bootPhase=phase;
     if(boot?.dataset)boot.dataset.phase=phase;
+    track?.setAttribute?.("aria-valuetext",label);
     announce(title,detail,label);
 }
 if(installing)
-    showPhase("download",updating?"Updating Genycaster":"Downloading Genycaster",
-        "Preparing application resources for this browser…",
-        updating?"Updating":"Downloading");
+    showPhase("download",updating?"Downloading Update":"Downloading App Resources",
+        "Checking application files and preparing the local cache…",
+        updating?"Updating resources":"Downloading resources");
 else
-    showPhase("initialize","Opening Genycaster",
-        "Checking local application files and initializing Qt…","Initializing");
+    showPhase("initialize","Initializing Social Workspace",
+        "Checking application files and preparing the Qt runtime…",
+        "Preparing runtime");
 const originalFetch=window.fetch.bind(window);
 const hashedWasm=/^farcaster_client\.[0-9a-f]{20}\.wasm$/;
 const requestedAsset=window.__genycasterAssets?.wasm;
@@ -70,12 +73,13 @@ function engineReceived(url) {
     if(!installing || finished || bootPhase!=="download")return;
     const timing=wasmTiming(url);
     if(!timing || timing.responseEnd<=0)return;
-    showPhase("install",updating?"Installing update":"Installing Genycaster",
+    showPhase("install",updating?"Applying Runtime Update":"Installing Social Runtime",
         "Application engine received. Preparing WebAssembly and local files…",
         "Installing runtime");
     if(runtimeDependenciesSettled)
-        showPhase("initialize","Starting Genycaster",
-            "Application files are ready. Initializing Qt…","Initializing");
+        showPhase("interface","Opening Social Interface",
+            "Runtime dependencies are ready. Finishing Qt startup…",
+            "Opening interface");
 }
 function observeEngine(url){
     if(!installing || typeof PerformanceObserver!=="function")return;
@@ -115,19 +119,21 @@ window.fetch=async function(input,options) {
             ? {cache:"force-cache",credentials:"omit"} : {})
     };
     if(installing)showPhase("download",
-        updating?"Downloading update":"Downloading Genycaster",
-        "Receiving the application engine; unchanged files may come from cache…",
-        "Downloading engine");
-    else showPhase("initialize","Initializing Genycaster",
-        "Loading the local engine and preparing Qt…","Initializing runtime");
+        updating?"Downloading Runtime Update":"Downloading Social Runtime",
+        "Checking the browser cache and retrieving any missing engine files…",
+        "Loading engine");
+    else showPhase("initialize","Initializing Social Workspace",
+        "Retrieving the WebAssembly engine from cache or network…",
+        "Preparing runtime");
     const response=await originalFetch(nativeRequest,nativeOptions);
     if(!response.ok)return response;
     wasmResourceUrl=response.url||url.href;
     // The native Response remains untouched for streaming and code caching.
     // Installing is shown only after Resource Timing confirms completion.
     observeEngine(wasmResourceUrl);
-    if(!installing)showPhase("initialize","Starting Genycaster",
-        "WebAssembly engine available. Initializing Qt…","Initializing runtime");
+    if(!installing)showPhase("initialize","Initializing Social Workspace",
+        "WebAssembly engine available. Preparing the Qt interface…",
+        "Initializing runtime");
     preparing();
     return response;
 };
@@ -157,8 +163,12 @@ async function enableOfflineCache() {
 }
 const cacheStartup=enableOfflineCache();
 function fail(error) {
-    if(finished)return;
+    if(finished||failed)return;
+    failed=true;
+    wasmResourceObserver?.disconnect();
     preparing();
+    if(boot?.dataset)boot.dataset.phase="failed";
+    track?.setAttribute?.("aria-valuetext","Startup failed");
     const detail=String(error?.message||error||"Unknown startup failure").slice(0,350);
     announce("Couldn't start Genycaster",
         "The application couldn't initialize. "+detail+" — check the browser console and retry.",
@@ -181,9 +191,9 @@ async function start() {
             // before the large WASM request. Otherwise it would miss that
             // initial download and need a second request next refresh.
             showPhase("download",
-                updating?"Preparing update":"Preparing first download",
-                "Setting up the browser's offline cache before fetching the engine…",
-                "Preparing download");
+                updating?"Preparing Runtime Update":"Preparing First Download",
+                "Setting up the browser's local cache before fetching the engine…",
+                "Preparing cache");
             await Promise.race([
                 cacheStartup,
                 new Promise(resolve=>window.setTimeout(resolve,1800)),
@@ -203,10 +213,13 @@ async function start() {
                 entryFunction:window.farcaster_client_entry,
                 containerElements:[screen],
                 onLoaded:()=>{
+                    if(failed)return;
                     wasmResourceObserver?.disconnect();
                     // Ready reflects Qt's actual initialization callback, not
                     // a fabricated timer or estimated download percentage.
                     if(boot?.dataset)boot.dataset.phase="ready";
+                    track?.setAttribute?.("aria-valuenow","100");
+                    track?.setAttribute?.("aria-valuetext","Ready");
                     bootPhase="ready";
                     finished=true;
                     const timing=wasmResourceUrl?wasmTiming(wasmResourceUrl):null;
@@ -226,7 +239,7 @@ async function start() {
                         localStorage.setItem(key,"1");
                         if(currentVersion)localStorage.setItem(versionKey,currentVersion);
                     }catch{}
-                    announce("Genycaster is ready","Entering your workspace…","Ready");
+                    announce("Social Workspace Ready","Opening your social interface…","Ready");
                     fill.classList.add("measured");fill.style.width="100%";
                     percent.textContent="";
                     boot.classList.add("finished");
@@ -242,12 +255,17 @@ async function start() {
                 if(finished)return;
                 if(remaining===0){
                     runtimeDependenciesSettled=true;
-                    if(!installing || bootPhase==="install")
-                        showPhase("initialize","Starting Genycaster",
-                            "Restoring local files and initializing Qt…","Initializing runtime");
+                    if(!installing || bootPhase==="install" || bootPhase==="initialize")
+                        showPhase("interface","Opening Social Interface",
+                            "Qt dependencies are ready. Bringing up your workspace…",
+                            "Opening interface");
                 }else if(!installing){
-                    showPhase("initialize","Initializing Genycaster",
-                        "Preparing application dependencies and your workspace…",
+                    showPhase("initialize","Initializing Social Workspace",
+                        "Preparing WebAssembly dependencies and the Qt interface…",
+                        "Initializing runtime");
+                }else if(bootPhase==="install"){
+                    showPhase("initialize","Initializing Social Workspace",
+                        "WebAssembly is installed. Initializing Qt dependencies…",
                         "Initializing runtime");
                 }
                 // On first install do not show "completed download" until the

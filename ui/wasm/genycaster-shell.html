@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#11192e">
+<link rel="icon" href="./genycaster-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
 <link rel="manifest" href="genycaster.webmanifest">
 <title>Genycaster — Secure social client</title>
 <style>
@@ -12,6 +14,7 @@
 #qt-screen{position:absolute;inset:0;width:100%;height:100%;overflow:hidden}
 #genycaster-boot{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 20% 4%,#dce6ff,transparent 65%),#f3f5fa;color:#111b32;transition:opacity .35s ease}
 #genycaster-boot.finished{opacity:0;pointer-events:none}
+#genycaster-boot[data-phase="failed"] .boot-fill{animation:none;width:100%;background:#cc6075;opacity:.6}
 .boot-content{width:min(470px,100%);padding:36px 26px;text-align:center;background:transparent;border:0;box-shadow:none}
 .boot-mark{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:24px}
 .boot-glyph{display:block;width:64px;height:64px;background:#315fff;-webkit-mask:url("./genycaster-brand.svg") center/contain no-repeat;mask:url("./genycaster-brand.svg") center/contain no-repeat}
@@ -30,7 +33,21 @@ h1{font-size:22px;line-height:1.14;letter-spacing:-.035em;margin:0 0 12px}
 #genycaster-boot[data-phase="download"] [data-step="download"] .boot-dot,#genycaster-boot[data-phase="install"] [data-step="install"] .boot-dot,#genycaster-boot[data-phase="initialize"] [data-step="initialize"] .boot-dot{border-color:#315fff;background:#e5ecff;box-shadow:0 0 0 4px rgba(49,95,255,.08)}
 #genycaster-boot[data-phase="install"] [data-step="download"] .boot-dot,#genycaster-boot[data-phase="initialize"] [data-step="download"] .boot-dot,#genycaster-boot[data-phase="initialize"] [data-step="install"] .boot-dot,#genycaster-boot[data-phase="ready"] .boot-dot{border-color:#315fff;background:#315fff;color:white}
 #genycaster-boot[data-phase="install"] [data-step="download"] .boot-dot:after,#genycaster-boot[data-phase="initialize"] [data-step="download"] .boot-dot:after,#genycaster-boot[data-phase="initialize"] [data-step="install"] .boot-dot:after,#genycaster-boot[data-phase="ready"] .boot-dot:after{content:"✓"}
-#genycaster-boot[data-mode="warm"] .boot-journey{display:none}
+#genycaster-boot[data-mode="warm"] .install-journey{display:none}
+#genycaster-boot[data-mode="install"] .warm-journey{display:none}
+#genycaster-boot .warm-journey{display:none}
+#genycaster-boot[data-mode="warm"] .warm-journey{display:flex}
+#genycaster-boot[data-mode="warm"][data-phase="initialize"] [data-step="runtime"],
+#genycaster-boot[data-mode="warm"][data-phase="interface"] [data-step="interface"]{color:#315fff;font-weight:700}
+#genycaster-boot[data-mode="warm"][data-phase="initialize"] [data-step="runtime"] .boot-dot,
+#genycaster-boot[data-mode="warm"][data-phase="interface"] [data-step="interface"] .boot-dot{border-color:#315fff;background:#e5ecff;box-shadow:0 0 0 4px rgba(49,95,255,.08)}
+#genycaster-boot[data-mode="warm"][data-phase="interface"] [data-step="runtime"] .boot-dot,
+#genycaster-boot[data-mode="warm"][data-phase="ready"] .boot-dot{border-color:#315fff;background:#315fff;color:white}
+#genycaster-boot[data-mode="warm"][data-phase="interface"] [data-step="runtime"] .boot-dot:after,
+#genycaster-boot[data-mode="warm"][data-phase="ready"] .boot-dot:after{content:"✓"}
+#genycaster-boot[data-phase="interface"] .install-journey [data-step="initialize"]{color:#315fff;font-weight:700}
+#genycaster-boot[data-phase="interface"] .install-journey .boot-dot{border-color:#315fff;background:#315fff;color:white}
+#genycaster-boot[data-phase="interface"] .install-journey .boot-dot:after{content:"✓"}
 #boot-percent{font-variant-numeric:tabular-nums;color:#365ce8;font-weight:700}
 #boot-retry{display:none;margin:22px auto 0;padding:11px 17px;border:0;border-radius:10px;color:white;background:#305cf4;font-weight:650;cursor:pointer}
 #boot-retry.visible{display:block}
@@ -45,14 +62,18 @@ h1{font-size:22px;line-height:1.14;letter-spacing:-.035em;margin:0 0 12px}
 <div id="genycaster-boot" role="status" aria-live="polite">
   <div class="boot-content">
     <div class="boot-mark"><span class="boot-glyph" aria-hidden="true"></span><div><div class="boot-brand">Genycaster</div><div class="boot-note">Secure social client</div></div></div>
-    <ol class="boot-journey" id="boot-journey" aria-label="First launch progress">
+    <ol class="boot-journey install-journey" id="boot-journey" aria-label="First launch progress">
       <li data-step="download"><span class="boot-dot" aria-hidden="true"></span>Download</li>
       <li data-step="install"><span class="boot-dot" aria-hidden="true"></span>Install</li>
       <li data-step="initialize"><span class="boot-dot" aria-hidden="true"></span>Initialize</li>
     </ol>
-    <h1 id="boot-heading">Preparing Genycaster</h1>
+    <ol class="boot-journey warm-journey" aria-label="Startup progress">
+      <li data-step="runtime"><span class="boot-dot" aria-hidden="true"></span>Runtime</li>
+      <li data-step="interface"><span class="boot-dot" aria-hidden="true"></span>Social interface</li>
+    </ol>
+    <h1 id="boot-heading">Preparing Social Workspace</h1>
     <p class="boot-status" id="boot-status">Checking local application resources…</p>
-    <div class="boot-track"><div class="boot-fill" id="boot-fill"></div></div>
+    <div class="boot-track" role="progressbar" aria-label="Application initialization" aria-valuetext="Preparing application" id="boot-track"><div class="boot-fill" id="boot-fill"></div></div>
     <div class="boot-foot"><span id="boot-stage">Starting</span><span id="boot-percent" aria-label="Measured progress if available"></span></div>
     <button id="boot-retry" type="button">Try again</button>
   </div>

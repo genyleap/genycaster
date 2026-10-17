@@ -401,6 +401,12 @@ if(EMSCRIPTEN)
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-icon.svg"
             "$<TARGET_FILE_DIR:farcaster_client>/genycaster-icon.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/apple-touch-icon.png"
+            "$<TARGET_FILE_DIR:farcaster_client>/apple-touch-icon.png"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/apple-touch-icon-precomposed.png"
+            "$<TARGET_FILE_DIR:farcaster_client>/apple-touch-icon-precomposed.png"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/genyleap/icons/brands/geny.svg"
             "$<TARGET_FILE_DIR:farcaster_client>/genycaster-brand.svg"
         COMMAND "${Python3_EXECUTABLE}"

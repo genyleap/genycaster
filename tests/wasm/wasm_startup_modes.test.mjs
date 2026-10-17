@@ -75,7 +75,7 @@ test("first launch uses real download → install → Qt initialize → ready mi
     assert.equal(h.phase(),"install");
     assert.match(h.label(),/Install/i);
     h.config.monitorRunDependencies(0);
-    assert.equal(h.phase(),"initialize");
+    assert.equal(h.phase(),"interface");
     h.config.qt.onLoaded();
     assert.equal(h.phase(),"ready");
     assert.equal(h.storage.get("genycaster.boot.loaded.v1"),"1");
@@ -86,12 +86,13 @@ test("normal refresh skips Download/Install and restores the Qt runtime",async()
     const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa"});
     assert.equal(h.mode(),"warm");
     assert.equal(h.phase(),"initialize");
-    assert.match(h.label(),/Initializ/i);
+    assert.equal(h.nodes.get("boot-heading").textContent,"Initializing Social Workspace");
+    assert.match(h.label(),/Preparing runtime/i);
     const response=await h.fetch();
     assert.ok(response.ok);
     assert.equal(h.phase(),"initialize");
     h.config.monitorRunDependencies(0);
-    assert.equal(h.phase(),"initialize");
+    assert.equal(h.phase(),"interface");
     h.config.qt.onLoaded();
     assert.equal(h.phase(),"ready");
 });
@@ -104,7 +105,7 @@ test("a changed deployment follows update stages rather than a warm reload",asyn
     h.resourceComplete();
     assert.equal(h.phase(),"install");
     h.config.monitorRunDependencies(0);
-    assert.equal(h.phase(),"initialize");
+    assert.equal(h.phase(),"interface");
     h.config.qt.onLoaded();
     assert.equal(h.storage.get("genycaster.boot.version.v1"),"aaaaaaaaaaaaaaaaaaaa");
 });
@@ -115,4 +116,9 @@ test("failed boot never marks first-time install as completed",async()=>{
     assert.equal(h.storage.get("genycaster.boot.loaded.v1"),undefined);
     assert.equal(h.storage.get("genycaster.boot.version.v1"),undefined);
     assert.equal(h.nodes.get("boot-retry").classList.contains("visible"),true);
+    assert.equal(h.nodes.get("boot-heading").textContent,"Couldn't start Genycaster");
+    h.config.monitorRunDependencies(0);
+    h.config.qt.onLoaded(); // a late callback must not claim success
+    assert.equal(h.nodes.get("genycaster-boot").dataset.phase,"failed");
+    assert.equal(h.storage.get("genycaster.boot.loaded.v1"),undefined);
 });

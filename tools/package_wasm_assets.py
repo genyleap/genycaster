@@ -20,6 +20,7 @@ if args.source:
     source=args.source.resolve()
     for rel in (
         "genycaster-brand.svg", "genycaster-shell.html", "genycaster-loader.js", "genycaster-sw.js",
+        "apple-touch-icon.png", "apple-touch-icon-precomposed.png",
         "genycaster.webmanifest", "genycaster-icon.svg", "secure_signer_vault.mjs",
         "farcaster_protocol.mjs", "browser_protocol_signer.mjs",
         "browser_device_session.mjs", "farcaster_recovery.mjs",
@@ -58,6 +59,7 @@ if not target.exists() or target.stat().st_size != wasm.stat().st_size:
 public = ["farcaster_client.html", "qtloader.js", "farcaster_client.js",
           "genycaster-loader.js", "genycaster-sw.js",
           "genycaster.webmanifest", "genycaster-icon.svg", "genycaster-brand.svg",
+          "apple-touch-icon.png", "apple-touch-icon-precomposed.png",
           "recovery-phrase-dialog.mjs", "farcaster_recovery.mjs",
           "browser_protocol_signer.mjs", "browser_device_session.mjs",
           "farcaster_protocol.mjs", "secure_signer_vault.mjs",
