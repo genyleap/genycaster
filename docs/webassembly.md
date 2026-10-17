@@ -238,6 +238,25 @@ A browser build alone cannot serve this URL; deploy the matching updated
 Media Gateway before expecting remote images to render. The proxy route does
 not enable browser account sign-in, write capabilities, or authenticated images.
 
+## WASM linker heap sizing
+
+Qt WebAssembly normally supplies a 50 MB initial linear-memory heap. The
+current Genycaster application, with Qt Quick, the translations, and embedded
+script/emoji fonts, requires 57,226,176 bytes (about 54.6 MiB) just to link.
+The `farcaster_client` target therefore sets
+`QT_WASM_INITIAL_MEMORY "128MB"` in `ui/CMakeLists.txt`. Set the **Qt
+target property**, not another `-sINITIAL_MEMORY` flag: Qt applies its
+linker defaults when finalizing the target and may overwrite an earlier flag.
+128 MiB is a multiple of the 64 KiB WebAssembly page size; runtime heap
+growth (`ALLOW_MEMORY_GROWTH`) remains independent from link-time sizing.
+The larger initial heap does not mean that WebAssembly's maximum heap
+or the downloaded `.wasm` file has grown to 128 MiB.
+
+After pulling the change, **rerun CMake Configure**, then Build in Qt Creator.
+On the final `em++` link command verify `-s INITIAL_MEMORY=128MB`
+rather than `50MB`. The link-step failure is not caused by benign
+C++ `-Wdollar-in-identifier-extension` or unused-capture warnings.
+
 ## Build and acceptance
 
 1. Install the Qt 6.12 **WebAssembly** kit and its exact matching Emscripten

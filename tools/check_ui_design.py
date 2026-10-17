@@ -6,6 +6,19 @@ import re, sys
 root = Path(__file__).resolve().parents[1]
 ui = root / 'ui'
 cmake = (ui / 'CMakeLists.txt').read_text(encoding='utf-8')
+# Qt's default 50 MB WASM initial heap cannot link this application's
+# statically bundled QML/Qt Quick resources (observed requirement: ~54.6 MiB).
+# The target property is consumed by Qt's finalization; a second linker flag
+# would be overridden by Qt's later default option.
+if not re.search(
+    r'if\(EMSCRIPTEN\).*?set_target_properties\(farcaster_client PROPERTIES\s+'
+    r'QT_WASM_INITIAL_MEMORY\s+"128MB"\)',
+    cmake,
+    re.S,
+):
+    raise SystemExit('WASM target must request a 128 MB Qt initial heap')
+if '-sINITIAL_MEMORY=' in cmake or '-s INITIAL_MEMORY=' in cmake:
+    raise SystemExit('Set QT_WASM_INITIAL_MEMORY instead of duplicate em++ memory flags')
 match = re.search(r'set\(farcasterQmlFiles\n(.*?)\n\)', cmake, re.S)
 if not match:
     raise SystemExit('farcasterQmlFiles not found')

@@ -320,6 +320,14 @@ target_link_libraries(farcaster_client
 
 
 if(EMSCRIPTEN)
+    # Qt defaults to a 50 MB initial heap, but the static Qt Quick/QML font
+    # resources in this WASM target already require >54 MiB at link time.
+    # Configure Qt's target property rather than appending a conflicting -s
+    # option: qt_finalize_target adds INITIAL_MEMORY after link options.
+    # 128 MB is page-aligned (64 KiB pages); ALLOW_MEMORY_GROWTH remains enabled.
+    set_target_properties(farcaster_client PROPERTIES
+        QT_WASM_INITIAL_MEMORY "128MB")
+
     # IDBFS must populate the virtual app directory before SQLite starts.
     # Emscripten provides the asynchronous IndexedDB file system.
     target_link_options(farcaster_client PRIVATE
