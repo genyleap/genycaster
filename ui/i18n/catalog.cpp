@@ -34,6 +34,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.home.apps_description");
     //% "Write a new cast or message…"
     (void)qtTrId("genycaster.home.composer_placeholder");
+    //% "Find people, casts and channels"
+    (void)qtTrId("genycaster.home.search_description");
     //% "Social workspace"
     (void)qtTrId("genycaster.settings.social_workspace");
     //% "Tune the desktop navigation and context columns. You can also drag their separators directly in the main window."
@@ -1198,6 +1200,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.side_nav.explorer");
     //% "Genycaster"
     (void)qtTrId("genycaster.side_nav.genycaster");
+    //% "Beta 1.0"
+    (void)qtTrId("genycaster.release.beta_1_0");
     //% "Home"
     (void)qtTrId("genycaster.side_nav.home");
     //% "Messages"

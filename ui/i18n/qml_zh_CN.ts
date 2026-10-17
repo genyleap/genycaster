@@ -3882,5 +3882,13 @@
             <source>These links open Genyleap's currently published policies. Product and repository terms may also apply.</source>
             <translation>这些链接打开 Genyleap 当前发布的政策。产品或代码仓库的特定条款也可能适用。</translation>
         </message>
+        <message id="genycaster.release.beta_1_0">
+            <source>Beta 1.0</source>
+            <translation>测试版 1.0</translation>
+        </message>
+        <message id="genycaster.home.search_description">
+            <source>Find people, casts and channels</source>
+            <translation>搜索用户、帖子和频道</translation>
+        </message>
     </context>
 </TS>

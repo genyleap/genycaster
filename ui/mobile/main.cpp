@@ -4466,6 +4466,21 @@ int main(int argc, char* argv[])
     appearanceControllerOwner = std::make_unique<AppearanceController>(
         settings, std::move(appearanceOverrides));
     AppearanceController& appearanceController = *appearanceControllerOwner;
+#if defined(__EMSCRIPTEN__)
+    // Safari/Brave use the HTML document theme for their browser chrome,
+    // independent of Qt Quick's canvas. Keep it in sync with the effective
+    // app appearance (including manual overrides and system changes).
+    const auto updateBrowserChromeTheme = [&appearanceController] {
+        EM_ASM({
+            if (typeof window.__genycasterSetBrowserChromeTheme === "function") {
+                window.__genycasterSetBrowserChromeTheme($0 !== 0);
+            }
+        }, appearanceController.effectiveDark() ? 1 : 0);
+    };
+    updateBrowserChromeTheme();
+    QObject::connect(&appearanceController, &AppearanceController::appearanceChanged,
+                     &application, updateBrowserChromeTheme);
+#endif
     renderingControllerOwner = std::make_unique<RenderingController>(settings);
     RenderingController& renderingController = *renderingControllerOwner;
 

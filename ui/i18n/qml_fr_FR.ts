@@ -3882,5 +3882,13 @@
             <source>These links open Genyleap's currently published policies. Product and repository terms may also apply.</source>
             <translation>Ces liens ouvrent les politiques actuelles de Genyleap. Des conditions propres aux produits peuvent aussi s’appliquer.</translation>
         </message>
+        <message id="genycaster.release.beta_1_0">
+            <source>Beta 1.0</source>
+            <translation>Version bêta 1.0</translation>
+        </message>
+        <message id="genycaster.home.search_description">
+            <source>Find people, casts and channels</source>
+            <translation>Recherchez des personnes, des posts et des chaînes</translation>
+        </message>
     </context>
 </TS>

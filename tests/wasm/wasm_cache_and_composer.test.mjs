@@ -16,8 +16,8 @@ const main=read(new URL('../../ui/components/AppShell.qml',import.meta.url),'utf
 
 test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
     const dir=mkdtempSync(join(tmpdir(),'genycaster-assets-'));
-    const run=(appVersion='0.4.0')=>{
-        const result=spawnSync('python3',[pack.pathname,'--dir',dir,'--app-version',appVersion],{encoding:'utf8'});
+    const run=(appVersion='1.0.0')=>{
+        const result=spawnSync('python3',[pack.pathname,'--dir',dir,'--app-version',appVersion,'--release-label','Beta 1.0'],{encoding:'utf8'});
         assert.equal(result.status,0,result.stderr);
         return JSON.parse(readFileSync(join(dir,'genycaster-assets.json'),'utf8'));
     };
@@ -27,11 +27,12 @@ test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
             writeFileSync(join(dir,file),'test-'+file);
         const a=run();
         assert.match(a.wasm,/^farcaster_client\.[0-9a-f]{20}\.wasm$/);
-        assert.equal(a.appVersion,'0.4.0');
+        assert.equal(a.appVersion,'1.0.0');
+        assert.equal(a.releaseLabel,'Beta 1.0');
         assert.match(a.buildId,/^[a-f0-9]{8}$/);
         assert.equal(a.buildId,a.version.slice(0,8));
         assert.ok(existsSync(join(dir,a.wasm)));
-        const versionOnly=run('0.4.1');
+        const versionOnly=run('1.0.1');
         assert.equal(versionOnly.wasm,a.wasm,'semantic updates must not rename identical WASM bytes');
         assert.notEqual(versionOnly.version,a.version,'semantic version changes invalidate release cache identity');
         const a2=run();
@@ -46,10 +47,12 @@ test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
         assert.ok(existsSync(join(dir,b.wasm)),'old clients need old hashed URL during update');
         const config=readFileSync(join(dir,'genycaster-assets.js'),'utf8');
         assert.ok(config.includes(c.wasm));
-        assert.match(config,/"appVersion": "0.4.0"/);
+        assert.match(config,/"appVersion": "1.0.0"/);
+        assert.match(config,/"releaseLabel": "Beta 1.0"/);
         assert.ok(config.includes(c.buildId));
         const packSource=spawnSync('python3',[pack.pathname,'--source',
-            new URL('../../ui/wasm/',import.meta.url).pathname,'--dir',dir,'--app-version','0.4.0'],
+            new URL('../../ui/wasm/',import.meta.url).pathname,'--dir',dir,'--app-version','1.0.0',
+            '--release-label','Beta 1.0'],
             {encoding:'utf8'});
         assert.equal(packSource.status,0,packSource.stderr);
         const originalBrand=read(new URL('../../ui/assets/icons/genyleap/icons/brands/geny.svg',import.meta.url),'utf8');

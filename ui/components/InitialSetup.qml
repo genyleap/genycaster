@@ -443,7 +443,7 @@ Item {
                         Label {
                             visible: !root.phone
                             Layout.fillWidth: true
-                            text: qsTrId("genycaster.setup.workspace_label")
+                            text: qsTrId("genycaster.release.beta_1_0") + " · " + qsTrId("genycaster.setup.workspace_label")
                             color: Theme.inkSubtle
                             font.pixelSize: Theme.typeCaptionSize
                             horizontalAlignment: Theme.textStartAlignment

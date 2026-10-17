@@ -192,3 +192,23 @@ Download/Install/Initialize/Ready milestones remain tied to real browser
 stream/resource events and Qt callbacks. Completed steps are green.
 
 The boot footer shows `Powered by Genyleap · WASM Engine`.
+
+## iOS browser appearance, Beta 1.0, and mobile Home layout
+
+- The HTML defaults to a dark `#0b0c0f` background rather than a light page
+  behind the Qt canvas. `viewport-fit=cover`, `theme-color`, and
+  `apple-mobile-web-app-status-bar-style` provide mobile browser hints.
+  The Web App Manifest uses matching dark theme/background colors.
+- On WebAssembly, `AppearanceController::appearanceChanged` invokes
+  `__genycasterSetBrowserChromeTheme()` through Emscripten. The HTML
+  background, color scheme, and theme-color follow the effective Qt appearance.
+- Browser limitation: OS and normal Safari/Brave toolbars are outside the
+  webpage and may ignore theme hints depending on browser, iOS version,
+  PWA versus ordinary tab, and origin. CSS cannot force native toolbar colors.
+- Public product designation is **Genycaster Beta 1.0**; CMake semantic
+  version is `1.0.0`, and the asset manifest also includes a hashed build ID.
+  The HTML title, PWA name, splash, Qt header, Setup and desktop navigation
+  display the release designation. The Qt label is translated for 12 locales.
+- Compact Home presents a two-column four-tile grid: Explore, Share a cast,
+  Apps and Search, using bare glyphs. Desktop retains its three-column
+  shortcuts. Existing route signals and composer actions are unchanged.

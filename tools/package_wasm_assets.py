@@ -14,6 +14,7 @@ import shutil
 parser = argparse.ArgumentParser()
 parser.add_argument("--dir", required=True, type=Path)
 parser.add_argument("--app-version", default="", help="CMake PROJECT_VERSION; omit when packaging standalone fixtures")
+parser.add_argument("--release-label", default="", help="Public release designation, e.g. Beta 1.0")
 parser.add_argument("--source", type=Path, help="Refresh public source assets without relinking WASM")
 args = parser.parse_args()
 directory = args.dir.resolve()
@@ -71,7 +72,7 @@ checksums = {name: digest(directory / name) for name in public}
 # Include the semantic version in the release fingerprint as well as files:
 # a version-only update must be visible to the PWA cache update protocol.
 fingerprint = hashlib.sha256(json.dumps({
-    "files": checksums, "appVersion": args.app_version,
+    "files": checksums, "appVersion": args.app_version, "releaseLabel": args.release_label,
 }, sort_keys=True).encode()).hexdigest()[:20]
 release = {"version": fingerprint, "wasm": asset_name,
            "buildId": fingerprint[:8],
@@ -79,6 +80,8 @@ release = {"version": fingerprint, "wasm": asset_name,
            "integrity": checksums}
 if args.app_version:
     release["appVersion"] = args.app_version
+if args.release_label:
+    release["releaseLabel"] = args.release_label
 manifest = directory / "genycaster-assets.json"
 manifest.write_text(json.dumps(release, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 # JS config is intentionally small and contains no user data or secrets.
@@ -86,6 +89,7 @@ manifest.write_text(json.dumps(release, indent=2, sort_keys=True) + "\n", encodi
     "window.__genycasterAssets=" + json.dumps({
         "version": fingerprint, "wasm": asset_name, "buildId": fingerprint[:8],
         **({"appVersion": args.app_version} if args.app_version else {}),
+        **({"releaseLabel": args.release_label} if args.release_label else {}),
     }) + ";\n",
     encoding="utf-8")
 print("Genycaster immutable WebAssembly:", asset_name)

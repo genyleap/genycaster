@@ -413,6 +413,7 @@ if(EMSCRIPTEN)
             "${CMAKE_SOURCE_DIR}/tools/package_wasm_assets.py"
             --dir "$<TARGET_FILE_DIR:farcaster_client>"
             --app-version "${PROJECT_VERSION}"
+            --release-label "Beta 1.0"
         COMMENT "Installing and hashing Genycaster WebAssembly public assets"
         VERBATIM
     )
@@ -426,6 +427,7 @@ if(EMSCRIPTEN)
             --source "${CMAKE_CURRENT_SOURCE_DIR}/wasm"
             --dir "$<TARGET_FILE_DIR:farcaster_client>"
             --app-version "${PROJECT_VERSION}"
+            --release-label "Beta 1.0"
         DEPENDS farcaster_client
         COMMENT "Refreshing versioned Genycaster WebAssembly static assets"
         VERBATIM

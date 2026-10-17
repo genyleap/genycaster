@@ -92,14 +92,25 @@ Rectangle {
                 }
             }
 
-            Label {
+            ColumnLayout {
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.side_nav.genycaster")
-                color: Theme.textPrimary
-                font.family: Theme.latinFontFamily
-                font.pixelSize: Theme.typeTitle3Size
-                font.weight: Theme.weightBold
-                horizontalAlignment: Theme.textStartAlignment
+                spacing: 0
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.side_nav.genycaster")
+                    color: Theme.textPrimary
+                    font.family: Theme.latinFontFamily
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightBold
+                    horizontalAlignment: Theme.textStartAlignment
+                }
+                Label {
+                    text: qsTrId("genycaster.release.beta_1_0")
+                    color: Theme.inkMuted
+                    font.family: Theme.latinFontFamily
+                    font.pixelSize: Theme.typeCaptionSize
+                    Accessible.ignored: true
+                }
             }
         }
 

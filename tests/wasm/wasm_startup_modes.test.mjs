@@ -19,11 +19,13 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     if(loaded)storage.set("genycaster.boot.loaded.v1","1");
     if(oldVersion)storage.set("genycaster.boot.version.v1",oldVersion);
     const resources=new Map();
+    const chrome={scheme:"",color:"",statusStyle:""};
     let config=null, observer=null, downloadStream=null;
     const binary="farcaster_client.bbbbbbbbbbbbbbbbbbbb.wasm";
     const scope={
         window:{
-            __genycasterAssets:{version,wasm:binary,appVersion:"0.4.0",buildId:version.slice(0,8)},
+            __genycasterAssets:{version,wasm:binary,appVersion:"1.0.0",buildId:version.slice(0,8),
+                releaseLabel:"Beta 1.0"},
             farcaster_client_entry(){},
             fetch:async()=>measured
                 ? new Response(new ReadableStream({
@@ -39,7 +41,15 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
             getItem:key=>storage.get(key)||null,
             setItem:(key,val)=>storage.set(key,val),
         },
-        document:{getElementById:id=>nodes.get(id)},
+        document:{getElementById:id=>nodes.get(id),
+            documentElement:{setAttribute:(key,value)=>{if(key==="data-chrome-theme")chrome.scheme=value;}},
+            querySelector:selector=>({
+                setAttribute:(key,value)=>{
+                    if(key!=="content")return;
+                    if(selector.includes("theme-color"))chrome.color=value;
+                    if(selector.includes("status-bar-style"))chrome.statusStyle=value;
+                }
+            })},
         location:{href:"https://example.test/farcaster_client.html",origin:"https://example.test"},
         performance:{now:()=>100,getEntriesByName:url=>resources.get(url)||[]},
         PerformanceObserver:class {
@@ -52,7 +62,8 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     };
     vm.runInNewContext(script,scope);
     return {
-        nodes,storage,resources,
+        nodes,storage,resources,chrome,
+        setBrowserTheme:dark=>scope.window.__genycasterSetBrowserChromeTheme(dark),
         fetch:()=>scope.window.fetch("https://example.test/farcaster_client.wasm"),
         pushBytes(bytes){downloadStream.enqueue(new Uint8Array(bytes));},
         finishBytes(){downloadStream.close();},
@@ -75,8 +86,8 @@ test("first launch uses real download → install → Qt initialize → ready mi
     assert.equal(h.phase(),"download");
     assert.equal(h.mode(),"install");
     assert.match(h.label(),/Download/i);
-    assert.equal(h.nodes.get("boot-version").textContent,"v0.4.0 · Build aaaaaaaa");
-    assert.match(h.nodes.get("boot-build-credit").textContent,/v0.4.0 · Build aaaaaaaa/);
+    assert.equal(h.nodes.get("boot-version").textContent,"Beta 1.0 · Build aaaaaaaa");
+    assert.match(h.nodes.get("boot-build-credit").textContent,/Beta 1.0 · Build aaaaaaaa/);
     const response=await h.fetch();
     await response.arrayBuffer();
     assert.equal(h.phase(),"download","headers are not download completion");
@@ -158,4 +169,20 @@ test("warm refresh never clones large WASM for progress",async()=>{
     assert.equal(h.percent(),"");
     assert.equal(h.phase(),"initialize");
     h.config.qt.onLoaded();
+});
+
+
+test("Qt appearance updates browser chrome without changing user account state",()=>{
+    const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa"});
+    assert.equal(h.chrome.scheme,"dark");
+    assert.equal(h.chrome.color,"#0b0c0f");
+    assert.equal(h.chrome.statusStyle,"black-translucent");
+    h.setBrowserTheme(false);
+    assert.equal(h.chrome.scheme,"light");
+    assert.equal(h.chrome.color,"#f1f1f3");
+    assert.equal(h.chrome.statusStyle,"default");
+    h.setBrowserTheme(true);
+    assert.equal(h.chrome.scheme,"dark");
+    assert.equal(h.chrome.color,"#0b0c0f");
+    assert.equal(h.storage.get("genycaster.boot.loaded.v1"),"1");
 });

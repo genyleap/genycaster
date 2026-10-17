@@ -87,7 +87,9 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
         headers:{'content-type':'application/wasm','content-length':'8'}
     });
     const scope={
-        document:{getElementById:id=>elements.get(id)},
+        document:{getElementById:id=>elements.get(id),
+            documentElement:{setAttribute(){}},
+            querySelector:()=>({setAttribute(){}})},
         localStorage:{getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)},
         window:{
             farcaster_client_entry:factory,
@@ -160,7 +162,9 @@ test('missing Qt 6.12 application entry fails explicitly before qtLoad',()=>{
     let invoked=false;
     const messages=[];
     const scope={
-        document:{getElementById:id=>elements.get(id)},
+        document:{getElementById:id=>elements.get(id),
+            documentElement:{setAttribute(){}},
+            querySelector:()=>({setAttribute(){}})},
         localStorage:{getItem:()=>null},
         window:{
             fetch:async()=>{throw new Error('not reached');},

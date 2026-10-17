@@ -61,7 +61,7 @@ Item {
         property string iconGlyph: Theme.iconLeaf
         signal clicked()
 
-        implicitHeight: root.compact ? 108 : 116
+        implicitHeight: root.compact ? 134 : 116
         fillColor: tileMouse.pressed ? Theme.surfacePressed
                                      : tileMouse.containsMouse ? Theme.surfaceHover : Theme.surface
         borderWidth: 1
@@ -78,17 +78,13 @@ Item {
             anchors.margins: Theme.space3
             spacing: Theme.space2
 
-            Superellipse {
-                Layout.preferredWidth: 36
-                Layout.preferredHeight: 36
-                fillColor: Theme.primarySurface
-                curveDepth: Theme.curveCompact
-                Icon {
-                    anchors.centerIn: parent
-                    text: tile.iconGlyph
-                    color: Theme.accent
-                    preferredSize: Theme.iconSize
-                }
+            // Bare glyph: no colored square behind each home shortcut.
+            Icon {
+                Layout.preferredWidth: 30
+                Layout.preferredHeight: 30
+                text: tile.iconGlyph
+                color: Theme.accent
+                preferredSize: root.compact ? 25 : 27
             }
 
             DirectionAwareLabel {
@@ -97,11 +93,13 @@ Item {
                 color: Theme.textPrimary
                 font.pixelSize: Theme.typeLabelSize
                 font.weight: Theme.weightDemiBold
+                maximumLineCount: 1
                 elide: Text.ElideRight
             }
 
             DirectionAwareLabel {
                 Layout.fillWidth: true
+                Layout.fillHeight: true
                 text: tile.subtitleText
                 color: Theme.textSecondary
                 font.pixelSize: Theme.typeCaptionSize
@@ -152,15 +150,16 @@ Item {
 
                     Superellipse {
                         Layout.alignment: Qt.AlignHCenter
-                        Layout.preferredWidth: 86
-                        Layout.preferredHeight: 86
-                        fillColor: Theme.primarySurface
-                        curveDepth: 43
+                        Layout.preferredWidth: 66
+                        Layout.preferredHeight: 66
+                        fillColor: "transparent"
+                        borderWidth: 0
+                        curveDepth: 33
                         Icon {
                             anchors.centerIn: parent
                             text: Theme.iconLeaf
                             color: Theme.accent
-                            preferredSize: 38
+                            preferredSize: 42
                         }
                     }
 
@@ -295,18 +294,60 @@ Item {
             Item { Layout.preferredHeight: Theme.space3 }
             Superellipse {
                 Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: 72
-                Layout.preferredHeight: 72
-                fillColor: Theme.primarySurface
-                curveDepth: 36
-                Icon { anchors.centerIn: parent; text: Theme.iconLeaf; color: Theme.accent; preferredSize: 32 }
+                Layout.preferredWidth: 56
+                Layout.preferredHeight: 56
+                fillColor: "transparent"
+                borderWidth: 0
+                curveDepth: 28
+                Icon { anchors.centerIn: parent; text: Theme.iconLeaf; color: Theme.accent; preferredSize: 42 }
             }
-            DirectionAwareLabel { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: Theme.typeTitle1Size; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
+            DirectionAwareLabel { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.width < 420 ? Theme.typeTitle2Size : Theme.typeTitle1Size; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
             DirectionAwareLabel { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.prompt"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }
 
-            ActionTile { Layout.fillWidth: true; Layout.leftMargin: Theme.space3; Layout.rightMargin: Theme.space3; titleText: qsTrId("genycaster.feed_header.explore"); subtitleText: qsTrId("genycaster.feed_header.discover_people_channels_and_casts"); iconGlyph: Theme.iconExplore; onClicked: root.exploreRequested() }
-            ActionTile { Layout.fillWidth: true; Layout.leftMargin: Theme.space3; Layout.rightMargin: Theme.space3; titleText: qsTrId("genycaster.home.share_cast"); subtitleText: qsTrId("genycaster.home.compose_description"); iconGlyph: Theme.iconCompose; onClicked: root.composeRequested("") }
-            ActionTile { Layout.fillWidth: true; Layout.leftMargin: Theme.space3; Layout.rightMargin: Theme.space3; titleText: qsTrId("genycaster.apps.title"); subtitleText: qsTrId("genycaster.home.apps_description"); iconGlyph: Theme.iconApps; onClicked: root.appsRequested() }
+            // Phone: a true two-column navigation grid. All four targets
+            // remain visible at once instead of three wasteful full-width rows.
+            GridLayout {
+                Layout.fillWidth: true
+                Layout.leftMargin: Theme.space3
+                Layout.rightMargin: Theme.space3
+                columns: 2
+                columnSpacing: Theme.space2
+                rowSpacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+
+                ActionTile {
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 0
+                    titleText: qsTrId("genycaster.feed_header.explore")
+                    subtitleText: qsTrId("genycaster.feed_header.discover_people_channels_and_casts")
+                    iconGlyph: Theme.iconExplore
+                    onClicked: root.exploreRequested()
+                }
+                ActionTile {
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 0
+                    titleText: qsTrId("genycaster.home.share_cast")
+                    subtitleText: qsTrId("genycaster.home.compose_description")
+                    iconGlyph: Theme.iconCompose
+                    onClicked: root.composeRequested("")
+                }
+                ActionTile {
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 0
+                    titleText: qsTrId("genycaster.apps.title")
+                    subtitleText: qsTrId("genycaster.home.apps_description")
+                    iconGlyph: Theme.iconApps
+                    onClicked: root.appsRequested()
+                }
+                ActionTile {
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 0
+                    titleText: qsTrId("genycaster.feed_header.universal_search")
+                    subtitleText: qsTrId("genycaster.home.search_description")
+                    iconGlyph: Theme.iconSearch
+                    onClicked: root.searchRequested()
+                }
+            }
 
             Superellipse {
                 Layout.fillWidth: true

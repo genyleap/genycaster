@@ -4,6 +4,19 @@ const $ = id => document.getElementById(id);
 const boot=$("genycaster-boot"), heading=$("boot-heading"), status=$("boot-status");
 const stage=$("boot-stage"), fill=$("boot-fill"), percent=$("boot-percent"), retry=$("boot-retry");
 const track=$("boot-track");
+// Browser chrome is separate from the Qt canvas. Match the actual Qt theme
+// after initialization; HTML defaults dark until the Qt bridge is ready.
+// The installed PWA status bar follows the same theme when iOS permits it.
+function applyBrowserChromeTheme(dark) {
+    const color=dark?"#0b0c0f":"#f1f1f3";
+    document.documentElement.setAttribute("data-chrome-theme",dark?"dark":"light");
+    const meta=document.querySelector('meta[name="theme-color"]');
+    if(meta)meta.setAttribute("content",color);
+    const statusMeta=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if(statusMeta)statusMeta.setAttribute("content",dark?"black-translucent":"default");
+}
+window.__genycasterSetBrowserChromeTheme=applyBrowserChromeTheme;
+applyBrowserChromeTheme(true);
 let finished=false, failed=false;
 const bootStarted=performance.now();
 let wasmResourceUrl;
@@ -38,7 +51,10 @@ const buildId=typeof releaseInfo.buildId==="string"
     && /^[0-9a-f]{8}$/.test(releaseInfo.buildId)
     && currentVersion.startsWith(releaseInfo.buildId)
     ? releaseInfo.buildId : "";
-const buildLabel=(applicationVersion?"v"+applicationVersion:"")
+const releaseLabel=typeof releaseInfo.releaseLabel==="string"
+    && /^Beta \d+(?:\.\d+){1,2}$/.test(releaseInfo.releaseLabel)
+    ? releaseInfo.releaseLabel : "";
+const buildLabel=(releaseLabel||(applicationVersion?"v"+applicationVersion:""))
     +(buildId?(applicationVersion?" · ":"")+"Build "+buildId:"");
 const versionLabel=$("boot-version"),creditBuild=$("boot-build-credit");
 if(versionLabel)versionLabel.textContent=buildLabel;

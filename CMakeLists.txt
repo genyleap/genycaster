@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.30)
 
 project(Genycaster
-    VERSION 0.4.0
+    VERSION 1.0.0
     DESCRIPTION "Genycaster is a native, high-performance Farcaster client built from the ground up with Modern C++ and Qt."
     LANGUAGES CXX
 )

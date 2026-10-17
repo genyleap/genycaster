@@ -51,12 +51,23 @@ Rectangle {
                 }
             }
 
-            Label {
-                text: qsTrId("genycaster.header.genycaster")
-                color: Theme.ink
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.typeTitle3Size
-                font.weight: Theme.weightBold
+            ColumnLayout {
+                spacing: 0
+                Label {
+                    text: qsTrId("genycaster.header.genycaster")
+                    color: Theme.ink
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightBold
+                }
+                Label {
+                    text: qsTrId("genycaster.release.beta_1_0")
+                    color: Theme.inkMuted
+                    font.family: Theme.latinFontFamily
+                    font.pixelSize: Theme.typeCaptionSize
+                    font.weight: Theme.weightDemiBold
+                    Accessible.ignored: true
+                }
             }
         }
 
