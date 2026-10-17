@@ -891,11 +891,13 @@ Item {
         clip: true
         model: stableRows
         spacing: 0
-        boundsBehavior: Flickable.DragOverBounds
-        // Native rubber-band behavior: the feed itself follows the finger at
-        // either edge instead of leaving the model static behind a text hint.
-        boundsMovement: Flickable.FollowBoundsBehavior
-        headerPositioning: root.compact ? ListView.InlineHeader : ListView.OverlayHeader
+        // A bounded timeline must not stretch beyond the visible viewport:
+        // rubber-banding exposed a large empty area below short/filtered feeds.
+        // Refresh remains available from the FeedHeader action.
+        boundsBehavior: Flickable.StopAtBounds
+        boundsMovement: Flickable.StopAtBounds
+        headerPositioning: root.compact || stableRows.count === 0
+                           ? ListView.InlineHeader : ListView.OverlayHeader
         reuseItems: true
         // Keep only a shallow reusable runway. Rich embeds, animated emoji and
         // image masks are expensive delegate trees; pagination continuity must
@@ -910,10 +912,6 @@ Item {
             if (root.previewSyncPending) {
                 root.previewSyncPending = false
                 previewSyncDebounce.restart()
-            }
-            if (verticalOvershoot < -72 && !root.busy) {
-                root.resetAllFilterPrefetchBudgets()
-                root.refreshRequested()
             }
             root.scheduleLoadMore()
         }
@@ -1114,9 +1112,50 @@ Item {
 
         footer: Item {
             width: readList.width
-            // Constant geometry is essential for continuous pagination: toggling
-            // busy must never change contentHeight underneath an active flick.
-            height: root.compact ? 116 : 56
+            // The empty state is part of the ListView content, AFTER the
+            // inline header, so filters/tabs never overlap its title or CTA.
+            // With short feeds keep the footer large enough for the content to
+            // be scrolled into view on phones. Populated feeds retain a fixed
+            // footer height, independent of asynchronous pagination.
+            height: stableRows.count === 0
+                    ? Math.max(feedEmptyState.implicitHeight,
+                               readList.height - (readList.headerItem
+                                  ? readList.headerItem.implicitHeight : 0), 280)
+                    : (root.compact ? 116 : 56)
+
+            EmptyState {
+                id: feedEmptyState
+                filtered: root.presentationFilterActive
+                moreFilteredAvailable: root.hasMore
+                                       && (root.filterPrefetchPages >= root.filterPrefetchLimit
+                                           || root.automaticPrefetchPages >= root.automaticPrefetchLimit)
+                onMoreFilteredRequested: {
+                    // Explicit user intent may start a new bounded search window. Automatic
+                    // tab switching itself never resets the shared source-pressure budget.
+                    root.resetCurrentFilterPrefetchBudget()
+                    root.automaticPrefetchPages = 0
+                    root.scheduleLoadMore()
+                }
+                anchors.fill: parent
+                visible: stableRows.count === 0
+                         && !(root.runtimeReady && (root.busy || root.supplementalBusy
+                                                       || root.needsFilteredPrefetch() || filterPrefetchDebounce.running))
+                runtimeReady: root.runtimeReady
+                busy: root.busy
+                offline: root.offline
+                sourceUnavailable: root.sourceUnavailable
+                errorText: root.errorText
+                activeFeed: root.activeFeed
+                identityAvailable: root.identityAvailable
+                feedStarted: root.feedStarted
+                onRetryRequested: {
+                    root.resetAllFilterPrefetchBudgets()
+                    root.retryRequested()
+                }
+                onIdentityRequested: root.identityRequested()
+                onFollowingRequested: root.followingRequested()
+                onTrendingRequested: root.trendingRequested()
+            }
 
             GenySpinner {
                 anchors.centerIn: parent
@@ -1181,55 +1220,6 @@ Item {
         }
     }
 
-    Item {
-        id: topPullFeedback
-        readonly property real progress: Math.max(0, Math.min(1, -readList.verticalOvershoot / 72))
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: readList.top
-        // The pull affordance is viewport chrome: it stays near the top edge of
-        // the rendered feed while the list itself stretches underneath it.
-        anchors.topMargin: Theme.space2
-        z: 30
-        visible: readList.verticalOvershoot < -6 && stableRows.count > 0
-        width: 44
-        height: 44
-        opacity: Math.min(1, 0.26 + progress * 0.74)
-        scale: 0.74 + progress * 0.26
-
-        Icon {
-            anchors.centerIn: parent
-            text: Theme.iconLeaf
-            color: topPullFeedback.progress >= 1 ? Theme.positive : Theme.accent
-            preferredSize: 30
-            rotation: topPullFeedback.progress * 180
-            Behavior on rotation { NumberAnimation { duration: Theme.motionFast; easing.type: Easing.OutCubic } }
-        }
-    }
-
-    Item {
-        id: bottomPullFeedback
-        readonly property real progress: Math.max(0, Math.min(1, readList.verticalOvershoot / 72))
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        // Keep the same DNA affordance above the floating mobile dock.
-        anchors.bottomMargin: root.compact ? 76 : Theme.space2
-        z: 30
-        visible: readList.verticalOvershoot > 8 && stableRows.count > 0 && root.hasMore
-        width: 44
-        height: 44
-        opacity: Math.min(1, 0.26 + progress * 0.74)
-        scale: 0.74 + progress * 0.26
-
-        Icon {
-            anchors.centerIn: parent
-            text: Theme.iconLeaf
-            color: bottomPullFeedback.progress >= 1 ? Theme.positive : Theme.accent
-            preferredSize: 30
-            rotation: 180 - bottomPullFeedback.progress * 180
-            Behavior on rotation { NumberAnimation { duration: Theme.motionFast; easing.type: Easing.OutCubic } }
-        }
-    }
-
     Column {
         anchors.left: parent.left
         anchors.right: parent.right
@@ -1247,40 +1237,5 @@ Item {
         }
     }
 
-    EmptyState {
-        filtered: root.presentationFilterActive
-        moreFilteredAvailable: root.hasMore
-                               && (root.filterPrefetchPages >= root.filterPrefetchLimit
-                                   || root.automaticPrefetchPages >= root.automaticPrefetchLimit)
-        onMoreFilteredRequested: {
-            // Explicit user intent may start a new bounded search window. Automatic
-            // tab switching itself never resets the shared source-pressure budget.
-            root.resetCurrentFilterPrefetchBudget()
-            root.automaticPrefetchPages = 0
-            root.scheduleLoadMore()
-        }
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        anchors.topMargin: readList.headerItem ? readList.headerItem.implicitHeight : 0
-        visible: stableRows.count === 0
-                 && !(root.runtimeReady && (root.busy || root.supplementalBusy
-                                               || root.needsFilteredPrefetch() || filterPrefetchDebounce.running))
-        runtimeReady: root.runtimeReady
-        busy: root.busy
-        offline: root.offline
-        sourceUnavailable: root.sourceUnavailable
-        errorText: root.errorText
-        activeFeed: root.activeFeed
-        identityAvailable: root.identityAvailable
-        feedStarted: root.feedStarted
-        onRetryRequested: {
-            root.resetAllFilterPrefetchBudgets()
-            root.retryRequested()
-        }
-        onIdentityRequested: root.identityRequested()
-        onFollowingRequested: root.followingRequested()
-        onTrendingRequested: root.trendingRequested()
-    }
+
 }

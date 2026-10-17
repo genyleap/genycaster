@@ -212,3 +212,26 @@ The boot footer shows `Powered by Genyleap · WASM Engine`.
 - Compact Home presents a two-column four-tile grid: Explore, Share a cast,
   Apps and Search, using bare glyphs. Desktop retains its three-column
   shortcuts. Existing route signals and composer actions are unchanged.
+
+## Safari chrome, Beta splash and bounded feeds (October 2026)
+
+- The ordinary iOS Safari tab owns its top status bar and bottom URL toolbar.
+  HTML theme-color and color-scheme are hints, not a guaranteed way to paint
+  those native controls. Apple status-bar meta tags primarily apply to
+  installed standalone web apps. For a chrome-free iPhone experience, test
+  Add to Home Screen over HTTPS; local network HTTP may limit PWA features.
+- The public Beta 1.0 brand uses a small superscript badge aligned to the
+  Genycaster wordmark. The splash subtitle changes on real loader stages:
+  Explore conversations / Connect with communities / Create and share on
+  Farcaster. It does not synthesize download progress or use a timed fake step.
+- Boot footer now has two centered lines: Powered by Genyleap · WASM Engine
+  followed by the release designation and content-hashed Build ID. The
+  redundant center build line is removed. The Qt canvas opts out of browser
+  touch panning and the HTML document opts out of body overscroll.
+- FeedSurface and ProfileSurface use StopAtBounds for drag behavior and
+  movement. Their existing explicit refresh actions still work; large
+  pull-to-refresh overscroll animations are intentionally retired.
+- FeedSurface's no-results EmptyState is a ListView footer, below the inline
+  feed header, not an overlay at a potentially negative viewport height.
+  Its implicit height derives from its entire content and remains scrollable
+  when the mobile header or translated messages are long.

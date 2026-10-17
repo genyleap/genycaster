@@ -266,10 +266,13 @@ test('WASM splash keeps all stage circles fixed and shows release version and bu
     assert.match(html,/\.boot-dot\{[^}]*flex:0 0 18px/);
     assert.match(html,/\.boot-journey li\{[^}]*flex:0 0 auto/);
     assert.doesNotMatch(html,/box-shadow:0 0 0 4px/);
-    assert.match(html,/id="boot-version"/);
+    assert.doesNotMatch(html,/id="boot-version"/);
+    assert.match(html,/<sup class="boot-beta">Beta 1\.0<\/sup>/);
+    assert.match(html,/id="boot-note"/);
     assert.match(html,/id="boot-build-credit"/);
     assert.match(cmake,/--app-version "\$\{PROJECT_VERSION\}"/);
     assert.match(pack,/"buildId": fingerprint\[:8\]/);
-    assert.match(loader,/if\(versionLabel\)versionLabel\.textContent=buildLabel/);
+    assert.doesNotMatch(loader,/versionLabel/);
+    assert.match(loader,/if\(bootNote\)bootNote\.textContent/);
     assert.match(loader,/if\(creditBuild\)creditBuild\.textContent/);
 });

@@ -362,8 +362,15 @@ for token in (
 ):
     if token not in gallery_layout:
         errors.append(f'GalleryLayout scroll-time tile admission missing {token!r}')
-if 'profileList.verticalOvershoot' not in profile_surface or 'readList.verticalOvershoot' not in feed_surface:
-    errors.append('Pull-to-refresh hints must use overshoot rather than absolute contentY')
+if ('boundsBehavior: Flickable.StopAtBounds' not in profile_surface
+        or 'boundsMovement: Flickable.StopAtBounds' not in profile_surface
+        or 'boundsBehavior: Flickable.StopAtBounds' not in feed_surface
+        or 'boundsMovement: Flickable.StopAtBounds' not in feed_surface
+        or 'id: feedEmptyState' not in feed_surface
+        or 'height: stableRows.count === 0' not in feed_surface
+        or 'headerPositioning: root.compact || stableRows.count === 0' not in feed_surface
+        or 'id: stateContent' not in (root/'ui/components/EmptyState.qml').read_text()):
+    errors.append('Feed/profile scrolling must be bounded and empty state inside the list footer')
 if 'Item {\n            id: messageSurface' not in cast_item \
         or 'HoverHandler { id: messageHover }' in cast_item \
         or 'anchors.leftMargin: root.contentRtl ? Theme.space3 : 58' not in cast_item \

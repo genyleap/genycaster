@@ -26,6 +26,11 @@ Item {
                             ? qsTrId("genycaster.empty.loading_your_reading_surface")
                             : qsTrId("genycaster.empty.genycaster_checks_local_state_first_then_refreshes_fro")
 
+    // A ListView footer measures the complete empty state before allocating
+    // its scrollable height. This avoids centering a tall message in a zero/
+    // negative-height overlay when the mobile feed header occupies the view.
+    implicitHeight: stateContent.implicitHeight + Theme.space6 * 2
+
     readonly property bool setupFailure: !root.runtimeReady && root.errorText.length > 0
     readonly property bool idleHome: root.runtimeReady
                                      && !root.feedStarted
@@ -39,6 +44,7 @@ Item {
                                         : Theme.iconLeaf
 
     ColumnLayout {
+        id: stateContent
         anchors.centerIn: parent
         width: Math.min(parent.width - Theme.space6, 400)
         spacing: Theme.space2

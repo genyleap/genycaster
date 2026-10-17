@@ -7,7 +7,7 @@ const script=readFileSync(new URL("../../ui/wasm/genycaster-loader.js",import.me
 function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measured=false}={}) {
     const nodes=new Map();
     for(const id of ["genycaster-boot","boot-heading","boot-status","boot-stage",
-        "boot-fill","boot-percent","boot-retry","boot-version","boot-build-credit","qt-screen"]) {
+        "boot-fill","boot-percent","boot-retry","boot-note","boot-build-credit","qt-screen"]) {
         const classes=new Set();
         nodes.set(id,{
             hidden:false,textContent:"",style:{},dataset:{},
@@ -86,16 +86,18 @@ test("first launch uses real download → install → Qt initialize → ready mi
     assert.equal(h.phase(),"download");
     assert.equal(h.mode(),"install");
     assert.match(h.label(),/Download/i);
-    assert.equal(h.nodes.get("boot-version").textContent,"Beta 1.0 · Build aaaaaaaa");
-    assert.match(h.nodes.get("boot-build-credit").textContent,/Beta 1.0 · Build aaaaaaaa/);
+    assert.equal(h.nodes.get("boot-note").textContent,"Explore conversations");
+    assert.equal(h.nodes.get("boot-build-credit").textContent,"Beta 1.0 · Build aaaaaaaa");
     const response=await h.fetch();
     await response.arrayBuffer();
     assert.equal(h.phase(),"download","headers are not download completion");
     h.resourceComplete();
     assert.equal(h.phase(),"install");
     assert.match(h.label(),/Install/i);
+    assert.equal(h.nodes.get("boot-note").textContent,"Connect with communities");
     h.config.monitorRunDependencies(0);
     assert.equal(h.phase(),"interface");
+    assert.equal(h.nodes.get("boot-note").textContent,"Create and share on Farcaster");
     h.config.qt.onLoaded();
     assert.equal(h.phase(),"ready");
     assert.equal(h.storage.get("genycaster.boot.loaded.v1"),"1");
@@ -106,6 +108,7 @@ test("normal refresh skips Download/Install and restores the Qt runtime",async()
     const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa"});
     assert.equal(h.mode(),"warm");
     assert.equal(h.phase(),"initialize");
+    assert.equal(h.nodes.get("boot-note").textContent,"Create and share on Farcaster");
     assert.equal(h.nodes.get("boot-heading").textContent,"Initializing Social Workspace");
     assert.match(h.label(),/Preparing runtime/i);
     const response=await h.fetch();

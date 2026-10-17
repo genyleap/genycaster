@@ -56,9 +56,8 @@ const releaseLabel=typeof releaseInfo.releaseLabel==="string"
     ? releaseInfo.releaseLabel : "";
 const buildLabel=(releaseLabel||(applicationVersion?"v"+applicationVersion:""))
     +(buildId?(applicationVersion?" · ":"")+"Build "+buildId:"");
-const versionLabel=$("boot-version"),creditBuild=$("boot-build-credit");
-if(versionLabel)versionLabel.textContent=buildLabel;
-if(creditBuild)creditBuild.textContent=buildLabel?" · "+buildLabel:"";
+const creditBuild=$("boot-build-credit"), bootNote=$("boot-note");
+if(creditBuild)creditBuild.textContent=buildLabel;
 let seen=false, previousVersion="";
 try{
     seen=localStorage.getItem(key)==="1";
@@ -81,6 +80,10 @@ function showPhase(phase,title,detail,label){
     if(leavingDownload)preparing();
     track?.setAttribute?.("aria-valuetext",label);
     announce(title,detail,label);
+    if(bootNote)bootNote.textContent=phase==="download"
+        ? "Explore conversations"
+        : phase==="install" ? "Connect with communities"
+        : "Create and share on Farcaster";
 }
 if(installing)
     showPhase("download",updating?"Downloading Update":"Downloading App Resources",
@@ -317,6 +320,7 @@ async function start() {
                     track?.setAttribute?.("aria-valuenow","100");
                     track?.setAttribute?.("aria-valuetext","Ready");
                     bootPhase="ready";
+                    if(bootNote)bootNote.textContent="Create and share on Farcaster";
                     finished=true;
                     const timing=wasmResourceUrl?wasmTiming(wasmResourceUrl):null;
                     // A worker-handled request is not proof of a cache hit.

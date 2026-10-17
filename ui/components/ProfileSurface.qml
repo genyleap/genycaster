@@ -443,8 +443,10 @@ Item {
         clip: true
         model: profileRowsModel
         spacing: 0
-        boundsBehavior: Flickable.DragOverBounds
-        boundsMovement: Flickable.FollowBoundsBehavior
+        // Keep the profile header and last cast inside the viewport on mobile
+        // and desktop. Refresh is available through the header action.
+        boundsBehavior: Flickable.StopAtBounds
+        boundsMovement: Flickable.StopAtBounds
         reuseItems: true
         cacheBuffer: Math.min(Math.max(height * 0.75, 560), 960)
         pixelAligned: false
@@ -453,8 +455,6 @@ Item {
             scrollWorkThrottle.stop()
             if (root.stableModelSyncPending)
                 root.requestStableModelSync()
-            if (verticalOvershoot < -72 && !root.busy)
-                root.refreshRequested()
             root.captureViewportAnchor()
             root.scheduleLoadMore()
         }
@@ -1100,43 +1100,4 @@ Item {
             }
         }
     }
-
-    Item {
-        id: profilePullFeedback
-        readonly property real progress: Math.max(0, Math.min(1, -profileList.verticalOvershoot / 72))
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: profileList.top
-        anchors.topMargin: Theme.space2
-        z: 2
-        visible: profileList.verticalOvershoot < -8 && root.rows.length > 0
-        width: 42
-        height: 42
-        opacity: Math.min(1, 0.35 + progress * 0.65)
-        scale: 0.78 + progress * 0.22
-
-        Superellipse {
-            anchors.fill: parent
-            fillColor: Theme.surfaceElevated
-            borderWidth: Theme.strokeHairline
-            borderColor: Theme.borderMuted
-            curveDepth: 21
-            elevation: Theme.elevationControl
-            shadowOpacityScale: 0.55
-        }
-        ProgressRing {
-            anchors.fill: parent
-            anchors.margins: 6
-            progress: profilePullFeedback.progress
-            strokeWidth: 2.5
-            trackColor: Theme.borderMuted
-            progressColor: profilePullFeedback.progress >= 1 ? Theme.positive : Theme.accent
-        }
-        Icon {
-            anchors.centerIn: parent
-            text: profilePullFeedback.progress >= 1 ? Theme.iconRefresh : Theme.iconChevronDown
-            color: profilePullFeedback.progress >= 1 ? Theme.positive : Theme.ink
-            preferredSize: 17
-        }
-    }
-
 }
