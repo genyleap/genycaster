@@ -1138,6 +1138,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.accept_terms");
     //% "I have read and understood the Genyleap Privacy Policy."
     (void)qtTrId("genycaster.setup.acknowledge_privacy");
+    //% "I have read and agree to the Terms of Use and Privacy Policy."
+    (void)qtTrId("genycaster.setup.single_legal_consent");
     //% "Agree & Continue"
     (void)qtTrId("genycaster.setup.agree_continue");
     //% "Back"

@@ -164,3 +164,39 @@ test('network verification error never dismisses words and retry can succeed',as
     assert.equal(await result,'42');
     assert.equal(attempted,2);
 });
+
+
+test('recovery drawer distinguishes custody ownership and signer failures without exposing secrets',async()=>{
+    for(const [code,expected] of [
+        ['recovery-unregistered',/مالکیت حساب|Farcaster/],
+        ['recovery-ownership',/مالکیت حساب|Farcaster/],
+        ['recovery-signer',/Snapchain|مجوز انتشار/],
+        ['recovery-network',/اتصال|شبکه/],
+    ]){
+        const b=browser();
+        let attempt=0;
+        const result=promptForFarcasterRecovery(b,null,async()=>{
+            attempt++;
+            if(attempt===1){
+                const error=new Error('Sensitive internal RPC details must not be displayed');
+                error.code=code;
+                throw error;
+            }
+            return '42';
+        });
+        const sheet=b.document.getElementById('genycaster-farcaster-recovery').children[0];
+        const grid=b.document.getElementById('genycaster-recovery-words');
+        const words=grid.children.map(cell=>cell.children[1]);
+        [...Array(11).fill('abandon'),'about'].forEach((word,i)=>words[i].value=word);
+        const submit=sheet.children.at(-1).children.at(-1);
+        submit.click();
+        await settle();
+        const error=sheet.children.find(item=>item.attributes?.role==='alert');
+        assert.match(error.textContent,expected,code);
+        assert.doesNotMatch(error.textContent,/Sensitive internal RPC details/);
+        assert.equal(words[0].value,'abandon','keep words for correction and retry');
+        submit.click();
+        assert.equal(await result,'42');
+        assert.equal(words.every(word=>word.value===''),true,'wipe fields after success');
+    }
+});

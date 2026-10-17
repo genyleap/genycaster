@@ -4,7 +4,7 @@ import vm from "node:vm";
 import {readFileSync} from "node:fs";
 
 const script=readFileSync(new URL("../../ui/wasm/genycaster-loader.js",import.meta.url),"utf8");
-function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measured=false}={}) {
+function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measured=false,withoutLength=false}={}) {
     const nodes=new Map();
     for(const id of ["genycaster-boot","boot-heading","boot-status","boot-stage",
         "boot-fill","boot-percent","boot-retry","boot-note","boot-build-credit","qt-screen"]) {
@@ -25,12 +25,13 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     const scope={
         window:{
             __genycasterAssets:{version,wasm:binary,appVersion:"1.0.0",buildId:version.slice(0,8),
-                releaseLabel:"Beta 1.0"},
+                releaseLabel:"Beta 1.0",wasmBytes:8},
             farcaster_client_entry(){},
             fetch:async()=>measured
                 ? new Response(new ReadableStream({
                     start(controller){downloadStream=controller;}
-                }),{headers:{"Content-Type":"application/wasm","Content-Length":"8"}})
+                }),{headers:{"Content-Type":"application/wasm",
+                    ...(withoutLength?{}:{"Content-Length":"8"})}})
                 : new Response(new Uint8Array([0,97,115,109]),{
                     headers:{"Content-Type":"application/wasm"}
                 }),
@@ -188,4 +189,20 @@ test("Qt appearance updates browser chrome without changing user account state",
     assert.equal(h.chrome.scheme,"dark");
     assert.equal(h.chrome.color,"#0b0c0f");
     assert.equal(h.storage.get("genycaster.boot.loaded.v1"),"1");
+});
+
+
+test("first install reports genuine WASM byte progress without Content-Length",async()=>{
+    const h=host({measured:true,withoutLength:true});
+    const response=await h.fetch();
+    h.pushBytes([0,97,115,109]);
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(h.percent(),"50%");
+    assert.equal(h.phase(),"download");
+    h.pushBytes([1,0,0,0]);
+    h.finishBytes();
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(h.phase(),"install");
+    assert.equal((await response.arrayBuffer()).byteLength,8,
+        "the original native streaming response must remain intact");
 });

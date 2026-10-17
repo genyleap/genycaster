@@ -3310,10 +3310,6 @@
             <source>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</source>
             <translation>Genyleap 已发布的隐私说明涵盖你主动通过联系和项目表单提交的信息，以及用于基本滥用防护的数据。Genycaster 还会使用你在设置中选择的 Genyleap/OpenProof 账户和已关联 Farcaster 身份进行认证并启用协议操作。外观和区域偏好会保存在应用本地，除非某项功能明确说明会以其他方式处理。继续之前请查看完整隐私说明。</translation>
         </message>
-        <message id="genycaster.setup.scroll_to_continue">
-            <source>Scroll to the end to unlock consent.</source>
-            <translation>滚动到末尾以解锁同意选项。</translation>
-        </message>
         <message id="genycaster.setup.agree_continue">
             <source>Agree &amp; Continue</source>
             <translation>同意并继续</translation>
@@ -3369,14 +3365,6 @@
         <message id="genycaster.setup.privacy_compact_intro">
             <source>Review the Terms of Use and Privacy Policy before continuing.</source>
             <translation>只需确认两项明确权限。完整文档一键即可查看。</translation>
-        </message>
-        <message id="genycaster.setup.terms_summary">
-            <source>Rules for using Genyleap services and product resources.</source>
-            <translation>使用 Genyleap 服务和产品资源的规则。</translation>
-        </message>
-        <message id="genycaster.setup.privacy_summary">
-            <source>How account data, protocol identity and local preferences are handled.</source>
-            <translation>账户数据、协议身份和本地偏好的处理方式。</translation>
         </message>
         <message id="genycaster.setup.network_body">
             <source>Automatic selects a healthy low-latency node. You can choose one manually.</source>
@@ -3490,10 +3478,6 @@
             <source>Setup steps</source>
             <translation>设置步骤</translation>
         </message>
-        <message id="genycaster.setup.mark_document_reviewed">
-            <source>I reviewed the document</source>
-            <translation>我已阅读该文档</translation>
-        </message>
         <message id="genycaster.setup.auth_rejected_recover">
             <source>Genyleap rejected this sign-in. Start a new request or try Farcaster sign-in.</source>
             <translation>Genyleap 拒绝了此次登录。请重新发起请求，或尝试使用 Farcaster 登录。</translation>
@@ -3537,22 +3521,6 @@
         <message id="genycaster.setup.farcaster_missing_key">
             <source>Not available right now. You can continue with Hypersnap.</source>
             <translation>当前不可用。你可以继续使用 Hypersnap。</translation>
-        </message>
-        <message id="genycaster.setup.document_accepted">
-            <source>Accepted</source>
-            <translation>已接受</translation>
-        </message>
-        <message id="genycaster.setup.confirm_document">
-            <source>Scroll to the end, then confirm this document.</source>
-            <translation>滚动到底部，然后确认此文档。</translation>
-        </message>
-        <message id="genycaster.setup.legal_click_to_review">
-            <source>Open both notices, review the summaries and confirm each one to continue.</source>
-            <translation>打开两份声明，阅读摘要并分别确认，然后继续。</translation>
-        </message>
-        <message id="genycaster.setup.legal_summary_label">
-            <source>Product notice summary</source>
-            <translation>产品声明摘要</translation>
         </message>
         <message id="genycaster.setup.account_methods_explainer">
             <source>Use your Farcaster identity or Genyleap account. Each sign-in is verified independently; neither changes your read network.</source>
@@ -3878,10 +3846,6 @@
             <source>Open full Privacy Policy</source>
             <translation>查看完整隐私政策</translation>
         </message>
-        <message id="genycaster.setup.legal_governing_note">
-            <source>These links open Genyleap's currently published policies. Product and repository terms may also apply.</source>
-            <translation>这些链接打开 Genyleap 当前发布的政策。产品或代码仓库的特定条款也可能适用。</translation>
-        </message>
         <message id="genycaster.release.beta_1_0">
             <source>Beta 1.0</source>
             <translation>测试版 1.0</translation>
@@ -3889,6 +3853,10 @@
         <message id="genycaster.home.search_description">
             <source>Find people, casts and channels</source>
             <translation>搜索用户、帖子和频道</translation>
+        </message>
+        <message id="genycaster.setup.single_legal_consent">
+            <source>I have read and agree to the Terms of Use and Privacy Policy.</source>
+            <translation>我已阅读并同意使用条款和隐私政策。</translation>
         </message>
     </context>
 </TS>

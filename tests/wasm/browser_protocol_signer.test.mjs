@@ -344,7 +344,12 @@ test('direct setup refuses unregistered or transferred custody before KEY_ADD',a
                 return data.fetchImpl(url,options);
             },
         });
-        await assert.rejects(signer.recoverAccountFromPhrase(recoveredPhrase));
+        await assert.rejects(signer.recoverAccountFromPhrase(recoveredPhrase),
+            error=>mismatch==='unregistered'
+                ? error.code==='recovery-unregistered'
+                : mismatch==='transferred'
+                  ? error.code==='recovery-ownership'
+                  : error.code==='recovery-network');
         assert.equal(data.submitted.length,0);
     }
 });

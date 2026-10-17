@@ -202,7 +202,7 @@ test('explicit Logout returns to account Setup while refresh keeps completed onb
         /resetInitialSetupProgress\(/);
 });
 
-test('Setup stages align headings and keep legal reader compact with governing links',()=>{
+test('Setup headings and single in-place Terms/Privacy checkbox stay compact',()=>{
     const h=read('ui/components/SetupPageHeader.qml');
     const l=read('ui/components/SetupLanguageSelector.qml');
     const setup=read('ui/components/InitialSetup.qml');
@@ -210,10 +210,15 @@ test('Setup stages align headings and keep legal reader compact with governing l
     assert.match(h,/RowLayout \{/);
     assert.match(h,/Layout\.alignment: Qt\.AlignVCenter/);
     assert.match(l,/Layout\.preferredWidth: Math\.min\(205/);
-    assert.match(setup,/Math\.min\(root\.height - Theme\.space6 \* 2, 510\)/);
-    assert.match(setup,/qsTrId\("genycaster\.setup\.open_terms"\)/);
+    assert.match(setup,/id: privacyStage/);
+    assert.match(setup,/qsTrId\("genycaster\.setup\.terms_body"\)/);
+    assert.match(setup,/qsTrId\("genycaster\.setup\.privacy_body"\)/);
+    assert.match(setup,/qsTrId\("genycaster\.setup\.single_legal_consent"\)/);
     assert.match(setup,/Qt\.openUrlExternally/);
-    assert.match(setup,/qsTrId\("genycaster\.setup\.legal_governing_note"\)/);
+    assert.equal((setup.match(/\bCheckBox \{/g)||[]).length,1);
+    assert.doesNotMatch(setup,/id: legalReader|legalReaderReachedEnd|openLegalReader/);
+    assert.match(setup,/root\.legalTermsChecked = checked/);
+    assert.match(setup,/root\.legalPrivacyChecked = checked/);
     assert.match(app,/BottomNavigation \{[\s\S]*?visible: root\.mobile && !root\.initialSetupOpen/);
     assert.doesNotMatch(app,/parent: readingPane/);
     assert.match(app,/anchors\.bottom: readingPane\.bottom/);

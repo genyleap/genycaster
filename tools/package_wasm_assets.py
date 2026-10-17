@@ -75,6 +75,7 @@ fingerprint = hashlib.sha256(json.dumps({
     "files": checksums, "appVersion": args.app_version, "releaseLabel": args.release_label,
 }, sort_keys=True).encode()).hexdigest()[:20]
 release = {"version": fingerprint, "wasm": asset_name,
+           "wasmBytes": wasm.stat().st_size,
            "buildId": fingerprint[:8],
            "files": sorted(public + [asset_name, "genycaster-assets.js"]),
            "integrity": checksums}
@@ -87,7 +88,8 @@ manifest.write_text(json.dumps(release, indent=2, sort_keys=True) + "\n", encodi
 # JS config is intentionally small and contains no user data or secrets.
 (directory / "genycaster-assets.js").write_text(
     "window.__genycasterAssets=" + json.dumps({
-        "version": fingerprint, "wasm": asset_name, "buildId": fingerprint[:8],
+        "version": fingerprint, "wasm": asset_name,
+        "wasmBytes": wasm.stat().st_size, "buildId": fingerprint[:8],
         **({"appVersion": args.app_version} if args.app_version else {}),
         **({"releaseLabel": args.release_label} if args.release_label else {}),
     }) + ";\n",

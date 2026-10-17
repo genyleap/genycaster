@@ -275,11 +275,21 @@ export function createBrowserProtocolSigner({
     // Derive FID from onchain custody without exporting phrase to Qt.
     async function recoverAccountFromPhrase(phrase, stillCurrent=()=>true) {
         const assertCurrent=()=>{if(!stillCurrent())throw new Error('Recovery cancelled');};
+        // Errors leave the phrase dialog open. Use non-secret codes so the UI
+        // can distinguish a valid mnemonic, an unregistered custody account,
+        // RPC outages and a failed signer registration without leaking keys.
+        const recoveryError=(code,message)=>{
+            const error=new Error(message);
+            error.code=code;
+            return error;
+        };
+        let step='derivation';
         const { deriveFarcasterCustody } = await import('./farcaster_recovery.mjs');
         const custody = await deriveFarcasterCustody(phrase);
         try {
             assertCurrent();
             const address = requireAddress(custody.address);
+            step='ownership';
             const rpc = 'https://mainnet.optimism.io';
             let sequence = 0;
             async function rpcCall(method,params) {
@@ -303,22 +313,36 @@ export function createBrowserProtocolSigner({
                 {to:registryAddress,data:selector+address.slice(2).padStart(64,'0')},'latest']);
             if(!/^0x[0-9a-f]{64}$/i.test(idValue))
                 throw new Error('Invalid IdRegistry FID response');
+            if(BigInt(idValue)===0n)
+                throw recoveryError('recovery-unregistered',
+                    'No Farcaster FID is registered for this recovery custody wallet');
             const fid=requireFid(BigInt(idValue).toString(10));
             const custodyValue=await rpcCall('eth_call',[
                 {to:registryAddress,data:custodySelector+BigInt(fid).toString(16).padStart(64,'0')},
                 'latest']);
             if(!/^0x[0-9a-f]{64}$/i.test(custodyValue)
                 ||requireAddress('0x'+custodyValue.slice(-40))!==address)
-                throw new Error('Recovery phrase does not control the registered Farcaster FID');
+                throw recoveryError('recovery-ownership',
+                    'Recovery phrase does not control the registered Farcaster FID');
             assertCurrent();
+            step='signer';
             const registration=await provision(fid,async requestedFid=>{
                 assertCurrent();
                 if(requestedFid!==fid)throw new Error('Farcaster identity changed');
                 return custody;
             },stillCurrent);
             if(!registration || lastPhase!=='ready' || activeFid!==fid || !activeKey)
-                throw new Error('Signer registration has not been verified');
+                throw recoveryError('recovery-signer',
+                    'Signer registration has not been verified by Snapchain');
             return fid;
+        } catch(error) {
+            if(!error.code) {
+                const message=String(error.message||error);
+                const network=/HTTP|RPC|Snapchain|timeout|fetch|network|AbortError|failed to fetch|registration|CORS/i.test(message);
+                error.code=network?'recovery-network':
+                    step==='signer'?'recovery-signer':'recovery-verification';
+            }
+            throw error;
         } finally {
             custody.dispose();
         }

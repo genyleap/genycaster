@@ -3310,10 +3310,6 @@
             <source>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</source>
             <translation>Der veröffentlichte Datenschutzhinweis von Genyleap betrifft Angaben, die du über Kontakt- und Projektformulare übermittelst, sowie grundlegende Daten zur Missbrauchsprävention. Genycaster verwendet zusätzlich das von dir im Setup gewählte Genyleap/OpenProof-Konto und die verknüpfte Farcaster-Identität zur Authentifizierung und für Protokollaktionen. Darstellungs- und Regionseinstellungen werden lokal in der App gespeichert, sofern eine Funktion nichts anderes ausdrücklich angibt. Lies vor dem Fortfahren den vollständigen Datenschutzhinweis.</translation>
         </message>
-        <message id="genycaster.setup.scroll_to_continue">
-            <source>Scroll to the end to unlock consent.</source>
-            <translation>Scrolle bis zum Ende, um die Zustimmung freizuschalten.</translation>
-        </message>
         <message id="genycaster.setup.agree_continue">
             <source>Agree &amp; Continue</source>
             <translation>Zustimmen &amp; Fortfahren</translation>
@@ -3369,14 +3365,6 @@
         <message id="genycaster.setup.privacy_compact_intro">
             <source>Review the Terms of Use and Privacy Policy before continuing.</source>
             <translation>Zwei klare Berechtigungen. Die vollständigen Dokumente sind nur einen Tipp entfernt.</translation>
-        </message>
-        <message id="genycaster.setup.terms_summary">
-            <source>Rules for using Genyleap services and product resources.</source>
-            <translation>Regeln für die Nutzung von Genyleap-Diensten und Produktressourcen.</translation>
-        </message>
-        <message id="genycaster.setup.privacy_summary">
-            <source>How account data, protocol identity and local preferences are handled.</source>
-            <translation>Wie Kontodaten, Protokollidentität und lokale Einstellungen behandelt werden.</translation>
         </message>
         <message id="genycaster.setup.network_body">
             <source>Automatic selects a healthy low-latency node. You can choose one manually.</source>
@@ -3490,10 +3478,6 @@
             <source>Setup steps</source>
             <translation>Einrichtungsschritte</translation>
         </message>
-        <message id="genycaster.setup.mark_document_reviewed">
-            <source>I reviewed the document</source>
-            <translation>Ich habe das Dokument überprüft</translation>
-        </message>
         <message id="genycaster.setup.auth_rejected_recover">
             <source>Genyleap rejected this sign-in. Start a new request or try Farcaster sign-in.</source>
             <translation>Genyleap hat diese Anmeldung abgelehnt. Starte eine neue Anfrage oder versuche es mit der Farcaster-Anmeldung.</translation>
@@ -3537,22 +3521,6 @@
         <message id="genycaster.setup.farcaster_missing_key">
             <source>Not available right now. You can continue with Hypersnap.</source>
             <translation>Momentan nicht verfügbar. Sie können mit Hypersnap fortfahren.</translation>
-        </message>
-        <message id="genycaster.setup.document_accepted">
-            <source>Accepted</source>
-            <translation>Akzeptiert</translation>
-        </message>
-        <message id="genycaster.setup.confirm_document">
-            <source>Scroll to the end, then confirm this document.</source>
-            <translation>Scrollen Sie bis zum Ende und bestätigen Sie dann dieses Dokument.</translation>
-        </message>
-        <message id="genycaster.setup.legal_click_to_review">
-            <source>Open both notices, review the summaries and confirm each one to continue.</source>
-            <translation>Öffnen Sie beide Mitteilungen, überprüfen Sie die Zusammenfassungen und bestätigen Sie, dass Sie fortfahren möchten.</translation>
-        </message>
-        <message id="genycaster.setup.legal_summary_label">
-            <source>Product notice summary</source>
-            <translation>Zusammenfassung der Produkthinweise</translation>
         </message>
         <message id="genycaster.setup.account_methods_explainer">
             <source>Use your Farcaster identity or Genyleap account. Each sign-in is verified independently; neither changes your read network.</source>
@@ -3878,10 +3846,6 @@
             <source>Open full Privacy Policy</source>
             <translation>Vollständige Datenschutzerklärung öffnen</translation>
         </message>
-        <message id="genycaster.setup.legal_governing_note">
-            <source>These links open Genyleap's currently published policies. Product and repository terms may also apply.</source>
-            <translation>Diese Links öffnen die aktuellen Genyleap-Richtlinien. Zusätzliche Produkt- oder Repositorybedingungen können gelten.</translation>
-        </message>
         <message id="genycaster.release.beta_1_0">
             <source>Beta 1.0</source>
             <translation>Beta-Version 1.0</translation>
@@ -3889,6 +3853,10 @@
         <message id="genycaster.home.search_description">
             <source>Find people, casts and channels</source>
             <translation>Personen, Beiträge und Kanäle finden</translation>
+        </message>
+        <message id="genycaster.setup.single_legal_consent">
+            <source>I have read and agree to the Terms of Use and Privacy Policy.</source>
+            <translation>Ich habe die Nutzungsbedingungen und Datenschutzerklärung gelesen und stimme ihnen zu.</translation>
         </message>
     </context>
 </TS>

@@ -235,3 +235,23 @@ The boot footer shows `Powered by Genyleap · WASM Engine`.
   feed header, not an overlay at a potentially negative viewport height.
   Its implicit height derives from its entire content and remains scrollable
   when the mobile header or translated messages are long.
+
+## 2026-10-18: download progress, recovery diagnostics, simplified legal consent
+
+- The WASM packager includes the decoded byte count `wasmBytes` of the
+  immutable, content-hashed binary in both release manifest and JS config.
+  An initial download measures actual bytes read from a cloned native
+  Response against this total even with no Content-Length or a compressed
+  transport. The original Response still streams unchanged into Qt;
+  warm refreshes never clone it. Download percent is never a fake overall
+  compilation or initialization percentage.
+- Recovery checks local BIP39 words/checksum, Optimism on-chain account
+  ownership, and Snapchain signer authorization separately. It provides
+  stage-specific sanitized errors rather than labelling every failure as
+  wrong words. Inputs stay available for retry and are cleared after
+  success/cancel. Keys or phrases never enter Qt, logs, or HTTP payloads.
+- Setup shows the translated Terms and Privacy summaries directly on the
+  stage, with links to the official full policies and a single explicit
+  acceptance checkbox. No modal document reader or scroll-to-end step.
+  The original consent-version persistence and gated next-step behavior
+  are preserved in native C++, across all twelve supported locales.

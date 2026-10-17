@@ -29,6 +29,7 @@ test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
         assert.match(a.wasm,/^farcaster_client\.[0-9a-f]{20}\.wasm$/);
         assert.equal(a.appVersion,'1.0.0');
         assert.equal(a.releaseLabel,'Beta 1.0');
+        assert.equal(a.wasmBytes,8);
         assert.match(a.buildId,/^[a-f0-9]{8}$/);
         assert.equal(a.buildId,a.version.slice(0,8));
         assert.ok(existsSync(join(dir,a.wasm)));
@@ -49,6 +50,7 @@ test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
         assert.ok(config.includes(c.wasm));
         assert.match(config,/"appVersion": "1.0.0"/);
         assert.match(config,/"releaseLabel": "Beta 1.0"/);
+        assert.match(config,/"wasmBytes": 8/);
         assert.ok(config.includes(c.buildId));
         const packSource=spawnSync('python3',[pack.pathname,'--source',
             new URL('../../ui/wasm/',import.meta.url).pathname,'--dir',dir,'--app-version','1.0.0',

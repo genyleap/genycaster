@@ -120,11 +120,18 @@ function engineReceived(url) {
 }
 function measureFirstDownload(response,url){
     if(!installing || !response.body || typeof response.clone!=="function")return;
-    const total=Number(response.headers.get("content-length"));
-    // Compressed length refers to encoded bytes while response.body is
-    // decoded. Display no fake percentages for br/gzip or unknown totals.
-    if(!Number.isSafeInteger(total)||total<=0||
-       response.headers.get("content-encoding"))return;
+    // Browser CacheStorage, proxies and compression may suppress or change
+    // Content-Length. The immutable, hashed WASM's *decoded* byte size comes
+    // from our own release packager, so we can measure the native stream even
+    // behind Cloudflare or a Service Worker without guessing.
+    const manifestBytes=Number(releaseInfo.wasmBytes);
+    const trusted=verifiedAsset && url===verifiedAsset.href
+        && Number.isSafeInteger(manifestBytes) && manifestBytes>0;
+    const headersLength=Number(response.headers.get("content-length"));
+    const hasPlainLength=!response.headers.get("content-encoding")
+        && Number.isSafeInteger(headersLength) && headersLength>0;
+    const total=trusted?manifestBytes:(hasPlainLength?headersLength:0);
+    if(!total)return;
     try{
         progressReader=response.clone().body.getReader();
     }catch{return;}

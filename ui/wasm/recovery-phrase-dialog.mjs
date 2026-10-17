@@ -235,19 +235,27 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
                 // word; avoid falsely marking the last word as the culprit.
                 const message=String(cause?.message||cause);
                 const checksum=/checksum/i.test(message);
-                const ownership=/custody|does not control|does not own|registered Farcaster/i.test(message);
-                const network=/HTTP|RPC|Snapchain|timeout|fetch|network|registration/i.test(message);
+                const category=cause?.code;
+                const ownership=category==='recovery-unregistered'
+                    ||category==='recovery-ownership'
+                    ||/custody|does not control|does not own|registered Farcaster FID/i.test(message);
+                const network=category==='recovery-network'
+                    ||/HTTP|RPC|Snapchain|timeout|fetch|network|CORS|AbortError/i.test(message);
+                const signer=category==='recovery-signer';
                 showError(checksum
                     ? (lang==='fa'?'ترتیب یا یکی از واژه‌ها اشتباه است؛ همه واژه‌ها معتبرند اما جمع کنترل عبارت درست نیست.':
                         'The words are valid individually, but the phrase checksum is wrong. Check their order and spelling.')
                     : ownership
-                    ? (lang==='fa'?'این واژه‌ها متعلق به حساب Farcaster موردنظر نیستند. عبارت بازیابی همان حساب را بررسی کنید.':
-                        'These recovery words do not match that Farcaster account.')
+                    ? (lang==='fa'?'عبارت از نظر کلمات معتبر است، اما مالکیت حساب ثبت‌شدهٔ Farcaster با آن تأیید نشد. مطمئن شوید عبارت بازیابی همان حساب را وارد کرده‌اید.':
+                        'The words are valid, but they do not identify a registered Farcaster custody account. Check that this is your Farcaster recovery phrase.')
+                    : signer
+                    ? (lang==='fa'?'عبارت تأیید شد اما ثبت مجوز انتشار در Snapchain کامل نشد. لطفاً کمی بعد دوباره تلاش کنید.':
+                        'The recovery phrase was verified, but publishing authorization was not confirmed. Please retry.')
                     : network
-                    ? (lang==='fa'?'بررسی شبکه کامل نشد. ورودی‌ها حفظ شده‌اند؛ اتصال را بررسی و دوباره تلاش کنید.':
-                        'Network verification did not finish. Your entries are still here; please retry.')
-                    : (lang==='fa'?'تأیید عبارت انجام نشد. واژه‌ها را بررسی و دوباره تلاش کنید.':
-                        'Recovery could not be verified. Check your words and retry.'));
+                    ? (lang==='fa'?'بررسی حساب یا مجوز انتشار به‌دلیل خطای اتصال کامل نشد. واژه‌ها حفظ شده‌اند؛ دوباره تلاش کنید.':
+                        'Account or signer verification could not reach the network. Your entries are still here; please retry.')
+                    : (lang==='fa'?'واژه‌ها به‌صورت محلی معتبرند، اما فعال‌سازی حساب کامل نشد. ورودی‌ها حفظ شده‌اند؛ دوباره تلاش کنید.':
+                        'The recovery words passed local validation, but account authorization did not complete. Your entries are preserved.'));
             }finally{
                 pending=false;submit.disabled=false;submit.textContent=s.import;
             }

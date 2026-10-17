@@ -44,8 +44,6 @@ Item {
     property bool legalPrivacyChecked: false
     property bool legalTermsReviewed: false
     property bool legalPrivacyReviewed: false
-    property string legalReaderKind: ""
-    property bool legalReaderReachedEnd: false
     property int currentStep: 0
     property int highestReachedStep: 0
     property real stageReveal: 1.0
@@ -175,27 +173,6 @@ Item {
         if (index === 5)
             return authenticated && highestReachedStep >= 4
         return false
-    }
-
-    function openLegalReader(kind) {
-        legalReaderKind = kind
-        legalReaderReachedEnd = false
-        legalReader.open()
-    }
-
-    function acceptLegalReader() {
-        if (!legalReaderReachedEnd)
-            return
-        if (legalReaderKind === "privacy") {
-            legalPrivacyReviewed = true
-            legalPrivacyChecked = true
-        } else {
-            legalTermsReviewed = true
-            legalTermsChecked = true
-        }
-        legalReader.close()
-        if (legalTermsReviewed && legalPrivacyReviewed && !legalConsentAccepted)
-            acceptLegalConsent(true, true, true)
     }
 
     function switchStep(index) {
@@ -382,9 +359,7 @@ Item {
     }
 
     Keys.onEscapePressed: event => {
-        if (legalReader.opened)
-            legalReader.close()
-        else if (authenticationInProgress)
+        if (authenticationInProgress)
             cancelAuthentication()
         event.accepted = true
     }
@@ -746,248 +721,6 @@ Item {
         }
     }
 
-    Popup {
-        id: legalReader
-        modal: true
-        focus: true
-        width: root.phone ? root.width : Math.min(root.width - Theme.space7 * 2, 620)
-        height: root.phone ? Math.min(root.height - Theme.space4, 640)
-                           : Math.min(root.height - Theme.space6 * 2, 510)
-        x: root.phone ? 0 : Math.round((root.width - width) / 2)
-        y: root.phone ? root.height - height : Math.round((root.height - height) / 2)
-        enter: Transition {
-            ParallelAnimation {
-                NumberAnimation { property: "y"; from: root.phone ? root.height : Math.round((root.height - legalReader.height) / 2);
-                                  to: root.phone ? root.height - legalReader.height : Math.round((root.height - legalReader.height) / 2);
-                                  duration: Theme.reduceMotion ? 0 : Theme.motionStandard; easing.type: Easing.OutCubic }
-                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-            }
-        }
-        exit: Transition {
-            ParallelAnimation {
-                NumberAnimation { property: "y"; to: root.phone ? root.height : Math.round((root.height - legalReader.height) / 2);
-                                  duration: Theme.reduceMotion ? 0 : Theme.motionFast; easing.type: Easing.InCubic }
-                NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-            }
-        }
-        padding: 0
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-
-        onOpened: {
-            legalReaderFlick.contentY = 0
-            Qt.callLater(() => {
-                root.legalReaderReachedEnd =
-                    root.legalConsentAccepted
-                    || legalReaderFlick.contentHeight <= legalReaderFlick.height + 2
-            })
-        }
-
-        background: Superellipse {
-            fillColor: Theme.surface
-            borderWidth: 1
-            borderColor: Theme.borderStrong
-            curveDepth: Theme.curveContainer
-        }
-
-        contentItem: ColumnLayout {
-            spacing: 0
-
-            Rectangle {
-                visible: root.phone
-                Layout.alignment: Qt.AlignHCenter
-                Layout.topMargin: Theme.space2
-                width: 40
-                height: 4
-                color: Theme.borderStrong
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                Layout.preferredHeight: root.phone ? 64 : 70
-                Layout.leftMargin: Theme.space4
-                Layout.rightMargin: Theme.space4
-                spacing: Theme.space3
-                layoutDirection: Theme.uiDirection
-
-                Icon {
-                    text: root.legalReaderKind === "privacy" ? "system/lock" : Theme.iconDocument
-                    color: Theme.inkMuted
-                    preferredSize: Theme.iconSize
-                }
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 0
-
-                    Label {
-                        Layout.fillWidth: true
-                        text: root.legalReaderKind === "privacy"
-                              ? qsTrId("genycaster.setup.privacy_title")
-                              : qsTrId("genycaster.setup.terms_title")
-                        color: Theme.ink
-                        font.pixelSize: Theme.typeLabelSize
-                        font.weight: Theme.weightDemiBold
-                        horizontalAlignment: Theme.textStartAlignment
-                        elide: Text.ElideRight
-                    }
-
-                    Label {
-                        Layout.fillWidth: true
-                        text: root.legalReaderKind === "privacy"
-                              ? "genyleap.com/privacy"
-                              : "genyleap.com/terms-of-use"
-                        color: Theme.inkSubtle
-                        font.family: Theme.codeFontFamily
-                        font.pixelSize: Theme.typeCaptionSize
-                        horizontalAlignment: Theme.textStartAlignment
-                        elide: Text.ElideMiddle
-                    }
-                }
-
-                ActionButton {
-                    compact: true
-                    quiet: true
-                    text: qsTrId("genycaster.shell.cancel")
-                    onClicked: legalReader.close()
-                }
-            }
-
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 1
-                color: Theme.borderMuted
-            }
-
-            Flickable {
-                id: legalReaderFlick
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                contentWidth: width
-                contentHeight: legalReaderColumn.implicitHeight + Theme.space5 * 2
-                flickableDirection: Flickable.VerticalFlick
-                boundsBehavior: Flickable.StopAtBounds
-
-                onContentYChanged: {
-                    if (contentY + height >= contentHeight - 4)
-                        root.legalReaderReachedEnd = true
-                }
-                onContentHeightChanged: {
-                    if (contentHeight <= height + 2)
-                        root.legalReaderReachedEnd = true
-                }
-
-                ScrollBar.vertical: GenyScrollBar {
-                    policy: legalReaderFlick.contentHeight > legalReaderFlick.height
-                            ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
-                }
-
-                Column {
-                    id: legalReaderColumn
-                    width: legalReaderFlick.width - Theme.space5 * 2
-                    x: Theme.space5
-                    y: Theme.space5
-                    spacing: Theme.space4
-
-                    Label {
-                        width: parent.width
-                        text: qsTrId("genycaster.setup.legal_summary_label")
-                        color: Theme.accent
-                        font.pixelSize: Theme.typeCaptionSize
-                        font.weight: Theme.weightDemiBold
-                        horizontalAlignment: Theme.textStartAlignment
-                        wrapMode: Text.WordWrap
-                    }
-
-                    Label {
-                        width: parent.width
-                        text: root.legalReaderKind === "privacy"
-                              ? qsTrId("genycaster.setup.privacy_body")
-                              : qsTrId("genycaster.setup.terms_body")
-                        color: Theme.ink
-                        font.pixelSize: Theme.typeBodySize
-                        font.weight: Theme.weightMedium
-                        lineHeight: 1.5
-                        horizontalAlignment: Theme.textStartAlignment
-                        wrapMode: Text.WordWrap
-                    }
-
-                    ActionButton {
-                        width: Math.min(parent.width, 280)
-                        compact: true
-                        quiet: false
-                        text: root.legalReaderKind === "privacy"
-                              ? qsTrId("genycaster.setup.open_privacy")
-                              : qsTrId("genycaster.setup.open_terms")
-                        onClicked: Qt.openUrlExternally(
-                            root.legalReaderKind === "privacy"
-                            ? "https://genyleap.com/privacy"
-                            : "https://genyleap.com/terms-of-use")
-                    }
-
-                    Label {
-                        width: parent.width
-                        text: qsTrId("genycaster.setup.legal_governing_note")
-                        wrapMode: Text.WordWrap
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        lineHeight: 1.45
-                        horizontalAlignment: Theme.textStartAlignment
-                    }
-                }
-            }
-
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 1
-                color: Theme.borderMuted
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                Layout.preferredHeight: root.phone ? 88 : 76
-                Layout.leftMargin: Theme.space4
-                Layout.rightMargin: Theme.space4
-                spacing: Theme.space3
-                layoutDirection: Theme.uiDirection
-
-                RowLayout {
-                    visible: !root.phone
-                    Layout.fillWidth: true
-                    spacing: Theme.space2
-                    layoutDirection: Theme.uiDirection
-
-                    Icon {
-                        text: root.legalReaderReachedEnd ? Theme.iconCheck : Theme.iconInfo
-                        color: root.legalReaderReachedEnd ? Theme.ink : Theme.inkSubtle
-                        preferredSize: 16
-                    }
-
-                    Label {
-                        Layout.fillWidth: true
-                        text: root.legalReaderReachedEnd
-                              ? qsTrId("genycaster.setup.confirm_document")
-                              : qsTrId("genycaster.setup.scroll_to_continue")
-                        color: root.legalReaderReachedEnd ? Theme.inkMuted : Theme.inkSubtle
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
-                    }
-                }
-
-                SetupPrimaryButton {
-                    Layout.fillWidth: root.phone
-                    Layout.minimumWidth: root.phone ? 0 : 180
-                    Layout.maximumWidth: root.phone ? 10000 : 300
-                    text: qsTrId("genycaster.setup.mark_document_reviewed")
-                    enabled: root.legalReaderReachedEnd
-                    iconGlyph: Theme.iconCheck
-                    showArrow: false
-                    onClicked: root.acceptLegalReader()
-                }
-            }
-        }
-    }
-
     Component {
         id: welcomeStage
 
@@ -1339,8 +1072,10 @@ Item {
     Component {
         id: privacyStage
 
+        // Readable in-place notice and one explicit consent checkbox.
+        // Never require opening two modal readers or reaching a scroll marker.
         ColumnLayout {
-            spacing: Theme.space4
+            spacing: Theme.space3
 
             SetupPageHeader {
                 Layout.fillWidth: true
@@ -1349,58 +1084,118 @@ Item {
                 subtitle: qsTrId("genycaster.setup.privacy_compact_intro")
             }
 
-            Item {
+            ColumnLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.phone ? Theme.space3 : Theme.space5
-            }
+                spacing: Theme.space2
 
-            GridLayout {
-                Layout.fillWidth: true
-                columns: 1
-                layoutDirection: Theme.uiDirection
-                columnSpacing: 0
-                rowSpacing: Theme.space2
-
-                Repeater {
-                    model: [
-                        {
-                            title: qsTrId("genycaster.setup.terms_title"),
-                            body: qsTrId("genycaster.setup.terms_summary"),
-                            icon: Theme.iconDocument,
-                            privacy: false
-                        },
-                        {
-                            title: qsTrId("genycaster.setup.privacy_title"),
-                            body: qsTrId("genycaster.setup.privacy_summary"),
-                            icon: "system/lock",
-                            privacy: true
-                        }
-                    ]
-
-                    delegate: SetupActionCard {
-                        required property var modelData
-                        readonly property bool reviewed: modelData.privacy
-                                                         ? root.legalPrivacyReviewed
-                                                         : root.legalTermsReviewed
-                        Layout.fillWidth: true
-                        title: modelData.title
-                        subtitle: modelData.body
-                        iconGlyph: modelData.icon
-                        selected: reviewed
-                        trailingText: reviewed ? qsTrId("genycaster.setup.document_accepted") : ""
-                        onClicked: root.openLegalReader(modelData.privacy ? "privacy" : "terms")
-                    }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.terms_title")
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeLabelSize
+                    font.weight: Theme.weightBold
+                    wrapMode: Text.WordWrap
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.terms_body")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeLabelSize
+                    lineHeight: 1.5
+                    wrapMode: Text.WordWrap
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    text: qsTrId("genycaster.setup.open_terms")
+                    onClicked: Qt.openUrlExternally("https://genyleap.com/terms-of-use")
                 }
             }
 
-            DirectionAwareLabel {
+            Rectangle {
                 Layout.fillWidth: true
-                text: root.legalConsentAccepted
-                      ? qsTrId("genycaster.setup.consent_recorded")
-                      : qsTrId("genycaster.setup.legal_click_to_review")
-                color: Theme.inkMuted
-                font.pixelSize: Theme.typeCaptionSize
-                wrapMode: Text.WordWrap
+                Layout.preferredHeight: 1
+                color: Theme.borderMuted
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.privacy_title")
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeLabelSize
+                    font.weight: Theme.weightBold
+                    wrapMode: Text.WordWrap
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.privacy_body")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeLabelSize
+                    lineHeight: 1.5
+                    wrapMode: Text.WordWrap
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    text: qsTrId("genycaster.setup.open_privacy")
+                    onClicked: Qt.openUrlExternally("https://genyleap.com/privacy")
+                }
+            }
+
+            CheckBox {
+                id: legalCheck
+                Layout.fillWidth: true
+                Layout.topMargin: Theme.space2
+                text: qsTrId("genycaster.setup.single_legal_consent")
+                checked: root.legalTermsChecked && root.legalPrivacyChecked
+                enabled: !root.legalConsentAccepted
+                spacing: Theme.space3
+                LayoutMirroring.enabled: Theme.rtl
+                LayoutMirroring.childrenInherit: true
+                implicitHeight: Math.max(Theme.touchTarget, consentText.implicitHeight + Theme.space3 * 2)
+                onToggled: {
+                    root.legalTermsChecked = checked
+                    root.legalPrivacyChecked = checked
+                    root.legalTermsReviewed = checked
+                    root.legalPrivacyReviewed = checked
+                }
+                indicator: Superellipse {
+                    implicitWidth: 23
+                    implicitHeight: 23
+                    x: legalCheck.leftPadding
+                    y: Math.round((legalCheck.height - height) / 2)
+                    fillColor: legalCheck.checked ? Theme.primaryFill : Theme.surface
+                    borderColor: legalCheck.checked ? Theme.primaryFill : Theme.borderStrong
+                    borderWidth: Theme.strokeStandard
+                    curveDepth: 6
+                    Icon {
+                        anchors.centerIn: parent
+                        visible: legalCheck.checked
+                        text: Theme.iconCheck
+                        color: Theme.accentInk
+                        preferredSize: 15
+                    }
+                }
+                background: Superellipse {
+                    fillColor: "transparent"
+                    borderWidth: Theme.keyboardFocusVisible(legalCheck) ? 2 : 0
+                    borderColor: Theme.focus
+                    curveDepth: Theme.curveControl
+                }
+                contentItem: DirectionAwareLabel {
+                    id: consentText
+                    text: legalCheck.text
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeLabelSize
+                    font.weight: Theme.weightMedium
+                    leftPadding: legalCheck.indicator.width + legalCheck.spacing
+                    wrapMode: Text.WordWrap
+                    verticalAlignment: Text.AlignVCenter
+                }
             }
         }
     }

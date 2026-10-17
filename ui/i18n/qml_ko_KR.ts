@@ -3310,10 +3310,6 @@
             <source>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</source>
             <translation>Genyleap이 게시한 개인정보 안내는 연락 및 프로젝트 양식을 통해 사용자가 직접 제출하는 정보와 기본적인 악용 방지 데이터를 다룹니다. Genycaster는 또한 설정 중 선택한 Genyleap/OpenProof 계정과 연결된 Farcaster ID를 인증 및 프로토콜 작업에 사용합니다. 외관과 지역 기본 설정은 기능이 명시적으로 달리 안내하지 않는 한 앱에 로컬로 저장됩니다. 계속하기 전에 전체 개인정보 안내를 확인하세요.</translation>
         </message>
-        <message id="genycaster.setup.scroll_to_continue">
-            <source>Scroll to the end to unlock consent.</source>
-            <translation>동의를 활성화하려면 끝까지 스크롤하세요.</translation>
-        </message>
         <message id="genycaster.setup.agree_continue">
             <source>Agree &amp; Continue</source>
             <translation>동의하고 계속</translation>
@@ -3369,14 +3365,6 @@
         <message id="genycaster.setup.privacy_compact_intro">
             <source>Review the Terms of Use and Privacy Policy before continuing.</source>
             <translation>명확한 권한 두 가지입니다. 전체 문서는 한 번의 탭으로 열 수 있습니다.</translation>
-        </message>
-        <message id="genycaster.setup.terms_summary">
-            <source>Rules for using Genyleap services and product resources.</source>
-            <translation>Genyleap 서비스와 제품 리소스 사용 규칙입니다.</translation>
-        </message>
-        <message id="genycaster.setup.privacy_summary">
-            <source>How account data, protocol identity and local preferences are handled.</source>
-            <translation>계정 데이터, 프로토콜 ID, 로컬 환경설정을 처리하는 방식입니다.</translation>
         </message>
         <message id="genycaster.setup.network_body">
             <source>Automatic selects a healthy low-latency node. You can choose one manually.</source>
@@ -3490,10 +3478,6 @@
             <source>Setup steps</source>
             <translation>설정 단계</translation>
         </message>
-        <message id="genycaster.setup.mark_document_reviewed">
-            <source>I reviewed the document</source>
-            <translation>문서를 확인했습니다</translation>
-        </message>
         <message id="genycaster.setup.auth_rejected_recover">
             <source>Genyleap rejected this sign-in. Start a new request or try Farcaster sign-in.</source>
             <translation>Genyleap에서 로그인을 거부했습니다. 새 요청을 시작하거나 Farcaster 로그인을 시도하세요.</translation>
@@ -3537,22 +3521,6 @@
         <message id="genycaster.setup.farcaster_missing_key">
             <source>Not available right now. You can continue with Hypersnap.</source>
             <translation>현재 사용할 수 없습니다. Hypersnap으로 계속할 수 있습니다.</translation>
-        </message>
-        <message id="genycaster.setup.document_accepted">
-            <source>Accepted</source>
-            <translation>수락됨</translation>
-        </message>
-        <message id="genycaster.setup.confirm_document">
-            <source>Scroll to the end, then confirm this document.</source>
-            <translation>끝까지 스크롤한 후 문서를 확인하세요.</translation>
-        </message>
-        <message id="genycaster.setup.legal_click_to_review">
-            <source>Open both notices, review the summaries and confirm each one to continue.</source>
-            <translation>두 안내문을 열어 요약을 읽고 각각 확인한 후 계속하세요.</translation>
-        </message>
-        <message id="genycaster.setup.legal_summary_label">
-            <source>Product notice summary</source>
-            <translation>제품 안내 요약</translation>
         </message>
         <message id="genycaster.setup.account_methods_explainer">
             <source>Use your Farcaster identity or Genyleap account. Each sign-in is verified independently; neither changes your read network.</source>
@@ -3878,10 +3846,6 @@
             <source>Open full Privacy Policy</source>
             <translation>전체 개인정보 처리방침 보기</translation>
         </message>
-        <message id="genycaster.setup.legal_governing_note">
-            <source>These links open Genyleap's currently published policies. Product and repository terms may also apply.</source>
-            <translation>이 링크는 현재 게시된 Genyleap 정책을 엽니다. 제품 및 저장소별 약관도 적용될 수 있습니다.</translation>
-        </message>
         <message id="genycaster.release.beta_1_0">
             <source>Beta 1.0</source>
             <translation>베타 1.0</translation>
@@ -3889,6 +3853,10 @@
         <message id="genycaster.home.search_description">
             <source>Find people, casts and channels</source>
             <translation>사람, 게시물, 채널 검색</translation>
+        </message>
+        <message id="genycaster.setup.single_legal_consent">
+            <source>I have read and agree to the Terms of Use and Privacy Policy.</source>
+            <translation>이용 약관과 개인정보 처리방침을 읽었으며 이에 동의합니다.</translation>
         </message>
     </context>
 </TS>
