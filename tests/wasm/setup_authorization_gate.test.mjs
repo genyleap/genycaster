@@ -65,6 +65,9 @@ function harness(registered = false) {
     const bridge=fakeWindow.__genycasterBrowserSigning;
     return {bridge,calls,events:bridge.events,storage,
         setDelayPrompt(){delayPrompt=true;},
+        failSignerInit(){fakeWindow.__testImportSigner=async()=>{
+            throw new Error('Signing service temporarily unavailable');
+        };},
         get releasePrompt(){return releasePrompt;}};
 }
 test('ordinary session restore never collects a recovery phrase',async()=>{
@@ -164,4 +167,18 @@ test('explicit logout disables automatic sign-in and erases remembered device',a
         JSON.stringify({requestId:'ffffffff-ffff-4fff-8fff-ffffffffffff'}));
     await tick();
     assert.equal(h.events.some(event=>event.kind==='setup-account'&&event.localDevice),false);
+});
+
+test('mobile recovery opens local numbered-words dialog before signer initialization',async()=>{
+    const h=harness(false);
+    h.setDelayPrompt();
+    h.failSignerInit();
+    h.bridge.start('recover-account','','https://snapchain.example.test',
+        JSON.stringify({requestId:'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeef'}));
+    await tick();
+    assert.ok(h.calls.includes('phrase-dialog'));
+    assert.equal(h.events.some(e=>e.kind==='setup-account'&&e.phase==='failed'),false,
+        'signer transport is not contacted before phrase authorization');
+    h.bridge.start('signed-out','','https://snapchain.example.test');
+    await tick();
 });

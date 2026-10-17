@@ -3866,5 +3866,9 @@
             <source>Select All</source>
             <translation>Seleccionar todo</translation>
         </message>
+        <message id="genycaster.setup.recovery_failed_retry">
+            <source>Farcaster recovery could not be verified. Check your connection and try again.</source>
+            <translation>No se pudo verificar la recuperación de Farcaster. Comprueba tu conexión e inténtalo de nuevo.</translation>
+        </message>
     </context>
 </TS>

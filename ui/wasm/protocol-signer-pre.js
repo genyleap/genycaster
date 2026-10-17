@@ -145,8 +145,10 @@
         inFlight = true;
         (async () => {
             try {
-                const current = await createClient(base);
                 if (epoch !== thisEpoch || owner !== fid) return;
+                // Present the explicit local recovery UI before constructing
+                // the network signer. Failure to initialize Snapchain must not
+                // reject a click before any recovery words were entered.
                 if (action === "recover-account") {
                     // This event is accepted by Qt only for the current one-shot
                     // recovery request. No phrase or custody address is sent to Qt.
@@ -160,8 +162,15 @@
                     recoveryController=controller;
                     if(epoch!==thisEpoch || owner!==fid) return;
                     const recoveredFid=await promptForFarcasterRecovery(
-                        window,controller.signal,phrase=>current.recoverAccountFromPhrase(
-                            phrase,()=>epoch===thisEpoch && owner===fid && !controller.signal.aborted));
+                        window,controller.signal,async phrase=>{
+                            if(epoch!==thisEpoch || owner!==fid || controller.signal.aborted)
+                                throw new Error("Recovery was cancelled");
+                            const current=await createClient(base);
+                            if(epoch!==thisEpoch || owner!==fid || controller.signal.aborted)
+                                throw new Error("Recovery was cancelled");
+                            return current.recoverAccountFromPhrase(
+                                phrase,()=>epoch===thisEpoch && owner===fid && !controller.signal.aborted);
+                        });
                     if(epoch!==thisEpoch || owner!==fid) return;
                     rememberedWrite=rememberedWrite.catch(()=>{}).then(async()=>{
                         const device=await deviceSession();
@@ -173,7 +182,10 @@
                         console.warn('[Genycaster] Device session could not be saved',error));
                     if(epoch!==thisEpoch || owner!==fid) return;
                     report({kind:'setup-account',phase:'ready',fid:recoveredFid,requestId});
-                } else if (action === "restore" || action === "restore-for-setup") {
+                } else {
+                    const current=await createClient(base);
+                    if(epoch!==thisEpoch || owner!==fid)return;
+                    if (action === "restore" || action === "restore-for-setup") {
                     if(action==="restore" && payloadString){
                         const options=JSON.parse(payloadString);
                         if(options.rememberLocal===true){
@@ -221,6 +233,7 @@
                     if (epoch === thisEpoch && owner === fid)
                         report({kind: "write", phase: "confirmed", fid, hash,
                             operation: action});
+                    }
                 }
             } catch(error) {
                 if (epoch !== thisEpoch || owner !== fid) return;

@@ -22,7 +22,8 @@ test('WASM packages branded shell instead of Qt logo; mobile uses visible viewpo
     assert.match(html,/<script src="farcaster_client\.js">/);
     assert.doesNotMatch(html,/qtlogo/);
     assert.match(html,/class="boot-glyph"/);
-    assert.match(html,/<svg viewBox="0 0 56 56"/);
+    assert.match(html,/url\("\.\/genycaster-brand\.svg"\)/);
+    assert.match(html,/Powered by <strong>Genyleap<\/strong>/);
     assert.match(html,/class="boot-content"/);
     assert.doesNotMatch(html,/<div class="boot-card"/);
     assert.match(html,/src="genycaster-assets.js"/);
@@ -77,19 +78,26 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     const factory=()=>({});
     const memory=new Map();
     const sample=new Uint8Array([0,1,2,3,4,5,6,7]);
+    const hashedWasm='farcaster_client.0123456789abcdef0123.wasm';
+    let requestedWasm='', requestedOptions={};
+    const nativeResponse=new Response(sample,{
+        headers:{'content-type':'application/wasm','content-length':'8'}
+    });
     const scope={
         document:{getElementById:id=>elements.get(id)},
         localStorage:{getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)},
         window:{
             farcaster_client_entry:factory,
-            fetch:async()=>new Response(sample,{
-                headers:{'content-type':'application/wasm','content-length':'8'}
-            }),
+            __genycasterAssets:{wasm:hashedWasm},
+            fetch:async(input,options)=>{
+                requestedWasm=String(input);requestedOptions=options;
+                return nativeResponse;
+            },
             addEventListener(){},
             visualViewport:{height:640,addEventListener(){}},
             innerHeight:680
         },
-        location:{href:'https://example.test/farcaster_client.html'},
+        location:{href:'https://example.test/farcaster_client.html',origin:'https://example.test'},
         qtLoad:async config=>{
             passedFactory=config.qt.entryFunction;
             assert.equal(config.qt.containerElements[0],elements.get('qt-screen'));
@@ -104,6 +112,10 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     assert.equal(passedFactory,factory);
     assert.equal(elements.get('genycaster-boot').hidden,false);
     const wasm=await scope.window.fetch('https://example.test/farcaster_client.wasm');
+    assert.equal(wasm,nativeResponse,'Native WASM response must remain streamable');
+    assert.equal(requestedWasm,'https://example.test/'+hashedWasm);
+    assert.equal(requestedOptions.cache,'force-cache');
+    assert.equal(requestedOptions.credentials,'omit');
     const received=new Uint8Array(await wasm.arrayBuffer());
     assert.deepEqual(received,sample);
     assert.equal(elements.get('boot-stage').textContent,'Initializing runtime');

@@ -14,7 +14,7 @@
 #genycaster-boot.finished{opacity:0;pointer-events:none}
 .boot-content{width:min(470px,100%);padding:36px 26px;text-align:center;background:transparent;border:0;box-shadow:none}
 .boot-mark{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:24px}
-.boot-glyph{width:64px;height:64px;display:grid;place-items:center;background:transparent}
+.boot-glyph{display:block;width:64px;height:64px;background:#315fff;-webkit-mask:url("./genycaster-brand.svg") center/contain no-repeat;mask:url("./genycaster-brand.svg") center/contain no-repeat}
 .boot-brand{font-size:25px;font-weight:750;letter-spacing:-.045em}.boot-note{font-size:13px;color:#647087;margin-top:4px}
 h1{font-size:22px;line-height:1.14;letter-spacing:-.035em;margin:0 0 12px}
 .boot-status{font-size:14px;line-height:1.5;color:#677186;min-height:48px;margin:0 0 24px}
@@ -26,7 +26,7 @@ h1{font-size:22px;line-height:1.14;letter-spacing:-.035em;margin:0 0 12px}
 #boot-retry{display:none;margin:22px auto 0;padding:11px 17px;border:0;border-radius:10px;color:white;background:#305cf4;font-weight:650;cursor:pointer}
 #boot-retry.visible{display:block}
 @keyframes indeterminate{0%{transform:translateX(-100%)}50%{transform:translateX(190%)}100%{transform:translateX(430%)}}
-.boot-glyph svg{width:56px;height:56px}
+.boot-credit{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);left:0;right:0;text-align:center;color:#65728c;font-size:12px;letter-spacing:.015em}
 @media(max-width:540px){#genycaster-boot{padding:15px}.boot-content{padding:30px 22px}h1{font-size:24px}}
 @media(prefers-reduced-motion:reduce){.boot-fill,.boot-glyph{animation:none}.boot-fill{width:45%}*{transition:none!important}}
 </style>
@@ -35,19 +35,14 @@ h1{font-size:22px;line-height:1.14;letter-spacing:-.035em;margin:0 0 12px}
 <div id="qt-screen" aria-label="Genycaster application"></div>
 <div id="genycaster-boot" role="status" aria-live="polite">
   <div class="boot-content">
-    <div class="boot-mark"><span class="boot-glyph" aria-hidden="true">
-  <svg viewBox="0 0 56 56" width="56" height="56" focusable="false" xmlns="http://www.w3.org/2000/svg">
-    <path d="M15 9 C49 24 7 34 41 47" stroke="#315fff" stroke-width="3.7" stroke-linecap="round" fill="none"/>
-    <path d="M41 9 C7 24 49 34 15 47" stroke="#91aaff" stroke-width="3.7" stroke-linecap="round" fill="none"/>
-    <path d="M20 15 H36 M17 27 H39 M20 39 H36" stroke="#7599ff" stroke-width="2.5" stroke-linecap="round"/>
-  </svg>
-</span><div><div class="boot-brand">Genycaster</div><div class="boot-note">Secure social client</div></div></div>
+    <div class="boot-mark"><span class="boot-glyph" aria-hidden="true"></span><div><div class="boot-brand">Genycaster</div><div class="boot-note">Secure social client</div></div></div>
     <h1 id="boot-heading">Preparing Genycaster</h1>
     <p class="boot-status" id="boot-status">Checking local application resources…</p>
     <div class="boot-track"><div class="boot-fill" id="boot-fill"></div></div>
     <div class="boot-foot"><span id="boot-stage">Starting</span><span id="boot-percent" aria-label="Measured download progress"></span></div>
     <button id="boot-retry" type="button">Try again</button>
   </div>
+  <div class="boot-credit">Powered by <strong>Genyleap</strong> · Qt &amp; WebAssembly</div>
 </div>
 <script src="qtloader.js"></script>
 <script src="farcaster_client.js"></script>

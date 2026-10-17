@@ -40,6 +40,15 @@ test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
         assert.ok(existsSync(join(dir,b.wasm)),'old clients need old hashed URL during update');
         const config=readFileSync(join(dir,'genycaster-assets.js'),'utf8');
         assert.ok(config.includes(c.wasm));
+        const packSource=spawnSync('python3',[pack.pathname,'--source',
+            new URL('../../ui/wasm/',import.meta.url).pathname,'--dir',dir],
+            {encoding:'utf8'});
+        assert.equal(packSource.status,0,packSource.stderr);
+        const originalBrand=read(new URL('../../ui/assets/icons/genyleap/icons/brands/geny.svg',import.meta.url),'utf8');
+        assert.equal(readFileSync(join(dir,'genycaster-brand.svg'),'utf8'),originalBrand,
+            'boot asset must be the actual application SVG');
+        assert.ok(JSON.parse(readFileSync(join(dir,'genycaster-assets.json'),'utf8'))
+            .files.includes('genycaster-brand.svg'));
     }finally{rmSync(dir,{recursive:true,force:true});}
 });
 
@@ -127,13 +136,38 @@ test('context menu is attached globally to all QML text areas and uses themed po
     const areas=read(new URL('../../ui/components/DirectionAwareTextArea.qml',import.meta.url),'utf8');
     const code=read(new URL('../../ui/components/CodeBlockEditor.qml',import.meta.url),'utf8');
     assert.match(qml,/popupType: Popup\.Item/);
-    assert.match(qml,/delegate: MenuItem/);
+    assert.match(qml,/EditorMenuItem/);
+    assert.doesNotMatch(qml,/delegate: MenuItem/);
     assert.match(qml,/background: Superellipse/);
     assert.match(areas,/ContextMenu\.menu: EditorContextMenu/);
     assert.match(code,/ContextMenu\.menu: EditorContextMenu/);
 });
 
-test('bootstrap uses static minimal SVG rather than animated DNA art or a card',()=>{
-    assert.match(html,/<svg viewBox="0 0 56 56"/);
+test('recovery failures are not mislabeled Genyleap login errors',()=>{
+    const cpp=read(new URL('../../ui/mobile/main.cpp',import.meta.url),'utf8');
+    assert.match(cpp,/route == QStringLiteral\("recovery"\)/);
+    assert.match(cpp,/genycaster\.setup\.recovery_failed_retry/);
+    assert.match(cpp,/if \(bridge\.authenticationRoute\(\) == QStringLiteral\("recovery"\)\) return;/);
+    const js=read(new URL('../../ui/wasm/protocol-signer-pre.js',import.meta.url),'utf8');
+    const route=js.split('if (action === "recover-account") {')[1]
+        .split('} else {')[0];
+    assert.ok(route.indexOf("promptForFarcasterRecovery(")<route.indexOf("createClient(base)"),
+        'recovery form opens before network signer setup');
+});
+
+test('menu keeps hover label contrast independent of Qt MenuItem opacity',()=>{
+    const qml=read(new URL('../../ui/components/EditorContextMenu.qml',import.meta.url),'utf8');
+    const item=read(new URL('../../ui/components/EditorMenuItem.qml',import.meta.url),'utf8');
+    assert.match(item,/opacity: 1\.0/);
+    assert.match(item,/text: root\.text/);
+    assert.match(item,/root\.highlighted \? Theme\.ink/);
+    assert.match(item,/fillColor: root\.highlighted/);
+    assert.match(qml,/EditorMenuItem/);
+    assert.doesNotMatch(qml,/delegate: MenuItem/);
+});
+
+test('bootstrap uses actual original Geny SVG, not a home-made DNA',()=>{
+    assert.match(html,/genycaster-brand\.svg/);
+    assert.match(html,/Powered by <strong>Genyleap<\/strong>/);
     assert.doesNotMatch(html,/helix-float|boot-card|qtlogo/);
 });

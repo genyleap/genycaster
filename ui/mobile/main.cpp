@@ -1198,6 +1198,13 @@ void applySocialState(PresentationBridge& bridge, application::read::model::Soci
     if (!state.error) {
         return {};
     }
+    // Recovery is a local Farcaster custody ceremony, not Genyleap/OpenProof
+    // OAuth. Never label recovery failures as provider sign-in rejection.
+    // Invalid individual recovery words and checksum errors are handled in
+    // the editable browser dialog before this session callback is reached.
+    if (route == QStringLiteral("recovery")) {
+        return qtTrId("genycaster.setup.recovery_failed_retry");
+    }
     using foundation::error::ErrorCode;
     QString summary{};
     switch (state.error->code) {
@@ -2257,7 +2264,10 @@ void connectRuntime(
     // native authentication adapter and from protocol signer authorization.
     auto* const browserAuth = new BrowserOpenProofAuth(&bridge);
     const std::function<void(application::session::SessionState)> applyBrowserSession = sessionObserver;
-    const auto browserObserver = [applyBrowserSession](BrowserOpenProofState event) {
+    const auto browserObserver = [applyBrowserSession, &bridge](BrowserOpenProofState event) {
+        // A cancelled, asynchronous Genyleap/OpenProof result must never
+        // overwrite the independent Farcaster recovery ceremony on mobile.
+        if (bridge.authenticationRoute() == QStringLiteral("recovery")) return;
         application::session::SessionState state{};
         using Phase = BrowserOpenProofState::Phase;
         switch (event.phase) {
@@ -2360,6 +2370,13 @@ void connectRuntime(
 #else
     QObject::connect(&bridge, &PresentationBridge::signInRequested, &bridge,
         [&bridge, runtime, sessionObserver, siwfDomain, siwfUri](const QString& route) {
+            if (route == QStringLiteral("recovery")) {
+                // Native has no browser DOM recovery importer. Never mistake
+                // this action for a Genyleap/OpenProof sign-in request.
+                bridge.applyAuthenticationError(
+                    qtTrId("genycaster.setup.recovery_failed_retry"));
+                return;
+            }
             const auto signInRoute = route == QStringLiteral("farcaster")
                 ? capability::auth::SignInRoute::Farcaster
                 : capability::auth::SignInRoute::OpenProof;

@@ -19,7 +19,7 @@ directory = args.dir.resolve()
 if args.source:
     source=args.source.resolve()
     for rel in (
-        "genycaster-shell.html", "genycaster-loader.js", "genycaster-sw.js",
+        "genycaster-brand.svg", "genycaster-shell.html", "genycaster-loader.js", "genycaster-sw.js",
         "genycaster.webmanifest", "genycaster-icon.svg", "secure_signer_vault.mjs",
         "farcaster_protocol.mjs", "browser_protocol_signer.mjs",
         "browser_device_session.mjs", "farcaster_recovery.mjs",
@@ -27,7 +27,8 @@ if args.source:
         "vendor/noble-secp256k1.mjs", "vendor/bip39-english.mjs",
         "vendor/noble-secp256k1.LICENSE", "vendor/scure-bip39.LICENSE",
     ):
-        origin=source/rel
+        origin=(source.parent/"assets/icons/genyleap/icons/brands/geny.svg"
+                if rel=="genycaster-brand.svg" else source/rel)
         dest=directory/("farcaster_client.html" if rel=="genycaster-shell.html" else rel)
         if not origin.is_file():
             parser.error(f"Missing public asset: {origin}")
@@ -56,7 +57,7 @@ if not target.exists() or target.stat().st_size != wasm.stat().st_size:
 # Never auto-delete an active content-addressed release during packaging.
 public = ["farcaster_client.html", "qtloader.js", "farcaster_client.js",
           "genycaster-loader.js", "genycaster-sw.js",
-          "genycaster.webmanifest", "genycaster-icon.svg",
+          "genycaster.webmanifest", "genycaster-icon.svg", "genycaster-brand.svg",
           "recovery-phrase-dialog.mjs", "farcaster_recovery.mjs",
           "browser_protocol_signer.mjs", "browser_device_session.mjs",
           "farcaster_protocol.mjs", "secure_signer_vault.mjs",

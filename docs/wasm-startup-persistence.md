@@ -35,13 +35,14 @@ rather than assuming every failure is a network outage.
 - \`genycaster-loader.js\` distinguishes the **first completed launch** from
   later launches using a non-secret localStorage marker. This is UX state, not
   proof of an installed/offline app, and it is never an authorization token.
-- It shows a measured download percentage **only when the decoded response
-  size is reliably known** via an unencoded Content-Length. Missing sizes and
-  compressed transfer bodies use indeterminate loading. WebAssembly compilation,
-  IDBFS restore, and Qt initialization have stage labels, not invented
-  completion percentages. Actual stream completion changes the stage to
-  Initializing runtime; Qt's onLoaded marks Ready. The DNA-themed background
-  is open rather than a card. Startup failures show an actionable retry button.
+- The loader preserves the native WASM Response without reconstructing a
+  JavaScript ReadableStream. That permits native WebAssembly streaming and
+  the browser's compiled-module cache to operate normally on refresh.
+  Only actual resource-timing transfer bytes and Service Worker cache hits
+  are used for cache diagnostics; no invented download percentages appear.
+  Qt's onLoaded marks Ready. The boot icon uses the same original Geny SVG
+  as the application's icon system, with a Powered by Genyleap footer.
+  Startup failures show an actionable retry button.
 - A \`visualViewport\`-aware host resizes the Qt screen when mobile browser
   chrome or the on-screen keyboard changes the actual visible viewport.
 

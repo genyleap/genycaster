@@ -5,6 +5,12 @@
 A Qt 6.12 WebAssembly page invokes the generated JS factory on **every document navigation**. WASM initialization/compilation and restoring Qt UI can therefore happen on every refresh, even when the actual `.wasm` bytes come from memory, disk cache, or the Service Worker. The boot screen showing "Loading" is **not** evidence of a new network download.
 
 Open DevTools > Network with **Disable cache unchecked**; filter `wasm`.
+The boot loader also reports `[Genycaster] WASM resource` in DevTools Console,
+including the sanitized filename, cache source and Resource Timing byte counts.
+On emrun localhost, the content-hashed binary uses
+`fetch(..., {cache: "force-cache", credentials: "omit"})` even if a Service
+Worker is unavailable. The native Response is returned unmodified so the
+browser can reuse its WebAssembly compilation cache.
 Inspect **Transferred**, **Size**, **Status**, and the **Response Headers**.
 A 304, `(disk cache)`, `(memory cache)`, or `x-genycaster-cache: hit`
 means a full WASM body was not transferred. To measure cold start once, clear site data and use a new profile. Compare first visit, normal refresh, and deployment update separately.
@@ -21,6 +27,10 @@ It creates:
 - `genycaster-assets.json`, listing only public assets and their content
   checksums; its release version changes when JS/HTML/WASM contents change.
 - `genycaster-sw.js`, `genycaster.webmanifest`, and a small SVG icon.
+- `genycaster-brand.svg` is an unchanged copy of the actual UI icon
+  `ui/assets/icons/genyleap/icons/brands/geny.svg`. The startup screen
+  reuses that asset (and displays Powered by Genyleap) rather than inventing
+  a separate DNA mark.
 
 The build output also contains `genycaster-assets.js`, which must be deployed
 with the HTML, and `genycaster-sw.js` plus `genycaster.webmanifest` and

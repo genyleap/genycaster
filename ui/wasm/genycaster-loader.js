@@ -14,14 +14,9 @@ function preparing() {
     fill.style.width="";
     percent.textContent="";
 }
-function measurable(loaded,total) {
-    if(!(Number.isFinite(total)&&total>0))return;
-    const value=Math.min(100,Math.round(100*loaded/total));
-    fill.classList.add("measured");
-    fill.style.width=value+"%";
-    percent.textContent=value+"%";
-    stage.textContent="Downloading · "+value+"%";
-}
+// The browser owns the binary stream so its compiled-WASM cache can work.
+// We intentionally do not invent download percentages while streaming
+// progress cannot be observed without wrapping the response.
 const key="genycaster.boot.loaded.v1";
 let seen=false;
 try{seen=localStorage.getItem(key)==="1";}catch{}
@@ -30,48 +25,62 @@ announce(seen?"Opening Genycaster":"Setting up Genycaster",
          "Preparing the application on this device for the first time…",
     seen?"Checking resources":"First launch");
 const originalFetch=window.fetch.bind(window);
-// No pre-download, artificial countdown, or forced cache bypass.
-// Observe only the real .wasm response being fetched by Emscripten.
+const hashedWasm=/^farcaster_client\.[0-9a-f]{20}\.wasm$/;
+const requestedAsset=window.__genycasterAssets?.wasm;
+const verifiedAsset=typeof requestedAsset==="string" && hashedWasm.test(requestedAsset)
+    ? new URL(requestedAsset,location.href) : null;
+function wasmTiming(url) {
+    try{
+        const entries=performance.getEntriesByName(url,"resource");
+        return entries.length ? entries[entries.length-1] : null;
+    }catch{return null;}
+}
+// Don't wrap a large WASM response in a ReadableStream: replacing the native
+// Response can disable the browser's optimized instantiateStreaming/module
+// compilation cache and duplicates the work on every refresh.
 window.fetch=async function(input,options) {
-    const response=await originalFetch(input,options);
-    let url;
-    try{url=new URL(typeof input==="string"?input:input.url,location.href);}catch{return response;}
-    if(!url.pathname.endsWith(".wasm")||!response.ok||!response.body)return response;
-    const rawLength=Number(response.headers.get("content-length"));
-    const encoded=response.headers.get("content-encoding");
-    const total=encoded?0:rawLength;
-    const cached=response.headers.get("x-genycaster-cache")==="hit";
-    announce(cached?"Loading cached application":seen?"Loading application resources":"Downloading application resources",
-        cached?"Restoring unchanged engine from this browser's local cache…":
-            "Receiving the Qt WebAssembly engine…",cached?"Cached engine":"Downloading");
-    const hasMeasuredTotal=Number.isFinite(total)&&total>0;
-    if(!hasMeasuredTotal || cached)preparing();
-    const reader=response.body.getReader();
-    let loaded=0;
-    const stream=new ReadableStream({
-        async pull(controller) {
-            try {
-                const part=await reader.read();
-                if(part.done) {
-                    controller.close();
-                    announce("Starting Genycaster",
-                        "Application files received. Compiling WebAssembly and preparing Qt…",
-                        "Initializing runtime");
-                    preparing();
-                    return;
-                }
-                loaded+=part.value.byteLength;
-                if(hasMeasuredTotal && !cached)measurable(loaded,total);
-                controller.enqueue(part.value);
-            }catch(error){controller.error(error);}
-        },
-        cancel(reason){return reader.cancel(reason);}
+    let originalUrl;
+    try { originalUrl=new URL(typeof input==="string" ? input : input.url,location.href); }
+    catch { return originalFetch(input,options); }
+    if(originalUrl.origin!==location.origin ||
+       !/^farcaster_client(?:\.[0-9a-f]{20})?\.wasm$/.test(
+           originalUrl.pathname.split("/").pop()))
+        return originalFetch(input,options);
+    const url=verifiedAsset && originalUrl.pathname.endsWith("/farcaster_client.wasm")
+        ? verifiedAsset : originalUrl;
+    const changed=url.href!==originalUrl.href;
+    const nativeRequest=changed
+        ? typeof input==="string" ? url.href : new Request(url.href,input)
+        : input;
+    const nativeOptions={
+        ...options,
+        // An immutable content-hashed URL may safely reuse an HTTP entry
+        // even under emrun/localhost, where revalidation headers are minimal.
+        ...(hashedWasm.test(url.pathname.split("/").pop())
+            ? {cache:"force-cache",credentials:"omit"} : {})
+    };
+    announce(seen?"Opening cached or updated engine":"Preparing application engine",
+        "Reading the WebAssembly engine; checking browser cache…","Loading engine");
+    const response=await originalFetch(nativeRequest,nativeOptions);
+    if(!response.ok)return response;
+    const cachedByWorker=response.headers.get("x-genycaster-cache")==="hit";
+    const timing=wasmTiming(response.url||url.href);
+    const cachedByHttp=!!timing && timing.transferSize===0
+        && timing.decodedBodySize>0;
+    const localCache=cachedByWorker||cachedByHttp;
+    announce("Starting Genycaster",
+        localCache?"Engine restored from local browser cache. Preparing Qt…"
+                  :"WebAssembly resource available. Preparing Qt…",
+        localCache?"Cached engine":"Initializing runtime");
+    preparing();
+    // Useful for deployed debugging; never logs account/secret information.
+    console.info("[Genycaster] WASM resource",{
+        file:url.pathname.split("/").pop(),
+        cache:cachedByWorker?"service-worker":cachedByHttp?"browser":"not-confirmed",
+        transferBytes:timing?.transferSize ?? null,
+        decodedBytes:timing?.decodedBodySize ?? null
     });
-    const headers=new Headers(response.headers);
-    headers.delete("content-length");
-    // Fetch already yields decoded bytes, so don't claim they are encoded again.
-    headers.delete("content-encoding");
-    return new Response(stream,{status:response.status,statusText:response.statusText,headers});
+    return response;
 };
 const screen=$("qt-screen");
 function fit() {
