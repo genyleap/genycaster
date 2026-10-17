@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import { spawnSync } from 'node:child_process';
 
 // Extract and execute the actual browser callback embedded in the WASM
 // composition root. A copied approximation would not catch broken selectors.
@@ -13,6 +14,35 @@ const begin = start + '    EM_ASM({'.length;
 const end = main.indexOf('\n    });\n}\n}\n#endif', begin);
 assert.ok(end > begin, 'browser bridge has a closing boundary');
 const code = main.slice(begin, end);
+
+// Emscripten's EM_ASM macro treats commas outside parentheses as new
+// C++ macro arguments. A JS engine happily executes an object literal that
+// breaks em++ preprocessing; compile a host-side macro-arity probe as well.
+test('EM_ASM JavaScript is exactly one C preprocessor argument', () => {
+    const compiler = process.env.CXX || 'c++';
+    const sourceFor = (javascript) => [
+        '#define EM_ASM(code, ...) static_assert(sizeof(#__VA_ARGS__) == 1, "stray EM_ASM argument");',
+        'void verify(){',
+        '    EM_ASM({' + javascript + '\n    });',
+        '}',
+        '',
+    ].join('\n');
+    const compile = javascript => spawnSync(compiler,
+        ['-std=c++17', '-x', 'c++', '-fsyntax-only', '-'],
+        { input: sourceFor(javascript), encoding: 'utf8' });
+    const actual = compile(code);
+    assert.ifError(actual.error);
+    assert.equal(actual.status, 0,
+        'wheel bridge must survive C++ preprocessing:\n' + actual.stderr);
+
+    // Prove the guard detects the exact regression seen on Qt 6.12 WASM.
+    const badJs = code.replace('Object.create(null)',
+        '{ received: 0, onCanvas: 0, forwarded: 0 }');
+    assert.notEqual(badJs, code, 'negative fixture must inject a bare object literal');
+    const bad = compile(badJs);
+    assert.notEqual(bad.status, 0,
+        'a bare object literal must be rejected before being passed to em++');
+});
 
 class HTMLCanvasElement {
     getBoundingClientRect() {

@@ -128,6 +128,12 @@ under the cursor, including feed Flickables and ComboBox popup lists. It does
 not intercept document content outside Qt's canvas or Ctrl+wheel browser zoom.
 Native builds are unaffected.
 
+The wheel listener lives inside an Emscripten `EM_ASM` macro. Any JavaScript
+comma outside parentheses is interpreted as a C macro argument separator:
+initialize object properties individually instead of introducing a bare object
+literal with comma-separated members. The wheel-bridge Node test includes a
+host C++ preprocessor regression probe that rejects this exact breakage.
+
 For browser diagnosis open DevTools and inspect
 `window.__genycasterWheelDiagnostics` after scrolling over the application;
 `received`, `onCanvas`, and `forwarded` identify which handoff failed.

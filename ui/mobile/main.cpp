@@ -225,7 +225,13 @@ void installBrowserWheelBridge(QQuickWindow* window)
         // No HTML template is required to define a fixed "qtcanvas" ID.
         if (window.__genycasterWheelBridgeInstalled) return;
         window.__genycasterWheelBridgeInstalled = true;
-        const diagnostics = { received: 0, onCanvas: 0, forwarded: 0 };
+        // EM_ASM is a C preprocessor macro: commas in a bare JS object
+        // literal become macro argument separators. Initialize counters
+        // individually, with no top-level commas in its JavaScript body.
+        const diagnostics = Object.create(null);
+        diagnostics.received = 0;
+        diagnostics.onCanvas = 0;
+        diagnostics.forwarded = 0;
         window.__genycasterWheelDiagnostics = diagnostics;
         window.addEventListener('wheel', function(event) {
             ++diagnostics.received;
