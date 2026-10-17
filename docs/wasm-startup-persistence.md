@@ -19,6 +19,12 @@
 
 ## Loading experience
 
+Qt 6.12 requires the application-specific Emscripten factory to be supplied
+explicitly to `qtLoad`: `qt.entryFunction: window.farcaster_client_entry`.
+Simply importing `farcaster_client.js` does not select the entry function.
+The startup screen surfaces the underlying error if the factory is absent,
+rather than assuming every failure is a network outage.
+
 - \`ui/wasm/genycaster-shell.html\` is installed as \`farcaster_client.html\`
   after the WASM binary links; it uses the supported \`qtLoad()\` API and
   includes \`farcaster_client.js\` and \`qtloader.js\`.

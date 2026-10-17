@@ -62,12 +62,15 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     ].map(name=>[name,fakeElement()]));
     const collected=[];
     let loadedCallback;
+    let passedFactory;
+    const factory=()=>({});
     const memory=new Map();
     const sample=new Uint8Array([0,1,2,3,4,5,6,7]);
     const scope={
         document:{getElementById:id=>elements.get(id)},
         localStorage:{getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)},
         window:{
+            farcaster_client_entry:factory,
             fetch:async()=>new Response(sample,{
                 headers:{'content-type':'application/wasm','content-length':'8'}
             }),
@@ -76,12 +79,18 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
             innerHeight:680
         },
         location:{href:'https://example.test/farcaster_client.html'},
-        qtLoad:async config=>{loadedCallback=config.qt.onLoaded;},
+        qtLoad:async config=>{
+            passedFactory=config.qt.entryFunction;
+            assert.equal(config.qt.containerElements[0],elements.get('qt-screen'));
+            assert.equal(typeof config.qt.entryFunction,'function');
+            loadedCallback=config.qt.onLoaded;
+        },
         console,URL,Response,Headers,ReadableStream,
     };
     scope.window.setTimeout=callback=>{callback();return 0;};
     vm.runInNewContext(loader,scope);
     assert.equal(elements.get('qt-screen').style.height,'640px');
+    assert.equal(passedFactory,factory);
     assert.equal(elements.get('genycaster-boot').hidden,false);
     const wasm=await scope.window.fetch('https://example.test/farcaster_client.wasm');
     const received=new Uint8Array(await wasm.arrayBuffer());
@@ -92,4 +101,29 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     assert.equal(elements.get('genycaster-boot').hidden,true);
     assert.equal(memory.get('genycaster.boot.loaded.v1'),'1');
     assert.equal(collected.length,0);
+});
+
+test('missing Qt 6.12 application entry fails explicitly before qtLoad',()=>{
+    const ids=['genycaster-boot','boot-heading','boot-status','boot-stage',
+               'boot-fill','boot-percent','boot-retry','qt-screen'];
+    const elements=new Map(ids.map(id=>[id,fakeElement()]));
+    let invoked=false;
+    const messages=[];
+    const scope={
+        document:{getElementById:id=>elements.get(id)},
+        localStorage:{getItem:()=>null},
+        window:{
+            fetch:async()=>{throw new Error('not reached');},
+            addEventListener(){},innerHeight:640,
+        },
+        location:{href:'https://example.test/farcaster_client.html'},
+        qtLoad:async()=>{invoked=true;},
+        console:{error:(...parts)=>messages.push(parts)},
+        URL,Response,Headers,ReadableStream,
+    };
+    vm.runInNewContext(loader,scope);
+    assert.equal(invoked,false);
+    assert.match(elements.get('boot-status').textContent,/farcaster_client_entry/);
+    assert.equal(elements.get('boot-retry').classList.contains('visible'),true);
+    assert.equal(messages.length,1);
 });

@@ -79,17 +79,25 @@ retry.addEventListener("click",()=>location.reload());
 function fail(error) {
     if(finished)return;
     preparing();
+    const detail=String(error?.message||error||"Unknown startup failure").slice(0,350);
     announce("Couldn't start Genycaster",
-        "Please check your network connection and retry. No recovery words were requested or saved.",
+        "The application couldn't initialize. "+detail+" — check the browser console and retry.",
         "Start failed");
     retry.classList.add("visible");
     console.error("[Genycaster] startup failed",error);
 }
 async function start() {
     try {
-        if(typeof qtLoad!=="function")throw new Error("Qt WebAssembly loader is unavailable");
+        if(typeof qtLoad!=="function")
+            throw new Error("qtloader.js is missing or did not load");
+        // Qt 6.9+ generates an app-specific Emscripten factory:
+        // <target>_entry. Qt 6.12 requires it in qt.entryFunction.
+        // Loading farcaster_client.js alone does NOT select that factory.
+        if(typeof window.farcaster_client_entry!=="function")
+            throw new Error("farcaster_client.js did not expose farcaster_client_entry");
         await qtLoad({
             qt:{
+                entryFunction:window.farcaster_client_entry,
                 containerElements:[screen],
                 onLoaded:()=>{
                     finished=true;
@@ -100,7 +108,11 @@ async function start() {
                     boot.classList.add("finished");
                     window.setTimeout(()=>{boot.hidden=true;},400);
                 },
-                onExit:()=>{if(!finished)fail(new Error("Qt exited during startup"));}
+                onExit:exit=>{
+                    if(!finished)fail(new Error(
+                        "Qt exited during startup"+(exit?.text?" ("+String(exit.text).slice(0,150)+")":"")
+                    ));
+                },
             },
             monitorRunDependencies:remaining=>{
                 if(remaining>0 && !finished && !fill.classList.contains("measured"))
