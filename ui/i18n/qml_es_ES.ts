@@ -3858,5 +3858,33 @@
             <source>I have read and agree to the Terms of Use and Privacy Policy.</source>
             <translation>He leído y acepto los Términos de uso y la Política de privacidad.</translation>
         </message>
+        <message id="genycaster.setup.world_conversations">
+            <source>A world of conversations. In your language.</source>
+            <translation>Un mundo de conversaciones. En tu idioma.</translation>
+        </message>
+        <message id="genycaster.setup.language_search">
+            <source>Search languages…</source>
+            <translation>Buscar idiomas…</translation>
+        </message>
+        <message id="genycaster.setup.system_suggestion">
+            <source>Suggested by your device</source>
+            <translation>Sugerido por tu dispositivo</translation>
+        </message>
+        <message id="genycaster.setup.language_no_results">
+            <source>No matching languages</source>
+            <translation>No hay idiomas coincidentes</translation>
+        </message>
+        <message id="genycaster.setup.live_preview">
+            <source>Live Genycaster preview</source>
+            <translation>Vista previa de Genycaster</translation>
+        </message>
+        <message id="genycaster.setup.preview_post_one">
+            <source>Every conversation starts with a hello.</source>
+            <translation>Toda conversación empieza con un hola.</translation>
+        </message>
+        <message id="genycaster.setup.preview_post_two">
+            <source>Ideas connect us across languages.</source>
+            <translation>Las ideas nos unen más allá de los idiomas.</translation>
+        </message>
     </context>
 </TS>

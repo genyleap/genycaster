@@ -214,12 +214,10 @@ Item {
         }
 
         if (currentStep === 2) {
-            if (!legalConsentAccepted) {
-                if (!legalTermsReviewed || !legalPrivacyReviewed || !legalTermsChecked || !legalPrivacyChecked)
-                    return
-                acceptLegalConsent(legalTermsChecked, legalPrivacyChecked,
-                                   legalTermsReviewed && legalPrivacyReviewed)
-            }
+            if (!legalTermsChecked || !legalPrivacyChecked)
+                return
+            if (!legalConsentAccepted)
+                acceptLegalConsent(true, true, true)
             Qt.callLater(() => switchStep(3))
             return
         }
@@ -261,7 +259,7 @@ Item {
         if (authenticationInProgress)
             return false
         if (currentStep === 2)
-            return legalConsentAccepted || (legalTermsReviewed && legalPrivacyReviewed && legalTermsChecked && legalPrivacyChecked)
+            return legalTermsChecked && legalPrivacyChecked
         if (currentStep === 4)
             return authenticated || root.browserReadOnly
         if (currentStep === 5)
@@ -318,29 +316,14 @@ Item {
         Qt.callLater(synchronizeFlow)
     }
 
-    onLegalConsentAcceptedChanged: {
-        if (legalConsentAccepted) {
-            legalTermsChecked = true
-            legalPrivacyChecked = true
-            legalTermsReviewed = true
-            legalPrivacyReviewed = true
-            if (currentStep === 2) {
-                Qt.callLater(() => switchStep(3))
-                return
-            }
-        }
-        Qt.callLater(synchronizeFlow)
-    }
+    onLegalConsentAcceptedChanged: Qt.callLater(synchronizeFlow)
 
     onVisibleChanged: {
         if (!visible)
             return
-        if (legalConsentAccepted) {
-            legalTermsChecked = true
-            legalPrivacyChecked = true
-            legalTermsReviewed = true
-            legalPrivacyReviewed = true
-        }
+        // Require a deliberate interaction on each visible Setup presentation.
+        legalTermsChecked = false
+        legalPrivacyChecked = false
         forceActiveFocus()
         if (!setupCompleted) {
             if (returningAfterLogout)
@@ -350,13 +333,7 @@ Item {
             synchronizeFlow()
     }
 
-    Component.onCompleted: {
-        legalTermsChecked = legalConsentAccepted
-        legalPrivacyChecked = legalConsentAccepted
-        legalTermsReviewed = legalConsentAccepted
-        legalPrivacyReviewed = legalConsentAccepted
-        synchronizeFlow()
-    }
+    Component.onCompleted: synchronizeFlow()
 
     Keys.onEscapePressed: event => {
         if (authenticationInProgress)
@@ -727,23 +704,10 @@ Item {
         ColumnLayout {
             spacing: Theme.space3
 
-            SetupPageHeader {
-                Layout.fillWidth: true
-                iconGlyph: root.genyBrandIcon
-                title: qsTrId("genycaster.setup.welcome_title")
-                subtitle: qsTrId("genycaster.setup.language_orbit_hint")
-                maximumTextWidth: 520
-            }
-
-            Item {
-                Layout.fillWidth: true
-                Layout.preferredHeight: root.phone ? Theme.space3 : Theme.space4
-            }
-
             SetupLanguageSelector {
                 id: setupLanguageSelector
                 Layout.fillWidth: true
-                Layout.maximumWidth: 430
+                Layout.maximumWidth: 620
                 model: root.greetings
                 selectedLabel: localizationController.languageLabel
                 selectedDetail: localizationController.regionalLocaleLabel
@@ -752,17 +716,16 @@ Item {
                     root.greetingIndexForTag(localizationController.effectiveLanguageTag)
 
                 onActivated: (index, entry) => {
-                    if (entry && entry.tag)
-                        localizationController.setLanguageTag(entry.tag)
+                    if (entry && entry.tag && !localizationController.setLanguageTag(entry.tag))
+                        setupLanguageSelector.currentIndex =
+                            root.greetingIndexForTag(localizationController.effectiveLanguageTag)
                 }
 
                 Connections {
                     target: localizationController
                     function onEffectiveLanguageTagChanged() {
-                        if (!setupLanguageSelector.userInteracted) {
-                            setupLanguageSelector.currentIndex =
-                                root.greetingIndexForTag(localizationController.effectiveLanguageTag)
-                        }
+                        setupLanguageSelector.currentIndex =
+                            root.greetingIndexForTag(localizationController.effectiveLanguageTag)
                     }
                 }
             }
@@ -1152,7 +1115,7 @@ Item {
                 Layout.topMargin: Theme.space2
                 text: qsTrId("genycaster.setup.single_legal_consent")
                 checked: root.legalTermsChecked && root.legalPrivacyChecked
-                enabled: !root.legalConsentAccepted
+                enabled: true
                 spacing: Theme.space3
                 LayoutMirroring.enabled: Theme.rtl
                 LayoutMirroring.childrenInherit: true

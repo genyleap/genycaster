@@ -60,12 +60,24 @@ test('KEY_ADD typed documents bind exact FID, scopes, nonce, TTL and deadline',(
     const typed=keyAddTypedData({fid:'42',publicKeyHex,nonce:7,
         deadline:123456,ttl:2592000});
     assert.equal(typed.keyAdd.primaryType,'KeyAdd');
-    assert.equal(typed.keyAdd.domain.chainId,1);
+    assert.equal(typed.keyAdd.domain.chainId,10);
+    assert.equal(typed.keyAdd.domain.name,'Farcaster KeyAdd');
+    assert.equal(typed.signedKeyRequest.domain.chainId,10);
+    assert.equal(typed.signedKeyRequest.domain.name,'Farcaster SignedKeyRequestValidator');
+    assert.equal(typed.signedKeyRequest.domain.verifyingContract,
+        '0x00000000fc700472606ed4fa22623acf62c60553');
+    assert.equal(typed.signedKeyRequest.message.deadline,
+        String(Math.floor(Date.now()/1000)+3600));
+    assert.equal(typed.keyAdd.message.deadline,'123456');
+    assert.ok(typed.signedKeyRequest.types.EIP712Domain.some(field=>
+        field.name==='verifyingContract'));
     assert.equal(typed.keyAdd.message.fid,'42');
     assert.deepEqual(typed.keyAdd.message.scopes,[1,2,3,4,5,6]);
     assert.equal(typed.signedKeyRequest.message.requestFid,'42');
     assert.throws(()=>keyAddTypedData({fid:'42',publicKeyHex,nonce:0,deadline:123456,ttl:2592000}),/nonce/);
     assert.throws(()=>keyAddTypedData({fid:'42',publicKeyHex,nonce:1,deadline:123456,ttl:2592000,scopes:[1,1]}),/scopes/);
+    assert.throws(()=>keyAddTypedData({fid:'42',publicKeyHex,nonce:1,deadline:123456,ttl:2592000,
+        requestDeadline:1}),/SignedKeyRequest deadline/);
 });
 test('KEY_REMOVE self-revocation codec exactly matches native protobuf fixture',()=>{
     const message=unsignedKeyRemove({fid:'42',publicKeyHex,nonce:9,

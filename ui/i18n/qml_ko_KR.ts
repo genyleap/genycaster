@@ -3858,5 +3858,33 @@
             <source>I have read and agree to the Terms of Use and Privacy Policy.</source>
             <translation>이용 약관과 개인정보 처리방침을 읽었으며 이에 동의합니다.</translation>
         </message>
+        <message id="genycaster.setup.world_conversations">
+            <source>A world of conversations. In your language.</source>
+            <translation>대화로 이어지는 세상. 당신의 언어로.</translation>
+        </message>
+        <message id="genycaster.setup.language_search">
+            <source>Search languages…</source>
+            <translation>언어 검색…</translation>
+        </message>
+        <message id="genycaster.setup.system_suggestion">
+            <source>Suggested by your device</source>
+            <translation>기기 추천 언어</translation>
+        </message>
+        <message id="genycaster.setup.language_no_results">
+            <source>No matching languages</source>
+            <translation>일치하는 언어가 없습니다</translation>
+        </message>
+        <message id="genycaster.setup.live_preview">
+            <source>Live Genycaster preview</source>
+            <translation>Genycaster 실시간 미리보기</translation>
+        </message>
+        <message id="genycaster.setup.preview_post_one">
+            <source>Every conversation starts with a hello.</source>
+            <translation>모든 대화는 인사에서 시작됩니다.</translation>
+        </message>
+        <message id="genycaster.setup.preview_post_two">
+            <source>Ideas connect us across languages.</source>
+            <translation>아이디어는 언어를 넘어 우리를 연결합니다.</translation>
+        </message>
     </context>
 </TS>

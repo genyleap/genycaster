@@ -5,82 +5,444 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-// A single compact language field, rather than a full-width multi-row card.
+// Setup language laboratory. Native controls share the application translator,
+// typography and RTL tokens; no separate locale or browser UI is introduced.
 Item {
     id: root
+
     property var model: []
-    property alias currentIndex: languageCombo.currentIndex
+    property int currentIndex: 0
     property string selectedLabel: ""
     property string selectedDetail: ""
     property bool userInteracted: false
+    property string suggestedTag: ""
     signal activated(int index, var entry)
+
     readonly property int itemCount: model && model.length !== undefined ? model.length : 0
     readonly property var currentEntry: currentIndex >= 0 && currentIndex < itemCount
                                         ? model[currentIndex] : null
+    readonly property bool narrow: width < 460
+    readonly property string filterText: search.text.trim().toLocaleLowerCase()
+    readonly property string changedHint: userInteracted
+        ? qsTrId("genycaster.setup.language_applies_now") : ""
 
-    implicitHeight: pickerRow.implicitHeight + Theme.space3 * 2
-    LayoutMirroring.enabled: false
-    Accessible.name: qsTrId("genycaster.settings.language_region")
-    Accessible.description: selectedLabel
-
-    // Show confirmation only after a change, without taking permanent
-    // vertical space in the initial Setup stage.
-    // i18n reference for the optional accessibility hint:
-    property string changedHint: userInteracted
-                                 ? qsTrId("genycaster.setup.language_applies_now") : ""
-
-    Superellipse {
-        anchors.fill: parent
-        fillColor: Theme.surface
-        borderColor: Theme.borderMuted
-        borderWidth: Theme.strokeStandard
-        curveDepth: Theme.curveContainer
+    function matches(entry) {
+        if (!filterText.length)
+            return true
+        return String(entry.language + " " + entry.hello + " " + entry.tag)
+            .toLocaleLowerCase().indexOf(filterText) !== -1
     }
 
-    RowLayout {
-        id: pickerRow
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: Theme.space3
-        anchors.rightMargin: Theme.space3
-        spacing: Theme.space3
-        layoutDirection: Theme.uiDirection
-        Icon {
-            text: Theme.iconLanguage
-            color: Theme.accent
-            preferredSize: Theme.iconSize
-        }
-        ColumnLayout {
+    function choose(index) {
+        if (index < 0 || index >= itemCount)
+            return
+        currentIndex = index
+        userInteracted = true
+        activated(index, model[index])
+    }
+
+    Component.onCompleted: {
+        // Keep the OS suggestion stable even after the app translator changes.
+        suggestedTag = String(Qt.locale().name).toLowerCase().split(/[_-]/)[0]
+    }
+
+    implicitHeight: content.implicitHeight
+    LayoutMirroring.enabled: false
+    Accessible.name: qsTrId("genycaster.locale.language")
+    Accessible.description: selectedLabel
+
+    ColumnLayout {
+        id: content
+        width: parent.width
+        spacing: Theme.space4
+
+        RowLayout {
             Layout.fillWidth: true
-            spacing: 1
+            spacing: Theme.space4
+            layoutDirection: Theme.uiDirection
+
+            Item {
+                Layout.preferredWidth: root.narrow ? 68 : 92
+                Layout.preferredHeight: root.narrow ? 68 : 92
+                Accessible.ignored: true
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: parent.width * 0.74
+                    height: width
+                    radius: width / 2
+                    color: "transparent"
+                    border.color: Theme.borderStrong
+                    border.width: 1
+                }
+                Item {
+                    id: orbit
+                    anchors.fill: parent
+                    transformOrigin: Item.Center
+                    NumberAnimation on rotation {
+                        from: 0
+                        to: 360
+                        duration: 16000
+                        loops: Animation.Infinite
+                        running: root.visible && !Theme.reduceMotion
+                    }
+                    Rectangle {
+                        x: parent.width / 2 - width / 2
+                        y: 3
+                        width: 8
+                        height: 8
+                        radius: 4
+                        color: Theme.accent
+                    }
+                    Rectangle {
+                        x: parent.width / 2 - width / 2
+                        y: parent.height - 9
+                        width: 5
+                        height: 5
+                        radius: 3
+                        color: Theme.inkMuted
+                    }
+                }
+                Icon {
+                    anchors.centerIn: parent
+                    text: "brands/geny"
+                    color: Theme.accent
+                    preferredSize: root.narrow ? 38 : 49
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.world_conversations")
+                    color: Theme.ink
+                    font.family: Theme.fontFamilyForText(text)
+                    font.pixelSize: root.narrow ? 24 : 31
+                    font.weight: Theme.weightBold
+                    lineHeight: 1.15
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Theme.textStartAlignment
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.language_orbit_hint")
+                    font.family: Theme.fontFamilyForText(text)
+                    font.pixelSize: Theme.typeLabelSize
+                    color: Theme.inkMuted
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Theme.textStartAlignment
+                }
+            }
+        }
+
+        TextField {
+            id: search
+            Layout.fillWidth: true
+            Layout.preferredHeight: Math.max(48, Theme.touchTarget)
+            placeholderText: qsTrId("genycaster.setup.language_search")
+            placeholderTextColor: Theme.inkSubtle
+            color: Theme.ink
+            font.family: Theme.fontFamilyForText(text)
+            font.pixelSize: Theme.typeLabelSize
+            leftPadding: Theme.space4
+            rightPadding: Theme.space4
+            selectByMouse: true
+            background: Superellipse {
+                fillColor: Theme.surface
+                borderColor: search.activeFocus ? Theme.focus : Theme.borderMuted
+                borderWidth: search.activeFocus ? 2 : 1
+                curveDepth: Theme.curveControl
+            }
+            Accessible.name: qsTrId("genycaster.setup.language_search")
+            Keys.onEscapePressed: event => {
+                search.clear()
+                event.accepted = true
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
             DirectionAwareLabel {
+                Layout.fillWidth: true
                 text: qsTrId("genycaster.locale.language")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
-                font.weight: Theme.weightMedium
-            }
-            DirectionAwareLabel {
-                text: root.currentEntry ? root.currentEntry.hello : ""
-                color: Theme.ink
-                font.family: Theme.fontFamilyForText(text)
-                font.pixelSize: Theme.typeLabelSize
                 font.weight: Theme.weightDemiBold
                 horizontalAlignment: Theme.textStartAlignment
             }
+            DirectionAwareLabel {
+                text: qsTrId("genycaster.setup.system_suggestion")
+                color: Theme.inkSubtle
+                font.pixelSize: Theme.typeCaptionSize
+                visible: root.suggestedTag.length > 0
+            }
         }
-        GenyComboBox {
-            id: languageCombo
-            Layout.preferredWidth: Math.min(205, Math.max(118, root.width * 0.45))
-            model: root.model
-            textRole: "language"
-            valueRole: "tag"
-            popupMaximumWidth: 420
-            Accessible.name: qsTrId("genycaster.locale.language")
-            onActivated: index => {
-                if (index < 0 || index >= root.itemCount) return
-                root.userInteracted = true
-                root.activated(index, root.model[index])
+
+        GridLayout {
+            id: languageGrid
+            Layout.fillWidth: true
+            columns: root.narrow ? 2 : 3
+            columnSpacing: Theme.space2
+            rowSpacing: Theme.space2
+            layoutDirection: Theme.uiDirection
+
+            Repeater {
+                model: root.model
+
+                delegate: Item {
+                    id: languageCard
+                    required property int index
+                    required property var modelData
+                    readonly property bool selected: index === root.currentIndex
+                    readonly property bool suggested: modelData.tag === root.suggestedTag
+                    visible: root.matches(modelData)
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 64
+                    activeFocusOnTab: visible
+                    Accessible.role: Accessible.RadioButton
+                    Accessible.name: modelData.language
+                    Accessible.checked: selected
+                    Accessible.description: suggested
+                        ? qsTrId("genycaster.setup.system_suggestion") : ""
+
+                    Superellipse {
+                        anchors.fill: parent
+                        fillColor: languageCard.selected ? Theme.surfaceSelected
+                            : cardHover.hovered ? Theme.surfaceHover : Theme.surface
+                        borderColor: languageCard.selected ? Theme.accent
+                            : languageCard.activeFocus ? Theme.focus : Theme.borderMuted
+                        borderWidth: languageCard.selected || languageCard.activeFocus ? 2 : 1
+                        curveDepth: Theme.curveControl
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: Theme.space3
+                        spacing: Theme.space2
+                        layoutDirection: Theme.uiDirection
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: languageCard.modelData.language
+                                font.family: Theme.fontFamilyForText(text)
+                                font.pixelSize: Theme.typeLabelSize
+                                font.weight: Theme.weightDemiBold
+                                color: Theme.ink
+                                elide: Text.ElideRight
+                                horizontalAlignment: Theme.textStartAlignment
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: languageCard.modelData.hello
+                                font.family: Theme.fontFamilyForText(text)
+                                font.pixelSize: Theme.typeCaptionSize
+                                color: Theme.inkMuted
+                                elide: Text.ElideRight
+                                horizontalAlignment: Theme.textStartAlignment
+                            }
+                        }
+                        Icon {
+                            text: languageCard.selected ? Theme.iconCheck
+                                  : languageCard.suggested ? Theme.iconLanguage : ""
+                            color: languageCard.selected ? Theme.accent : Theme.inkSubtle
+                            preferredSize: 16
+                            visible: text.length > 0
+                        }
+                    }
+
+                    HoverHandler { id: cardHover }
+                    TapHandler {
+                        onTapped: {
+                            languageCard.forceActiveFocus()
+                            root.choose(languageCard.index)
+                        }
+                    }
+                    Keys.onSpacePressed: event => {
+                        root.choose(languageCard.index)
+                        event.accepted = true
+                    }
+                    Keys.onReturnPressed: event => {
+                        root.choose(languageCard.index)
+                        event.accepted = true
+                    }
+                    Keys.onEnterPressed: event => {
+                        root.choose(languageCard.index)
+                        event.accepted = true
+                    }
+                }
+            }
+        }
+
+        DirectionAwareLabel {
+            Layout.fillWidth: true
+            visible: root.filterText.length > 0
+                     && !root.model.some(entry => root.matches(entry))
+            text: qsTrId("genycaster.setup.language_no_results")
+            color: Theme.inkMuted
+            horizontalAlignment: Theme.textStartAlignment
+            font.pixelSize: Theme.typeLabelSize
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.topMargin: Theme.space3
+            spacing: Theme.space2
+
+            RowLayout {
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.live_preview")
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeLabelSize
+                    font.weight: Theme.weightDemiBold
+                    horizontalAlignment: Theme.textStartAlignment
+                }
+                DirectionAwareLabel {
+                    text: root.changedHint
+                    visible: root.userInteracted
+                    color: Theme.inkSubtle
+                    font.pixelSize: Theme.typeCaptionSize
+                }
+            }
+
+            Superellipse {
+                Layout.fillWidth: true
+                implicitHeight: 236
+                fillColor: Theme.surface
+                borderColor: Theme.borderMuted
+                borderWidth: 1
+                curveDepth: Theme.curveContainer
+                clip: true
+
+                RowLayout {
+                    anchors.fill: parent
+                    spacing: 0
+                    layoutDirection: Theme.uiDirection
+
+                    Rectangle {
+                        Layout.preferredWidth: root.narrow ? 91 : 142
+                        Layout.fillHeight: true
+                        color: Theme.surfaceMuted
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: Theme.space3
+                            spacing: Theme.space3
+
+                            DirectionAwareLabel {
+                                text: "Genycaster"
+                                color: Theme.ink
+                                font.weight: Theme.weightBold
+                                font.pixelSize: root.narrow ? 11 : 14
+                            }
+                            Repeater {
+                                model: [
+                                    qsTrId("genycaster.feed_header.home"),
+                                    qsTrId("genycaster.feed_header.explore"),
+                                    qsTrId("genycaster.notifications.activity")
+                                ]
+                                delegate: Rectangle {
+                                    id: previewNavItem
+                                    required property string modelData
+                                    required property int index
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 32
+                                    radius: 8
+                                    color: index === previewTab.selectedTab
+                                        ? Theme.surfaceSelected : "transparent"
+                                    DirectionAwareLabel {
+                                        anchors.fill: parent
+                                        anchors.margins: 7
+                                        verticalAlignment: Text.AlignVCenter
+                                        text: previewNavItem.modelData
+                                        color: previewNavItem.index === previewTab.selectedTab
+                                            ? Theme.accent : Theme.inkMuted
+                                        font.pixelSize: root.narrow ? 10 : 12
+                                        font.family: Theme.fontFamilyForText(text)
+                                        elide: Text.ElideRight
+                                    }
+                                    TapHandler {
+                                        onTapped: previewTab.selectedTab = parent.index
+                                    }
+                                }
+                            }
+                            Item { Layout.fillHeight: true }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.preferredWidth: 1
+                        Layout.fillHeight: true
+                        color: Theme.borderMuted
+                    }
+
+                    ColumnLayout {
+                        id: previewTab
+                        property int selectedTab: 0
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.margins: Theme.space3
+                        spacing: Theme.space2
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: previewTab.selectedTab === 0
+                                ? qsTrId("genycaster.feed_header.home")
+                                : previewTab.selectedTab === 1
+                                ? qsTrId("genycaster.feed_header.explore")
+                                : qsTrId("genycaster.notifications.activity")
+                            color: Theme.ink
+                            font.weight: Theme.weightDemiBold
+                            font.pixelSize: 13
+                            horizontalAlignment: Theme.textStartAlignment
+                        }
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 1
+                            color: Theme.borderMuted
+                        }
+                        Repeater {
+                            model: 2
+                            delegate: ColumnLayout {
+                                required property int index
+                                Layout.fillWidth: true
+                                spacing: 4
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: index === 0 ? "@geny" : "@community"
+                                    color: Theme.accent
+                                    font.pixelSize: 11
+                                    horizontalAlignment: Theme.textStartAlignment
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: index === 0
+                                        ? qsTrId("genycaster.setup.preview_post_one")
+                                        : qsTrId("genycaster.setup.preview_post_two")
+                                    font.family: Theme.fontFamilyForText(text)
+                                    font.pixelSize: root.narrow ? 10 : 12
+                                    color: Theme.inkMuted
+                                    wrapMode: Text.WordWrap
+                                    horizontalAlignment: Theme.textStartAlignment
+                                }
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 1
+                                    color: Theme.borderMuted
+                                }
+                            }
+                        }
+                        Item { Layout.fillHeight: true }
+                    }
+                }
             }
         }
     }

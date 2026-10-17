@@ -202,14 +202,18 @@ test('explicit Logout returns to account Setup while refresh keeps completed onb
         /resetInitialSetupProgress\(/);
 });
 
-test('Setup headings and single in-place Terms/Privacy checkbox stay compact',()=>{
+test('Setup language cards and single in-place Terms/Privacy checkbox remain accessible',()=>{
     const h=read('ui/components/SetupPageHeader.qml');
     const l=read('ui/components/SetupLanguageSelector.qml');
     const setup=read('ui/components/InitialSetup.qml');
     const app=read('ui/components/AppShell.qml');
     assert.match(h,/RowLayout \{/);
     assert.match(h,/Layout\.alignment: Qt\.AlignVCenter/);
-    assert.match(l,/Layout\.preferredWidth: Math\.min\(205/);
+    assert.match(l,/id: languageGrid/);
+    assert.match(l,/id: search/);
+    assert.match(l,/id: previewTab/);
+    assert.match(l,/Accessible\.role: Accessible\.RadioButton/);
+    assert.match(l,/Theme\.uiDirection/);
     assert.match(setup,/id: privacyStage/);
     assert.match(setup,/qsTrId\("genycaster\.setup\.terms_body"\)/);
     assert.match(setup,/qsTrId\("genycaster\.setup\.privacy_body"\)/);

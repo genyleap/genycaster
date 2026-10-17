@@ -3858,5 +3858,33 @@
             <source>I have read and agree to the Terms of Use and Privacy Policy.</source>
             <translation>شرایط استفاده و سیاست حریم خصوصی را خوانده‌ام و با آن‌ها موافقم.</translation>
         </message>
+        <message id="genycaster.setup.world_conversations">
+            <source>A world of conversations. In your language.</source>
+            <translation>دنیایی از گفتگوها. به زبان شما.</translation>
+        </message>
+        <message id="genycaster.setup.language_search">
+            <source>Search languages…</source>
+            <translation>جستجوی زبان‌ها…</translation>
+        </message>
+        <message id="genycaster.setup.system_suggestion">
+            <source>Suggested by your device</source>
+            <translation>پیشنهاد دستگاه شما</translation>
+        </message>
+        <message id="genycaster.setup.language_no_results">
+            <source>No matching languages</source>
+            <translation>زبانی پیدا نشد</translation>
+        </message>
+        <message id="genycaster.setup.live_preview">
+            <source>Live Genycaster preview</source>
+            <translation>پیش‌نمایش زندهٔ جنی‌کستر</translation>
+        </message>
+        <message id="genycaster.setup.preview_post_one">
+            <source>Every conversation starts with a hello.</source>
+            <translation>هر گفتگو با یک سلام آغاز می‌شود.</translation>
+        </message>
+        <message id="genycaster.setup.preview_post_two">
+            <source>Ideas connect us across languages.</source>
+            <translation>ایده‌ها ما را فراتر از زبان‌ها به هم پیوند می‌دهند.</translation>
+        </message>
     </context>
 </TS>

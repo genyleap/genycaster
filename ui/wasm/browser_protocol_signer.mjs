@@ -385,10 +385,13 @@ export function createBrowserProtocolSigner({
                 if(existing.registration){state('ready');return existing.registration;}
                 const nonce=existing.userNonce+1;
                 if(nonce>0xffffffff)throw new Error('KEY_ADD nonce overflow');
+                // Snapchain KEY_ADD deadline is Farcaster-epoch seconds, but
+                // SignedKeyRequestValidator metadata expires at a Unix timestamp.
                 const deadline=farcasterTimestamp()+3600;
+                const requestDeadline=Math.floor(Date.now()/1000)+3600;
                 const ttl=30*86400;
                 const typed=keyAddTypedData({fid,publicKeyHex:activeKey,
-                    scopes:SOCIAL_SCOPES,nonce,deadline,ttl});
+                    scopes:SOCIAL_SCOPES,nonce,deadline,requestDeadline,ttl});
                 verifySession(fid,expectedGeneration);
                 const signedRequest=await wallet.signTypedData(typed.signedKeyRequest);
                 fromHex(signedRequest,65);
@@ -396,7 +399,7 @@ export function createBrowserProtocolSigner({
                 const custodySignature=await wallet.signTypedData(typed.keyAdd);
                 fromHex(custodySignature,65);
                 verifySession(fid,expectedGeneration);
-                const metadata=abiMetadata(fid,wallet.address,signedRequest,deadline);
+                const metadata=abiMetadata(fid,wallet.address,signedRequest,requestDeadline);
                 const unsigned=unsignedKeyAdd({fid,publicKeyHex:activeKey,
                     nonce,deadline,ttl,custodySignature,metadata,
                     scopes:SOCIAL_SCOPES});

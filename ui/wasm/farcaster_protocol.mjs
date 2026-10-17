@@ -144,7 +144,8 @@ export function abiMetadata(fid,address,signature,deadline){
     return concat(word(32),word(id),new Uint8Array(12),addr,
                   word(128),word(deadline),word(65),padded);
 }
-export function keyAddTypedData({fid,publicKeyHex,scopes=scopeNumbers,ttl,nonce,deadline,requestFid=fid}){
+export function keyAddTypedData({fid,publicKeyHex,scopes=scopeNumbers,ttl,nonce,deadline,
+                                  requestDeadline=Math.floor(Date.now()/1000)+3600,requestFid=fid}){
     const key='0x'+hex(fromHex(publicKeyHex,32));
     const user=fidString(fid),requester=fidString(requestFid);
     invariant(scopes.length>0 && scopes.length<=16 && new Set(scopes).size===scopes.length &&
@@ -153,15 +154,22 @@ export function keyAddTypedData({fid,publicKeyHex,scopes=scopeNumbers,ttl,nonce,
                                     [deadline,'deadline',0xffffffff]]){
         invariant(Number.isInteger(value) && value>0 && value<=max, 'invalid '+label);
     }
-    const domain={name:'Farcaster KeyAdd',version:'1',chainId:1};
-    const EIP712Domain=[{name:'name',type:'string'},{name:'version',type:'string'},
-                        {name:'chainId',type:'uint256'}];
+    invariant(Number.isSafeInteger(requestDeadline) && requestDeadline>Math.floor(Date.now()/1000),
+              'invalid SignedKeyRequest deadline');
+    // SignedKeyRequest is verified against the canonical Optimism validator.
+    // KEY_ADD itself uses a separate Snapchain EIP-712 domain.
+    const requestDomain={name:'Farcaster SignedKeyRequestValidator',version:'1',
+        chainId:10,verifyingContract:'0x00000000fc700472606ed4fa22623acf62c60553'};
+    const domain={name:'Farcaster KeyAdd',version:'1',chainId:10};
+    const requestDomainFields=[{name:'name',type:'string'},{name:'version',type:'string'},
+        {name:'chainId',type:'uint256'},{name:'verifyingContract',type:'address'}];
+    const EIP712Domain=requestDomainFields.slice(0,3);
     const signedKeyRequest={
-        types:{EIP712Domain,SignedKeyRequest:[
+        types:{EIP712Domain:requestDomainFields,SignedKeyRequest:[
             {name:'requestFid',type:'uint256'},{name:'key',type:'bytes'},
             {name:'deadline',type:'uint256'}]},
-        primaryType:'SignedKeyRequest',domain,
-        message:{requestFid:requester,key,deadline:String(deadline)}};
+        primaryType:'SignedKeyRequest',domain:requestDomain,
+        message:{requestFid:requester,key,deadline:String(requestDeadline)}};
     const keyAdd={
         types:{EIP712Domain,KeyAdd:[
             {name:'fid',type:'uint256'},{name:'key',type:'bytes'},
