@@ -1160,6 +1160,10 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.recovery_working_body");
     //% "Farcaster custody verified on Optimism"
     (void)qtTrId("genycaster.setup.recovery_verified");
+    //% "Viewing only — publishing is locked"
+    (void)qtTrId("genycaster.setup.viewer_title");
+    //% "Sign in to browse posts and profiles. Posting, likes, follows and reactions remain disabled. You can enable full access later in Account using your Farcaster recovery words."
+    (void)qtTrId("genycaster.setup.viewer_description");
     //% "Sign in to continue"
     (void)qtTrId("genycaster.setup.sign_in_required");
     //% "Account verified"

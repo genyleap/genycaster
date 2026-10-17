@@ -13,6 +13,13 @@ class FakeElement {
     removeEventListener(name,fn){this.listeners.set(name,(this.listeners.get(name)||[]).filter(x=>x!==fn));}
     appendChild(element){element.parentNode=this;this.children.push(element);return element;}
     remove(){if(this.parentNode)this.parentNode.children=this.parentNode.children.filter(x=>x!==this);}
+    get firstChild(){return this.children[0];}
+    removeChild(child){this.children=this.children.filter(x=>x!==child);child.parentNode=null;return child;}
+    replaceChildren(...children){this.children=[];for(const child of children)this.appendChild(child);}
+    dispatch(name,options={}) {
+        const event={preventDefault(){},target:this,...options};
+        for(const fn of this.listeners.get(name)||[])fn(event);
+    }
     focus(){this.document.activeElement=this;}
     click(){for(const fn of this.listeners.get('click')||[])fn({target:this});}
     get id(){return this._id;}
@@ -31,41 +38,62 @@ function browser(secure=true) {
     return {document:new FakeDocument(),isSecureContext:secure,
         navigator:{language:'fa-IR'}};
 }
-test('secure browser presents localized dialog and never persists the phrase',async()=>{
+test('secure browser presents numbered 12-word fields without persisting secrets',async()=>{
     const b=browser(),result=promptForFarcasterRecovery(b);
     const overlay=b.document.getElementById('genycaster-farcaster-recovery');
     assert.ok(overlay);
     const sheet=overlay.children[0];
     assert.equal(sheet.dir,'rtl');
-    const area=b.document.getElementById('genycaster-recovery-words');
-    assert.ok(area);
-    assert.equal(area.autocomplete,'off');
-    area.value='test '.repeat(11)+'junk';
+    const grid=b.document.getElementById('genycaster-recovery-words');
+    assert.equal(grid.children.length,12);
+    const words=grid.children.map(cell=>cell.children[1]);
+    assert.equal(words[0].attributes['aria-label'].endsWith('1'),true);
+    assert.equal(words[0].autocomplete,'off');
+    const vector=('test '.repeat(11)+'junk').trim().split(' ');
+    for(let i=0;i<12;i++)words[i].value=vector[i];
     const submit=sheet.children.at(-1).children.at(-1);
     submit.click();
-    assert.equal(await result,'test '.repeat(11)+'junk');
-    assert.equal(area.value,'');
+    assert.equal(await result,vector.join(' '));
+    assert.equal(words.every(word=>word.value===''),true);
     assert.equal(b.document.getElementById('genycaster-farcaster-recovery'),undefined);
     assert.equal(b.document.body.style.overflow,'');
 });
-test('cancel wipes input and rejects without returning a phrase',async()=>{
+test('toggle 24 words and paste recovery words in numbered order',async()=>{
     const b=browser(),result=promptForFarcasterRecovery(b);
     const sheet=b.document.getElementById('genycaster-farcaster-recovery').children[0];
-    const area=b.document.getElementById('genycaster-recovery-words');
-    area.value='never save my phrase';
+    const chooser=sheet.children.find(item=>item.attributes?.role==='group');
+    chooser.children[1].click();
+    const grid=b.document.getElementById('genycaster-recovery-words');
+    assert.equal(grid.children.length,24);
+    const words=grid.children.map(cell=>cell.children[1]);
+    words[0].dispatch('paste',{clipboardData:{getData:()=>Array(24).fill('test').join(' ')}});
+    const pasted=grid.children.map(cell=>cell.children[1]);
+    assert.equal(pasted.every(word=>word.value==='test'),true);
+    const submit=sheet.children.at(-1).children.at(-1);
+    submit.click();
+    assert.equal((await result).split(' ').length,24);
+    assert.equal(pasted.every(word=>word.value===''),true);
+});
+test('cancel clears every numbered input',async()=>{
+    const b=browser(),result=promptForFarcasterRecovery(b);
+    const sheet=b.document.getElementById('genycaster-farcaster-recovery').children[0];
+    const grid=b.document.getElementById('genycaster-recovery-words');
+    const words=grid.children.map(cell=>cell.children[1]);
+    words[0].value='never';words[1].value='persist';
     const cancel=sheet.children.at(-1).children[0];
     cancel.click();
     await assert.rejects(result,/cancelled/);
-    assert.equal(area.value,'');
+    assert.equal(words.every(word=>word.value===''),true);
 });
-test('sign-out AbortSignal closes and wipes recovery dialog',async()=>{
+test('sign-out AbortSignal closes and wipes recovery fields',async()=>{
     const b=browser(),controller=new AbortController();
     const result=promptForFarcasterRecovery(b,controller.signal);
-    const area=b.document.getElementById('genycaster-recovery-words');
-    area.value='not stored';
+    const grid=b.document.getElementById('genycaster-recovery-words');
+    const words=grid.children.map(cell=>cell.children[1]);
+    words[0].value='secret';
     controller.abort();
     await assert.rejects(result,/cancelled/);
-    assert.equal(area.value,'');
+    assert.equal(words.every(word=>word.value===''),true);
     assert.equal(b.document.getElementById('genycaster-farcaster-recovery'),undefined);
 });
 test('insecure origin refuses recovery phrase input entirely',async()=>{

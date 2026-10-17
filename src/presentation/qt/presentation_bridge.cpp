@@ -641,13 +641,9 @@ bool PresentationBridge::runtimeReady() const noexcept { return m_runtimeReady; 
 bool PresentationBridge::authenticationAvailable() const noexcept { return m_authenticationAvailable; }
 bool PresentationBridge::initialSetupRequired() const noexcept
 {
-#if defined(__EMSCRIPTEN__)
-    // Browser guest mode has no native signer/auth adapters. Consent still
-    // gates setup, but a login that cannot run must not trap users in setup.
+    // Completed onboarding is independent of the transient signed-in session.
+    // Guest/viewer access must never re-open the six-step wizard on refresh.
     return !m_setupBypassedForVerification && !m_initialSetupCompleted;
-#else
-    return !m_setupBypassedForVerification && (!m_initialSetupCompleted || !m_isAuthenticated);
-#endif
 }
 bool PresentationBridge::initialSetupCompleted() const noexcept { return m_initialSetupCompleted; }
 bool PresentationBridge::legalConsentAccepted() const noexcept { return m_legalConsentAccepted; }
@@ -1985,15 +1981,9 @@ void PresentationBridge::applyAuthenticationState(
         clearReplyTarget();
         emit notificationsChanged();
     }
-    // Any signed-out authentication state invalidates completed onboarding.
-    // This covers explicit sign-out as well as an expired/missing restored
-    // session at startup, so setup always returns as the complete six-step flow
-    // instead of collapsing to a sign-in-only checkpoint. Legal consent remains
-    // versioned separately and is not discarded.
-    if (!m_isAuthenticated && m_initialSetupCompleted) {
-        resetInitialSetupProgress();
-    }
-
+    // Onboarding is a one-time local UX preference, not an authentication
+    // credential. Losing a volatile browser session must never erase Setup.
+    // Sign-out still clears all write authority below.
     // Authentication proves account ownership only. Sign-out clears write authority
     // immediately; an authenticated session keeps the separately observed signer state.
     if (!m_isAuthenticated) {
@@ -2043,21 +2033,13 @@ void PresentationBridge::applySignerState(
     QString statusText,
     QString errorText)
 {
-    const QString previousPhase = m_signerPhase;
     m_signerPhase = std::move(phase);
     m_signerBusy = busy;
     m_writeReady = m_isAuthenticated && writeReady;
     m_signerStatusText = std::move(statusText);
     m_signerErrorText = std::move(errorText);
 
-    const bool signerWasRemoved =
-        previousPhase != m_signerPhase &&
-        (m_signerPhase == QStringLiteral("revoked") ||
-         m_signerPhase == QStringLiteral("missing"));
-    if (m_isAuthenticated && m_initialSetupCompleted && signerWasRemoved) {
-        resetInitialSetupProgress();
-        emit setupStateChanged();
-    }
+    // Revoking a signer changes privileges, not onboarding completion.
     emit stateChanged();
 }
 

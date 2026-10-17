@@ -1,26 +1,41 @@
-# First-run Setup and protocol signer lifecycle
+# First-run Setup and signer permissions
 
-## Contract
-- Only a user-initiated sign-in from the visible first-run Setup arms the
-  one-shot signer flow. A verified authentication challenge must be observed
-  before its successful completion. Session restoration does not arm it.
-- Browser: first restore an existing origin-bound signer, verify its Snapchain
-  registration, and show the recovery phrase dialog only when no valid signer
-  is registered. Never send the mnemonic across the Qt/WASM boundary.
-- Native: restore the secure-vault signer before attempting one scoped provision
-  for the verified FID, only if the signer is missing or requires authorization.
-- An error, cancel or sign-out disarms the flow. Account switching invalidates
-  in-flight browser signing. Signer registration is never inferred from login.
-- A failed or incomplete KEY_ADD does not enable writes. Recovery and
-  authorization can be retried explicitly in Setup/Account Settings.
-- Users can continue reading without enabling interaction privileges. This
-  flow does not persist or auto-reuse imported custody credentials.
+## Account paths
 
-## Security and rollout
-The browser explicitly requests a Farcaster-only phrase, and custody address
-must match the authenticated FID on Optimism. Only a restricted Ed25519
-signer remains after authorization. Browser JavaScript strings cannot be
-deterministically wiped, so the origin/device security warning remains
-material. Do not ship as audited custody-key handling solely on the basis
-of static guards; test desktop secure storage and a real Qt 6.12 WASM
-KEY_ADD confirmation with disposable credentials before production.
+1. **Full-access recovery (WebAssembly):** first-run Setup asks for the
+   Farcaster 12/24-word phrase in an indexed, numbered, local-only form. The
+   custody address is derived in the browser, checked in Optimism IdRegistry,
+   and its FID is bound to a scoped signer that must be confirmed by Snapchain
+   before full interaction privileges become ready.
+2. **Viewer sign-in (WebAssembly and native):** Farcaster SIWF and
+   Genyleap/OpenProof login establish a verified identity only. The app can
+   display posts and profiles, but cannot post, follow or react unless a
+   previously authorized signer is separately restored and verified.
+   An ordinary sign-in does **not** prompt for the phrase or automatically
+   provision a new signer.
+3. **Upgrade later:** Account exposes Enable Publishing/Interactions when
+   authenticated without a ready signer. In the web build this explicitly opens
+   the local recovery phrase dialog. There is no custody mnemonic storage or
+   auto-grant after guest sign-in.
+
+## Session vs onboarding
+
+- The six-step onboarding completion and legal consent are non-secret durable
+  preferences. Sign-out, refresh, session expiry, and signer revocation never
+  reset them.
+- Browser sessions remain ephemeral. Refresh may return users to guest viewing,
+  and it must not silently re-enable publishing without a new verified
+  authenticated identity and independently restored signer registration.
+- Sign-out immediately clears write readiness. Late signer or recovery events
+  from an earlier identity must not re-enable writes or cause a new KEY_ADD.
+- Browser phrase input and derived custody key never cross the Qt/WASM bridge,
+  nor enter QSettings, IndexedDB, localStorage, logs or network payloads.
+  Numbered fields are cleared on cancel/submit; JavaScript strings cannot
+  guarantee deterministic memory erasure.
+
+## Rollout
+
+This is not a security audit or proof of production readiness. Validate a
+real Qt WebAssembly build, device storage, a disposable Farcaster custody
+account's KEY_ADD and write confirmation, mobile on-screen keyboard and HTTPS
+deployment before releasing phrase-based recovery publicly.

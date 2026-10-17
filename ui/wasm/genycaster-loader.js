@@ -1,0 +1,115 @@
+(function () {
+"use strict";
+const $ = id => document.getElementById(id);
+const boot=$("genycaster-boot"), heading=$("boot-heading"), status=$("boot-status");
+const stage=$("boot-stage"), fill=$("boot-fill"), percent=$("boot-percent"), retry=$("boot-retry");
+let finished=false;
+function announce(title,detail,phase) {
+    heading.textContent=title;
+    status.textContent=detail;
+    stage.textContent=phase;
+}
+function preparing() {
+    fill.classList.remove("measured");
+    fill.style.width="";
+    percent.textContent="";
+}
+function measurable(loaded,total) {
+    if(!(Number.isFinite(total)&&total>0))return;
+    const value=Math.min(100,Math.round(100*loaded/total));
+    fill.classList.add("measured");
+    fill.style.width=value+"%";
+    percent.textContent=value+"%";
+    stage.textContent="Downloading WebAssembly";
+}
+const key="genycaster.boot.loaded.v1";
+let seen=false;
+try{seen=localStorage.getItem(key)==="1";}catch{}
+announce(seen?"Opening Genycaster":"Setting up Genycaster",
+    seen?"Checking your browser's cached application files…":
+         "Preparing the application on this device for the first time…",
+    seen?"Checking resources":"First launch");
+const originalFetch=window.fetch.bind(window);
+// No pre-download, artificial countdown, or forced cache bypass.
+// Observe only the real .wasm response being fetched by Emscripten.
+window.fetch=async function(input,options) {
+    const response=await originalFetch(input,options);
+    let url;
+    try{url=new URL(typeof input==="string"?input:input.url,location.href);}catch{return response;}
+    if(!url.pathname.endsWith(".wasm")||!response.ok||!response.body)return response;
+    const rawLength=Number(response.headers.get("content-length"));
+    const encoded=response.headers.get("content-encoding");
+    const total=encoded?0:rawLength;
+    announce(seen?"Loading cached or updated engine":"Downloading the application",
+        "Downloading verified application resources…","Downloading WebAssembly");
+    if(!Number.isFinite(total)||total<=0){
+        preparing();
+        return response;
+    }
+    const reader=response.body.getReader();
+    let loaded=0;
+    const stream=new ReadableStream({
+        async pull(controller) {
+            try {
+                const part=await reader.read();
+                if(part.done) { controller.close(); stage.textContent="Initializing engine"; return; }
+                loaded+=part.value.byteLength;
+                measurable(loaded,total);
+                controller.enqueue(part.value);
+            }catch(error){controller.error(error);}
+        },
+        cancel(reason){return reader.cancel(reason);}
+    });
+    const headers=new Headers(response.headers);
+    headers.delete("content-length");
+    return new Response(stream,{status:response.status,statusText:response.statusText,headers});
+};
+const screen=$("qt-screen");
+function fit() {
+    // Mobile browser chrome can change the *visible* viewport dynamically.
+    // This keeps the fixed Qt footer above the actual bottom of the screen.
+    const viewport=window.visualViewport;
+    const height=viewport?viewport.height:window.innerHeight;
+    screen.style.height=Math.max(180,Math.round(height))+"px";
+}
+window.addEventListener("resize",fit);
+window.visualViewport?.addEventListener("resize",fit);
+fit();
+retry.addEventListener("click",()=>location.reload());
+function fail(error) {
+    if(finished)return;
+    preparing();
+    announce("Couldn't start Genycaster",
+        "Please check your network connection and retry. No recovery words were requested or saved.",
+        "Start failed");
+    retry.classList.add("visible");
+    console.error("[Genycaster] startup failed",error);
+}
+async function start() {
+    try {
+        if(typeof qtLoad!=="function")throw new Error("Qt WebAssembly loader is unavailable");
+        await qtLoad({
+            qt:{
+                containerElements:[screen],
+                onLoaded:()=>{
+                    finished=true;
+                    try{localStorage.setItem(key,"1");}catch{}
+                    announce("Genycaster is ready","Entering your workspace…","Ready");
+                    fill.classList.add("measured");fill.style.width="100%";
+                    percent.textContent="";
+                    boot.classList.add("finished");
+                    window.setTimeout(()=>{boot.hidden=true;},400);
+                },
+                onExit:()=>{if(!finished)fail(new Error("Qt exited during startup"));}
+            },
+            monitorRunDependencies:remaining=>{
+                if(remaining>0 && !finished && !fill.classList.contains("measured"))
+                    announce("Preparing your workspace",
+                        "Restoring local files and initializing the Qt runtime…",
+                        "Initializing");
+            },
+        });
+    }catch(error){fail(error);}
+}
+start();
+}());

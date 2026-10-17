@@ -334,16 +334,15 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 4);
     assert(!settings.contains(QStringLiteral("setup/initialSetupCompleted")));
 
-    // A completed setup survives an ordinary restart while the account can be
-    // restored, but removing the protocol signer deliberately re-opens the
-    // complete setup flow rather than a sign-in-only checkpoint.
+    // Completed onboarding survives restarts, sign-out and signer revocation;
+    // write privileges are still independently gated by authentication.
     PresentationBridge restored{nullptr, &settings};
     assert(restored.initialSetupCompleted());
     assert(restored.legalConsentAccepted());
     assert(restored.preferredNetwork() == QStringLiteral("farcaster"));
     assert(restored.setPreferredNetwork(QStringLiteral("hypersnap")));
     assert(restored.preferredNetwork() == QStringLiteral("hypersnap"));
-    assert(restored.initialSetupRequired());
+    assert(!restored.initialSetupRequired());
     restored.applyAuthenticationState(
         true,
         QStringLiteral("authenticated"),
@@ -361,11 +360,12 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(restored.initialSetupCompleted());
     restored.applySignerState(
         QStringLiteral("revoked"), false, false, QStringLiteral("revoked"), {});
-    assert(!restored.initialSetupCompleted());
-    assert(restored.initialSetupRequired());
+    assert(restored.initialSetupCompleted());
+    assert(!restored.initialSetupRequired());
+    assert(!restored.writeReady());
     assert(restored.legalConsentAccepted());
     settings.sync();
-    assert(!settings.contains(QStringLiteral("setup/onboardingVersion")));
+    assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 4);
 
     // Finishing the wizard again is allowed without discarding the durable
     // legal consent record.
@@ -374,8 +374,7 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(!restored.initialSetupRequired());
     assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 4);
 
-    // Signing out is also a setup reset boundary. The next run must start from
-    // Welcome and expose all six setup steps again.
+    // Signing out removes write permissions, not the completed Setup flag.
     restored.applyAuthenticationState(
         true,
         QStringLiteral("signed-out"),
@@ -386,16 +385,17 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
         {},
         {},
         {});
-    assert(!restored.initialSetupCompleted());
-    assert(restored.initialSetupRequired());
+    assert(restored.initialSetupCompleted());
+    assert(!restored.initialSetupRequired());
+    assert(!restored.writeReady());
     assert(restored.legalConsentAccepted());
     settings.sync();
-    assert(!settings.contains(QStringLiteral("setup/onboardingVersion")));
+    assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 4);
 
     PresentationBridge afterSignOut{nullptr, &settings};
-    assert(!afterSignOut.initialSetupCompleted());
+    assert(afterSignOut.initialSetupCompleted());
     assert(afterSignOut.legalConsentAccepted());
-    assert(afterSignOut.initialSetupRequired());
+    assert(!afterSignOut.initialSetupRequired());
 }
 
 } // namespace

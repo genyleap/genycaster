@@ -692,8 +692,14 @@ Item {
                 }
 
                 Item {
+                    // This footer must remain visible above mobile browser
+                    // controls and safe areas even when the stage scrolls.
+                    id: setupFooter
+                    z: 20
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.phone ? 80 : 72
+                    Layout.minimumHeight: root.phone ? 80 : 72
+                    Layout.preferredHeight: root.phone ? 84 : 72
+                    Layout.maximumHeight: root.phone ? 112 : 72
 
                     Rectangle {
                         anchors.top: parent.top
@@ -1679,6 +1685,22 @@ Item {
                 spacing: Theme.space2
 
                 DirectionAwareLabel {
+                    visible: !root.signerReady
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.viewer_title")
+                    font.weight: Theme.weightDemiBold
+                    color: Theme.ink
+                    wrapMode: Text.Wrap
+                }
+                DirectionAwareLabel {
+                    visible: !root.signerReady
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.viewer_description")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.Wrap
+                }
+                DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: root.signerStatusText
                     color: root.signerReady ? Theme.success : Theme.inkMuted
@@ -1813,6 +1835,36 @@ Item {
                     quiet: true
                     enabled: !root.authenticationInProgress
                     onClicked: root.alternateMethodsExpanded = !root.alternateMethodsExpanded
+                }
+
+                Superellipse {
+                    visible: root.browserReadOnly && root.alternateMethodsExpanded
+                    Layout.fillWidth: true
+                    implicitHeight: viewerNote.implicitHeight + Theme.space3 * 2
+                    fillColor: Theme.surfaceMuted
+                    borderWidth: Theme.strokeStandard
+                    borderColor: root.setupBorder
+                    curveDepth: Theme.curveControl
+                    ColumnLayout {
+                        id: viewerNote
+                        anchors.fill: parent
+                        anchors.margins: Theme.space3
+                        spacing: Theme.space2
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.viewer_title")
+                            font.weight: Theme.weightDemiBold
+                            color: Theme.ink
+                            wrapMode: Text.Wrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.viewer_description")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.Wrap
+                        }
+                    }
                 }
 
                 GridLayout {

@@ -375,6 +375,19 @@ if(EMSCRIPTEN)
         COMMENT "Packaging browser Farcaster recovery, signer, canonical codec and pinned cryptography"
         VERBATIM
     )
+
+    # Replace Qt's generic logo splash with the first-party branded boot
+    # container after the target is linked. Keep the standard Qt loader API.
+    add_custom_command(TARGET farcaster_client POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-shell.html"
+            "$<TARGET_FILE_DIR:farcaster_client>/farcaster_client.html"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-loader.js"
+            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-loader.js"
+        COMMENT "Installing Genycaster branded WebAssembly boot shell"
+        VERBATIM
+    )
 endif()
 
 if(GENYCASTER_ENABLE_PUBLIC_DATA_PROVIDER)

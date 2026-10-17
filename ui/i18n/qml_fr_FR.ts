@@ -3834,5 +3834,13 @@
             <source>Farcaster custody verified on Optimism</source>
             <translation>Propriété Farcaster vérifiée sur Optimism</translation>
         </message>
+        <message id="genycaster.setup.viewer_title">
+            <source>Viewing only — publishing is locked</source>
+            <translation>Lecture seule — publication désactivée</translation>
+        </message>
+        <message id="genycaster.setup.viewer_description">
+            <source>Sign in to browse posts and profiles. Posting, likes, follows and reactions remain disabled. You can enable full access later in Account using your Farcaster recovery words.</source>
+            <translation>Connectez-vous pour consulter les publications et les profils. Publier, aimer, suivre et réagir restent désactivés. Vous pourrez activer l’accès complet plus tard dans Compte avec vos mots de récupération Farcaster.</translation>
+        </message>
     </context>
 </TS>

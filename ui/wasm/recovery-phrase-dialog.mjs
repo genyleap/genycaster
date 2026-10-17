@@ -51,20 +51,92 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null) {
         };
         text('h2',s.title,'margin:0 0 9px;font-size:23px;font-weight:650','genycaster-recovery-title');
         text('p',s.subtitle,'margin:0 0 24px;color:'+muted+';line-height:1.5');
-        const label=text('label',s.label,'display:block;margin-bottom:9px;font-weight:600');
-        const input=document.createElement('textarea');
-        input.rows=4;input.placeholder=s.placeholder;
-        input.autocapitalize='off';input.autocomplete='off';
-        input.spellcheck=false;input.setAttribute('data-lpignore','true');
-        input.setAttribute('aria-label',s.label);
-        input.style.cssText='box-sizing:border-box;width:100%;resize:vertical;border-radius:12px;border:1px solid #8691a8;background:'+inputSurface+';color:'+foreground+';padding:12px 14px;font:15px system-ui;line-height:1.6;outline-color:#4f70ff';
-        label.setAttribute('for','genycaster-recovery-words');
-        input.id='genycaster-recovery-words';
-        card.appendChild(input);
+        text('p',s.label,'margin:0 0 12px;font-weight:600');
+        const chooser=document.createElement('div');
+        chooser.setAttribute('role','group');
+        chooser.setAttribute('aria-label',s.label);
+        chooser.style.cssText='display:flex;gap:8px;margin:0 0 16px';
+        const grid=document.createElement('div');
+        grid.id='genycaster-recovery-words';
+        grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:9px;direction:ltr';
+        const inputs=[];
+        let count=12;
+        const modeButtons=[];
+        const createInput=(index)=>{
+            const cell=document.createElement('label');
+            cell.style.cssText='display:flex;align-items:center;gap:7px;min-width:0;background:'+inputSurface+';border:1px solid '+outline+';border-radius:11px;padding:7px 10px';
+            const number=document.createElement('span');
+            number.textContent=String(index+1).padStart(2,'0');
+            number.style.cssText='color:'+muted+';font:600 12px ui-monospace,monospace;flex-shrink:0';
+            const word=document.createElement('input');
+            word.type='text';word.autocomplete='off';word.autocapitalize='off';
+            word.spellcheck=false;word.setAttribute('data-lpignore','true');
+            word.setAttribute('aria-label',s.label+' '+(index+1));
+            word.style.cssText='width:100%;min-width:0;background:transparent;border:0;outline:0;color:'+foreground+';font:15px system-ui;direction:ltr';
+            cell.appendChild(number);cell.appendChild(word);
+            inputs.push(word);
+            const pasteWords=(raw)=>{
+                const words=raw.trim().toLowerCase().split(/\s+/u).filter(Boolean);
+                if(words.length===12||words.length===24)renderWords(words.length);
+                const offset=words.length===12||words.length===24 ? 0 : index;
+                for(let i=0;i<words.length&&offset+i<count;i++)
+                    inputs[offset+i].value=words[i].replace(/[^a-z]/gu,'');
+                inputs[Math.min(count-1,offset+words.length)]?.focus();
+                error.textContent='';
+            };
+            word.addEventListener('paste',event=>{
+                const pasted=event.clipboardData?.getData('text');
+                if(typeof pasted!=='string')return;
+                event.preventDefault();
+                pasteWords(pasted);
+            });
+            word.addEventListener('input',()=>{
+                const value=word.value.toLowerCase();
+                if(/\s/u.test(value)){pasteWords(value);return;}
+                word.value=value.replace(/[^a-z]/gu,'');
+                error.textContent='';
+            });
+            word.addEventListener('keydown',event=>{
+                if((event.key===' '||event.key==='Enter')&&index<count-1){
+                    event.preventDefault();inputs[index+1]?.focus();
+                }else if(event.key==='Backspace'&&!word.value&&index>0){
+                    inputs[index-1]?.focus();
+                }
+            });
+            return cell;
+        };
+        const renderWords=(number)=>{
+            const snapshot=inputs.map(word=>word.value);
+            for(const word of inputs)word.value='';
+            inputs.length=0;
+            while(grid.firstChild)grid.removeChild(grid.firstChild);
+            count=number;
+            for(let i=0;i<number;i++){
+                const cell=createInput(i);grid.appendChild(cell);
+                inputs[i].value=snapshot[i]||'';
+            }
+            snapshot.fill('');
+            for(const item of modeButtons){
+                item.setAttribute('aria-pressed',String(Number(item.textContent)===number));
+                item.style.background=Number(item.textContent)===number?'#4266f8':'transparent';
+                item.style.color=Number(item.textContent)===number?'#fff':foreground;
+            }
+        };
+        for(const number of [12,24]){
+            const item=document.createElement('button');
+            item.type='button';item.textContent=String(number);
+            item.style.cssText='padding:8px 18px;border-radius:9px;border:1px solid '+outline+';font:600 14px system-ui;cursor:pointer';
+            item.addEventListener('click',()=>{
+                if(number!==count){renderWords(number);inputs[0]?.focus();}
+            });
+            modeButtons.push(item);chooser.appendChild(item);
+        }
+        card.appendChild(chooser);card.appendChild(grid);
         const hint=text('p',s.hint,'font-size:13px;color:#c9ad7f;margin:12px 0 10px;line-height:1.5');
         const warning=text('p',s.privacy,'font-size:13px;color:'+muted+';line-height:1.55;margin:0 0 20px');
         const error=text('p','','color:#ff8e90;min-height:1.3em;margin:0 0 10px;font-size:13px');
         error.setAttribute('aria-live','polite');
+        renderWords(12);
         const actions=document.createElement('div');
         actions.style.cssText='display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap';
         const button=(value,primary)=>{
@@ -79,7 +151,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null) {
         document.body.style.overflow='hidden';
         document.body.appendChild(backdrop);
         const cleanup=()=>{
-            input.value='';input.placeholder='';
+            for(const word of inputs){word.value='';word.placeholder='';}
             signal?.removeEventListener('abort',dismiss);
             backdrop.removeEventListener('keydown',keydown);
             backdrop.remove();document.body.style.overflow=oldOverflow;
@@ -89,9 +161,9 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null) {
         const keydown=event=>{
             if(event.key==='Escape'){event.preventDefault();dismiss();}
             if(event.key==='Tab'){
-                const targets=[input,cancel,submit],current=targets.indexOf(document.activeElement);
+                const targets=[...modeButtons,...inputs,cancel,submit],current=targets.indexOf(document.activeElement);
                 if(current>=0){event.preventDefault();
-                    targets[(current+(event.shiftKey?2:1))%3].focus();}
+                    targets[(current+(event.shiftKey?targets.length-1:1))%targets.length].focus();}
             }
         };
         backdrop.addEventListener('keydown',keydown);
@@ -99,13 +171,15 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null) {
         cancel.addEventListener('click',dismiss,{once:true});
         backdrop.addEventListener('click',event=>{if(event.target===backdrop)dismiss();});
         submit.addEventListener('click',()=>{
-            const words=input.value.trim().split(/\s+/u).filter(Boolean);
-            if(words.length!==12&&words.length!==24){error.textContent=s.invalid;return;}
-            // Never copy the phrase into Qt state or send it to any API.
-            const phrase=input.value;
+            const words=inputs.map(word=>word.value.trim().toLowerCase());
+            if(words.length!==count || words.some(word=>!/^[a-z]+$/u.test(word))){
+                error.textContent=s.invalid;return;
+            }
+            const phrase=words.join(' ');
+            words.fill('');
             cleanup();
             resolve(phrase);
         },{once:false});
-        input.focus();
+        inputs[0]?.focus();
     });
 }
