@@ -2482,6 +2482,10 @@
             <source>Creating a secure Farcaster sign-in request…</source>
             <translation>正在创建安全的 Farcaster 登录请求…</translation>
         </message>
+        <message id="genycaster.shell.enable_publishing_with_recovery_phrase">
+            <source>Enable publishing with recovery phrase</source>
+            <translation>使用恢复短语启用发布</translation>
+        </message>
         <message id="genycaster.shell.enable_interactions">
             <source>Enable interactions</source>
             <translation>启用互动</translation>

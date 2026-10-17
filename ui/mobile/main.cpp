@@ -4418,6 +4418,21 @@ int main(int argc, char* argv[])
     QObject::connect(
         &localizationController, &LocalizationController::localeChanged,
         &application, applyApplicationLocaleFont);
+#if defined(__EMSCRIPTEN__)
+    // Keep the phrase-import DOM sheet in the same UI language as Qt/QML,
+    // including live changes in the Genycaster language selector. This passes
+    // only a public locale tag; recovery words never cross this bridge.
+    const auto updateBrowserRecoveryLocale = [&localizationController] {
+        const QByteArray language = localizationController.effectiveLanguageTag().toUtf8();
+        EM_ASM({
+            window.__genycasterPreferredLanguage = UTF8ToString($0, $1);
+        }, language.constData(), language.size());
+    };
+    updateBrowserRecoveryLocale();
+    QObject::connect(
+        &localizationController, &LocalizationController::localeChanged,
+        &application, updateBrowserRecoveryLocale);
+#endif
 
     GeoLocationResolver geoLocationResolver{
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct};

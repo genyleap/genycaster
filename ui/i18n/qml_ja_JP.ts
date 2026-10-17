@@ -2482,6 +2482,10 @@
             <source>Creating a secure Farcaster sign-in request…</source>
             <translation>安全な Farcaster サインインリクエストを作成中…</translation>
         </message>
+        <message id="genycaster.shell.enable_publishing_with_recovery_phrase">
+            <source>Enable publishing with recovery phrase</source>
+            <translation>リカバリーフレーズで投稿を有効にする</translation>
+        </message>
         <message id="genycaster.shell.enable_interactions">
             <source>Enable interactions</source>
             <translation>操作を有効にする</translation>

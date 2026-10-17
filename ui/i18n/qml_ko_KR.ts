@@ -2482,6 +2482,10 @@
             <source>Creating a secure Farcaster sign-in request…</source>
             <translation>안전한 Farcaster 로그인 요청 생성 중…</translation>
         </message>
+        <message id="genycaster.shell.enable_publishing_with_recovery_phrase">
+            <source>Enable publishing with recovery phrase</source>
+            <translation>복구 구문으로 게시 활성화</translation>
+        </message>
         <message id="genycaster.shell.enable_interactions">
             <source>Enable interactions</source>
             <translation>상호작용 활성화</translation>

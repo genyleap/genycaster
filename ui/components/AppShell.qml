@@ -1603,7 +1603,9 @@ Item {
                         Layout.fillWidth: true
                         text: presentationBridge.signerBusy
                               ? qsTrId("genycaster.shell.enabling")
-                              : qsTrId("genycaster.shell.enable_interactions")
+                              : wasmReadOnly
+                                ? qsTrId("genycaster.shell.enable_publishing_with_recovery_phrase")
+                                : qsTrId("genycaster.shell.enable_interactions")
                         prominent: true
                         // WASM uses its own asynchronous wallet/WebCrypto/Snapchain
                         // signer path. An unavailable *native* keychain must not

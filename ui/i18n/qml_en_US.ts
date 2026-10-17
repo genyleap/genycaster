@@ -2482,6 +2482,10 @@
             <source>Creating a secure Farcaster sign-in request…</source>
             <translation>Creating a secure Farcaster sign-in request…</translation>
         </message>
+        <message id="genycaster.shell.enable_publishing_with_recovery_phrase">
+            <source>Enable publishing with recovery phrase</source>
+            <translation>Enable publishing with recovery phrase</translation>
+        </message>
         <message id="genycaster.shell.enable_interactions">
             <source>Enable interactions</source>
             <translation>Enable interactions</translation>

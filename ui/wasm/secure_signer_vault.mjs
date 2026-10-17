@@ -27,10 +27,27 @@ function requireFid(fid) {
 }
 
 function requireSecureContext(environment) {
-    if (environment.isSecureContext !== true ||
-        !environment.crypto?.subtle ||
-        !environment.indexedDB) {
-        throw failure('secure context, WebCrypto and IndexedDB are required');
+    // Keep separate errors: an untrustworthy emrun origin cannot be fixed by
+    // wallet approval, while a storage-disabled browser needs a different fix.
+    if (environment.isSecureContext !== true) {
+        const localBindAddress = environment.location?.hostname === '0.0.0.0';
+        throw failure(localBindAddress
+            ? 'insecure origin 0.0.0.0: open the app at http://127.0.0.1 on the same port, then retry. Browser WebCrypto requires a secure context'
+            : 'this page is not a secure context. Use HTTPS or the loopback addresses http://127.0.0.1 / http://localhost');
+    }
+
+    let subtleAvailable = false;
+    let storageAvailable = false;
+    try { subtleAvailable = typeof environment.crypto?.subtle?.sign === 'function'; }
+    catch { /* deny rather than silently downgrading signing */ }
+    try { storageAvailable = typeof environment.indexedDB?.open === 'function'; }
+    catch { /* access can throw SecurityError when storage is restricted */ }
+
+    if (!subtleAvailable) {
+        throw failure('WebCrypto SubtleCrypto is unavailable. Check browser security settings and the current origin');
+    }
+    if (!storageAvailable) {
+        throw failure('IndexedDB is unavailable or blocked. Allow persistent site storage or use a normal (non-private) browser window');
     }
 }
 

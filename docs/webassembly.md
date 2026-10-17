@@ -130,9 +130,31 @@ private keys, bearer tokens or recovery phrases.
 **Requirements and limitations:** the user must explicitly approve the
 wallet's custody EIP-712 requests. The EIP-1193 wallet must have custody
 control onchain; an identity proof from OpenProof alone does not authorize
-signing. WebCrypto requires HTTPS or a loopback secure context. A browser
-origin compromise could request signatures from an otherwise non-exportable
-CryptoKey; this is not OS-keychain isolation. A successful mocked test is
+signing. WebCrypto requires HTTPS or a loopback secure context. Qt
+Creator's `emrun` may open the server's bind-all address
+`http://0.0.0.0:30000`, which browsers do **not** treat as secure.
+The WASM startup bridge redirects that precise origin to
+`http://127.0.0.1:30000`, preserving the path, query and fragment; it never
+rewrites non-local HTTP URLs. The browser signer reports insecure context,
+missing SubtleCrypto and unavailable IndexedDB separately. Inspect
+`window.__genycasterSignerEnvironment` in the DevTools console to see
+`origin`, `secureContext`, `webCrypto` and `indexedDB`. All but
+`origin` must be `true` for key provisioning. Browser privacy features or
+private-window storage restrictions can still prevent IndexedDB operations
+even when the API is present. Switching origins does **not** migrate existing
+IndexedDB signer keys; registration must still be verified for the current
+origin before enabling writes.
+For users who own an existing Farcaster FID via a BIP39 custody wallet,
+WASM now offers **Import Farcaster recovery phrase** instead of requiring a
+wallet extension: the browser verifies 12/24 words, derives custody with
+BIP44, checks `custodyOf(fid)` directly on Optimism, and performs the two
+KeyAdd EIP-712 signatures in memory. The phrase is not sent to any server or
+saved locally; only the independently authorized browser Ed25519 signer is
+persisted. See [browser recovery design](farcaster-recovery-wasm.md) for
+the Quorum Mobile reference, trust model, unsupported smart-contract custody,
+key lifetime and device-recovery limitations.
+A browser origin compromise could request signatures from an otherwise
+non-exportable CryptoKey; this is not OS-keychain isolation. A successful mocked test is
 not proof that an individual user's wallet has registered a signer:
 a live Qt 6.12 WASM browser test, wallet approval and Snapchain-confirmed
 `KEY_ADD` are still needed. Media upload and Mini App wallet SDK parity
@@ -306,8 +328,11 @@ C++ `-Wdollar-in-identifier-extension` or unused-capture warnings.
    browser Console for WASM exceptions, CORS denial, loading, navigation,
    IndexedDB persistence across refresh, reduced-motion indicators and
    read-only guest feeds in Chrome/Firefox/Safari.
-5. Verify browser sign-in/write buttons are disabled until a browser-specific
-   secure auth and write flow has actually been implemented.
+5. Verify `window.__genycasterSignerEnvironment` indicates a secure
+   context, WebCrypto and IndexedDB. Browser writes require a custody-wallet
+   approval and network-confirmed Snapchain signer; sign-in alone does not
+   authorize publishing. Confirm the live gateway CORS preflight and then
+   perform a supervised KEY_ADD/CAST integration test before production use.
 
 Qt documents limitations of QtNetwork on WebAssembly (browser CORS, limited
 sockets and no native SSL operations) and lists Qt Multimedia as Technology

@@ -217,3 +217,71 @@ test('sign-out racing with write rejects stale completion',async()=>{
     await assert.rejects(write,/identity change/);
     assert.equal(data.submitted.length,0);
 });
+
+const recoveredPhrase='test test test test test test test test test test test junk';
+const recoveredAddress='0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
+
+test('recovery phrase authorizes KEY_ADD without any browser wallet extension',async()=>{
+    const data=fixture({noWallet:true});
+    const chainCalls=[];
+    const signer=createBrowserProtocolSigner({
+        browser:data.browser,vault:data.vault,
+        fetchImpl:async(url,options)=>{
+            if(url==='https://mainnet.optimism.io'){
+                assert.equal(options.method,'POST');
+                assert.equal(options.credentials,'omit');
+                const body=JSON.parse(options.body);
+                chainCalls.push(body.method);
+                assert.ok(!options.body.includes(recoveredPhrase),
+                    'the recovery phrase must never enter an HTTP request');
+                if(body.method==='eth_chainId')
+                    return new Response(JSON.stringify({jsonrpc:'2.0',id:body.id,result:'0xa'}));
+                if(body.method==='eth_call'){
+                    assert.match(body.params[0].data,/^0x65269e47[0-9a-f]{64}$/);
+                    return new Response(JSON.stringify({jsonrpc:'2.0',id:body.id,
+                        result:'0x'+'0'.repeat(24)+recoveredAddress.slice(2)}));
+                }
+                throw new Error('unexpected RPC call');
+            }
+            return data.fetchImpl(url,options);
+        },
+        onState:s=>data.states.push(s),delay:async()=>{},
+    });
+    const authorized=await signer.provisionFromRecovery(fid,recoveredPhrase);
+    assert.equal(authorized.source,'gasless');
+    assert.deepEqual(chainCalls,['eth_chainId','eth_call']);
+    assert.equal(data.typed.length,0,'wallet extension must not be invoked');
+    assert.equal(data.submitted.length,1,'signed KEY_ADD submitted once');
+    assert.equal(signer.ready,true);
+    await signer.publishCast(fid,{text:'Hello, imported from Farcaster phrase'});
+    assert.equal(data.submitted.length,2);
+});
+
+test('wrong recovery phrase FID ownership rejects KEY_ADD and does not submit',async()=>{
+    const data=fixture({noWallet:true});
+    const signer=createBrowserProtocolSigner({
+        browser:data.browser,vault:data.vault,
+        fetchImpl:async(url,options)=>{
+            if(url==='https://mainnet.optimism.io'){
+                const request=JSON.parse(options.body);
+                if(request.method==='eth_chainId')
+                    return new Response(JSON.stringify({result:'0xa'}));
+                return new Response(JSON.stringify({result:'0x'+'0'.repeat(24)+
+                    '5'.repeat(40)}));
+            }
+            return data.fetchImpl(url,options);
+        },
+        onState:s=>data.states.push(s),
+    });
+    await assert.rejects(signer.provisionFromRecovery(fid,recoveredPhrase),
+        /does not own/);
+    assert.equal(data.submitted.length,0);
+});
+
+test('invalid recovery BIP39 checksum fails closed without touching Snapchain',async()=>{
+    const data=fixture({noWallet:true});
+    const signer=data.create();
+    await assert.rejects(signer.provisionFromRecovery(fid,
+        'test '.repeat(11)+'abandon'),/checksum/);
+    assert.equal(data.submitted.length,0);
+});

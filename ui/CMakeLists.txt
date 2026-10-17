@@ -352,7 +352,27 @@ if(EMSCRIPTEN)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_protocol_signer.mjs"
             "$<TARGET_FILE_DIR:farcaster_client>/browser_protocol_signer.mjs"
-        COMMENT "Packaging async browser custody signer and canonical Farcaster codec"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/farcaster_recovery.mjs"
+            "$<TARGET_FILE_DIR:farcaster_client>/farcaster_recovery.mjs"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/recovery-phrase-dialog.mjs"
+            "$<TARGET_FILE_DIR:farcaster_client>/recovery-phrase-dialog.mjs"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:farcaster_client>/vendor"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/vendor/noble-secp256k1.mjs"
+            "$<TARGET_FILE_DIR:farcaster_client>/vendor/noble-secp256k1.mjs"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/vendor/bip39-english.mjs"
+            "$<TARGET_FILE_DIR:farcaster_client>/vendor/bip39-english.mjs"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/vendor/noble-secp256k1.LICENSE"
+            "$<TARGET_FILE_DIR:farcaster_client>/vendor/noble-secp256k1.LICENSE"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/vendor/scure-bip39.LICENSE"
+            "$<TARGET_FILE_DIR:farcaster_client>/vendor/scure-bip39.LICENSE"
+        COMMENT "Packaging browser Farcaster recovery, signer, canonical codec and pinned cryptography"
         VERBATIM
     )
 endif()

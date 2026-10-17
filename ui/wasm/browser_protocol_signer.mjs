@@ -225,7 +225,51 @@ export function createBrowserProtocolSigner({
             throw new Error('Selected wallet address does not own Farcaster FID '+fid);
         if((await ethereum.request({method:'eth_chainId'}))!=='0x1')
             await ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x1'}]});
-        return {ethereum,address};
+        return {address,
+            signTypedData:document=>ethereum.request({
+                method:'eth_signTypedData_v4',
+                params:[address,JSON.stringify(document)],
+            }),
+        };
+    }
+
+    // The imported Farcaster recovery phrase is used ONLY to derive the
+    // custody signer for initial authorization. It is never sent to a server
+    // or placed in IndexedDB, Qt state, logs or a persistent browser cache.
+    async function recoveryCustody(fid, phrase){
+        const { deriveFarcasterCustody } = await import('./farcaster_recovery.mjs');
+        const recovered=await deriveFarcasterCustody(phrase);
+        try{
+            // Public chain lookup from the canonical Optimism IdRegistry.
+            // Do not trust the local mnemonic's address without checking FID.
+            const rpc='https://mainnet.optimism.io';
+            let requestId=0;
+            const call=async(method,params)=>{
+                const response=await fetchImpl(rpc,{
+                    method:'POST',credentials:'omit',redirect:'error',mode:'cors',
+                    headers:{'content-type':'application/json'},
+                    signal:AbortSignal.timeout(16000),
+                    body:JSON.stringify({jsonrpc:'2.0',method,params,id:++requestId}),
+                });
+                if(!response.ok)throw new Error('Optimism JSON-RPC HTTP '+response.status);
+                const result=await response.json();
+                if(result.error||typeof result.result!=='string')
+                    throw new Error('Optimism RPC failed to verify custody');
+                return result.result;
+            };
+            if((await call('eth_chainId',[])).toLowerCase()!=='0xa')
+                throw new Error('Custody verification RPC is not Optimism mainnet');
+            const selector=custodySelector+BigInt(fid).toString(16).padStart(64,'0');
+            const result=await call('eth_call',[{
+                to:registryAddress,data:selector,
+            },'latest']);
+            if(!/^0x[0-9a-f]{64}$/i.test(result))
+                throw new Error('Optimism IdRegistry returned malformed custody data');
+            const custody=requireAddress('0x'+result.slice(-40));
+            if(custody!==requireAddress(recovered.address))
+                throw new Error('This recovery phrase does not own the signed-in Farcaster FID');
+            return recovered;
+        }catch(error){recovered.dispose();throw error;}
     }
 
     async function restore(fidValue){
@@ -244,15 +288,16 @@ export function createBrowserProtocolSigner({
         });
     }
 
-    async function provision(fidValue){
+    async function provision(fidValue, custodyProvider=walletCustody){
         const fid=requireFid(fidValue);
         return exclusive(async()=>{
             activeFid=fid;activeKey=null;const expectedGeneration=++generation;
             state('provisioning');
+            let wallet=null;
             try {
-                // No KEY_ADD can be requested without proving the selected
-                // wallet is the current onchain custody for this exact FID.
-                const wallet=await walletCustody(fid);
+                // No KEY_ADD can be requested without verifying the current
+                // custody address on Optimism for this exact signed-in FID.
+                wallet=await custodyProvider(fid);
                 verifySession(fid,expectedGeneration);
                 const key=await vault.ensure(fid);
                 activeKey=key.publicKeyHex;
@@ -265,16 +310,10 @@ export function createBrowserProtocolSigner({
                 const typed=keyAddTypedData({fid,publicKeyHex:activeKey,
                     scopes:SOCIAL_SCOPES,nonce,deadline,ttl});
                 verifySession(fid,expectedGeneration);
-                const signedRequest=await wallet.ethereum.request({
-                    method:'eth_signTypedData_v4',
-                    params:[wallet.address,JSON.stringify(typed.signedKeyRequest)],
-                });
+                const signedRequest=await wallet.signTypedData(typed.signedKeyRequest);
                 fromHex(signedRequest,65);
                 verifySession(fid,expectedGeneration);
-                const custodySignature=await wallet.ethereum.request({
-                    method:'eth_signTypedData_v4',
-                    params:[wallet.address,JSON.stringify(typed.keyAdd)],
-                });
+                const custodySignature=await wallet.signTypedData(typed.keyAdd);
                 fromHex(custodySignature,65);
                 verifySession(fid,expectedGeneration);
                 const metadata=abiMetadata(fid,wallet.address,signedRequest,deadline);
@@ -297,8 +336,15 @@ export function createBrowserProtocolSigner({
             }catch(error){
                 state('authorization-required',String(error.message||error));
                 throw error;
+            }finally {
+                // Explicitly drop custody key even after a failed KEY_ADD.
+                wallet?.dispose?.();
             }
         });
+    }
+
+    async function provisionFromRecovery(fid,phrase) {
+        return provision(fid,owner=>recoveryCustody(owner,phrase));
     }
 
     async function signedWrite(fidValue,scope,encode){
@@ -393,7 +439,7 @@ export function createBrowserProtocolSigner({
     }
     function signedOut(){generation++;activeFid=null;activeKey=null;state('signed-out');}
     return Object.freeze({
-        restore,provision,publishCast,publishThread,castRemove,reaction,follow,revoke,signedOut,
+        restore,provision,provisionFromRecovery,publishCast,publishThread,castRemove,reaction,follow,revoke,signedOut,
         get ready(){return !!activeFid&&!!activeKey&&!busy&&lastPhase==='ready';},
     });
 }

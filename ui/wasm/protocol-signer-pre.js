@@ -5,9 +5,35 @@
 (function () {
     "use strict";
     if (typeof window === "undefined") return;
+    // emrun can present the bind-all address (0.0.0.0) as the page origin.
+    // This is NOT a potentially trustworthy origin. The browser then hides
+    // SubtleCrypto, so Farcaster key storage must fail closed. Normalize only
+    // this explicit *local* listen address; never rewrite remote HTTP hosts.
+    if (window.location?.protocol === "http:"
+        && window.location.hostname === "0.0.0.0") {
+        try {
+            const safeUrl = new URL(window.location.href);
+            safeUrl.hostname = "127.0.0.1";
+            window.location.replace(safeUrl.href);
+            return;
+        } catch (error) {
+            console.warn("Genycaster: cannot switch 0.0.0.0 to a secure loopback origin", error);
+        }
+    }
+    // A read-only diagnostic, with no wallet or signer secrets.
+    window.__genycasterSignerEnvironment = Object.freeze({
+        get origin() { return window.location?.origin || ""; },
+        get secureContext() { return window.isSecureContext === true; },
+        get webCrypto() { return typeof window.crypto?.subtle?.sign === "function"; },
+        get indexedDB() {
+            try { return typeof window.indexedDB?.open === "function"; }
+            catch { return false; }
+        },
+    });
     const events = [];
     let client = null, initializedBase = "", epoch = 0, owner = "";
     let inFlight = false;
+    let recoveryController = null;
     function report(payload) {
         // No unbounded event-buffer growth if the Qt GUI is paused.
         events.push(payload);
@@ -35,6 +61,8 @@
         // requests are invalidated and cannot submit protocol messages.
         if (action === "signed-out") {
             ++epoch;
+            recoveryController?.abort();
+            recoveryController = null;
             inFlight = false;
             owner = "";
             client?.signedOut();
@@ -45,6 +73,8 @@
         if (owner && owner !== fid) {
             // Identity changes must invalidate any pending custody prompt.
             ++epoch;
+            recoveryController?.abort();
+            recoveryController = null;
             client?.signedOut();
             inFlight = false;
         }
@@ -67,7 +97,20 @@
                 if (action === "restore") {
                     await current.restore(fid);
                 } else if (action === "provision") {
-                    await current.provision(fid);
+                    // Quorum Mobile-style phrase recovery, WITHOUT invoking
+                    // ethereum.request or asking for an external wallet.
+                    // The phrase stays entirely in DOM/JS and is never put
+                    // into Qt/C++ memory or persisted to browser storage.
+                    const controller = new AbortController();
+                    recoveryController = controller;
+                    const { promptForFarcasterRecovery } =
+                        await import('./recovery-phrase-dialog.mjs');
+                    if (controller.signal.aborted ||
+                        epoch !== thisEpoch || owner !== fid) return;
+                    const phrase = await promptForFarcasterRecovery(
+                        window,controller.signal);
+                    if (epoch !== thisEpoch || owner !== fid) return;
+                    await current.provisionFromRecovery(fid,phrase);
                 } else if (action === "revoke") {
                     await current.revoke(fid);
                 } else {
@@ -95,15 +138,21 @@
                 }
             } catch(error) {
                 if (epoch !== thisEpoch || owner !== fid) return;
+                const cancelled = error?.code === 'user-cancelled' ||
+                    error?.message === 'Recovery import cancelled';
                 report({kind: action === "restore" || action === "provision"
                        || action === "revoke" ? "signer" : "write",
-                    phase: action === "restore" ? "unavailable"
+                    phase: cancelled ? "missing"
+                         : action === "restore" ? "unavailable"
                          : action === "provision" ? "authorization-required"
                          : action === "revoke" ? "failed" : "failed",
                     busy:false,ready:false,fid,
-                    error:String(error?.message || error).slice(0,700)});
+                    error:cancelled ? '' : String(error?.message || error).slice(0,700)});
             } finally {
-                if (epoch === thisEpoch) inFlight = false;
+                if (epoch === thisEpoch) {
+                    recoveryController = null;
+                    inFlight = false;
+                }
             }
         })();
     }

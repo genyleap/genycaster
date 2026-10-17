@@ -926,6 +926,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.creating_a_secure_farcaster_sign_in_request");
     //% "Enable interactions"
     (void)qtTrId("genycaster.shell.enable_interactions");
+    //% "Enable publishing with recovery phrase"
+    (void)qtTrId("genycaster.shell.enable_publishing_with_recovery_phrase");
     //% "Enabling…"
     (void)qtTrId("genycaster.shell.enabling");
     //% "Followers"
