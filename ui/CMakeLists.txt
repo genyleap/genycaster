@@ -783,12 +783,14 @@ if(_genycasterScriptFontFiles)
         FILES ${_genycasterScriptFontFiles})
 endif()
 
-# The bundled CJK script font generates a very large immutable byte-array
-# translation unit. Compiling that data at -O0 prevents O3 from exhausting
-# limited VPS RAM. Keep normal Release optimization for application code.
+# The bundled font files are immutable data, not executable algorithms.
+# Compile their generated resource arrays at -O0 so the WebAssembly Release
+# compiler does not waste gigabytes of memory optimizing constant bytes.
+# All application C++ and QML retain normal Release optimization.
 if(EMSCRIPTEN)
     set_source_files_properties(
         "${CMAKE_CURRENT_BINARY_DIR}/.qt/rcc/qrc_genycaster_script_fonts.cpp"
+        "${CMAKE_CURRENT_BINARY_DIR}/.qt/rcc/qrc_genycaster_emoji_fallback.cpp"
         PROPERTIES COMPILE_OPTIONS "-O0")
 endif()
 
