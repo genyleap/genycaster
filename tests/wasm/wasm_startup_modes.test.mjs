@@ -7,7 +7,7 @@ const script=readFileSync(new URL("../../ui/wasm/genycaster-loader.js",import.me
 function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measured=false}={}) {
     const nodes=new Map();
     for(const id of ["genycaster-boot","boot-heading","boot-status","boot-stage",
-        "boot-fill","boot-percent","boot-retry","qt-screen"]) {
+        "boot-fill","boot-percent","boot-retry","boot-version","boot-build-credit","qt-screen"]) {
         const classes=new Set();
         nodes.set(id,{
             hidden:false,textContent:"",style:{},dataset:{},
@@ -23,7 +23,7 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     const binary="farcaster_client.bbbbbbbbbbbbbbbbbbbb.wasm";
     const scope={
         window:{
-            __genycasterAssets:{version,wasm:binary},
+            __genycasterAssets:{version,wasm:binary,appVersion:"0.4.0",buildId:version.slice(0,8)},
             farcaster_client_entry(){},
             fetch:async()=>measured
                 ? new Response(new ReadableStream({
@@ -75,6 +75,8 @@ test("first launch uses real download → install → Qt initialize → ready mi
     assert.equal(h.phase(),"download");
     assert.equal(h.mode(),"install");
     assert.match(h.label(),/Download/i);
+    assert.equal(h.nodes.get("boot-version").textContent,"v0.4.0 · Build aaaaaaaa");
+    assert.match(h.nodes.get("boot-build-credit").textContent,/v0.4.0 · Build aaaaaaaa/);
     const response=await h.fetch();
     await response.arrayBuffer();
     assert.equal(h.phase(),"download","headers are not download completion");

@@ -13,6 +13,14 @@ QtObject {
     readonly property int textStartAlignment: rtl ? Text.AlignRight : Text.AlignLeft
     readonly property int textEndAlignment: rtl ? Text.AlignLeft : Text.AlignRight
 
+    // Mouse/touch focus must not create a bright outline after a click.
+    // Keep a visible ring for keyboard navigation on desktop and WASM.
+    function keyboardFocusVisible(control) {
+        return control.activeFocus
+            && (control.focusReason === Qt.TabFocusReason
+                || control.focusReason === Qt.BacktabFocusReason)
+    }
+
     function contrastInk(backgroundColor) {
         const luminance = 0.2126 * backgroundColor.r + 0.7152 * backgroundColor.g + 0.0722 * backgroundColor.b
         return luminance > 0.72 ? "#17181B" : "#FFFFFF"

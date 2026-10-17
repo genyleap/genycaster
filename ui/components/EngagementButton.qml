@@ -52,9 +52,9 @@ Button {
         anchors.fill: parent
         anchors.margins: 1
         fillColor: "transparent"
-        borderWidth: control.activeFocus ? 2 : 0
+        borderWidth: Theme.keyboardFocusVisible(control) ? 2 : 0
         borderColor: Theme.focus
         curveDepth: height / 2
-        shadowColor: control.activeFocus ? Theme.focusHalo : Theme.shadow
+        shadowColor: Theme.keyboardFocusVisible(control) ? Theme.focusHalo : Theme.shadow
     }
 }

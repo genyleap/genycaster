@@ -82,11 +82,11 @@ ComboBox {
     background: Superellipse {
         fillColor: control.popup.visible ? Theme.surfaceElevated
                   : control.hovered ? Theme.surfaceHover : Theme.surfaceRaised
-        borderWidth: control.activeFocus || control.popup.visible ? 2 : 1
-        borderColor: control.activeFocus || control.popup.visible ? Theme.focus : Theme.borderMuted
+        borderWidth: Theme.keyboardFocusVisible(control) || control.popup.visible ? 2 : 1
+        borderColor: Theme.keyboardFocusVisible(control) || control.popup.visible ? Theme.focus : Theme.borderMuted
         curveDepth: Theme.curveControl
         elevation: Theme.elevationControl
-        shadowColor: control.activeFocus || control.popup.visible ? Theme.focusHalo : Theme.shadow
+        shadowColor: Theme.keyboardFocusVisible(control) || control.popup.visible ? Theme.focusHalo : Theme.shadow
         shadowOpacityScale: control.popup.visible ? 1.10 : 0.88
         Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
     }

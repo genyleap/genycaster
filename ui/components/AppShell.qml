@@ -1013,6 +1013,35 @@ Item {
                                     composerDrawer.suggestedEmbeds = []
                                 }
                             }
+
+                        // Compact navigation floats above content instead of reserving a
+                        // permanent slab at the bottom of the viewport. The blurred glass
+                        // surface keeps the controls legible while preserving context.
+                        BottomNavigation {
+                            id: mobileBottomNavigation
+                            // Declared directly under the reading pane, not under RowLayout
+                            // and never reparented after layout has assigned coordinates.
+                            visible: root.mobile && !root.initialSetupOpen
+                            z: 800
+                            // Keep the dock compact and genuinely floating rather than
+                            // recreating a full-width tab bar.
+                            width: Math.max(240, Math.min(readingPane.width - Theme.mobileGutter * 4, 420))
+                            height: 60
+                            anchors.horizontalCenter: readingPane.horizontalCenter
+                            anchors.bottom: readingPane.bottom
+                            anchors.bottomMargin: Math.max(Theme.space4, Theme.mobileGutter)
+                            // Capture content only, never the dock itself.
+                            blurSourceItem: readingContent
+                            activeView: presentationBridge.activeView
+                            activeFeed: presentationBridge.activeFeed
+                            shellRoute: root.shellRoute
+                            primaryDestination: root.primaryDestination
+                            onTrendingRequested: root.openExplorer()
+                            onFollowingRequested: root.openHome()
+                            onRouteRequested: route => root.openShellRoute(route)
+                            onCreateRequested: mobileCreateMenu.open()
+                            onSettingsRequested: root.openLocaleSettings()
+                        }
                         }
 
                         Item {
@@ -1113,34 +1142,6 @@ Item {
 
             }
 
-            // Compact navigation floats above content instead of reserving a
-            // permanent slab at the bottom of the viewport. The blurred glass
-            // surface keeps the controls legible while preserving context.
-            BottomNavigation {
-                id: mobileBottomNavigation
-                // Reparent outside the RowLayout: otherwise the reading
-                // surface can occlude this dock on narrow WebAssembly views.
-                parent: root
-                visible: root.mobile && !root.initialSetupOpen
-                z: 800
-                // Keep the dock compact and genuinely floating rather than
-                // recreating a full-width tab bar.
-                width: Math.max(240, Math.min(root.width - Theme.mobileGutter * 4, 420))
-                height: 60
-                anchors.horizontalCenter: root.horizontalCenter
-                anchors.bottom: root.bottom
-                anchors.bottomMargin: Math.max(Theme.space4, Theme.mobileGutter)
-                blurSourceItem: readingPane
-                activeView: presentationBridge.activeView
-                activeFeed: presentationBridge.activeFeed
-                shellRoute: root.shellRoute
-                primaryDestination: root.primaryDestination
-                onTrendingRequested: root.openExplorer()
-                onFollowingRequested: root.openHome()
-                onRouteRequested: route => root.openShellRoute(route)
-                onCreateRequested: mobileCreateMenu.open()
-                onSettingsRequested: root.openLocaleSettings()
-            }
         }
     }
 

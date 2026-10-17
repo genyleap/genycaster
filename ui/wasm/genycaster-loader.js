@@ -30,6 +30,19 @@ const key="genycaster.boot.loaded.v1";
 const versionKey="genycaster.boot.version.v1";
 const currentVersion=typeof window.__genycasterAssets?.version==="string"
     ? window.__genycasterAssets.version : "";
+const releaseInfo=window.__genycasterAssets||{};
+const applicationVersion=typeof releaseInfo.appVersion==="string"
+    && /^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/.test(releaseInfo.appVersion)
+    ? releaseInfo.appVersion : "";
+const buildId=typeof releaseInfo.buildId==="string"
+    && /^[0-9a-f]{8}$/.test(releaseInfo.buildId)
+    && currentVersion.startsWith(releaseInfo.buildId)
+    ? releaseInfo.buildId : "";
+const buildLabel=(applicationVersion?"v"+applicationVersion:"")
+    +(buildId?(applicationVersion?" · ":"")+"Build "+buildId:"");
+const versionLabel=$("boot-version"),creditBuild=$("boot-build-credit");
+if(versionLabel)versionLabel.textContent=buildLabel;
+if(creditBuild)creditBuild.textContent=buildLabel?" · "+buildLabel:"";
 let seen=false, previousVersion="";
 try{
     seen=localStorage.getItem(key)==="1";

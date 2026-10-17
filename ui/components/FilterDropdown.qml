@@ -75,8 +75,8 @@ ComboBox {
     background: Superellipse {
         fillColor: control.popup.visible ? Theme.surfaceRaised
                   : control.hovered ? Theme.surfaceHover : "transparent"
-        borderWidth: control.popup.visible || control.activeFocus ? Theme.strokeHairline : 0
-        borderColor: control.activeFocus || control.popup.visible ? Theme.accent : Theme.borderSubtle
+        borderWidth: control.popup.visible || Theme.keyboardFocusVisible(control) ? Theme.strokeHairline : 0
+        borderColor: Theme.keyboardFocusVisible(control) || control.popup.visible ? Theme.accent : Theme.borderSubtle
         curveDepth: height / 2
         elevation: Theme.elevationNone
     }

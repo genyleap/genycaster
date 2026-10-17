@@ -36,7 +36,7 @@ Item {
                 : playerButton.selected
                 ? Theme.primarySurfaceHover
                 : (playerButtonHover.hovered ? Theme.mediaPlayerChromeHover : "transparent")
-            borderWidth: playerButton.activeFocus ? Theme.strokeEmphasis : 0
+            borderWidth: Theme.keyboardFocusVisible(playerButton) ? Theme.strokeEmphasis : 0
             borderColor: Theme.accent
             curveDepth: width / 2
 
@@ -1774,7 +1774,7 @@ Item {
                         anchors.fill: parent
                         fillColor: qualityPopup.opened || qualityHover.hovered
                             ? Theme.mediaPlayerChromeHover : "transparent"
-                        borderWidth: qualityButton.activeFocus ? Theme.strokeEmphasis : 0
+                        borderWidth: Theme.keyboardFocusVisible(qualityButton) ? Theme.strokeEmphasis : 0
                         borderColor: Theme.accent
                         curveDepth: height / 2
                     }

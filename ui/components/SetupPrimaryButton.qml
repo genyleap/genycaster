@@ -29,7 +29,7 @@ Button {
                    : root.down ? Theme.primaryPressed
                                : root.hovered ? Theme.primaryFillHover
                                               : Theme.primaryFill
-        borderWidth: root.activeFocus ? 2 : 0
+        borderWidth: Theme.keyboardFocusVisible(root) ? 2 : 0
         borderColor: Theme.focusOnAccent
         curveDepth: Theme.curveContainer
         elevation: root.enabled ? Theme.elevationControl : Theme.elevationNone

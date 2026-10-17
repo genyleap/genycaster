@@ -155,6 +155,29 @@ event arrives.
   reserves enough bottom space for it. The dock retains a continuous rounded
   Superellipse surface.
 
+## Mobile navigation, focus parity and stable boot markers
+
+- The mobile BottomNavigation belongs physically to `readingPane`; it is
+  anchored to that pane's bottom edge. Do not set `parent: root` on a
+  control declared in a RowLayout: Qt Quick layout ownership and reparenting
+  can leave the dock positioned over the mobile header. The navigation glass
+  captures `readingContent`, not the dock's ancestor, to avoid recursion.
+- Pointer-driven focus must not display a persistent white focus ring.
+  `Theme.keyboardFocusVisible(control)` checks `focusReason` for Tab /
+  Backtab and is shared by interactive controls (navigation, buttons,
+  switches, sliders, menus). Keyboard focus remains visually discernible;
+  typed-into text fields still show editing focus.
+- Step indicators in the browser splash have fixed width/height and
+  nonshrinking flex geometry. Current steps are blue and completed steps
+  green; an animated progress bar must never affect marker dimensions or
+  font-weight, including on a warm refresh.
+- CMake forwards the project's semantic `PROJECT_VERSION` to the WASM
+  packaging stage. `genycaster-assets.js` exposes public `appVersion` and
+  a deterministic, eight-character `buildId` derived from the release's
+  asset fingerprint. These appear below the brand and next to
+  `Powered by Genyleap · WASM Engine`. This **is not** a CI build counter;
+  the full fingerprint remains the release-cache identity.
+
 ## Verified download progress
 
 On an initial visit or binary update, the loader may read a *clone* of the

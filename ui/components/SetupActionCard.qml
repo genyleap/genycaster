@@ -50,8 +50,8 @@ Button {
                                   : root.hovered ? Theme.primaryFillHover : Theme.primaryFill)
                      : root.down ? Theme.surfacePressed
                                  : root.hovered ? Theme.surfaceHover : Theme.surface
-        borderWidth: root.primary && !root.visuallyDisabled ? 0 : (root.activeFocus ? 2 : Theme.strokeStandard)
-        borderColor: root.activeFocus ? Theme.focus : Theme.borderMuted
+        borderWidth: root.primary && !root.visuallyDisabled ? 0 : (Theme.keyboardFocusVisible(root) ? 2 : Theme.strokeStandard)
+        borderColor: Theme.keyboardFocusVisible(root) ? Theme.focus : Theme.borderMuted
         curveDepth: Theme.curveContainer
         elevation: root.primary && !root.visuallyDisabled ? Theme.elevationControl : Theme.elevationNone
 

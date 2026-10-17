@@ -207,16 +207,16 @@ Button {
                 return control.hovered || control.down ? Theme.castHover : "transparent"
             return control.down ? Theme.surfacePressed : control.hovered ? Theme.surfaceHover : Theme.surfaceRaised
         }
-        borderWidth: control.activeFocus ? 2
+        borderWidth: Theme.keyboardFocusVisible(control) ? 2
                      : (!control.prominent && !control.quiet && !control.destructive && !control.positive && !control.selected ? Theme.strokeStandard : 0)
-        borderColor: control.activeFocus
+        borderColor: Theme.keyboardFocusVisible(control)
                      ? (control.prominent || control.positive ? Theme.focusOnAccent : Theme.focus)
                      : Theme.borderMuted
         curveDepth: control.pill ? control.height / 2 : Theme.curveControl
         elevation: control.enabled && control.elevated
                    && (control.prominent || control.positive || (!control.quiet && !control.destructive && !control.selected))
                    ? Theme.elevationControl : Theme.elevationNone
-        shadowColor: control.activeFocus ? Theme.focusHalo : Theme.shadow
+        shadowColor: Theme.keyboardFocusVisible(control) ? Theme.focusHalo : Theme.shadow
         shadowOpacityScale: control.down ? 0.42 : (control.hovered ? 1.08 : 1.0)
 
         Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }

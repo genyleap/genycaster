@@ -145,7 +145,7 @@ Item {
                 height: width
                 fillColor: previewControl.hovered || previewControl.down
                            ? Theme.mediaPlayerActionHover : Theme.mediaPlayerAction
-                borderWidth: previewControl.activeFocus ? Theme.strokeEmphasis : 0
+                borderWidth: Theme.keyboardFocusVisible(previewControl) ? Theme.strokeEmphasis : 0
                 borderColor: Theme.accent
                 curveDepth: Theme.curveControl
 
@@ -208,7 +208,7 @@ Item {
         background: Superellipse {
             fillColor: openOriginalControl.hovered
                        ? Theme.mediaPlayerChromeHover : Theme.mediaPlayerChrome
-            borderWidth: openOriginalControl.activeFocus ? Theme.strokeEmphasis : 0
+            borderWidth: Theme.keyboardFocusVisible(openOriginalControl) ? Theme.strokeEmphasis : 0
             borderColor: Theme.accent
             curveDepth: width / 2
         }

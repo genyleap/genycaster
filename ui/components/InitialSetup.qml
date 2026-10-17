@@ -583,7 +583,7 @@ Item {
                                     background: Superellipse {
                                         fillColor: stepButton.current ? Theme.surfaceSelected
                                                    : stepButton.hovered ? Theme.surfaceHover : "transparent"
-                                        borderWidth: stepButton.activeFocus ? 2 : 0
+                                        borderWidth: Theme.keyboardFocusVisible(stepButton) ? 2 : 0
                                         borderColor: Theme.focus
                                         curveDepth: Theme.curveControl
                                     }
@@ -1226,8 +1226,8 @@ Item {
                                                    : modeButton.down ? Theme.surfacePressed
                                                    : modeButton.hovered ? Theme.surfaceHover : Theme.surface
                                         borderWidth: modeButton.selected ? 0
-                                                   : modeButton.activeFocus ? 2 : Theme.strokeStandard
-                                        borderColor: modeButton.activeFocus ? Theme.focus : Theme.borderMuted
+                                                   : Theme.keyboardFocusVisible(modeButton) ? 2 : Theme.strokeStandard
+                                        borderColor: Theme.keyboardFocusVisible(modeButton) ? Theme.focus : Theme.borderMuted
                                         curveDepth: Theme.curveControl
                                     }
 
@@ -1288,7 +1288,7 @@ Item {
                                     background: Superellipse {
                                         curveDepth: 8
                                         fillColor: "transparent"
-                                        borderWidth: swatchButton.activeFocus ? 2 : 0
+                                        borderWidth: Theme.keyboardFocusVisible(swatchButton) ? 2 : 0
                                         borderColor: Theme.focus
                                     }
 

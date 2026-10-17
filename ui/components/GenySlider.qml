@@ -79,11 +79,11 @@ Slider {
         Superellipse {
             anchors.fill: parent
             fillColor: control.enabled ? Theme.surfaceElevated : Theme.surfaceMuted
-            borderWidth: control.activeFocus ? 2 : Theme.strokeStandard
-            borderColor: control.activeFocus ? Theme.focus : control.activeColor
+            borderWidth: Theme.keyboardFocusVisible(control) ? 2 : Theme.strokeStandard
+            borderColor: Theme.keyboardFocusVisible(control) ? Theme.focus : control.activeColor
             curveDepth: width / 2
             elevation: control.enabled ? Theme.elevationControl : Theme.elevationNone
-            shadowColor: control.activeFocus ? Theme.focusHalo : Theme.shadow
+            shadowColor: Theme.keyboardFocusVisible(control) ? Theme.focusHalo : Theme.shadow
             shadowOpacityScale: control.pressed ? 0.5 : 0.9
 
             Superellipse {

@@ -262,7 +262,7 @@ Popup {
                     fillColor: closeButton.hovered || closeButton.down
                                ? Theme.mediaViewerControlHover : Theme.mediaViewerControl
                     borderWidth: 1
-                    borderColor: closeButton.activeFocus ? Theme.accent : Theme.mediaViewerBorder
+                    borderColor: Theme.keyboardFocusVisible(closeButton) ? Theme.accent : Theme.mediaViewerBorder
                     curveDepth: closeButton.height / 2
                 }
             }

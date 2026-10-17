@@ -210,7 +210,11 @@ test('Setup stages align headings and keep legal reader compact with governing l
     assert.match(setup,/qsTrId\("genycaster\.setup\.open_terms"\)/);
     assert.match(setup,/Qt\.openUrlExternally/);
     assert.match(setup,/qsTrId\("genycaster\.setup\.legal_governing_note"\)/);
-    assert.match(app,/parent: root[\s\S]*?visible: root\.mobile && !root\.initialSetupOpen/);
+    assert.match(app,/BottomNavigation \{[\s\S]*?visible: root\.mobile && !root\.initialSetupOpen/);
+    assert.doesNotMatch(app,/parent: readingPane/);
+    assert.match(app,/anchors\.bottom: readingPane\.bottom/);
+    assert.ok(app.indexOf("id: mobileBottomNavigation") < app.indexOf("id: contextResizeHandle"),
+        "mobile dock must be declared inside readingPane, not in RowLayout");
     assert.match(app,/anchors\.bottomMargin: root\.mobile/);
 });
 
@@ -223,4 +227,45 @@ test('recovery phrase uses trailing-edge desktop drawer and mobile bottom sheet'
     assert.match(dialog,/position:sticky;bottom:-1px/);
     assert.match(dialog,/inputs\[index\]\?\.setAttribute\('aria-invalid'/);
     assert.doesNotMatch(dialog,/localStorage\.setItem\(/);
+});
+
+
+test('mobile navigation belongs to readingPane, not the outer RowLayout or Qt root',()=>{
+    const app=read('ui/components/AppShell.qml');
+    const start=app.indexOf('Item {\n                            id: readingPane');
+    const dock=app.indexOf('BottomNavigation {\n                            id: mobileBottomNavigation');
+    const handle=app.indexOf('Item {\n                            id: contextResizeHandle');
+    assert.ok(start>=0 && dock>start && handle>dock);
+    assert.doesNotMatch(app.slice(dock,handle),/parent:\s*(root|readingPane)/,
+        'avoid runtime reparenting of layout-owned QML controls');
+    assert.match(app.slice(dock,handle),/anchors\.bottom: readingPane\.bottom/);
+    assert.match(app.slice(dock,handle),/blurSourceItem: readingContent/);
+    assert.match(app,/anchors\.bottomMargin: root\.mobile\s*\?\s*mobileBottomNavigation\.height/);
+});
+
+test('Qt button rings use keyboard focus, never persistent pointer-focus borders',()=>{
+    const theme=read('ui/theme/Theme.qml');
+    assert.match(theme,/function keyboardFocusVisible\(control\)/);
+    assert.match(theme,/Qt\.TabFocusReason/);
+    assert.match(theme,/Qt\.BacktabFocusReason/);
+    for(const file of ['SetupPrimaryButton','ActionButton','NavItem','GenyTabButton',
+        'GenySwitch','EngagementButton','GenyComboBox','SetupActionCard']){
+        const code=read('ui/components/'+file+'.qml');
+        assert.match(code,/Theme\.keyboardFocusVisible\(/,file);
+        assert.doesNotMatch(code,/borderWidth: [\w]+\.activeFocus/,file);
+    }
+});
+
+test('WASM splash keeps all stage circles fixed and shows release version and build',()=>{
+    const cmake=read('ui/CMakeLists.txt');
+    const pack=read('tools/package_wasm_assets.py');
+    assert.match(html,/\.boot-dot\{[^}]*flex:0 0 18px/);
+    assert.match(html,/\.boot-journey li\{[^}]*flex:0 0 auto/);
+    assert.doesNotMatch(html,/box-shadow:0 0 0 4px/);
+    assert.match(html,/id="boot-version"/);
+    assert.match(html,/id="boot-build-credit"/);
+    assert.match(cmake,/--app-version "\$\{PROJECT_VERSION\}"/);
+    assert.match(pack,/"buildId": fingerprint\[:8\]/);
+    assert.match(loader,/if\(versionLabel\)versionLabel\.textContent=buildLabel/);
+    assert.match(loader,/if\(creditBuild\)creditBuild\.textContent/);
 });

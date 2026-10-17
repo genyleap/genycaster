@@ -13,6 +13,7 @@ import shutil
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--dir", required=True, type=Path)
+parser.add_argument("--app-version", default="", help="CMake PROJECT_VERSION; omit when packaging standalone fixtures")
 parser.add_argument("--source", type=Path, help="Refresh public source assets without relinking WASM")
 args = parser.parse_args()
 directory = args.dir.resolve()
@@ -67,14 +68,24 @@ public = ["farcaster_client.html", "qtloader.js", "farcaster_client.js",
           "miniapp-host-pre.js"]
 public = [name for name in public if (directory / name).is_file()]
 checksums = {name: digest(directory / name) for name in public}
-fingerprint = hashlib.sha256(json.dumps(checksums, sort_keys=True).encode()).hexdigest()[:20]
+# Include the semantic version in the release fingerprint as well as files:
+# a version-only update must be visible to the PWA cache update protocol.
+fingerprint = hashlib.sha256(json.dumps({
+    "files": checksums, "appVersion": args.app_version,
+}, sort_keys=True).encode()).hexdigest()[:20]
 release = {"version": fingerprint, "wasm": asset_name,
+           "buildId": fingerprint[:8],
            "files": sorted(public + [asset_name, "genycaster-assets.js"]),
            "integrity": checksums}
+if args.app_version:
+    release["appVersion"] = args.app_version
 manifest = directory / "genycaster-assets.json"
 manifest.write_text(json.dumps(release, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 # JS config is intentionally small and contains no user data or secrets.
 (directory / "genycaster-assets.js").write_text(
-    "window.__genycasterAssets=" + json.dumps({"version": fingerprint, "wasm": asset_name}) + ";\n",
+    "window.__genycasterAssets=" + json.dumps({
+        "version": fingerprint, "wasm": asset_name, "buildId": fingerprint[:8],
+        **({"appVersion": args.app_version} if args.app_version else {}),
+    }) + ";\n",
     encoding="utf-8")
 print("Genycaster immutable WebAssembly:", asset_name)

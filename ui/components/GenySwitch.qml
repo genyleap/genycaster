@@ -98,11 +98,11 @@ Switch {
     }
 
     background: Superellipse {
-        fillColor: control.hovered || control.activeFocus ? Theme.castHover : "transparent"
-        borderWidth: control.activeFocus ? 2 : 0
+        fillColor: control.hovered || Theme.keyboardFocusVisible(control) ? Theme.castHover : "transparent"
+        borderWidth: Theme.keyboardFocusVisible(control) ? 2 : 0
         borderColor: Theme.focus
         curveDepth: Theme.curveControl
-        shadowColor: control.activeFocus ? Theme.focusHalo : Theme.shadow
+        shadowColor: Theme.keyboardFocusVisible(control) ? Theme.focusHalo : Theme.shadow
         Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
     }
 }

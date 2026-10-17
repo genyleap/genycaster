@@ -40,11 +40,11 @@ Button {
                       ? (control.hovered ? Theme.surfaceElevated : Theme.surfaceRaised)
                       : (control.hovered || control.down ? Theme.castHover : "transparent"))
                    : "transparent"
-        borderWidth: control.activeFocus ? 2 : 0
+        borderWidth: Theme.keyboardFocusVisible(control) ? 2 : 0
         borderColor: Theme.focus
         curveDepth: Theme.curveControl
         elevation: control.segmented && control.selected ? Theme.elevationControl : Theme.elevationNone
-        shadowColor: control.activeFocus ? Theme.focusHalo : Theme.shadow
+        shadowColor: Theme.keyboardFocusVisible(control) ? Theme.focusHalo : Theme.shadow
         shadowOpacityScale: 0.62
         Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
 
