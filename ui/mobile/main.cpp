@@ -76,6 +76,7 @@
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
+#include <emscripten/html5.h>
 #endif
 #include "remote_image_provider.hpp"
 #include "browser_openproof_auth.hpp"
@@ -185,86 +186,83 @@ namespace {
 QPointer<QQuickWindow> browserWheelWindow{};
 }
 
-// Qt's WebAssembly canvas does not expose native HTML scrolling. Bridge DOM
-// wheel events back into Qt's normal hit-tested QQuickWindow dispatch so that
-// every Flickable (including ComboBox popup lists) keeps its own scroll logic.
-extern "C" EMSCRIPTEN_KEEPALIVE void genycaster_browser_wheel(
-    const double horizontalPosition, const double verticalPosition,
-    const double deltaX, const double deltaY, const int browserModifiers)
+// Emscripten routes DOM wheel input directly into C++. Do not depend on
+// Module exports, which are not guaranteed with Qt 6.12's JS loader.
+namespace {
+double normalizedCanvasCoordinate(int clientX, int clientY, int axis)
 {
-    QQuickWindow* const window = browserWheelWindow.data();
-    if (!window || !window->isVisible()
-        || !std::isfinite(horizontalPosition) || !std::isfinite(verticalPosition)
-        || !std::isfinite(deltaX) || !std::isfinite(deltaY)) {
-        return;
-    }
-    const QPointF local{
-        std::clamp(horizontalPosition, 0.0, 1.0) * window->width(),
-        std::clamp(verticalPosition, 0.0, 1.0) * window->height(),
-    };
-    const auto bounded = [](const double value) {
-        return static_cast<int>(std::lround(std::clamp(value, -2'000.0, 2'000.0)));
-    };
-    Qt::KeyboardModifiers modifiers = Qt::NoModifier;
-    if (browserModifiers & 1) modifiers |= Qt::ShiftModifier;
-    if (browserModifiers & 2) modifiers |= Qt::AltModifier;
-    if (browserModifiers & 4) modifiers |= Qt::MetaModifier;
-    const QPoint pixels{bounded(-deltaX), bounded(-deltaY)};
-    const QPoint angles{bounded(-deltaX * 1.2), bounded(-deltaY * 1.2)};
-    QWheelEvent wheel{local, window->mapToGlobal(local.toPoint()), pixels,
-                      angles, Qt::NoButton, modifiers, Qt::NoScrollPhase, false};
-    QCoreApplication::sendEvent(window, &wheel);
+    return EM_ASM_DOUBLE({
+        const x = $0;
+        const y = $1;
+        let element = document.elementFromPoint(x, y);
+        while (element && element.shadowRoot) {
+            const child = element.shadowRoot.elementFromPoint(x, y);
+            if (!child || child === element) break;
+            element = child;
+        }
+        if (!(element instanceof HTMLCanvasElement)) return -1;
+        const rect = element.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return -1;
+        return $2 === 0 ? (x - rect.left) / rect.width
+            : (y - rect.top) / rect.height;
+    }, clientX, clientY, axis);
 }
 
-namespace {
+EM_BOOL browserWheelCallback(int type, const EmscriptenWheelEvent* event, void*)
+{
+    QQuickWindow* window = browserWheelWindow.data();
+    if (type != EMSCRIPTEN_EVENT_WHEEL || !event || !window ||
+        !window->isVisible() || event->mouse.ctrlKey) return EM_FALSE;
+    EM_ASM({
+        if (window.__genycasterWheelDiagnostics)
+            window.__genycasterWheelDiagnostics.received += 1;
+    });
+    const double x = normalizedCanvasCoordinate(event->mouse.clientX, event->mouse.clientY, 0);
+    const double y = normalizedCanvasCoordinate(event->mouse.clientX, event->mouse.clientY, 1);
+    if (x < 0 || x > 1 || y < 0 || y > 1 ||
+        !std::isfinite(event->deltaX) || !std::isfinite(event->deltaY)) return EM_FALSE;
+    EM_ASM({
+        if (window.__genycasterWheelDiagnostics)
+            window.__genycasterWheelDiagnostics.onCanvas += 1;
+    });
+    const double scale = event->deltaMode == DOM_DELTA_LINE ? 16.0
+        : (event->deltaMode == DOM_DELTA_PAGE ? window->height() : 1.0);
+    const auto bounded = [](double v) {
+        return static_cast<int>(std::lround(std::clamp(v, -2000.0, 2000.0)));
+    };
+    Qt::KeyboardModifiers modifiers = Qt::NoModifier;
+    if (event->mouse.shiftKey) modifiers |= Qt::ShiftModifier;
+    if (event->mouse.altKey) modifiers |= Qt::AltModifier;
+    if (event->mouse.metaKey) modifiers |= Qt::MetaModifier;
+    const QPointF local{x * window->width(), y * window->height()};
+    const QPoint pixels{bounded(-event->deltaX * scale), bounded(-event->deltaY * scale)};
+    const QPoint angles{bounded(-event->deltaX * scale * 1.2),
+                        bounded(-event->deltaY * scale * 1.2)};
+    QWheelEvent wheel{local, window->mapToGlobal(local.toPoint()), pixels, angles,
+                      Qt::NoButton, modifiers, Qt::NoScrollPhase, false};
+    QCoreApplication::sendEvent(window, &wheel);
+    EM_ASM({
+        if (window.__genycasterWheelDiagnostics)
+            window.__genycasterWheelDiagnostics.forwarded += 1;
+    });
+    return EM_TRUE;
+}
+
 void installBrowserWheelBridge(QQuickWindow* window)
 {
     browserWheelWindow = window;
     EM_ASM({
-        // Qt 6.12 creates canvas nodes dynamically inside screen containers.
-        // No HTML template is required to define a fixed "qtcanvas" ID.
-        if (window.__genycasterWheelBridgeInstalled) return;
-        window.__genycasterWheelBridgeInstalled = true;
-        // EM_ASM is a C preprocessor macro: commas in a bare JS object
-        // literal become macro argument separators. Initialize counters
-        // individually, with no top-level commas in its JavaScript body.
-        const diagnostics = Object.create(null);
-        diagnostics.received = 0;
-        diagnostics.onCanvas = 0;
-        diagnostics.forwarded = 0;
-        window.__genycasterWheelDiagnostics = diagnostics;
-        window.addEventListener('wheel', function(event) {
-            ++diagnostics.received;
-            if (event.ctrlKey || event.defaultPrevented) return;
-            // Screen content can be retargeted across shadow roots. Inspect
-            // the composed path before falling back to the DOM event target.
-            const path = typeof event.composedPath === 'function'
-                ? event.composedPath() : [event.target];
-            const canvas = path.find(node => node instanceof HTMLCanvasElement);
-            if (!canvas) return;
-            ++diagnostics.onCanvas;
-            const rect = canvas.getBoundingClientRect();
-            if (!(rect.width > 0 && rect.height > 0)) return;
-            const forward = Module['_genycaster_browser_wheel'];
-            if (typeof forward !== 'function') {
-                if (!window.__genycasterWheelExportWarning) {
-                    window.__genycasterWheelExportWarning = true;
-                    console.warn('Genycaster WASM wheel entrypoint is unavailable');
-                }
-                return;
-            }
-            const multiplier = event.deltaMode === 1 ? 16
-                : (event.deltaMode === 2 ? rect.height : 1);
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            ++diagnostics.forwarded;
-            forward((event.clientX - rect.left) / rect.width,
-                (event.clientY - rect.top) / rect.height,
-                event.deltaX * multiplier, event.deltaY * multiplier,
-                (event.shiftKey ? 1 : 0) | (event.altKey ? 2 : 0)
-                | (event.metaKey ? 4 : 0));
-        }, { capture: true, passive: false });
+        if (!window.__genycasterWheelDiagnostics) {
+            window.__genycasterWheelDiagnostics = Object.create(null);
+            window.__genycasterWheelDiagnostics.received = 0;
+            window.__genycasterWheelDiagnostics.onCanvas = 0;
+            window.__genycasterWheelDiagnostics.forwarded = 0;
+        }
     });
+    const EMSCRIPTEN_RESULT result = emscripten_set_wheel_callback(
+        EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_TRUE, browserWheelCallback);
+    if (result != EMSCRIPTEN_RESULT_SUCCESS)
+        qWarning() << "WASM wheel callback registration failed:" << result;
 }
 }
 #endif

@@ -118,28 +118,25 @@ isolated WebKit Mini App runtime.
 
 ## Global browser mouse wheel dispatch
 
-Qt 6.12 creates the window canvas dynamically within its screen container,
-so a fixed `qtcanvas` element ID is **not** a reliable wheel target. The
-browser composition installs one non-passive capture-phase listener at
-`window`, locates the actual HTML canvas in the event's composed path
-(including shadow-root retargeting), and forwards DOM wheel input as a
-standard `QWheelEvent` to `QQuickWindow`. Qt Quick hit-tests the element
-under the cursor, including feed Flickables and ComboBox popup lists. It does
-not intercept document content outside Qt's canvas or Ctrl+wheel browser zoom.
-Native builds are unaffected.
+Qt 6.12 creates its canvas dynamically. The WebAssembly composition now
+registers Emscripten's native `emscripten_set_wheel_callback` with capture on
+the window, rather than calling an application export from JavaScript via
+`Module._genycaster_browser_wheel`. That export is not reliably exposed by
+Qt's generated loader. The callback reads the browser-provided wheel deltas,
+normalizes pixel/line/page units, and uses DOM hit testing (including Qt
+shadow-root screens) to map the pointer to canvas-local coordinates. It sends
+a regular `QWheelEvent` to `QQuickWindow`, preserving Qt Quick's own
+Flickable and ComboBox popup targeting. Non-canvas wheel and browser Ctrl+wheel
+zoom are left alone. Native platforms do not install the callback.
 
-The wheel listener lives inside an Emscripten `EM_ASM` macro. Any JavaScript
-comma outside parentheses is interpreted as a C macro argument separator:
-initialize object properties individually instead of introducing a bare object
-literal with comma-separated members. The wheel-bridge Node test includes a
-host C++ preprocessor regression probe that rejects this exact breakage.
-
-For browser diagnosis open DevTools and inspect
-`window.__genycasterWheelDiagnostics` after scrolling over the application;
-`received`, `onCanvas`, and `forwarded` identify which handoff failed.
-A missing C++ entrypoint is logged once to the console. Unit tests validate
-DOM capture/shadow composition and native Qt popup/scroll routing; a full
-Qt 6.12 WebAssembly browser run is still the acceptance gate.
+Browser diagnostics: `window.__genycasterWheelDiagnostics.forwarded`
+increments only after a wheel event is delivered to the Qt window. A zero
+count indicates missing callback delivery, target recognition or event routing.
+The Emscripten API returns an explicit registration error that is logged to
+Qt's console. Unit tests exercise DOM coordinate mapping, shadow roots,
+non-canvas rejection, and C++ preprocessing, while a Qt native test confirms
+popup hit testing. Real Qt 6.12 WASM mouse testing remains required before
+calling scrolling fixed.
 
 ## Emoji coverage in the browser
 
