@@ -276,6 +276,11 @@ OFL-licensed Noto Emoji includes 1,384 mapped code points (including 🧬,
 ❤️, 👍, 😀, 🔥, and 🚀). Its SHA-256 and a 1 MiB size limit are checked by
 CMake. The SIL OFL license is embedded alongside the subset.
 
+Qt 6.12's `BIG_RESOURCES` CMake mode compiles these font resources directly
+to object files rather than expanding them into huge C++ hexadecimal arrays.
+That eliminates the memory-intensive constant-data compilation step on small
+Linux WASM builders without changing application Release optimization.
+
 Qt WebAssembly does not necessarily inherit the emoji fonts installed in
 Safari or other browsers; removing all emoji fonts could produce missing
 glyph boxes. This lightweight fallback preserves common pictograms but is

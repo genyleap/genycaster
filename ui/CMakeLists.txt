@@ -619,7 +619,11 @@ qt_add_resources(farcaster_client genycaster_ui_fonts
 # compact, monochrome subset (common emoji plus DNA) instead of the 10+ MB
 # Noto Color Emoji bitmap font. This tiny OFL-licensed subset is vendored and
 # checked into source, so WASM builds never need a network font download.
+# Feed immutable large fonts straight to object files in the WASM builder
+# instead of compiling megabytes of generated hexadecimal C++ initializers.
+set(_genycasterLargeResources)
 if(EMSCRIPTEN)
+    set(_genycasterLargeResources BIG_RESOURCES)
     set(_genycasterEmojiFallback
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/GenycasterEmojiFallback.ttf")
     if(NOT EXISTS "${_genycasterEmojiFallback}")
@@ -640,6 +644,7 @@ if(EMSCRIPTEN)
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt" PROPERTIES
         QT_RESOURCE_ALIAS "assets/fonts/OFL-NotoEmoji.txt")
     qt_add_resources(farcaster_client genycaster_emoji_fallback
+        ${_genycasterLargeResources}
         PREFIX "/qt/qml/Farcaster/Client"
         FILES "${_genycasterEmojiFallback}"
               "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt")
@@ -779,20 +784,14 @@ if(_genycasterCjkFontPath AND EXISTS "${_genycasterCjkFontPath}")
 endif()
 if(_genycasterScriptFontFiles)
     qt_add_resources(farcaster_client genycaster_script_fonts
+        ${_genycasterLargeResources}
         PREFIX "/qt/qml/Farcaster/Client"
         FILES ${_genycasterScriptFontFiles})
 endif()
 
-# The bundled font files are immutable data, not executable algorithms.
-# Compile their generated resource arrays at -O0 so the WebAssembly Release
-# compiler does not waste gigabytes of memory optimizing constant bytes.
-# All application C++ and QML retain normal Release optimization.
-if(EMSCRIPTEN)
-    set_source_files_properties(
-        "${CMAKE_CURRENT_BINARY_DIR}/.qt/rcc/qrc_genycaster_script_fonts.cpp"
-        "${CMAKE_CURRENT_BINARY_DIR}/.qt/rcc/qrc_genycaster_emoji_fallback.cpp"
-        PROPERTIES COMPILE_OPTIONS "-O0")
-endif()
+# The WASM font resources use Qt's BIG_RESOURCES two-pass object embedding
+# above, so even the large multilingual font bypasses generated hex-array
+# C++ compilation. All application code retains normal Release optimization.
 
 # Canonical UI iconography uses Font Awesome Free. Regular/outline glyphs are
 # preferred whenever the free set exposes one; Solid is retained only for icons

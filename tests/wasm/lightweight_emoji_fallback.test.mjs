@@ -56,6 +56,7 @@ test("WASM uses the lightweight embedded fallback, never downloads or loads old 
     assert.match(main, /GenycasterEmojiFallback\.ttf/);
     assert.doesNotMatch(cmake, /NotoColorEmoji|wasm_emoji_font|GENYCASTER_WASM_EMOJI_FONT_PATH/);
     assert.doesNotMatch(main, /NotoColorEmoji-wasm\.ttf/);
-    assert.match(cmake, /qrc_genycaster_script_fonts\.cpp[\s\S]*?COMPILE_OPTIONS "-O0"/);
-    assert.match(cmake, /qrc_genycaster_emoji_fallback\.cpp[\s\S]*?COMPILE_OPTIONS "-O0"/);
+    assert.match(cmake, /set\(_genycasterLargeResources BIG_RESOURCES\)/);
+    assert.match(cmake, /genycaster_emoji_fallback\s+\$\{_genycasterLargeResources\}/);
+    assert.match(cmake, /genycaster_script_fonts\s+\$\{_genycasterLargeResources\}/);
 });
