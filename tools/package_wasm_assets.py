@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 import shutil
 
@@ -68,12 +69,34 @@ public = ["farcaster_client.html", "qtloader.js", "farcaster_client.js",
           "vendor/noble-secp256k1.mjs", "vendor/bip39-english.mjs",
           "miniapp-host-pre.js"]
 public = [name for name in public if (directory / name).is_file()]
+
+# Cloudflare may cache public .js for hours despite origin revalidation.
+# Version the four boot script requests in HTML with the deterministic
+# release fingerprint, ensuring new deployments never execute stale JS.
+# Strip our own previous stamp first so packaging remains idempotent and the
+# release fingerprint has no circular dependency on the HTML it stamps.
+html_path = directory / "farcaster_client.html"
+scripts = ("qtloader.js", "farcaster_client.js",
+           "genycaster-assets.js", "genycaster-loader.js")
+html = html_path.read_text(encoding="utf-8")
+for script in scripts:
+    html = re.sub(
+        r'(?<=src=")' + re.escape(script) + r'\?v=[a-f0-9]{20}(?=")',
+        script, html)
+html_path.write_text(html, encoding="utf-8")
 checksums = {name: digest(directory / name) for name in public}
 # Include the semantic version in the release fingerprint as well as files:
 # a version-only update must be visible to the PWA cache update protocol.
 fingerprint = hashlib.sha256(json.dumps({
     "files": checksums, "appVersion": args.app_version, "releaseLabel": args.release_label,
 }, sort_keys=True).encode()).hexdigest()[:20]
+for script in scripts:
+    html = html.replace(f'src="{script}"',
+                        f'src="{script}?v={fingerprint}"')
+html_path.write_text(html, encoding="utf-8")
+# The release identity hashes the canonical HTML; integrity verifies the
+# actual stamped HTML delivered to browsers.
+checksums["farcaster_client.html"] = digest(html_path)
 release = {"version": fingerprint, "wasm": asset_name,
            "wasmBytes": wasm.stat().st_size,
            "buildId": fingerprint[:8],

@@ -255,3 +255,10 @@ The boot footer shows `Powered by Genyleap · WASM Engine`.
   acceptance checkbox. No modal document reader or scroll-to-end step.
   The original consent-version persistence and gated next-step behavior
   are preserved in native C++, across all twelve supported locales.
+
+- The packager stamps all four public bootstrap JS script URLs in the release HTML
+  with `?v=<release fingerprint>`. Cloudflare can retain bare `.js` responses
+  for several hours despite origin `must-revalidate`; a versioned URL avoids
+  stale asset configuration, loader and Qt startup scripts across deploys.
+  The canonical HTML is hashed before stamping, while manifest integrity
+  checks the final stamped bytes. Repeated packaging is idempotent.

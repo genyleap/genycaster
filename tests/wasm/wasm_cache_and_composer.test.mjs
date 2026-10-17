@@ -211,3 +211,37 @@ test('bootstrap uses actual original Geny SVG, not a home-made DNA',()=>{
     assert.match(html,/Powered by <strong>Genyleap<\/strong>/);
     assert.doesNotMatch(html,/helix-float|boot-card|qtlogo/);
 });
+
+test('release HTML cache-busts all boot scripts without changing WASM and is idempotent',()=>{
+    const dir=mkdtempSync(join(tmpdir(),'genycaster-stamped-'));
+    const scripts=['qtloader.js','farcaster_client.js','genycaster-assets.js','genycaster-loader.js'];
+    const markup='<!doctype html><title>Genycaster Beta 1.0</title>'+
+        scripts.map(name=>'<script src="'+name+'"></script>').join('');
+    try {
+        writeFileSync(join(dir,'farcaster_client.wasm'),Buffer.from([0,97,115,109,1,0,0,0]));
+        for(const file of scripts)writeFileSync(join(dir,file),'test-'+file);
+        writeFileSync(join(dir,'farcaster_client.html'),markup);
+        const packOnce=()=>{
+            const result=spawnSync('python3',[pack.pathname,'--dir',dir,
+                '--app-version','1.0.0','--release-label','Beta 1.0'],{encoding:'utf8'});
+            assert.equal(result.status,0,result.stderr);
+            return JSON.parse(readFileSync(join(dir,'genycaster-assets.json'),'utf8'));
+        };
+        const first=packOnce();
+        let stamped=readFileSync(join(dir,'farcaster_client.html'),'utf8');
+        for(const script of scripts)
+            assert.ok(stamped.includes('src="'+script+'?v='+first.version+'"'));
+        const digest=createHash('sha256').update(stamped).digest('hex');
+        assert.equal(first.integrity['farcaster_client.html'],digest);
+        const second=packOnce();
+        assert.equal(first.version,second.version);
+        assert.equal(readFileSync(join(dir,'farcaster_client.html'),'utf8'),stamped);
+        writeFileSync(join(dir,'genycaster-loader.js'),'updated');
+        const third=packOnce();
+        assert.notEqual(third.version,first.version);
+        assert.equal(third.wasm,first.wasm,'unchanged WASM stays cached');
+        stamped=readFileSync(join(dir,'farcaster_client.html'),'utf8');
+        assert.ok(stamped.includes('src="genycaster-loader.js?v='+third.version+'"'));
+        assert.ok(!stamped.includes('src="genycaster-loader.js?v='+first.version+'"'));
+    }finally{rmSync(dir,{recursive:true,force:true});}
+});
