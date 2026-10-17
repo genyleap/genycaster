@@ -3870,5 +3870,17 @@
             <source>Farcaster recovery could not be verified. Check your connection and try again.</source>
             <translation>Não foi possível verificar a recuperação Farcaster. Verifique a conexão e tente novamente.</translation>
         </message>
+        <message id="genycaster.setup.open_terms">
+            <source>Open full Terms of Use</source>
+            <translation>Abrir os termos de uso completos</translation>
+        </message>
+        <message id="genycaster.setup.open_privacy">
+            <source>Open full Privacy Policy</source>
+            <translation>Abrir a política de privacidade completa</translation>
+        </message>
+        <message id="genycaster.setup.legal_governing_note">
+            <source>These links open Genyleap's currently published policies. Product and repository terms may also apply.</source>
+            <translation>Estes links abrem as políticas atuais da Genyleap. Termos específicos do produto ou repositório também podem se aplicar.</translation>
+        </message>
     </context>
 </TS>

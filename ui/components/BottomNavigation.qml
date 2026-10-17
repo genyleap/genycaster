@@ -21,7 +21,7 @@ Item {
     signal settingsRequested()
     signal routeRequested(string route)
 
-    implicitHeight: 54
+    implicitHeight: 60
     clip: false
 
     Item {

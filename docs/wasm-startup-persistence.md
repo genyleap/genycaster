@@ -40,13 +40,16 @@ rather than assuming every failure is a network outage.
   Install is shown only when browser Resource Timing reports the resource
   completed; Initialize follows Qt's real runtime-dependency callback.
   Ordinary refresh starts with Initialize. Failure never records completion.
-  When Resource Timing is unavailable, the interface does not invent an
-  install-completion event or fake download percentage.
+  When Resource Timing is unavailable, the first-run clone's completed
+  byte stream can signal that a known-size uncompressed download has finished.
+  Otherwise no fabricated installation milestone is shown.
 - The loader preserves the native WASM Response without reconstructing a
   JavaScript ReadableStream. That permits native WebAssembly streaming and
   the browser's compiled-module cache to operate normally on refresh.
-  Only actual resource-timing transfer bytes and Service Worker cache hits
-  are used for cache diagnostics; no invented download percentages appear.
+  First-use downloads can show exact byte percentages only when the
+  response has a trustworthy uncompressed Content-Length. The response
+  handed to Qt is still the original native stream; repeated refreshes do
+  not track its bytes or clone it.
   Qt's onLoaded marks Ready. The boot icon uses the same original Geny SVG
   as the application's icon system, with a Powered by Genyleap footer.
   Startup failures show an actionable retry button.
@@ -126,3 +129,43 @@ WebAssembly Resource Timing and Qt callback events, **never a fabricated
 percent counter**. Actual Qt `onLoaded` is the only successful completion
 criterion. A failed startup stays failed, even if a later asynchronous
 event arrives.
+\n## Setup, account and responsive recovery (October 2026)
+
+- Explicit **Log out** waits for a confirmed signed-out session before
+  reopening Setup at its **Account** stage. This is intentionally different
+  from a browser refresh or a network-disconnected viewer session. Existing
+  legal consent, language and read-network settings are preserved. Only the
+  non-sensitive `setup/showAfterSignOut` flag is persisted, so a refresh
+  after an explicit logout still shows the account setup. Completing Setup
+  clears the flag. Failed sign-outs never pretend the account is signed out.
+- Every Setup stage uses a shared icon/title baseline. The Welcome language
+  selector is now one compact, translated field instead of a wide stacked
+  form. Footer controls preserve a bounded mobile layout.
+- The Terms/Privacy reader is a shorter, article-like sheet and includes
+  links to the **full published** Genyleap terms and privacy policy, plus a
+  governing-note explanation. The in-app body is a summary, not a fabricated
+  full legal document.
+- The browser-only Farcaster phrase entry lives in a right-side desktop
+  drawer and a bottom-up mobile sheet, with keyboard-safe scrolling and a
+  sticky action row. No recovery words are written to logs, C++, localStorage,
+  IndexedDB or browser transport. Validation still highlights invalid words
+  while preserving entries when correction is needed.
+- The floating mobile bottom navigation is lifted above the reading pane
+  rather than participating in the content RowLayout. The reading workspace
+  reserves enough bottom space for it. The dock retains a continuous rounded
+  Superellipse surface.
+
+## Verified download progress
+
+On an initial visit or binary update, the loader may read a *clone* of the
+same native WASM response **only** when a trustworthy, uncompressed
+`Content-Length` is available. The original response is still returned to
+Qt for streaming compilation, and no second network fetch is made. The
+displayed percentage is `decoded bytes read / decoded Content-Length`, not
+an estimated percentage for WASM compilation or workspace setup. A compressed
+response or missing length gets an indeterminate loading animation instead of
+an invented number. Warm refreshes do not clone the response. The
+Download/Install/Initialize/Ready milestones remain tied to real browser
+stream/resource events and Qt callbacks. Completed steps are green.
+
+The boot footer shows `Powered by Genyleap · WASM Engine`.

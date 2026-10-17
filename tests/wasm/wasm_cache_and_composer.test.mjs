@@ -173,10 +173,11 @@ test('recovery failures are not mislabeled Genyleap login errors',()=>{
 test('menu keeps hover label contrast independent of Qt MenuItem opacity',()=>{
     const qml=read(new URL('../../ui/components/EditorContextMenu.qml',import.meta.url),'utf8');
     const item=read(new URL('../../ui/components/EditorMenuItem.qml',import.meta.url),'utf8');
-    assert.match(item,/opacity: 1\.0/);
-    assert.match(item,/text: root\.text/);
-    assert.match(item,/root\.highlighted \? Theme\.ink/);
-    assert.match(item,/fillColor: root\.highlighted/);
+    assert.match(item,/Item \{/);
+    assert.doesNotMatch(item,/^MenuItem \{/m);
+    assert.match(item,/text: root\.label/);
+    assert.match(item,/color: root\.actionEnabled \? Theme\.ink/);
+    assert.match(item,/onClicked: root\.activate\(\)/);
     assert.match(qml,/EditorMenuItem/);
     assert.doesNotMatch(qml,/delegate: MenuItem/);
 });

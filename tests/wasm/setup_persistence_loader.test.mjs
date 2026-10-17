@@ -131,8 +131,10 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     assert.equal(requestedOptions.credentials,'omit');
     const received=new Uint8Array(await wasm.arrayBuffer());
     assert.deepEqual(received,sample);
-    assert.equal(elements.get('genycaster-boot').dataset.phase,'download');
-    assert.equal(elements.get('boot-stage').textContent,'Loading engine');
+    // An 8-byte native response can complete immediately: the optional
+    // first-run clone accurately moves Download → Install on full consumption.
+    assert.equal(elements.get('genycaster-boot').dataset.phase,'install');
+    assert.equal(elements.get('boot-stage').textContent,'Installing runtime');
     const entry={name:'https://example.test/'+hashedWasm,responseEnd:20,transferSize:8,decodedBodySize:8};
     timingEntries.set(entry.name,[entry]);
     observeResources({getEntries:()=>[entry]});
@@ -175,4 +177,50 @@ test('missing Qt 6.12 application entry fails explicitly before qtLoad',()=>{
     assert.match(elements.get('boot-status').textContent,/farcaster_client_entry/);
     assert.equal(elements.get('boot-retry').classList.contains('visible'),true);
     assert.equal(messages.length,1);
+});
+
+
+test('explicit Logout returns to account Setup while refresh keeps completed onboarding',()=>{
+    const bridge=read('src/presentation/qt/presentation_bridge.cpp');
+    const header=read('src/presentation/qt/presentation_bridge.hpp');
+    const app=read('ui/components/AppShell.qml');
+    const setup=read('ui/components/InitialSetup.qml');
+    assert.match(header,/m_signOutRequestedByUser/);
+    assert.match(bridge,/setup\/showAfterSignOut/);
+    assert.match(bridge,/m_authenticationPhase == QStringLiteral\("signed-out"\)/);
+    assert.match(bridge,/m_showSetupAfterSignOut = true/);
+    assert.match(bridge,/m_settings->remove\(QStringLiteral\("setup\/showAfterSignOut"\)\)/);
+    assert.match(bridge,/return !m_setupBypassedForVerification\s*&& \(!m_initialSetupCompleted \|\| m_showSetupAfterSignOut\)/);
+    assert.match(app,/returningAfterLogout: presentationBridge\.initialSetupCompleted/);
+    assert.match(setup,/switchStep\(returningAfterLogout \? 4 : 0\)/);
+    assert.doesNotMatch(bridge.split('void PresentationBridge::applyAuthenticationState(')[1]
+        .split('void PresentationBridge::applyAuthenticationError(')[0],
+        /resetInitialSetupProgress\(/);
+});
+
+test('Setup stages align headings and keep legal reader compact with governing links',()=>{
+    const h=read('ui/components/SetupPageHeader.qml');
+    const l=read('ui/components/SetupLanguageSelector.qml');
+    const setup=read('ui/components/InitialSetup.qml');
+    const app=read('ui/components/AppShell.qml');
+    assert.match(h,/RowLayout \{/);
+    assert.match(h,/Layout\.alignment: Qt\.AlignVCenter/);
+    assert.match(l,/Layout\.preferredWidth: Math\.min\(205/);
+    assert.match(setup,/Math\.min\(root\.height - Theme\.space6 \* 2, 510\)/);
+    assert.match(setup,/qsTrId\("genycaster\.setup\.open_terms"\)/);
+    assert.match(setup,/Qt\.openUrlExternally/);
+    assert.match(setup,/qsTrId\("genycaster\.setup\.legal_governing_note"\)/);
+    assert.match(app,/parent: root[\s\S]*?visible: root\.mobile && !root\.initialSetupOpen/);
+    assert.match(app,/anchors\.bottomMargin: root\.mobile/);
+});
+
+test('recovery phrase uses trailing-edge desktop drawer and mobile bottom sheet',()=>{
+    const dialog=read('ui/wasm/recovery-phrase-dialog.mjs');
+    assert.match(dialog,/justify-content:flex-end/);
+    assert.match(dialog,/width:min\(540px,100%\)/);
+    assert.match(dialog,/@media\(max-width:680px\)/);
+    assert.match(dialog,/genycaster-sheet-in/);
+    assert.match(dialog,/position:sticky;bottom:-1px/);
+    assert.match(dialog,/inputs\[index\]\?\.setAttribute\('aria-invalid'/);
+    assert.doesNotMatch(dialog,/localStorage\.setItem\(/);
 });

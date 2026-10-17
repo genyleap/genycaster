@@ -21,6 +21,7 @@ Item {
     property bool authenticationAvailable: false
     property bool authenticated: false
     property bool setupCompleted: false
+    property bool returningAfterLogout: false
     property bool legalConsentAccepted: false
     property string authenticationPhase: "signed-out"
     property string authenticationRoute: "openproof"
@@ -66,7 +67,7 @@ Item {
     // Setup design-system layer: every stage composes the same neutral surfaces,
     // typography scale and spacing rhythm. Accent is reserved for focus/action,
     // while semantic colors are used only for compact status feedback.
-    readonly property int setupContentWidth: 640
+    readonly property int setupContentWidth: 600
     readonly property int setupPageTitleSize: Theme.typeTitle2Size
     readonly property int setupBodySize: Theme.typeLabelSize
     readonly property int setupSectionTitleSize: Theme.typeTitle3Size
@@ -332,8 +333,8 @@ Item {
 
     onSetupCompletedChanged: {
         if (!setupCompleted) {
-            highestReachedStep = 0
-            Qt.callLater(() => switchStep(0))
+            highestReachedStep = returningAfterLogout ? 4 : 0
+            Qt.callLater(() => switchStep(returningAfterLogout ? 4 : 0))
             return
         }
         highestReachedStep = 5
@@ -364,9 +365,11 @@ Item {
             legalPrivacyReviewed = true
         }
         forceActiveFocus()
-        if (!setupCompleted)
-            switchStep(0)
-        else
+        if (!setupCompleted) {
+            if (returningAfterLogout)
+                highestReachedStep = Math.max(highestReachedStep, 4)
+            switchStep(returningAfterLogout ? 4 : 0)
+        } else
             synchronizeFlow()
     }
 
@@ -697,9 +700,9 @@ Item {
                     id: setupFooter
                     z: 20
                     Layout.fillWidth: true
-                    Layout.minimumHeight: root.phone ? 80 : 72
-                    Layout.preferredHeight: root.phone ? 84 : 72
-                    Layout.maximumHeight: root.phone ? 112 : 72
+                    Layout.minimumHeight: root.phone ? 72 : 72
+                    Layout.preferredHeight: root.phone ? 78 : 72
+                    Layout.maximumHeight: root.phone ? 92 : 72
 
                     Rectangle {
                         anchors.top: parent.top
@@ -747,9 +750,9 @@ Item {
         id: legalReader
         modal: true
         focus: true
-        width: root.phone ? root.width : Math.min(root.width - Theme.space7 * 2, 700)
-        height: root.phone ? Math.min(root.height - Theme.space4, 720)
-                           : Math.min(root.height - Theme.space6 * 2, 720)
+        width: root.phone ? root.width : Math.min(root.width - Theme.space7 * 2, 620)
+        height: root.phone ? Math.min(root.height - Theme.space4, 640)
+                           : Math.min(root.height - Theme.space6 * 2, 510)
         x: root.phone ? 0 : Math.round((root.width - width) / 2)
         y: root.phone ? root.height - height : Math.round((root.height - height) / 2)
         enter: Transition {
@@ -800,7 +803,7 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.phone ? 60 : 70
+                Layout.preferredHeight: root.phone ? 64 : 70
                 Layout.leftMargin: Theme.space4
                 Layout.rightMargin: Theme.space4
                 spacing: Theme.space3
@@ -904,18 +907,33 @@ Item {
                         color: Theme.ink
                         font.pixelSize: Theme.typeBodySize
                         font.weight: Theme.weightMedium
-                        lineHeight: 1.34
+                        lineHeight: 1.5
                         horizontalAlignment: Theme.textStartAlignment
                         wrapMode: Text.WordWrap
                     }
 
-                    Rectangle {
-                        width: parent.width
-                        height: Theme.strokeHairline
-                        color: Theme.borderMuted
+                    ActionButton {
+                        width: Math.min(parent.width, 280)
+                        compact: true
+                        quiet: false
+                        text: root.legalReaderKind === "privacy"
+                              ? qsTrId("genycaster.setup.open_privacy")
+                              : qsTrId("genycaster.setup.open_terms")
+                        onClicked: Qt.openUrlExternally(
+                            root.legalReaderKind === "privacy"
+                            ? "https://genyleap.com/privacy"
+                            : "https://genyleap.com/terms-of-use")
                     }
 
-
+                    Label {
+                        width: parent.width
+                        text: qsTrId("genycaster.setup.legal_governing_note")
+                        wrapMode: Text.WordWrap
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        lineHeight: 1.45
+                        horizontalAlignment: Theme.textStartAlignment
+                    }
                 }
             }
 
@@ -927,7 +945,7 @@ Item {
 
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.phone ? 76 : 78
+                Layout.preferredHeight: root.phone ? 88 : 76
                 Layout.leftMargin: Theme.space4
                 Layout.rightMargin: Theme.space4
                 spacing: Theme.space3
@@ -986,12 +1004,13 @@ Item {
 
             Item {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.phone ? Theme.space6 : Theme.space8
+                Layout.preferredHeight: root.phone ? Theme.space3 : Theme.space4
             }
 
             SetupLanguageSelector {
                 id: setupLanguageSelector
                 Layout.fillWidth: true
+                Layout.maximumWidth: 430
                 model: root.greetings
                 selectedLabel: localizationController.languageLabel
                 selectedDetail: localizationController.regionalLocaleLabel

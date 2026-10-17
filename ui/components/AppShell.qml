@@ -572,6 +572,11 @@ Item {
                             ColumnLayout {
                                 id: readingContent
                                 anchors.fill: parent
+                                // Reserve a true touch-safe dock region rather
+                                // than letting the composer and final cards
+                                // disappear behind the floating mobile nav.
+                                anchors.bottomMargin: root.mobile
+                                    ? mobileBottomNavigation.height + Theme.space5 * 2 : 0
                                 spacing: Theme.space3
 
                                 ComingSoonSurface {
@@ -1113,14 +1118,18 @@ Item {
             // surface keeps the controls legible while preserving context.
             BottomNavigation {
                 id: mobileBottomNavigation
-                visible: root.mobile
-                z: 80
+                // Reparent outside the RowLayout: otherwise the reading
+                // surface can occlude this dock on narrow WebAssembly views.
+                parent: root
+                visible: root.mobile && !root.initialSetupOpen
+                z: 800
                 // Keep the dock compact and genuinely floating rather than
                 // recreating a full-width tab bar.
-                width: Math.min(parent.width - Theme.mobileGutter * 2, 420)
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: Theme.space3
+                width: Math.max(240, Math.min(root.width - Theme.mobileGutter * 4, 420))
+                height: 60
+                anchors.horizontalCenter: root.horizontalCenter
+                anchors.bottom: root.bottom
+                anchors.bottomMargin: Math.max(Theme.space4, Theme.mobileGutter)
                 blurSourceItem: readingPane
                 activeView: presentationBridge.activeView
                 activeFeed: presentationBridge.activeFeed
@@ -1680,6 +1689,9 @@ Item {
         authenticationAvailable: presentationBridge.authenticationAvailable
         authenticated: presentationBridge.isAuthenticated
         setupCompleted: presentationBridge.initialSetupCompleted
+                        && !presentationBridge.initialSetupRequired
+        returningAfterLogout: presentationBridge.initialSetupCompleted
+                             && presentationBridge.initialSetupRequired
         legalConsentAccepted: presentationBridge.legalConsentAccepted
         authenticationPhase: presentationBridge.authenticationPhase
         authenticationRoute: presentationBridge.authenticationRoute

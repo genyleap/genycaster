@@ -9,6 +9,7 @@ const bootStarted=performance.now();
 let wasmResourceUrl;
 let wasmResourceObserver=null;
 let runtimeDependenciesSettled=false;
+let progressReader=null;
 let bootPhase="download";
 function announce(title,detail,phase) {
     heading.textContent=title;
@@ -19,10 +20,12 @@ function preparing() {
     fill.classList.remove("measured");
     fill.style.width="";
     percent.textContent="";
+    track?.removeAttribute?.("aria-valuenow");
 }
-// The browser owns the binary stream so its compiled-WASM cache can work.
-// We intentionally do not invent download percentages while streaming
-// progress cannot be observed without wrapping the response.
+// Only a first-run/update and a reliable decoded Content-Length permit a
+// byte-accurate percentage. We consume a clone concurrently but pass the
+// *original* native Response to Emscripten, preserving streaming compilation.
+// Warm refreshes never clone the large binary.
 const key="genycaster.boot.loaded.v1";
 const versionKey="genycaster.boot.version.v1";
 const currentVersion=typeof window.__genycasterAssets?.version==="string"
@@ -43,8 +46,10 @@ function showPhase(phase,title,detail,label){
     if(finished||failed)return;
     const order={download:0,install:1,initialize:2,interface:3,ready:4};
     if(order[phase] < order[bootPhase])return; // delayed async event
+    const leavingDownload=bootPhase==="download" && phase!=="download";
     bootPhase=phase;
     if(boot?.dataset)boot.dataset.phase=phase;
+    if(leavingDownload)preparing();
     track?.setAttribute?.("aria-valuetext",label);
     announce(title,detail,label);
 }
@@ -80,6 +85,65 @@ function engineReceived(url) {
         showPhase("interface","Opening Social Interface",
             "Runtime dependencies are ready. Finishing Qt startup…",
             "Opening interface");
+}
+function measureFirstDownload(response,url){
+    if(!installing || !response.body || typeof response.clone!=="function")return;
+    const total=Number(response.headers.get("content-length"));
+    // Compressed length refers to encoded bytes while response.body is
+    // decoded. Display no fake percentages for br/gzip or unknown totals.
+    if(!Number.isSafeInteger(total)||total<=0||
+       response.headers.get("content-encoding"))return;
+    try{
+        progressReader=response.clone().body.getReader();
+    }catch{return;}
+    const reader=progressReader;
+    let received=0,lastPaint=0;
+    void (async()=>{
+        try{
+            while(!finished && !failed){
+                const part=await reader.read();
+                if(part.done){
+                    if(received===total && bootPhase==="download"){
+                        percent.textContent="100%";
+                        fill.classList.add("measured");
+                        fill.style.width="100%";
+                        // The full stream completed; this is a real event
+                        // even when Resource Timing is unavailable.
+                        showPhase("install",updating?"Applying Runtime Update":
+                            "Installing Social Runtime",
+                            "The WebAssembly engine is available. Preparing local files…",
+                            "Installing runtime");
+                        if(runtimeDependenciesSettled)
+                            showPhase("interface","Opening Social Interface",
+                                "Runtime dependencies are ready. Finishing Qt startup…",
+                                "Opening interface");
+                    }
+                    break;
+                }
+                received+=part.value.byteLength;
+                if(bootPhase!=="download")break;
+                const now=performance.now();
+                if(received===total || now-lastPaint>=90){
+                    lastPaint=now;
+                    const pct=Math.min(99,Math.floor(received*100/total));
+                    fill.classList.add("measured");
+                    fill.style.width=pct+"%";
+                    percent.textContent=pct+"%";
+                    track?.setAttribute?.("aria-valuenow",String(pct));
+                    track?.setAttribute?.("aria-valuetext",
+                        "Downloading engine "+pct+" percent");
+                }
+            }
+        }catch(error){
+            // The original WASM Response remains viable even if progress
+            // tracking is unsupported by a browser implementation.
+            console.debug("[Genycaster] Optional byte progress stopped",
+                String(error?.message||error));
+        }finally{
+            if(progressReader===reader)progressReader=null;
+            try{reader.releaseLock();}catch{}
+        }
+    })();
 }
 function observeEngine(url){
     if(!installing || typeof PerformanceObserver!=="function")return;
@@ -135,6 +199,7 @@ window.fetch=async function(input,options) {
         "WebAssembly engine available. Preparing the Qt interface…",
         "Initializing runtime");
     preparing();
+    measureFirstDownload(response,wasmResourceUrl);
     return response;
 };
 const screen=$("qt-screen");
@@ -166,6 +231,7 @@ function fail(error) {
     if(finished||failed)return;
     failed=true;
     wasmResourceObserver?.disconnect();
+    try{progressReader?.cancel();}catch{}
     preparing();
     if(boot?.dataset)boot.dataset.phase="failed";
     track?.setAttribute?.("aria-valuetext","Startup failed");
@@ -215,6 +281,7 @@ async function start() {
                 onLoaded:()=>{
                     if(failed)return;
                     wasmResourceObserver?.disconnect();
+                    try{progressReader?.cancel();}catch{}
                     // Ready reflects Qt's actual initialization callback, not
                     // a fabricated timer or estimated download percentage.
                     if(boot?.dataset)boot.dataset.phase="ready";

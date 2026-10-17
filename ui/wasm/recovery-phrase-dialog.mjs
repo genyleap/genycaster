@@ -38,12 +38,23 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
     return new Promise((resolve,reject)=>{
         const backdrop=document.createElement('div');
         backdrop.id='genycaster-farcaster-recovery';
-        backdrop.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;background:rgba(2,6,18,.65);backdrop-filter:blur(5px);font:15px system-ui,sans-serif;color:'+foreground;
+        backdrop.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:stretch;justify-content:flex-end;padding:0;box-sizing:border-box;background:rgba(2,6,18,.65);backdrop-filter:blur(5px);font:15px system-ui,sans-serif;color:'+foreground;
         const card=document.createElement('section');
         card.setAttribute('role','dialog');card.setAttribute('aria-modal','true');
         card.setAttribute('aria-labelledby','genycaster-recovery-title');
         card.dir=['ar','fa'].includes(lang)?'rtl':'ltr';
-        card.style.cssText='width:min(520px,100%);max-height:92vh;overflow:auto;box-sizing:border-box;background:'+surface+';border:1px solid '+outline+';border-radius:20px;padding:26px;box-shadow:0 20px 90px #0009;color:'+foreground;
+        card.style.cssText='width:min(540px,100%);height:100%;max-height:100dvh;overflow:auto;overscroll-behavior:contain;box-sizing:border-box;background:'+surface+';border:1px solid '+outline+';border-radius:22px 0 0 22px;padding:clamp(18px,3vw,30px);padding-bottom:max(24px,env(safe-area-inset-bottom));box-shadow:-16px 0 70px #0007;color:'+foreground+';animation:genycaster-drawer-in .22s cubic-bezier(.22,1,.36,1) both;';
+        // One adaptive recovery surface: trailing-edge drawer on desktop,
+        // keyboard-safe bottom sheet on phones. The rules contain no secrets
+        // and never interact with QML authentication state.
+        const style=document.createElement('style');
+        style.textContent='@keyframes genycaster-drawer-in{from{transform:translateX(30px);opacity:.8}to{transform:none;opacity:1}}'
+            +'@keyframes genycaster-sheet-in{from{transform:translateY(36px);opacity:.85}to{transform:none;opacity:1}}'
+            +'@media(max-width:680px){#genycaster-farcaster-recovery{align-items:flex-end!important;justify-content:center!important}'
+            +'#genycaster-farcaster-recovery>section{width:100%!important;height:min(92dvh,900px)!important;max-height:92dvh!important;'
+            +'border-radius:25px 25px 0 0!important;padding:20px 16px max(22px,env(safe-area-inset-bottom))!important;'
+            +'animation:genycaster-sheet-in .22s cubic-bezier(.22,1,.36,1) both!important;box-shadow:0 -14px 55px #0008!important}}'
+            +'@media(prefers-reduced-motion:reduce){#genycaster-farcaster-recovery>section{animation:none!important}}';
         const text=(tag,value,css,id)=>{
             const el=document.createElement(tag);el.textContent=value;
             if(css)el.style.cssText=css;
@@ -59,7 +70,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         chooser.style.cssText='display:flex;gap:8px;margin:0 0 16px';
         const grid=document.createElement('div');
         grid.id='genycaster-recovery-words';
-        grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:9px;direction:ltr';
+        grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,132px),1fr));gap:10px;direction:ltr';
         const inputs=[];
         let count=12;
         let pending=false, settled=false;
@@ -157,14 +168,14 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         error.setAttribute('aria-live','polite');
         renderWords(12);
         const actions=document.createElement('div');
-        actions.style.cssText='display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap';
+        actions.style.cssText='display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;position:sticky;bottom:-1px;background:'+surface+';padding:14px 0 3px;border-top:1px solid '+outline+';margin-top:18px;z-index:2';
         const button=(value,primary)=>{
             const el=document.createElement('button');el.type='button';el.textContent=value;
             el.style.cssText='cursor:pointer;border-radius:12px;padding:12px 20px;font:600 14px system-ui;border:1px solid '+(primary?'#4460f3':'#50586c')+';background:'+(primary?'#4266f8':'transparent')+';color:'+(primary?'#fff':foreground);
             actions.appendChild(el);return el;
         };
         const cancel=button(s.cancel,false),submit=button(s.import,true);
-        card.appendChild(actions);backdrop.appendChild(card);
+        card.appendChild(actions);backdrop.appendChild(card);backdrop.appendChild(style);
         const oldFocus=document.activeElement;
         const oldOverflow=document.body.style.overflow;
         document.body.style.overflow='hidden';

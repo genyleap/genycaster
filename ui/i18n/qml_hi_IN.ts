@@ -3870,5 +3870,17 @@
             <source>Farcaster recovery could not be verified. Check your connection and try again.</source>
             <translation>Farcaster पुनर्प्राप्ति सत्यापित नहीं हो सकी। कनेक्शन जाँचें और दोबारा प्रयास करें।</translation>
         </message>
+        <message id="genycaster.setup.open_terms">
+            <source>Open full Terms of Use</source>
+            <translation>पूरी सेवा शर्तें खोलें</translation>
+        </message>
+        <message id="genycaster.setup.open_privacy">
+            <source>Open full Privacy Policy</source>
+            <translation>पूरी गोपनीयता नीति खोलें</translation>
+        </message>
+        <message id="genycaster.setup.legal_governing_note">
+            <source>These links open Genyleap's currently published policies. Product and repository terms may also apply.</source>
+            <translation>ये लिंक Genyleap की वर्तमान नीतियां खोलते हैं। उत्पाद या रिपॉज़िटरी की अलग शर्तें भी लागू हो सकती हैं।</translation>
+        </message>
     </context>
 </TS>

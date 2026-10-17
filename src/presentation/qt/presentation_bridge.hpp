@@ -395,6 +395,8 @@ private:
     bool m_runtimeReady{false};
     bool m_authenticationAvailable{false};
     bool m_initialSetupCompleted{false};
+    bool m_showSetupAfterSignOut{false};
+    bool m_signOutRequestedByUser{false};
     bool m_legalConsentAccepted{false};
     bool m_setupBypassedForVerification{false};
     bool m_isAuthenticated{false};

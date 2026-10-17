@@ -599,6 +599,8 @@ PresentationBridge::PresentationBridge(QObject* const parent, QSettings* const s
     if (m_settings != nullptr) {
         m_initialSetupCompleted = m_settings->value(
             QStringLiteral("setup/onboardingVersion"), 0).toInt() >= kInitialSetupVersion;
+        m_showSetupAfterSignOut = m_settings->value(
+            QStringLiteral("setup/showAfterSignOut"), false).toBool();
         m_legalConsentAccepted = m_settings->value(
             QStringLiteral("setup/legalConsentVersion"), 0).toInt() >= kLegalConsentVersion;
         m_feedPageSize = std::clamp(m_settings->value(QStringLiteral("read/feedPageSize"), 20).toInt(), 1, 100);
@@ -643,7 +645,8 @@ bool PresentationBridge::initialSetupRequired() const noexcept
 {
     // Completed onboarding is independent of the transient signed-in session.
     // Guest/viewer access must never re-open the six-step wizard on refresh.
-    return !m_setupBypassedForVerification && !m_initialSetupCompleted;
+    return !m_setupBypassedForVerification
+        && (!m_initialSetupCompleted || m_showSetupAfterSignOut);
 }
 bool PresentationBridge::initialSetupCompleted() const noexcept { return m_initialSetupCompleted; }
 bool PresentationBridge::legalConsentAccepted() const noexcept { return m_legalConsentAccepted; }
@@ -1441,12 +1444,16 @@ bool PresentationBridge::acceptLegalConsent(
 void PresentationBridge::completeInitialSetup()
 {
 #if defined(__EMSCRIPTEN__)
-    if (!m_legalConsentAccepted || m_initialSetupCompleted) return;
+    if (!m_legalConsentAccepted
+        || (m_initialSetupCompleted && !m_showSetupAfterSignOut)) return;
 #else
-    if (!m_isAuthenticated || !m_legalConsentAccepted || m_initialSetupCompleted) return;
+    if (!m_isAuthenticated || !m_legalConsentAccepted
+        || (m_initialSetupCompleted && !m_showSetupAfterSignOut)) return;
 #endif
     m_initialSetupCompleted = true;
+    m_showSetupAfterSignOut = false;
     if (m_settings != nullptr) {
+        m_settings->remove(QStringLiteral("setup/showAfterSignOut"));
         m_settings->setValue(QStringLiteral("setup/onboardingVersion"), kInitialSetupVersion);
         m_settings->remove(QStringLiteral("setup/initialSetupCompleted"));
         m_settings->sync();
@@ -1537,6 +1544,10 @@ void PresentationBridge::cancelSignIn()
 
 void PresentationBridge::signOut()
 {
+    if (!m_isAuthenticated) return;
+    // Wait until the session callback confirms signed-out: do not briefly
+    // expose Setup behind a still-authenticated account or a failed logout.
+    m_signOutRequestedByUser = true;
     emit signOutRequested();
 }
 
@@ -1936,6 +1947,17 @@ void PresentationBridge::applyAuthenticationState(
     // session. Starting a replacement/re-authentication flow must not make a
     // verified current account appear signed out until a new proof succeeds.
     m_isAuthenticated = fid > 0;
+    if (!m_isAuthenticated && m_signOutRequestedByUser
+        && m_authenticationPhase == QStringLiteral("signed-out")) {
+        m_showSetupAfterSignOut = true;
+        m_signOutRequestedByUser = false;
+        if (m_settings != nullptr) {
+            m_settings->setValue(QStringLiteral("setup/showAfterSignOut"), true);
+            m_settings->sync();
+        }
+    } else if (m_isAuthenticated || m_authenticationPhase == QStringLiteral("failed")) {
+        m_signOutRequestedByUser = false;
+    }
     m_accountFid = m_isAuthenticated ? fid : 0;
     m_accountUsername = m_isAuthenticated ? std::move(username) : QString{};
     m_accountName = m_isAuthenticated

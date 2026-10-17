@@ -4,7 +4,7 @@ import vm from "node:vm";
 import {readFileSync} from "node:fs";
 
 const script=readFileSync(new URL("../../ui/wasm/genycaster-loader.js",import.meta.url),"utf8");
-function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa"}={}) {
+function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measured=false}={}) {
     const nodes=new Map();
     for(const id of ["genycaster-boot","boot-heading","boot-status","boot-stage",
         "boot-fill","boot-percent","boot-retry","qt-screen"]) {
@@ -19,15 +19,19 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa"}={}) {
     if(loaded)storage.set("genycaster.boot.loaded.v1","1");
     if(oldVersion)storage.set("genycaster.boot.version.v1",oldVersion);
     const resources=new Map();
-    let config=null, observer=null;
+    let config=null, observer=null, downloadStream=null;
     const binary="farcaster_client.bbbbbbbbbbbbbbbbbbbb.wasm";
     const scope={
         window:{
             __genycasterAssets:{version,wasm:binary},
             farcaster_client_entry(){},
-            fetch:async()=>new Response(new Uint8Array([0,97,115,109]),{
-                headers:{"Content-Type":"application/wasm"}
-            }),
+            fetch:async()=>measured
+                ? new Response(new ReadableStream({
+                    start(controller){downloadStream=controller;}
+                }),{headers:{"Content-Type":"application/wasm","Content-Length":"8"}})
+                : new Response(new Uint8Array([0,97,115,109]),{
+                    headers:{"Content-Type":"application/wasm"}
+                }),
             addEventListener(){},innerHeight:700,
             setTimeout:fn=>{fn();},
         },
@@ -50,6 +54,9 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa"}={}) {
     return {
         nodes,storage,resources,
         fetch:()=>scope.window.fetch("https://example.test/farcaster_client.wasm"),
+        pushBytes(bytes){downloadStream.enqueue(new Uint8Array(bytes));},
+        finishBytes(){downloadStream.close();},
+        percent:()=>nodes.get("boot-percent").textContent,
         get config(){return config;},
         resourceComplete(){
             const resource={name:"https://example.test/"+binary,responseEnd:350,duration:350,
@@ -121,4 +128,32 @@ test("failed boot never marks first-time install as completed",async()=>{
     h.config.qt.onLoaded(); // a late callback must not claim success
     assert.equal(h.nodes.get("genycaster-boot").dataset.phase,"failed");
     assert.equal(h.storage.get("genycaster.boot.loaded.v1"),undefined);
+});
+
+test("first download shows measured byte percent without replacing Qt's native response",async()=>{
+    const h=host({measured:true});
+    const original=await h.fetch();
+    assert.equal(h.phase(),"download");
+    assert.equal(h.percent(),"");
+    h.pushBytes([0,97,115,109]);
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(h.percent(),"50%");
+    assert.equal(h.phase(),"download");
+    h.pushBytes([1,0,0,0]);
+    h.finishBytes();
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(h.phase(),"install");
+    assert.equal(h.percent(),"");
+    assert.equal((await original.arrayBuffer()).byteLength,8);
+    h.config.monitorRunDependencies(0);
+    h.config.qt.onLoaded();
+    assert.equal(h.phase(),"ready");
+});
+
+test("warm refresh never clones large WASM for progress",async()=>{
+    const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa",measured:true});
+    await h.fetch();
+    assert.equal(h.percent(),"");
+    assert.equal(h.phase(),"initialize");
+    h.config.qt.onLoaded();
 });
