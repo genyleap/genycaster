@@ -270,13 +270,19 @@ Japanese, Korean and Simplified Chinese glyph support in the bundled TTC.
 
 ## Emoji coverage in the browser
 
-The WASM target embeds the pinned **full-color Noto Color Emoji** CBDT/CBLC
-font rather than the monochrome Noto Emoji variable font. Its SHA-256 is
-verified during CMake configure; the corresponding OFL license is embedded.
-A Qt 6.11 headless rendering test verified that 🧬 (U+1F9EC) produces
-actual chromatic pixels even when the application's primary text font is
-selected. This is not a substitute for confirming color glyph rasterization
-with the Qt 6.12 WASM runtime in a real browser.
+The WASM target embeds a compact, **monochrome emoji fallback** rather than
+the 10.7 MB Noto Color Emoji bitmap font. The 846 KB static subset of Google's
+OFL-licensed Noto Emoji includes 1,384 mapped code points (including 🧬,
+❤️, 👍, 😀, 🔥, and 🚀). Its SHA-256 and a 1 MiB size limit are checked by
+CMake. The SIL OFL license is embedded alongside the subset.
+
+Qt WebAssembly does not necessarily inherit the emoji fonts installed in
+Safari or other browsers; removing all emoji fonts could produce missing
+glyph boxes. This lightweight fallback preserves common pictograms but is
+**not full-color** and does not guarantee every newer or multi-code-point
+emoji sequence. Existing animated-emoji resources remain independent.
+Recheck glyph coverage in a real Qt 6.12 WASM browser before adding any
+further emoji packs.
 
 ## Browser image delivery
 

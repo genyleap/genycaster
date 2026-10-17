@@ -615,45 +615,33 @@ qt_add_resources(farcaster_client genycaster_ui_fonts
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Vazirmatn.txt"
 )
 
-# Qt WebAssembly cannot rely on the browser's installed emoji fonts.
-# Embed a verified full-color CBDT/CBLC font (including DNA U+1F9EC).
-# The source is SIL OFL 1.1; its license remains with Google Noto Emoji.
+# Qt WebAssembly cannot rely on browser-installed emoji fonts. Embed a
+# compact, monochrome subset (common emoji plus DNA) instead of the 10+ MB
+# Noto Color Emoji bitmap font. This tiny OFL-licensed subset is vendored and
+# checked into source, so WASM builds never need a network font download.
 if(EMSCRIPTEN)
-    set(GENYCASTER_WASM_EMOJI_FONT_PATH "" CACHE FILEPATH
-        "Optional pre-downloaded Noto Color Emoji CBDT/CBLC TTF for offline WASM builds")
-    if(GENYCASTER_WASM_EMOJI_FONT_PATH)
-        set(_genycasterWasmEmojiFont "${GENYCASTER_WASM_EMOJI_FONT_PATH}")
-    else()
-        set(_genycasterWasmEmojiFont "${CMAKE_BINARY_DIR}/_deps/NotoColorEmoji-wasm.ttf")
-        file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/_deps")
-        if(NOT EXISTS "${_genycasterWasmEmojiFont}")
-            file(DOWNLOAD
-                "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/2D/fonts/NotoColorEmoji.ttf"
-                "${_genycasterWasmEmojiFont}"
-                EXPECTED_HASH SHA256=15671215ab769fdc7162a045d56fd7d7e477c51b04e6b3c761d914d8fdd6cc44
-                TLS_VERIFY ON TIMEOUT 45
-                STATUS _emojiDownloadStatus)
-            list(GET _emojiDownloadStatus 0 _emojiDownloadCode)
-            if(NOT _emojiDownloadCode EQUAL 0)
-                message(FATAL_ERROR
-                    "Unable to fetch the pinned Noto Emoji font for WASM. "
-                    "Provide -DGENYCASTER_WASM_EMOJI_FONT_PATH=/path/to/NotoColorEmoji.ttf")
-            endif()
-        endif()
+    set(_genycasterEmojiFallback
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/GenycasterEmojiFallback.ttf")
+    if(NOT EXISTS "${_genycasterEmojiFallback}")
+        message(FATAL_ERROR "Missing lightweight WebAssembly emoji fallback font.")
     endif()
-    file(SHA256 "${_genycasterWasmEmojiFont}" _emojiFontSha256)
-    if(NOT _emojiFontSha256 STREQUAL
-            "15671215ab769fdc7162a045d56fd7d7e477c51b04e6b3c761d914d8fdd6cc44")
-        message(FATAL_ERROR "Noto Color Emoji WASM font SHA-256 does not match the pinned resource.")
+    file(SIZE "${_genycasterEmojiFallback}" _emojiFallbackSize)
+    if(_emojiFallbackSize GREATER 1048576)
+        message(FATAL_ERROR "WebAssembly emoji fallback exceeds its 1 MiB budget.")
     endif()
-    set_source_files_properties("${_genycasterWasmEmojiFont}" PROPERTIES
-        QT_RESOURCE_ALIAS "assets/fonts/NotoColorEmoji-wasm.ttf")
+    file(SHA256 "${_genycasterEmojiFallback}" _emojiFallbackHash)
+    if(NOT _emojiFallbackHash STREQUAL
+            "0e9754e6501fd98dbc33d42fc73d4fe1ac1d49ce88654d826b60d0ab5c945530")
+        message(FATAL_ERROR "WebAssembly emoji fallback integrity mismatch.")
+    endif()
+    set_source_files_properties("${_genycasterEmojiFallback}" PROPERTIES
+        QT_RESOURCE_ALIAS "assets/fonts/GenycasterEmojiFallback.ttf")
     set_source_files_properties(
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt" PROPERTIES
         QT_RESOURCE_ALIAS "assets/fonts/OFL-NotoEmoji.txt")
-    qt_add_resources(farcaster_client genycaster_wasm_emoji_font
+    qt_add_resources(farcaster_client genycaster_emoji_fallback
         PREFIX "/qt/qml/Farcaster/Client"
-        FILES "${_genycasterWasmEmojiFont}"
+        FILES "${_genycasterEmojiFallback}"
               "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt")
 endif()
 
@@ -793,6 +781,15 @@ if(_genycasterScriptFontFiles)
     qt_add_resources(farcaster_client genycaster_script_fonts
         PREFIX "/qt/qml/Farcaster/Client"
         FILES ${_genycasterScriptFontFiles})
+endif()
+
+# The bundled CJK script font generates a very large immutable byte-array
+# translation unit. Compiling that data at -O0 prevents O3 from exhausting
+# limited VPS RAM. Keep normal Release optimization for application code.
+if(EMSCRIPTEN)
+    set_source_files_properties(
+        "${CMAKE_CURRENT_BINARY_DIR}/.qt/rcc/qrc_genycaster_script_fonts.cpp"
+        PROPERTIES COMPILE_OPTIONS "-O0")
 endif()
 
 # Canonical UI iconography uses Font Awesome Free. Regular/outline glyphs are

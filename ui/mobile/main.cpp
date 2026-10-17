@@ -3955,10 +3955,11 @@ int main(int argc, char* argv[])
         }
 
 #if defined(__EMSCRIPTEN__)
-        // Qt/WASM does not inherit the browser's native emoji font fallback.
-        // Load our verified Unicode fallback before creating any QML text.
+        // Qt/WASM cannot inherit Safari's or Firefox's native emoji fonts.
+        // Use our small, monochrome OFL subset for common Unicode emoji.
+        // Animated emoji still use their existing vector-image assets.
         if (loadApplicationFont(QStringLiteral(
-                ":/qt/qml/Farcaster/Client/assets/fonts/NotoColorEmoji-wasm.ttf")).isEmpty()) {
+                ":/qt/qml/Farcaster/Client/assets/fonts/GenycasterEmojiFallback.ttf")).isEmpty()) {
             return 2;
         }
 #endif
