@@ -22,12 +22,21 @@ h1{font-size:22px;line-height:1.14;letter-spacing:-.035em;margin:0 0 12px}
 .boot-fill{height:100%;width:24%;border-radius:99px;background:linear-gradient(90deg,#2f5bfa,#76a1ff);animation:indeterminate 1.65s ease-in-out infinite}
 .boot-fill.measured{animation:none;transition:width .16s linear}
 .boot-foot{display:flex;justify-content:space-between;gap:10px;margin-top:13px;font-size:12px;color:#728098}
+.boot-journey{display:flex;align-items:center;justify-content:center;gap:11px;margin:0 0 22px;padding:0;list-style:none;color:#71809a}
+.boot-journey li{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:550;transition:color .15s ease}
+.boot-journey li+li:before{content:"";display:block;width:16px;height:1px;background:#cbd3e3;margin-right:5px}
+.boot-dot{width:17px;height:17px;border:1.5px solid #b5bed1;border-radius:50%;display:grid;place-items:center;font-size:11px;color:transparent;flex-shrink:0}
+#genycaster-boot[data-phase="download"] [data-step="download"],#genycaster-boot[data-phase="install"] [data-step="install"],#genycaster-boot[data-phase="initialize"] [data-step="initialize"]{color:#315fff;font-weight:700}
+#genycaster-boot[data-phase="download"] [data-step="download"] .boot-dot,#genycaster-boot[data-phase="install"] [data-step="install"] .boot-dot,#genycaster-boot[data-phase="initialize"] [data-step="initialize"] .boot-dot{border-color:#315fff;background:#e5ecff;box-shadow:0 0 0 4px rgba(49,95,255,.08)}
+#genycaster-boot[data-phase="install"] [data-step="download"] .boot-dot,#genycaster-boot[data-phase="initialize"] [data-step="download"] .boot-dot,#genycaster-boot[data-phase="initialize"] [data-step="install"] .boot-dot,#genycaster-boot[data-phase="ready"] .boot-dot{border-color:#315fff;background:#315fff;color:white}
+#genycaster-boot[data-phase="install"] [data-step="download"] .boot-dot:after,#genycaster-boot[data-phase="initialize"] [data-step="download"] .boot-dot:after,#genycaster-boot[data-phase="initialize"] [data-step="install"] .boot-dot:after,#genycaster-boot[data-phase="ready"] .boot-dot:after{content:"✓"}
+#genycaster-boot[data-mode="warm"] .boot-journey{display:none}
 #boot-percent{font-variant-numeric:tabular-nums;color:#365ce8;font-weight:700}
 #boot-retry{display:none;margin:22px auto 0;padding:11px 17px;border:0;border-radius:10px;color:white;background:#305cf4;font-weight:650;cursor:pointer}
 #boot-retry.visible{display:block}
 @keyframes indeterminate{0%{transform:translateX(-100%)}50%{transform:translateX(190%)}100%{transform:translateX(430%)}}
 .boot-credit{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);left:0;right:0;text-align:center;color:#65728c;font-size:12px;letter-spacing:.015em}
-@media(max-width:540px){#genycaster-boot{padding:15px}.boot-content{padding:30px 22px}h1{font-size:24px}}
+@media(max-width:540px){#genycaster-boot{padding:15px}.boot-content{padding:30px 22px}h1{font-size:24px}.boot-journey{gap:5px}.boot-journey li+li:before{width:9px;margin-right:2px}}
 @media(prefers-reduced-motion:reduce){.boot-fill,.boot-glyph{animation:none}.boot-fill{width:45%}*{transition:none!important}}
 </style>
 </head>
@@ -36,10 +45,15 @@ h1{font-size:22px;line-height:1.14;letter-spacing:-.035em;margin:0 0 12px}
 <div id="genycaster-boot" role="status" aria-live="polite">
   <div class="boot-content">
     <div class="boot-mark"><span class="boot-glyph" aria-hidden="true"></span><div><div class="boot-brand">Genycaster</div><div class="boot-note">Secure social client</div></div></div>
+    <ol class="boot-journey" id="boot-journey" aria-label="First launch progress">
+      <li data-step="download"><span class="boot-dot" aria-hidden="true"></span>Download</li>
+      <li data-step="install"><span class="boot-dot" aria-hidden="true"></span>Install</li>
+      <li data-step="initialize"><span class="boot-dot" aria-hidden="true"></span>Initialize</li>
+    </ol>
     <h1 id="boot-heading">Preparing Genycaster</h1>
     <p class="boot-status" id="boot-status">Checking local application resources…</p>
     <div class="boot-track"><div class="boot-fill" id="boot-fill"></div></div>
-    <div class="boot-foot"><span id="boot-stage">Starting</span><span id="boot-percent" aria-label="Measured download progress"></span></div>
+    <div class="boot-foot"><span id="boot-stage">Starting</span><span id="boot-percent" aria-label="Measured progress if available"></span></div>
     <button id="boot-retry" type="button">Try again</button>
   </div>
   <div class="boot-credit">Powered by <strong>Genyleap</strong> · Qt &amp; WebAssembly</div>

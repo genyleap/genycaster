@@ -58,7 +58,7 @@ test('completed Setup is independent of a volatile session and signer revocation
 function fakeElement() {
     const classes=new Set();
     return {
-        style:{},textContent:'',hidden:false,
+        style:{},textContent:'',hidden:false,dataset:{},
         classList:{
             add(value){classes.add(value);},
             remove(value){classes.delete(value);},
@@ -80,6 +80,9 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     const sample=new Uint8Array([0,1,2,3,4,5,6,7]);
     const hashedWasm='farcaster_client.0123456789abcdef0123.wasm';
     let requestedWasm='', requestedOptions={};
+    const timingEntries=new Map();
+    let observeResources=null;
+    let monitorDependencies=null;
     const nativeResponse=new Response(sample,{
         headers:{'content-type':'application/wasm','content-length':'8'}
     });
@@ -98,7 +101,17 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
             innerHeight:680
         },
         location:{href:'https://example.test/farcaster_client.html',origin:'https://example.test'},
+        performance:{
+            now:()=>10,
+            getEntriesByName:url=>timingEntries.get(url)||[]
+        },
+        PerformanceObserver:class {
+            constructor(callback){this.callback=callback;}
+            observe(){observeResources=this.callback;}
+            disconnect(){}
+        },
         qtLoad:async config=>{
+            monitorDependencies=config.monitorRunDependencies;
             passedFactory=config.qt.entryFunction;
             assert.equal(config.qt.containerElements[0],elements.get('qt-screen'));
             assert.equal(typeof config.qt.entryFunction,'function');
@@ -118,12 +131,22 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     assert.equal(requestedOptions.credentials,'omit');
     const received=new Uint8Array(await wasm.arrayBuffer());
     assert.deepEqual(received,sample);
+    assert.equal(elements.get('genycaster-boot').dataset.phase,'download');
+    assert.equal(elements.get('boot-stage').textContent,'Downloading engine');
+    const entry={name:'https://example.test/'+hashedWasm,responseEnd:20,transferSize:8,decodedBodySize:8};
+    timingEntries.set(entry.name,[entry]);
+    observeResources({getEntries:()=>[entry]});
+    assert.equal(elements.get('genycaster-boot').dataset.phase,'install');
+    assert.equal(elements.get('boot-stage').textContent,'Installing runtime');
+    monitorDependencies(0);
+    assert.equal(elements.get('genycaster-boot').dataset.phase,'initialize');
     assert.equal(elements.get('boot-stage').textContent,'Initializing runtime');
     assert.equal(elements.get('boot-percent').textContent,'');
     assert.equal(elements.get('genycaster-boot').hidden,false);
     loadedCallback();
     assert.equal(elements.get('genycaster-boot').hidden,true);
     assert.equal(memory.get('genycaster.boot.loaded.v1'),'1');
+    assert.equal(elements.get('genycaster-boot').dataset.phase,'ready');
     assert.equal(collected.length,0);
 });
 
@@ -142,6 +165,7 @@ test('missing Qt 6.12 application entry fails explicitly before qtLoad',()=>{
         },
         location:{href:'https://example.test/farcaster_client.html'},
         qtLoad:async()=>{invoked=true;},
+        performance:{now:()=>0,getEntriesByName:()=>[]},
         console:{error:(...parts)=>messages.push(parts)},
         URL,Response,Headers,ReadableStream,
     };

@@ -4,6 +4,11 @@ const $ = id => document.getElementById(id);
 const boot=$("genycaster-boot"), heading=$("boot-heading"), status=$("boot-status");
 const stage=$("boot-stage"), fill=$("boot-fill"), percent=$("boot-percent"), retry=$("boot-retry");
 let finished=false;
+const bootStarted=performance.now();
+let wasmResourceUrl;
+let wasmResourceObserver=null;
+let runtimeDependenciesSettled=false;
+let bootPhase="download";
 function announce(title,detail,phase) {
     heading.textContent=title;
     status.textContent=detail;
@@ -18,12 +23,36 @@ function preparing() {
 // We intentionally do not invent download percentages while streaming
 // progress cannot be observed without wrapping the response.
 const key="genycaster.boot.loaded.v1";
-let seen=false;
-try{seen=localStorage.getItem(key)==="1";}catch{}
-announce(seen?"Opening Genycaster":"Setting up Genycaster",
-    seen?"Checking your browser's cached application files…":
-         "Preparing the application on this device for the first time…",
-    seen?"Checking resources":"First launch");
+const versionKey="genycaster.boot.version.v1";
+const currentVersion=typeof window.__genycasterAssets?.version==="string"
+    ? window.__genycasterAssets.version : "";
+let seen=false, previousVersion="";
+try{
+    seen=localStorage.getItem(key)==="1";
+    previousVersion=localStorage.getItem(versionKey)||"";
+}catch{}
+const updating=seen && !!currentVersion && !!previousVersion && previousVersion!==currentVersion;
+const installing=!seen || updating;
+bootPhase=installing?"download":"initialize";
+if(boot?.dataset){
+    boot.dataset.mode=installing?"install":"warm";
+    boot.dataset.phase=bootPhase;
+}
+function showPhase(phase,title,detail,label){
+    if(finished)return;
+    const order={download:0,install:1,initialize:2,ready:3};
+    if(order[phase] < order[bootPhase])return; // delayed async event
+    bootPhase=phase;
+    if(boot?.dataset)boot.dataset.phase=phase;
+    announce(title,detail,label);
+}
+if(installing)
+    showPhase("download",updating?"Updating Genycaster":"Downloading Genycaster",
+        "Preparing application resources for this browser…",
+        updating?"Updating":"Downloading");
+else
+    showPhase("initialize","Opening Genycaster",
+        "Checking local application files and initializing Qt…","Initializing");
 const originalFetch=window.fetch.bind(window);
 const hashedWasm=/^farcaster_client\.[0-9a-f]{20}\.wasm$/;
 const requestedAsset=window.__genycasterAssets?.wasm;
@@ -34,6 +63,32 @@ function wasmTiming(url) {
         const entries=performance.getEntriesByName(url,"resource");
         return entries.length ? entries[entries.length-1] : null;
     }catch{return null;}
+}
+// Preserve the native Response and use browser Resource Timing to observe the
+// *completed* WASM transfer. Headers alone do not mean the binary downloaded.
+function engineReceived(url) {
+    if(!installing || finished || bootPhase!=="download")return;
+    const timing=wasmTiming(url);
+    if(!timing || timing.responseEnd<=0)return;
+    showPhase("install",updating?"Installing update":"Installing Genycaster",
+        "Application engine received. Preparing WebAssembly and local files…",
+        "Installing runtime");
+    if(runtimeDependenciesSettled)
+        showPhase("initialize","Starting Genycaster",
+            "Application files are ready. Initializing Qt…","Initializing");
+}
+function observeEngine(url){
+    if(!installing || typeof PerformanceObserver!=="function")return;
+    try{
+        wasmResourceObserver?.disconnect();
+        wasmResourceObserver=new PerformanceObserver(list=>{
+            if(list.getEntries().some(entry=>entry.name===url)) engineReceived(url);
+        });
+        wasmResourceObserver.observe({type:"resource",buffered:true});
+        engineReceived(url);
+    }catch(error){
+        console.debug("[Genycaster] Resource Timing observer unavailable",error);
+    }
 }
 // Don't wrap a large WASM response in a ReadableStream: replacing the native
 // Response can disable the browser's optimized instantiateStreaming/module
@@ -59,27 +114,21 @@ window.fetch=async function(input,options) {
         ...(hashedWasm.test(url.pathname.split("/").pop())
             ? {cache:"force-cache",credentials:"omit"} : {})
     };
-    announce(seen?"Opening cached or updated engine":"Preparing application engine",
-        "Reading the WebAssembly engine; checking browser cache…","Loading engine");
+    if(installing)showPhase("download",
+        updating?"Downloading update":"Downloading Genycaster",
+        "Receiving the application engine; unchanged files may come from cache…",
+        "Downloading engine");
+    else showPhase("initialize","Initializing Genycaster",
+        "Loading the local engine and preparing Qt…","Initializing runtime");
     const response=await originalFetch(nativeRequest,nativeOptions);
     if(!response.ok)return response;
-    const cachedByWorker=response.headers.get("x-genycaster-cache")==="hit";
-    const timing=wasmTiming(response.url||url.href);
-    const cachedByHttp=!!timing && timing.transferSize===0
-        && timing.decodedBodySize>0;
-    const localCache=cachedByWorker||cachedByHttp;
-    announce("Starting Genycaster",
-        localCache?"Engine restored from local browser cache. Preparing Qt…"
-                  :"WebAssembly resource available. Preparing Qt…",
-        localCache?"Cached engine":"Initializing runtime");
+    wasmResourceUrl=response.url||url.href;
+    // The native Response remains untouched for streaming and code caching.
+    // Installing is shown only after Resource Timing confirms completion.
+    observeEngine(wasmResourceUrl);
+    if(!installing)showPhase("initialize","Starting Genycaster",
+        "WebAssembly engine available. Initializing Qt…","Initializing runtime");
     preparing();
-    // Useful for deployed debugging; never logs account/secret information.
-    console.info("[Genycaster] WASM resource",{
-        file:url.pathname.split("/").pop(),
-        cache:cachedByWorker?"service-worker":cachedByHttp?"browser":"not-confirmed",
-        transferBytes:timing?.transferSize ?? null,
-        decodedBytes:timing?.decodedBodySize ?? null
-    });
     return response;
 };
 const screen=$("qt-screen");
@@ -131,9 +180,10 @@ async function start() {
             // On first installation briefly allow the worker to activate
             // before the large WASM request. Otherwise it would miss that
             // initial download and need a second request next refresh.
-            announce("Preparing offline resources",
-                "Installing this browser's cache for faster future visits…",
-                "Preparing cache");
+            showPhase("download",
+                updating?"Preparing update":"Preparing first download",
+                "Setting up the browser's offline cache before fetching the engine…",
+                "Preparing download");
             await Promise.race([
                 cacheStartup,
                 new Promise(resolve=>window.setTimeout(resolve,1800)),
@@ -153,8 +203,29 @@ async function start() {
                 entryFunction:window.farcaster_client_entry,
                 containerElements:[screen],
                 onLoaded:()=>{
+                    wasmResourceObserver?.disconnect();
+                    // Ready reflects Qt's actual initialization callback, not
+                    // a fabricated timer or estimated download percentage.
+                    if(boot?.dataset)boot.dataset.phase="ready";
+                    bootPhase="ready";
                     finished=true;
-                    try{localStorage.setItem(key,"1");}catch{}
+                    const timing=wasmResourceUrl?wasmTiming(wasmResourceUrl):null;
+                    // A worker-handled request is not proof of a cache hit.
+                    // Keep native responses intact rather than injecting headers.
+                    console.info("[Genycaster] Startup",JSON.stringify({
+                        readyMs:Math.round(performance.now()-bootStarted),
+                        file:wasmResourceUrl?new URL(wasmResourceUrl).pathname.split("/").pop():null,
+                        resourceMs:timing?Math.round(timing.duration):null,
+                        transferBytes:timing?.transferSize ?? null,
+                        decodedBytes:timing?.decodedBodySize ?? null,
+                        delivery:timing?.workerStart>0?"service-worker"
+                            :timing?.transferSize===0 && timing?.decodedBodySize>0
+                                ?"browser-cache":"network-or-unknown"
+                    }));
+                    try{
+                        localStorage.setItem(key,"1");
+                        if(currentVersion)localStorage.setItem(versionKey,currentVersion);
+                    }catch{}
                     announce("Genycaster is ready","Entering your workspace…","Ready");
                     fill.classList.add("measured");fill.style.width="100%";
                     percent.textContent="";
@@ -168,10 +239,19 @@ async function start() {
                 },
             },
             monitorRunDependencies:remaining=>{
-                if(remaining>0 && !finished && !fill.classList.contains("measured"))
-                    announce("Preparing your workspace",
-                        "Restoring local files and initializing the Qt runtime…",
-                        "Initializing");
+                if(finished)return;
+                if(remaining===0){
+                    runtimeDependenciesSettled=true;
+                    if(!installing || bootPhase==="install")
+                        showPhase("initialize","Starting Genycaster",
+                            "Restoring local files and initializing Qt…","Initializing runtime");
+                }else if(!installing){
+                    showPhase("initialize","Initializing Genycaster",
+                        "Preparing application dependencies and your workspace…",
+                        "Initializing runtime");
+                }
+                // On first install do not show "completed download" until the
+                // actual WASM resource finishes, even if Qt reports deps early.
             },
         });
     }catch(error){fail(error);}

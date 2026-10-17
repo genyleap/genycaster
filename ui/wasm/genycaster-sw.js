@@ -21,12 +21,6 @@ const allowed=(url)=>url.origin===self.location.origin &&
     (WASM_HASH.test(url.pathname.slice(scopePath.length)) ||
      PUBLIC_FILES.has(url.pathname.slice(scopePath.length)));
 const withoutQuery=(url)=>new URL(url.origin+url.pathname);
-function asCached(response) {
-    const headers=new Headers(response.headers);
-    headers.set("x-genycaster-cache","hit");
-    return new Response(response.body,{status:response.status,
-        statusText:response.statusText,headers});
-}
 function cacheResponse(response){
     return response.ok && response.type!=="opaque" &&
         (!response.headers.get("cache-control")?.includes("no-store"));
@@ -35,7 +29,7 @@ self.addEventListener("install",event=>{
     event.waitUntil((async()=>{
         const cache=await caches.open(CACHE);
         // Do not force another .wasm download just for installation.
-        // The initial application response is stored by the page loader;
+        // The initial application response is stored by the fetch handler;
         // subsequent releases use the content-hashed URL.
         const manifest=await fetch(new URL("./genycaster-assets.json",self.location.href),
             {cache:"no-store"});
@@ -68,20 +62,38 @@ self.addEventListener("fetch",event=>{
     const url=new URL(request.url);
     if(!allowed(url))return;
     const key=withoutQuery(url);
-    event.respondWith((async()=>{
-        const cache=await caches.open(CACHE);
-        const saved=await cache.match(key.href);
+    let cacheWrite=Promise.resolve();
+    const delivery=(async()=>{
+        let cache;
+        let saved;
+        try {
+            cache=await caches.open(CACHE);
+            saved=await cache.match(key.href);
+        } catch(error) {
+            // Caching is optional: blocked storage must not prevent startup.
+            cache=null;
+            console.warn("[Genycaster] Static cache unavailable",error);
+        }
         // Immutable content-addressed WASM: no re-download on repeat visits.
+        // Return the original CacheStorage Response. Reconstructing it to add
+        // a diagnostic header loses URL/native metadata used by code caching.
         if(WASM_HASH.test(key.pathname.slice(scopePath.length))&&saved)
-            return asCached(saved);
+            return saved;
         try{
             const response=await fetch(request);
-            if(cacheResponse(response))await cache.put(key.href,response.clone());
+            if(cache && cacheResponse(response)) {
+                // Do not hold streaming compilation behind the full download
+                // and disk write. waitUntil keeps the background write alive.
+                cacheWrite=Promise.resolve().then(()=>cache.put(key.href,response.clone()))
+                    .catch(error=>console.warn("[Genycaster] Static cache write failed",error));
+            }
             return response;
         }catch(error){
             // Offline fallback for previously cached public application files.
-            if(saved)return asCached(saved);
+            if(saved)return saved;
             throw error;
         }
-    })());
+    })();
+    event.respondWith(delivery);
+    event.waitUntil(delivery.then(()=>cacheWrite).catch(()=>{}));
 });

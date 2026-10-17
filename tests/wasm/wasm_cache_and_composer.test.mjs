@@ -97,29 +97,37 @@ test('service worker caches only same-origin public files, never API requests',a
     const wasmURL=base+manifest.wasm;
     const request={url:wasmURL,method:'GET',credentials:'same-origin'};
     let answer;
-    callbacks.fetch({request,respondWith:p=>{answer=p;}});
+    let background=[];
+    const fetchEvent=request=>({
+        request,respondWith:p=>{answer=p;},
+        waitUntil:p=>{background.push(p);}
+    });
+    callbacks.fetch(fetchEvent(request));
     assert.equal(await (await answer).text(),'body for '+manifest.wasm);
+    await Promise.all(background); // service-worker waitUntil commits the cloned body
+    background=[];
     const count=networkCount;
-    callbacks.fetch({request,respondWith:p=>{answer=p;}});
+    callbacks.fetch(fetchEvent(request));
     const cachedWasm=await answer;
-    assert.equal(cachedWasm.headers.get('x-genycaster-cache'),'hit');
+    assert.equal(cachedWasm.headers.get('x-genycaster-cache'),null,
+        'serve original browser response without rewriting headers');
     assert.equal(await cachedWasm.text(),'body for '+manifest.wasm);
     assert.equal(networkCount,count,'immutable WASM must come from local CacheStorage');
     responses.delete(base+'farcaster_client.html');
-    callbacks.fetch({request:{url:base+'farcaster_client.html',method:'GET',
-                        credentials:'same-origin'},respondWith:p=>{answer=p;}});
+    callbacks.fetch(fetchEvent({url:base+'farcaster_client.html',method:'GET',
+                        credentials:'same-origin'}));
     assert.match(await (await answer).text(),/body for farcaster_client.html/);
     let handled=false;
     callbacks.fetch({request:{url:base+'api/user',method:'GET',credentials:'same-origin'},
-                    respondWith:()=>{handled=true;}});
+                    respondWith:()=>{handled=true;},waitUntil:p=>{background.push(p);}});
     assert.equal(handled,false,'API user data must not be cached');
     callbacks.fetch({request:{url:base+'private-session.json',
                         method:'GET',credentials:'same-origin'},
-                    respondWith:()=>{handled=true;}});
+                    respondWith:()=>{handled=true;},waitUntil:p=>{background.push(p);}});
     assert.equal(handled,false,'same-origin private JSON must not be cached');
     callbacks.fetch({request:{url:'https://openproof.example.net/account',
                        method:'GET',credentials:'omit'},
-                    respondWith:()=>{handled=true;}});
+                    respondWith:()=>{handled=true;},waitUntil:p=>{background.push(p);}});
     assert.equal(handled,false,'third-party identity requests must not be cached');
 });
 

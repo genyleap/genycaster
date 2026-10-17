@@ -32,9 +32,16 @@ rather than assuming every failure is a network outage.
 - \`ui/wasm/genycaster-shell.html\` is installed as \`farcaster_client.html\`
   after the WASM binary links; it uses the supported \`qtLoad()\` API and
   includes \`farcaster_client.js\` and \`qtloader.js\`.
-- \`genycaster-loader.js\` distinguishes the **first completed launch** from
-  later launches using a non-secret localStorage marker. This is UX state, not
-  proof of an installed/offline app, and it is never an authorization token.
+- The boot loader uses a non-secret localStorage completion marker and release
+  fingerprint to distinguish **first launch**, **normal refresh** and
+  **new deployment**. These are UX hints, not proof of an installed PWA or
+  authenticated account. First use/update displays Download → Install →
+  Initialize milestones. Download starts with the actual WASM fetch;
+  Install is shown only when browser Resource Timing reports the resource
+  completed; Initialize follows Qt's real runtime-dependency callback.
+  Ordinary refresh starts with Initialize. Failure never records completion.
+  When Resource Timing is unavailable, the interface does not invent an
+  install-completion event or fake download percentage.
 - The loader preserves the native WASM Response without reconstructing a
   JavaScript ReadableStream. That permits native WebAssembly streaming and
   the browser's compiled-module cache to operate normally on refresh.
