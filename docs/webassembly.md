@@ -85,6 +85,16 @@ supports non-exportable signer key custody, explicit scoped Farcaster
 authorization, verified Snapchain registration and protocol-native signing.
 The browser sign-in route never claims signer readiness.
 
+For usable, explicit publication while the secure browser signer is not
+available, the account drawer offers **Write a cast in Farcaster (opens a new
+tab)**. This opens the fixed official HTTPS composer
+`https://farcaster.xyz/~/compose` with no draft, account credential,
+or signer data placed in the URL. Publication is performed by the user's
+existing authenticated Farcaster client, not by Genycaster; it cannot be
+mistaken for a successful in-app signed Cast or used for reactions/follows.
+This external handoff is an interim capability, not the internal protocol
+writer.
+
 ## Browser OpenProof sign-in (read-only identity)
 
 The browser uses OpenProof's public `genycaster-native-v1` OAuth device

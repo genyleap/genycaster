@@ -1593,6 +1593,20 @@ Item {
                     }
 
                     ActionButton {
+                        // A real, user-approved publication lane while WASM has
+                        // no scoped local protocol signer. Never transmit draft
+                        // text, tokens or signer material in a compose URL.
+                        visible: wasmReadOnly && presentationBridge.isAuthenticated
+                                 && !presentationBridge.writeReady
+                        Layout.fillWidth: true
+                        text: qsTr("Write a cast in Farcaster (opens a new tab)")
+                        prominent: true
+                        enabled: true
+                        onClicked: presentationBridge.openExternalUrl(
+                            "https://farcaster.xyz/~/compose")
+                    }
+
+                    ActionButton {
                         visible: presentationBridge.isAuthenticated && !presentationBridge.writeReady
                         Layout.fillWidth: true
                         text: presentationBridge.signerBusy
