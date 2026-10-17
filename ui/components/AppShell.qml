@@ -1358,7 +1358,8 @@ Item {
                 ModalHeader {
                     Layout.fillWidth: true
                     title: presentationBridge.isAuthenticated
-                           ? (presentationBridge.authenticationRoute === "farcaster"
+                           ? (presentationBridge.accountIdentityIssuer === "genycaster:device-local"
+                              || presentationBridge.authenticationRoute === "farcaster"
                               || presentationBridge.authenticationRoute === "recovery"
                               || presentationBridge.accountIdentityIssuer.length === 0
                               ? qsTrId("genycaster.shell.your_farcaster_account")
@@ -1369,7 +1370,9 @@ Item {
                                ? qsTrId("genycaster.shell.approve_sign_in")
                                : qsTrId("genycaster.shell.sign_in_to_interact")
                     subtitle: presentationBridge.isAuthenticated
-                              ? (presentationBridge.authenticationRoute === "recovery"
+                              ? (presentationBridge.accountIdentityIssuer === "genycaster:device-local"
+                                 ? qsTrId("genycaster.setup.remembered_device_label")
+                                 : presentationBridge.authenticationRoute === "recovery"
                                  ? qsTrId("genycaster.setup.recovery_verified")
                                  : presentationBridge.authenticationRoute === "farcaster"
                                  ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_description")
@@ -1431,7 +1434,9 @@ Item {
                                 DirectionAwareLabel {
                                     visible: presentationBridge.accountIdentityIssuer.length > 0
                                     Layout.fillWidth: true
-                                    text: presentationBridge.authenticationRoute === "recovery"
+                                    text: presentationBridge.accountIdentityIssuer === "genycaster:device-local"
+                                          ? qsTrId("genycaster.setup.remembered_device_label")
+                                          : presentationBridge.authenticationRoute === "recovery"
                                           ? qsTrId("genycaster.setup.recovery_verified")
                                           : presentationBridge.authenticationRoute === "farcaster"
                                           ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_verification")

@@ -13,11 +13,15 @@ test('WASM packages branded shell instead of Qt logo; mobile uses visible viewpo
     assert.match(cmake,/genycaster-shell\.html/);
     assert.match(cmake,/farcaster_client\.html/);
     assert.match(cmake,/genycaster-loader\.js/);
+    assert.match(cmake,/browser_device_session\.mjs/);
     assert.match(html,/<meta name="viewport".*viewport-fit=cover/);
     assert.match(html,/<div id="qt-screen"/);
     assert.match(html,/<script src="qtloader\.js">/);
     assert.match(html,/<script src="farcaster_client\.js">/);
     assert.doesNotMatch(html,/qtlogo/);
+    assert.match(html,/class="boot-glyph"/);
+    assert.match(html,/class="strand"/);
+    assert.match(html,/background:transparent;border:0;box-shadow:none/);
     assert.match(loader,/visualViewport/);
 });
 test('completed Setup is independent of a volatile session and signer revocation',()=>{
@@ -33,6 +37,9 @@ test('completed Setup is independent of a volatile session and signer revocation
     assert.match(app,/QObject::connect\(&presentationBridge, &PresentationBridge::setupStateChanged/);
     assert.doesNotMatch(app,/QObject::connect\(&bridge, &PresentationBridge::setupStateChanged/);
     assert.match(app,/FS\.syncfs\(false/);
+    assert.match(app,/browserSigner->restoreRememberedAccount\(\)/);
+    assert.match(app,/browserSigner->forgetAccount\(\)/);
+    assert.match(app,/genycaster:device-local/);
     const pre=read('ui/wasm/persistence-pre.js');
     assert.match(pre,/FS\.syncfs\(true/);
     const observer=app.split('const auto sessionObserver = ')[1]
@@ -95,8 +102,9 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     const wasm=await scope.window.fetch('https://example.test/farcaster_client.wasm');
     const received=new Uint8Array(await wasm.arrayBuffer());
     assert.deepEqual(received,sample);
-    assert.equal(elements.get('boot-percent').textContent,'100%');
-    assert.equal(elements.get('boot-fill').style.width,'100%');
+    assert.equal(elements.get('boot-stage').textContent,'Initializing runtime');
+    assert.equal(elements.get('boot-percent').textContent,'');
+    assert.equal(elements.get('genycaster-boot').hidden,false);
     loadedCallback();
     assert.equal(elements.get('genycaster-boot').hidden,true);
     assert.equal(memory.get('genycaster.boot.loaded.v1'),'1');

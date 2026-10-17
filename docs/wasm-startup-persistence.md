@@ -11,6 +11,10 @@
   before Qt main, while changes flush at setup completion and periodically.
   A private browsing session, unavailable IndexedDB, user data deletion, or
   a different origin can still reset preferences. These are browser limits.
+- A cryptographically verified, device-local viewer identity can be resumed
+  after refresh without persisting an OAuth token or recovery phrase. It is
+  not proof that the provider session was freshly renewed. Explicit logout
+  clears the device credential and disables further automatic restoration.
 - Regular sign-in is **viewing only unless a previously registered signer is
   independently restored and verified**. For missing signer permissions, a
   user-controlled "Enable publishing with recovery phrase" action remains
@@ -35,7 +39,9 @@ rather than assuming every failure is a network outage.
   size is reliably known** via an unencoded Content-Length. Missing sizes and
   compressed transfer bodies use indeterminate loading. WebAssembly compilation,
   IDBFS restore, and Qt initialization have stage labels, not invented
-  completion percentages. Startup failures show an actionable retry button.
+  completion percentages. Actual stream completion changes the stage to
+  Initializing runtime; Qt's onLoaded marks Ready. The DNA-themed background
+  is open rather than a card. Startup failures show an actionable retry button.
 - A \`visualViewport\`-aware host resizes the Qt screen when mobile browser
   chrome or the on-screen keyboard changes the actual visible viewport.
 

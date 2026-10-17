@@ -34,6 +34,14 @@
     let client = null, initializedBase = "", epoch = 0, owner = "";
     let inFlight = false;
     let recoveryController = null;
+    let rememberedWrite = Promise.resolve();
+    const signOutKey = 'genycaster.device-session.signed-out';
+    const signedOutLocally=()=>{
+        try{return window.localStorage?.getItem(signOutKey)==='1';}
+        catch{return false;}
+    };
+    const deviceSession = async () =>
+        (await import('./browser_device_session.mjs')).createDeviceSession(window);
     function report(payload) {
         // No unbounded event-buffer growth if the Qt GUI is paused.
         events.push(payload);
@@ -62,16 +70,48 @@
             await import('./recovery-phrase-dialog.mjs');
         if (controller.signal.aborted ||
             epoch !== thisEpoch || owner !== fid) return;
-        const phrase = await promptForFarcasterRecovery(
-            window, controller.signal);
-        if (epoch !== thisEpoch || owner !== fid) return;
-        await current.provisionFromRecovery(fid, phrase);
+        await promptForFarcasterRecovery(window,controller.signal,
+            phrase=>current.provisionFromRecovery(fid,phrase));
     }
 
     function start(action, fid, base, payloadString = "") {
         // Runtime identities are authoritative in Qt, never JS localStorage.
         // If the identity changes while a wallet is prompting, pending
         // requests are invalidated and cannot submit protocol messages.
+        if (action === "forget-account") {
+            try{window.localStorage?.setItem(signOutKey,'1');}
+            catch{/* IndexedDB erase still runs below */}
+            ++epoch;
+            recoveryController?.abort();recoveryController=null;
+            owner="";inFlight=false;client?.signedOut();
+            // Serialize with an in-flight remembered identity write to
+            // prevent a late async write resurrecting an explicitly logged-out user.
+            void rememberedWrite.catch(()=>{}).then(async()=>{
+                try{await (await deviceSession()).clear();}
+                catch(error){console.warn('[Genycaster] Local sign-out cleanup failed',error);}
+            });
+            return;
+        }
+        if (action === "resume-account") {
+            if(signedOutLocally())return;
+            const {requestId}=JSON.parse(payloadString);
+            if(!/^[0-9a-f-]{36}$/i.test(requestId||""))return;
+            const thisEpoch=++epoch;
+            void (async()=>{
+                try{
+                    await rememberedWrite.catch(()=>{});
+                    const account=await (await deviceSession()).restore();
+                    if(epoch===thisEpoch && account && !owner)
+                        report({kind:'setup-account',phase:'ready',fid:account,
+                            requestId,localDevice:true});
+                }catch(error){
+                    if(epoch===thisEpoch)
+                        report({kind:'device-session',phase:'unavailable',
+                            error:String(error?.message||error).slice(0,200)});
+                }
+            })();
+            return;
+        }
         if (action === "signed-out") {
             ++epoch;
             recoveryController?.abort();
@@ -119,13 +159,34 @@
                     const controller=new AbortController();
                     recoveryController=controller;
                     if(epoch!==thisEpoch || owner!==fid) return;
-                    const phrase=await promptForFarcasterRecovery(window,controller.signal);
+                    const recoveredFid=await promptForFarcasterRecovery(
+                        window,controller.signal,phrase=>current.recoverAccountFromPhrase(
+                            phrase,()=>epoch===thisEpoch && owner===fid && !controller.signal.aborted));
                     if(epoch!==thisEpoch || owner!==fid) return;
-                    const recoveredFid=await current.recoverAccountFromPhrase(phrase,
-                        ()=>epoch===thisEpoch && owner===fid && !controller.signal.aborted);
+                    rememberedWrite=rememberedWrite.catch(()=>{}).then(async()=>{
+                        const device=await deviceSession();
+                        await device.remember(recoveredFid);
+                        if(epoch===thisEpoch && owner===fid)
+                            try{window.localStorage?.removeItem(signOutKey);}catch{}
+                    });
+                    await rememberedWrite.catch(error=>
+                        console.warn('[Genycaster] Device session could not be saved',error));
                     if(epoch!==thisEpoch || owner!==fid) return;
                     report({kind:'setup-account',phase:'ready',fid:recoveredFid,requestId});
                 } else if (action === "restore" || action === "restore-for-setup") {
+                    if(action==="restore" && payloadString){
+                        const options=JSON.parse(payloadString);
+                        if(options.rememberLocal===true){
+                            rememberedWrite=rememberedWrite.catch(()=>{}).then(async()=>{
+                                if(epoch!==thisEpoch || owner!==fid)return;
+                                await (await deviceSession()).remember(fid);
+                                if(epoch===thisEpoch && owner===fid)
+                                    try{window.localStorage?.removeItem(signOutKey);}catch{}
+                            });
+                            await rememberedWrite.catch(error=>
+                                console.warn('[Genycaster] Device session could not be saved',error));
+                        }
+                    }
                     const existing = await current.restore(fid);
                     if (action === "restore-for-setup" && !existing) {
                         // Never collect a phrase on app reload or a restored session.

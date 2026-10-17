@@ -1160,6 +1160,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.recovery_working_body");
     //% "Farcaster custody verified on Optimism"
     (void)qtTrId("genycaster.setup.recovery_verified");
+    //% "Remembered on this device · provider session not refreshed"
+    (void)qtTrId("genycaster.setup.remembered_device_label");
     //% "Viewing only — publishing is locked"
     (void)qtTrId("genycaster.setup.viewer_title");
     //% "Sign in to browse posts and profiles. Posting, likes, follows and reactions remain disabled. You can enable full access later in Account using your Farcaster recovery words."

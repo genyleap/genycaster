@@ -8,17 +8,26 @@ import vm from 'node:vm';
 const original = readFileSync(new URL('../../ui/wasm/protocol-signer-pre.js', import.meta.url), 'utf8');
 const source = original
   .replace("await import('./browser_protocol_signer.mjs')", "await window.__testImportSigner()")
-  .replaceAll("await import('./recovery-phrase-dialog.mjs')", "await window.__testImportPhrase()");
+  .replaceAll("await import('./recovery-phrase-dialog.mjs')", "await window.__testImportPhrase()")
+  .replace("import('./browser_device_session.mjs')", "window.__testImportDevice()");
 assert.notEqual(source, original);
 assert.ok(source.includes('window.__testImportPhrase()'));
 
-const tick = () => new Promise(resolve => setTimeout(resolve, 20));
+const tick = () => new Promise(resolve => setTimeout(resolve, 55));
 function harness(registered = false) {
     const events = [];
     const calls = [];
+    const storage=new Map();
+    let remembered=null;
     let releasePrompt;
     let delayPrompt = false;
     const fakeWindow = {
+        localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},
+        __testImportDevice: async()=>({createDeviceSession:()=>({
+            remember:async fid=>{remembered=fid;return fid;},
+            restore:async()=>remembered,
+            clear:async()=>{remembered=null;}
+        })}),
         location: {protocol:'https:', hostname:'example.test', origin:'https://example.test'},
         isSecureContext:true, crypto:{subtle:{sign(){}}}, indexedDB:{open(){}},
         __testImportSigner: async () => ({
@@ -41,20 +50,20 @@ function harness(registered = false) {
             })
         }),
         __testImportPhrase: async () => ({
-            promptForFarcasterRecovery: async (browser,signal) => {
+            promptForFarcasterRecovery: async (browser,signal,onAuthorize) => {
                 calls.push('phrase-dialog');
                 if (delayPrompt) return new Promise((resolve,reject) => {
                     releasePrompt = {resolve,reject};
                     signal.addEventListener('abort',()=>reject(new Error('Recovery import cancelled')), {once:true});
                 });
-                return 'test-vector-no-secrets';
+                return onAuthorize ? onAuthorize('test-vector-no-secrets') : 'test-vector-no-secrets';
             }
         }),
     };
     const context = vm.createContext({window:fakeWindow,console,URL,AbortController});
     vm.runInContext(source, context, {filename:'protocol-signer-pre.js'});
     const bridge=fakeWindow.__genycasterBrowserSigning;
-    return {bridge,calls,events:bridge.events,
+    return {bridge,calls,events:bridge.events,storage,
         setDelayPrompt(){delayPrompt=true;},
         get releasePrompt(){return releasePrompt;}};
 }
@@ -124,4 +133,35 @@ test('cancelling direct Setup recovery cannot emit an authenticated identity',as
     await tick();
     assert.equal(h.events.some(e=>e.kind==='setup-account'&&e.phase==='ready'),false);
     assert.equal(h.calls.some(c=>c.startsWith('recover-account:')),false);
+});
+
+test('verified sign-in is remembered locally and refresh restores device proof',async()=>{
+    const h=harness(false);
+    h.bridge.start('restore','101','https://snapchain.example.test',
+        JSON.stringify({rememberLocal:true}));
+    await tick();
+    h.bridge.start('signed-out','','https://snapchain.example.test');
+    await tick();
+    const requestId='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+    h.bridge.start('resume-account','','https://snapchain.example.test',
+        JSON.stringify({requestId}));
+    await tick();
+    const restored=h.events.find(event=>event.kind==='setup-account'&&event.requestId===requestId);
+    assert.equal(restored?.phase,'ready');
+    assert.equal(restored?.fid,'101');
+    assert.equal(restored?.localDevice,true);
+    assert.ok(!JSON.stringify(h.events).includes('privateKey'));
+});
+test('explicit logout disables automatic sign-in and erases remembered device',async()=>{
+    const h=harness(false);
+    h.bridge.start('restore','101','https://snapchain.example.test',
+        JSON.stringify({rememberLocal:true}));
+    await tick();
+    h.bridge.start('forget-account','','https://snapchain.example.test');
+    await tick();
+    assert.equal(h.storage.get('genycaster.device-session.signed-out'),'1');
+    h.bridge.start('resume-account','','https://snapchain.example.test',
+        JSON.stringify({requestId:'ffffffff-ffff-4fff-8fff-ffffffffffff'}));
+    await tick();
+    assert.equal(h.events.some(event=>event.kind==='setup-account'&&event.localDevice),false);
 });

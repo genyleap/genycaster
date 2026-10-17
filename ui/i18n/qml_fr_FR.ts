@@ -3842,5 +3842,9 @@
             <source>Sign in to browse posts and profiles. Posting, likes, follows and reactions remain disabled. You can enable full access later in Account using your Farcaster recovery words.</source>
             <translation>Connectez-vous pour consulter les publications et les profils. Publier, aimer, suivre et réagir restent désactivés. Vous pourrez activer l’accès complet plus tard dans Compte avec vos mots de récupération Farcaster.</translation>
         </message>
+        <message id="genycaster.setup.remembered_device_label">
+            <source>Remembered on this device · provider session not refreshed</source>
+            <translation>Restauré sur cet appareil · session du fournisseur non renouvelée</translation>
+        </message>
     </context>
 </TS>

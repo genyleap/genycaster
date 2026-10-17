@@ -2203,6 +2203,8 @@ void connectRuntime(
 #if defined(__EMSCRIPTEN__)
                     const auto completedPhase = state.phase;
                     const auto verifiedFid = state.session ? state.session->fid.value : 0U;
+                    const bool deviceLocalSession = state.session
+                        && state.session->identityIssuer == "genycaster:device-local";
 #endif
                     applySessionState(bridge, std::move(state), authenticationAvailable);
                     runtime->authenticationPollInFlight.store(false, std::memory_order_release);
@@ -2215,7 +2217,9 @@ void connectRuntime(
                         // A sign-in only restores an already-authorized signer.
                         // Never open the recovery dialog without explicit user action.
                         browserSigner->start(QStringLiteral("restore"),
-                            QString::number(verifiedFid));
+                            QString::number(verifiedFid),
+                            deviceLocalSession ? QJsonObject{}
+                                : QJsonObject{{QStringLiteral("rememberLocal"), true}});
                     } else if (completedPhase == application::session::SessionPhase::Guest) {
                         browserSigner->start(QStringLiteral("signed-out"), {});
                     }
@@ -2296,7 +2300,8 @@ void connectRuntime(
         applyBrowserSession(std::move(state));
     };
     browserSigner->setRecoveryObserver(
-        [sessionObserver](QString fid, QString error, const bool verified) {
+        [sessionObserver](QString fid, QString error,
+                          const bool verified, const bool restoredDevice) {
             application::session::SessionState state{};
             if (!verified) {
                 if (error.isEmpty()) {
@@ -2313,7 +2318,9 @@ void connectRuntime(
                 const auto authenticatedAt = foundation::time::now();
                 state.phase = application::session::SessionPhase::Authenticated;
                 state.session = domain::session::ClientSession{
-                    .identityIssuer = std::string{"farcaster:optimism-idregistry"},
+                    .identityIssuer = restoredDevice
+                        ? std::string{"genycaster:device-local"}
+                        : std::string{"farcaster:optimism-idregistry"},
                     .identitySubject = std::string{"fid:"} + fid.toStdString(),
                     .fid = domain::identity::Fid{static_cast<std::uint64_t>(number)},
                     .method = domain::session::AuthenticationMethod::Custody,
@@ -2347,7 +2354,7 @@ void connectRuntime(
                      });
     QObject::connect(&bridge, &PresentationBridge::signOutRequested,
                      browserAuth, [browserAuth, browserSigner] {
-                         browserSigner->cancelRecovery();
+                         browserSigner->forgetAccount();
                          browserAuth->signOut();
                      });
 #else
@@ -2920,6 +2927,14 @@ void connectRuntime(
     sessionObserver(application::session::SessionState{
         .phase = application::session::SessionPhase::Guest,
     });
+    // Restore a locally remembered device identity only after its
+    // non-extractable WebCrypto key completes a challenge-response proof.
+    // This is local continuity, not a newly refreshed OpenProof token.
+    // Guest state was queued first. Restore only afterwards, otherwise the
+    // queued Guest sign-out would invalidate the in-flight local proof.
+    QMetaObject::invokeMethod(&bridge, [browserSigner] {
+        browserSigner->restoreRememberedAccount();
+    }, Qt::QueuedConnection);
 #endif
 
     QObject::connect(&bridge, &PresentationBridge::searchSuggestionsCancelled, &bridge,

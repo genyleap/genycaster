@@ -20,7 +20,7 @@ function measurable(loaded,total) {
     fill.classList.add("measured");
     fill.style.width=value+"%";
     percent.textContent=value+"%";
-    stage.textContent="Downloading WebAssembly";
+    stage.textContent="Downloading · "+value+"%";
 }
 const key="genycaster.boot.loaded.v1";
 let seen=false;
@@ -40,21 +40,26 @@ window.fetch=async function(input,options) {
     const rawLength=Number(response.headers.get("content-length"));
     const encoded=response.headers.get("content-encoding");
     const total=encoded?0:rawLength;
-    announce(seen?"Loading cached or updated engine":"Downloading the application",
-        "Downloading verified application resources…","Downloading WebAssembly");
-    if(!Number.isFinite(total)||total<=0){
-        preparing();
-        return response;
-    }
+    announce(seen?"Loading application resources":"Downloading application resources",
+        "Receiving the Qt WebAssembly engine…","Downloading");
+    const hasMeasuredTotal=Number.isFinite(total)&&total>0;
+    if(!hasMeasuredTotal)preparing();
     const reader=response.body.getReader();
     let loaded=0;
     const stream=new ReadableStream({
         async pull(controller) {
             try {
                 const part=await reader.read();
-                if(part.done) { controller.close(); stage.textContent="Initializing engine"; return; }
+                if(part.done) {
+                    controller.close();
+                    announce("Starting Genycaster",
+                        "Application files received. Compiling WebAssembly and preparing Qt…",
+                        "Initializing runtime");
+                    preparing();
+                    return;
+                }
                 loaded+=part.value.byteLength;
-                measurable(loaded,total);
+                if(hasMeasuredTotal)measurable(loaded,total);
                 controller.enqueue(part.value);
             }catch(error){controller.error(error);}
         },
@@ -62,6 +67,8 @@ window.fetch=async function(input,options) {
     });
     const headers=new Headers(response.headers);
     headers.delete("content-length");
+    // Fetch already yields decoded bytes, so don't claim they are encoded again.
+    headers.delete("content-encoding");
     return new Response(stream,{status:response.status,statusText:response.statusText,headers});
 };
 const screen=$("qt-screen");

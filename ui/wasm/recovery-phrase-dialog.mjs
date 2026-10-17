@@ -1,8 +1,9 @@
+import { wordlist as bip39Words } from './vendor/bip39-english.mjs';
+const knownWords=new Set(bip39Words);
 // Browser-only recovery UI. Never send phrase text through Qt, C++,
 // localStorage, IndexedDB, analytics, console or network requests.
 // Onboarding reference: Quorum Mobile FarcasterRecovery / ReimportSheet.
-// This is explicitly invoked by the account owner's Enable Interactions
-// action, not by an implicit sign-in side effect.
+// Invoked only after an explicit recovery / enable-publishing action.
 const strings={
  en:{title:'Import your Farcaster recovery phrase',subtitle:'Authorize Genycaster to publish with your Farcaster identity without opening a wallet extension.',label:'Farcaster recovery phrase (12 or 24 words)',placeholder:'Enter the recovery words in the correct order',privacy:'Your phrase is processed on this device, is never uploaded, and is not stored. Only a separately authorized Ed25519 signer remains. Use this only on a trusted device.',hint:'Use the recovery phrase for your Farcaster / Warpcast account — not your Genyleap or Quorum account.',cancel:'Cancel',import:'Import and authorize',invalid:'Enter exactly 12 or 24 recovery words.',close:'Close'},
  fa:{title:'بازیابی حساب فارکستر',subtitle:'بدون نیاز به بازکردن افزونهٔ کیف پول، مجوز انتشار را در جنی‌کستر فعال کنید.',label:'عبارت بازیابی فارکستر (۱۲ یا ۲۴ کلمه)',placeholder:'کلمات بازیابی را به ترتیب وارد کنید',privacy:'این عبارت فقط روی دستگاه شما پردازش می‌شود، نه ارسال می‌شود و نه ذخیره. فقط کلید امضای مستقل و مجاز باقی می‌ماند. فقط روی دستگاه مطمئن استفاده کنید.',hint:'عبارت بازیابی حساب Farcaster / Warpcast را وارد کنید؛ نه عبارت Genyleap یا Quorum.',cancel:'انصراف',import:'ورود و فعال‌سازی',invalid:'عبارت بازیابی باید دقیقاً ۱۲ یا ۲۴ کلمه باشد.',close:'بستن'},
@@ -18,7 +19,7 @@ const strings={
  hi:{title:'Farcaster रिकवरी वाक्यांश आयात करें',subtitle:'बाहरी वॉलेट खोले बिना Genycaster में प्रकाशन अधिकृत करें।',label:'रिकवरी वाक्यांश (12 या 24 शब्द)',placeholder:'शब्द सही क्रम में दर्ज करें',privacy:'यह वाक्यांश केवल इसी डिवाइस पर संसाधित होता है; न अपलोड होता है, न संग्रहीत। केवल अधिकृत साइनर कुंजी रहती है।',hint:'Genyleap / Quorum नहीं, Farcaster / Warpcast वाला वाक्यांश इस्तेमाल करें।',cancel:'रद्द करें',import:'आयात और अधिकृत करें',invalid:'ठीक 12 या 24 शब्द दर्ज करें।',close:'बंद करें'},
 };
 
-export function promptForFarcasterRecovery(browser=globalThis,signal=null) {
+export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuthorize=null) {
     if(signal?.aborted) return Promise.reject(new Error('Recovery import cancelled'));
     const document=browser.document;
     if(!document?.body || browser.isSecureContext!==true)
@@ -61,7 +62,20 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null) {
         grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:9px;direction:ltr';
         const inputs=[];
         let count=12;
+        let pending=false, settled=false;
         const modeButtons=[];
+        const cellList=[];
+        const badStyle='border:2px solid #e45966;background:rgba(227,67,80,.09)';
+        const plainStyle='border:1px solid '+outline+';background:'+inputSurface;
+        const mark=(index,bad)=>{
+            const cell=cellList[index];if(!cell)return;
+            cell.style.border=bad?'2px solid #e45966':'1px solid '+outline;
+            cell.style.background=bad?'rgba(227,67,80,.09)':inputSurface;
+            inputs[index]?.setAttribute('aria-invalid',bad?'true':'false');
+        };
+        const clearErrors=()=>{for(let i=0;i<count;i++)mark(i,false);error.textContent='';};
+        const showError=(message)=>{error.textContent=message;error.setAttribute('role','alert');};
+
         const createInput=(index)=>{
             const cell=document.createElement('label');
             cell.style.cssText='display:flex;align-items:center;gap:7px;min-width:0;background:'+inputSurface+';border:1px solid '+outline+';border-radius:11px;padding:7px 10px';
@@ -74,7 +88,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null) {
             word.setAttribute('aria-label',s.label+' '+(index+1));
             word.style.cssText='width:100%;min-width:0;background:transparent;border:0;outline:0;color:'+foreground+';font:15px system-ui;direction:ltr';
             cell.appendChild(number);cell.appendChild(word);
-            inputs.push(word);
+            inputs.push(word);cellList.push(cell);
             const pasteWords=(raw)=>{
                 const words=raw.trim().toLowerCase().split(/\s+/u).filter(Boolean);
                 if(words.length===12||words.length===24)renderWords(words.length);
@@ -82,7 +96,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null) {
                 for(let i=0;i<words.length&&offset+i<count;i++)
                     inputs[offset+i].value=words[i].replace(/[^a-z]/gu,'');
                 inputs[Math.min(count-1,offset+words.length)]?.focus();
-                error.textContent='';
+                clearErrors();
             };
             word.addEventListener('paste',event=>{
                 const pasted=event.clipboardData?.getData('text');
@@ -94,7 +108,12 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null) {
                 const value=word.value.toLowerCase();
                 if(/\s/u.test(value)){pasteWords(value);return;}
                 word.value=value.replace(/[^a-z]/gu,'');
+                mark(index,false);
                 error.textContent='';
+            });
+            word.addEventListener('blur',()=>{
+                const value=word.value.trim().toLowerCase();
+                mark(index,value.length>0&&!knownWords.has(value));
             });
             word.addEventListener('keydown',event=>{
                 if((event.key===' '||event.key==='Enter')&&index<count-1){
@@ -108,7 +127,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null) {
         const renderWords=(number)=>{
             const snapshot=inputs.map(word=>word.value);
             for(const word of inputs)word.value='';
-            inputs.length=0;
+            inputs.length=0;cellList.length=0;
             while(grid.firstChild)grid.removeChild(grid.firstChild);
             count=number;
             for(let i=0;i<number;i++){
@@ -151,13 +170,15 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null) {
         document.body.style.overflow='hidden';
         document.body.appendChild(backdrop);
         const cleanup=()=>{
+            if(settled)return;
+            settled=true;
             for(const word of inputs){word.value='';word.placeholder='';}
             signal?.removeEventListener('abort',dismiss);
             backdrop.removeEventListener('keydown',keydown);
             backdrop.remove();document.body.style.overflow=oldOverflow;
             oldFocus?.focus?.();
         };
-        const dismiss=()=>{cleanup();const e=new Error('Recovery import cancelled');e.code='user-cancelled';reject(e);};
+        const dismiss=()=>{if(settled)return;cleanup();const e=new Error('Recovery import cancelled');e.code='user-cancelled';reject(e);};
         const keydown=event=>{
             if(event.key==='Escape'){event.preventDefault();dismiss();}
             if(event.key==='Tab'){
@@ -170,16 +191,56 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null) {
         signal?.addEventListener('abort',dismiss,{once:true});
         cancel.addEventListener('click',dismiss,{once:true});
         backdrop.addEventListener('click',event=>{if(event.target===backdrop)dismiss();});
-        submit.addEventListener('click',()=>{
+        submit.addEventListener('click',async()=>{
+            if(pending||settled)return;
+            clearErrors();
             const words=inputs.map(word=>word.value.trim().toLowerCase());
-            if(words.length!==count || words.some(word=>!/^[a-z]+$/u.test(word))){
-                error.textContent=s.invalid;return;
+            let invalid=false,first=-1;
+            for(let i=0;i<words.length;i++){
+                const bad=!knownWords.has(words[i]);
+                mark(i,bad);
+                if(bad){invalid=true;if(first<0)first=i;}
+            }
+            if(invalid){
+                showError(lang==='fa'
+                    ? 'واژه‌های قرمز معتبر نیستند یا خالی مانده‌اند. آن‌ها را اصلاح کنید.'
+                    : 'Check the highlighted words: they are missing or not in the recovery word list.');
+                inputs[first]?.focus();words.fill('');return;
             }
             const phrase=words.join(' ');
             words.fill('');
-            cleanup();
-            resolve(phrase);
-        },{once:false});
+            pending=true;submit.disabled=true;
+            submit.textContent=lang==='fa'?'در حال بررسی…':'Checking securely…';
+            try{
+                const {validateRecoveryWords}=await import('./farcaster_recovery.mjs');
+                await validateRecoveryWords(phrase);
+                if(settled||signal?.aborted)return;
+                const result=onAuthorize?await onAuthorize(phrase):phrase;
+                if(settled||signal?.aborted)return;
+                cleanup();resolve(result);
+            }catch(cause){
+                if(settled||signal?.aborted)return;
+                // A BIP39 checksum does not identify the specific incorrect
+                // word; avoid falsely marking the last word as the culprit.
+                const message=String(cause?.message||cause);
+                const checksum=/checksum/i.test(message);
+                const ownership=/custody|does not control|does not own|registered Farcaster/i.test(message);
+                const network=/HTTP|RPC|Snapchain|timeout|fetch|network|registration/i.test(message);
+                showError(checksum
+                    ? (lang==='fa'?'ترتیب یا یکی از واژه‌ها اشتباه است؛ همه واژه‌ها معتبرند اما جمع کنترل عبارت درست نیست.':
+                        'The words are valid individually, but the phrase checksum is wrong. Check their order and spelling.')
+                    : ownership
+                    ? (lang==='fa'?'این واژه‌ها متعلق به حساب Farcaster موردنظر نیستند. عبارت بازیابی همان حساب را بررسی کنید.':
+                        'These recovery words do not match that Farcaster account.')
+                    : network
+                    ? (lang==='fa'?'بررسی شبکه کامل نشد. ورودی‌ها حفظ شده‌اند؛ اتصال را بررسی و دوباره تلاش کنید.':
+                        'Network verification did not finish. Your entries are still here; please retry.')
+                    : (lang==='fa'?'تأیید عبارت انجام نشد. واژه‌ها را بررسی و دوباره تلاش کنید.':
+                        'Recovery could not be verified. Check your words and retry.'));
+            }finally{
+                pending=false;submit.disabled=false;submit.textContent=s.import;
+            }
+        });
         inputs[0]?.focus();
     });
 }

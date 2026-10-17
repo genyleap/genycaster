@@ -3842,5 +3842,9 @@
             <source>Sign in to browse posts and profiles. Posting, likes, follows and reactions remain disabled. You can enable full access later in Account using your Farcaster recovery words.</source>
             <translation>يمكنك تسجيل الدخول لقراءة المنشورات والملفات الشخصية. النشر والإعجابات والمتابعات والتفاعلات معطلة. يمكنك تفعيل الوصول الكامل لاحقاً من الحساب باستخدام كلمات استرداد Farcaster.</translation>
         </message>
+        <message id="genycaster.setup.remembered_device_label">
+            <source>Remembered on this device · provider session not refreshed</source>
+            <translation>تمت استعادة الحساب على هذا الجهاز · لم يتم تجديد جلسة موفر الهوية</translation>
+        </message>
     </context>
 </TS>

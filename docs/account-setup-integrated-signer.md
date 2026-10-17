@@ -23,15 +23,26 @@
 - The six-step onboarding completion and legal consent are non-secret durable
   preferences. Sign-out, refresh, session expiry, and signer revocation never
   reset them.
-- Browser sessions remain ephemeral. Refresh may return users to guest viewing,
-  and it must not silently re-enable publishing without a new verified
-  authenticated identity and independently restored signer registration.
+- A browser can remember its verified account identity using a non-extractable
+  Ed25519 device-continuity key in origin-scoped IndexedDB. On refresh, local
+  random-challenge signing verifies possession of that key. This resumes only
+  the **local device identity**, not a refreshed OpenProof/OAuth provider token;
+  the Account UI labels this distinction clearly. A new device, private mode,
+  or cleared site data requires a new sign-in.
+- Explicit logout sets a non-secret sign-out marker and erases the local device
+  credential. It cannot be silently restored until the next verified sign-in.
+  Recovery phrases, custody keys, and OAuth bearer tokens are never persisted.
+- A resumed device identity never grants writes by itself: the registered
+  Farcaster protocol signer must be separately restored and verified against
+  Snapchain before write access is enabled.
 - Sign-out immediately clears write readiness. Late signer or recovery events
   from an earlier identity must not re-enable writes or cause a new KEY_ADD.
 - Browser phrase input and derived custody key never cross the Qt/WASM bridge,
   nor enter QSettings, IndexedDB, localStorage, logs or network payloads.
-  Numbered fields are cleared on cancel/submit; JavaScript strings cannot
-  guarantee deterministic memory erasure.
+  Numbered fields stay open on invalid words, checksum failure or a network
+  error. Unknown BIP39 words are marked individually, but a checksum error
+  cannot identify a specific wrong word. Inputs clear only on cancellation
+  or successful authorization. JavaScript strings cannot guarantee erasure.
 
 ## Rollout
 

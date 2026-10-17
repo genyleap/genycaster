@@ -36,10 +36,22 @@ public:
         m_timer.start();
     }
 
-    using RecoveryObserver = std::function<void(QString, QString, bool)>;
+    using RecoveryObserver = std::function<void(QString, QString, bool, bool)>;
     void setRecoveryObserver(RecoveryObserver observer)
     {
         m_recoveryObserver = std::move(observer);
+    }
+    void restoreRememberedAccount()
+    {
+        m_pendingResumeId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        start(QStringLiteral("resume-account"), {},
+              QJsonObject{{QStringLiteral("requestId"), m_pendingResumeId}});
+    }
+    void forgetAccount()
+    {
+        m_pendingResumeId.clear();
+        m_pendingRecoveryId.clear();
+        start(QStringLiteral("forget-account"), {});
     }
     void startRecovery()
     {
@@ -52,6 +64,7 @@ public:
     void cancelRecovery()
     {
         m_pendingRecoveryId.clear();
+        m_pendingResumeId.clear();
         start(QStringLiteral("signed-out"), {});
     }
 
@@ -102,8 +115,13 @@ private:
             const QString kind = event.value(QStringLiteral("kind")).toString();
             const QString fid = event.value(QStringLiteral("fid")).toString();
             if (kind == QStringLiteral("setup-account")) {
-                if (m_pendingRecoveryId.isEmpty()
-                    || event.value(QStringLiteral("requestId")).toString() != m_pendingRecoveryId)
+                const QString requestId = event.value(QStringLiteral("requestId")).toString();
+                const bool restoredDevice = !m_pendingResumeId.isEmpty()
+                    && requestId == m_pendingResumeId;
+                const bool enteredRecovery = !m_pendingRecoveryId.isEmpty()
+                    && requestId == m_pendingRecoveryId;
+                if (!restoredDevice && !enteredRecovery) continue;
+                if (restoredDevice != event.value(QStringLiteral("localDevice")).toBool())
                     continue;
                 const QString outcome = event.value(QStringLiteral("phase")).toString();
                 if (outcome != QStringLiteral("ready")
@@ -117,12 +135,13 @@ private:
                 const QString error = outcome == QStringLiteral("cancelled")
                     ? QString{} : verified ? QString{}
                     : event.value(QStringLiteral("error")).toString();
-                m_pendingRecoveryId.clear();
+                if (restoredDevice) m_pendingResumeId.clear();
+                else m_pendingRecoveryId.clear();
                 if (m_recoveryObserver) {
                     m_recoveryObserver(verified ? fid : QString{},
                         error.isEmpty() && outcome != QStringLiteral("cancelled") && !verified
                             ? QStringLiteral("Farcaster recovery was not verified.") : error,
-                        verified);
+                        verified, restoredDevice);
                 }
                 continue;
             }
@@ -171,6 +190,7 @@ private:
 
     RecoveryObserver m_recoveryObserver{};
     QString m_pendingRecoveryId{};
+    QString m_pendingResumeId{};
     QPointer<PresentationBridge> m_presentation{};
     QString m_snapchainOrigin{};
     QTimer m_timer{};
