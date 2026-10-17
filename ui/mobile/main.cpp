@@ -5076,7 +5076,7 @@ int main(int argc, char* argv[])
     wasmPersistenceFlush.start();
     // Persist onboarding/consent immediately instead of waiting for the
     // periodic SQLite flush. Never synchronize a private mnemonic here.
-    QObject::connect(&bridge, &PresentationBridge::setupStateChanged,
+    QObject::connect(&presentationBridge, &PresentationBridge::setupStateChanged,
                      &application, [&settings] {
         settings.sync();
         EM_ASM({

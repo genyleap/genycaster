@@ -30,7 +30,8 @@ test('completed Setup is independent of a volatile session and signer revocation
     assert.doesNotMatch(signer,/resetInitialSetupProgress\(/);
     const app=read('ui/mobile/main.cpp');
     assert.match(app,/\/home\/web_user\/\.local\/share\/genycaster-settings\.ini/);
-    assert.match(app,/PresentationBridge::setupStateChanged/);
+    assert.match(app,/QObject::connect\(&presentationBridge, &PresentationBridge::setupStateChanged/);
+    assert.doesNotMatch(app,/QObject::connect\(&bridge, &PresentationBridge::setupStateChanged/);
     assert.match(app,/FS\.syncfs\(false/);
     const pre=read('ui/wasm/persistence-pre.js');
     assert.match(pre,/FS\.syncfs\(true/);
