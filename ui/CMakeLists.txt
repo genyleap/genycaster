@@ -71,6 +71,7 @@ set(farcasterQmlFiles
     components/ThreadReplyItem.qml
     components/DirectionAwareLabel.qml
     components/DirectionAwareTextArea.qml
+    components/EditorContextMenu.qml
     components/DirectionAwareTextField.qml
     components/EmptyState.qml
     components/ExplorerFeedHeader.qml
@@ -320,6 +321,7 @@ target_link_libraries(farcaster_client
 
 
 if(EMSCRIPTEN)
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
     # Qt defaults to a 50 MB initial heap, but the static Qt Quick/QML font
     # resources in this WASM target already require >54 MiB at link time.
     # Configure Qt's target property rather than appending a conflicting -s
@@ -388,7 +390,32 @@ if(EMSCRIPTEN)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-loader.js"
             "$<TARGET_FILE_DIR:farcaster_client>/genycaster-loader.js"
-        COMMENT "Installing Genycaster branded WebAssembly boot shell"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-sw.js"
+            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-sw.js"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster.webmanifest"
+            "$<TARGET_FILE_DIR:farcaster_client>/genycaster.webmanifest"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-icon.svg"
+            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-icon.svg"
+        COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_SOURCE_DIR}/tools/package_wasm_assets.py"
+            --dir "$<TARGET_FILE_DIR:farcaster_client>"
+        COMMENT "Installing and hashing Genycaster WebAssembly public assets"
+        VERBATIM
+    )
+
+    # JS/HTML/worker-only edits should be reflected in the `all` build
+    # without forcing an expensive C++/WASM relink. Keep the static staging
+    # output and content hash metadata coherent on incremental builds.
+    add_custom_target(genycaster_wasm_asset_refresh ALL
+        COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_SOURCE_DIR}/tools/package_wasm_assets.py"
+            --source "${CMAKE_CURRENT_SOURCE_DIR}/wasm"
+            --dir "$<TARGET_FILE_DIR:farcaster_client>"
+        DEPENDS farcaster_client
+        COMMENT "Refreshing versioned Genycaster WebAssembly static assets"
         VERBATIM
     )
 endif()

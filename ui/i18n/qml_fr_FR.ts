@@ -3846,5 +3846,25 @@
             <source>Remembered on this device · provider session not refreshed</source>
             <translation>Restauré sur cet appareil · session du fournisseur non renouvelée</translation>
         </message>
+        <message id="genycaster.editor.undo">
+            <source>Undo</source>
+            <translation>Annuler</translation>
+        </message>
+        <message id="genycaster.editor.redo">
+            <source>Redo</source>
+            <translation>Rétablir</translation>
+        </message>
+        <message id="genycaster.editor.cut">
+            <source>Cut</source>
+            <translation>Couper</translation>
+        </message>
+        <message id="genycaster.editor.paste">
+            <source>Paste</source>
+            <translation>Coller</translation>
+        </message>
+        <message id="genycaster.editor.select_all">
+            <source>Select All</source>
+            <translation>Tout sélectionner</translation>
+        </message>
     </context>
 </TS>

@@ -3846,5 +3846,25 @@
             <source>Remembered on this device · provider session not refreshed</source>
             <translation>Remembered on this device · provider session not refreshed</translation>
         </message>
+        <message id="genycaster.editor.undo">
+            <source>Undo</source>
+            <translation>Undo</translation>
+        </message>
+        <message id="genycaster.editor.redo">
+            <source>Redo</source>
+            <translation>Redo</translation>
+        </message>
+        <message id="genycaster.editor.cut">
+            <source>Cut</source>
+            <translation>Cut</translation>
+        </message>
+        <message id="genycaster.editor.paste">
+            <source>Paste</source>
+            <translation>Paste</translation>
+        </message>
+        <message id="genycaster.editor.select_all">
+            <source>Select All</source>
+            <translation>Select All</translation>
+        </message>
     </context>
 </TS>

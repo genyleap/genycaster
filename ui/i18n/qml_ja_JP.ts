@@ -3846,5 +3846,25 @@
             <source>Remembered on this device · provider session not refreshed</source>
             <translation>この端末で復元済み · プロバイダーのセッションは未更新</translation>
         </message>
+        <message id="genycaster.editor.undo">
+            <source>Undo</source>
+            <translation>元に戻す</translation>
+        </message>
+        <message id="genycaster.editor.redo">
+            <source>Redo</source>
+            <translation>やり直す</translation>
+        </message>
+        <message id="genycaster.editor.cut">
+            <source>Cut</source>
+            <translation>切り取り</translation>
+        </message>
+        <message id="genycaster.editor.paste">
+            <source>Paste</source>
+            <translation>貼り付け</translation>
+        </message>
+        <message id="genycaster.editor.select_all">
+            <source>Select All</source>
+            <translation>すべて選択</translation>
+        </message>
     </context>
 </TS>

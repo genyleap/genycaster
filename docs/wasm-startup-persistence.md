@@ -56,7 +56,7 @@ rather than assuming every failure is a network outage.
   \`Content-Encoding\` and \`Vary: Accept-Encoding\`. Transfer-size percentages
   cannot reliably be inferred from decompressed bytes, so the loader does not
   fabricate them.
-- Use strong ETags and conditional revalidation for **stable filenames**,
+- Use ETags and conditional revalidation for **stable filenames**,
   especially HTML and \`farcaster_client.js\`. Cache unchanging content
   immutably **only after introducing content-hashed filenames**; never mark
   a mutable \`farcaster_client.wasm\` URL as immutable across deployments.
@@ -68,9 +68,13 @@ rather than assuming every failure is a network outage.
   and server logs; do **not** promise a fixed startup time without those values.
   Repeat visits should benefit from HTTP cache/revalidation but can still
   recompile when the browser discards its compiled WASM cache.
-- No service worker, offline installation, or custody phrase caching is
-  installed by this change. The branded first-use screen is not an offline
-  install promise.
+- The public static shell now registers an optional, origin-scoped Service
+  Worker and a Web App Manifest, and generates content-addressed WASM asset
+  URLs. No identity API responses, bearer tokens, custody phrases or private
+  signer material enter the cache. See [WASM static deployment](wasm-static-delivery.md)
+  for exact cache headers, Nginx/Brotli setup and offline limitations.
+  Availability of offline boot depends on the worker having cached all
+  needed public files; do not promise offline social network access.
 
 ## Regression commands
 

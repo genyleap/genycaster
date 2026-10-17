@@ -1162,6 +1162,16 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.recovery_verified");
     //% "Remembered on this device · provider session not refreshed"
     (void)qtTrId("genycaster.setup.remembered_device_label");
+    //% "Undo"
+    (void)qtTrId("genycaster.editor.undo");
+    //% "Redo"
+    (void)qtTrId("genycaster.editor.redo");
+    //% "Cut"
+    (void)qtTrId("genycaster.editor.cut");
+    //% "Paste"
+    (void)qtTrId("genycaster.editor.paste");
+    //% "Select All"
+    (void)qtTrId("genycaster.editor.select_all");
     //% "Viewing only — publishing is locked"
     (void)qtTrId("genycaster.setup.viewer_title");
     //% "Sign in to browse posts and profiles. Posting, likes, follows and reactions remain disabled. You can enable full access later in Account using your Farcaster recovery words."

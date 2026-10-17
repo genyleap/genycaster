@@ -3846,5 +3846,25 @@
             <source>Remembered on this device · provider session not refreshed</source>
             <translation>Восстановлено на этом устройстве · сеанс провайдера не обновлён</translation>
         </message>
+        <message id="genycaster.editor.undo">
+            <source>Undo</source>
+            <translation>Отменить</translation>
+        </message>
+        <message id="genycaster.editor.redo">
+            <source>Redo</source>
+            <translation>Повторить</translation>
+        </message>
+        <message id="genycaster.editor.cut">
+            <source>Cut</source>
+            <translation>Вырезать</translation>
+        </message>
+        <message id="genycaster.editor.paste">
+            <source>Paste</source>
+            <translation>Вставить</translation>
+        </message>
+        <message id="genycaster.editor.select_all">
+            <source>Select All</source>
+            <translation>Выделить всё</translation>
+        </message>
     </context>
 </TS>

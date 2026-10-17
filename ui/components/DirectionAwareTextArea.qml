@@ -7,6 +7,10 @@ TextArea {
     property bool forceLeftToRight: false
     property bool forceRightToLeft: false
 
+    // Override Qt 6.9+'s generic native-looking context menu in every
+    // visual, Markdown, list and thread editor using the shared theme.
+    ContextMenu.menu: EditorContextMenu { editor: root }
+
     readonly property string analyzedText: text.length > 0 ? text : placeholderText
     readonly property int effectiveTextDirection: forceLeftToRight ? Qt.LeftToRight
                                                   : forceRightToLeft ? Qt.RightToLeft

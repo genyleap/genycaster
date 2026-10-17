@@ -73,6 +73,7 @@ Item {
     property string pendingReturnShellRoute: ""
     property string committedRichCastId: ""
     property bool awaitingRichCommit: false
+    property string submittedCastBaseline: ""
     property string pendingMiniAppComposeRequestId: ""
     property string pendingMiniAppComposeText: ""
     property var pendingMiniAppComposeEmbeds: []
@@ -965,6 +966,8 @@ Item {
                                 blurSourceItem: shellContent
                                 parentCast: root.composerParent
                                 onPublishRequested: (text, mentionFids, mentionPositions, embeds) => {
+                                    root.awaitingRichCommit = true
+                                    root.submittedCastBaseline = String(presentationBridge.lastPublishedCastId || "")
                                     if (root.pendingMiniAppComposeRequestId.length > 0) {
                                         root.pendingMiniAppComposeText = text
                                         root.pendingMiniAppComposeEmbeds = embeds
@@ -972,14 +975,23 @@ Item {
                                     presentationBridge.publishPreparedCast(text, mentionFids, mentionPositions, embeds)
                                 }
                                 onReplyRequested: (text, mentionFids, mentionPositions, embeds) => {
+                                    root.awaitingRichCommit = true
+                                    root.submittedCastBaseline = String(presentationBridge.lastPublishedCastId || "")
                                     if (root.pendingMiniAppComposeRequestId.length > 0) {
                                         root.pendingMiniAppComposeText = text
                                         root.pendingMiniAppComposeEmbeds = embeds
                                     }
                                     presentationBridge.publishPreparedReply(text, mentionFids, mentionPositions, embeds)
                                 }
-                                onThreadRequested: casts => presentationBridge.publishPreparedThread(casts)
+                                onThreadRequested: casts => {
+                                    root.awaitingRichCommit = true
+                                    root.submittedCastBaseline = String(presentationBridge.lastPublishedCastId || "")
+                                    presentationBridge.publishPreparedThread(casts)
+                                }
                                 onAbandoned: {
+                                    // User dismissal cancels the *editor* association;
+                                    // a late network confirmation may not close a new draft.
+                                    root.awaitingRichCommit = false
                                     root.composerParent = null
                                     if (root.pendingMiniAppComposeRequestId.length > 0 && !root.awaitingRichCommit) {
                                         miniAppHost.cancelComposeCast(root.pendingMiniAppComposeRequestId)
@@ -1720,19 +1732,20 @@ Item {
                 notificationsRouteLoader.item.loadingNotifications = root.notificationBusySnapshot
         }
 
-        function onCastQueued() {
-            if (composerDrawer.opened) {
-                root.awaitingRichCommit = true
-                composerDrawer.close()
-            }
-        }
+        // Queued means accepted for background delivery, not published.
+        // Keep the draft visible until Snapchain confirms the cast.
 
         function onStateChanged() {
             const castId = String(presentationBridge.lastPublishedCastId || "")
-            if (root.awaitingRichCommit && castId.length > 0 && castId !== root.committedRichCastId) {
+            if (root.awaitingRichCommit
+                    && presentationBridge.writePhase === "confirmed"
+                    && castId.length > 0
+                    && castId !== root.submittedCastBaseline
+                    && castId !== root.committedRichCastId) {
                 richComposer.commitPublishedCast(castId)
                 root.committedRichCastId = castId
                 root.awaitingRichCommit = false
+                root.submittedCastBaseline = castId
                 if (root.pendingMiniAppComposeRequestId.length > 0) {
                     miniAppHost.completeComposeCast(root.pendingMiniAppComposeRequestId, castId,
                                                     root.pendingMiniAppComposeText,
@@ -1741,6 +1754,13 @@ Item {
                     root.pendingMiniAppComposeText = ""
                     root.pendingMiniAppComposeEmbeds = []
                 }
+                if (composerDrawer.opened)
+                    composerDrawer.close()
+            } else if (root.awaitingRichCommit
+                       && (presentationBridge.writePhase === "failed"
+                           || presentationBridge.writePhase === "blocked")) {
+                // Preserve the editor and draft so the user can retry.
+                root.awaitingRichCommit = false
             }
         }
     }

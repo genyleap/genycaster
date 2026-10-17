@@ -40,10 +40,12 @@ window.fetch=async function(input,options) {
     const rawLength=Number(response.headers.get("content-length"));
     const encoded=response.headers.get("content-encoding");
     const total=encoded?0:rawLength;
-    announce(seen?"Loading application resources":"Downloading application resources",
-        "Receiving the Qt WebAssembly engine…","Downloading");
+    const cached=response.headers.get("x-genycaster-cache")==="hit";
+    announce(cached?"Loading cached application":seen?"Loading application resources":"Downloading application resources",
+        cached?"Restoring unchanged engine from this browser's local cache…":
+            "Receiving the Qt WebAssembly engine…",cached?"Cached engine":"Downloading");
     const hasMeasuredTotal=Number.isFinite(total)&&total>0;
-    if(!hasMeasuredTotal)preparing();
+    if(!hasMeasuredTotal || cached)preparing();
     const reader=response.body.getReader();
     let loaded=0;
     const stream=new ReadableStream({
@@ -59,7 +61,7 @@ window.fetch=async function(input,options) {
                     return;
                 }
                 loaded+=part.value.byteLength;
-                if(hasMeasuredTotal)measurable(loaded,total);
+                if(hasMeasuredTotal && !cached)measurable(loaded,total);
                 controller.enqueue(part.value);
             }catch(error){controller.error(error);}
         },
@@ -83,6 +85,19 @@ window.addEventListener("resize",fit);
 window.visualViewport?.addEventListener("resize",fit);
 fit();
 retry.addEventListener("click",()=>location.reload());
+async function enableOfflineCache() {
+    if(!window.isSecureContext || !navigator.serviceWorker)return;
+    try {
+        const version=window.__genycasterAssets?.version;
+        const suffix=typeof version==="string" && /^[0-9a-f]{20}$/.test(version)
+            ? "?v="+version : "";
+        await navigator.serviceWorker.register("./genycaster-sw.js"+suffix);
+        await navigator.serviceWorker.ready;
+    } catch(error) {
+        console.warn("[Genycaster] Offline asset cache unavailable",error);
+    }
+}
+const cacheStartup=enableOfflineCache();
 function fail(error) {
     if(finished)return;
     preparing();
@@ -102,7 +117,29 @@ async function start() {
         // Loading farcaster_client.js alone does NOT select that factory.
         if(typeof window.farcaster_client_entry!=="function")
             throw new Error("farcaster_client.js did not expose farcaster_client_entry");
+        if(!seen && window.isSecureContext && navigator.serviceWorker
+            && !navigator.serviceWorker.controller) {
+            // On first installation briefly allow the worker to activate
+            // before the large WASM request. Otherwise it would miss that
+            // initial download and need a second request next refresh.
+            announce("Preparing offline resources",
+                "Installing this browser's cache for faster future visits…",
+                "Preparing cache");
+            await Promise.race([
+                cacheStartup,
+                new Promise(resolve=>window.setTimeout(resolve,1800)),
+            ]);
+        }
         await qtLoad({
+            // Emscripten/Qt 6.12 allows an origin-safe content-addressed
+            // binary path while retaining the stable generated JS factory.
+            locateFile:(file,prefix)=>{
+                if(file==="farcaster_client.wasm" &&
+                   typeof window.__genycasterAssets?.wasm==="string" &&
+                   /^farcaster_client\.[0-9a-f]{20}\.wasm$/.test(window.__genycasterAssets.wasm))
+                    return new URL(window.__genycasterAssets.wasm,location.href).href;
+                return (prefix||"")+file;
+            },
             qt:{
                 entryFunction:window.farcaster_client_entry,
                 containerElements:[screen],

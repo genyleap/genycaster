@@ -1,0 +1,13 @@
+{
+  "name": "Genycaster",
+  "short_name": "Genycaster",
+  "description": "Secure social client",
+  "start_url": "./farcaster_client.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f5fa",
+  "theme_color": "#315fff",
+  "icons": [
+    {"src":"./genycaster-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}
+  ]
+}

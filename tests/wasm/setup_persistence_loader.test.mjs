@@ -14,14 +14,18 @@ test('WASM packages branded shell instead of Qt logo; mobile uses visible viewpo
     assert.match(cmake,/farcaster_client\.html/);
     assert.match(cmake,/genycaster-loader\.js/);
     assert.match(cmake,/browser_device_session\.mjs/);
+    assert.match(cmake,/package_wasm_assets\.py/);
+    assert.match(cmake,/genycaster-sw\.js/);
     assert.match(html,/<meta name="viewport".*viewport-fit=cover/);
     assert.match(html,/<div id="qt-screen"/);
     assert.match(html,/<script src="qtloader\.js">/);
     assert.match(html,/<script src="farcaster_client\.js">/);
     assert.doesNotMatch(html,/qtlogo/);
     assert.match(html,/class="boot-glyph"/);
-    assert.match(html,/class="strand"/);
-    assert.match(html,/background:transparent;border:0;box-shadow:none/);
+    assert.match(html,/<svg viewBox="0 0 56 56"/);
+    assert.match(html,/class="boot-content"/);
+    assert.doesNotMatch(html,/<div class="boot-card"/);
+    assert.match(html,/src="genycaster-assets.js"/);
     assert.match(loader,/visualViewport/);
 });
 test('completed Setup is independent of a volatile session and signer revocation',()=>{
