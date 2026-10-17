@@ -242,15 +242,19 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
                 const network=category==='recovery-network'
                     ||/HTTP|RPC|Snapchain|timeout|fetch|network|CORS|AbortError/i.test(message);
                 const signer=category==='recovery-signer';
+                const storage=category==='recovery-storage';
                 showError(checksum
                     ? (lang==='fa'?'ترتیب یا یکی از واژه‌ها اشتباه است؛ همه واژه‌ها معتبرند اما جمع کنترل عبارت درست نیست.':
                         'The words are valid individually, but the phrase checksum is wrong. Check their order and spelling.')
                     : ownership
                     ? (lang==='fa'?'عبارت از نظر کلمات معتبر است، اما مالکیت حساب ثبت‌شدهٔ Farcaster با آن تأیید نشد. مطمئن شوید عبارت بازیابی همان حساب را وارد کرده‌اید.':
                         'The words are valid, but they do not identify a registered Farcaster custody account. Check that this is your Farcaster recovery phrase.')
+                    : storage
+                    ? (lang==='fa'?'عبارت بازیابی معتبر است، اما ذخیرهٔ امن کلید امضا در مرورگر امکان‌پذیر نیست. فضای ذخیره‌سازی سایت (IndexedDB) را فعال کنید و در پنجرهٔ عادی مرورگر دوباره تلاش کنید.':
+                        'Your recovery phrase is valid, but secure browser signer storage is unavailable. Enable site storage (IndexedDB) and retry in a normal browser window.')
                     : signer
-                    ? (lang==='fa'?'عبارت تأیید شد اما ثبت مجوز انتشار در Snapchain کامل نشد. لطفاً کمی بعد دوباره تلاش کنید.':
-                        'The recovery phrase was verified, but publishing authorization was not confirmed. Please retry.')
+                    ? (lang==='fa'?'عبارت بازیابی تأیید شد، اما مجوز انتشار هنوز تأیید نشده است. کلید امضا حفظ شده؛ پس از چند لحظه دوباره تلاش کنید.':
+                        'The recovery phrase was verified, but publishing authorization is still pending. The local signing key was retained; please retry after a moment.')
                     : network
                     ? (lang==='fa'?'بررسی حساب یا مجوز انتشار به‌دلیل خطای اتصال کامل نشد. واژه‌ها حفظ شده‌اند؛ دوباره تلاش کنید.':
                         'Account or signer verification could not reach the network. Your entries are still here; please retry.')

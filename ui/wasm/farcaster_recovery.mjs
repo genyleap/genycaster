@@ -115,24 +115,17 @@ export async function deriveFarcasterCustody(phrase){
     finally{seed.fill(0);}
 }
 
-const keyAddDomainTypeHash=hashText('EIP712Domain(string name,string version,uint256 chainId)');
-const requestDomainTypeHash=hashText('EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)');
+const domainTypeHash=hashText('EIP712Domain(string name,string version,uint256 chainId)');
 const keyRequestTypeHash=hashText('SignedKeyRequest(uint256 requestFid,bytes key,uint256 deadline)');
 const keyAddTypeHash=hashText('KeyAdd(uint256 fid,bytes key,uint32 keyType,uint32[] scopes,uint32 ttl,uint32 nonce,uint256 deadline)');
 
 function eip712Digest(document){
-    const request=document?.primaryType==='SignedKeyRequest';
-    const d=document?.domain;
-    invariant(d?.version==='1' && d.chainId===10 &&
-        (request
-            ? d.name==='Farcaster SignedKeyRequestValidator' &&
-              d.verifyingContract?.toLowerCase()==='0x00000000fc700472606ed4fa22623acf62c60553'
-            : d.name==='Farcaster KeyAdd' && !d.verifyingContract),
+    invariant(document && document.domain?.name==='Farcaster KeyAdd' &&
+        document.domain.version==='1' && document.domain.chainId===1,
         'unexpected Farcaster EIP-712 domain');
-    const domainHash=keccak256(concat(
-        request?requestDomainTypeHash:keyAddDomainTypeHash,
-        hashText(d.name),hashText(d.version),uint256(d.chainId),
-        ...(request?[concat(new Uint8Array(12),fromHex(d.verifyingContract,20))]:[])));
+    const d=document.domain;
+    const domainHash=keccak256(concat(domainTypeHash,hashText(d.name),
+        hashText(d.version),uint256(d.chainId)));
     let digest;
     const msg=document.message;
     if(document.primaryType==='SignedKeyRequest'){

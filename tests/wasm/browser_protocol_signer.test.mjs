@@ -120,6 +120,27 @@ test('two custody EIP-712 signatures and canonical KEY_ADD before network-ready'
     assert.equal(signer.ready,true);
 });
 
+test('gasless signer confirmation survives registry lag after nonce advancement',async()=>{
+    const data=fixture();
+    let staleReads=0;
+    const signer=createBrowserProtocolSigner({
+        browser:data.browser,vault:data.vault,
+        fetchImpl:async(url,options)=>{
+            if(url.includes('/v1/signersByFid') && data.submitted.length && staleReads++<3) {
+                return new Response(JSON.stringify({signers:[],currentUserNonce:1,
+                    requesterFidNonces:{[fid]:0}}));
+            }
+            return data.fetchImpl(url,options);
+        },
+        onState:s=>data.states.push(s),delay:async()=>{},
+    });
+    const authorized=await signer.provision(fid);
+    assert.equal(authorized.source,'gasless');
+    assert.equal(data.submitted.length,1,'never resubmit an ambiguous KEY_ADD');
+    assert.equal(staleReads,4,'registry visibility lags nonce visibility');
+    assert.equal(signer.ready,true);
+});
+
 test('wrong custody address aborts before signer generation and network writes',async()=>{
     const data=fixture({custodyAddress:'0x'+'3'.repeat(40)});
     await assert.rejects(data.create().provision(fid),/does not own/);
