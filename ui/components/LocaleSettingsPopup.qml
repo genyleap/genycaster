@@ -317,7 +317,7 @@ GenyDrawer {
                     selected: root.currentSection === 4
                     iconOnly: root.compactLayout
                     iconGlyph: Theme.iconRefresh
-                    text: qsTr("Updates")
+                    text: qsTrId("genycaster.settings.updates")
                     onClicked: root.currentSection = 4
                 }
             }
@@ -917,7 +917,7 @@ GenyDrawer {
 
                             ActionButton {
                                 Layout.fillWidth: true
-                                text: "Hypersnap"
+                                text: qsTrId("genycaster.settings.hypersnap_label")
                                 selected: presentationBridge.preferredNetwork === "hypersnap"
                                 elevated: false
                                 onClicked: presentationBridge.setPreferredNetwork("hypersnap")
@@ -925,7 +925,7 @@ GenyDrawer {
 
                             ActionButton {
                                 Layout.fillWidth: true
-                                text: "Farcaster"
+                                text: qsTrId("genycaster.settings.farcaster_label")
                                 selected: presentationBridge.preferredNetwork === "farcaster"
                                 elevated: false
                                 onClicked: presentationBridge.setPreferredNetwork("farcaster")
@@ -942,7 +942,7 @@ GenyDrawer {
 
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: qsTr("Connection proxy for Farcaster Relay and network reads")
+                            text: qsTrId("genycaster.settings.connection_proxy_for_farcaster_relay_and_network_reads")
                             color: Theme.ink
                             font.pixelSize: Theme.typeMetaSize
                             wrapMode: Text.WordWrap
@@ -953,13 +953,13 @@ GenyDrawer {
                             spacing: Theme.space2
                             ActionButton {
                                 Layout.fillWidth: true
-                                text: qsTr("System proxy")
+                                text: qsTrId("genycaster.setup.system_proxy")
                                 selected: nodeSelectionController.proxyMode === "system"
                                 onClicked: nodeSelectionController.setProxyMode("system")
                             }
                             ActionButton {
                                 Layout.fillWidth: true
-                                text: qsTr("Direct")
+                                text: qsTrId("genycaster.setup.direct")
                                 selected: nodeSelectionController.proxyMode === "direct"
                                 onClicked: nodeSelectionController.setProxyMode("direct")
                             }
@@ -967,7 +967,7 @@ GenyDrawer {
                         DirectionAwareLabel {
                             Layout.fillWidth: true
                             visible: nodeSelectionController.proxyRestartRequired
-                            text: qsTr("Restart Genycaster to apply network changes.")
+                            text: qsTrId("genycaster.settings.restart_genycaster_to_apply_network_changes")
                             color: Theme.warning
                             font.pixelSize: Theme.typeCaptionSize
                             wrapMode: Text.WordWrap
@@ -975,10 +975,10 @@ GenyDrawer {
                         DirectionAwareLabel {
                             Layout.fillWidth: true
                             text: presentationBridge.preferredNetwork === "hypersnap"
-                                  ? qsTr("Hypersnap v2 · only Hypersnap-compatible API nodes are eligible.")
+                                  ? qsTrId("genycaster.settings.hypersnap_v2_only_hypersnap_compatible_api_nodes_are_eligible")
                                   : presentationBridge.farcasterReadConfigured
-                                    ? qsTr("Farcaster indexed API: ") + presentationBridge.farcasterReadEndpoint
-                                    : qsTr("Farcaster indexed reads require a compatible API. Raw hubs, including Pinata, cannot serve Neynar v2 feeds.")
+                                    ? qsTrId("genycaster.settings.farcaster_indexed_api").arg(presentationBridge.farcasterReadEndpoint)
+                                    : qsTrId("genycaster.settings.farcaster_indexed_reads_require_a_compatible_api_raw_hubs")
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                             wrapMode: Text.WordWrap
@@ -986,7 +986,7 @@ GenyDrawer {
                         DirectionAwareLabel {
                             Layout.fillWidth: true
                             visible: presentationBridge.preferredNetwork === "farcaster"
-                            text: qsTr("Known Farcaster hubs: Pinata Hub, Neynar Hub (may require credentials), Standard Crypto Hub. These are Hub APIs, not selectable indexed-feed nodes.")
+                            text: qsTrId("genycaster.settings.known_farcaster_hubs_pinata_hub_neynar_hub_may_require")
                             color: Theme.inkSubtle
                             font.pixelSize: Theme.typeCaptionSize
                             wrapMode: Text.WordWrap
@@ -1761,22 +1761,22 @@ GenyDrawer {
                         spacing: Theme.space1
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: qsTr("App updates")
+                            text: qsTrId("genycaster.settings.app_updates")
                             color: Theme.ink
                             font.pixelSize: Theme.typeTitle2Size
                             font.weight: Theme.weightBold
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: qsTr("Current version: %1").arg(updateController.appVersion)
+                            text: qsTrId("genycaster.settings.current_version_1").arg(updateController.appVersion)
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeMetaSize
                         }
                     }
 
                     ReadToggleCard {
-                        titleText: qsTr("Check for updates automatically")
-                        descriptionText: qsTr("Look for published Genycaster releases once per day. No automatic installation without your approval.")
+                        titleText: qsTrId("genycaster.settings.check_for_updates_automatically")
+                        descriptionText: qsTrId("genycaster.settings.look_for_published_genycaster_releases_once_per_day_no")
                         iconGlyph: Theme.iconRefresh
                         checked: updateController.autoCheckEnabled
                         onCheckedRequested: checked => updateController.setAutoCheckEnabled(checked)
@@ -1809,7 +1809,7 @@ GenyDrawer {
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 visible: updateController.latestVersion.length > 0
-                                text: qsTr("Latest release: %1").arg(updateController.latestVersion)
+                                text: qsTrId("genycaster.settings.latest_release_1").arg(updateController.latestVersion)
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                             }
@@ -1834,7 +1834,7 @@ GenyDrawer {
                                 DirectionAwareLabel {
                                     visible: updateController.downloading
                                     Layout.fillWidth: true
-                                    text: qsTr("Download: %1%").arg(Math.round(updateController.downloadProgress * 100))
+                                    text: qsTrId("genycaster.settings.download_1").arg(Math.round(updateController.downloadProgress * 100))
                                     color: Theme.ink
                                     font.pixelSize: Theme.typeCaptionSize
                                 }
@@ -1843,7 +1843,7 @@ GenyDrawer {
 
                             ActionButton {
                                 Layout.fillWidth: true
-                                text: updateController.checking ? qsTr("Checking…") : qsTr("Check now")
+                                text: updateController.checking ? qsTrId("genycaster.settings.checking") : qsTrId("genycaster.settings.check_now")
                                 enabled: !updateController.checking && !updateController.downloading
                                 onClicked: updateController.checkForUpdates()
                             }
@@ -1853,8 +1853,8 @@ GenyDrawer {
                                 enabled: !updateController.checking && !updateController.downloading
                                 prominent: true
                                 text: updateController.downloadedFilePath.length > 0
-                                      ? qsTr("Open verified installer")
-                                      : qsTr("Download verified update")
+                                      ? qsTrId("genycaster.settings.open_verified_installer")
+                                      : qsTrId("genycaster.settings.download_verified_update")
                                 onClicked: {
                                     if (updateController.downloadedFilePath.length > 0)
                                         updateController.openDownloadedUpdate()
@@ -1865,7 +1865,7 @@ GenyDrawer {
                             ActionButton {
                                 Layout.fillWidth: true
                                 quiet: true
-                                text: qsTr("Release notes and downloads")
+                                text: qsTrId("genycaster.settings.release_notes_and_downloads")
                                 onClicked: updateController.openReleasePage()
                             }
                         }

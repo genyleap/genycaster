@@ -264,7 +264,7 @@ Item {
         if (currentStep === 2 && !legalConsentAccepted)
             return qsTrId("genycaster.setup.agree_continue")
         if (currentStep === 4 && root.browserReadOnly && !authenticated)
-            return qsTr("Continue as guest")
+            return qsTrId("genycaster.setup.continue_as_guest")
         if (currentStep === 4 && !authenticated)
             return qsTrId("genycaster.setup.sign_in_required")
         if (currentStep === 5)
@@ -1391,7 +1391,7 @@ Item {
 
                 SetupActionCard {
                     Layout.fillWidth: true
-                    title: "Hypersnap (" + qsTrId("genycaster.setup.decentralized_label") + ")"
+                    title: qsTrId("genycaster.setup.network_hypersnap_category").arg(qsTrId("genycaster.setup.decentralized_label"))
                     subtitle: qsTrId("genycaster.setup.hypersnap_explainer")
                     iconGlyph: "quilibrium/hypersnap"
                     primary: presentationBridge.preferredNetwork === "hypersnap"
@@ -1401,7 +1401,7 @@ Item {
 
                 SetupActionCard {
                     Layout.fillWidth: true
-                    title: "Farcaster (" + qsTrId("genycaster.setup.centralized_service_label") + ")"
+                    title: qsTrId("genycaster.setup.network_farcaster_category").arg(qsTrId("genycaster.setup.centralized_service_label"))
                     subtitle: presentationBridge.farcasterReadConfigured
                               ? qsTrId("genycaster.setup.farcaster_explainer")
                               : qsTrId("genycaster.setup.farcaster_not_configured")
@@ -1418,14 +1418,14 @@ Item {
 
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    text: qsTr("Network connection")
+                    text: qsTrId("genycaster.setup.network_connection")
                     color: Theme.ink
                     font.pixelSize: Theme.typeLabelSize
                     font.weight: Theme.weightDemiBold
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    text: qsTr("If Farcaster Relay cannot connect through a system proxy, select Direct and restart Genycaster.")
+                    text: qsTrId("genycaster.setup.if_farcaster_relay_cannot_connect_through_a_system_proxy")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.WordWrap
@@ -1436,13 +1436,13 @@ Item {
                     spacing: Theme.space2
                     ActionButton {
                         Layout.fillWidth: true
-                        text: qsTr("System proxy")
+                        text: qsTrId("genycaster.setup.system_proxy")
                         selected: nodeSelectionController.proxyMode === "system"
                         onClicked: nodeSelectionController.setProxyMode("system")
                     }
                     ActionButton {
                         Layout.fillWidth: true
-                        text: qsTr("Direct")
+                        text: qsTrId("genycaster.setup.direct")
                         selected: nodeSelectionController.proxyMode === "direct"
                         onClicked: nodeSelectionController.setProxyMode("direct")
                     }
@@ -1450,7 +1450,7 @@ Item {
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     visible: nodeSelectionController.proxyRestartRequired
-                    text: qsTr("Restart Genycaster to apply the connection change.")
+                    text: qsTrId("genycaster.setup.restart_genycaster_to_apply_the_connection_change")
                     color: Theme.warning
                     font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.WordWrap
@@ -1495,14 +1495,14 @@ Item {
 
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    text: qsTr("Farcaster Hub directory")
+                    text: qsTrId("genycaster.setup.farcaster_hub_directory")
                     color: Theme.ink
                     font.pixelSize: Theme.typeLabelSize
                     font.weight: Theme.weightDemiBold
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    text: qsTr("Raw Hub APIs are for protocol messages and health. They are not interchangeable with the indexed v2 feed API used for Explore and profiles.")
+                    text: qsTrId("genycaster.setup.raw_hub_apis_are_for_protocol_messages_and_health")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.WordWrap
@@ -1510,22 +1510,22 @@ Item {
                 SetupActionCard {
                     Layout.fillWidth: true
                     enabled: false
-                    title: qsTr("Pinata Hub · Farcaster")
-                    subtitle: qsTr("hub.pinata.cloud · Hub v1 API, not a compatible indexed v2 feed endpoint")
+                    title: qsTrId("genycaster.setup.pinata_hub_farcaster")
+                    subtitle: qsTrId("genycaster.setup.hub_pinata_cloud_hub_v1_api_not_a_compatible")
                     iconGlyph: "brands/farcaster"
                 }
                 SetupActionCard {
                     Layout.fillWidth: true
                     enabled: false
-                    title: qsTr("Neynar Hub · Farcaster")
-                    subtitle: qsTr("Authenticated Hub access; separate from the Neynar indexed feed API")
+                    title: qsTrId("genycaster.setup.neynar_hub_farcaster")
+                    subtitle: qsTrId("genycaster.setup.authenticated_hub_access_separate_from_the_neynar_indexed_feed")
                     iconGlyph: "brands/farcaster"
                 }
                 SetupActionCard {
                     Layout.fillWidth: true
                     enabled: false
-                    title: qsTr("Standard Crypto Hub · Farcaster")
-                    subtitle: qsTr("Hub endpoint; availability and authentication must be verified before use")
+                    title: qsTrId("genycaster.setup.standard_crypto_hub_farcaster")
+                    subtitle: qsTrId("genycaster.setup.hub_endpoint_availability_and_authentication_must_be_verified_before")
                     iconGlyph: "brands/farcaster"
                 }
             }
@@ -1581,8 +1581,8 @@ Item {
                         iconGlyph: "quilibrium/hypersnap"
                         trailingText: modelData.status === "checking" ? "…"
                                       : modelData.latencyMs >= 0 ? modelData.latencyMs + " ms"
-                                      : modelData.status === "auth-gated" ? qsTr("Requires authentication")
-                                      : modelData.status === "incompatible" ? qsTr("Not a Hypersnap node")
+                                      : modelData.status === "auth-gated" ? qsTrId("genycaster.setup.requires_authentication")
+                                      : modelData.status === "incompatible" ? qsTrId("genycaster.setup.not_a_hypersnap_node")
                                       : modelData.status === "offline"
                                         ? qsTrId("genycaster.setup.network_unreachable") : "—"
                         primary: modelData.selected && !nodeSelectionController.automatic
@@ -1642,14 +1642,14 @@ Item {
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconUser
                 title: root.browserReadOnly && !root.authenticationAvailable
-                       ? qsTr("Browser guest mode")
+                       ? qsTrId("genycaster.setup.browser_guest_mode")
                        : root.authenticated
                          ? qsTrId("genycaster.setup.account_verified")
                          : root.accountIntent === "new"
                            ? qsTrId("genycaster.setup.new_profile")
                            : qsTrId("genycaster.setup.sign_in_required")
                 subtitle: root.browserReadOnly && !root.authenticationAvailable
-                          ? qsTr("Continue without an account to explore public feeds.")
+                          ? qsTrId("genycaster.setup.continue_without_an_account_to_explore_public_feeds")
                           : !root.authenticated && root.accountIntent === "new"
                             ? qsTrId("genycaster.setup.profile_creation_browser")
                             : root.authenticated || root.authenticationInProgress
@@ -1739,8 +1739,8 @@ Item {
                 visible: root.browserReadOnly && !root.authenticated
                 Layout.fillWidth: true
                 text: root.authenticationAvailable
-                      ? qsTr("Browser sign-in verifies your Genyleap/OpenProof account and linked Farcaster FID. Publishing still requires a secure protocol signer and is unavailable in the browser.")
-                      : qsTr("Browser preview runs in guest/read-only mode. Reading casts and profiles is available where providers allow CORS.")
+                      ? qsTrId("genycaster.setup.browser_sign_in_verifies_your_genyleap_openproof_account_and")
+                      : qsTrId("genycaster.setup.browser_preview_runs_in_guest_read_only_mode_reading")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeLabelSize
                 wrapMode: Text.WordWrap

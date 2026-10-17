@@ -969,7 +969,7 @@ Item {
                 anchors.top: feedHeaderLoader.bottom
                 height: visible ? 36 : 0
                 visible: root.communityFallback && root.activeFeed === "trending" && !root.socialMode
-                text: qsTr("Trending is temporarily unavailable. Showing live community posts instead.")
+                text: qsTrId("genycaster.feed.trending_is_temporarily_unavailable_showing_live_community_posts_instead")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
                 verticalAlignment: Text.AlignVCenter

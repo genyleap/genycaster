@@ -2218,10 +2218,6 @@
             <source>The selected source rejected this read.</source>
             <translation>منبع انتخاب‌شده این خواندن را رد کرد.</translation>
         </message>
-        <message id="genycaster.runtime.the_sign_in_proof_could_not_be_validated_safely">
-            <source>The sign-in proof could not be validated safely.</source>
-            <translation>اثبات ورود به‌صورت امن قابل اعتبارسنجی نبود.</translation>
-        </message>
         <message id="genycaster.runtime.the_signer_authorization_configuration_is_invalid">
             <source>The signer authorization configuration is invalid.</source>
             <translation>پیکربندی مجوز امضاکننده نامعتبر است.</translation>
@@ -2332,7 +2328,7 @@
         </message>
         <message id="genycaster.settings.contract_address_placeholder">
             <source>0x…</source>
-            <translation>0x…</translation>
+            <translation>۰x…</translation>
         </message>
         <message id="genycaster.settings.custom_color">
             <source>Custom accent</source>
@@ -2348,7 +2344,7 @@
         </message>
         <message id="genycaster.settings.custom_color_placeholder">
             <source>#FF4FA3</source>
-            <translation>#FF4FA3</translation>
+            <translation> #FF4FA3</translation>
         </message>
         <message id="genycaster.settings.description">
             <source>Shape Genycaster around the way you read. Appearance and regional preferences stay on this device.</source>
@@ -2578,10 +2574,6 @@
             <source>Bookmarks</source>
             <translation>نشان‌شده‌ها</translation>
         </message>
-        <message id="genycaster.side_nav.business">
-            <source>Business</source>
-            <translation>کسب‌وکار</translation>
-        </message>
         <message id="genycaster.side_nav.channels">
             <source>Channels</source>
             <translation>کانال‌ها</translation>
@@ -2598,10 +2590,6 @@
             <source>Home</source>
             <translation>خانه</translation>
         </message>
-        <message id="genycaster.side_nav.messages">
-            <source>Messages</source>
-            <translation>پیام‌ها</translation>
-        </message>
         <message id="genycaster.side_nav.no_identity_open">
             <source>No identity open</source>
             <translation>هیچ هویتی باز نیست</translation>
@@ -2613,10 +2601,6 @@
         <message id="genycaster.side_nav.profile">
             <source>Profile</source>
             <translation>پروفایل</translation>
-        </message>
-        <message id="genycaster.side_nav.store">
-            <source>Store</source>
-            <translation>فروشگاه</translation>
         </message>
         <message id="genycaster.status.data_issue">
             <source>Data issue</source>
@@ -3302,10 +3286,6 @@
             <source>Your interface</source>
             <translation>رابط شما</translation>
         </message>
-        <message id="genycaster.setup.welcome_personal_body">
-            <source>Choose appearance, color, motion, and regional preferences before the first session.</source>
-            <translation>پیش از اولین نشست، ظاهر، رنگ، حرکت و تنظیمات منطقه‌ای را انتخاب کنید.</translation>
-        </message>
         <message id="genycaster.setup.legal_title">
             <source>Before you continue</source>
             <translation>پیش از ادامه</translation>
@@ -3314,53 +3294,21 @@
             <source>Terms of Use</source>
             <translation>شرایط استفاده</translation>
         </message>
-        <message id="genycaster.setup.terms_updated">
-            <source>Current official website terms</source>
-            <translation>شرایط رسمی فعلی وب‌سایت</translation>
-        </message>
         <message id="genycaster.setup.terms_body">
             <source>Genyleap's published Terms of Use cover website information and product resources. Website information is general and product scope may change. Downloads and repositories can carry their own licenses, release notes, and compatibility requirements. Sending a project enquiry does not create a contract or guarantee acceptance. Review the full Terms before continuing.</source>
             <translation>شرایط استفاده منتشرشده Genyleap اطلاعات وب‌سایت و منابع محصول را پوشش می‌دهد. اطلاعات وب‌سایت عمومی است و محدوده محصولات ممکن است تغییر کند. دانلودها و مخزن‌ها می‌توانند مجوز، یادداشت انتشار و الزامات سازگاری مخصوص خود را داشته باشند. ارسال درخواست پروژه به‌تنهایی قرارداد ایجاد نمی‌کند و پذیرش را تضمین نمی‌کند. پیش از ادامه، متن کامل شرایط را مرور کنید.</translation>
-        </message>
-        <message id="genycaster.setup.open_terms">
-            <source>Open full Terms of Use</source>
-            <translation>باز کردن متن کامل شرایط استفاده</translation>
         </message>
         <message id="genycaster.setup.privacy_title">
             <source>Privacy Policy</source>
             <translation>سیاست حریم خصوصی</translation>
         </message>
-        <message id="genycaster.setup.privacy_updated">
-            <source>Current official website privacy notice</source>
-            <translation>اطلاعیه رسمی فعلی حریم خصوصی وب‌سایت</translation>
-        </message>
         <message id="genycaster.setup.privacy_body">
             <source>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</source>
             <translation>اطلاعیه حریم خصوصی منتشرشده Genyleap اطلاعاتی را پوشش می‌دهد که خودتان از طریق فرم‌های تماس و پروژه ارسال می‌کنید و همچنین داده‌های پایه جلوگیری از سوءاستفاده. Genycaster علاوه بر آن، برای احراز هویت و فعال‌کردن عملیات پروتکل از حساب Genyleap/OpenProof و هویت Farcaster پیوندشده‌ای که در راه‌اندازی انتخاب می‌کنید استفاده می‌کند. تنظیمات ظاهر و منطقه‌ای در خود برنامه به‌صورت محلی نگهداری می‌شوند مگر اینکه قابلیتی صریحاً خلاف آن را اعلام کند. پیش از ادامه، متن کامل حریم خصوصی را مرور کنید.</translation>
         </message>
-        <message id="genycaster.setup.open_privacy">
-            <source>Open full Privacy Policy</source>
-            <translation>باز کردن متن کامل سیاست حریم خصوصی</translation>
-        </message>
-        <message id="genycaster.setup.legal_governing_note">
-            <source>The links above open Genyleap's current published website terms and privacy notice. Product or repository-specific terms still apply where stated.</source>
-            <translation>پیوندهای بالا شرایط وب‌سایت و اطلاعیه حریم خصوصی فعلی منتشرشده Genyleap را باز می‌کنند. هرجا شرایط ویژه محصول یا مخزن اعلام شده باشد، همان شرایط نیز اعمال می‌شود.</translation>
-        </message>
         <message id="genycaster.setup.scroll_to_continue">
             <source>Scroll to the end to unlock consent.</source>
             <translation>برای فعال شدن رضایت، تا انتها پیمایش کنید.</translation>
-        </message>
-        <message id="genycaster.setup.legal_read_complete">
-            <source>You reached the end. Review and confirm both items below.</source>
-            <translation>به انتها رسیدید. هر دو مورد زیر را مرور و تأیید کنید.</translation>
-        </message>
-        <message id="genycaster.setup.accept_terms">
-            <source>I agree to the Genyleap Terms of Use.</source>
-            <translation>با شرایط استفاده Genyleap موافقم.</translation>
-        </message>
-        <message id="genycaster.setup.acknowledge_privacy">
-            <source>I have read and understood the Genyleap Privacy Policy.</source>
-            <translation>سیاست حریم خصوصی Genyleap را خوانده‌ام و درک کرده‌ام.</translation>
         </message>
         <message id="genycaster.setup.agree_continue">
             <source>Agree &amp; Continue</source>
@@ -3410,18 +3358,6 @@
             <source>Applied now. You can change it later.</source>
             <translation>همین حالا اعمال می‌شود؛ بعداً هم قابل تغییر است.</translation>
         </message>
-        <message id="genycaster.setup.previous_language">
-            <source>Previous language</source>
-            <translation>زبان قبلی</translation>
-        </message>
-        <message id="genycaster.setup.next_language">
-            <source>Next language</source>
-            <translation>زبان بعدی</translation>
-        </message>
-        <message id="genycaster.setup.completed">
-            <source>Completed</source>
-            <translation>تکمیل شد</translation>
-        </message>
         <message id="genycaster.setup.personalize_body">
             <source>Choose the language, appearance, and motion settings that feel right to you.</source>
             <translation>زبان، ظاهر و تنظیمات حرکت را مطابق ترجیح خود انتخاب کنید.</translation>
@@ -3437,14 +3373,6 @@
         <message id="genycaster.setup.privacy_summary">
             <source>How account data, protocol identity and local preferences are handled.</source>
             <translation>نحوه مدیریت داده‌های حساب، هویت پروتکلی و ترجیحات محلی.</translation>
-        </message>
-        <message id="genycaster.setup.privacy_local_note">
-            <source>Preferences stay on this device. Sign-in and approved protocol actions use the network.</source>
-            <translation>ترجیحات روی همین دستگاه می‌مانند. ورود و عملیات پروتکلیِ تأییدشده از شبکه استفاده می‌کنند.</translation>
-        </message>
-        <message id="genycaster.setup.network_title">
-            <source>Choose a network node</source>
-            <translation>انتخاب نود شبکه</translation>
         </message>
         <message id="genycaster.setup.network_body">
             <source>Automatic selects a healthy low-latency node. You can choose one manually.</source>
@@ -3478,17 +3406,9 @@
             <source>Continue with your Genyleap/OpenProof identity. Farcaster will be linked if needed.</source>
             <translation>با هویت Genyleap/OpenProof خود ادامه دهید؛ در صورت نیاز Farcaster نیز پیوند داده می‌شود.</translation>
         </message>
-        <message id="genycaster.setup.account_create_openproof_soon">
-            <source>Create an OpenProof account · Coming soon</source>
-            <translation>ساخت حساب OpenProof · به‌زودی</translation>
-        </message>
         <message id="genycaster.setup.account_farcaster_body">
             <source>Use a Farcaster-compatible sign-in directly.</source>
             <translation>مستقیماً با ورود سازگار با Farcaster وارد شوید.</translation>
-        </message>
-        <message id="genycaster.setup.account_create_farcaster_soon">
-            <source>Create a Farcaster account · Coming soon</source>
-            <translation>ساخت حساب Farcaster · به‌زودی</translation>
         </message>
         <message id="genycaster.setup.ready_for">
             <source>Everything is set for %1.</source>
@@ -3513,10 +3433,6 @@
         <message id="genycaster.setup.farcaster_explainer">
             <source>A centralized service experience for reading and publishing.</source>
             <translation>تجربه‌ای متمرکز برای خواندن و انتشار محتوا.</translation>
-        </message>
-        <message id="genycaster.setup.profile_choice">
-            <source>Your profile</source>
-            <translation>پروفایل شما</translation>
         </message>
         <message id="genycaster.setup.existing_profile">
             <source>Use existing</source>
@@ -3570,29 +3486,9 @@
             <source>Setup steps</source>
             <translation>مراحل راه‌اندازی</translation>
         </message>
-        <message id="genycaster.setup.explicit_terms_agreement">
-            <source>I agree to the Terms of Use</source>
-            <translation>با شرایط استفاده موافقم</translation>
-        </message>
-        <message id="genycaster.setup.explicit_privacy_agreement">
-            <source>I have read and acknowledge the Privacy Policy</source>
-            <translation>سیاست حریم خصوصی را مطالعه کردم و تأیید می‌کنم</translation>
-        </message>
-        <message id="genycaster.setup.review_terms_first">
-            <source>Open and review the Terms before enabling this agreement.</source>
-            <translation>پیش از پذیرش، شرایط استفاده را باز کرده و بررسی کنید.</translation>
-        </message>
-        <message id="genycaster.setup.review_privacy_first">
-            <source>Open and review the Privacy Policy before acknowledging it.</source>
-            <translation>پیش از تأیید، سیاست حریم خصوصی را باز کرده و بررسی کنید.</translation>
-        </message>
         <message id="genycaster.setup.mark_document_reviewed">
             <source>I reviewed the document</source>
             <translation>سند را بررسی کردم</translation>
-        </message>
-        <message id="genycaster.setup.open_governing_document">
-            <source>Open the official document and review the summary to continue.</source>
-            <translation>سند رسمی را باز کنید و خلاصه آن را بررسی کنید.</translation>
         </message>
         <message id="genycaster.setup.auth_rejected_recover">
             <source>Genyleap rejected this sign-in. Start a new request or try Farcaster sign-in.</source>
@@ -3634,10 +3530,6 @@
             <source>Farcaster · Default node</source>
             <translation>فارکستر · نود پیش‌فرض</translation>
         </message>
-        <message id="genycaster.setup.farcaster_configured">
-            <source>https://api.neynar.com · API credential configured.</source>
-            <translation>https://api.neynar.com · کلید API پیکربندی شده است.</translation>
-        </message>
         <message id="genycaster.setup.farcaster_missing_key">
             <source>Not available right now. You can continue with Hypersnap.</source>
             <translation>این اتصال فعلاً در دسترس نیست. می‌توانید با هایپراسنپ ادامه دهید.</translation>
@@ -3665,6 +3557,234 @@
         <message id="genycaster.setup.farcaster_relay_unreachable">
             <source>Could not reach Farcaster Relay. In Network setup, try Direct instead of System proxy, then restart and retry.</source>
             <translation>اتصال به رله فارکستر برقرار نشد. در تنظیمات شبکه، به‌جای پراکسی سیستم اتصال مستقیم را انتخاب کنید، برنامه را دوباره باز کنید و مجدداً تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.feed.trending_is_temporarily_unavailable_showing_live_community_posts_instead">
+            <source>Trending is temporarily unavailable. Showing live community posts instead.</source>
+            <translation> نمایش پست‌های پرطرفدار موقتاً در دسترس نیست. در عوض، پست‌های انجمن زنده نمایش داده می‌شوند.</translation>
+        </message>
+        <message id="genycaster.settings.app_updates">
+            <source>App updates</source>
+            <translation> به‌روزرسانی‌های برنامه</translation>
+        </message>
+        <message id="genycaster.settings.check_for_updates_automatically">
+            <source>Check for updates automatically</source>
+            <translation> بررسی خودکار به‌روزرسانی‌ها</translation>
+        </message>
+        <message id="genycaster.settings.check_now">
+            <source>Check now</source>
+            <translation> الان بررسی کنید</translation>
+        </message>
+        <message id="genycaster.settings.checking">
+            <source>Checking…</source>
+            <translation> در حال بررسی…</translation>
+        </message>
+        <message id="genycaster.settings.connection_proxy_for_farcaster_relay_and_network_reads">
+            <source>Connection proxy for Farcaster Relay and network reads</source>
+            <translation> پروکسی اتصال برای رله فارکاستر و خواندن شبکه</translation>
+        </message>
+        <message id="genycaster.settings.current_version_1">
+            <source>Current version: %1</source>
+            <translation> نسخه فعلی: %1</translation>
+        </message>
+        <message id="genycaster.settings.download_1">
+            <source>Download: %1%</source>
+            <translation> دانلود: %1%</translation>
+        </message>
+        <message id="genycaster.settings.download_verified_update">
+            <source>Download verified update</source>
+            <translation> دانلود به‌روزرسانی تأیید شده</translation>
+        </message>
+        <message id="genycaster.settings.farcaster_indexed_api">
+            <source>Farcaster indexed API: %1</source>
+            <translation>API ایندکس شده توسط Farcaster: %1</translation>
+        </message>
+        <message id="genycaster.settings.farcaster_indexed_reads_require_a_compatible_api_raw_hubs">
+            <source>Farcaster indexed reads require a compatible API. Raw hubs, including Pinata, cannot serve Neynar v2 feeds.</source>
+            <translation>خواندن‌های نمایه‌شده‌ی Farcaster به یک API سازگار نیاز دارند. هاب‌های خام، از جمله Pinata، نمی‌توانند فیدهای Neynar v2 را ارائه دهند.</translation>
+        </message>
+        <message id="genycaster.settings.farcaster_label">
+            <source>Farcaster</source>
+            <translation>Farcaster</translation>
+        </message>
+        <message id="genycaster.settings.hypersnap_label">
+            <source>Hypersnap</source>
+            <translation>Hypersnap</translation>
+        </message>
+        <message id="genycaster.settings.hypersnap_v2_only_hypersnap_compatible_api_nodes_are_eligible">
+            <source>Hypersnap v2 · only Hypersnap-compatible API nodes are eligible.</source>
+            <translation> Hypersnap نسخه ۲ · فقط گره‌های API سازگار با Hypersnap واجد شرایط هستند.</translation>
+        </message>
+        <message id="genycaster.settings.known_farcaster_hubs_pinata_hub_neynar_hub_may_require">
+            <source>Known Farcaster hubs: Pinata Hub, Neynar Hub (may require credentials), Standard Crypto Hub. These are Hub APIs, not selectable indexed-feed nodes.</source>
+            <translation> هاب‌های شناخته‌شده‌ی Farcaster: هاب Pinata، هاب Neynar (ممکن است نیاز به اعتبارنامه داشته باشند)، هاب استاندارد Crypto. اینها APIهای هاب هستند، نه گره‌های قابل انتخاب با فید شاخص‌گذاری شده.</translation>
+        </message>
+        <message id="genycaster.settings.latest_release_1">
+            <source>Latest release: %1</source>
+            <translation> آخرین انتشار: %1</translation>
+        </message>
+        <message id="genycaster.settings.look_for_published_genycaster_releases_once_per_day_no">
+            <source>Look for published Genycaster releases once per day. No automatic installation without your approval.</source>
+            <translation>روزی یک بار به دنبال نسخه‌های منتشر شده Genycaster باشید. بدون تأیید شما، نصب خودکار انجام نمی‌شود.</translation>
+        </message>
+        <message id="genycaster.settings.open_verified_installer">
+            <source>Open verified installer</source>
+            <translation> نصب کننده تأیید شده را باز کنید</translation>
+        </message>
+        <message id="genycaster.settings.release_notes_and_downloads">
+            <source>Release notes and downloads</source>
+            <translation> یادداشت‌های انتشار و دانلودها</translation>
+        </message>
+        <message id="genycaster.settings.restart_genycaster_to_apply_network_changes">
+            <source>Restart Genycaster to apply network changes.</source>
+            <translation> برای اعمال تغییرات شبکه، Genycaster را مجدداً راه‌اندازی کنید.</translation>
+        </message>
+        <message id="genycaster.settings.updates">
+            <source>Updates</source>
+            <translation> به‌روزرسانی‌ها</translation>
+        </message>
+        <message id="genycaster.setup.authenticated_hub_access_separate_from_the_neynar_indexed_feed">
+            <source>Authenticated Hub access; separate from the Neynar indexed feed API</source>
+            <translation> دسترسی به هاب احراز هویت شده؛ جدا از API فید ایندکس شده Neynar</translation>
+        </message>
+        <message id="genycaster.setup.browser_guest_mode">
+            <source>Browser guest mode</source>
+            <translation> حالت مهمان مرورگر</translation>
+        </message>
+        <message id="genycaster.setup.browser_preview_runs_in_guest_read_only_mode_reading">
+            <source>Browser preview runs in guest/read-only mode. Reading casts and profiles is available where providers allow CORS.</source>
+            <translation>پیش‌نمایش مرورگر در حالت مهمان/فقط خواندنی اجرا می‌شود. خواندن کست‌ها و پروفایل‌ها در مواردی که ارائه‌دهندگان CORS را مجاز می‌دانند، در دسترس است.</translation>
+        </message>
+        <message id="genycaster.setup.browser_sign_in_verifies_your_genyleap_openproof_account_and">
+            <source>Browser sign-in verifies your Genyleap/OpenProof account and linked Farcaster FID. Publishing still requires a secure protocol signer and is unavailable in the browser.</source>
+            <translation> ورود به سیستم از طریق مرورگر، حساب کاربری Genyleap/OpenProof و شناسه امنیتی Farcaster مرتبط با آن را تأیید می‌کند. انتشار همچنان به یک امضاکننده پروتکل امن نیاز دارد و در مرورگر در دسترس نیست.</translation>
+        </message>
+        <message id="genycaster.setup.continue_as_guest">
+            <source>Continue as guest</source>
+            <translation> ادامه به عنوان مهمان</translation>
+        </message>
+        <message id="genycaster.setup.continue_without_an_account_to_explore_public_feeds">
+            <source>Continue without an account to explore public feeds.</source>
+            <translation> برای کاوش در فیدهای عمومی، بدون حساب کاربری ادامه دهید.</translation>
+        </message>
+        <message id="genycaster.setup.direct">
+            <source>Direct</source>
+            <translation>مستقیم</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_hub_directory">
+            <source>Farcaster Hub directory</source>
+            <translation> دایرکتوری Farcaster Hub</translation>
+        </message>
+        <message id="genycaster.setup.hub_endpoint_availability_and_authentication_must_be_verified_before">
+            <source>Hub endpoint; availability and authentication must be verified before use</source>
+            <translation> نقطه پایانی هاب؛ قبل از استفاده، باید در دسترس بودن و احراز هویت تأیید شود</translation>
+        </message>
+        <message id="genycaster.setup.hub_pinata_cloud_hub_v1_api_not_a_compatible">
+            <source>hub.pinata.cloud · Hub v1 API, not a compatible indexed v2 feed endpoint</source>
+            <translation> hub.pinata.cloud · رابط برنامه‌نویسی کاربردی Hub نسخه ۱، یک نقطه پایانی فید نسخه ۲ ایندکس‌شده سازگار نیست</translation>
+        </message>
+        <message id="genycaster.setup.if_farcaster_relay_cannot_connect_through_a_system_proxy">
+            <source>If Farcaster Relay cannot connect through a system proxy, select Direct and restart Genycaster.</source>
+            <translation> اگر Farcaster Relay نمی‌تواند از طریق پروکسی سیستم متصل شود، Direct را انتخاب کرده و Genycaster را مجدداً راه‌اندازی کنید.</translation>
+        </message>
+        <message id="genycaster.setup.network_connection">
+            <source>Network connection</source>
+            <translation> اتصال شبکه</translation>
+        </message>
+        <message id="genycaster.setup.network_farcaster_category">
+            <source>Farcaster (%1)</source>
+            <translation>Farcaster (%1)</translation>
+        </message>
+        <message id="genycaster.setup.network_hypersnap_category">
+            <source>Hypersnap (%1)</source>
+            <translation>Hypersnap (%1)</translation>
+        </message>
+        <message id="genycaster.setup.neynar_hub_farcaster">
+            <source>Neynar Hub · Farcaster</source>
+            <translation> مرکز نینر · ​​فارکستر</translation>
+        </message>
+        <message id="genycaster.setup.not_a_hypersnap_node">
+            <source>Not a Hypersnap node</source>
+            <translation> گره Hypersnap نیست</translation>
+        </message>
+        <message id="genycaster.setup.pinata_hub_farcaster">
+            <source>Pinata Hub · Farcaster</source>
+            <translation>Pinata Hub · Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.raw_hub_apis_are_for_protocol_messages_and_health">
+            <source>Raw Hub APIs are for protocol messages and health. They are not interchangeable with the indexed v2 feed API used for Explore and profiles.</source>
+            <translation>APIهای مستقیم هاب برای پیام‌های پروتکل و بررسی سلامت آن به‌کار می‌روند. این APIها جایگزین API فید ایندکس‌شدهٔ v2 برای کاوش و پروفایل‌ها نیستند.</translation>
+        </message>
+        <message id="genycaster.setup.requires_authentication">
+            <source>Requires authentication</source>
+            <translation>نیازمند احراز هویت</translation>
+        </message>
+        <message id="genycaster.setup.restart_genycaster_to_apply_the_connection_change">
+            <source>Restart Genycaster to apply the connection change.</source>
+            <translation>برای اعمال تغییر اتصال، جنی‌کستر را دوباره راه‌اندازی کنید.</translation>
+        </message>
+        <message id="genycaster.setup.standard_crypto_hub_farcaster">
+            <source>Standard Crypto Hub · Farcaster</source>
+            <translation>Standard Crypto Hub · Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.system_proxy">
+            <source>System proxy</source>
+            <translation>پروکسی سیستم</translation>
+        </message>
+        <message id="genycaster.browser_auth.http_failure">
+            <source>OpenProof browser authentication failed (HTTP %1).</source>
+            <translation>احراز هویت OpenProof در مرورگر ناموفق بود (HTTP %1).</translation>
+        </message>
+        <message id="genycaster.browser_auth.transport_failure">
+            <source>Unable to contact OpenProof securely.</source>
+            <translation>ارتباط امن با OpenProof برقرار نشد.</translation>
+        </message>
+        <message id="genycaster.browser_auth.incomplete_challenge">
+            <source>OpenProof returned an incomplete authorization challenge.</source>
+            <translation>OpenProof درخواست احراز هویت ناقصی برگرداند.</translation>
+        </message>
+        <message id="genycaster.browser_auth.invalid_farcaster_challenge">
+            <source>The Farcaster proof challenge was invalid.</source>
+            <translation>درخواست اثبات هویت فارکستر معتبر نبود.</translation>
+        </message>
+        <message id="genycaster.browser_auth.farcaster_challenge_expired">
+            <source>The Farcaster proof challenge expired.</source>
+            <translation>مهلت اثبات هویت فارکستر به پایان رسید.</translation>
+        </message>
+        <message id="genycaster.browser_auth.invalid_farcaster_identity">
+            <source>OpenProof returned an invalid Farcaster identity.</source>
+            <translation>OpenProof هویت فارکستر نامعتبری برگرداند.</translation>
+        </message>
+        <message id="genycaster.browser_auth.authorization_expired">
+            <source>OpenProof authorization expired. Please try again.</source>
+            <translation>مهلت احراز هویت OpenProof تمام شد. دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.browser_auth.sign_in_denied">
+            <source>OpenProof sign-in was denied.</source>
+            <translation>ورود با OpenProof رد شد.</translation>
+        </message>
+        <message id="genycaster.browser_auth.invalid_access_token">
+            <source>OpenProof returned no valid access token.</source>
+            <translation>OpenProof توکن دسترسی معتبری برنگرداند.</translation>
+        </message>
+        <message id="genycaster.browser_auth.missing_verified_subject">
+            <source>OpenProof userinfo omitted the verified subject.</source>
+            <translation>اطلاعات کاربر در OpenProof شناسهٔ تأییدشده را ندارد.</translation>
+        </message>
+        <message id="genycaster.browser_auth.missing_connections">
+            <source>OpenProof did not return verified account connections.</source>
+            <translation>OpenProof اتصال‌های تأییدشدهٔ حساب را برنگرداند.</translation>
+        </message>
+        <message id="genycaster.browser_auth.multiple_farcaster_identities">
+            <source>Multiple Farcaster identities are linked; choose one in Genyleap.</source>
+            <translation>چند هویت فارکستر به حساب متصل است؛ یکی را در Genyleap انتخاب کنید.</translation>
+        </message>
+        <message id="genycaster.browser_auth.invalid_linked_fid">
+            <source>OpenProof returned an invalid linked Farcaster FID.</source>
+            <translation>OpenProof شناسهٔ FID متصل‌شدهٔ نامعتبری برگرداند.</translation>
+        </message>
+        <message id="genycaster.browser_auth.link_farcaster_account">
+            <source>Link your Farcaster account in Genyleap, then sign in again.</source>
+            <translation>حساب فارکستر خود را در Genyleap متصل کنید و دوباره وارد شوید.</translation>
         </message>
     </context>
 </TS>

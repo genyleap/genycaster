@@ -873,8 +873,9 @@ if ('fillColor: stepButton.current ? Theme.surfaceSelected' not in setup
     errors.append('Setup sidebar must maintain explicit hover text/icon contrast and active surface')
 if ('readonly property bool visuallyDisabled: !enabled && !busy' not in setup_card):
     errors.append('In-flight sign-in action must retain its primary visual state while non-clickable')
-if ('Farcaster (" + qsTrId("genycaster.setup.centralized_service_label")' not in setup):
-    errors.append('Setup must distinguish the centralized Farcaster API from decentralized Hypersnap')
+if ('qsTrId("genycaster.setup.network_farcaster_category").arg(qsTrId("genycaster.setup.centralized_service_label"))' not in setup
+        or 'qsTrId("genycaster.setup.network_hypersnap_category").arg(qsTrId("genycaster.setup.decentralized_label"))' not in setup):
+    errors.append('Setup must distinguish centralized Farcaster from decentralized Hypersnap in translated network labels')
 
 if errors:
     print('UI design guard failed:')

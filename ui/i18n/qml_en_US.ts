@@ -2218,10 +2218,6 @@
             <source>The selected source rejected this read.</source>
             <translation>The selected source rejected this read.</translation>
         </message>
-        <message id="genycaster.runtime.the_sign_in_proof_could_not_be_validated_safely">
-            <source>The sign-in proof could not be validated safely.</source>
-            <translation>The sign-in proof could not be validated safely.</translation>
-        </message>
         <message id="genycaster.runtime.the_signer_authorization_configuration_is_invalid">
             <source>The signer authorization configuration is invalid.</source>
             <translation>The signer authorization configuration is invalid.</translation>
@@ -2578,10 +2574,6 @@
             <source>Bookmarks</source>
             <translation>Bookmarks</translation>
         </message>
-        <message id="genycaster.side_nav.business">
-            <source>Business</source>
-            <translation>Business</translation>
-        </message>
         <message id="genycaster.side_nav.channels">
             <source>Channels</source>
             <translation>Channels</translation>
@@ -2598,10 +2590,6 @@
             <source>Home</source>
             <translation>Home</translation>
         </message>
-        <message id="genycaster.side_nav.messages">
-            <source>Messages</source>
-            <translation>Messages</translation>
-        </message>
         <message id="genycaster.side_nav.no_identity_open">
             <source>No identity open</source>
             <translation>No identity open</translation>
@@ -2613,10 +2601,6 @@
         <message id="genycaster.side_nav.profile">
             <source>Profile</source>
             <translation>Profile</translation>
-        </message>
-        <message id="genycaster.side_nav.store">
-            <source>Store</source>
-            <translation>Store</translation>
         </message>
         <message id="genycaster.status.data_issue">
             <source>Data issue</source>
@@ -3302,10 +3286,6 @@
             <source>Your interface</source>
             <translation>Your interface</translation>
         </message>
-        <message id="genycaster.setup.welcome_personal_body">
-            <source>Choose appearance, color, motion, and regional preferences before the first session.</source>
-            <translation>Choose appearance, color, motion, and regional preferences before the first session.</translation>
-        </message>
         <message id="genycaster.setup.legal_title">
             <source>Before you continue</source>
             <translation>Before you continue</translation>
@@ -3314,53 +3294,21 @@
             <source>Terms of Use</source>
             <translation>Terms of Use</translation>
         </message>
-        <message id="genycaster.setup.terms_updated">
-            <source>Current official website terms</source>
-            <translation>Current official website terms</translation>
-        </message>
         <message id="genycaster.setup.terms_body">
             <source>Genyleap's published Terms of Use cover website information and product resources. Website information is general and product scope may change. Downloads and repositories can carry their own licenses, release notes, and compatibility requirements. Sending a project enquiry does not create a contract or guarantee acceptance. Review the full Terms before continuing.</source>
             <translation>Genyleap's published Terms of Use cover website information and product resources. Website information is general and product scope may change. Downloads and repositories can carry their own licenses, release notes, and compatibility requirements. Sending a project enquiry does not create a contract or guarantee acceptance. Review the full Terms before continuing.</translation>
-        </message>
-        <message id="genycaster.setup.open_terms">
-            <source>Open full Terms of Use</source>
-            <translation>Open full Terms of Use</translation>
         </message>
         <message id="genycaster.setup.privacy_title">
             <source>Privacy Policy</source>
             <translation>Privacy Policy</translation>
         </message>
-        <message id="genycaster.setup.privacy_updated">
-            <source>Current official website privacy notice</source>
-            <translation>Current official website privacy notice</translation>
-        </message>
         <message id="genycaster.setup.privacy_body">
             <source>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</source>
             <translation>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</translation>
         </message>
-        <message id="genycaster.setup.open_privacy">
-            <source>Open full Privacy Policy</source>
-            <translation>Open full Privacy Policy</translation>
-        </message>
-        <message id="genycaster.setup.legal_governing_note">
-            <source>The links above open Genyleap's current published website terms and privacy notice. Product or repository-specific terms still apply where stated.</source>
-            <translation>The links above open Genyleap's current published website terms and privacy notice. Product or repository-specific terms still apply where stated.</translation>
-        </message>
         <message id="genycaster.setup.scroll_to_continue">
             <source>Scroll to the end to unlock consent.</source>
             <translation>Scroll to the end to unlock consent.</translation>
-        </message>
-        <message id="genycaster.setup.legal_read_complete">
-            <source>You reached the end. Review and confirm both items below.</source>
-            <translation>You reached the end. Review and confirm both items below.</translation>
-        </message>
-        <message id="genycaster.setup.accept_terms">
-            <source>I agree to the Genyleap Terms of Use.</source>
-            <translation>I agree to the Genyleap Terms of Use.</translation>
-        </message>
-        <message id="genycaster.setup.acknowledge_privacy">
-            <source>I have read and understood the Genyleap Privacy Policy.</source>
-            <translation>I have read and understood the Genyleap Privacy Policy.</translation>
         </message>
         <message id="genycaster.setup.agree_continue">
             <source>Agree &amp; Continue</source>
@@ -3410,18 +3358,6 @@
             <source>Applied now. You can change it later.</source>
             <translation>Applied now. You can change it later.</translation>
         </message>
-        <message id="genycaster.setup.previous_language">
-            <source>Previous language</source>
-            <translation>Previous language</translation>
-        </message>
-        <message id="genycaster.setup.next_language">
-            <source>Next language</source>
-            <translation>Next language</translation>
-        </message>
-        <message id="genycaster.setup.completed">
-            <source>Completed</source>
-            <translation>Completed</translation>
-        </message>
         <message id="genycaster.setup.personalize_body">
             <source>Choose the language, appearance, and motion settings that feel right to you.</source>
             <translation>Choose the language, appearance, and motion settings that feel right to you.</translation>
@@ -3437,14 +3373,6 @@
         <message id="genycaster.setup.privacy_summary">
             <source>How account data, protocol identity and local preferences are handled.</source>
             <translation>How account data, protocol identity and local preferences are handled.</translation>
-        </message>
-        <message id="genycaster.setup.privacy_local_note">
-            <source>Preferences stay on this device. Sign-in and approved protocol actions use the network.</source>
-            <translation>Preferences stay on this device. Sign-in and approved protocol actions use the network.</translation>
-        </message>
-        <message id="genycaster.setup.network_title">
-            <source>Choose a network node</source>
-            <translation>Choose a network node</translation>
         </message>
         <message id="genycaster.setup.network_body">
             <source>Automatic selects a healthy low-latency node. You can choose one manually.</source>
@@ -3478,17 +3406,9 @@
             <source>Continue with your Genyleap/OpenProof identity. Farcaster will be linked if needed.</source>
             <translation>Continue with your Genyleap/OpenProof identity. Farcaster will be linked if needed.</translation>
         </message>
-        <message id="genycaster.setup.account_create_openproof_soon">
-            <source>Create an OpenProof account · Coming soon</source>
-            <translation>Create an OpenProof account · Coming soon</translation>
-        </message>
         <message id="genycaster.setup.account_farcaster_body">
             <source>Use a Farcaster-compatible sign-in directly.</source>
             <translation>Use a Farcaster-compatible sign-in directly.</translation>
-        </message>
-        <message id="genycaster.setup.account_create_farcaster_soon">
-            <source>Create a Farcaster account · Coming soon</source>
-            <translation>Create a Farcaster account · Coming soon</translation>
         </message>
         <message id="genycaster.setup.ready_for">
             <source>Everything is set for %1.</source>
@@ -3513,10 +3433,6 @@
         <message id="genycaster.setup.farcaster_explainer">
             <source>A centralized service experience for reading and publishing.</source>
             <translation>A centralized service experience for reading and publishing.</translation>
-        </message>
-        <message id="genycaster.setup.profile_choice">
-            <source>Your profile</source>
-            <translation>Your profile</translation>
         </message>
         <message id="genycaster.setup.existing_profile">
             <source>Use existing</source>
@@ -3570,29 +3486,9 @@
             <source>Setup steps</source>
             <translation>Setup steps</translation>
         </message>
-        <message id="genycaster.setup.explicit_terms_agreement">
-            <source>I agree to the Terms of Use</source>
-            <translation>I agree to the Terms of Use</translation>
-        </message>
-        <message id="genycaster.setup.explicit_privacy_agreement">
-            <source>I have read and acknowledge the Privacy Policy</source>
-            <translation>I have read and acknowledge the Privacy Policy</translation>
-        </message>
-        <message id="genycaster.setup.review_terms_first">
-            <source>Open and review the Terms before enabling this agreement.</source>
-            <translation>Open and review the Terms before enabling this agreement.</translation>
-        </message>
-        <message id="genycaster.setup.review_privacy_first">
-            <source>Open and review the Privacy Policy before acknowledging it.</source>
-            <translation>Open and review the Privacy Policy before acknowledging it.</translation>
-        </message>
         <message id="genycaster.setup.mark_document_reviewed">
             <source>I reviewed the document</source>
             <translation>I reviewed the document</translation>
-        </message>
-        <message id="genycaster.setup.open_governing_document">
-            <source>Open the official document and review the summary to continue.</source>
-            <translation>Open the official document and review the summary to continue.</translation>
         </message>
         <message id="genycaster.setup.auth_rejected_recover">
             <source>Genyleap rejected this sign-in. Start a new request or try Farcaster sign-in.</source>
@@ -3634,10 +3530,6 @@
             <source>Farcaster · Default node</source>
             <translation>Farcaster · Default node</translation>
         </message>
-        <message id="genycaster.setup.farcaster_configured">
-            <source>https://api.neynar.com · API credential configured.</source>
-            <translation>https://api.neynar.com · API credential configured.</translation>
-        </message>
         <message id="genycaster.setup.farcaster_missing_key">
             <source>Not available right now. You can continue with Hypersnap.</source>
             <translation>Not available right now. You can continue with Hypersnap.</translation>
@@ -3665,6 +3557,234 @@
         <message id="genycaster.setup.farcaster_relay_unreachable">
             <source>Could not reach Farcaster Relay. In Network setup, try Direct instead of System proxy, then restart and retry.</source>
             <translation>Could not reach Farcaster Relay. In Network setup, try Direct instead of System proxy, then restart and retry.</translation>
+        </message>
+        <message id="genycaster.feed.trending_is_temporarily_unavailable_showing_live_community_posts_instead">
+            <source>Trending is temporarily unavailable. Showing live community posts instead.</source>
+            <translation>Trending is temporarily unavailable. Showing live community posts instead.</translation>
+        </message>
+        <message id="genycaster.settings.app_updates">
+            <source>App updates</source>
+            <translation>App updates</translation>
+        </message>
+        <message id="genycaster.settings.check_for_updates_automatically">
+            <source>Check for updates automatically</source>
+            <translation>Check for updates automatically</translation>
+        </message>
+        <message id="genycaster.settings.check_now">
+            <source>Check now</source>
+            <translation>Check now</translation>
+        </message>
+        <message id="genycaster.settings.checking">
+            <source>Checking…</source>
+            <translation>Checking…</translation>
+        </message>
+        <message id="genycaster.settings.connection_proxy_for_farcaster_relay_and_network_reads">
+            <source>Connection proxy for Farcaster Relay and network reads</source>
+            <translation>Connection proxy for Farcaster Relay and network reads</translation>
+        </message>
+        <message id="genycaster.settings.current_version_1">
+            <source>Current version: %1</source>
+            <translation>Current version: %1</translation>
+        </message>
+        <message id="genycaster.settings.download_1">
+            <source>Download: %1%</source>
+            <translation>Download: %1%</translation>
+        </message>
+        <message id="genycaster.settings.download_verified_update">
+            <source>Download verified update</source>
+            <translation>Download verified update</translation>
+        </message>
+        <message id="genycaster.settings.farcaster_indexed_api">
+            <source>Farcaster indexed API: %1</source>
+            <translation>Farcaster indexed API: %1</translation>
+        </message>
+        <message id="genycaster.settings.farcaster_indexed_reads_require_a_compatible_api_raw_hubs">
+            <source>Farcaster indexed reads require a compatible API. Raw hubs, including Pinata, cannot serve Neynar v2 feeds.</source>
+            <translation>Farcaster indexed reads require a compatible API. Raw hubs, including Pinata, cannot serve Neynar v2 feeds.</translation>
+        </message>
+        <message id="genycaster.settings.farcaster_label">
+            <source>Farcaster</source>
+            <translation>Farcaster</translation>
+        </message>
+        <message id="genycaster.settings.hypersnap_label">
+            <source>Hypersnap</source>
+            <translation>Hypersnap</translation>
+        </message>
+        <message id="genycaster.settings.hypersnap_v2_only_hypersnap_compatible_api_nodes_are_eligible">
+            <source>Hypersnap v2 · only Hypersnap-compatible API nodes are eligible.</source>
+            <translation>Hypersnap v2 · only Hypersnap-compatible API nodes are eligible.</translation>
+        </message>
+        <message id="genycaster.settings.known_farcaster_hubs_pinata_hub_neynar_hub_may_require">
+            <source>Known Farcaster hubs: Pinata Hub, Neynar Hub (may require credentials), Standard Crypto Hub. These are Hub APIs, not selectable indexed-feed nodes.</source>
+            <translation>Known Farcaster hubs: Pinata Hub, Neynar Hub (may require credentials), Standard Crypto Hub. These are Hub APIs, not selectable indexed-feed nodes.</translation>
+        </message>
+        <message id="genycaster.settings.latest_release_1">
+            <source>Latest release: %1</source>
+            <translation>Latest release: %1</translation>
+        </message>
+        <message id="genycaster.settings.look_for_published_genycaster_releases_once_per_day_no">
+            <source>Look for published Genycaster releases once per day. No automatic installation without your approval.</source>
+            <translation>Look for published Genycaster releases once per day. No automatic installation without your approval.</translation>
+        </message>
+        <message id="genycaster.settings.open_verified_installer">
+            <source>Open verified installer</source>
+            <translation>Open verified installer</translation>
+        </message>
+        <message id="genycaster.settings.release_notes_and_downloads">
+            <source>Release notes and downloads</source>
+            <translation>Release notes and downloads</translation>
+        </message>
+        <message id="genycaster.settings.restart_genycaster_to_apply_network_changes">
+            <source>Restart Genycaster to apply network changes.</source>
+            <translation>Restart Genycaster to apply network changes.</translation>
+        </message>
+        <message id="genycaster.settings.updates">
+            <source>Updates</source>
+            <translation>Updates</translation>
+        </message>
+        <message id="genycaster.setup.authenticated_hub_access_separate_from_the_neynar_indexed_feed">
+            <source>Authenticated Hub access; separate from the Neynar indexed feed API</source>
+            <translation>Authenticated Hub access; separate from the Neynar indexed feed API</translation>
+        </message>
+        <message id="genycaster.setup.browser_guest_mode">
+            <source>Browser guest mode</source>
+            <translation>Browser guest mode</translation>
+        </message>
+        <message id="genycaster.setup.browser_preview_runs_in_guest_read_only_mode_reading">
+            <source>Browser preview runs in guest/read-only mode. Reading casts and profiles is available where providers allow CORS.</source>
+            <translation>Browser preview runs in guest/read-only mode. Reading casts and profiles is available where providers allow CORS.</translation>
+        </message>
+        <message id="genycaster.setup.browser_sign_in_verifies_your_genyleap_openproof_account_and">
+            <source>Browser sign-in verifies your Genyleap/OpenProof account and linked Farcaster FID. Publishing still requires a secure protocol signer and is unavailable in the browser.</source>
+            <translation>Browser sign-in verifies your Genyleap/OpenProof account and linked Farcaster FID. Publishing still requires a secure protocol signer and is unavailable in the browser.</translation>
+        </message>
+        <message id="genycaster.setup.continue_as_guest">
+            <source>Continue as guest</source>
+            <translation>Continue as guest</translation>
+        </message>
+        <message id="genycaster.setup.continue_without_an_account_to_explore_public_feeds">
+            <source>Continue without an account to explore public feeds.</source>
+            <translation>Continue without an account to explore public feeds.</translation>
+        </message>
+        <message id="genycaster.setup.direct">
+            <source>Direct</source>
+            <translation>Direct</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_hub_directory">
+            <source>Farcaster Hub directory</source>
+            <translation>Farcaster Hub directory</translation>
+        </message>
+        <message id="genycaster.setup.hub_endpoint_availability_and_authentication_must_be_verified_before">
+            <source>Hub endpoint; availability and authentication must be verified before use</source>
+            <translation>Hub endpoint; availability and authentication must be verified before use</translation>
+        </message>
+        <message id="genycaster.setup.hub_pinata_cloud_hub_v1_api_not_a_compatible">
+            <source>hub.pinata.cloud · Hub v1 API, not a compatible indexed v2 feed endpoint</source>
+            <translation>hub.pinata.cloud · Hub v1 API, not a compatible indexed v2 feed endpoint</translation>
+        </message>
+        <message id="genycaster.setup.if_farcaster_relay_cannot_connect_through_a_system_proxy">
+            <source>If Farcaster Relay cannot connect through a system proxy, select Direct and restart Genycaster.</source>
+            <translation>If Farcaster Relay cannot connect through a system proxy, select Direct and restart Genycaster.</translation>
+        </message>
+        <message id="genycaster.setup.network_connection">
+            <source>Network connection</source>
+            <translation>Network connection</translation>
+        </message>
+        <message id="genycaster.setup.network_farcaster_category">
+            <source>Farcaster (%1)</source>
+            <translation>Farcaster (%1)</translation>
+        </message>
+        <message id="genycaster.setup.network_hypersnap_category">
+            <source>Hypersnap (%1)</source>
+            <translation>Hypersnap (%1)</translation>
+        </message>
+        <message id="genycaster.setup.neynar_hub_farcaster">
+            <source>Neynar Hub · Farcaster</source>
+            <translation>Neynar Hub · Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.not_a_hypersnap_node">
+            <source>Not a Hypersnap node</source>
+            <translation>Not a Hypersnap node</translation>
+        </message>
+        <message id="genycaster.setup.pinata_hub_farcaster">
+            <source>Pinata Hub · Farcaster</source>
+            <translation>Pinata Hub · Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.raw_hub_apis_are_for_protocol_messages_and_health">
+            <source>Raw Hub APIs are for protocol messages and health. They are not interchangeable with the indexed v2 feed API used for Explore and profiles.</source>
+            <translation>Raw Hub APIs are for protocol messages and health. They are not interchangeable with the indexed v2 feed API used for Explore and profiles.</translation>
+        </message>
+        <message id="genycaster.setup.requires_authentication">
+            <source>Requires authentication</source>
+            <translation>Requires authentication</translation>
+        </message>
+        <message id="genycaster.setup.restart_genycaster_to_apply_the_connection_change">
+            <source>Restart Genycaster to apply the connection change.</source>
+            <translation>Restart Genycaster to apply the connection change.</translation>
+        </message>
+        <message id="genycaster.setup.standard_crypto_hub_farcaster">
+            <source>Standard Crypto Hub · Farcaster</source>
+            <translation>Standard Crypto Hub · Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.system_proxy">
+            <source>System proxy</source>
+            <translation>System proxy</translation>
+        </message>
+        <message id="genycaster.browser_auth.http_failure">
+            <source>OpenProof browser authentication failed (HTTP %1).</source>
+            <translation>OpenProof browser authentication failed (HTTP %1).</translation>
+        </message>
+        <message id="genycaster.browser_auth.transport_failure">
+            <source>Unable to contact OpenProof securely.</source>
+            <translation>Unable to contact OpenProof securely.</translation>
+        </message>
+        <message id="genycaster.browser_auth.incomplete_challenge">
+            <source>OpenProof returned an incomplete authorization challenge.</source>
+            <translation>OpenProof returned an incomplete authorization challenge.</translation>
+        </message>
+        <message id="genycaster.browser_auth.invalid_farcaster_challenge">
+            <source>The Farcaster proof challenge was invalid.</source>
+            <translation>The Farcaster proof challenge was invalid.</translation>
+        </message>
+        <message id="genycaster.browser_auth.farcaster_challenge_expired">
+            <source>The Farcaster proof challenge expired.</source>
+            <translation>The Farcaster proof challenge expired.</translation>
+        </message>
+        <message id="genycaster.browser_auth.invalid_farcaster_identity">
+            <source>OpenProof returned an invalid Farcaster identity.</source>
+            <translation>OpenProof returned an invalid Farcaster identity.</translation>
+        </message>
+        <message id="genycaster.browser_auth.authorization_expired">
+            <source>OpenProof authorization expired. Please try again.</source>
+            <translation>OpenProof authorization expired. Please try again.</translation>
+        </message>
+        <message id="genycaster.browser_auth.sign_in_denied">
+            <source>OpenProof sign-in was denied.</source>
+            <translation>OpenProof sign-in was denied.</translation>
+        </message>
+        <message id="genycaster.browser_auth.invalid_access_token">
+            <source>OpenProof returned no valid access token.</source>
+            <translation>OpenProof returned no valid access token.</translation>
+        </message>
+        <message id="genycaster.browser_auth.missing_verified_subject">
+            <source>OpenProof userinfo omitted the verified subject.</source>
+            <translation>OpenProof userinfo omitted the verified subject.</translation>
+        </message>
+        <message id="genycaster.browser_auth.missing_connections">
+            <source>OpenProof did not return verified account connections.</source>
+            <translation>OpenProof did not return verified account connections.</translation>
+        </message>
+        <message id="genycaster.browser_auth.multiple_farcaster_identities">
+            <source>Multiple Farcaster identities are linked; choose one in Genyleap.</source>
+            <translation>Multiple Farcaster identities are linked; choose one in Genyleap.</translation>
+        </message>
+        <message id="genycaster.browser_auth.invalid_linked_fid">
+            <source>OpenProof returned an invalid linked Farcaster FID.</source>
+            <translation>OpenProof returned an invalid linked Farcaster FID.</translation>
+        </message>
+        <message id="genycaster.browser_auth.link_farcaster_account">
+            <source>Link your Farcaster account in Genyleap, then sign in again.</source>
+            <translation>Link your Farcaster account in Genyleap, then sign in again.</translation>
         </message>
     </context>
 </TS>

@@ -2218,10 +2218,6 @@
             <source>The selected source rejected this read.</source>
             <translation>رفض المصدر المحدد عملية القراءة هذه.</translation>
         </message>
-        <message id="genycaster.runtime.the_sign_in_proof_could_not_be_validated_safely">
-            <source>The sign-in proof could not be validated safely.</source>
-            <translation>تعذّر التحقق من إثبات تسجيل الدخول بأمان.</translation>
-        </message>
         <message id="genycaster.runtime.the_signer_authorization_configuration_is_invalid">
             <source>The signer authorization configuration is invalid.</source>
             <translation>إعداد تفويض الموقّع غير صالح.</translation>
@@ -2332,7 +2328,7 @@
         </message>
         <message id="genycaster.settings.contract_address_placeholder">
             <source>0x…</source>
-            <translation>0x…</translation>
+            <translation>0x...</translation>
         </message>
         <message id="genycaster.settings.custom_color">
             <source>Custom accent</source>
@@ -2432,11 +2428,11 @@
         </message>
         <message id="genycaster.settings.theme_ember">
             <source>Ember</source>
-            <translation>Ember</translation>
+            <translation>إمبر</translation>
         </message>
         <message id="genycaster.settings.theme_geny">
             <source>Geny</source>
-            <translation>Geny</translation>
+            <translation>جيني</translation>
         </message>
         <message id="genycaster.settings.theme_mint">
             <source>Mint</source>
@@ -2448,7 +2444,7 @@
         </message>
         <message id="genycaster.settings.theme_ocean">
             <source>Ocean</source>
-            <translation>Ocean</translation>
+            <translation>المحيط</translation>
         </message>
         <message id="genycaster.settings.theme_rose">
             <source>Rose</source>
@@ -2456,7 +2452,7 @@
         </message>
         <message id="genycaster.settings.theme_violet">
             <source>Violet</source>
-            <translation>Violet</translation>
+            <translation>بنفسجي</translation>
         </message>
         <message id="genycaster.settings.title">
             <source>Settings</source>
@@ -2578,10 +2574,6 @@
             <source>Bookmarks</source>
             <translation>الإشارات المرجعية</translation>
         </message>
-        <message id="genycaster.side_nav.business">
-            <source>Business</source>
-            <translation>الأعمال</translation>
-        </message>
         <message id="genycaster.side_nav.channels">
             <source>Channels</source>
             <translation>القنوات</translation>
@@ -2598,10 +2590,6 @@
             <source>Home</source>
             <translation>الرئيسية</translation>
         </message>
-        <message id="genycaster.side_nav.messages">
-            <source>Messages</source>
-            <translation>الرسائل</translation>
-        </message>
         <message id="genycaster.side_nav.no_identity_open">
             <source>No identity open</source>
             <translation>لا توجد هوية مفتوحة</translation>
@@ -2613,10 +2601,6 @@
         <message id="genycaster.side_nav.profile">
             <source>Profile</source>
             <translation>الملف الشخصي</translation>
-        </message>
-        <message id="genycaster.side_nav.store">
-            <source>Store</source>
-            <translation>المتجر</translation>
         </message>
         <message id="genycaster.status.data_issue">
             <source>Data issue</source>
@@ -3302,10 +3286,6 @@
             <source>Your interface</source>
             <translation>واجهتك</translation>
         </message>
-        <message id="genycaster.setup.welcome_personal_body">
-            <source>Choose appearance, color, motion, and regional preferences before the first session.</source>
-            <translation>اختر المظهر واللون والحركة والتفضيلات الإقليمية قبل الجلسة الأولى.</translation>
-        </message>
         <message id="genycaster.setup.legal_title">
             <source>Before you continue</source>
             <translation>قبل المتابعة</translation>
@@ -3314,53 +3294,21 @@
             <source>Terms of Use</source>
             <translation>شروط الاستخدام</translation>
         </message>
-        <message id="genycaster.setup.terms_updated">
-            <source>Current official website terms</source>
-            <translation>شروط الموقع الرسمية الحالية</translation>
-        </message>
         <message id="genycaster.setup.terms_body">
             <source>Genyleap's published Terms of Use cover website information and product resources. Website information is general and product scope may change. Downloads and repositories can carry their own licenses, release notes, and compatibility requirements. Sending a project enquiry does not create a contract or guarantee acceptance. Review the full Terms before continuing.</source>
             <translation>تغطي شروط استخدام Genyleap المنشورة معلومات الموقع وموارد المنتجات. معلومات الموقع عامة وقد يتغير نطاق المنتجات. قد تكون للتنزيلات والمستودعات تراخيص وملاحظات إصدار ومتطلبات توافق خاصة بها. إرسال استفسار عن مشروع لا ينشئ عقدًا ولا يضمن القبول. راجع الشروط الكاملة قبل المتابعة.</translation>
-        </message>
-        <message id="genycaster.setup.open_terms">
-            <source>Open full Terms of Use</source>
-            <translation>فتح شروط الاستخدام كاملة</translation>
         </message>
         <message id="genycaster.setup.privacy_title">
             <source>Privacy Policy</source>
             <translation>سياسة الخصوصية</translation>
         </message>
-        <message id="genycaster.setup.privacy_updated">
-            <source>Current official website privacy notice</source>
-            <translation>إشعار الخصوصية الرسمي الحالي للموقع</translation>
-        </message>
         <message id="genycaster.setup.privacy_body">
             <source>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</source>
             <translation>يغطي إشعار الخصوصية المنشور من Genyleap المعلومات التي تختار إرسالها عبر نماذج التواصل والمشاريع، إضافة إلى بيانات أساسية لمنع إساءة الاستخدام. يستخدم Genycaster أيضًا حساب Genyleap/OpenProof وهوية Farcaster المرتبطة التي تختارها أثناء الإعداد للمصادقة وتمكين إجراءات البروتوكول. تُخزن تفضيلات المظهر والمنطقة محليًا في التطبيق ما لم تذكر ميزة صراحةً خلاف ذلك. راجع إشعار الخصوصية الكامل قبل المتابعة.</translation>
         </message>
-        <message id="genycaster.setup.open_privacy">
-            <source>Open full Privacy Policy</source>
-            <translation>فتح سياسة الخصوصية كاملة</translation>
-        </message>
-        <message id="genycaster.setup.legal_governing_note">
-            <source>The links above open Genyleap's current published website terms and privacy notice. Product or repository-specific terms still apply where stated.</source>
-            <translation>تفتح الروابط أعلاه شروط الموقع وإشعار الخصوصية المنشورين حاليًا من Genyleap. كما تسري الشروط الخاصة بمنتج أو مستودع عند ذكرها.</translation>
-        </message>
         <message id="genycaster.setup.scroll_to_continue">
             <source>Scroll to the end to unlock consent.</source>
             <translation>مرّر حتى النهاية لتفعيل الموافقة.</translation>
-        </message>
-        <message id="genycaster.setup.legal_read_complete">
-            <source>You reached the end. Review and confirm both items below.</source>
-            <translation>لقد وصلت إلى النهاية. راجع وأكّد العنصرين أدناه.</translation>
-        </message>
-        <message id="genycaster.setup.accept_terms">
-            <source>I agree to the Genyleap Terms of Use.</source>
-            <translation>أوافق على شروط استخدام Genyleap.</translation>
-        </message>
-        <message id="genycaster.setup.acknowledge_privacy">
-            <source>I have read and understood the Genyleap Privacy Policy.</source>
-            <translation>لقد قرأت وفهمت سياسة خصوصية Genyleap.</translation>
         </message>
         <message id="genycaster.setup.agree_continue">
             <source>Agree &amp; Continue</source>
@@ -3410,18 +3358,6 @@
             <source>Applied now. You can change it later.</source>
             <translation>يُطبَّق اختيارك فورًا ويمكن تغييره لاحقًا.</translation>
         </message>
-        <message id="genycaster.setup.previous_language">
-            <source>Previous language</source>
-            <translation>اللغة السابقة</translation>
-        </message>
-        <message id="genycaster.setup.next_language">
-            <source>Next language</source>
-            <translation>اللغة التالية</translation>
-        </message>
-        <message id="genycaster.setup.completed">
-            <source>Completed</source>
-            <translation>مكتمل</translation>
-        </message>
         <message id="genycaster.setup.personalize_body">
             <source>Choose the language, appearance, and motion settings that feel right to you.</source>
             <translation>احتفظ بالإعدادات الافتراضية أو عدّل فقط ما يغيّر تجربة Genycaster.</translation>
@@ -3437,14 +3373,6 @@
         <message id="genycaster.setup.privacy_summary">
             <source>How account data, protocol identity and local preferences are handled.</source>
             <translation>كيفية التعامل مع بيانات الحساب وهوية البروتوكول والتفضيلات المحلية.</translation>
-        </message>
-        <message id="genycaster.setup.privacy_local_note">
-            <source>Preferences stay on this device. Sign-in and approved protocol actions use the network.</source>
-            <translation>تبقى التفضيلات محليًا؛ وتستخدم المصادقة وإجراءات البروتوكول المعتمدة الشبكة.</translation>
-        </message>
-        <message id="genycaster.setup.network_title">
-            <source>Choose a network node</source>
-            <translation>اختر عقدة قراءة</translation>
         </message>
         <message id="genycaster.setup.network_body">
             <source>Automatic selects a healthy low-latency node. You can choose one manually.</source>
@@ -3478,17 +3406,9 @@
             <source>Continue with your Genyleap/OpenProof identity. Farcaster will be linked if needed.</source>
             <translation>استخدم هوية Genyleap واربط Farcaster عند الحاجة.</translation>
         </message>
-        <message id="genycaster.setup.account_create_openproof_soon">
-            <source>Create an OpenProof account · Coming soon</source>
-            <translation>إنشاء حساب OpenProof · قريبًا</translation>
-        </message>
         <message id="genycaster.setup.account_farcaster_body">
             <source>Use a Farcaster-compatible sign-in directly.</source>
             <translation>استخدم تسجيل دخول متوافقًا مع Farcaster مباشرةً.</translation>
-        </message>
-        <message id="genycaster.setup.account_create_farcaster_soon">
-            <source>Create a Farcaster account · Coming soon</source>
-            <translation>إنشاء حساب Farcaster · قريبًا</translation>
         </message>
         <message id="genycaster.setup.ready_for">
             <source>Everything is set for %1.</source>
@@ -3504,167 +3424,367 @@
         </message>
         <message id="genycaster.setup.choose_network">
             <source>Choose a connection</source>
-            <translation>Choose a connection</translation>
+            <translation>اختيار اتصال</translation>
         </message>
         <message id="genycaster.setup.hypersnap_explainer">
             <source>A decentralized community-operated network for reading and publishing.</source>
-            <translation>A decentralized community-operated network for reading and publishing.</translation>
+            <translation>شبكة مجتمعية لا مركزية للقراءة والنشر.</translation>
         </message>
         <message id="genycaster.setup.farcaster_explainer">
             <source>A centralized service experience for reading and publishing.</source>
-            <translation>A centralized service experience for reading and publishing.</translation>
-        </message>
-        <message id="genycaster.setup.profile_choice">
-            <source>Your profile</source>
-            <translation>Your profile</translation>
+            <translation>تجربة خدمة مركزية للقراءة والنشر.</translation>
         </message>
         <message id="genycaster.setup.existing_profile">
             <source>Use existing</source>
-            <translation>Use existing</translation>
+            <translation>استخدم القائمة</translation>
         </message>
         <message id="genycaster.setup.new_profile">
             <source>Create new</source>
-            <translation>Create new</translation>
+            <translation>إنشاء جديد</translation>
         </message>
         <message id="genycaster.setup.profile_creation_browser">
             <source>Register your new FID in a compatible app, then return here to connect it. Genycaster never asks for your recovery phrase.</source>
-            <translation>Register your new FID in a compatible app, then return here to connect it. Genycaster never asks for your recovery phrase.</translation>
+            <translation>سجّل معرّف FID الجديد في تطبيق متوافق، ثم عُد إلى هنا لربطه. لن يطلب منك Genycaster عبارة الاسترداد أبدًا.</translation>
         </message>
         <message id="genycaster.setup.open_registration">
             <source>Find a registration app</source>
-            <translation>Find a registration app</translation>
+            <translation>ابحث عن تطبيق للتسجيل</translation>
         </message>
         <message id="genycaster.setup.already_created">
             <source>I have a profile — connect</source>
-            <translation>I have a profile — connect</translation>
+            <translation>لدي ملف شخصي — تواصل</translation>
         </message>
         <message id="genycaster.setup.network_settings_explainer">
             <source>Choose your preferred network. Your identity and keys stay with you when you switch.</source>
-            <translation>Choose your preferred network. Your identity and keys stay with you when you switch.</translation>
+            <translation>اختر شبكتك المفضلة. تبقى هويتك ومفاتيحك معك عند التبديل.</translation>
         </message>
         <message id="genycaster.setup.advanced_nodes">
             <source>Advanced: choose read node</source>
-            <translation>Advanced: choose read node</translation>
+            <translation>متقدم: اختر عقدة القراءة</translation>
         </message>
         <message id="genycaster.setup.existing_profile_body">
             <source>Connect the Farcaster identity you already own.</source>
-            <translation>Connect the Farcaster identity you already own.</translation>
+            <translation>اربط هوية Farcaster التي تمتلكها بالفعل.</translation>
         </message>
         <message id="genycaster.setup.new_profile_body">
             <source>Register a new Farcaster identity in a compatible app.</source>
-            <translation>Register a new Farcaster identity in a compatible app.</translation>
+            <translation>سجل هوية Farcaster جديدة في تطبيق متوافق.</translation>
         </message>
         <message id="genycaster.setup.registration_handoff">
             <source>Continue in a compatible registration app, then come back to link your profile.</source>
-            <translation>Continue in a compatible registration app, then come back to link your profile.</translation>
+            <translation>تابع في تطبيق تسجيل متوافق، ثم عد لربط ملفك الشخصي.</translation>
         </message>
         <message id="genycaster.setup.authentication_explainer">
             <source>Sign in directly with Farcaster using a verified wallet signature, or use your Genyleap/OpenProof account. Publishing requires separate signer permission.</source>
-            <translation>Sign in directly with Farcaster using a verified wallet signature, or use your Genyleap/OpenProof account. Publishing requires separate signer permission.</translation>
+            <translation>سجّل الدخول مباشرةً إلى Farcaster باستخدام توقيع محفظة تم التحقق منه، أو استخدم حساب Genyleap/OpenProof. يتطلب النشر تفويضًا منفصلًا للموقّع.</translation>
         </message>
         <message id="genycaster.setup.workspace_label">
             <source>Secure account setup</source>
-            <translation>Secure account setup</translation>
+            <translation>إعداد حساب آمن</translation>
         </message>
         <message id="genycaster.setup.progress_label">
             <source>Setup steps</source>
-            <translation>Setup steps</translation>
-        </message>
-        <message id="genycaster.setup.explicit_terms_agreement">
-            <source>I agree to the Terms of Use</source>
-            <translation>I agree to the Terms of Use</translation>
-        </message>
-        <message id="genycaster.setup.explicit_privacy_agreement">
-            <source>I have read and acknowledge the Privacy Policy</source>
-            <translation>I have read and acknowledge the Privacy Policy</translation>
-        </message>
-        <message id="genycaster.setup.review_terms_first">
-            <source>Open and review the Terms before enabling this agreement.</source>
-            <translation>Open and review the Terms before enabling this agreement.</translation>
-        </message>
-        <message id="genycaster.setup.review_privacy_first">
-            <source>Open and review the Privacy Policy before acknowledging it.</source>
-            <translation>Open and review the Privacy Policy before acknowledging it.</translation>
+            <translation>خطوات الإعداد</translation>
         </message>
         <message id="genycaster.setup.mark_document_reviewed">
             <source>I reviewed the document</source>
-            <translation>I reviewed the document</translation>
-        </message>
-        <message id="genycaster.setup.open_governing_document">
-            <source>Open the official document and review the summary to continue.</source>
-            <translation>Open the official document and review the summary to continue.</translation>
+            <translation>لقد راجعت المستند</translation>
         </message>
         <message id="genycaster.setup.auth_rejected_recover">
             <source>Genyleap rejected this sign-in. Start a new request or try Farcaster sign-in.</source>
-            <translation>Genyleap rejected this sign-in. Start a new request or try Farcaster sign-in.</translation>
+            <translation>رفضت Genyleap تسجيل الدخول هذا. ابدأ طلبًا جديدًا أو حاول تسجيل الدخول إلى Farcaster.</translation>
         </message>
         <message id="genycaster.setup.auth_provider_response_invalid">
             <source>The sign-in service could not complete the verification. Retry or use the other sign-in method.</source>
-            <translation>The sign-in service could not complete the verification. Retry or use the other sign-in method.</translation>
+            <translation>تعذر على خدمة تسجيل الدخول إكمال التحقق. أعد المحاولة أو استخدم طريقة تسجيل الدخول الأخرى.</translation>
         </message>
         <message id="genycaster.setup.auth_conflict">
             <source>Another sign-in request conflicts with this one. Cancel and start again.</source>
-            <translation>Another sign-in request conflicts with this one. Cancel and start again.</translation>
+            <translation>يتعارض طلب تسجيل دخول آخر مع هذا الطلب. قم بالإلغاء وابدأ من جديد.</translation>
         </message>
         <message id="genycaster.setup.auth_missing_link">
             <source>No linked Farcaster identity was found. Connect your existing profile after signing in.</source>
-            <translation>No linked Farcaster identity was found. Connect your existing profile after signing in.</translation>
+            <translation>لم يتم العثور على هوية فاركر مرتبطة. اربط ملفك التعريفي الحالي بعد تسجيل الدخول.</translation>
         </message>
         <message id="genycaster.setup.connection_mode_title">
             <source>Choose how you connect</source>
-            <translation>Choose how you connect</translation>
+            <translation>اختر كيفية الاتصال</translation>
         </message>
         <message id="genycaster.setup.connection_mode_help">
             <source>Choose which network Genycaster reads casts and profiles from.</source>
-            <translation>Choose which network Genycaster reads casts and profiles from.</translation>
+            <translation>اختر الشبكة التي يقرأ منها Genycaster القوالب والملفات الشخصية.</translation>
         </message>
         <message id="genycaster.setup.centralized_service_label">
             <source>Centralized</source>
-            <translation>Centralized</translation>
+            <translation>مركزية</translation>
         </message>
         <message id="genycaster.setup.decentralized_label">
             <source>Decentralized</source>
-            <translation>Decentralized</translation>
+            <translation>اللامركزية</translation>
         </message>
         <message id="genycaster.setup.farcaster_not_configured">
             <source>A familiar network with centrally operated services and moderation.</source>
-            <translation>A familiar network with centrally operated services and moderation.</translation>
+            <translation>شبكة مألوفة مع الخدمات التي تدار مركزيا والاعتدال.</translation>
         </message>
         <message id="genycaster.setup.farcaster_hosted_node">
             <source>Farcaster · Default node</source>
-            <translation>Farcaster · Default node</translation>
-        </message>
-        <message id="genycaster.setup.farcaster_configured">
-            <source>https://api.neynar.com · API credential configured.</source>
-            <translation>https://api.neynar.com · API credential configured.</translation>
+            <translation>فاركاستر · العقدة الافتراضية</translation>
         </message>
         <message id="genycaster.setup.farcaster_missing_key">
             <source>Not available right now. You can continue with Hypersnap.</source>
-            <translation>Not available right now. You can continue with Hypersnap.</translation>
+            <translation>غير متاح في الوقت الحالي. يمكنك المتابعة مع Hypersnap.</translation>
         </message>
         <message id="genycaster.setup.document_accepted">
             <source>Accepted</source>
-            <translation>Accepted</translation>
+            <translation>مقبول</translation>
         </message>
         <message id="genycaster.setup.confirm_document">
             <source>Scroll to the end, then confirm this document.</source>
-            <translation>Scroll to the end, then confirm this document.</translation>
+            <translation>مرِّر إلى النهاية، ثم أكِّد هذا المستند.</translation>
         </message>
         <message id="genycaster.setup.legal_click_to_review">
             <source>Open both notices, review the summaries and confirm each one to continue.</source>
-            <translation>Open both notices, review the summaries and confirm each one to continue.</translation>
+            <translation>افتح كلا الإشعارين، وراجع الملخصات وتأكد من كل واحد للمتابعة.</translation>
         </message>
         <message id="genycaster.setup.legal_summary_label">
             <source>Product notice summary</source>
-            <translation>Product notice summary</translation>
+            <translation>ملخص إشعار المنتج</translation>
         </message>
         <message id="genycaster.setup.account_methods_explainer">
             <source>Use your Farcaster identity or Genyleap account. Each sign-in is verified independently; neither changes your read network.</source>
-            <translation>Use your Farcaster identity or Genyleap account. Each sign-in is verified independently; neither changes your read network.</translation>
+            <translation>استخدم هوية Farcaster الخاصة بك أو حساب Genyleap. يتم التحقق من كل تسجيل دخول بشكل مستقل ؛ لا يغير أي من شبكتك للقراءة.</translation>
         </message>
         <message id="genycaster.setup.farcaster_relay_unreachable">
             <source>Could not reach Farcaster Relay. In Network setup, try Direct instead of System proxy, then restart and retry.</source>
-            <translation>Could not reach Farcaster Relay. In Network setup, try Direct instead of System proxy, then restart and retry.</translation>
+            <translation>تعذر الوصول إلى Farcaster Relay. في إعداد الشبكة، جرب Direct بدلاً من وكيل النظام، ثم أعد التشغيل وأعد المحاولة.</translation>
+        </message>
+        <message id="genycaster.feed.trending_is_temporarily_unavailable_showing_live_community_posts_instead">
+            <source>Trending is temporarily unavailable. Showing live community posts instead.</source>
+            <translation>الشائع غير متاح مؤقتًا. عرض مشاركات المجتمع المباشرة بدلاً من ذلك.</translation>
+        </message>
+        <message id="genycaster.settings.app_updates">
+            <source>App updates</source>
+            <translation>تحديثات التطبيق</translation>
+        </message>
+        <message id="genycaster.settings.check_for_updates_automatically">
+            <source>Check for updates automatically</source>
+            <translation>التحقق من وجود تحديثات تلقائيًا</translation>
+        </message>
+        <message id="genycaster.settings.check_now">
+            <source>Check now</source>
+            <translation>تحقَّق الآن</translation>
+        </message>
+        <message id="genycaster.settings.checking">
+            <source>Checking…</source>
+            <translation>جارٍ التحقق...</translation>
+        </message>
+        <message id="genycaster.settings.connection_proxy_for_farcaster_relay_and_network_reads">
+            <source>Connection proxy for Farcaster Relay and network reads</source>
+            <translation>وكيل الاتصال لقراءات مرحل فاركاستر والشبكة</translation>
+        </message>
+        <message id="genycaster.settings.current_version_1">
+            <source>Current version: %1</source>
+            <translation>الإصدار الحالي: %1</translation>
+        </message>
+        <message id="genycaster.settings.download_1">
+            <source>Download: %1%</source>
+            <translation>التنزيل: %1%</translation>
+        </message>
+        <message id="genycaster.settings.download_verified_update">
+            <source>Download verified update</source>
+            <translation>تنزيل تحديث تم التحقق منه</translation>
+        </message>
+        <message id="genycaster.settings.farcaster_indexed_api">
+            <source>Farcaster indexed API: %1</source>
+            <translation>واجهة برمجة تطبيقات Farcaster المفهرسة: %1</translation>
+        </message>
+        <message id="genycaster.settings.farcaster_indexed_reads_require_a_compatible_api_raw_hubs">
+            <source>Farcaster indexed reads require a compatible API. Raw hubs, including Pinata, cannot serve Neynar v2 feeds.</source>
+            <translation>تتطلب القراءات المفهرسة المبهرجة واجهة برمجة تطبيقات متوافقة. لا يمكن للمحاور الخام، بما في ذلك Pinata، تقديم خلاصات Neynar v2.</translation>
+        </message>
+        <message id="genycaster.settings.farcaster_label">
+            <source>Farcaster</source>
+            <translation>Farcaster</translation>
+        </message>
+        <message id="genycaster.settings.hypersnap_label">
+            <source>Hypersnap</source>
+            <translation>Hypersnap</translation>
+        </message>
+        <message id="genycaster.settings.hypersnap_v2_only_hypersnap_compatible_api_nodes_are_eligible">
+            <source>Hypersnap v2 · only Hypersnap-compatible API nodes are eligible.</source>
+            <translation>Hypersnap v2 · فقط عُقد واجهة برمجة التطبيقات المتوافقة مع Hypersnap مؤهلة.</translation>
+        </message>
+        <message id="genycaster.settings.known_farcaster_hubs_pinata_hub_neynar_hub_may_require">
+            <source>Known Farcaster hubs: Pinata Hub, Neynar Hub (may require credentials), Standard Crypto Hub. These are Hub APIs, not selectable indexed-feed nodes.</source>
+            <translation>محاور Farcaster المعروفة: Pinata Hub، Neynar Hub (قد تتطلب بيانات اعتماد)، Standard Crypto Hub. هذه واجهات برمجة تطبيقات Hub، وليست عقد تغذية مفهرسة قابلة للتحديد.</translation>
+        </message>
+        <message id="genycaster.settings.latest_release_1">
+            <source>Latest release: %1</source>
+            <translation>أحدث إصدار: %1</translation>
+        </message>
+        <message id="genycaster.settings.look_for_published_genycaster_releases_once_per_day_no">
+            <source>Look for published Genycaster releases once per day. No automatic installation without your approval.</source>
+            <translation>ابحث عن إصدارات Genycaster المنشورة مرة واحدة يوميًا. لا يوجد تثبيت تلقائي دون موافقتك.</translation>
+        </message>
+        <message id="genycaster.settings.open_verified_installer">
+            <source>Open verified installer</source>
+            <translation>فتح المثبت الذي تم التحقق منه</translation>
+        </message>
+        <message id="genycaster.settings.release_notes_and_downloads">
+            <source>Release notes and downloads</source>
+            <translation>إصدار الملاحظات والتنزيلات</translation>
+        </message>
+        <message id="genycaster.settings.restart_genycaster_to_apply_network_changes">
+            <source>Restart Genycaster to apply network changes.</source>
+            <translation>أعد تشغيل Genycaster لتطبيق تغييرات الشبكة.</translation>
+        </message>
+        <message id="genycaster.settings.updates">
+            <source>Updates</source>
+            <translation>التحديثات</translation>
+        </message>
+        <message id="genycaster.setup.authenticated_hub_access_separate_from_the_neynar_indexed_feed">
+            <source>Authenticated Hub access; separate from the Neynar indexed feed API</source>
+            <translation>الوصول إلى المحور المصادق عليه ؛ منفصل عن واجهة برمجة تطبيقات الخلاصة المفهرسة من Neynar</translation>
+        </message>
+        <message id="genycaster.setup.browser_guest_mode">
+            <source>Browser guest mode</source>
+            <translation>وضع ضيف المتصفح</translation>
+        </message>
+        <message id="genycaster.setup.browser_preview_runs_in_guest_read_only_mode_reading">
+            <source>Browser preview runs in guest/read-only mode. Reading casts and profiles is available where providers allow CORS.</source>
+            <translation>يتم تشغيل معاينة المتصفح في وضع الضيف/للقراءة فقط. تتوفر قوالب القراءة والملفات الشخصية حيث يسمح مقدمو الخدمات بـ CORS.</translation>
+        </message>
+        <message id="genycaster.setup.browser_sign_in_verifies_your_genyleap_openproof_account_and">
+            <source>Browser sign-in verifies your Genyleap/OpenProof account and linked Farcaster FID. Publishing still requires a secure protocol signer and is unavailable in the browser.</source>
+            <translation>يقوم تسجيل الدخول إلى المتصفح بالتحقق من حساب Genyleap/OpenProof الخاص بك وربط Farcaster FID. لا يزال النشر يتطلب موقّع بروتوكول آمن وهو غير متاح في المتصفح.</translation>
+        </message>
+        <message id="genycaster.setup.continue_as_guest">
+            <source>Continue as guest</source>
+            <translation>المتابعة كضيف</translation>
+        </message>
+        <message id="genycaster.setup.continue_without_an_account_to_explore_public_feeds">
+            <source>Continue without an account to explore public feeds.</source>
+            <translation>تابع بدون حساب لاستكشاف الخلاصات العامة.</translation>
+        </message>
+        <message id="genycaster.setup.direct">
+            <source>Direct</source>
+            <translation>مباشر</translation>
+        </message>
+        <message id="genycaster.setup.farcaster_hub_directory">
+            <source>Farcaster Hub directory</source>
+            <translation>دليل Farcaster Hub</translation>
+        </message>
+        <message id="genycaster.setup.hub_endpoint_availability_and_authentication_must_be_verified_before">
+            <source>Hub endpoint; availability and authentication must be verified before use</source>
+            <translation>نقطة نهاية المحور ؛ يجب التحقق من التوافر والمصادقة قبل الاستخدام</translation>
+        </message>
+        <message id="genycaster.setup.hub_pinata_cloud_hub_v1_api_not_a_compatible">
+            <source>hub.pinata.cloud · Hub v1 API, not a compatible indexed v2 feed endpoint</source>
+            <translation>hub.pinata.cloud · واجهة برمجة تطبيقات Hub v1، ليست نقطة نهاية تغذية v2 مفهرسة متوافقة</translation>
+        </message>
+        <message id="genycaster.setup.if_farcaster_relay_cannot_connect_through_a_system_proxy">
+            <source>If Farcaster Relay cannot connect through a system proxy, select Direct and restart Genycaster.</source>
+            <translation>إذا تعذر على Farcaster Relay الاتصال من خلال وكيل النظام، فحدد Direct وأعد تشغيل Genycaster.</translation>
+        </message>
+        <message id="genycaster.setup.network_connection">
+            <source>Network connection</source>
+            <translation>الاتصال بالشبكة</translation>
+        </message>
+        <message id="genycaster.setup.network_farcaster_category">
+            <source>Farcaster (%1)</source>
+            <translation>Farcaster (%1)</translation>
+        </message>
+        <message id="genycaster.setup.network_hypersnap_category">
+            <source>Hypersnap (%1)</source>
+            <translation>Hypersnap (%1)</translation>
+        </message>
+        <message id="genycaster.setup.neynar_hub_farcaster">
+            <source>Neynar Hub · Farcaster</source>
+            <translation>Neynar Hub · Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.not_a_hypersnap_node">
+            <source>Not a Hypersnap node</source>
+            <translation>ليست عقدة Hypersnap</translation>
+        </message>
+        <message id="genycaster.setup.pinata_hub_farcaster">
+            <source>Pinata Hub · Farcaster</source>
+            <translation>بيناتا هاب · فاركاستر</translation>
+        </message>
+        <message id="genycaster.setup.raw_hub_apis_are_for_protocol_messages_and_health">
+            <source>Raw Hub APIs are for protocol messages and health. They are not interchangeable with the indexed v2 feed API used for Explore and profiles.</source>
+            <translation>واجهات برمجة تطبيقات Raw Hub مخصصة لرسائل البروتوكول والصحة. وهي غير قابلة للتبادل مع واجهة برمجة تطبيقات التغذية v2 المفهرسة المستخدمة للاستكشاف والملفات الشخصية.</translation>
+        </message>
+        <message id="genycaster.setup.requires_authentication">
+            <source>Requires authentication</source>
+            <translation>يتطلب المصادقة</translation>
+        </message>
+        <message id="genycaster.setup.restart_genycaster_to_apply_the_connection_change">
+            <source>Restart Genycaster to apply the connection change.</source>
+            <translation>أعد تشغيل Genycaster لتطبيق تغيير الاتصال.</translation>
+        </message>
+        <message id="genycaster.setup.standard_crypto_hub_farcaster">
+            <source>Standard Crypto Hub · Farcaster</source>
+            <translation>محور التشفير القياسي · Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.system_proxy">
+            <source>System proxy</source>
+            <translation>وكيل النظام</translation>
+        </message>
+        <message id="genycaster.browser_auth.http_failure">
+            <source>OpenProof browser authentication failed (HTTP %1).</source>
+            <translation>فشلت مصادقة OpenProof في المتصفح (HTTP %1).</translation>
+        </message>
+        <message id="genycaster.browser_auth.transport_failure">
+            <source>Unable to contact OpenProof securely.</source>
+            <translation>تعذّر الاتصال الآمن بخدمة OpenProof.</translation>
+        </message>
+        <message id="genycaster.browser_auth.incomplete_challenge">
+            <source>OpenProof returned an incomplete authorization challenge.</source>
+            <translation>أرجعت OpenProof طلب تفويض غير مكتمل.</translation>
+        </message>
+        <message id="genycaster.browser_auth.invalid_farcaster_challenge">
+            <source>The Farcaster proof challenge was invalid.</source>
+            <translation>تحدّي إثبات هوية Farcaster غير صالح.</translation>
+        </message>
+        <message id="genycaster.browser_auth.farcaster_challenge_expired">
+            <source>The Farcaster proof challenge expired.</source>
+            <translation>انتهت صلاحية تحدّي إثبات هوية Farcaster.</translation>
+        </message>
+        <message id="genycaster.browser_auth.invalid_farcaster_identity">
+            <source>OpenProof returned an invalid Farcaster identity.</source>
+            <translation>أرجعت OpenProof هوية Farcaster غير صالحة.</translation>
+        </message>
+        <message id="genycaster.browser_auth.authorization_expired">
+            <source>OpenProof authorization expired. Please try again.</source>
+            <translation>انتهت مهلة تفويض OpenProof. يُرجى المحاولة مجددًا.</translation>
+        </message>
+        <message id="genycaster.browser_auth.sign_in_denied">
+            <source>OpenProof sign-in was denied.</source>
+            <translation>رُفض تسجيل الدخول عبر OpenProof.</translation>
+        </message>
+        <message id="genycaster.browser_auth.invalid_access_token">
+            <source>OpenProof returned no valid access token.</source>
+            <translation>لم تُرجع OpenProof رمز وصول صالحًا.</translation>
+        </message>
+        <message id="genycaster.browser_auth.missing_verified_subject">
+            <source>OpenProof userinfo omitted the verified subject.</source>
+            <translation>لم تتضمن معلومات مستخدم OpenProof المعرّف الذي تم التحقق منه.</translation>
+        </message>
+        <message id="genycaster.browser_auth.missing_connections">
+            <source>OpenProof did not return verified account connections.</source>
+            <translation>لم تُرجع OpenProof روابط الحساب التي تم التحقق منها.</translation>
+        </message>
+        <message id="genycaster.browser_auth.multiple_farcaster_identities">
+            <source>Multiple Farcaster identities are linked; choose one in Genyleap.</source>
+            <translation>هناك عدة هويات Farcaster مرتبطة؛ اختر واحدة في Genyleap.</translation>
+        </message>
+        <message id="genycaster.browser_auth.invalid_linked_fid">
+            <source>OpenProof returned an invalid linked Farcaster FID.</source>
+            <translation>أرجعت OpenProof معرّف FID مرتبطًا غير صالح.</translation>
+        </message>
+        <message id="genycaster.browser_auth.link_farcaster_account">
+            <source>Link your Farcaster account in Genyleap, then sign in again.</source>
+            <translation>اربط حساب Farcaster الخاص بك في Genyleap ثم سجّل الدخول مجددًا.</translation>
         </message>
     </context>
 </TS>

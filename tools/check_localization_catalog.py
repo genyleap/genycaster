@@ -36,12 +36,21 @@ INTENTIONALLY_IDENTICAL_IDS = {
     "genycaster.settings.contract_address_placeholder",
     "genycaster.settings.custom_color_placeholder",
     "genycaster.collectible.nft_badge",
+    # Proper protocol/service names and placeholder-based brand labels
+    # are intentionally identical across languages.
+    "genycaster.settings.farcaster_label",
+    "genycaster.settings.hypersnap_label",
+    "genycaster.setup.network_farcaster_category",
+    "genycaster.setup.network_hypersnap_category",
+    "genycaster.setup.neynar_hub_farcaster",
+    "genycaster.setup.pinata_hub_farcaster",
+    "genycaster.setup.standard_crypto_hub_farcaster",
 }
 
 INTENTIONALLY_IDENTICAL_BY_LOCALE = {
     "de_DE": {
         "Video", "IRT — Toman", "Cast", "Recast", "System", "Ember", "Geny",
-        "Ocean", "Violet", "Live", "Offline", "Editor %1", "Link", "Smileys",
+        "Ocean", "Violet", "Live", "Offline", "Editor %1", "Link", "Smileys", "Updates",
     },
     "es_ES": {
         "Recast · %1 recasts", "Shahanshahi (Imperial)", "Popular", "Cast", "Recast",
@@ -49,7 +58,7 @@ INTENTIONALLY_IDENTICAL_BY_LOCALE = {
     },
     "fr_FR": {
         "Explorer", "Notifications", "Image", "Recast · %1 recasts", "IRT — Toman",
-        "Messages", "Cast", "Recast", "Mode", "Geny", "Violet", "Mention",
+        "Messages", "Cast", "Recast", "Mode", "Geny", "Violet", "Mention", "Direct",
     },
     "pt_BR": {
         "Recast · %1 recasts", "Shahanshahi (Imperial)", "IRT — Toman", "%1 toman",

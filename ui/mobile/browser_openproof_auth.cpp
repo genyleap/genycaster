@@ -5,6 +5,7 @@
 #include <QJsonValue>
 #include <QNetworkRequest>
 #include <QUrlQuery>
+#include <QtTranslation>
 
 #include <algorithm>
 #include <utility>
@@ -34,7 +35,7 @@ QJsonObject objectFrom(const QByteArray& body)
 
 QString safeFailure(const int status)
 {
-    return QStringLiteral("OpenProof browser authentication failed (HTTP %1).").arg(status);
+    return qtTrId("genycaster.browser_auth.http_failure").arg(status);
 }
 
 } // namespace
@@ -117,7 +118,7 @@ void BrowserOpenProofAuth::send(QNetworkRequest request, QByteArray body, Respon
         const QByteArray payload = reply->readAll();
         reply->deleteLater();
         if (!successfulTransport || payload.size() > 256 * 1024) {
-            fail(QStringLiteral("Unable to contact OpenProof securely."));
+            fail(qtTrId("genycaster.browser_auth.transport_failure"));
             return;
         }
         callback(status, payload);
@@ -144,7 +145,7 @@ void BrowserOpenProofAuth::begin(Observer observer)
         const QString userCode = response.value(QStringLiteral("user_code")).toString();
         if (deviceCode.isEmpty() || userCode.isEmpty() || deviceCode.size() > 4096 ||
             userCode.size() > 256) {
-            fail(QStringLiteral("OpenProof returned an incomplete authorization challenge."));
+            fail(qtTrId("genycaster.browser_auth.incomplete_challenge"));
             return;
         }
         m_deviceCode = deviceCode.toUtf8();
@@ -193,7 +194,7 @@ void BrowserOpenProofAuth::beginFarcaster(Observer observer)
             approval.scheme() != QStringLiteral("https") ||
             (approval.host() != QStringLiteral("warpcast.com") &&
              approval.host() != QStringLiteral("farcaster.xyz"))) {
-            fail(QStringLiteral("The Farcaster proof challenge was invalid."));
+            fail(qtTrId("genycaster.browser_auth.invalid_farcaster_challenge"));
             return;
         }
         m_farcasterTicket = ticket.toUtf8();
@@ -212,7 +213,7 @@ void BrowserOpenProofAuth::pollFarcaster()
 {
     if (m_farcasterTicket.isEmpty()) return;
     if (QDateTime::currentMSecsSinceEpoch() >= m_deadlineMs) {
-        fail(QStringLiteral("The Farcaster proof challenge expired."));
+        fail(qtTrId("genycaster.browser_auth.farcaster_challenge_expired"));
         return;
     }
     QNetworkRequest request{QUrl{QStringLiteral(
@@ -239,7 +240,7 @@ void BrowserOpenProofAuth::pollFarcaster()
         bool valid = false;
         const auto fid = json.value(QStringLiteral("fid")).toString().toULongLong(&valid);
         if (subject.trimmed().isEmpty() || subject.size() > 512 || !valid || fid == 0) {
-            fail(QStringLiteral("OpenProof returned an invalid Farcaster identity."));
+            fail(qtTrId("genycaster.browser_auth.invalid_farcaster_identity"));
             return;
         }
         BrowserOpenProofState authenticated{};
@@ -260,7 +261,7 @@ void BrowserOpenProofAuth::pollFarcaster()
 void BrowserOpenProofAuth::startPolling()
 {
     if (m_deadlineMs && QDateTime::currentMSecsSinceEpoch() >= m_deadlineMs) {
-        fail(QStringLiteral("OpenProof authorization expired. Please try again."));
+        fail(qtTrId("genycaster.browser_auth.authorization_expired"));
         return;
     }
     m_pollTimer.start(m_intervalSeconds * 1000);
@@ -271,7 +272,7 @@ void BrowserOpenProofAuth::pollToken()
     if (m_directFarcaster) { pollFarcaster(); return; }
     if (m_deviceCode.isEmpty()) return;
     if (QDateTime::currentMSecsSinceEpoch() >= m_deadlineMs) {
-        fail(QStringLiteral("OpenProof authorization expired. Please try again."));
+        fail(qtTrId("genycaster.browser_auth.authorization_expired"));
         return;
     }
     QUrlQuery form{};
@@ -294,13 +295,13 @@ void BrowserOpenProofAuth::pollToken()
                 return;
             }
             fail(code == QStringLiteral("access_denied")
-                ? QStringLiteral("OpenProof sign-in was denied.")
+                ? qtTrId("genycaster.browser_auth.sign_in_denied")
                 : safeFailure(status));
             return;
         }
         m_accessToken = response.value(QStringLiteral("access_token")).toString().toUtf8();
         if (m_accessToken.isEmpty() || m_accessToken.size() > 8192) {
-            fail(QStringLiteral("OpenProof returned no valid access token."));
+            fail(qtTrId("genycaster.browser_auth.invalid_access_token"));
             return;
         }
         m_tokenExpiresSeconds = std::clamp(
@@ -321,7 +322,7 @@ void BrowserOpenProofAuth::checkUserinfo()
         const auto object = objectFrom(payload);
         m_subject = object.value(QStringLiteral("sub")).toString().trimmed();
         if (m_subject.isEmpty() || m_subject.size() > 512) {
-            fail(QStringLiteral("OpenProof userinfo omitted the verified subject."));
+            fail(qtTrId("genycaster.browser_auth.missing_verified_subject"));
             return;
         }
         checkConnections();
@@ -343,7 +344,7 @@ void BrowserOpenProofAuth::checkConnections()
         const auto json = objectFrom(payload);
         const auto connections = json.value(QStringLiteral("connections"));
         if (!connections.isArray()) {
-            fail(QStringLiteral("OpenProof did not return verified account connections."));
+            fail(qtTrId("genycaster.browser_auth.missing_connections"));
             return;
         }
         std::uint64_t fid = 0;
@@ -354,7 +355,7 @@ void BrowserOpenProofAuth::checkConnections()
             if (connection.value(QStringLiteral("provider")).toString().toLower()
                 != QStringLiteral("farcaster")) continue;
             if (fid != 0) {
-                fail(QStringLiteral("Multiple Farcaster identities are linked; choose one in Genyleap."));
+                fail(qtTrId("genycaster.browser_auth.multiple_farcaster_identities"));
                 return;
             }
             bool valid = false;
@@ -363,7 +364,7 @@ void BrowserOpenProofAuth::checkConnections()
                 ? value.toString().toULongLong(&valid)
                 : value.toVariant().toULongLong(&valid);
             if (!valid || parsed == 0) {
-                fail(QStringLiteral("OpenProof returned an invalid linked Farcaster FID."));
+                fail(qtTrId("genycaster.browser_auth.invalid_linked_fid"));
                 return;
             }
             fid = parsed;
@@ -372,7 +373,7 @@ void BrowserOpenProofAuth::checkConnections()
             avatarUrl = connection.value(QStringLiteral("picture_url")).toString();
         }
         if (fid == 0) {
-            fail(QStringLiteral("Link your Farcaster account in Genyleap, then sign in again."));
+            fail(qtTrId("genycaster.browser_auth.link_farcaster_account"));
             return;
         }
         BrowserOpenProofState authenticated{};
