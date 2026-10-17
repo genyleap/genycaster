@@ -65,6 +65,9 @@ void BrowserOpenProofAuth::reset()
     }
     m_deviceCode.fill('\0');
     m_deviceCode.clear();
+    m_farcasterTicket.fill('\0');
+    m_farcasterTicket.clear();
+    m_directFarcaster = false;
     m_accessToken.fill('\0');
     m_accessToken.clear();
     m_subject.clear();
@@ -166,6 +169,94 @@ void BrowserOpenProofAuth::begin(Observer observer)
     });
 }
 
+void BrowserOpenProofAuth::beginFarcaster(Observer observer)
+{
+    reset();
+    m_directFarcaster = true;
+    m_observer = std::move(observer);
+    emitState(BrowserOpenProofState{.phase = BrowserOpenProofState::Phase::Starting});
+
+    auto request = QNetworkRequest{QUrl{QStringLiteral(
+        "https://storage-farcaster.genyleap.com/v1/browser/farcaster/start")}};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(15'000);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,
+                      QStringLiteral("application/json"));
+    send(std::move(request), QByteArrayLiteral("{}"),
+        [this](const int status, QByteArray payload) {
+        if (status != 200) { fail(safeFailure(status)); return; }
+        const auto json = objectFrom(payload);
+        const QString ticket = json.value(QStringLiteral("ticket")).toString();
+        const QUrl approval{json.value(QStringLiteral("approval_url")).toString()};
+        if (ticket.size() != 43 || !approval.isValid() ||
+            approval.scheme() != QStringLiteral("https") ||
+            (approval.host() != QStringLiteral("warpcast.com") &&
+             approval.host() != QStringLiteral("farcaster.xyz"))) {
+            fail(QStringLiteral("The Farcaster proof challenge was invalid."));
+            return;
+        }
+        m_farcasterTicket = ticket.toUtf8();
+        m_intervalSeconds = 3;
+        m_deadlineMs = QDateTime::currentMSecsSinceEpoch() + 300'000;
+        m_approvalUrl = approval.toString(QUrl::FullyEncoded);
+        emitState(BrowserOpenProofState{
+            .phase = BrowserOpenProofState::Phase::AwaitingApproval,
+            .approvalUrl = m_approvalUrl,
+        });
+        startPolling();
+    });
+}
+
+void BrowserOpenProofAuth::pollFarcaster()
+{
+    if (m_farcasterTicket.isEmpty()) return;
+    if (QDateTime::currentMSecsSinceEpoch() >= m_deadlineMs) {
+        fail(QStringLiteral("The Farcaster proof challenge expired."));
+        return;
+    }
+    QNetworkRequest request{QUrl{QStringLiteral(
+        "https://storage-farcaster.genyleap.com/v1/browser/farcaster/poll")}};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(15'000);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,
+                      QStringLiteral("application/json"));
+    const QByteArray payload = QByteArrayLiteral("{\"ticket\":\"")
+        + m_farcasterTicket + QByteArrayLiteral("\"}");
+    send(std::move(request), payload,
+        [this](const int status, QByteArray payload) {
+        const auto json = objectFrom(payload);
+        if (status == 202 && json.value(QStringLiteral("pending")).toBool()) {
+            startPolling();
+            return;
+        }
+        if (status != 200 || !json.value(QStringLiteral("authenticated")).toBool()) {
+            fail(safeFailure(status));
+            return;
+        }
+        const QString subject = json.value(QStringLiteral("subject")).toString();
+        bool valid = false;
+        const auto fid = json.value(QStringLiteral("fid")).toString().toULongLong(&valid);
+        if (subject.trimmed().isEmpty() || subject.size() > 512 || !valid || fid == 0) {
+            fail(QStringLiteral("OpenProof returned an invalid Farcaster identity."));
+            return;
+        }
+        BrowserOpenProofState authenticated{};
+        authenticated.phase = BrowserOpenProofState::Phase::Authenticated;
+        authenticated.subject = subject;
+        authenticated.fid = fid;
+        authenticated.username = json.value(QStringLiteral("username")).toString();
+        authenticated.displayName = json.value(QStringLiteral("display_name")).toString();
+        authenticated.avatarUrl = json.value(QStringLiteral("avatar_url")).toString();
+        authenticated.tokenExpiresSeconds = 3600;
+        m_farcasterTicket.fill('\0');
+        m_farcasterTicket.clear();
+        m_sessionExpiryTimer.start(authenticated.tokenExpiresSeconds * 1000);
+        emitState(std::move(authenticated));
+    });
+}
+
 void BrowserOpenProofAuth::startPolling()
 {
     if (m_deadlineMs && QDateTime::currentMSecsSinceEpoch() >= m_deadlineMs) {
@@ -177,6 +268,7 @@ void BrowserOpenProofAuth::startPolling()
 
 void BrowserOpenProofAuth::pollToken()
 {
+    if (m_directFarcaster) { pollFarcaster(); return; }
     if (m_deviceCode.isEmpty()) return;
     if (QDateTime::currentMSecsSinceEpoch() >= m_deadlineMs) {
         fail(QStringLiteral("OpenProof authorization expired. Please try again."));

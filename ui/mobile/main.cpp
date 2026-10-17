@@ -2195,12 +2195,8 @@ void connectRuntime(
         [browserAuth, browserObserver](const QString& route) {
             if (route == QStringLiteral("openproof")) {
                 browserAuth->begin(browserObserver);
-            } else {
-                BrowserOpenProofState event{};
-                event.phase = BrowserOpenProofState::Phase::Failed;
-                event.error = QStringLiteral(
-                    "Farcaster browser proof is not available. Use verified Genyleap sign-in.");
-                browserObserver(std::move(event));
+            } else if (route == QStringLiteral("farcaster")) {
+                browserAuth->beginFarcaster(browserObserver);
             }
         });
     QObject::connect(&bridge, &PresentationBridge::signInCancelRequested,

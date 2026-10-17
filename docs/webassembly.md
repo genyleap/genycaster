@@ -61,6 +61,30 @@ and cancellations remain queued through the event loop. Native builds keep
 their threaded Qt reactor and existing SSL diagnostics. Other unrelated
 application executors are not yet certified on WebAssembly.
 
+## Direct Farcaster sign-in in browser (read-only identity)
+
+The direct Farcaster option is a separate OpenProof-bound SIWF flow. Qt sends
+`POST /v1/browser/farcaster/start` to the first-party Media Gateway. That
+backend creates the OpenProof `/auth/web3/start` challenge, retains
+the HttpOnly ceremony cookies and Farcaster Relay channel token in a bounded
+five-minute, in-memory attempt, and returns only an opaque random ticket and
+a first-party-approved HTTPS Farcaster authorization URL.
+
+Qt requests approval from the user in Farcaster and polls with a POST body,
+not an URL query. The backend passes the signed SIWE message to OpenProof
+`/auth/web3/complete`, checks `/account/profile` and exactly one linked
+Farcaster connection, and refuses nonce/FID mismatches. No relay token,
+OpenProof cookie or unverified identity is exposed to QML. The resulting
+read-only identity lives in the app's transient session and expires after
+one hour. An interrupted/restarted gateway invalidates in-flight attempts;
+they must be restarted instead of silently trusting expired proof state.
+
+Identity sign-in is **not** protocol signer authorization. Posting casts,
+likes, follows and other protocol writes remain disabled until the browser
+supports non-exportable signer key custody, explicit scoped Farcaster
+authorization, verified Snapchain registration and protocol-native signing.
+The browser sign-in route never claims signer readiness.
+
 ## Browser OpenProof sign-in (read-only identity)
 
 The browser uses OpenProof's public `genycaster-native-v1` OAuth device

@@ -1,5 +1,6 @@
 import http from 'node:http';
 import { retrieveBrowserImage } from './browser_image_proxy.mjs';
+import { createBrowserFarcasterBroker } from './browser_farcaster_auth.mjs';
 import {
   createHash,
   createHmac,
@@ -376,12 +377,58 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   const replayCache = dependencies.replayCache ?? new ReplayCache(config.proofLifetimeSeconds);
   const limiter = dependencies.limiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.rateLimit);
   const partLimiter = dependencies.partLimiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.partRateLimit);
+  const farcasterBroker = dependencies.farcasterBroker ?? createBrowserFarcasterBroker(runtime);
 
   return http.createServer(async (request, response) => {
     response.setHeader('server', '');
     let requestUrl;
     try { requestUrl = new URL(request.url || '/', 'http://media.invalid'); }
     catch { writeJson(response, 400, { error: 'invalid_request_url' }); return; }
+
+    if (requestUrl.pathname.startsWith('/v1/browser/farcaster/')) {
+      // OpenProof validates the Farcaster SIWF proof. The browser receives
+      // only an opaque, short-lived attempt ticket; relay and OpenProof
+      // cookies never leave this server's process.
+      response.setHeader('access-control-allow-origin', '*');
+      response.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
+      response.setHeader('access-control-allow-headers', 'content-type');
+      response.setHeader('cache-control', 'no-store');
+      response.setHeader('x-content-type-options', 'nosniff');
+      if (request.method === 'OPTIONS') { response.writeHead(204); response.end(); return; }
+      const isStart = requestUrl.pathname === '/v1/browser/farcaster/start'
+        && request.method === 'POST';
+      const isPoll = requestUrl.pathname === '/v1/browser/farcaster/poll'
+        && request.method === 'POST';
+      if (!isStart && !isPoll) {
+        writeJson(response, 405, { error: 'method_not_allowed' }); return;
+      }
+      const rate = limiter.check(clientAddress(request, config.trustCloudflare), runtime.now());
+      if (!rate.allowed) { writeJson(response, 429, { error: 'rate_limited' }); return; }
+      let ticket = null;
+      try {
+        if (isStart) {
+          const raw = await readBody(request, 128);
+          if (raw.length && !safeJson(raw)) {
+            writeJson(response, 400, { error: 'invalid_request_json' });
+            return;
+          }
+        }
+        if (isPoll) {
+          const payload = safeJson(await readBody(request, 256));
+          ticket = payload?.ticket;
+        }
+        const output = isStart ? await farcasterBroker.start()
+          : await farcasterBroker.poll(ticket);
+        if (output.authenticated) farcasterBroker.consume(ticket);
+        writeJson(response, output.pending ? 202 : 200, output);
+      } catch (error) {
+        writeJson(response, Number.isInteger(error.status) ? error.status : 502, {
+          error: typeof error.code === 'string' && error.code.startsWith('auth_')
+            ? error.code : 'auth_service_unavailable',
+        });
+      }
+      return;
+    }
 
     if (requestUrl.pathname === '/v1/browser/miniapps') {
       // A bounded public catalogue relay, not a generic URL proxy. Browser

@@ -38,6 +38,7 @@ public:
     ~BrowserOpenProofAuth() override;
 
     void begin(Observer observer);
+    void beginFarcaster(Observer observer);
     void cancel();
     void signOut();
 
@@ -47,6 +48,7 @@ private:
     void send(QNetworkRequest request, QByteArray body, Response response);
     void startPolling();
     void pollToken();
+    void pollFarcaster();
     void checkUserinfo();
     void checkConnections();
     void fail(QString message);
@@ -59,6 +61,8 @@ private:
     QPointer<QNetworkReply> m_reply{};
     Observer m_observer{};
     QByteArray m_deviceCode{};
+    QByteArray m_farcasterTicket{};
+    bool m_directFarcaster{false};
     QByteArray m_accessToken{};
     QString m_subject{};
     QString m_approvalUrl{};

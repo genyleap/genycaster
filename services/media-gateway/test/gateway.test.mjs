@@ -125,6 +125,7 @@ async function withGateway(run, overrides = {}) {
   };
   const server = createMediaGateway(config(), storage, {
     fetchImpl: overrides.fetchImpl ?? signerFetch,
+    farcasterBroker: overrides.farcasterBroker,
     now: () => nowMs,
   });
   await new Promise((resolve, reject) => {
@@ -498,5 +499,38 @@ test('browser Mini App catalogue uses only fixed public discovery routes', async
     return new Response(JSON.stringify({ frames: [] }), {
       status: 200, headers: { 'content-type': 'application/json' },
     });
+  } });
+});
+
+test('Farcaster browser sign-in endpoints never put the secret ticket in a URL', async () => {
+  const calls = [];
+  const ticket = 'A'.repeat(43);
+  await withGateway(async ({ origin }) => {
+    const path = '/v1/browser/farcaster/';
+    const preflight = await fetch(origin + path + 'poll', {
+      method: 'OPTIONS',
+      headers: { origin: 'http://127.0.0.1:30000',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'content-type' },
+    });
+    assert.equal(preflight.status, 204);
+    assert.equal(preflight.headers.get('access-control-allow-origin'), '*');
+    const rejected = await fetch(origin + path + 'poll');
+    assert.equal(rejected.status, 405);
+    const started = await fetch(origin + path + 'start', { method: 'POST' });
+    assert.equal(started.status, 200);
+    assert.equal((await started.json()).ticket, ticket);
+    const polled = await fetch(origin + path + 'poll', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ticket }),
+    });
+    assert.equal(polled.status, 200);
+    assert.equal((await polled.json()).authenticated, true);
+    assert.deepEqual(calls, ['start', 'poll:' + ticket, 'consume:' + ticket]);
+  }, { farcasterBroker: {
+    async start() { calls.push('start'); return { ticket, approval_url: 'https://warpcast.com' }; },
+    async poll(value) { calls.push('poll:' + value); return { authenticated: true }; },
+    consume(value) { calls.push('consume:' + value); },
   } });
 });

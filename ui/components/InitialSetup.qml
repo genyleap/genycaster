@@ -1832,7 +1832,7 @@ Item {
                         primary: root.activeSignInRoute === "farcaster"
                         busy: root.authenticationInProgress && root.authenticationRoute === "farcaster"
                         showChevron: !root.authenticationInProgress
-                        enabled: !root.browserReadOnly && root.authenticationAvailable && !root.authenticationInProgress
+                        enabled: root.authenticationAvailable && !root.authenticationInProgress
                         onClicked: root.continueWithFarcaster()
                     }
 
