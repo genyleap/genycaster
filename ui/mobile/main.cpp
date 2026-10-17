@@ -82,6 +82,8 @@
 #include "browser_openproof_auth.hpp"
 #if defined(__EMSCRIPTEN__)
 #include "browser_wheel_fallback.hpp"
+#include "browser_signer_bridge.hpp"
+#include "browser_cast_payload.hpp"
 #endif
 #include "data_storage_controller.hpp"
 
@@ -2061,8 +2063,15 @@ void connectRuntime(
     const std::shared_ptr<Runtime>& runtime,
     const bool authenticationAvailable,
     std::string siwfDomain,
-    std::string siwfUri)
+    std::string siwfUri,
+    const QString& browserSnapchainOrigin)
 {
+#if defined(__EMSCRIPTEN__)
+    auto* const browserSigner = new genycaster::ui::browser_signing::Bridge(
+        bridge, browserSnapchainOrigin);
+#else
+    Q_UNUSED(browserSnapchainOrigin);
+#endif
     const auto applyNetworkAffinity = [runtime](const QString& network) {
         if (runtime->router) {
             runtime->router->setPreferredNetwork(
@@ -2166,16 +2175,38 @@ void connectRuntime(
             (void)runtime->writeService->resume(runtime->currentSessionSnapshot(), writeObserver);
         });
 
-    const auto sessionObserver = [&bridge, runtime, authenticationAvailable, signerObserver]
-        (application::session::SessionState state) {
+    const auto sessionObserver = [&bridge, runtime, authenticationAvailable, signerObserver
+#if defined(__EMSCRIPTEN__)
+        , browserSigner
+#endif
+        ] (application::session::SessionState state) {
             const auto signerSession = state.session;
             runtime->setCurrentSession(signerSession);
             QMetaObject::invokeMethod(
                 &bridge,
-                [&bridge, runtime, state = std::move(state), authenticationAvailable]() mutable {
+                [&bridge, runtime, state = std::move(state), authenticationAvailable
+#if defined(__EMSCRIPTEN__)
+                 , browserSigner
+#endif
+                ]() mutable {
+#if defined(__EMSCRIPTEN__)
+                    const auto completedPhase = state.phase;
+                    const auto verifiedFid = state.session ? state.session->fid.value : 0U;
+#endif
                     applySessionState(bridge, std::move(state), authenticationAvailable);
                     runtime->authenticationPollInFlight.store(false, std::memory_order_release);
                     hydrateAuthenticatedAccountProfile(bridge, runtime);
+#if defined(__EMSCRIPTEN__)
+                    // Restore only after PresentationBridge has committed
+                    // the actual signed-in FID; never race queued session UI.
+                    if (completedPhase == application::session::SessionPhase::Authenticated
+                        && verifiedFid != 0U) {
+                        browserSigner->start(QStringLiteral("restore"),
+                            QString::number(verifiedFid));
+                    } else if (completedPhase == application::session::SessionPhase::Guest) {
+                        browserSigner->start(QStringLiteral("signed-out"), {});
+                    }
+#endif
                 },
                 Qt::QueuedConnection);
             hydrateWriteProjections(bridge, runtime, signerSession);
@@ -2294,7 +2325,17 @@ void connectRuntime(
 #endif
 
     QObject::connect(&bridge, &PresentationBridge::signerProvisionRequested, &bridge,
-        [&bridge, runtime, signerObserver] {
+        [&bridge, runtime, signerObserver
+#if defined(__EMSCRIPTEN__)
+        , browserSigner
+#endif
+        ] {
+#if defined(__EMSCRIPTEN__)
+            if (bridge.isAuthenticated() && bridge.accountFid() != 0)
+                browserSigner->start(QStringLiteral("provision"),
+                    QString::number(bridge.accountFid()));
+            return;
+#endif
             if (!runtime->signerService) {
                 application::signer::SignerState state{
                     .phase = application::signer::SignerPhase::Unavailable,
@@ -2317,7 +2358,17 @@ void connectRuntime(
         });
 
     QObject::connect(&bridge, &PresentationBridge::signerRevokeRequested, &bridge,
-        [&bridge, runtime, signerObserver] {
+        [&bridge, runtime, signerObserver
+#if defined(__EMSCRIPTEN__)
+        , browserSigner
+#endif
+        ] {
+#if defined(__EMSCRIPTEN__)
+            if (bridge.isAuthenticated() && bridge.accountFid() != 0)
+                browserSigner->start(QStringLiteral("revoke"),
+                    QString::number(bridge.accountFid()));
+            return;
+#endif
             if (!runtime->signerService) { return; }
             auto status = runtime->signerService->revoke(
                 runtime->currentSessionSnapshot(), signerObserver);
@@ -2385,9 +2436,31 @@ void connectRuntime(
     };
 
     QObject::connect(&bridge, &PresentationBridge::publishCastRequested, &bridge,
-        [&bridge, runtime, writeObserver, mentionFidsFromVariants, mentionPositionsFromVariants, embedsFromVariants](
+        [&bridge, runtime, writeObserver, mentionFidsFromVariants, mentionPositionsFromVariants, embedsFromVariants
+#if defined(__EMSCRIPTEN__)
+        , browserSigner
+#endif
+        ](
             const QString& text, const QVariantList& mentionFids, const QVariantList& mentionPositions,
             const QVariantList& embeds) {
+#if defined(__EMSCRIPTEN__)
+
+            if (!bridge.isAuthenticated() || !bridge.writeReady()) {
+                bridge.applyWriteState(QStringLiteral("blocked"), false, {},
+                    qtTrId("genycaster.runtime.interaction_signer_is_not_enabled_yet"));
+                return;
+            }
+            const auto payload = genycaster::ui::browser_signing::makeCastPayload(
+                text, mentionFids, mentionPositions, embeds);
+            if (!payload) {
+                bridge.applyWriteState(QStringLiteral("failed"), false, {},
+                    qtTrId("genycaster.bridge.invalid_cast_embeds"));
+                return;
+            }
+            browserSigner->start(QStringLiteral("cast"),
+                QString::number(bridge.accountFid()), *payload);
+            return;
+#endif
             if (!runtime->writeService) {
                 bridge.applyWriteState(
                     QStringLiteral("blocked"), false,
@@ -2427,9 +2500,29 @@ void connectRuntime(
         });
 
     QObject::connect(&bridge, &PresentationBridge::publishReplyRequested, &bridge,
-        [&bridge, runtime, writeObserver, mentionFidsFromVariants, mentionPositionsFromVariants, embedsFromVariants](
+        [&bridge, runtime, writeObserver, mentionFidsFromVariants, mentionPositionsFromVariants, embedsFromVariants
+#if defined(__EMSCRIPTEN__)
+        , browserSigner
+#endif
+        ](
             const QString& text, const QVariantList& mentionFids, const QVariantList& mentionPositions,
             const QVariantList& embeds, const qulonglong parentAuthorFid, const QString& parentCastId) {
+#if defined(__EMSCRIPTEN__)
+
+            const auto parent = genycaster::ui::browser_signing::makeCastReference(
+                parentAuthorFid, parentCastId);
+            const auto payload = parent
+                ? genycaster::ui::browser_signing::makeCastPayload(
+                    text, mentionFids, mentionPositions, embeds, parent) : std::nullopt;
+            if (!bridge.isAuthenticated() || !bridge.writeReady() || !payload) {
+                bridge.applyWriteState(QStringLiteral("blocked"), false, {},
+                    qtTrId("genycaster.runtime.interaction_signer_is_not_enabled_yet"));
+                return;
+            }
+            browserSigner->start(QStringLiteral("cast"),
+                QString::number(bridge.accountFid()), *payload);
+            return;
+#endif
             if (!runtime->writeService) {
                 bridge.applyWriteState(
                     QStringLiteral("blocked"), false,
@@ -2474,8 +2567,51 @@ void connectRuntime(
 
 
     QObject::connect(&bridge, &PresentationBridge::publishThreadRequested, &bridge,
-        [&bridge, runtime, writeObserver, mentionFidsFromVariants, mentionPositionsFromVariants, embedsFromVariants](
+        [&bridge, runtime, writeObserver, mentionFidsFromVariants, mentionPositionsFromVariants, embedsFromVariants
+#if defined(__EMSCRIPTEN__)
+        , browserSigner
+#endif
+        ](
             const QVariantList& casts, const qulonglong parentAuthorFid, const QString& parentCastId) {
+#if defined(__EMSCRIPTEN__)
+
+            if (!bridge.isAuthenticated() || !bridge.writeReady()
+                || casts.isEmpty() || casts.size() > 32) {
+                bridge.applyWriteState(QStringLiteral("blocked"), false, {},
+                    qtTrId("genycaster.runtime.interaction_signer_is_not_enabled_yet"));
+                return;
+            }
+            QJsonArray serialized{};
+            std::optional<QJsonObject> parent{};
+            if (parentAuthorFid > 0 || !parentCastId.isEmpty()) {
+                parent = genycaster::ui::browser_signing::makeCastReference(
+                    parentAuthorFid, parentCastId);
+                if (!parent) {
+                    bridge.applyWriteState(QStringLiteral("failed"), false, {},
+                        qtTrId("genycaster.bridge.invalid_cast_embeds"));
+                    return;
+                }
+            }
+            for (const auto& castValue : casts) {
+                const auto cast = castValue.toMap();
+                const auto payload = genycaster::ui::browser_signing::makeCastPayload(
+                    cast.value(QStringLiteral("text")).toString(),
+                    cast.value(QStringLiteral("mentionFids")).toList(),
+                    cast.value(QStringLiteral("mentionPositions")).toList(),
+                    cast.value(QStringLiteral("embeds")).toList());
+                if (!payload) {
+                    bridge.applyWriteState(QStringLiteral("failed"), false, {},
+                        qtTrId("genycaster.bridge.invalid_cast_embeds"));
+                    return;
+                }
+                serialized.append(*payload);
+            }
+            QJsonObject data{{QStringLiteral("casts"), serialized}};
+            if (parent) data.insert(QStringLiteral("parent"), *parent);
+            browserSigner->start(QStringLiteral("thread"),
+                QString::number(bridge.accountFid()), data);
+            return;
+#endif
             if (!runtime->writeService) {
                 bridge.applyWriteState(
                     QStringLiteral("blocked"), false,
@@ -2533,8 +2669,29 @@ void connectRuntime(
         });
 
     QObject::connect(&bridge, &PresentationBridge::reactionRequested, &bridge,
-        [&bridge, runtime, writeObserver](const QString& kind, const qulonglong targetAuthorFid,
+        [&bridge, runtime, writeObserver
+#if defined(__EMSCRIPTEN__)
+        , browserSigner
+#endif
+        ](const QString& kind, const qulonglong targetAuthorFid,
             const QString& targetCastId, const bool active) {
+#if defined(__EMSCRIPTEN__)
+
+            const auto target = genycaster::ui::browser_signing::makeCastReference(
+                targetAuthorFid, targetCastId);
+            if (!bridge.isAuthenticated() || !bridge.writeReady() || !target
+                || (kind != QStringLiteral("like") && kind != QStringLiteral("recast"))) {
+                bridge.applyWriteState(QStringLiteral("blocked"), false, {},
+                    qtTrId("genycaster.runtime.interaction_signer_is_not_enabled_yet"));
+                return;
+            }
+            browserSigner->start(QStringLiteral("reaction"),
+                QString::number(bridge.accountFid()),
+                QJsonObject{{QStringLiteral("target"), *target},
+                            {QStringLiteral("reaction"), kind},
+                            {QStringLiteral("active"), active}});
+            return;
+#endif
             if (!runtime->writeService) {
                 bridge.applyWriteState(
                     QStringLiteral("blocked"),
@@ -2567,7 +2724,25 @@ void connectRuntime(
         });
 
     QObject::connect(&bridge, &PresentationBridge::followingMutationRequested, &bridge,
-        [&bridge, runtime, writeObserver](const qulonglong targetFid, const bool following) {
+        [&bridge, runtime, writeObserver
+#if defined(__EMSCRIPTEN__)
+        , browserSigner
+#endif
+        ](const qulonglong targetFid, const bool following) {
+#if defined(__EMSCRIPTEN__)
+
+            if (!bridge.isAuthenticated() || !bridge.writeReady()
+                || targetFid == 0 || targetFid == bridge.accountFid()) {
+                bridge.applyWriteState(QStringLiteral("blocked"), false, {},
+                    qtTrId("genycaster.runtime.interaction_signer_is_not_enabled_yet"));
+                return;
+            }
+            browserSigner->start(QStringLiteral("follow"),
+                QString::number(bridge.accountFid()),
+                QJsonObject{{QStringLiteral("targetFid"), QString::number(targetFid)},
+                            {QStringLiteral("active"), following}});
+            return;
+#endif
             if (!runtime->writeService) {
                 bridge.applyWriteState(
                     QStringLiteral("blocked"),
@@ -2593,7 +2768,26 @@ void connectRuntime(
         });
 
     QObject::connect(&bridge, &PresentationBridge::removeCastRequested, &bridge,
-        [&bridge, runtime, writeObserver](const qulonglong authorFid, const QString& castId) {
+        [&bridge, runtime, writeObserver
+#if defined(__EMSCRIPTEN__)
+        , browserSigner
+#endif
+        ](const qulonglong authorFid, const QString& castId) {
+#if defined(__EMSCRIPTEN__)
+
+            const auto target = genycaster::ui::browser_signing::makeCastReference(
+                authorFid, castId);
+            if (!bridge.isAuthenticated() || !bridge.writeReady() || !target
+                || authorFid != bridge.accountFid()) {
+                bridge.applyWriteState(QStringLiteral("blocked"), false, {},
+                    qtTrId("genycaster.runtime.interaction_signer_is_not_enabled_yet"));
+                return;
+            }
+            browserSigner->start(QStringLiteral("remove"),
+                QString::number(bridge.accountFid()),
+                QJsonObject{{QStringLiteral("target"), *target}});
+            return;
+#endif
             if (!runtime->writeService) {
                 bridge.applyWriteState(
                     QStringLiteral("blocked"),
@@ -4604,10 +4798,13 @@ int main(int argc, char* argv[])
                 [&presentationBridge, &richComposerController, &mediaUploadController,
                  &mediaPlayback, &runtime, readyRuntime = std::move(readyRuntime),
                  siwfDomain, siwfUri, startupIdentity,
-                 openExploreForTest]() mutable {
+                 snapchainBaseUrl, openExploreForTest]() mutable {
                     runtime = std::move(readyRuntime);
                     connectRuntime(
-                        presentationBridge, richComposerController, runtime, authenticationAvailable, siwfDomain, siwfUri);
+                        presentationBridge, richComposerController, runtime, authenticationAvailable,
+                        siwfDomain, siwfUri,
+                        snapchainBaseUrl ? QString::fromStdString(*snapchainBaseUrl)
+                                         : QStringLiteral("https://snapchain.genyleap.com"));
                     connectMediaPlayback(mediaPlayback, runtime);
 #if FARCASTER_HAS_MEDIA_UPLOAD
                     connectMediaUpload(mediaUploadController, runtime);

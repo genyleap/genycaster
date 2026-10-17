@@ -190,6 +190,36 @@ async function readResponseBody(upstreamResponse, maxBytes) {
   return Buffer.concat(chunks, total);
 }
 
+
+// The browser signer sends already-signed, public Farcaster protobuf bytes;
+// it never sends wallet secrets. Keep this CORS surface intentionally small.
+// Reject opaque/file origins, arbitrary external origins and credentials.
+function permittedBrowserOrigin(origin) {
+  if (!origin || typeof origin !== 'string') return false;
+  if (origin === 'https://genycaster.genyleap.com') return true;
+  try {
+    const parsed = new URL(origin);
+    const host = parsed.hostname.toLowerCase();
+    return parsed.origin === origin && parsed.protocol === 'http:'
+      && (host === 'localhost' || host === '127.0.0.1')
+      && (parsed.port === '' || (/^[0-9]+$/.test(parsed.port)
+          && Number(parsed.port) > 0 && Number(parsed.port) <= 65535));
+  } catch {
+    return false;
+  }
+}
+
+function corsHeaders(response, request, method) {
+  const origin = request.headers.origin;
+  if (!permittedBrowserOrigin(origin)) return false;
+  response.setHeader('access-control-allow-origin', origin);
+  response.setHeader('vary', 'Origin');
+  response.setHeader('access-control-allow-methods', method);
+  response.setHeader('access-control-allow-headers', 'accept, content-type');
+  response.setHeader('access-control-max-age', '300');
+  return true;
+}
+
 function upstreamHeaders(request, config) {
   const headers = new Headers();
   const accept = request.headers.accept;
@@ -244,6 +274,17 @@ export function createGateway(config, dependencies = {}) {
       writeJson(response, 404, { error: 'route_not_available' });
       return;
     }
+    if (request.method === 'OPTIONS') {
+      const requested = request.headers['access-control-request-method'];
+      if (!methods.has(requested ?? '') || !corsHeaders(response, request, requested)) {
+        writeJson(response, 403, { error: 'browser_origin_not_allowed' });
+        return;
+      }
+      response.writeHead(204, { 'cache-control': 'no-store' });
+      response.end();
+      return;
+    }
+    corsHeaders(response, request, [...methods].join(', '));
     if (!methods.has(request.method ?? '')) {
       response.setHeader('allow', [...methods].join(', '));
       writeJson(response, 405, { error: 'method_not_allowed' });

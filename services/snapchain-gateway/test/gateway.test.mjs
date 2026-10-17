@@ -140,3 +140,54 @@ test('rate limits by client identity before touching upstream', async () => {
     await close(upstream);
   }
 });
+
+test('CORS permits trusted WASM local preview and shipping origin only', async () => {
+  let upstreamRequests = 0;
+  const upstream = http.createServer((_req, response) => {
+    upstreamRequests++;
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end('{"signers":[],"currentUserNonce":0}');
+  });
+  const upstreamPort = await listen(upstream);
+  const gateway = createGateway(config(upstreamPort));
+  const port = await listen(gateway);
+  try {
+    for (const origin of [
+      'http://127.0.0.1:30000', 'http://localhost:30000',
+      'https://genycaster.genyleap.com',
+    ]) {
+      const preflight = await fetch(`http://127.0.0.1:${port}/v1/submitMessage`, {
+        method: 'OPTIONS', headers: {
+          origin, 'access-control-request-method': 'POST',
+          'access-control-request-headers': 'content-type',
+        },
+      });
+      assert.equal(preflight.status, 204);
+      assert.equal(preflight.headers.get('access-control-allow-origin'), origin);
+      assert.equal(preflight.headers.get('access-control-allow-headers'), 'accept, content-type');
+      assert.equal(preflight.headers.get('vary'), 'Origin');
+      const actual = await fetch(`http://127.0.0.1:${port}/v1/signersByFid?fid=42`, {
+        headers: { origin },
+      });
+      assert.equal(actual.status, 200);
+      assert.equal(actual.headers.get('access-control-allow-origin'), origin);
+    }
+    for (const origin of [
+      'null', 'http://0.0.0.0:30000', 'https://attacker.invalid',
+      'https://genycaster.genyleap.com.attacker.invalid',
+      'http://127.0.0.1.evil.test:30000',
+    ]) {
+      const preflight = await fetch(`http://127.0.0.1:${port}/v1/submitMessage`, {
+        method: 'OPTIONS', headers: {
+          origin, 'access-control-request-method': 'POST',
+        },
+      });
+      assert.equal(preflight.status, 403, origin);
+      assert.equal(preflight.headers.get('access-control-allow-origin'), null);
+    }
+    assert.equal(upstreamRequests, 3, 'preflights must never hit upstream');
+  } finally {
+    await close(gateway);
+    await close(upstream);
+  }
+});

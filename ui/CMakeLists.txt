@@ -335,6 +335,7 @@ if(EMSCRIPTEN)
         "-lidbfs.js"
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/persistence-pre.js"
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/miniapp-host-pre.js"
+        "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/protocol-signer-pre.js"
     )
 
     # Package the origin-bound WebCrypto key vault alongside the generated
@@ -345,7 +346,13 @@ if(EMSCRIPTEN)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/secure_signer_vault.mjs"
             "$<TARGET_FILE_DIR:farcaster_client>/secure_signer_vault.mjs"
-        COMMENT "Packaging browser non-extractable Ed25519 key-vault module"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/farcaster_protocol.mjs"
+            "$<TARGET_FILE_DIR:farcaster_client>/farcaster_protocol.mjs"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_protocol_signer.mjs"
+            "$<TARGET_FILE_DIR:farcaster_client>/browser_protocol_signer.mjs"
+        COMMENT "Packaging async browser custody signer and canonical Farcaster codec"
         VERBATIM
     )
 endif()

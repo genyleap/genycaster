@@ -1605,11 +1605,11 @@ Item {
                               ? qsTrId("genycaster.shell.enabling")
                               : qsTrId("genycaster.shell.enable_interactions")
                         prominent: true
-                        // The native writer is unavailable until the Genycaster
-                        // App-FID and trusted signer-attestation authority exist.
-                        // Do not offer a clickable action known to fail.
+                        // WASM uses its own asynchronous wallet/WebCrypto/Snapchain
+                        // signer path. An unavailable *native* keychain must not
+                        // disable the browser custody approval workflow.
                         enabled: !presentationBridge.signerBusy
-                                 && presentationBridge.signerPhase !== "unavailable"
+                                 && (wasmReadOnly || presentationBridge.signerPhase !== "unavailable")
                         onClicked: presentationBridge.provisionSigner()
                     }
 

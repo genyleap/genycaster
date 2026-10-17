@@ -2049,6 +2049,23 @@ void PresentationBridge::applySignerState(
     emit stateChanged();
 }
 
+void PresentationBridge::applyVerifiedBrowserWrite(QString hash, const bool publishedCast)
+{
+    // The browser signing adapter must have validated the returned exact
+    // BLAKE3-20 hash against Snapchain's submit response. Never fake a feed
+    // entry from an unindexed Cast, including after a successful submit.
+    if (!m_isAuthenticated || !m_writeReady || hash.size() != 42
+        || !hash.startsWith(QStringLiteral("0x"))) return;
+    for (const QChar character : QStringView{hash}.mid(2)) {
+        const ushort value = character.unicode();
+        if (!((value >= '0' && value <= '9') ||
+              (value >= 'a' && value <= 'f') ||
+              (value >= 'A' && value <= 'F'))) return;
+    }
+    if (publishedCast) m_lastPublishedCastId = hash.toLower();
+    applyWriteState(QStringLiteral("confirmed"), false, {}, {});
+}
+
 void PresentationBridge::applyWriteState(
     QString phase,
     const bool busy,

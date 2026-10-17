@@ -61,7 +61,7 @@ and cancellations remain queued through the event loop. Native builds keep
 their threaded Qt reactor and existing SSL diagnostics. Other unrelated
 application executors are not yet certified on WebAssembly.
 
-## Direct Farcaster sign-in in browser (read-only identity)
+## Direct Farcaster sign-in in browser (identity verification)
 
 The direct Farcaster option is a separate OpenProof-bound SIWF flow. Qt sends
 `POST /v1/browser/farcaster/start` to the first-party Media Gateway. That
@@ -74,44 +74,69 @@ Qt requests approval from the user in Farcaster and polls with a POST body,
 not an URL query. The backend passes the signed SIWE message to OpenProof
 `/auth/web3/complete`, checks `/account/profile` and exactly one linked
 Farcaster connection, and refuses nonce/FID mismatches. No relay token,
-OpenProof cookie or unverified identity is exposed to QML. The resulting
-read-only identity lives in the app's transient session and expires after
-one hour. An interrupted/restarted gateway invalidates in-flight attempts;
+OpenProof cookie or unverified identity is exposed to QML. The verified
+identity lives in the app's transient session and expires after one hour.
+An interrupted/restarted gateway invalidates in-flight attempts;
 they must be restarted instead of silently trusting expired proof state.
 
-Identity sign-in is **not** protocol signer authorization. Posting casts,
-likes, follows and other protocol writes remain disabled until the browser
-supports non-exportable signer key custody, explicit scoped Farcaster
-authorization, verified Snapchain registration and protocol-native signing.
-The browser sign-in route never claims signer readiness. The account UI
-distinguishes the chosen **Sign in with Farcaster** route from OpenProof's
-verification role: successful direct SIWF is labelled “Signed in with Farcaster
-· verified by OpenProof”. This is a signed identity proof, not a registered
-Farcaster protocol-signing capability or a working write endpoint.
+Identity sign-in is **not** protocol signer authorization. The account UI
+distinguishes **Sign in with Farcaster** from OpenProof's validation of the
+signed proof. Successful login alone never sets `writeReady`.
 
-## Browser Ed25519 key custody — staged, not a publishing flow
+## Browser signer, custody approval and canonical writes
 
-The source includes `ui/wasm/secure_signer_vault.mjs`, which the WASM
-target packages alongside the Qt loader. This is a **cryptographic primitive
-only**, not a completed signer integration or an alternative Cast composer.
-Its asynchronous WebCrypto/IndexedDB API creates a per-FID, non-extractable
-Ed25519 private CryptoKey, persists it via structured cloning, returns only
-the public key to callers, and signs **exactly 20-byte** canonical Farcaster
-hashes. It rejects missing/insecure storage, malformed FIDs, tampered records
-and concurrent key replacement. The JS module requires a secure origin;
-there is no plaintext seed fallback or secret transmission to a gateway.
+The browser uses an asynchronous WebCrypto/IndexedDB signer path, separate from
+the synchronous native OS-keychain `SignerService` and `WriteService`:
+`ui/wasm/secure_signer_vault.mjs` creates a **non-extractable**, per-FID
+Ed25519 private CryptoKey. Its key material is never transmitted and never
+exported as a plaintext seed. `farcaster_protocol.mjs` implements the exact
+native BLAKE3-20 and protobuf wire format for scoped `KEY_ADD`, Casts, replies,
+threads, reactions, follows and self-revoking `KEY_REMOVE`, with golden C++
+fixtures. `browser_protocol_signer.mjs` manages the following protocol steps:
 
-The module is intentionally **not connected to SignerService or WriteService**
-yet. Desktop `ISignerVault`, custody EIP-712 authorization, registry and write
-transport interfaces are synchronous and rely on an OS credential backend.
-WebCrypto, IndexedDB, EIP-1193 custody requests and browser fetch are
-asynchronous. They need a dedicated event-driven C++/JS adapter that reuses
-the existing canonical protocol builder, scoped KEY_ADD registration, online
-registry verification and submission. Possession of a local key alone cannot
-enable Casts, reactions or follows. `writeReady` must remain false until
-all those conditions are met, including an active verified registration.
-Browser-origin compromise could request signatures from a non-extractable key;
-WebCrypto alone does not provide OS-keychain-equivalent origin isolation.
+1. Require a current verified Farcaster FID and an injected **EIP-1193 custody
+   wallet** (for example, a compatible extension). Check the selected
+   account against `IdRegistry.custodyOf(fid)` on **Optimism chain 10**.
+2. Create/recover the local Ed25519 signer key from IndexedDB. Read the
+   network's authoritative `currentUserNonce` over the HTTPS Snapchain
+   gateway. Request **both** `SignedKeyRequest` and `KeyAdd` EIP-712
+   signatures from the custody wallet with explicit FID, scopes, nonce, TTL
+   and deadline. Sign canonical `KEY_ADD` with the local Ed25519 key.
+3. Submit the signed message to `/v1/submitMessage`, compare the returned
+   hash to the locally calculated hash, and poll `/v1/signersByFid` until
+   the signer key, FID, scope set and nonce appear as active. Only then
+   may `writeReady` become true.
+4. Recheck registration, required scope and expiry before **every** write.
+   The same origin-isolated key signs protocol-native messages; unsigned
+   drafts are never advertised as published network Casts. A failed or
+   ambiguous submission is **not silently retried** to avoid duplicates.
+5. Self-revocation requires a confirmed requester nonce. The browser does not
+   invent a nonce when the network omits it; signer status fails closed.
+
+Qt WebAssembly talks to browser Promises through a bounded Emscripten event
+queue (`protocol-signer-pre.js` and `browser_signer_bridge.hpp`), never a
+nested Qt event loop or `std::thread`. The existing QML Composer routes to
+this signed writer; native desktop composition is left unchanged.
+The source Gateway implements a restricted CORS surface for
+`https://genycaster.genyleap.com` and local `127.0.0.1`/`localhost`
+development origins; `0.0.0.0`, file URLs and untrusted sites are excluded.
+**Deployment is mandatory:** the live `https://snapchain.genyleap.com`
+service must be updated/restarted and its CORS preflight verified before the
+WASM browser can call `/v1/submitMessage`. Merely building the client or
+changing the repository's Gateway source does not configure the live server.
+The Gateway forwards **only already-signed protocol bytes**, not wallet
+private keys, bearer tokens or recovery phrases.
+
+**Requirements and limitations:** the user must explicitly approve the
+wallet's custody EIP-712 requests. The EIP-1193 wallet must have custody
+control onchain; an identity proof from OpenProof alone does not authorize
+signing. WebCrypto requires HTTPS or a loopback secure context. A browser
+origin compromise could request signatures from an otherwise non-exportable
+CryptoKey; this is not OS-keychain isolation. A successful mocked test is
+not proof that an individual user's wallet has registered a signer:
+a live Qt 6.12 WASM browser test, wallet approval and Snapchain-confirmed
+`KEY_ADD` are still needed. Media upload and Mini App wallet SDK parity
+remain separate work.
 
 ## Browser OpenProof sign-in (read-only identity)
 
@@ -128,22 +153,19 @@ no cookies or configurable upstream. The response never includes the token.
 The access token is kept transiently in Qt memory and zeroed after
 verification; browser sessions are in-memory and expire, and are not saved
 as durable client credentials. Identity login is not a Farcaster protocol
-signer. Browser publishing, reactions, follows, signing and media uploads
-remain disabled until a secure dedicated signer workflow exists. The
-Genyleap account must already have exactly one linked Farcaster identity;
+signer. The separate browser writer above requires custody-wallet approval
+and on-chain Snapchain registration before enabling protocol actions.
+The Genyleap account must already have exactly one linked Farcaster identity;
 linking/registration is completed in Genyleap's owned account experience.
 
 The browser cannot expose a native OS keychain or bind the app's localhost
-custody-authorizer server. The wizard therefore has an explicit
-**Continue as guest** path on WebAssembly, after reviewing Terms and Privacy;
-native builds retain their mandatory authenticated setup. WASM builds therefore disable native secure signing,
-Snapchain write service, OpenProof/SIWF blocking auth adapters, Mini Apps,
-native media uploads and related unsupported capabilities instead of
-falling back to insecure client-side secrets. Those are explicit feature gaps,
-not successful web sign-in or write support. Read-only guest functionality
-can use the QtNetwork asynchronous adapter, subject to CORS at each upstream
-endpoint. A truly feature-complete browser version needs a distinct async
-authentication bridge and credential-vault/signer flow.
+custody-authorizer server. The wizard therefore retains the explicit
+**Continue as guest** path on WebAssembly, after reviewing Terms and Privacy.
+Native builds retain mandatory authenticated setup. The native secure
+signing service and synchronous Snapchain write service remain excluded from
+WASM **in favor of the asynchronous browser protocol signer**. Native media
+uploads, native Mini App wallet SDK parity and other unsupported capabilities
+remain separate. Guest reads still depend on each upstream's CORS policy.
 
 Emscripten's IDBFS stores SQLite files below
 `/home/web_user/.local/share` into IndexedDB. A preRun hook waits for
