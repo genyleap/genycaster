@@ -3798,5 +3798,41 @@
             <source>You signed in with Farcaster. OpenProof verified the signed proof and linked FID. Publishing requires a separately authorized Farcaster signer.</source>
             <translation>شما با Farcaster وارد شده‌اید. OpenProof امضای ورود و FID متصل‌شده را تأیید کرده است. انتشار محتوا نیازمند مجوز مستقل برای امضاکنندهٔ Farcaster است.</translation>
         </message>
+        <message id="genycaster.setup.recovery_title">
+            <source>Restore your Farcaster account</source>
+            <translation>بازیابی حساب Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.recovery_description">
+            <source>Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer.</source>
+            <translation>در همین مرحله کلمات بازیابی حساب Farcaster را وارد کنید. مالکیت روی Optimism بررسی می‌شود و امضاکنندهٔ انتشار مجوز می‌گیرد.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_privacy">
+            <source>Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>فقط ۱۲ یا ۲۴ واژهٔ بازیابی Farcaster را در دستگاه مطمئن و وب‌سایت HTTPS وارد کنید. این واژه‌ها هرگز آپلود یا ذخیره نمی‌شوند.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_button">
+            <source>Continue with recovery words</source>
+            <translation>ادامه با واژه‌های بازیابی</translation>
+        </message>
+        <message id="genycaster.setup.recovery_button_body">
+            <source>Verify your account and enable publishing in Setup. No separate Sign In.</source>
+            <translation>تأیید حساب و فعال‌سازی انتشار در همین Setup؛ بدون ورود جداگانه.</translation>
+        </message>
+        <message id="genycaster.setup.other_sign_in_methods">
+            <source>Other sign-in methods</source>
+            <translation>روش‌های ورود دیگر</translation>
+        </message>
+        <message id="genycaster.setup.recovery_working">
+            <source>Preparing your Farcaster account</source>
+            <translation>در حال آماده‌سازی حساب Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.recovery_working_body">
+            <source>Validating account ownership and signer registration. Wait for network confirmation.</source>
+            <translation>مالکیت حساب و ثبت امضاکننده بررسی می‌شود. منتظر تأیید شبکه بمانید.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_verified">
+            <source>Farcaster custody verified on Optimism</source>
+            <translation>مالکیت Farcaster در Optimism تأیید شد</translation>
+        </message>
     </context>
 </TS>

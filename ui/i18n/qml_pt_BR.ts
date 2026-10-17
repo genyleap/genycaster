@@ -3798,5 +3798,41 @@
             <source>You signed in with Farcaster. OpenProof verified the signed proof and linked FID. Publishing requires a separately authorized Farcaster signer.</source>
             <translation>Você entrou com Farcaster. O OpenProof verificou a prova assinada e o FID vinculado. Publicar exige um assinante Farcaster autorizado separadamente.</translation>
         </message>
+        <message id="genycaster.setup.recovery_title">
+            <source>Restore your Farcaster account</source>
+            <translation>Restaurar sua conta Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.recovery_description">
+            <source>Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer.</source>
+            <translation>Digite suas palavras de recuperação do Farcaster durante a configuração. O Genycaster verifica a posse no Optimism e autoriza uma chave de assinatura para publicar.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_privacy">
+            <source>Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>Use sua frase de recuperação Farcaster de 12 ou 24 palavras apenas em um dispositivo confiável e site HTTPS. Ela nunca é enviada nem armazenada.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_button">
+            <source>Continue with recovery words</source>
+            <translation>Continuar com palavras de recuperação</translation>
+        </message>
+        <message id="genycaster.setup.recovery_button_body">
+            <source>Verify your account and enable publishing in Setup. No separate Sign In.</source>
+            <translation>Verifique sua conta e ative as publicações na configuração, sem login separado.</translation>
+        </message>
+        <message id="genycaster.setup.other_sign_in_methods">
+            <source>Other sign-in methods</source>
+            <translation>Outras formas de entrar</translation>
+        </message>
+        <message id="genycaster.setup.recovery_working">
+            <source>Preparing your Farcaster account</source>
+            <translation>Preparando sua conta Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.recovery_working_body">
+            <source>Validating account ownership and signer registration. Wait for network confirmation.</source>
+            <translation>Verificando a posse da conta e o registro da chave de assinatura. Aguarde a confirmação da rede.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_verified">
+            <source>Farcaster custody verified on Optimism</source>
+            <translation>Posse do Farcaster verificada no Optimism</translation>
+        </message>
     </context>
 </TS>

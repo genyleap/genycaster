@@ -22,36 +22,31 @@ permissions. Importing a mnemonic does not allow writing as a different FID.
 
 ## Genycaster WASM flow
 
-1. Keep the existing Farcaster/OpenProof login (identity only).
-2. Restore the previously stored **non-extractable Ed25519** CryptoKey for the
-   FID from the browser origin's IndexedDB, and verify its registration against
-   Snapchain. When valid, publishing is enabled with no wallet extension and
-   no recovery phrase. User signs Casts using that key.
-3. If no registered local signer exists, `Enable interactions` opens an
-   explicit, localized, in-browser **Farcaster recovery** dialog. The phrase
-   stays within DOM / JavaScript and never crosses Qt/WASM, analytics or any
-   network request.
-4. Validate 12/24-word English BIP39 checksum and derive secp256k1 custody
-   using BIP44 `m/44'/60'/0'/0/0`. The code uses WebCrypto PBKDF2/HMAC and
-   vendored MIT-licensed `noble-secp256k1` v2.3.0. The English wordlist is
-   vendored from `scure-bip39` at revision
-   `a337acacb232b612985758b265a3e9aefc0dc58a`.
-   Source and LICENSE files are shipped with WASM, never fetched from a CDN.
-5. Verify the derived custody address against Farcaster IdRegistry's
-   `custodyOf(fid)` on **Optimism chain 10** (pinned HTTPS JSON-RPC
-   `mainnet.optimism.io`, fixed registry contract and read-only
-   `eth_call`). A different owner fails closed and never creates KEY_ADD.
-6. Sign precisely the existing `SignedKeyRequest` and `KeyAdd` EIP-712
-   structures **locally**, verify the recovered signer address, submit a
-   canonical Ed25519 KEY_ADD signed by the local browser CryptoKey, and wait
-   for authoritative signer registration and nonce confirmation.
-7. Discard the ephemeral custody private-key bytes after authorization (or
-   error) and clear the form. Subsequent Cast/Reply/Reaction/Follow/Delete
-   traffic uses only the authorized Ed25519 key. No external wallet extension
-   is needed.
-8. On a new browser origin/device, revoked signer or expired registration,
-   require explicit recovery/authorization again. We do **not** retain the
-   custody private key or mnemonic in IndexedDB for unattended renewals.
+1. In first-run **Setup**, "Continue with recovery words" is the primary
+   browser account path; OpenProof and Farcaster SIWF remain optional under
+   "Other sign-in methods". Direct recovery does not start an SIWF challenge.
+2. The recovery dialog accepts a **Farcaster-specific** 12/24-word phrase.
+   Check BIP39 checksum and derive its custody address in browser JavaScript;
+   neither the words nor custody private key cross the Qt/WASM bridge.
+3. Resolve the custody address to its FID via Optimism IdRegistry
+   `idOf(address)`, then verify the inverse `custodyOf(fid)` mapping on chain
+   10. Both lookups must match the derived custody address. No session is
+   established from a supplied or guessed FID.
+4. Authorize the origin-bound, non-extractable Ed25519 signer using the same
+   ephemeral custody key and wait for authoritative Snapchain KEY_ADD/nonce
+   confirmation. Only afterward deliver the verified FID and a one-shot
+   correlation ID to Qt to create an ephemeral local account session.
+5. At later sign-ins via SIWF/OpenProof, restore an existing signer from
+   origin-scoped IndexedDB and check registration. If missing, use the
+   explicit recovery action. Session restoration never prompts for a phrase.
+6. BIP39 uses WebCrypto PBKDF2/HMAC and vendored noble-secp256k1.
+   Sign the canonical SignedKeyRequest and KEY_ADD EIP-712 structures locally;
+   never infer that writing is ready until network registration is confirmed.
+7. Clear the dialog and dispose of mutable custody key bytes after success
+   or failure. Only the authorized Ed25519 key remains for regular interaction.
+8. New devices, revoked signers, or expired registrations require explicit
+   recovery again. The custody phrase is never persisted. Sign-out and account
+   changes invalidate outstanding recovery requests and stale responses.
 
 ## Threat model / limitations
 

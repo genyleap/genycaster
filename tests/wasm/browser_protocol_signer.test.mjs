@@ -285,3 +285,105 @@ test('invalid recovery BIP39 checksum fails closed without touching Snapchain',a
         'test '.repeat(11)+'abandon'),/checksum/);
     assert.equal(data.submitted.length,0);
 });
+
+
+test('direct setup recovery derives an onchain FID and verifies KEY_ADD without SIWF',async()=>{
+    const data=fixture({noWallet:true});
+    const requests=[];
+    const signer=createBrowserProtocolSigner({
+        browser:data.browser,vault:data.vault,
+        fetchImpl:async(url,options)=>{
+            if(url==='https://mainnet.optimism.io'){
+                assert.equal(options.credentials,'omit');
+                assert.equal(options.method,'POST');
+                assert.ok(!options.body.includes(recoveredPhrase));
+                const body=JSON.parse(options.body);
+                requests.push(body);
+                let result;
+                if(body.method==='eth_chainId')result='0xa';
+                else if(body.method==='eth_call'){
+                    if(body.params[0].data.startsWith('0x'+
+                        hex(keccak256(new TextEncoder().encode('idOf(address)')).slice(0,4)))){
+                        assert.ok(body.params[0].data.endsWith(recoveredAddress.slice(2)));
+                        result='0x'+BigInt(fid).toString(16).padStart(64,'0');
+                    }else{
+                        assert.match(body.params[0].data,/^0x65269e47[0-9a-f]{64}$/);
+                        result='0x'+'0'.repeat(24)+recoveredAddress.slice(2);
+                    }
+                } else throw Error('unexpected RPC');
+                return new Response(JSON.stringify({result}));
+            }
+            return data.fetchImpl(url,options);
+        },onState:s=>data.states.push(s),delay:async()=>{},
+    });
+    assert.equal(await signer.recoverAccountFromPhrase(recoveredPhrase),fid);
+    assert.equal(signer.ready,true);
+    assert.equal(data.submitted.length,1);
+    assert.deepEqual(requests.map(x=>x.method),['eth_chainId','eth_call','eth_call']);
+    assert.equal(data.typed.length,0);
+});
+
+test('direct setup refuses unregistered or transferred custody before KEY_ADD',async()=>{
+    for(const mismatch of ['unregistered','transferred','wrong-chain']){
+        const data=fixture({noWallet:true});
+        const signer=createBrowserProtocolSigner({
+            browser:data.browser,vault:data.vault,
+            fetchImpl:async(url,options)=>{
+                if(url==='https://mainnet.optimism.io'){
+                    const body=JSON.parse(options.body);
+                    let result;
+                    if(body.method==='eth_chainId')
+                        result=mismatch==='wrong-chain'?'0x1':'0xa';
+                    else if(body.method==='eth_call' &&
+                             body.params[0].data.startsWith('0x'+
+                             hex(keccak256(new TextEncoder().encode('idOf(address)')).slice(0,4))))
+                        result='0x'+(mismatch==='unregistered'?'0':BigInt(fid).toString(16)).padStart(64,'0');
+                    else result='0x'+'0'.repeat(24)+'5'.repeat(40);
+                    return new Response(JSON.stringify({result}));
+                }
+                return data.fetchImpl(url,options);
+            },
+        });
+        await assert.rejects(signer.recoverAccountFromPhrase(recoveredPhrase));
+        assert.equal(data.submitted.length,0);
+    }
+});
+
+test('invalid mnemonic cannot resolve identity or authorize a signer',async()=>{
+    const data=fixture({noWallet:true});
+    await assert.rejects(data.create().recoverAccountFromPhrase(
+        'test '.repeat(11)+'abandon'),/checksum/);
+    assert.equal(data.submitted.length,0);
+});
+
+
+test('sign-out while resolving IdRegistry aborts before any signer submission',async()=>{
+    const data=fixture({noWallet:true});
+    let allowResponse;
+    let enteredCall;
+    const entered=new Promise(resolve=>{enteredCall=resolve;});
+    const blocked=new Promise(resolve=>{allowResponse=resolve;});
+    let current=true;
+    const signer=createBrowserProtocolSigner({
+        browser:data.browser,vault:data.vault,
+        fetchImpl:async(url,options)=>{
+            if(url==='https://mainnet.optimism.io'){
+                const body=JSON.parse(options.body);
+                if(body.method==='eth_chainId')
+                    return new Response(JSON.stringify({result:'0xa'}));
+                enteredCall();
+                await blocked;
+                return new Response(JSON.stringify({result:
+                    '0x'+BigInt(fid).toString(16).padStart(64,'0')}));
+            }
+            return data.fetchImpl(url,options);
+        }
+    });
+    const pending=signer.recoverAccountFromPhrase(recoveredPhrase,()=>current);
+    await entered;
+    current=false;
+    signer.signedOut();
+    allowResponse();
+    await assert.rejects(pending,/Recovery cancelled/);
+    assert.equal(data.submitted.length,0);
+});

@@ -1522,6 +1522,18 @@ void PresentationBridge::beginFarcasterSignIn()
     emit signInRequested(m_authenticationRoute);
 }
 
+void PresentationBridge::beginRecoverySetup()
+{
+    if (!m_legalConsentAccepted || !m_runtimeReady || m_isAuthenticated
+        || !initialSetupRequired() || authenticationBusy()) {
+        return;
+    }
+    m_authenticationRoute = QStringLiteral("recovery");
+    m_authenticationErrorText.clear();
+    emit authenticationStateChanged();
+    emit signInRequested(QStringLiteral("recovery"));
+}
+
 void PresentationBridge::cancelSignIn()
 {
     emit signInCancelRequested();

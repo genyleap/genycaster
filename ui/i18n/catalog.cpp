@@ -1142,6 +1142,24 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.continue");
     //% "Finish setup"
     (void)qtTrId("genycaster.setup.finish");
+    //% "Restore your Farcaster account"
+    (void)qtTrId("genycaster.setup.recovery_title");
+    //% "Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer."
+    (void)qtTrId("genycaster.setup.recovery_description");
+    //% "Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored."
+    (void)qtTrId("genycaster.setup.recovery_privacy");
+    //% "Continue with recovery words"
+    (void)qtTrId("genycaster.setup.recovery_button");
+    //% "Verify your account and enable publishing in Setup. No separate Sign In."
+    (void)qtTrId("genycaster.setup.recovery_button_body");
+    //% "Other sign-in methods"
+    (void)qtTrId("genycaster.setup.other_sign_in_methods");
+    //% "Preparing your Farcaster account"
+    (void)qtTrId("genycaster.setup.recovery_working");
+    //% "Validating account ownership and signer registration. Wait for network confirmation."
+    (void)qtTrId("genycaster.setup.recovery_working_body");
+    //% "Farcaster custody verified on Optimism"
+    (void)qtTrId("genycaster.setup.recovery_verified");
     //% "Sign in to continue"
     (void)qtTrId("genycaster.setup.sign_in_required");
     //% "Account verified"

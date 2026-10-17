@@ -15,7 +15,10 @@
 #include <QtTranslation>
 
 #include <array>
+#include <functional>
+#include <utility>
 #include <emscripten.h>
+#include <QUuid>
 
 #include "presentation_bridge.hpp"
 
@@ -31,6 +34,25 @@ public:
         m_timer.setInterval(100);
         connect(&m_timer, &QTimer::timeout, this, [this] { poll(); });
         m_timer.start();
+    }
+
+    using RecoveryObserver = std::function<void(QString, QString, bool)>;
+    void setRecoveryObserver(RecoveryObserver observer)
+    {
+        m_recoveryObserver = std::move(observer);
+    }
+    void startRecovery()
+    {
+        // One-shot nonce prevents delayed responses from an older setup
+        // from establishing a fresh identity after cancellation.
+        m_pendingRecoveryId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        start(QStringLiteral("recover-account"), {},
+              QJsonObject{{QStringLiteral("requestId"), m_pendingRecoveryId}});
+    }
+    void cancelRecovery()
+    {
+        m_pendingRecoveryId.clear();
+        start(QStringLiteral("signed-out"), {});
     }
 
     void start(const QString& operation, const QString& fid,
@@ -79,6 +101,31 @@ private:
             const QString phase = event.value(QStringLiteral("phase")).toString();
             const QString kind = event.value(QStringLiteral("kind")).toString();
             const QString fid = event.value(QStringLiteral("fid")).toString();
+            if (kind == QStringLiteral("setup-account")) {
+                if (m_pendingRecoveryId.isEmpty()
+                    || event.value(QStringLiteral("requestId")).toString() != m_pendingRecoveryId)
+                    continue;
+                const QString outcome = event.value(QStringLiteral("phase")).toString();
+                if (outcome != QStringLiteral("ready")
+                    && outcome != QStringLiteral("failed")
+                    && outcome != QStringLiteral("cancelled"))
+                    continue;
+                bool valid = false;
+                const qulonglong recoveredFid = fid.toULongLong(&valid);
+                const bool verified = outcome == QStringLiteral("ready")
+                    && valid && recoveredFid != 0U && !presentation->isAuthenticated();
+                const QString error = outcome == QStringLiteral("cancelled")
+                    ? QString{} : verified ? QString{}
+                    : event.value(QStringLiteral("error")).toString();
+                m_pendingRecoveryId.clear();
+                if (m_recoveryObserver) {
+                    m_recoveryObserver(verified ? fid : QString{},
+                        error.isEmpty() && outcome != QStringLiteral("cancelled") && !verified
+                            ? QStringLiteral("Farcaster recovery was not verified.") : error,
+                        verified);
+                }
+                continue;
+            }
             if (!presentation->isAuthenticated()
                 || fid != QString::number(presentation->accountFid())) continue;
 
@@ -122,6 +169,8 @@ private:
         }
     }
 
+    RecoveryObserver m_recoveryObserver{};
+    QString m_pendingRecoveryId{};
     QPointer<PresentationBridge> m_presentation{};
     QString m_snapchainOrigin{};
     QTimer m_timer{};

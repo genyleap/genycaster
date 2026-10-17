@@ -107,7 +107,25 @@
             try {
                 const current = await createClient(base);
                 if (epoch !== thisEpoch || owner !== fid) return;
-                if (action === "restore" || action === "restore-for-setup") {
+                if (action === "recover-account") {
+                    // This event is accepted by Qt only for the current one-shot
+                    // recovery request. No phrase or custody address is sent to Qt.
+                    const {requestId} = JSON.parse(payloadString);
+                    if(typeof requestId !== 'string' ||
+                       !/^[0-9a-f-]{36}$/i.test(requestId))
+                        throw new Error('Invalid recovery request');
+                    const {promptForFarcasterRecovery} =
+                        await import('./recovery-phrase-dialog.mjs');
+                    const controller=new AbortController();
+                    recoveryController=controller;
+                    if(epoch!==thisEpoch || owner!==fid) return;
+                    const phrase=await promptForFarcasterRecovery(window,controller.signal);
+                    if(epoch!==thisEpoch || owner!==fid) return;
+                    const recoveredFid=await current.recoverAccountFromPhrase(phrase,
+                        ()=>epoch===thisEpoch && owner===fid && !controller.signal.aborted);
+                    if(epoch!==thisEpoch || owner!==fid) return;
+                    report({kind:'setup-account',phase:'ready',fid:recoveredFid,requestId});
+                } else if (action === "restore" || action === "restore-for-setup") {
                     const existing = await current.restore(fid);
                     if (action === "restore-for-setup" && !existing) {
                         // Never collect a phrase on app reload or a restored session.
@@ -147,6 +165,12 @@
                 if (epoch !== thisEpoch || owner !== fid) return;
                 const cancelled = error?.code === 'user-cancelled' ||
                     error?.message === 'Recovery import cancelled';
+                if (action === "recover-account") {
+                    const requestId=JSON.parse(payloadString).requestId;
+                    report({kind:'setup-account',phase:cancelled?'cancelled':'failed',
+                        requestId,fid:'',error:cancelled?'':String(error?.message||error).slice(0,350)});
+                    return;
+                }
                 report({kind: action === "restore" || action === "restore-for-setup"
                        || action === "provision" || action === "revoke" ? "signer" : "write",
                     phase: cancelled ? "missing"

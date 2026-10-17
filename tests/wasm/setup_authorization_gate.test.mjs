@@ -8,7 +8,7 @@ import vm from 'node:vm';
 const original = readFileSync(new URL('../../ui/wasm/protocol-signer-pre.js', import.meta.url), 'utf8');
 const source = original
   .replace("await import('./browser_protocol_signer.mjs')", "await window.__testImportSigner()")
-  .replace("await import('./recovery-phrase-dialog.mjs')", "await window.__testImportPhrase()");
+  .replaceAll("await import('./recovery-phrase-dialog.mjs')", "await window.__testImportPhrase()");
 assert.notEqual(source, original);
 assert.ok(source.includes('window.__testImportPhrase()'));
 
@@ -32,6 +32,11 @@ function harness(registered = false) {
                 async provisionFromRecovery(fid,phrase) {
                     calls.push('authorize:'+fid+':'+phrase);
                     onState({fid,phase:'ready',ready:true,busy:false});
+                },
+                async recoverAccountFromPhrase(phrase) {
+                    calls.push('recover-account:'+phrase);
+                    onState({fid:'101',phase:'ready',ready:true,busy:false});
+                    return '101';
                 }
             })
         }),
@@ -91,4 +96,32 @@ test('new account cancels earlier recovery and never authorizes old fid',async()
     await tick();
     assert.deepEqual(h.calls.filter(c=>c.startsWith('restore:')),['restore:101','restore:202']);
     assert.equal(h.calls.some(c=>c.startsWith('authorize:')),false);
+});
+
+
+test('direct Setup recovery returns only a verified FID and the one-shot request ID',async()=>{
+    const h=harness(false);
+    const requestId='12345678-1234-4234-8234-123456789abc';
+    h.bridge.start('recover-account','','https://snapchain.example.test',
+                   JSON.stringify({requestId}));
+    await tick();
+    assert.ok(h.calls.includes('phrase-dialog'), JSON.stringify({calls:h.calls,events:h.events}));
+    assert.ok(h.calls.includes('recover-account:test-vector-no-secrets'));
+    const event=h.events.find(e=>e.kind==='setup-account');
+    assert.equal(event.phase,'ready');
+    assert.equal(event.fid,'101');
+    assert.equal(event.requestId,requestId);
+    assert.ok(!JSON.stringify(h.events).includes('test-vector-no-secrets'));
+});
+
+test('cancelling direct Setup recovery cannot emit an authenticated identity',async()=>{
+    const h=harness(false);
+    h.setDelayPrompt();
+    h.bridge.start('recover-account','','https://snapchain.example.test',
+                   JSON.stringify({requestId:'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'}));
+    await tick();
+    h.bridge.start('signed-out','','https://snapchain.example.test');
+    await tick();
+    assert.equal(h.events.some(e=>e.kind==='setup-account'&&e.phase==='ready'),false);
+    assert.equal(h.calls.some(c=>c.startsWith('recover-account:')),false);
 });

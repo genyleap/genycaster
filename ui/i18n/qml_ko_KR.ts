@@ -3798,5 +3798,41 @@
             <source>You signed in with Farcaster. OpenProof verified the signed proof and linked FID. Publishing requires a separately authorized Farcaster signer.</source>
             <translation>Farcaster로 로그인했습니다. OpenProof가 서명된 증명과 연결된 FID를 검증했습니다. 게시하려면 별도로 승인된 Farcaster 서명자가 필요합니다.</translation>
         </message>
+        <message id="genycaster.setup.recovery_title">
+            <source>Restore your Farcaster account</source>
+            <translation>Farcaster 계정 복구</translation>
+        </message>
+        <message id="genycaster.setup.recovery_description">
+            <source>Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer.</source>
+            <translation>설정 중 Farcaster 복구 단어를 입력하세요. Genycaster가 Optimism에서 소유권을 확인하고 게시용 서명 키를 승인합니다.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_privacy">
+            <source>Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>Farcaster의 12개 또는 24개 복구 단어는 신뢰할 수 있는 기기와 HTTPS 사이트에서만 입력하세요. 업로드하거나 저장하지 않습니다.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_button">
+            <source>Continue with recovery words</source>
+            <translation>복구 단어로 계속하기</translation>
+        </message>
+        <message id="genycaster.setup.recovery_button_body">
+            <source>Verify your account and enable publishing in Setup. No separate Sign In.</source>
+            <translation>별도의 로그인 없이 설정 중 계정을 확인하고 게시 기능을 활성화합니다.</translation>
+        </message>
+        <message id="genycaster.setup.other_sign_in_methods">
+            <source>Other sign-in methods</source>
+            <translation>다른 로그인 방법</translation>
+        </message>
+        <message id="genycaster.setup.recovery_working">
+            <source>Preparing your Farcaster account</source>
+            <translation>Farcaster 계정 준비 중</translation>
+        </message>
+        <message id="genycaster.setup.recovery_working_body">
+            <source>Validating account ownership and signer registration. Wait for network confirmation.</source>
+            <translation>계정 소유권과 서명 키 등록을 확인 중입니다. 네트워크 확인을 기다려 주세요.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_verified">
+            <source>Farcaster custody verified on Optimism</source>
+            <translation>Optimism에서 Farcaster 소유권 확인됨</translation>
+        </message>
     </context>
 </TS>

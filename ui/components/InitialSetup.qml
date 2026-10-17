@@ -36,6 +36,7 @@ Item {
 
     // The chosen transport preference is separate from the verified identity and signer.
     property string accountIntent: "existing"
+    property bool alternateMethodsExpanded: false
     property bool showAdvancedNodes: false
 
     property bool legalTermsChecked: false
@@ -54,6 +55,7 @@ Item {
     signal openApproval()
     signal cancelAuthentication()
     signal authorizeSigner()
+    signal recoverAccount()
     signal acceptLegalConsent(bool termsAccepted, bool privacyAcknowledged, bool reviewCompleted)
     signal finishSetup()
 
@@ -297,6 +299,8 @@ Item {
         if (awaitingApproval)
             return qsTrId("genycaster.shell.approve_sign_in")
         if (authenticationStarting) {
+            if (authenticationRoute === "recovery")
+                return qsTrId("genycaster.setup.recovery_working")
             return authenticationRoute === "farcaster"
                     ? qsTrId("genycaster.shell.creating_a_secure_farcaster_sign_in_request")
                     : qsTrId("genycaster.shell.connecting_securely_to_genyleap")
@@ -305,6 +309,8 @@ Item {
     }
 
     function phaseBody() {
+        if (authenticationRoute === "recovery" && authenticationStarting)
+            return qsTrId("genycaster.setup.recovery_working_body")
         if (authenticated)
             return qsTrId("genycaster.setup.account_verified_body")
         if (linkingFarcaster)
@@ -1646,15 +1652,15 @@ Item {
             SetupPageHeader {
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconUser
-                title: root.browserReadOnly && !root.authenticationAvailable
-                       ? qsTrId("genycaster.setup.browser_guest_mode")
+                title: root.browserReadOnly && !root.authenticated
+                       ? qsTrId("genycaster.setup.recovery_title")
                        : root.authenticated
                          ? qsTrId("genycaster.setup.account_verified")
                          : root.accountIntent === "new"
                            ? qsTrId("genycaster.setup.new_profile")
                            : qsTrId("genycaster.setup.sign_in_required")
-                subtitle: root.browserReadOnly && !root.authenticationAvailable
-                          ? qsTrId("genycaster.setup.continue_without_an_account_to_explore_public_feeds")
+                subtitle: root.browserReadOnly && !root.authenticated
+                          ? qsTrId("genycaster.setup.recovery_description")
                           : !root.authenticated && root.accountIntent === "new"
                             ? qsTrId("genycaster.setup.profile_creation_browser")
                             : root.authenticated || root.authenticationInProgress
@@ -1755,9 +1761,11 @@ Item {
                             }
 
                             Label {
-                                text: root.authenticationRoute === "farcaster"
-                                      ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_verification")
-                                      : qsTrId("genycaster.shell.verified_by_openproof")
+                                text: root.authenticationRoute === "recovery"
+                                      ? qsTrId("genycaster.setup.recovery_verified")
+                                      : root.authenticationRoute === "farcaster"
+                                        ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_verification")
+                                        : qsTrId("genycaster.shell.verified_by_openproof")
                                 color: Theme.inkSubtle
                                 font.pixelSize: Theme.typeCaptionSize
                             }
@@ -1775,20 +1783,40 @@ Item {
             DirectionAwareLabel {
                 visible: root.browserReadOnly && !root.authenticated
                 Layout.fillWidth: true
-                text: root.authenticationAvailable
-                      ? qsTrId("genycaster.setup.browser_sign_in_verifies_your_genyleap_openproof_account_and")
-                      : qsTrId("genycaster.setup.browser_preview_runs_in_guest_read_only_mode_reading")
+                text: qsTrId("genycaster.setup.recovery_privacy")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeLabelSize
                 wrapMode: Text.WordWrap
             }
 
             ColumnLayout {
-                visible: !root.authenticated && (!root.browserReadOnly || root.authenticationAvailable)
+                visible: !root.authenticated
                 Layout.fillWidth: true
                 spacing: Theme.space3
 
+                SetupActionCard {
+                    visible: root.browserReadOnly
+                    Layout.fillWidth: true
+                    title: qsTrId("genycaster.setup.recovery_button")
+                    subtitle: qsTrId("genycaster.setup.recovery_button_body")
+                    iconGlyph: Theme.iconUser
+                    primary: true
+                    busy: root.authenticationRoute === "recovery" && root.authenticationInProgress
+                    enabled: root.runtimeReady && !root.authenticationInProgress
+                    onClicked: root.recoverAccount()
+                }
+
+                ActionButton {
+                    visible: root.browserReadOnly
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.other_sign_in_methods")
+                    quiet: true
+                    enabled: !root.authenticationInProgress
+                    onClicked: root.alternateMethodsExpanded = !root.alternateMethodsExpanded
+                }
+
                 GridLayout {
+                    visible: !root.browserReadOnly
                     Layout.fillWidth: true
                     columns: root.phone ? 1 : 2
                     columnSpacing: Theme.space2
@@ -1846,6 +1874,7 @@ Item {
 
                 ColumnLayout {
                     visible: root.accountIntent === "existing"
+                             && (!root.browserReadOnly || root.alternateMethodsExpanded)
                     Layout.fillWidth: true
                     spacing: Theme.space2
 

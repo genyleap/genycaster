@@ -2362,18 +2362,61 @@ void connectRuntime(
         }
         applyBrowserSession(std::move(state));
     };
+    browserSigner->setRecoveryObserver(
+        [sessionObserver](QString fid, QString error, const bool verified) {
+            application::session::SessionState state{};
+            if (!verified) {
+                if (error.isEmpty()) {
+                    state.phase = application::session::SessionPhase::Guest;
+                } else {
+                    state.phase = application::session::SessionPhase::Failed;
+                    state.error = foundation::error::Error::make(
+                        foundation::error::ErrorCode::Unauthorized, error.toStdString());
+                }
+            } else {
+                bool valid = false;
+                const qulonglong number = fid.toULongLong(&valid);
+                if (!valid || number == 0U) return;
+                const auto authenticatedAt = foundation::time::now();
+                state.phase = application::session::SessionPhase::Authenticated;
+                state.session = domain::session::ClientSession{
+                    .identityIssuer = std::string{"farcaster:optimism-idregistry"},
+                    .identitySubject = std::string{"fid:"} + fid.toStdString(),
+                    .fid = domain::identity::Fid{static_cast<std::uint64_t>(number)},
+                    .method = domain::session::AuthenticationMethod::Custody,
+                    .authenticatedAt = authenticatedAt,
+                    .expiresAt = authenticatedAt
+                        + std::chrono::duration_cast<std::chrono::milliseconds>(
+                            std::chrono::hours{1}),
+                };
+            }
+            sessionObserver(std::move(state));
+        });
     QObject::connect(&bridge, &PresentationBridge::signInRequested, browserAuth,
-        [browserAuth, browserObserver](const QString& route) {
+        [browserAuth, browserObserver, browserSigner, &bridge, sessionObserver](const QString& route) {
             if (route == QStringLiteral("openproof")) {
+                browserSigner->cancelRecovery();
                 browserAuth->begin(browserObserver);
             } else if (route == QStringLiteral("farcaster")) {
+                browserSigner->cancelRecovery();
                 browserAuth->beginFarcaster(browserObserver);
+            } else if (route == QStringLiteral("recovery")) {
+                sessionObserver(application::session::SessionState{
+                    .phase = application::session::SessionPhase::Starting,
+                });
+                browserSigner->startRecovery();
             }
         });
     QObject::connect(&bridge, &PresentationBridge::signInCancelRequested,
-                     browserAuth, [browserAuth] { browserAuth->cancel(); });
+                     browserAuth, [browserAuth, browserSigner] {
+                         browserSigner->cancelRecovery();
+                         browserAuth->cancel();
+                     });
     QObject::connect(&bridge, &PresentationBridge::signOutRequested,
-                     browserAuth, [browserAuth] { browserAuth->signOut(); });
+                     browserAuth, [browserAuth, browserSigner] {
+                         browserSigner->cancelRecovery();
+                         browserAuth->signOut();
+                     });
 #else
     QObject::connect(&bridge, &PresentationBridge::signInRequested, &bridge,
         [&bridge, runtime, sessionObserver, siwfDomain, siwfUri](const QString& route) {

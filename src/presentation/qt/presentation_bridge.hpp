@@ -226,6 +226,8 @@ public:
     Q_INVOKABLE void beginSignIn();
     /** @brief Starts the direct Farcaster onboarding route through OpenProof. */
     Q_INVOKABLE void beginFarcasterSignIn();
+    /** @brief Browser-only direct Farcaster recovery; no Sign In ceremony. */
+    Q_INVOKABLE void beginRecoverySetup();
     Q_INVOKABLE void cancelSignIn();
     Q_INVOKABLE void signOut();
     Q_INVOKABLE void openAuthenticationApproval();

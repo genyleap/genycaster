@@ -3798,5 +3798,41 @@
             <source>You signed in with Farcaster. OpenProof verified the signed proof and linked FID. Publishing requires a separately authorized Farcaster signer.</source>
             <translation>आपने Farcaster से साइन इन किया है। OpenProof ने हस्ताक्षरित प्रमाण और जुड़े FID की पुष्टि की। प्रकाशित करने के लिए अलग से अधिकृत Farcaster साइनर चाहिए।</translation>
         </message>
+        <message id="genycaster.setup.recovery_title">
+            <source>Restore your Farcaster account</source>
+            <translation>अपना Farcaster खाता पुनर्स्थापित करें</translation>
+        </message>
+        <message id="genycaster.setup.recovery_description">
+            <source>Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer.</source>
+            <translation>सेटअप के दौरान Farcaster के रिकवरी शब्द दर्ज करें। Genycaster Optimism पर स्वामित्व सत्यापित करके पोस्ट करने की हस्ताक्षर कुंजी अधिकृत करता है।</translation>
+        </message>
+        <message id="genycaster.setup.recovery_privacy">
+            <source>Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>Farcaster के 12 या 24 रिकवरी शब्द केवल विश्वसनीय डिवाइस और HTTPS साइट पर डालें। ये न अपलोड होते हैं, न सहेजे जाते हैं।</translation>
+        </message>
+        <message id="genycaster.setup.recovery_button">
+            <source>Continue with recovery words</source>
+            <translation>रिकवरी शब्दों से आगे बढ़ें</translation>
+        </message>
+        <message id="genycaster.setup.recovery_button_body">
+            <source>Verify your account and enable publishing in Setup. No separate Sign In.</source>
+            <translation>अलग से साइन इन किए बिना सेटअप में खाता सत्यापित करें और पोस्टिंग चालू करें।</translation>
+        </message>
+        <message id="genycaster.setup.other_sign_in_methods">
+            <source>Other sign-in methods</source>
+            <translation>साइन इन के अन्य तरीके</translation>
+        </message>
+        <message id="genycaster.setup.recovery_working">
+            <source>Preparing your Farcaster account</source>
+            <translation>आपका Farcaster खाता तैयार हो रहा है</translation>
+        </message>
+        <message id="genycaster.setup.recovery_working_body">
+            <source>Validating account ownership and signer registration. Wait for network confirmation.</source>
+            <translation>खाते के स्वामित्व और हस्ताक्षर कुंजी का सत्यापन जारी है। नेटवर्क पुष्टि का इंतज़ार करें।</translation>
+        </message>
+        <message id="genycaster.setup.recovery_verified">
+            <source>Farcaster custody verified on Optimism</source>
+            <translation>Optimism पर Farcaster स्वामित्व सत्यापित</translation>
+        </message>
     </context>
 </TS>

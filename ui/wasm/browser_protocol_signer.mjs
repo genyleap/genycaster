@@ -272,6 +272,58 @@ export function createBrowserProtocolSigner({
         }catch(error){recovered.dispose();throw error;}
     }
 
+    // Derive FID from onchain custody without exporting phrase to Qt.
+    async function recoverAccountFromPhrase(phrase, stillCurrent=()=>true) {
+        const assertCurrent=()=>{if(!stillCurrent())throw new Error('Recovery cancelled');};
+        const { deriveFarcasterCustody } = await import('./farcaster_recovery.mjs');
+        const custody = await deriveFarcasterCustody(phrase);
+        try {
+            assertCurrent();
+            const address = requireAddress(custody.address);
+            const rpc = 'https://mainnet.optimism.io';
+            let sequence = 0;
+            async function rpcCall(method,params) {
+                const response = await fetchImpl(rpc,{
+                    method:'POST',credentials:'omit',redirect:'error',mode:'cors',
+                    headers:{'content-type':'application/json'},
+                    signal:AbortSignal.timeout(16000),
+                    body:JSON.stringify({jsonrpc:'2.0',method,params,id:++sequence}),
+                });
+                if(!response.ok)throw new Error('Optimism verification HTTP '+response.status);
+                const result=await response.json();
+                assertCurrent();
+                if(result.error||typeof result.result!=='string')
+                    throw new Error('Optimism ownership verification failed');
+                return result.result;
+            }
+            if((await rpcCall('eth_chainId',[])).toLowerCase()!=='0xa')
+                throw new Error('Recovery RPC is not Optimism mainnet');
+            const selector='0x'+hex(keccak256(encoder.encode('idOf(address)')).subarray(0,4));
+            const idValue=await rpcCall('eth_call',[
+                {to:registryAddress,data:selector+address.slice(2).padStart(64,'0')},'latest']);
+            if(!/^0x[0-9a-f]{64}$/i.test(idValue))
+                throw new Error('Invalid IdRegistry FID response');
+            const fid=requireFid(BigInt(idValue).toString(10));
+            const custodyValue=await rpcCall('eth_call',[
+                {to:registryAddress,data:custodySelector+BigInt(fid).toString(16).padStart(64,'0')},
+                'latest']);
+            if(!/^0x[0-9a-f]{64}$/i.test(custodyValue)
+                ||requireAddress('0x'+custodyValue.slice(-40))!==address)
+                throw new Error('Recovery phrase does not control the registered Farcaster FID');
+            assertCurrent();
+            const registration=await provision(fid,async requestedFid=>{
+                assertCurrent();
+                if(requestedFid!==fid)throw new Error('Farcaster identity changed');
+                return custody;
+            },stillCurrent);
+            if(!registration || lastPhase!=='ready' || activeFid!==fid || !activeKey)
+                throw new Error('Signer registration has not been verified');
+            return fid;
+        } finally {
+            custody.dispose();
+        }
+    }
+
     async function restore(fidValue){
         const fid=requireFid(fidValue);
         return exclusive(async()=>{
@@ -288,7 +340,8 @@ export function createBrowserProtocolSigner({
         });
     }
 
-    async function provision(fidValue, custodyProvider=walletCustody){
+    async function provision(fidValue, custodyProvider=walletCustody, stillCurrent=()=>true){
+        const assertCurrent=()=>{if(!stillCurrent())throw new Error('Recovery cancelled');};
         const fid=requireFid(fidValue);
         return exclusive(async()=>{
             activeFid=fid;activeKey=null;const expectedGeneration=++generation;
@@ -298,10 +351,13 @@ export function createBrowserProtocolSigner({
                 // No KEY_ADD can be requested without verifying the current
                 // custody address on Optimism for this exact signed-in FID.
                 wallet=await custodyProvider(fid);
+                assertCurrent();
                 verifySession(fid,expectedGeneration);
                 const key=await vault.ensure(fid);
                 activeKey=key.publicKeyHex;
                 const existing=await inspect(fid,activeKey);
+                assertCurrent();
+                verifySession(fid,expectedGeneration);
                 if(existing.registration){state('ready');return existing.registration;}
                 const nonce=existing.userNonce+1;
                 if(nonce>0xffffffff)throw new Error('KEY_ADD nonce overflow');
@@ -321,6 +377,7 @@ export function createBrowserProtocolSigner({
                     nonce,deadline,ttl,custodySignature,metadata,
                     scopes:SOCIAL_SCOPES});
                 // Never replay a submission after ambiguous network failure.
+                assertCurrent();
                 await submit(unsigned,fid,expectedGeneration);
                 for(let attempt=0;attempt<90;attempt++){
                     const observed=await inspect(fid,activeKey);
@@ -439,7 +496,7 @@ export function createBrowserProtocolSigner({
     }
     function signedOut(){generation++;activeFid=null;activeKey=null;state('signed-out');}
     return Object.freeze({
-        restore,provision,provisionFromRecovery,publishCast,publishThread,castRemove,reaction,follow,revoke,signedOut,
+        restore,provision,provisionFromRecovery,recoverAccountFromPhrase,publishCast,publishThread,castRemove,reaction,follow,revoke,signedOut,
         get ready(){return !!activeFid&&!!activeKey&&!busy&&lastPhase==='ready';},
     });
 }

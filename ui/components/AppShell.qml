@@ -1359,6 +1359,7 @@ Item {
                     Layout.fillWidth: true
                     title: presentationBridge.isAuthenticated
                            ? (presentationBridge.authenticationRoute === "farcaster"
+                              || presentationBridge.authenticationRoute === "recovery"
                               || presentationBridge.accountIdentityIssuer.length === 0
                               ? qsTrId("genycaster.shell.your_farcaster_account")
                               : qsTrId("genycaster.shell.your_genyleap_account"))
@@ -1368,7 +1369,9 @@ Item {
                                ? qsTrId("genycaster.shell.approve_sign_in")
                                : qsTrId("genycaster.shell.sign_in_to_interact")
                     subtitle: presentationBridge.isAuthenticated
-                              ? (presentationBridge.authenticationRoute === "farcaster"
+                              ? (presentationBridge.authenticationRoute === "recovery"
+                                 ? qsTrId("genycaster.setup.recovery_verified")
+                                 : presentationBridge.authenticationRoute === "farcaster"
                                  ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_description")
                                  : presentationBridge.accountIdentityIssuer.length > 0
                                    ? qsTrId("genycaster.shell.openproof_account_farcaster_protocol_identity")
@@ -1428,7 +1431,9 @@ Item {
                                 DirectionAwareLabel {
                                     visible: presentationBridge.accountIdentityIssuer.length > 0
                                     Layout.fillWidth: true
-                                    text: presentationBridge.authenticationRoute === "farcaster"
+                                    text: presentationBridge.authenticationRoute === "recovery"
+                                          ? qsTrId("genycaster.setup.recovery_verified")
+                                          : presentationBridge.authenticationRoute === "farcaster"
                                           ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_verification")
                                           : qsTrId("genycaster.shell.verified_by_openproof")
                                     color: Theme.accent
@@ -1676,6 +1681,7 @@ Item {
         onOpenApproval: presentationBridge.openAuthenticationApproval()
         onCancelAuthentication: presentationBridge.cancelSignIn()
         onAuthorizeSigner: presentationBridge.provisionSigner()
+        onRecoverAccount: presentationBridge.beginRecoverySetup()
         onAcceptLegalConsent: (termsAccepted, privacyAcknowledged, reviewCompleted) =>
             presentationBridge.acceptLegalConsent(termsAccepted, privacyAcknowledged, reviewCompleted)
         onFinishSetup: presentationBridge.completeInitialSetup()
