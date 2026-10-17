@@ -249,6 +249,22 @@ if ('id: settingsTabs' not in locale_popup
         or 'implicitHeight: settingsTabs.implicitHeight' not in locale_popup):
     errors.append('Settings navigation must show complete labels in a two-row desktop grid and retain compact mobile icons')
 
+app_shell = (ui/'components'/'AppShell.qml').read_text(encoding='utf-8')
+setup_screen = (ui/'components'/'InitialSetup.qml').read_text(encoding='utf-8')
+route_label = 'genycaster.shell.farcaster_sign_in_openproof_verification'
+route_description = 'genycaster.shell.farcaster_sign_in_openproof_description'
+if (route_label not in app_shell or route_description not in app_shell
+        or route_label not in setup_screen
+        or 'presentationBridge.authenticationRoute === "farcaster"' not in app_shell
+        or 'root.authenticationRoute === "farcaster"' not in setup_screen):
+    errors.append('Farcaster SIWF route must be distinguishable from OpenProof verification without claiming signer readiness')
+wheel_header = (ui/'mobile'/'browser_wheel_fallback.hpp').read_text(encoding='utf-8')
+wheel_main = (ui/'mobile'/'main.cpp').read_text(encoding='utf-8')
+if ('browser_wheel::scroll(*window, local, pixels)' not in wheel_main
+        or 'scrollBranch' not in wheel_header
+        or 'property("modal")' not in wheel_header):
+    errors.append('WASM wheel must scroll Quick Flickables and respect modal popups, not only send synthetic QWheelEvent')
+
 market_icon = (ui/'components'/'MarketAssetIcon.qml').read_text(encoding='utf-8')
 if ('showManualLoadIndicator: false' not in market_icon
         or 'forceAutomaticDownload: true' not in market_icon):

@@ -1720,7 +1720,9 @@ Item {
                             }
 
                             Label {
-                                text: qsTrId("genycaster.shell.verified_by_openproof")
+                                text: root.authenticationRoute === "farcaster"
+                                      ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_verification")
+                                      : qsTrId("genycaster.shell.verified_by_openproof")
                                 color: Theme.inkSubtle
                                 font.pixelSize: Theme.typeCaptionSize
                             }
@@ -2102,7 +2104,9 @@ Item {
                     Layout.fillWidth: true
                     compactCard: true
                     title: root.accountName.length > 0 ? root.accountName : root.accountUsername
-                    subtitle: qsTrId("genycaster.shell.verified_by_openproof")
+                    subtitle: root.authenticationRoute === "farcaster"
+                              ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_verification")
+                              : qsTrId("genycaster.shell.verified_by_openproof")
                     iconGlyph: Theme.iconUser
                     complete: true
                     onClicked: root.switchStep(4)

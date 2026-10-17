@@ -83,7 +83,11 @@ Identity sign-in is **not** protocol signer authorization. Posting casts,
 likes, follows and other protocol writes remain disabled until the browser
 supports non-exportable signer key custody, explicit scoped Farcaster
 authorization, verified Snapchain registration and protocol-native signing.
-The browser sign-in route never claims signer readiness.
+The browser sign-in route never claims signer readiness. The account UI
+distinguishes the chosen **Sign in with Farcaster** route from OpenProof's
+verification role: successful direct SIWF is labelled “Signed in with Farcaster
+· verified by OpenProof”. This is a signed identity proof, not a registered
+Farcaster protocol-signing capability or a working write endpoint.
 
 ## Browser Ed25519 key custody — staged, not a publishing flow
 
@@ -187,19 +191,29 @@ the window, rather than calling an application export from JavaScript via
 Qt's generated loader. The callback reads the browser-provided wheel deltas,
 normalizes pixel/line/page units, and uses a passive capture-phase observer
 of the actual DOM event composed path for Qt shadow-root canvas targeting.
-It falls back to DOM hit testing if necessary, sends a regular `QWheelEvent`
-to `QQuickWindow` and allows Qt's native wheel handler to try again if
-the event was not accepted. Non-canvas wheel and browser Ctrl+wheel zoom
-are left alone. Native platforms do not install the callback.
+It falls back to DOM hit testing if necessary. The prior strategy of
+synthesizing and sending only a `QWheelEvent` proved unreliable for WASM
+Flickables even when mouse dragging scrolled successfully. The callback now
+moves the **nearest interactive Flickable viewport** by the normalized
+pixel delta, directly updating its `contentY`/`contentX` position. It
+walks the visual stacking order instead of treating an empty Qt Quick overlay
+as the scroll destination, and constrains scrolls to the content of the top
+open modal Popup/Drawer. Non-scrollable widgets still receive the regular Qt
+wheel event. Non-canvas wheel and browser Ctrl+wheel zoom are left alone.
+Native platforms do not install this callback.
 
-Browser diagnostics: `window.__genycasterWheelDiagnostics.forwarded`
-increments only after a wheel event is delivered to the Qt window. A zero
-count indicates missing callback delivery, target recognition or event routing.
-The Emscripten API returns an explicit registration error that is logged to
-Qt's console. Unit tests exercise DOM coordinate mapping, shadow roots,
-non-canvas rejection, and C++ preprocessing, while a Qt native test confirms
-popup hit testing. Real Qt 6.12 WASM mouse testing remains required before
-calling scrolling fixed.
+Browser diagnostics: `window.__genycasterWheelDiagnostics` exposes
+`received`, `onCanvas`, `forwarded`, and `directScrolled`.
+After hovering over a long feed and turning the mouse wheel, all four
+counters should increase. `received=0` means the Emscripten callback is
+not receiving DOM wheel events; `onCanvas=0` means DOM canvas targeting is
+failing; `directScrolled=0` despite non-zero onCanvas means the Quick
+Flickable was not located or had no available scroll range. The Emscripten
+API returns an explicit registration error logged to the Qt console.
+Native Qt regression tests include a live ListView, a modal Popup ListView,
+scroll bounds and disabled items; Node tests cover the browser coordinate
+bridge. Real Qt 6.12 WASM mouse testing remains required before declaring
+the browser issue resolved.
 
 ## Required CJK and Devanagari glyph coverage
 

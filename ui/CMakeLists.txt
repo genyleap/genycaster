@@ -1037,6 +1037,15 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
     add_test(NAME ui.update_controller COMMAND farcaster_update_controller_tests)
     set_tests_properties(ui.update_controller PROPERTIES TIMEOUT 8 LABELS "ui;update;security")
 
+    add_executable(farcaster_browser_wheel_fallback_tests
+        ../tests/ui/browser_wheel_fallback_tests.cpp)
+    target_link_libraries(farcaster_browser_wheel_fallback_tests PRIVATE
+        Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2)
+    add_test(NAME ui.browser_wheel_fallback COMMAND farcaster_browser_wheel_fallback_tests)
+    set_tests_properties(ui.browser_wheel_fallback PROPERTIES TIMEOUT 15
+        LABELS "ui;scroll;wasm"
+        ENVIRONMENT "QT_QPA_PLATFORM=${farcasterHeadlessPlatform};QT_QUICK_BACKEND=software")
+
     add_executable(farcaster_media_scroll_tests
         ../tests/ui/media_scroll_tests.cpp
         render/scene_graph_superellipse_item.cpp)

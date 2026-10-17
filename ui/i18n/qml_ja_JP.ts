@@ -3786,5 +3786,13 @@
             <source>Link your Farcaster account in Genyleap, then sign in again.</source>
             <translation>Genyleap で Farcaster アカウントを連携し、再度サインインしてください。</translation>
         </message>
+        <message id="genycaster.shell.farcaster_sign_in_openproof_verification">
+            <source>Signed in with Farcaster · verified by OpenProof</source>
+            <translation>Farcaster でログイン · OpenProof が検証</translation>
+        </message>
+        <message id="genycaster.shell.farcaster_sign_in_openproof_description">
+            <source>You signed in with Farcaster. OpenProof verified the signed proof and linked FID. Publishing requires a separately authorized Farcaster signer.</source>
+            <translation>Farcaster でログインしました。OpenProof が署名済みの証明と連携 FID を検証しました。投稿には別途承認された Farcaster 署名者が必要です。</translation>
+        </message>
     </context>
 </TS>

@@ -80,6 +80,9 @@
 #endif
 #include "remote_image_provider.hpp"
 #include "browser_openproof_auth.hpp"
+#if defined(__EMSCRIPTEN__)
+#include "browser_wheel_fallback.hpp"
+#endif
 #include "data_storage_controller.hpp"
 
 import farcaster.runtime.emoji;
@@ -245,6 +248,21 @@ EM_BOOL browserWheelCallback(int type, const EmscriptenWheelEvent* event, void*)
     const QPoint pixels{bounded(-event->deltaX * scale), bounded(-event->deltaY * scale)};
     const QPoint angles{bounded(-event->deltaX * scale * 1.2),
                         bounded(-event->deltaY * scale * 1.2)};
+    // WebAssembly Qt's synthesized wheel events are not reliable for
+    // Flickables: they can be discarded by the screen/pointer handler even
+    // while dragging scrolls normally. Move the nearest interactive
+    // Flickable's viewport directly, including ComboBox popup ListViews.
+    if (genycaster::ui::browser_wheel::scroll(*window, local, pixels)) {
+        EM_ASM({
+            if (window.__genycasterWheelDiagnostics) {
+                window.__genycasterWheelDiagnostics.forwarded += 1;
+                window.__genycasterWheelDiagnostics.directScrolled += 1;
+            }
+        });
+        return EM_TRUE;
+    }
+    // Retain Qt wheel delivery for non-Flickable controls, e.g. an editable
+    // spin box; don't consume events that Qt itself declines.
     QWheelEvent wheel{local, window->mapToGlobal(local.toPoint()), pixels, angles,
                       Qt::NoButton, modifiers, Qt::NoScrollPhase, false};
     wheel.setAccepted(false);
@@ -291,6 +309,7 @@ void installBrowserWheelBridge(QQuickWindow* window)
             window.__genycasterWheelDiagnostics.received = 0;
             window.__genycasterWheelDiagnostics.onCanvas = 0;
             window.__genycasterWheelDiagnostics.forwarded = 0;
+            window.__genycasterWheelDiagnostics.directScrolled = 0;
         }
     });
     const EMSCRIPTEN_RESULT result = emscripten_set_wheel_callback(

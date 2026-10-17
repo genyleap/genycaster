@@ -1050,6 +1050,10 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.genyleap_verified_link_farcaster_to_continue");
     //% "Verified by OpenProof"
     (void)qtTrId("genycaster.shell.verified_by_openproof");
+    //% "Signed in with Farcaster · verified by OpenProof"
+    (void)qtTrId("genycaster.shell.farcaster_sign_in_openproof_verification");
+    //% "You signed in with Farcaster. OpenProof verified the signed proof and linked FID. Publishing requires a separately authorized Farcaster signer."
+    (void)qtTrId("genycaster.shell.farcaster_sign_in_openproof_description");
     //% "OpenProof owns your account identity; Farcaster is the required linked protocol identity."
     (void)qtTrId("genycaster.shell.openproof_account_farcaster_protocol_identity");
     //% "Sign out"

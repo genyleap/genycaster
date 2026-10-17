@@ -1129,6 +1129,7 @@ Item {
     // navigation control while any modal surface is open.
     MouseArea {
         id: modalInputGuard
+        objectName: "modalInputGuard"
         anchors.fill: parent
         z: 900
         visible: root.overlayOpen
@@ -1357,18 +1358,21 @@ Item {
                 ModalHeader {
                     Layout.fillWidth: true
                     title: presentationBridge.isAuthenticated
-                           ? (presentationBridge.accountIdentityIssuer.length > 0
-                              ? qsTrId("genycaster.shell.your_genyleap_account")
-                              : qsTrId("genycaster.shell.your_farcaster_account"))
+                           ? (presentationBridge.authenticationRoute === "farcaster"
+                              || presentationBridge.accountIdentityIssuer.length === 0
+                              ? qsTrId("genycaster.shell.your_farcaster_account")
+                              : qsTrId("genycaster.shell.your_genyleap_account"))
                            : presentationBridge.authenticationPhase === "linking-farcaster"
                              ? qsTrId("genycaster.shell.link_your_farcaster_account")
                              : presentationBridge.authenticationPhase === "awaiting-approval"
                                ? qsTrId("genycaster.shell.approve_sign_in")
                                : qsTrId("genycaster.shell.sign_in_to_interact")
                     subtitle: presentationBridge.isAuthenticated
-                              ? (presentationBridge.accountIdentityIssuer.length > 0
-                                 ? qsTrId("genycaster.shell.openproof_account_farcaster_protocol_identity")
-                                 : qsTrId("genycaster.shell.this_verified_session_identifies_your_account_protocol"))
+                              ? (presentationBridge.authenticationRoute === "farcaster"
+                                 ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_description")
+                                 : presentationBridge.accountIdentityIssuer.length > 0
+                                   ? qsTrId("genycaster.shell.openproof_account_farcaster_protocol_identity")
+                                   : qsTrId("genycaster.shell.this_verified_session_identifies_your_account_protocol"))
                               : qsTrId("genycaster.setup.subtitle")
                     onCloseRequested: accountPopup.close()
                 }
@@ -1424,7 +1428,9 @@ Item {
                                 DirectionAwareLabel {
                                     visible: presentationBridge.accountIdentityIssuer.length > 0
                                     Layout.fillWidth: true
-                                    text: qsTrId("genycaster.shell.verified_by_openproof")
+                                    text: presentationBridge.authenticationRoute === "farcaster"
+                                          ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_verification")
+                                          : qsTrId("genycaster.shell.verified_by_openproof")
                                     color: Theme.accent
                                     font.pixelSize: Theme.typeCaptionSize
                                     font.weight: Theme.weightDemiBold
