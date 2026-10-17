@@ -613,8 +613,14 @@ if 'genycasterPayload' in link_preview_resolver:
 if ('readonly property int filterPrefetchLimit: 6' not in feed_surface
         or 'readonly property int automaticPrefetchLimit: 12' not in feed_surface):
     errors.append('Sparse Explorer semantic tabs must retain the bounded six-page/per-filter and twelve-page global prefetch budget')
-if cast_item.count('asynchronous: true') < 5:
+# A single shared caption Loader now precedes media for every cast, rather
+# than duplicating caption subtrees for visual vs text-only casts.
+if cast_item.count('asynchronous: true') < 4:
     errors.append('CastItem rich text/media/supporting subtrees must incubate asynchronously instead of blocking delegate creation')
+if ('objectName: "castTextBody"' not in cast_item or
+        'objectName: "castVisualMedia"' not in cast_item or
+        cast_item.index('objectName: "castTextBody"') >= cast_item.index('objectName: "castVisualMedia"')):
+    errors.append('CastItem must render caption before embedded image media on desktop and WASM')
 for token in (
     'property bool supportingAdmitted: false',
     'readonly property bool scrollMoving:',

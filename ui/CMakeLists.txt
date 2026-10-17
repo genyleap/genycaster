@@ -511,38 +511,38 @@ qt_add_resources(farcaster_client genycaster_ui_fonts
 )
 
 # Qt WebAssembly cannot rely on the browser's installed emoji fonts.
-# Embed a verified monochrome Unicode fallback (including DNA U+1F9EC).
+# Embed a verified full-color CBDT/CBLC font (including DNA U+1F9EC).
 # The source is SIL OFL 1.1; its license remains with Google Noto Emoji.
 if(EMSCRIPTEN)
     set(GENYCASTER_WASM_EMOJI_FONT_PATH "" CACHE FILEPATH
-        "Optional pre-downloaded Noto Emoji variable TTF for offline WASM builds")
+        "Optional pre-downloaded Noto Color Emoji CBDT/CBLC TTF for offline WASM builds")
     if(GENYCASTER_WASM_EMOJI_FONT_PATH)
         set(_genycasterWasmEmojiFont "${GENYCASTER_WASM_EMOJI_FONT_PATH}")
     else()
-        set(_genycasterWasmEmojiFont "${CMAKE_BINARY_DIR}/_deps/NotoEmoji-wasm.ttf")
+        set(_genycasterWasmEmojiFont "${CMAKE_BINARY_DIR}/_deps/NotoColorEmoji-wasm.ttf")
         file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/_deps")
         if(NOT EXISTS "${_genycasterWasmEmojiFont}")
             file(DOWNLOAD
-                "https://raw.githubusercontent.com/google/fonts/main/ofl/notoemoji/NotoEmoji%5Bwght%5D.ttf"
+                "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/2D/fonts/NotoColorEmoji.ttf"
                 "${_genycasterWasmEmojiFont}"
-                EXPECTED_HASH SHA256=de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551
+                EXPECTED_HASH SHA256=15671215ab769fdc7162a045d56fd7d7e477c51b04e6b3c761d914d8fdd6cc44
                 TLS_VERIFY ON TIMEOUT 45
                 STATUS _emojiDownloadStatus)
             list(GET _emojiDownloadStatus 0 _emojiDownloadCode)
             if(NOT _emojiDownloadCode EQUAL 0)
                 message(FATAL_ERROR
                     "Unable to fetch the pinned Noto Emoji font for WASM. "
-                    "Provide -DGENYCASTER_WASM_EMOJI_FONT_PATH=/path/to/NotoEmoji.ttf")
+                    "Provide -DGENYCASTER_WASM_EMOJI_FONT_PATH=/path/to/NotoColorEmoji.ttf")
             endif()
         endif()
     endif()
     file(SHA256 "${_genycasterWasmEmojiFont}" _emojiFontSha256)
     if(NOT _emojiFontSha256 STREQUAL
-            "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551")
-        message(FATAL_ERROR "Noto Emoji WASM font SHA-256 does not match the pinned resource.")
+            "15671215ab769fdc7162a045d56fd7d7e477c51b04e6b3c761d914d8fdd6cc44")
+        message(FATAL_ERROR "Noto Color Emoji WASM font SHA-256 does not match the pinned resource.")
     endif()
     set_source_files_properties("${_genycasterWasmEmojiFont}" PROPERTIES
-        QT_RESOURCE_ALIAS "assets/fonts/NotoEmoji-wasm.ttf")
+        QT_RESOURCE_ALIAS "assets/fonts/NotoColorEmoji-wasm.ttf")
     set_source_files_properties(
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt" PROPERTIES
         QT_RESOURCE_ALIAS "assets/fonts/OFL-NotoEmoji.txt")

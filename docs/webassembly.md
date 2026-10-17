@@ -118,16 +118,32 @@ isolated WebKit Mini App runtime.
 
 ## Global browser mouse wheel dispatch
 
-The Qt WebAssembly UI is rendered inside a canvas. The application registers
-one non-passive capture-phase `wheel` listener scoped to the Qt canvas. It
-normalizes DOM pixel/line/page deltas, prevents duplicate browser/Qt delivery,
-and forwards the event as a standard `QWheelEvent` to the `QQuickWindow`.
-Qt Quick then routes it to the item under the cursor (feed, ComboBox popup,
-settings ScrollView, etc.). This does **not** use page-level CSS scrolling or
-override individual Flickable `contentY` properties. Touch input and browser
-Ctrl+wheel zoom are left to their existing handlers. The listener is not
-installed for native builds. Browser-wheel and popup hit testing must be
-smoke-tested on the actual Qt 6.12 WASM runtime before parity is claimed.
+Qt 6.12 creates the window canvas dynamically within its screen container,
+so a fixed `qtcanvas` element ID is **not** a reliable wheel target. The
+browser composition installs one non-passive capture-phase listener at
+`window`, locates the actual HTML canvas in the event's composed path
+(including shadow-root retargeting), and forwards DOM wheel input as a
+standard `QWheelEvent` to `QQuickWindow`. Qt Quick hit-tests the element
+under the cursor, including feed Flickables and ComboBox popup lists. It does
+not intercept document content outside Qt's canvas or Ctrl+wheel browser zoom.
+Native builds are unaffected.
+
+For browser diagnosis open DevTools and inspect
+`window.__genycasterWheelDiagnostics` after scrolling over the application;
+`received`, `onCanvas`, and `forwarded` identify which handoff failed.
+A missing C++ entrypoint is logged once to the console. Unit tests validate
+DOM capture/shadow composition and native Qt popup/scroll routing; a full
+Qt 6.12 WebAssembly browser run is still the acceptance gate.
+
+## Emoji coverage in the browser
+
+The WASM target embeds the pinned **full-color Noto Color Emoji** CBDT/CBLC
+font rather than the monochrome Noto Emoji variable font. Its SHA-256 is
+verified during CMake configure; the corresponding OFL license is embedded.
+A Qt 6.11 headless rendering test verified that 🧬 (U+1F9EC) produces
+actual chromatic pixels even when the application's primary text font is
+selected. This is not a substitute for confirming color glyph rasterization
+with the Qt 6.12 WASM runtime in a real browser.
 
 ## Browser image delivery
 

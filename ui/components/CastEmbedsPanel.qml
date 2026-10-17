@@ -245,9 +245,12 @@ ColumnLayout {
         Layout.fillWidth: true
         embeds: root.effectiveVisualEmbeds
         compact: root.compact
-        // Reserve from declared metadata (or the stable fallback) before pixels
-        // arrive. PreserveAspectFit shows the whole image inside that frame.
-        dynamicAspectDiscovery: false
+        // Reserve a stable fallback while loading. For a single image, switch
+        // to its decoded aspect ratio only after scrolling settles. Otherwise
+        // wide screenshots inherit a 4:3 slot, leaving large blank bars above
+        // and below the actual media in both desktop and browser builds.
+        // Multi-image mosaics keep their fixed row reservations.
+        dynamicAspectDiscovery: root.visualCount === 1
         onOpenRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
     }
 

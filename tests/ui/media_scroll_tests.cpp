@@ -273,6 +273,18 @@ int main(int argc, char** argv)
     context->setContextProperty(QStringLiteral("miniAppTaskManager"), previewServices.get());
     context->setContextProperty(QStringLiteral("miniAppHost"), previewServices.get());
     context->setContextProperty(QStringLiteral("presentationBridge"), previewServices.get());
+    // A text-bearing CastItem now exercises the single shared caption Loader.
+    // Supply an empty native-rich sidecar so the standalone media fixture
+    // takes the regular plain-text rendering path.
+    auto richComposer = createInline(engine, R"(
+        import QtQml
+        QtObject {
+            property int revision: 0
+            function richBlocksForCast(castId) { return [] }
+        }
+    )");
+    if (!richComposer) { return 1; }
+    context->setContextProperty(QStringLiteral("richComposer"), richComposer.get());
     const int themeType = qmlRegisterSingletonType(
         QUrl::fromLocalFile(QStringLiteral(MEDIA_THEME_FILE)), "Farcaster.Client", 1, 0, "Theme");
     const int localeType = qmlRegisterSingletonType(
@@ -351,7 +363,7 @@ int main(int argc, char** argv)
     expect(flag(*image, "loading") && flag(*loadingIndicator, "visible")
                && flag(*loadingSpinner, "visible") && !flag(*loadingFallback, "visible"),
         "scroll motion keeps the same media spinner visible");
-    expect(!flag(*loadingSpinner, "running"),
+    expect(!flag(*loadingSpinner, "animationRequested"),
         "pending media freezes indeterminate animation during scroll motion");
     const int uploadsBeforeCompletion = images->textureUploads();
     images->completePending();
@@ -728,7 +740,7 @@ int main(int argc, char** argv)
             {QStringLiteral("castId"), QStringLiteral("mixed-image-link")},
             {QStringLiteral("displayName"), QStringLiteral("Mixed Cast")},
             {QStringLiteral("author"), QStringLiteral("mixed")},
-            {QStringLiteral("text"), QString{}},
+            {QStringLiteral("text"), QStringLiteral("A cast caption must appear before its media.")},
             {QStringLiteral("embeds"), QVariantList{
                 QVariantMap{
                     {QStringLiteral("kind"), QStringLiteral("image")},
@@ -744,6 +756,10 @@ int main(int argc, char** argv)
     if (!mixedCast) { return 1; }
     auto* mixedCastItem = qobject_cast<QQuickItem*>(mixedCast.get());
     QTest::qWait(120);
+    auto* captionLoader = mixedCast->findChild<QQuickItem*>(QStringLiteral("castTextBody"));
+    auto* mediaLoader = mixedCast->findChild<QQuickItem*>(QStringLiteral("castVisualMedia"));
+    expect(captionLoader && mediaLoader && captionLoader->y() < mediaLoader->y(),
+        "text precedes image media in every cast, including mixed media casts");
     expect(countVisualItemsWithClass(*mixedCastItem, QStringLiteral("LinkPreview")) == 0,
         "mixed image+link cast defers its supporting LinkPreview while scrolling");
     host->setProperty("moving", false);

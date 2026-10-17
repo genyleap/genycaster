@@ -698,7 +698,8 @@ Item {
                 }
 
                 Loader {
-                    active: !root.mediaFirst && root.displayText.length > 0
+                    objectName: "castTextBody"
+                    active: root.displayText.length > 0
                     visible: active
                     asynchronous: true
                     Layout.fillWidth: true
@@ -715,10 +716,11 @@ Item {
                     }
                 }
 
-                // Media casts use an Instagram-like hierarchy: artwork first,
-                // engagement immediately below it, then the caption/supporting cards.
-                // Text-only casts keep the established text-first rhythm.
+                // Protocol cast order: author/parent, text, embedded media,
+                // supporting cards and engagement. Never put images before the
+                // author's text simply because the cast contains image embeds.
                 Loader {
+                    objectName: "castVisualMedia"
                     active: root.mediaFirst
                     visible: active
                     asynchronous: true
@@ -771,26 +773,6 @@ Item {
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightRegular
                         elide: Text.ElideRight
-                    }
-                }
-
-                Loader {
-                    active: root.mediaFirst && root.displayText.length > 0
-                    visible: active
-                    asynchronous: true
-                    Layout.fillWidth: true
-                    Layout.leftMargin: root.mediaContentInset
-                    Layout.rightMargin: root.mediaContentInset
-                    sourceComponent: Component {
-                        RichCastRenderer {
-                            castId: String(root.modelData.castId || "")
-                            plainText: root.displayText
-                            compact: root.compact
-                            suppressedEmbedUrls: root.protocolEmbedUrls
-                            onExternalRequested: url => root.externalRequested(url)
-                            onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
-                            onCastRequested: castId => root.openRequested(castId)
-                        }
                     }
                 }
 

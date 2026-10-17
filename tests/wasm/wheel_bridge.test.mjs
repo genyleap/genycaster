@@ -3,93 +3,85 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-// Exercise the exact capture-phase DOM callback embedded in the Qt WASM
-// composition root, not an independently reimplemented mock handler.
+// Extract and execute the actual browser callback embedded in the WASM
+// composition root. A copied approximation would not catch broken selectors.
 const main = readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8');
-const marker = '    EM_ASM({\n        if (document.__genycasterWheelBridgeInstalled)';
+const marker = '    EM_ASM({\n        // Qt 6.12 creates canvas nodes dynamically';
 const start = main.indexOf(marker);
-assert.ok(start > 0, 'the WASM document wheel bridge exists');
-const bodyStart = start + '    EM_ASM({'.length;
-const bodyEnd = main.indexOf('\n    });\n}\n}\n#endif', bodyStart);
-assert.ok(bodyEnd > bodyStart, 'the bridge has an intact closing boundary');
-const handlerCode = main.slice(bodyStart, bodyEnd);
+assert.ok(start > 0, 'browser bridge is present');
+const begin = start + '    EM_ASM({'.length;
+const end = main.indexOf('\n    });\n}\n}\n#endif', begin);
+assert.ok(end > begin, 'browser bridge has a closing boundary');
+const code = main.slice(begin, end);
 
-class Element {
-  constructor(tagName, rect) {
-    this.tagName = tagName;
-    this.rect = rect;
-  }
-  closest(selector) { return selector === 'canvas' && this.tagName === 'canvas' ? this : null; }
-  getBoundingClientRect() { return this.rect; }
+class HTMLCanvasElement {
+    getBoundingClientRect() {
+        return { left: 100, top: 50, width: 800, height: 400 };
+    }
 }
 
 function fixture() {
-  const rect = { left: 40, top: 20, width: 1000, height: 500 };
-  const canvas = new Element('canvas', rect);
-  const document = {
-    getElementById(id) { return id === 'qtcanvas' ? {
-      contains: target => target === canvas,
-      getBoundingClientRect: () => rect,
-    } : null; },
-    addEventListener(name, callback, options) {
-      assert.equal(name, 'wheel');
-      assert.deepEqual(Object.keys(options).sort(), ['capture', 'passive']);
-      assert.equal(options.capture, true);
-      assert.equal(options.passive, false);
-      this.handler = callback;
-    },
-  };
-  const forwarded = [];
-  const Module = { _genycaster_browser_wheel: (...args) => forwarded.push(args) };
-  const context = vm.createContext({ document, Module, Element });
-  vm.runInContext('(function() {' + handlerCode + '\n})()', context);
-  return { document, forwarded, canvas };
+    const canvas = new HTMLCanvasElement();
+    const forwarded = [];
+    const window = {
+        addEventListener(name, handler, options) {
+            assert.equal(name, 'wheel');
+            assert.equal(options.capture, true);
+            assert.equal(options.passive, false);
+            this.handler = handler;
+        },
+    };
+    const Module = { _genycaster_browser_wheel: (...args) => forwarded.push(args) };
+    const context = vm.createContext({ window, Module, HTMLCanvasElement, console });
+    const install = () => vm.runInContext('(function(){' + code + '\n})()', context);
+    install();
+    return { window, canvas, forwarded, install };
 }
 
-function event(target, overrides = {}) {
-  let prevented = 0;
-  let stopped = 0;
-  return {
-    target, clientX: 540, clientY: 270, deltaX: 0, deltaY: 60,
-    deltaMode: 0, ctrlKey: false, shiftKey: false, altKey: false, metaKey: false,
-    preventDefault() { prevented++; },
-    stopImmediatePropagation() { stopped++; },
-    get prevented() { return prevented; },
-    get stopped() { return stopped; },
-    ...overrides,
-  };
+function wheel(path, options = {}) {
+    const state = { prevented: 0, stopped: 0 };
+    return {
+        clientX: 500, clientY: 250,
+        deltaX: 0, deltaY: 60, deltaMode: 0, ctrlKey: false,
+        shiftKey: false, altKey: false, metaKey: false, defaultPrevented: false,
+        composedPath: () => path,
+        preventDefault() { ++state.prevented; },
+        stopImmediatePropagation() { ++state.stopped; },
+        get state() { return state; },
+        ...options,
+    };
 }
 
-test('DOM wheel is captured once, mapped to Qt coordinates, and not sent to native Qt twice', () => {
-  const { document, forwarded, canvas } = fixture();
-  const first = event(canvas);
-  document.handler(first);
-  assert.equal(first.prevented, 1);
-  assert.equal(first.stopped, 1);
-  assert.equal(forwarded.length, 1);
-  assert.equal(forwarded[0].join(','), '0.5,0.5,0,60,0');
-  vm.runInNewContext('(function() {' + handlerCode + '\n})()', {
-    document, Module: { _genycaster_browser_wheel() { throw Error('double listener'); } }, Element,
-  });
-  assert.equal(forwarded.length, 1);
+test('Qt-owned canvas receives a single normalized wheel input', () => {
+    const { window, canvas, forwarded, install } = fixture();
+    const e = wheel([canvas, { id: 'some-qt-screen' }, window]);
+    window.handler(e);
+    assert.equal(e.state.prevented, 1);
+    assert.equal(e.state.stopped, 1);
+    assert.deepEqual(forwarded, [[0.5, 0.5, 0, 60, 0]]);
+    assert.deepEqual({ ...window.__genycasterWheelDiagnostics },
+        { received: 1, onCanvas: 1, forwarded: 1 });
+    install();
+    assert.equal(forwarded.length, 1, 'reinstall must not create duplicate handlers');
 });
 
-test('line-mode wheel and modifiers are normalized while browser Ctrl-wheel remains native', () => {
-  const { document, forwarded, canvas } = fixture();
-  const lines = event(canvas, { deltaY: -3, deltaMode: 1, shiftKey: true, altKey: true });
-  document.handler(lines);
-  assert.equal(forwarded[0][3], -48);
-  assert.equal(forwarded[0][4], 3);
-  const zoom = event(canvas, { ctrlKey: true });
-  document.handler(zoom);
-  assert.equal(zoom.prevented, 0);
-  assert.equal(forwarded.length, 1);
+test('shadow DOM retargeting preserves canvas hit testing', () => {
+    const { window, canvas, forwarded } = fixture();
+    // Event.target is a shadow host; composedPath still points to the canvas.
+    window.handler(wheel([canvas, { tagName: 'DIV' }, window], {
+        target: { tagName: 'GENYCASTER-SCREEN' },
+        deltaY: -3, deltaMode: 1, shiftKey: true,
+    }));
+    assert.deepEqual(forwarded, [[0.5, 0.5, 0, -48, 1]]);
 });
 
-test('ordinary page content outside the Qt canvas does not lose scrolling', () => {
-  const { document, forwarded } = fixture();
-  const outside = event(new Element('div', {left: 0, top: 0, width: 100, height: 100}));
-  document.handler(outside);
-  assert.equal(outside.prevented, 0);
-  assert.equal(forwarded.length, 0);
+test('browser zoom and unrelated document wheel remain unaffected', () => {
+    const { window, canvas, forwarded } = fixture();
+    const zoom = wheel([canvas, window], { ctrlKey: true });
+    window.handler(zoom);
+    const outside = wheel([{ tagName: 'DIV' }, window]);
+    window.handler(outside);
+    assert.equal(zoom.state.prevented, 0);
+    assert.equal(outside.state.prevented, 0);
+    assert.equal(forwarded.length, 0);
 });

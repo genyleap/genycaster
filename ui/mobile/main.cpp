@@ -221,29 +221,37 @@ void installBrowserWheelBridge(QQuickWindow* window)
 {
     browserWheelWindow = window;
     EM_ASM({
-        if (document.__genycasterWheelBridgeInstalled) return;
-        document.__genycasterWheelBridgeInstalled = true;
-        document.addEventListener('wheel', function(event) {
-            // Do not interfere with the rest of the host page or browser zoom.
-            if (event.ctrlKey) return;
-            const host = document.getElementById('qtcanvas');
-            const target = event.target;
-            const isCanvas = target instanceof Element &&
-                (target.tagName.toLowerCase() === 'canvas' || Boolean(target.closest('canvas')));
-            if (!isCanvas && !(host && host.contains(target))) return;
-            const source = host && host.contains(target) ? host
-                : (target instanceof Element ? target.closest('canvas') : null);
-            if (!source) return;
-            const rect = source.getBoundingClientRect();
+        // Qt 6.12 creates canvas nodes dynamically inside screen containers.
+        // No HTML template is required to define a fixed "qtcanvas" ID.
+        if (window.__genycasterWheelBridgeInstalled) return;
+        window.__genycasterWheelBridgeInstalled = true;
+        const diagnostics = { received: 0, onCanvas: 0, forwarded: 0 };
+        window.__genycasterWheelDiagnostics = diagnostics;
+        window.addEventListener('wheel', function(event) {
+            ++diagnostics.received;
+            if (event.ctrlKey || event.defaultPrevented) return;
+            // Screen content can be retargeted across shadow roots. Inspect
+            // the composed path before falling back to the DOM event target.
+            const path = typeof event.composedPath === 'function'
+                ? event.composedPath() : [event.target];
+            const canvas = path.find(node => node instanceof HTMLCanvasElement);
+            if (!canvas) return;
+            ++diagnostics.onCanvas;
+            const rect = canvas.getBoundingClientRect();
             if (!(rect.width > 0 && rect.height > 0)) return;
-            const forward = Module._genycaster_browser_wheel;
-            if (typeof forward !== 'function') return;
+            const forward = Module['_genycaster_browser_wheel'];
+            if (typeof forward !== 'function') {
+                if (!window.__genycasterWheelExportWarning) {
+                    window.__genycasterWheelExportWarning = true;
+                    console.warn('Genycaster WASM wheel entrypoint is unavailable');
+                }
+                return;
+            }
             const multiplier = event.deltaMode === 1 ? 16
                 : (event.deltaMode === 2 ? rect.height : 1);
-            // Capture before Qt's own canvas handlers to prevent duplicate
-            // delivery. Route exactly one QWheelEvent into Qt Quick.
             event.preventDefault();
             event.stopImmediatePropagation();
+            ++diagnostics.forwarded;
             forward((event.clientX - rect.left) / rect.width,
                 (event.clientY - rect.top) / rect.height,
                 event.deltaX * multiplier, event.deltaY * multiplier,
@@ -3608,7 +3616,7 @@ int main(int argc, char* argv[])
         // Qt/WASM does not inherit the browser's native emoji font fallback.
         // Load our verified Unicode fallback before creating any QML text.
         if (loadApplicationFont(QStringLiteral(
-                ":/qt/qml/Farcaster/Client/assets/fonts/NotoEmoji-wasm.ttf")).isEmpty()) {
+                ":/qt/qml/Farcaster/Client/assets/fonts/NotoColorEmoji-wasm.ttf")).isEmpty()) {
             return 2;
         }
 #endif
