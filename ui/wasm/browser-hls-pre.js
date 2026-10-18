@@ -74,20 +74,43 @@
     sheet.setAttribute("role", "dialog");
     sheet.setAttribute("aria-modal", "true");
     sheet.setAttribute("aria-label", String(title || "Video").slice(0, 100));
+    sheet.className = "genycaster-hls-modal";
+    const style = document.createElement("style");
+    style.textContent = `
+      #genycaster-browser-hls .gc-hls-header { flex-shrink:0; }
+      #genycaster-browser-hls .gc-hls-stage { flex:1; min-height:0; display:flex;
+        align-items:center; justify-content:center; padding:12px;
+        box-sizing:border-box; overflow:hidden; }
+      #genycaster-browser-hls .gc-hls-video { width:100%; max-width:1100px;
+        height:auto; max-height:100%; aspect-ratio:16/9; object-fit:contain;
+        border-radius:12px; background:#000; }
+      #genycaster-browser-hls .gc-hls-status { min-height:22px; flex-shrink:0; }
+      @media (orientation:landscape) and (max-height:520px) {
+        #genycaster-browser-hls .gc-hls-header { min-height:44px !important; padding:4px 14px !important; }
+        #genycaster-browser-hls .gc-hls-stage { padding:4px 12px !important; }
+        #genycaster-browser-hls .gc-hls-video { max-width:min(100%, 900px); }
+        #genycaster-browser-hls .gc-hls-status { padding:4px 12px !important; }
+      }`;
+    sheet.append(style);
     Object.assign(sheet.style, {
       position: "fixed", inset: "0", zIndex: "2147483001",
-      background: "#080a0e", color: "#f8f9fc", display: "flex",
+      background: "#0b0c0f", color: "#f8f9fc", display: "flex",
       flexDirection: "column", fontFamily: "system-ui, sans-serif",
       paddingTop: "env(safe-area-inset-top, 0px)",
       paddingBottom: "env(safe-area-inset-bottom, 0px)"
     });
     const header = document.createElement("header");
+    header.className = "gc-hls-header";
     Object.assign(header.style, {
       display: "flex", alignItems: "center", gap: "12px", minHeight: "58px",
-      padding: "8px 16px", borderBottom: "1px solid #282c35", boxSizing: "border-box"
+      padding: "8px 16px", borderBottom: "1px solid #282c35", boxSizing: "border-box",
+      background: "#17191f"
     });
     const heading = document.createElement("strong");
-    heading.textContent = String(title || url.hostname).slice(0, 100);
+    // Avoid the backend's generic 'Farcaster video' caption for a public
+    // stream. A hostname subtitle makes provenance visible to the user.
+    heading.textContent = String(title && title !== 'Farcaster video'
+      ? title : (persian ? 'پخش ویدیو' : 'Video player')).slice(0, 100);
     Object.assign(heading.style, { flex: "1", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" });
     const external = document.createElement("button");
     external.textContent = persian ? "باز کردن لینک" : "Open original";
@@ -96,9 +119,10 @@
     dismiss.setAttribute("aria-label", persian ? "بستن ویدیو" : "Close video");
     for (const button of [external, dismiss]) {
       Object.assign(button.style, {
-        border: "1px solid #444b5c", borderRadius: "9px",
-        padding: "8px 12px", color: "inherit", background: "#232936",
-        cursor: "pointer", fontSize: button === dismiss ? "22px" : "13px"
+        border: "1px solid #434752", borderRadius: "12px", minHeight: "44px",
+        minWidth: button === dismiss ? "44px" : "96px",
+        padding: "8px 12px", color: "#f8f9fc", background: "#262a33",
+        cursor: "pointer", fontSize: button === dismiss ? "24px" : "14px"
       });
     }
     external.addEventListener("click", () => window.open(url.href, "_blank", "noopener,noreferrer"));
@@ -113,12 +137,15 @@
     video.setAttribute("webkit-playsinline", "");
     video.setAttribute("controlsList", "nodownload");
     video.crossOrigin = "anonymous";
-    Object.assign(video.style, {
-      display: "block", background: "#000", width: "100%",
-      flex: "1", minHeight: "0", objectFit: "contain"
-    });
+    video.className = "gc-hls-video";
+    // A Cloudflare Stream HLS manifest has a canonical poster available
+    // without decoding video frames during feed scrolling.
+    const streamId = /^\/([a-zA-Z0-9_-]{20,128})\/manifest\/video\.m3u8$/i.exec(url.pathname);
+    if (streamId && /^(?:videodelivery\.net|[^.]+\.videodelivery\.net|[^.]+\.cloudflarestream\.com)$/.test(url.hostname))
+      video.poster = url.origin + '/' + streamId[1] + '/thumbnails/thumbnail.jpg?time=1s&height=720';
     const status = document.createElement("div");
     status.setAttribute("role", "status");
+    status.className = "gc-hls-status";
     status.textContent = persian ? "در حال آماده‌سازی ویدیو…" : "Preparing video…";
     Object.assign(status.style, {
       textAlign: "center", padding: "10px 16px", color: "#b7bed1", fontSize: "13px"
@@ -129,7 +156,10 @@
         ? "پخش در این مرورگر ممکن نشد؛ لینک اصلی را باز کنید."
         : "This browser cannot play the stream. Open the original link.";
     });
-    sheet.append(header, video, status);
+    const stage = document.createElement("main");
+    stage.className = "gc-hls-stage";
+    stage.append(video);
+    sheet.append(header, stage, status);
     document.body.append(sheet);
     state.overlay = sheet;
     state.video = video;

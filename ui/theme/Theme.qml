@@ -1,7 +1,20 @@
 pragma Singleton
 import QtQuick
+import QtCore
 
 QtObject {
+    // User-owned, device-local media preferences. Keep them independent of
+    // reduced UI motion: accessibility and battery-saving have different goals.
+    property Settings energyPreferences: Settings {
+        category: "MediaPowerSave"
+        property bool enabled: false
+        property bool animateAvatars: true
+    }
+    readonly property bool powerSave: energyPreferences.enabled
+    readonly property bool animateAvatars: energyPreferences.animateAvatars
+    function setPowerSave(enabled) { energyPreferences.enabled = Boolean(enabled) }
+    function setAnimateAvatars(enabled) { energyPreferences.animateAvatars = Boolean(enabled) }
+
     readonly property bool dark: appearanceController.effectiveDark
     readonly property bool reduceMotion: appearanceController.reduceMotion
     readonly property string mode: appearanceController.themeMode

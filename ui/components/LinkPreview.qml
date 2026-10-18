@@ -546,7 +546,7 @@ Superellipse {
                     fillMode: Image.PreserveAspectFit
                     cache: true
                     visible: root.animatedPosterUrl.length > 0 && status === AnimatedImage.Ready
-                    playing: visible && !root.scrollMoving
+                    playing: visible && !Theme.powerSave
                     smooth: true
                 }
 

@@ -2474,6 +2474,22 @@
             <source>Open settings</source>
             <translation>Open settings</translation>
         </message>
+        <message id="genycaster.settings.power_save">
+            <source>Power Save</source>
+            <translation>Power Save</translation>
+        </message>
+        <message id="genycaster.settings.power_save_description">
+            <source>Reduce background animation and animated media to save battery.</source>
+            <translation>Reduce background animation and animated media to save battery.</translation>
+        </message>
+        <message id="genycaster.settings.animate_avatars">
+            <source>Animated profile pictures</source>
+            <translation>Animated profile pictures</translation>
+        </message>
+        <message id="genycaster.settings.animate_avatars_description">
+            <source>Keep GIF avatars moving while browsing and scrolling.</source>
+            <translation>Keep GIF avatars moving while browsing and scrolling.</translation>
+        </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>
             <translation>Reduce motion</translation>

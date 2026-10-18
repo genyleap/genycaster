@@ -207,15 +207,13 @@ Popup {
                                                    ? currentMediaRect
                                                    : Qt.rect(0, 0, width, height)
 
-        // Controls intentionally float over the painted media rather than a
-        // reserved header band. This keeps Close and the counter on-image even
-        // when PreserveAspectFit introduces letterbox space around wide media.
+        // Viewer controls belong to fixed safe viewport edges, never the
+        // moving image's painted bounds. Portrait and landscape are identical.
         RowLayout {
             z: 20
-            x: Math.max(Theme.space3, parent.chromeRect.x + Theme.space3)
-            y: Math.max(Theme.space3, parent.chromeRect.y + Theme.space3)
-            width: Math.max(0, Math.min(parent.width - x - Theme.space3,
-                                        parent.chromeRect.width - Theme.space3 * 2))
+            x: Theme.space3
+            y: Math.max(Theme.space3, root.height > root.width && root.width < 700 ? 48 : Theme.space3)
+            width: Math.max(0, parent.width - Theme.space3 * 2)
             layoutDirection: Theme.uiDirection
             spacing: Theme.space2
 

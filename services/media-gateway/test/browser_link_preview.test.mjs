@@ -32,8 +32,12 @@ test('extracts actual metadata, decodes HTML entities, and rejects unsafe images
   assert.equal(result.summary,'A real account page for Genyleap');
   assert.equal(result.siteName,'Genyleap');
   assert.equal(result.previewImage,'');
+  assert.equal(result.verifiedImageUrl,'');
   const safe=extractOpenGraph('<meta property="og:image" content="https://assets.geckoterminal.com/public-logo.png"><title>Token</title>',new URL('https://example.org'));
   assert.ok(safe.previewImage.startsWith('image://remote/'));
+  const separate=extractOpenGraph('<meta property="og:image" content="https://cdn.example.org/post.jpg"><title>Page</title>',new URL('https://example.org'));
+  assert.equal(separate.verifiedImageUrl,'https://cdn.example.org/post.jpg');
+  assert.ok(separate.previewImage.startsWith('image://remote/'));
   const unsafe=extractOpenGraph('<meta property="og:image" content="http://127.0.0.1/logo.png"><title>Private</title>',new URL('https://example.org'));
   assert.equal(unsafe.previewImage,'');
 });

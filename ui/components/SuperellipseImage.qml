@@ -428,7 +428,10 @@ Item {
         asynchronous: true
         cache: true
         visible: root.animatedGifUrl.length > 0 && status === AnimatedImage.Ready
-        playing: visible && !root.scrollMoving && root.visible
+        // Scrolling does not pause an animated profile or image. The user
+        // controls animation explicitly in Power Save / Animated avatars.
+        playing: visible && root.visible && !Theme.powerSave
+                 && (root.mediaCategory !== "avatars" || Theme.animateAvatars)
         smooth: true
         // The shared mask texture exists only after the still-image layer is
         // ready. Never apply a missing mask to an otherwise valid GIF.

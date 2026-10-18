@@ -417,6 +417,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   const tokenSnapshots = new Map();
   const miniAppPreviews = new Map();
   const webLinkPreviews = new Map();
+  const verifiedLinkImages = new Map();
   let refreshIconsPromise = null;
   let lastIconRefreshAttempt = -Infinity;
 
@@ -537,7 +538,14 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       const rate = limiter.check(clientAddress(request,config.trustCloudflare),runtime.now());
       if (!rate.allowed) {writeJson(response,429,{error:'rate_limited'});return;}
       const resolved = await publicLinkPreview(rawUrl);
-      const body = resolved.status === 200 ? resolved.data : {error:resolved.error};
+      const body = resolved.status === 200 ? {...resolved.data} : {error:resolved.error};
+      if (body.verifiedImageUrl) {
+        if (verifiedLinkImages.size > 240) verifiedLinkImages.clear();
+        verifiedLinkImages.set(body.verifiedImageUrl, runtime.now()+600000);
+        // URL leases stay private to the gateway. Only a canonical
+        // image://remote source is exposed to browser clients.
+        delete body.verifiedImageUrl;
+      }
       if (webLinkPreviews.size > 240) webLinkPreviews.clear();
       if (resolved.status !== 400)
         webLinkPreviews.set(rawUrl,{status:resolved.status,body,expires:runtime.now()+300000});
@@ -792,13 +800,22 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       }
       const requested = requestUrl.searchParams.get('url');
       let allowedHosts;
-      // First-party icon catalogue URLs may live outside the static CDN
-      // allowlist, but must match an exact catalogue icon. Refresh the
+      // First-party catalogue icons and verified OpenGraph images may live
+      // outside the static CDN allowlist. Both must match an exact short-lived
+      // server-validated URL, never a user-supplied arbitrary image source. Refresh the
       // verified set lazily after a server restart or browser cache hit.
       if (typeof requested === 'string' && !validImageUrl(requested)) {
+        if ((verifiedLinkImages.get(requested) || 0) > runtime.now()) {
+          try {
+            const checked = new URL(requested);
+            if (checked.protocol === 'https:' && !checked.username && !checked.password
+                && !checked.hash && (!checked.port || checked.port === '443'))
+              allowedHosts = [...defaultBrowserImageHosts, checked.hostname];
+          } catch {}
+        }
         let candidate = null;
         try { candidate = new URL(requested); } catch {}
-        if (candidate?.protocol === 'https:' && !candidate.username
+        if (!allowedHosts && candidate?.protocol === 'https:' && !candidate.username
             && !candidate.password && !candidate.hash && (!candidate.port || candidate.port === '443')) {
           if ((verifiedMiniAppIcons.get(candidate.href) || 0) <= runtime.now())
             await refreshMiniAppIconCatalogue();

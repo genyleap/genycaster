@@ -27,9 +27,15 @@ Item {
                                             || root.embed.variants || []
     readonly property string contentType: String(root.embed.contentType
                                                  || root.embed.mediaType || "")
+    // The read-model already derives Cloudflare Stream thumbnails. Keep
+    // alternate embed poster field names for feeds from other providers.
     readonly property string thumbnailSource: String(root.embed.imageSource
                                                       || root.embed.thumbnail
-                                                      || root.embed.previewImage || "")
+                                                      || root.embed.previewImage
+                                                      || root.embed.thumbnailUrl
+                                                      || root.embed.posterUrl
+                                                      || root.embed.poster
+                                                      || root.embed.coverImage || "")
     readonly property string mediaLabel: String(root.embed.fileName
                                                 || root.embed.host
                                                 || root.embed.domain || "")

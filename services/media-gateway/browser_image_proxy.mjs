@@ -14,6 +14,9 @@ export const defaultBrowserImageHosts = [
   // image hosts recognized by the C++ Cast embed classifier.
   'media.tenor.com', 'media.giphy.com', 'lh3.googleusercontent.com', 'imagekit.io',
   'assets.geckoterminal.com', 'assets.foundly.dev',
+  // Cloudflare Stream exposes a deterministic raster poster for public video
+  // manifests. Only the /thumbnails/thumbnail.jpg asset is admissible here.
+  'videodelivery.net', 'cloudflarestream.com',
   'atgif.com', 'universal-caster-income.vercel.app',
   'pub-2fb244e19fde48759a9cc4dfb18ababf.r2.dev',
 ];
@@ -30,6 +33,9 @@ export function validImageUrl(rawUrl, allowedHosts = defaultBrowserImageHosts) {
   // First-party media must be a published asset, not a recursive gateway URL.
   if (hostname === 'media-farcaster.genyleap.com' &&
       !parsed.pathname.startsWith('/m/')) return null;
+  if ((hostname === 'videodelivery.net' || hostname.endsWith('.videodelivery.net')
+       || hostname.endsWith('.cloudflarestream.com'))
+      && !/^\/[a-zA-Z0-9_-]{20,128}\/thumbnails\/thumbnail\.jpg$/.test(parsed.pathname)) return null;
   parsed.hash = '';
   return parsed;
 }

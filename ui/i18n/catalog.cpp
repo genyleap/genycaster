@@ -898,6 +898,14 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.settings.mode_system");
     //% "Open settings"
     (void)qtTrId("genycaster.settings.open");
+    //% "Power Save"
+    (void)qtTrId("genycaster.settings.power_save");
+    //% "Reduce background animation and animated media to save battery."
+    (void)qtTrId("genycaster.settings.power_save_description");
+    //% "Animated profile pictures"
+    (void)qtTrId("genycaster.settings.animate_avatars");
+    //% "Keep GIF avatars moving while browsing and scrolling."
+    (void)qtTrId("genycaster.settings.animate_avatars_description");
     //% "Reduce motion"
     (void)qtTrId("genycaster.settings.reduce_motion");
     //% "Removes repeated and spatial animation while keeping status changes visible."

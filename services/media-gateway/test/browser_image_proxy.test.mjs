@@ -20,6 +20,9 @@ test('public image URL policy rejects credentialed/non-HTTPS/internal destinatio
                  hostname, hostname);
   }
   assert.equal(validImageUrl('https://imagekit.io.evil.test/file'), null);
+  assert.equal(validImageUrl('https://videodelivery.net/0123456789abcdef0123456789abcdef/thumbnails/thumbnail.jpg?time=1s')?.hostname,'videodelivery.net');
+  assert.equal(validImageUrl('https://videodelivery.net/0123456789abcdef0123456789abcdef/manifest/video.m3u8'),null);
+  assert.equal(validImageUrl('https://videodelivery.net/private/metadata'),null);
 });
 
 test('DNS pinning denies local/nonpublic and accepts public addresses', () => {

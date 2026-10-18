@@ -997,6 +997,89 @@ GenyDrawer {
 
                     Rectangle { Layout.fillWidth: true; height: 1; color: Theme.divider }
 
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.settings.power_save")
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeTitle3Size
+                        font.weight: Theme.weightDemiBold
+                    }
+                    // Power Save is colocated with Reduce Motion so mobile and
+                    // desktop share one discoverable animation preference group.
+                    Superellipse {
+                        Layout.fillWidth: true
+                        implicitHeight: energyRow.implicitHeight + Theme.space3 * 2
+                        fillColor: Theme.surfaceMuted
+                        curveDepth: Theme.curveContainer
+                        RowLayout {
+                            id: energyRow
+                            anchors.fill: parent
+                            anchors.margins: Theme.space3
+                            spacing: Theme.space3
+                            layoutDirection: Theme.uiDirection
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.space1
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: qsTrId("genycaster.settings.power_save")
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeLabelSize
+                                    font.weight: Theme.weightDemiBold
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: qsTrId("genycaster.settings.power_save_description")
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    wrapMode: Text.Wrap
+                                }
+                            }
+                            GenySwitch {
+                                checked: Theme.powerSave
+                                onToggled: Theme.setPowerSave(checked)
+                                Accessible.name: qsTrId("genycaster.settings.power_save")
+                            }
+                        }
+                    }
+
+                    Superellipse {
+                        Layout.fillWidth: true
+                        implicitHeight: avatarMotionRow.implicitHeight + Theme.space3 * 2
+                        fillColor: Theme.surfaceMuted
+                        curveDepth: Theme.curveContainer
+                        RowLayout {
+                            id: avatarMotionRow
+                            anchors.fill: parent
+                            anchors.margins: Theme.space3
+                            spacing: Theme.space3
+                            layoutDirection: Theme.uiDirection
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.space1
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: qsTrId("genycaster.settings.animate_avatars")
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeLabelSize
+                                    font.weight: Theme.weightDemiBold
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: qsTrId("genycaster.settings.animate_avatars_description")
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    wrapMode: Text.Wrap
+                                }
+                            }
+                            GenySwitch {
+                                checked: Theme.animateAvatars
+                                onToggled: Theme.setAnimateAvatars(checked)
+                                Accessible.name: qsTrId("genycaster.settings.animate_avatars")
+                            }
+                        }
+                    }
+
                     Superellipse {
                         Layout.fillWidth: true
                         implicitHeight: reduceMotionRow.implicitHeight + Theme.space3 * 2

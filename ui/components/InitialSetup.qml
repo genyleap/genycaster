@@ -1045,6 +1045,12 @@ Item {
                             checked: appearanceController.reduceMotion
                             onToggled: appearanceController.setReduceMotion(checked)
                         }
+                        GenySwitch {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.settings.power_save")
+                            checked: Theme.powerSave
+                            onToggled: Theme.setPowerSave(checked)
+                        }
                     }
                 }
             }

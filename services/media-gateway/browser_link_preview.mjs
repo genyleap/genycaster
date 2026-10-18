@@ -47,12 +47,18 @@ export function extractOpenGraph(html, pageUrl) {
   const siteName=String(meta.get('og:site_name')||pageUrl.hostname).slice(0,100);
   const media=String(meta.get('og:image:secure_url')||meta.get('og:image')||meta.get('twitter:image')||'');
   let previewImage='';
+  let verifiedImageUrl='';
   try {
     const candidate=new URL(media,pageUrl);
-    if (validImageUrl(candidate.href))
+    // Image sources embedded in a publicly fetched HTML page are verified
+    // exact URLs, not an invitation for arbitrary image proxy requests. The
+    // gateway grants a short-lived, URL-exact lease and rechecks DNS safety.
+    if (media.length > 0 && safePreviewPage(candidate.href)) {
+      verifiedImageUrl=candidate.href;
       previewImage='image://remote/'+Buffer.from(candidate.href,'utf8').toString('base64url');
+    }
   }catch{}
-  return {resolved:true,providerKind:'web',domain:pageUrl.hostname,title,summary,siteName,previewImage};
+  return {resolved:true,providerKind:'web',domain:pageUrl.hostname,title,summary,siteName,previewImage,verifiedImageUrl};
 }
 
 async function getHtml(url,{lookupHost=lookup,requester=https.request,depth=0}={}) {

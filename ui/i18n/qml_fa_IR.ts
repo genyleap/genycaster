@@ -2474,6 +2474,22 @@
             <source>Open settings</source>
             <translation>باز کردن تنظیمات</translation>
         </message>
+        <message id="genycaster.settings.power_save">
+            <source>Power Save</source>
+            <translation>صرفه‌جویی انرژی</translation>
+        </message>
+        <message id="genycaster.settings.power_save_description">
+            <source>Reduce background animation and animated media to save battery.</source>
+            <translation>برای مصرف کمتر باتری، پخش رسانه‌های متحرک و جلوه‌های پس‌زمینه را کاهش می‌دهد.</translation>
+        </message>
+        <message id="genycaster.settings.animate_avatars">
+            <source>Animated profile pictures</source>
+            <translation>تصاویر متحرک پروفایل</translation>
+        </message>
+        <message id="genycaster.settings.animate_avatars_description">
+            <source>Keep GIF avatars moving while browsing and scrolling.</source>
+            <translation>گیف‌های پروفایل هنگام مرور و پیمایش متحرک بمانند.</translation>
+        </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>
             <translation>کاهش حرکت</translation>
