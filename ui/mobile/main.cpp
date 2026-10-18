@@ -3665,7 +3665,7 @@ void connectBrowserMediaUpload(
                 stringToUTF8(value,$0,$1);
                 return 1;
             },buffer.data(),buffer.size());
-            if(received===0)return;
+            if(received == 0) return;
             if(received<0)continue;
             const QJsonDocument json=QJsonDocument::fromJson(buffer.data());
             if(!json.isObject())continue;
