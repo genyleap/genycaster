@@ -4,12 +4,23 @@ import {readFileSync} from "node:fs";
 
 const read = name => readFileSync(new URL("../../"+name,import.meta.url),"utf8");
 
-test("Like always uses a standard heart independent of cast text",()=>{
+test("Like retains contextual cast reactions with heart-filled default",()=>{
     const bar=read("ui/components/EngagementBar.qml");
-    assert.match(bar,/readonly property string displayedLikeIcon: root\.likedByMe/);
-    assert.match(bar,/"actions\/heart-filled" : "actions\/heart"/);
+    assert.match(bar,/contextualLikeIcon: presentationBridge\.contextualReactionIcon\(root\.contextText\)/);
+    assert.match(bar,/root\.likedByMe && root\.contextualLikeIcon === "actions\/heart"/);
     assert.match(bar,/iconGlyph: root\.displayedLikeIcon/);
-    assert.doesNotMatch(bar,/contextualLikeIcon/);
+    assert.match(bar,/"actions\/heart-filled"/);
+});
+
+test("Home greeting displays authenticated account avatar and DNA for guests",()=>{
+    const home=read("ui/components/HomeDashboard.qml");
+    const shell=read("ui/components/AppShell.qml");
+    assert.match(shell,/avatarUrl: presentationBridge\.accountAvatarUrl/);
+    assert.match(shell,/authenticated: presentationBridge\.isAuthenticated/);
+    assert.equal((home.match(/avatarSize: (62|54)/g)||[]).length,2);
+    assert.equal((home.match(/sourceUrl: root\.avatarUrl/g)||[]).length,2);
+    assert.equal((home.match(/visible: root\.authenticated && root\.avatarUrl\.length > 0/g)||[]).length,2);
+    assert.equal((home.match(/visible: !root\.authenticated \|\| root\.avatarUrl\.length === 0/g)||[]).length,2);
 });
 
 test("Mini App artwork supports manifest aliases and a visible offline fallback",()=>{

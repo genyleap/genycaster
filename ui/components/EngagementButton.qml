@@ -31,7 +31,14 @@ Button {
         layoutDirection: Theme.uiDirection
         spacing: control.metricText.length > 0 ? Theme.space1 : 0
 
+        // Give every contextual reaction a stable square viewport. Some SVGs
+        // have non-square intrinsic viewBoxes; never stretch the image to fill
+        // the metric row or allow its geometry to alter the action height.
         Icon {
+            Layout.preferredWidth: Math.max(22, control.iconSize + 4)
+            Layout.preferredHeight: Math.max(22, control.iconSize + 4)
+            Layout.alignment: Qt.AlignVCenter
+            clip: true
             text: control.iconGlyph
             filled: control.iconFilled
             color: control.active ? Theme.accent : (control.enabled ? Theme.inkMuted : Theme.inkDisabled)

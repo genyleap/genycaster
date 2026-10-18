@@ -179,11 +179,19 @@ Item {
                         fillColor: "transparent"
                         borderWidth: 0
                         curveDepth: 33
+                        Avatar {
+                            anchors.centerIn: parent
+                            avatarSize: 62
+                            sourceUrl: root.avatarUrl
+                            displayName: root.displayName || root.username
+                            visible: root.authenticated && root.avatarUrl.length > 0
+                        }
                         Icon {
                             anchors.centerIn: parent
                             text: Theme.iconLeaf
                             color: Theme.accent
                             preferredSize: 42
+                            visible: !root.authenticated || root.avatarUrl.length === 0
                         }
                     }
 
@@ -336,7 +344,20 @@ Item {
                 fillColor: "transparent"
                 borderWidth: 0
                 curveDepth: 28
-                Icon { anchors.centerIn: parent; text: Theme.iconLeaf; color: Theme.accent; preferredSize: 42 }
+                Avatar {
+                    anchors.centerIn: parent
+                    avatarSize: 54
+                    sourceUrl: root.avatarUrl
+                    displayName: root.displayName || root.username
+                    visible: root.authenticated && root.avatarUrl.length > 0
+                }
+                Icon {
+                    anchors.centerIn: parent
+                    text: Theme.iconLeaf
+                    color: Theme.accent
+                    preferredSize: 42
+                    visible: !root.authenticated || root.avatarUrl.length === 0
+                }
             }
             DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.width < 420 ? Theme.typeTitle2Size : Theme.typeTitle1Size; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
             DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.prompt"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }

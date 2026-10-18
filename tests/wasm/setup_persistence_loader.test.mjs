@@ -136,16 +136,16 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     // An 8-byte native response can complete immediately: the optional
     // first-run clone accurately moves Download → Install on full consumption.
     assert.equal(elements.get('genycaster-boot').dataset.phase,'install');
-    assert.equal(elements.get('boot-stage').textContent,'Installing runtime');
+    assert.equal(elements.get('boot-stage').textContent,'Preparing application');
     const entry={name:'https://example.test/'+hashedWasm,responseEnd:20,transferSize:8,decodedBodySize:8};
     timingEntries.set(entry.name,[entry]);
     observeResources({getEntries:()=>[entry]});
     assert.equal(elements.get('genycaster-boot').dataset.phase,'install');
-    assert.equal(elements.get('boot-stage').textContent,'Installing runtime');
+    assert.equal(elements.get('boot-stage').textContent,'Preparing application');
     monitorDependencies(0);
     assert.equal(elements.get('genycaster-boot').dataset.phase,'interface');
-    assert.equal(elements.get('boot-heading').textContent,'Opening Social Interface');
-    assert.equal(elements.get('boot-stage').textContent,'Opening interface');
+    assert.equal(elements.get('boot-heading').textContent,'Opening Genycaster…');
+    assert.equal(elements.get('boot-stage').textContent,'Almost ready');
     assert.equal(elements.get('boot-percent').textContent,'');
     assert.equal(elements.get('genycaster-boot').hidden,false);
     loadedCallback();
@@ -336,19 +336,20 @@ test('Qt button rings use keyboard focus, never persistent pointer-focus borders
     }
 });
 
-test('WASM splash keeps all stage circles fixed and shows release version and build',()=>{
+test('WASM splash is single-stage, retains original mark and build footer',()=>{
     const cmake=read('ui/CMakeLists.txt');
     const pack=read('tools/package_wasm_assets.py');
-    assert.match(html,/\.boot-dot\{[^}]*flex:0 0 18px/);
-    assert.match(html,/\.boot-journey li\{[^}]*flex:0 0 auto/);
+    assert.doesNotMatch(html,/class="boot-journey/);
+    assert.match(html,/genycaster-brand\.svg/);
+    assert.match(html,/Powered by <strong>Genyleap<\/strong> · WASM Engine/);
     assert.doesNotMatch(html,/box-shadow:0 0 0 4px/);
     assert.doesNotMatch(html,/id="boot-version"/);
     assert.match(html,/<sup class="boot-beta">Beta 1\.0<\/sup>/);
-    assert.match(html,/id="boot-note"/);
+    assert.doesNotMatch(html,/id="boot-note"/);
     assert.match(html,/id="boot-build-credit"/);
     assert.match(cmake,/--app-version "\$\{PROJECT_VERSION\}"/);
     assert.match(pack,/"buildId": fingerprint\[:8\]/);
     assert.doesNotMatch(loader,/versionLabel/);
-    assert.match(loader,/if\(bootNote\)bootNote\.textContent/);
+    assert.doesNotMatch(loader,/bootNote/);
     assert.match(loader,/if\(creditBuild\)creditBuild\.textContent/);
 });

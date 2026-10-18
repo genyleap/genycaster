@@ -55,12 +55,12 @@ test("Boot Beta badge and footer remain in separate non-overlapping rows",()=>{
     const html=read("ui/wasm/genycaster-shell.html");
     const loader=read("ui/wasm/genycaster-loader.js");
     assert.match(html,/<sup class="boot-beta">Beta 1\.0<\/sup>/);
-    assert.match(html,/class="boot-note" id="boot-note"/);
+    assert.doesNotMatch(html,/id="boot-note"/);
     assert.doesNotMatch(html,/id="boot-version"/);
     assert.match(html,/class="boot-credit"><div>Powered by <strong>Genyleap<\/strong> · WASM Engine<\/div><div class="boot-build" id="boot-build-credit"/);
     assert.match(html,/\.boot-credit\{[^}]*flex-direction:column/);
     assert.match(html,/\.boot-beta\{[^}]*transform:translateY/);
-    for(const label of ["Explore conversations","Connect with communities","Create and share on Farcaster"])
+    for(const label of ["Preparing Genycaster…","Starting Genycaster…","Opening Genycaster…"])
         assert.ok(loader.includes(label),label);
     assert.match(loader,/if\(creditBuild\)creditBuild\.textContent=buildLabel/);
     assert.match(html,/#qt-screen canvas\{touch-action:none/);

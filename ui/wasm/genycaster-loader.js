@@ -56,7 +56,7 @@ const releaseLabel=typeof releaseInfo.releaseLabel==="string"
     ? releaseInfo.releaseLabel : "";
 const buildLabel=(releaseLabel||(applicationVersion?"v"+applicationVersion:""))
     +(buildId?(applicationVersion?" · ":"")+"Build "+buildId:"");
-const creditBuild=$("boot-build-credit"), bootNote=$("boot-note");
+const creditBuild=$("boot-build-credit");
 if(creditBuild)creditBuild.textContent=buildLabel;
 let seen=false, previousVersion="";
 try{
@@ -78,12 +78,19 @@ function showPhase(phase,title,detail,label){
     bootPhase=phase;
     if(boot?.dataset)boot.dataset.phase=phase;
     if(leavingDownload)preparing();
-    track?.setAttribute?.("aria-valuetext",label);
-    announce(title,detail,label);
-    if(bootNote)bootNote.textContent=phase==="download"
-        ? "Explore conversations"
-        : phase==="install" ? "Connect with communities"
-        : "Create and share on Farcaster";
+    // Preserve the real loader state machine for first install, updates and
+    // warm starts, but expose only one human-readable status to the user.
+    const display={
+        download:[updating?"Updating Genycaster…":"Preparing Genycaster…",
+                  "Downloading app files"],
+        install:["Starting Genycaster…","Preparing application"],
+        initialize:["Starting Genycaster…","Preparing application"],
+        interface:["Opening Genycaster…","Almost ready"],
+        ready:["Genycaster is ready","Ready"]
+    }[phase];
+    const [headline,progressLabel]=display;
+    track?.setAttribute?.("aria-valuetext",progressLabel);
+    announce(headline,detail,progressLabel);
 }
 if(installing)
     showPhase("download",updating?"Downloading Update":"Downloading App Resources",
@@ -327,7 +334,6 @@ async function start() {
                     track?.setAttribute?.("aria-valuenow","100");
                     track?.setAttribute?.("aria-valuetext","Ready");
                     bootPhase="ready";
-                    if(bootNote)bootNote.textContent="Create and share on Farcaster";
                     finished=true;
                     const timing=wasmResourceUrl?wasmTiming(wasmResourceUrl):null;
                     // A worker-handled request is not proof of a cache hit.
@@ -346,11 +352,11 @@ async function start() {
                         localStorage.setItem(key,"1");
                         if(currentVersion)localStorage.setItem(versionKey,currentVersion);
                     }catch{}
-                    announce("Social Workspace Ready","Opening your social interface…","Ready");
+                    announce("Genycaster is ready","Opening your social interface…","Ready");
                     fill.classList.add("measured");fill.style.width="100%";
                     percent.textContent="";
                     boot.classList.add("finished");
-                    window.setTimeout(()=>{boot.hidden=true;},400);
+                    window.setTimeout(()=>{boot.hidden=true;},280);
                 },
                 onExit:exit=>{
                     if(!finished)fail(new Error(

@@ -200,10 +200,9 @@ test('Safari touch icons and responsive stage indicators ship from one public ro
     assert.match(html,/rel="apple-touch-icon" sizes="180x180" href="\.\/apple-touch-icon\.png"/);
     assert.match(cmake,/apple-touch-icon-precomposed\.png/);
     assert.match(cmake,/apple-touch-icon\.png/);
-    assert.match(html,/class="boot-journey install-journey"/);
-    assert.match(html,/class="boot-journey warm-journey"/);
-    assert.match(html,/Initializing|Preparing Social Workspace/);
-    assert.doesNotMatch(html,/Initializing Genycaster/);
+    assert.doesNotMatch(html,/class="boot-journey/);
+    assert.match(html,/Preparing Genycaster…/);
+    assert.match(html,/id="boot-track"/);
 });
 
 test('bootstrap uses actual original Geny SVG, not a home-made DNA',()=>{
