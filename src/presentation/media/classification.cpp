@@ -249,9 +249,21 @@ struct UrlParts final {
 
     if (host == "i.imgur.com" || host == "media.tenor.com"
         || host == "media.giphy.com" || host == "pbs.twimg.com"
-        || host == "cdn.farcaster.xyz" || host == "i.seadn.io"
+        || host == "cdn.farcaster.xyz" || host == "cdn.warpcast.com"
+        || host == "wrpcd.net" || host == "i.seadn.io"
         || host == "lh3.googleusercontent.com" || host == "imagedelivery.net") {
         return true;
+    }
+    // These paths serve media bytes, not arbitrary site pages. Recognizing
+    // opaque Cast embeds here also works on WASM, where native HTML/HEAD
+    // metadata crawling is deliberately unavailable.
+    if (host == "media-farcaster.genyleap.com") {
+        const auto parts = parseHttpUrl(rawUrl);
+        return parts && parts->path.starts_with("/m/");
+    }
+    if (host == "res.cloudinary.com") {
+        const auto parts = parseHttpUrl(rawUrl);
+        return parts && parts->path.find("/image/upload/") != std::string::npos;
     }
     return endsWith(host, ".imagedelivery.net")
         || endsWith(host, ".imagekit.io")

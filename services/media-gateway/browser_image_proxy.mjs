@@ -10,6 +10,9 @@ export const defaultBrowserImageHosts = [
   'pbs.twimg.com', 'res.cloudinary.com', 'ipfs.io', 'gateway.pinata.cloud',
   'arweave.net', 'media-farcaster.genyleap.com', 'images.unsplash.com',
   'cdn.farcaster.xyz', 'i.seadn.io', 'media.discordapp.net', 'cdn.discordapp.com',
+  // Keep the browser's bounded raster-only retrieval compatible with the
+  // image hosts recognized by the C++ Cast embed classifier.
+  'media.tenor.com', 'media.giphy.com', 'lh3.googleusercontent.com', 'imagekit.io',
 ];
 export const maximumBrowserImageBytes = 8 * 1024 * 1024;
 

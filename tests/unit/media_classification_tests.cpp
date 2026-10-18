@@ -85,6 +85,25 @@ int main()
         "twitter video host is video");
     expectKind(MediaKind::Video, classifyUrl("https://stream.warpcast.com/abc"),
         "warpcast stream host is video");
+    expectKind(MediaKind::Image, classifyUrl("https://cdn.warpcast.com/opaque-asset"),
+        "warpcast CDN opaque image embed");
+    expectKind(MediaKind::Image, classifyUrl("https://wrpcd.net/opaque-asset"),
+        "wrpcd opaque image embed");
+    expectKind(MediaKind::Image, classifyUrl(
+        "https://media-farcaster.genyleap.com/m/v1/2026/10/image-opaque"),
+        "managed media opaque image embed");
+    expectKind(MediaKind::WebPage, classifyUrl(
+        "https://media-farcaster.genyleap.com/healthz"),
+        "managed-media host is not globally an image host");
+    expectKind(MediaKind::Image, classifyUrl(
+        "https://res.cloudinary.com/demo/image/upload/v1/opaque"),
+        "Cloudinary image-upload path is direct image media");
+    expectKind(MediaKind::WebPage, classifyUrl(
+        "https://res.cloudinary.com/demo/raw/upload/article"),
+        "Cloudinary non-image path stays a link");
+    expectKind(MediaKind::WebPage, classifyUrl(
+        "https://evil.test/https://cdn.warpcast.com/opaque"),
+        "a media hostname appearing in the path is not trusted");
 
     // -- Decoder-facing adaptive source hints ---------------------------------
     {

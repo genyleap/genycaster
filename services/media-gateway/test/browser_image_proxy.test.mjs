@@ -14,6 +14,12 @@ test('public image URL policy rejects credentialed/non-HTTPS/internal destinatio
   assert.equal(validImageUrl('https://imagedelivery.net/x/y/public')?.hostname, 'imagedelivery.net');
   assert.equal(validImageUrl('https://media-farcaster.genyleap.com/m/v1/file.jpg')?.hostname,
                'media-farcaster.genyleap.com');
+  for (const hostname of ['media.tenor.com', 'media.giphy.com',
+                          'lh3.googleusercontent.com', 'customer.imagekit.io']) {
+    assert.equal(validImageUrl('https://' + hostname + '/opaque-image')?.hostname,
+                 hostname, hostname);
+  }
+  assert.equal(validImageUrl('https://imagekit.io.evil.test/file'), null);
 });
 
 test('DNS pinning denies local/nonpublic and accepts public addresses', () => {
