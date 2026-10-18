@@ -45,8 +45,18 @@ Item {
     signal openRequested(string url)
 
     function requestPlayback() {
-        if (root.hasSource && !root.playbackRequested)
-            root.playbackRequested = true
+        if (!root.hasSource || root.playbackRequested) return
+        const candidate = root.adaptiveSource.length > 0 ? root.adaptiveSource : root.targetUrl
+        // Browser Qt Multimedia has inconsistent adaptive HLS support.
+        // Use the native Safari HTML video element or local hls.js/MSE instead.
+        if (Qt.platform.os === 'wasm' && /\.m3u8(?:[?#]|$)/i.test(candidate)) {
+            if (typeof mediaPlayback !== 'undefined'
+                    && mediaPlayback !== null
+                    && mediaPlayback.openBrowserHls(candidate)) return
+            root.openRequested(candidate)
+            return
+        }
+        root.playbackRequested = true
     }
 
     onVisibleChanged: {

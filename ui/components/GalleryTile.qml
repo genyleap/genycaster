@@ -3,6 +3,7 @@ import QtQuick.Shapes
 
 Item {
     id: root
+    clip: true
 
     property var embed: ({})
     property string continuationText: ""

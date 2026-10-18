@@ -21,7 +21,11 @@ Item {
                                           || sourceUrl.startsWith("qrc:/")
                                           || sourceUrl.startsWith("file:/")
                                           ? sourceUrl
-                                          : linkPreviewResolver.imageSourceForUrl(sourceUrl)
+                                          : sourceUrl.length > 0
+                                            && typeof linkPreviewResolver !== "undefined"
+                                            && linkPreviewResolver !== null
+                                            ? linkPreviewResolver.imageSourceForUrl(sourceUrl)
+                                            : ""
 
     implicitWidth: avatarSize
     implicitHeight: avatarSize

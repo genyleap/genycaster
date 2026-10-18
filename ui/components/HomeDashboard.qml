@@ -253,12 +253,13 @@ Item {
                 }
 
                 Superellipse {
+                    id: desktopComposerSurface
                     Layout.alignment: Qt.AlignHCenter
                     Layout.fillWidth: true
                     Layout.maximumWidth: 760
                     fillColor: Theme.surface
-                    borderWidth: 1
-                    borderColor: Theme.borderMuted
+                    borderWidth: desktopDraftEditor.activeFocus ? Theme.strokeEmphasis : 1
+                    borderColor: desktopDraftEditor.activeFocus ? Theme.accent : Theme.borderMuted
                     curveDepth: Theme.curveModal
                     implicitHeight: composerColumn.implicitHeight + Theme.space3 * 2
 
@@ -269,6 +270,7 @@ Item {
                         spacing: Theme.space2
 
                         TextArea {
+                            id: desktopDraftEditor
                             Layout.fillWidth: true
                             implicitHeight: 80
                             text: root.draftText
@@ -414,8 +416,8 @@ Item {
                 Layout.leftMargin: Theme.space3
                 Layout.rightMargin: Theme.space3
                 fillColor: Theme.surface
-                borderWidth: 1
-                borderColor: Theme.borderMuted
+                borderWidth: mobileDraftEditor.activeFocus ? Theme.strokeEmphasis : 1
+                borderColor: mobileDraftEditor.activeFocus ? Theme.accent : Theme.borderMuted
                 curveDepth: Theme.curveModal
                 implicitHeight: mobileComposer.implicitHeight + Theme.space3 * 2
                 ColumnLayout {

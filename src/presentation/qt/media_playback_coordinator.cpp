@@ -6,6 +6,10 @@
 #include <QSettings>
 #include <QUrl>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #include <utility>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
@@ -172,6 +176,25 @@ bool MediaPlaybackCoordinator::prepareForSource(
     Q_UNUSED(source);
 #endif
     return true;
+}
+
+bool MediaPlaybackCoordinator::openBrowserHls(const QString& source) const
+{
+#ifdef __EMSCRIPTEN__
+    const QUrl url{source};
+    if (!url.isValid() || url.scheme() != QLatin1StringView{"https"}
+        || url.host().isEmpty() || !url.path().endsWith(QLatin1StringView{".m3u8"})
+        || !url.userInfo().isEmpty() || source.size() > 2048) {
+        return false;
+    }
+    const QByteArray bytes = source.toUtf8();
+    return EM_ASM_INT({
+        return window.__genycasterBrowserHls?.open(UTF8ToString($0, $1), "Farcaster video") ? 1 : 0;
+    }, bytes.constData(), bytes.size()) != 0;
+#else
+    Q_UNUSED(source);
+    return false;
+#endif
 }
 
 qulonglong MediaPlaybackCoordinator::prepareSource(const QString& source)

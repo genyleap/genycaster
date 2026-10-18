@@ -928,21 +928,23 @@ Superellipse {
             property alias artworkItem: genericThumb
             property alias artworkFrameItem: genericThumbFrame
             width: root.width - content.anchors.leftMargin - content.anchors.rightMargin
-            layoutDirection: Theme.uiDirection
-            spacing: Theme.space3
+            // Telegram-style card: optional small artwork on the trailing
+            // edge; descriptive content stays at the leading edge.
+            layoutDirection: Qt.RightToLeft
+            spacing: Theme.space2
 
             Item {
                 id: genericThumbFrame
                 readonly property bool shouldReserve: root.reserveArtwork
                 visible: shouldReserve
-                Layout.preferredWidth: shouldReserve ? Math.max(88, Math.min(root.compact ? 112 : 138, root.width * 0.30)) : 0
-                Layout.preferredHeight: shouldReserve ? (root.compact ? 86 : 102) : 0
+                Layout.preferredWidth: shouldReserve ? (root.compact ? 66 : 86) : 0
+                Layout.preferredHeight: shouldReserve ? (root.compact ? 66 : 86) : 0
 
                 AmbientMediaBackdrop {
                     anchors.fill: parent
                     sourceItem: genericThumb.renderItem
-                    active: genericThumb.ready
-                    spread: 9
+                    active: false
+                    spread: 5
                     strength: Theme.dark ? 0.70 : 0.58
                     blurStrength: 1.0
                     saturation: 0.0
@@ -997,6 +999,7 @@ Superellipse {
 
             ColumnLayout {
                 Layout.fillWidth: true
+                layoutDirection: Qt.LeftToRight
                 spacing: Theme.space1
 
                 RowLayout {
@@ -1064,7 +1067,7 @@ Superellipse {
                 DirectionAwareLabel {
                     visible: root.titleText.length > 0
                     Layout.fillWidth: true
-                    Layout.preferredHeight: visible ? root.bodyLineHeight * 2 : 0
+                    Layout.preferredHeight: visible ? root.bodyLineHeight * (root.compact ? 1 : 2) : 0
                     Layout.minimumHeight: Layout.preferredHeight
                     Layout.maximumHeight: Layout.preferredHeight
                     verticalAlignment: Text.AlignTop
@@ -1072,7 +1075,7 @@ Superellipse {
                     color: Theme.textPrimary
                     font.pixelSize: Theme.typeBodySize
                     font.weight: Theme.weightDemiBold
-                    maximumLineCount: 2
+                    maximumLineCount: root.compact ? 1 : 2
                     wrapMode: Text.Wrap
                     elide: Text.ElideRight
                     textFormat: Text.PlainText
@@ -1094,8 +1097,9 @@ Superellipse {
                 }
 
                 RowLayout {
+                    visible: root.authorText.length > 0 || root.dateText.length > 0
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.captionLineHeight
+                    Layout.preferredHeight: visible ? root.captionLineHeight : 0
                     Layout.minimumHeight: Layout.preferredHeight
                     Layout.maximumHeight: Layout.preferredHeight
                     layoutDirection: Theme.uiDirection

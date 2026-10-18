@@ -311,7 +311,11 @@ Item {
                         // The inverse-vector corner cover occasionally leaves
                         // one-pixel seams on Safari/WebGL at fractional DPR.
                         // Use the same image-layer mask across all WASM tiles.
-                        useLayeredMask: Qt.platform.os === "wasm"
+                        // Use one alpha mask for the large single image on
+                        // Metal and for all browser/WebGL gallery tiles. This
+                        // removes inverse-vector antialias seams without adding
+                        // extra offscreen layers to every native mosaic tile.
+                        useLayeredMask: root.visibleCount === 1 || Qt.platform.os === "wasm"
                         ambientEnabled: root.visibleCount === 1
                         loadDelayMs: tileSlot.index * 48
                         continuationText: tileSlot.index === root.visibleCount - 1

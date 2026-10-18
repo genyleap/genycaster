@@ -3784,6 +3784,14 @@ void connectMediaPlayback(
                 dispatch(false);
                 return;
             }
+            // Farcaster's HLS manifests redirect to signed Cloudflare Stream
+            // URLs. HEAD is not uniformly supported through proxy paths and
+            // must never block the actual Qt/FFmpeg media pipeline. The media
+            // backend itself reports validity and decoder failures.
+            if (QUrl{source}.path().endsWith(QLatin1StringView{".m3u8"}, Qt::CaseInsensitive)) {
+                dispatch(true);
+                return;
+            }
             farcaster::transport::async_http::Request request{
                 .method = farcaster::transport::async_http::Method::Head,
                 .url = source.toUtf8().toStdString(),

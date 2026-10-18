@@ -338,6 +338,7 @@ if(EMSCRIPTEN)
         "-lidbfs.js"
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/persistence-pre.js"
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/miniapp-host-pre.js"
+        "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser-hls-pre.js"
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/protocol-signer-pre.js"
     )
 

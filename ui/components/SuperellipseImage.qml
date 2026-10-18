@@ -59,6 +59,30 @@ Item {
     // AnimatedImage cannot consume a QQuickImageProvider URL. Decode the
     // original canonical URL and use the bounded HTTPS image gateway on WASM.
     // Unsupported sources still keep the ordinary one-frame image fallback.
+    // The legacy string base64 decoder is deprecated in Qt 6.11 and ran on every
+    // gallery delegate (including non-GIF avatars). Decode base64url bytes
+    // in plain QML JavaScript only when we actually need the URL.
+    function decodeBase64Url(input) {
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+        if (input.length === 0 || input.length > 4096) return ""
+        let accumulator = 0
+        let bits = 0
+        let bytes = ""
+        for (let index = 0; index < input.length; ++index) {
+            if (input[index] === "=") break
+            const value = alphabet.indexOf(input[index])
+            if (value < 0) return ""
+            accumulator = ((accumulator << 6) | value) & 0xffffff
+            bits += 6
+            if (bits >= 8) {
+                bits -= 8
+                bytes += "%" + ((accumulator >> bits) & 255).toString(16).padStart(2, "0")
+            }
+        }
+        try { return decodeURIComponent(bytes) }
+        catch (error) { return "" }
+    }
+
     readonly property string animatedGifUrl: {
         const input = root.source.toString()
         let mediaUrl = input
@@ -68,9 +92,8 @@ Item {
                 const parts = encoded.split('/')
                 encoded = parts.slice(3).join('/')
             }
-            try {
-                mediaUrl = Qt.atob(encoded.replace(/-/g, '+').replace(/_/g, '/'))
-            } catch (error) { return '' }
+            mediaUrl = root.decodeBase64Url(encoded)
+            if (!mediaUrl.length) return ''
         }
         if (!/^https:\/\/[^\s?#]+\.gif(?:\?[^#]*)?$/i.test(mediaUrl))
             return ''
