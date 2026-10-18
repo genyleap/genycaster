@@ -120,6 +120,9 @@ test('WASM cleanup is durable, signer-gated, and only triggered by confirmed del
     const panel=read('ui/components/MediaUploadPanel.qml');
     const shell=read('ui/components/AppShell.qml');
     const reply=read('ui/components/ThreadReplyItem.qml');
+    // The polling loop must reach cleanup even when there are no upload events.
+    assert.match(main,/if\(received == 0\) break;/);
+    assert.doesNotMatch(main,/if\(received == 0\) return;/);
     assert.match(main,/richComposer\.pendingManagedAssetCleanup\(\)/);
     assert.match(main,/richComposer\.markManagedAssetCleanupCompleted\(token\)/);
     assert.match(main,/bridge\.writeReady\(\)/);

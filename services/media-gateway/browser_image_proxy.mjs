@@ -66,6 +66,9 @@ export function rasterMimeFromBytes(bytes) {
   if (bytes.length >= 12 && bytes.toString('ascii', 0, 4) === 'RIFF'
       && bytes.toString('ascii', 8, 12) === 'WEBP')
     return 'image/webp';
+  if (bytes.length >= 12 && bytes.toString('ascii', 4, 8) === 'ftyp'
+      && ['avif', 'avis'].includes(bytes.toString('ascii', 8, 12)))
+    return 'image/avif';
   return null;
 }
 

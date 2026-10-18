@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { defaultBrowserImageHosts, retrieveBrowserImage, validImageUrl } from './browser_image_proxy.mjs';
+import { defaultBrowserImageHosts, rasterMimeFromBytes, retrieveBrowserImage, validImageUrl } from './browser_image_proxy.mjs';
 import { createBrowserFarcasterBroker } from './browser_farcaster_auth.mjs';
 import {
   createHash,
@@ -740,13 +740,41 @@ export function createMediaGateway(config, storage, dependencies = {}) {
           return;
         }
 
+        const imageTypes = new Map([
+          ['jpg', 'image/jpeg'], ['png', 'image/png'],
+          ['webp', 'image/webp'], ['gif', 'image/gif'], ['avif', 'image/avif'],
+        ]);
+        const extension = key.slice(key.lastIndexOf('.') + 1).toLowerCase();
+        const expectedImageType = imageTypes.get(extension);
+        if (expectedImageType) {
+          // Farcaster's media crawler needs a stable HTTPS URL whose GET
+          // returns actual image bytes and a correct MIME type. A 307 to a
+          // short-lived, signed QStorage URL is only a link preview to some
+          // external clients, even when the CastAdd embed is well formed.
+          const bytes = await storage.readImageObject(key, config.maxImageBytes);
+          const mime = rasterMimeFromBytes(bytes);
+          if (mime !== expectedImageType) {
+            writeJson(response, 415, { error: 'invalid_image_payload' });
+            return;
+          }
+          response.writeHead(200, {
+            'content-type': mime,
+            'content-length': String(bytes.length),
+            'cache-control': 'public, max-age=120',
+            'access-control-allow-origin': '*',
+            'cross-origin-resource-policy': 'cross-origin',
+            'x-content-type-options': 'nosniff',
+          });
+          response.end(bytes);
+          return;
+        }
+        // Larger video media continue using short-lived downloads; unlike
+        // static images these require streaming/range support before proxying.
         const location = storage.createDownload({
           key,
           method: 'GET',
           expiresSeconds: config.downloadUrlLifetimeSeconds,
         });
-        // 307 Location contains a short-lived provider signature; cached
-        // redirects can outlive it and break permanent Farcaster media URLs.
         response.writeHead(307, {
           location,
           'cache-control': 'private, no-store, max-age=0',
@@ -755,8 +783,10 @@ export function createMediaGateway(config, storage, dependencies = {}) {
           'x-content-type-options': 'nosniff',
         });
         response.end();
-      } catch {
-        writeJson(response, 503, { error: 'media_gateway_unavailable' });
+      } catch (error) {
+        const status = error?.statusCode === 404 ? 404 : 503;
+        writeJson(response, status, { error: status === 404
+          ? 'asset_not_found' : 'media_gateway_unavailable' });
       }
       return;
     }

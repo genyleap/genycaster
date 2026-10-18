@@ -186,6 +186,32 @@ test('multipart relay uses SDK-signed Authorization-header requests and preserve
 });
 
 
+test('image relay reads bounded bytes with a signed QStorage GET and rejects oversized objects', async () => {
+  const native = fakeNative();
+  const bytes = Buffer.from([0xff, 0xd8, 0xff, 0x00, 0x01, 0x02]);
+  let responseBytes = bytes;
+  const requests = [];
+  const storage = new QuilibriumSdkStorage(loadQuilibriumStorageConfig(environment()), {
+    native,
+    fetchImpl: async (url, options) => {
+      requests.push({ url: String(url), options });
+      return new Response(responseBytes, {
+        status: 200,
+        headers: { 'content-type': 'image/jpeg', 'content-length': String(responseBytes.length) },
+      });
+    },
+  });
+  const key = 'v1/2026/10/12345678-1234-1234-1234-123456789abc.jpg';
+  assert.deepEqual(await storage.readImageObject(key, 1024), bytes);
+  assert.equal(requests[0].options.method, 'GET');
+  assert.equal(requests[0].options.redirect, 'manual');
+  assert.match(requests[0].url, /^https:\/\/qstorage\.quilibrium\.com\/genycaster\/v1\/2026\/10\//);
+  assert.match(requests[0].url, /X-Amz-Signature=[0-9a-f]{64}/);
+  await assert.rejects(storage.readImageObject(key, 5), { statusCode: 413 });
+  responseBytes = Buffer.from('not an image');
+  await assert.rejects(storage.readImageObject(key, 6), { statusCode: 413 });
+});
+
 test('DeleteObject falls back to JavaScript SigV4 when the native addon is older', async () => {
   const native = fakeNative();
   delete native.signDeleteObject;

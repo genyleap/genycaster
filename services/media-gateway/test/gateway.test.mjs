@@ -111,6 +111,17 @@ async function withGateway(run, overrides = {}) {
     async deleteObject(key) {
       stored.delete(key);
     },
+    async readImageObject(key, maximumBytes) {
+      const value = stored.get(key);
+      if (!value?.completed) {
+        const error = new Error('Missing image');
+        error.statusCode = 404;
+        throw error;
+      }
+      const bytes = Buffer.concat([...value.parts.values()]);
+      assert.ok(bytes.length <= maximumBytes);
+      return bytes;
+    },
     async headObject(key) {
       const value = stored.get(key);
       if (!value?.completed) return { sizeBytes: null, contentType: '' };
@@ -161,6 +172,7 @@ test('gateway configuration rejects malformed integer values and unsafe multipar
 test('authorized Farcaster signer uploads a gateway-relayed multipart object and receives stable asset URL', async () => {
   await withGateway(async ({ origin, stored }) => {
     const payload = Buffer.alloc(3210, 0x5a);
+    payload.set([0xff, 0xd8, 0xff], 0);
     const createDocument = {
       fileName: 'photo.jpg',
       contentType: 'image/jpeg',
@@ -213,10 +225,12 @@ test('authorized Farcaster signer uploads a gateway-relayed multipart object and
     const stable = await fetch(ticket.assetUrl.replace('https://media-farcaster.genyleap.com', origin), {
       redirect: 'manual',
     });
-    assert.equal(stable.status, 307);
-    assert.match(stable.headers.get('location') ?? '', /^https:\/\/private\.storage\.test\/v1\/.*signed-read=1/);
-    assert.equal(stable.headers.get('cache-control'), 'private, no-store, max-age=0');
-    assert.equal(stable.headers.get('cdn-cache-control'), 'no-store');
+    assert.equal(stable.status, 200);
+    assert.equal(stable.headers.get('content-type'), 'image/jpeg');
+    assert.equal(stable.headers.get('content-length'), String(payload.length));
+    assert.equal(stable.headers.get('location'), null);
+    assert.deepEqual(Buffer.from(await stable.arrayBuffer()), payload);
+    assert.equal(stable.headers.get('cache-control'), 'public, max-age=120');
 
     const deleteBody = Buffer.from(JSON.stringify({ managementToken: asset.managementToken }));
     const deleted = await fetch(`${origin}/v1/assets`, {
@@ -387,6 +401,24 @@ test('malformed public media path is a bounded 404 instead of crashing the gatew
   await withGateway(async ({ origin }) => {
     const response = await fetch(`${origin}/m/%E0%A4%A`, { redirect: 'manual' });
     assert.equal(response.status, 404);
+  });
+});
+
+test('permanent image GET never redirects and rejects invalid or deleted image bytes', async () => {
+  await withGateway(async ({ origin, stored }) => {
+    const key = 'v1/2026/10/12345678-1234-1234-1234-123456789abc.jpg';
+    const url = `${origin}/m/${key}`;
+    const unavailable = await fetch(url, { redirect: 'manual' });
+    assert.equal(unavailable.status, 404);
+    stored.set(key, {
+      completed: true,
+      parts: new Map([[1, Buffer.from('<html>not an image</html>')]]),
+    });
+    const invalid = await fetch(url, { redirect: 'manual' });
+    assert.equal(invalid.status, 415);
+    assert.equal(invalid.headers.get('location'), null);
+    stored.delete(key);
+    assert.equal((await fetch(url, { redirect: 'manual' })).status, 404);
   });
 });
 

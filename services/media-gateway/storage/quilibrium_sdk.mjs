@@ -394,6 +394,59 @@ export class QuilibriumSdkStorage {
     }
   }
 
+  async readImageObject(key, maximumBytes) {
+    // Serve permanent Cast image URLs with real image bytes, not a temporary
+    // QStorage redirect that external Farcaster scrapers can treat as a link.
+    // Only the trusted storage endpoint is contacted; never follow redirects.
+    if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1) {
+      throw new Error('A positive image read limit is required.');
+    }
+    const url = compatibleReadPresign(
+      this.config, key, 'GET', this.config.verificationUrlLifetimeSeconds);
+    const response = await this.fetchImpl(url, {
+      method: 'GET',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (response.status === 404) {
+      const error = new Error('Image object not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+    if (!response.ok) {
+      throw providerError('GetObject', response.status, await boundedText(response));
+    }
+    const lengthHeader = response.headers.get('content-length');
+    const length = lengthHeader === null ? null : Number(lengthHeader);
+    if (length !== null && (!Number.isSafeInteger(length) || length < 0
+        || length > maximumBytes)) {
+      await response.body?.cancel();
+      const error = new Error('Image object exceeds the configured size limit.');
+      error.statusCode = 413;
+      throw error;
+    }
+    const chunks = [];
+    let total = 0;
+    if (response.body) {
+      for await (const chunk of response.body) {
+        total += chunk.length;
+        if (total > maximumBytes) {
+          // Exiting the async iterator cancels the upstream stream safely.
+          const error = new Error('Image object exceeds the configured size limit.');
+          error.statusCode = 413;
+          throw error;
+        }
+        chunks.push(Buffer.from(chunk));
+      }
+    }
+    if (length !== null && length !== total) {
+      const error = new Error('Image object was truncated during retrieval.');
+      error.statusCode = 502;
+      throw error;
+    }
+    return Buffer.concat(chunks, total);
+  }
+
   async headObject(key) {
     // QStorage rejects UNSIGNED-PAYLOAD query authentication for reads and its
     // HEAD interoperability is inconsistent. Verify with an authenticated GET
