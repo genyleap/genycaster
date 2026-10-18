@@ -530,7 +530,6 @@ Item {
             onProfileRequested: root.openMyProfileFromNavigation()
             onIdentityRequested: root.openAccountPopup()
             onAccountRequested: root.openAccountPopup()
-            onOwnProfileRequested: root.openMyProfileFromNavigation()
             onSettingsRequested: root.openLocaleSettings()
             onRouteRequested: route => root.openShellRoute(route)
         }

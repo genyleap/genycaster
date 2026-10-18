@@ -20,6 +20,20 @@ test('nested replies are prepared using the canonical target author identity',()
   assert.match(bridge,/m_replyParentAuthorFid = static_cast<qulonglong>\(parentAuthorFid\)/);
   assert.match(shell,/presentationBridge\.prepareReplyToCast\(String\(parentCast\.castId\), authorFid\)/);
 });
+test('QML bootstrap binds signals only to components that actually declare them',()=>{
+  const shell=read('ui/components/AppShell.qml');
+  const header=read('ui/components/AppHeader.qml');
+  const side=read('ui/components/SideNavigation.qml');
+  const sideBinding=shell.split('SideNavigation {')[1].split('CompactNavigationRail {')[0];
+  const headerBinding=shell.split('AppHeader {')[1].split('onNotificationsRequested:')[0];
+  assert.doesNotMatch(sideBinding,/onOwnProfileRequested\s*:/,
+    'SideNavigation has no ownProfileRequested signal; this crashes QQmlApplicationEngine');
+  assert.match(header,/signal ownProfileRequested\(\)/);
+  assert.match(headerBinding,/onOwnProfileRequested\s*:/);
+  assert.doesNotMatch(side,/signal ownProfileRequested\(\)/);
+  const html=read('ui/wasm/genycaster-shell.html');
+  assert.match(html,/<meta name="mobile-web-app-capable" content="yes">/);
+});
 test('settings scrolling does not dismiss the drawer; header identity opens profile',()=>{
   const settings=read('ui/components/LocaleSettingsPopup.qml');
   const header=read('ui/components/AppHeader.qml');
