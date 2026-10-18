@@ -9,6 +9,10 @@ Superellipse {
     property string targetUrl: ""
     property bool compact: false
     property var snapshot: ({})
+    property bool expanded: false
+    property bool tokenLoading: false
+    property string tokenError: ""
+    property string requestedLocator: ""
 
     readonly property bool available: Boolean(root.snapshot.available)
     readonly property string network: String(root.snapshot.network || root.locator.split(":")[0] || "")
@@ -33,9 +37,56 @@ Superellipse {
     signal openRequested(string url)
 
     function reload() {
+        if (!liveInsights.providerAvailable) {
+            if (root.requestedLocator !== root.locator)
+                root.requestBrowserToken()
+            return
+        }
         root.snapshot = liveInsights.tokenPreview(root.locator)
         if (!root.available && root.locator.length > 0)
             liveInsights.requestToken(root.locator)
+    }
+
+    function requestBrowserToken() {
+        const locator = String(root.locator || "").toLowerCase()
+        root.requestedLocator = locator
+        root.tokenError = ""
+        root.snapshot = ({})
+        const found = locator.match(/^(base|eth):(0x[0-9a-f]{40})$/)
+        if (!found) {
+            root.tokenLoading = false
+            root.tokenError = "Token data unavailable"
+            return
+        }
+        root.tokenLoading = true
+        const url = "https://storage-farcaster.genyleap.com/v1/browser/tokens?network="
+                  + found[1] + "&address=" + found[2]
+        const xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE || root.requestedLocator !== locator)
+                return
+            root.tokenLoading = false
+            if (xhr.status !== 200) {
+                root.tokenError = "Market data unavailable"
+                return
+            }
+            try {
+                const result = JSON.parse(xhr.responseText)
+                if (!result.available || String(result.address || "").toLowerCase() !== found[2])
+                    throw new Error("Unexpected token identity")
+                root.snapshot = result
+            } catch(error) {
+                root.tokenError = "Market data unavailable"
+            }
+        }
+        xhr.onerror = function() {
+            if (root.requestedLocator === locator) {
+                root.tokenLoading = false
+                root.tokenError = "Market data unavailable"
+            }
+        }
+        xhr.open("GET", url, true)
+        xhr.send()
     }
 
     function money(value) {
@@ -59,7 +110,11 @@ Superellipse {
     }
 
     Component.onCompleted: reload()
-    onLocatorChanged: reload()
+    onLocatorChanged: {
+        root.expanded = false
+        root.requestedLocator = ""
+        reload()
+    }
 
     Connections {
         target: liveInsights
@@ -167,6 +222,16 @@ Superellipse {
                 }
 
                 ActionButton {
+                    objectName: "expandTokenDetails"
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: root.expanded ? Theme.iconChevronUp : Theme.iconChevronDown
+                    text: root.expanded ? "Collapse token details" : "Expand token details"
+                    onClicked: root.expanded = !root.expanded
+                }
+
+                ActionButton {
                     compact: true
                     quiet: true
                     iconOnly: true
@@ -193,7 +258,7 @@ Superellipse {
                 Label {
                     Layout.fillWidth: true
                     LayoutMirroring.enabled: false
-                    text: root.money(root.snapshot.priceUsd)
+                    text: root.available ? root.money(root.snapshot.priceUsd) : "—"
                     color: Theme.textPrimary
                     font.family: Theme.fontFamilyForText(text)
                     font.pixelSize: root.narrow ? Theme.typeTitle2Size : Theme.typeTitle1Size
@@ -217,7 +282,7 @@ Superellipse {
             }
 
             Superellipse {
-                visible: root.available && (root.snapshot.sparkline || []).length > 2
+                visible: root.expanded && root.available && (root.snapshot.sparkline || []).length > 2
                 Layout.fillWidth: true
                 implicitHeight: root.priceStacked ? (root.narrow ? 70 : 78) : 82
                 fillColor: Theme.surfaceMuted
@@ -238,6 +303,7 @@ Superellipse {
         }
 
         GridLayout {
+            visible: root.expanded
             Layout.fillWidth: true
             layoutDirection: Qt.LeftToRight
             columns: root.metricColumns
@@ -292,10 +358,20 @@ Superellipse {
             }
         }
 
+        DirectionAwareLabel {
+            visible: root.tokenLoading || !root.available
+            Layout.fillWidth: true
+            text: root.tokenLoading ? "Fetching token market data…"
+                 : (root.tokenError.length > 0 ? root.tokenError : "Market data unavailable")
+            color: Theme.textTertiary
+            font.pixelSize: Theme.typeCaptionSize
+        }
+
         // Contract and provenance intentionally occupy independent rows. The
         // contract text owns all remaining width and can middle-elide without
         // ever competing with the source label or copy button.
         Superellipse {
+            visible: root.expanded
             Layout.fillWidth: true
             implicitHeight: 38
             fillColor: Theme.surfaceMuted
@@ -337,6 +413,7 @@ Superellipse {
         }
 
         RowLayout {
+            visible: root.expanded
             Layout.fillWidth: true
             spacing: Theme.space2
             layoutDirection: Theme.uiDirection

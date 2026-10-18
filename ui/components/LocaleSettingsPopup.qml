@@ -2260,11 +2260,28 @@ GenyDrawer {
                         prominent: true
                         enabled: presentationBridge.isAuthenticated
                                  && !presentationBridge.signerBusy
+                        visible: presentationBridge.isAuthenticated && !presentationBridge.writeReady
                         text: qsTrId("genycaster.shell.enable_publishing_with_recovery_phrase")
                         onClicked: {
                             root.close()
                             presentationBridge.provisionSigner()
                         }
+                    }
+                    DirectionAwareLabel {
+                        visible: presentationBridge.isAuthenticated && presentationBridge.writeReady
+                        Layout.fillWidth: true
+                        text: "Publishing is already authorized on this device. You do not need to enter your recovery phrase again."
+                        color: Theme.positive
+                        font.pixelSize: Theme.typeLabelSize
+                        wrapMode: Text.WordWrap
+                    }
+                    DirectionAwareLabel {
+                        visible: presentationBridge.isAuthenticated
+                        Layout.fillWidth: true
+                        text: "Your original Farcaster recovery phrase is never stored by Genycaster after setup, so it cannot be revealed or copied from the active session. Keep the original words in a secure backup; never share them."
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
                     }
                     ActionButton {
                         objectName: "settingsRecoveryRevoke"

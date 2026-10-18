@@ -17,7 +17,7 @@ Drawer {
     signal suggestionsRequested(string query)
     signal suggestionsCleared()
     signal profileRequested(double fid)
-    signal channelRequested(string channelId)
+    signal channelRequested(string channelId, var channelInfo)
     readonly property string shortcutLabel: Qt.platform.os === "osx" ? "⌘K" : "Ctrl+K"
 
     // Relationship replies patch existing rows instead of rebuilding every
@@ -106,7 +106,11 @@ Drawer {
         root.suggestionsCleared()
         searchField.forceActiveFocus()
     }
-    onClosed: root.suggestionsCleared()
+    onClosed: {
+        searchDebounce.stop()
+        searchField.focus = false
+        root.suggestionsCleared()
+    }
 
     Timer {
         id: searchDebounce
@@ -157,6 +161,18 @@ Drawer {
                     font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.Wrap
                 }
+            }
+
+            // Mobile users must always have a visible exit target; outside
+            // taps can be intercepted by the browser's virtual keyboard.
+            ActionButton {
+                objectName: "closeSearchPalette"
+                compact: true
+                quiet: true
+                iconOnly: true
+                iconGlyph: Theme.iconClose
+                text: qsTrId("genycaster.shell.close")
+                onClicked: root.close()
             }
 
             Superellipse {
@@ -353,6 +369,7 @@ Drawer {
                                 }
 
                                 DirectionAwareLabel {
+                                    visible: resultRow.profileResult || Number(modelData.followerCount || 0) > 0
                                     Layout.fillWidth: true
                                     text: qsTrId("genycaster.profile.value_followers").arg(
                                               LocaleFormat.formatInteger(Number(modelData.followerCount || 0)))
@@ -419,7 +436,7 @@ Drawer {
                                     const channelId = String(modelData.id || "")
                                     if (channelId.length > 0) {
                                         root.close()
-                                        root.channelRequested(channelId)
+                                        root.channelRequested(channelId, modelData)
                                     }
                                 }
                             }

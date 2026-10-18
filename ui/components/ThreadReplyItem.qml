@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 
 /**
@@ -25,6 +26,21 @@ ColumnLayout {
     signal mediaRequested(var mediaItems, int index)
     signal authenticationRequested()
     signal removeCastRequested(var cast)
+
+    readonly property bool ownReply: Number(root.reply.authorFid || 0) > 0
+                                     && Number(root.reply.authorFid || 0) === Number(root.accountFid)
+                                     && String(root.reply.castId || "").length > 0
+
+    function openReplyMenu() {
+        replyMenuLoader.active = true
+        const menu = replyMenuLoader.item
+        if (!menu) return
+        const point = replyMoreButton.mapToItem(Overlay.overlay, 0, replyMoreButton.height + Theme.space1)
+        menu.x = Math.max(Theme.space2, Math.min(Overlay.overlay.width - menu.width - Theme.space2,
+                                                point.x + replyMoreButton.width - menu.width))
+        menu.y = Math.max(Theme.space2, Math.min(Overlay.overlay.height - menu.height - Theme.space2, point.y))
+        menu.open()
+    }
 
     function embedFamily(embed) {
         const kind = String(embed && embed.kind ? embed.kind : "").toLowerCase()
@@ -144,6 +160,17 @@ ColumnLayout {
                     }
                 }
 
+                ActionButton {
+                    id: replyMoreButton
+                    objectName: "replyMoreButton"
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: Theme.iconMore
+                    text: qsTrId("genycaster.cast.view_conversation")
+                    onClicked: root.openReplyMenu()
+                }
+
                 Icon {
                     text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
                     color: Theme.textTertiary
@@ -194,18 +221,78 @@ ColumnLayout {
                 onAuthenticationRequested: root.authenticationRequested()
             }
 
-            ActionButton {
-                objectName: "deleteOwnedReply"
-                visible: root.interactionsAvailable
-                         && Number(root.reply.authorFid || 0) > 0
-                         && Number(root.reply.authorFid || 0) === Number(root.accountFid)
-                         && String(root.reply.castId || "").length > 0
-                Layout.alignment: Theme.rtl ? Qt.AlignLeft : Qt.AlignRight
-                compact: true
-                quiet: true
-                destructive: true
-                text: qsTrId("genycaster.detail.delete_cast")
-                onClicked: root.removeCastRequested(root.reply)
+            // Actions live in the same three-dot menu as a top-level Cast.
+            // An always-visible Delete button makes replies inconsistent.
+        }
+    }
+
+    Loader {
+        id: replyMenuLoader
+        active: false
+        sourceComponent: Component {
+            Popup {
+                id: replyMenu
+                parent: Overlay.overlay
+                width: 224
+                padding: Theme.space1
+                modal: false
+                focus: true
+                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                background: PopupSurface { curveDepth: Theme.curveContainer }
+                contentItem: ColumnLayout {
+                    spacing: 0
+                    ActionButton {
+                        Layout.fillWidth: true
+                        quiet: true
+                        alignStart: true
+                        iconGlyph: Theme.iconComment
+                        text: qsTrId("genycaster.cast.view_conversation")
+                        onClicked: { replyMenu.close(); root.castRequested(String(root.reply.castId || "")) }
+                    }
+                    ActionButton {
+                        Layout.fillWidth: true
+                        quiet: true
+                        alignStart: true
+                        iconGlyph: Theme.iconUser
+                        text: qsTrId("genycaster.cast.open_author_profile")
+                        enabled: Number(root.reply.authorFid || 0) > 0
+                        onClicked: { replyMenu.close(); root.profileRequested(Number(root.reply.authorFid)) }
+                    }
+                    ActionButton {
+                        Layout.fillWidth: true
+                        quiet: true
+                        alignStart: true
+                        iconGlyph: Theme.iconCopy
+                        text: qsTrId("genycaster.cast.copy_cast_id")
+                        onClicked: { replyMenu.close(); presentationBridge.copyText(String(root.reply.castId || "")) }
+                    }
+                    ActionButton {
+                        visible: String(root.reply.text || "").length > 0
+                        Layout.fillWidth: true
+                        quiet: true
+                        alignStart: true
+                        iconGlyph: Theme.iconCopy
+                        text: qsTrId("genycaster.cast.copy_text")
+                        onClicked: { replyMenu.close(); presentationBridge.copyText(String(root.reply.text || "")) }
+                    }
+                    Rectangle {
+                        visible: root.ownReply
+                        Layout.fillWidth: true
+                        height: 1
+                        color: Theme.divider
+                    }
+                    ActionButton {
+                        visible: root.ownReply
+                        enabled: root.interactionsAvailable
+                        Layout.fillWidth: true
+                        quiet: true
+                        alignStart: true
+                        destructive: true
+                        iconGlyph: Theme.iconClose
+                        text: qsTrId("genycaster.cast.delete")
+                        onClicked: { replyMenu.close(); root.removeCastRequested(root.reply) }
+                    }
+                }
             }
         }
     }

@@ -9,6 +9,10 @@ Item {
     property bool addScrim: true
     property bool blockInput: false
     signal backgroundTapped()
+    // WebAssembly's Qt Quick render loop runs on the browser main thread.
+    // Sampling a live full-screen feed into a blurred texture every frame
+    // duplicates GPU work and causes scroll hitching on mobile Safari/WebGL.
+    readonly property bool browserRenderer: Qt.platform.os === "wasm"
     readonly property real captureScale: renderingController.profile === "fidelity"
                                               || renderingController.effectiveQuality === "fidelity" ? 1.0
                                             : renderingController.profile === "efficiency"
@@ -23,13 +27,13 @@ Item {
     ShaderEffectSource {
         id: capture
         visible: false
-        live: root.active && root.sourceItem !== null
+        live: root.active && root.sourceItem !== null && !root.browserRenderer
         recursive: false
-        hideSource: root.active && root.sourceItem !== null
+        hideSource: root.active && root.sourceItem !== null && !root.browserRenderer
         sourceItem: root.sourceItem
         textureSize: Qt.size(
-            Math.max(1, Math.round(root.width * root.captureScale)),
-            Math.max(1, Math.round(root.height * root.captureScale)))
+            root.browserRenderer ? 1 : Math.max(1, Math.round(root.width * root.captureScale)),
+            root.browserRenderer ? 1 : Math.max(1, Math.round(root.height * root.captureScale)))
         sourceRect: {
             if (!root.sourceItem || root.width <= 0 || root.height <= 0)
                 return Qt.rect(0, 0, 1, 1)
@@ -40,7 +44,7 @@ Item {
 
     MultiEffect {
         anchors.fill: parent
-        visible: root.active && root.sourceItem !== null
+        visible: root.active && root.sourceItem !== null && !root.browserRenderer
         source: capture
         blurEnabled: true
         blur: root.blurStrength

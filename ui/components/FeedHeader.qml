@@ -6,6 +6,7 @@ Item {
     id: root
 
     property string activeFeed: "trending"
+    property var channelInfo: ({})
     property bool identityAvailable: false
     property bool compact: false
     property bool busy: false
@@ -68,7 +69,10 @@ Item {
 
                 Label {
                     Layout.fillWidth: true
-                    text: root.activeFeed === "channel" ? qsTrId("genycaster.feed_header.channel")
+                    text: root.activeFeed === "channel"
+                          ? (String(root.channelInfo.name || root.channelInfo.id || "").length > 0
+                             ? String(root.channelInfo.name || root.channelInfo.id)
+                             : qsTrId("genycaster.feed_header.channel"))
                           : root.activeFeed === "trending" ? qsTrId("genycaster.feed_header.explore")
                           : qsTrId("genycaster.feed_header.home")
                     color: Theme.ink
@@ -105,6 +109,52 @@ Item {
                 opacity: 1
                 enabled: !root.busy
                 onClicked: root.refreshRequested()
+            }
+        }
+
+        RowLayout {
+            visible: root.activeFeed === "channel" && String(root.channelInfo.id || "").length > 0
+            Layout.fillWidth: true
+            spacing: Theme.space2
+            layoutDirection: Theme.uiDirection
+            SuperellipseImage {
+                Layout.preferredWidth: 42
+                Layout.preferredHeight: 42
+                source: String(root.channelInfo.imageUrl || "")
+                mediaCategory: "photos"
+                fillMode: Image.PreserveAspectCrop
+                fillColor: Theme.primarySurface
+                curveDepth: 13
+                borderWidth: Theme.strokeHairline
+                borderColor: Theme.borderSubtle
+            }
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 1
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: "/" + String(root.channelInfo.id || "")
+                    color: Theme.accent
+                    font.pixelSize: Theme.typeMetaSize
+                }
+                DirectionAwareLabel {
+                    visible: Number(root.channelInfo.followerCount || 0) > 0
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.profile.value_followers").arg(
+                        LocaleFormat.formatInteger(Number(root.channelInfo.followerCount || 0)))
+                    color: Theme.textTertiary
+                    font.pixelSize: Theme.typeCaptionSize
+                }
+                DirectionAwareLabel {
+                    visible: String(root.channelInfo.description || "").length > 0
+                    Layout.fillWidth: true
+                    text: String(root.channelInfo.description || "")
+                    color: Theme.textSecondary
+                    font.pixelSize: Theme.typeCaptionSize
+                    maximumLineCount: 2
+                    elide: Text.ElideRight
+                    wrapMode: Text.Wrap
+                }
             }
         }
 

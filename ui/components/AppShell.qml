@@ -127,6 +127,7 @@ Item {
     property string homePresentationMode: "for-you"
     property string homeVisualFilter: "nfts"
     property string primaryDestination: "home"
+    property var selectedChannelInfo: ({})
     property string explorerPresentationMode: "for-you"
     property string explorerVisualFilter: "nfts"
     // Keep the notifications busy flag as an imperative snapshot. Feeding the
@@ -762,6 +763,7 @@ Item {
                                     Layout.leftMargin: root.compact ? Theme.mobileGutter : Theme.space2
                                     Layout.rightMargin: root.compact ? Theme.mobileGutter : Theme.space2
                                     activeFeed: presentationBridge.activeFeed
+                                    channelInfo: root.selectedChannelInfo
                                     identityAvailable: presentationBridge.isAuthenticated && root.identityAvailable
                                     compact: root.compact
                                     busy: presentationBridge.isBusy
@@ -1363,13 +1365,19 @@ Item {
             root.shellRoute = ""
             presentationBridge.openProfileFid(fid)
         }
-        onChannelRequested: channelId => {
+        onChannelRequested: (channelId, channelInfo) => {
+            root.selectedChannelInfo = channelInfo || ({})
             root.clearPendingShellReturn()
+            // Channel feeds live in the reading surface, not the Home dashboard.
+            root.primaryDestination = "explorer"
             root.shellRoute = ""
             presentationBridge.openChannel(channelId)
         }
         onSearchRequested: query => {
+            const scopedChannel = String(query || "").trim().match(/^(?:channel:|\/|#)([a-zA-Z0-9_-]+)/i)
+            root.selectedChannelInfo = scopedChannel ? ({ id: scopedChannel[1] }) : ({})
             root.clearPendingShellReturn()
+            root.primaryDestination = "explorer"
             root.shellRoute = ""
             presentationBridge.openSearchQuery(query)
         }
@@ -1822,13 +1830,18 @@ Item {
                 ActionButton {
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.shell.cancel")
-                    quiet: true
+                    quiet: false
+                    elevated: false
                     onClicked: signOutConfirm.close()
                 }
                 ActionButton {
                     objectName: "confirmSignOutButton"
                     Layout.fillWidth: true
                     destructive: true
+                    destructiveFilled: true
+                    prominent: false
+                    elevated: false
+                    iconGlyph: Theme.iconBack
                     text: qsTrId("genycaster.shell.sign_out")
                     onClicked: {
                         signOutConfirm.close()

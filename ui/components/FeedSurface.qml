@@ -902,7 +902,10 @@ Item {
         // Keep only a shallow reusable runway. Rich embeds, animated emoji and
         // image masks are expensive delegate trees; pagination continuity must
         // come from stable model reconciliation rather than a large offscreen cache.
-        cacheBuffer: Math.min(Math.max(height * 0.75, 560), 960)
+        // Keep fewer heavyweight offscreen Cast delegates alive on phones.
+        // Incubation and delegate reuse still provide continuity while flicking.
+        cacheBuffer: root.compact ? Math.min(Math.max(height * 0.33, 240), 440)
+                                  : Math.min(Math.max(height * 0.65, 480), 820)
         pixelAligned: false
 
         onMovementEnded: {

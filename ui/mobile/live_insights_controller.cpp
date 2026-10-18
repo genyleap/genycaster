@@ -540,6 +540,10 @@ public:
         if (!parsed) return;
         const QString canonical = parsed->first + QLatin1Char(':') + parsed->second;
         if (tokenInflight.contains(canonical)) return;
+        // Failed upstream reads must not refetch on every QML notification.
+        const auto failure = tokenFailureAt.constFind(canonical);
+        if (failure != tokenFailureAt.cend()
+            && failure.value().secsTo(QDateTime::currentDateTimeUtc()) < 120) return;
         const auto cached = tokenCache.constFind(canonical);
         if (cached != tokenCache.cend() && cached.value().observedAt.secsTo(QDateTime::currentDateTimeUtc()) < tokenCacheFreshness.count() * 60) {
             emit q.tokenPreviewChanged(canonical);
@@ -575,7 +579,12 @@ public:
     void finishToken(const QString& locator, QVariantMap value)
     {
         tokenInflight.remove(locator);
-        if (!value.isEmpty()) tokenCache.insert(locator, CachedMap{std::move(value), QDateTime::currentDateTimeUtc()});
+        if (!value.isEmpty()) {
+            tokenFailureAt.remove(locator);
+            tokenCache.insert(locator, CachedMap{std::move(value), QDateTime::currentDateTimeUtc()});
+        } else {
+            tokenFailureAt.insert(locator, QDateTime::currentDateTimeUtc());
+        }
         emit q.tokenPreviewChanged(locator);
     }
 
@@ -634,6 +643,7 @@ public:
     QStringList contextWidgets{};
     QTimer refreshTimer{};
     QHash<QString, CachedMap> tokenCache{};
+    QHash<QString, QDateTime> tokenFailureAt{};
     QSet<QString> tokenInflight{};
     QHash<qulonglong, CachedMap> scoreCache{};
     QSet<qulonglong> scoreInflight{};

@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { defaultBrowserImageHosts, rasterMimeFromBytes, retrieveBrowserImage, validImageUrl } from './browser_image_proxy.mjs';
 import { createBrowserFarcasterBroker } from './browser_farcaster_auth.mjs';
+import { publicTokenSnapshot } from './browser_token_insights.mjs';
 import {
   createHash,
   createHmac,
@@ -411,6 +412,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   const farcasterBroker = dependencies.farcasterBroker ?? createBrowserFarcasterBroker(runtime);
   const retrieveImage = dependencies.retrieveImage ?? retrieveBrowserImage;
   const verifiedMiniAppIcons = new Map();
+  const tokenSnapshots = new Map();
   let refreshIconsPromise = null;
   let lastIconRefreshAttempt = -Infinity;
 
@@ -652,6 +654,46 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       } catch {
         writeJson(response, 502, { error: 'openproof_unavailable' });
       }
+      return;
+    }
+
+    if (requestUrl.pathname === '/v1/browser/tokens') {
+      const origin = request.headers.origin;
+      if (origin === 'https://caster.genyleap.com') {
+        response.setHeader('access-control-allow-origin', origin);
+        response.setHeader('vary', 'origin');
+      }
+      response.setHeader('access-control-allow-methods', 'GET, OPTIONS');
+      response.setHeader('access-control-allow-headers', 'accept');
+      if (request.method === 'OPTIONS') {
+        response.writeHead(origin === 'https://caster.genyleap.com' ? 204 : 403);
+        response.end();
+        return;
+      }
+      if (request.method !== 'GET') {
+        writeJson(response, 405, { error: 'method_not_allowed' }); return;
+      }
+      const chain = requestUrl.searchParams.get('network') || '';
+      const address = requestUrl.searchParams.get('address') || '';
+      if (!['base', 'eth'].includes(chain) || !/^0x[0-9a-f]{40}$/i.test(address)
+          || [...requestUrl.searchParams.keys()].some(key => !['network', 'address'].includes(key))) {
+        writeJson(response, 400, { error: 'invalid_token_reference' }); return;
+      }
+      const id = chain + ':' + address.toLowerCase();
+      const cached = tokenSnapshots.get(id);
+      if (cached && cached.expires > runtime.now()) {
+        writeJson(response, 200, cached.data, { 'cache-control': 'public, max-age=45' });
+        return;
+      }
+      const rate = limiter.check(clientAddress(request, config.trustCloudflare), runtime.now());
+      if (!rate.allowed) { writeJson(response, 429, { error: 'rate_limited' }); return; }
+      const resolved = await publicTokenSnapshot(chain, address, runtime.fetchImpl);
+      if (resolved.status !== 200) {
+        writeJson(response, resolved.status, { error: resolved.error }); return;
+      }
+      if (tokenSnapshots.size > 250) tokenSnapshots.clear();
+      tokenSnapshots.set(id, { data: resolved.data, expires: runtime.now() + 45_000 });
+      writeJson(response, 200, resolved.data, { 'cache-control': 'public, max-age=45' });
       return;
     }
 

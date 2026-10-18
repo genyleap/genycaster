@@ -422,6 +422,37 @@ test('permanent image GET never redirects and rejects invalid or deleted image b
   });
 });
 
+test('browser token insight route enforces public token identity and first-party CORS', async () => {
+  const tokenAddress = '0x' + 'a'.repeat(40);
+  await withGateway(async ({ origin }) => {
+    const invalid = await fetch(origin + '/v1/browser/tokens?network=base&address=localhost');
+    assert.equal(invalid.status, 400);
+    const preflight = await fetch(origin + '/v1/browser/tokens', {
+      method: 'OPTIONS', headers: { origin: 'https://caster.genyleap.com' },
+    });
+    assert.equal(preflight.status, 204);
+    assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://caster.genyleap.com');
+    const rejected = await fetch(origin + '/v1/browser/tokens', {
+      method: 'OPTIONS', headers: { origin: 'https://evil.test' },
+    });
+    assert.equal(rejected.status, 403);
+    const url = origin + '/v1/browser/tokens?network=base&address=' + tokenAddress;
+    const first = await fetch(url, { headers: { origin: 'https://caster.genyleap.com' } });
+    assert.equal(first.status, 200);
+    const snapshot = await first.json();
+    assert.equal(snapshot.network, 'base');
+    assert.equal(snapshot.address, tokenAddress);
+    assert.equal(snapshot.name, 'Test Token');
+    const cached = await fetch(url);
+    assert.equal(cached.status, 200);
+  }, {
+    fetchImpl: async (url) => new Response(JSON.stringify(
+      String(url).includes('/pools?page=1') ? { data: [] }
+      : { data: { attributes: { name: 'Test Token', symbol: 'TEST', price_usd: '1.25' } } },
+    ), { headers: { 'content-type': 'application/json' } }),
+  });
+});
+
 test('authorization proof nonce is single-use', async () => {
   await withGateway(async ({ origin, stored }) => {
     const document = { fileName: 'photo.jpg', contentType: 'image/jpeg', sizeBytes: 3210 };

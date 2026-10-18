@@ -10,6 +10,7 @@ Button {
     property bool prominent: false
     property bool quiet: false
     property bool destructive: false
+    property bool destructiveFilled: false
     property bool positive: false
     property bool selected: false
     property string iconGlyph: ""
@@ -124,8 +125,11 @@ Button {
         NumberAnimation { duration: Theme.motionFast; easing.type: Easing.OutCubic }
     }
 
-    readonly property color foregroundColor: !enabled ? Theme.inkDisabled
+    // Destructive semantics must retain their danger hue even when a write
+    // operation temporarily disables the action (opacity indicates disabled).
+    readonly property color foregroundColor: destructiveFilled ? Theme.dangerInk
                                                : destructive ? Theme.danger
+                                               : !enabled ? Theme.inkDisabled
                                                : positive ? Theme.contrastInk(Theme.success)
                                                : prominent ? Theme.accentInk
                                                : selected ? Theme.accent
@@ -211,6 +215,8 @@ Button {
         fillColor: {
             if (!control.enabled)
                 return control.quiet ? "transparent" : Theme.surfaceMuted
+            if (control.destructiveFilled)
+                return control.down ? Qt.darker(Theme.danger, 1.12) : Theme.danger
             if (control.destructive)
                 return control.hovered || control.down ? Theme.dangerSurface : "transparent"
             if (control.positive)

@@ -134,7 +134,10 @@ test('WASM cleanup is durable, signer-gated, and only triggered by confirmed del
     assert.match(pre,/preview\.length<=6200/);
     assert.match(panel,/visible: root\.width >= 620/);
     assert.match(shell,/"embeds": root\.submittedReplyEmbeds/);
-    assert.match(reply,/objectName: "deleteOwnedReply"/);
+    assert.match(reply,/objectName: "replyMoreButton"/);
+    assert.match(reply,/replyMenuLoader/);
+    assert.match(reply,/root\.removeCastRequested\(root\.reply\)/);
+    assert.doesNotMatch(reply,/objectName: "deleteOwnedReply"/);
 });
 
 test('gateway HTTP 204 means media deletion completed without a JSON body',async()=>{
