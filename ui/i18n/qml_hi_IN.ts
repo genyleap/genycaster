@@ -2,6 +2,22 @@
 <TS version="2.1" language="hi_IN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.session.logout_confirm_title">
+            <source>Sign out of GenyCaster?</source>
+            <translation>GenyCaster से साइन आउट करें?</translation>
+        </message>
+        <message id="genycaster.session.logout_confirm_description">
+            <source>You will return to the beginning of Setup. You can browse as a guest or sign in again. Your recovery phrase is never stored here.</source>
+            <translation>आप सेटअप की शुरुआत पर लौटेंगे। आप अतिथि के रूप में जारी रख सकते हैं या फिर से साइन इन कर सकते हैं। आपके रिकवरी शब्द यहां सहेजे नहीं जाते।</translation>
+        </message>
+        <message id="genycaster.detail.your_confirmed_reply">
+            <source>Your reply · Published</source>
+            <translation>आपका उत्तर · प्रकाशित</translation>
+        </message>
+        <message id="genycaster.settings.beta_release_short">
+            <source>GenyCaster · Beta 1.0</source>
+            <translation>GenyCaster · बीटा 1.0</translation>
+        </message>
         <message id="genycaster.composer.formatting_tools">
             <source>Formatting tools</source>
             <translation>फ़ॉर्मैटिंग उपकरण</translation>

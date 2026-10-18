@@ -14,6 +14,10 @@ GenyDrawer {
     property bool transientDraft: false
     property string editorMode: "visual"
     property bool showAdvancedFormatting: false
+    property real expandedViewportHeight: 0
+    readonly property bool keyboardVisible: root.compact && root.opened
+        && root.expandedViewportHeight > 0 && root.parent !== null
+        && root.parent.height < root.expandedViewportHeight - 125
     property bool restoredDraft: false
     property string insertKind: ""
     property int insertBlockIndex: -1
@@ -61,6 +65,28 @@ GenyDrawer {
     // Scrolling belongs to the content; swipe-to-dismiss was stealing
     // vertical gestures from multi-cast threads on mobile Safari.
     interactive: false
+    function ensureEditorVisible(editor) {
+        if (!root.opened || !editor) return
+        Qt.callLater(function() {
+            if (!root.opened || !editor) return
+            const flick = composerScroll.contentItem
+            if (!flick || flick.height <= 0) return
+            const mapped = editor.mapToItem(composerContent, 0, 0)
+            const upper = Math.max(0, mapped.y - Theme.space3)
+            const lower = mapped.y + Math.min(editor.height, 120) + Theme.space3
+            if (upper < flick.contentY)
+                flick.contentY = upper
+            else if (lower > flick.contentY + flick.height)
+                flick.contentY = Math.min(Math.max(0, flick.contentHeight - flick.height),
+                                          lower - flick.height)
+        })
+    }
+    onKeyboardVisibleChanged: {
+        if (root.keyboardVisible) {
+            root.ensureEditorVisible(visualEditor.activeEditor)
+            root.ensureEditorVisible(markdownEditor.activeFocus ? markdownEditor : null)
+        }
+    }
     function openLinkFromSelection() {
         const editor = visualEditor.formattingEditor
         if (root.editorMode !== "visual" || visualEditor.activeBlockIndex < 0 || editor === null
@@ -242,6 +268,7 @@ GenyDrawer {
     }
 
     onOpened: {
+        root.expandedViewportHeight = root.parent ? root.parent.height : root.height
         root.closeComposerPopups()
         editorMode = "visual"
         showAdvancedFormatting = !root.compact
@@ -439,7 +466,7 @@ GenyDrawer {
 
             Superellipse {
                 id: replyContextCard
-                visible: root.parentCast !== null
+                visible: root.parentCast !== null && !root.keyboardVisible
                 Layout.fillWidth: true
                 implicitHeight: replyContextContent.implicitHeight + Theme.space4 * 2
                 curveDepth: Theme.curveContainer
@@ -680,6 +707,8 @@ GenyDrawer {
                     RichTextEditor {
                         id: visualEditor
                         visible: root.editorMode === "visual"
+                        onActiveEditorChangedExternally: (blockIndex, editor) =>
+                            root.ensureEditorVisible(editor)
                         anchors.fill: parent
                         anchors.margins: Theme.space3
                     }
@@ -699,6 +728,7 @@ GenyDrawer {
                         DirectionAwareTextArea {
                             id: markdownEditor
                             anchors.fill: parent
+                            onActiveFocusChanged: if (activeFocus) root.ensureEditorVisible(markdownEditor)
                             text: richComposer.markdownSource
                             placeholderText: qsTrId("genycaster.composer.markdown_placeholder")
                             background: null
@@ -807,6 +837,7 @@ GenyDrawer {
                             DirectionAwareTextArea {
                                 id: threadEditor
                                 objectName: "composerThreadEditor"
+                                onActiveFocusChanged: if (activeFocus) root.ensureEditorVisible(threadEditor)
                                 anchors.fill: parent
                                 anchors.margins: Theme.space1
                                 text: threadRow.text

@@ -2,6 +2,22 @@
 <TS version="2.1" language="de_DE" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.session.logout_confirm_title">
+            <source>Sign out of GenyCaster?</source>
+            <translation>Von GenyCaster abmelden?</translation>
+        </message>
+        <message id="genycaster.session.logout_confirm_description">
+            <source>You will return to the beginning of Setup. You can browse as a guest or sign in again. Your recovery phrase is never stored here.</source>
+            <translation>Du kehrst zum Anfang der Einrichtung zurück. Du kannst als Gast fortfahren oder dich erneut anmelden. Deine Wiederherstellungsphrase wird hier nicht gespeichert.</translation>
+        </message>
+        <message id="genycaster.detail.your_confirmed_reply">
+            <source>Your reply · Published</source>
+            <translation>Deine Antwort · Veröffentlicht</translation>
+        </message>
+        <message id="genycaster.settings.beta_release_short">
+            <source>GenyCaster · Beta 1.0</source>
+            <translation>GenyCaster · Beta 1.0</translation>
+        </message>
         <message id="genycaster.composer.formatting_tools">
             <source>Formatting tools</source>
             <translation>Formatierungswerkzeuge</translation>

@@ -15,6 +15,7 @@ ColumnLayout {
     property bool compact: false
     property bool interactionsAvailable: false
     property double accountFid: 0
+    property bool highlighted: false
 
     signal castRequested(string castId)
     signal profileRequested(double fid)
@@ -76,16 +77,26 @@ ColumnLayout {
     Layout.fillWidth: true
     spacing: Theme.space1
 
+    DirectionAwareLabel {
+        visible: root.highlighted
+        Layout.fillWidth: true
+        text: qsTrId("genycaster.detail.your_confirmed_reply")
+        color: Theme.accent
+        font.pixelSize: Theme.typeCaptionSize
+        font.weight: Theme.weightBold
+    }
+
     RowLayout {
         Layout.fillWidth: true
         spacing: Theme.space2
         layoutDirection: Theme.uiDirection
 
         Rectangle {
-            Layout.preferredWidth: 2
+            Layout.preferredWidth: root.highlighted ? 4 : 2
             Layout.fillHeight: true
             Layout.minimumHeight: replyContent.implicitHeight
-            color: root.depth <= 1 ? Theme.accent : Theme.borderSubtle
+            color: root.highlighted ? Theme.accent
+                                     : root.depth <= 1 ? Theme.accent : Theme.borderSubtle
             opacity: root.depth <= 1 ? 0.72 : 0.7
         }
 

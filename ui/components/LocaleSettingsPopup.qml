@@ -16,8 +16,8 @@ GenyDrawer {
             return
         }
         if (section === -2) {
-            presentationBridge.signOut()
             root.close()
+            root.signOutConfirmationRequested()
             return
         }
         if (section < 0 || section > 5) return
@@ -42,6 +42,7 @@ GenyDrawer {
 
     signal customAccentStudioRequested(string color)
     signal dataStorageRequested()
+    signal signOutConfirmationRequested()
 
     function applyCustomAccentColor(color) {
         const applied = appearanceController.setCustomAccentColor(String(color || ""))
@@ -2018,8 +2019,7 @@ GenyDrawer {
                         DirectionAwareLabel {
                             objectName: "settingsBetaReleaseLabel"
                             Layout.fillWidth: true
-                            text: qsTrId("genycaster.settings.current_beta_release")
-                                  .arg(updateController.appVersion)
+                            text: qsTrId("genycaster.settings.beta_release_short")
                             color: Theme.accent
                             font.pixelSize: Theme.typeMetaSize
                             font.weight: Theme.weightDemiBold
@@ -2198,8 +2198,8 @@ GenyDrawer {
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.shell.sign_out")
                         onClicked: {
-                            presentationBridge.signOut()
                             root.close()
+                            root.signOutConfirmationRequested()
                         }
                     }
                     DirectionAwareLabel {

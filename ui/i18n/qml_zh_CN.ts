@@ -2,6 +2,22 @@
 <TS version="2.1" language="zh_CN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.session.logout_confirm_title">
+            <source>Sign out of GenyCaster?</source>
+            <translation>退出 GenyCaster？</translation>
+        </message>
+        <message id="genycaster.session.logout_confirm_description">
+            <source>You will return to the beginning of Setup. You can browse as a guest or sign in again. Your recovery phrase is never stored here.</source>
+            <translation>你将返回设置起始页。可以以访客身份继续或重新登录。恢复助记词不会存储在这里。</translation>
+        </message>
+        <message id="genycaster.detail.your_confirmed_reply">
+            <source>Your reply · Published</source>
+            <translation>你的回复 · 已发布</translation>
+        </message>
+        <message id="genycaster.settings.beta_release_short">
+            <source>GenyCaster · Beta 1.0</source>
+            <translation>GenyCaster · 测试版 1.0</translation>
+        </message>
         <message id="genycaster.composer.formatting_tools">
             <source>Formatting tools</source>
             <translation>格式工具</translation>

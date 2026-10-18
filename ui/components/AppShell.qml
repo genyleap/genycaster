@@ -107,6 +107,17 @@ Item {
     property string committedRichCastId: ""
     property bool awaitingRichCommit: false
     property string homeDraftForCast: ""
+    // A reply is pinned only after a verified server confirmation.
+    property var confirmedReply: ({})
+    property string submittedReplyParentId: ""
+    property string submittedReplyText: ""
+    function requestSignOut() {
+        if (!presentationBridge.isAuthenticated) return
+        accountPopup.close()
+        if (localePopupLoader.item !== null)
+            localePopupLoader.item.close()
+        signOutConfirm.open()
+    }
     property string submittedCastBaseline: ""
     property string pendingMiniAppComposeRequestId: ""
     property string pendingMiniAppComposeText: ""
@@ -128,7 +139,7 @@ Item {
                                         || composerDrawer.opened || accountPopup.opened
                                         || renderingSettingsPopup.opened || taskManagerPopup.opened || feedbackDialog.opened
                                              || searchPalette.opened || mobileCreateMenu.opened || contextDrawer.opened
-                                             || mediaGallery.opened
+                                             || mediaGallery.opened || signOutConfirm.opened
 
     Timer {
         id: notificationBadgePoll
@@ -983,6 +994,7 @@ Item {
                                                                    && presentationBridge.writeReady
                                                                    && !presentationBridge.writeBusy
                                             accountFid: presentationBridge.accountFid
+                                            confirmedReply: root.confirmedReply
                                             onBackRequested: root.returnFromCastDetail()
                                             onRefreshRequested: presentationBridge.retry()
                                             onCastRequested: castId => presentationBridge.openCast(castId)
@@ -1014,6 +1026,8 @@ Item {
                                 blurSourceItem: shellContent
                                 parentCast: root.composerParent
                                 onPublishRequested: (text, mentionFids, mentionPositions, embeds) => {
+                                    root.submittedReplyParentId = ""
+                                    root.submittedReplyText = ""
                                     root.awaitingRichCommit = true
                                     root.submittedCastBaseline = String(presentationBridge.lastPublishedCastId || "")
                                     if (root.pendingMiniAppComposeRequestId.length > 0) {
@@ -1023,6 +1037,9 @@ Item {
                                     presentationBridge.publishPreparedCast(text, mentionFids, mentionPositions, embeds)
                                 }
                                 onReplyRequested: (text, mentionFids, mentionPositions, embeds) => {
+                                    root.submittedReplyParentId = root.composerParent
+                                        ? String(root.composerParent.castId || "") : ""
+                                    root.submittedReplyText = String(text || "")
                                     root.awaitingRichCommit = true
                                     root.submittedCastBaseline = String(presentationBridge.lastPublishedCastId || "")
                                     if (root.pendingMiniAppComposeRequestId.length > 0) {
@@ -1032,6 +1049,8 @@ Item {
                                     presentationBridge.publishPreparedReply(text, mentionFids, mentionPositions, embeds)
                                 }
                                 onThreadRequested: casts => {
+                                    root.submittedReplyParentId = ""
+                                    root.submittedReplyText = ""
                                     root.awaitingRichCommit = true
                                     root.submittedCastBaseline = String(presentationBridge.lastPublishedCastId || "")
                                     presentationBridge.publishPreparedThread(casts)
@@ -1365,6 +1384,7 @@ Item {
                 blurSourceItem: shellContent
                 onCustomAccentStudioRequested: color => accentColorStudio.openWith(color)
                 onDataStorageRequested: root.openDataStorageSettings()
+                onSignOutConfirmationRequested: root.requestSignOut()
             }
         }
     }
@@ -1709,10 +1729,7 @@ Item {
                         visible: presentationBridge.isAuthenticated && !root.mobile
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.shell.sign_out")
-                        onClicked: {
-                            presentationBridge.signOut()
-                            accountPopup.close()
-                        }
+                        onClicked: root.requestSignOut()
                     }
 
                     ActionButton {
@@ -1746,9 +1763,67 @@ Item {
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.shell.sign_out")
                     destructive: true
+                    onClicked: root.requestSignOut()
+                }
+            }
+        }
+    }
+
+    // Explicit user consent before leaving an authenticated account.
+    // All mobile/desktop account and Settings exits use this one dialog.
+    Popup {
+        id: signOutConfirm
+        objectName: "signOutConfirmation"
+        parent: Overlay.overlay
+        modal: true
+        focus: true
+        z: 20000
+        padding: Theme.space4
+        width: Math.min(parent ? parent.width - Theme.space5 * 2 : 440, 440)
+        x: parent ? (parent.width - width) / 2 : 0
+        y: parent ? (parent.height - height) / 2 : 0
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        background: Rectangle {
+            color: Theme.surfaceElevated
+            radius: Theme.space4
+            border.width: Theme.strokeHairline
+            border.color: Theme.borderSubtle
+        }
+        contentItem: ColumnLayout {
+            spacing: Theme.space3
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.session.logout_confirm_title")
+                color: Theme.ink
+                font.pixelSize: Theme.typeTitle2Size
+                font.weight: Theme.weightBold
+                wrapMode: Text.WordWrap
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.session.logout_confirm_description")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeBodySize
+                wrapMode: Text.WordWrap
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space2
+                ActionButton {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.shell.cancel")
+                    quiet: true
+                    onClicked: signOutConfirm.close()
+                }
+                ActionButton {
+                    objectName: "confirmSignOutButton"
+                    Layout.fillWidth: true
+                    destructive: true
+                    text: qsTrId("genycaster.shell.sign_out")
                     onClicked: {
+                        signOutConfirm.close()
                         presentationBridge.signOut()
-                        accountPopup.close()
                     }
                 }
             }
@@ -1813,6 +1888,14 @@ Item {
     Connections {
         target: presentationBridge
 
+        function onAuthenticationStateChanged() {
+            if (!presentationBridge.isAuthenticated) {
+                root.confirmedReply = ({})
+                root.submittedReplyParentId = ""
+                root.submittedReplyText = ""
+            }
+        }
+
         function onNotificationsChanged() {
             root.notificationBusySnapshot = presentationBridge.notificationsBusy
             if (notificationsRouteLoader.item !== null)
@@ -1836,6 +1919,25 @@ Item {
                 root.homeDraftForCast = ""
                 root.committedRichCastId = castId
                 root.awaitingRichCommit = false
+                if (root.submittedReplyParentId.length > 0) {
+                    const parentId = root.submittedReplyParentId
+                    root.confirmedReply = {
+                        "parentCastId": parentId,
+                        "castId": castId,
+                        "text": root.submittedReplyText,
+                        "authorFid": Number(presentationBridge.accountFid),
+                        "author": String(presentationBridge.accountUsername || ""),
+                        "displayName": String(presentationBridge.accountName || ""),
+                        "avatarUrl": String(presentationBridge.accountAvatarUrl || ""),
+                        "createdAtMs": Date.now()
+                    }
+                    root.shellRoute = ""
+                    // Open the original conversation, not the newly authored
+                    // reply itself. The confirmed reply is pinned there.
+                    presentationBridge.openCast(parentId)
+                }
+                root.submittedReplyParentId = ""
+                root.submittedReplyText = ""
                 root.submittedCastBaseline = castId
                 if (root.pendingMiniAppComposeRequestId.length > 0) {
                     miniAppHost.completeComposeCast(root.pendingMiniAppComposeRequestId, castId,
@@ -1852,6 +1954,8 @@ Item {
                            || presentationBridge.writePhase === "blocked")) {
                 // Preserve the editor and draft so the user can retry.
                 root.awaitingRichCommit = false
+                root.submittedReplyParentId = ""
+                root.submittedReplyText = ""
             }
         }
     }

@@ -210,7 +210,7 @@ test('explicit Logout returns to account Setup while refresh keeps completed onb
     assert.match(bridge,/m_settings->remove\(QStringLiteral\("setup\/showAfterSignOut"\)\)/);
     assert.match(bridge,/return !m_setupBypassedForVerification\s*&& \(!m_initialSetupCompleted \|\| m_showSetupAfterSignOut\)/);
     assert.match(app,/returningAfterLogout: presentationBridge\.initialSetupCompleted/);
-    assert.match(setup,/switchStep\(returningAfterLogout \? 4 : 0\)/);
+    assert.match(setup,/switchStep\(0\)/);
     assert.doesNotMatch(bridge.split('void PresentationBridge::applyAuthenticationState(')[1]
         .split('void PresentationBridge::applyAuthenticationError(')[0],
         /resetInitialSetupProgress\(/);

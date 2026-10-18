@@ -308,8 +308,8 @@ Item {
 
     onSetupCompletedChanged: {
         if (!setupCompleted) {
-            highestReachedStep = returningAfterLogout ? 4 : 0
-            Qt.callLater(() => switchStep(returningAfterLogout ? 4 : 0))
+            highestReachedStep = 0
+            Qt.callLater(() => switchStep(0))
             return
         }
         highestReachedStep = 5
@@ -326,9 +326,8 @@ Item {
         legalPrivacyChecked = false
         forceActiveFocus()
         if (!setupCompleted) {
-            if (returningAfterLogout)
-                highestReachedStep = Math.max(highestReachedStep, 4)
-            switchStep(returningAfterLogout ? 4 : 0)
+            highestReachedStep = 0
+            switchStep(0)
         } else
             synchronizeFlow()
     }

@@ -11,6 +11,44 @@ Flickable {
     property bool busy: false
     property bool interactionsAvailable: false
     property double accountFid: 0
+    property var confirmedReply: ({})
+    function normalizedCastHash(value) {
+        const hash = String(value || "").trim().toLowerCase()
+        return hash.startsWith("0x") ? hash.slice(2) : hash
+    }
+    readonly property bool hasConfirmedReply: root.activeView === "cast"
+        && root.normalizedCastHash(root.detail.castId)
+            === root.normalizedCastHash(root.confirmedReply.parentCastId)
+        && String(root.confirmedReply.castId || "").length > 0
+    readonly property var prioritizedReplies: {
+        const source = root.detail.threadReplies || []
+        if (!root.hasConfirmedReply) return source
+        const pinnedId = root.normalizedCastHash(root.confirmedReply.castId)
+        const ordered = []
+        let found = false
+        for (let index = 0; index < source.length; ++index) {
+            const reply = source[index] || ({})
+            if (root.normalizedCastHash(reply.castId) === pinnedId) {
+                ordered.unshift(reply)
+                found = true
+            } else {
+                ordered.push(reply)
+            }
+        }
+        if (!found) ordered.unshift(root.confirmedReply)
+        return ordered
+    }
+    function focusConfirmedReply() {
+        if (!root.hasConfirmedReply) return
+        Qt.callLater(function() {
+            if (!root.hasConfirmedReply) return
+            const position = repliesContainer.mapToItem(detailColumn, 0, 0).y
+            root.contentY = Math.max(0, Math.min(root.contentHeight - root.height,
+                                position - Theme.space3))
+        })
+    }
+    onHasConfirmedReplyChanged: if (hasConfirmedReply) focusConfirmedReply()
+    onContentHeightChanged: if (hasConfirmedReply && root.contentY === 0) focusConfirmedReply()
 
     readonly property string directionSeed: String(root.detail.text || root.detail.bio || root.detail.displayName || root.detail.author || "")
     readonly property bool contentRtl: localizationController.isRightToLeftText(root.directionSeed)
@@ -517,8 +555,9 @@ Flickable {
         }
 
         ColumnLayout {
+            id: repliesContainer
             visible: root.activeView === "cast"
-                     && (root.detail.threadReplies || []).length > 0
+                     && root.prioritizedReplies.length > 0
             Layout.fillWidth: true
             Layout.topMargin: Theme.space3
             spacing: Theme.space2
@@ -537,7 +576,7 @@ Flickable {
                 }
 
                 DirectionAwareLabel {
-                    text: LocaleFormat.formatInteger((root.detail.threadReplies || []).length)
+                    text: LocaleFormat.formatInteger(root.prioritizedReplies.length)
                     color: Theme.inkSubtle
                     font.pixelSize: Theme.typeCaptionSize
                 }
@@ -550,11 +589,14 @@ Flickable {
             }
 
             Repeater {
-                model: root.detail.threadReplies || []
+                model: root.prioritizedReplies
                 delegate: ThreadReplyItem {
                     required property var modelData
                     Layout.fillWidth: true
                     reply: modelData
+                    highlighted: root.hasConfirmedReply &&
+                                 root.normalizedCastHash(modelData.castId)
+                                     === root.normalizedCastHash(root.confirmedReply.castId)
                     depth: 1
                     compact: root.compact
                     interactionsAvailable: root.interactionsAvailable
