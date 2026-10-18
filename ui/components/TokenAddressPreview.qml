@@ -18,6 +18,10 @@ Superellipse {
     readonly property string network: String(root.snapshot.network || root.locator.split(":")[0] || "")
     readonly property string address: String(root.snapshot.address || root.locator.substring(root.locator.indexOf(":") + 1) || "")
     readonly property real change24h: Number(root.snapshot.change24h || 0)
+    readonly property bool changeKnown: root.snapshot.change24h !== null
+                                       && root.snapshot.change24h !== undefined
+                                       && Number.isFinite(Number(root.snapshot.change24h))
+    readonly property bool priceKnown: Number(root.snapshot.priceUsd || 0) > 0
     readonly property string imageSource: String(root.snapshot.imageSource || "")
     readonly property string externalTargetUrl: /^https?:\/\//i.test(root.targetUrl) ? root.targetUrl : ""
     readonly property bool ultraNarrow: root.width < 320
@@ -258,7 +262,7 @@ Superellipse {
                 Label {
                     Layout.fillWidth: true
                     LayoutMirroring.enabled: false
-                    text: root.available ? root.money(root.snapshot.priceUsd) : "—"
+                    text: root.available && root.priceKnown ? root.money(root.snapshot.priceUsd) : "—"
                     color: Theme.textPrimary
                     font.family: Theme.fontFamilyForText(text)
                     font.pixelSize: root.narrow ? Theme.typeTitle2Size : Theme.typeTitle1Size
@@ -267,7 +271,7 @@ Superellipse {
                 }
 
                 Label {
-                    visible: root.available
+                    visible: root.available && root.changeKnown
                     Layout.fillWidth: true
                     LayoutMirroring.enabled: false
                     text: (root.change24h >= 0 ? "+" : "")
@@ -312,9 +316,12 @@ Superellipse {
 
             Repeater {
                 model: [
-                    { label: "MKT CAP", value: root.compactMoney(root.snapshot.marketCapUsd || root.snapshot.fdvUsd) },
+                    { label: Number(root.snapshot.marketCapUsd || 0) > 0 ? "MKT CAP" : "FDV",
+                      value: root.compactMoney(root.snapshot.marketCapUsd || root.snapshot.fdvUsd) },
                     { label: "LIQUIDITY", value: root.compactMoney(root.snapshot.liquidityUsd) },
-                    { label: "BUYERS", value: Number(root.snapshot.buyers24h || 0) > 0 ? LocaleFormat.formatCompactNumber(Number(root.snapshot.buyers24h)) : "—" },
+                    { label: "BUYERS", value: root.snapshot.buyers24h !== null
+                                          && root.snapshot.buyers24h !== undefined
+                                          ? LocaleFormat.formatCompactNumber(Number(root.snapshot.buyers24h)) : "—" },
                     { label: "AGE", value: root.ageText() }
                 ]
 
