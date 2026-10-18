@@ -37,6 +37,23 @@ test('canonical CastAdd protobuf matches exact native C++ vector',()=>{
     assert.equal(hex(reply.data),
         '0801102a18f8c00720012a211a1808071214000102030405060708090a0b0c0d0e0f10111213220568656c6c6f');
 });
+test('canonical Farcaster / HyperSnap embeds use URL or CastId, with a strict 256 UTF-8 byte bound',()=>{
+    const source={fid:'42',publicKeyHex,text:'image',timestamp:123000};
+    const good='https://media-farcaster.genyleap.com/m/v1/2026/10/photo.jpg';
+    assert.doesNotThrow(()=>unsignedCastAdd({...source,embeds:[{url:good}]}));
+    assert.doesNotThrow(()=>unsignedCastAdd({...source,embeds:[{url:'x'.repeat(256)}]}));
+    assert.throws(()=>unsignedCastAdd({...source,embeds:[{url:'x'.repeat(257)}]}),
+        /256-byte/);
+    // UTF-8 bytes (not JS code units) define the protocol limit.
+    assert.throws(()=>unsignedCastAdd({...source,embeds:[{url:'é'.repeat(129)}]}),
+        /256-byte/);
+    assert.throws(()=>unsignedCastAdd({...source,embeds:[{url:''}]}),
+        /256-byte/);
+    assert.throws(()=>unsignedCastAdd({...source,embeds:[{url:good},{url:good},{url:good}]}),
+        /cast field limit/);
+    assert.throws(()=>unsignedCastAdd({...source,embeds:[{cast:null}]}),
+        /invalid cast reference/);
+});
 test('canonical KEY_ADD protobuf matches native C++ vector',()=>{
     const key=unsignedKeyAdd({
         fid:'42',publicKeyHex,scopes:[1,2,3,4,5,6],

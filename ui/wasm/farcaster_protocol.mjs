@@ -204,7 +204,20 @@ export function unsignedCastAdd({
     body=concat(body,fieldBytes(4,bodyText));
     if(mentionPositions.length)body=concat(body,fieldBytes(5,concat(...mentionPositions.map(varint))));
     for(const embed of embeds){
-        const bytes=embed.url?fieldBytes(1,embed.url):fieldBytes(2,castId(embed.cast),true);
+        // Farcaster CastAddBody.embeds is the canonical wire format for
+        // both URL media and quoted Cast IDs (including HyperSnap reads).
+        // URLs must contain 1..256 UTF-8 bytes; never embed a qStorage
+        // presign with a short expiry in a permanent cast.
+        const hasUrl=typeof embed?.url==='string';
+        const url=hasUrl?embed.url:'';
+        if(hasUrl) {
+            const length=encoder.encode(url).length;
+            invariant(length>=1&&length<=256,'embed URL exceeds Farcaster 256-byte limit');
+            invariant(!/[\x00-\x1f]/.test(url),'invalid embed URL');
+        } else {
+            invariant(embed?.cast && !embed.url,'invalid cast reference embed');
+        }
+        const bytes=hasUrl?fieldBytes(1,url):fieldBytes(2,castId(embed.cast),true);
         body=concat(body,fieldBytes(6,bytes,true));
     }
     if(bodyText.length>320)body=concat(body,fieldNum(8,1));

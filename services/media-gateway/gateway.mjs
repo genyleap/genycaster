@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { retrieveBrowserImage } from './browser_image_proxy.mjs';
+import { defaultBrowserImageHosts, retrieveBrowserImage, validImageUrl } from './browser_image_proxy.mjs';
 import { createBrowserFarcasterBroker } from './browser_farcaster_auth.mjs';
 import {
   createHash,
@@ -369,6 +369,37 @@ function validatedCompletionParts(value, expectedCount) {
   return parts;
 }
 
+// Public browser images from Mini App manifests are frequently hosted on
+// independent domains. Only exact HTTPS icon URLs returned by the trusted
+// catalogue are eligible; all other URLs retain the fixed-host image policy.
+export function miniAppIconUrls(document) {
+  const frames = Array.isArray(document?.frames) ? document.frames
+    : Array.isArray(document?.miniapps) ? document.miniapps
+    : Array.isArray(document?.apps) ? document.apps : [];
+  const result = new Set();
+  for (const row of frames.slice(0, 100)) {
+    if (!row || typeof row !== 'object') continue;
+    let manifest = row.manifest;
+    if (typeof manifest === 'string') {
+      try { manifest = JSON.parse(manifest); } catch { manifest = null; }
+    }
+    const sources = [manifest?.miniapp, manifest?.frame, manifest, row.miniapp, row.frame, row];
+    for (const source of sources) {
+      if (!source || typeof source !== 'object') continue;
+      for (const key of ['icon_url','iconUrl','icon','logo_url','logoUrl']) {
+        const raw = source[key];
+        if (typeof raw !== 'string' || raw.length > 4096) continue;
+        let url;
+        try { url = new URL(raw); } catch { continue; }
+        if (url.protocol !== 'https:' || url.username || url.password || url.hash
+            || url.port && url.port !== '443') continue;
+        result.add(url.href);
+      }
+    }
+  }
+  return result;
+}
+
 export function createMediaGateway(config, storage, dependencies = {}) {
   const runtime = {
     fetchImpl: dependencies.fetchImpl ?? globalThis.fetch,
@@ -378,6 +409,48 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   const limiter = dependencies.limiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.rateLimit);
   const partLimiter = dependencies.partLimiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.partRateLimit);
   const farcasterBroker = dependencies.farcasterBroker ?? createBrowserFarcasterBroker(runtime);
+  const retrieveImage = dependencies.retrieveImage ?? retrieveBrowserImage;
+  const verifiedMiniAppIcons = new Map();
+  let refreshIconsPromise = null;
+  let lastIconRefreshAttempt = -Infinity;
+
+  function rememberCatalogueIcons(document) {
+    const expires = runtime.now() + 60 * 60 * 1000;
+    for (const url of miniAppIconUrls(document)) {
+      verifiedMiniAppIcons.set(url, expires);
+      if (verifiedMiniAppIcons.size > 1200)
+        verifiedMiniAppIcons.delete(verifiedMiniAppIcons.keys().next().value);
+    }
+  }
+
+  async function refreshMiniAppIconCatalogue() {
+    if (refreshIconsPromise) return refreshIconsPromise;
+    if (runtime.now() - lastIconRefreshAttempt < 2 * 60 * 1000) return;
+    lastIconRefreshAttempt = runtime.now();
+    refreshIconsPromise = (async () => {
+      // The catalogue is a fixed Neynar endpoint, never caller-selected.
+      const url = new URL('https://api.neynar.com/v2/farcaster/frame/catalog/');
+      url.searchParams.set('limit', '20');
+      url.searchParams.set('time_window', '7d');
+      try {
+        const reply = await runtime.fetchImpl(url, {
+          method:'GET', redirect:'error',
+          headers:{ accept:'application/json',
+            'x-api-key':process.env.GENYCASTER_MINIAPP_NEYNAR_API_KEY || 'NEYNAR_API_DOCS' },
+          signal:AbortSignal.timeout(8_000),
+        });
+        if (!reply.ok || !String(reply.headers.get('content-type') || '').startsWith('application/json')) {
+          await reply.body?.cancel();
+          return;
+        }
+        // Bound the catalogue payload independent of Content-Length.
+        const content = await reply.text();
+        if (content.length > 2 * 1024 * 1024) return;
+        rememberCatalogueIcons(JSON.parse(content));
+      } catch { /* retain previously verified entries */ }
+    })().finally(() => { refreshIconsPromise = null; });
+    return refreshIconsPromise;
+  }
 
   return http.createServer(async (request, response) => {
     response.setHeader('server', '');
@@ -503,7 +576,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
           chunks.push(Buffer.from(part.value));
         }
         const payload = Buffer.concat(chunks, size);
-        JSON.parse(payload.toString('utf8'));
+        rememberCatalogueIcons(JSON.parse(payload.toString('utf8')));
         response.writeHead(200, {
           'content-type': 'application/json; charset=utf-8',
           'cache-control': kind === 'catalog' ? 'public, max-age=180' : 'no-store',
@@ -600,7 +673,26 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         return;
       }
       const requested = requestUrl.searchParams.get('url');
-      const result = await retrieveBrowserImage(requested);
+      let allowedHosts;
+      // First-party icon catalogue URLs may live outside the static CDN
+      // allowlist, but must match an exact catalogue icon. Refresh the
+      // verified set lazily after a server restart or browser cache hit.
+      if (typeof requested === 'string' && !validImageUrl(requested)) {
+        let candidate = null;
+        try { candidate = new URL(requested); } catch {}
+        if (candidate?.protocol === 'https:' && !candidate.username
+            && !candidate.password && !candidate.hash && (!candidate.port || candidate.port === '443')) {
+          if ((verifiedMiniAppIcons.get(candidate.href) || 0) <= runtime.now())
+            await refreshMiniAppIconCatalogue();
+          if ((verifiedMiniAppIcons.get(candidate.href) || 0) > runtime.now())
+            allowedHosts = [...defaultBrowserImageHosts, candidate.hostname];
+        }
+        if (!allowedHosts) {
+          writeJson(response, 400, { error: 'image_source_not_allowed' });
+          return;
+        }
+      }
+      const result = await retrieveImage(requested, allowedHosts ? { allowedHosts } : {});
       if (result.status !== 200) {
         writeJson(response, result.status, { error: result.error });
         return;
@@ -653,16 +745,40 @@ export function createMediaGateway(config, storage, dependencies = {}) {
           method: 'GET',
           expiresSeconds: config.downloadUrlLifetimeSeconds,
         });
-        const redirectMaxAge = Math.max(0, Math.min(300, config.downloadUrlLifetimeSeconds - 30));
+        // 307 Location contains a short-lived provider signature; cached
+        // redirects can outlive it and break permanent Farcaster media URLs.
         response.writeHead(307, {
           location,
-          'cache-control': `public, max-age=${redirectMaxAge}`,
+          'cache-control': 'private, no-store, max-age=0',
+          'cdn-cache-control': 'no-store',
+          'cloudflare-cdn-cache-control': 'no-store',
           'x-content-type-options': 'nosniff',
         });
         response.end();
       } catch {
         writeJson(response, 503, { error: 'media_gateway_unavailable' });
       }
+      return;
+    }
+
+    // Uploads require a network-verified Ed25519 Farcaster signer proof.
+    // Permit browser CORS only from the first-party GenyCaster app. This is
+    // not a public unsigned upload endpoint; all POST/PUT/DELETE operations
+    // continue through verifyProof and the replay cache.
+    const browserUploadPath = requestUrl.pathname === '/v1/uploads'
+      || requestUrl.pathname === '/v1/uploads/complete'
+      || /^\/v1\/uploads\/[^/]+\/parts\/[1-9][0-9]{0,4}$/.test(requestUrl.pathname);
+    if (browserUploadPath && request.headers.origin === 'https://caster.genyleap.com') {
+      response.setHeader('access-control-allow-origin', 'https://caster.genyleap.com');
+      response.setHeader('vary', 'origin');
+      response.setHeader('access-control-allow-methods', 'POST, PUT, DELETE, OPTIONS');
+      response.setHeader('access-control-allow-headers',
+        'content-type, x-genycaster-fid, x-genycaster-signer-key, x-genycaster-timestamp, x-genycaster-nonce, x-genycaster-signature');
+      response.setHeader('cache-control','no-store');
+    }
+    if (browserUploadPath && request.method === 'OPTIONS') {
+      response.writeHead(request.headers.origin === 'https://caster.genyleap.com' ? 204 : 403);
+      response.end();
       return;
     }
 

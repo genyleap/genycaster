@@ -179,16 +179,32 @@ private:
                 } else if (phase == QStringLiteral("confirmed")) {
                     const auto hash = event.value(QStringLiteral("hash")).toString();
                     const auto operation = event.value(QStringLiteral("operation")).toString();
-                    presentation->applyVerifiedBrowserWrite(
-                        hash, operation == QStringLiteral("cast")
-                            || operation == QStringLiteral("thread"));
-                    if (operation == QStringLiteral("remove") && m_composer) {
+                    if (operation == QStringLiteral("remove")) {
                         const QString castId = event.value(QStringLiteral("targetCastId")).toString();
+                        // A confirmed CastRemove has its *own* message hash.
+                        // Use the original target hash for the removal mutation,
+                        // never the CastRemove message hash.
                         if (castId.size() == 42 && castId.startsWith(QStringLiteral("0x"))) {
-                            // Only a confirmed protocol deletion releases its
-                            // reference-counted managed-media tokens.
-                            (void)m_composer->releaseManagedAssetsForCast(castId);
+                            presentation->applyWriteState(
+                                QStringLiteral("confirmed"), false, {}, {},
+                                QVariantMap{
+                                    {QStringLiteral("operationKind"), QStringLiteral("remove-cast")},
+                                    {QStringLiteral("targetCastId"), castId},
+                                });
+                            if (m_composer) {
+                                // Only after protocol confirmation should
+                                // managed-media retention be released.
+                                (void)m_composer->releaseManagedAssetsForCast(castId);
+                            }
+                        } else {
+                            presentation->applyWriteState(
+                                QStringLiteral("failed"), false, {},
+                                QStringLiteral("Confirmed deletion lacked a valid cast reference"));
                         }
+                    } else {
+                        presentation->applyVerifiedBrowserWrite(
+                            hash, operation == QStringLiteral("cast")
+                                || operation == QStringLiteral("thread"));
                     }
                     presentation->retryAutomatically();
                 } else {

@@ -215,6 +215,8 @@ test('authorized Farcaster signer uploads a gateway-relayed multipart object and
     });
     assert.equal(stable.status, 307);
     assert.match(stable.headers.get('location') ?? '', /^https:\/\/private\.storage\.test\/v1\/.*signed-read=1/);
+    assert.equal(stable.headers.get('cache-control'), 'private, no-store, max-age=0');
+    assert.equal(stable.headers.get('cdn-cache-control'), 'no-store');
 
     const deleteBody = Buffer.from(JSON.stringify({ managementToken: asset.managementToken }));
     const deleted = await fetch(`${origin}/v1/assets`, {
