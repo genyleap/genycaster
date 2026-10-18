@@ -14,6 +14,10 @@ Superellipse {
     property bool suppressArtwork: false
     property var externalPreview: ({})
     property var browserMiniAppPreview: ({})
+    property var browserLinkPreview: ({})
+    property var pendingBrowserLinkPreview: ({})
+    property var pendingBrowserMiniAppPreview: ({})
+    property string browserLinkRequestedUrl: ""
     property string browserPreviewRequestUrl: ""
     property bool metadataManagedExternally: false
     property var resolvedPreview: ({})
@@ -29,7 +33,9 @@ Superellipse {
                                           ? ({kind: "miniapp", aspect: 3 / 2, artwork: true})
                                           : root.layoutReservation || root.initialLayout()
     readonly property bool layoutMiniApp: root.reservedLayout.kind === "miniapp"
-    readonly property bool reserveArtwork: !root.suppressArtwork && root.reservedLayout.artwork
+    // Unknown pages must never reserve an empty thumbnail rectangle. Only
+    // an actual preview image may claim image geometry.
+    readonly property bool reserveArtwork: !root.suppressArtwork && root.previewSource.length > 0
     readonly property real bodyLineHeight: Math.ceil(Theme.typeBodySize * Theme.typeBodyLineHeight)
     readonly property real metaLineHeight: Math.ceil(Theme.typeMetaSize * Theme.typeMetaLineHeight)
     readonly property real captionLineHeight: Math.ceil(Theme.typeCaptionSize * Theme.typeCaptionLineHeight)
@@ -39,6 +45,8 @@ Superellipse {
 
     readonly property var previewData: Boolean(root.browserMiniAppPreview.resolved)
                                       ? root.browserMiniAppPreview
+                                      : Boolean(root.browserLinkPreview.resolved)
+                                        ? root.browserLinkPreview
                                       : root.metadataManagedExternally
                                         ? (root.externalPreview || ({}))
                                         : (root.resolvedPreview || ({}))
@@ -191,6 +199,32 @@ Superellipse {
         root.scrollHost = null
     }
 
+    function requestBrowserLinkPreview() {
+        if (Qt.platform.os !== 'wasm' || root.targetUrl.length === 0
+                || root.scrollMoving || Boolean(root.browserLinkPreview.resolved)
+                || Boolean(root.browserMiniAppPreview.resolved)
+                || root.browserLinkRequestedUrl === root.targetUrl
+                || !/^https:\/\//i.test(root.targetUrl)) return
+        const target = root.targetUrl
+        root.browserLinkRequestedUrl = target
+        const xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE || root.targetUrl !== target
+                    || xhr.status !== 200) return
+            try {
+                const result = JSON.parse(xhr.responseText)
+                if (result && result.resolved && result.providerKind === 'web'
+                        && String(result.domain || '').length > 0) {
+                    if (root.scrollMoving) root.pendingBrowserLinkPreview = result
+                    else root.browserLinkPreview = result
+                }
+            } catch (error) { /* Fall back to the original compact link card. */ }
+        }
+        xhr.open('GET', 'https://storage-farcaster.genyleap.com/v1/browser/link-preview?url='
+                 + encodeURIComponent(target), true)
+        xhr.send()
+    }
+
     function requestBrowserMiniAppManifest() {
         if (Qt.platform.os !== "wasm" || root.targetUrl.length === 0
                 || root.scrollMoving || Boolean(root.knownMiniApp.homeUrl)
@@ -204,15 +238,21 @@ Superellipse {
         const xhr = new XMLHttpRequest()
         xhr.onreadystatechange = function() {
             if (xhr.readyState !== XMLHttpRequest.DONE || root.targetUrl !== target) return
-            if (xhr.status !== 200) return
+            if (xhr.status !== 200) {
+                root.requestBrowserLinkPreview()
+                return
+            }
             try {
                 const metadata = JSON.parse(xhr.responseText)
                 if (metadata && metadata.resolved && metadata.providerKind === "miniapp"
                         && String(metadata.domain || "").toLowerCase() === origin[1].toLowerCase()) {
                     metadata.miniAppLaunchUrl = target
-                    root.browserMiniAppPreview = metadata
+                    if (root.scrollMoving) root.pendingBrowserMiniAppPreview = metadata
+                    else root.browserMiniAppPreview = metadata
+                    return
                 }
-            } catch (error) { /* Keep the working ordinary link preview. */ }
+            } catch (error) { /* Try safe HTML metadata when not a Mini App. */ }
+            root.requestBrowserLinkPreview()
         }
         xhr.open("GET", "https://storage-farcaster.genyleap.com/v1/browser/miniapp-preview?url="
                  + encodeURIComponent("https://" + origin[1] + "/"), true)
@@ -280,6 +320,10 @@ Superellipse {
     }
 
     onTargetUrlChanged: {
+        root.pendingBrowserLinkPreview = ({})
+        root.pendingBrowserMiniAppPreview = ({})
+        root.browserLinkPreview = ({})
+        root.browserLinkRequestedUrl = ""
         root.browserMiniAppPreview = ({})
         root.browserPreviewRequestUrl = ""
         miniAppManifestTimer.stop()
@@ -309,6 +353,14 @@ Superellipse {
         if (root.scrollMoving) {
             metadataDeadline.stop()
         } else {
+            if (root.pendingBrowserMiniAppPreview.resolved) {
+                root.browserMiniAppPreview = root.pendingBrowserMiniAppPreview
+                root.pendingBrowserMiniAppPreview = ({})
+            }
+            if (root.pendingBrowserLinkPreview.resolved) {
+                root.browserLinkPreview = root.pendingBrowserLinkPreview
+                root.pendingBrowserLinkPreview = ({})
+            }
             if (root.resolvedPreviewPending) {
                 root.resolvedPreviewPending = false
                 root.resolvedPreview = root.pendingResolvedPreview
@@ -1010,8 +1062,9 @@ Superellipse {
                 }
 
                 DirectionAwareLabel {
+                    visible: root.titleText.length > 0
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.bodyLineHeight * 2
+                    Layout.preferredHeight: visible ? root.bodyLineHeight * 2 : 0
                     Layout.minimumHeight: Layout.preferredHeight
                     Layout.maximumHeight: Layout.preferredHeight
                     verticalAlignment: Text.AlignTop
@@ -1026,7 +1079,8 @@ Superellipse {
                 }
 
                 DirectionAwareLabel {
-                    Layout.preferredHeight: root.metaLineHeight * (root.compact ? 1 : 2)
+                    visible: root.summaryText.length > 0
+                    Layout.preferredHeight: visible ? root.metaLineHeight * (root.compact ? 1 : 2) : 0
                     Layout.minimumHeight: Layout.preferredHeight
                     Layout.maximumHeight: Layout.preferredHeight
                     verticalAlignment: Text.AlignTop

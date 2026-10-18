@@ -24,7 +24,9 @@ Item {
         if (root.symbol === "GENY") return "brands/geny"
         return ""
     }
-    readonly property bool bundledArtwork: root.semanticIcon.length > 0
+    // Verified market-source artwork has priority over decorative in-app icons.
+    // In particular GENY's branding glyph is not its registered token logo.
+    readonly property bool bundledArtwork: root.semanticIcon.length > 0 && root.remoteSource.length === 0
     readonly property string fallbackLetter: {
         const candidate = root.symbol.length > 0 ? root.symbol : root.name
         return candidate.length > 0 ? candidate.slice(0, 1).toUpperCase() : "?"

@@ -100,6 +100,7 @@ Item {
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
+                    visible: !root.compact
                     text: qsTrId("genycaster.apps.description")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeMetaSize
@@ -122,8 +123,8 @@ Item {
 
         GridLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: root.compact ? 178 : 64
-            columns: root.compact ? 1 : 3
+            Layout.preferredHeight: root.compact ? 58 : 64
+            columns: 3
             rowSpacing: Theme.space2
             columnSpacing: Theme.space2
             layoutDirection: Theme.uiDirection
@@ -152,11 +153,12 @@ Item {
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.margins: Theme.space3
-                        spacing: Theme.space2
+                        anchors.margins: root.compact ? Theme.space1 : Theme.space3
+                        spacing: root.compact ? Theme.space1 : Theme.space2
                         layoutDirection: Theme.uiDirection
 
                         Superellipse {
+                            visible: !root.compact
                             Layout.preferredWidth: 34
                             Layout.preferredHeight: 34
                             fillColor: destinationCard.selected ? Theme.accent : Theme.surfaceRaised
@@ -179,7 +181,7 @@ Item {
                         }
 
                         Icon {
-                            visible: destinationCard.selected
+                            visible: destinationCard.selected && !root.compact
                             text: Theme.iconCheck
                             color: Theme.accent
                             preferredSize: Theme.iconSizeSmall
@@ -200,8 +202,8 @@ Item {
             Layout.fillHeight: !root.compact
             Layout.preferredHeight: root.compact
                                     ? (root.section === "farcaster"
-                                       ? Math.max(320, farcasterColumn.implicitHeight)
-                                       : 420)
+                                       ? Math.max(60, farcasterColumn.implicitHeight)
+                                       : 240)
                                     : 0
 
             ComingSoonSurface {
@@ -331,7 +333,7 @@ Item {
                 }
 
                 RowLayout {
-                    visible: root.farcasterSection === "explorer"
+                    visible: !root.compact && root.farcasterSection === "explorer"
                              && (miniAppCatalog.providerLabel.length > 0 || miniAppCatalog.busy)
                     Layout.fillWidth: true
                     Layout.preferredHeight: visible ? 22 : 0
@@ -385,7 +387,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: !root.compact
                     Layout.preferredHeight: root.compact
-                                            ? Math.max(280, appGrid.contentHeight)
+                                            ? Math.max(1, appGrid.contentHeight)
                                             : 0
 
                     GridLayout {
@@ -394,7 +396,7 @@ Item {
                         anchors.top: parent.top
                         visible: miniAppCatalog.busy && root.visibleApps.length === 0
                         layoutDirection: Theme.uiDirection
-                        columns: root.compact || width < 660 ? 1 : (width < 1040 ? 2 : 3)
+                        columns: width < 360 ? 1 : (width < 1040 ? 2 : 3)
                         columnSpacing: Theme.space2
                         rowSpacing: Theme.space2
 
@@ -489,9 +491,10 @@ Item {
                                 model: root.visibleApps
                                 cacheBuffer: Math.min(height, 480)
 
-                                readonly property int targetColumns: root.compact || width < 660 ? 1 : (width < 1040 ? 2 : 3)
+                                readonly property int targetColumns: root.compact ? (width < 340 ? 1 : 2)
+                                                                    : width < 660 ? 1 : (width < 1040 ? 2 : 3)
                                 cellWidth: Math.max(1, width / Math.max(1, targetColumns))
-                                cellHeight: 236 + Theme.space3
+                                cellHeight: root.compact ? 136 : 236 + Theme.space3
 
                                 ScrollBar.vertical: GenyScrollBar {
                                     policy: root.compact ? ScrollBar.AlwaysOff : ScrollBar.AsNeeded
@@ -519,20 +522,20 @@ Item {
                                     Superellipse {
                                         id: card
                                         anchors.fill: parent
-                                        anchors.leftMargin: root.compact ? 0 : Theme.space2
-                                        anchors.rightMargin: root.compact ? 0 : Theme.space2
-                                        anchors.bottomMargin: Theme.space3
+                                        anchors.leftMargin: root.compact ? Theme.space1 : Theme.space2
+                                        anchors.rightMargin: root.compact ? Theme.space1 : Theme.space2
+                                        anchors.bottomMargin: root.compact ? Theme.space1 : Theme.space3
                                         fillColor: Theme.surfaceRaised
                                         borderWidth: cardCell.running ? Theme.strokeEmphasis : 1
                                         borderColor: cardCell.running ? Theme.accent : Theme.borderMuted
                                         curveDepth: Theme.curveContainer
-                                        elevation: Theme.elevationControl
-                                        shadowOpacityScale: 0.34
+                                        elevation: root.compact ? Theme.elevationNone : Theme.elevationControl
+                                        shadowOpacityScale: root.compact ? 0 : 0.34
 
                                         ColumnLayout {
                                             anchors.fill: parent
-                                            anchors.margins: Theme.space3
-                                            spacing: Theme.space2
+                                            anchors.margins: root.compact ? Theme.space2 : Theme.space3
+                                            spacing: root.compact ? Theme.space1 : Theme.space2
 
                                             RowLayout {
                                                 Layout.fillWidth: true
@@ -540,8 +543,8 @@ Item {
                                                 layoutDirection: Theme.uiDirection
 
                                                 Item {
-                                                    Layout.preferredWidth: 44
-                                                    Layout.preferredHeight: 44
+                                                    Layout.preferredWidth: root.compact ? 36 : 44
+                                                    Layout.preferredHeight: Layout.preferredWidth
 
                                                     SuperellipseImage {
                                                         id: miniAppArtwork
@@ -553,8 +556,8 @@ Item {
                                                         showManualLoadIndicator: false
                                                         showFailureIndicator: false
                                                         showLoadingIndicator: false
-                                                        requestedSourceWidth: 44
-                                                        requestedSourceHeight: 44
+                                                        requestedSourceWidth: root.compact ? 36 : 44
+                                                        requestedSourceHeight: root.compact ? 36 : 44
                                                         curveDepth: Theme.curveControl
                                                         fillColor: Theme.primarySurface
                                                         borderWidth: 0
@@ -614,6 +617,7 @@ Item {
                                             }
 
                                             DirectionAwareLabel {
+                                                visible: !root.compact
                                                 Layout.fillWidth: true
                                                 Layout.minimumHeight: 40
                                                 text: String(cardCell.modelData.description || "")
@@ -625,7 +629,7 @@ Item {
                                             }
 
                                             DirectionAwareLabel {
-                                                visible: cardCell.modelData.requiredChains
+                                                visible: !root.compact && cardCell.modelData.requiredChains
                                                          && cardCell.modelData.requiredChains.length > 0
                                                 Layout.fillWidth: true
                                                 text: cardCell.modelData.requiredChains.join(" · ")
@@ -635,7 +639,7 @@ Item {
                                                 elide: Text.ElideRight
                                             }
 
-                                            Item { Layout.fillHeight: true }
+                                            Item { visible: !root.compact; Layout.fillHeight: true }
 
                                             RowLayout {
                                                 Layout.fillWidth: true
@@ -645,6 +649,7 @@ Item {
                                                 ActionButton {
                                                     Layout.fillWidth: true
                                                     compact: true
+                                                    iconOnly: root.compact
                                                     prominent: true
                                                     positive: cardCell.runtimeState === "foreground"
                                                     busy: cardCell.launchBusy
@@ -660,6 +665,7 @@ Item {
                                                     onClicked: root.openApp(cardCell.modelData)
                                                 }
                                                 ActionButton {
+                                                    visible: !root.compact
                                                     compact: true
                                                     quiet: true
                                                     iconOnly: true
@@ -672,6 +678,7 @@ Item {
                                                 ActionButton {
                                                     compact: true
                                                     quiet: true
+                                                    iconOnly: root.compact
                                                     iconGlyph: Boolean(cardCell.modelData.saved) ? Theme.iconTrash : Theme.iconPlus
                                                     text: Boolean(cardCell.modelData.saved)
                                                           ? qsTrId("genycaster.apps.remove")

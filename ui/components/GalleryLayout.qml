@@ -308,7 +308,10 @@ Item {
                         // GalleryTile's vector corner covers provide the visual crop
                         // without allocating a full-size offscreen layer + MultiEffect,
                         // including the very common single-image post.
-                        useLayeredMask: false
+                        // The inverse-vector corner cover occasionally leaves
+                        // one-pixel seams on Safari/WebGL at fractional DPR.
+                        // Use the same image-layer mask across all WASM tiles.
+                        useLayeredMask: Qt.platform.os === "wasm"
                         ambientEnabled: root.visibleCount === 1
                         loadDelayMs: tileSlot.index * 48
                         continuationText: tileSlot.index === root.visibleCount - 1
