@@ -37,7 +37,8 @@ test('Mobile full Cast footer stacks compatibility hint above publish byte count
     const composer = source('ComposerDrawer.qml');
     assert.match(composer, /columns: root\.compact \? 1 : 2/);
     assert.match(composer, /Layout\.fillWidth: root\.compact\n\s+Layout\.minimumWidth: 0/);
-    assert.match(composer, /wrapMode: Text\.Wrap\n\s+text: qsTrId\("genycaster\.composer\.editor_count"\)/);
+    assert.match(composer, /wrapMode: Text\.Wrap\n\s+text: root\.compact/);
+    assert.match(composer, /qsTrId\("genycaster\.composer\.editor_count"\)/);
 });
 
 test('mobile Settings navigation categories are translated for every built-in locale', () => {

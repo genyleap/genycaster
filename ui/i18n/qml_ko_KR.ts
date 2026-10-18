@@ -2,6 +2,18 @@
 <TS version="2.1" language="ko_KR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.composer.formatting_tools">
+            <source>Formatting tools</source>
+            <translation>서식 도구</translation>
+        </message>
+        <message id="genycaster.settings.current_beta_release">
+            <source>GenyCaster Beta 1.0 · Version %1</source>
+            <translation>GenyCaster 베타 1.0 · 버전 %1</translation>
+        </message>
+        <message id="genycaster.settings.beta_program_info">
+            <source>You are using a beta release. Features may change while improvements are tested.</source>
+            <translation>베타 버전을 사용 중입니다. 테스트 과정에서 기능이 변경될 수 있습니다.</translation>
+        </message>
         <message id="genycaster.settings.mobile_recovery_options">
             <source>Recovery options</source>
             <translation>복구 옵션</translation>

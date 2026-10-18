@@ -13,6 +13,7 @@ GenyDrawer {
     property var suggestedEmbeds: []
     property bool transientDraft: false
     property string editorMode: "visual"
+    property bool showAdvancedFormatting: false
     property bool restoredDraft: false
     property string insertKind: ""
     property int insertBlockIndex: -1
@@ -57,7 +58,9 @@ GenyDrawer {
                               : Math.min(parent.height * 0.78, 720)) : 720
     // Composer content owns vertical scrolling; drawer-swipe gestures would otherwise
     // compete with Flickable/ScrollView input on touch devices.
-    interactive: root.compact
+    // Scrolling belongs to the content; swipe-to-dismiss was stealing
+    // vertical gestures from multi-cast threads on mobile Safari.
+    interactive: false
     function openLinkFromSelection() {
         const editor = visualEditor.formattingEditor
         if (root.editorMode !== "visual" || visualEditor.activeBlockIndex < 0 || editor === null
@@ -119,7 +122,15 @@ GenyDrawer {
     function addThreadCast() {
         if (threadTailModel.count + 1 >= root.maximumThreadCasts)
             return
+        root.synchronizeEditorState()
         threadTailModel.append({ "text": "" })
+        // Qt finishes laying out the new delegate on the next event turn.
+        // Scroll to the new card instead of leaving it beneath the fold.
+        Qt.callLater(function() {
+            const flick = composerScroll.contentItem
+            if (flick)
+                flick.contentY = Math.max(0, flick.contentHeight - flick.height)
+        })
     }
 
     function removeThreadCast(index) {
@@ -233,6 +244,7 @@ GenyDrawer {
     onOpened: {
         root.closeComposerPopups()
         editorMode = "visual"
+        showAdvancedFormatting = !root.compact
         insertKind = ""
         mediaInsertFailed = false
         root.emojiThreadIndex = -1
@@ -354,9 +366,12 @@ GenyDrawer {
         id: composerScroll
         clip: true
         contentWidth: availableWidth
+        contentHeight: composerContent.implicitHeight
+        ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
         ScrollBar.vertical: GenyScrollBar {}
 
         ColumnLayout {
+            id: composerContent
             readonly property int sideMargin: root.compact ? Theme.mobileGutter : Theme.space6
             width: Math.max(0, composerScroll.availableWidth - sideMargin * 2)
             x: sideMargin
@@ -391,6 +406,7 @@ GenyDrawer {
                         font.weight: Theme.weightBold
                     }
                     DirectionAwareLabel {
+                        visible: !root.compact
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.composer.rich_engine_subtitle")
                         color: Theme.inkMuted
@@ -541,9 +557,20 @@ GenyDrawer {
                 }
             }
 
+            ActionButton {
+                objectName: "composerMobileFormattingToggle"
+                visible: root.compact && root.editorMode === "visual"
+                compact: true
+                quiet: true
+                Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+                iconGlyph: Theme.iconSettings
+                text: qsTrId("genycaster.composer.formatting_tools")
+                onClicked: root.showAdvancedFormatting = !root.showAdvancedFormatting
+            }
+
             FormattingToolbar {
                 id: formattingToolbar
-                visible: root.editorMode === "visual"
+                visible: root.editorMode === "visual" && (!root.compact || root.showAdvancedFormatting)
                 Layout.fillWidth: true
                 activeBlockIndex: visualEditor.activeBlockIndex
                 activeEditor: visualEditor.formattingEditor
@@ -698,40 +725,35 @@ GenyDrawer {
             ColumnLayout {
                 visible: root.threadMode
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 spacing: Theme.space2
 
                 Repeater {
                     model: threadTailModel
 
-                    delegate: RowLayout {
+                    // A single-column card avoids competing RTL anchors.
+                    // Each continuation is a real scrollable document row,
+                    // never a narrow textbox beside a vertical action strip.
+                    delegate: ColumnLayout {
                         id: threadRow
-                        layoutDirection: Theme.uiDirection
                         required property int index
                         required property string text
                         Layout.fillWidth: true
-                        spacing: Theme.space2
+                        Layout.minimumWidth: 0
+                        spacing: Theme.space1
 
-                        Item {
-                            Layout.preferredWidth: 34
-                            Layout.fillHeight: true
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
 
                             Rectangle {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.top: parent.top
-                                anchors.bottom: sequenceDot.top
-                                width: 2
-                                color: Theme.borderMuted
-                            }
-                            Superellipse {
-                                id: sequenceDot
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 28
-                                height: 28
-                                curveDepth: 14
-                                fillColor: Theme.primarySurface
-                                borderWidth: Theme.strokeHairline
-                                borderColor: Theme.accent
+                                Layout.preferredWidth: 28
+                                Layout.preferredHeight: 28
+                                radius: 14
+                                color: Theme.primarySurface
+                                border.width: Theme.strokeHairline
+                                border.color: Theme.accent
                                 Label {
                                     anchors.centerIn: parent
                                     text: LocaleFormat.formatInteger(threadRow.index + 2)
@@ -740,73 +762,73 @@ GenyDrawer {
                                     font.weight: Theme.weightBold
                                 }
                             }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                text: qsTrId("genycaster.composer.thread_placeholder")
+                                      .arg(LocaleFormat.formatInteger(threadRow.index + 2))
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                elide: Text.ElideRight
+                            }
+                            ActionButton {
+                                quiet: true
+                                compact: true
+                                iconOnly: true
+                                iconGlyph: Theme.iconEmoji
+                                iconSize: Theme.iconSizeSmall
+                                text: qsTrId("genycaster.composer.emoji")
+                                onClicked: {
+                                    root.emojiThreadIndex = threadRow.index
+                                    root.emojiThreadCursorPosition = threadEditor.cursorPosition
+                                    emojiPicker.anchorItem = threadEditor
+                                    emojiPicker.open()
+                                }
+                            }
+                            ActionButton {
+                                quiet: true
+                                compact: true
+                                iconOnly: true
+                                iconGlyph: Theme.iconTrash
+                                text: qsTrId("genycaster.composer.remove_thread_cast")
+                                onClicked: root.removeThreadCast(threadRow.index)
+                            }
                         }
 
                         Superellipse {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: Math.max(116, threadEditor.contentHeight + Theme.space5)
-                            fillColor: Theme.editorSurface
+                            Layout.minimumWidth: 0
+                            Layout.preferredHeight: Math.max(118, Math.min(210, threadEditor.contentHeight + Theme.space5))
+                            fillColor: threadEditor.activeFocus ? Theme.editorFocusedSurface : Theme.editorSurface
                             borderWidth: threadEditor.activeFocus ? Theme.strokeEmphasis : Theme.strokeHairline
                             borderColor: threadEditor.activeFocus ? Theme.accent : Theme.borderSubtle
                             curveDepth: Theme.curveLarge
 
                             DirectionAwareTextArea {
                                 id: threadEditor
-                                anchors.left: parent.left
-                                anchors.right: threadActions.left
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
-                                anchors.margins: Theme.space3
+                                objectName: "composerThreadEditor"
+                                anchors.fill: parent
+                                anchors.margins: Theme.space1
                                 text: threadRow.text
-                                placeholderText: qsTrId("genycaster.composer.thread_placeholder").arg(LocaleFormat.formatInteger(threadRow.index + 2))
+                                placeholderText: qsTrId("genycaster.composer.thread_placeholder")
+                                                 .arg(LocaleFormat.formatInteger(threadRow.index + 2))
                                 background: null
                                 wrapMode: TextEdit.Wrap
-                                onTextChanged: if (activeFocus && text !== threadTailModel.get(threadRow.index).text)
+                                onTextChanged: if (activeFocus
+                                                  && text !== threadTailModel.get(threadRow.index).text)
                                                    threadTailModel.setProperty(threadRow.index, "text", text)
                             }
+                        }
 
-                            ColumnLayout {
-                                id: threadActions
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.margins: Theme.space2
-                                spacing: Theme.space1
-
-                                ActionButton {
-                                    quiet: true
-                                    compact: true
-                                    iconOnly: true
-                                    iconGlyph: Theme.iconEmoji
-                                    iconSize: Theme.iconSizeSmall
-                                    text: qsTrId("genycaster.composer.emoji")
-                                    onClicked: {
-                                        root.emojiThreadIndex = threadRow.index
-                                        root.emojiThreadCursorPosition = threadEditor.cursorPosition
-                                        emojiPicker.anchorItem = threadEditor
-                                        emojiPicker.open()
-                                    }
-                                }
-                                ActionButton {
-                                    quiet: true
-                                    compact: true
-                                    iconOnly: true
-                                    iconGlyph: Theme.iconTrash
-                                    text: qsTrId("genycaster.composer.remove_thread_cast")
-                                    onClicked: root.removeThreadCast(threadRow.index)
-                                }
-                            }
-
-                            Label {
-                                anchors.right: parent.right
-                                anchors.bottom: parent.bottom
-                                anchors.margins: Theme.space2
-                                text: LocaleFormat.formatInteger(presentationBridge.utf8ByteCount(threadRow.text))
-                                      + "/" + LocaleFormat.formatInteger(1024)
-                                color: presentationBridge.utf8ByteCount(threadRow.text) <= 1024
-                                       ? Theme.inkSubtle : Theme.danger
-                                font.family: Theme.fontFamilyForText(text)
-                                font.pixelSize: Theme.typeCaptionSize
-                            }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: LocaleFormat.formatInteger(presentationBridge.utf8ByteCount(threadRow.text))
+                                  + " / " + LocaleFormat.formatInteger(1024)
+                            color: presentationBridge.utf8ByteCount(threadRow.text) <= 1024
+                                   ? Theme.inkSubtle : Theme.danger
+                            font.pixelSize: Theme.typeCaptionSize
+                            forceLeftToRight: true
+                            horizontalAlignment: Theme.rtl ? Text.AlignLeft : Text.AlignRight
                         }
                     }
                 }
@@ -825,6 +847,7 @@ GenyDrawer {
                     onClicked: root.addThreadCast()
                 }
                 DirectionAwareLabel {
+                    visible: !root.compact
                     Layout.fillWidth: true
                     text: root.threadMode ? qsTrId("genycaster.composer.thread_protocol_hint")
                                           : qsTrId("genycaster.composer.thread_hint")
@@ -852,6 +875,7 @@ GenyDrawer {
                                 ? qsTrId("genycaster.composer.compatibility_simplified_count")
                                     .arg(LocaleFormat.formatInteger(richComposer.simplifiedElementCount))
                               : qsTrId("genycaster.composer.cross_client_safe")
+                        visible: !root.compact || presentationBridge.writeErrorText.length > 0
                         color: presentationBridge.writeErrorText.length > 0 ? Theme.warning : Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
@@ -864,9 +888,12 @@ GenyDrawer {
                     Layout.minimumWidth: 0
                     horizontalAlignment: Theme.textEndAlignment
                     wrapMode: Text.Wrap
-                    text: qsTrId("genycaster.composer.editor_count")
+                    text: root.compact
+                          ? LocaleFormat.formatInteger(richComposer.publishedBytes)
+                            + " / " + LocaleFormat.formatInteger(richComposer.maximumPublishedBytes)
+                          : qsTrId("genycaster.composer.editor_count")
                               .arg(LocaleFormat.formatInteger(richComposer.editorCharacters))
-                          + "  •  " + qsTrId("genycaster.composer.published_count")
+                            + "  •  " + qsTrId("genycaster.composer.published_count")
                               .arg(LocaleFormat.formatInteger(richComposer.publishedBytes))
                               .arg(LocaleFormat.formatInteger(richComposer.maximumPublishedBytes))
                     color: richComposer.withinProtocolLimit ? Theme.inkSubtle : Theme.danger

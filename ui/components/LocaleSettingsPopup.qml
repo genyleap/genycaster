@@ -2016,10 +2016,20 @@ GenyDrawer {
                             font.weight: Theme.weightBold
                         }
                         DirectionAwareLabel {
+                            objectName: "settingsBetaReleaseLabel"
                             Layout.fillWidth: true
-                            text: qsTrId("genycaster.settings.current_version_1").arg(updateController.appVersion)
-                            color: Theme.inkMuted
+                            text: qsTrId("genycaster.settings.current_beta_release")
+                                  .arg(updateController.appVersion)
+                            color: Theme.accent
                             font.pixelSize: Theme.typeMetaSize
+                            font.weight: Theme.weightDemiBold
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.settings.beta_program_info")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
                         }
                     }
 

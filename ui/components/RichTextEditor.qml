@@ -422,6 +422,13 @@ Item {
                 anchors.margins: Theme.space2
                 anchors.rightMargin: Theme.space1
                 textFormat: TextEdit.RichText
+                // The rendered HTML begins with Latin markup tags. Detect
+                // direction from the *actual paragraph*, not that markup.
+                // Otherwise Persian/Arabic are mistakenly left-aligned.
+                forceRightToLeft: localizationController.isRightToLeftText(
+                                      String(blockSurface.parent.blockData.text || ""))
+                                  || (Theme.rtl
+                                      && String(blockSurface.parent.blockData.text || "").length === 0)
                 text: blockSurface.editorMarkup()
                 placeholderText: String(blockSurface.parent.blockData.kind || "") === "heading"
                                  ? qsTrId("genycaster.composer.heading_placeholder")

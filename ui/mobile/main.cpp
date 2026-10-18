@@ -2370,9 +2370,16 @@ void connectRuntime(
                          browserAuth->cancel();
                      });
     QObject::connect(&bridge, &PresentationBridge::signOutRequested,
-                     browserAuth, [browserAuth, browserSigner] {
+                     browserAuth, [browserAuth, browserSigner, sessionObserver] {
+                         // Recovery sign-in does not install an OpenProof observer.
+                         // Always send the authoritative local Guest transition,
+                         // rather than relying on OpenProof::cancel() to do so.
+                         // This also makes Sign Out idempotent across all routes.
                          browserSigner->forgetAccount();
                          browserAuth->signOut();
+                         sessionObserver(application::session::SessionState{
+                             .phase = application::session::SessionPhase::Guest,
+                         });
                      });
 #else
     QObject::connect(&bridge, &PresentationBridge::signInRequested, &bridge,

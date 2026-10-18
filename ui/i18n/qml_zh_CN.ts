@@ -2,6 +2,18 @@
 <TS version="2.1" language="zh_CN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.composer.formatting_tools">
+            <source>Formatting tools</source>
+            <translation>格式工具</translation>
+        </message>
+        <message id="genycaster.settings.current_beta_release">
+            <source>GenyCaster Beta 1.0 · Version %1</source>
+            <translation>GenyCaster 测试版 1.0 · 版本 %1</translation>
+        </message>
+        <message id="genycaster.settings.beta_program_info">
+            <source>You are using a beta release. Features may change while improvements are tested.</source>
+            <translation>你正在使用测试版。功能可能在测试期间发生变化。</translation>
+        </message>
         <message id="genycaster.settings.mobile_recovery_options">
             <source>Recovery options</source>
             <translation>恢复选项</translation>
