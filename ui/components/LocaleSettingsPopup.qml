@@ -52,7 +52,8 @@ GenyDrawer {
     }
 
     bottomSheet: mobilePresentation
-    showHandle: !mobilePresentation
+    // Full-screen phone navigation and desktop settings have no drag handle.
+    showHandle: false
     dimBackground: true
     contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space4
     width: parent ? (mobilePresentation ? parent.width : Math.min(760, parent.width * 0.92)) : 760
