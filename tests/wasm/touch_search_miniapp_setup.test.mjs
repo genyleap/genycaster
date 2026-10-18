@@ -39,6 +39,25 @@ test('browser miniapps resolve verified public manifests and retain the external
   assert.match(gateway,/requestUrl\.pathname === '\/v1\/browser\/miniapp-preview'/);
   assert.match(gateway,/publicMiniAppPreview\(rawUrl\)/);
 });
+test('scrolling never demotes a loaded Mini App or detaches an existing image',()=>{
+  const preview=read('ui/components/LinkPreview.qml');
+  assert.doesNotMatch(preview,/browserMiniAppPreview\.providerKind === "miniapp"\)\s*&& !root\.scrollMoving/);
+  assert.match(preview,/readonly property string animatedPosterUrl/);
+  assert.match(preview,/AnimatedImage \{\s*id: miniAppAnimation/);
+  const image=read('ui/components/SuperellipseImage.qml');
+  assert.doesNotMatch(image,/current !== requested \|\| \(!root\.ready/);
+  assert.match(image,/if \(current !== requested\)\s*root\.activeSource = ""/);
+  assert.match(image,/AnimatedImage \{\s*id: animatedGif/);
+  const engagement=read('ui/components/EngagementButton.qml');
+  assert.doesNotMatch(engagement,/containmentMask:\s*background/);
+  assert.match(engagement,/implicitHeight: Theme\.touchTarget/);
+});
+test('account summary has an aligned avatar and visible text target',()=>{
+  const qml=read('ui/components/AppShell.qml');
+  assert.match(qml,/id: accountSummary[\s\S]*?RowLayout \{[\s\S]*?Avatar \{/);
+  assert.match(qml,/sourceUrl: presentationBridge\.accountAvatarUrl/);
+  assert.match(qml,/forceLeftToRight: true\s*horizontalAlignment: Text\.AlignLeft/);
+});
 test('network setup reveals measured public nodes by default, advanced proxy is optional',()=>{
   const qml=read('ui/components/InitialSetup.qml');
   assert.match(qml,/visible: presentationBridge\.preferredNetwork === "hypersnap"[\s\S]*?model: nodeSelectionController\.nodes/);

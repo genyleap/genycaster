@@ -12,14 +12,18 @@ Button {
     property bool iconFilled: false
     property real iconSize: Theme.iconSizeSmall
 
-    implicitWidth: Math.max(Theme.controlHeight, content.implicitWidth + Theme.space2 * 2)
-    implicitHeight: Theme.controlHeight
+    implicitWidth: Math.max(Theme.touchTarget, content.implicitWidth + Theme.space2 * 2)
+    implicitHeight: Theme.touchTarget
     padding: 0
     // No engagement visual depends on hover. Tracking hover for three
     // controls in every recycled post only makes stationary desktop pointers
     // generate state churn while the timeline moves underneath them.
     hoverEnabled: false
-    containmentMask: background
+    // A shaped containmentMask rejects pointer points near the edge of an
+    // already-small button in Qt WebAssembly mobile Safari. The visible
+    // superellipse is decorative; the full 44px target owns the interaction.
+    focusPolicy: Qt.StrongFocus
+    activeFocusOnTab: true
     scale: control.down ? 0.985 : 1.0
 
     Behavior on scale {

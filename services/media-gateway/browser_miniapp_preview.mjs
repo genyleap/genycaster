@@ -89,8 +89,17 @@ export async function publicMiniAppPreview(rawUrl, dependencies = {}) {
   const home = validMiniAppTarget(String(app.homeUrl || ''));
   if (!home || home.hostname.toLowerCase() !== target.hostname.toLowerCase())
     return {status:404,error:'miniapp_origin_mismatch'};
-  const imageUrl = validMiniAppTarget(String(app.imageUrl || ''));
+  // Farcaster manifests legitimately use hero/OG/splash images instead of
+  // imageUrl. These still have to pass the browser proxy's strict host list.
+  const posters = [app.imageUrl, app.ogImageUrl, app.heroImageUrl,
+    ...(Array.isArray(app.screenshotUrls) ? app.screenshotUrls.slice(0, 3) : []),
+    app.splashImageUrl];
+  const imageUrl = posters.map(value => validMiniAppTarget(String(value || '')))
+    .find(value => value && validImageUrl(value.href));
   const iconUrl = validMiniAppTarget(String(app.iconUrl || ''));
+  const splashUrl = validMiniAppTarget(String(app.splashImageUrl || ''));
+  const gifUrl = [imageUrl, splashUrl].find(value => value
+    && /\.gif$/i.test(value.pathname) && validImageUrl(value.href));
   const imageSource = imageUrl && validImageUrl(imageUrl.href)
     ? 'image://remote/' + Buffer.from(imageUrl.href,'utf8').toString('base64url') : '';
   const iconSource = iconUrl && validImageUrl(iconUrl.href)
@@ -103,6 +112,7 @@ export async function publicMiniAppPreview(rawUrl, dependencies = {}) {
     summary:String(app.description || app.subtitle || '').slice(0,280),
     domain:target.hostname,
     previewImage:imageSource,
+    animatedPoster:gifUrl ? gifUrl.href : '',
     favicon:iconSource,
     miniAppButtonTitle:String(app.buttonTitle || '').slice(0,48),
   };

@@ -3963,8 +3963,8 @@
             <translation>چطور واژه‌های بازیابی را ببینم؟</translation>
         </message>
         <message id="genycaster.setup.recovery_phrase_unavailable">
-            <source>Genycaster does not retain the original recovery words. They cannot be reconstructed from an authorized publishing key. Find your backup in the original Farcaster wallet or app; never share the words.</source>
-            <translation>جنی‌کستر واژه‌های اصلی را نگه نمی‌دارد و نمی‌تواند آن‌ها را از کلید انتشار بازسازی کند. برای دیدن نسخهٔ پشتیبان به کیف پول یا برنامهٔ اصلی فارکستر مراجعه کنید. واژه‌ها را با کسی به اشتراک نگذارید.</translation>
+            <source>The original Farcaster app or wallet may reveal a recovery phrase it securely retained (older Warpcast versions: Settings > Advanced > Reveal recovery phrase). Genycaster does not retain the original words and cannot reconstruct them from your publishing signer. Keep your backup private.</source>
+            <translation>اگر برنامهٔ اصلی فارکستر یا کیف پولتان واژه‌ها را نگه داشته باشد، شاید بتوانید آن‌ها را از تنظیمات امنیتی ببینید (در نسخه‌های قدیمی وارپ‌کست: تنظیمات ← پیشرفته ← نمایش عبارت بازیابی). جنی‌کستر واژه‌های اصلی را ذخیره نمی‌کند و نمی‌تواند آن‌ها را از کلید انتشار بسازد. نسخهٔ پشتیبان را محرمانه نگه دارید.</translation>
         </message>
         <message id="genycaster.miniapp.preview_unavailable">
             <source>Mini App preview unavailable</source>

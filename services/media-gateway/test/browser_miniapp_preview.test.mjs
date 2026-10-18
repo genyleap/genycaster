@@ -53,6 +53,25 @@ test('verified Farcaster frame manifest creates a playable Mini App preview',asy
   assert.equal(calls[0].url,'https://farmverse.farverse.games/.well-known/farcaster.json');
   assert.equal(calls[0].lookup,'function');
 });
+test('legacy frame splash artwork and animated GIF posters are recognized',async()=>{
+  const gif=await publicMiniAppPreview('https://atgif.com/', {
+    lookupHost:publicDns,
+    requester:responder({miniapp:{name:'@gif',homeUrl:'https://atgif.com',
+      imageUrl:'https://atgif.com/api/opengraph-image',
+      splashImageUrl:'https://atgif.com/logo_full.gif',
+      iconUrl:'https://atgif.com/favicon.webp'}}),
+  });
+  assert.equal(gif.status,200);
+  assert.ok(gif.data.previewImage.startsWith('image://remote/'));
+  assert.equal(gif.data.animatedPoster,'https://atgif.com/logo_full.gif');
+  const legacy=await publicMiniAppPreview('https://universal-caster-income.vercel.app/', {
+    lookupHost:publicDns,
+    requester:responder({frame:{name:'UCI',homeUrl:'https://universal-caster-income.vercel.app',
+      ogImageUrl:'https://pub-2fb244e19fde48759a9cc4dfb18ababf.r2.dev/cover.png'}}),
+  });
+  assert.equal(legacy.status,200);
+  assert.ok(legacy.data.previewImage.startsWith('image://remote/'));
+});
 test('a private DNS answer is rejected before connecting',async()=>{
   let connected=false;
   const result=await publicMiniAppPreview(goodHost,{

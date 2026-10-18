@@ -21,9 +21,11 @@ Superellipse {
     property bool resolvedPreviewPending: false
     property bool metadataTimedOut: false
     property var layoutReservation: null
+    // A moving Flickable cannot change the media family. Previously the
+    // !scrollMoving guard made a rendered Mini App collapse into a web card
+    // on the very first drag, then reappear when the gesture ended.
     readonly property var reservedLayout: (root.knownMiniApp.homeUrl
                                             || root.browserMiniAppPreview.providerKind === "miniapp")
-                                          && !root.scrollMoving
                                           ? ({kind: "miniapp", aspect: 3 / 2, artwork: true})
                                           : root.layoutReservation || root.initialLayout()
     readonly property bool layoutMiniApp: root.reservedLayout.kind === "miniapp"
@@ -79,6 +81,12 @@ Superellipse {
     readonly property string previewSource: String(root.previewData.previewImage
                                                    || root.embed.imageSource || root.embed.previewImage
                                                    || root.knownMiniApp.iconSource || "")
+    readonly property string animatedPosterUrl: {
+        const raw = String(root.previewData.animatedPoster || "")
+        return /^https:\/\/[^\s?#]+\.gif(?:\?[^#]*)?$/i.test(raw)
+               ? "https://storage-farcaster.genyleap.com/v1/browser/images?url="
+                 + encodeURIComponent(raw) : ""
+    }
     readonly property string faviconSource: String(root.previewData.favicon || root.embed.favicon
                                                   || root.knownMiniApp.iconSource || "")
     readonly property string authorText: String(root.previewData.author || root.embed.author || "")
@@ -473,10 +481,28 @@ Superellipse {
                     showFailureIndicator: true
                 }
 
+                // Qt's ordinary image provider renders only the first GIF
+                // frame. Keep an actual AnimatedImage for the approved GIF
+                // splash, with the normal poster as a network fallback.
+                AnimatedImage {
+                    id: miniAppAnimation
+                    z: 2
+                    anchors.fill: parent
+                    source: root.animatedPosterUrl
+                    sourceSize: Qt.size(Math.max(1, Math.round(width)),
+                                        Math.max(1, Math.round(height)))
+                    fillMode: Image.PreserveAspectFit
+                    cache: true
+                    visible: root.animatedPosterUrl.length > 0 && status === AnimatedImage.Ready
+                    playing: visible && !root.scrollMoving
+                    smooth: true
+                }
+
                 ColumnLayout {
                     anchors.centerIn: parent
                     width: Math.max(120, parent.width - Theme.space4 * 2)
-                    visible: !miniAppPoster.ready && !root.metadataLoading
+                    visible: !miniAppPoster.ready && !miniAppAnimation.visible
+                             && !root.metadataLoading
                              && (root.previewSource.length === 0 || miniAppPoster.loadFailed)
                     spacing: Theme.space2
                     Icon {

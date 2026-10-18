@@ -56,6 +56,29 @@ Item {
     readonly property bool scrollMoving: root.scrollHost !== null
                                          && Boolean(root.scrollHost.moving)
     readonly property bool remoteSource: /^image:\/\/remote\//i.test(root.source.toString())
+    // AnimatedImage cannot consume a QQuickImageProvider URL. Decode the
+    // original canonical URL and use the bounded HTTPS image gateway on WASM.
+    // Unsupported sources still keep the ordinary one-frame image fallback.
+    readonly property string animatedGifUrl: {
+        const input = root.source.toString()
+        let mediaUrl = input
+        if (/^image:\/\/remote\//i.test(input)) {
+            let encoded = input.substring('image://remote/'.length)
+            if (encoded.indexOf('v22/') === 0) {
+                const parts = encoded.split('/')
+                encoded = parts.slice(3).join('/')
+            }
+            try {
+                mediaUrl = Qt.atob(encoded.replace(/-/g, '+').replace(/_/g, '/'))
+            } catch (error) { return '' }
+        }
+        if (!/^https:\/\/[^\s?#]+\.gif(?:\?[^#]*)?$/i.test(mediaUrl))
+            return ''
+        return Qt.platform.os === 'wasm'
+               ? 'https://storage-farcaster.genyleap.com/v1/browser/images?url='
+                 + encodeURIComponent(mediaUrl)
+               : mediaUrl
+    }
     readonly property bool automaticDownloadAllowed: !root.remoteSource
                                                     || root.manualLoadRequested
                                                     || root.forceAutomaticDownload
@@ -155,7 +178,7 @@ Item {
         // New/recycled URLs never start while the Flickable is moving.
         // An unfinished current request is detached by onScrollMovingChanged so
         // Qt cannot prepare/upload its texture inside the kinetic-scroll frame.
-        if (current !== requested || (!root.ready && !root.loadFailed))
+        if (current !== requested)
             root.activeSource = ""
     }
 
@@ -279,15 +302,11 @@ Item {
     }
     onScrollMovingChanged: {
         if (root.scrollMoving && root.deferNewLoadsWhileScrolling) {
+            // An in-flight source is owned by this media item until its URL
+            // actually changes. Detaching during touch/scroll causes visible
+            // artwork to vanish and forces the browser to reload it after a
+            // fling; delay only NEW sources, never erase an existing one.
             sourceStartTimer.stop()
-            if (!root.ready && !root.loadFailed) {
-                // Detach the QML Image so Qt cannot build/upload a texture while
-                // the render thread is animating the Flickable. The provider's
-                // cancellation handle deliberately keeps already-admitted
-                // fetch/decode work alive to populate its bounded cache.
-                root.invalidatePresentationAdmission()
-                root.activeSource = ""
-            }
         } else if (!root.scrollMoving) {
             sourceStartTimer.restart()
         }
@@ -371,6 +390,27 @@ Item {
         // even while the layer is disabled. Keep only a Component descriptor and
         // give it to the layer once a clipped image is actually presented.
         layer.effect: root.maskActive ? maskEffectComponent : null
+    }
+
+    // GIF animation must be decoded by QMovie/AnimatedImage, not QImageReader
+    // (which supplies only the first frame). Keep the still image beneath as
+    // a fallback, and never unload the running animation when scrolling.
+    AnimatedImage {
+        id: animatedGif
+        z: 1.5
+        anchors.fill: parent
+        source: root.animatedGifUrl
+        sourceSize: Qt.size(root.stableSourceWidth, root.stableSourceHeight)
+        fillMode: root.fillMode
+        asynchronous: true
+        cache: true
+        visible: root.animatedGifUrl.length > 0 && status === AnimatedImage.Ready
+        playing: visible && !root.scrollMoving && root.visible
+        smooth: true
+        // The shared mask texture exists only after the still-image layer is
+        // ready. Never apply a missing mask to an otherwise valid GIF.
+        layer.enabled: visible && root.maskActive
+        layer.effect: layer.enabled ? maskEffectComponent : null
     }
 
     Component {

@@ -1449,10 +1449,10 @@ Item {
         // between the identity summary and the actions. ScrollView handles
         // exceptionally long error messages or large accessibility fonts.
         height: parent ? (bottomSheet
-                          ? Math.min(parent.height * 0.88,
-                                     Math.max(365, accountActions.implicitHeight
+                          ? Math.min(parent.height * 0.82,
+                                     Math.max(355, accountActions.implicitHeight
                                               + (presentationBridge.isAuthenticated
-                                                 ? accountSummary.implicitHeight + 180 : 260)))
+                                                 ? accountSummary.implicitHeight + 112 : 205)))
                           : parent.height) : 660
         contentPadding: 0
 
@@ -1520,25 +1520,48 @@ Item {
                                 anchors.margins: Theme.space4
                                 spacing: Theme.space1
 
-                                DirectionAwareLabel {
+                                RowLayout {
                                     Layout.fillWidth: true
-                                    text: presentationBridge.accountName.length > 0
-                                          ? presentationBridge.accountName
-                                          : qsTrId("genycaster.shell.signed_in_account")
-                                    color: Theme.ink
-                                    font.pixelSize: Theme.typeBodySize
-                                    font.weight: Theme.weightDemiBold
-                                    wrapMode: Text.Wrap
-                                }
+                                    spacing: Theme.space3
+                                    layoutDirection: Qt.LeftToRight
 
-                                DirectionAwareLabel {
-                                    visible: presentationBridge.accountUsername.length > 0
-                                    Layout.fillWidth: true
-                                    forceLeftToRight: true
-                                    text: "@" + presentationBridge.accountUsername
-                                    color: Theme.inkMuted
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    wrapMode: Text.Wrap
+                                    Avatar {
+                                        Layout.preferredWidth: 48
+                                        Layout.preferredHeight: 48
+                                        avatarSize: 48
+                                        sourceUrl: presentationBridge.accountAvatarUrl
+                                        displayName: presentationBridge.accountName
+                                    }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 2
+                                        Layout.alignment: Qt.AlignVCenter
+
+                                        DirectionAwareLabel {
+                                            Layout.fillWidth: true
+                                            forceLeftToRight: true
+                                            horizontalAlignment: Text.AlignLeft
+                                            text: presentationBridge.accountName.length > 0
+                                                  ? presentationBridge.accountName
+                                                  : qsTrId("genycaster.shell.signed_in_account")
+                                            color: Theme.ink
+                                            font.pixelSize: Theme.typeTitle3Size
+                                            font.weight: Theme.weightDemiBold
+                                            elide: Text.ElideRight
+                                        }
+
+                                        DirectionAwareLabel {
+                                            visible: presentationBridge.accountUsername.length > 0
+                                            Layout.fillWidth: true
+                                            forceLeftToRight: true
+                                            horizontalAlignment: Text.AlignLeft
+                                            text: "@" + presentationBridge.accountUsername
+                                            color: Theme.inkMuted
+                                            font.pixelSize: Theme.typeCaptionSize
+                                            elide: Text.ElideRight
+                                        }
+                                    }
                                 }
 
                                 DirectionAwareLabel {
@@ -1738,6 +1761,8 @@ Item {
                     ActionButton {
                         visible: presentationBridge.isAuthenticated && presentationBridge.writeReady
                         Layout.fillWidth: true
+                        compact: true
+                        quiet: true
                         text: presentationBridge.signerBusy
                               ? qsTrId("genycaster.shell.revoking")
                               : qsTrId("genycaster.shell.revoke_signer")
@@ -1756,6 +1781,7 @@ Item {
                     }
 
                     ActionButton {
+                        visible: !presentationBridge.isAuthenticated
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.shell.close")
                         quiet: true
