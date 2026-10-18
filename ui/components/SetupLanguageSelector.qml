@@ -61,56 +61,8 @@ Item {
             spacing: Theme.space4
             layoutDirection: Theme.uiDirection
 
-            Item {
-                Layout.preferredWidth: root.narrow ? 68 : 92
-                Layout.preferredHeight: root.narrow ? 68 : 92
-                Accessible.ignored: true
-
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: parent.width * 0.74
-                    height: width
-                    radius: width / 2
-                    color: "transparent"
-                    border.color: Theme.borderStrong
-                    border.width: 1
-                }
-                Item {
-                    id: orbit
-                    anchors.fill: parent
-                    transformOrigin: Item.Center
-                    NumberAnimation on rotation {
-                        from: 0
-                        to: 360
-                        duration: 16000
-                        loops: Animation.Infinite
-                        running: root.visible && !Theme.reduceMotion
-                    }
-                    Rectangle {
-                        x: parent.width / 2 - width / 2
-                        y: 3
-                        width: 8
-                        height: 8
-                        radius: 4
-                        color: Theme.accent
-                    }
-                    Rectangle {
-                        x: parent.width / 2 - width / 2
-                        y: parent.height - 9
-                        width: 5
-                        height: 5
-                        radius: 3
-                        color: Theme.inkMuted
-                    }
-                }
-                Icon {
-                    anchors.centerIn: parent
-                    text: "brands/geny"
-                    color: Theme.accent
-                    preferredSize: root.narrow ? 38 : 49
-                }
-            }
-
+            // The Welcome headline should own this space. Avoid an
+            // animated orbital emblem beside the native language selector.
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Theme.space2
@@ -417,7 +369,7 @@ Item {
                                 spacing: 4
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
-                                    text: index === 0 ? "@geny" : "@community"
+                                    text: index === 0 ? "@genyleap" : "@compez.eth"
                                     color: Theme.accent
                                     font.pixelSize: 11
                                     horizontalAlignment: Theme.textStartAlignment

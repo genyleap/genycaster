@@ -1,7 +1,7 @@
 {
   "name": "Genycaster Beta 1.0",
   "short_name": "Genycaster",
-  "description": "Genycaster Beta 1.0 · Secure social client",
+  "description": "Genycaster Beta 1.0",
   "start_url": "./farcaster_client.html",
   "scope": "./",
   "display": "standalone",

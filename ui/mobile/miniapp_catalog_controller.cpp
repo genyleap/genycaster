@@ -193,13 +193,28 @@ constexpr auto savedMiniAppsSettingsKey = "miniapps/savedApps";
             QStringLiteral("description"), QStringLiteral("tagline"), QStringLiteral("subtitle")});
     }
 
-    QString iconUrl = firstString(app, {
+    // Catalogue providers expose the Farcaster Mini App icon under several
+    // conventional keys. Prefer small square logos over splash/poster artwork.
+    const QStringList iconKeys{
         QStringLiteral("iconUrl"), QStringLiteral("icon_url"),
-        QStringLiteral("imageUrl"), QStringLiteral("image_url")});
+        QStringLiteral("iconSource"), QStringLiteral("icon_source"),
+        QStringLiteral("icon"), QStringLiteral("logoUrl"),
+        QStringLiteral("logo_url"), QStringLiteral("logo"),
+        QStringLiteral("imageUrl"), QStringLiteral("image_url"),
+        QStringLiteral("image"), QStringLiteral("thumbnailUrl"),
+        QStringLiteral("thumbnail_url"), QStringLiteral("splashImageUrl"),
+        QStringLiteral("splash_image_url")};
+    QString iconUrl = firstString(app, iconKeys);
     if (iconUrl.isEmpty()) {
-        iconUrl = firstString(row, {
-            QStringLiteral("iconUrl"), QStringLiteral("icon_url"),
-            QStringLiteral("imageUrl"), QStringLiteral("image_url")});
+        iconUrl = firstString(row, iconKeys);
+    }
+    // A manifest can provide a root-relative icon. Resolve it only against
+    // the already validated HTTPS Mini App home URL.
+    if (!iconUrl.isEmpty()) {
+        const QUrl candidate{iconUrl, QUrl::StrictMode};
+        if (candidate.isRelative()) {
+            iconUrl = parsedHome.resolved(candidate).toString(QUrl::FullyEncoded);
+        }
     }
 
     QString authorName = firstString(author, {

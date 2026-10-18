@@ -539,20 +539,37 @@ Item {
                                                 spacing: Theme.space2
                                                 layoutDirection: Theme.uiDirection
 
-                                                SuperellipseImage {
+                                                Item {
                                                     Layout.preferredWidth: 44
                                                     Layout.preferredHeight: 44
-                                                    source: String(cardCell.modelData.iconSource || "")
-                                                    fillMode: Image.PreserveAspectFit
-                                                    mediaCategory: "miniapps"
-                                                    forceAutomaticDownload: true
-                                                    showManualLoadIndicator: false
-                                                    showFailureIndicator: false
-                                                    requestedSourceWidth: 44
-                                                    requestedSourceHeight: 44
-                                                    curveDepth: Theme.curveControl
-                                                    fillColor: Theme.primarySurface
-                                                    borderWidth: 0
+
+                                                    SuperellipseImage {
+                                                        id: miniAppArtwork
+                                                        anchors.fill: parent
+                                                        source: String(cardCell.modelData.iconSource || "")
+                                                        fillMode: Image.PreserveAspectFit
+                                                        mediaCategory: "miniapps"
+                                                        forceAutomaticDownload: true
+                                                        showManualLoadIndicator: false
+                                                        showFailureIndicator: false
+                                                        showLoadingIndicator: false
+                                                        requestedSourceWidth: 44
+                                                        requestedSourceHeight: 44
+                                                        curveDepth: Theme.curveControl
+                                                        fillColor: Theme.primarySurface
+                                                        borderWidth: 0
+                                                    }
+
+                                                    // The catalogue can omit artwork or return an
+                                                    // unavailable URL. Always leave a recognizable
+                                                    // app symbol rather than an empty pastel tile.
+                                                    Icon {
+                                                        anchors.centerIn: parent
+                                                        visible: !miniAppArtwork.ready
+                                                        text: Theme.iconApps
+                                                        color: Theme.accent
+                                                        preferredSize: 22
+                                                    }
                                                 }
                                                 ColumnLayout {
                                                     Layout.fillWidth: true

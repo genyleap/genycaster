@@ -436,9 +436,10 @@ Item {
 
                 Label {
                     visible: true
-                    text: (root.wizardSteps.indexOf(root.currentStep) + 1) + " / " + root.wizardSteps.length
+                    text: LocaleFormat.formatInteger(root.wizardSteps.indexOf(root.currentStep) + 1)
+                          + " / " + LocaleFormat.formatInteger(root.wizardSteps.length)
                     color: Theme.inkSubtle
-                    font.family: Theme.latinFontFamily
+                    font.family: Theme.fontFamilyForText(text)
                     font.pixelSize: Theme.typeCaptionSize
                 }
             }

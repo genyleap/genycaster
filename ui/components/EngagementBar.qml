@@ -14,10 +14,11 @@ RowLayout {
     property bool likeInteractive: false
     property bool recastedByMe: false
     property bool likedByMe: false
+    // The Like affordance is always a heart. Contextual logos belong in
+    // content badges, never in an engagement action hit target.
     property string contextText: ""
-    readonly property string contextualLikeIcon: presentationBridge.contextualReactionIcon(root.contextText)
-    readonly property string displayedLikeIcon: root.likedByMe && root.contextualLikeIcon === "actions/heart"
-                                                 ? "actions/heart-filled" : root.contextualLikeIcon
+    readonly property string displayedLikeIcon: root.likedByMe
+                                                 ? "actions/heart-filled" : "actions/heart"
 
     signal replyRequested()
     signal recastRequested(bool active)
