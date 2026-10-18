@@ -15,6 +15,10 @@ Item {
     property var rows: []
     property int localHour: new Date().getHours()
     property string draftText: ""
+    // The on-screen keyboard shrinks iOS Safari's visual viewport. Keep the
+    // draft and its actions visible rather than squeezing the full dashboard
+    // and floating dock into the remaining height.
+    readonly property bool composerFocused: mobileDraftEditor.activeFocus
 
     signal exploreRequested()
     signal composeRequested(string text)
@@ -278,21 +282,34 @@ Item {
     }
 
     Flickable {
+        id: mobileFlick
         visible: root.compact
         anchors.fill: parent
         contentWidth: width
-        contentHeight: mobileColumn.implicitHeight + 108
+        contentHeight: mobileColumn.implicitHeight
+                       + (root.composerFocused ? Theme.space4 : 108)
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         ScrollBar.vertical: GenyScrollBar { policy: ScrollBar.AlwaysOff }
+
+        // When a textarea takes focus, the composer becomes the first
+        // meaningful content and the top of the flickable stays reachable.
+        Connections {
+            target: root
+            function onComposerFocusedChanged() {
+                if (root.composerFocused)
+                    mobileFlick.contentY = 0
+            }
+        }
 
         ColumnLayout {
             id: mobileColumn
             width: parent.width
             spacing: Theme.space3
 
-            Item { Layout.preferredHeight: Theme.space3 }
+            Item { visible: !root.composerFocused; Layout.preferredHeight: visible ? Theme.space3 : 0 }
             Superellipse {
+                visible: !root.composerFocused
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: 56
                 Layout.preferredHeight: 56
@@ -301,12 +318,13 @@ Item {
                 curveDepth: 28
                 Icon { anchors.centerIn: parent; text: Theme.iconLeaf; color: Theme.accent; preferredSize: 42 }
             }
-            DirectionAwareLabel { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.width < 420 ? Theme.typeTitle2Size : Theme.typeTitle1Size; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
-            DirectionAwareLabel { Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.prompt"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }
+            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.width < 420 ? Theme.typeTitle2Size : Theme.typeTitle1Size; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
+            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.prompt"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }
 
             // Phone: a true two-column navigation grid. All four targets
             // remain visible at once instead of three wasteful full-width rows.
             GridLayout {
+                visible: !root.composerFocused
                 Layout.fillWidth: true
                 Layout.leftMargin: Theme.space3
                 Layout.rightMargin: Theme.space3
@@ -364,6 +382,8 @@ Item {
                     anchors.margins: Theme.space3
                     spacing: Theme.space2
                     TextArea {
+                        id: mobileDraftEditor
+                        objectName: "homeMobileDraftEditor"
                         Layout.fillWidth: true
                         implicitHeight: 92
                         text: root.draftText

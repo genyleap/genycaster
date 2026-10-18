@@ -18,6 +18,8 @@ Item {
     readonly property bool homeSurfaceActive: root.shellRoute.length === 0
                                                && presentationBridge.activeView === "feed"
                                                && root.primaryDestination === "home"
+    readonly property bool homeComposerFocused: root.mobile && homeDashboard.visible
+                                                  && homeDashboard.composerFocused
     readonly property bool socialSurfaceActive: root.shellRoute.length === 0
                                                  && !root.homeSurfaceActive
                                                  && (presentationBridge.activeView === "feed"
@@ -575,7 +577,7 @@ Item {
                                 // Reserve a true touch-safe dock region rather
                                 // than letting the composer and final cards
                                 // disappear behind the floating mobile nav.
-                                anchors.bottomMargin: root.mobile
+                                anchors.bottomMargin: root.mobile && !root.homeComposerFocused
                                     ? mobileBottomNavigation.height + Theme.space5 * 2 : 0
                                 spacing: Theme.space3
 
@@ -746,6 +748,7 @@ Item {
                                 }
 
                                 HomeDashboard {
+                                    id: homeDashboard
                                     visible: root.shellRoute.length === 0 && presentationBridge.activeView === "feed"
                                              && root.primaryDestination === "home"
                                     opacity: visible ? 1.0 : 0.0
@@ -1022,6 +1025,7 @@ Item {
                             // Declared directly under the reading pane, not under RowLayout
                             // and never reparented after layout has assigned coordinates.
                             visible: root.mobile && !root.initialSetupOpen
+                                     && !root.homeComposerFocused
                             z: 800
                             // Keep the dock compact and genuinely floating rather than
                             // recreating a full-width tab bar.
@@ -1661,7 +1665,7 @@ Item {
                     ActionButton {
                         id: accountSignOutButton
                         objectName: "accountSignOutButton"
-                        visible: presentationBridge.isAuthenticated
+                        visible: presentationBridge.isAuthenticated && !root.mobile
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.shell.sign_out")
                         onClicked: {
@@ -1675,6 +1679,21 @@ Item {
                         text: qsTrId("genycaster.shell.close")
                         quiet: true
                         onClicked: accountPopup.close()
+                    }
+                }
+
+                // A persistent mobile exit action must not be hidden below
+                // long account details or signer recovery messages.
+                ActionButton {
+                    id: mobileAccountSignOutButton
+                    objectName: "mobileAccountSignOutButton"
+                    visible: root.mobile && presentationBridge.isAuthenticated
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.shell.sign_out")
+                    destructive: true
+                    onClicked: {
+                        presentationBridge.signOut()
+                        accountPopup.close()
                     }
                 }
             }

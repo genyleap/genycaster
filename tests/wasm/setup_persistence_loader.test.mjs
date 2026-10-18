@@ -253,7 +253,44 @@ test('mobile navigation belongs to readingPane, not the outer RowLayout or Qt ro
         'avoid runtime reparenting of layout-owned QML controls');
     assert.match(app.slice(dock,handle),/anchors\.bottom: readingPane\.bottom/);
     assert.match(app.slice(dock,handle),/blurSourceItem: readingContent/);
-    assert.match(app,/anchors\.bottomMargin: root\.mobile\s*\?\s*mobileBottomNavigation\.height/);
+    assert.match(app,/anchors\.bottomMargin: root\.mobile && !root\.homeComposerFocused/);
+});
+
+test('mobile Account keeps a reachable Sign Out action that returns to Setup',()=>{
+    const app=read('ui/components/AppShell.qml');
+    const account=app.split('id: accountPopup')[1].split('InitialSetup {')[0];
+    const sticky=account.indexOf('id: mobileAccountSignOutButton');
+    const scroll=account.indexOf('id: accountScroll');
+    assert.ok(sticky>scroll,'mobile exit is outside the scrollable account details');
+    assert.match(account,/visible: root\.mobile && presentationBridge\.isAuthenticated/);
+    assert.match(account,/id: mobileAccountSignOutButton[\s\S]*?presentationBridge\.signOut\(\)/);
+    assert.match(account,/id: accountSignOutButton[\s\S]*?visible: presentationBridge\.isAuthenticated && !root\.mobile/);
+    const bridge=read('src/presentation/qt/presentation_bridge.cpp');
+    assert.match(bridge,/m_showSetupAfterSignOut = true/);
+});
+
+test('mobile Home editing collapses dashboard cards and removes floating navigation',()=>{
+    const home=read('ui/components/HomeDashboard.qml');
+    const app=read('ui/components/AppShell.qml');
+    assert.match(home,/readonly property bool composerFocused: mobileDraftEditor\.activeFocus/);
+    assert.match(home,/id: mobileFlick/);
+    assert.match(home,/onComposerFocusedChanged\(\)/);
+    assert.match(home,/visible: !root\.composerFocused/);
+    assert.match(home,/id: mobileDraftEditor/);
+    assert.match(app,/id: homeDashboard/);
+    assert.match(app,/readonly property bool homeComposerFocused:/);
+    assert.match(app,/visible: root\.mobile && !root\.initialSetupOpen\s*&& !root\.homeComposerFocused/);
+    assert.match(app,/anchors\.bottomMargin: root\.mobile && !root\.homeComposerFocused/);
+});
+
+test('mobile Setup approval stays within one column while desktop uses two',()=>{
+    const setup=read('ui/components/InitialSetup.qml');
+    const approval=setup.split('id: approvalRow')[1].split('ActionButton {')[0];
+    assert.match(approval,/columns: root\.phone \? 1 : 2/);
+    assert.match(approval,/Layout\.fillWidth: root\.phone/);
+    assert.match(approval,/Layout\.minimumWidth: 0/);
+    assert.match(approval,/Layout\.maximumWidth: root\.phone \? 16777215 : 300/);
+    assert.match(approval,/qsTrId\("genycaster\.shell\.open_farcaster"\)/);
 });
 
 test('Qt button rings use keyboard focus, never persistent pointer-focus borders',()=>{

@@ -37,7 +37,7 @@ test("iOS safe-area background and PWA metadata use the app appearance",()=>{
 
 test("phone home screen is a genuine two-column grid, not three huge stacked cards",()=>{
     const home=read("ui/components/HomeDashboard.qml");
-    const mobile=home.split("Flickable {\n        visible: root.compact")[1];
+    const mobile=home.split("Flickable {\n        id: mobileFlick\n        visible: root.compact")[1];
     assert.ok(mobile,"mobile home surface must exist");
     const tileGrid=mobile.split("GridLayout {")[1].split("Superellipse {\n                Layout.fillWidth")[0];
     assert.match(tileGrid,/columns: 2/);

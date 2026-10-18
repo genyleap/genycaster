@@ -1751,30 +1751,43 @@ Item {
                 borderColor: root.setupBorder
                 curveDepth: Theme.curveControl
 
-                RowLayout {
+                GridLayout {
                     id: approvalRow
                     anchors.fill: parent
                     anchors.margins: Theme.space3
-                    spacing: Theme.space3
+                    columns: root.phone ? 1 : 2
+                    columnSpacing: Theme.space3
+                    rowSpacing: Theme.space3
                     layoutDirection: Theme.uiDirection
 
-                    GenySpinner {
-                        running: root.authenticationInProgress
-                        color: Theme.accent
-                    }
-
-                    DirectionAwareLabel {
+                    RowLayout {
                         Layout.fillWidth: true
-                        text: root.phaseBody()
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
+                        Layout.minimumWidth: 0
+                        spacing: Theme.space3
+                        layoutDirection: Theme.uiDirection
+
+                        GenySpinner {
+                            running: root.authenticationInProgress
+                            color: Theme.accent
+                        }
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            text: root.phaseBody()
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
                     }
 
+                    // The approval link is a full-width second row on phones.
+                    // Never squeeze the translated button next to the text.
                     SetupPrimaryButton {
                         Layout.fillWidth: root.phone
-                        Layout.minimumWidth: root.phone ? 0 : 180
-                        Layout.maximumWidth: 300
+                        Layout.minimumWidth: 0
+                        Layout.preferredWidth: root.phone ? -1 : 196
+                        Layout.maximumWidth: root.phone ? 16777215 : 300
                         text: root.authenticationRoute === "farcaster"
                               ? qsTrId("genycaster.shell.open_farcaster")
                               : qsTrId("genycaster.shell.open_genyleap")
