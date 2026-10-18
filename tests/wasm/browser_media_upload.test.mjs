@@ -133,3 +133,48 @@ test('WASM cleanup is durable, signer-gated, and only triggered by confirmed del
     assert.match(shell,/"embeds": root\.submittedReplyEmbeds/);
     assert.match(reply,/objectName: "deleteOwnedReply"/);
 });
+
+test('gateway HTTP 204 means media deletion completed without a JSON body',async()=>{
+    const {deleteBrowserAsset}=await import('../../ui/wasm/browser_media_upload.mjs');
+    const vault={
+        load:async()=>({publicKeyHex:key}),
+        signMediaChallenge:async()=>({publicKeyHex:key,signature:'de'.repeat(64)}),
+    };
+    const deleted=await deleteBrowserAsset({
+        fid,managementToken:'opaque-managed-token-for-test',
+        vault,crypto:webcrypto,
+        fetchImpl:async()=>new Response(null,{status:204}),
+    });
+    assert.deepEqual(deleted,{deleted:true});
+});
+
+test('media URLs stay out of visual-editor text and cancel queues storage cleanup',async()=>{
+    const {readFileSync}=await import('node:fs');
+    const read=name=>readFileSync(new URL('../../'+name,import.meta.url),'utf8');
+    const avatar=read('ui/components/Avatar.qml');
+    const editor=read('ui/components/RichTextEditor.qml');
+    const drawer=read('ui/components/ComposerDrawer.qml');
+    const cpp=read('src/presentation/qt/rich_composer_controller.cpp');
+    assert.match(avatar,/linkPreviewResolver\.imageSourceForUrl\(sourceUrl\)/);
+    assert.match(editor,/qsTrId\("genycaster\.composer\.media"\)/);
+    assert.doesNotMatch(editor,/text:\s*String\(enhancementSurface\.parent\.blockData\.url/);
+    assert.match(drawer,/richComposer\.discardUnpublishedManagedMedia\(\)/);
+    assert.match(cpp,/int RichComposerController::discardUnpublishedManagedMedia\(\)/);
+    assert.match(cpp,/removeBlock\(static_cast<int>\(index - 1\)\)/);
+});
+
+test('confirmed cast deletion invalidates nested detail replies and pinned reply',async()=>{
+    const {readFileSync}=await import('node:fs');
+    const read=name=>readFileSync(new URL('../../'+name,import.meta.url),'utf8');
+    const bridge=read('src/presentation/qt/presentation_bridge.cpp');
+    const header=read('src/presentation/qt/presentation_bridge.hpp');
+    const shell=read('ui/components/AppShell.qml');
+    assert.match(header,/Q_PROPERTY\(QString lastRemovedCastId READ lastRemovedCastId NOTIFY stateChanged\)/);
+    assert.match(bridge,/void removeReplyPresentation\(QVariantMap& parent, const QString& castId\)/);
+    assert.match(bridge,/removeReplyPresentation\(row, castId\)/);
+    assert.match(bridge,/removeReplyPresentation\(m_detail, targetCastId\)/);
+    assert.match(bridge,/m_lastRemovedCastId = targetCastId/);
+    assert.match(bridge,/m_writePhase == QStringLiteral\("confirmed"\)/);
+    assert.match(shell,/root.confirmedReply = \(\{\}\)/);
+    assert.match(shell,/lastRemovedCastId/);
+});

@@ -1915,6 +1915,13 @@ Item {
         // Keep the draft visible until Snapchain confirms the cast.
 
         function onStateChanged() {
+            const removedId = String(presentationBridge.lastRemovedCastId || "")
+            if (presentationBridge.writePhase === "confirmed"
+                    && removedId.length > 0
+                    && root.confirmedReply
+                    && String(root.confirmedReply.castId || "").replace(/^0x/i, "").toLowerCase()
+                        === removedId.replace(/^0x/i, "").toLowerCase())
+                root.confirmedReply = ({})
             const castId = String(presentationBridge.lastPublishedCastId || "")
             if (root.awaitingRichCommit
                     && presentationBridge.writePhase === "confirmed"

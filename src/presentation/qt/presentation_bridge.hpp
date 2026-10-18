@@ -45,6 +45,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QString writeStatusText READ writeStatusText NOTIFY stateChanged)
     Q_PROPERTY(QString writeErrorText READ writeErrorText NOTIFY stateChanged)
     Q_PROPERTY(QString lastPublishedCastId READ lastPublishedCastId NOTIFY stateChanged)
+    Q_PROPERTY(QString lastRemovedCastId READ lastRemovedCastId NOTIFY stateChanged)
     Q_PROPERTY(QString activeView READ activeView NOTIFY stateChanged)
     Q_PROPERTY(QString activeFeed READ activeFeed NOTIFY stateChanged)
     Q_PROPERTY(QString profileFeed READ profileFeed NOTIFY stateChanged)
@@ -128,6 +129,7 @@ public:
     [[nodiscard]] QString writeStatusText() const;
     [[nodiscard]] QString writeErrorText() const;
     [[nodiscard]] QString lastPublishedCastId() const;
+    [[nodiscard]] QString lastRemovedCastId() const;
     [[nodiscard]] QString activeView() const;
     [[nodiscard]] QString activeFeed() const;
     [[nodiscard]] QString profileFeed() const;
@@ -423,6 +425,7 @@ private:
     QString m_writeStatusText{};
     QString m_writeErrorText{};
     QString m_lastPublishedCastId{};
+    QString m_lastRemovedCastId{};
     qulonglong m_replyParentAuthorFid{};
     QString m_replyParentCastId{};
     QVariantList m_writeRows{};

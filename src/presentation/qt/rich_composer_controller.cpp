@@ -1133,6 +1133,25 @@ bool RichComposerController::removeBlock(const int index)
     }
     return true;
 }
+int RichComposerController::discardUnpublishedManagedMedia()
+{
+    int removed = 0;
+    // Removing backwards preserves block indices. removeBlock persists a
+    // durable deletion intent and drops stale media references from undo/redo.
+    for (std::size_t index = m_impl->document.blocks.size(); index > 0; --index) {
+        const auto* media = std::get_if<farcaster::domain::rich::MediaBlock>(
+            &m_impl->document.blocks[index - 1].payload);
+        if (media == nullptr)
+            continue;
+        const QString url = QString::fromUtf8(media->url).trimmed();
+        if (!m_impl->managedAssets.contains(url))
+            continue;
+        if (removeBlock(static_cast<int>(index - 1)))
+            ++removed;
+    }
+    return removed;
+}
+
 bool RichComposerController::duplicateBlock(const int index)
 {
     if (index < 0 || static_cast<std::size_t>(index) >= m_impl->document.blocks.size() || m_impl->document.blocks.size() >= farcaster::domain::rich::MaxDocumentBlocks) return false;

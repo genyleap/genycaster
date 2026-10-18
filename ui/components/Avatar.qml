@@ -13,8 +13,15 @@ Item {
     readonly property string initial: displayName.length > 0
                                       ? displayName.substring(0, 1).toUpperCase()
                                       : "?"
-    readonly property bool hasLocalImageSource: sourceUrl.startsWith("image://")
-                                                 || sourceUrl.startsWith("qrc:/")
+    // Search results and some Mini App/profile projections contain an HTTPS
+    // PFP rather than the image-provider URL already used by feed profiles.
+    // Normalize through the existing remote image provider (with its cache,
+    // sizing, and automatic-download policy) instead of discarding the URL.
+    readonly property string resolvedSource: sourceUrl.startsWith("image://")
+                                          || sourceUrl.startsWith("qrc:/")
+                                          || sourceUrl.startsWith("file:/")
+                                          ? sourceUrl
+                                          : linkPreviewResolver.imageSourceForUrl(sourceUrl)
 
     implicitWidth: avatarSize
     implicitHeight: avatarSize
@@ -37,7 +44,7 @@ Item {
     SuperellipseImage {
         id: avatarImage
         anchors.fill: parent
-        source: root.hasLocalImageSource ? root.sourceUrl : ""
+        source: root.resolvedSource
         mediaCategory: "avatars"
         requestedSourceWidth: Math.max(1, root.avatarSize)
         requestedSourceHeight: Math.max(1, root.avatarSize)

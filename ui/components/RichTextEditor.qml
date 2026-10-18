@@ -365,13 +365,14 @@ Item {
                                 font.weight: Theme.weightDemiBold
                             }
 
+                            // Media belongs to the attachment, not the cast's
+                            // text. Never paint the raw object-storage URL in
+                            // the visual editor or its eventual rich document.
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                forceLeftToRight: true
-                                text: String(enhancementSurface.parent.blockData.url || "")
+                                text: qsTrId("genycaster.composer.media")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
-                                elide: Text.ElideMiddle
                             }
                         }
 

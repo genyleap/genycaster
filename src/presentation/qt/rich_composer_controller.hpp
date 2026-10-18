@@ -91,6 +91,8 @@ public:
     Q_INVOKABLE bool insertBlock(const QString& kind, int afterIndex = -1);
     Q_INVOKABLE bool addCodeBlock(const QString& language = QStringLiteral("auto"));
     Q_INVOKABLE bool removeBlock(int index);
+    /** @brief Abandons unpublished gateway attachments, retaining ordinary draft text. */
+    Q_INVOKABLE int discardUnpublishedManagedMedia();
     Q_INVOKABLE bool duplicateBlock(int index);
     Q_INVOKABLE bool moveBlock(int from, int to);
     /** @brief Applies one semantic inline style using QML UTF-16 selection positions. */

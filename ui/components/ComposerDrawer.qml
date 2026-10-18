@@ -326,7 +326,13 @@ GenyDrawer {
         root.initialAction = ""
         root.clearPendingMediaQueue()
         if (mediaUpload.busy) mediaUpload.cancel()
-        if (!root.transientDraft && richComposer.dirty && !presentationBridge.writeBusy) richComposer.saveDraft()
+        // Cancel/dismiss must not leave unpublished media in QStorage.
+        // Keep text as a draft, but release managed media when no Cast is
+        // in flight. A queued write may still publish, so it retains media.
+        if (!presentationBridge.writeBusy && presentationBridge.writePhase !== "queued")
+            richComposer.discardUnpublishedManagedMedia()
+        if (!root.transientDraft && richComposer.dirty && !presentationBridge.writeBusy)
+            richComposer.saveDraft()
         presentationBridge.clearReplyTarget()
         root.abandoned()
     }

@@ -227,10 +227,30 @@ void enforceProfileFeedSemantics(QVariantList& rows, const QString& profileFeed)
 void removeCastPresentation(QVariantList& rows, const QString& castId)
 {
     for (qsizetype index = rows.size(); index > 0; --index) {
-        if (rows[index - 1].toMap().value(QStringLiteral("castId")).toString() == castId) {
+        if (canonicalCastKey(rows[index - 1].toMap().value(QStringLiteral("castId")).toString())
+                == canonicalCastKey(castId)) {
             rows.removeAt(index - 1);
         }
     }
+}
+
+// A deleted reply also lives inside the current cast detail projection,
+// potentially nested several levels below the top-level reply list.
+void removeReplyPresentation(QVariantMap& parent, const QString& castId)
+{
+    const QString key = canonicalCastKey(castId);
+    QVariantList replies = parent.value(QStringLiteral("threadReplies")).toList();
+    QVariantList remaining;
+    remaining.reserve(replies.size());
+    for (const auto& entry : replies) {
+        QVariantMap row = entry.toMap();
+        if (canonicalCastKey(row.value(QStringLiteral("castId")).toString()) == key)
+            continue;
+        removeReplyPresentation(row, castId);
+        remaining.push_back(row);
+    }
+    if (replies.size() > 0)
+        parent.insert(QStringLiteral("threadReplies"), remaining);
 }
 
 [[nodiscard]] QString reactionOverrideKey(const QString& castId, const QString& kind)
@@ -718,6 +738,7 @@ QString PresentationBridge::writePhase() const { return m_writePhase; }
 QString PresentationBridge::writeStatusText() const { return m_writeStatusText; }
 QString PresentationBridge::writeErrorText() const { return m_writeErrorText; }
 QString PresentationBridge::lastPublishedCastId() const { return m_lastPublishedCastId; }
+QString PresentationBridge::lastRemovedCastId() const { return m_lastRemovedCastId; }
 QString PresentationBridge::activeView() const { return m_activeView; }
 QString PresentationBridge::activeFeed() const { return m_activeFeed; }
 QString PresentationBridge::profileFeed() const { return m_profileFeed; }
@@ -2167,11 +2188,15 @@ void PresentationBridge::applyWriteState(
         rememberFollowingOverride(m_followOverrides, targetFid, isFollowing);
         applyFollowingOverrides(m_rows, m_followOverrides);
         applyFollowingOverride(m_detail, m_followOverrides);
-    } else if (operationKind == QStringLiteral("remove-cast") && !targetCastId.isEmpty()) {
+    } else if (operationKind == QStringLiteral("remove-cast") && !targetCastId.isEmpty()
+               && m_writePhase == QStringLiteral("confirmed")) {
+        m_lastRemovedCastId = targetCastId;
         removeCastPresentation(m_rows, targetCastId);
         removeCastPresentation(m_writeRows, targetCastId);
+        removeReplyPresentation(m_detail, targetCastId);
         if (m_activeView == QStringLiteral("cast") &&
-            m_detail.value(QStringLiteral("castId")).toString() == targetCastId) {
+            canonicalCastKey(m_detail.value(QStringLiteral("castId")).toString())
+                == canonicalCastKey(targetCastId)) {
             m_activeView = QStringLiteral("feed");
             m_detail.clear();
         }

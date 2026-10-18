@@ -136,5 +136,9 @@ export async function deleteBrowserAsset({
             'x-genycaster-signature':signed.signature,
         },
     });
+    // DELETE /v1/assets returns HTTP 204 with an empty body on success.
+    // Do not attempt JSON parsing; that previously mislabeled a successful
+    // object deletion as failed and kept cleanup retries forever.
+    if(response.status===204)return {deleted:true};
     return responseJson(response);
 }
