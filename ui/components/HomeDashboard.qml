@@ -19,6 +19,26 @@ Item {
     // draft and its actions visible rather than squeezing the full dashboard
     // and floating dock into the remaining height.
     readonly property bool composerFocused: mobileDraftEditor.activeFocus
+    // Dismiss the draft editor without discarding its contents.
+    TapHandler {
+        enabled: root.compact && root.composerFocused
+        onTapped: point => {
+            const local = mobileComposerSurface.mapFromItem(
+                root, point.position.x, point.position.y)
+            if (local.x < 0 || local.y < 0
+                    || local.x >= mobileComposerSurface.width
+                    || local.y >= mobileComposerSurface.height)
+                root.finishComposerEditing()
+        }
+    }
+    // iOS can dismiss its software keyboard while Qt's text editor keeps
+    // activeFocus. The shell explicitly ends editing on viewport restoration.
+    function finishComposerEditing() {
+        if (!root.composerFocused)
+            return
+        mobileDraftEditor.focus = false
+        root.forceActiveFocus()
+    }
 
     signal exploreRequested()
     signal composeRequested(string text)
@@ -368,6 +388,7 @@ Item {
             }
 
             Superellipse {
+                id: mobileComposerSurface
                 Layout.fillWidth: true
                 Layout.leftMargin: Theme.space3
                 Layout.rightMargin: Theme.space3
@@ -400,6 +421,18 @@ Item {
                         layoutDirection: Theme.uiDirection
                         ActionButton { compact: true; quiet: true; iconOnly: true; iconGlyph: Theme.iconImage; text: qsTrId("genycaster.home.post_photo"); onClicked: root.photoRequested() }
                         ActionButton { compact: true; quiet: true; iconOnly: true; iconGlyph: Theme.iconSearch; text: qsTrId("genycaster.feed_header.universal_search"); onClicked: root.searchRequested() }
+                        // Accessible explicit exit, even if the browser's
+                        // virtual-keyboard dismissal does not clear Qt focus.
+                        ActionButton {
+                            objectName: "homeMobileFinishEditingButton"
+                            visible: root.composerFocused
+                            compact: true
+                            quiet: true
+                            iconOnly: true
+                            iconGlyph: Theme.iconCheck
+                            text: qsTrId("genycaster.shell.close")
+                            onClicked: root.finishComposerEditing()
+                        }
                         Item { Layout.fillWidth: true }
                         ActionButton { compact: true; prominent: true; iconGlyph: Theme.iconCompose; text: qsTrId("genycaster.header.new_cast"); onClicked: root.composeRequested(root.draftText) }
                     }

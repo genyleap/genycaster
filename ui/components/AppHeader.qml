@@ -111,12 +111,10 @@ Rectangle {
             Accessible.description: root.isAuthenticated
                                     ? qsTrId("genycaster.header.open_your_signed_in_account_session")
                                     : qsTrId("genycaster.header.sign_in_to_interact_on_farcaster")
-            onClicked: {
-                if (root.isAuthenticated)
-                    root.ownProfileRequested()
-                else
-                    root.accountRequested()
-            }
+            // The top-right person glyph denotes Account, not Profile.
+            // In particular on phones, this is the discoverable route to
+            // session management and Sign Out.
+            onClicked: root.accountRequested()
         }
     }
 

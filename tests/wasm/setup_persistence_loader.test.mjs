@@ -283,6 +283,36 @@ test('mobile Home editing collapses dashboard cards and removes floating navigat
     assert.match(app,/anchors\.bottomMargin: root\.mobile && !root\.homeComposerFocused/);
 });
 
+test('Account header opens the management sheet, not profile, on mobile',()=>{
+    const header=read('ui/components/AppHeader.qml');
+    assert.match(header,/onClicked: root\.accountRequested\(\)/);
+    assert.doesNotMatch(header,/onClicked:[\s\S]*?if \(root\.isAuthenticated\)[\s\S]*?ownProfileRequested/);
+    const app=read('ui/components/AppShell.qml');
+    assert.match(app,/onAccountRequested: root\.openAccountPopup\(\)/);
+    assert.match(app,/objectName: "mobileAccountProfileButton"/);
+    assert.match(app,/objectName: "mobileAccountSignOutButton"/);
+});
+
+test('mobile keyboard dismissal restores dashboard and touch never opens desktop hints',()=>{
+    const home=read('ui/components/HomeDashboard.qml');
+    const app=read('ui/components/AppShell.qml');
+    const button=read('ui/components/ActionButton.qml');
+    assert.match(home,/function finishComposerEditing\(\)/);
+    assert.match(home,/root\.forceActiveFocus\(\)/);
+    assert.match(home,/onTapped: point =>/);
+    assert.match(home,/id: mobileComposerSurface/);
+    assert.match(home,/objectName: "homeMobileFinishEditingButton"/);
+    assert.match(app,/onHomeComposerFocusedChanged:/);
+    assert.match(app,/onHeightChanged:/);
+    assert.match(app,/height < preKeyboardViewportHeight - 140/);
+    assert.match(app,/composerKeyboardWasVisible/);
+    assert.match(app,/homeDashboard\.finishComposerEditing\(\)/);
+    assert.match(button,/readonly property bool mobileViewport:/);
+    assert.match(button,/hoverEnabled: !mobileViewport/);
+    assert.match(button,/if \(control\.mobileViewport \|\| !control\.hovered/);
+    assert.match(button,/onMobileViewportChanged:/);
+});
+
 test('mobile Setup approval stays within one column while desktop uses two',()=>{
     const setup=read('ui/components/InitialSetup.qml');
     const approval=setup.split('id: approvalRow')[1].split('ActionButton {')[0];

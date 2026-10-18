@@ -32,12 +32,17 @@ Button {
     rightPadding: leftPadding
     topPadding: 0
     bottomPadding: 0
-    hoverEnabled: true
+    // Touch browsers synthesize a lingering hover after tap. Keep the hint
+    // only for pointer-capable desktop layouts, never for mobile controls.
+    readonly property bool mobileViewport: control.Window.window !== null
+                                          && control.Window.window.width < Theme.breakpointMobile
+    hoverEnabled: !mobileViewport
     containmentMask: background
     Accessible.name: text
 
     onHoveredChanged: {
-        if (!control.iconOnly || control.text.length === 0 || !control.hovered) {
+        if (control.mobileViewport || !control.iconOnly
+                || control.text.length === 0 || !control.hovered) {
             hintTimer.stop()
             if (hintLoader.item)
                 hintLoader.item.close()
@@ -45,13 +50,26 @@ Button {
         }
         hintTimer.restart()
     }
+    onMobileViewportChanged: {
+        if (control.mobileViewport) {
+            hintTimer.stop()
+            if (hintLoader.item)
+                hintLoader.item.close()
+        }
+    }
+    onPressed: {
+        hintTimer.stop()
+        if (hintLoader.item)
+            hintLoader.item.close()
+    }
 
     Timer {
         id: hintTimer
         interval: 420
         repeat: false
         onTriggered: {
-            if (!control.hovered || !control.iconOnly || control.text.length === 0 || !control.Window.window)
+            if (control.mobileViewport || !control.hovered || !control.iconOnly
+                    || control.text.length === 0 || !control.Window.window)
                 return
             hintLoader.active = true
             const hint = hintLoader.item

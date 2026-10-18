@@ -20,6 +20,37 @@ Item {
                                                && root.primaryDestination === "home"
     readonly property bool homeComposerFocused: root.mobile && homeDashboard.visible
                                                   && homeDashboard.composerFocused
+    property real preKeyboardViewportHeight: 0
+    property bool composerKeyboardWasVisible: false
+
+    // The iOS keyboard's Done action can dismiss the DOM keyboard without
+    // removing QML activeFocus from the TextArea. The WASM loader sizes the
+    // Qt canvas from visualViewport.height; a large shrink followed by a
+    // return to baseline is a reliable signal to restore the normal Home.
+    onHomeComposerFocusedChanged: {
+        if (homeComposerFocused) {
+            preKeyboardViewportHeight = height
+            composerKeyboardWasVisible = false
+        } else {
+            preKeyboardViewportHeight = 0
+            composerKeyboardWasVisible = false
+        }
+    }
+    onHeightChanged: {
+        if (!homeComposerFocused || preKeyboardViewportHeight <= 0)
+            return
+        if (height < preKeyboardViewportHeight - 140) {
+            composerKeyboardWasVisible = true
+        } else if (composerKeyboardWasVisible
+                   && height >= preKeyboardViewportHeight - 72) {
+            // Defer focus changes until Qt has finished its geometry pass.
+            Qt.callLater(() => {
+                if (root.homeComposerFocused
+                        && root.height >= root.preKeyboardViewportHeight - 72)
+                    homeDashboard.finishComposerEditing()
+            })
+        }
+    }
     readonly property bool socialSurfaceActive: root.shellRoute.length === 0
                                                  && !root.homeSurfaceActive
                                                  && (presentationBridge.activeView === "feed"
@@ -1679,6 +1710,20 @@ Item {
                         text: qsTrId("genycaster.shell.close")
                         quiet: true
                         onClicked: accountPopup.close()
+                    }
+                }
+
+                // Keep profile navigation and session management reachable
+                // without scrolling through a long signer/account summary.
+                ActionButton {
+                    objectName: "mobileAccountProfileButton"
+                    visible: root.mobile && presentationBridge.isAuthenticated
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.home.view_profile")
+                    quiet: true
+                    onClicked: {
+                        accountPopup.close()
+                        root.openMyProfileFromNavigation()
                     }
                 }
 
