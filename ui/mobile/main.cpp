@@ -9,6 +9,8 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QMetaObject>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QNetworkInformation>
 #include <QObject>
 #include <QPointer>
@@ -2267,7 +2269,12 @@ void connectRuntime(
     const auto browserObserver = [applyBrowserSession, &bridge](BrowserOpenProofState event) {
         // A cancelled, asynchronous Genyleap/OpenProof result must never
         // overwrite the independent Farcaster recovery ceremony on mobile.
-        if (bridge.authenticationRoute() == QStringLiteral("recovery")) return;
+        // Recovery uses a separate identity callback, but explicit sign-out
+        // must always clear the current session even when its last sign-in
+        // route was recovery. Otherwise both Sign Out and local signer reset
+        // appear ineffective on a recovered Farcaster account.
+        if (bridge.authenticationRoute() == QStringLiteral("recovery")
+            && event.phase != BrowserOpenProofState::Phase::SignedOut) return;
         application::session::SessionState state{};
         using Phase = BrowserOpenProofState::Phase;
         switch (event.phase) {
@@ -3613,6 +3620,93 @@ void connectMediaUpload(
 }
 #endif
 
+#if defined(__EMSCRIPTEN__)
+// The browser owns selected Files and non-extractable signer keys. Keep
+// media bytes out of the Qt heap and transfer only bounded state events.
+void connectBrowserMediaUpload(
+    MediaUploadController& controller, PresentationBridge& bridge)
+{
+    const auto refreshAvailability = [&controller, &bridge] {
+        const bool allowed = bridge.isAuthenticated() && bridge.writeReady()
+            && !bridge.signerBusy();
+        if (!allowed && controller.busy()) controller.cancel();
+        controller.setAvailable(allowed);
+    };
+    QObject::connect(&bridge, &PresentationBridge::authenticationStateChanged,
+                     &controller, refreshAvailability);
+    QObject::connect(&bridge, &PresentationBridge::stateChanged,
+                     &controller, refreshAvailability);
+    QObject::connect(&controller, &MediaUploadController::browserImagePickRequested,
+                     &controller, [&bridge](const int afterIndex) {
+        if (!bridge.isAuthenticated() || !bridge.writeReady()) return;
+        const QByteArray fid = QByteArray::number(bridge.accountFid());
+        EM_ASM({
+            window.__genycasterBrowserMedia?.pick(
+                UTF8ToString($0,$1),$2);
+        },fid.constData(),fid.size(),afterIndex);
+    });
+    QObject::connect(&controller, &MediaUploadController::cancelRequested,
+                     &controller, [&controller] {
+        EM_ASM({window.__genycasterBrowserMedia?.cancel();});
+        controller.applyCancelled();
+    });
+
+    auto* const polling = new QTimer(&controller);
+    polling->setInterval(120);
+    QObject::connect(polling, &QTimer::timeout, &controller,
+                     [&controller, &bridge] {
+        for(int index=0;index<5;++index) {
+            std::array<char,8192> buffer{};
+            const int received=EM_ASM_INT({
+                const media=window.__genycasterBrowserMedia;
+                if(!media?.events?.length)return 0;
+                const value=JSON.stringify(media.events.shift());
+                if(lengthBytesUTF8(value)+1>$1)return -1;
+                stringToUTF8(value,$0,$1);
+                return 1;
+            },buffer.data(),buffer.size());
+            if(received===0)return;
+            if(received<0)continue;
+            const QJsonDocument json=QJsonDocument::fromJson(buffer.data());
+            if(!json.isObject())continue;
+            const QJsonObject event=json.object();
+            if(!bridge.isAuthenticated() || !bridge.writeReady()
+               || event.value(QStringLiteral("fid")).toString()
+                    !=QString::number(bridge.accountFid()))continue;
+            const QString kind=event.value(QStringLiteral("kind")).toString();
+            if(kind==QStringLiteral("selected")) {
+                controller.applyBrowserSelection(
+                    event.value(QStringLiteral("fileName")).toString(),
+                    event.value(QStringLiteral("contentType")).toString(),
+                    static_cast<qulonglong>(event.value(QStringLiteral("sizeBytes")).toDouble()),
+                    event.value(QStringLiteral("afterIndex")).toInt(-1));
+            }else if(kind==QStringLiteral("progress")) {
+                controller.applyProgress(
+                    event.value(QStringLiteral("phase")).toString(),
+                    static_cast<qulonglong>(event.value(QStringLiteral("transferred")).toDouble()),
+                    static_cast<qulonglong>(event.value(QStringLiteral("total")).toDouble()));
+            }else if(kind==QStringLiteral("completed")) {
+                const QString url=event.value(QStringLiteral("assetUrl")).toString();
+                if(!url.startsWith(QStringLiteral("https://media-farcaster.genyleap.com/m/v1/"))) {
+                    controller.applyFailed(QStringLiteral("Untrusted media asset response"));
+                    continue;
+                }
+                controller.applyCompleted(
+                    url,
+                    event.value(QStringLiteral("contentType")).toString(),
+                    event.value(QStringLiteral("fileName")).toString(),
+                    event.value(QStringLiteral("managementToken")).toString(),
+                    static_cast<qulonglong>(event.value(QStringLiteral("sizeBytes")).toDouble()));
+            }else if(kind==QStringLiteral("failed")) {
+                controller.applyFailed(event.value(QStringLiteral("error")).toString());
+            }
+        }
+    });
+    polling->start();
+    refreshAvailability();
+}
+#endif
+
 void connectMediaPlayback(
     MediaPlaybackCoordinator& coordinator,
     const std::shared_ptr<Runtime>& runtime)
@@ -4936,7 +5030,9 @@ int main(int argc, char* argv[])
                         snapchainBaseUrl ? QString::fromStdString(*snapchainBaseUrl)
                                          : QStringLiteral("https://snapchain.genyleap.com"));
                     connectMediaPlayback(mediaPlayback, runtime);
-#if FARCASTER_HAS_MEDIA_UPLOAD
+#if defined(__EMSCRIPTEN__)
+                    connectBrowserMediaUpload(mediaUploadController, presentationBridge);
+#elif FARCASTER_HAS_MEDIA_UPLOAD
                     connectMediaUpload(mediaUploadController, runtime);
 #else
                     mediaUploadController.setAvailable(false);

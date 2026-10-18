@@ -75,6 +75,13 @@ GenyDrawer {
     }
 
 
+    function openMediaPicker() {
+        if (Qt.platform.os === "wasm")
+            mediaUpload.browseBrowserImage(root.pendingMediaBlockIndex)
+        else
+            mediaFileDialog.open()
+    }
+
     function clearPendingMediaQueue() {
         root.pendingMediaFiles = []
         root.pendingMediaAfterIndex = -1
@@ -247,11 +254,18 @@ GenyDrawer {
                 richComposer.insertEmbed(String(embeds[index] || ""), "", -1)
         }
         if (root.initialAction === "media") {
-            Qt.callLater(function() {
-                root.pendingMediaBlockIndex = visualEditor.activeBlockIndex
-                mediaFileDialog.open()
+            root.pendingMediaBlockIndex = visualEditor.activeBlockIndex
+            if (Qt.platform.os === "wasm") {
+                // Safari requires a direct user tap to open the file picker.
+                // Reveal the upload panel; its Choose button owns that tap.
+                root.insertKind = "media"
                 root.initialAction = ""
-            })
+            } else {
+                Qt.callLater(function() {
+                    root.openMediaPicker()
+                    root.initialAction = ""
+                })
+            }
         }
     }
 
@@ -570,7 +584,7 @@ GenyDrawer {
                 onFinished: root.insertKind = ""
                 onMediaFileRequested: blockIndex => {
                     root.pendingMediaBlockIndex = blockIndex
-                    mediaFileDialog.open()
+                    root.openMediaPicker()
                 }
             }
 
@@ -586,7 +600,7 @@ GenyDrawer {
                 onBrowseRequested: blockIndex => {
                     root.pendingMediaBlockIndex = blockIndex
                     root.mediaInsertFailed = false
-                    mediaFileDialog.open()
+                    root.openMediaPicker()
                 }
                 onFilesDropped: (urls, blockIndex) => {
                     root.mediaInsertFailed = false

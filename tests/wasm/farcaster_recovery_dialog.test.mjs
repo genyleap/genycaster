@@ -64,7 +64,7 @@ test('secure browser presents numbered 12-word fields without persisting secrets
 test('toggle 24 words and paste recovery words in numbered order',async()=>{
     const b=browser(),result=promptForFarcasterRecovery(b);
     const sheet=b.document.getElementById('genycaster-farcaster-recovery').children[0];
-    const chooser=sheet.children.find(item=>item.attributes?.role==='group');
+    const chooser=sheet.children[0].children.find(item=>item.attributes?.role==='group');
     chooser.children[1].click();
     const grid=b.document.getElementById('genycaster-recovery-words');
     assert.equal(grid.children.length,24);
@@ -138,7 +138,7 @@ test('invalid checksum explains uncertainty, preserves fields, and allows retry'
     words.forEach(word=>word.value='abandon');
     const submit=sheet.children.at(-1).children.at(-1);
     submit.click();await settle();
-    const error=sheet.children.find(item=>item.attributes?.role==='alert');
+    const error=sheet.children[0].children.find(item=>item.attributes?.role==='alert');
     assert.match(error.textContent,/جمع کنترل|checksum/);
     assert.equal(words.every(word=>word.value==='abandon'),true);
     assert.equal(words.every(word=>word.attributes['aria-invalid']==='false'),true);
@@ -163,7 +163,7 @@ test('network verification error never dismisses words and retry can succeed',as
     assert.equal(attempted,1);
     assert.equal(words[0].value,'abandon');
     assert.ok(b.document.getElementById('genycaster-farcaster-recovery'));
-    const error=sheet.children.find(item=>item.attributes?.role==='alert');
+    const error=sheet.children[0].children.find(item=>item.attributes?.role==='alert');
     assert.ok(!error.textContent.includes('503'));
     submit.click();
     assert.equal(await result,'42');
@@ -198,7 +198,7 @@ test('recovery drawer distinguishes custody ownership and signer failures withou
         const submit=sheet.children.at(-1).children.at(-1);
         submit.click();
         await settle();
-        const error=sheet.children.find(item=>item.attributes?.role==='alert');
+        const error=sheet.children[0].children.find(item=>item.attributes?.role==='alert');
         assert.match(error.textContent,expected,code);
         assert.doesNotMatch(error.textContent,/Sensitive internal RPC details/);
         assert.equal(words[0].value,'abandon','keep words for correction and retry');

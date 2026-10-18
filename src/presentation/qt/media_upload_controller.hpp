@@ -53,6 +53,10 @@ public:
      * @return false when upload is unavailable, already busy, invalid, unreadable, or unsupported.
      */
     Q_INVOKABLE bool beginUpload(const QUrl& localFile, int afterIndex = -1);
+    /** @brief Open the browser's native image picker without requiring QFile URLs. */
+    Q_INVOKABLE bool browseBrowserImage(int afterIndex = -1);
+    /** @brief Apply an explicitly selected browser file without exposing it to QML. */
+    void applyBrowserSelection(QString fileName, QString contentType, qulonglong sizeBytes, int afterIndex);
     /** @brief Requests cooperative cancellation of the current upload. */
     Q_INVOKABLE void cancel();
     /** @brief Retries the last failed/cancelled local selection. */
@@ -77,6 +81,7 @@ signals:
     void uploadRequested(QString localPath, int afterIndex);
     /** @brief Requests cancellation of the native in-flight upload. */
     void cancelRequested();
+    void browserImagePickRequested(int afterIndex);
     /** @brief Delivers a verified stable media URL to the rich composer. */
     void assetReady(QString url, QString mediaType, QString managementToken, int afterIndex);
 

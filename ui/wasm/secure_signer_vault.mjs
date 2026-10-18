@@ -187,6 +187,25 @@ export function createBrowserSignerVault(environment = globalThis) {
             return signature;
         },
 
+        // A narrowly scoped media proof is not a Farcaster cast signature.
+        // Do not expose an arbitrary-message signer to UI code.
+        async signMediaChallenge(fidValue, challenge) {
+            const fid = requireFid(fidValue);
+            if (!(challenge instanceof Uint8Array) || challenge.byteLength > 900
+                || challenge.byteLength < 90) throw failure('invalid media challenge size');
+            const prefix = new TextEncoder().encode('genycaster-media-upload-v1\n');
+            if (!prefix.every((value,index) => challenge[index] === value))
+                throw failure('media challenge domain mismatch');
+            const record = await read(fid);
+            if (!record) throw failure('authorized media signer unavailable');
+            const signature = new Uint8Array(
+                await crypto.subtle.sign('Ed25519', record.privateKey, challenge));
+            if (signature.length !== signatureSize || !await crypto.subtle.verify(
+                'Ed25519', record.publicKey, signature, challenge))
+                throw failure('media proof self-verification failed');
+            return { publicKeyHex: record.publicKeyHex, signature: encodeHex(signature) };
+        },
+
         async erase(fidValue) {
             const fid = requireFid(fidValue);
             await transact(indexedDB, 'readwrite', store =>

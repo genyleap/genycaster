@@ -262,5 +262,68 @@
             }
         })();
     }
+    // Browser image picker + upload stays in JS; the QML bridge receives
+    // bounded metadata/progress only, never a browser File or private key.
+    const mediaEvents=[];
+    let mediaEpoch=0, mediaAbort=null;
+    const mediaReport=entry=>{
+        mediaEvents.push(entry);
+        if(mediaEvents.length>32)mediaEvents.splice(0,mediaEvents.length-32);
+    };
+    function cancelMedia(){
+        ++mediaEpoch;
+        mediaAbort?.abort();
+        mediaAbort=null;
+    }
+    function pickMedia(fid,afterIndex) {
+        if(typeof fid!=='string'||!/^[1-9][0-9]{0,19}$/.test(fid))return;
+        const picker=document.createElement('input');
+        picker.type='file';picker.accept='image/jpeg,image/png,image/webp,image/gif,image/avif';
+        picker.multiple=false;picker.style.display='none';
+        picker.addEventListener('change',()=>{
+            const file=picker.files?.[0];
+            picker.remove();
+            if(!file)return;
+            cancelMedia();
+            const current=mediaEpoch;
+            const controller=new AbortController();
+            mediaAbort=controller;
+            mediaReport({kind:'selected',fid,afterIndex,
+                fileName:String(file.name).slice(0,160),
+                contentType:String(file.type).slice(0,60),sizeBytes:file.size});
+            (async()=>{
+                try {
+                    const {uploadBrowserImage}=await import('./browser_media_upload.mjs');
+                    const result=await uploadBrowserImage({
+                        file,fid,signal:controller.signal,
+                        onProgress:(phase,transferred,total)=>{
+                            if(current===mediaEpoch)
+                                mediaReport({kind:'progress',fid,phase,transferred,total});
+                        },
+                    });
+                    if(current===mediaEpoch)
+                        mediaReport({kind:'completed',fid,
+                            assetUrl:result.assetUrl,
+                            contentType:result.contentType,
+                            fileName:result.fileName,
+                            managementToken:result.managementToken,
+                            sizeBytes:result.sizeBytes});
+                }catch(error){
+                    if(current===mediaEpoch)
+                        mediaReport({kind:'failed',fid,
+                            error:String(error?.message||error).slice(0,240)});
+                }finally{
+                    if(current===mediaEpoch)mediaAbort=null;
+                }
+            })();
+        },{once:true});
+        document.body.appendChild(picker);
+        // Must remain synchronous inside the actual Qt button tap: Safari
+        // rejects file picker prompts after an await/dynamic import.
+        picker.click();
+    }
+    window.__genycasterBrowserMedia=Object.freeze({
+        pick:pickMedia,cancel:cancelMedia,events:mediaEvents
+    });
     window.__genycasterBrowserSigning = Object.freeze({start,events});
 }());

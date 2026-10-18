@@ -175,7 +175,7 @@ test('recovery failures are not mislabeled Genyleap login errors',()=>{
     const cpp=read(new URL('../../ui/mobile/main.cpp',import.meta.url),'utf8');
     assert.match(cpp,/route == QStringLiteral\("recovery"\)/);
     assert.match(cpp,/genycaster\.setup\.recovery_failed_retry/);
-    assert.match(cpp,/if \(bridge\.authenticationRoute\(\) == QStringLiteral\("recovery"\)\) return;/);
+    assert.match(cpp,/event\.phase != BrowserOpenProofState::Phase::SignedOut/);
     const js=read(new URL('../../ui/wasm/protocol-signer-pre.js',import.meta.url),'utf8');
     const route=js.split('if (action === "recover-account") {')[1]
         .split('} else {')[0];

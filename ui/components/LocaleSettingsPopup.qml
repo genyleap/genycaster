@@ -266,7 +266,9 @@ GenyDrawer {
 
             GridLayout {
                 id: settingsTabs
-                columns: root.compactLayout ? 5 : root.width >= 720 ? 3 : 2
+                // Six destinations: use two rows on phones instead of
+                // squeezing six icon-only buttons below touch-target width.
+                columns: root.compactLayout ? 3 : root.width >= 720 ? 3 : 2
                 rowSpacing: Theme.space1
                 columnSpacing: Theme.space1
                 // Desktop labels get their natural line width across two rows;
@@ -330,6 +332,18 @@ GenyDrawer {
                     iconGlyph: Theme.iconRefresh
                     text: qsTrId("genycaster.settings.updates")
                     onClicked: root.currentSection = 4
+                }
+                ActionButton {
+                    objectName: "settingsRecoveryTab"
+                    Layout.fillWidth: true
+                    compact: true
+                    quiet: true
+                    selected: root.currentSection === 5
+                    iconOnly: root.compactLayout
+                    Layout.minimumWidth: 0
+                    iconGlyph: "system/lock"
+                    text: qsTrId("genycaster.setup.recovery_title")
+                    onClicked: root.currentSection = 5
                 }
             }
         }
@@ -1880,6 +1894,86 @@ GenyDrawer {
                                 onClicked: updateController.openReleasePage()
                             }
                         }
+                    }
+                }
+            }
+
+            ScrollView {
+                id: recoverySettingsScroll
+                clip: true
+                contentWidth: availableWidth
+                ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
+                ScrollBar.vertical: GenyScrollBar {}
+
+                ColumnLayout {
+                    width: recoverySettingsScroll.availableWidth
+                    spacing: Theme.space4
+
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.recovery_title")
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeTitle2Size
+                        font.weight: Theme.weightBold
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.recovery_privacy")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeLabelSize
+                        wrapMode: Text.WordWrap
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: presentationBridge.signerStatusText
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                    DirectionAwareLabel {
+                        visible: presentationBridge.signerErrorText.length > 0
+                        Layout.fillWidth: true
+                        text: presentationBridge.signerErrorText
+                        color: Theme.warning
+                        wrapMode: Text.WordWrap
+                    }
+                    ActionButton {
+                        objectName: "settingsRecoveryImport"
+                        Layout.fillWidth: true
+                        prominent: true
+                        enabled: presentationBridge.isAuthenticated
+                                 && !presentationBridge.signerBusy
+                        text: qsTrId("genycaster.shell.enable_publishing_with_recovery_phrase")
+                        onClicked: {
+                            root.close()
+                            presentationBridge.provisionSigner()
+                        }
+                    }
+                    ActionButton {
+                        objectName: "settingsRecoveryRevoke"
+                        visible: presentationBridge.isAuthenticated
+                        Layout.fillWidth: true
+                        destructive: true
+                        text: qsTrId("genycaster.shell.revoke_signer")
+                        enabled: presentationBridge.writeReady && !presentationBridge.signerBusy
+                        onClicked: presentationBridge.revokeSigner()
+                    }
+                    ActionButton {
+                        objectName: "settingsRecoverySignOut"
+                        visible: presentationBridge.isAuthenticated
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.shell.sign_out")
+                        onClicked: {
+                            presentationBridge.signOut()
+                            root.close()
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.recovery_description")
+                        color: Theme.inkSubtle
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
                     }
                 }
             }

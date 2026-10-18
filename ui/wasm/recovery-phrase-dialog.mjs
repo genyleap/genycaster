@@ -43,7 +43,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         card.setAttribute('role','dialog');card.setAttribute('aria-modal','true');
         card.setAttribute('aria-labelledby','genycaster-recovery-title');
         card.dir=['ar','fa'].includes(lang)?'rtl':'ltr';
-        card.style.cssText='width:min(540px,100%);height:100%;max-height:100dvh;overflow:auto;overscroll-behavior:contain;box-sizing:border-box;background:'+surface+';border:1px solid '+outline+';border-radius:22px 0 0 22px;padding:clamp(18px,3vw,30px);padding-bottom:max(24px,env(safe-area-inset-bottom));box-shadow:-16px 0 70px #0007;color:'+foreground+';animation:genycaster-drawer-in .22s cubic-bezier(.22,1,.36,1) both;';
+        card.style.cssText='width:min(540px,100%);height:100%;max-height:100dvh;min-height:0;display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:contain;box-sizing:border-box;background:'+surface+';border:1px solid '+outline+';border-radius:22px 0 0 22px;padding:clamp(18px,3vw,30px);padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:-16px 0 70px #0007;color:'+foreground+';animation:genycaster-drawer-in .22s cubic-bezier(.22,1,.36,1) both;';
         // One adaptive recovery surface: trailing-edge drawer on desktop,
         // keyboard-safe bottom sheet on phones. The rules contain no secrets
         // and never interact with QML authentication state.
@@ -51,15 +51,20 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         style.textContent='@keyframes genycaster-drawer-in{from{transform:translateX(30px);opacity:.8}to{transform:none;opacity:1}}'
             +'@keyframes genycaster-sheet-in{from{transform:translateY(36px);opacity:.85}to{transform:none;opacity:1}}'
             +'@media(max-width:680px){#genycaster-farcaster-recovery{align-items:flex-end!important;justify-content:center!important}'
-            +'#genycaster-farcaster-recovery>section{width:100%!important;height:min(92dvh,900px)!important;max-height:92dvh!important;'
+            +'#genycaster-farcaster-recovery>section{width:100%!important;height:min(92dvh,900px)!important;max-height:92dvh!important;min-height:0!important;'
             +'border-radius:25px 25px 0 0!important;padding:20px 16px max(22px,env(safe-area-inset-bottom))!important;'
             +'animation:genycaster-sheet-in .22s cubic-bezier(.22,1,.36,1) both!important;box-shadow:0 -14px 55px #0008!important}}'
             +'@media(prefers-reduced-motion:reduce){#genycaster-farcaster-recovery>section{animation:none!important}}';
+        // Scroll only the recovery words. Keep the action row outside this
+        // scroller so 24 entries never displace or overlap Cancel / Import.
+        const body=document.createElement('div');
+        body.style.cssText='flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:0 1px 12px;';
+        card.appendChild(body);
         const text=(tag,value,css,id)=>{
             const el=document.createElement(tag);el.textContent=value;
             if(css)el.style.cssText=css;
             if(id)el.id=id;
-            card.appendChild(el);return el;
+            body.appendChild(el);return el;
         };
         text('h2',s.title,'margin:0 0 9px;font-size:23px;font-weight:650','genycaster-recovery-title');
         text('p',s.subtitle,'margin:0 0 24px;color:'+muted+';line-height:1.5');
@@ -165,20 +170,22 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
             });
             modeButtons.push(item);chooser.appendChild(item);
         }
-        card.appendChild(chooser);card.appendChild(grid);
+        body.appendChild(chooser);body.appendChild(grid);
         const hint=text('p',s.hint,'font-size:13px;color:#c9ad7f;margin:12px 0 10px;line-height:1.5');
         const warning=text('p',s.privacy,'font-size:13px;color:'+muted+';line-height:1.55;margin:0 0 20px');
         const error=text('p','','color:#ff8e90;min-height:1.3em;margin:0 0 10px;font-size:13px');
         error.setAttribute('aria-live','polite');
         renderWords(12);
         const actions=document.createElement('div');
-        actions.style.cssText='display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;position:sticky;bottom:-1px;background:'+surface+';padding:14px 0 3px;border-top:1px solid '+outline+';margin-top:18px;z-index:2';
+        actions.style.cssText='display:flex;flex:0 0 auto;gap:10px;justify-content:flex-end;flex-wrap:wrap;min-width:0;background:'+surface+';padding:14px 0 2px;border-top:1px solid '+outline+';z-index:2';
         const button=(value,primary)=>{
             const el=document.createElement('button');el.type='button';el.textContent=value;
-            el.style.cssText='cursor:pointer;border-radius:12px;padding:12px 20px;font:600 14px system-ui;border:1px solid '+(primary?'#4460f3':'#50586c')+';background:'+(primary?'#4266f8':'transparent')+';color:'+(primary?'#fff':foreground);
+            el.style.cssText='cursor:pointer;flex:1 1 auto;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;border-radius:12px;padding:12px 14px;font:600 14px system-ui;border:1px solid '+(primary?'#4460f3':'#50586c')+';background:'+(primary?'#4266f8':'transparent')+';color:'+(primary?'#fff':foreground);
             actions.appendChild(el);return el;
         };
         const cancel=button(s.cancel,false),submit=button(s.import,true);
+        cancel.style.flex='0 1 auto';
+        submit.style.flex='1 1 165px';
         card.appendChild(actions);backdrop.appendChild(card);backdrop.appendChild(style);
         const oldFocus=document.activeElement;
         const oldOverflow=document.body.style.overflow;

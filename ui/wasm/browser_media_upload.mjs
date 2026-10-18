@@ -1,0 +1,105 @@
+// Browser-only, signer-authorized image uploads to the Genyleap Media Gateway.
+// No custody phrase, Ed25519 private CryptoKey, or image bytes enter Qt/QML.
+import { createBrowserSignerVault } from './secure_signer_vault.mjs';
+
+const gateway='https://storage-farcaster.genyleap.com';
+const encoder=new TextEncoder();
+const allowedTypes=new Map([
+    ['jpg','image/jpeg'],['jpeg','image/jpeg'],['png','image/png'],
+    ['webp','image/webp'],['gif','image/gif'],['avif','image/avif'],
+]);
+const hex=bytes=>Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+function ensureImage(file) {
+    if(!file || !/^[a-zA-Z0-9][a-zA-Z0-9._ -]{0,125}\.[A-Za-z0-9]{2,5}$/.test(file.name||''))
+        throw new Error('Choose an image file with a supported extension.');
+    const extension=file.name.split('.').at(-1).toLowerCase();
+    const mime=allowedTypes.get(extension);
+    if(!mime || file.type && file.type!==mime)
+        throw new Error('Unsupported image format. Choose JPG, PNG, WebP, GIF, or AVIF.');
+    if(!Number.isSafeInteger(file.size)||file.size<=0||file.size>25*1024*1024)
+        throw new Error('Images must be smaller than 25 MB.');
+    return mime;
+}
+async function responseJson(response) {
+    const text=await response.text();
+    if(text.length>65536)throw new Error('Media server response is too large.');
+    let payload;
+    try{payload=JSON.parse(text);}catch{throw new Error('Media server returned an invalid response.');}
+    if(!response.ok)throw new Error('Media Gateway '+response.status+': '+String(payload.message||payload.error||'Upload failed').slice(0,150));
+    return payload;
+}
+export async function uploadBrowserImage({
+    file,fid,signal,onProgress=()=>{},fetchImpl=globalThis.fetch,
+    crypto=globalThis.crypto,vault=createBrowserSignerVault(globalThis),
+}={}) {
+    const mime=ensureImage(file);
+    if(!/^[1-9][0-9]{0,19}$/.test(fid))throw new Error('Sign in to your Farcaster account first.');
+    const key=await vault.load(fid);
+    if(!key)throw new Error('Authorize your Farcaster publishing signer before uploading an image.');
+    const signAndFetch=async(method,path,bytes,contentType)=>{
+        if(signal?.aborted)throw new Error('Upload cancelled');
+        const stamp=Math.floor(Date.now()/1000);
+        const nonce=hex(crypto.getRandomValues(new Uint8Array(16)));
+        const digest=hex(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)));
+        const challenge=encoder.encode([
+            'genycaster-media-upload-v1',method,path,fid,key.publicKeyHex,
+            stamp,nonce,digest,
+        ].join('\n'));
+        const signed=await vault.signMediaChallenge(fid,challenge);
+        if(signed.publicKeyHex!==key.publicKeyHex)throw new Error('Signer account changed');
+        const response=await fetchImpl(gateway+path,{
+            method,body:bytes,mode:'cors',credentials:'omit',redirect:'error',signal,
+            headers:{
+                'content-type':contentType,
+                'x-genycaster-fid':fid,
+                'x-genycaster-signer-key':key.publicKeyHex,
+                'x-genycaster-timestamp':String(stamp),
+                'x-genycaster-nonce':nonce,
+                'x-genycaster-signature':signed.signature,
+            },
+        });
+        return responseJson(response);
+    };
+    const json=(object)=>encoder.encode(JSON.stringify(object));
+    let ticket=null;
+    try{
+        onProgress('authorizing',0,file.size);
+        ticket=await signAndFetch('POST','/v1/uploads',json({
+            fileName:file.name,contentType:mime,sizeBytes:file.size,
+        }),'application/json');
+        if(ticket.mode!=='gateway-multipart'||!Number.isInteger(ticket.partCount)
+           ||ticket.partCount<1||ticket.partCount>8
+           ||!Number.isInteger(ticket.partSizeBytes)||ticket.partSizeBytes<1024
+           ||typeof ticket.uploadId!=='string')
+            throw new Error('Media Gateway returned an invalid upload ticket.');
+        const parts=[];
+        for(let n=1;n<=ticket.partCount;n++){
+            const from=(n-1)*ticket.partSizeBytes;
+            const to=Math.min(file.size,from+ticket.partSizeBytes);
+            const bytes=new Uint8Array(await file.slice(from,to).arrayBuffer());
+            onProgress('uploading',from,file.size);
+            const path='/v1/uploads/'+encodeURIComponent(ticket.uploadId)+'/parts/'+n;
+            const part=await signAndFetch('PUT',path,bytes,'application/octet-stream');
+            if(part.partNumber!==n||typeof part.etag!=='string')
+                throw new Error('Media Gateway did not acknowledge the uploaded part.');
+            parts.push({partNumber:n,etag:part.etag});
+            onProgress('uploading',to,file.size);
+        }
+        onProgress('verifying',file.size,file.size);
+        const completed=await signAndFetch('POST','/v1/uploads/complete',
+            json({uploadId:ticket.uploadId,parts}),'application/json');
+        if(completed.assetUrl!==ticket.assetUrl
+           ||!completed.assetUrl.startsWith('https://media-farcaster.genyleap.com/m/v1/')
+           ||completed.sizeBytes!==file.size)
+            throw new Error('Media Gateway returned an invalid media asset.');
+        return completed;
+    }catch(error){
+        // Abort is best-effort. A managed upload ticket is never logged.
+        if(ticket?.uploadId && !signal?.aborted) {
+            try{await signAndFetch('DELETE','/v1/uploads',json({
+                uploadId:ticket.uploadId,
+            }),'application/json');}catch{/* ticket expires automatically */}
+        }
+        throw error;
+    }
+}

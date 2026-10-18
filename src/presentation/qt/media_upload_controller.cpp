@@ -166,6 +166,32 @@ bool MediaUploadController::beginUpload(const QUrl& localFile, const int afterIn
     return true;
 }
 
+bool MediaUploadController::browseBrowserImage(const int afterIndex)
+{
+    if (!m_available || m_busy) return false;
+    emit browserImagePickRequested(afterIndex);
+    return true;
+}
+
+void MediaUploadController::applyBrowserSelection(
+    QString fileName, QString contentType, const qulonglong sizeBytes, const int afterIndex)
+{
+    if (!m_available || m_busy) return;
+    m_busy = true;
+    m_canRetry = false;
+    m_errorText.clear();
+    m_phase = QStringLiteral("preparing");
+    m_fileName = std::move(fileName);
+    m_selectedContentType = std::move(contentType);
+    m_previewKind = QStringLiteral("image");
+    m_localPreviewUrl.clear(); // Never pass a browser File or blob: URL into Qt.
+    m_localPath.clear();
+    m_afterIndex = afterIndex;
+    resetProgress();
+    m_totalBytes = sizeBytes;
+    emit stateChanged();
+}
+
 void MediaUploadController::cancel()
 {
     if (!m_busy) {

@@ -251,7 +251,8 @@ test('recovery phrase uses trailing-edge desktop drawer and mobile bottom sheet'
     assert.match(dialog,/width:min\(540px,100%\)/);
     assert.match(dialog,/@media\(max-width:680px\)/);
     assert.match(dialog,/genycaster-sheet-in/);
-    assert.match(dialog,/position:sticky;bottom:-1px/);
+    assert.match(dialog,/flex:1 1 auto;min-height:0;overflow-y:auto/);
+    assert.match(dialog,/flex:0 0 auto;gap:10px/);
     assert.match(dialog,/inputs\[index\]\?\.setAttribute\('aria-invalid'/);
     assert.doesNotMatch(dialog,/localStorage\.setItem\(/);
 });
