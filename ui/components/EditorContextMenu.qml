@@ -9,7 +9,8 @@ Menu {
     popupType: Popup.Item
     width: 220
     padding: Theme.space2
-    modal: false
+    modal: true
+    dim: false
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     background: Superellipse {

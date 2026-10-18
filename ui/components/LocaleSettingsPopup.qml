@@ -8,6 +8,7 @@ GenyDrawer {
 
     property int currentSection: 0
     property bool mobileIndexOpen: true
+    property bool showRecoveryExplanation: false
     readonly property bool webAssembly: Qt.platform.os === "wasm"
     readonly property bool mobilePresentation: parent ? parent.width < Theme.breakpointMobile : true
     function openMobileSection(section) {
@@ -71,6 +72,7 @@ GenyDrawer {
         }
         customAccentField.text = appearanceController.customAccentColor
         root.customColorError = false
+        root.showRecoveryExplanation = false
     }
     onClosed: root.mobileIndexOpen = true
     Connections {
@@ -2234,17 +2236,11 @@ GenyDrawer {
                         font.weight: Theme.weightBold
                     }
                     DirectionAwareLabel {
+                        visible: !presentationBridge.writeReady
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.setup.recovery_privacy")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeLabelSize
-                        wrapMode: Text.WordWrap
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: presentationBridge.signerStatusText
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
                     }
                     DirectionAwareLabel {
@@ -2270,15 +2266,25 @@ GenyDrawer {
                     DirectionAwareLabel {
                         visible: presentationBridge.isAuthenticated && presentationBridge.writeReady
                         Layout.fillWidth: true
-                        text: "Publishing is already authorized on this device. You do not need to enter your recovery phrase again."
+                        text: qsTrId("genycaster.setup.recovery_signer_ready")
                         color: Theme.positive
                         font.pixelSize: Theme.typeLabelSize
                         wrapMode: Text.WordWrap
                     }
-                    DirectionAwareLabel {
+                    ActionButton {
+                        objectName: "settingsRecoveryExplanation"
                         visible: presentationBridge.isAuthenticated
                         Layout.fillWidth: true
-                        text: "Your original Farcaster recovery phrase is never stored by Genycaster after setup, so it cannot be revealed or copied from the active session. Keep the original words in a secure backup; never share them."
+                        quiet: true
+                        elevated: false
+                        iconGlyph: Theme.iconInfo
+                        text: qsTrId("genycaster.setup.recovery_why_no_words")
+                        onClicked: root.showRecoveryExplanation = !root.showRecoveryExplanation
+                    }
+                    DirectionAwareLabel {
+                        visible: root.showRecoveryExplanation
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.recovery_phrase_unavailable")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
@@ -2301,13 +2307,6 @@ GenyDrawer {
                             root.close()
                             root.signOutConfirmationRequested()
                         }
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.recovery_description")
-                        color: Theme.inkSubtle
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
                     }
                 }
             }

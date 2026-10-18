@@ -13,7 +13,7 @@ export const defaultBrowserImageHosts = [
   // Keep the browser's bounded raster-only retrieval compatible with the
   // image hosts recognized by the C++ Cast embed classifier.
   'media.tenor.com', 'media.giphy.com', 'lh3.googleusercontent.com', 'imagekit.io',
-  'assets.geckoterminal.com',
+  'assets.geckoterminal.com', 'assets.foundly.dev',
 ];
 export const maximumBrowserImageBytes = 8 * 1024 * 1024;
 

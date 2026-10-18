@@ -893,7 +893,10 @@ Item {
                 width: 224
                 implicitHeight: menuContent.implicitHeight + Theme.space2
                 padding: Theme.space1
-                modal: false
+                // A contextual menu is an input boundary. Modeless popups let
+                // touch events reach the Cast below the menu on mobile WASM.
+                modal: true
+                dim: false
                 focus: true
                 closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 

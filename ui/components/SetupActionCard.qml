@@ -10,6 +10,8 @@ Button {
     property string subtitle: ""
     property string iconGlyph: ""
     property string trailingText: ""
+    // Optional measured response-time hint used by read-node selection.
+    property int latencyMs: -1
     property bool primary: false
     property bool complete: false
     // Selection is NOT task completion. This is a single-choice radio indicator.
@@ -110,7 +112,10 @@ Button {
         Label {
             visible: root.trailingText.length > 0
             text: root.trailingText
-            color: root.primary ? root.secondaryForeground : Theme.inkSubtle
+            color: root.primary ? root.secondaryForeground
+                   : root.latencyMs < 0 ? Theme.inkSubtle
+                   : root.latencyMs <= 300 ? Theme.success
+                   : root.latencyMs <= 800 ? Theme.warning : Theme.danger
             font.pixelSize: Theme.typeCaptionSize
             font.weight: Theme.weightDemiBold
         }

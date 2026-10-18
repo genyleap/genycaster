@@ -8,6 +8,12 @@ Item {
     property bool active: false
     property bool addScrim: true
     property bool blockInput: false
+    property bool snapshotBlurOnBrowser: false
+    readonly property bool useBrowserSnapshot: root.browserRenderer && root.snapshotBlurOnBrowser
+    onActiveChanged: {
+        if (root.active && root.useBrowserSnapshot && root.sourceItem)
+            Qt.callLater(() => capture.scheduleUpdate())
+    }
     signal backgroundTapped()
     // WebAssembly's Qt Quick render loop runs on the browser main thread.
     // Sampling a live full-screen feed into a blurred texture every frame
@@ -27,13 +33,17 @@ Item {
     ShaderEffectSource {
         id: capture
         visible: false
+        // One texture snapshot on browser search open, never a live feed
+        // repaint during each WebGL scroll frame.
         live: root.active && root.sourceItem !== null && !root.browserRenderer
         recursive: false
         hideSource: root.active && root.sourceItem !== null && !root.browserRenderer
         sourceItem: root.sourceItem
         textureSize: Qt.size(
-            root.browserRenderer ? 1 : Math.max(1, Math.round(root.width * root.captureScale)),
-            root.browserRenderer ? 1 : Math.max(1, Math.round(root.height * root.captureScale)))
+            root.browserRenderer && !root.useBrowserSnapshot ? 1
+                : Math.max(1, Math.round(root.width * (root.useBrowserSnapshot ? 0.48 : root.captureScale))),
+            root.browserRenderer && !root.useBrowserSnapshot ? 1
+                : Math.max(1, Math.round(root.height * (root.useBrowserSnapshot ? 0.48 : root.captureScale))))
         sourceRect: {
             if (!root.sourceItem || root.width <= 0 || root.height <= 0)
                 return Qt.rect(0, 0, 1, 1)
@@ -44,7 +54,8 @@ Item {
 
     MultiEffect {
         anchors.fill: parent
-        visible: root.active && root.sourceItem !== null && !root.browserRenderer
+        visible: root.active && root.sourceItem !== null
+                 && (!root.browserRenderer || root.useBrowserSnapshot)
         source: capture
         blurEnabled: true
         blur: root.blurStrength
@@ -57,8 +68,11 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: root.addScrim
-               ? (Theme.dark ? Qt.rgba(0.02, 0.025, 0.035, 0.42)
-                             : Qt.rgba(0.94, 0.95, 0.97, 0.38))
+               ? (root.snapshotBlurOnBrowser
+                  ? (Theme.dark ? Qt.rgba(0.02, 0.025, 0.035, 0.68)
+                                : Qt.rgba(0.94, 0.95, 0.97, 0.62))
+                  : (Theme.dark ? Qt.rgba(0.02, 0.025, 0.035, 0.42)
+                                : Qt.rgba(0.94, 0.95, 0.97, 0.38)))
                : "transparent"
     }
 

@@ -235,7 +235,8 @@ ColumnLayout {
                 parent: Overlay.overlay
                 width: 224
                 padding: Theme.space1
-                modal: false
+                modal: true
+                dim: false
                 focus: true
                 closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
                 background: PopupSurface { curveDepth: Theme.curveContainer }

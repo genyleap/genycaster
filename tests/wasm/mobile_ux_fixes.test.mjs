@@ -51,5 +51,6 @@ test('browser scroll optimizations do not replace Qt default scene graph backend
 test('recovery does not re-prompt an already authorized signer or pretend a stored phrase exists', () => {
   const settings = read('ui/components/LocaleSettingsPopup.qml');
   assert.match(settings, /visible: presentationBridge\.isAuthenticated && !presentationBridge\.writeReady/);
-  assert.match(settings, /original Farcaster recovery phrase is never stored/);
+  assert.match(settings, /genycaster.setup.recovery_phrase_unavailable/);
+  assert.match(settings, /objectName: "settingsRecoveryExplanation"/);
 });

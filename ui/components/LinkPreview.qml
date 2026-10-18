@@ -13,13 +13,19 @@ Superellipse {
     property bool compact: false
     property bool suppressArtwork: false
     property var externalPreview: ({})
+    property var browserMiniAppPreview: ({})
+    property string browserPreviewRequestUrl: ""
     property bool metadataManagedExternally: false
     property var resolvedPreview: ({})
     property var pendingResolvedPreview: ({})
     property bool resolvedPreviewPending: false
     property bool metadataTimedOut: false
     property var layoutReservation: null
-    readonly property var reservedLayout: root.layoutReservation || root.initialLayout()
+    readonly property var reservedLayout: (root.knownMiniApp.homeUrl
+                                            || root.browserMiniAppPreview.providerKind === "miniapp")
+                                          && !root.scrollMoving
+                                          ? ({kind: "miniapp", aspect: 3 / 2, artwork: true})
+                                          : root.layoutReservation || root.initialLayout()
     readonly property bool layoutMiniApp: root.reservedLayout.kind === "miniapp"
     readonly property bool reserveArtwork: !root.suppressArtwork && root.reservedLayout.artwork
     readonly property real bodyLineHeight: Math.ceil(Theme.typeBodySize * Theme.typeBodyLineHeight)
@@ -29,15 +35,35 @@ Superellipse {
     readonly property bool scrollMoving: root.scrollHost !== null
                                          && Boolean(root.scrollHost.moving)
 
-    readonly property var previewData: root.metadataManagedExternally
-                                      ? (root.externalPreview || ({}))
-                                      : (root.resolvedPreview || ({}))
+    readonly property var previewData: Boolean(root.browserMiniAppPreview.resolved)
+                                      ? root.browserMiniAppPreview
+                                      : root.metadataManagedExternally
+                                        ? (root.externalPreview || ({}))
+                                        : (root.resolvedPreview || ({}))
     readonly property string targetUrl: String(root.embed.url || root.embed.value || "")
+    // The browser cannot crawl arbitrary Cast URLs for fc:miniapp metadata.
+    // Reuse only public Mini Apps that the verified discovery catalogue has
+    // already identified; a domain match is not proof that an app is online.
+    readonly property var knownMiniApp: {
+        const match = /^https:\/\/([^\/?#:]+)/i.exec(root.targetUrl)
+        if (!match) return ({})
+        const host = match[1].toLowerCase()
+        for (const catalog of [miniAppCatalog.myApps || [], miniAppCatalog.explorerApps || []]) {
+            for (const app of catalog) {
+                const home = String(app.homeUrl || "")
+                const origin = /^https:\/\/([^\/?#:]+)/i.exec(home)
+                if (origin && origin[1].toLowerCase() === host)
+                    return app
+            }
+        }
+        return ({})
+    }
     readonly property string domainText: String(root.previewData.domain || root.embed.host || root.embed.domain || "")
     readonly property string providerHint: root.providerKindForUrl(root.targetUrl)
     readonly property string providerKind: {
         const resolved = String(root.previewData.providerKind || "")
-        return resolved.length > 0 && resolved !== "web" ? resolved : root.providerHint
+        return resolved.length > 0 && resolved !== "web" ? resolved
+             : Boolean(root.knownMiniApp.homeUrl) ? "miniapp" : root.providerHint
     }
     readonly property bool miniApp: root.providerKind === "miniapp"
     readonly property string miniAppLaunchUrl: String(root.previewData.miniAppLaunchUrl || root.targetUrl)
@@ -45,13 +71,16 @@ Superellipse {
         miniAppTaskManager.revision
         return root.miniApp && miniAppTaskManager.isLaunchingUrl(root.miniAppLaunchUrl)
     }
-    readonly property string siteName: String(root.previewData.siteName || root.domainText)
-    readonly property string titleText: String(root.previewData.title || root.embed.title
-                                               || root.embed.fileName || root.siteName || root.domainText)
+    readonly property string siteName: String(root.previewData.siteName || root.knownMiniApp.name || root.domainText)
+    readonly property string titleText: String(root.previewData.title || root.knownMiniApp.name
+                                               || root.embed.title || root.embed.fileName
+                                               || root.siteName || root.domainText)
     readonly property string summaryText: String(root.previewData.summary || root.embed.summary || root.embed.description || "")
     readonly property string previewSource: String(root.previewData.previewImage
-                                                   || root.embed.imageSource || root.embed.previewImage || "")
-    readonly property string faviconSource: String(root.previewData.favicon || root.embed.favicon || "")
+                                                   || root.embed.imageSource || root.embed.previewImage
+                                                   || root.knownMiniApp.iconSource || "")
+    readonly property string faviconSource: String(root.previewData.favicon || root.embed.favicon
+                                                  || root.knownMiniApp.iconSource || "")
     readonly property string authorText: String(root.previewData.author || root.embed.author || "")
     readonly property string dateText: String(root.embed.publicationDate || root.embed.date || "")
     readonly property string durationText: String(root.previewData.duration || root.embed.duration || "")
@@ -68,6 +97,7 @@ Superellipse {
     readonly property bool metadataLoading: root.targetUrl.length > 0
                                             && !root.metadataTimedOut
                                             && !Boolean(root.previewData.resolved)
+                                            && !Boolean(root.knownMiniApp.homeUrl)
     readonly property bool collectibleProvider: root.providerKind === "superrare"
                                                 || root.providerKind === "opensea"
                                                 || root.providerKind === "zora"
@@ -101,7 +131,7 @@ Superellipse {
     function initialLayout() {
         const metadata = root.previewData
         const hint = root.providerKindForUrl(root.targetUrl)
-        const provider = String(metadata.providerKind || hint)
+        const provider = String(metadata.providerKind || (root.knownMiniApp.homeUrl ? 'miniapp' : hint))
         const kind = provider === "miniapp" ? "miniapp"
                    : ["youtube", "spotify", "apple-music", "soundcloud", "video"].indexOf(provider) >= 0
                      || ["youtube", "spotify", "apple-music", "soundcloud"].indexOf(hint) >= 0
@@ -151,6 +181,41 @@ Superellipse {
             candidate = candidate.parent
         }
         root.scrollHost = null
+    }
+
+    function requestBrowserMiniAppManifest() {
+        if (Qt.platform.os !== "wasm" || root.targetUrl.length === 0
+                || root.scrollMoving || Boolean(root.knownMiniApp.homeUrl)
+                || Boolean(root.browserMiniAppPreview.resolved)
+                || root.browserPreviewRequestUrl === root.targetUrl
+                || !/^https:\/\//i.test(root.targetUrl)) return
+        const target = root.targetUrl
+        const origin = /^https:\/\/([^\/?#:]+)/i.exec(target)
+        if (!origin) return
+        root.browserPreviewRequestUrl = target
+        const xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE || root.targetUrl !== target) return
+            if (xhr.status !== 200) return
+            try {
+                const metadata = JSON.parse(xhr.responseText)
+                if (metadata && metadata.resolved && metadata.providerKind === "miniapp"
+                        && String(metadata.domain || "").toLowerCase() === origin[1].toLowerCase()) {
+                    metadata.miniAppLaunchUrl = target
+                    root.browserMiniAppPreview = metadata
+                }
+            } catch (error) { /* Keep the working ordinary link preview. */ }
+        }
+        xhr.open("GET", "https://storage-farcaster.genyleap.com/v1/browser/miniapp-preview?url="
+                 + encodeURIComponent("https://" + origin[1] + "/"), true)
+        xhr.send()
+    }
+
+    Timer {
+        id: miniAppManifestTimer
+        interval: 520
+        repeat: false
+        onTriggered: root.requestBrowserMiniAppManifest()
     }
 
     function requestRemoteMetadataIfNeeded() {
@@ -207,6 +272,10 @@ Superellipse {
     }
 
     onTargetUrlChanged: {
+        root.browserMiniAppPreview = ({})
+        root.browserPreviewRequestUrl = ""
+        miniAppManifestTimer.stop()
+        miniAppManifestTimer.restart()
         root.layoutReservation = null
         layoutReservationTimer.restart()
         root.metadataTimedOut = false
@@ -238,6 +307,7 @@ Superellipse {
                 root.pendingResolvedPreview = ({})
             }
             metadataRequestTimer.restart()
+            miniAppManifestTimer.restart()
             if (root.metadataLoading)
                 metadataDeadline.restart()
         }
@@ -245,6 +315,7 @@ Superellipse {
     Component.onCompleted: {
         root.resolveScrollHost()
         root.refreshMetadata()
+        miniAppManifestTimer.restart()
         root.layoutReservation = root.initialLayout()
         if (root.targetUrl.length > 0 && !Boolean(root.previewData.resolved) && !root.scrollMoving)
             metadataDeadline.restart()
@@ -402,13 +473,27 @@ Superellipse {
                     showFailureIndicator: true
                 }
 
-                Icon {
-                    objectName: "miniAppLinkFallbackIcon"
+                ColumnLayout {
                     anchors.centerIn: parent
-                    visible: !miniAppPoster.ready && root.previewSource.length === 0 && !root.metadataLoading
-                    text: Theme.iconImage
-                    color: Theme.textTertiary
-                    preferredSize: Theme.iconSizeLarge
+                    width: Math.max(120, parent.width - Theme.space4 * 2)
+                    visible: !miniAppPoster.ready && !root.metadataLoading
+                             && (root.previewSource.length === 0 || miniAppPoster.loadFailed)
+                    spacing: Theme.space2
+                    Icon {
+                        objectName: "miniAppLinkFallbackIcon"
+                        Layout.alignment: Qt.AlignHCenter
+                        text: Theme.iconApps
+                        color: Theme.textTertiary
+                        preferredSize: Theme.iconSizeLarge
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.miniapp.preview_unavailable")
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.typeCaptionSize
+                        horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.Wrap
+                    }
                 }
 
                 GenySpinner {
@@ -471,7 +556,7 @@ Superellipse {
             DirectionAwareLabel {
                 visible: miniAppHost.errorText.length > 0 && miniAppHost.launchUrl === root.miniAppLaunchUrl
                 Layout.fillWidth: true
-                text: miniAppHost.errorText
+                text: qsTrId("genycaster.miniapp.launch_failed") + " · " + miniAppHost.errorText
                 color: Theme.danger
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.Wrap
@@ -996,7 +1081,9 @@ Superellipse {
         cursorShape: Qt.PointingHandCursor
     }
     TapHandler {
-        enabled: root.targetUrl.length > 0
+        // Mini App actions belong to their own button. A parent TapHandler
+        // must not launch a second app when that child button is tapped.
+        enabled: root.targetUrl.length > 0 && !root.layoutMiniApp
         gesturePolicy: TapHandler.ReleaseWithinBounds
         onTapped: eventPoint => {
             // When automatic media download is disabled, the first click on

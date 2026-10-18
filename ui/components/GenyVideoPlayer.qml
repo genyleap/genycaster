@@ -1994,7 +1994,8 @@ Item {
         width: 180
         implicitHeight: qualityColumn.implicitHeight + padding * 2
         padding: Theme.space1
-        modal: false
+        modal: true
+        dim: false
         focus: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         background: PopupSurface {

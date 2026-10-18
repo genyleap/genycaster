@@ -9,6 +9,18 @@ Item {
     objectName: "initialSetup"
     focus: visible
 
+    // Setup is a full-screen interaction boundary. Its empty regions must
+    // absorb presses instead of activating the feed or menus underneath.
+    MouseArea {
+        anchors.fill: parent
+        z: -1
+        enabled: root.visible
+        acceptedButtons: Qt.AllButtons
+        propagateComposedEvents: false
+        onPressed: mouse => { mouse.accepted = true }
+        onWheel: wheel => { wheel.accepted = true }
+    }
+
     // GUI-* layout contract:
     // - one bounded task column (640 px compact / 720 px wide maximum)
     // - 64 px header and responsive safe footer
@@ -1214,6 +1226,7 @@ Item {
             }
 
             ColumnLayout {
+                visible: root.showAdvancedNodes
                 Layout.fillWidth: true
                 spacing: Theme.space1
 
@@ -1259,6 +1272,7 @@ Item {
             }
 
             DirectionAwareLabel {
+                visible: false
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.setup.network_settings_explainer")
                 color: Theme.inkMuted
@@ -1269,7 +1283,8 @@ Item {
 
             ActionButton {
                 Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
-                text: qsTrId("genycaster.setup.advanced_nodes")
+                text: root.showAdvancedNodes ? qsTrId("genycaster.shell.close")
+                                             : qsTrId("genycaster.setup.advanced_nodes")
                 iconGlyph: Theme.iconWifi
                 quiet: true
                 onClicked: root.showAdvancedNodes = !root.showAdvancedNodes
@@ -1332,7 +1347,7 @@ Item {
             }
 
             SetupActionCard {
-                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === "hypersnap"
+                visible: presentationBridge.preferredNetwork === "hypersnap"
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.setup.network_automatic")
                 subtitle: qsTrId("genycaster.setup.network_experimental")
@@ -1343,7 +1358,7 @@ Item {
             }
 
             RowLayout {
-                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === "hypersnap"
+                visible: presentationBridge.preferredNetwork === "hypersnap"
                 Layout.fillWidth: true
                 spacing: Theme.space2
                 layoutDirection: Theme.uiDirection
@@ -1367,7 +1382,7 @@ Item {
             }
 
             ColumnLayout {
-                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === "hypersnap"
+                visible: presentationBridge.preferredNetwork === "hypersnap"
                 Layout.fillWidth: true
                 spacing: Theme.space2
 
@@ -1378,7 +1393,14 @@ Item {
                         required property var modelData
                         Layout.fillWidth: true
                         title: modelData.label
-                        subtitle: modelData.endpoint
+                        subtitle: root.showAdvancedNodes ? modelData.endpoint
+                                  : modelData.status === "online"
+                                    ? qsTrId("genycaster.setup.node_online")
+                                    : modelData.status === "checking"
+                                      ? qsTrId("genycaster.feed_header.refreshing")
+                                      : qsTrId("genycaster.setup.network_unreachable")
+                        compactCard: !root.showAdvancedNodes
+                        latencyMs: Number(modelData.latencyMs || -1)
                         iconGlyph: "quilibrium/hypersnap"
                         trailingText: modelData.status === "checking" ? "…"
                                       : modelData.latencyMs >= 0 ? modelData.latencyMs + " ms"

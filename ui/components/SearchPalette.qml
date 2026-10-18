@@ -13,6 +13,15 @@ Drawer {
     property bool resultsBusy: false
     property string resultsErrorText: ""
     property var resultPayloads: ({})
+    readonly property string searchScope: {
+        const query = String(searchField.text || '').trim()
+        if (/^(?:channel:|\/|#)/i.test(query)) return 'channel'
+        if (/^@/.test(query)) return 'profile'
+        if (/^cast:/i.test(query) || /^0x[0-9a-f]{18,}$/i.test(query)) return 'cast'
+        return 'all'
+    }
+    readonly property int filteredCount: resultRows.count
+    onSearchScopeChanged: Qt.callLater(root.syncResults)
     signal searchRequested(string query)
     signal suggestionsRequested(string query)
     signal suggestionsCleared()
@@ -24,16 +33,21 @@ Drawer {
     // avatar/delegate for each asynchronous field update.
     function syncResults() {
         const payloads = ({})
+        let rowIndex = 0
         for (let index = 0; index < root.results.length; ++index) {
             const value = root.results[index] || ({})
-            const key = String(value.kind || "") + ":" + String(value.fid || value.id || index)
+            const kind = String(value.kind || '')
+            if (root.searchScope !== 'all' && kind !== root.searchScope)
+                continue
+            const key = kind + ':' + String(value.fid || value.id || index)
             payloads[key] = value
-            if (index >= resultRows.count)
+            if (rowIndex >= resultRows.count)
                 resultRows.append({ key: key })
-            else if (resultRows.get(index).key !== key)
-                resultRows.set(index, { key: key })
+            else if (resultRows.get(rowIndex).key !== key)
+                resultRows.set(rowIndex, { key: key })
+            rowIndex++
         }
-        while (resultRows.count > root.results.length)
+        while (resultRows.count > rowIndex)
             resultRows.remove(resultRows.count - 1)
         root.resultPayloads = payloads
     }
@@ -68,7 +82,7 @@ Drawer {
     height: parent ? (root.compact
         ? Math.min(Math.max(180, parent.height - Theme.space4),
                    searchField.text.trim().length >= 2
-                   ? (root.results.length > 0 ? 470 : 225)
+                   ? (root.filteredCount > 0 ? 470 : 225)
                    : (root.recentProfiles.length > 0 ? 420 : 300))
         : Math.min(560, Math.max(320, parent.height * 0.72))) : 560
     x: parent ? (root.compact ? 0 : Math.round((parent.width - width) / 2)) : 0
@@ -85,6 +99,7 @@ Drawer {
     Overlay.modal: DrawerBackdrop {
         sourceItem: root.blurSourceItem
         active: root.opened
+        snapshotBlurOnBrowser: true
         addScrim: true
         blockInput: true
         onBackgroundTapped: root.close()
@@ -92,8 +107,8 @@ Drawer {
     background: Superellipse {
         // A top drawer is attached to the window edge: square top corners avoid
         // the floating-card look while the lower edge keeps the soft glass shape.
-        fillColor: Theme.dark ? Qt.rgba(0.055, 0.065, 0.085, 0.82)
-                              : Qt.rgba(0.98, 0.985, 1.0, 0.86)
+        fillColor: Theme.dark ? Qt.rgba(0.055, 0.065, 0.085, 0.96)
+                              : Qt.rgba(0.98, 0.985, 1.0, 0.97)
         curveDepth: Theme.curveModal
         curveTopLeft: false
         curveTopRight: false
@@ -229,6 +244,7 @@ Drawer {
                     onTextChanged: {
                         searchDebounce.stop()
                         root.suggestionsCleared()
+                        root.syncResults()
                         if (text.trim().length >= 2)
                             searchDebounce.restart()
                     }
@@ -267,7 +283,7 @@ Drawer {
         }
 
         ScrollView {
-            visible: searchField.text.trim().length >= 2 && (root.results.length > 0 || root.resultsErrorText.length > 0)
+            visible: searchField.text.trim().length >= 2 && (root.filteredCount > 0 || root.resultsErrorText.length > 0)
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumHeight: visible ? 120 : 0
@@ -501,6 +517,19 @@ Drawer {
                     onClicked: root.useScope("cast:")
                 }
             }
+        }
+
+        DirectionAwareLabel {
+            visible: searchField.text.trim().length >= 2 && !root.resultsBusy
+                     && root.results.length > 0 && root.filteredCount === 0
+                     && root.searchScope !== "all"
+            Layout.fillWidth: true
+            text: root.searchScope === "channel"
+                  ? qsTrId("genycaster.search.no_channel_results")
+                  : qsTrId("genycaster.search.no_profile_results")
+            color: Theme.textTertiary
+            font.pixelSize: Theme.typeCaptionSize
+            wrapMode: Text.WordWrap
         }
 
         ScrollView {

@@ -2,6 +2,7 @@ import http from 'node:http';
 import { defaultBrowserImageHosts, rasterMimeFromBytes, retrieveBrowserImage, validImageUrl } from './browser_image_proxy.mjs';
 import { createBrowserFarcasterBroker } from './browser_farcaster_auth.mjs';
 import { publicTokenSnapshot } from './browser_token_insights.mjs';
+import { publicMiniAppPreview } from './browser_miniapp_preview.mjs';
 import {
   createHash,
   createHmac,
@@ -413,6 +414,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   const retrieveImage = dependencies.retrieveImage ?? retrieveBrowserImage;
   const verifiedMiniAppIcons = new Map();
   const tokenSnapshots = new Map();
+  const miniAppPreviews = new Map();
   let refreshIconsPromise = null;
   let lastIconRefreshAttempt = -Infinity;
 
@@ -502,6 +504,42 @@ export function createMediaGateway(config, storage, dependencies = {}) {
             ? error.code : 'auth_service_unavailable',
         });
       }
+      return;
+    }
+
+    if (requestUrl.pathname === '/v1/browser/miniapp-preview') {
+      const origin = request.headers.origin;
+      if (origin === 'https://caster.genyleap.com') {
+        response.setHeader('access-control-allow-origin', origin);
+        response.setHeader('vary', 'origin');
+      }
+      response.setHeader('access-control-allow-methods','GET, OPTIONS');
+      response.setHeader('access-control-allow-headers','accept');
+      if (request.method === 'OPTIONS') {
+        response.writeHead(origin === 'https://caster.genyleap.com' ? 204 : 403);
+        response.end(); return;
+      }
+      if (request.method !== 'GET') {
+        writeJson(response,405,{error:'method_not_allowed'}); return;
+      }
+      const rawUrl = requestUrl.searchParams.get('url') || '';
+      if (!rawUrl || rawUrl.length > 2048 ||
+          [...requestUrl.searchParams.keys()].some(key => key !== 'url')) {
+        writeJson(response,400,{error:'invalid_miniapp_url'}); return;
+      }
+      const cached = miniAppPreviews.get(rawUrl);
+      if (cached && cached.expires > runtime.now()) {
+        writeJson(response,cached.status,cached.body,{'cache-control':'public, max-age=60'});
+        return;
+      }
+      const rate = limiter.check(clientAddress(request,config.trustCloudflare),runtime.now());
+      if (!rate.allowed) {writeJson(response,429,{error:'rate_limited'});return;}
+      const resolved = await publicMiniAppPreview(rawUrl);
+      const body = resolved.status === 200 ? resolved.data : {error:resolved.error};
+      if (miniAppPreviews.size > 180) miniAppPreviews.clear();
+      if (resolved.status !== 400)
+        miniAppPreviews.set(rawUrl,{status:resolved.status,body,expires:runtime.now()+120000});
+      writeJson(response,resolved.status,body,{'cache-control':'public, max-age=60'});
       return;
     }
 

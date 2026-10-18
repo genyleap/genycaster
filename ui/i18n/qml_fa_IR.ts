@@ -3332,11 +3332,11 @@
         </message>
         <message id="genycaster.setup.title">
             <source>Set up Genycaster</source>
-            <translation>راه‌اندازی Genycaster</translation>
+            <translation>راه‌اندازی جنی‌کستر</translation>
         </message>
         <message id="genycaster.setup.subtitle">
             <source>Sign in to continue. OpenProof verifies your Genyleap identity, and a linked Farcaster account is required for Genycaster.</source>
-            <translation>برای ادامه وارد شوید. OpenProof هویت Genyleap شما را تأیید می‌کند و برای Genycaster یک حساب Farcaster پیوندشده لازم است.</translation>
+            <translation>برای ادامه وارد شوید. OpenProof هویت Genyleap شما را تأیید می‌کند و برای جنی‌کستر یک حساب فارکستر پیوندشده لازم است.</translation>
         </message>
         <message id="genycaster.setup.welcome">
             <source>Welcome</source>
@@ -3348,7 +3348,7 @@
         </message>
         <message id="genycaster.setup.welcome_title">
             <source>Welcome to Genycaster</source>
-            <translation>به Genycaster خوش آمدید</translation>
+            <translation>به جنی‌کستر خوش آمدید</translation>
         </message>
         <message id="genycaster.setup.welcome_personal_title">
             <source>Your interface</source>
@@ -3372,7 +3372,7 @@
         </message>
         <message id="genycaster.setup.privacy_body">
             <source>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</source>
-            <translation>اطلاعیه حریم خصوصی منتشرشده Genyleap اطلاعاتی را پوشش می‌دهد که خودتان از طریق فرم‌های تماس و پروژه ارسال می‌کنید و همچنین داده‌های پایه جلوگیری از سوءاستفاده. Genycaster علاوه بر آن، برای احراز هویت و فعال‌کردن عملیات پروتکل از حساب Genyleap/OpenProof و هویت Farcaster پیوندشده‌ای که در راه‌اندازی انتخاب می‌کنید استفاده می‌کند. تنظیمات ظاهر و منطقه‌ای در خود برنامه به‌صورت محلی نگهداری می‌شوند مگر اینکه قابلیتی صریحاً خلاف آن را اعلام کند. پیش از ادامه، متن کامل حریم خصوصی را مرور کنید.</translation>
+            <translation>اطلاعیه حریم خصوصی منتشرشده Genyleap اطلاعاتی را پوشش می‌دهد که خودتان از طریق فرم‌های تماس و پروژه ارسال می‌کنید و همچنین داده‌های پایه جلوگیری از سوءاستفاده. جنی‌کستر علاوه بر آن، برای احراز هویت و فعال‌کردن عملیات پروتکل از حساب Genyleap/OpenProof و هویت فارکستر پیوندشده‌ای که در راه‌اندازی انتخاب می‌کنید استفاده می‌کند. تنظیمات ظاهر و منطقه‌ای در خود برنامه به‌صورت محلی نگهداری می‌شوند مگر اینکه قابلیتی صریحاً خلاف آن را اعلام کند. پیش از ادامه، متن کامل حریم خصوصی را مرور کنید.</translation>
         </message>
         <message id="genycaster.setup.agree_continue">
             <source>Agree &amp; Continue</source>
@@ -3400,7 +3400,7 @@
         </message>
         <message id="genycaster.setup.account_verified_body">
             <source>Your Genyleap/OpenProof identity is verified and the required Farcaster identity is linked.</source>
-            <translation>هویت Genyleap/OpenProof شما تأیید شده و هویت Farcaster موردنیاز نیز پیوند خورده است.</translation>
+            <translation>هویت Genyleap/OpenProof شما تأیید شده و هویت فارکستر موردنیاز نیز پیوند خورده است.</translation>
         </message>
         <message id="genycaster.setup.consent_recorded">
             <source>Consent recorded</source>
@@ -3436,7 +3436,7 @@
         </message>
         <message id="genycaster.setup.network_experimental">
             <source>Experimental · HyperSnap is the default provider. Additional compatible nodes can be configured by the deployment.</source>
-            <translation>آزمایشی · HyperSnap ارائه‌دهنده پیش‌فرض است. نودهای سازگار دیگر را می‌توان در پیکربندی استقرار اضافه کرد.</translation>
+            <translation>انتخاب خودکار نود بهتر</translation>
         </message>
         <message id="genycaster.setup.network_automatic">
             <source>Automatic</source>
@@ -3460,11 +3460,11 @@
         </message>
         <message id="genycaster.setup.account_genyleap_body">
             <source>Continue with your Genyleap/OpenProof identity. Farcaster will be linked if needed.</source>
-            <translation>با هویت Genyleap/OpenProof خود ادامه دهید؛ در صورت نیاز Farcaster نیز پیوند داده می‌شود.</translation>
+            <translation>با هویت Genyleap/OpenProof خود ادامه دهید؛ در صورت نیاز فارکستر نیز پیوند داده می‌شود.</translation>
         </message>
         <message id="genycaster.setup.account_farcaster_body">
             <source>Use a Farcaster-compatible sign-in directly.</source>
-            <translation>مستقیماً با ورود سازگار با Farcaster وارد شوید.</translation>
+            <translation>مستقیماً با ورود سازگار با فارکستر وارد شوید.</translation>
         </message>
         <message id="genycaster.setup.ready_for">
             <source>Everything is set for %1.</source>
@@ -3484,11 +3484,11 @@
         </message>
         <message id="genycaster.setup.hypersnap_explainer">
             <source>A decentralized community-operated network for reading and publishing.</source>
-            <translation>شبکه‌ای غیرمتمرکز با نودهای مستقل برای خواندن و انتشار محتوا.</translation>
+            <translation>نودهای آزاد و غیرمتمرکز</translation>
         </message>
         <message id="genycaster.setup.farcaster_explainer">
             <source>A centralized service experience for reading and publishing.</source>
-            <translation>تجربه‌ای متمرکز برای خواندن و انتشار محتوا.</translation>
+            <translation>سرویس متمرکز فارکستر</translation>
         </message>
         <message id="genycaster.setup.existing_profile">
             <source>Use existing</source>
@@ -3512,11 +3512,11 @@
         </message>
         <message id="genycaster.setup.network_settings_explainer">
             <source>Choose your preferred network. Your identity and keys stay with you when you switch.</source>
-            <translation>شبکه دلخواه را انتخاب کنید. با تغییر شبکه، هویت و کلیدهای شما منتقل نمی‌شوند.</translation>
+            <translation>شبکه و نود را انتخاب کنید.</translation>
         </message>
         <message id="genycaster.setup.advanced_nodes">
             <source>Advanced: choose read node</source>
-            <translation>پیشرفته: انتخاب نود دریافت داده</translation>
+            <translation>تنظیمات پیشرفته</translation>
         </message>
         <message id="genycaster.setup.existing_profile_body">
             <source>Connect the Farcaster identity you already own.</source>
@@ -3564,7 +3564,7 @@
         </message>
         <message id="genycaster.setup.connection_mode_help">
             <source>Choose which network Genycaster reads casts and profiles from.</source>
-            <translation>شبکه دریافت پست‌ها و پروفایل‌ها را برای جنی‌کستر انتخاب کنید.</translation>
+            <translation>شبکهٔ دلخواه را انتخاب کنید.</translation>
         </message>
         <message id="genycaster.setup.centralized_service_label">
             <source>Centralized</source>
@@ -3692,7 +3692,7 @@
         </message>
         <message id="genycaster.setup.browser_sign_in_verifies_your_genyleap_openproof_account_and">
             <source>Browser sign-in verifies your Genyleap/OpenProof account and linked Farcaster FID. Publishing still requires a secure protocol signer and is unavailable in the browser.</source>
-            <translation> ورود به سیستم از طریق مرورگر، حساب کاربری Genyleap/OpenProof و شناسه امنیتی Farcaster مرتبط با آن را تأیید می‌کند. انتشار همچنان به یک امضاکننده پروتکل امن نیاز دارد و در مرورگر در دسترس نیست.</translation>
+            <translation> ورود به سیستم از طریق مرورگر، حساب کاربری Genyleap/OpenProof و شناسه امنیتی فارکستر مرتبط با آن را تأیید می‌کند. انتشار همچنان به یک امضاکننده پروتکل امن نیاز دارد و در مرورگر در دسترس نیست.</translation>
         </message>
         <message id="genycaster.setup.continue_as_guest">
             <source>Continue as guest</source>
@@ -3708,7 +3708,7 @@
         </message>
         <message id="genycaster.setup.farcaster_hub_directory">
             <source>Farcaster Hub directory</source>
-            <translation> دایرکتوری Farcaster Hub</translation>
+            <translation> دایرکتوری فارکستر Hub</translation>
         </message>
         <message id="genycaster.setup.hub_endpoint_availability_and_authentication_must_be_verified_before">
             <source>Hub endpoint; availability and authentication must be verified before use</source>
@@ -3720,7 +3720,7 @@
         </message>
         <message id="genycaster.setup.if_farcaster_relay_cannot_connect_through_a_system_proxy">
             <source>If Farcaster Relay cannot connect through a system proxy, select Direct and restart Genycaster.</source>
-            <translation> اگر Farcaster Relay نمی‌تواند از طریق پروکسی سیستم متصل شود، Direct را انتخاب کرده و Genycaster را مجدداً راه‌اندازی کنید.</translation>
+            <translation> اگر فارکستر Relay نمی‌تواند از طریق پروکسی سیستم متصل شود، Direct را انتخاب کرده و جنی‌کستر را مجدداً راه‌اندازی کنید.</translation>
         </message>
         <message id="genycaster.setup.network_connection">
             <source>Network connection</source>
@@ -3728,11 +3728,11 @@
         </message>
         <message id="genycaster.setup.network_farcaster_category">
             <source>Farcaster (%1)</source>
-            <translation>Farcaster (%1)</translation>
+            <translation>فارکستر (%1)</translation>
         </message>
         <message id="genycaster.setup.network_hypersnap_category">
             <source>Hypersnap (%1)</source>
-            <translation>Hypersnap (%1)</translation>
+            <translation>هایپراسنپ (%1)</translation>
         </message>
         <message id="genycaster.setup.neynar_hub_farcaster">
             <source>Neynar Hub · Farcaster</source>
@@ -3740,11 +3740,11 @@
         </message>
         <message id="genycaster.setup.not_a_hypersnap_node">
             <source>Not a Hypersnap node</source>
-            <translation> گره Hypersnap نیست</translation>
+            <translation> گره هایپراسنپ نیست</translation>
         </message>
         <message id="genycaster.setup.pinata_hub_farcaster">
             <source>Pinata Hub · Farcaster</source>
-            <translation>Pinata Hub · Farcaster</translation>
+            <translation>Pinata Hub · فارکستر</translation>
         </message>
         <message id="genycaster.setup.raw_hub_apis_are_for_protocol_messages_and_health">
             <source>Raw Hub APIs are for protocol messages and health. They are not interchangeable with the indexed v2 feed API used for Explore and profiles.</source>
@@ -3760,7 +3760,7 @@
         </message>
         <message id="genycaster.setup.standard_crypto_hub_farcaster">
             <source>Standard Crypto Hub · Farcaster</source>
-            <translation>Standard Crypto Hub · Farcaster</translation>
+            <translation>Standard Crypto Hub · فارکستر</translation>
         </message>
         <message id="genycaster.setup.system_proxy">
             <source>System proxy</source>
@@ -3824,23 +3824,23 @@
         </message>
         <message id="genycaster.shell.farcaster_sign_in_openproof_verification">
             <source>Signed in with Farcaster · verified by OpenProof</source>
-            <translation>ورود با Farcaster · اعتبارسنجی توسط OpenProof</translation>
+            <translation>ورود با فارکستر · اعتبارسنجی توسط OpenProof</translation>
         </message>
         <message id="genycaster.shell.farcaster_sign_in_openproof_description">
             <source>You signed in with Farcaster. OpenProof verified the signed proof and linked FID. Publishing requires a separately authorized Farcaster signer.</source>
-            <translation>شما با Farcaster وارد شده‌اید. OpenProof امضای ورود و FID متصل‌شده را تأیید کرده است. انتشار محتوا نیازمند مجوز مستقل برای امضاکنندهٔ Farcaster است.</translation>
+            <translation>شما با فارکستر وارد شده‌اید. OpenProof امضای ورود و FID متصل‌شده را تأیید کرده است. انتشار محتوا نیازمند مجوز مستقل برای امضاکنندهٔ فارکستر است.</translation>
         </message>
         <message id="genycaster.setup.recovery_title">
             <source>Restore your Farcaster account</source>
-            <translation>بازیابی حساب Farcaster</translation>
+            <translation>بازیابی حساب فارکستر</translation>
         </message>
         <message id="genycaster.setup.recovery_description">
             <source>Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer.</source>
-            <translation>در همین مرحله کلمات بازیابی حساب Farcaster را وارد کنید. مالکیت روی Optimism بررسی می‌شود و امضاکنندهٔ انتشار مجوز می‌گیرد.</translation>
+            <translation>با واژه‌های بازیابی می‌توانید مالکیت حساب را تأیید کنید.</translation>
         </message>
         <message id="genycaster.setup.recovery_privacy">
             <source>Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>فقط ۱۲ یا ۲۴ واژهٔ بازیابی Farcaster را در دستگاه مطمئن و وب‌سایت HTTPS وارد کنید. این واژه‌ها هرگز آپلود یا ذخیره نمی‌شوند.</translation>
+            <translation>واژه‌های بازیابی فقط روی دستگاه شما بررسی می‌شوند و ذخیره نمی‌شوند.</translation>
         </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
@@ -3848,7 +3848,7 @@
         </message>
         <message id="genycaster.setup.recovery_button_body">
             <source>Verify your account and enable publishing in Setup. No separate Sign In.</source>
-            <translation>تأیید حساب و فعال‌سازی انتشار در همین Setup؛ بدون ورود جداگانه.</translation>
+            <translation>تأیید حساب و فعال‌سازی انتشار در همین راه‌اندازی.</translation>
         </message>
         <message id="genycaster.setup.other_sign_in_methods">
             <source>Other sign-in methods</source>
@@ -3856,7 +3856,7 @@
         </message>
         <message id="genycaster.setup.recovery_working">
             <source>Preparing your Farcaster account</source>
-            <translation>در حال آماده‌سازی حساب Farcaster</translation>
+            <translation>در حال آماده‌سازی حساب فارکستر</translation>
         </message>
         <message id="genycaster.setup.recovery_working_body">
             <source>Validating account ownership and signer registration. Wait for network confirmation.</source>
@@ -3864,7 +3864,7 @@
         </message>
         <message id="genycaster.setup.recovery_verified">
             <source>Farcaster custody verified on Optimism</source>
-            <translation>مالکیت Farcaster در Optimism تأیید شد</translation>
+            <translation>مالکیت فارکستر در Optimism تأیید شد</translation>
         </message>
         <message id="genycaster.setup.viewer_title">
             <source>Viewing only — publishing is locked</source>
@@ -3872,7 +3872,7 @@
         </message>
         <message id="genycaster.setup.viewer_description">
             <source>Sign in to browse posts and profiles. Posting, likes, follows and reactions remain disabled. You can enable full access later in Account using your Farcaster recovery words.</source>
-            <translation>با ورود معمولی می‌توانید پست‌ها و پروفایل‌ها را ببینید. انتشار، پسندیدن، دنبال‌کردن و واکنش‌ها غیرفعال می‌مانند. بعداً از بخش حساب با واژه‌های بازیابی Farcaster دسترسی کامل را فعال کنید.</translation>
+            <translation>با ورود معمولی می‌توانید پست‌ها و پروفایل‌ها را ببینید. انتشار، پسندیدن، دنبال‌کردن و واکنش‌ها غیرفعال می‌مانند. بعداً از بخش حساب با واژه‌های بازیابی فارکستر دسترسی کامل را فعال کنید.</translation>
         </message>
         <message id="genycaster.setup.remembered_device_label">
             <source>Remembered on this device · provider session not refreshed</source>
@@ -3900,7 +3900,7 @@
         </message>
         <message id="genycaster.setup.recovery_failed_retry">
             <source>Farcaster recovery could not be verified. Check your connection and try again.</source>
-            <translation>بازیابی حساب Farcaster تأیید نشد. اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.</translation>
+            <translation>بازیابی حساب فارکستر تأیید نشد. اتصال اینترنت را بررسی کنید و دوباره تلاش کنید.</translation>
         </message>
         <message id="genycaster.setup.open_terms">
             <source>Open full Terms of Use</source>
@@ -3949,6 +3949,38 @@
         <message id="genycaster.setup.preview_post_two">
             <source>Ideas connect us across languages.</source>
             <translation>ایده‌ها ما را فراتر از زبان‌ها به هم پیوند می‌دهند.</translation>
+        </message>
+        <message id="genycaster.setup.node_online">
+            <source>Online · responsive</source>
+            <translation>آنلاین · آمادهٔ پاسخ‌گویی</translation>
+        </message>
+        <message id="genycaster.setup.recovery_signer_ready">
+            <source>Publishing is active on this device.</source>
+            <translation>مجوز انتشار روی این دستگاه فعال است.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_why_no_words">
+            <source>How do I view my recovery words?</source>
+            <translation>چطور واژه‌های بازیابی را ببینم؟</translation>
+        </message>
+        <message id="genycaster.setup.recovery_phrase_unavailable">
+            <source>Genycaster does not retain the original recovery words. They cannot be reconstructed from an authorized publishing key. Find your backup in the original Farcaster wallet or app; never share the words.</source>
+            <translation>جنی‌کستر واژه‌های اصلی را نگه نمی‌دارد و نمی‌تواند آن‌ها را از کلید انتشار بازسازی کند. برای دیدن نسخهٔ پشتیبان به کیف پول یا برنامهٔ اصلی فارکستر مراجعه کنید. واژه‌ها را با کسی به اشتراک نگذارید.</translation>
+        </message>
+        <message id="genycaster.miniapp.preview_unavailable">
+            <source>Mini App preview unavailable</source>
+            <translation>پیش‌نمایش مینی‌اپ در دسترس نیست</translation>
+        </message>
+        <message id="genycaster.miniapp.launch_failed">
+            <source>Mini App could not be opened</source>
+            <translation>باز کردن مینی‌اپ ممکن نشد</translation>
+        </message>
+        <message id="genycaster.search.no_channel_results">
+            <source>No channels match this search.</source>
+            <translation>کانالی با این جستجو پیدا نشد.</translation>
+        </message>
+        <message id="genycaster.search.no_profile_results">
+            <source>No profiles match this search.</source>
+            <translation>پروفایلی با این جستجو پیدا نشد.</translation>
         </message>
     </context>
 </TS>

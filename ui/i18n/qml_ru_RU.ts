@@ -3950,5 +3950,37 @@
             <source>Ideas connect us across languages.</source>
             <translation>Идеи объединяют нас через языковые границы.</translation>
         </message>
+        <message id="genycaster.setup.node_online">
+            <source>Online · responsive</source>
+            <translation>Online · responsive</translation>
+        </message>
+        <message id="genycaster.setup.recovery_signer_ready">
+            <source>Publishing is active on this device.</source>
+            <translation>Publishing is active on this device.</translation>
+        </message>
+        <message id="genycaster.setup.recovery_why_no_words">
+            <source>How do I view my recovery words?</source>
+            <translation>How do I view my recovery words?</translation>
+        </message>
+        <message id="genycaster.setup.recovery_phrase_unavailable">
+            <source>Genycaster does not retain the original recovery words. They cannot be reconstructed from an authorized publishing key. Find your backup in the original Farcaster wallet or app; never share the words.</source>
+            <translation>Genycaster does not retain the original recovery words. They cannot be reconstructed from an authorized publishing key. Find your backup in the original Farcaster wallet or app; never share the words.</translation>
+        </message>
+        <message id="genycaster.miniapp.preview_unavailable">
+            <source>Mini App preview unavailable</source>
+            <translation>Mini App preview unavailable</translation>
+        </message>
+        <message id="genycaster.miniapp.launch_failed">
+            <source>Mini App could not be opened</source>
+            <translation>Mini App could not be opened</translation>
+        </message>
+        <message id="genycaster.search.no_channel_results">
+            <source>No channels match this search.</source>
+            <translation>No channels match this search.</translation>
+        </message>
+        <message id="genycaster.search.no_profile_results">
+            <source>No profiles match this search.</source>
+            <translation>No profiles match this search.</translation>
+        </message>
     </context>
 </TS>
