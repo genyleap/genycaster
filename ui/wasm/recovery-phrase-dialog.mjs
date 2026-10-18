@@ -97,16 +97,20 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
             word.type='text';word.autocomplete='off';word.autocapitalize='off';
             word.spellcheck=false;word.setAttribute('data-lpignore','true');
             word.setAttribute('aria-label',s.label+' '+(index+1));
-            word.style.cssText='width:100%;min-width:0;background:transparent;border:0;outline:0;color:'+foreground+';font:15px system-ui;direction:ltr';
+            word.style.cssText='width:100%;min-width:0;background:transparent;border:0;outline:0;color:'+foreground+';font:16px system-ui;direction:ltr;touch-action:manipulation;-webkit-text-size-adjust:100%';
             cell.appendChild(number);cell.appendChild(word);
             inputs.push(word);cellList.push(cell);
             const pasteWords=(raw)=>{
                 const words=raw.trim().toLowerCase().split(/\s+/u).filter(Boolean);
-                if(words.length===12||words.length===24)renderWords(words.length);
-                const offset=words.length===12||words.length===24 ? 0 : index;
+                const entirePhrase=words.length===12||words.length===24;
+                if(entirePhrase)renderWords(words.length);
+                const offset=entirePhrase ? 0 : index;
                 for(let i=0;i<words.length&&offset+i<count;i++)
                     inputs[offset+i].value=words[i].replace(/[^a-z]/gu,'');
-                inputs[Math.min(count-1,offset+words.length)]?.focus();
+                // Pasting a complete phrase should dismiss the software keyboard,
+                // not jump focus through narrow fields (and zoom mobile Safari).
+                if(entirePhrase)submit.focus();
+                else inputs[Math.min(count-1,offset+words.length)]?.focus();
                 clearErrors();
             };
             word.addEventListener('paste',event=>{
@@ -243,6 +247,8 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
                     ||/HTTP|RPC|Snapchain|timeout|fetch|network|CORS|AbortError/i.test(message);
                 const signer=category==='recovery-signer';
                 const storage=category==='recovery-storage';
+                const derivation=category==='recovery-derivation';
+                const verification=category==='recovery-verification';
                 showError(checksum
                     ? (lang==='fa'?'ترتیب یا یکی از واژه‌ها اشتباه است؛ همه واژه‌ها معتبرند اما جمع کنترل عبارت درست نیست.':
                         'The words are valid individually, but the phrase checksum is wrong. Check their order and spelling.')
@@ -253,8 +259,14 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
                     ? (lang==='fa'?'عبارت بازیابی معتبر است، اما ذخیرهٔ امن کلید امضا در مرورگر امکان‌پذیر نیست. فضای ذخیره‌سازی سایت (IndexedDB) را فعال کنید و در پنجرهٔ عادی مرورگر دوباره تلاش کنید.':
                         'Your recovery phrase is valid, but secure browser signer storage is unavailable. Enable site storage (IndexedDB) and retry in a normal browser window.')
                     : signer
-                    ? (lang==='fa'?'عبارت بازیابی تأیید شد، اما مجوز انتشار هنوز تأیید نشده است. کلید امضا حفظ شده؛ پس از چند لحظه دوباره تلاش کنید.':
-                        'The recovery phrase was verified, but publishing authorization is still pending. The local signing key was retained; please retry after a moment.')
+                    ? (lang==='fa'?'حساب شناسایی شد، اما مجوز انتشار هنوز توسط Snapchain تأیید نشده است. پس از بررسی اتصال دوباره تلاش کنید.':
+                        'The account was identified, but Snapchain has not confirmed publishing authorization. Check your connection and retry.')
+                    : derivation
+                    ? (lang==='fa'?'ساخت کیف پول بازیابی روی این دستگاه کامل نشد. از مرورگر به‌روز و اتصال امن استفاده کنید.':
+                        'Could not derive the Farcaster custody wallet on this device. Try an up-to-date browser on HTTPS.')
+                    : verification
+                    ? (lang==='fa'?'تأیید مالکیت حساب روی شبکه کامل نشد. دوباره تلاش کنید؛ در صورت تکرار از اتصال دیگری استفاده کنید.':
+                        'Farcaster account ownership could not be confirmed. Retry or use a different network connection.')
                     : network
                     ? (lang==='fa'?'بررسی حساب یا مجوز انتشار به‌دلیل خطای اتصال کامل نشد. واژه‌ها حفظ شده‌اند؛ دوباره تلاش کنید.':
                         'Account or signer verification could not reach the network. Your entries are still here; please retry.')

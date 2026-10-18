@@ -344,6 +344,25 @@ test('direct setup recovery derives an onchain FID and verifies KEY_ADD without 
     assert.equal(data.typed.length,0);
 });
 
+test('direct recovery wraps readonly DOMException-style codes without losing verification phase',async()=>{
+    const data=fixture({noWallet:true});
+    const signer=createBrowserProtocolSigner({
+        browser:data.browser,vault:data.vault,
+        fetchImpl:async(url,options)=>{
+            if(url==='https://mainnet.optimism.io'){
+                const failure=new Error('Unexpected provider response');
+                Object.defineProperty(failure,'code',{value:18,writable:false});
+                throw failure;
+            }
+            return data.fetchImpl(url,options);
+        },
+    });
+    await assert.rejects(signer.recoverAccountFromPhrase(recoveredPhrase),error=>
+        error.code==='recovery-verification'
+        && error.message==='Unexpected provider response');
+    assert.equal(data.submitted.length,0,'never register a signer after failed custody verification');
+});
+
 test('direct setup refuses unregistered or transferred custody before KEY_ADD',async()=>{
     for(const mismatch of ['unregistered','transferred','wrong-chain']){
         const data=fixture({noWallet:true});

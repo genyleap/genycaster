@@ -284,9 +284,10 @@ export function createBrowserProtocolSigner({
             return error;
         };
         let step='derivation';
-        const { deriveFarcasterCustody } = await import('./farcaster_recovery.mjs');
-        const custody = await deriveFarcasterCustody(phrase);
+        let custody=null;
         try {
+            const { deriveFarcasterCustody } = await import('./farcaster_recovery.mjs');
+            custody=await deriveFarcasterCustody(phrase);
             assertCurrent();
             const address = requireAddress(custody.address);
             step='ownership';
@@ -336,16 +337,22 @@ export function createBrowserProtocolSigner({
                     'Signer registration has not been verified by Snapchain');
             return fid;
         } catch(error) {
-            if(!error.code) {
-                const message=String(error.message||error);
-                const storage=/Browser signer vault|IndexedDB|WebCrypto|QuotaExceeded|DataCloneError|NotSupportedError/i.test(message);
-                const network=/HTTP|RPC|Snapchain|timeout|fetch|network|AbortError|failed to fetch|registration|CORS/i.test(message);
-                error.code=storage?'recovery-storage':network?'recovery-network':
-                    step==='signer'?'recovery-signer':'recovery-verification';
-            }
-            throw error;
+            // DOMException.code can be a read-only numeric property. Do not
+            // mutate foreign errors: wrap them with a stable, non-secret
+            // recovery phase code for the UI instead of a vague fallback.
+            const recognized=new Set(['recovery-unregistered','recovery-ownership',
+                'recovery-network','recovery-storage','recovery-signer',
+                'recovery-derivation','recovery-verification']);
+            if(recognized.has(error?.code))throw error;
+            const message=String(error?.message||error);
+            const storage=/Browser signer vault|IndexedDB|WebCrypto|QuotaExceeded|DataCloneError|NotSupportedError/i.test(message);
+            const network=/HTTP|RPC|Snapchain|timeout|fetch|network|AbortError|failed to fetch|registration|CORS/i.test(message);
+            const code=storage?'recovery-storage':network?'recovery-network':
+                step==='signer'?'recovery-signer':
+                step==='derivation'?'recovery-derivation':'recovery-verification';
+            throw recoveryError(code,message);
         } finally {
-            custody.dispose();
+            custody?.dispose();
         }
     }
 

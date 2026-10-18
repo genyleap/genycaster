@@ -49,6 +49,9 @@ test('secure browser presents numbered 12-word fields without persisting secrets
     const words=grid.children.map(cell=>cell.children[1]);
     assert.equal(words[0].attributes['aria-label'].endsWith('1'),true);
     assert.equal(words[0].autocomplete,'off');
+    // iOS Safari auto-zooms focused form controls below 16 CSS pixels.
+    assert.match(words[0].style.cssText,/font:16px system-ui/);
+    assert.match(words[0].style.cssText,/touch-action:manipulation/);
     const vector=('test '.repeat(11)+'junk').trim().split(' ');
     for(let i=0;i<12;i++)words[i].value=vector[i];
     const submit=sheet.children.at(-1).children.at(-1);
@@ -71,6 +74,8 @@ test('toggle 24 words and paste recovery words in numbered order',async()=>{
     const pasted=grid.children.map(cell=>cell.children[1]);
     assert.deepEqual(pasted.map(word=>word.value),vector);
     const submit=sheet.children.at(-1).children.at(-1);
+    assert.equal(b.document.activeElement,submit,
+        'full-phrase paste should focus submit instead of a narrow input');
     submit.click();
     assert.equal((await result).split(' ').length,24);
     assert.equal(pasted.every(word=>word.value===''),true);
@@ -172,6 +177,8 @@ test('recovery drawer distinguishes custody ownership and signer failures withou
         ['recovery-ownership',/مالکیت حساب|Farcaster/],
         ['recovery-signer',/Snapchain|مجوز انتشار/],
         ['recovery-network',/اتصال|شبکه/],
+        ['recovery-derivation',/کیف پول بازیابی/],
+        ['recovery-verification',/تأیید مالکیت/],
     ]){
         const b=browser();
         let attempt=0;
