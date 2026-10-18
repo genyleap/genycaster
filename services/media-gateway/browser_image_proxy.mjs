@@ -134,13 +134,19 @@ export async function retrieveBrowserImage(rawUrl, {
               && url.hostname === 'media-farcaster.genyleap.com'
               && url.pathname.startsWith('/m/')
               && next.hostname === 'qstorage.quilibrium.com';
-          if (!signedStorage) {
+          // Mini App OpenGraph endpoints frequently issue a 302 to a GIF
+          // or poster under the *same* origin. Follow bounded same-origin
+          // redirects only; redo DNS/public-IP pinning at every hop.
+          const sameOriginRaster = !trustedStorageRedirect
+            && next.origin === url.origin
+            && validImageUrl(next.href, allowedHosts) !== null;
+          if (!signedStorage && !sameOriginRaster) {
             finish({ status: 502, error: 'image_redirect_not_allowed' });
             return;
           }
           finish(await retrieveBrowserImage(next.href, {
             lookupHost, allowedHosts, requester, redirects: redirects + 1,
-            trustedStorageRedirect: true,
+            trustedStorageRedirect: signedStorage,
           }));
         } catch { finish({ status: 502, error: 'image_redirect_failed' }); }
         return;

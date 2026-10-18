@@ -97,6 +97,47 @@ test('private qStorage signed image redirects work only behind stable first-part
   assert.equal(calls.length,2);
 });
 
+test('same-origin Mini App GIF redirects remain bounded and re-check DNS', async () => {
+  const {PassThrough}=await import('node:stream');
+  let lookups=0;
+  const urls=[];
+  const requester=(url,options,callback)=>{
+    urls.push(url.href);
+    const request=new PassThrough();
+    request.end=()=>{
+      const response=new PassThrough();
+      if(url.pathname === '/api/opengraph-image') {
+        response.statusCode=302;
+        response.headers={location:'https://atgif.com/logo_full.gif'};
+        callback(response);response.end();
+      } else {
+        response.statusCode=200;
+        response.headers={'content-type':'text/plain'};
+        callback(response);response.end(Buffer.from('GIF89a', 'ascii'));
+      }
+    };
+    return request;
+  };
+  const image=await retrieveBrowserImage('https://atgif.com/api/opengraph-image',{
+    lookupHost:async()=>{lookups++;return [{address:'8.8.8.8',family:4}];},requester,
+  });
+  assert.equal(image.status,200);
+  assert.equal(image.contentType,'image/gif');
+  assert.equal(lookups,2);
+  assert.equal(urls.length,2);
+  assert.equal(new URL(urls[1]).pathname,'/logo_full.gif');
+  const disallowed=await retrieveBrowserImage('https://atgif.com/api/opengraph-image',{
+    lookupHost:async()=>[{address:'8.8.8.8',family:4}],
+    requester:(url,options,callback)=>{
+      const request=new PassThrough();request.end=()=>{
+        const response=new PassThrough();response.statusCode=302;
+        response.headers={location:'https://evil.test/asset.gif'};
+        callback(response);response.end();
+      };return request;
+    },
+  });
+  assert.equal(disallowed.status,502);
+});
 test('signed storage redirects reject unrelated keys, missing signatures, and unexpected origins', async () => {
   const { PassThrough } = await import('node:stream');
   const source='https://media-farcaster.genyleap.com/m/v1/2026/10/test.jpg';
