@@ -1,7 +1,7 @@
 import {lookup} from 'node:dns/promises';
 import {isIP} from 'node:net';
 import https from 'node:https';
-import {isPublicAddress, validImageUrl} from './browser_image_proxy.mjs';
+import {isPublicAddress} from './browser_image_proxy.mjs';
 
 const MAX_MANIFEST_BYTES = 128 * 1024;
 
@@ -89,21 +89,25 @@ export async function publicMiniAppPreview(rawUrl, dependencies = {}) {
   const home = validMiniAppTarget(String(app.homeUrl || ''));
   if (!home || home.hostname.toLowerCase() !== target.hostname.toLowerCase())
     return {status:404,error:'miniapp_origin_mismatch'};
-  // Farcaster manifests legitimately use hero/OG/splash images instead of
-  // imageUrl. These still have to pass the browser proxy's strict host list.
+  // Discover images from *any* public Mini App manifest, regardless of
+  // publisher or asset CDN. The gateway grants exact short-lived URL leases
+  // after validating the manifest; image retrieval independently enforces
+  // pinned public DNS, HTTPS, size limits and raster-only payloads.
   const posters = [app.imageUrl, app.ogImageUrl, app.heroImageUrl,
     ...(Array.isArray(app.screenshotUrls) ? app.screenshotUrls.slice(0, 3) : []),
     app.splashImageUrl];
   const imageUrl = posters.map(value => validMiniAppTarget(String(value || '')))
-    .find(value => value && validImageUrl(value.href));
+    .find(Boolean);
   const iconUrl = validMiniAppTarget(String(app.iconUrl || ''));
   const splashUrl = validMiniAppTarget(String(app.splashImageUrl || ''));
   const gifUrl = [imageUrl, splashUrl].find(value => value
-    && /\.gif$/i.test(value.pathname) && validImageUrl(value.href));
-  const imageSource = imageUrl && validImageUrl(imageUrl.href)
-    ? 'image://remote/' + Buffer.from(imageUrl.href,'utf8').toString('base64url') : '';
-  const iconSource = iconUrl && validImageUrl(iconUrl.href)
-    ? 'image://remote/' + Buffer.from(iconUrl.href,'utf8').toString('base64url') : '';
+    && /\.gif$/i.test(value.pathname));
+  const toImageSource = value => value
+    ? 'image://remote/' + Buffer.from(value.href,'utf8').toString('base64url') : '';
+  const imageSource = toImageSource(imageUrl);
+  const iconSource = toImageSource(iconUrl);
+  const verifiedImageUrls = [...new Set([imageUrl,iconUrl,splashUrl,gifUrl]
+    .filter(Boolean).map(value=>value.href))];
   const data = {
     resolved:true,providerKind:'miniapp',
     miniAppLaunchUrl:rawUrl,
@@ -115,6 +119,7 @@ export async function publicMiniAppPreview(rawUrl, dependencies = {}) {
     animatedPoster:gifUrl ? gifUrl.href : '',
     favicon:iconSource,
     miniAppButtonTitle:String(app.buttonTitle || '').slice(0,48),
+    verifiedImageUrls,
   };
   return {status:200,data};
 }

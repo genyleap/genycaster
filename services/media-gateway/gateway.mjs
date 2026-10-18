@@ -413,11 +413,13 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   const partLimiter = dependencies.partLimiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.partRateLimit);
   const farcasterBroker = dependencies.farcasterBroker ?? createBrowserFarcasterBroker(runtime);
   const retrieveImage = dependencies.retrieveImage ?? retrieveBrowserImage;
+  const resolveMiniAppPreview = dependencies.resolveMiniAppPreview ?? publicMiniAppPreview;
   const verifiedMiniAppIcons = new Map();
   const tokenSnapshots = new Map();
   const miniAppPreviews = new Map();
   const webLinkPreviews = new Map();
   const verifiedLinkImages = new Map();
+  const verifiedMiniAppImages = new Map();
   let refreshIconsPromise = null;
   let lastIconRefreshAttempt = -Infinity;
 
@@ -580,8 +582,15 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       }
       const rate = limiter.check(clientAddress(request,config.trustCloudflare),runtime.now());
       if (!rate.allowed) {writeJson(response,429,{error:'rate_limited'});return;}
-      const resolved = await publicMiniAppPreview(rawUrl);
-      const body = resolved.status === 200 ? resolved.data : {error:resolved.error};
+      const resolved = await resolveMiniAppPreview(rawUrl);
+      const body = resolved.status === 200 ? {...resolved.data} : {error:resolved.error};
+      if (Array.isArray(body.verifiedImageUrls)) {
+        if (verifiedMiniAppImages.size > 600) verifiedMiniAppImages.clear();
+        for (const imageUrl of body.verifiedImageUrls.slice(0, 5))
+          verifiedMiniAppImages.set(imageUrl,runtime.now()+300000);
+        // Do not expose the private grant list in a public preview response.
+        delete body.verifiedImageUrls;
+      }
       if (miniAppPreviews.size > 180) miniAppPreviews.clear();
       if (resolved.status !== 400)
         miniAppPreviews.set(rawUrl,{status:resolved.status,body,expires:runtime.now()+120000});
@@ -805,7 +814,8 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       // server-validated URL, never a user-supplied arbitrary image source. Refresh the
       // verified set lazily after a server restart or browser cache hit.
       if (typeof requested === 'string' && !validImageUrl(requested)) {
-        if ((verifiedLinkImages.get(requested) || 0) > runtime.now()) {
+        if ((verifiedLinkImages.get(requested) || 0) > runtime.now()
+            || (verifiedMiniAppImages.get(requested) || 0) > runtime.now()) {
           try {
             const checked = new URL(requested);
             if (checked.protocol === 'https:' && !checked.username && !checked.password

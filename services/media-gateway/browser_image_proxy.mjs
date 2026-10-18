@@ -13,12 +13,10 @@ export const defaultBrowserImageHosts = [
   // Keep the browser's bounded raster-only retrieval compatible with the
   // image hosts recognized by the C++ Cast embed classifier.
   'media.tenor.com', 'media.giphy.com', 'lh3.googleusercontent.com', 'imagekit.io',
-  'assets.geckoterminal.com', 'assets.foundly.dev',
+  'assets.geckoterminal.com',
   // Cloudflare Stream exposes a deterministic raster poster for public video
   // manifests. Only the /thumbnails/thumbnail.jpg asset is admissible here.
   'videodelivery.net', 'cloudflarestream.com',
-  'atgif.com', 'universal-caster-income.vercel.app',
-  'pub-2fb244e19fde48759a9cc4dfb18ababf.r2.dev',
 ];
 export const maximumBrowserImageBytes = 8 * 1024 * 1024;
 

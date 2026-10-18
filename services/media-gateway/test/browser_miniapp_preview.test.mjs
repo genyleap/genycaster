@@ -49,6 +49,10 @@ test('verified Farcaster frame manifest creates a playable Mini App preview',asy
   assert.equal(result.data.title,'Farmverse');
   assert.equal(result.data.miniAppLaunchUrl,goodHost);
   assert.ok(result.data.previewImage.startsWith('image://remote/'));
+  assert.deepEqual(result.data.verifiedImageUrls, [
+    'https://assets.foundly.dev/farmverse/embed.png',
+    'https://assets.foundly.dev/farmverse/icon.png'
+  ]);
   assert.equal(calls.length,1);
   assert.equal(calls[0].url,'https://farmverse.farverse.games/.well-known/farcaster.json');
   assert.equal(calls[0].lookup,'function');
@@ -64,6 +68,7 @@ test('legacy frame splash artwork and animated GIF posters are recognized',async
   assert.equal(gif.status,200);
   assert.ok(gif.data.previewImage.startsWith('image://remote/'));
   assert.equal(gif.data.animatedPoster,'https://atgif.com/logo_full.gif');
+  assert.ok(gif.data.verifiedImageUrls.includes('https://atgif.com/favicon.webp'));
   const legacy=await publicMiniAppPreview('https://universal-caster-income.vercel.app/', {
     lookupHost:publicDns,
     requester:responder({frame:{name:'UCI',homeUrl:'https://universal-caster-income.vercel.app',
@@ -72,6 +77,19 @@ test('legacy frame splash artwork and animated GIF posters are recognized',async
   assert.equal(legacy.status,200);
   assert.ok(legacy.data.previewImage.startsWith('image://remote/'));
 });
+test('brand-new Mini App domains work without a source code allowlist entry',async()=>{
+  const result=await publicMiniAppPreview('https://fresh-miniproject.example.org/game',{
+    lookupHost:publicDns,
+    requester:responder({miniapp:{name:'Fresh app',homeUrl:'https://fresh-miniproject.example.org',
+      imageUrl:'https://independent-assets.example.net/poster.webp',
+      iconUrl:'https://unseen-assets.example.com/icon.png'}}),
+  });
+  assert.equal(result.status,200);
+  assert.equal(result.data.title,'Fresh app');
+  assert.equal(result.data.verifiedImageUrls.length,2);
+  assert.ok(result.data.previewImage.startsWith('image://remote/'));
+});
+
 test('a private DNS answer is rejected before connecting',async()=>{
   let connected=false;
   const result=await publicMiniAppPreview(goodHost,{

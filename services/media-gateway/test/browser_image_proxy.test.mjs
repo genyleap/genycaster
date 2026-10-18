@@ -15,11 +15,13 @@ test('public image URL policy rejects credentialed/non-HTTPS/internal destinatio
   assert.equal(validImageUrl('https://media-farcaster.genyleap.com/m/v1/file.jpg')?.hostname,
                'media-farcaster.genyleap.com');
   for (const hostname of ['media.tenor.com', 'media.giphy.com',
-                          'lh3.googleusercontent.com', 'customer.imagekit.io', 'assets.geckoterminal.com', 'assets.foundly.dev']) {
+                          'lh3.googleusercontent.com', 'customer.imagekit.io', 'assets.geckoterminal.com']) {
     assert.equal(validImageUrl('https://' + hostname + '/opaque-image')?.hostname,
                  hostname, hostname);
   }
   assert.equal(validImageUrl('https://imagekit.io.evil.test/file'), null);
+  for (const miniapp of ['atgif.com','universal-caster-income.vercel.app','assets.foundly.dev'])
+    assert.equal(validImageUrl('https://'+miniapp+'/logo.png'),null,'publisher-specific hosts must not be hardcoded');
   assert.equal(validImageUrl('https://videodelivery.net/0123456789abcdef0123456789abcdef/thumbnails/thumbnail.jpg?time=1s')?.hostname,'videodelivery.net');
   assert.equal(validImageUrl('https://videodelivery.net/0123456789abcdef0123456789abcdef/manifest/video.m3u8'),null);
   assert.equal(validImageUrl('https://videodelivery.net/private/metadata'),null);
@@ -122,6 +124,7 @@ test('same-origin Mini App GIF redirects remain bounded and re-check DNS', async
     return request;
   };
   const image=await retrieveBrowserImage('https://atgif.com/api/opengraph-image',{
+    allowedHosts:['atgif.com'],
     lookupHost:async()=>{lookups++;return [{address:'8.8.8.8',family:4}];},requester,
   });
   assert.equal(image.status,200);
@@ -130,6 +133,7 @@ test('same-origin Mini App GIF redirects remain bounded and re-check DNS', async
   assert.equal(urls.length,2);
   assert.equal(new URL(urls[1]).pathname,'/logo_full.gif');
   const disallowed=await retrieveBrowserImage('https://atgif.com/api/opengraph-image',{
+    allowedHosts:['atgif.com'],
     lookupHost:async()=>[{address:'8.8.8.8',family:4}],
     requester:(url,options,callback)=>{
       const request=new PassThrough();request.end=()=>{

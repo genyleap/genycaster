@@ -85,3 +85,46 @@ test('browser image upload preflight is restricted to first-party GenyCaster ori
     }
   });
 });
+
+test('manifest artwork is whitelisted dynamically by exact URL, not by Mini App domain',async()=>{
+  const poster='https://media.unknownnewminiapp.example.net/banner.webp';
+  const iconUrl='https://cdn.unknownnewminiapp.example.org/icon.png';
+  const seen=[];
+  const gateway=createMediaGateway(config,{},{
+    fetchImpl:async()=>new Response('not available',{status:503}),
+    farcasterBroker:{},
+    resolveMiniAppPreview:async()=>({
+      status:200,data:{
+        resolved:true,providerKind:'miniapp',title:'Fresh App',
+        domain:'newminiapp.example.com',previewImage:'image://remote/'+Buffer.from(poster).toString('base64url'),
+        favicon:'image://remote/'+Buffer.from(iconUrl).toString('base64url'),
+        verifiedImageUrls:[poster,iconUrl],
+      }
+    }),
+    retrieveImage:async(url,opts)=>{
+      seen.push({url,opts});
+      return {status:200,body:Buffer.from([137,80,78,71]),contentType:'image/png'};
+    },
+  });
+  await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+gateway.address().port;
+  try {
+    const premature=await fetch(base+'/v1/browser/images?url='+encodeURIComponent(poster));
+    assert.equal(premature.status,400);
+    const preview=await fetch(base+'/v1/browser/miniapp-preview?url='+
+      encodeURIComponent('https://newminiapp.example.com/game'));
+    assert.equal(preview.status,200);
+    const body=await preview.json();
+    assert.equal(body.title,'Fresh App');
+    assert.equal(Object.hasOwn(body,'verifiedImageUrls'),false);
+    for(const image of [poster,iconUrl]){
+      const response=await fetch(base+'/v1/browser/images?url='+encodeURIComponent(image));
+      assert.equal(response.status,200,image);
+    }
+    assert.equal(seen.length,2);
+    for(const item of seen)assert.ok(item.opts.allowedHosts.includes(new URL(item.url).hostname));
+    const unrelated=await fetch(base+'/v1/browser/images?url='+
+      encodeURIComponent('https://media.unknownnewminiapp.example.net/private.png'));
+    assert.equal(unrelated.status,400);
+  } finally {await new Promise(resolve=>gateway.close(resolve));}
+});
