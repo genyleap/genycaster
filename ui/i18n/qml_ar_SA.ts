@@ -2,6 +2,26 @@
 <TS version="2.1" language="ar_SA" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.settings.mobile_recovery_options">
+            <source>Recovery options</source>
+            <translation>خيارات الاسترداد</translation>
+        </message>
+        <message id="genycaster.settings.mobile_account_security">
+            <source>Account &amp; security</source>
+            <translation>الحساب والأمان</translation>
+        </message>
+        <message id="genycaster.settings.mobile_personalization">
+            <source>Personalization</source>
+            <translation>التخصيص</translation>
+        </message>
+        <message id="genycaster.settings.mobile_feeds_content">
+            <source>Feeds &amp; content</source>
+            <translation>الموجزات والمحتوى</translation>
+        </message>
+        <message id="genycaster.settings.mobile_app_storage">
+            <source>App &amp; storage</source>
+            <translation>التطبيق والتخزين</translation>
+        </message>
         <message id="genycaster.miniapp.presentation_title">
             <source>Mini App presentation</source>
             <translation>عرض التطبيق المصغّر</translation>

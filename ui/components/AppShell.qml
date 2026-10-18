@@ -106,6 +106,7 @@ Item {
     property string pendingReturnShellRoute: ""
     property string committedRichCastId: ""
     property bool awaitingRichCommit: false
+    property string homeDraftForCast: ""
     property string submittedCastBaseline: ""
     property string pendingMiniAppComposeRequestId: ""
     property string pendingMiniAppComposeText: ""
@@ -152,6 +153,10 @@ Item {
                 return
             if (requestedSection >= 0)
                 popup.currentSection = requestedSection
+            // A normal Settings action starts on the grouped phone index;
+            // deep links such as Market Settings open the matching detail.
+            if (popup.mobilePresentation)
+                popup.mobileIndexOpen = requestedSection < 0
             popup.open()
         })
     }
@@ -322,6 +327,10 @@ Item {
         composerDrawer.initialAction = String(initialAction || "")
         composerDrawer.transientDraft = false
         composerDrawer.suggestedText = String(suggestedText || "")
+        // Clear the Home quick draft only after a confirmed Cast, never
+        // when the full editor is opened or dismissed without publishing.
+        root.homeDraftForCast = !composerParent && composerDrawer.suggestedText.length > 0
+                                ? composerDrawer.suggestedText : ""
         composerDrawer.suggestedEmbeds = []
         composerDrawer.open()
     }
@@ -800,7 +809,7 @@ Item {
                                     compact: root.compact
                                     onExploreRequested: root.openExplorer()
                                     onComposeRequested: text => root.openComposer(null, "", text)
-                                    onPhotoRequested: root.openComposer(null, "media")
+                                    onPhotoRequested: root.openComposer(null, "media", homeDashboard.draftText)
                                     onSearchRequested: searchPalette.open()
                                     onNotificationsRequested: root.openShellRoute("notifications")
                                     onChannelsRequested: root.openShellRoute("channels")
@@ -1045,6 +1054,7 @@ Item {
                                     composerDrawer.transientDraft = false
                                     composerDrawer.suggestedText = ""
                                     composerDrawer.suggestedEmbeds = []
+                                    root.homeDraftForCast = ""
                                 }
                             }
 
@@ -1820,6 +1830,10 @@ Item {
                     && castId !== root.submittedCastBaseline
                     && castId !== root.committedRichCastId) {
                 richComposer.commitPublishedCast(castId)
+                if (root.homeDraftForCast.length > 0
+                        && homeDashboard.draftText === root.homeDraftForCast)
+                    homeDashboard.draftText = ""
+                root.homeDraftForCast = ""
                 root.committedRichCastId = castId
                 root.awaitingRichCommit = false
                 root.submittedCastBaseline = castId

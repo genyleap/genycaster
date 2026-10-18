@@ -252,6 +252,14 @@ GenyDrawer {
             const embeds = root.suggestedEmbeds || []
             for (let index = 0; index < Math.min(2, embeds.length); ++index)
                 richComposer.insertEmbed(String(embeds[index] || ""), "", -1)
+        } else if (!root.parentCast && root.suggestedText.length > 0) {
+            // Explicit text handed off by the Home quick composer takes
+            // precedence over a previously restored rich draft. Import it
+            // as literal paragraph text, not Markdown (e.g. "*" and "#"
+            // must remain exactly what the user typed).
+            richComposer.newDocument()
+            restoredDraft = false
+            richComposer.setBlockText(0, root.suggestedText)
         }
         if (root.initialAction === "media") {
             root.pendingMediaBlockIndex = visualEditor.activeBlockIndex
@@ -826,13 +834,16 @@ GenyDrawer {
                 }
             }
 
-            RowLayout {
+            GridLayout {
                 Layout.fillWidth: true
+                columns: root.compact ? 1 : 2
+                rowSpacing: Theme.space1
+                columnSpacing: Theme.space3
                 layoutDirection: Theme.uiDirection
-                spacing: Theme.space3
 
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     spacing: 1
                     DirectionAwareLabel {
                         Layout.fillWidth: true
@@ -849,6 +860,10 @@ GenyDrawer {
 
                 Label {
                     LayoutMirroring.enabled: false
+                    Layout.fillWidth: root.compact
+                    Layout.minimumWidth: 0
+                    horizontalAlignment: Theme.textEndAlignment
+                    wrapMode: Text.Wrap
                     text: qsTrId("genycaster.composer.editor_count")
                               .arg(LocaleFormat.formatInteger(richComposer.editorCharacters))
                           + "  •  " + qsTrId("genycaster.composer.published_count")

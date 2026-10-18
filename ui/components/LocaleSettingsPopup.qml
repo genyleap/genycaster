@@ -7,7 +7,34 @@ GenyDrawer {
     objectName: "settingsPopup"
 
     property int currentSection: 0
+    property bool mobileIndexOpen: true
     readonly property bool mobilePresentation: parent ? parent.width < Theme.breakpointMobile : true
+    function openMobileSection(section) {
+        if (section === -1) {
+            root.close()
+            root.dataStorageRequested()
+            return
+        }
+        if (section === -2) {
+            presentationBridge.signOut()
+            root.close()
+            return
+        }
+        if (section < 0 || section > 5) return
+        root.currentSection = section
+        root.mobileIndexOpen = false
+    }
+    function sectionTitle(section) {
+        const titles = [
+            qsTrId("genycaster.settings.appearance"),
+            qsTrId("genycaster.settings.language_region"),
+            qsTrId("genycaster.settings.market_pulse"),
+            qsTrId("genycaster.settings.content_loading"),
+            qsTrId("genycaster.settings.updates"),
+            qsTrId("genycaster.setup.recovery_title")
+        ]
+        return titles[Math.max(0, Math.min(titles.length - 1, section))]
+    }
     readonly property bool compactLayout: width < 640
     readonly property int contentColumns: width >= 700 ? 2 : 1
     property bool marketInputError: false
@@ -25,15 +52,19 @@ GenyDrawer {
     }
 
     bottomSheet: mobilePresentation
+    showHandle: !mobilePresentation
     dimBackground: true
-    contentPadding: root.compactLayout ? Theme.gutter(root.width) : Theme.space4
-    width: parent ? (bottomSheet ? parent.width : Math.min(760, parent.width * 0.92)) : 760
-    height: parent ? (bottomSheet ? Math.min(parent.height * 0.90, 820) : parent.height) : 820
+    contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space4
+    width: parent ? (mobilePresentation ? parent.width : Math.min(760, parent.width * 0.92)) : 760
+    // On phones, settings is a full-height navigable surface, not a 90%
+    // bottom sheet with a clipped list beneath the iOS browser chrome.
+    height: parent ? parent.height : 820
 
     onOpened: {
         customAccentField.text = appearanceController.customAccentColor
         root.customColorError = false
     }
+    onClosed: root.mobileIndexOpen = true
 
 
     function formatStorageUsage(value) {
@@ -248,17 +279,208 @@ GenyDrawer {
         }
     }
 
+    // Phone navigation mirrors the grouped Settings hierarchy used by
+    // mobile clients. Detail screens reuse the actual desktop controls, so
+    // there is one preferences model rather than decorative duplicate pages.
+    component MobileSettingsGroup: ColumnLayout {
+        id: group
+        property string heading: ""
+        property var entries: []
+        spacing: Theme.space2
+        Layout.fillWidth: true
+
+        DirectionAwareLabel {
+            visible: group.heading.length > 0
+            Layout.fillWidth: true
+            Layout.topMargin: Theme.space1
+            Layout.leftMargin: Theme.space1
+            Layout.rightMargin: Theme.space1
+            text: group.heading
+            color: Theme.inkSubtle
+            font.pixelSize: Theme.typeLabelSize
+            font.weight: Theme.weightDemiBold
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: groupRows.implicitHeight
+            radius: Theme.space4
+            color: Theme.surfaceMuted
+            border.width: Theme.strokeHairline
+            border.color: Theme.borderSubtle
+            clip: true
+
+            ColumnLayout {
+                id: groupRows
+                width: parent.width
+                spacing: 0
+
+                Repeater {
+                    model: group.entries
+                    delegate: Item {
+                        id: mobileSettingRow
+                        required property int index
+                        required property var modelData
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Math.max(56, Theme.controlHeight + Theme.space2)
+                        Accessible.role: Accessible.Button
+                        Accessible.name: String(modelData.label || "")
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: Theme.space3
+                            anchors.rightMargin: Theme.space3
+                            spacing: Theme.space3
+                            layoutDirection: Theme.uiDirection
+
+                            Icon {
+                                text: String(mobileSettingRow.modelData.icon || Theme.iconSettings)
+                                preferredSize: Theme.iconSize
+                                color: Theme.ink
+                                Layout.preferredWidth: 26
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                text: String(mobileSettingRow.modelData.label || "")
+                                color: Theme.ink
+                                font.pixelSize: Theme.typeBodySize
+                                font.weight: Theme.weightMedium
+                                elide: Text.ElideRight
+                            }
+                            Icon {
+                                text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                                color: Theme.inkMuted
+                                preferredSize: Theme.iconSizeSmall
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+                        }
+                        Rectangle {
+                            visible: mobileSettingRow.index + 1 < group.entries.length
+                            anchors.bottom: parent.bottom
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.leftMargin: Theme.space3
+                            anchors.rightMargin: Theme.space3
+                            height: Math.max(1, Theme.strokeHairline)
+                            color: Theme.divider
+                        }
+                        TapHandler {
+                            onTapped: root.openMobileSection(Number(mobileSettingRow.modelData.section))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     contentItem: ColumnLayout {
-        spacing: Theme.space3
+        spacing: root.mobilePresentation ? Theme.space2 : Theme.space3
 
         ModalHeader {
+            visible: !root.mobilePresentation
             Layout.fillWidth: true
             title: qsTrId("genycaster.settings.title")
             subtitle: root.compactLayout ? "" : qsTrId("genycaster.settings.description")
             onCloseRequested: root.close()
         }
 
+        // Full-height phone hierarchy: a persistent Back control and a
+        // single vertically scrolling list. No compressed tabs or scroll trap.
+        RowLayout {
+            id: mobileSettingsHeader
+            objectName: "mobileSettingsHeader"
+            visible: root.mobilePresentation
+            Layout.fillWidth: true
+            Layout.preferredHeight: visible ? 58 : 0
+            spacing: Theme.space2
+            layoutDirection: Theme.uiDirection
+
+            ActionButton {
+                objectName: "mobileSettingsBack"
+                Layout.preferredWidth: 48
+                Layout.preferredHeight: 48
+                compact: true
+                quiet: true
+                iconOnly: true
+                iconGlyph: Theme.rtl ? Theme.iconArrowRight : Theme.iconArrowLeft
+                text: root.mobileIndexOpen ? qsTrId("genycaster.shell.close")
+                                           : qsTrId("genycaster.storage.back_to_settings")
+                onClicked: {
+                    if (root.mobileIndexOpen) root.close()
+                    else root.mobileIndexOpen = true
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                text: root.mobileIndexOpen ? qsTrId("genycaster.settings.title")
+                                           : root.sectionTitle(root.currentSection)
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+                color: Theme.ink
+                font.pixelSize: Theme.typeTitle3Size
+                font.weight: Theme.weightBold
+            }
+            Item { Layout.preferredWidth: 48; Layout.preferredHeight: 48 }
+        }
+
+        ScrollView {
+            id: mobileSettingsIndex
+            objectName: "mobileSettingsIndex"
+            visible: root.mobilePresentation && root.mobileIndexOpen
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            contentWidth: availableWidth
+            ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
+            ScrollBar.vertical: GenyScrollBar {}
+
+            ColumnLayout {
+                width: mobileSettingsIndex.availableWidth
+                spacing: Theme.space4
+
+                MobileSettingsGroup {
+                    heading: ""
+                    entries: [
+                        { label: qsTrId("genycaster.settings.mobile_recovery_options"), icon: "system/lock", section: 5 }
+                    ]
+                }
+                MobileSettingsGroup {
+                    visible: presentationBridge.isAuthenticated
+                    heading: qsTrId("genycaster.settings.mobile_account_security")
+                    entries: [
+                        { label: qsTrId("genycaster.shell.sign_out"), icon: Theme.iconBack, section: -2 }
+                    ]
+                }
+                MobileSettingsGroup {
+                    heading: qsTrId("genycaster.settings.mobile_personalization")
+                    entries: [
+                        { label: qsTrId("genycaster.settings.appearance"), icon: Theme.iconPalette, section: 0 },
+                        { label: qsTrId("genycaster.settings.language_region"), icon: Theme.iconLanguage, section: 1 }
+                    ]
+                }
+                MobileSettingsGroup {
+                    heading: qsTrId("genycaster.settings.mobile_feeds_content")
+                    entries: [
+                        { label: qsTrId("genycaster.settings.market_pulse"), icon: Theme.iconChart, section: 2 },
+                        { label: qsTrId("genycaster.settings.content_loading"), icon: Theme.iconDownload, section: 3 }
+                    ]
+                }
+                MobileSettingsGroup {
+                    heading: qsTrId("genycaster.settings.mobile_app_storage")
+                    entries: [
+                        { label: qsTrId("genycaster.storage.title"), icon: Theme.iconCloud, section: -1 },
+                        { label: qsTrId("genycaster.settings.updates"), icon: Theme.iconRefresh, section: 4 }
+                    ]
+                }
+                Item { Layout.preferredHeight: Theme.space5 }
+            }
+        }
+
         Superellipse {
+            visible: !root.mobilePresentation
             Layout.fillWidth: true
             implicitHeight: settingsTabs.implicitHeight + Theme.space1 * 2
             fillColor: Theme.surfaceMuted
@@ -349,6 +571,7 @@ GenyDrawer {
         }
 
         StackLayout {
+            visible: !root.mobilePresentation || !root.mobileIndexOpen
             Layout.fillWidth: true
             Layout.fillHeight: true
             currentIndex: root.currentSection

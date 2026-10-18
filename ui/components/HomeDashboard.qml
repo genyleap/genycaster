@@ -235,7 +235,7 @@ Item {
                         titleText: qsTrId("genycaster.home.share_cast")
                         subtitleText: qsTrId("genycaster.home.compose_description")
                         iconGlyph: Theme.iconCompose
-                        onClicked: root.composeRequested("")
+                        onClicked: root.composeRequested(root.draftText)
                     }
                     ActionTile {
                         Layout.fillWidth: true
@@ -388,7 +388,7 @@ Item {
                     titleText: qsTrId("genycaster.home.share_cast")
                     subtitleText: qsTrId("genycaster.home.compose_description")
                     iconGlyph: Theme.iconCompose
-                    onClicked: root.composeRequested("")
+                    onClicked: root.composeRequested(root.draftText)
                 }
                 ActionTile {
                     Layout.fillWidth: true
