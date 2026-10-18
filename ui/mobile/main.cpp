@@ -2077,7 +2077,7 @@ void connectRuntime(
 {
 #if defined(__EMSCRIPTEN__)
     auto* const browserSigner = new genycaster::ui::browser_signing::Bridge(
-        bridge, browserSnapchainOrigin);
+        bridge, richComposer, browserSnapchainOrigin);
 #else
     Q_UNUSED(browserSnapchainOrigin);
 #endif
@@ -3631,7 +3631,8 @@ void connectMediaUpload(
 // The browser owns selected Files and non-extractable signer keys. Keep
 // media bytes out of the Qt heap and transfer only bounded state events.
 void connectBrowserMediaUpload(
-    MediaUploadController& controller, PresentationBridge& bridge)
+    MediaUploadController& controller, PresentationBridge& bridge,
+    RichComposerController& richComposer)
 {
     const auto refreshAvailability = [&controller, &bridge] {
         const bool allowed = bridge.isAuthenticated() && bridge.writeReady()
@@ -3659,9 +3660,12 @@ void connectBrowserMediaUpload(
     });
 
     auto* const polling = new QTimer(&controller);
-    polling->setInterval(120);
+    polling->setInterval(250);
+    // A failed network cleanup stays durable and retries at most once per
+    // minute, never from an unauthenticated or unverified signer session.
+    auto cleanupNextAttempt = std::make_shared<QHash<QString, qint64>>();
     QObject::connect(polling, &QTimer::timeout, &controller,
-                     [&controller, &bridge] {
+                     [&controller, &bridge, &richComposer, cleanupNextAttempt] {
         for(int index=0;index<5;++index) {
             std::array<char,8192> buffer{};
             const int received=EM_ASM_INT({
@@ -3681,12 +3685,25 @@ void connectBrowserMediaUpload(
                || event.value(QStringLiteral("fid")).toString()
                     !=QString::number(bridge.accountFid()))continue;
             const QString kind=event.value(QStringLiteral("kind")).toString();
-            if(kind==QStringLiteral("selected")) {
+            if(kind==QStringLiteral("cleanup-completed")) {
+                const QString token=event.value(QStringLiteral("managementToken")).toString();
+                if(cleanupNextAttempt->contains(token)) {
+                    richComposer.markManagedAssetCleanupCompleted(token);
+                    cleanupNextAttempt->remove(token);
+                }
+            }else if(kind==QStringLiteral("cleanup-failed")) {
+                // Token remains durable; the next scheduled attempt is
+                // rate-limited. No management token enters the UI/log.
+                continue;
+            }else if(kind==QStringLiteral("selected")) {
                 controller.applyBrowserSelection(
                     event.value(QStringLiteral("fileName")).toString(),
                     event.value(QStringLiteral("contentType")).toString(),
                     static_cast<qulonglong>(event.value(QStringLiteral("sizeBytes")).toDouble()),
                     event.value(QStringLiteral("afterIndex")).toInt(-1));
+            }else if(kind==QStringLiteral("preview")) {
+                controller.applyBrowserPreview(
+                    event.value(QStringLiteral("previewUrl")).toString());
             }else if(kind==QStringLiteral("progress")) {
                 controller.applyProgress(
                     event.value(QStringLiteral("phase")).toString(),
@@ -3707,6 +3724,25 @@ void connectBrowserMediaUpload(
             }else if(kind==QStringLiteral("failed")) {
                 controller.applyFailed(event.value(QStringLiteral("error")).toString());
             }
+        }
+
+        if (!bridge.isAuthenticated() || !bridge.writeReady()
+            || bridge.signerBusy()) return;
+        const qint64 now=QDateTime::currentMSecsSinceEpoch();
+        const auto pending=richComposer.pendingManagedAssetCleanup();
+        for (const QString& token : pending) {
+            if (token.isEmpty() || token.size()>4096
+                || cleanupNextAttempt->value(token, 0)>now) continue;
+            (*cleanupNextAttempt)[token]=now+60'000;
+            const QByteArray tokenUtf8=token.toUtf8();
+            const QByteArray fidUtf8=QByteArray::number(bridge.accountFid());
+            EM_ASM({
+                window.__genycasterBrowserMedia?.remove(
+                    UTF8ToString($0,$1),UTF8ToString($2,$3));
+            },fidUtf8.constData(),fidUtf8.size(),
+              tokenUtf8.constData(),tokenUtf8.size());
+            // One signed cleanup per tick keeps the QML thread responsive.
+            break;
         }
     });
     polling->start();
@@ -5038,7 +5074,8 @@ int main(int argc, char* argv[])
                                          : QStringLiteral("https://snapchain.genyleap.com"));
                     connectMediaPlayback(mediaPlayback, runtime);
 #if defined(__EMSCRIPTEN__)
-                    connectBrowserMediaUpload(mediaUploadController, presentationBridge);
+                    connectBrowserMediaUpload(mediaUploadController, presentationBridge,
+                                              richComposerController);
 #elif FARCASTER_HAS_MEDIA_UPLOAD
                     connectMediaUpload(mediaUploadController, runtime);
 #else

@@ -608,6 +608,7 @@ Flickable {
                     onExternalRequested: url => root.externalRequested(url)
                     onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
                     onAuthenticationRequested: root.authenticationRequested()
+                    onRemoveCastRequested: cast => root.removeCastRequested(cast)
                 }
             }
         }

@@ -63,15 +63,23 @@ Drawer {
     // viewport; only its content receives the safe horizontal inset.
     width: parent ? (root.compact ? parent.width
                                   : Math.min(720, Math.max(1, parent.width - root.outerInset * 2))) : 720
-    height: parent ? Math.min(root.compact ? 620 : 560, Math.max(320, parent.height * 0.72)) : 560
+    // The mobile panel follows useful content, not a fixed 620px sheet.
+    // With the iOS keyboard open, empty space no longer covers half the feed.
+    height: parent ? (root.compact
+        ? Math.min(Math.max(180, parent.height - Theme.space4),
+                   searchField.text.trim().length >= 2
+                   ? (root.results.length > 0 ? 470 : 225)
+                   : (root.recentProfiles.length > 0 ? 420 : 300))
+        : Math.min(560, Math.max(320, parent.height * 0.72))) : 560
     x: parent ? (root.compact ? 0 : Math.round((parent.width - width) / 2)) : 0
     modal: true
     focus: true
-    interactive: true
+    // Dragging the entire search panel steals selection/scroll gestures.
+    interactive: !root.compact
     leftPadding: root.compact ? Theme.mobileGutter : Theme.space5
     rightPadding: root.compact ? Theme.mobileGutter : Theme.space5
     topPadding: root.compact ? Theme.space3 : Theme.space5
-    bottomPadding: root.compact ? Theme.space3 : Theme.space5
+    bottomPadding: root.compact ? Theme.space2 : Theme.space5
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     Overlay.modal: DrawerBackdrop {
@@ -116,8 +124,8 @@ Drawer {
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: 48
-            Layout.maximumHeight: 52
+            Layout.preferredHeight: root.compact ? 44 : 48
+            Layout.maximumHeight: root.compact ? 48 : 52
             Layout.alignment: Qt.AlignTop
             layoutDirection: Theme.uiDirection
             spacing: Theme.space3
@@ -173,10 +181,10 @@ Drawer {
 
         Superellipse {
             Layout.fillWidth: true
-            Layout.preferredHeight: 62
-            Layout.maximumHeight: 62
+            Layout.preferredHeight: root.compact ? 54 : 62
+            Layout.maximumHeight: root.compact ? 54 : 62
             Layout.alignment: Qt.AlignTop
-            implicitHeight: 62
+            implicitHeight: root.compact ? 54 : 62
             fillColor: Theme.editorSurface
             borderWidth: searchField.activeFocus ? 2 : Theme.strokeHairline
             borderColor: searchField.activeFocus ? Theme.focus : Theme.borderMuted

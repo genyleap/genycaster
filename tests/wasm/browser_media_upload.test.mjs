@@ -74,7 +74,7 @@ test('mobile browser picker is synchronous and signing key stays in vault',async
     assert.match(js,/picker\.click\(\)/);
     assert.match(js,/import\('\.\/browser_media_upload\.mjs'\)/);
     assert.match(qml,/mediaUpload\.browseBrowserImage\(root\.pendingMediaBlockIndex\)/);
-    assert.match(main,/connectBrowserMediaUpload\(mediaUploadController, presentationBridge\)/);
+    assert.match(main,/connectBrowserMediaUpload\(mediaUploadController, presentationBridge,\s*richComposerController\)/);
     assert.match(main,/event\.phase != BrowserOpenProofState::Phase::SignedOut/);
 });
 
@@ -82,4 +82,54 @@ test('verified public release includes browser uploader in both copy and manifes
     const {readFileSync}=await import('node:fs');
     const packageScript=readFileSync(new URL('../../tools/package_wasm_assets.py',import.meta.url),'utf8');
     assert.equal(packageScript.split('"browser_media_upload.mjs"').length-1,2);
+});
+
+test('managed media deletion is signed, owner-scoped and never accepts raw asset URLs',async()=>{
+    const {deleteBrowserAsset}=await import('../../ui/wasm/browser_media_upload.mjs');
+    const managementToken='opaque-managed-token-for-test';
+    const signed=[];
+    const vault={
+        load:async id=>id===fid?{publicKeyHex:key}:null,
+        signMediaChallenge:async(id,bytes)=>{
+            const challenge=new TextDecoder().decode(bytes);
+            signed.push(challenge);
+            assert.equal(id,fid);
+            assert.ok(challenge.startsWith('genycaster-media-upload-v1\nDELETE\n/v1/assets\n'));
+            return {publicKeyHex:key,signature:'de'.repeat(64)};
+        },
+    };
+    const fetchImpl=async(url,opts)=>{
+        assert.equal(url,'https://storage-farcaster.genyleap.com/v1/assets');
+        assert.equal(opts.method,'DELETE');
+        assert.equal(opts.credentials,'omit');
+        assert.equal(JSON.parse(new TextDecoder().decode(opts.body)).managementToken,managementToken);
+        return new Response(JSON.stringify({deleted:true}),{status:200});
+    };
+    const result=await deleteBrowserAsset({fid,managementToken,vault,crypto:webcrypto,fetchImpl});
+    assert.equal(result.deleted,true);
+    assert.equal(signed.length,1);
+    await assert.rejects(deleteBrowserAsset({fid,managementToken:'https://x',vault,crypto:webcrypto,fetchImpl}),/Invalid managed/);
+    await assert.rejects(deleteBrowserAsset({fid,managementToken,vault:{load:async()=>null},crypto:webcrypto,fetchImpl}),/verified Farcaster signer/);
+});
+test('WASM cleanup is durable, signer-gated, and only triggered by confirmed deletion',async()=>{
+    const {readFileSync}=await import('node:fs');
+    const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
+    const main=read('ui/mobile/main.cpp');
+    const signer=read('ui/mobile/browser_signer_bridge.hpp');
+    const pre=read('ui/wasm/protocol-signer-pre.js');
+    const panel=read('ui/components/MediaUploadPanel.qml');
+    const shell=read('ui/components/AppShell.qml');
+    const reply=read('ui/components/ThreadReplyItem.qml');
+    assert.match(main,/richComposer\.pendingManagedAssetCleanup\(\)/);
+    assert.match(main,/richComposer\.markManagedAssetCleanupCompleted\(token\)/);
+    assert.match(main,/bridge\.writeReady\(\)/);
+    assert.match(main,/cleanupNextAttempt/);
+    assert.match(signer,/releaseManagedAssetsForCast\(castId\)/);
+    assert.match(signer,/operation == QStringLiteral\("remove"\)/);
+    assert.match(pre,/targetCastId: action==='remove'/);
+    assert.match(pre,/kind:'cleanup-completed'/);
+    assert.match(pre,/preview\.length<=6200/);
+    assert.match(panel,/visible: root\.width >= 620/);
+    assert.match(shell,/"embeds": root\.submittedReplyEmbeds/);
+    assert.match(reply,/objectName: "deleteOwnedReply"/);
 });

@@ -111,6 +111,7 @@ Item {
     property var confirmedReply: ({})
     property string submittedReplyParentId: ""
     property string submittedReplyText: ""
+    property var submittedReplyEmbeds: []
     function requestSignOut() {
         if (!presentationBridge.isAuthenticated) return
         accountPopup.close()
@@ -1043,6 +1044,17 @@ Item {
                                     root.submittedReplyParentId = root.composerParent
                                         ? String(root.composerParent.castId || "") : ""
                                     root.submittedReplyText = String(text || "")
+                                    root.submittedReplyEmbeds = []
+                                    for (const item of (embeds || [])) {
+                                        const url = String(item && (item.value || item.url) || "")
+                                        if (url.length === 0) continue
+                                        const isHostedImage = url.startsWith(
+                                            "https://media-farcaster.genyleap.com/m/v1/")
+                                        root.submittedReplyEmbeds.push({
+                                            "kind": isHostedImage ? "image" : "url",
+                                            "url": url, "value": url
+                                        })
+                                    }
                                     root.awaitingRichCommit = true
                                     root.submittedCastBaseline = String(presentationBridge.lastPublishedCastId || "")
                                     if (root.pendingMiniAppComposeRequestId.length > 0) {
@@ -1922,6 +1934,7 @@ Item {
                         "parentCastId": parentId,
                         "castId": castId,
                         "text": root.submittedReplyText,
+                        "embeds": root.submittedReplyEmbeds,
                         "authorFid": Number(presentationBridge.accountFid),
                         "author": String(presentationBridge.accountUsername || ""),
                         "displayName": String(presentationBridge.accountName || ""),
@@ -1953,6 +1966,7 @@ Item {
                 root.awaitingRichCommit = false
                 root.submittedReplyParentId = ""
                 root.submittedReplyText = ""
+                root.submittedReplyEmbeds = []
             }
         }
     }

@@ -232,7 +232,9 @@
                     }
                     if (epoch === thisEpoch && owner === fid)
                         report({kind: "write", phase: "confirmed", fid, hash,
-                            operation: action});
+                            operation: action,
+                            targetCastId: action==='remove'
+                                ? String(payload.target?.hash||'') : ''});
                     }
                 }
             } catch(error) {
@@ -291,6 +293,34 @@
             mediaReport({kind:'selected',fid,afterIndex,
                 fileName:String(file.name).slice(0,160),
                 contentType:String(file.type).slice(0,60),sizeBytes:file.size});
+            // Use a bounded, low-resolution, sanitized JPEG thumbnail.
+            // Never pass original File/blob: URLs or full media bytes to QML.
+            (async()=>{
+                try{
+                    const bitmap=await createImageBitmap(file);
+                    const scale=Math.min(1,96/Math.max(bitmap.width,bitmap.height));
+                    const canvas=document.createElement('canvas');
+                    canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+                    canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+                    const ctx=canvas.getContext('2d',{alpha:false});
+                    ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+                    bitmap.close?.();
+                    let preview=canvas.toDataURL('image/jpeg',0.48);
+                    if(preview.length>6200){
+                        canvas.width=Math.max(1,Math.floor(canvas.width*0.64));
+                        canvas.height=Math.max(1,Math.floor(canvas.height*0.64));
+                        // Use the source file again; rescaling an already
+                        // resized canvas would clear its pixels.
+                        const smaller=await createImageBitmap(file);
+                        canvas.getContext('2d',{alpha:false}).drawImage(
+                            smaller,0,0,canvas.width,canvas.height);
+                        smaller.close?.();
+                        preview=canvas.toDataURL('image/jpeg',0.40);
+                    }
+                    if(current===mediaEpoch && preview.length<=6200)
+                        mediaReport({kind:'preview',fid,previewUrl:preview});
+                }catch{ /* Preview support must never block upload. */ }
+            })();
             (async()=>{
                 try {
                     const {uploadBrowserImage}=await import('./browser_media_upload.mjs');
@@ -322,8 +352,26 @@
         // rejects file picker prompts after an await/dynamic import.
         picker.click();
     }
+    const pendingRemovals=new Set();
+    async function removeManagedMedia(fid,managementToken){
+        if(typeof fid!=='string'||!/^[1-9][0-9]{0,19}$/.test(fid)
+            ||typeof managementToken!=='string'||managementToken.length>4096
+            ||pendingRemovals.has(managementToken))return;
+        pendingRemovals.add(managementToken);
+        try{
+            const {deleteBrowserAsset}=await import('./browser_media_upload.mjs');
+            await deleteBrowserAsset({fid,managementToken});
+            mediaReport({kind:'cleanup-completed',fid,managementToken});
+        }catch(error){
+            mediaReport({kind:'cleanup-failed',fid,managementToken,
+                error:String(error?.message||error).slice(0,150)});
+        }finally{
+            pendingRemovals.delete(managementToken);
+        }
+    }
     window.__genycasterBrowserMedia=Object.freeze({
-        pick:pickMedia,cancel:cancelMedia,events:mediaEvents
+        pick:pickMedia,cancel:cancelMedia,remove:removeManagedMedia,
+        events:mediaEvents
     });
     window.__genycasterBrowserSigning = Object.freeze({start,events});
 }());

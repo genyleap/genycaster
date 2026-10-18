@@ -24,6 +24,7 @@ ColumnLayout {
     signal externalRequested(string url)
     signal mediaRequested(var mediaItems, int index)
     signal authenticationRequested()
+    signal removeCastRequested(var cast)
 
     function embedFamily(embed) {
         const kind = String(embed && embed.kind ? embed.kind : "").toLowerCase()
@@ -192,6 +193,20 @@ ColumnLayout {
                 onLikeRequested: active => root.reactionRequested("like", root.reply, active)
                 onAuthenticationRequested: root.authenticationRequested()
             }
+
+            ActionButton {
+                objectName: "deleteOwnedReply"
+                visible: root.interactionsAvailable
+                         && Number(root.reply.authorFid || 0) > 0
+                         && Number(root.reply.authorFid || 0) === Number(root.accountFid)
+                         && String(root.reply.castId || "").length > 0
+                Layout.alignment: Theme.rtl ? Qt.AlignLeft : Qt.AlignRight
+                compact: true
+                quiet: true
+                destructive: true
+                text: qsTrId("genycaster.detail.delete_cast")
+                onClicked: root.removeCastRequested(root.reply)
+            }
         }
     }
 
@@ -243,6 +258,7 @@ ColumnLayout {
                     root.mediaRequested(mediaItems, index)
                 }
                 function onAuthenticationRequested() { root.authenticationRequested() }
+                function onRemoveCastRequested(cast) { root.removeCastRequested(cast) }
             }
         }
     }

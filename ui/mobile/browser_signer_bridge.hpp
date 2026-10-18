@@ -21,14 +21,17 @@
 #include <QUuid>
 
 #include "presentation_bridge.hpp"
+#include "rich_composer_controller.hpp"
 
 namespace genycaster::ui::browser_signing {
 
 class Bridge final : public QObject {
 public:
-    explicit Bridge(PresentationBridge& presentation, QString snapchainOrigin)
+    explicit Bridge(PresentationBridge& presentation, RichComposerController& composer,
+                    QString snapchainOrigin)
         : QObject{&presentation},
           m_presentation{&presentation},
+          m_composer{&composer},
           m_snapchainOrigin{std::move(snapchainOrigin)}
     {
         m_timer.setInterval(100);
@@ -179,6 +182,14 @@ private:
                     presentation->applyVerifiedBrowserWrite(
                         hash, operation == QStringLiteral("cast")
                             || operation == QStringLiteral("thread"));
+                    if (operation == QStringLiteral("remove") && m_composer) {
+                        const QString castId = event.value(QStringLiteral("targetCastId")).toString();
+                        if (castId.size() == 42 && castId.startsWith(QStringLiteral("0x"))) {
+                            // Only a confirmed protocol deletion releases its
+                            // reference-counted managed-media tokens.
+                            (void)m_composer->releaseManagedAssetsForCast(castId);
+                        }
+                    }
                     presentation->retryAutomatically();
                 } else {
                     presentation->applyWriteState(
@@ -192,6 +203,7 @@ private:
     QString m_pendingRecoveryId{};
     QString m_pendingResumeId{};
     QPointer<PresentationBridge> m_presentation{};
+    QPointer<RichComposerController> m_composer{};
     QString m_snapchainOrigin{};
     QTimer m_timer{};
 };

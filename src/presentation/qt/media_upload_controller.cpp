@@ -192,6 +192,19 @@ void MediaUploadController::applyBrowserSelection(
     emit stateChanged();
 }
 
+void MediaUploadController::applyBrowserPreview(const QString& dataUrl)
+{
+    // A small JPEG data URL (never a File or blob: URL) is safe for Qt's
+    // image renderer and must not replace the persisted public asset URL.
+    if (!m_busy || m_previewKind != QStringLiteral("image")
+        || !dataUrl.startsWith(QStringLiteral("data:image/jpeg;base64,"))
+        || dataUrl.size() > 6200) {
+        return;
+    }
+    m_localPreviewUrl = QUrl{dataUrl};
+    emit stateChanged();
+}
+
 void MediaUploadController::cancel()
 {
     if (!m_busy) {

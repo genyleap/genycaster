@@ -103,3 +103,38 @@ export async function uploadBrowserImage({
         throw error;
     }
 }
+
+export async function deleteBrowserAsset({
+    fid,managementToken,fetchImpl=globalThis.fetch,crypto=globalThis.crypto,
+    vault=createBrowserSignerVault(globalThis),
+}={}) {
+    if(!/^[1-9][0-9]{0,19}$/.test(String(fid||'')))
+        throw new Error('Sign in to manage stored media.');
+    if(typeof managementToken!=='string'||managementToken.length<16||managementToken.length>4096)
+        throw new Error('Invalid managed media reference.');
+    const key=await vault.load(fid);
+    if(!key)throw new Error('A verified Farcaster signer is required for media cleanup.');
+    const method='DELETE',path='/v1/assets';
+    const bytes=encoder.encode(JSON.stringify({managementToken}));
+    const stamp=Math.floor(Date.now()/1000);
+    const nonce=hex(crypto.getRandomValues(new Uint8Array(16)));
+    const digest=hex(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)));
+    const challenge=encoder.encode([
+        'genycaster-media-upload-v1',method,path,fid,key.publicKeyHex,
+        stamp,nonce,digest,
+    ].join('\n'));
+    const signed=await vault.signMediaChallenge(fid,challenge);
+    if(signed.publicKeyHex!==key.publicKeyHex)throw new Error('Signer account changed.');
+    const response=await fetchImpl(gateway+path,{
+        method,body:bytes,mode:'cors',credentials:'omit',redirect:'error',
+        headers:{
+            'content-type':'application/json',
+            'x-genycaster-fid':fid,
+            'x-genycaster-signer-key':key.publicKeyHex,
+            'x-genycaster-timestamp':String(stamp),
+            'x-genycaster-nonce':nonce,
+            'x-genycaster-signature':signed.signature,
+        },
+    });
+    return responseJson(response);
+}

@@ -138,7 +138,9 @@ Superellipse {
         Item {
             id: dropTarget
             Layout.fillWidth: true
-            Layout.preferredHeight: root.hasAttachedMedia ? 96 : (root.width < 620 ? 150 : 168)
+            Layout.preferredHeight: root.hasAttachedMedia
+                                    ? (root.width < 620 ? 68 : 96)
+                                    : (root.width < 620 ? 112 : 168)
 
             Superellipse {
                 anchors.fill: parent
@@ -354,8 +356,11 @@ Superellipse {
                 delegate: Superellipse {
                     required property var modelData
 
+                    // On phones the thumbnail gallery below is the primary
+                    // attachment UI. Avoid showing every image twice.
+                    visible: root.width >= 620
                     Layout.fillWidth: true
-                    implicitHeight: 52
+                    implicitHeight: visible ? 52 : 0
                     fillColor: rowHover.hovered ? Theme.surfaceHover : Theme.surfaceMuted
                     borderWidth: 1
                     borderColor: Theme.borderMuted
@@ -434,7 +439,7 @@ Superellipse {
 
             Flickable {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 96
+                Layout.preferredHeight: root.width < 620 ? 116 : 96
                 clip: true
                 contentWidth: thumbnailRow.width
                 contentHeight: height
@@ -451,8 +456,8 @@ Superellipse {
 
                         delegate: Item {
                             required property var modelData
-                            width: 124
-                            height: 88
+                            width: root.width < 620 ? 148 : 124
+                            height: root.width < 620 ? 108 : 88
 
                             MediaPreview {
                                 anchors.fill: parent

@@ -57,6 +57,8 @@ public:
     Q_INVOKABLE bool browseBrowserImage(int afterIndex = -1);
     /** @brief Apply an explicitly selected browser file without exposing it to QML. */
     void applyBrowserSelection(QString fileName, QString contentType, qulonglong sizeBytes, int afterIndex);
+    /** @brief Apply a bounded, locally generated browser preview thumbnail. */
+    void applyBrowserPreview(const QString& dataUrl);
     /** @brief Requests cooperative cancellation of the current upload. */
     Q_INVOKABLE void cancel();
     /** @brief Retries the last failed/cancelled local selection. */
