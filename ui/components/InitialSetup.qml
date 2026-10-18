@@ -455,6 +455,7 @@ Item {
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.minimumHeight: 0
             spacing: 0
             layoutDirection: Theme.uiDirection
 
@@ -598,15 +599,21 @@ Item {
                 }
             }
 
-            ColumnLayout {
+            // The task area must not inherit the stage's implicit height.
+            // Pin the navigation footer to the *actual* Qt viewport bottom,
+            // including mobile browser chrome and keyboard resize.
+            Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                spacing: 0
+                Layout.minimumHeight: 0
+                clip: true
 
                 Flickable {
                     id: stageFlick
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: setupFooter.top
                     clip: true
                     contentWidth: width
                     contentHeight: stageCanvas.height
@@ -652,10 +659,10 @@ Item {
                     // controls and safe areas even when the stage scrolls.
                     id: setupFooter
                     z: 20
-                    Layout.fillWidth: true
-                    Layout.minimumHeight: root.phone ? 72 : 72
-                    Layout.preferredHeight: root.phone ? 78 : 72
-                    Layout.maximumHeight: root.phone ? 92 : 72
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    height: root.phone ? 76 : 72
 
                     Rectangle {
                         anchors.top: parent.top

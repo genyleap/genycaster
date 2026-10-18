@@ -7,8 +7,11 @@ ApplicationWindow {
 
     width: 430
     height: 860
-    minimumWidth: 360
-    minimumHeight: 640
+    // Browsers can expose a visual viewport shorter than the native app's
+    // 640px minimum (especially with navigation bars or a software keyboard).
+    // Never let the Qt canvas grow below the visible viewport on WebAssembly.
+    minimumWidth: Qt.platform.os === "wasm" ? 0 : 360
+    minimumHeight: Qt.platform.os === "wasm" ? 0 : 640
     visible: true
     color: Theme.background
     title: qsTrId("genycaster.app.genycaster")

@@ -29,6 +29,20 @@ test('WASM packages branded shell instead of Qt logo; mobile uses visible viewpo
     assert.match(html,/src="genycaster-assets.js"/);
     assert.match(loader,/visualViewport/);
 });
+test('Setup anchors footer outside scroll viewport and wraps translated labels',()=>{
+    const setup=read('ui/components/InitialSetup.qml');
+    const language=read('ui/components/SetupLanguageSelector.qml');
+    const main=read('ui/mobile/Main.qml');
+    assert.match(setup,/id: stageFlick[\s\S]*?anchors\.bottom: setupFooter\.top/);
+    assert.match(setup,/id: setupFooter[\s\S]*?anchors\.bottom: parent\.bottom/);
+    assert.match(setup,/Layout\.minimumHeight: 0/);
+    assert.match(setup,/height: root\.phone \? 76 : 72/);
+    assert.match(language,/columns: root\.width < 620 \? 1 : 2/);
+    assert.match(language,/id: languageGrid[\s\S]*?Layout\.minimumWidth: 0/);
+    assert.match(language,/text: root\.changedHint[\s\S]*?wrapMode: Text\.WordWrap/);
+    assert.match(main,/minimumHeight: Qt\.platform\.os === "wasm" \? 0 : 640/);
+});
+
 test('completed Setup is independent of a volatile session and signer revocation',()=>{
     const bridge=read('src/presentation/qt/presentation_bridge.cpp');
     const auth=bridge.split('void PresentationBridge::applyAuthenticationState(')[1]

@@ -115,22 +115,33 @@ Item {
             }
         }
 
-        RowLayout {
+        // Break the device suggestion onto a separate line on narrow
+        // phones; translated strings must never compete for the same width.
+        GridLayout {
             Layout.fillWidth: true
+            columns: root.width < 620 ? 1 : 2
+            columnSpacing: Theme.space2
+            rowSpacing: Theme.space1
             layoutDirection: Theme.uiDirection
             DirectionAwareLabel {
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 text: qsTrId("genycaster.locale.language")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
                 font.weight: Theme.weightDemiBold
                 horizontalAlignment: Theme.textStartAlignment
+                wrapMode: Text.WordWrap
             }
             DirectionAwareLabel {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 text: qsTrId("genycaster.setup.system_suggestion")
                 color: Theme.inkSubtle
                 font.pixelSize: Theme.typeCaptionSize
                 visible: root.suggestedTag.length > 0
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Theme.textStartAlignment
             }
         }
 
@@ -153,7 +164,8 @@ Item {
                     readonly property bool suggested: modelData.tag === root.suggestedTag
                     visible: root.matches(modelData)
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 64
+                    Layout.preferredHeight: 76
+                    Layout.minimumWidth: 0
                     activeFocusOnTab: visible
                     Accessible.role: Accessible.RadioButton
                     Accessible.name: modelData.language
@@ -178,9 +190,11 @@ Item {
                         layoutDirection: Theme.uiDirection
                         ColumnLayout {
                             Layout.fillWidth: true
+                            Layout.minimumWidth: 0
                             spacing: 2
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
+                                Layout.minimumWidth: 0
                                 text: languageCard.modelData.language
                                 font.family: Theme.fontFamilyForText(text)
                                 font.pixelSize: Theme.typeLabelSize
@@ -192,6 +206,7 @@ Item {
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 text: languageCard.modelData.hello
+                                Layout.minimumWidth: 0
                                 font.family: Theme.fontFamilyForText(text)
                                 font.pixelSize: Theme.typeCaptionSize
                                 color: Theme.inkMuted
@@ -246,22 +261,33 @@ Item {
             Layout.topMargin: Theme.space3
             spacing: Theme.space2
 
-            RowLayout {
+            // Fixed-width single-line rows caused preview titles and long
+            // Korean/Persian status text to paint over each other on phones.
+            GridLayout {
                 Layout.fillWidth: true
+                columns: root.width < 620 ? 1 : 2
+                columnSpacing: Theme.space2
+                rowSpacing: Theme.space1
                 layoutDirection: Theme.uiDirection
                 DirectionAwareLabel {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     text: qsTrId("genycaster.setup.live_preview")
                     color: Theme.ink
                     font.pixelSize: Theme.typeLabelSize
                     font.weight: Theme.weightDemiBold
                     horizontalAlignment: Theme.textStartAlignment
+                    wrapMode: Text.WordWrap
                 }
                 DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     text: root.changedHint
-                    visible: root.userInteracted
+                    visible: root.userInteracted && root.changedHint.length > 0
                     color: Theme.inkSubtle
                     font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Theme.textStartAlignment
                 }
             }
 
