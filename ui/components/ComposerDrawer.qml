@@ -728,7 +728,6 @@ GenyDrawer {
                         DirectionAwareTextArea {
                             id: markdownEditor
                             anchors.fill: parent
-                            onActiveFocusChanged: if (activeFocus) root.ensureEditorVisible(markdownEditor)
                             text: richComposer.markdownSource
                             placeholderText: qsTrId("genycaster.composer.markdown_placeholder")
                             background: null
@@ -737,7 +736,12 @@ GenyDrawer {
                             wrapMode: TextEdit.Wrap
                             font.pixelSize: Theme.typeBodySize
                             onTextChanged: if (activeFocus) markdownSync.restart()
-                            onActiveFocusChanged: if (!activeFocus && text !== richComposer.markdownSource) richComposer.markdownSource = text
+                            onActiveFocusChanged: {
+                                if (activeFocus)
+                                    root.ensureEditorVisible(markdownEditor)
+                                else if (text !== richComposer.markdownSource)
+                                    richComposer.markdownSource = text
+                            }
                         }
                     }
                 }
