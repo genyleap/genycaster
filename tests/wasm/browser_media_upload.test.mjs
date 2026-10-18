@@ -77,3 +77,9 @@ test('mobile browser picker is synchronous and signing key stays in vault',async
     assert.match(main,/connectBrowserMediaUpload\(mediaUploadController, presentationBridge\)/);
     assert.match(main,/event\.phase != BrowserOpenProofState::Phase::SignedOut/);
 });
+
+test('verified public release includes browser uploader in both copy and manifest lists',async()=>{
+    const {readFileSync}=await import('node:fs');
+    const packageScript=readFileSync(new URL('../../tools/package_wasm_assets.py',import.meta.url),'utf8');
+    assert.equal(packageScript.split('"browser_media_upload.mjs"').length-1,2);
+});

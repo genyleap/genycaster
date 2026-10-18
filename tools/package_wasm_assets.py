@@ -26,7 +26,7 @@ if args.source:
         "apple-touch-icon.png", "apple-touch-icon-precomposed.png",
         "genycaster.webmanifest", "genycaster-icon.svg", "secure_signer_vault.mjs",
         "farcaster_protocol.mjs", "browser_protocol_signer.mjs",
-        "browser_device_session.mjs", "farcaster_recovery.mjs",
+        "browser_device_session.mjs", "browser_media_upload.mjs", "farcaster_recovery.mjs",
         "recovery-phrase-dialog.mjs",
         "vendor/noble-secp256k1.mjs", "vendor/bip39-english.mjs",
         "vendor/noble-secp256k1.LICENSE", "vendor/scure-bip39.LICENSE",
@@ -65,7 +65,7 @@ public = ["farcaster_client.html", "qtloader.js", "farcaster_client.js",
           "apple-touch-icon.png", "apple-touch-icon-precomposed.png",
           "recovery-phrase-dialog.mjs", "farcaster_recovery.mjs",
           "browser_protocol_signer.mjs", "browser_device_session.mjs",
-          "farcaster_protocol.mjs", "secure_signer_vault.mjs",
+          "browser_media_upload.mjs", "farcaster_protocol.mjs", "secure_signer_vault.mjs",
           "vendor/noble-secp256k1.mjs", "vendor/bip39-english.mjs",
           "miniapp-host-pre.js"]
 public = [name for name in public if (directory / name).is_file()]
