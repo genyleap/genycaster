@@ -45,6 +45,8 @@ test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
         writeFileSync(join(dir,'farcaster_client.wasm'),Buffer.from([0,97,115,109,2,0,0,0]));
         const c=run();
         assert.notEqual(c.wasm,b.wasm);
+        assert.notEqual(c.version,b.version,
+            'WASM-only changes must invalidate release and boot-script cache keys');
         assert.ok(existsSync(join(dir,b.wasm)),'old clients need old hashed URL during update');
         const config=readFileSync(join(dir,'genycaster-assets.js'),'utf8');
         assert.ok(config.includes(c.wasm));

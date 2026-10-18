@@ -88,7 +88,8 @@ checksums = {name: digest(directory / name) for name in public}
 # Include the semantic version in the release fingerprint as well as files:
 # a version-only update must be visible to the PWA cache update protocol.
 fingerprint = hashlib.sha256(json.dumps({
-    "files": checksums, "appVersion": args.app_version, "releaseLabel": args.release_label,
+    "files": checksums, "wasmSha256": hash_full,
+    "appVersion": args.app_version, "releaseLabel": args.release_label,
 }, sort_keys=True).encode()).hexdigest()[:20]
 for script in scripts:
     html = html.replace(f'src="{script}"',
