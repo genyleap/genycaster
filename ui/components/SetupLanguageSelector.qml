@@ -162,6 +162,10 @@ Item {
                     required property var modelData
                     readonly property bool selected: index === root.currentIndex
                     readonly property bool suggested: modelData.tag === root.suggestedTag
+                    // Each language card follows its *own* script direction,
+                    // regardless of the selected UI language.
+                    readonly property bool nativeRtl: ["fa", "ar", "he", "ur", "ps"].indexOf(
+                        String(modelData.tag || "").toLowerCase().split(/[-_]/)[0]) >= 0
                     visible: root.matches(modelData)
                     Layout.fillWidth: true
                     Layout.preferredHeight: 76
@@ -187,7 +191,7 @@ Item {
                         anchors.fill: parent
                         anchors.margins: Theme.space3
                         spacing: Theme.space2
-                        layoutDirection: Theme.uiDirection
+                        layoutDirection: languageCard.nativeRtl ? Qt.RightToLeft : Qt.LeftToRight
                         ColumnLayout {
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
@@ -201,7 +205,7 @@ Item {
                                 font.weight: Theme.weightDemiBold
                                 color: Theme.ink
                                 elide: Text.ElideRight
-                                horizontalAlignment: Theme.textStartAlignment
+                                horizontalAlignment: languageCard.nativeRtl ? Text.AlignRight : Text.AlignLeft
                             }
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
@@ -211,7 +215,7 @@ Item {
                                 font.pixelSize: Theme.typeCaptionSize
                                 color: Theme.inkMuted
                                 elide: Text.ElideRight
-                                horizontalAlignment: Theme.textStartAlignment
+                                horizontalAlignment: languageCard.nativeRtl ? Text.AlignRight : Text.AlignLeft
                             }
                         }
                         Icon {

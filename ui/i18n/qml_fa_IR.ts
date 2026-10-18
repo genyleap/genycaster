@@ -2,6 +2,22 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.settings.wasm_update_description">
+            <source>You are using the WebAssembly (WASM) web version. Refresh to load the latest published app; no installer or download is needed.</source>
+            <translation>شما از نسخهٔ وب‌اسمبلی (WASM) استفاده می‌کنید. برای دریافت آخرین نسخهٔ منتشرشده، صفحه را بازبارگذاری کنید؛ نیازی به دانلود یا نصب نیست.</translation>
+        </message>
+        <message id="genycaster.settings.wasm_updating">
+            <source>Refreshing GenyCaster…</source>
+            <translation>در حال به‌روزرسانی جنی‌کستر…</translation>
+        </message>
+        <message id="genycaster.settings.wasm_refresh_hint">
+            <source>Refresh GenyCaster to check for and load the latest web release.</source>
+            <translation>برای بررسی و بارگذاری آخرین نسخهٔ وب، جنی‌کستر را بازبارگذاری کنید.</translation>
+        </message>
+        <message id="genycaster.settings.wasm_refresh_now">
+            <source>Refresh and update</source>
+            <translation>بازبارگذاری و به‌روزرسانی</translation>
+        </message>
         <message id="genycaster.session.logout_confirm_title">
             <source>Sign out of GenyCaster?</source>
             <translation>از جنی‌کستر خارج می‌شوید؟</translation>

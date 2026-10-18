@@ -35,6 +35,7 @@ class UpdateController final : public QObject {
     Q_PROPERTY(QString releaseUrl READ releaseUrl CONSTANT)
     Q_PROPERTY(bool downloadSupported READ downloadSupported CONSTANT)
     Q_PROPERTY(bool canDownload READ canDownload NOTIFY changed)
+    Q_PROPERTY(bool webRefreshing READ webRefreshing NOTIFY changed)
 
 public:
     explicit UpdateController(QSettings& settings, bool startupCheck = true, QObject* parent = nullptr);
@@ -52,9 +53,11 @@ public:
     [[nodiscard]] QString releaseUrl() const;
     [[nodiscard]] bool downloadSupported() const;
     [[nodiscard]] bool canDownload() const;
+    [[nodiscard]] bool webRefreshing() const;
 
     Q_INVOKABLE void setAutoCheckEnabled(bool enabled);
     Q_INVOKABLE void checkForUpdates();
+    Q_INVOKABLE void refreshWebApp();
     Q_INVOKABLE void downloadUpdate();
     Q_INVOKABLE bool openDownloadedUpdate();
     Q_INVOKABLE bool openReleasePage();
@@ -86,6 +89,7 @@ private:
     bool m_checking{false};
     bool m_downloading{false};
     bool m_updateAvailable{false};
+    bool m_webRefreshing{false};
     qint64 m_received{0};
     qint64 m_total{0};
     QTimer* m_periodic{nullptr};

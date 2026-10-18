@@ -8,6 +8,7 @@ GenyDrawer {
 
     property int currentSection: 0
     property bool mobileIndexOpen: true
+    readonly property bool webAssembly: Qt.platform.os === "wasm"
     readonly property bool mobilePresentation: parent ? parent.width < Theme.breakpointMobile : true
     function openMobileSection(section) {
         if (section === -1) {
@@ -20,7 +21,8 @@ GenyDrawer {
             root.signOutConfirmationRequested()
             return
         }
-        if (section < 0 || section > 5) return
+        if (section < 0 || section > 5
+                || (section === 5 && !presentationBridge.isAuthenticated)) return
         root.currentSection = section
         root.mobileIndexOpen = false
     }
@@ -63,10 +65,23 @@ GenyDrawer {
     height: parent ? parent.height : 820
 
     onOpened: {
+        if (!presentationBridge.isAuthenticated && root.currentSection === 5) {
+            root.currentSection = 0
+            root.mobileIndexOpen = true
+        }
         customAccentField.text = appearanceController.customAccentColor
         root.customColorError = false
     }
     onClosed: root.mobileIndexOpen = true
+    Connections {
+        target: presentationBridge
+        function onAuthenticationStateChanged() {
+            if (!presentationBridge.isAuthenticated && root.currentSection === 5) {
+                root.currentSection = 0
+                root.mobileIndexOpen = true
+            }
+        }
+    }
 
 
     function formatStorageUsage(value) {
@@ -444,6 +459,7 @@ GenyDrawer {
                 spacing: Theme.space4
 
                 MobileSettingsGroup {
+                    visible: presentationBridge.isAuthenticated
                     heading: ""
                     entries: [
                         { label: qsTrId("genycaster.settings.mobile_recovery_options"), icon: "system/lock", section: 5 }
@@ -559,6 +575,7 @@ GenyDrawer {
                 }
                 ActionButton {
                     objectName: "settingsRecoveryTab"
+                    visible: presentationBridge.isAuthenticated
                     Layout.fillWidth: true
                     compact: true
                     quiet: true
@@ -2033,7 +2050,72 @@ GenyDrawer {
                         }
                     }
 
+                    DirectionAwareLabel {
+                        objectName: "wasmUpdateDescription"
+                        visible: root.webAssembly
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.settings.wasm_update_description")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeLabelSize
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Superellipse {
+                        objectName: "wasmUpdatePanel"
+                        visible: root.webAssembly
+                        Layout.fillWidth: true
+                        implicitHeight: webUpdaterColumn.implicitHeight + Theme.space4 * 2
+                        fillColor: Theme.surfaceMuted
+                        borderWidth: Theme.strokeHairline
+                        borderColor: Theme.borderSubtle
+                        curveDepth: Theme.curveContainer
+
+                        ColumnLayout {
+                            id: webUpdaterColumn
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: Theme.space4
+                            spacing: Theme.space3
+
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: updateController.webRefreshing
+                                      ? qsTrId("genycaster.settings.wasm_updating")
+                                      : qsTrId("genycaster.settings.wasm_refresh_hint")
+                                font.pixelSize: Theme.typeBodySize
+                                color: Theme.ink
+                                wrapMode: Text.WordWrap
+                            }
+                            DirectionAwareLabel {
+                                visible: updateController.error.length > 0
+                                Layout.fillWidth: true
+                                text: updateController.error
+                                color: Theme.warning
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.WordWrap
+                            }
+                            ActionButton {
+                                objectName: "wasmRefreshUpdateButton"
+                                Layout.fillWidth: true
+                                prominent: true
+                                iconGlyph: Theme.iconRefresh
+                                enabled: !updateController.webRefreshing
+                                text: updateController.webRefreshing
+                                      ? qsTrId("genycaster.settings.wasm_updating")
+                                      : qsTrId("genycaster.settings.wasm_refresh_now")
+                                onClicked: updateController.refreshWebApp()
+                            }
+                            GenySpinner {
+                                visible: updateController.webRefreshing
+                                running: visible
+                                Layout.alignment: Qt.AlignHCenter
+                            }
+                        }
+                    }
+
                     ReadToggleCard {
+                        visible: !root.webAssembly
                         titleText: qsTrId("genycaster.settings.check_for_updates_automatically")
                         descriptionText: qsTrId("genycaster.settings.look_for_published_genycaster_releases_once_per_day_no")
                         iconGlyph: Theme.iconRefresh
@@ -2042,6 +2124,7 @@ GenyDrawer {
                     }
 
                     Superellipse {
+                        visible: !root.webAssembly
                         Layout.fillWidth: true
                         implicitHeight: updaterColumn.implicitHeight + Theme.space3 * 2
                         fillColor: Theme.surfaceMuted

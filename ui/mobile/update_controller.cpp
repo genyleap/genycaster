@@ -3,6 +3,7 @@
 #include <QCoreApplication>
 #include <QDesktopServices>
 #include <QDir>
+#include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -16,7 +17,11 @@
 #include <QSysInfo>
 #include <QTimer>
 #include <QUrl>
+#include <QUrlQuery>
 #include <QVersionNumber>
+#if defined(__EMSCRIPTEN__)
+#include <emscripten/emscripten.h>
+#endif
 
 namespace {
 const QUrl kReleaseApi{QStringLiteral("https://api.github.com/repos/genyleap/genycaster/releases/latest")};
@@ -80,12 +85,18 @@ UpdateController::UpdateController(QSettings& settings, const bool startupCheck,
     connect(m_periodic, &QTimer::timeout, this, [this] {
         if (m_autoCheckEnabled) check(false);
     });
+#if defined(__EMSCRIPTEN__)
+    // Browser deployments update through the public WASM asset manifest,
+    // not GitHub's native installer releases.
+    Q_UNUSED(startupCheck)
+#else
     m_periodic->start();
     if (startupCheck) {
         QTimer::singleShot(10'000, this, [this] {
             if (m_autoCheckEnabled) check(false);
         });
     }
+#endif
 }
 
 UpdateController::~UpdateController()
@@ -112,6 +123,7 @@ QString UpdateController::status() const { return m_status; }
 QString UpdateController::error() const { return m_error; }
 QString UpdateController::downloadedFilePath() const { return m_downloadedFilePath; }
 QString UpdateController::releaseUrl() const { return kReleasePage.toString(); }
+bool UpdateController::webRefreshing() const { return m_webRefreshing; }
 bool UpdateController::canDownload() const {
     return downloadSupported() && m_updateAvailable && !m_assetUrl.isEmpty();
 }
@@ -137,6 +149,74 @@ void UpdateController::setAutoCheckEnabled(const bool enabled)
 }
 
 void UpdateController::checkForUpdates() { check(true); }
+
+void UpdateController::refreshWebApp()
+{
+#if defined(__EMSCRIPTEN__)
+    if (m_webRefreshing) return;
+    m_webRefreshing = true;
+    m_error.clear();
+    m_status = QStringLiteral("Updating the WebAssembly application…");
+    emit changed();
+
+    // Do not direct WASM users to desktop installers or GitHub Releases.
+    // Verify that the same-origin public release manifest is reachable
+    // before requesting a service-worker update and a full navigation.
+    const auto location = QString::fromUtf8(emscripten_run_script_string(
+        "new URL('./genycaster-assets.json', window.location.href).href"));
+    QUrl url{location};
+    if (url.scheme() != QStringLiteral("https") || url.host().isEmpty()) {
+        m_webRefreshing = false;
+        fail(QStringLiteral("Web update is only supported on a secure browser origin"));
+        return;
+    }
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("refresh"), QString::number(QDateTime::currentMSecsSinceEpoch()));
+    url.setQuery(query);
+    QNetworkRequest request{url};
+    request.setRawHeader("Cache-Control", "no-cache, no-store");
+    request.setTransferTimeout(12'000);
+    auto* reply = m_network.get(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray bytes = reply->readAll();
+        const bool networkOkay = reply->error() == QNetworkReply::NoError && status == 200;
+        reply->deleteLater();
+        const QJsonDocument manifest = QJsonDocument::fromJson(bytes);
+        const QJsonObject metadata = manifest.object();
+        if (!networkOkay || !manifest.isObject()
+            || metadata.value(QStringLiteral("version")).toString().isEmpty()
+            || !metadata.value(QStringLiteral("files")).isArray()) {
+            m_webRefreshing = false;
+            fail(QStringLiteral("Could not verify the online WebAssembly release. Please retry."));
+            return;
+        }
+        // Only public browser assets are refreshed. Account credentials,
+        // draft content and local signer state are not erased or re-keyed.
+        EM_ASM({
+            (async () => {
+                try {
+                    const registration = await navigator.serviceWorker?.getRegistration('./');
+                    if (registration) {
+                        await Promise.race([
+                            registration.update(),
+                            new Promise(resolve => setTimeout(resolve, 2500))
+                        ]);
+                    }
+                } catch (error) {
+                    console.warn('[Genycaster] Service worker update unavailable', error);
+                } finally {
+                    const next = new URL(window.location.href);
+                    next.searchParams.set('genycaster_refresh', Date.now().toString());
+                    window.location.replace(next.href);
+                }
+            })();
+        });
+    });
+#else
+    // Native platforms continue using verified installer updates.
+#endif
+}
 
 void UpdateController::check(const bool manual)
 {

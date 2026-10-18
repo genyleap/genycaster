@@ -2,6 +2,22 @@
 <TS version="2.1" language="ar_SA" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.settings.wasm_update_description">
+            <source>You are using the WebAssembly (WASM) web version. Refresh to load the latest published app; no installer or download is needed.</source>
+            <translation>أنت تستخدم إصدار WebAssembly ‏(WASM) على الويب. حدّث الصفحة لتحميل أحدث إصدار منشور؛ لا حاجة إلى تنزيل أو تثبيت.</translation>
+        </message>
+        <message id="genycaster.settings.wasm_updating">
+            <source>Refreshing GenyCaster…</source>
+            <translation>جارٍ تحديث جيني كاستر…</translation>
+        </message>
+        <message id="genycaster.settings.wasm_refresh_hint">
+            <source>Refresh GenyCaster to check for and load the latest web release.</source>
+            <translation>حدّث جيني كاستر للتحقق من أحدث إصدار ويب وتحميله.</translation>
+        </message>
+        <message id="genycaster.settings.wasm_refresh_now">
+            <source>Refresh and update</source>
+            <translation>تحديث الصفحة والتطبيق</translation>
+        </message>
         <message id="genycaster.session.logout_confirm_title">
             <source>Sign out of GenyCaster?</source>
             <translation>هل تريد تسجيل الخروج من جيني كاستر؟</translation>

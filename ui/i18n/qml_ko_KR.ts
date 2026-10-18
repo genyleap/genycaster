@@ -2,6 +2,22 @@
 <TS version="2.1" language="ko_KR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.settings.wasm_update_description">
+            <source>You are using the WebAssembly (WASM) web version. Refresh to load the latest published app; no installer or download is needed.</source>
+            <translation>WebAssembly(WASM) 웹 버전을 사용 중입니다. 최신 공개 버전을 불러오려면 페이지를 새로고침하세요. 다운로드나 설치는 필요하지 않습니다.</translation>
+        </message>
+        <message id="genycaster.settings.wasm_updating">
+            <source>Refreshing GenyCaster…</source>
+            <translation>GenyCaster 업데이트 중…</translation>
+        </message>
+        <message id="genycaster.settings.wasm_refresh_hint">
+            <source>Refresh GenyCaster to check for and load the latest web release.</source>
+            <translation>최신 웹 버전을 확인하고 불러오려면 GenyCaster를 새로고침하세요.</translation>
+        </message>
+        <message id="genycaster.settings.wasm_refresh_now">
+            <source>Refresh and update</source>
+            <translation>새로고침 및 업데이트</translation>
+        </message>
         <message id="genycaster.session.logout_confirm_title">
             <source>Sign out of GenyCaster?</source>
             <translation>GenyCaster에서 로그아웃할까요?</translation>
