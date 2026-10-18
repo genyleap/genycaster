@@ -145,6 +145,8 @@ Item {
                                                      : root.section === "farcaster"
                                                        && root.farcasterSection === destinationId
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.preferredWidth: 0
                     Layout.preferredHeight: root.compact ? 54 : 64
                     fillColor: selected ? Theme.primarySurface : Theme.surfaceMuted
                     borderWidth: selected ? Theme.strokeEmphasis : Theme.strokeHairline
@@ -173,6 +175,8 @@ Item {
 
                         DirectionAwareLabel {
                             Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            horizontalAlignment: root.compact ? Text.AlignHCenter : Theme.textStartAlignment
                             text: String(destinationCard.modelData.title || "")
                             color: destinationCard.selected ? Theme.accent : Theme.ink
                             font.pixelSize: Theme.typeMetaSize
@@ -595,6 +599,22 @@ Item {
                                                     }
                                                 }
 
+                                                // A saved Mini App uses a persistent filled
+                                                // success mark, not the same outline as Save.
+                                                Superellipse {
+                                                    visible: Boolean(cardCell.modelData.saved)
+                                                    Layout.preferredWidth: 26
+                                                    Layout.preferredHeight: 26
+                                                    fillColor: Theme.positive
+                                                    curveDepth: 13
+                                                    Icon {
+                                                        anchors.centerIn: parent
+                                                        text: Theme.iconCheck
+                                                        color: Theme.inkInverse
+                                                        preferredSize: 16
+                                                    }
+                                                }
+
                                                 Superellipse {
                                                     visible: cardCell.running
                                                     Layout.preferredWidth: stateLabel.implicitWidth + Theme.space3
@@ -679,14 +699,18 @@ Item {
                                                     compact: true
                                                     quiet: true
                                                     iconOnly: root.compact
-                                                    iconGlyph: Boolean(cardCell.modelData.saved) ? Theme.iconTrash : Theme.iconPlus
-                                                    text: Boolean(cardCell.modelData.saved)
-                                                          ? qsTrId("genycaster.apps.remove")
-                                                          : qsTrId("genycaster.apps.save")
+                                                    readonly property bool saved: Boolean(cardCell.modelData.saved)
+                                                    readonly property bool inLibrary: root.farcasterSection === "my"
+                                                    iconGlyph: saved ? (inLibrary ? Theme.iconTrash : Theme.iconCheck) : Theme.iconPlus
+                                                    positive: saved && !inLibrary
+                                                    enabled: !saved || inLibrary
+                                                    text: saved ? (inLibrary ? qsTrId("genycaster.apps.remove")
+                                                                               : qsTrId("genycaster.apps.saved"))
+                                                                : qsTrId("genycaster.apps.save")
                                                     onClicked: {
-                                                        if (Boolean(cardCell.modelData.saved))
+                                                        if (saved && inLibrary)
                                                             miniAppCatalog.removeFromMyMiniApps(String(cardCell.modelData.homeUrl || ""))
-                                                        else
+                                                        else if (!saved)
                                                             miniAppCatalog.addToMyMiniApps(cardCell.modelData)
                                                     }
                                                 }

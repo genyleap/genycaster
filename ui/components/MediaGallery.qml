@@ -212,33 +212,14 @@ Popup {
         RowLayout {
             z: 20
             x: Theme.space3
-            y: Math.max(Theme.space3, root.height > root.width && root.width < 700 ? 48 : Theme.space3)
+            // Keep Close above the displayed media, within the iOS safe-top
+            // region rather than aligned to the painted image.
+            y: root.width < 700 ? Math.max(Theme.space3, 48) : Theme.space3
             width: Math.max(0, parent.width - Theme.space3 * 2)
             layoutDirection: Theme.uiDirection
             spacing: Theme.space2
 
-            Superellipse {
-                Layout.preferredWidth: counterLabel.implicitWidth + Theme.space3 * 2
-                Layout.preferredHeight: 38
-                fillColor: Theme.mediaViewerControl
-                borderWidth: 1
-                borderColor: Theme.mediaViewerBorder
-                curveDepth: height / 2
-
-                DirectionAwareLabel {
-                    id: counterLabel
-                    anchors.centerIn: parent
-                    text: root.itemCount > 0
-                          ? LocaleFormat.formatInteger(root.currentIndex + 1)
-                            + " / " + LocaleFormat.formatInteger(root.itemCount)
-                          : ""
-                    color: Theme.mediaViewerInk
-                    font.pixelSize: Theme.typeMetaSize
-                    font.weight: Theme.weightDemiBold
-                    forceLeftToRight: true
-                }
-            }
-
+            // Only Close occupies the upper safe-area edge.
             Item { Layout.fillWidth: true }
 
             ToolButton {
@@ -263,6 +244,38 @@ Popup {
                     borderColor: Theme.keyboardFocusVisible(closeButton) ? Theme.accent : Theme.mediaViewerBorder
                     curveDepth: closeButton.height / 2
                 }
+            }
+        }
+
+        // Image count remains at the lower viewport edge, not over the
+        // middle of portrait media. On multi-image galleries it sits above
+        // the thumbnail dock; single images use the very bottom safe area.
+        Superellipse {
+            id: galleryCounter
+            z: 20
+            anchors.left: parent.left
+            anchors.leftMargin: Theme.space3
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: (root.itemCount > 1 ? 82 : 0)
+                                  + (root.width < 700 ? Math.max(Theme.space3, 28) : Theme.space3)
+            width: counterLabel.implicitWidth + Theme.space3 * 2
+            height: 38
+            fillColor: Theme.mediaViewerControl
+            borderWidth: 1
+            borderColor: Theme.mediaViewerBorder
+            curveDepth: height / 2
+
+            DirectionAwareLabel {
+                id: counterLabel
+                anchors.centerIn: parent
+                text: root.itemCount > 0
+                      ? LocaleFormat.formatInteger(root.currentIndex + 1)
+                        + " / " + LocaleFormat.formatInteger(root.itemCount)
+                      : ""
+                color: Theme.mediaViewerInk
+                font.pixelSize: Theme.typeMetaSize
+                font.weight: Theme.weightDemiBold
+                forceLeftToRight: true
             }
         }
 
@@ -309,7 +322,7 @@ Popup {
             anchors.bottom: parent.bottom
             anchors.leftMargin: Theme.space3
             anchors.rightMargin: Theme.space3
-            anchors.bottomMargin: Theme.space3
+            anchors.bottomMargin: root.width < 700 ? Math.max(Theme.space3, 28) : Theme.space3
             height: 68
 
             Superellipse {

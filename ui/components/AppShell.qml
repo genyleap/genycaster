@@ -324,7 +324,14 @@ Item {
         }
         presentationBridge.beginComposer()
         if (parentCast !== undefined && parentCast !== null) {
-            if (!parentCast.castId || !presentationBridge.prepareReply(String(parentCast.castId)))
+            // Nested replies are canonical Casts too, but are not always in
+            // the top-level m_rows snapshot. Supply the provider author FID
+            // from the selected row rather than looking it up in m_rows.
+            const authorFid = Number(parentCast.authorFid || 0)
+            const prepared = authorFid > 0
+                             ? presentationBridge.prepareReplyToCast(String(parentCast.castId), authorFid)
+                             : presentationBridge.prepareReply(String(parentCast.castId))
+            if (!parentCast.castId || !prepared)
                 return
             composerParent = {
                 "castId": String(parentCast.castId),
@@ -523,6 +530,7 @@ Item {
             onProfileRequested: root.openMyProfileFromNavigation()
             onIdentityRequested: root.openAccountPopup()
             onAccountRequested: root.openAccountPopup()
+            onOwnProfileRequested: root.openMyProfileFromNavigation()
             onSettingsRequested: root.openLocaleSettings()
             onRouteRequested: route => root.openShellRoute(route)
         }
@@ -1759,7 +1767,7 @@ Item {
                     }
 
                     ActionButton {
-                        visible: presentationBridge.isAuthenticated && presentationBridge.writeReady
+                        visible: false // Session security actions live in Settings.
                         Layout.fillWidth: true
                         compact: true
                         quiet: true
@@ -1774,7 +1782,7 @@ Item {
                     ActionButton {
                         id: accountSignOutButton
                         objectName: "accountSignOutButton"
-                        visible: presentationBridge.isAuthenticated && !root.mobile
+                        visible: false // Sign Out is available in Settings / Account.
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.shell.sign_out")
                         onClicked: root.requestSignOut()
@@ -1808,7 +1816,7 @@ Item {
                 ActionButton {
                     id: mobileAccountSignOutButton
                     objectName: "mobileAccountSignOutButton"
-                    visible: root.mobile && presentationBridge.isAuthenticated
+                    visible: false // Sign Out is available in Settings / Account.
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.shell.sign_out")
                     destructive: true

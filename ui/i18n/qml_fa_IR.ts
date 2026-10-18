@@ -2834,6 +2834,10 @@
             <source>Save</source>
             <translation>ذخیره</translation>
         </message>
+        <message id="genycaster.apps.saved">
+            <source>Saved</source>
+            <translation>ذخیره‌شده</translation>
+        </message>
         <message id="genycaster.apps.share">
             <source>Share</source>
             <translation>اشتراک‌گذاری</translation>

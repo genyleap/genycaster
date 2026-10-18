@@ -2834,6 +2834,10 @@
             <source>Save</source>
             <translation>Save</translation>
         </message>
+        <message id="genycaster.apps.saved">
+            <source>Saved</source>
+            <translation>Saved</translation>
+        </message>
         <message id="genycaster.apps.share">
             <source>Share</source>
             <translation>Share</translation>

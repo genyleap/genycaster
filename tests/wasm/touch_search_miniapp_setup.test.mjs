@@ -37,7 +37,7 @@ test('browser miniapps resolve verified public manifests and retain the external
   assert.match(browser,/window\.open\(url\.href,'_blank','noopener,noreferrer'\)/);
   assert.match(browser,/frame\.setAttribute\("sandbox"/);
   assert.match(gateway,/requestUrl\.pathname === '\/v1\/browser\/miniapp-preview'/);
-  assert.match(gateway,/publicMiniAppPreview\(rawUrl\)/);
+  assert.match(gateway,/resolveMiniAppPreview\(rawUrl\)/);
 });
 test('scrolling never demotes a loaded Mini App or detaches an existing image',()=>{
   const preview=read('ui/components/LinkPreview.qml');

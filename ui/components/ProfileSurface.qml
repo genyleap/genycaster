@@ -998,7 +998,8 @@ Item {
             property real committedHeight: reservedHeight
 
             function synchronizeHeight() {
-                if (profileCastDelegate.resolvedHeight > 0 && !profileList.moving)
+                if (profileCastDelegate.resolvedHeight > profileCastDelegate.committedHeight
+                        || profileCastDelegate.resolvedHeight > 0 && !profileList.moving)
                     profileCastDelegate.committedHeight = profileCastDelegate.resolvedHeight
                 else if (profileCastLoader.status === Loader.Loading
                          || profileCastDelegate.resolvedHeight <= 0)

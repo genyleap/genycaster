@@ -16,6 +16,7 @@
 #include <QVariantMap>
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 import farcaster.application.configuration;
@@ -1697,6 +1698,37 @@ bool PresentationBridge::prepareReply(const QString& parentCastId)
         "genycaster.bridge.reply_target_not_available_as_canonical_cast");
     emit stateChanged();
     return false;
+}
+
+bool PresentationBridge::prepareReplyToCast(const QString& parentCastId, double parentAuthorFid)
+{
+    const QString castId = parentCastId.trimmed();
+    // Hashes in the Farcaster public protocol are 20 bytes, hex-encoded.
+    // A read adapter provides the cast author FID alongside the hash; it must
+    // not depend on that reply appearing in the primary feed model.
+    if (castId.size() != 42 || !castId.startsWith(QLatin1String("0x"))
+        || !std::isfinite(parentAuthorFid) || parentAuthorFid < 1
+        || parentAuthorFid > 9007199254740991.0
+        || std::floor(parentAuthorFid) != parentAuthorFid) {
+        m_writeErrorText = qtTrId("genycaster.bridge.reply_target_not_available_as_canonical_cast");
+        emit stateChanged();
+        return false;
+    }
+    for (qsizetype index = 2; index < castId.size(); ++index) {
+        const QChar value = castId.at(index);
+        const ushort code = value.unicode();
+        if (!((code >= '0' && code <= '9') || (code >= 'a' && code <= 'f')
+              || (code >= 'A' && code <= 'F'))) {
+            m_writeErrorText = qtTrId("genycaster.bridge.reply_target_not_available_as_canonical_cast");
+            emit stateChanged();
+            return false;
+        }
+    }
+    m_replyParentAuthorFid = static_cast<qulonglong>(parentAuthorFid);
+    m_replyParentCastId = castId;
+    m_writeErrorText.clear();
+    emit stateChanged();
+    return true;
 }
 
 void PresentationBridge::clearReplyTarget()

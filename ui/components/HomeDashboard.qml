@@ -336,8 +336,9 @@ Item {
             id: mobileColumn
             width: parent.width
             spacing: Theme.space3
-
-            Item { visible: !root.composerFocused; Layout.preferredHeight: visible ? Theme.space3 : 0 }
+            // Keep the focused composer clear of the fixed application header
+            // even after the navigation tiles are hidden by the keyboard.
+            Item { Layout.preferredHeight: root.composerFocused ? Theme.space4 : Theme.space3 }
             Superellipse {
                 visible: !root.composerFocused
                 Layout.alignment: Qt.AlignHCenter

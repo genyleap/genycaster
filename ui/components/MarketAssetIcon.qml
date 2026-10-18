@@ -21,7 +21,6 @@ Item {
     readonly property string semanticIcon: {
         if (root.symbol === "BTC") return "crypto/bitcoin"
         if (root.symbol === "ETH") return "crypto/ethereum"
-        if (root.symbol === "GENY") return "brands/geny"
         return ""
     }
     // Verified market-source artwork has priority over decorative in-app icons.
@@ -34,13 +33,11 @@ Item {
     readonly property color tileColor: {
         if (root.symbol === "BTC") return Theme.cryptoBitcoinSurface
         if (root.symbol === "ETH") return Theme.cryptoEthereumSurface
-        if (root.symbol === "GENY") return Theme.cryptoGenySurface
         return Theme.primarySurface
     }
     readonly property color glyphColor: {
         if (root.symbol === "BTC") return Theme.inkInverse
         if (root.symbol === "ETH") return Theme.cryptoEthereumGlyph
-        if (root.symbol === "GENY") return Theme.accent
         return Theme.accent
     }
     readonly property bool showInitial: !root.bundledArtwork

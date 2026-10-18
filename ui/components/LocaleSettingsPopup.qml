@@ -56,6 +56,10 @@ GenyDrawer {
     }
 
     bottomSheet: mobilePresentation
+    // Scrolling settings must never control the Drawer.position or dismiss it.
+    // The explicit Back / Close actions own navigation on all platforms.
+    interactive: false
+    closePolicy: Popup.CloseOnEscape
     // Full-screen phone navigation and desktop settings have no drag handle.
     showHandle: false
     dimBackground: true

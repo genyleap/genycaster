@@ -241,6 +241,12 @@ public:
     Q_INVOKABLE int utf8ByteCount(const QString& text) const;
     Q_INVOKABLE void beginComposer();
     Q_INVOKABLE bool prepareReply(const QString& parentCastId);
+    /** @brief Prepares a reply to a canonical public Cast with a provider-supplied author FID.
+     * Uses the selected reply's identity when the target was not part of the
+     * current top-level feed, including nested conversation replies.
+     * Invalid hashes/FIDs are rejected without modifying the active target.
+     */
+    Q_INVOKABLE bool prepareReplyToCast(const QString& parentCastId, double parentAuthorFid);
     Q_INVOKABLE void clearReplyTarget();
     Q_INVOKABLE void publishReply(const QString& text);
     /** @brief Publishes the exact safe-serialized reply projection plus semantic mentions. */

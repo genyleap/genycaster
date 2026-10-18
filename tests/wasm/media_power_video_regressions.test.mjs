@@ -22,7 +22,7 @@ test('motion preferences persist locally and GIFs are not paused by scroll',()=>
 });
 test('viewer chrome anchors to stable viewport not aspect-fitted image bounds',()=>{
  const gallery=read('ui/components/MediaGallery.qml');
- assert.match(gallery,/x: Theme\.space3\s*y: Math\.max\(Theme\.space3/);
+ assert.match(gallery,/x: Theme\.space3[\s\S]{0,240}y: root\.width < 700/);
  assert.doesNotMatch(gallery,/x: Math\.max\(Theme\.space3, parent\.chromeRect/);
 });
 test('HLS browser player uses responsive stage and real poster for Stream manifests',()=>{

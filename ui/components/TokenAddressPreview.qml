@@ -134,6 +134,15 @@ Superellipse {
     curveDepth: Theme.shapeMedia
     implicitHeight: cardContent.implicitHeight + (root.narrow ? Theme.space3 : Theme.space4) * 2
 
+    // The card's empty surface owns its tap; underlying Cast actions must
+    // never receive it. Children (expand/external buttons) have priority.
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        preventStealing: false
+        onClicked: root.expanded = !root.expanded
+    }
+
     ColumnLayout {
         id: cardContent
         anchors.fill: parent

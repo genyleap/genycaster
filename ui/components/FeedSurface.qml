@@ -1028,7 +1028,11 @@ Item {
             property real committedHeight: reservedHeight
 
             function synchronizeHeight() {
-                if (rowDelegate.resolvedHeight > 0 && !readList.moving) {
+                // Rows may hydrate a quoted parent, link preview or image while
+                // the user scrolls. Grow immediately to preserve hit testing;
+                // only shrink at rest to avoid avoidable scroll jumps.
+                if (rowDelegate.resolvedHeight > rowDelegate.committedHeight
+                        || rowDelegate.resolvedHeight > 0 && !readList.moving) {
                     rowDelegate.committedHeight = rowDelegate.resolvedHeight
                 } else if (rowDelegate.incubating || rowDelegate.resolvedHeight <= 0) {
                     rowDelegate.committedHeight = rowDelegate.reservedHeight

@@ -180,6 +180,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.apps.remove");
     //% "Save"
     (void)qtTrId("genycaster.apps.save");
+    //% "Saved"
+    (void)qtTrId("genycaster.apps.saved");
     //% "Genycaster"
     (void)qtTrId("genycaster.app.genycaster");
     //% "Explorer"
