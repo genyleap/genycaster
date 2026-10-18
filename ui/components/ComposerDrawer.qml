@@ -58,7 +58,12 @@ GenyDrawer {
     dimBackground: true
     contentPadding: 0
     width: parent ? parent.width : 1040
-    height: parent ? (compact ? Math.min(parent.height * 0.92, 820)
+    // During typing the Qt viewport already excludes the on-screen keyboard.
+    // Consume its full available height instead of leaving a dead upper gap.
+    // Parent is AppShell on mobile (not the scrolling reading column).
+    height: parent ? (compact ? (keyboardVisible
+                                   ? Math.max(1, parent.height - Theme.space2)
+                                   : Math.min(parent.height * 0.92, 820))
                               : Math.min(parent.height * 0.78, 720)) : 720
     // Composer content owns vertical scrolling; drawer-swipe gestures would otherwise
     // compete with Flickable/ScrollView input on touch devices.
@@ -402,9 +407,10 @@ GenyDrawer {
             readonly property int sideMargin: root.compact ? Theme.mobileGutter : Theme.space6
             width: Math.max(0, composerScroll.availableWidth - sideMargin * 2)
             x: sideMargin
-            spacing: Theme.space3
+            spacing: root.keyboardVisible ? Theme.space2 : Theme.space3
 
-            Item { Layout.preferredHeight: root.compact ? Theme.space1 : Theme.space2 }
+            Item { Layout.preferredHeight: root.keyboardVisible ? 0
+                                      : root.compact ? Theme.space1 : Theme.space2 }
 
             RowLayout {
                 Layout.fillWidth: true
@@ -429,7 +435,8 @@ GenyDrawer {
                         text: root.threadMode ? qsTrId("genycaster.composer.thread_title")
                               : root.parentCast ? qsTrId("genycaster.shell.reply") : qsTrId("genycaster.shell.new_cast")
                         color: Theme.ink
-                        font.pixelSize: Theme.typeTitle2Size
+                        font.pixelSize: root.keyboardVisible ? Theme.typeTitle3Size
+                                                            : Theme.typeTitle2Size
                         font.weight: Theme.weightBold
                     }
                     DirectionAwareLabel {
@@ -459,6 +466,7 @@ GenyDrawer {
             }
 
             ComposerToolbar {
+                visible: !root.keyboardVisible
                 Layout.fillWidth: true
                 mode: root.editorMode
                 onModeRequested: mode => root.setEditorMode(mode)
@@ -586,7 +594,7 @@ GenyDrawer {
 
             ActionButton {
                 objectName: "composerMobileFormattingToggle"
-                visible: root.compact && root.editorMode === "visual"
+                visible: root.compact && root.editorMode === "visual" && !root.keyboardVisible
                 compact: true
                 quiet: true
                 Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
@@ -598,6 +606,7 @@ GenyDrawer {
             FormattingToolbar {
                 id: formattingToolbar
                 visible: root.editorMode === "visual" && (!root.compact || root.showAdvancedFormatting)
+                         && !root.keyboardVisible
                 Layout.fillWidth: true
                 activeBlockIndex: visualEditor.activeBlockIndex
                 activeEditor: visualEditor.formattingEditor
@@ -686,7 +695,11 @@ GenyDrawer {
                                         ? farcasterPreview.implicitHeight
                                         : root.threadMode
                                           ? (root.compact ? 220 : 250)
-                                          : (root.compact ? 290 : 320)
+                                          : (root.compact
+                                             ? (root.keyboardVisible
+                                                ? Math.max(260, root.height - Theme.space5 * 7)
+                                                : 290)
+                                             : 320)
                 Layout.minimumHeight: root.editorMode === "preview"
                                       ? Math.min(farcasterPreview.implicitHeight, root.compact ? 210 : 230)
                                       : root.threadMode

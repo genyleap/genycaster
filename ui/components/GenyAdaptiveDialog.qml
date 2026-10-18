@@ -9,6 +9,7 @@ Item {
     id: control
 
     property Item contentItem: null
+    property Item blurSourceItem: null
     property int contentPadding: Theme.space3
     property bool dimBackground: true
     property bool showHandle: true
@@ -76,6 +77,16 @@ Item {
         width: Math.min(control.width, parent ? Math.max(320, parent.width - Theme.space5 * 2) : control.width)
         height: Math.min(control.height, parent ? Math.max(320, parent.height - Theme.space5 * 2) : control.height)
 
+        // Desktop dialog stays centered; the backdrop samples the actual
+        // application, rather than replacing it with a flat dark scrim.
+        Overlay.modal: DrawerBackdrop {
+            sourceItem: control.blurSourceItem
+            active: desktopDialog.opened
+            addScrim: control.dimBackground
+            blockInput: true
+            onBackgroundTapped: control.close()
+        }
+
         contentItem: Item {
             id: desktopContentHost
         }
@@ -95,6 +106,7 @@ Item {
         parent: control.parent
         bottomSheet: true
         dimBackground: control.dimBackground
+        blurSourceItem: control.blurSourceItem
         showHandle: control.showHandle
         contentPadding: control.contentPadding
         z: control.popupZ

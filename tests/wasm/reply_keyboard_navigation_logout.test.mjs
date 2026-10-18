@@ -36,6 +36,8 @@ test('logout requires confirmation and reopens Setup from first step',()=>{
  const settings=read('LocaleSettingsPopup.qml');
  const setup=read('InitialSetup.qml');
  assert.match(app,/objectName: "signOutConfirmation"/);
+ assert.match(app,/GenyAdaptiveDialog \{\s*id: signOutConfirm/);
+ assert.match(app,/blurSourceItem: shellContent/);
  assert.match(app,/function requestSignOut\(\)/);
  assert.match(app,/onClicked: root\.requestSignOut\(\)/);
  assert.match(app,/onSignOutConfirmationRequested: root\.requestSignOut\(\)/);
@@ -53,4 +55,19 @@ test('beta label is short and is translated in every locale',()=>{
   for (const id of ['genycaster.detail.your_confirmed_reply','genycaster.settings.beta_release_short','genycaster.session.logout_confirm_title','genycaster.session.logout_confirm_description'])
    assert.ok(data.includes('id="'+id+'"'),lang+': '+id);
  }
+});
+
+test('mobile keyboard expands Composer to visible Qt viewport instead of a reading pane',()=>{
+ const app=read('AppShell.qml');
+ const composer=read('ComposerDrawer.qml');
+ const adaptive=read('GenyAdaptiveDialog.qml');
+ assert.match(app,/hostItem: root\.mobile \? root : readingPane/);
+ assert.match(composer,/height: parent \? \(compact \? \(keyboardVisible/);
+ assert.match(composer,/Math\.max\(1, parent\.height - Theme\.space2\)/);
+ assert.match(composer,/visible: !root\.keyboardVisible\n\s+Layout\.fillWidth: true\n\s+mode: root\.editorMode/);
+ assert.match(composer,/root\.height - Theme\.space5 \* 7/);
+ assert.match(adaptive,/property Item blurSourceItem: null/);
+ assert.match(adaptive,/Overlay\.modal: DrawerBackdrop/);
+ assert.match(adaptive,/sourceItem: control\.blurSourceItem/);
+ assert.match(adaptive,/blurSourceItem: control\.blurSourceItem/);
 });

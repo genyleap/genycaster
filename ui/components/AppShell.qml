@@ -1022,7 +1022,10 @@ Item {
 
                             ComposerDrawer {
                                 id: composerDrawer
-                                hostItem: readingPane
+                                // On phones the composer must be positioned against the
+                                // live Qt viewport, not the readingPane whose geometry
+                                // may extend beyond the iOS keyboard.
+                                hostItem: root.mobile ? root : readingPane
                                 blurSourceItem: shellContent
                                 parentCast: root.composerParent
                                 onPublishRequested: (text, mentionFids, mentionPositions, embeds) => {
@@ -1769,26 +1772,20 @@ Item {
         }
     }
 
-    // Explicit user consent before leaving an authenticated account.
-    // All mobile/desktop account and Settings exits use this one dialog.
-    Popup {
+    // One confirmation, two native presentation patterns: on phones a true
+    // bottom drawer; on desktop a centered modal with a live blurred scene.
+    GenyAdaptiveDialog {
         id: signOutConfirm
         objectName: "signOutConfirmation"
         parent: Overlay.overlay
-        modal: true
-        focus: true
-        z: 20000
-        padding: Theme.space4
-        width: Math.min(parent ? parent.width - Theme.space5 * 2 : 440, 440)
-        x: parent ? (parent.width - width) / 2 : 0
-        y: parent ? (parent.height - height) / 2 : 0
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Rectangle {
-            color: Theme.surfaceElevated
-            radius: Theme.space4
-            border.width: Theme.strokeHairline
-            border.color: Theme.borderSubtle
-        }
+        blurSourceItem: shellContent
+        popupZ: 20000
+        dimBackground: true
+        showHandle: root.mobile
+        contentPadding: Theme.space4
+        mobileHeightRatio: 1.0
+        width: root.mobile ? (parent ? parent.width : 420) : 440
+        height: root.mobile ? 298 : 272
         contentItem: ColumnLayout {
             spacing: Theme.space3
             DirectionAwareLabel {
