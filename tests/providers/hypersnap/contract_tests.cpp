@@ -164,6 +164,21 @@ void testRecentNetworkEventDecoding()
     assert(events && events->size() == 1U);
     assert(events->front().hash == "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     assert(events->front().protocolTimestamp == 182600000U);
+    // The independent Conversations source selects actual CastAdd replies only.
+    const auto replies = provider::hypersnap::codec::decodeRecentCastEvents(R"json({
+      "events": [
+        {"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","id":3244033,"blockNumber":198,
+         "mergeMessageBody":{"message":{"hash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+           "data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600000,
+                    "castAddBody":{"text":"question without replies"}}}}},
+        {"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","id":3260417,"blockNumber":199,
+         "mergeMessageBody":{"message":{"hash":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+           "data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600001,
+                    "castAddBody":{"parentCastId":{"hash":"0xdead","fid":42}}}}}}
+      ]
+    })json", 198U, 200U, true);
+    assert(replies && replies->size() == 1U);
+    assert(replies->front().hash == "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
     auto invalid = provider::hypersnap::codec::decodeRecentShardInfo(R"json({"shardInfos":[]})json");
     assert(!invalid);
     auto broken = provider::hypersnap::codec::decodeRecentCastEvents(
@@ -756,7 +771,7 @@ void testCurlTransportConstruction()
 void testCapabilityRegistration()
 {
     const auto capabilities = provider::hypersnap::registration::capabilities();
-    assert(capabilities.size() == 18);
+    assert(capabilities.size() == 19);
 
     const auto has = [&](const capability::model::CapabilityId& id) {
         return std::ranges::any_of(capabilities, [&](const auto& item) {
@@ -772,6 +787,7 @@ void testCapabilityRegistration()
     assert(has(capability::catalog::feedFollowingRead()));
     assert(has(capability::catalog::feedTrendingRead()));
     assert(has(capability::catalog::feedRecentRead()));
+    assert(has(capability::catalog::feedConversationsRead()));
     assert(has(capability::catalog::feedNftsRead()));
     assert(has(capability::catalog::feedDevelopersRead()));
     assert(has(capability::catalog::feedChannelRead()));

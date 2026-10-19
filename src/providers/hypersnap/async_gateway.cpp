@@ -341,6 +341,7 @@ void mergeHydratedReplyMetrics(
 constexpr std::uint64_t recentWindowBlocks{500U};
 constexpr std::uint64_t recentEventShift{14U};
 constexpr std::string_view recentCursorPrefix{"recent:v1:"};
+constexpr std::string_view conversationCursorPrefix{"conversations:v1:"};
 
 struct RecentCursor final {
     std::uint64_t firstEnd{};
@@ -348,20 +349,21 @@ struct RecentCursor final {
     std::size_t offset{};
 };
 
-[[nodiscard]] std::string encodeRecentCursor(const RecentCursor cursor)
+[[nodiscard]] std::string encodeRecentCursor(const RecentCursor cursor, const bool repliesOnly)
 {
-    return std::string{recentCursorPrefix} + std::to_string(cursor.firstEnd)
+    return std::string{repliesOnly ? conversationCursorPrefix : recentCursorPrefix} + std::to_string(cursor.firstEnd)
         + ":" + std::to_string(cursor.secondEnd) + ":"
         + std::to_string(cursor.offset);
 }
 
 [[nodiscard]] foundation::result::Result<RecentCursor> decodeRecentCursor(
-    const std::string_view serialized)
+    const std::string_view serialized, const bool repliesOnly)
 {
-    if (!serialized.starts_with(recentCursorPrefix)) {
-        return std::unexpected(makeError(ErrorCode::InvalidArgument, "Invalid Recent cursor version."));
+    const auto prefix = repliesOnly ? conversationCursorPrefix : recentCursorPrefix;
+    if (!serialized.starts_with(prefix)) {
+        return std::unexpected(makeError(ErrorCode::InvalidArgument, "Invalid discovery cursor version."));
     }
-    auto tail = serialized.substr(recentCursorPrefix.size());
+    auto tail = serialized.substr(prefix.size());
     std::uint64_t fields[3]{};
     for (std::size_t i = 0; i < 3U; ++i) {
         const auto colon = tail.find(':');
@@ -629,7 +631,9 @@ foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
     const application::read::model::ReadOptions options)
 {
     auto group = std::make_shared<Group>();
-    const auto capabilityId = capability::catalog::feedRecentRead();
+    const bool repliesOnly = query.kind == application::read::model::FeedQuery::Kind::Conversations;
+    const auto capabilityId = repliesOnly ? capability::catalog::feedConversationsRead()
+                                           : capability::catalog::feedRecentRead();
     const auto requestPriority = priorityFor(options, transport::async_http::Priority::Visible);
     const capability::pagination::PageRequest pageRequest{
         .limit = query.limit, .continuation = query.continuation};
@@ -645,7 +649,7 @@ foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
     };
 
     auto start = m_continuationExecutor.post(
-        [this, group, capabilityId, pageRequest, requestPriority, deliver]() mutable {
+        [this, group, capabilityId, pageRequest, requestPriority, deliver, repliesOnly]() mutable {
             if (group->cancelled.load(std::memory_order_acquire)) { return; }
             continuation::Store store{m_continuations, m_config.provider.id};
             auto raw = store.resolve(capabilityId, pageRequest);
@@ -655,10 +659,10 @@ foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
             }
 
             auto loadWindow = [this, group, capabilityId, pageRequest,
-                               requestPriority, deliver](RecentCursor cursor) mutable {
+                               requestPriority, deliver, repliesOnly](RecentCursor cursor) mutable {
                 auto first = m_client.getJson(
                     "/v1/events", recentEventQuery(cursor.firstEnd, 1U),
-                    [this, group, capabilityId, pageRequest, requestPriority, deliver, cursor](
+                    [this, group, capabilityId, pageRequest, requestPriority, deliver, cursor, repliesOnly](
                         foundation::result::Result<std::string> firstBody) mutable {
                         if (group->cancelled.load(std::memory_order_acquire)) { return; }
                         if (!firstBody) {
@@ -669,7 +673,7 @@ foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
                             *firstBody,
                             cursor.firstEnd > recentWindowBlocks
                                 ? cursor.firstEnd - recentWindowBlocks : 0U,
-                            cursor.firstEnd);
+                            cursor.firstEnd, repliesOnly);
                         if (!firstEvents) {
                             deliver(std::unexpected(std::move(firstEvents.error())));
                             return;
@@ -677,7 +681,7 @@ foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
                         auto second = m_client.getJson(
                             "/v1/events", recentEventQuery(cursor.secondEnd, 2U),
                             [this, group, capabilityId, pageRequest, requestPriority,
-                             deliver, cursor, firstEvents = std::move(*firstEvents)](
+                             deliver, cursor, repliesOnly, firstEvents = std::move(*firstEvents)](
                                 foundation::result::Result<std::string> secondBody) mutable {
                                 if (group->cancelled.load(std::memory_order_acquire)) { return; }
                                 if (!secondBody) {
@@ -688,7 +692,7 @@ foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
                                     *secondBody,
                                     cursor.secondEnd > recentWindowBlocks
                                         ? cursor.secondEnd - recentWindowBlocks : 0U,
-                                    cursor.secondEnd);
+                                    cursor.secondEnd, repliesOnly);
                                 if (!secondEvents) {
                                     deliver(std::unexpected(std::move(secondEvents.error())));
                                     return;
@@ -719,12 +723,12 @@ foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
                                 std::optional<std::string> nextCursor{};
                                 if (end < orderedHashes.size()) {
                                     nextCursor = encodeRecentCursor(
-                                        RecentCursor{cursor.firstEnd, cursor.secondEnd, end});
+                                        RecentCursor{cursor.firstEnd, cursor.secondEnd, end}, repliesOnly);
                                 } else if (cursor.firstEnd > recentWindowBlocks
                                            && cursor.secondEnd > recentWindowBlocks) {
                                     nextCursor = encodeRecentCursor(RecentCursor{
                                         cursor.firstEnd - recentWindowBlocks,
-                                        cursor.secondEnd - recentWindowBlocks, 0U});
+                                        cursor.secondEnd - recentWindowBlocks, 0U}, repliesOnly);
                                 }
                                 auto completePage = [this, group, capabilityId, deliver,
                                                      selected, nextCursor = std::move(nextCursor)](
@@ -837,7 +841,7 @@ foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
             };
 
             if (*raw) {
-                auto cursor = decodeRecentCursor(**raw);
+                auto cursor = decodeRecentCursor(**raw, repliesOnly);
                 if (!cursor) {
                     deliver(std::unexpected(std::move(cursor.error())));
                     return;
@@ -888,7 +892,8 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
     if (!limit) {
         return std::unexpected(std::move(limit.error()));
     }
-    if (query.kind == application::read::model::FeedQuery::Kind::Recent) {
+    if (query.kind == application::read::model::FeedQuery::Kind::Recent
+        || query.kind == application::read::model::FeedQuery::Kind::Conversations) {
         return recentFeed(std::move(query), std::move(completion), options);
     }
 
@@ -907,6 +912,9 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
         break;
     case application::read::model::FeedQuery::Kind::Recent:
         spec.capabilityId = capability::catalog::feedRecentRead();
+        break;
+    case application::read::model::FeedQuery::Kind::Conversations:
+        spec.capabilityId = capability::catalog::feedConversationsRead();
         break;
     case application::read::model::FeedQuery::Kind::Nfts:
     case application::read::model::FeedQuery::Kind::Developers:

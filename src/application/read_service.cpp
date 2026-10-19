@@ -69,6 +69,8 @@ using foundation::error::ErrorCode;
         kind = local::read::FeedKey::Kind::Developers;
     } else if (query.kind == model::FeedQuery::Kind::Recent) {
         kind = local::read::FeedKey::Kind::Recent;
+    } else if (query.kind == model::FeedQuery::Kind::Conversations) {
+        kind = local::read::FeedKey::Kind::Conversations;
     } else if (query.kind == model::FeedQuery::Kind::Following) {
         kind = local::read::FeedKey::Kind::Following;
     } else if (query.kind == model::FeedQuery::Kind::Channel) {

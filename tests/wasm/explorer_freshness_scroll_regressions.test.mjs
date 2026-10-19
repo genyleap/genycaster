@@ -26,6 +26,31 @@ test('Explorer For You keeps all recent root casts in provider order', () => {
         ['newest-nft', 'newest-discussion', 'latest-dev', 'root-ordinary']);
 });
 
+test('Explorer Conversations uses verified network replies instead of text heuristics or root posts', () => {
+    const qml = read('ui/components/FeedSurface.qml');
+    const gate = qml.match(/    function isConversation\(data\) \{([\s\S]*?)\n    \}/);
+    assert.ok(gate);
+    const isConversation = new Function('data', gate[0] + '\nreturn isConversation(data);');
+    assert.equal(isConversation({isReply: true, parentCastId: '0xparent'}), true);
+    assert.equal(isConversation({text: 'Can anyone answer this question?'}), false);
+    assert.equal(isConversation({replyCount: 25}), false);
+    assert.match(qml, /root.activeFeed === "conversations" && root.isConversation\(row\)/);
+    const gateway = read('src/providers/hypersnap/async_gateway.cpp');
+    const decoder = read('src/providers/hypersnap/codec.cpp');
+    assert.match(gateway, /feedConversationsRead\(\)/);
+    assert.match(gateway, /decodeRecentCastEvents\([\s\S]*?cursor.firstEnd, repliesOnly\)/);
+    assert.match(decoder, /if \(isReply != repliesOnly\) \{ continue; \}/);
+    assert.match(read('src/storage/read_store.cpp'), /"feed:conversations"/);
+});
+
+test('decoded images remain bounded but warm when recycled feed rows return', () => {
+    const cache = read('ui/mobile/remote_image_provider.cpp');
+    assert.match(cache, /imageCacheCapacityKiB = 96 \* 1024/);
+    assert.match(cache, /imageCacheCapacityKiB = 128 \* 1024/);
+    assert.match(cache, /rememberImage\(cacheKey, decoded.image, decoded.originalSize\)/);
+    assert.match(read('ui/components/FeedSurface.qml'), /reuseItems: true/);
+});
+
 test('explicit Explorer refresh cannot hide new casts behind the background badge', () => {
     const shell = read('ui/components/AppShell.qml');
     const cpp = read('src/presentation/qt/presentation_bridge.cpp');
@@ -62,7 +87,8 @@ test('Explorer uses confirmed Recent; Home restores personalized Following or ra
     const home = shell.split('function openHome() {')[1]
         .split('function selectHomePresentationMode(mode) {')[0];
     assert.match(explorer, /nextMode === "visuals" \? "nfts"/);
-    assert.match(explorer, /nextMode === "devs" \? "developers" : "recent"/);
+    assert.match(explorer, /nextMode === "devs" \? "developers"/);
+    assert.match(explorer, /nextMode === "conversations" \? "conversations" : "recent"/);
     assert.match(read('ui/mobile/main.cpp'), /FeedQuery::Kind::Recent/);
     assert.match(read('src/storage/read_store.cpp'), /"feed:recent"/);
     assert.doesNotMatch(explorer, /const source = presentationBridge\.isAuthenticated/);
@@ -99,7 +125,8 @@ test('Recent has independent native C++ cache, routing and Explorer presentation
     assert.match(header, /root\.discoveryFeed/);
     assert.match(empty, /root\.activeFeed === "recent"/);
     assert.match(shell, /nextMode === "visuals" \? "nfts"/);
-    assert.match(shell, /nextMode === "devs" \? "developers" : "recent"/);
+    assert.match(shell, /nextMode === "devs" \? "developers"/);
+    assert.match(shell, /nextMode === "conversations" \? "conversations" : "recent"/);
     assert.match(cpp, /recentFeed\(std::move\(query\), std::move\(completion\), options\)/);
     assert.match(cpp, /"\/v1\/events"/);
     assert.match(cpp, /"\/v2\/farcaster\/cast\/bulk"/);

@@ -7,6 +7,7 @@ Item {
 
     property string activeFeed: "trending"
     readonly property bool discoveryFeed: root.activeFeed === "trending" || root.activeFeed === "recent"
+                                          || root.activeFeed === "conversations"
     property var channelInfo: ({})
     property bool identityAvailable: false
     property bool compact: false

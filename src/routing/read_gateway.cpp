@@ -238,6 +238,8 @@ foundation::result::Result<capability::feed::FeedPage> RoutedReadGateway::feed(
         capabilityId = capability::catalog::feedDevelopersRead();
     } else if (query.kind == application::read::model::FeedQuery::Kind::Recent) {
         capabilityId = capability::catalog::feedRecentRead();
+    } else if (query.kind == application::read::model::FeedQuery::Kind::Conversations) {
+        capabilityId = capability::catalog::feedConversationsRead();
     } else if (query.kind == application::read::model::FeedQuery::Kind::Following) {
         capabilityId = capability::catalog::feedFollowingRead();
     } else if (query.kind == application::read::model::FeedQuery::Kind::Channel) {
@@ -269,6 +271,7 @@ foundation::result::Result<capability::feed::FeedPage> RoutedReadGateway::feed(
         .continuation = query.continuation,
     };
     if (query.kind == application::read::model::FeedQuery::Kind::Recent
+        || query.kind == application::read::model::FeedQuery::Kind::Conversations
         || query.kind == application::read::model::FeedQuery::Kind::Nfts
         || query.kind == application::read::model::FeedQuery::Kind::Developers) {
         return std::unexpected(foundation::error::Error::make(

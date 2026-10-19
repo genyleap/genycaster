@@ -68,6 +68,7 @@ namespace {
         return "feed:user:popular:" + std::to_string(key.fid ? key.fid->value : 0);
     }
     if (key.kind == local::read::FeedKey::Kind::Recent) { return "feed:recent"; }
+    if (key.kind == local::read::FeedKey::Kind::Conversations) { return "feed:conversations"; }
     if (key.kind == local::read::FeedKey::Kind::Nfts) { return "feed:nfts"; }
     if (key.kind == local::read::FeedKey::Kind::Developers) { return "feed:developers"; }
     return "feed:trending";

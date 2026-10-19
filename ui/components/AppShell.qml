@@ -286,7 +286,8 @@ Item {
         // Home's personal Following and ranked Trending timelines remain intact.
         // The provider owns cursor-based continuation and bulk hydration.
         const source = nextMode === "visuals" ? "nfts"
-                     : nextMode === "devs" ? "developers" : "recent"
+                     : nextMode === "devs" ? "developers"
+                     : nextMode === "conversations" ? "conversations" : "recent"
         const emptySettledSource = presentationBridge.feedStarted
                                    && !presentationBridge.isBusy
                                    && presentationBridge.rows.length === 0

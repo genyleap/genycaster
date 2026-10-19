@@ -118,6 +118,7 @@ struct ObservedAttempt final {
     case Kind::Following: return capability::catalog::feedFollowingRead();
     case Kind::Trending: return capability::catalog::feedTrendingRead();
     case Kind::Recent: return capability::catalog::feedRecentRead();
+    case Kind::Conversations: return capability::catalog::feedConversationsRead();
     case Kind::Nfts: return capability::catalog::feedNftsRead();
     case Kind::Developers: return capability::catalog::feedDevelopersRead();
     case Kind::Channel: return capability::catalog::feedChannelRead();

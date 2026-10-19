@@ -38,7 +38,8 @@ Item {
                                      && root.errorText.length === 0
     readonly property bool recoverableSourceFailure: root.runtimeReady && root.sourceUnavailable && !root.offline && !root.busy
     readonly property bool discoveryUnavailable: root.recoverableSourceFailure
-                                               && (root.activeFeed === "trending" || root.activeFeed === "recent")
+                                               && (root.activeFeed === "trending" || root.activeFeed === "recent"
+                                                   || root.activeFeed === "conversations")
     readonly property string stateIcon: root.setupFailure || root.sourceUnavailable ? Theme.iconWarning
                                         : root.offline ? Theme.iconWifi
                                         : root.idleHome ? Theme.iconProfile

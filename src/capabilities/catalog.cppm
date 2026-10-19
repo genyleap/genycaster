@@ -20,6 +20,8 @@ export namespace farcaster::capability::catalog {
 [[nodiscard]] model::CapabilityId feedTrendingRead();
 /** @brief Network-wide, strictly time-ordered confirmed cast discovery. */
 [[nodiscard]] model::CapabilityId feedRecentRead();
+/** @brief Confirmed network reply discovery, independent of root-cast Recent. */
+[[nodiscard]] model::CapabilityId feedConversationsRead();
 /** @brief NFT-themed cast discovery, independent of the chronological timeline. */
 [[nodiscard]] model::CapabilityId feedNftsRead();
 /** @brief Developer cast discovery, independent of the chronological timeline. */

@@ -596,7 +596,7 @@ decodeRecentShardInfo(const std::string_view body)
 
 foundation::result::Result<std::vector<RecentCastEvent>>
 decodeRecentCastEvents(const std::string_view body, const std::uint64_t startBlock,
-                       const std::uint64_t endBlock)
+                       const std::uint64_t endBlock, const bool repliesOnly)
 {
     auto document = parseJson(body);
     if (!document) { return std::unexpected(std::move(document.error())); }
@@ -628,8 +628,10 @@ decodeRecentCastEvents(const std::string_view body, const std::uint64_t startBlo
         if (optionalString(data->as_object(), "type") != "MESSAGE_TYPE_CAST_ADD") { continue; }
         const JsonValue* castBody = findValue(data->as_object(), "castAddBody");
         if (castBody == nullptr || !castBody->is_object()) { continue; }
-        if (const JsonValue* parent = findValue(castBody->as_object(), "parentCastId");
-            parent != nullptr && !parent->is_null()) { continue; }
+        const JsonValue* parent = findValue(castBody->as_object(), "parentCastId");
+        const bool isReply = parent != nullptr && parent->is_object()
+                             && findValue(parent->as_object(), "hash") != nullptr;
+        if (isReply != repliesOnly) { continue; }
         const auto hash = optionalString(message->as_object(), "hash");
         const auto timestamp = optionalUnsigned(data->as_object(), "timestamp");
         const auto id = optionalUnsigned(object, "id");

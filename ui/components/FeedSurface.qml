@@ -315,16 +315,9 @@ Item {
 
     function isConversation(data) {
         const row = data || ({})
-        // A reply/thread may include media; artwork does not disqualify discussion.
-        if (Boolean(row.isReply) || String(row.parentCastId || "").length > 0)
-            return true
-        if (Number(row.replyCount || 0) > 0)
-            return true
-
-        // Root casts that explicitly invite discussion belong here too, but an
-        // ordinary text-only post is not automatically a conversation.
-        const text = String(row.text || "").trim()
-        return text.length >= 32 && (/[?؟]/.test(text) || /(^|\s)@[a-z0-9._-]+/i.test(text))
+        // A conversation is a canonical reply, not a question, mention or
+        // an unrelated root post with an engagement counter.
+        return Boolean(row.isReply) || String(row.parentCastId || "").length > 0
     }
 
     function looksDeveloper(data) {
@@ -447,7 +440,7 @@ Item {
                 if (root.activeFeed === "developers" || root.looksDeveloper(row))
                     result.push({ payload: row, presentationKind: "developer" })
             } else if (root.presentationMode === "conversations") {
-                if (root.isConversation(row))
+                if (root.activeFeed === "conversations" && root.isConversation(row))
                     result.push({ payload: row, presentationKind: "conversation" })
             } else if (root.isRootPost(row)) {
                 result.push({ payload: row, presentationKind: "conversation" })

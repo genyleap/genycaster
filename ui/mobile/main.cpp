@@ -1019,6 +1019,9 @@ void applyFeedState(PresentationBridge& bridge, application::read::model::FeedSt
     case application::read::model::FeedQuery::Kind::Recent:
         selector = QStringLiteral("recent");
         break;
+    case application::read::model::FeedQuery::Kind::Conversations:
+        selector = QStringLiteral("conversations");
+        break;
     case application::read::model::FeedQuery::Kind::Nfts:
         selector = QStringLiteral("nfts");
         break;
@@ -3193,6 +3196,8 @@ void connectRuntime(
                 query.kind = application::read::model::FeedQuery::Kind::Developers;
             } else if (feed == QStringLiteral("recent")) {
                 query.kind = application::read::model::FeedQuery::Kind::Recent;
+            } else if (feed == QStringLiteral("conversations")) {
+                query.kind = application::read::model::FeedQuery::Kind::Conversations;
             } else if (feed == QStringLiteral("channel")) {
                 query.kind = application::read::model::FeedQuery::Kind::Channel;
             } else if (feed == QStringLiteral("user-posts")) {

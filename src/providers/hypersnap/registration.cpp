@@ -50,6 +50,7 @@ std::vector<capability::model::CapabilityDescriptor> capabilities()
         derivedRead(capability::catalog::feedFollowingRead()),
         derivedRead(capability::catalog::feedTrendingRead()),
         derivedRead(capability::catalog::feedRecentRead()),
+        derivedRead(capability::catalog::feedConversationsRead()),
         derivedRead(capability::catalog::feedNftsRead()),
         derivedRead(capability::catalog::feedDevelopersRead()),
         derivedRead(capability::catalog::feedChannelRead()),

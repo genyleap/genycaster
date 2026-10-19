@@ -51,7 +51,13 @@ import farcaster.presentation.media.storage_policy;
 
 namespace {
 
-constexpr int imageCacheCapacityKiB = 48 * 1024;
+// Keep recently visited feed media decoded across ListView delegate recycling.
+// Bound memory explicitly: WebAssembly has a smaller memory budget than native.
+#if defined(Q_OS_WASM)
+constexpr int imageCacheCapacityKiB = 96 * 1024;
+#else
+constexpr int imageCacheCapacityKiB = 128 * 1024;
+#endif
 constexpr int failedRequestCacheCapacity = 256;
 constexpr auto failedRequestBackoff = std::chrono::seconds{30};
 constexpr std::size_t imageDecodeWorkerCount = 2U;

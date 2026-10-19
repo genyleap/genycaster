@@ -97,7 +97,7 @@ decodeRecentShardInfo(std::string_view body);
  */
 [[nodiscard]] foundation::result::Result<std::vector<RecentCastEvent>>
 decodeRecentCastEvents(std::string_view body, std::uint64_t startBlock,
-                       std::uint64_t endBlock);
+                       std::uint64_t endBlock, bool repliesOnly = false);
 
 /** @brief Decodes the pinned Hypersnap v2 feed schema into canonical entities. */
 [[nodiscard]] foundation::result::Result<FeedPayload> decodeFeed(std::string_view body);
