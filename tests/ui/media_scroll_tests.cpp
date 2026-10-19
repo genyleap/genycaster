@@ -381,6 +381,36 @@ int main(int argc, char** argv)
     notificationFixture->setProperty("filterKind", QStringLiteral("all"));
     expect(!flag(*notificationFixture, "showState"),
            "returning to Activity restores the previously loaded reply");
+
+    // The iPhone notification regression was in the reaction summary:
+    // stacked actor avatars escaped their allocated column, a colored
+    // fill-height quote rail crossed the body, and a large link card
+    // reflowed the feed. Exercise that QML delegate, not only replies.
+    const QVariantMap reactedNotice{
+        {QStringLiteral("id"), QStringLiteral("notification-reaction-fixture")},
+        {QStringLiteral("kind"), QStringLiteral("reaction")},
+        {QStringLiteral("actor"), QStringLiteral("alice")},
+        {QStringLiteral("actorDisplayName"), QStringLiteral("Alice")},
+        {QStringLiteral("actorFid"), 1},
+        {QStringLiteral("aggregateCount"), 7},
+        {QStringLiteral("observedAtMs"), qint64{1'782'000'000'000LL}},
+        {QStringLiteral("castId"), QStringLiteral("0x") + QString(40, QLatin1Char('c'))},
+        {QStringLiteral("castText"), QStringLiteral(
+            "The page related to the token has been updated, as has its documentation.")},
+        {QStringLiteral("castEmbedUrl"), QStringLiteral("https://example.com/token")},
+        {QStringLiteral("actors"), QVariantList{
+            QVariantMap{{QStringLiteral("fid"), 1},
+                        {QStringLiteral("displayName"), QStringLiteral("Alice")}},
+            QVariantMap{{QStringLiteral("fid"), 2},
+                        {QStringLiteral("displayName"), QStringLiteral("Bob")}}}}
+    };
+    notificationFixture->setProperty("rows", QVariantList{reactedNotice});
+    QTest::qWait(90);
+    expect(!flag(*notificationFixture, "showState"),
+           "aggregated reaction with a link displays without losing its row");
+    expect(qmlWarnings.empty(),
+           "reaction summary, bounded quote and compact external link instantiate without QML warnings");
+    qmlWarnings.clear();
     notificationFixture.reset();
     images->completePending();
     expect(qmlWarnings.empty(), "notification row instantiates without Qt 6.12 QML warnings");

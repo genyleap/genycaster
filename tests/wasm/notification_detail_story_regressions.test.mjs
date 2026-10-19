@@ -62,3 +62,23 @@ test('short Add and notification category strings are translated for every suppo
         }
     }
 });
+
+test('story photo and border share superellipse geometry, with no protruding red arcs', () => {
+    const item = read('ui/components/StoryItem.qml');
+    assert.doesNotMatch(item, /PathAngleArc|ShapePath|import QtQuick.Shapes/);
+    assert.match(item, /curveDepth: root.frameCurveDepth/);
+    assert.match(item, /avatarCurveDepth: root.avatarCurveDepth/);
+    assert.match(item, /borderColor: root.addStory \|\| root.storyState === "active"/);
+});
+
+test('notification activity uses one actor, a bounded excerpt and compact tappable links', () => {
+    const ui = read('ui/components/NotificationSurface.qml');
+    assert.match(ui, /readonly property var firstActor:/);
+    assert.doesNotMatch(ui, /Repeater \{\s+model: parent.visibleActors/);
+    assert.doesNotMatch(ui, /Layout.fillHeight: true\s+color: notificationRow.kindColor/);
+    assert.match(ui, /id: castExcerpt/);
+    assert.match(ui, /maximumLineCount: castExcerpt.isEngagement \? 4 : 12/);
+    assert.match(ui, /Layout.preferredHeight: visible \? 40 : 0/);
+    assert.match(ui, /Qt.openUrlExternally\(notificationLink.linkUrl\)/);
+    assert.doesNotMatch(ui, /id: notificationLinkLoader/);
+});

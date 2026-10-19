@@ -189,10 +189,10 @@ test('stories always start with current identity; fresh Following casts use colo
     assert.match(strip, /root\.ownStoryRequested\(\)/);
     assert.match(header, /onOwnStoryRequested: root\.composeRequested\(\)/);
     assert.match(shell, /presentationBridge\.openProfileFid\(Number\(profile\.fid\)\)/);
-    assert.match(item, /import QtQuick\.Shapes/);
-    assert.match(item, /strokeColor: "#f9c43c"/);
-    assert.match(item, /strokeColor: "#f45b42"/);
-    assert.match(item, /strokeColor: "#c52db8"/);
+    assert.doesNotMatch(item, /import QtQuick\.Shapes/);
+    assert.doesNotMatch(item, /PathAngleArc|ShapePath|strokeColor: "#f45b42"/);
+    assert.match(item, /borderWidth: root\.addStory \? 1 : \(root\.storyState === "active" \? 2 : 1\)/);
+    assert.match(item, /borderColor: root\.addStory \|\| root\.storyState === "active"/);
     assert.match(item, /opacity: root\.storyState === "viewed".*0\.74/);
 });
 

@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Shapes
 
 Item {
     id: root
@@ -15,13 +14,6 @@ Item {
     property bool compact: false
 
     signal activated()
-
-    readonly property color ringColor: root.storyState === "live" ? Theme.live
-                                       : root.storyState === "special" ? Theme.positive
-                                       : root.storyState === "viewed" ? Theme.borderDefault
-                                       : Theme.story
-    readonly property real ringOpacity: root.storyState === "viewed" ? 0.34
-                                        : root.storyState === "partial" ? 0.72 : 1.0
 
     readonly property int frameSize: root.compact ? 52 : 58
     readonly property int avatarSize: root.compact ? 44 : 50
@@ -40,77 +32,16 @@ Item {
             Layout.preferredWidth: root.frameSize
             Layout.preferredHeight: root.frameSize
 
+            // The frame and the photo now share one squircle shape. Circular
+            // tri-color Shape arcs previously leaked red/yellow behind PFPs.
             Superellipse {
                 anchors.fill: parent
-                fillColor: root.addStory ? Theme.primarySurface
-                           : root.storyState === "active" ? Theme.backgroundPrimary
-                           : root.ringColor
-                borderWidth: root.addStory ? 1 : 0
-                borderColor: Theme.primaryFill
-                opacity: root.addStory ? 1.0 : root.ringOpacity
+                fillColor: root.addStory ? Theme.primarySurface : Theme.backgroundPrimary
+                borderWidth: root.addStory ? 1 : (root.storyState === "active" ? 2 : 1)
+                borderColor: root.addStory || root.storyState === "active"
+                             ? Theme.primaryFill : Theme.borderSubtle
                 exponent: 3.8
                 curveDepth: root.frameCurveDepth
-            }
-
-            // Instagram-inspired tri-color ring. Stroke arcs are GPU-native
-            // Qt Quick Shapes, not a blurred mask or a per-frame shader.
-            Shape {
-                visible: !root.addStory && root.storyState === "active"
-                anchors.fill: parent
-                preferredRendererType: Shape.CurveRenderer
-                asynchronous: false
-                ShapePath {
-                    fillColor: "transparent"
-                    strokeColor: "#f9c43c"
-                    strokeWidth: 3
-                    capStyle: ShapePath.RoundCap
-                    PathAngleArc {
-                        centerX: root.frameSize / 2
-                        centerY: root.frameSize / 2
-                        radiusX: (root.frameSize - 4) / 2
-                        radiusY: (root.frameSize - 4) / 2
-                        startAngle: -90
-                        sweepAngle: 118
-                    }
-                }
-                ShapePath {
-                    fillColor: "transparent"
-                    strokeColor: "#f45b42"
-                    strokeWidth: 3
-                    capStyle: ShapePath.RoundCap
-                    PathAngleArc {
-                        centerX: root.frameSize / 2
-                        centerY: root.frameSize / 2
-                        radiusX: (root.frameSize - 4) / 2
-                        radiusY: (root.frameSize - 4) / 2
-                        startAngle: 30
-                        sweepAngle: 118
-                    }
-                }
-                ShapePath {
-                    fillColor: "transparent"
-                    strokeColor: "#c52db8"
-                    strokeWidth: 3
-                    capStyle: ShapePath.RoundCap
-                    PathAngleArc {
-                        centerX: root.frameSize / 2
-                        centerY: root.frameSize / 2
-                        radiusX: (root.frameSize - 4) / 2
-                        radiusY: (root.frameSize - 4) / 2
-                        startAngle: 150
-                        sweepAngle: 118
-                    }
-                }
-            }
-
-            Superellipse {
-                visible: !root.addStory
-                anchors.fill: parent
-                anchors.margins: 2
-                fillColor: Theme.backgroundPrimary
-                borderWidth: 0
-                exponent: 3.8
-                curveDepth: Math.max(1, root.frameCurveDepth - 2)
             }
 
             Avatar {

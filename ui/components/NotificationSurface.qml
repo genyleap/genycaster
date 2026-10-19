@@ -124,6 +124,13 @@ Item {
         return url.startsWith("https://") && [".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif"].some(ext => path.endsWith(ext)) ? url : ""
     }
 
+    function notificationLinkHost(value) {
+        const url = String(value || "")
+        if (!/^https:\/\//i.test(url))
+            return ""
+        return url.replace(/^https:\/\/(www\.)?/i, "").split(/[/?#]/)[0]
+    }
+
     function kindTint(kind) {
         const base = root.kindColor(kind)
         return Qt.rgba(base.r, base.g, base.b, Theme.dark ? 0.17 : 0.13)
@@ -744,48 +751,63 @@ Item {
                     spacing: Theme.space2
                     layoutDirection: Theme.uiDirection
 
+                    // One legible actor portrait per notification. Aggregated
+                    // reactions already show the full count in the title; the
+                    // former avatar Repeater drew up to eight translucent faces
+                    // outside a 52px column and obscured the neighboring quote.
                     Item {
-                        readonly property var visibleActors: root.actorRows(notificationRow.modelData)
-                        Layout.preferredWidth: visibleActors.length > 1 ? (root.compact ? 52 : 60) : (root.compact ? 44 : 48)
-                        Layout.preferredHeight: root.compact ? 44 : 48
+                        readonly property var firstActor: {
+                            const actors = root.actorRows(notificationRow.modelData)
+                            return actors.length > 0 ? actors[0] : ({})
+                        }
+                        Layout.alignment: Qt.AlignTop
+                        Layout.preferredWidth: root.compact ? 42 : 46
+                        Layout.preferredHeight: root.compact ? 42 : 46
 
-                        Repeater {
-                            model: parent.visibleActors
-                            delegate: Avatar {
-                                required property var modelData
-                                required property int index
-                                readonly property int actorIndex: index
-                                avatarSize: root.compact ? 42 : 46
-                                x: Math.min(actorIndex, 2) * (root.compact ? 9 : 10)
-                                y: Math.min(actorIndex, 2) * 2
-                                sourceUrl: String(modelData.avatarUrl || "")
-                                displayName: String(modelData.displayName || modelData.username || "")
-                                z: 3 - Math.min(actorIndex, 2)
-
-                                TapHandler {
-                                    enabled: Number(modelData.fid || 0) > 0
-                                    onTapped: root.profileRequested(Number(modelData.fid || 0))
-                                }
-                            }
+                        Avatar {
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            avatarSize: root.compact ? 40 : 44
+                            sourceUrl: String(parent.firstActor.avatarUrl || "")
+                            displayName: String(parent.firstActor.displayName
+                                                || parent.firstActor.username || "")
                         }
 
-                        // Keep the notification category visible without a
-                        // circular badge behind the actual profile picture.
-                        Icon {
+                        // Icon belongs to the avatar, never to the cast body.
+                        Superellipse {
+                            width: 19
+                            height: 19
                             anchors.right: parent.right
                             anchors.bottom: parent.bottom
-                            anchors.rightMargin: -2
-                            anchors.bottomMargin: -2
-                            text: notificationRow.kindGlyph
-                            color: notificationRow.kindColor
-                            preferredSize: root.compact ? 15 : 17
-                            z: 6
+                            fillColor: Theme.backgroundPrimary
+                            borderWidth: 1
+                            borderColor: Theme.borderSubtle
+                            curveDepth: 8
+                            Icon {
+                                anchors.centerIn: parent
+                                text: notificationRow.kindGlyph
+                                color: notificationRow.kindColor
+                                preferredSize: 12
+                            }
                         }
                     }
 
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: Theme.space1
+
+                        // Give the activity title the full column width. On
+                        // narrow phones a trailing timestamp in the same row
+                        // squeezed long aggregated names into three lines.
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: root.kindTitle(notificationRow.modelData)
+                            color: Theme.textPrimary
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
+                            lineHeight: 1.22
+                            wrapMode: Text.Wrap
+                        }
 
                         RowLayout {
                             Layout.fillWidth: true
@@ -794,36 +816,23 @@ Item {
 
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: root.kindTitle(notificationRow.modelData)
-                                color: Theme.textPrimary
-                                font.pixelSize: Theme.typeLabelSize
-                                font.weight: Theme.weightDemiBold
-                                lineHeight: 1.3
-                                wrapMode: Text.Wrap
+                                text: (String(notificationRow.modelData.actor || "").length > 0
+                                        ? "@" + String(notificationRow.modelData.actor || "").replace(/^@/, "")
+                                        : "")
+                                      + (String(notificationRow.modelData.castChannel || "").length > 0
+                                         ? "  ·  #" + String(notificationRow.modelData.castChannel)
+                                         : "")
+                                color: Theme.textTertiary
+                                font.pixelSize: Theme.typeCaptionSize
+                                elide: Text.ElideRight
                             }
 
                             DirectionAwareLabel {
-                                Layout.alignment: Qt.AlignTop
-                                Layout.topMargin: 2
+                                Layout.alignment: Qt.AlignVCenter
                                 text: LocaleFormat.formatTimestamp(Number(notificationRow.modelData.observedAtMs || 0))
                                 color: Theme.textTertiary
                                 font.pixelSize: Theme.typeCaptionSize
                             }
-                        }
-
-                        DirectionAwareLabel {
-                            visible: String(notificationRow.modelData.actor || "").length > 0
-                                     || String(notificationRow.modelData.castChannel || "").length > 0
-                            Layout.fillWidth: true
-                            text: (String(notificationRow.modelData.actor || "").length > 0
-                                   ? "@" + String(notificationRow.modelData.actor || "").replace(/^@/, "")
-                                   : "")
-                                  + (String(notificationRow.modelData.castChannel || "").length > 0
-                                     ? "  ·  #" + String(notificationRow.modelData.castChannel)
-                                     : "")
-                            color: Theme.textTertiary
-                            font.pixelSize: Theme.typeCaptionSize
-                            elide: Text.ElideRight
                         }
 
                         RowLayout {
@@ -850,35 +859,35 @@ Item {
                             }
                         }
 
-                        // Replies/mentions are messages, not previews of
-                        // messages. Show the full body inline, as social
-                        // activity timelines do. Reactions quote the source.
-                        RowLayout {
+                        // Distinguish the quoted cast from the activity title
+                        // using a quiet surface, not a full-height pink rail.
+                        // A rail inside a RowLayout with fillHeight inherited
+                        // the entire delegate height, crossing media and text.
+                        Superellipse {
+                            id: castExcerpt
+                            readonly property bool isEngagement: notificationRow.kindKey === "reaction"
+                                                                 || notificationRow.kindKey === "recast"
                             visible: String(notificationRow.modelData.castText || "").length > 0
                             Layout.fillWidth: true
                             Layout.topMargin: Theme.space2
-                            spacing: Theme.space2
-                            layoutDirection: Theme.uiDirection
-
-                            Rectangle {
-                                visible: notificationRow.kindKey === "reaction"
-                                         || notificationRow.kindKey === "recast"
-                                Layout.preferredWidth: visible ? 3 : 0
-                                Layout.fillHeight: true
-                                color: notificationRow.kindColor
-                                radius: 1
-                            }
+                            Layout.preferredHeight: visible
+                                ? excerptText.implicitHeight + Theme.space2 * 2 : 0
+                            fillColor: Theme.surfaceMuted
+                            borderWidth: 0
+                            curveDepth: Theme.curveCompact
 
                             DirectionAwareLabel {
-                                Layout.fillWidth: true
+                                id: excerptText
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.margins: Theme.space2
                                 text: String(notificationRow.modelData.castText || "")
-                                color: notificationRow.kindKey === "reaction"
-                                       || notificationRow.kindKey === "recast"
-                                       ? Theme.textSecondary : Theme.textPrimary
+                                color: castExcerpt.isEngagement ? Theme.textSecondary : Theme.textPrimary
                                 font.pixelSize: Theme.typeBodySize
                                 wrapMode: Text.Wrap
-                                // Never turn an actual reply into "tipped..."
-                                // merely because it exceeded three lines.
+                                maximumLineCount: castExcerpt.isEngagement ? 4 : 12
+                                elide: Text.ElideRight
                             }
                         }
 
@@ -900,21 +909,51 @@ Item {
                             borderWidth: 0
                         }
 
-                        // Do not instantiate a metadata-heavy preview for
-                        // notifications without a genuine external link.
-                        Loader {
-                            id: notificationLinkLoader
+                        // Notifications should show an actionable reference,
+                        // not reserve a 172px media/link card for a URL whose
+                        // metadata often has no thumbnail. Keep the full link
+                        // discoverable without pushing the next activity away.
+                        Superellipse {
+                            id: notificationLink
                             readonly property string linkUrl: String(
                                 notificationRow.modelData.castEmbedUrl || "")
-                            active: linkUrl.length > 0
-                                    && root.notificationImageUrl(linkUrl).length === 0
-                            visible: active
+                            readonly property string host: root.notificationLinkHost(linkUrl)
+                            visible: host.length > 0
+                                     && root.notificationImageUrl(linkUrl).length === 0
                             Layout.fillWidth: true
-                            Layout.preferredHeight: active && item ? item.implicitHeight : 0
-                            sourceComponent: LinkPreview {
-                                embed: ({ url: notificationLinkLoader.linkUrl })
-                                compact: root.compact
-                                scrollHost: list
+                            Layout.preferredHeight: visible ? 40 : 0
+                            fillColor: Theme.surfaceMuted
+                            borderColor: Theme.borderSubtle
+                            borderWidth: 1
+                            curveDepth: Theme.curveCompact
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: Theme.space2
+                                anchors.rightMargin: Theme.space2
+                                spacing: Theme.space2
+                                Icon {
+                                    text: Theme.iconLink
+                                    color: Theme.textTertiary
+                                    preferredSize: 16
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: notificationLink.host
+                                    elide: Text.ElideMiddle
+                                    color: Theme.textSecondary
+                                    font.pixelSize: Theme.typeMetaSize
+                                }
+                                Icon {
+                                    text: Theme.iconArrowUpRight
+                                    color: Theme.textTertiary
+                                    preferredSize: 14
+                                }
+                            }
+
+                            TapHandler {
+                                gesturePolicy: TapHandler.ReleaseWithinBounds
+                                onTapped: Qt.openUrlExternally(notificationLink.linkUrl)
                             }
                         }
 
