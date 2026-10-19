@@ -263,6 +263,9 @@ int main(int argc, char** argv)
         import QtQml
         QtObject {
             property int revision: 0
+            property int accountFid: 0
+            property bool isAuthenticated: false
+            property var bookmarkedCastIds: []
             property string errorText: ""
             property string launchUrl: ""
             property var myApps: []
@@ -301,11 +304,62 @@ int main(int argc, char** argv)
     const int tokenSemanticType = qmlRegisterSingletonType(
         QUrl::fromLocalFile(QStringLiteral(MEDIA_COMPONENT_DIRECTORY "/TokenSemantic.qml")),
         "Farcaster.Client", 1, 0, "TokenSemantic");
+    // Production registers these QML singletons through qt_add_qml_module.
+    // This isolated Native test loads the same sources directly, so it must
+    // register the same singleton contracts before constructing CastItem.
+    const int castViewsType = qmlRegisterSingletonType(
+        QUrl::fromLocalFile(QStringLiteral(MEDIA_COMPONENT_DIRECTORY "/CastViews.qml")),
+        "Farcaster.Client", 1, 0, "CastViews");
+    const int castReactionsType = qmlRegisterSingletonType(
+        QUrl::fromLocalFile(QStringLiteral(MEDIA_COMPONENT_DIRECTORY "/CastReactions.qml")),
+        "Farcaster.Client", 1, 0, "CastReactions");
     auto* theme = engine.singletonInstance<QObject*>(themeType);
     expect(theme != nullptr, "production theme singleton loads");
     context->setContextProperty(QStringLiteral("Theme"), theme);
     context->setContextProperty(QStringLiteral("LocaleFormat"), engine.singletonInstance<QObject*>(localeType));
     context->setContextProperty(QStringLiteral("TokenSemantic"), engine.singletonInstance<QObject*>(tokenSemanticType));
+    auto* castViews = engine.singletonInstance<QObject*>(castViewsType);
+    auto* castReactions = engine.singletonInstance<QObject*>(castReactionsType);
+    expect(castViews != nullptr && castReactions != nullptr,
+           "production view/reaction singletons are registered for Native UI tests");
+    context->setContextProperty(QStringLiteral("CastViews"), castViews);
+    context->setContextProperty(QStringLiteral("CastReactions"), castReactions);
+
+    // Explicitly parse EmbedPreview with QQmlEngine rather than relying on
+    // qmlcache compilation, which cannot catch missing attached imports.
+    QQmlComponent embedDefinition{
+        &engine, QUrl::fromLocalFile(
+            QStringLiteral(MEDIA_COMPONENT_DIRECTORY "/EmbedPreview.qml"))};
+    expect(embedDefinition.isReady(), qPrintable(embedDefinition.errorString()));
+
+    // Fast, genuine QQmlEngine load test for the entire same dependency
+    // chain that has caused macOS's QQmlApplicationEngine white screen.
+    // Keep it independent of the long rendering/scroll assertions below:
+    // a media geometry regression must not mask an import/attached-property
+    // error at application startup.
+    if (qEnvironmentVariableIsSet("GENYCASTER_QML_IMPORT_SMOKE_ONLY")) {
+        const QStringList components{
+            QStringLiteral("EmbedPreview"),
+            QStringLiteral("RichCastRenderer"),
+            QStringLiteral("CastItem"),
+            QStringLiteral("ConversationRow"),
+            QStringLiteral("SemanticFeedItem"),
+            QStringLiteral("FeedSurface"),
+            QStringLiteral("AppShell"),
+        };
+        for (const auto& name : components) {
+            QQmlComponent definition{
+                &engine, QUrl::fromLocalFile(
+                    QStringLiteral(MEDIA_COMPONENT_DIRECTORY "/") + name
+                    + QStringLiteral(".qml"))};
+            if (!definition.isReady()) {
+                qWarning().noquote() << "Native QML import failure" << name
+                                     << definition.errorString();
+                return 1;
+            }
+        }
+        return 0;
+    }
 
     // Catch import/assignment failures in a transitive AppShell dependency
     // before shipping WASM. In particular GridLayout has rowSpacing and

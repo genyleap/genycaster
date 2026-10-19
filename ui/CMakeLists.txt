@@ -1168,6 +1168,13 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
         PREFIX "/qt/qml/Farcaster/Client/assets/icons/genyleap"
         BASE "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/genyleap"
         FILES ${_genyleapIconSystemFiles})
+    # Parse the complete native startup QML dependency chain with a real
+    # QQmlEngine. qmlcache compilation alone misses unknown attached objects
+    # such as Layout.minimumWidth without import QtQuick.Layouts.
+    add_test(NAME ui.qml_import_smoke COMMAND farcaster_media_scroll_tests)
+    set_tests_properties(ui.qml_import_smoke PROPERTIES TIMEOUT 20
+        LABELS "ui;smoke;qml;native"
+        ENVIRONMENT "QT_QPA_PLATFORM=${farcasterHeadlessPlatform};QT_QUICK_BACKEND=software;QT_QUICK_CONTROLS_STYLE=Basic;QT_FATAL_WARNINGS=1;GENYCASTER_QML_IMPORT_SMOKE_ONLY=1")
     add_test(NAME ui.media_scroll COMMAND farcaster_media_scroll_tests)
     set_tests_properties(ui.media_scroll PROPERTIES TIMEOUT 45
         LABELS "ui;media;scroll"
