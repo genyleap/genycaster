@@ -131,7 +131,7 @@ ColumnLayout {
                 id: replyContent
                 anchors.fill: parent
                 anchors.margins: root.compact ? Theme.space3 : Theme.space4
-                spacing: Theme.space2
+                spacing: Theme.space3
 
             RowLayout {
                 Layout.fillWidth: true

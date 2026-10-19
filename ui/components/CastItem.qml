@@ -411,7 +411,7 @@ Item {
         Item {
             id: messageSurface
             Layout.fillWidth: true
-            implicitHeight: messageContent.implicitHeight + Theme.space3 * 2
+            implicitHeight: messageContent.implicitHeight + Theme.space4 * 2
 
             // All feed families share one soft superellipse surface. Keeping
             // the wrapper outside media Loaders preserves delegate reuse.
@@ -428,10 +428,10 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.leftMargin: Theme.space3
-                anchors.rightMargin: Theme.space3
-                anchors.topMargin: Theme.space3
-                anchors.bottomMargin: Theme.space3
+                anchors.leftMargin: Theme.space4
+                anchors.rightMargin: Theme.space4
+                anchors.topMargin: Theme.space4
+                anchors.bottomMargin: Theme.space4
                 spacing: Theme.space2
                 layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
 

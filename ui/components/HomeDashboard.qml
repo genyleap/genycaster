@@ -85,7 +85,7 @@ Item {
         property string iconGlyph: Theme.iconLeaf
         signal clicked()
 
-        implicitHeight: root.compact ? 168 : 150
+        implicitHeight: root.compact ? 176 : 156
         fillColor: tileMouse.pressed ? Theme.surfacePressed
                                      : tileMouse.containsMouse ? Theme.surfaceHover : Theme.surface
         borderWidth: 1
@@ -99,8 +99,8 @@ Item {
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: Theme.space3
-            spacing: Theme.space2
+            anchors.margins: Theme.space4
+            spacing: Theme.space3
 
             RowLayout {
                 Layout.fillWidth: true
@@ -401,8 +401,8 @@ Item {
                 Layout.leftMargin: Theme.space3
                 Layout.rightMargin: Theme.space3
                 columns: 2
-                columnSpacing: Theme.space2
-                rowSpacing: Theme.space2
+                columnSpacing: Theme.space3
+                rowSpacing: Theme.space3
                 layoutDirection: Theme.uiDirection
 
                 ActionTile {
