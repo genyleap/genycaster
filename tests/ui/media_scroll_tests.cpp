@@ -819,6 +819,25 @@ int main(int argc, char** argv)
         reactionFeedRow = rows.front();
         return true;
     }), "feed constructs one stable delegate for reaction test row");
+    // Verify a click on the actual, lazy-instantiated feed delegate reaches
+    // the application-facing reply signal even for unsigned/read-only feeds.
+    // The shell then owns authentication/signer and canonical hash validation.
+    QSignalSpy requestedReply{reactionFeed.get(), SIGNAL(replyRequested(QVariant))};
+    QObject* replyButton = nullptr;
+    expect(QTest::qWaitFor([&] {
+        replyButton = reactionFeedRow
+            ? reactionFeedRow->findChild<QObject*>(QStringLiteral("castReplyButton"))
+            : nullptr;
+        return replyButton != nullptr;
+    }), "feed delegate exposes its actual reply action");
+    if (replyButton) {
+        expect(QMetaObject::invokeMethod(replyButton, "clicked"),
+            "pressing the feed reply button dispatches a click");
+        expect(requestedReply.count() == 1
+                   && requestedReply.at(0).at(0).toMap().value(QStringLiteral("castId")).toString()
+                          == QStringLiteral("reaction-row"),
+            "reply event carries the exact cast payload to the shell");
+    }
     auto reactionPayload = [&]() {
         return reactionFeedRow ? reactionFeedRow->property("payload").toMap() : QVariantMap{};
     };

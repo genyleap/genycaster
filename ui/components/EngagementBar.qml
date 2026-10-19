@@ -30,6 +30,7 @@ RowLayout {
     Accessible.description: qsTrId("genycaster.engagement.value_replies").arg(LocaleFormat.formatInteger(root.replyCount))
 
     EngagementButton {
+        objectName: "castReplyButton"
         iconGlyph: Theme.iconReply
         metricText: root.replyCount > 0 ? LocaleFormat.formatInteger(root.replyCount) : ""
         enabled: true
