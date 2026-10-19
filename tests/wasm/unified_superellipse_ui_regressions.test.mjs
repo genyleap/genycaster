@@ -4,11 +4,14 @@ import {readFileSync} from 'node:fs';
 
 const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 
-test('shared superellipse interaction chips retain full mobile touch targets', () => {
+test('reaction actions have touch-safe hit targets without permanent card borders', () => {
     const button = read('ui/components/EngagementButton.qml');
     const bar = read('ui/components/EngagementBar.qml');
     assert.match(button, /implicitHeight: Theme.touchTarget/);
-    assert.match(button, /fillColor: control.active \? Theme.surfaceSelected/);
+    assert.match(button, /fillColor: control.down \? Theme.surfacePressed/);
+    assert.match(button, /: "transparent"/);
+    assert.match(button, /borderWidth: Theme.keyboardFocusVisible\(control\) \? 2 : 0/);
+    assert.match(button, /property color activeColor: Theme.accent/);
     assert.match(button, /curveDepth: Theme.curveControl/);
     assert.doesNotMatch(button, /containmentMask:\s*background/);
     for (const kind of ['castReplyButton','castQuoteButton','castViewCount'])
@@ -40,7 +43,10 @@ test('replies and nested replies share real threaded connector and padded cards'
     assert.match(thread, /anchors.margins: root.compact \? Theme.space3 : Theme.space4/);
     assert.match(thread, /source: Qt.resolvedUrl\("ThreadReplyItem.qml"\)/);
     assert.match(thread, /onQuoteRequested: root.quoteRequested\(root.reply\)/);
-    assert.match(rail, /borderColor: Theme.accent/);
+    assert.match(rail, /borderColor: root.highlighted \? Theme.accent : Theme.borderStrong/);
+    assert.match(rail, /curveDepth: width \/ 2/);
+    assert.match(rail, /exponent: 2.01/);
+    assert.doesNotMatch(rail, /Rectangle \{/);
     assert.match(rail, /anchors.bottom: parent.bottom/);
 });
 

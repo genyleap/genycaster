@@ -16,12 +16,10 @@ RowLayout {
     property bool likeInteractive: false
     property bool recastedByMe: false
     property bool likedByMe: false
-    // Keep the original per-cast contextual reactions. Render the contextual
-    // glyph within the same small, square engagement hit target as a heart.
+    // Context stays available for future protocol-specific reactions, but the
+    // primary Like action always uses one recognisable heart across all feeds.
     property string contextText: ""
-    readonly property string contextualLikeIcon: presentationBridge.contextualReactionIcon(root.contextText)
-    readonly property string displayedLikeIcon: root.likedByMe && root.contextualLikeIcon === "actions/heart"
-                                                 ? "actions/heart-filled" : root.contextualLikeIcon
+    readonly property string displayedLikeIcon: Theme.iconHeart
 
     signal replyRequested()
     signal quoteRequested()
@@ -48,6 +46,7 @@ RowLayout {
         iconGlyph: Theme.iconRepost
         metricText: root.recastCount > 0 ? LocaleFormat.formatInteger(root.recastCount) : ""
         active: root.recastedByMe
+        activeColor: Theme.positive
         enabled: true
         Accessible.name: root.recastedByMe
                          ? qsTrId("genycaster.engagement.undo_recast_value_recasts").arg(LocaleFormat.formatInteger(root.recastCount))
@@ -57,6 +56,8 @@ RowLayout {
 
     EngagementButton {
         iconGlyph: root.displayedLikeIcon
+        iconFilled: root.likedByMe
+        activeColor: Theme.negative
         metricText: root.likeCount > 0 ? LocaleFormat.formatInteger(root.likeCount) : ""
         active: root.likedByMe
         enabled: true

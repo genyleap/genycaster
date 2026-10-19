@@ -711,9 +711,10 @@ Item {
 
                         Icon {
                             visible: root.hasParentCast
+                            Layout.alignment: Qt.AlignVCenter
                             text: root.contentRtl ? Theme.iconArrowLeft : Theme.iconArrowRight
-                            color: Theme.inkSubtle
-                            preferredSize: Theme.typeCaptionSize
+                            color: Theme.textTertiary
+                            preferredSize: Theme.iconSizeSmall
                         }
                     }
 

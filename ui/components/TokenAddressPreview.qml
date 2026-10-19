@@ -13,6 +13,14 @@ Superellipse {
     property bool tokenLoading: false
     property string tokenError: ""
     property string requestedLocator: ""
+    property bool addressCopied: false
+
+    Timer {
+        id: copiedAddressTimer
+        interval: 1500
+        repeat: false
+        onTriggered: root.addressCopied = false
+    }
 
     readonly property bool available: Boolean(root.snapshot.available)
     readonly property string network: String(root.snapshot.network || root.locator.split(":")[0] || "")
@@ -116,6 +124,7 @@ Superellipse {
     Component.onCompleted: reload()
     onLocatorChanged: {
         root.expanded = false
+        root.addressCopied = false
         root.requestedLocator = ""
         reload()
     }
@@ -272,7 +281,12 @@ Superellipse {
                     Layout.fillWidth: true
                     LayoutMirroring.enabled: false
                     text: root.available && root.priceKnown ? root.money(root.snapshot.priceUsd) : "—"
-                    color: Theme.textPrimary
+                    // Color only confirmed price direction; never infer a
+                    // green/red market move from missing provider data.
+                    color: root.changeKnown && root.priceKnown && root.change24h > 0
+                           ? Theme.positive
+                           : root.changeKnown && root.priceKnown && root.change24h < 0
+                             ? Theme.negative : Theme.textPrimary
                     font.family: Theme.fontFamilyForText(text)
                     font.pixelSize: root.narrow ? Theme.typeTitle2Size : Theme.typeTitle1Size
                     font.weight: Theme.weightBold
@@ -389,7 +403,7 @@ Superellipse {
         Superellipse {
             visible: root.expanded
             Layout.fillWidth: true
-            implicitHeight: 38
+            implicitHeight: Theme.touchTarget
             fillColor: Theme.surfaceMuted
             borderWidth: Theme.strokeHairline
             borderColor: Theme.borderSubtle
@@ -397,7 +411,7 @@ Superellipse {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: Theme.space2
+                anchors.leftMargin: Theme.space3
                 anchors.rightMargin: Theme.space1
                 layoutDirection: Theme.uiDirection
                 spacing: Theme.space1
@@ -415,15 +429,19 @@ Superellipse {
                 }
 
                 ActionButton {
-                    Layout.preferredWidth: implicitHeight
-                    Layout.preferredHeight: implicitHeight
+                    Layout.preferredWidth: Theme.touchTarget
+                    Layout.preferredHeight: Theme.touchTarget
                     compact: true
                     quiet: true
                     iconOnly: true
-                    iconGlyph: Theme.iconCopy
-                    text: qsTrId("genycaster.embed.open_link")
+                    iconGlyph: root.addressCopied ? Theme.iconCheck : Theme.iconCopy
+                    text: qsTrId("genycaster.feedback.copy")
                     enabled: root.address.length > 0
-                    onClicked: presentationBridge.copyText(root.address)
+                    onClicked: {
+                        presentationBridge.copyText(root.address)
+                        root.addressCopied = true
+                        copiedAddressTimer.restart()
+                    }
                 }
             }
         }

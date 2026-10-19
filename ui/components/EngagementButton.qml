@@ -9,6 +9,8 @@ Button {
     property string iconGlyph: ""
     property string metricText: ""
     property bool active: false
+    // Each reaction keeps its semantic color: likes red, reposts green.
+    property color activeColor: Theme.accent
     property bool iconFilled: false
     property real iconSize: Theme.iconSizeSmall
 
@@ -45,32 +47,32 @@ Button {
             clip: true
             text: control.iconGlyph
             filled: control.iconFilled
-            color: control.active ? Theme.accent : (control.enabled ? Theme.inkMuted : Theme.inkDisabled)
+            color: control.active ? control.activeColor : (control.enabled ? Theme.inkMuted : Theme.inkDisabled)
             preferredSize: control.iconSize
         }
 
         Label {
             visible: control.metricText.length > 0
             text: control.metricText
-            color: control.active ? Theme.accent : (control.enabled ? Theme.inkMuted : Theme.inkDisabled)
+            color: control.active ? control.activeColor : (control.enabled ? Theme.inkMuted : Theme.inkDisabled)
             font.family: Theme.fontFamily
             font.pixelSize: Theme.typeCaptionSize
             font.weight: control.active ? Theme.weightDemiBold : Theme.weightMedium
         }
     }
 
-    // Same touch-safe superellipse action chips in timelines and threads.
-    // The canvas is intentionally opaque enough to separate adjacent actions
-    // without expensive per-delegate shadows during WebAssembly scrolling.
+    // Keep the complete touch target, but do not draw a permanent box around
+    // every reaction. A subtle selected tint is enough; focus remains visible.
     background: Superellipse {
         anchors.fill: parent
         anchors.margins: 1
-        fillColor: control.active ? Theme.surfaceSelected
-                   : control.down ? Theme.surfacePressed : Theme.surfaceRaised
-        borderWidth: Theme.keyboardFocusVisible(control) ? 2 : Theme.strokeHairline
-        borderColor: Theme.keyboardFocusVisible(control) ? Theme.focus
-                     : control.active ? Theme.accent : Theme.borderSubtle
+        fillColor: control.down ? Theme.surfacePressed
+                   : control.active ? Qt.rgba(control.activeColor.r, control.activeColor.g,
+                                              control.activeColor.b, Theme.dark ? 0.16 : 0.075)
+                   : "transparent"
+        borderWidth: Theme.keyboardFocusVisible(control) ? 2 : 0
+        borderColor: Theme.focus
         curveDepth: Theme.curveControl
-        shadowColor: Theme.keyboardFocusVisible(control) ? Theme.focusHalo : Theme.shadow
+        shadowEnabled: false
     }
 }

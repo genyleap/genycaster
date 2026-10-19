@@ -19,6 +19,9 @@ Item {
     // draft and its actions visible rather than squeezing the full dashboard
     // and floating dock into the remaining height.
     readonly property bool composerFocused: mobileDraftEditor.activeFocus
+    // A phone's usable height excludes the shell header and floating dock.
+    // Fit the hero, four shortcuts and composer above the dock on short screens.
+    readonly property bool densePhone: root.compact && root.height < 840
     // Dismiss the draft editor without discarding its contents.
     TapHandler {
         enabled: root.compact && root.composerFocused
@@ -85,7 +88,7 @@ Item {
         property string iconGlyph: Theme.iconLeaf
         signal clicked()
 
-        implicitHeight: root.compact ? 176 : 156
+        implicitHeight: root.compact ? (root.densePhone ? 148 : 170) : 156
         fillColor: tileMouse.pressed ? Theme.surfacePressed
                                      : tileMouse.containsMouse ? Theme.surfaceHover : Theme.surface
         borderWidth: 1
@@ -99,8 +102,8 @@ Item {
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: Theme.space4
-            spacing: Theme.space3
+            anchors.margins: root.densePhone ? Theme.space3 : Theme.space4
+            spacing: root.densePhone ? Theme.space2 : Theme.space3
 
             RowLayout {
                 Layout.fillWidth: true
@@ -345,7 +348,8 @@ Item {
         anchors.fill: parent
         contentWidth: width
         contentHeight: mobileColumn.implicitHeight
-                       + (root.composerFocused ? Theme.space4 : 108)
+                       + (root.composerFocused ? Theme.space4
+                          : Math.max(108, Theme.touchTarget + Theme.space6 * 2))
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         ScrollBar.vertical: GenyScrollBar { policy: ScrollBar.AlwaysOff }
@@ -363,21 +367,22 @@ Item {
         ColumnLayout {
             id: mobileColumn
             width: parent.width
-            spacing: Theme.space3
+            spacing: root.densePhone ? Theme.space2 : Theme.space3
             // Keep the focused composer clear of the fixed application header
             // even after the navigation tiles are hidden by the keyboard.
-            Item { Layout.preferredHeight: root.composerFocused ? Theme.space4 : Theme.space3 }
+            Item { Layout.preferredHeight: root.composerFocused ? Theme.space4
+                                                  : root.densePhone ? Theme.space1 : Theme.space3 }
             Superellipse {
                 visible: !root.composerFocused
                 Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: 80
-                Layout.preferredHeight: 80
+                Layout.preferredWidth: root.densePhone ? 60 : 80
+                Layout.preferredHeight: Layout.preferredWidth
                 fillColor: "transparent"
                 borderWidth: 0
-                curveDepth: 28
+                curveDepth: width / 2
                 Avatar {
                     anchors.centerIn: parent
-                    avatarSize: 76
+                    avatarSize: root.densePhone ? 56 : 76
                     sourceUrl: root.avatarUrl
                     displayName: root.displayName || root.username
                     visible: root.authenticated && root.avatarUrl.length > 0
@@ -386,11 +391,11 @@ Item {
                     anchors.centerIn: parent
                     text: Theme.iconLeaf
                     color: Theme.accent
-                    preferredSize: 50
+                    preferredSize: root.densePhone ? 38 : 50
                     visible: !root.authenticated || root.avatarUrl.length === 0
                 }
             }
-            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.width < 420 ? Theme.typeTitle1Size : Theme.typeDisplaySize; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
+            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.densePhone ? Theme.typeTitle1Size : Theme.typeDisplaySize; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
             DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.prompt"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }
 
             // Phone: a true two-column navigation grid. All four targets
@@ -401,8 +406,8 @@ Item {
                 Layout.leftMargin: Theme.space3
                 Layout.rightMargin: Theme.space3
                 columns: 2
-                columnSpacing: Theme.space3
-                rowSpacing: Theme.space3
+                columnSpacing: root.densePhone ? Theme.space2 : Theme.space3
+                rowSpacing: root.densePhone ? Theme.space2 : Theme.space3
                 layoutDirection: Theme.uiDirection
 
                 ActionTile {
@@ -448,18 +453,19 @@ Item {
                 borderWidth: mobileDraftEditor.activeFocus ? Theme.strokeEmphasis : 1
                 borderColor: mobileDraftEditor.activeFocus ? Theme.accent : Theme.borderMuted
                 curveDepth: Theme.curveModal
-                implicitHeight: mobileComposer.implicitHeight + Theme.space4 * 2
+                implicitHeight: mobileComposer.implicitHeight
+                                + (root.densePhone ? Theme.space3 : Theme.space4) * 2
                 ColumnLayout {
                     id: mobileComposer
                     anchors.fill: parent
-                    anchors.margins: Theme.space4
+                    anchors.margins: root.densePhone ? Theme.space3 : Theme.space4
                     spacing: Theme.space3
                     TextArea {
                         id: mobileDraftEditor
                         objectName: "homeMobileDraftEditor"
                         ContextMenu.menu: EditorContextMenu { editor: mobileDraftEditor }
                         Layout.fillWidth: true
-                        implicitHeight: 92
+                        implicitHeight: root.densePhone ? 62 : 92
                         text: root.draftText
                         placeholderText: qsTrId("genycaster.home.composer_placeholder")
                         wrapMode: TextEdit.Wrap

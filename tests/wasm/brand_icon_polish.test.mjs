@@ -4,12 +4,14 @@ import {readFileSync} from "node:fs";
 
 const read = name => readFileSync(new URL("../../"+name,import.meta.url),"utf8");
 
-test("Like retains contextual cast reactions with heart-filled default",()=>{
+test("Like uses a consistent semantic heart with red selection in every Cast",()=>{
     const bar=read("ui/components/EngagementBar.qml");
-    assert.match(bar,/contextualLikeIcon: presentationBridge\.contextualReactionIcon\(root\.contextText\)/);
-    assert.match(bar,/root\.likedByMe && root\.contextualLikeIcon === "actions\/heart"/);
+    assert.match(bar,/readonly property string displayedLikeIcon: Theme\.iconHeart/);
     assert.match(bar,/iconGlyph: root\.displayedLikeIcon/);
-    assert.match(bar,/"actions\/heart-filled"/);
+    assert.match(bar,/iconFilled: root\.likedByMe/);
+    assert.match(bar,/activeColor: Theme\.negative/);
+    assert.match(bar,/activeColor: Theme\.positive/);
+    assert.doesNotMatch(bar,/contextualLikeIcon: presentationBridge\.contextualReactionIcon/);
 });
 
 test("Home greeting displays authenticated account avatar and DNA for guests",()=>{
@@ -17,7 +19,8 @@ test("Home greeting displays authenticated account avatar and DNA for guests",()
     const shell=read("ui/components/AppShell.qml");
     assert.match(shell,/avatarUrl: presentationBridge\.accountAvatarUrl/);
     assert.match(shell,/authenticated: presentationBridge\.isAuthenticated/);
-    assert.equal((home.match(/avatarSize: (62|76)/g)||[]).length,2);
+    assert.match(home,/avatarSize: 62/);
+    assert.match(home,/avatarSize: root\.densePhone \? 56 : 76/);
     assert.equal((home.match(/sourceUrl: root\.avatarUrl/g)||[]).length,2);
     assert.equal((home.match(/visible: root\.authenticated && root\.avatarUrl\.length > 0/g)||[]).length,2);
     assert.equal((home.match(/visible: !root\.authenticated \|\| root\.avatarUrl\.length === 0/g)||[]).length,2);
