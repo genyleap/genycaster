@@ -7,7 +7,7 @@ Item {
     property string currentMode: "for-you"
     signal modeRequested(string mode)
 
-    implicitHeight: 44
+    implicitHeight: 48
 
     readonly property var tabModel: [
         { id: "for-you", label: qsTrId("genycaster.home.for_you") },
@@ -32,6 +32,16 @@ Item {
                 readonly property bool selected: String(modelData.id) === root.currentMode
 
                 HoverHandler { id: hover }
+
+                Superellipse {
+                    anchors.fill: parent
+                    anchors.margins: Theme.space1
+                    fillColor: tabButton.selected ? Theme.surfaceSelected
+                               : hover.hovered ? Theme.surfaceHover : "transparent"
+                    borderWidth: tabButton.selected ? Theme.strokeHairline : 0
+                    borderColor: tabButton.selected ? Theme.accent : Theme.borderSubtle
+                    curveDepth: Theme.curveControl
+                }
 
                 Text {
                     anchors.fill: parent

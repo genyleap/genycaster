@@ -105,7 +105,7 @@ test('unknown impressions never become fabricated zero views', () => {
 test('newest activity is tinted and grouped actors get a separate nonoverlapping portrait row', () => {
     const qml = read('ui/components/NotificationSurface.qml');
     assert.match(qml, /readonly property bool latestActivity:/);
-    assert.match(qml, /notificationRow\.latestActivity \? root\.kindTint\(notificationRow\.kindKey\)/);
+    assert.match(qml, /notificationRow\.latestActivity \? Theme.surfaceSelected/);
     assert.match(qml, /return Theme\.surfaceSelected/);
     assert.match(qml, /return Theme\.accent/);
     assert.match(qml, /avatarSpacing: root\.compact \? 7 : 10/);

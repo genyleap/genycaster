@@ -370,7 +370,7 @@ Item {
         onTriggered: root.parentHydrationTimedOut = true
     }
 
-    implicitHeight: messageRow.implicitHeight + Theme.space2
+    implicitHeight: messageRow.implicitHeight + Theme.space3
     Accessible.description: (root.modelData.castId !== undefined ? qsTrId("genycaster.cast.view_conversation") : "")
                             + (Number(root.modelData.embedCount || 0) > 1
                                ? " · " + qsTrId("genycaster.cast.value_embeds").arg(LocaleFormat.formatInteger(Number(root.modelData.embedCount || 0))) : "")
@@ -411,17 +411,27 @@ Item {
         Item {
             id: messageSurface
             Layout.fillWidth: true
-            implicitHeight: messageContent.implicitHeight + Theme.space2 * 2
+            implicitHeight: messageContent.implicitHeight + Theme.space3 * 2
+
+            // All feed families share one soft superellipse surface. Keeping
+            // the wrapper outside media Loaders preserves delegate reuse.
+            Superellipse {
+                anchors.fill: parent
+                fillColor: Theme.surfaceRaised
+                borderWidth: Theme.strokeHairline
+                borderColor: Theme.borderSubtle
+                curveDepth: Theme.curveContainer
+            }
 
             ColumnLayout {
                 id: messageContent
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.leftMargin: root.compact ? 0 : Theme.space2
-                anchors.rightMargin: root.compact ? 0 : Theme.space2
-                anchors.topMargin: Theme.space1
-                anchors.bottomMargin: Theme.space2
+                anchors.leftMargin: Theme.space3
+                anchors.rightMargin: Theme.space3
+                anchors.topMargin: Theme.space3
+                anchors.bottomMargin: Theme.space3
                 spacing: Theme.space2
                 layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
 
@@ -898,27 +908,7 @@ Item {
         }
     }
 
-    Rectangle {
-        visible: root.compact
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.leftMargin: Theme.space2
-        anchors.rightMargin: Theme.space2
-        height: Theme.strokeHairline
-        color: Theme.divider
-    }
-
-    Rectangle {
-        visible: !root.compact
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.leftMargin: root.contentRtl ? Theme.space3 : 58
-        anchors.rightMargin: root.contentRtl ? 58 : Theme.space3
-        height: Theme.strokeHairline
-        color: Theme.divider
-    }
+    // Cards own their outlines; double timeline dividers only add clutter.
 
     // These controls are unrelated to rendering a feed row. Construct them only
     // on explicit interaction, and release them when that row is recycled.

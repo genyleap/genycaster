@@ -44,9 +44,9 @@ test("phone home screen is a genuine two-column grid, not three huge stacked car
     assert.equal((tileGrid.match(/ActionTile \{/g)||[]).length,4);
     for(const route of ["exploreRequested","composeRequested","appsRequested","searchRequested"])
         assert.match(tileGrid,new RegExp("root\\."+route+"\\("));
-    assert.match(home,/Bare glyph: no colored square/);
-    assert.doesNotMatch(home.split("component ActionTile:")[1].split("MouseArea {")[0],
-        /fillColor: Theme\.primarySurface/);
+    assert.match(home,/component ActionTile: Superellipse/);
+    assert.match(home,/fillColor: Theme.surfaceSelected/);
+    assert.match(home,/curveDepth: Theme.curveModal/);
     assert.match(mobile,/Layout\.leftMargin: Theme\.space3/);
 });
 

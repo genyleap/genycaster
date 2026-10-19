@@ -85,12 +85,12 @@ Item {
         property string iconGlyph: Theme.iconLeaf
         signal clicked()
 
-        implicitHeight: root.compact ? 134 : 116
+        implicitHeight: root.compact ? 168 : 150
         fillColor: tileMouse.pressed ? Theme.surfacePressed
                                      : tileMouse.containsMouse ? Theme.surfaceHover : Theme.surface
         borderWidth: 1
         borderColor: tileMouse.containsMouse ? Theme.borderStrong : Theme.borderMuted
-        curveDepth: Theme.curveControl
+        curveDepth: Theme.curveModal
         scale: tileMouse.pressed ? 0.988 : 1.0
 
         Behavior on fillColor { ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast } }
@@ -102,13 +102,33 @@ Item {
             anchors.margins: Theme.space3
             spacing: Theme.space2
 
-            // Bare glyph: no colored square behind each home shortcut.
-            Icon {
-                Layout.preferredWidth: 30
-                Layout.preferredHeight: 30
-                text: tile.iconGlyph
-                color: Theme.accent
-                preferredSize: root.compact ? 25 : 27
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+
+                Superellipse {
+                    Layout.preferredWidth: root.compact ? 48 : 52
+                    Layout.preferredHeight: Layout.preferredWidth
+                    fillColor: Theme.surfaceSelected
+                    borderWidth: 0
+                    curveDepth: Theme.curveContainer
+
+                    Icon {
+                        anchors.centerIn: parent
+                        text: tile.iconGlyph
+                        color: Theme.accent
+                        preferredSize: root.compact ? 27 : 29
+                    }
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Icon {
+                    text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                    color: Theme.textTertiary
+                    preferredSize: Theme.iconSizeSmall
+                }
             }
 
             DirectionAwareLabel {
@@ -219,7 +239,7 @@ Item {
                     Layout.fillWidth: true
                     layoutDirection: Theme.uiDirection
                     Layout.maximumWidth: 720
-                    columns: 3
+                    columns: 4
                     columnSpacing: Theme.space2
                     rowSpacing: Theme.space2
 
@@ -243,6 +263,13 @@ Item {
                         subtitleText: qsTrId("genycaster.home.apps_description")
                         iconGlyph: Theme.iconApps
                         onClicked: root.appsRequested()
+                    }
+                    ActionTile {
+                        Layout.fillWidth: true
+                        titleText: qsTrId("genycaster.feed_header.universal_search")
+                        subtitleText: qsTrId("genycaster.home.search_description")
+                        iconGlyph: Theme.iconSearch
+                        onClicked: root.searchRequested()
                     }
                 }
 
@@ -343,14 +370,14 @@ Item {
             Superellipse {
                 visible: !root.composerFocused
                 Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: 56
-                Layout.preferredHeight: 56
+                Layout.preferredWidth: 80
+                Layout.preferredHeight: 80
                 fillColor: "transparent"
                 borderWidth: 0
                 curveDepth: 28
                 Avatar {
                     anchors.centerIn: parent
-                    avatarSize: 54
+                    avatarSize: 76
                     sourceUrl: root.avatarUrl
                     displayName: root.displayName || root.username
                     visible: root.authenticated && root.avatarUrl.length > 0
@@ -359,11 +386,11 @@ Item {
                     anchors.centerIn: parent
                     text: Theme.iconLeaf
                     color: Theme.accent
-                    preferredSize: 42
+                    preferredSize: 50
                     visible: !root.authenticated || root.avatarUrl.length === 0
                 }
             }
-            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.width < 420 ? Theme.typeTitle2Size : Theme.typeTitle1Size; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
+            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.width < 420 ? Theme.typeTitle1Size : Theme.typeDisplaySize; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
             DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.prompt"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }
 
             // Phone: a true two-column navigation grid. All four targets
@@ -421,12 +448,12 @@ Item {
                 borderWidth: mobileDraftEditor.activeFocus ? Theme.strokeEmphasis : 1
                 borderColor: mobileDraftEditor.activeFocus ? Theme.accent : Theme.borderMuted
                 curveDepth: Theme.curveModal
-                implicitHeight: mobileComposer.implicitHeight + Theme.space3 * 2
+                implicitHeight: mobileComposer.implicitHeight + Theme.space4 * 2
                 ColumnLayout {
                     id: mobileComposer
                     anchors.fill: parent
-                    anchors.margins: Theme.space3
-                    spacing: Theme.space2
+                    anchors.margins: Theme.space4
+                    spacing: Theme.space3
                     TextArea {
                         id: mobileDraftEditor
                         objectName: "homeMobileDraftEditor"

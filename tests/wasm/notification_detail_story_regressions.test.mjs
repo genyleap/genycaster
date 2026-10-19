@@ -26,10 +26,11 @@ test('first Following story is a clean, untruncated Add action', () => {
     assert.doesNotMatch(item, /visible: false\s+width: 20/);
 });
 
-test('notification list uses flat rows, real category icons and no circular badges', () => {
+test('notification list uses subtle superellipse cards and real category icons', () => {
     const ui = read('ui/components/NotificationSurface.qml');
     assert.match(ui, /delegate: Item \{\s+id: notificationRow/);
-    assert.match(ui, /height: 1\s+color: Theme\.divider/);
+    assert.match(ui, /id: notificationRow[\s\S]*?Superellipse \{/);
+    assert.match(ui, /notificationRow.latestActivity \? Theme.surfaceSelected/);
     assert.doesNotMatch(ui, /id: kindBadge/);
     assert.match(ui, /text: notificationRow\.kindGlyph\s+color: notificationRow\.kindColor/);
     assert.match(ui, /text: String\(notificationRow\.modelData\.castText \|\| ""\)/);

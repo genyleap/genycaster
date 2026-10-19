@@ -732,29 +732,22 @@ Item {
                 readonly property color kindColor: root.kindColor(kindKey)
                 readonly property string kindGlyph: root.kindGlyph(kindKey)
                 width: list.width - list.leftMargin - list.rightMargin
-                implicitHeight: content.implicitHeight + (root.compact ? 28 : 36)
+                implicitHeight: content.implicitHeight + (root.compact ? 34 : 42)
 
-                Rectangle {
+                Superellipse {
                     anchors.fill: parent
-                    color: rowTap.pressed ? Theme.surfacePressed
-                           : rowHover.hovered ? Theme.surfaceHover
-                           : notificationRow.latestActivity ? root.kindTint(notificationRow.kindKey)
-                           : "transparent"
-                }
-                Rectangle {
-                    visible: notificationRow.latestActivity
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    width: 3
-                    color: notificationRow.kindColor
-                }
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    height: 1
-                    color: Theme.divider
+                    anchors.leftMargin: root.compact ? Theme.space1 : Theme.space2
+                    anchors.rightMargin: anchors.leftMargin
+                    anchors.topMargin: Theme.space1
+                    anchors.bottomMargin: Theme.space1
+                    fillColor: rowTap.pressed ? Theme.surfacePressed
+                               : rowHover.hovered ? Theme.surfaceHover
+                               : notificationRow.latestActivity ? Theme.surfaceSelected
+                               : Theme.surfaceRaised
+                    borderWidth: Theme.strokeHairline
+                    borderColor: notificationRow.latestActivity
+                                 ? Theme.accent : Theme.borderSubtle
+                    curveDepth: Theme.curveContainer
                 }
 
                 RowLayout {

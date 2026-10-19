@@ -33,14 +33,21 @@ Button {
             width: 40
             height: 32
 
+            Superellipse {
+                anchors.fill: parent
+                fillColor: control.selected ? Theme.surfaceSelected : "transparent"
+                borderWidth: 0
+                curveDepth: Theme.curveControl
+            }
+
             Icon {
                 anchors.centerIn: parent
                 text: control.iconGlyph
-                // Mobile navigation has one state cue only: the glyph itself.
-                // Do not stack hover/selection/focus capsules behind it.
+                // Selected destinations share the same quiet accent capsule
+                // used by Home actions and Explore filters.
                 filled: control.selected
                 color: !control.enabled ? Theme.inkDisabled
-                       : control.selected ? Theme.ink : Theme.inkMuted
+                       : control.selected ? Theme.accent : Theme.inkMuted
                 preferredSize: Theme.iconSizeNavigation
                 opacity: control.selected ? 1.0 : (control.hovered ? 0.88 : 0.72)
                 scale: control.selected ? 1.04 : 1.0

@@ -69,6 +69,7 @@ set(farcasterQmlFiles
     components/GenyTabButton.qml
     components/DetailSurface.qml
     components/ThreadReplyItem.qml
+    components/GenyThreadRail.qml
     components/DirectionAwareLabel.qml
     components/DirectionAwareTextArea.qml
     components/EditorContextMenu.qml

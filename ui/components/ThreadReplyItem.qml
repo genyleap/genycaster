@@ -93,7 +93,7 @@ ColumnLayout {
     }
 
     Layout.fillWidth: true
-    spacing: Theme.space1
+    spacing: Theme.space3
 
     DirectionAwareLabel {
         visible: root.highlighted
@@ -109,19 +109,29 @@ ColumnLayout {
         spacing: Theme.space2
         layoutDirection: Theme.uiDirection
 
-        Rectangle {
-            Layout.preferredWidth: root.highlighted ? 4 : 2
+        GenyThreadRail {
+            Layout.alignment: Qt.AlignTop
             Layout.fillHeight: true
-            Layout.minimumHeight: replyContent.implicitHeight
-            color: root.highlighted ? Theme.accent
-                                     : root.depth <= 1 ? Theme.accent : Theme.borderSubtle
-            opacity: root.depth <= 1 ? 0.72 : 0.7
+            Layout.minimumHeight: replyCard.implicitHeight
+            compact: root.compact
+            depth: root.depth
+            highlighted: root.highlighted
         }
 
-        ColumnLayout {
-            id: replyContent
+        Superellipse {
+            id: replyCard
             Layout.fillWidth: true
-            spacing: Theme.space1
+            implicitHeight: replyContent.implicitHeight + (root.compact ? Theme.space3 : Theme.space4) * 2
+            fillColor: root.highlighted ? Theme.surfaceSelected : Theme.surfaceRaised
+            borderWidth: Theme.strokeHairline
+            borderColor: root.highlighted ? Theme.accent : Theme.borderSubtle
+            curveDepth: Theme.curveModal
+
+            ColumnLayout {
+                id: replyContent
+                anchors.fill: parent
+                anchors.margins: root.compact ? Theme.space3 : Theme.space4
+                spacing: Theme.space2
 
             RowLayout {
                 Layout.fillWidth: true
@@ -129,7 +139,7 @@ ColumnLayout {
                 layoutDirection: Theme.uiDirection
 
                 Avatar {
-                    avatarSize: root.compact ? 28 : 32
+                    avatarSize: root.compact ? 40 : 44
                     sourceUrl: String(root.reply.avatarUrl || "")
                     displayName: String(root.reply.displayName || root.reply.author || "")
                     TapHandler {
@@ -146,7 +156,7 @@ ColumnLayout {
                         Layout.fillWidth: true
                         text: String(root.reply.displayName || root.reply.author || qsTrId("genycaster.notifications.someone"))
                         color: Theme.textPrimary
-                        font.pixelSize: Theme.typeMetaSize
+                        font.pixelSize: Theme.typeLabelSize
                         font.weight: Theme.weightDemiBold
                         elide: Text.ElideRight
                     }
@@ -225,6 +235,7 @@ ColumnLayout {
 
             // Actions live in the same three-dot menu as a top-level Cast.
             // An always-visible Delete button makes replies inconsistent.
+            }
         }
     }
 

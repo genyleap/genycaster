@@ -59,13 +59,18 @@ Button {
         }
     }
 
+    // Same touch-safe superellipse action chips in timelines and threads.
+    // The canvas is intentionally opaque enough to separate adjacent actions
+    // without expensive per-delegate shadows during WebAssembly scrolling.
     background: Superellipse {
         anchors.fill: parent
         anchors.margins: 1
-        fillColor: "transparent"
-        borderWidth: Theme.keyboardFocusVisible(control) ? 2 : 0
-        borderColor: Theme.focus
-        curveDepth: height / 2
+        fillColor: control.active ? Theme.surfaceSelected
+                   : control.down ? Theme.surfacePressed : Theme.surfaceRaised
+        borderWidth: Theme.keyboardFocusVisible(control) ? 2 : Theme.strokeHairline
+        borderColor: Theme.keyboardFocusVisible(control) ? Theme.focus
+                     : control.active ? Theme.accent : Theme.borderSubtle
+        curveDepth: Theme.curveControl
         shadowColor: Theme.keyboardFocusVisible(control) ? Theme.focusHalo : Theme.shadow
     }
 }

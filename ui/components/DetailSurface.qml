@@ -570,24 +570,29 @@ Flickable {
                 spacing: Theme.space2
 
                 DirectionAwareLabel {
-                    Layout.fillWidth: true
                     text: qsTrId("genycaster.profile.replies")
-                    color: Theme.textSecondary
-                    font.pixelSize: Theme.typeMetaSize
-                    font.weight: Theme.weightDemiBold
+                    color: Theme.textPrimary
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightBold
                 }
 
-                DirectionAwareLabel {
-                    text: LocaleFormat.formatInteger(root.prioritizedReplies.length)
-                    color: Theme.inkSubtle
-                    font.pixelSize: Theme.typeCaptionSize
+                Superellipse {
+                    Layout.preferredWidth: Math.max(30, replyCountLabel.implicitWidth + Theme.space3 * 2)
+                    Layout.preferredHeight: 30
+                    fillColor: Theme.surfaceSelected
+                    borderWidth: 0
+                    curveDepth: Theme.curveControl
+                    DirectionAwareLabel {
+                        id: replyCountLabel
+                        anchors.centerIn: parent
+                        text: LocaleFormat.formatInteger(root.prioritizedReplies.length)
+                        color: Theme.accent
+                        font.pixelSize: Theme.typeCaptionSize
+                        font.weight: Theme.weightDemiBold
+                    }
                 }
-            }
 
-            Rectangle {
-                Layout.fillWidth: true
-                height: Theme.strokeHairline
-                color: Theme.divider
+                Item { Layout.fillWidth: true }
             }
 
             Repeater {
