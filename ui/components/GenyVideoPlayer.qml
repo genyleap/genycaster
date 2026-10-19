@@ -305,6 +305,9 @@ Item {
     property bool fullscreenEnabled: true
     property bool openOriginalEnabled: false
     property bool forceMuted: false
+    // Only the silent/offscreen media fixture disables audio-device creation.
+    // Production playback retains its full audio output by default.
+    property bool audioOutputEnabled: true
     property bool primeFrame: false
     // Eager consumers (composer/upload tiles) intentionally bind the source
     // before user activation so a first frame can prime. Feed surfaces keep
@@ -883,15 +886,20 @@ Item {
     onRenditionsChanged: root.resetPlayback()
     onPreferredQualityChanged: root.applyPreferredQuality()
 
-    AudioOutput {
+    Loader {
         id: audioOutput
-        volume: 1.0
-        muted: root.effectiveMuted
+        active: root.audioOutputEnabled
+        property real volume: 1.0
+        property bool muted: root.effectiveMuted
+        sourceComponent: AudioOutput {
+            volume: audioOutput.volume
+            muted: audioOutput.muted
+        }
     }
 
     MediaPlayer {
         id: player
-        audioOutput: audioOutput
+        audioOutput: audioOutput.item
         // The inline player must own a real sink from its first frame. Previous
         // revisions assigned a VideoOutput only after closing fullscreen, which
         // allowed decode to run with no visible inline sink.

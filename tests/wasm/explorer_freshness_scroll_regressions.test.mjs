@@ -115,3 +115,15 @@ test('native UI and WebAssembly require Qt 6.12 and offer a pinned host preset',
         '/opt/genycaster/Qt/6.12.0/gcc_64/lib/cmake/Qt6');
     assert.equal(preset.cacheVariables.CMAKE_CXX_COMPILER, '/opt/gcc-16.2.0/bin/c++');
 });
+
+test('video playback preserves production audio while headless Qt 6.12 QA avoids PipeWire', () => {
+    const player = read('ui/components/GenyVideoPlayer.qml');
+    const preview = read('ui/components/VideoPreview.qml');
+    const testFixture = read('tests/ui/media_scroll_tests.cpp');
+    assert.match(player, /property bool audioOutputEnabled: true/);
+    assert.match(player, /id: audioOutput\s+active: root\.audioOutputEnabled/);
+    assert.match(player, /audioOutput: audioOutput\.item/);
+    assert.match(preview, /property bool audioOutputEnabled: true/);
+    assert.match(preview, /audioOutputEnabled: root\.audioOutputEnabled/);
+    assert.match(testFixture, /QStringLiteral\("audioOutputEnabled"\), false/);
+});

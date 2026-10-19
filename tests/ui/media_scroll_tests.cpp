@@ -860,8 +860,12 @@ int main(int argc, char** argv)
     QCoreApplication::processEvents();
 
     const int requestsBeforeVideo = images->requestCount();
+    // Offscreen Qt 6.12 CI has no PipeWire/PulseAudio service. Keep the real
+    // MediaPlayer/VideoOutput lifecycle under test without initializing a
+    // nonexistent physical audio sink. Production defaults to audio enabled.
     auto video = createSurface(engine, QStringLiteral("VideoPreview"), *scroll,
-        {{QStringLiteral("embed"), QVariantMap{
+        {{QStringLiteral("audioOutputEnabled"), false},
+         {QStringLiteral("embed"), QVariantMap{
             {QStringLiteral("url"), QStringLiteral("https://video.invalid/example.mp4")},
             {QStringLiteral("imageSource"), QStringLiteral("image://remote/video-poster")}}}});
     if (!video) { return 1; }

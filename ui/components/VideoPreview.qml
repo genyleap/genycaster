@@ -12,6 +12,9 @@ Item {
 
     property var embed: ({})
     property bool compact: false
+    // Exposed for deterministic silent offscreen playback tests. Audio is
+    // enabled for every production feed delegate by default.
+    property bool audioOutputEnabled: true
     property bool playbackRequested: false
     property real reservedMediaAspect: 16 / 9
     readonly property bool playerReady: playerLoader.status === Loader.Ready
@@ -258,6 +261,7 @@ Item {
                 primeFrame: false
                 eager: false
                 forceMuted: false
+                audioOutputEnabled: root.audioOutputEnabled
                 mediaLabel: root.mediaLabel
                 compact: root.compact
                 fullscreenEnabled: true
