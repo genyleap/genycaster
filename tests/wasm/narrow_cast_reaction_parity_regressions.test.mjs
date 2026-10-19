@@ -72,3 +72,11 @@ test('generic link cards constrain thumbnail and metadata to available width',()
   assert.match(embed,/Layout.minimumWidth: 0/);
   assert.match(panel,/Layout.minimumWidth: 0/);
 });
+
+test('reaction and view lifecycle handlers are combined rather than assigned twice',()=>{
+  const bar=read('ui/components/EngagementBar.qml');
+  assert.equal((bar.match(/Component.onCompleted:/g)||[]).length,1);
+  assert.equal((bar.match(/onCastIdChanged:/g)||[]).length,1);
+  assert.match(bar,/Component.onCompleted: \{\s*requestViews\(\)\s*requestBrowserReactions\(\)/);
+  assert.match(bar,/onCastIdChanged: \{\s*requestViews\(\)\s*requestBrowserReactions\(\)/);
+});

@@ -137,10 +137,11 @@ int main(int argc, char** argv)
         {"kind", "text"},
         {"text", QStringLiteral("Open:81947|High:82039|Low:81804|Close:81897|"
                                 "Volume:2.8K|RSI:45|Stochastic:13|Oversold")}}});
-    expect(narrowMetrics.contentHeight() > 100,
+    const qreal narrowMetricHeight = narrowMetrics.contentHeight();
+    expect(narrowMetricHeight > 100,
         "unspaced financial metrics wrap within 114px instead of overflowing the Cast");
     narrowMetrics.setWidth(220);
-    expect(narrowMetrics.contentHeight() < 100,
+    expect(narrowMetrics.contentHeight() < narrowMetricHeight,
         "wrapping recomputes when a compact desktop window is widened");
 
     const QImage fallback = painted(text);

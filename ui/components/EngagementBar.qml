@@ -38,8 +38,6 @@ RowLayout {
                 && presentationBridge.isAuthenticated && root.viewerFid > 0)
             CastReactions.ensure(root.castId, root.viewerFid)
     }
-    Component.onCompleted: requestBrowserReactions()
-    onCastIdChanged: requestBrowserReactions()
     onViewerFidChanged: requestBrowserReactions()
     onScrollMovingChanged: if (!root.scrollMoving) requestBrowserReactions()
     readonly property var resolvedViewCount: {
@@ -54,8 +52,14 @@ RowLayout {
             CastViews.ensure(root.castId, root.authorFid, root.castText)
     }
 
-    Component.onCompleted: requestViews()
-    onCastIdChanged: requestViews()
+    Component.onCompleted: {
+        requestViews()
+        requestBrowserReactions()
+    }
+    onCastIdChanged: {
+        requestViews()
+        requestBrowserReactions()
+    }
     onAuthorFidChanged: requestViews()
     onCastTextChanged: requestViews()
     property bool replyInteractive: false
