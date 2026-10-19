@@ -73,3 +73,56 @@ test('cross-origin redirects are blocked',async()=>{
   });
   assert.equal(response.status,404);
 });
+
+test('OpenSea canonical NFT asset resolves verified artwork even if its HTML blocks scrapers', async()=>{
+  const {parseOpenSeaAsset,openSeaNftPreview}=await import('../browser_link_preview.mjs');
+  const link='https://opensea.io/assets/ethereum/0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d/1';
+  const parsed=parseOpenSeaAsset(new URL(link));
+  assert.equal(parsed.apiUrl,'https://api.opensea.io/api/v2/chain/ethereum/contract/0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d/nfts/1');
+  for(const url of [
+    'https://opensea.io/assets/ethereum/0xabc/1',
+    'https://opensea.io/assets/ethereum/0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d/abc',
+    'https://evil.opensea.io/assets/ethereum/0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d/1',
+    'https://opensea.io/assets/ethereum/0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d/1/extras',
+  ])assert.equal(parseOpenSeaAsset(new URL(url)),null,url);
+  const image='https://i2c.seadn.io/public-image.avif';
+  const publicBody=JSON.stringify({nft:{name:'Ape #1',display_image_url:image,description:'Original onchain artwork'}});
+  const calls=[];
+  const result=await publicLinkPreview(link,{
+    lookupHost:publicDns,
+    requester:(url,options,callback)=>{
+      calls.push({url:url.href,lookup:typeof options.lookup});
+      assert.equal(url.hostname,'api.opensea.io');
+      return requesterWith(publicBody,{'content-type':'application/json'})(url,options,callback);
+    },
+  });
+  assert.equal(result.status,200);
+  assert.equal(result.data.title,'Ape #1');
+  assert.equal(result.data.siteName,'OpenSea');
+  assert.equal(result.data.verifiedImageUrl,image);
+  assert.equal(result.data.previewImage,'image://remote/'+Buffer.from(image).toString('base64url'));
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].lookup,'function');
+  assert.equal(openSeaNftPreview({nft:{name:'Bad',image_url:'http://127.0.0.1/private'}},new URL(link)),null);
+});
+test('OpenSea API fallback refuses private DNS, oversized data and arbitrary API response content',async()=>{
+  const link='https://opensea.io/assets/base/0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d/42';
+  let apiCalls=0;
+  const result=await publicLinkPreview(link,{
+    lookupHost:publicDns,
+    requester:(url,options,callback)=>{
+      apiCalls++;
+      if(url.hostname==='api.opensea.io')
+        return requesterWith('{not json}',{'content-type':'application/json'})(url,options,callback);
+      return requesterWith(sample)(url,options,callback);
+    },
+  });
+  assert.equal(result.status,200);
+  assert.equal(result.data.title,'Account & security');
+  assert.equal(apiCalls,2);
+  const denied=await publicLinkPreview(link,{
+    lookupHost:async()=>[{address:'192.168.1.15',family:4}],
+    requester:()=>{throw Error('should never reach an internal IP');},
+  });
+  assert.equal(denied.status,404);
+});

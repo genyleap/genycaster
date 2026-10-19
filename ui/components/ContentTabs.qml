@@ -28,20 +28,11 @@ Item {
                 id: tabButton
                 required property var modelData
                 Layout.fillWidth: true
+                Layout.preferredWidth: String(modelData.id) === "conversations" ? 1.65 : 1
                 Layout.fillHeight: true
                 readonly property bool selected: String(modelData.id) === root.currentMode
 
                 HoverHandler { id: hover }
-
-                Superellipse {
-                    anchors.fill: parent
-                    anchors.margins: Theme.space1
-                    fillColor: tabButton.selected ? Theme.surfaceSelected
-                               : hover.hovered ? Theme.surfaceHover : "transparent"
-                    borderWidth: tabButton.selected ? Theme.strokeHairline : 0
-                    borderColor: tabButton.selected ? Theme.accent : Theme.borderSubtle
-                    curveDepth: Theme.curveControl
-                }
 
                 Text {
                     anchors.fill: parent
@@ -52,6 +43,9 @@ Item {
                                               : (hover.hovered ? Theme.ink : Theme.inkMuted)
                     font.family: Theme.fontFamily
                     font.pixelSize: root.width < 400 ? 12 : Theme.typeMetaSize
+                    fontSizeMode: Text.HorizontalFit
+                    minimumPixelSize: 11
+                    elide: Text.ElideRight
                     font.weight: tabButton.selected ? Theme.weightBold : Theme.weightMedium
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter

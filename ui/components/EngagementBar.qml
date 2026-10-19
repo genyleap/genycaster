@@ -43,6 +43,14 @@ RowLayout {
     }
 
     EngagementButton {
+        objectName: "castQuoteButton"
+        iconGlyph: Theme.iconQuote
+        enabled: true
+        Accessible.name: qsTrId("genycaster.composer.quote")
+        onClicked: root.quoteRequested()
+    }
+
+    EngagementButton {
         iconGlyph: Theme.iconRepost
         metricText: root.recastCount > 0 ? LocaleFormat.formatInteger(root.recastCount) : ""
         active: root.recastedByMe
@@ -65,14 +73,6 @@ RowLayout {
                          ? qsTrId("genycaster.engagement.unlike_value_likes").arg(LocaleFormat.formatInteger(root.likeCount))
                          : qsTrId("genycaster.engagement.like_value_likes").arg(LocaleFormat.formatInteger(root.likeCount))
         onClicked: root.likeInteractive ? root.likeRequested(!root.likedByMe) : root.authenticationRequested()
-    }
-
-    EngagementButton {
-        objectName: "castQuoteButton"
-        iconGlyph: Theme.iconQuote
-        enabled: true
-        Accessible.name: qsTrId("genycaster.composer.quote")
-        onClicked: root.quoteRequested()
     }
 
     EngagementButton {
