@@ -509,10 +509,10 @@ Superellipse {
     ColumnLayout {
         id: content
         anchors.fill: parent
-        anchors.margins: root.layoutMiniApp ? Theme.space2 : Theme.space3
-        anchors.leftMargin: root.layoutMiniApp ? Theme.space2 : Theme.space3
-        anchors.rightMargin: root.layoutMiniApp ? Theme.space2 : Theme.space3
-        spacing: Theme.space2
+        anchors.margins: root.layoutMiniApp ? Theme.space4 : Theme.space3
+        anchors.leftMargin: root.layoutMiniApp ? Theme.space4 : Theme.space3
+        anchors.rightMargin: root.layoutMiniApp ? Theme.space4 : Theme.space3
+        spacing: root.layoutMiniApp ? Theme.space3 : Theme.space2
 
         // Poster/Mini App cards also retain the Cast sentence within the card;
         // ordinary web links place it beside the thumbnail below.
@@ -534,7 +534,7 @@ Superellipse {
         ColumnLayout {
             visible: root.layoutMiniApp
             Layout.fillWidth: true
-            spacing: Theme.space2
+            spacing: Theme.space3
 
             RowLayout {
                 Layout.fillWidth: true
@@ -575,12 +575,15 @@ Superellipse {
 
             Item {
                 id: miniAppPosterFrame
-                readonly property real readyHeight: Math.max(root.compact ? 116 : 142,
-                                                              Math.min(root.compact ? 220 : 280,
-                                                                       width / Math.max(0.8, Math.min(3.0, root.previewImageAspect))))
-                // Missing/failed artwork is metadata, not 640px of blank canvas.
+                readonly property real readyHeight: Math.max(root.compact ? 158 : 184,
+                                                              Math.min(root.compact ? 420 : 640,
+                                                                       width / Math.max(0.7, Math.min(3.0, root.previewImageAspect))))
+                // A working Mini App keeps its full 3:2 discovery poster.
+                // Only a confirmed load failure falls back to a compact action.
                 readonly property real targetHeight: root.reserveArtwork
-                    && root.previewSource.length > 0 && !root.miniAppArtworkUnavailable ? readyHeight : 0
+                    && root.previewSource.length > 0
+                    ? (root.miniAppArtworkUnavailable ? (root.compact ? 156 : 176) : readyHeight)
+                    : 0
                 visible: targetHeight > 0
                 Layout.fillWidth: true
                 Layout.preferredHeight: targetHeight

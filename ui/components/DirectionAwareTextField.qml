@@ -4,6 +4,9 @@ import QtQuick.Controls
 TextField {
     id: root
 
+    // Use the same accessible, theme-aware context menu as the rich editor.
+    ContextMenu.menu: EditorContextMenu { editor: root }
+
     property bool forceLeftToRight: false
     property bool forceRightToLeft: false
 

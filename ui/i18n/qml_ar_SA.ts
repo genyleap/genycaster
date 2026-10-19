@@ -3984,35 +3984,55 @@
         </message>
         <message id="genycaster.setup.node_online">
             <source>Online · responsive</source>
-            <translation>Online · responsive</translation>
+            <translation>متصل · يستجيب</translation>
         </message>
         <message id="genycaster.setup.recovery_signer_ready">
             <source>Publishing is active on this device.</source>
-            <translation>Publishing is active on this device.</translation>
+            <translation>النشر مفعّل على هذا الجهاز.</translation>
         </message>
         <message id="genycaster.setup.recovery_why_no_words">
             <source>How do I view my recovery words?</source>
-            <translation>How do I view my recovery words?</translation>
+            <translation>كيف أرى كلمات الاسترداد الخاصة بي؟</translation>
         </message>
         <message id="genycaster.setup.recovery_phrase_unavailable">
             <source>Genycaster does not retain the original recovery words. They cannot be reconstructed from an authorized publishing key. Find your backup in the original Farcaster wallet or app; never share the words.</source>
-            <translation>Genycaster does not retain the original recovery words. They cannot be reconstructed from an authorized publishing key. Find your backup in the original Farcaster wallet or app; never share the words.</translation>
+            <translation>لا يحتفظ Genycaster بكلمات الاسترداد الأصلية، ولا يمكن استعادتها من مفتاح النشر المصرح به. ابحث عن نسختك الاحتياطية في محفظة Farcaster أو تطبيقه الأصلي، ولا تشارك كلمات الاسترداد مطلقًا.</translation>
         </message>
         <message id="genycaster.miniapp.preview_unavailable">
             <source>Mini App preview unavailable</source>
-            <translation>Mini App preview unavailable</translation>
+            <translation>معاينة التطبيق المصغّر غير متاحة</translation>
         </message>
         <message id="genycaster.miniapp.launch_failed">
             <source>Mini App could not be opened</source>
-            <translation>Mini App could not be opened</translation>
+            <translation>تعذّر فتح التطبيق المصغّر</translation>
         </message>
         <message id="genycaster.search.no_channel_results">
             <source>No channels match this search.</source>
-            <translation>No channels match this search.</translation>
+            <translation>لا توجد قنوات تطابق هذا البحث.</translation>
         </message>
         <message id="genycaster.search.no_profile_results">
             <source>No profiles match this search.</source>
-            <translation>No profiles match this search.</translation>
+            <translation>لا توجد ملفات شخصية تطابق هذا البحث.</translation>
+        </message>
+        <message id="genycaster.settings.power_save_description">
+            <source>Reduce background animation and animated media to save battery.</source>
+            <translation>تقليل الرسوم المتحركة في الخلفية والوسائط المتحركة لتوفير البطارية.</translation>
+        </message>
+        <message id="genycaster.settings.animate_avatars_description">
+            <source>Keep GIF avatars moving while browsing and scrolling.</source>
+            <translation>إبقاء الصور الشخصية المتحركة بصيغة GIF تعمل أثناء التصفح والتمرير.</translation>
+        </message>
+        <message id="genycaster.settings.power_save">
+            <source>Power Save</source>
+            <translation>توفير الطاقة</translation>
+        </message>
+        <message id="genycaster.settings.animate_avatars">
+            <source>Animated profile pictures</source>
+            <translation>صور الملف الشخصي المتحركة</translation>
+        </message>
+        <message id="genycaster.apps.saved">
+            <source>Saved</source>
+            <translation>المحفوظات</translation>
         </message>
     </context>
 </TS>

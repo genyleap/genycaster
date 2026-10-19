@@ -4014,5 +4014,25 @@
             <source>No profiles match this search.</source>
             <translation>No profiles match this search.</translation>
         </message>
+        <message id="genycaster.settings.power_save_description">
+            <source>Reduce background animation and animated media to save battery.</source>
+            <translation>Réduire les animations en arrière-plan et les médias animés pour économiser la batterie.</translation>
+        </message>
+        <message id="genycaster.settings.animate_avatars_description">
+            <source>Keep GIF avatars moving while browsing and scrolling.</source>
+            <translation>Garder les avatars GIF animés pendant la navigation et le défilement.</translation>
+        </message>
+        <message id="genycaster.settings.power_save">
+            <source>Power Save</source>
+            <translation>Économie d’énergie</translation>
+        </message>
+        <message id="genycaster.settings.animate_avatars">
+            <source>Animated profile pictures</source>
+            <translation>Photos de profil animées</translation>
+        </message>
+        <message id="genycaster.apps.saved">
+            <source>Saved</source>
+            <translation>Enregistrés</translation>
+        </message>
     </context>
 </TS>

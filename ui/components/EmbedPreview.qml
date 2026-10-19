@@ -26,6 +26,7 @@ Item {
     readonly property string explicitTokenLocator: TokenSemantic.locatorFromEmbed(root.embed)
     property var linkMetadata: ({})
     property var pendingLinkMetadata: ({})
+    property string browserMarketplaceRequestedUrl: ""
     property bool metadataUpdatePending: false
     property var scrollHost: null
     readonly property bool scrollMoving: root.scrollHost !== null
@@ -212,6 +213,42 @@ Item {
         root.applyLinkMetadata(nextMetadata)
     }
 
+    // WASM cannot scrape cross-origin NFT pages. Use the browser-safe metadata
+    // service when native resolution has no artwork; never treat an HTML mint
+    // page itself as an image. Respect scroll admission and URL reuse.
+    function requestBrowserMarketplacePreview() {
+        if (Qt.platform.os !== "wasm" || root.scrollMoving
+                || root.browserMarketplaceRequestedUrl === root.targetUrl
+                || !/^https:\/\//i.test(root.targetUrl)
+                || !root.computeCollectibleMarketplace(root.linkMetadata, root.lowerUrl)
+                || String(root.linkMetadata.previewImage || "").length > 0
+                || (root.embed.pairedVisual && String(root.embed.imageSource || "").length > 0))
+            return
+        const target = root.targetUrl
+        root.browserMarketplaceRequestedUrl = target
+        const xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE || root.targetUrl !== target
+                    || xhr.status !== 200) return
+            try {
+                const result = JSON.parse(xhr.responseText)
+                if (result && result.resolved && String(result.previewImage || "").length > 0
+                        && String(root.linkMetadata.previewImage || "").length === 0)
+                    root.acceptLinkMetadata(result)
+            } catch (error) { /* The marketplace card remains actionable. */ }
+        }
+        xhr.open("GET", "https://storage-farcaster.genyleap.com/v1/browser/link-preview?url="
+                 + encodeURIComponent(target), true)
+        xhr.send()
+    }
+
+    Timer {
+        id: marketplacePreviewTimer
+        interval: 360
+        repeat: false
+        onTriggered: root.requestBrowserMarketplacePreview()
+    }
+
     function refreshLinkMetadata(requestRemote) {
         let nextMetadata = ({})
         if (root.targetUrl.length > 0
@@ -241,6 +278,7 @@ Item {
         root.componentReady = true
         root.resolveScrollHost()
         root.refreshLinkMetadata(root.needsRemoteMetadata)
+        marketplacePreviewTimer.restart()
     }
     onTargetUrlChanged: {
         if (!root.componentReady)
@@ -248,11 +286,13 @@ Item {
         // Preserve a compatible renderer on reuse. Its URL bindings reset the
         // media state; toggling Loader.active would destroy the entire card.
         root.promotedMediaHeight = 0
+        root.browserMarketplaceRequestedUrl = ""
         root.linkMetadata = ({})
         root.pendingLinkMetadata = ({})
         root.metadataUpdatePending = false
         root.tokenLocator = ""
         root.refreshLinkMetadata(root.needsRemoteMetadata)
+        marketplacePreviewTimer.restart()
     }
     onScrollMovingChanged: {
         if (!root.scrollMoving) {
@@ -260,6 +300,7 @@ Item {
                 root.acceptLinkMetadata(root.pendingLinkMetadata)
             if (root.needsRemoteMetadata && !Boolean(root.linkMetadata.resolved))
                 metadataRequestTimer.restart()
+            marketplacePreviewTimer.restart()
         }
     }
     onEmbedChanged: {
@@ -281,8 +322,13 @@ Item {
     Connections {
         target: typeof linkPreviewResolver !== "undefined" ? linkPreviewResolver : null
         function onPreviewReady(url, preview) {
-            if (String(url) === root.targetUrl)
-                root.acceptLinkMetadata(preview)
+            if (String(url) === root.targetUrl) {
+                // A late weaker resolver response must not erase a browser
+                // preview image already displayed on the marketplace card.
+                if (!root.linkMetadata.previewImage || String(preview.previewImage || "").length > 0)
+                    root.acceptLinkMetadata(preview)
+                marketplacePreviewTimer.restart()
+            }
         }
     }
 

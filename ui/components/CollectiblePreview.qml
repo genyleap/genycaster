@@ -11,8 +11,6 @@ Superellipse {
 
     readonly property string targetUrl: String(root.embed.url || root.embed.value || "")
     readonly property string rawArtworkSource: String(root.embed.imageSource || root.embed.artwork || root.embed.previewImage || "")
-    property bool artworkUnavailable: false
-    onArtworkSourceChanged: root.artworkUnavailable = false
     readonly property string artworkSource: {
         const source = root.rawArtworkSource.trim()
         if (/^image:\/\/remote\//i.test(source) || /^qrc:\//i.test(source))
@@ -34,11 +32,13 @@ Superellipse {
     readonly property real titleLineHeight: Math.ceil(root.compact
                                                      ? Theme.typeMetaSize * Theme.typeMetaLineHeight
                                                      : Theme.typeBodySize * Theme.typeBodyLineHeight)
-    readonly property real cardPadding: root.compact ? Theme.space2 : Theme.space3
-    readonly property real artworkWidth: root.horizontalCard ? Math.min(224, Math.max(184, width * 0.28)) : width
+    readonly property real cardPadding: root.compact ? Theme.space3 : Theme.space4
+    // NFT artwork is the subject of the card, not a tiny decorative thumbnail.
+    readonly property real artworkWidth: root.horizontalCard
+                                         ? Math.min(360, Math.max(260, width * 0.39)) : width
     readonly property real artworkHeight: root.horizontalCard
-                                            ? Math.min(196, Math.max(160, root.artworkWidth * 0.84))
-                                            : Math.min(284, Math.max(188, width * 0.58))
+                                          ? Math.min(340, Math.max(250, root.artworkWidth * 0.95))
+                                          : Math.min(430, Math.max(275, width * 0.84))
 
     signal openRequested(string url)
     signal mediaRequested(var mediaItems, int index)
@@ -53,8 +53,11 @@ Superellipse {
     }
 
     function openArtwork() {
-        if (!collectibleArtwork.ready)
+        if (!collectibleArtwork.ready) {
+            if (root.targetUrl.length > 0)
+                root.openRequested(root.targetUrl)
             return
+        }
         root.mediaRequested([{
             kind: "image",
             url: root.targetUrl,
@@ -110,9 +113,9 @@ Superellipse {
 
         Item {
             id: artworkFrame
-            // A mint page with missing artwork is still a valid destination,
-            // but must not occupy a giant empty image pane.
-            visible: root.artworkSource.length > 0 && !root.artworkUnavailable
+            // Never hide artwork on a transient provider failure. Failure
+            // state can clear on re-admission after kinetic scrolling.
+            visible: root.artworkSource.length > 0
             Layout.fillWidth: !root.horizontalCard
             Layout.preferredWidth: root.horizontalCard ? root.artworkWidth : -1
             Layout.preferredHeight: visible ? root.artworkHeight : 0
@@ -131,10 +134,6 @@ Superellipse {
 
             SuperellipseImage {
                 id: collectibleArtwork
-                onLoadFailedChanged: {
-                    if (loadFailed && root.artworkSource.length > 0)
-                        root.artworkUnavailable = true
-                }
                 anchors.fill: parent
                 source: root.artworkSource
                 mediaCategory: "nfts"
@@ -146,18 +145,18 @@ Superellipse {
                 borderWidth: 0
                 curveDepth: Theme.shapeMedia
                 clipToSuperellipse: true
-                showFailureIndicator: false
+                showFailureIndicator: true
             }
 
             GenySpinner {
                 anchors.centerIn: parent
-                visible: root.artworkSource.length === 0 && !Boolean(root.embed.metadataResolved)
+                visible: root.artworkSource.length > 0 && collectibleArtwork.loading
                 running: visible && !root.scrollMoving
             }
 
             Icon {
                 anchors.centerIn: parent
-                visible: root.artworkSource.length === 0 && Boolean(root.embed.metadataResolved)
+                visible: collectibleArtwork.loadFailed
                 text: Theme.iconImage
                 color: Theme.textTertiary
                 preferredSize: Theme.iconSizeLarge
@@ -217,7 +216,8 @@ Superellipse {
 
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.titleLineHeight * 2
+                Layout.preferredHeight: Math.max(root.titleLineHeight,
+                                                 Math.min(root.titleLineHeight * 2, implicitHeight))
                 Layout.minimumHeight: Layout.preferredHeight
                 Layout.maximumHeight: Layout.preferredHeight
                 verticalAlignment: Text.AlignTop
@@ -231,7 +231,8 @@ Superellipse {
             }
 
             DirectionAwareLabel {
-                Layout.preferredHeight: root.captionLineHeight
+                visible: root.creatorText.length > 0
+                Layout.preferredHeight: visible ? root.captionLineHeight : 0
                 Layout.minimumHeight: Layout.preferredHeight
                 Layout.maximumHeight: Layout.preferredHeight
                 Layout.fillWidth: true
@@ -242,7 +243,8 @@ Superellipse {
             }
 
             DirectionAwareLabel {
-                Layout.preferredHeight: root.captionLineHeight
+                visible: root.collectionText.length > 0 && root.collectionText !== root.titleText
+                Layout.preferredHeight: visible ? root.captionLineHeight : 0
                 Layout.minimumHeight: Layout.preferredHeight
                 Layout.maximumHeight: Layout.preferredHeight
                 Layout.fillWidth: true
@@ -255,9 +257,10 @@ Superellipse {
             Flow {
                 id: metadataChips
                 Layout.fillWidth: true
-                Layout.preferredHeight: 28
-                Layout.minimumHeight: 28
-                Layout.maximumHeight: 28
+                visible: root.chainText.length > 0 || root.editionText.length > 0 || root.priceText.length > 0
+                Layout.preferredHeight: visible ? 28 : 0
+                Layout.minimumHeight: Layout.preferredHeight
+                Layout.maximumHeight: Layout.preferredHeight
                 layoutDirection: Theme.uiDirection
                 spacing: Theme.space1
 
@@ -297,14 +300,13 @@ Superellipse {
                 Layout.minimumHeight: visible ? Theme.space1 : 0
             }
 
-            DirectionAwareLabel {
+            ActionButton {
                 visible: root.targetUrl.length > 0
                 Layout.fillWidth: true
-                forceLeftToRight: true
-                text: root.targetUrl
-                color: Theme.textTertiary
-                font.pixelSize: Theme.typeCaptionSize
-                elide: Text.ElideMiddle
+                compact: true
+                iconGlyph: Theme.iconArrowUpRight
+                text: qsTrId("genycaster.embed.open_link")
+                onClicked: root.openRequested(root.targetUrl)
             }
         }
     }

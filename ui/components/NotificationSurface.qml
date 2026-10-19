@@ -97,14 +97,9 @@ Item {
     }
 
     function kindColor(kind) {
-        switch (String(kind || "")) {
-        case "reply": return Theme.notificationReply
-        case "mention": return Theme.notificationMention
-        case "reaction": return Theme.notificationReaction
-        case "recast": return Theme.notificationRecast
-        case "follow": return Theme.notificationFollow
-        }
-        return Theme.notificationOther
+        // Reaction types are distinguished by glyphs; notification chrome
+        // always tracks the user-selected accent (including custom themes).
+        return Theme.accent
     }
 
     function kindGlyph(kind) {
@@ -132,8 +127,7 @@ Item {
     }
 
     function kindTint(kind) {
-        const base = root.kindColor(kind)
-        return Qt.rgba(base.r, base.g, base.b, Theme.dark ? 0.17 : 0.13)
+        return Theme.surfaceSelected
     }
 
     function notificationKey(row, index) {
@@ -841,6 +835,8 @@ Item {
                         Item {
                             id: actorStack
                             readonly property int count: Math.min(6, notificationRow.visibleActors.length)
+                            readonly property real avatarSpacing: root.compact ? 7 : 10
+                            readonly property real avatarDiameter: root.compact ? 32 : 36
                             visible: count > 1
                             Layout.fillWidth: true
                             Layout.preferredHeight: visible ? (root.compact ? 34 : 38) : 0
@@ -850,9 +846,9 @@ Item {
                                 delegate: Avatar {
                                     required property int index
                                     readonly property var actor: notificationRow.visibleActors[index] || ({})
-                                    x: index * (root.compact ? 30 : 34)
+                                    x: index * (actorStack.avatarDiameter + actorStack.avatarSpacing)
                                     y: 0
-                                    avatarSize: root.compact ? 32 : 36
+                                    avatarSize: actorStack.avatarDiameter
                                     sourceUrl: String(actor.avatarUrl || "")
                                     displayName: String(actor.displayName || actor.username || "")
                                 }
@@ -1109,7 +1105,7 @@ Item {
                                 visible: Number(notificationRow.modelData.castReplyCount || 0) > 0
                                 spacing: 3
                                 layoutDirection: Theme.uiDirection
-                                Icon { text: Theme.iconReply; color: Theme.notificationReply; preferredSize: 11 }
+                                Icon { text: Theme.iconReply; color: Theme.accent; preferredSize: 11 }
                                 DirectionAwareLabel {
                                     text: LocaleFormat.formatInteger(Number(notificationRow.modelData.castReplyCount || 0))
                                     color: Theme.textTertiary
@@ -1121,7 +1117,7 @@ Item {
                                 visible: Number(notificationRow.modelData.castRecastCount || 0) > 0
                                 spacing: 3
                                 layoutDirection: Theme.uiDirection
-                                Icon { text: Theme.iconRepost; color: Theme.notificationRecast; preferredSize: 11 }
+                                Icon { text: Theme.iconRepost; color: Theme.accent; preferredSize: 11 }
                                 DirectionAwareLabel {
                                     text: LocaleFormat.formatInteger(Number(notificationRow.modelData.castRecastCount || 0))
                                     color: Theme.textTertiary
@@ -1133,7 +1129,7 @@ Item {
                                 visible: Number(notificationRow.modelData.castLikeCount || 0) > 0
                                 spacing: 3
                                 layoutDirection: Theme.uiDirection
-                                Icon { text: Theme.iconHeart; color: Theme.notificationReaction; preferredSize: 11 }
+                                Icon { text: Theme.iconHeart; color: Theme.accent; preferredSize: 11 }
                                 DirectionAwareLabel {
                                     text: LocaleFormat.formatInteger(Number(notificationRow.modelData.castLikeCount || 0))
                                     color: Theme.textTertiary
