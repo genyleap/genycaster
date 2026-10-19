@@ -1871,6 +1871,19 @@ Item {
                     }
                 }
 
+                ActionButton {
+                    objectName: "mobileAccountBookmarksButton"
+                    visible: root.mobile && presentationBridge.isAuthenticated
+                    Layout.fillWidth: true
+                    quiet: true
+                    iconGlyph: Theme.iconBookmark
+                    text: qsTrId("genycaster.side_nav.bookmarks")
+                    onClicked: {
+                        accountPopup.close()
+                        root.openShellRoute("bookmarks")
+                    }
+                }
+
                 // A persistent mobile exit action must not be hidden below
                 // long account details or signer recovery messages.
                 ActionButton {

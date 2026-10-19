@@ -144,7 +144,7 @@ Item {
                 String(value.aggregateCount || 0), String(value.castId || ""),
                 String(value.castText || ""), String(value.actorFid || 0),
                 String(value.castParentId || ""), String(value.parentCastId || ""),
-                String(value.parentText || ""), String(value.parentAvatarUrl || ""),
+                String(value.quotedCastId || ""), String(value.parentText || ""), String(value.parentAvatarUrl || ""),
                 String(value.castEmbedUrl || ""), String(value.parentEmbedUrl || ""),
                 String(value.castChannel || "")].join("\u001f")
     }
@@ -187,6 +187,7 @@ Item {
             castChannel: source.castChannel,
             parentEmbedUrl: source.parentEmbedUrl,
             parentCastId: source.parentCastId,
+            quotedCastId: source.quotedCastId,
             parentText: source.parentText,
             parentReplyCount: source.parentReplyCount,
             parentAuthorFid: source.parentAuthorFid,
@@ -1102,6 +1103,41 @@ Item {
                                 enabled: String(notificationRow.modelData.parentCastId || "").length > 0
                                 gesturePolicy: TapHandler.ReleaseWithinBounds
                                 onTapped: root.castRequested(String(notificationRow.modelData.parentCastId || ""))
+                            }
+                        }
+
+                        // Quote events can arrive before their referenced cast
+                        // is hydrated. Keep the quoted target reachable rather
+                        // than rendering an inert generic placeholder.
+                        RowLayout {
+                            visible: notificationRow.kindKey === "quote"
+                                     && String(notificationRow.modelData.quotedCastId || "").length > 0
+                                     && !root.hasParentContext(notificationRow.modelData)
+                            Layout.fillWidth: true
+                            Layout.topMargin: Theme.space1
+                            spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
+
+                            Icon {
+                                text: Theme.iconQuote
+                                color: Theme.accent
+                                preferredSize: Theme.iconSizeSmall
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.embed.view_quoted_cast_next")
+                                color: Theme.accent
+                                font.pixelSize: Theme.typeMetaSize
+                                elide: Text.ElideRight
+                            }
+                            Icon {
+                                text: Theme.iconArrowRight
+                                color: Theme.inkSubtle
+                                preferredSize: Theme.iconSizeSmall
+                            }
+                            TapHandler {
+                                gesturePolicy: TapHandler.ReleaseWithinBounds
+                                onTapped: root.castRequested(String(notificationRow.modelData.quotedCastId || ""))
                             }
                         }
 

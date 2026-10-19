@@ -42,7 +42,7 @@ Flickable {
 
         DirectionAwareLabel {
             Layout.fillWidth: true
-            text: "Saved on this device for the current Farcaster account"
+            text: qsTrId("genycaster.side_nav.bookmarks")
             color: Theme.inkMuted
             font.pixelSize: Theme.typeMetaSize
             wrapMode: Text.Wrap
@@ -54,7 +54,7 @@ Flickable {
             Layout.topMargin: Theme.space6
             text: !root.authenticated
                   ? qsTrId("genycaster.notifications.sign_in_required")
-                  : "No saved casts yet. Use the bookmark icon under any cast."
+                  : qsTrId("genycaster.empty.nothing_here_yet")
             color: Theme.inkMuted
             font.pixelSize: Theme.typeBodySize
             horizontalAlignment: Text.AlignHCenter

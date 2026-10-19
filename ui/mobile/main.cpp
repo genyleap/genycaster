@@ -1125,9 +1125,13 @@ void applyNotificationState(
             row.insert(QStringLiteral("castLikeCount"), static_cast<qulonglong>(item.cast->engagement.likes));
             row.insert(QStringLiteral("castEmbedCount"), static_cast<qulonglong>(item.cast->embeds.size()));
             for (const auto& embed : item.cast->embeds) {
-                if (embed.kind == domain::cast::EmbedKind::Url && !embed.value.empty()) {
+                if (embed.kind == domain::cast::EmbedKind::CastReference && !embed.value.empty()
+                    && item.kind == capability::notification::NotificationKind::Quote) {
+                    row.insert(QStringLiteral("quotedCastId"), QString::fromStdString(embed.value));
+                }
+                if (embed.kind == domain::cast::EmbedKind::Url && !embed.value.empty()
+                    && !row.contains(QStringLiteral("castEmbedUrl"))) {
                     row.insert(QStringLiteral("castEmbedUrl"), QString::fromStdString(embed.value));
-                    break;
                 }
             }
         }

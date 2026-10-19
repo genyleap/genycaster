@@ -61,5 +61,24 @@ test('bookmarks persist on-device per verified account and have a navigable rout
   assert.match(shell,/active: root.shellRoute === "bookmarks"/);
   assert.match(shell,/BookmarksSurface \{/);
   assert.match(ui,/onTapped: root.castRequested\(String\(modelData.castId \|\| ""\)\)/);
+  assert.match(shell,/objectName: "mobileAccountBookmarksButton"/);
   assert.match(read('ui/CMakeLists.txt'),/components\/BookmarksSurface.qml/);
+});
+
+test('compact feed action rail keeps five touch targets and moves views beside time',()=>{
+  const cast=read('ui/components/CastItem.qml');
+  const reply=read('ui/components/ThreadReplyItem.qml');
+  assert.match(cast,/readonly property string compactViewsText/);
+  assert.equal((cast.match(/showViews: !root.compact/g)||[]).length,2);
+  assert.match(cast,/root.compactViewsText \+ \(root.formattedTime.length > 0/);
+  assert.match(reply,/showViews: !root.compact/);
+});
+
+test('quote notifications preserve a clickable reference when embedded cast details are absent',()=>{
+  const presenter=read('ui/mobile/main.cpp');
+  const ui=read('ui/components/NotificationSurface.qml');
+  assert.match(presenter,/NotificationKind::Quote\) \{[\s\S]*?row.insert\(QStringLiteral\("quotedCastId"\)/);
+  assert.match(ui,/quotedCastId: source.quotedCastId/);
+  assert.match(ui,/notificationRow.kindKey === "quote"[\s\S]*?notificationRow.modelData.quotedCastId/);
+  assert.match(ui,/onTapped: root.castRequested\(String\(notificationRow.modelData.quotedCastId/);
 });
