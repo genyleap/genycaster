@@ -18,6 +18,30 @@ RowLayout {
     property string castId: ""
     property double authorFid: 0
     property string castText: ""
+    property bool scrollMoving: false
+    readonly property double viewerFid: Number(presentationBridge.accountFid || 0)
+    readonly property bool browserLikeEvidence: Qt.platform.os === "wasm"
+                                                && CastReactions.reacted(root.castId, root.viewerFid, "like")
+    readonly property bool browserRecastEvidence: Qt.platform.os === "wasm"
+                                                  && CastReactions.reacted(root.castId, root.viewerFid, "recast")
+    readonly property var browserLikeOverride: Qt.platform.os === "wasm"
+        ? CastReactions.localValue(root.castId, root.viewerFid, "like") : null
+    readonly property var browserRecastOverride: Qt.platform.os === "wasm"
+        ? CastReactions.localValue(root.castId, root.viewerFid, "recast") : null
+    readonly property bool effectiveLikedByMe: root.browserLikeOverride !== null
+        ? root.browserLikeOverride : root.likedByMe || root.browserLikeEvidence
+    readonly property bool effectiveRecastedByMe: root.browserRecastOverride !== null
+        ? root.browserRecastOverride : root.recastedByMe || root.browserRecastEvidence
+
+    function requestBrowserReactions() {
+        if (Qt.platform.os === "wasm" && !root.scrollMoving
+                && presentationBridge.isAuthenticated && root.viewerFid > 0)
+            CastReactions.ensure(root.castId, root.viewerFid)
+    }
+    Component.onCompleted: requestBrowserReactions()
+    onCastIdChanged: requestBrowserReactions()
+    onViewerFidChanged: requestBrowserReactions()
+    onScrollMovingChanged: if (!root.scrollMoving) requestBrowserReactions()
     readonly property var resolvedViewCount: {
         if (root.viewCount !== null && root.viewCount !== undefined
                 && isFinite(Number(root.viewCount)) && Number(root.viewCount) >= 0)
@@ -83,27 +107,45 @@ RowLayout {
         Layout.fillWidth: true
         iconGlyph: Theme.iconRepost
         metricText: root.recastCount > 0 ? LocaleFormat.formatCompactNumber(root.recastCount) : ""
-        active: root.recastedByMe
+        active: root.effectiveRecastedByMe
         activeColor: Theme.positive
         enabled: true
-        Accessible.name: root.recastedByMe
+        Accessible.name: root.effectiveRecastedByMe
                          ? qsTrId("genycaster.engagement.undo_recast_value_recasts").arg(LocaleFormat.formatInteger(root.recastCount))
                          : qsTrId("genycaster.engagement.recast_value_recasts").arg(LocaleFormat.formatInteger(root.recastCount))
-        onClicked: root.recastInteractive ? root.recastRequested(!root.recastedByMe) : root.authenticationRequested()
+        onClicked: {
+            if (!root.recastInteractive) {
+                root.authenticationRequested()
+                return
+            }
+            const next = !root.effectiveRecastedByMe
+            if (Qt.platform.os === "wasm" && root.viewerFid > 0)
+                CastReactions.setLocal(root.castId, root.viewerFid, "recast", next)
+            root.recastRequested(next)
+        }
     }
 
     EngagementButton {
         Layout.fillWidth: true
         iconGlyph: root.displayedLikeIcon
-        iconFilled: root.likedByMe
+        iconFilled: root.effectiveLikedByMe
         activeColor: Theme.negative
         metricText: root.likeCount > 0 ? LocaleFormat.formatCompactNumber(root.likeCount) : ""
-        active: root.likedByMe
+        active: root.effectiveLikedByMe
         enabled: true
-        Accessible.name: root.likedByMe
+        Accessible.name: root.effectiveLikedByMe
                          ? qsTrId("genycaster.engagement.unlike_value_likes").arg(LocaleFormat.formatInteger(root.likeCount))
                          : qsTrId("genycaster.engagement.like_value_likes").arg(LocaleFormat.formatInteger(root.likeCount))
-        onClicked: root.likeInteractive ? root.likeRequested(!root.likedByMe) : root.authenticationRequested()
+        onClicked: {
+            if (!root.likeInteractive) {
+                root.authenticationRequested()
+                return
+            }
+            const next = !root.effectiveLikedByMe
+            if (Qt.platform.os === "wasm" && root.viewerFid > 0)
+                CastReactions.setLocal(root.castId, root.viewerFid, "like", next)
+            root.likeRequested(next)
+        }
     }
 
     // Views remain inside the same footer as actions for every cast,

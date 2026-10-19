@@ -87,7 +87,11 @@ public:
         document.setDefaultFont(QFont{});
         document.documentLayout()->registerHandler(EmojiObjectType, &handler);
         QTextOption option{};
-        option.setWrapMode(QTextOption::WordWrap);
+        // Narrow feed cards can contain long prices, hashes, joined metrics
+        // and mentions without whitespace. WordWrap lets those words paint
+        // outside the allotted QTextDocument width; always allow an
+        // emergency character-boundary break without altering the text.
+        option.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
         document.setDefaultTextOption(option);
         document.setDocumentMargin(0.0);
         recomputeLayout(0.0);

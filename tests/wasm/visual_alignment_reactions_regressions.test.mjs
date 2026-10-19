@@ -12,7 +12,7 @@ test('all Cast reactions have uniform unboxed touch targets and semantic active 
     assert.match(button, /borderWidth: Theme\.keyboardFocusVisible\(control\) \? 2 : 0/);
     assert.match(button, /shadowEnabled: false/);
     assert.match(button, /property color activeColor: Theme\.accent/);
-    assert.match(bar, /iconGlyph: root\.displayedLikeIcon[\s\S]*?iconFilled: root\.likedByMe[\s\S]*?activeColor: Theme\.negative/);
+    assert.match(bar, /iconGlyph: root\.displayedLikeIcon[\s\S]*?iconFilled: root\.effectiveLikedByMe[\s\S]*?activeColor: Theme\.negative/);
     assert.match(bar, /iconGlyph: Theme\.iconRepost[\s\S]*?activeColor: Theme\.positive/);
     assert.match(bar, /displayedLikeIcon: Theme\.iconHeart/);
     assert.doesNotMatch(bar, /contextualLikeIcon/);

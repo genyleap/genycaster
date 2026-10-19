@@ -23,7 +23,7 @@ test('like uses theme-aware filled-heart asset and quote sits directly beside re
   const repostAt=bar.indexOf('iconGlyph: Theme.iconRepost');
   const likeAt=bar.indexOf('iconGlyph: root.displayedLikeIcon');
   assert.ok(replyAt>=0 && quoteAt>replyAt && repostAt>quoteAt && likeAt>repostAt);
-  assert.match(bar,/iconFilled: root\.likedByMe/);
+  assert.match(bar,/iconFilled: root\.effectiveLikedByMe/);
   assert.match(bar,/activeColor: Theme\.negative/);
   assert.match(button,/filled: control\.iconFilled/);
   assert.match(theme,/case "heart": path = filled \? "actions\/heart-filled" : "actions\/heart"/);

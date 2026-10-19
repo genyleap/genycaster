@@ -138,6 +138,7 @@ async function withGateway(run, overrides = {}) {
     fetchImpl: overrides.fetchImpl ?? signerFetch,
     farcasterBroker: overrides.farcasterBroker,
     castViewService: overrides.castViewService,
+    browserReactionService: overrides.browserReactionService,
     now: () => nowMs,
   });
   await new Promise((resolve, reject) => {
@@ -640,4 +641,36 @@ test('browser cast view endpoint enforces bounded batch POST and trusted CORS',a
       body:JSON.stringify({casts:Array(300).fill(cast)})});
     assert.equal(excessive.status,413);
   },{castViewService});
+});
+
+test('read-only browser cast reactions endpoint enforces CORS, rate, and the batch contract',async()=>{
+  const hash='0x9aea66ddab7a51563cc54e881931a5acb9e2bf16';
+  const calls=[];
+  const browserReactionService={resolve:async document=>{
+    calls.push(document);
+    if(!document || !Array.isArray(document.casts))return {status:400,error:'invalid_reaction_batch'};
+    return {status:200,data:{reactions:{[hash]:{liked:true,recasted:true}}}};
+  }};
+  await withGateway(async({origin})=>{
+    const url=origin+'/v1/browser/cast-reactions';
+    const options=await fetch(url,{method:'OPTIONS',headers:{
+      origin:'https://caster.genyleap.com',
+      'access-control-request-method':'POST',
+      'access-control-request-headers':'content-type',
+    }});
+    assert.equal(options.status,204);
+    assert.equal(options.headers.get('access-control-allow-origin'),'https://caster.genyleap.com');
+    const rejected=await fetch(url,{method:'OPTIONS',headers:{origin:'https://unknown.example'}});
+    assert.equal(rejected.status,403);
+    const body={viewerFid:234616,casts:[hash]};
+    const response=await fetch(url,{method:'POST',headers:{
+      origin:'https://caster.genyleap.com','content-type':'application/json'
+    },body:JSON.stringify(body)});
+    assert.equal(response.status,200);
+    assert.deepEqual(await response.json(),{reactions:{[hash]:{liked:true,recasted:true}}});
+    assert.deepEqual(calls[0],body);
+    assert.equal((await fetch(url,{method:'GET'})).status,405);
+    assert.equal((await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:'not-json'})).status,400);
+    assert.equal((await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:'X'.repeat(3000)})).status,413);
+  },{browserReactionService});
 });

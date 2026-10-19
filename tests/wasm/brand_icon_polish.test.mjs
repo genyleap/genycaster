@@ -8,7 +8,7 @@ test("Like uses a consistent semantic heart with red selection in every Cast",()
     const bar=read("ui/components/EngagementBar.qml");
     assert.match(bar,/readonly property string displayedLikeIcon: Theme\.iconHeart/);
     assert.match(bar,/iconGlyph: root\.displayedLikeIcon/);
-    assert.match(bar,/iconFilled: root\.likedByMe/);
+    assert.match(bar,/iconFilled: root\.effectiveLikedByMe/);
     assert.match(bar,/activeColor: Theme\.negative/);
     assert.match(bar,/activeColor: Theme\.positive/);
     assert.doesNotMatch(bar,/contextualLikeIcon: presentationBridge\.contextualReactionIcon/);

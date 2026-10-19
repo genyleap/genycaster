@@ -115,6 +115,7 @@ ColumnLayout {
     RichTextView {
         visible: root.fallbackBlock !== null
         Layout.fillWidth: true
+        Layout.minimumWidth: 0
         emojiSurface: root.emojiSurface
         blockData: root.fallbackBlock
         compact: root.compact

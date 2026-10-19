@@ -8,7 +8,9 @@ test('reaction actions have touch-safe hit targets without permanent card border
     const button = read('ui/components/EngagementButton.qml');
     const bar = read('ui/components/EngagementBar.qml');
     assert.match(button, /implicitHeight: Theme.touchTarget/);
-    assert.match(button, /fillColor: control.down \? Theme.surfacePressed/);
+    assert.match(button, /fillColor: "transparent"/);
+    assert.doesNotMatch(button, /fillColor: control.down \? Theme.surfacePressed/);
+    assert.doesNotMatch(button, /control.active \? Qt.rgba/);
     assert.match(button, /: "transparent"/);
     assert.match(button, /borderWidth: Theme.keyboardFocusVisible\(control\) \? 2 : 0/);
     assert.match(button, /property color activeColor: Theme.accent/);

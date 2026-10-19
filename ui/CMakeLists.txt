@@ -31,6 +31,7 @@ set(farcasterQmlFiles
     components/CastItem.qml
     components/CastSkeleton.qml
     components/CastViews.qml
+    components/CastReactions.qml
     components/BookmarksSurface.qml
     components/ContextRail.qml
     components/ComposerDrawer.qml
@@ -136,6 +137,7 @@ set(farcasterQmlFiles
 set_source_files_properties(theme/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 set_source_files_properties(components/LocaleFormat.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 set_source_files_properties(components/CastViews.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set_source_files_properties(components/CastReactions.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 set_source_files_properties(components/TokenSemantic.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 if(Qt6Lottie_FOUND AND Qt6_VERSION VERSION_GREATER_EQUAL 6.11)

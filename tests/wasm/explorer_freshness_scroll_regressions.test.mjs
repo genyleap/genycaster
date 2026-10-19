@@ -58,7 +58,7 @@ test('single ordinary link Cast composes author sentence inside the responsive c
     assert.match(panel, /castCaption: root.supportingCount === 1 && root.visualCount === 0/);
     assert.match(embed, /castCaption: root.castCaption/);
     assert.match(preview, /property string castCaption: ""/);
-    assert.match(preview, /Layout.preferredWidth: shouldReserve \? \(root.compact \? 116 : 184\)/);
+    assert.match(preview, /Layout.preferredWidth: shouldReserve[\s\S]*?Math.min\(root.compact \? 116 : 184/);
     assert.match(preview, /localizationController.isRightToLeftText\(root.castCaption\)/);
 });
 

@@ -411,6 +411,7 @@ Item {
         Item {
             id: messageSurface
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
             implicitHeight: messageContent.implicitHeight + Theme.space4 * 2
 
             // All feed families share one soft superellipse surface. Keeping
@@ -437,6 +438,7 @@ Item {
 
                 RowLayout {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     Layout.leftMargin: root.mediaContentInset
                     Layout.rightMargin: root.mediaContentInset
                     spacing: Theme.space1
@@ -466,7 +468,12 @@ Item {
                         // Never derive a Layout constraint from the RowLayout's own
                         // width. That creates a circular size dependency and causes
                         // Qt Quick Layouts to recursively rearrange the row.
-                        Layout.maximumWidth: Math.max(100, messageSurface.width * 0.48)
+                        Layout.fillWidth: root.compact
+                        Layout.minimumWidth: 0
+                        Layout.maximumWidth: root.compact
+                            ? Math.max(1, messageSurface.width - Theme.space4 * 2
+                                       - 36 - Theme.touchTarget - Theme.space3)
+                            : Math.max(100, messageSurface.width * 0.48)
                         text: root.authorName
                         color: Theme.ink
                         font.pixelSize: Theme.typeLabelSize
@@ -481,7 +488,7 @@ Item {
                     }
 
                     Label {
-                        visible: Boolean(root.modelData.author)
+                        visible: !root.compact && Boolean(root.modelData.author)
                         Layout.maximumWidth: 150
                         LayoutMirroring.enabled: false
                         text: root.ltrHandle(root.modelData.author)
@@ -493,17 +500,6 @@ Item {
                     }
 
 
-                    DirectionAwareLabel {
-                        visible: root.compact && Number(root.modelData.createdAtMs || 0) > 0
-                        Layout.maximumWidth: Math.max(58, messageSurface.width * 0.20)
-                        text: visible
-                              ? LocaleFormat.formatRelativeTime(Number(root.modelData.createdAtMs))
-                              : ""
-                        color: Theme.inkSubtle
-                        font.pixelSize: Theme.typeCaptionSize
-                        elide: Text.ElideRight
-                    }
-
                     Item { Layout.fillWidth: true }
 
                     ActionButton {
@@ -514,6 +510,51 @@ Item {
                         iconGlyph: Theme.iconMore
                         text: qsTrId("genycaster.cast.view_conversation")
                         onClicked: root.openMoreMenu()
+                    }
+                }
+
+                // On phone-sized windows the display name, @handle,
+                // time and menu cannot share one horizontal row. Keep the
+                // identity/time metadata on a bounded second line instead
+                // of overflowing the right edge of the Cast surface.
+                RowLayout {
+                    objectName: "compactCastAuthorMetadata"
+                    visible: root.compact
+                             && (Boolean(root.modelData.author)
+                                 || Number(root.modelData.createdAtMs || 0) > 0)
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.leftMargin: root.mediaContentInset
+                    Layout.rightMargin: root.mediaContentInset
+                    layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
+                    spacing: Theme.space2
+
+                    Item {
+                        Layout.preferredWidth: 36
+                        Layout.preferredHeight: 1
+                    }
+
+                    Label {
+                        visible: Boolean(root.modelData.author)
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        LayoutMirroring.enabled: false
+                        text: root.ltrHandle(root.modelData.author || "")
+                        font.family: Theme.latinFontFamily
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeMetaSize
+                        elide: Text.ElideRight
+                    }
+
+                    DirectionAwareLabel {
+                        visible: Number(root.modelData.createdAtMs || 0) > 0
+                        Layout.maximumWidth: Math.max(68, Math.min(115, messageSurface.width * 0.28))
+                        text: visible
+                              ? LocaleFormat.formatRelativeTime(Number(root.modelData.createdAtMs))
+                              : ""
+                        color: Theme.inkSubtle
+                        font.pixelSize: Theme.typeCaptionSize
+                        elide: Text.ElideRight
                     }
                 }
 
@@ -806,6 +847,7 @@ Item {
                     EngagementBar {
                         Layout.fillWidth: true
                         compact: root.compact
+                        scrollMoving: root.scrollMoving
                         showViews: true
                         replyCount: Number(root.modelData.replyCount || 0)
                         recastCount: Number(root.modelData.recastCount || 0)
@@ -889,6 +931,7 @@ Item {
                     EngagementBar {
                         Layout.fillWidth: true
                         compact: root.compact
+                        scrollMoving: root.scrollMoving
                         showViews: true
                         replyCount: Number(root.modelData.replyCount || 0)
                         recastCount: Number(root.modelData.recastCount || 0)

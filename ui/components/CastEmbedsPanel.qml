@@ -3,6 +3,7 @@ import QtQuick.Layouts
 
 ColumnLayout {
     id: root
+    Layout.minimumWidth: 0
 
     property var visualEmbeds: []
     property var supportingEmbeds: []

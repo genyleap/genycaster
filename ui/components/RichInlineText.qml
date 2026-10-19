@@ -28,6 +28,9 @@ Item {
     readonly property bool reducedMotion: Theme.reduceMotion
 
     implicitHeight: textLayout.contentHeight
+    // Painted inline emoji and text must never spill outside a recycled Cast
+    // delegate before the native QTextDocument recomputes after a resize.
+    clip: true
 
     // Flattens blockData into one inline-span list; list markers become plain
     // spans separated by newlines (the same layout RichTextView produced with

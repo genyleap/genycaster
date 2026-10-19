@@ -20,6 +20,7 @@ Item {
         String(root.safeBlockData.text || ""))
 
     implicitHeight: content.implicitHeight
+    clip: true
 
     RowLayout {
         id: content
@@ -42,6 +43,7 @@ Item {
         RichInlineText {
             visible: root.textBlock
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
             LayoutMirroring.enabled: false
             emojiSurface: root.emojiSurface
             blockData: root.safeBlockData

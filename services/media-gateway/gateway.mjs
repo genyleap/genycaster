@@ -5,6 +5,7 @@ import { publicTokenSnapshot } from './browser_token_insights.mjs';
 import { publicMiniAppPreview } from './browser_miniapp_preview.mjs';
 import { publicLinkPreview } from './browser_link_preview.mjs';
 import { createCastViewService } from './browser_cast_views.mjs';
+import { createBrowserReactionService } from './browser_cast_reactions.mjs';
 import {
   createHash,
   createHmac,
@@ -420,6 +421,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   const miniAppPreviews = new Map();
   const webLinkPreviews = new Map();
   const castViewService = dependencies.castViewService ?? createCastViewService(runtime);
+  const browserReactionService = dependencies.browserReactionService ?? createBrowserReactionService(runtime);
   const verifiedLinkImages = new Map();
   const verifiedMiniAppImages = new Map();
   let refreshIconsPromise = null;
@@ -543,6 +545,41 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       } catch (error) {
         writeJson(response, error?.statusCode === 413 ? 413 : 502,
           {error:error?.statusCode === 413 ? 'request_too_large' : 'cast_views_unavailable'});
+      }
+      return;
+    }
+
+    if (requestUrl.pathname === '/v1/browser/cast-reactions') {
+      // Public positive reaction evidence for WASM (no password/token, no
+      // inference from an incomplete list). Origin and request size are
+      // bounded independently of other media endpoints.
+      const origin = request.headers.origin;
+      if (origin === 'https://caster.genyleap.com') {
+        response.setHeader('access-control-allow-origin', origin);
+        response.setHeader('vary', 'origin');
+      }
+      response.setHeader('access-control-allow-methods', 'POST, OPTIONS');
+      response.setHeader('access-control-allow-headers', 'content-type, accept');
+      if (request.method === 'OPTIONS') {
+        response.writeHead(origin === 'https://caster.genyleap.com' ? 204 : 403);
+        response.end(); return;
+      }
+      if (request.method !== 'POST') {
+        writeJson(response, 405, {error:'method_not_allowed'}); return;
+      }
+      const rate = limiter.check(clientAddress(request, config.trustCloudflare), runtime.now());
+      if (!rate.allowed) {
+        writeJson(response, 429, {error:'rate_limited'}, {'retry-after':'60'}); return;
+      }
+      try {
+        const document = safeJson(await readBody(request, 2048));
+        const result = await browserReactionService.resolve(document);
+        writeJson(response, result.status, result.status === 200
+          ? result.data : {error:result.error});
+      } catch (error) {
+        writeJson(response, error?.statusCode === 413 ? 413 : 502,
+          {error:error?.statusCode === 413
+            ? 'request_too_large' : 'cast_reactions_unavailable'});
       }
       return;
     }

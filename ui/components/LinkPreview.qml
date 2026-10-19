@@ -460,8 +460,12 @@ Superellipse {
     }
 
     Layout.fillWidth: true
+    Layout.minimumWidth: 0
     Layout.maximumWidth: Number.POSITIVE_INFINITY
     Layout.alignment: Qt.AlignVCenter
+    // The preview is a visual boundary. Its layout must shrink inside
+    // the Cast card on narrow native and WASM windows alike.
+    clip: true
     // A generic link can acquire title, summary and attribution *after* its
     // lightweight Loader has become visible. Reserve all three bounded text
     // lines upfront so asynchronous metadata never grows an existing feed row.
@@ -1033,7 +1037,10 @@ Superellipse {
         RowLayout {
             property alias artworkItem: genericThumb
             property alias artworkFrameItem: genericThumbFrame
-            width: root.width - content.anchors.leftMargin - content.anchors.rightMargin
+            width: Math.max(0, root.width - content.anchors.leftMargin
+                               - content.anchors.rightMargin)
+            Layout.minimumWidth: 0
+            clip: true
             // Editorial media card: artwork occupies the leading edge and
             // the Cast's own sentence, link identity and metadata read as one
             // coherent surface. Mirror by the caption's writing direction.
@@ -1048,7 +1055,12 @@ Superellipse {
                                                      && root.previewSource.length > 0
                                                      && !root.genericArtworkUnavailable
                 visible: shouldReserve
-                Layout.preferredWidth: shouldReserve ? (root.compact ? 116 : 184) : 0
+                // Cap the artwork by actual card width; a fixed 184px
+                // thumbnail plus long metadata made narrow cards overflow.
+                Layout.preferredWidth: shouldReserve
+                    ? Math.min(root.compact ? 116 : 184,
+                               Math.max(64, (root.width - Theme.space3 * 2) * 0.38))
+                    : 0
                 Layout.preferredHeight: shouldReserve ? (root.compact ? 116 : 156) : 0
 
                 AmbientMediaBackdrop {
@@ -1115,6 +1127,7 @@ Superellipse {
 
             ColumnLayout {
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 layoutDirection: root.castCaption.length > 0
                                  && localizationController.isRightToLeftText(root.castCaption)
                                  ? Qt.RightToLeft : Qt.LeftToRight
@@ -1139,6 +1152,7 @@ Superellipse {
 
                 RowLayout {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     Layout.preferredHeight: Math.max(20, root.captionLineHeight)
                     Layout.minimumHeight: Layout.preferredHeight
                     Layout.maximumHeight: Layout.preferredHeight
@@ -1184,6 +1198,7 @@ Superellipse {
 
                     DirectionAwareLabel {
                         Layout.fillWidth: true
+                        Layout.minimumWidth: 0
                         forceLeftToRight: true
                         text: root.siteName.length > 0 ? root.siteName : root.domainText
                         color: root.providerColor
@@ -1242,6 +1257,7 @@ Superellipse {
 
                     DirectionAwareLabel {
                         visible: root.authorText.length > 0
+                        Layout.minimumWidth: 0
                         Layout.maximumWidth: root.compact ? 120 : 180
                         text: root.authorText
                         color: Theme.textTertiary
@@ -1251,6 +1267,7 @@ Superellipse {
 
                     DirectionAwareLabel {
                         visible: root.dateText.length > 0
+                        Layout.minimumWidth: 0
                         Layout.maximumWidth: root.compact ? 100 : 150
                         text: root.dateText
                         color: Theme.textTertiary
@@ -1262,6 +1279,7 @@ Superellipse {
 
                     Label {
                         LayoutMirroring.enabled: false
+                        Layout.minimumWidth: 0
                         Layout.maximumWidth: root.compact ? 140 : 240
                         text: root.domainText
                         color: Theme.textTertiary

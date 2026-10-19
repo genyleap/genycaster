@@ -77,7 +77,8 @@ test('main casts and every threaded reply show views in a common footer at all w
   assert.match(reply,/authorFid: Number\(root.reply.authorFid \|\| 0\)/);
   assert.match(reply,/castText: String\(root.reply.text \|\| ""\)/);
   assert.doesNotMatch(cast,/compactViewsText/);
-  assert.match(cast,/root.compact && Number\(root.modelData.createdAtMs \|\| 0\) > 0/);
+  assert.match(cast,/objectName: "compactCastAuthorMetadata"/);
+  assert.match(cast,/Number\(root.modelData.createdAtMs \|\| 0\) > 0/);
   assert.match(bar,/id: castViewsLabel[\s\S]*?Layout.fillWidth: true/);
   assert.match(bar,/metricText: root.replyCount > 0 \? LocaleFormat.formatCompactNumber/);
   assert.match(bar,/objectName: "castBookmarkButton"/);

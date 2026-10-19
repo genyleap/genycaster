@@ -126,6 +126,23 @@ int main(int argc, char** argv)
             "emoji overlay never creates a stray line below its text layout");
     }
 
+    // Small desktop windows share the same narrow text renderer as compact
+    // WebAssembly feeds. Long prices, transaction hashes and pipe-separated
+    // metrics must wrap even when there is no natural word boundary.
+    RichInlineTextItem narrowMetrics;
+    narrowMetrics.setWidth(114);
+    narrowMetrics.setPixelSize(22);
+    narrowMetrics.setFontFamily("Helvetica");
+    narrowMetrics.setInlines({QVariantMap{
+        {"kind", "text"},
+        {"text", QStringLiteral("Open:81947|High:82039|Low:81804|Close:81897|"
+                                "Volume:2.8K|RSI:45|Stochastic:13|Oversold")}}});
+    expect(narrowMetrics.contentHeight() > 100,
+        "unspaced financial metrics wrap within 114px instead of overflowing the Cast");
+    narrowMetrics.setWidth(220);
+    expect(narrowMetrics.contentHeight() < 100,
+        "wrapping recomputes when a compact desktop window is widened");
+
     const QImage fallback = painted(text);
     for (const auto& box : boxes) {
         text.setEmojiAnimated(box.toMap().value("position").toInt(), true);

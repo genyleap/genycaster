@@ -104,6 +104,7 @@ Item {
     signal mediaRequested(var mediaItems, int index)
     signal castRequested(string castId)
 
+    Layout.minimumWidth: 0
     implicitHeight: root.promotedMediaHeight > 0 ? root.promotedMediaHeight
                     : loader.item ? loader.item.implicitHeight : 0
     // A viewport resize may compute a fresh responsive plan.

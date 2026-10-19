@@ -68,15 +68,13 @@ Button {
         Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
     }
 
-    // Keep the complete touch target, but do not draw a permanent box around
-    // every reaction. A subtle selected tint is enough; focus remains visible.
+    // No selected/pressed tile: selection is conveyed only by the
+    // semantic hue of the icon and its count. Keep the full touch target and
+    // the accessible keyboard-focus outline on both native Qt and WASM.
     background: Superellipse {
         anchors.fill: parent
         anchors.margins: 1
-        fillColor: control.down ? Theme.surfacePressed
-                   : control.active ? Qt.rgba(control.activeColor.r, control.activeColor.g,
-                                              control.activeColor.b, Theme.dark ? 0.16 : 0.075)
-                   : "transparent"
+        fillColor: "transparent"
         borderWidth: Theme.keyboardFocusVisible(control) ? 2 : 0
         borderColor: Theme.focus
         curveDepth: Theme.curveControl
