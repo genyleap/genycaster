@@ -269,18 +269,17 @@ Item {
         const row = data || ({})
         const text = String(row.text || "")
         const channel = String(row.channelId || "").toLowerCase()
-        const isNftChannel = channel === "nft" || channel === "cryptoart"
-                             || channel === "superrare" || channel === "basepaint"
-                             || channel === "zora" || channel === "collectibles"
         const explicitNft = /(?:#nft\b|\bnfts\b|\bnft\b|\bmint(?:ed|ing)?\b|\bonchain art\b|\bdigital collectible\b|\berc[- ]?(?:721|1155)\b)/i.test(text)
-        // Text or provider evidence can identify NFT casts even before artwork
-        // link metadata has arrived. Art-only posts without NFT evidence are
-        // intentionally excluded from the collectible tab.
-        return root.containsCollectibleLink(row)
-                || (isNftChannel && (root.rowHasImage(row) || explicitNft))
-                || (explicitNft && (root.rowHasImage(row)
-                                   || (row.embeds || []).length > 0
-                                   || isNftChannel))
+        const artContext = /(?:\bart(?:work|ist|ists)?\b|\bcryptoart\b|\billustrat(?:ion|or)\b|\bphotograph(?:y|er)\b|\bpaint(?:ing|ed)?\b|\bdigital creation\b|\bonchain\b)/i.test(text)
+        // NFTs is a visual/collectible discovery surface, not a keyword search.
+        // A bare "NFT" mention or ordinary mint discussion with no artwork or
+        // actual collection destination must never qualify as an art piece.
+        if (root.containsCollectibleLink(row))
+            return true
+        if (!root.rowHasImage(row))
+            return false
+        return root.isArtChannelCast(row) || root.hasArtChannelMediaCandidate(row)
+                || explicitNft || artContext
     }
 
     function primeArtPreviews() {
@@ -434,7 +433,7 @@ Item {
                 if (root.isRootPost(row))
                     result.push({ payload: row, presentationKind: "conversation" })
             } else if (root.presentationMode === "visuals") {
-                if (root.activeFeed === "nfts" || root.hasCollectible(row))
+                if (root.hasCollectible(row))
                     result.push({ payload: row, presentationKind: "visual" })
             } else if (root.presentationMode === "devs") {
                 if (root.activeFeed === "developers" || root.looksDeveloper(row))

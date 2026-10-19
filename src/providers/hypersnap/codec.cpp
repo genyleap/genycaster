@@ -629,8 +629,9 @@ decodeRecentCastEvents(const std::string_view body, const std::uint64_t startBlo
         const JsonValue* castBody = findValue(data->as_object(), "castAddBody");
         if (castBody == nullptr || !castBody->is_object()) { continue; }
         const JsonValue* parent = findValue(castBody->as_object(), "parentCastId");
-        const bool isReply = parent != nullptr && parent->is_object()
-                             && findValue(parent->as_object(), "hash") != nullptr;
+        const auto parentHash = parent != nullptr && parent->is_object()
+            ? optionalString(parent->as_object(), "hash") : std::nullopt;
+        const bool isReply = parentHash && !parentHash->empty();
         if (isReply != repliesOnly) { continue; }
         const auto hash = optionalString(message->as_object(), "hash");
         const auto timestamp = optionalUnsigned(data->as_object(), "timestamp");
@@ -638,7 +639,8 @@ decodeRecentCastEvents(const std::string_view body, const std::uint64_t startBlo
         if (!hash || hash->size() != 42U || !hash->starts_with("0x")
             || !timestamp || !id) { continue; }
         result.push_back(RecentCastEvent{
-            .hash = *hash, .protocolTimestamp = *timestamp, .eventId = *id});
+            .hash = *hash, .parentHash = parentHash,
+            .protocolTimestamp = *timestamp, .eventId = *id});
     }
     return result;
 }

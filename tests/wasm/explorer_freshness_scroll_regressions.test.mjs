@@ -37,10 +37,29 @@ test('Explorer Conversations uses verified network replies instead of text heuri
     assert.match(qml, /root.activeFeed === "conversations" && root.isConversation\(row\)/);
     const gateway = read('src/providers/hypersnap/async_gateway.cpp');
     const decoder = read('src/providers/hypersnap/codec.cpp');
+    const bridge = read('src/presentation/qt/presentation_bridge.cpp');
+    const selector = bridge.split('void PresentationBridge::selectFeed(const QString& feed)')[1]
+        .split('void PresentationBridge::openChannel')[0];
+    assert.match(selector, /feed == QStringLiteral\("conversations"\) \? QStringLiteral\("conversations"\)/);
     assert.match(gateway, /feedConversationsRead\(\)/);
     assert.match(gateway, /decodeRecentCastEvents\([\s\S]*?cursor.firstEnd, repliesOnly\)/);
     assert.match(decoder, /if \(isReply != repliesOnly\) \{ continue; \}/);
     assert.match(read('src/storage/read_store.cpp'), /"feed:conversations"/);
+});
+
+test('single ordinary link Cast composes author sentence inside the responsive card', () => {
+    const cast = read('ui/components/CastItem.qml');
+    const panel = read('ui/components/CastEmbedsPanel.qml');
+    const embed = read('ui/components/EmbedPreview.qml');
+    const preview = read('ui/components/LinkPreview.qml');
+    assert.match(cast, /readonly property bool combinedLinkCast/);
+    assert.match(cast, /active: root.displayText.length > 0 && !root.combinedLinkCast/);
+    assert.match(cast, /castCaption: root.combinedLinkCast \? root.displayText : ""/);
+    assert.match(panel, /castCaption: root.supportingCount === 1 && root.visualCount === 0/);
+    assert.match(embed, /castCaption: root.castCaption/);
+    assert.match(preview, /property string castCaption: ""/);
+    assert.match(preview, /Layout.preferredWidth: shouldReserve \? \(root.compact \? 116 : 184\)/);
+    assert.match(preview, /localizationController.isRightToLeftText\(root.castCaption\)/);
 });
 
 test('decoded images remain bounded but warm when recycled feed rows return', () => {
@@ -164,11 +183,15 @@ test('NFT and developer tabs have independent provider searches and cache keys',
     const surface = read('ui/components/FeedSurface.qml');
     assert.match(gateway, /spec\.path = "\/v2\/farcaster\/cast\/search"/);
     assert.match(gateway, /\{"q", query\.kind/);
-    assert.match(gateway, /\? "nft" : "github"/);
+    assert.match(gateway, /\? "art" : "github"/);
+    assert.match(gateway, /collectibleSearchTerms\{/);
+    assert.match(gateway, /"art", "mint", "opensea", "superrare", "foundation"/);
+    assert.match(gateway, /encodeCollectibleCursor\(state\)/);
     assert.match(local, /"feed:nfts"/);
     assert.match(local, /"feed:developers"/);
     assert.match(model, /Nfts, Developers/);
-    assert.match(surface, /root\.activeFeed === "nfts"/);
+    assert.match(surface, /root\.hasCollectible\(row\)/);
+    assert.doesNotMatch(surface, /root\.activeFeed === "nfts" \|\| root\.hasCollectible\(row\)/);
     assert.match(surface, /root\.activeFeed === "developers"/);
 });
 

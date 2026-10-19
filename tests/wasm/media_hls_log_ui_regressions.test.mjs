@@ -40,13 +40,13 @@ test('browser native HLS modal and local hls.js work without third-party runtime
  assert.match(main,/path\(\)\.endsWith\(QLatin1StringView\{"\.m3u8"\}, Qt::CaseInsensitive\)/);
  assert.match(main,/dispatch\(true\)/);
 });
-test('home composer focus is visible on desktop and phone, link card is compact and right-art aligned',()=>{
+test('home composer focus is visible and link artwork leads the responsive editorial card',()=>{
  const home=read('ui/components/HomeDashboard.qml');
  const link=read('ui/components/LinkPreview.qml');
  assert.match(home,/desktopComposerSurface[\s\S]*borderColor: desktopDraftEditor\.activeFocus \? Theme\.accent/);
  assert.match(home,/mobileComposerSurface[\s\S]*borderColor: mobileDraftEditor\.activeFocus \? Theme\.accent/);
- assert.match(link,/layoutDirection: Qt\.RightToLeft\s*spacing: Theme\.space2\s*Item \{\s*id: genericThumbFrame/);
- assert.match(link,/Layout\.preferredHeight: shouldReserve \? \(root\.compact \? 66 : 86\) : 0/);
+ assert.match(link,/localizationController\.isRightToLeftText\(root\.castCaption\)/);
+ assert.match(link,/Layout\.preferredHeight: shouldReserve \? \(root\.compact \? 116 : 156\) : 0/);
 });
 test('gallery avoids subpixel inverse covers on Metal and WebGL',()=>{
  const gallery=read('ui/components/GalleryLayout.qml');

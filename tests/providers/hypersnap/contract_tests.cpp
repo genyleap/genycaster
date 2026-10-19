@@ -179,6 +179,7 @@ void testRecentNetworkEventDecoding()
     })json", 198U, 200U, true);
     assert(replies && replies->size() == 1U);
     assert(replies->front().hash == "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    assert(replies->front().parentHash && *replies->front().parentHash == "0xdead");
     auto invalid = provider::hypersnap::codec::decodeRecentShardInfo(R"json({"shardInfos":[]})json");
     assert(!invalid);
     auto broken = provider::hypersnap::codec::decodeRecentCastEvents(
@@ -336,12 +337,14 @@ void testRecentAsyncFeedAndCursor()
         return url.find("/v1/events?") != std::string::npos; }) == 4);
     assert(std::ranges::count_if(paths, [](const auto& url) {
         return url.find("/v2/farcaster/cast/bulk?") != std::string::npos; }) == 2);
-    const auto querySemantic = [&](const application::read::model::FeedQuery::Kind kind) {
+    const auto querySemantic = [&](const application::read::model::FeedQuery::Kind kind,
+                                   std::optional<capability::pagination::ContinuationToken> token = std::nullopt) {
         auto pending = std::make_shared<
             std::promise<foundation::result::Result<capability::feed::FeedPage>>>();
         auto future = pending->get_future();
         auto request = gateway.feed(
-            application::read::model::FeedQuery{.kind = kind, .limit = 3U},
+            application::read::model::FeedQuery{.kind = kind, .limit = 3U,
+                                                  .continuation = std::move(token)},
             [pending](foundation::result::Result<capability::feed::FeedPage> page) {
                 pending->set_value(std::move(page));
             });
@@ -350,13 +353,41 @@ void testRecentAsyncFeedAndCursor()
         auto result = future.get();
         assert(result && !result->casts.empty());
         assert(result->casts.front().id.value.starts_with("0x"));
+        return result->next;
     };
-    querySemantic(application::read::model::FeedQuery::Kind::Nfts);
+    // The public bulk index fixture returns B without parent_hash. The chain
+    // event still proves it is a reply: Conversations must retain that parent.
+    {
+        auto pending = std::make_shared<
+            std::promise<foundation::result::Result<capability::feed::FeedPage>>>();
+        auto future = pending->get_future();
+        auto request = gateway.feed(
+            application::read::model::FeedQuery{
+                .kind = application::read::model::FeedQuery::Kind::Conversations,
+                .limit = 4U},
+            [pending](foundation::result::Result<capability::feed::FeedPage> page) {
+                pending->set_value(std::move(page));
+            });
+        assert(request);
+        assert(future.wait_for(std::chrono::seconds{5}) == std::future_status::ready);
+        auto result = future.get();
+        assert(result && result->casts.size() == 1U);
+        assert(result->casts.front().parent);
+        assert(result->casts.front().parent->value == "0xparent");
+    }
+    const auto artNext = querySemantic(application::read::model::FeedQuery::Kind::Nfts);
+    assert(artNext);
+    // An exhausted general art index must continue to mint results rather than
+    // repeating art or displaying an empty NFT category.
+    querySemantic(application::read::model::FeedQuery::Kind::Nfts, artNext);
     querySemantic(application::read::model::FeedQuery::Kind::Developers);
     const auto searches = transport.requestedUrls();
     assert(std::ranges::any_of(searches, [](const auto& url) {
         return url.find("/v2/farcaster/cast/search") != std::string::npos
-            && url.find("q=nft") != std::string::npos; }));
+            && url.find("q=art") != std::string::npos; }));
+    assert(std::ranges::any_of(searches, [](const auto& url) {
+        return url.find("/v2/farcaster/cast/search") != std::string::npos
+            && url.find("q=mint") != std::string::npos; }));
     assert(std::ranges::any_of(searches, [](const auto& url) {
         return url.find("/v2/farcaster/cast/search") != std::string::npos
             && url.find("q=github") != std::string::npos; }));

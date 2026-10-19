@@ -12,6 +12,7 @@ Item {
     id: root
 
     property var embed: ({})
+    property string castCaption: ""
     property bool compact: false
     property bool suppressArtwork: false
     readonly property string rawKind: String(root.embed.kind || "").toLowerCase()
@@ -385,6 +386,7 @@ Item {
         id: linkComponent
         LinkPreview {
             embed: root.embed
+            castCaption: root.castCaption
             compact: root.compact
             suppressArtwork: root.suppressArtwork
             metadataManagedExternally: true

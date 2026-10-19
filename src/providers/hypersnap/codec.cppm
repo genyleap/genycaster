@@ -75,6 +75,8 @@ struct SocialPayload final {
 /** @brief One confirmed Snapchain root cast identified without user or text fields. */
 struct RecentCastEvent final {
     std::string hash{};
+    // Verified protocol parent, retained even if the public bulk index omits it.
+    std::optional<std::string> parentHash{};
     std::uint64_t protocolTimestamp{};
     std::uint64_t eventId{};
 };

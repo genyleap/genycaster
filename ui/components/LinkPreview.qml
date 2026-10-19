@@ -10,6 +10,8 @@ Superellipse {
     id: root
 
     property var embed: ({})
+    // Optional short Cast body folded into the same semantic web card.
+    property string castCaption: ""
     property bool compact: false
     property bool suppressArtwork: false
     property var externalPreview: ({})
@@ -444,8 +446,9 @@ Superellipse {
     // lines upfront so asynchronous metadata never grows an existing feed row.
     // Use semantic line metrics instead of a fixed pixel size for text scaling.
     readonly property real genericReservedHeight: Math.max(
-        root.compact ? 124 : 172,
-        20 + root.bodyLineHeight * (root.compact ? 1 : 2)
+        root.compact ? 150 : 186,
+        (root.castCaption.length > 0 ? root.bodyLineHeight * 2 + Theme.space2 : 0)
+           + 20 + root.bodyLineHeight * (root.compact ? 1 : 2)
            + root.metaLineHeight * (root.compact ? 1 : 2)
            + root.captionLineHeight + Theme.space3 * 2 + Theme.space2 * 4)
     implicitHeight: root.layoutMiniApp || root.preferPosterLayout
@@ -489,6 +492,22 @@ Superellipse {
         anchors.leftMargin: root.layoutMiniApp ? Theme.space2 : Theme.space3
         anchors.rightMargin: root.layoutMiniApp ? Theme.space2 : Theme.space3
         spacing: Theme.space2
+
+        // Poster/Mini App cards also retain the Cast sentence within the card;
+        // ordinary web links place it beside the thumbnail below.
+        DirectionAwareLabel {
+            visible: root.castCaption.length > 0 && (root.layoutMiniApp || root.preferPosterLayout)
+            Layout.fillWidth: true
+            Layout.preferredHeight: visible ? root.bodyLineHeight * 2 : 0
+            text: root.castCaption
+            font.pixelSize: Theme.typeBodySize
+            font.weight: Theme.weightDemiBold
+            color: Theme.textPrimary
+            wrapMode: Text.Wrap
+            maximumLineCount: 2
+            elide: Text.ElideRight
+            textFormat: Text.PlainText
+        }
 
         // Mini Apps keep their Farcaster 3:2 discovery artwork and explicit host action.
         ColumnLayout {
@@ -979,17 +998,20 @@ Superellipse {
             property alias artworkItem: genericThumb
             property alias artworkFrameItem: genericThumbFrame
             width: root.width - content.anchors.leftMargin - content.anchors.rightMargin
-            // Telegram-style card: optional small artwork on the trailing
-            // edge; descriptive content stays at the leading edge.
-            layoutDirection: Qt.RightToLeft
+            // Editorial media card: artwork occupies the leading edge and
+            // the Cast's own sentence, link identity and metadata read as one
+            // coherent surface. Mirror by the caption's writing direction.
+            layoutDirection: root.castCaption.length > 0
+                             && localizationController.isRightToLeftText(root.castCaption)
+                             ? Qt.RightToLeft : Qt.LeftToRight
             spacing: Theme.space2
 
             Item {
                 id: genericThumbFrame
                 readonly property bool shouldReserve: root.reserveArtwork
                 visible: shouldReserve
-                Layout.preferredWidth: shouldReserve ? (root.compact ? 66 : 86) : 0
-                Layout.preferredHeight: shouldReserve ? (root.compact ? 66 : 86) : 0
+                Layout.preferredWidth: shouldReserve ? (root.compact ? 116 : 184) : 0
+                Layout.preferredHeight: shouldReserve ? (root.compact ? 116 : 156) : 0
 
                 AmbientMediaBackdrop {
                     anchors.fill: parent
@@ -1050,8 +1072,27 @@ Superellipse {
 
             ColumnLayout {
                 Layout.fillWidth: true
-                layoutDirection: Qt.LeftToRight
+                layoutDirection: root.castCaption.length > 0
+                                 && localizationController.isRightToLeftText(root.castCaption)
+                                 ? Qt.RightToLeft : Qt.LeftToRight
                 spacing: Theme.space1
+
+                DirectionAwareLabel {
+                    visible: root.castCaption.length > 0
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: visible ? root.bodyLineHeight * 2 : 0
+                    Layout.minimumHeight: Layout.preferredHeight
+                    Layout.maximumHeight: Layout.preferredHeight
+                    verticalAlignment: Text.AlignTop
+                    text: root.castCaption
+                    font.pixelSize: Theme.typeBodySize
+                    font.weight: Theme.weightDemiBold
+                    color: Theme.textPrimary
+                    wrapMode: Text.Wrap
+                    maximumLineCount: 2
+                    elide: Text.ElideRight
+                    textFormat: Text.PlainText
+                }
 
                 RowLayout {
                     Layout.fillWidth: true

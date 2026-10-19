@@ -259,6 +259,22 @@ Item {
     }
     readonly property var visualEmbeds: root.embedPartition.visual
     readonly property var supportingEmbeds: root.embedPartition.supporting
+    // A simple single-web-link Cast can place its short author text inside
+    // the destination card instead of rendering a detached paragraph above it.
+    // Keep rich mentions, long text, galleries, mint pages and other media
+    // on the existing interactive Cast renderer.
+    readonly property bool combinedLinkCast: {
+        if (root.mediaFirst || root.supportingEmbeds.length !== 1
+                || root.displayText.length === 0 || root.displayText.length > 180)
+            return false
+        const embed = root.supportingEmbeds[0]
+        if (root.embedFamily(embed) !== "link" || /[@#][a-z0-9_]/i.test(root.displayText))
+            return false
+        const url = root.normalizedEmbedUrl(embed).toLowerCase()
+        return /^https?:\/\//.test(url)
+               && !/(?:opensea\.io|superrare\.com|zora\.co|foundation\.app|manifold\.xyz|rarible\.com|magiceden\.io|highlight\.xyz|objkt\.com|mint\.fun)/.test(url)
+               && !/\/mint(?:[/?#]|$)/.test(url)
+    }
     readonly property bool mediaFirst: root.visualEmbeds.length > 0
     // Keep the artwork, caption, author row and engagement rail on one
     // symmetric mobile grid. The outer cast gutter remains untouched.
@@ -700,7 +716,7 @@ Item {
                 Loader {
                     id: castTextBody
                     objectName: "castTextBody"
-                    active: root.displayText.length > 0
+                    active: root.displayText.length > 0 && !root.combinedLinkCast
                     visible: active
                     asynchronous: true
                     Layout.fillWidth: true
@@ -805,6 +821,7 @@ Item {
                         CastEmbedsPanel {
                             visualEmbeds: []
                             supportingEmbeds: root.supportingEmbeds
+                            castCaption: root.combinedLinkCast ? root.displayText : ""
                             compact: root.compact
                             onExternalRequested: url => root.externalRequested(url)
                             onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
@@ -823,6 +840,7 @@ Item {
                         CastEmbedsPanel {
                             visualEmbeds: []
                             supportingEmbeds: root.supportingEmbeds
+                            castCaption: root.combinedLinkCast ? root.displayText : ""
                             compact: root.compact
                             onExternalRequested: url => root.externalRequested(url)
                             onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)

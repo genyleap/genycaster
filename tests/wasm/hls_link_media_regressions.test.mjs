@@ -31,11 +31,11 @@ test('HLS native backend does not reject Farcaster manifest redirects in HEAD pr
  const main=read('ui/mobile/main.cpp');
  assert.match(main,/QUrl\{source\}\.path\(\)\.endsWith\(QLatin1StringView\{"\.m3u8"\}/);
 });
-test('Telegram-like small link poster and focus rings on both home composers',()=>{
+test('editorial link artwork and focus rings on both home composers',()=>{
  const link=read('ui/components/LinkPreview.qml');
  const home=read('ui/components/HomeDashboard.qml');
- assert.match(link,/layoutDirection: Qt\.RightToLeft/);
- assert.match(link,/root\.compact \? 66 : 86/);
+ assert.match(link,/localizationController\.isRightToLeftText\(root\.castCaption\)/);
+ assert.match(link,/root\.compact \? 116 : 184/);
  assert.match(link,/visible: root\.authorText\.length > 0 \|\| root\.dateText\.length > 0/);
  assert.match(home,/desktopDraftEditor\.activeFocus \? Theme\.accent/);
  assert.match(home,/mobileDraftEditor\.activeFocus \? Theme\.accent/);

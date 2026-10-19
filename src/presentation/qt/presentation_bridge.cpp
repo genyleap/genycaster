@@ -884,6 +884,7 @@ void PresentationBridge::selectFeed(const QString& feed)
         : feed == QStringLiteral("nfts") ? QStringLiteral("nfts")
         : feed == QStringLiteral("developers") ? QStringLiteral("developers")
         : feed == QStringLiteral("recent") ? QStringLiteral("recent")
+        : feed == QStringLiteral("conversations") ? QStringLiteral("conversations")
         : QStringLiteral("trending");
     if (m_activeView != QStringLiteral("feed") || m_activeFeed != nextFeed) {
         m_pendingFeedRows.clear();
