@@ -1190,6 +1190,38 @@
             <source>Add Story</source>
             <translation>ストーリーを追加</translation>
         </message>
+        <message id="genycaster.home.add_short">
+            <source>Add</source>
+            <translation>追加</translation>
+        </message>
+        <message id="genycaster.notifications.filter_activity">
+            <source>Activity</source>
+            <translation>アクティビティ</translation>
+        </message>
+        <message id="genycaster.notifications.filter_replies">
+            <source>Replies</source>
+            <translation>返信</translation>
+        </message>
+        <message id="genycaster.notifications.filter_mentions">
+            <source>Mentions</source>
+            <translation>メンション</translation>
+        </message>
+        <message id="genycaster.notifications.filter_reactions">
+            <source>Reactions</source>
+            <translation>リアクション</translation>
+        </message>
+        <message id="genycaster.notifications.filtered_empty">
+            <source>No activity in this category</source>
+            <translation>このカテゴリにはアクティビティがありません</translation>
+        </message>
+        <message id="genycaster.notifications.filtered_description">
+            <source>Try another category or load more activity.</source>
+            <translation>別のカテゴリを選ぶか、さらに読み込んでください。</translation>
+        </message>
+        <message id="genycaster.notifications.load_more">
+            <source>Load more</source>
+            <translation>さらに読み込む</translation>
+        </message>
         <message id="genycaster.home.builder_notes">
             <source>Builder Notes</source>
             <translation>ビルダーノート</translation>

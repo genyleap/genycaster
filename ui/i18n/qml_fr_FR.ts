@@ -1190,6 +1190,38 @@
             <source>Add Story</source>
             <translation>Ajouter une story</translation>
         </message>
+        <message id="genycaster.home.add_short">
+            <source>Add</source>
+            <translation>Ajout</translation>
+        </message>
+        <message id="genycaster.notifications.filter_activity">
+            <source>Activity</source>
+            <translation>Activité</translation>
+        </message>
+        <message id="genycaster.notifications.filter_replies">
+            <source>Replies</source>
+            <translation>Réponses</translation>
+        </message>
+        <message id="genycaster.notifications.filter_mentions">
+            <source>Mentions</source>
+            <translation>Mentions</translation>
+        </message>
+        <message id="genycaster.notifications.filter_reactions">
+            <source>Reactions</source>
+            <translation>Réactions</translation>
+        </message>
+        <message id="genycaster.notifications.filtered_empty">
+            <source>No activity in this category</source>
+            <translation>Aucune activité dans cette catégorie</translation>
+        </message>
+        <message id="genycaster.notifications.filtered_description">
+            <source>Try another category or load more activity.</source>
+            <translation>Essayez une autre catégorie ou chargez plus d’activités.</translation>
+        </message>
+        <message id="genycaster.notifications.load_more">
+            <source>Load more</source>
+            <translation>Charger plus</translation>
+        </message>
         <message id="genycaster.home.builder_notes">
             <source>Builder Notes</source>
             <translation>Notes des builders</translation>

@@ -1190,6 +1190,38 @@
             <source>Add Story</source>
             <translation>스토리 추가</translation>
         </message>
+        <message id="genycaster.home.add_short">
+            <source>Add</source>
+            <translation>추가</translation>
+        </message>
+        <message id="genycaster.notifications.filter_activity">
+            <source>Activity</source>
+            <translation>활동</translation>
+        </message>
+        <message id="genycaster.notifications.filter_replies">
+            <source>Replies</source>
+            <translation>답글</translation>
+        </message>
+        <message id="genycaster.notifications.filter_mentions">
+            <source>Mentions</source>
+            <translation>멘션</translation>
+        </message>
+        <message id="genycaster.notifications.filter_reactions">
+            <source>Reactions</source>
+            <translation>반응</translation>
+        </message>
+        <message id="genycaster.notifications.filtered_empty">
+            <source>No activity in this category</source>
+            <translation>이 카테고리에는 활동이 없습니다</translation>
+        </message>
+        <message id="genycaster.notifications.filtered_description">
+            <source>Try another category or load more activity.</source>
+            <translation>다른 카테고리를 선택하거나 더 불러오세요.</translation>
+        </message>
+        <message id="genycaster.notifications.load_more">
+            <source>Load more</source>
+            <translation>더 불러오기</translation>
+        </message>
         <message id="genycaster.home.builder_notes">
             <source>Builder Notes</source>
             <translation>빌더 노트</translation>

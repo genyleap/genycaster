@@ -114,6 +114,7 @@ Item {
             }
 
             Avatar {
+                visible: !root.addStory
                 anchors.centerIn: parent
                 opacity: root.storyState === "viewed" && !root.addStory ? 0.74 : 1.0
                 avatarSize: root.avatarSize
@@ -123,29 +124,13 @@ Item {
                 displayName: root.displayName
             }
 
-            Superellipse {
+            // The first slot is a blank Add action, not a badge on an avatar.
+            Icon {
                 visible: root.addStory
-                width: 20
-                height: 20
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                anchors.rightMargin: -1
-                anchors.bottomMargin: -1
-                fillColor: Theme.primaryFill
-                borderWidth: 2
-                borderColor: Theme.backgroundPrimary
-                exponent: 2.01
-                curveDepth: width / 2
-                elevation: Theme.elevationControl
-                shadowOpacityScale: 0.62
-
-                Icon {
-                    anchors.centerIn: parent
-                    text: Theme.iconPlus
-                    color: Theme.accentInk
-                    preferredSize: Theme.typeCaptionSize
-                    font.weight: Theme.weightDemiBold
-                }
+                anchors.centerIn: parent
+                text: Theme.iconPlus
+                color: Theme.accent
+                preferredSize: 27
             }
 
             Superellipse {
@@ -207,12 +192,12 @@ Item {
             Layout.fillWidth: true
             Layout.leftMargin: Theme.space1
             Layout.rightMargin: Theme.space1
-            text: root.addStory ? qsTrId("genycaster.home.add_story") : root.displayName
+            text: root.addStory ? qsTrId("genycaster.home.add_short") : root.displayName
             color: root.storyState === "viewed" && !root.addStory ? Theme.textTertiary : Theme.textSecondary
             font.pixelSize: Theme.typeCaptionSize
             font.weight: root.addStory ? Theme.weightMedium : Theme.weightRegular
             horizontalAlignment: Text.AlignHCenter
-            elide: Text.ElideRight
+            elide: root.addStory ? Text.ElideNone : Text.ElideRight
         }
     }
 

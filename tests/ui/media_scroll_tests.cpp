@@ -350,6 +350,42 @@ int main(int argc, char** argv)
     // QObject is deleted. Queued initialization must not invoke QML functions
     // in that dead context, even when the visual object still exists.
     QSignalSpy qmlWarnings{&engine, &QQmlEngine::warnings};
+
+    // Exercise the real notification delegate with reply body, quote context,
+    // and media under Qt 6.12. Structural string tests cannot detect a missing
+    // QML property, a broken ListView model binding or an inert category tab.
+    const QVariantMap replyNotice{
+        {QStringLiteral("id"), QStringLiteral("notification-fixture-1")},
+        {QStringLiteral("kind"), QStringLiteral("reply")},
+        {QStringLiteral("actor"), QStringLiteral("alice")},
+        {QStringLiteral("actorDisplayName"), QStringLiteral("Alice")},
+        {QStringLiteral("actorFid"), 1},
+        {QStringLiteral("observedAtMs"), qint64{1'782'000'000'000LL}},
+        {QStringLiteral("castId"), QStringLiteral("0x") + QString(40, QLatin1Char('a'))},
+        {QStringLiteral("castText"), QStringLiteral("A complete reply message from the fixture.")},
+        {QStringLiteral("parentCastId"), QStringLiteral("0x") + QString(40, QLatin1Char('b'))},
+        {QStringLiteral("parentText"), QStringLiteral("Quoted original cast")},
+        {QStringLiteral("parentEmbedUrl"), QStringLiteral("https://example.invalid/quote.png")}
+    };
+    auto notificationFixture = createSurface(engine, QStringLiteral("NotificationSurface"), *scroll,
+        {{QStringLiteral("authenticated"), true},
+         {QStringLiteral("compact"), true},
+         {QStringLiteral("rows"), QVariantList{replyNotice}}});
+    if (!notificationFixture) { return 1; }
+    QTest::qWait(80);
+    expect(!flag(*notificationFixture, "showState"),
+           "an actual reply row displays on the Activity notifications tab");
+    notificationFixture->setProperty("filterKind", QStringLiteral("mention"));
+    expect(flag(*notificationFixture, "showState"),
+           "Mentions filters out an unrelated reply without mutating source rows");
+    notificationFixture->setProperty("filterKind", QStringLiteral("all"));
+    expect(!flag(*notificationFixture, "showState"),
+           "returning to Activity restores the previously loaded reply");
+    notificationFixture.reset();
+    images->completePending();
+    expect(qmlWarnings.empty(), "notification row instantiates without Qt 6.12 QML warnings");
+    qmlWarnings.clear();
+
     for (const QString& surface : {QStringLiteral("SuperellipseImage"),
                                    QStringLiteral("AmbientMediaBackdrop")}) {
         auto creationContext = std::make_unique<QQmlContext>(context);

@@ -1117,15 +1117,39 @@ void applyNotificationState(
             row.insert(QStringLiteral("castAuthorFid"), static_cast<qulonglong>(item.cast->author.value));
             row.insert(QStringLiteral("castParentId"), item.cast->parent ? QString::fromStdString(item.cast->parent->value) : QString{});
             row.insert(QStringLiteral("castText"), QString::fromStdString(item.cast->text));
+            if (item.cast->parentUrl) {
+                const QString channelUrl = QString::fromStdString(*item.cast->parentUrl);
+                if (channelUrl.contains(QStringLiteral("/channel/"))) {
+                    row.insert(QStringLiteral("castChannel"), channelUrl.section(QLatin1Char('/'), -1));
+                }
+            }
             row.insert(QStringLiteral("castReplyCount"), static_cast<qulonglong>(item.cast->engagement.replies));
             row.insert(QStringLiteral("castRecastCount"), static_cast<qulonglong>(item.cast->engagement.recasts));
             row.insert(QStringLiteral("castLikeCount"), static_cast<qulonglong>(item.cast->engagement.likes));
             row.insert(QStringLiteral("castEmbedCount"), static_cast<qulonglong>(item.cast->embeds.size()));
+            for (const auto& embed : item.cast->embeds) {
+                if (embed.kind == domain::cast::EmbedKind::Url && !embed.value.empty()) {
+                    row.insert(QStringLiteral("castEmbedUrl"), QString::fromStdString(embed.value));
+                    break;
+                }
+            }
         }
         if (item.parentCast) {
             row.insert(QStringLiteral("parentCastId"), QString::fromStdString(item.parentCast->id.value));
             row.insert(QStringLiteral("parentText"), QString::fromStdString(item.parentCast->text));
+            if (!row.contains(QStringLiteral("castChannel")) && item.parentCast->parentUrl) {
+                const QString channelUrl = QString::fromStdString(*item.parentCast->parentUrl);
+                if (channelUrl.contains(QStringLiteral("/channel/"))) {
+                    row.insert(QStringLiteral("castChannel"), channelUrl.section(QLatin1Char('/'), -1));
+                }
+            }
             row.insert(QStringLiteral("parentReplyCount"), static_cast<qulonglong>(item.parentCast->engagement.replies));
+            for (const auto& embed : item.parentCast->embeds) {
+                if (embed.kind == domain::cast::EmbedKind::Url && !embed.value.empty()) {
+                    row.insert(QStringLiteral("parentEmbedUrl"), QString::fromStdString(embed.value));
+                    break;
+                }
+            }
         }
         if (item.parentAuthor) {
             row.insert(QStringLiteral("parentAuthorFid"), static_cast<qulonglong>(item.parentAuthor->fid.value));
