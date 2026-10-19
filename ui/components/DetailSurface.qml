@@ -484,6 +484,10 @@ Flickable {
                     replyCount: Number(root.detail.replyCount || 0)
                     recastCount: Number(root.detail.recastCount || 0)
                     likeCount: Number(root.detail.likeCount || 0)
+                    viewCount: root.detail.viewCount === undefined ? null : root.detail.viewCount
+                    castId: String(root.detail.castId || "")
+                    authorFid: Number(root.detail.authorFid || 0)
+                    castText: String(root.detail.text || "")
                     contextText: String(root.detail.text || "")
                     replyInteractive: root.interactionsAvailable && Boolean(root.detail.castId)
                     recastInteractive: replyInteractive

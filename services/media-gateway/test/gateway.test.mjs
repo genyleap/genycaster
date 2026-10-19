@@ -137,6 +137,7 @@ async function withGateway(run, overrides = {}) {
   const server = createMediaGateway(config(), storage, {
     fetchImpl: overrides.fetchImpl ?? signerFetch,
     farcasterBroker: overrides.farcasterBroker,
+    castViewService: overrides.castViewService,
     now: () => nowMs,
   });
   await new Promise((resolve, reject) => {
@@ -598,4 +599,45 @@ test('Farcaster browser sign-in endpoints never put the secret ticket in a URL',
     async poll(value) { calls.push('poll:' + value); return { authenticated: true }; },
     consume(value) { calls.push('consume:' + value); },
   } });
+});
+
+test('browser cast view endpoint enforces bounded batch POST and trusted CORS',async()=>{
+  const hash='0x9aea66ddab7a51563cc54e881931a5acb9e2bf16';
+  const requests=[];
+  const castViewService={resolve:async casts=>{
+    if(!Array.isArray(casts))return {status:400,error:'invalid_cast_view_batch'};
+    requests.push(casts);
+    return {status:200,data:{counts:{[hash]:1300}}};
+  }};
+  await withGateway(async ({origin})=>{
+    const url=origin+'/v1/browser/cast-views';
+    const preflight=await fetch(url,{method:'OPTIONS',headers:{
+      origin:'https://caster.genyleap.com',
+      'access-control-request-method':'POST',
+      'access-control-request-headers':'content-type',
+    }});
+    assert.equal(preflight.status,204);
+    assert.equal(preflight.headers.get('access-control-allow-origin'),'https://caster.genyleap.com');
+    const denied=await fetch(url,{method:'OPTIONS',headers:{
+      origin:'https://untrusted.example',
+      'access-control-request-method':'POST',
+    }});
+    assert.equal(denied.status,403);
+    const cast={castId:hash,authorFid:321969,text:'Remember when the early Farcaster client supported'};
+    const result=await fetch(url,{method:'POST',headers:{
+      origin:'https://caster.genyleap.com',
+      'content-type':'application/json',
+    },body:JSON.stringify({casts:[cast]})});
+    assert.equal(result.status,200);
+    assert.equal(result.headers.get('access-control-allow-origin'),'https://caster.genyleap.com');
+    assert.deepEqual(await result.json(),{counts:{[hash]:1300}});
+    assert.deepEqual(requests[0],[cast]);
+    const wrongMethod=await fetch(url,{method:'GET'});
+    assert.equal(wrongMethod.status,405);
+    const invalid=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:'not-json'});
+    assert.equal(invalid.status,400);
+    const excessive=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({casts:Array(300).fill(cast)})});
+    assert.equal(excessive.status,413);
+  },{castViewService});
 });

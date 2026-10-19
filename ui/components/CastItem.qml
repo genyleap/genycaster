@@ -798,6 +798,9 @@ Item {
                         recastCount: Number(root.modelData.recastCount || 0)
                         likeCount: Number(root.modelData.likeCount || 0)
                         viewCount: root.modelData.viewCount === undefined ? null : root.modelData.viewCount
+                        castId: String(root.modelData.castId || "")
+                        authorFid: Number(root.modelData.authorFid || 0)
+                        castText: String(root.modelData.text || "")
                         contextText: String(root.modelData.text || "")
                         replyInteractive: root.interactionsAvailable
                                           && root.modelData.castId !== undefined
@@ -875,6 +878,9 @@ Item {
                         recastCount: Number(root.modelData.recastCount || 0)
                         likeCount: Number(root.modelData.likeCount || 0)
                         viewCount: root.modelData.viewCount === undefined ? null : root.modelData.viewCount
+                        castId: String(root.modelData.castId || "")
+                        authorFid: Number(root.modelData.authorFid || 0)
+                        castText: String(root.modelData.text || "")
                         contextText: String(root.modelData.text || "")
                         replyInteractive: root.interactionsAvailable
                                           && root.modelData.castId !== undefined

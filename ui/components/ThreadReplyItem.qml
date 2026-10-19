@@ -220,6 +220,10 @@ ColumnLayout {
                 replyCount: Number(root.reply.replyCount || 0)
                 recastCount: Number(root.reply.recastCount || 0)
                 likeCount: Number(root.reply.likeCount || 0)
+                viewCount: root.reply.viewCount === undefined ? null : root.reply.viewCount
+                castId: String(root.reply.castId || "")
+                authorFid: Number(root.reply.authorFid || 0)
+                castText: String(root.reply.text || "")
                 contextText: String(root.reply.text || "")
                 replyInteractive: root.interactionsAvailable && Boolean(root.reply.castId)
                 recastInteractive: replyInteractive

@@ -11,6 +11,25 @@ RowLayout {
     property int likeCount: 0
     // Optional verified impressions; unavailable provider values stay absent.
     property var viewCount: null
+    property string castId: ""
+    property double authorFid: 0
+    property string castText: ""
+    readonly property var resolvedViewCount: {
+        if (root.viewCount !== null && root.viewCount !== undefined
+                && isFinite(Number(root.viewCount)) && Number(root.viewCount) >= 0)
+            return root.viewCount
+        return CastViews.countFor(root.castId)
+    }
+
+    function requestViews() {
+        if (root.castId.length > 0 && root.authorFid > 0)
+            CastViews.ensure(root.castId, root.authorFid, root.castText)
+    }
+
+    Component.onCompleted: requestViews()
+    onCastIdChanged: requestViews()
+    onAuthorFidChanged: requestViews()
+    onCastTextChanged: requestViews()
     property bool replyInteractive: false
     property bool recastInteractive: false
     property bool likeInteractive: false
@@ -77,10 +96,10 @@ RowLayout {
 
     EngagementButton {
         objectName: "castViewCount"
-        visible: root.viewCount !== null && root.viewCount !== undefined
-                 && Number(root.viewCount) >= 0 && isFinite(Number(root.viewCount))
+        visible: root.resolvedViewCount !== null && root.resolvedViewCount !== undefined
+                 && Number(root.resolvedViewCount) >= 0 && isFinite(Number(root.resolvedViewCount))
         iconGlyph: "eye"
-        metricText: visible ? LocaleFormat.formatInteger(Number(root.viewCount)) : ""
+        metricText: visible ? LocaleFormat.formatCompactNumber(Number(root.resolvedViewCount)) : ""
         enabled: false
         Accessible.name: "Views: " + metricText
     }

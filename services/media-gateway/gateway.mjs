@@ -4,6 +4,7 @@ import { createBrowserFarcasterBroker } from './browser_farcaster_auth.mjs';
 import { publicTokenSnapshot } from './browser_token_insights.mjs';
 import { publicMiniAppPreview } from './browser_miniapp_preview.mjs';
 import { publicLinkPreview } from './browser_link_preview.mjs';
+import { createCastViewService } from './browser_cast_views.mjs';
 import {
   createHash,
   createHmac,
@@ -418,6 +419,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   const tokenSnapshots = new Map();
   const miniAppPreviews = new Map();
   const webLinkPreviews = new Map();
+  const castViewService = dependencies.castViewService ?? createCastViewService(runtime);
   const verifiedLinkImages = new Map();
   const verifiedMiniAppImages = new Map();
   let refreshIconsPromise = null;
@@ -508,6 +510,39 @@ export function createMediaGateway(config, storage, dependencies = {}) {
           error: typeof error.code === 'string' && error.code.startsWith('auth_')
             ? error.code : 'auth_service_unavailable',
         });
+      }
+      return;
+    }
+
+    if (requestUrl.pathname === '/v1/browser/cast-views') {
+      // Bounded, read-only client analytics enrichment. Never confuse
+      // missing view counts with real zero impressions. Origin isolation
+      // and one per-batch rate decision protect the public indexer.
+      const origin = request.headers.origin;
+      if (origin === 'https://caster.genyleap.com') {
+        response.setHeader('access-control-allow-origin', origin);
+        response.setHeader('vary', 'origin');
+      }
+      response.setHeader('access-control-allow-methods', 'POST, OPTIONS');
+      response.setHeader('access-control-allow-headers', 'content-type, accept');
+      if (request.method === 'OPTIONS') {
+        response.writeHead(origin === 'https://caster.genyleap.com' ? 204 : 403);
+        response.end(); return;
+      }
+      if (request.method !== 'POST') {
+        writeJson(response, 405, {error:'method_not_allowed'}); return;
+      }
+      const rate = limiter.check(clientAddress(request,config.trustCloudflare),runtime.now());
+      if (!rate.allowed) {
+        writeJson(response,429,{error:'rate_limited'},{'retry-after':'60'});return;
+      }
+      try {
+        const document = safeJson(await readBody(request, 5 * 1024));
+        const result = await castViewService.resolve(document?.casts);
+        writeJson(response,result.status,result.status === 200 ? result.data : {error:result.error});
+      } catch (error) {
+        writeJson(response, error?.statusCode === 413 ? 413 : 502,
+          {error:error?.statusCode === 413 ? 'request_too_large' : 'cast_views_unavailable'});
       }
       return;
     }

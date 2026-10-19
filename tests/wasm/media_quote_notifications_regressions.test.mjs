@@ -97,7 +97,7 @@ test('supported locales contain every public English translation key', () => {
 test('unknown impressions never become fabricated zero views', () => {
     const bar = read('ui/components/EngagementBar.qml');
     assert.match(bar, /property var viewCount: null/);
-    assert.match(bar, /visible: root\.viewCount !== null && root\.viewCount !== undefined/);
+    assert.match(bar, /visible: root\.resolvedViewCount !== null && root\.resolvedViewCount !== undefined/);
     assert.match(read('ui/components/CastItem.qml'),
         /viewCount: root\.modelData\.viewCount === undefined \? null : root\.modelData\.viewCount/);
 });
