@@ -365,14 +365,61 @@ int main(int argc, char** argv)
         {QStringLiteral("castText"), QStringLiteral("A complete reply message from the fixture.")},
         {QStringLiteral("parentCastId"), QStringLiteral("0x") + QString(40, QLatin1Char('b'))},
         {QStringLiteral("parentText"), QStringLiteral("Quoted original cast")},
-        {QStringLiteral("parentEmbedUrl"), QStringLiteral("https://example.invalid/quote.png")}
+        // The geometry test must not fetch external images from an invalid host.
+        {QStringLiteral("parentEmbedUrl"), QStringLiteral("https://example.invalid/quote")}
     };
     auto notificationFixture = createSurface(engine, QStringLiteral("NotificationSurface"), *scroll,
         {{QStringLiteral("authenticated"), true},
          {QStringLiteral("compact"), true},
          {QStringLiteral("rows"), QVariantList{replyNotice}}});
     if (!notificationFixture) { return 1; }
+    auto* notificationRoot = qobject_cast<QQuickItem*>(notificationFixture.get());
+    notificationRoot->setSize(QSizeF{390, 620});
+    auto* notificationTitle = notificationRoot->findChild<QQuickItem*>(
+        QStringLiteral("notificationTitleRow"));
+    auto* notificationFilters = notificationRoot->findChild<QQuickItem*>(
+        QStringLiteral("notificationFilterRow"));
+    auto* notificationBody = notificationRoot->findChild<QQuickItem*>(
+        QStringLiteral("notificationBody"));
+    expect(notificationTitle && notificationFilters && notificationBody,
+           "notification header, filters and single body are instantiated");
+    if (!notificationTitle || !notificationFilters || !notificationBody) { return 1; }
     QTest::qWait(80);
+    polishTree(notificationRoot);
+    const auto relativeY = [notificationRoot](QQuickItem& item) {
+        return item.mapToItem(notificationRoot, QPointF{0, 0}).y();
+    };
+    const auto titleY = relativeY(*notificationTitle);
+    const auto filterY = relativeY(*notificationFilters);
+    const auto bodyY = relativeY(*notificationBody);
+    const auto assertStableNotificationLayout = [&] {
+        polishTree(notificationRoot);
+        QTest::qWait(35);
+        expect(qAbs(relativeY(*notificationTitle) - titleY) < 2,
+               "notification title never jumps vertically while loading or filtering");
+        expect(qAbs(relativeY(*notificationFilters) - filterY) < 2,
+               "Activity, Replies, Mentions and Reactions tabs retain their y position");
+        expect(qAbs(relativeY(*notificationBody) - bodyY) < 2,
+               "notification empty, loading and populated states share one anchored body");
+        expect(filterY >= titleY + notificationTitle->height() - 2,
+               "notification category tabs stay immediately below the header");
+        expect(bodyY >= filterY + notificationFilters->height() - 2,
+               "notification state area always stays below the category tabs");
+    };
+    assertStableNotificationLayout();
+    notificationFixture->setProperty("loadingNotifications", true);
+    notificationFixture->setProperty("rows", QVariantList{});
+    for (const auto& filter : {
+             QStringLiteral("all"), QStringLiteral("reply"),
+             QStringLiteral("mention"), QStringLiteral("reactions")}) {
+        notificationFixture->setProperty("filterKind", filter);
+        assertStableNotificationLayout();
+    }
+    notificationFixture->setProperty("loadingNotifications", false);
+    assertStableNotificationLayout();
+    notificationFixture->setProperty("rows", QVariantList{replyNotice});
+    notificationFixture->setProperty("filterKind", QStringLiteral("all"));
+    assertStableNotificationLayout();
     expect(!flag(*notificationFixture, "showState"),
            "an actual reply row displays on the Activity notifications tab");
     notificationFixture->setProperty("filterKind", QStringLiteral("mention"));
@@ -1582,6 +1629,26 @@ int main(int argc, char** argv)
     }
     images->completePending();
     expect(qmlWarnings.empty(), "real media/feed scrolling emits zero QQmlEngine warnings");
+
+    // The first Following story must show the signed-in viewer's actual PFP
+    // with a small Add badge, rather than replacing the PFP with a large plus.
+    auto selfStory = createSurface(engine, QStringLiteral("StoryItem"), *scroll,
+        {{QStringLiteral("addStory"), true},
+         {QStringLiteral("displayName"), QStringLiteral("Current user")},
+         {QStringLiteral("avatarUrl"), QStringLiteral("image://remote/own-story-avatar")}});
+    if (!selfStory) { return 1; }
+    auto* ownPortrait = selfStory->findChild<QQuickItem*>(QStringLiteral("storyPortrait"));
+    auto* ownAddBadge = selfStory->findChild<QQuickItem*>(QStringLiteral("ownStoryAddBadge"));
+    expect(ownPortrait && ownPortrait->isVisible(),
+           "first story presents the authenticated user's photo");
+    expect(ownAddBadge && ownAddBadge->isVisible(),
+           "first story overlays an Add badge without hiding the photo");
+    expect(ownPortrait && ownPortrait->property("sourceUrl").toString()
+            == QStringLiteral("image://remote/own-story-avatar"),
+           "story portrait loads the actual account avatar");
+    images->completePending();
+    QTest::qWait(30);
+    expect(qmlWarnings.empty(), "own-story avatar creates no Qt 6.12 QML warnings");
     std::println("Media scroll regression: {} failure(s)", failures);
     return failures == 0 ? 0 : 1;
 }

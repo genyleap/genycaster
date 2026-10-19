@@ -45,7 +45,8 @@ Item {
             }
 
             Avatar {
-                visible: !root.addStory
+                objectName: "storyPortrait"
+                visible: !root.addStory || root.avatarUrl.length > 0
                 anchors.centerIn: parent
                 opacity: root.storyState === "viewed" && !root.addStory ? 0.74 : 1.0
                 avatarSize: root.avatarSize
@@ -55,13 +56,36 @@ Item {
                 displayName: root.displayName
             }
 
-            // The first slot is a blank Add action, not a badge on an avatar.
+            // The signed-in user's own photo is the first story portrait.
+            // Reserve the large plus only when the account has no PFP.
             Icon {
-                visible: root.addStory
+                visible: root.addStory && root.avatarUrl.length === 0
                 anchors.centerIn: parent
                 text: Theme.iconPlus
                 color: Theme.accent
                 preferredSize: 27
+            }
+
+            Superellipse {
+                objectName: "ownStoryAddBadge"
+                visible: root.addStory && root.avatarUrl.length > 0
+                width: 21
+                height: 21
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.rightMargin: -1
+                anchors.bottomMargin: -1
+                fillColor: Theme.primaryFill
+                borderWidth: 2
+                borderColor: Theme.backgroundPrimary
+                curveDepth: 10
+
+                Icon {
+                    anchors.centerIn: parent
+                    text: Theme.iconPlus
+                    color: Theme.inkInverse
+                    preferredSize: 11
+                }
             }
 
             Superellipse {

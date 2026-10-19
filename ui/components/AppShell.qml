@@ -465,6 +465,8 @@ Item {
                 avatarUrl: presentationBridge.accountAvatarUrl
                 // StoryStrip is an account-only Follow graph, never public Recent authors.
                 recentProfiles: presentationBridge.followingStoryProfiles
+                ownAvatarUrl: String(presentationBridge.accountAvatarUrl
+                                     || presentationBridge.accountProfile.avatarUrl || "")
                 authenticated: presentationBridge.isAuthenticated
                 interactionsAvailable: presentationBridge.isAuthenticated && presentationBridge.writeReady && !presentationBridge.writeBusy
                 compact: root.compact

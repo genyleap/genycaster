@@ -6,6 +6,8 @@ Item {
 
     property var profiles: []
     property bool compact: false
+    // Explicit signed-in viewer photo; do not derive it from public feed rows.
+    property string ownAvatarUrl: ""
 
     signal profileRequested(var profile)
     signal ownStoryRequested()
@@ -33,7 +35,8 @@ Item {
             compact: root.compact
             displayName: String(modelData.displayName || modelData.username || "")
             username: String(modelData.username || "")
-            avatarUrl: String(modelData.avatarUrl || "")
+            avatarUrl: modelData.isSelf && root.ownAvatarUrl.length > 0
+                       ? root.ownAvatarUrl : String(modelData.avatarUrl || "")
             // Solid accent rings indicate fresh activity within 24 hours.
             // Older verified activity remains tappable but visually recedes.
             // Verified casts within 24h receive a colored ring; older or

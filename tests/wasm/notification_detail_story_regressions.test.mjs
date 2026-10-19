@@ -8,10 +8,11 @@ const read = path => readFileSync(resolve(root, path), 'utf8');
 
 test('first Following story is a clean, untruncated Add action', () => {
     const item = read('ui/components/StoryItem.qml');
-    assert.match(item, /visible: !root\.addStory\s+anchors\.centerIn: parent/);
+    assert.match(item, /visible: !root\.addStory \|\| root\.avatarUrl\.length > 0/);
     assert.match(item, /text: root\.addStory \? qsTrId\("genycaster\.home\.add_short"\) : root\.displayName/);
     assert.match(item, /elide: root\.addStory \? Text\.ElideNone : Text\.ElideRight/);
-    assert.match(item, /visible: root\.addStory\s+anchors\.centerIn: parent\s+text: Theme\.iconPlus/);
+    assert.match(item, /visible: root\.addStory && root\.avatarUrl\.length === 0/);
+    assert.match(item, /visible: root\.addStory && root\.avatarUrl\.length > 0/);
     assert.doesNotMatch(item, /visible: false\s+width: 20/);
 });
 

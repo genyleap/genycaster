@@ -484,6 +484,7 @@ Item {
         spacing: 0
 
         RowLayout {
+            objectName: "notificationTitleRow"
             Layout.fillWidth: true
             Layout.leftMargin: root.gutter
             Layout.rightMargin: root.gutter
@@ -528,6 +529,7 @@ Item {
         // These filters operate on the actual, grouped notifications.
         // Never render non-functional "Channels" pills without channel events.
         RowLayout {
+            objectName: "notificationFilterRow"
             visible: root.authenticated
             Layout.fillWidth: true
             Layout.leftMargin: root.gutter
@@ -576,10 +578,19 @@ Item {
             color: Theme.divider
         }
 
+        // The header and category tabs must never participate in the height
+        // negotiation between empty, loading and list states. A single body
+        // always consumes remaining space while those states overlap it.
         Item {
-            visible: root.showState
+            id: notificationBody
+            objectName: "notificationBody"
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.minimumHeight: 0
+
+        Item {
+            visible: root.showState
+            anchors.fill: parent
 
             ColumnLayout {
                 anchors.centerIn: parent
@@ -643,8 +654,7 @@ Item {
 
         Item {
             visible: root.authenticated && root.loadingNotifications && root.displayRows.length === 0
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            anchors.fill: parent
 
             GenySpinner {
                 anchors.centerIn: parent
@@ -669,8 +679,7 @@ Item {
         ListView {
             id: list
             visible: root.authenticated && root.visibleRows.length > 0
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            anchors.fill: parent
             clip: true
             model: notificationModel
             spacing: 0
@@ -1130,5 +1139,6 @@ Item {
             // bottomMargin reserves room for the overlay indicator.
             footer: null
         }
+        } // notificationBody
     }
 }
