@@ -708,13 +708,13 @@ void testFeedPaginationAffinity()
     assert(transport.urls().back() ==
         "https://node.test/v2/farcaster/notifications?fid=42&limit=20");
 
-    // Quotes and recasts are distinct Farcaster notification categories;
-    // dropping either at the codec layer makes QML powerless to display them.
+    // Quote and recast notifications must survive provider decoding. Use a
+    // raw string for the JSON token so C++ and Clang agree on quote escaping.
+    constexpr std::string_view replyType = R"json("type":"reply")json";
     std::string quoteBody = test::hypersnap::fixtures::notificationResponse();
-    const auto quotePosition = quoteBody.find("\\"type\\":\\"reply\\"");
+    const auto quotePosition = quoteBody.find(replyType);
     assert(quotePosition != std::string::npos);
-    quoteBody.replace(quotePosition, std::string{"\\"type\\":\\"reply\\""}.size(),
-        "\\"type\\":\\"cast-quote\\"");
+    quoteBody.replace(quotePosition, replyType.size(), R"json("type":"cast-quote")json");
     transport.enqueue(200, quoteBody);
     auto quotePage = notifications.notifications(
         domain::identity::Fid{42}, capability::pagination::PageRequest{.limit = 20});
@@ -723,10 +723,9 @@ void testFeedPaginationAffinity()
     assert(quotePage->items.front().cast.has_value());
 
     std::string recastBody = test::hypersnap::fixtures::notificationResponse();
-    const auto recastPosition = recastBody.find("\\"type\\":\\"reply\\"");
+    const auto recastPosition = recastBody.find(replyType);
     assert(recastPosition != std::string::npos);
-    recastBody.replace(recastPosition, std::string{"\\"type\\":\\"reply\\""}.size(),
-        "\\"type\\":\\"cast-recast\\"");
+    recastBody.replace(recastPosition, replyType.size(), R"json("type":"cast-recast")json");
     transport.enqueue(200, recastBody);
     auto recastPage = notifications.notifications(
         domain::identity::Fid{42}, capability::pagination::PageRequest{.limit = 20});
