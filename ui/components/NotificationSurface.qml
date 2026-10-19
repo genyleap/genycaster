@@ -78,6 +78,7 @@ Item {
         if (kind === "recast" && others >= 1)
             return qsTrId("genycaster.notifications.recasted_many").arg(actor).arg(LocaleFormat.formatInteger(others))
         if (kind === "recast") return qsTrId("genycaster.notifications.recasted").arg(actor)
+        if (kind === "quote") return actor + " · " + qsTrId("genycaster.composer.quote")
         if (kind === "reaction" && others >= 1)
             return qsTrId("genycaster.notifications.reacted_many").arg(actor).arg(LocaleFormat.formatInteger(others))
         if (kind === "reaction") return qsTrId("genycaster.notifications.reacted").arg(actor)
@@ -108,6 +109,7 @@ Item {
         case "mention": return Theme.iconMention
         case "reaction": return Theme.iconHeart
         case "recast": return Theme.iconRepost
+        case "quote": return Theme.iconQuote
         case "follow": return Theme.iconUser
         }
         return Theme.iconNotification
@@ -160,6 +162,7 @@ Item {
         : root.asList(root.displayRows).filter(row =>
             root.filterKind === "reactions"
             ? String(row.kind || "") === "reaction" || String(row.kind || "") === "recast"
+              || String(row.kind || "") === "quote"
             : String(row.kind || "") === root.filterKind)
 
     function cloneNotificationRow(row) {
@@ -742,11 +745,12 @@ Item {
                     anchors.bottomMargin: Theme.space1
                     fillColor: rowTap.pressed ? Theme.surfacePressed
                                : rowHover.hovered ? Theme.surfaceHover
-                               : notificationRow.latestActivity ? Theme.surfaceSelected
-                               : Theme.surfaceRaised
+                               : notificationRow.latestActivity
+                                 ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
+                                           Theme.dark ? 0.11 : 0.055)
+                                 : Theme.surfaceRaised
                     borderWidth: Theme.strokeHairline
-                    borderColor: notificationRow.latestActivity
-                                 ? Theme.accent : Theme.borderSubtle
+                    borderColor: Theme.borderSubtle
                     curveDepth: Theme.curveContainer
                 }
 
@@ -915,31 +919,48 @@ Item {
                         // using a quiet surface, not a full-height pink rail.
                         // A rail inside a RowLayout with fillHeight inherited
                         // the entire delegate height, crossing media and text.
-                        Superellipse {
+                        // A compact quoted excerpt, not a second grey card
+                        // occupying the full width of every notification.
+                        Item {
                             id: castExcerpt
                             readonly property bool isEngagement: notificationRow.kindKey === "reaction"
                                                                  || notificationRow.kindKey === "recast"
                             visible: String(notificationRow.modelData.castText || "").length > 0
                             Layout.fillWidth: true
-                            Layout.topMargin: Theme.space2
-                            Layout.preferredHeight: visible
-                                ? excerptText.implicitHeight + Theme.space2 * 2 : 0
-                            fillColor: Theme.surfaceMuted
-                            borderWidth: 0
-                            curveDepth: Theme.curveCompact
+                            Layout.topMargin: Theme.space1
+                            implicitHeight: excerptText.implicitHeight + Theme.space1 * 2
 
-                            DirectionAwareLabel {
-                                id: excerptText
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.margins: Theme.space2
-                                text: String(notificationRow.modelData.castText || "")
-                                color: castExcerpt.isEngagement ? Theme.textSecondary : Theme.textPrimary
-                                font.pixelSize: Theme.typeBodySize
-                                wrapMode: Text.Wrap
-                                maximumLineCount: castExcerpt.isEngagement ? 4 : 12
-                                elide: Text.ElideRight
+                            RowLayout {
+                                anchors.fill: parent
+                                spacing: Theme.space2
+                                layoutDirection: Theme.uiDirection
+
+                                Superellipse {
+                                    Layout.preferredWidth: 2
+                                    Layout.preferredHeight: Math.max(20, excerptText.implicitHeight)
+                                    fillColor: Theme.accent
+                                    curveDepth: Theme.curveCompact
+                                }
+
+                                Icon {
+                                    Layout.alignment: Qt.AlignTop
+                                    text: Theme.iconQuote
+                                    visible: notificationRow.kindKey === "quote"
+                                             || castExcerpt.isEngagement
+                                    color: Theme.inkSubtle
+                                    preferredSize: 12
+                                }
+
+                                DirectionAwareLabel {
+                                    id: excerptText
+                                    Layout.fillWidth: true
+                                    text: String(notificationRow.modelData.castText || "")
+                                    color: castExcerpt.isEngagement ? Theme.textSecondary : Theme.textPrimary
+                                    font.pixelSize: Theme.typeMetaSize
+                                    wrapMode: Text.Wrap
+                                    maximumLineCount: castExcerpt.isEngagement ? 3 : 7
+                                    elide: Text.ElideRight
+                                }
                             }
                         }
 

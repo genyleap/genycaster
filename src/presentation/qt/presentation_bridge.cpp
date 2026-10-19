@@ -133,6 +133,48 @@ struct ContextualReactionRule final {
     return QStringLiteral("0x") + hash;
 }
 
+// Hydrated quoted casts are keyed by canonical protocol hash, not by the
+// particular feed snapshot that fetched them. Never overwrite a fully
+// resolved quote when a later cache-first detail response contains only an ID.
+void applyReferencePreviewCache(QVariantMap& row, const QHash<QString, QVariantMap>& cache)
+{
+    if (cache.isEmpty())
+        return;
+    QVariantList embeds = row.value(QStringLiteral("embeds")).toList();
+    bool changed = false;
+    for (qsizetype i = 0; i < embeds.size(); ++i) {
+        QVariantMap embed = embeds.at(i).toMap();
+        if (embed.value(QStringLiteral("kind")).toString() != QStringLiteral("cast-reference"))
+            continue;
+        const auto it = cache.constFind(canonicalCastKey(
+            embed.value(QStringLiteral("castId")).toString()));
+        if (it == cache.cend())
+            continue;
+        for (auto value = it->cbegin(); value != it->cend(); ++value) {
+            if (value.key() != QStringLiteral("kind"))
+                embed.insert(value.key(), value.value());
+        }
+        embed.insert(QStringLiteral("kind"), QStringLiteral("cast-reference"));
+        embeds[i] = std::move(embed);
+        changed = true;
+    }
+    if (changed)
+        row.insert(QStringLiteral("embeds"), std::move(embeds));
+    const auto parent = cache.constFind(canonicalCastKey(
+        row.value(QStringLiteral("parentCastId")).toString()));
+    if (parent != cache.cend())
+        row.insert(QStringLiteral("parentPreview"), *parent);
+
+    QVariantList replies = row.value(QStringLiteral("threadReplies")).toList();
+    for (qsizetype i = 0; i < replies.size(); ++i) {
+        QVariantMap reply = replies.at(i).toMap();
+        applyReferencePreviewCache(reply, cache);
+        replies[i] = std::move(reply);
+    }
+    if (!replies.isEmpty())
+        row.insert(QStringLiteral("threadReplies"), std::move(replies));
+}
+
 void updateReactionPresentation(
     QVariantMap& map,
     const QString& castId,
@@ -823,6 +865,63 @@ QVariantList PresentationBridge::followingStoryProfiles() const
 }
 bool PresentationBridge::explorerArtBusy() const noexcept { return m_explorerArtBusy; }
 QVariantMap PresentationBridge::detail() const { return m_detail; }
+
+QStringList PresentationBridge::bookmarkedCastIds() const
+{
+    QStringList ids{};
+    ids.reserve(m_bookmarkedCasts.size());
+    for (const auto& item : m_bookmarkedCasts) {
+        const QString id = canonicalProtocolCastId(item.toMap().value(QStringLiteral("castId")).toString());
+        if (!id.isEmpty())
+            ids.push_back(id);
+    }
+    return ids;
+}
+
+QVariantList PresentationBridge::bookmarkedCasts() const { return m_bookmarkedCasts; }
+
+void PresentationBridge::toggleBookmark(const QVariantMap& cast)
+{
+    // This feature is an on-device reading list, not a claim of server-side
+    // Farcaster bookmark synchronization. A verified viewer session determines
+    // the owner, so saved posts never cross into a different signed-in account.
+    if (!m_isAuthenticated || m_accountFid == 0)
+        return;
+    const QString id = canonicalProtocolCastId(cast.value(QStringLiteral("castId")).toString());
+    if (id.isEmpty())
+        return;
+    for (qsizetype index = 0; index < m_bookmarkedCasts.size(); ++index) {
+        if (canonicalCastKey(m_bookmarkedCasts.at(index).toMap().value(
+                QStringLiteral("castId")).toString()) == id) {
+            m_bookmarkedCasts.removeAt(index);
+            if (m_settings) {
+                m_settings->setValue(QStringLiteral("bookmarks/account_%1").arg(m_accountFid),
+                    m_bookmarkedCasts);
+                m_settings->sync();
+            }
+            emit bookmarksChanged();
+            return;
+        }
+    }
+    QVariantMap saved{};
+    saved.insert(QStringLiteral("castId"), id);
+    for (const QString& key : {QStringLiteral("authorFid"), QStringLiteral("author"),
+                               QStringLiteral("username"), QStringLiteral("displayName"),
+                               QStringLiteral("avatarUrl"), QStringLiteral("createdAtMs")}) {
+        if (cast.contains(key))
+            saved.insert(key, cast.value(key));
+    }
+    saved.insert(QStringLiteral("text"), cast.value(QStringLiteral("text")).toString().left(1200));
+    m_bookmarkedCasts.prepend(std::move(saved));
+    if (m_bookmarkedCasts.size() > 200)
+        m_bookmarkedCasts = m_bookmarkedCasts.mid(0, 200);
+    if (m_settings) {
+        m_settings->setValue(QStringLiteral("bookmarks/account_%1").arg(m_accountFid),
+            m_bookmarkedCasts);
+        m_settings->sync();
+    }
+    emit bookmarksChanged();
+}
 QVariantList PresentationBridge::searchResults() const { return m_searchResults; }
 bool PresentationBridge::searchBusy() const noexcept { return m_searchBusy; }
 QString PresentationBridge::searchErrorText() const { return m_searchErrorText; }
@@ -1386,6 +1485,11 @@ void PresentationBridge::revealPendingPosts()
     }
     m_rows = std::move(merged);
     m_pendingFeedRows.clear();
+    for (QVariant& value : m_rows) {
+        QVariantMap row = value.toMap();
+        applyReferencePreviewCache(row, m_referencedPreviewCache);
+        value = std::move(row);
+    }
     applyViewerReactionSnapshotTo(m_rows, m_viewerReactionSnapshot);
     applyReactionOverrides(m_rows, m_reactionOverrides);
     applyFollowingOverrides(m_rows, m_followOverrides);
@@ -2178,6 +2282,13 @@ void PresentationBridge::applyAuthenticationState(
         m_signOutRequestedByUser = false;
     }
     m_accountFid = m_isAuthenticated ? fid : 0;
+    if (previousAccountFid != m_accountFid) {
+        m_bookmarkedCasts = (m_accountFid != 0 && m_settings)
+            ? m_settings->value(QStringLiteral("bookmarks/account_%1").arg(m_accountFid))
+                .toList().mid(0, 200)
+            : QVariantList{};
+        emit bookmarksChanged();
+    }
     m_accountUsername = m_isAuthenticated ? std::move(username) : QString{};
     m_accountName = m_isAuthenticated
         ? (displayName.isEmpty() ? m_accountUsername : std::move(displayName))
@@ -2784,6 +2895,11 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
     } else {
         m_rows = std::move(rows);
     }
+    for (QVariant& value : m_rows) {
+        QVariantMap row = value.toMap();
+        applyReferencePreviewCache(row, m_referencedPreviewCache);
+        value = std::move(row);
+    }
     applyViewerReactionSnapshotTo(m_rows, m_viewerReactionSnapshot);
     applyReactionOverrides(m_rows, m_reactionOverrides);
     applyFollowingOverrides(m_rows, m_followOverrides);
@@ -2846,6 +2962,9 @@ void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap 
     // media-only and therefore has an empty text body. QML uses this marker to
     // distinguish resolved empty content from an ID-only hydration placeholder.
     preview.insert(QStringLiteral("resolved"), true);
+    if (m_referencedPreviewCache.size() >= 256)
+        m_referencedPreviewCache.clear();
+    m_referencedPreviewCache.insert(targetKey, preview);
 
     auto patchEmbeds = [&targetKey, &preview](QVariantMap& row) {
         QVariantList embeds = row.value(QStringLiteral("embeds")).toList();
@@ -2917,6 +3036,7 @@ void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap 
     }
     const QVariantList detailBefore = m_detail.value(QStringLiteral("embeds")).toList();
     patchEmbeds(m_detail);
+    applyReferencePreviewCache(m_detail, m_referencedPreviewCache);
     if (detailBefore != m_detail.value(QStringLiteral("embeds")).toList()) {
         changed = true;
     }
@@ -2931,6 +3051,8 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
 {
     m_activeView = std::move(view);
     m_detail = std::move(detail);
+    if (m_activeView == QStringLiteral("cast"))
+        applyReferencePreviewCache(m_detail, m_referencedPreviewCache);
     if (m_activeView == QStringLiteral("profile")) {
         const qulonglong resolvedProfileFid = m_detail.value(QStringLiteral("fid")).toULongLong();
         if (resolvedProfileFid != 0) {

@@ -759,27 +759,18 @@ struct FeedPresentationIndex final {
         result.push_back(id);
     };
 
-    // Parent casts are conversation-critical UI context. Hydrate them before
-    // optional quote previews so a busy feed cannot consume the entire bounded
-    // context budget with quoted casts while visible replies remain unresolved.
+    // Resolve parent and quoted context together, in the same order that
+    // casts enter the viewport. Parent-first over the whole page exhausted
+    // the hydration budget before reaching most quote cards, leaving permanent
+    // "Quoted cast" placeholders despite successful feed pagination.
     for (const auto& cast : state.casts) {
-        if (cast.parent) {
-            append(*cast.parent);
-        }
-        if (result.size() >= limit) {
-            return result;
-        }
-    }
-
-    for (const auto& cast : state.casts) {
+        if (cast.parent) append(*cast.parent);
         for (const auto& embed : cast.embeds) {
-            if (embed.kind == domain::cast::EmbedKind::CastReference) {
+            if (embed.kind == domain::cast::EmbedKind::CastReference)
                 append(domain::cast::CastId{embed.value});
-            }
+            if (result.size() >= limit) break;
         }
-        if (result.size() >= limit) {
-            break;
-        }
+        if (result.size() >= limit) break;
     }
     return result;
 }
@@ -1080,6 +1071,9 @@ void applyNotificationState(
             break;
         case capability::notification::NotificationKind::Recast:
             kind = QStringLiteral("recast");
+            break;
+        case capability::notification::NotificationKind::Quote:
+            kind = QStringLiteral("quote");
             break;
         case capability::notification::NotificationKind::Follow:
             kind = QStringLiteral("follow");
@@ -3427,6 +3421,24 @@ void connectRuntime(
                         }
                     }
 #endif
+                    // Quote and parent context must also hydrate on direct
+                    // detail navigation, not just during a feed page read.
+                    std::vector<domain::cast::CastId> detailReferences{};
+                    if (state.cast && state.metadata.phase == application::read::model::ReadPhase::Ready) {
+                        const auto appendReference = [&](const domain::cast::CastId& id) {
+                            if (id.value.empty() || id.value == state.cast->id.value
+                                || detailReferences.size() >= 6U
+                                || std::ranges::any_of(detailReferences, [&id](const auto& prior) {
+                                    return prior.value == id.value;
+                                })) return;
+                            detailReferences.push_back(id);
+                        };
+                        if (state.cast->parent) appendReference(*state.cast->parent);
+                        for (const auto& embed : state.cast->embeds) {
+                            if (embed.kind == domain::cast::EmbedKind::CastReference)
+                                appendReference(domain::cast::CastId{embed.value});
+                        }
+                    }
                     QMetaObject::invokeMethod(&bridge,
                         [&bridge, runtime, requestGeneration, state = std::move(state)]() mutable {
                         if (!runtime->isCurrentPrimaryRequestGeneration(requestGeneration)) {
@@ -3458,6 +3470,43 @@ void connectRuntime(
                             statusText(state.metadata), errorText(state.metadata), diagnosticText(state.metadata), isBusy(state.metadata),
                             state.metadata.isStale, state.metadata.isSourceUnavailable);
                     }, Qt::QueuedConnection);
+
+                    for (const auto& referencedId : detailReferences) {
+                        if (!runtime->beginReferencedPreviewRequest(referencedId))
+                            continue;
+                        auto previewRequest = runtime->service->openCast(
+                            referencedId,
+                            [&bridge, runtime, referencedId, requestGeneration](
+                                application::read::model::CastState referencedState) {
+                                const auto phase = referencedState.metadata.phase;
+                                if (!referencedState.cast) {
+                                    if (phase == application::read::model::ReadPhase::Ready
+                                        || phase == application::read::model::ReadPhase::Failed)
+                                        runtime->finishReferencedPreviewRequest(referencedId, false);
+                                    return;
+                                }
+                                const QVariantMap preview = castPreviewPresentation(referencedState);
+                                runtime->finishReferencedPreviewRequest(referencedId, true);
+                                if (!runtime->isCurrentPrimaryRequestGeneration(requestGeneration))
+                                    return;
+                                QMetaObject::invokeMethod(
+                                    &bridge,
+                                    [&bridge, runtime, requestGeneration, referencedId, preview] {
+                                        if (runtime->isCurrentPrimaryRequestGeneration(requestGeneration))
+                                            bridge.applyReferencedCastPreview(
+                                                QString::fromStdString(referencedId.value), preview);
+                                    },
+                                    Qt::QueuedConnection);
+                            },
+                            application::read::model::ReadOptions{
+                                .allowRecoveryProbe = false,
+                                .intent = application::read::model::ReadIntent::Prefetch,
+                            });
+                        if (!previewRequest)
+                            runtime->finishReferencedPreviewRequest(referencedId, false);
+                        else
+                            runtime->keepReferencedPreviewRequest(referencedId, std::move(*previewRequest));
+                    }
                 }, application::read::model::ReadOptions{
                     .allowRecoveryProbe = allowRecoveryProbe,
                 });

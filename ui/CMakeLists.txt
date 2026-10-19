@@ -31,6 +31,7 @@ set(farcasterQmlFiles
     components/CastItem.qml
     components/CastSkeleton.qml
     components/CastViews.qml
+    components/BookmarksSurface.qml
     components/ContextRail.qml
     components/ComposerDrawer.qml
     components/EmojiPicker.qml

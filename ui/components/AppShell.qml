@@ -676,6 +676,7 @@ Item {
 
                                 ComingSoonSurface {
                                     visible: root.shellRoute.length > 0 && root.shellRoute !== "notifications" && root.shellRoute !== "apps"
+                                             && root.shellRoute !== "bookmarks"
                                     // Page switches fade + settle in instead of snapping.
                                     opacity: visible ? 1.0 : 0.0
                                     scale: visible ? 1.0 : 0.99
@@ -713,6 +714,28 @@ Item {
                                     }
                                     Behavior on scale {
                                         NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                    }
+                                }
+
+                                Loader {
+                                    active: root.shellRoute === "bookmarks"
+                                    visible: active
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    Layout.maximumWidth: root.adaptiveDetailWidth
+                                    Layout.alignment: Qt.AlignHCenter
+                                    sourceComponent: Component {
+                                        BookmarksSurface {
+                                            rows: presentationBridge.bookmarkedCasts
+                                            compact: root.compact
+                                            authenticated: presentationBridge.isAuthenticated
+                                            onCastRequested: castId => {
+                                                root.rememberShellRouteForReturn()
+                                                root.shellRoute = ""
+                                                presentationBridge.openCast(castId)
+                                            }
+                                            onAuthenticationRequested: root.openAccountPopup()
+                                        }
                                     }
                                 }
 

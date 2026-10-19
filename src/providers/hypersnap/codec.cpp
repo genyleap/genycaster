@@ -1236,8 +1236,11 @@ foundation::result::Result<NotificationPayload> decodeNotifications(const std::s
             kind = capability::notification::NotificationKind::Mention;
         } else if (type == "cast-reply" || type == "reply" || type == "replies") {
             kind = capability::notification::NotificationKind::Reply;
-        } else if (type == "recast" || type == "recasts") {
+        } else if (type == "recast" || type == "recasts" || type == "cast-recast") {
             kind = capability::notification::NotificationKind::Recast;
+        } else if (type == "quote" || type == "quotes" || type == "cast-quote"
+                   || type == "cast-quoted" || type == "quote-cast") {
+            kind = capability::notification::NotificationKind::Quote;
         } else if (type == "reaction" || type == "like" || type == "likes") {
             kind = capability::notification::NotificationKind::Reaction;
         } else if (type == "follow" || type == "follows") {
@@ -1306,7 +1309,8 @@ foundation::result::Result<NotificationPayload> decodeNotifications(const std::s
                 item.cast = std::move(mapped->cast);
                 if (item.actors.empty() &&
                     (kind == capability::notification::NotificationKind::Reply ||
-                     kind == capability::notification::NotificationKind::Mention)) {
+                     kind == capability::notification::NotificationKind::Mention ||
+                     kind == capability::notification::NotificationKind::Quote)) {
                     item.actors.push_back(std::move(mapped->author));
                 }
             }
@@ -1320,7 +1324,8 @@ foundation::result::Result<NotificationPayload> decodeNotifications(const std::s
         // conversation hierarchy without leaking provider DTOs. Absent fields
         // leave the notification fully usable without this enrichment.
         if (kind == capability::notification::NotificationKind::Reply ||
-            kind == capability::notification::NotificationKind::Mention) {
+            kind == capability::notification::NotificationKind::Mention ||
+            kind == capability::notification::NotificationKind::Quote) {
             const auto mapParentAuthor = [&](const JsonObject& profileObject) {
                 auto profile = mapProfile(profileObject);
                 if (profile && !item.parentAuthor) {

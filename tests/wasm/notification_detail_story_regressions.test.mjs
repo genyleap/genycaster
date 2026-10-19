@@ -30,11 +30,11 @@ test('notification list uses subtle superellipse cards and real category icons',
     const ui = read('ui/components/NotificationSurface.qml');
     assert.match(ui, /delegate: Item \{\s+id: notificationRow/);
     assert.match(ui, /id: notificationRow[\s\S]*?Superellipse \{/);
-    assert.match(ui, /notificationRow.latestActivity \? Theme.surfaceSelected/);
+    assert.match(ui, /notificationRow.latestActivity[\s\S]*?Qt\.rgba\(Theme\.accent/);
     assert.doesNotMatch(ui, /id: kindBadge/);
     assert.match(ui, /text: notificationRow\.kindGlyph\s+color: notificationRow\.kindColor/);
     assert.match(ui, /text: String\(notificationRow\.modelData\.castText \|\| ""\)/);
-    assert.doesNotMatch(ui, /maximumLineCount: 3/);
+    assert.doesNotMatch(ui, /maximumLineCount: 14/);
 });
 
 test('notification activity filters affect the real stable list and never claim unsupported channels', () => {
@@ -89,7 +89,7 @@ test('notification activity uses one actor, a bounded excerpt and compact tappab
     assert.doesNotMatch(ui, /Repeater \{\s+model: parent.visibleActors/);
     assert.doesNotMatch(ui, /Layout.fillHeight: true\s+color: notificationRow.kindColor/);
     assert.match(ui, /id: castExcerpt/);
-    assert.match(ui, /maximumLineCount: castExcerpt.isEngagement \? 4 : 12/);
+    assert.match(ui, /maximumLineCount: castExcerpt.isEngagement \? 3 : 7/);
     assert.match(ui, /Layout.preferredHeight: visible \? 40 : 0/);
     assert.match(ui, /Qt.openUrlExternally\(notificationLink.linkUrl\)/);
     assert.doesNotMatch(ui, /id: notificationLinkLoader/);

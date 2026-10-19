@@ -58,7 +58,7 @@ test('casts notifications and explorer tabs reuse Superellipse surfaces and acce
     assert.match(feed, /id: messageSurface[\s\S]*?Superellipse \{/);
     assert.match(feed, /curveDepth: Theme.curveContainer/);
     assert.match(notifications, /id: notificationRow[\s\S]*?Superellipse \{/);
-    assert.match(notifications, /notificationRow.latestActivity \? Theme.surfaceSelected/);
+    assert.match(notifications, /notificationRow.latestActivity[\s\S]*?Qt\.rgba\(Theme\.accent/);
     assert.match(tabs, /color: tabButton.selected \? Theme.accent/);
     assert.match(tabs, /Layout.preferredWidth: String\(modelData.id\) === "conversations" \? 1.65 : 1/);
     assert.doesNotMatch(tabs, /fillColor: tabButton.selected/);

@@ -707,6 +707,31 @@ void testFeedPaginationAffinity()
     assert(notificationPage->items.front().observedAt.time_since_epoch().count() > 0);
     assert(transport.urls().back() ==
         "https://node.test/v2/farcaster/notifications?fid=42&limit=20");
+
+    // Quotes and recasts are distinct Farcaster notification categories;
+    // dropping either at the codec layer makes QML powerless to display them.
+    std::string quoteBody = test::hypersnap::fixtures::notificationResponse();
+    const auto quotePosition = quoteBody.find("\\"type\\":\\"reply\\"");
+    assert(quotePosition != std::string::npos);
+    quoteBody.replace(quotePosition, std::string{"\\"type\\":\\"reply\\""}.size(),
+        "\\"type\\":\\"cast-quote\\"");
+    transport.enqueue(200, quoteBody);
+    auto quotePage = notifications.notifications(
+        domain::identity::Fid{42}, capability::pagination::PageRequest{.limit = 20});
+    assert(quotePage && quotePage->items.size() == 1U);
+    assert(quotePage->items.front().kind == capability::notification::NotificationKind::Quote);
+    assert(quotePage->items.front().cast.has_value());
+
+    std::string recastBody = test::hypersnap::fixtures::notificationResponse();
+    const auto recastPosition = recastBody.find("\\"type\\":\\"reply\\"");
+    assert(recastPosition != std::string::npos);
+    recastBody.replace(recastPosition, std::string{"\\"type\\":\\"reply\\""}.size(),
+        "\\"type\\":\\"cast-recast\\"");
+    transport.enqueue(200, recastBody);
+    auto recastPage = notifications.notifications(
+        domain::identity::Fid{42}, capability::pagination::PageRequest{.limit = 20});
+    assert(recastPage && recastPage->items.size() == 1U);
+    assert(recastPage->items.front().kind == capability::notification::NotificationKind::Recast);
 }
 
 void testSocialGraphSemantics()

@@ -223,6 +223,7 @@ ColumnLayout {
                 likeCount: Number(root.reply.likeCount || 0)
                 viewCount: root.reply.viewCount === undefined ? null : root.reply.viewCount
                 castId: String(root.reply.castId || "")
+                castData: root.reply
                 authorFid: Number(root.reply.authorFid || 0)
                 castText: String(root.reply.text || "")
                 contextText: String(root.reply.text || "")

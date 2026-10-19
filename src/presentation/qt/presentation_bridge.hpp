@@ -67,6 +67,8 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QVariantList explorerArtRows READ explorerArtRows NOTIFY stateChanged)
     Q_PROPERTY(bool explorerArtBusy READ explorerArtBusy NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY stateChanged)
+    Q_PROPERTY(QStringList bookmarkedCastIds READ bookmarkedCastIds NOTIFY bookmarksChanged)
+    Q_PROPERTY(QVariantList bookmarkedCasts READ bookmarkedCasts NOTIFY bookmarksChanged)
     Q_PROPERTY(QVariantList searchResults READ searchResults NOTIFY searchChanged)
     Q_PROPERTY(bool searchBusy READ searchBusy NOTIFY searchChanged)
     Q_PROPERTY(QString searchErrorText READ searchErrorText NOTIFY searchChanged)
@@ -153,6 +155,10 @@ public:
     [[nodiscard]] QVariantList followingStoryProfiles() const;
     [[nodiscard]] bool explorerArtBusy() const noexcept;
     [[nodiscard]] QVariantMap detail() const;
+    [[nodiscard]] QStringList bookmarkedCastIds() const;
+    [[nodiscard]] QVariantList bookmarkedCasts() const;
+    /** @brief Bookmarks are a device-local, authenticated account-scoped reading list. */
+    Q_INVOKABLE void toggleBookmark(const QVariantMap& cast);
     [[nodiscard]] QVariantList searchResults() const;
     [[nodiscard]] bool searchBusy() const noexcept;
     [[nodiscard]] QString searchErrorText() const;
@@ -368,6 +374,7 @@ signals:
     void stateChanged();
     void searchChanged();
     void notificationsChanged();
+    void bookmarksChanged();
     void followingStoriesChanged();
     void readPreferencesChanged();
     /** @brief Emitted only when OS/network reachability knowledge or online state changes. */
@@ -504,6 +511,10 @@ private:
     QVariantList m_explorerArtRows{};
     bool m_explorerArtBusy{false};
     QVariantMap m_detail{};
+    QVariantList m_bookmarkedCasts{};
+    // Short-lived context hydrations are shared by Feed and Cast detail.
+    // A late cache-first snapshot must never erase an already resolved quote.
+    QHash<QString, QVariantMap> m_referencedPreviewCache{};
     QVariantList m_searchResults{};
     QString m_searchQuery{};
     QString m_searchErrorText{};

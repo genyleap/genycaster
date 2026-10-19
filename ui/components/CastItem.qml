@@ -800,6 +800,7 @@ Item {
                         likeCount: Number(root.modelData.likeCount || 0)
                         viewCount: root.modelData.viewCount === undefined ? null : root.modelData.viewCount
                         castId: String(root.modelData.castId || "")
+                        castData: root.modelData
                         authorFid: Number(root.modelData.authorFid || 0)
                         castText: String(root.modelData.text || "")
                         contextText: String(root.modelData.text || "")
@@ -881,6 +882,7 @@ Item {
                         likeCount: Number(root.modelData.likeCount || 0)
                         viewCount: root.modelData.viewCount === undefined ? null : root.modelData.viewCount
                         castId: String(root.modelData.castId || "")
+                        castData: root.modelData
                         authorFid: Number(root.modelData.authorFid || 0)
                         castText: String(root.modelData.text || "")
                         contextText: String(root.modelData.text || "")

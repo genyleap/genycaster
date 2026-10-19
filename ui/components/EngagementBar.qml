@@ -8,6 +8,8 @@ RowLayout {
     layoutDirection: Theme.uiDirection
 
     property bool compact: false
+    property bool showViews: true
+    property var castData: ({})
     property int replyCount: 0
     property int recastCount: 0
     property int likeCount: 0
@@ -41,6 +43,8 @@ RowLayout {
     // primary Like action always uses one recognisable heart across all feeds.
     property string contextText: ""
     readonly property string displayedLikeIcon: Theme.iconHeart
+    readonly property string normalizedCastId: CastViews.normalizeHash(root.castId)
+    readonly property bool isBookmarked: presentationBridge.bookmarkedCastIds.indexOf(root.normalizedCastId) >= 0
 
     signal replyRequested()
     signal quoteRequested()
@@ -98,10 +102,12 @@ RowLayout {
 
     // An impression is metadata, not an action. It should not consume a
     // 46px touch target or squeeze mobile replies/quotes into the timestamp.
+    Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
+
     RowLayout {
         id: castViewsLabel
         objectName: "castViewCount"
-        visible: root.resolvedViewCount !== null && root.resolvedViewCount !== undefined
+        visible: root.showViews && root.resolvedViewCount !== null && root.resolvedViewCount !== undefined
                  && Number(root.resolvedViewCount) >= 0 && isFinite(Number(root.resolvedViewCount))
         spacing: Theme.space1
         Layout.alignment: Qt.AlignVCenter
@@ -127,5 +133,15 @@ RowLayout {
         }
     }
 
-    Item { Layout.fillWidth: true }
+    EngagementButton {
+        id: bookmarkButton
+        objectName: "castBookmarkButton"
+        iconGlyph: Theme.iconBookmark
+        iconFilled: root.isBookmarked
+        active: root.isBookmarked
+        activeColor: Theme.accent
+        enabled: root.normalizedCastId.length > 0 && presentationBridge.isAuthenticated
+        Accessible.name: root.isBookmarked ? "Remove bookmark" : "Bookmark cast"
+        onClicked: presentationBridge.toggleBookmark(root.castData)
+    }
 }

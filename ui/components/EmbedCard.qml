@@ -13,7 +13,8 @@ Superellipse {
     readonly property bool isExternal: !root.isCastReference
     readonly property bool hasPreviewImage: root.isExternal && Boolean(root.embed.imageSource)
     readonly property string hostText: String(root.embed.host || "")
-    readonly property string quotedName: String(root.embed.displayName || root.embed.author || "")
+    readonly property string quotedName: String(root.embed.displayName || root.embed.author
+         || (Number(root.embed.authorFid || 0) > 0 ? "FID " + root.embed.authorFid : ""))
     readonly property bool quoteResolved: Boolean(root.embed.resolved)
                                           || Boolean(root.embed.text)
                                           || Boolean(root.embed.author)
@@ -129,6 +130,14 @@ Superellipse {
                         horizontalAlignment: Text.AlignLeft
                         elide: Text.ElideRight
                     }
+
+                    Label {
+                        visible: Number(root.embed.createdAtMs || 0) > 0
+                        text: visible ? "· " + LocaleFormat.formatRelativeTime(
+                            Number(root.embed.createdAtMs)) : ""
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
                 }
 
                 DirectionAwareLabel {
@@ -137,7 +146,7 @@ Superellipse {
                     text: root.embed.text || ""
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeMetaSize
-                    maximumLineCount: 3
+                    maximumLineCount: 4
                     elide: Text.ElideRight
                     wrapMode: Text.Wrap
                 }

@@ -97,7 +97,7 @@ test('supported locales contain every public English translation key', () => {
 test('unknown impressions never become fabricated zero views', () => {
     const bar = read('ui/components/EngagementBar.qml');
     assert.match(bar, /property var viewCount: null/);
-    assert.match(bar, /visible: root\.resolvedViewCount !== null && root\.resolvedViewCount !== undefined/);
+    assert.match(bar, /visible: root\.showViews && root\.resolvedViewCount !== null && root\.resolvedViewCount !== undefined/);
     assert.match(read('ui/components/CastItem.qml'),
         /viewCount: root\.modelData\.viewCount === undefined \? null : root\.modelData\.viewCount/);
 });
@@ -105,7 +105,7 @@ test('unknown impressions never become fabricated zero views', () => {
 test('newest activity is tinted and grouped actors get a separate nonoverlapping portrait row', () => {
     const qml = read('ui/components/NotificationSurface.qml');
     assert.match(qml, /readonly property bool latestActivity:/);
-    assert.match(qml, /notificationRow\.latestActivity \? Theme.surfaceSelected/);
+    assert.match(qml, /notificationRow\.latestActivity[\s\S]*?Qt\.rgba\(Theme\.accent/);
     assert.match(qml, /return Theme\.surfaceSelected/);
     assert.match(qml, /return Theme\.accent/);
     assert.match(qml, /avatarSpacing: root\.compact \? 7 : 10/);

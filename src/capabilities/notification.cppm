@@ -23,6 +23,7 @@ enum class NotificationKind : std::uint8_t {
     Reply,
     Reaction,
     Recast,
+    Quote,
     Follow,
     Unknown,
 };
