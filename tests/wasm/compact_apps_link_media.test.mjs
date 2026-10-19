@@ -16,7 +16,8 @@ test('compact mobile Mini App explorer is a two-column grid of short cards',()=>
 test('WASM gallery corners use one shared image mask, not vector inverse covers',()=>{
  const layout=read('ui/components/GalleryLayout.qml');
  const tile=read('ui/components/GalleryTile.qml');
- assert.match(layout,/useLayeredMask: root\.visibleCount === 1 \|\| Qt\.platform\.os === "wasm"/);
+ assert.match(layout,/useLayeredMask: Qt\.platform\.os === "wasm"/);
+ assert.match(layout,/Qt\.platform\.os === "osx" && root\.visibleCount === 1/);
  assert.match(tile,/visible: !root\.useLayeredMask && preview\.ready/);
  assert.match(tile,/clipToSuperellipse: root\.useLayeredMask/);
 });

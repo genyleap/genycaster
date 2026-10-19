@@ -196,6 +196,10 @@ public:
     Q_INVOKABLE void returnFromDetail();
     Q_INVOKABLE void loadMore();
     Q_INVOKABLE void retry();
+    /** @brief Explicitly refreshes the first feed page without buffering newer casts.
+     * Preserves the user's new-post buffering preference for ordinary background reads.
+     */
+    Q_INVOKABLE void refreshLatestFeed();
     /** @brief Applies pending refresh rows at the top without losing the current viewport history. */
     Q_INVOKABLE void revealPendingPosts();
     /** @brief Sets the bounded number of casts requested per page (1..100). */
@@ -472,6 +476,7 @@ private:
     bool m_inlineYouTubeEnabled{true};
     bool m_bufferNewPosts{true};
     bool m_bufferNextFeedRefresh{false};
+    bool m_feedSourceSwitchPending{false};
     QVariantList m_pendingFeedRows{};
     QString m_next{};
     QVariantList m_rows{};

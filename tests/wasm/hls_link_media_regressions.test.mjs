@@ -42,5 +42,6 @@ test('Telegram-like small link poster and focus rings on both home composers',()
 });
 test('single photo and WASM galleries use alpha mask rather than inverse edge fills',()=>{
  const gallery=read('ui/components/GalleryLayout.qml');
- assert.match(gallery,/useLayeredMask: root\.visibleCount === 1 \|\| Qt\.platform\.os === "wasm"/);
+ assert.match(gallery,/useLayeredMask: Qt\.platform\.os === "wasm"/);
+ assert.match(gallery,/Qt\.platform\.os === "osx" && root\.visibleCount === 1/);
 });

@@ -28,14 +28,22 @@ Superellipse {
     // A moving Flickable cannot change the media family. Previously the
     // !scrollMoving guard made a rendered Mini App collapse into a web card
     // on the very first drag, then reappear when the gesture ended.
-    readonly property var reservedLayout: (root.knownMiniApp.homeUrl
-                                            || root.browserMiniAppPreview.providerKind === "miniapp")
-                                          ? ({kind: "miniapp", aspect: 3 / 2, artwork: true})
-                                          : root.layoutReservation || root.initialLayout()
+    // General link metadata cannot change a feed row's media family after its
+    // first reservation. A verified Mini App is the one deliberate exception:
+    // its discovery artwork and launch affordance must remain accessible.
+    // Manifest admission itself is deferred while the Flickable is moving.
+    readonly property var reservedLayout: root.knownMiniApp.homeUrl
+                                           || root.browserMiniAppPreview.providerKind === "miniapp"
+                                         ? ({kind: "miniapp", aspect: 3 / 2, artwork: true})
+                                         : root.layoutReservation !== null
+                                           ? root.layoutReservation : root.fallbackLayout()
     readonly property bool layoutMiniApp: root.reservedLayout.kind === "miniapp"
-    // Unknown pages must never reserve an empty thumbnail rectangle. Only
-    // an actual preview image may claim image geometry.
-    readonly property bool reserveArtwork: !root.suppressArtwork && root.previewSource.length > 0
+    // Reserve the pending artwork slot before asynchronous metadata arrives.
+    // The reservation is frozen per URL; removing the thumbnail after a failed
+    // OpenGraph lookup would otherwise change row height while scrolling.
+    readonly property bool reserveArtwork: !root.suppressArtwork
+                                           && (root.reservedLayout.artwork
+                                               || root.previewSource.length > 0)
     readonly property real bodyLineHeight: Math.ceil(Theme.typeBodySize * Theme.typeBodyLineHeight)
     readonly property real metaLineHeight: Math.ceil(Theme.typeMetaSize * Theme.typeMetaLineHeight)
     readonly property real captionLineHeight: Math.ceil(Theme.typeCaptionSize * Theme.typeCaptionLineHeight)
@@ -43,13 +51,25 @@ Superellipse {
     readonly property bool scrollMoving: root.scrollHost !== null
                                          && Boolean(root.scrollHost.moving)
 
-    readonly property var previewData: Boolean(root.browserMiniAppPreview.resolved)
-                                      ? root.browserMiniAppPreview
-                                      : Boolean(root.browserLinkPreview.resolved)
-                                        ? root.browserLinkPreview
-                                      : root.metadataManagedExternally
-                                        ? (root.externalPreview || ({}))
-                                        : (root.resolvedPreview || ({}))
+    // Keep resolved metadata as one explicitly reconciled snapshot. Selecting
+    // between multiple reactive JS objects inside a readonly QML binding
+    // re-entered previewData/titleText while recycled delegates updated.
+    // One zero-interval reconciliation per event-loop turn avoids that cycle.
+    property var previewData: ({})
+    function selectedPreviewData() {
+        if (Boolean(root.browserMiniAppPreview.resolved))
+            return root.browserMiniAppPreview
+        if (Boolean(root.browserLinkPreview.resolved))
+            return root.browserLinkPreview
+        return root.metadataManagedExternally
+               ? (root.externalPreview || ({})) : (root.resolvedPreview || ({}))
+    }
+    Timer {
+        id: previewReconcileTimer
+        interval: 0
+        repeat: false
+        onTriggered: root.previewData = root.selectedPreviewData()
+    }
     readonly property string targetUrl: String(root.embed.url || root.embed.value || "")
     // The browser cannot crawl arbitrary Cast URLs for fc:miniapp metadata.
     // Reuse only public Mini Apps that the verified discovery catalogue has
@@ -143,6 +163,17 @@ Superellipse {
                                           : Theme.accent
 
     signal openRequested(string url)
+
+    function fallbackLayout() {
+        // Computed only from the cast URL and verified catalogue; neither is
+        // modified by an asynchronous metadata response for this identity.
+        const hint = root.providerKindForUrl(root.targetUrl)
+        const kind = root.knownMiniApp.homeUrl ? "miniapp"
+                   : ["youtube", "spotify", "apple-music", "soundcloud", "video"].indexOf(hint) >= 0
+                   ? "poster" : "generic"
+        return ({kind: kind, aspect: kind === "miniapp" ? 3 / 2 : 16 / 9,
+                 artwork: kind !== "generic" || root.targetUrl.length > 0})
+    }
 
     function initialLayout() {
         const metadata = root.previewData
@@ -342,13 +373,20 @@ Superellipse {
     onExternalPreviewChanged: {
         if (root.metadataManagedExternally)
             root.synchronizeMetadataState(root.externalPreview)
+        previewReconcileTimer.restart()
     }
     onResolvedPreviewChanged: {
         if (!root.metadataManagedExternally)
             root.synchronizeMetadataState(root.resolvedPreview)
+        previewReconcileTimer.restart()
     }
-    onMetadataManagedExternallyChanged: root.synchronizeMetadataState(
-        root.metadataManagedExternally ? root.externalPreview : root.resolvedPreview)
+    onMetadataManagedExternallyChanged: {
+        root.synchronizeMetadataState(
+            root.metadataManagedExternally ? root.externalPreview : root.resolvedPreview)
+        previewReconcileTimer.restart()
+    }
+    onBrowserMiniAppPreviewChanged: previewReconcileTimer.restart()
+    onBrowserLinkPreviewChanged: previewReconcileTimer.restart()
     onScrollMovingChanged: {
         if (root.scrollMoving) {
             metadataDeadline.stop()
@@ -374,6 +412,7 @@ Superellipse {
     }
     Component.onCompleted: {
         root.resolveScrollHost()
+        root.previewData = root.selectedPreviewData()
         root.refreshMetadata()
         miniAppManifestTimer.restart()
         root.layoutReservation = root.initialLayout()
@@ -400,7 +439,19 @@ Superellipse {
     Layout.fillWidth: true
     Layout.maximumWidth: Number.POSITIVE_INFINITY
     Layout.alignment: Qt.AlignVCenter
-    implicitHeight: content.implicitHeight + Theme.space3 * 2
+    // A generic link can acquire title, summary and attribution *after* its
+    // lightweight Loader has become visible. Reserve all three bounded text
+    // lines upfront so asynchronous metadata never grows an existing feed row.
+    // Use semantic line metrics instead of a fixed pixel size for text scaling.
+    readonly property real genericReservedHeight: Math.max(
+        root.compact ? 124 : 172,
+        20 + root.bodyLineHeight * (root.compact ? 1 : 2)
+           + root.metaLineHeight * (root.compact ? 1 : 2)
+           + root.captionLineHeight + Theme.space3 * 2 + Theme.space2 * 4)
+    implicitHeight: root.layoutMiniApp || root.preferPosterLayout
+                    ? content.implicitHeight + Theme.space3 * 2
+                    : Math.max(content.implicitHeight + Theme.space3 * 2,
+                               root.genericReservedHeight)
     fillColor: !root.scrollMoving && hover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
     borderWidth: Theme.strokeHairline
     borderColor: !root.scrollMoving && hover.hovered ? Theme.borderDefault : Theme.borderSubtle

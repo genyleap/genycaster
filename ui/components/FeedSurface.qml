@@ -48,10 +48,9 @@ Item {
                                                    : root.presentationMode === "conversations"
                                                      ? root.conversationPrefetchPages : 0
     property int pendingNewPostCount: 0
-    // Explorer partitions one stable personalized source into mutually exclusive
-    // presentation branches. A cast belongs to exactly one branch, while provider
-    // order remains authoritative inside that branch. Never rank/reorder the
-    // already-materialized timeline inside QML while pagination is active.
+    // Explorer presents a complete root-cast timeline in For You and optional
+    // semantic subsets in the other tabs. Provider order remains authoritative
+    // within every view; QML must not re-rank a paginated timeline.
     readonly property bool curateHomeForYou: false
     readonly property bool presentationFilterActive: !root.socialMode
     readonly property int filterTargetCount: root.compact ? 5 : 8
@@ -337,10 +336,9 @@ Item {
     }
 
     function semanticKind(data) {
-        // The active source is partitioned exactly once across semantic branches. Strong
-        // developer intent wins over attached media, then collectible/NFT
-        // content, then explicit thread/discussion intent. Generic discovery
-        // posts stay unclassified instead of leaking into Conversations.
+        // Semantic subsets classify a cast by its strongest evidence; For You
+        // intentionally remains the complete stream instead of a leftover bucket.
+        // Generic discovery posts stay out of the narrower Conversation tab.
         if (root.hasCollectible(data))
             return "visuals"
         if (root.looksDeveloper(data))
@@ -415,7 +413,11 @@ Item {
         for (let index = 0; index < source.length; ++index) {
             const row = source[index]
             if (root.presentationMode === "for-you") {
-                if (root.isRootPost(row) && root.semanticKind(row) === "other")
+                // The main Explorer timeline is a complete, provider-ordered
+                // stream of recent root casts, not a residual bucket after
+                // NFT/Devs/Conversation classification. Filtering those out
+                // made new posts disappear from the primary feed.
+                if (root.isRootPost(row))
                     result.push({ payload: row, presentationKind: "conversation" })
             } else if (root.presentationMode === "visuals") {
                 if (root.hasCollectible(row))
@@ -596,6 +598,29 @@ Item {
 
     function synchronizeStableModel() {
         const source = root.sourceRows()
+        if (source.length === 0) {
+            stableRows.clear()
+            root.stablePayloads = ({})
+            return
+        }
+        if (stableRows.count > 0) {
+            // Cross-tab changes and first-page refreshes may replace nearly
+            // every cast. Inserting those rows individually at index zero is
+            // quadratic and blocks the Qt GUI thread during navigation.
+            const priorKeys = ({})
+            for (let index = 0; index < stableRows.count; ++index)
+                priorKeys[String(stableRows.get(index).stableKey)] = true
+            let retained = 0
+            for (let index = 0; index < source.length; ++index) {
+                const entry = source[index] || ({})
+                if (priorKeys[root.rowKey(entry.payload || ({}), index)])
+                    ++retained
+            }
+            if (retained * 4 < Math.min(stableRows.count, source.length)) {
+                root.rebuildStableModel(source)
+                return
+            }
+        }
 
         // Keep the model incremental. Tail pagination should only append rows;
         // in-place payload revisions update the existing delegate and never
@@ -740,7 +765,8 @@ Item {
         // Without this, a sparse Devs/NFTs visit could permanently exhaust its
         // two-page allowance and only ever show old cached matches afterward.
         root.resetCurrentFilterPrefetchBudget()
-        stableRows.clear()
+        // Keep the existing delegate pool alive until the new projection can
+        // reconcile keys; clearing the whole model forced expensive remounts.
         Qt.callLater(function() {
             if (root.presentationMode === "visuals")
                 root.primeArtPreviews()
@@ -752,7 +778,7 @@ Item {
         if (root.presentationMode !== "visuals")
             return
         filterPrefetchDebounce.stop()
-        stableRows.clear()
+        // Reconcile only rows whose semantic presentation actually changed.
         Qt.callLater(function() {
             root.requestStableModelSync()
             root.scheduleLoadMore()

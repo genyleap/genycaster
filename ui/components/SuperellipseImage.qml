@@ -325,11 +325,14 @@ Item {
     }
     onScrollMovingChanged: {
         if (root.scrollMoving && root.deferNewLoadsWhileScrolling) {
-            // An in-flight source is owned by this media item until its URL
-            // actually changes. Detaching during touch/scroll causes visible
-            // artwork to vanish and forces the browser to reload it after a
-            // fling; delay only NEW sources, never erase an existing one.
             sourceStartTimer.stop()
+            // Do not decode/upload a response while the flick animation owns
+            // the frame budget. An image already presented on screen stays
+            // resident; only a pending, not-yet-visible request is detached.
+            // Retained previous frames must also remain untouched.
+            if (!root.ready && !root.loadFailed && !root.retainPreviousWhileLoading
+                    && root.activeSource.toString().length > 0)
+                root.activeSource = ""
         } else if (!root.scrollMoving) {
             sourceStartTimer.restart()
         }

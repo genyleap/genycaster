@@ -34,7 +34,10 @@ RowLayout {
         metricText: root.replyCount > 0 ? LocaleFormat.formatInteger(root.replyCount) : ""
         enabled: true
         Accessible.name: qsTrId("genycaster.engagement.reply_value_replies").arg(LocaleFormat.formatInteger(root.replyCount))
-        onClicked: root.replyInteractive ? root.replyRequested() : root.authenticationRequested()
+        // Reply always enters the central composer action. It owns the
+        // authentication/signer gate and provides a visible reason when the
+        // canonical target is unavailable; the old fallback swallowed intent.
+        onClicked: root.replyRequested()
     }
 
     EngagementButton {

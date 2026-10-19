@@ -204,6 +204,11 @@ void polishTree(QQuickItem* item)
 int main(int argc, char** argv)
 {
     QGuiApplication application{argc, argv};
+    // The production Theme singleton uses QML Settings. Unlike the full
+    // application, this standalone offscreen test must establish its own
+    // organization/application identity before constructing any QML engine.
+    application.setOrganizationName(QStringLiteral("GenycasterTests"));
+    application.setApplicationName(QStringLiteral("media-scroll"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     qmlRegisterType<RichInlineTextItem>("Farcaster.Client", 1, 0, "RichInlineTextItem");
     qmlRegisterType<SceneGraphSuperellipseItem>(
@@ -260,6 +265,8 @@ int main(int argc, char** argv)
             property int revision: 0
             property string errorText: ""
             property string launchUrl: ""
+            property var myApps: []
+            property var explorerApps: []
             signal previewReady(string url, var preview)
             function isLaunchingUrl(url) { return false }
             function previewFor(url) { return ({}) }
@@ -272,6 +279,7 @@ int main(int argc, char** argv)
     context->setContextProperty(QStringLiteral("linkPreviewResolver"), previewServices.get());
     context->setContextProperty(QStringLiteral("miniAppTaskManager"), previewServices.get());
     context->setContextProperty(QStringLiteral("miniAppHost"), previewServices.get());
+    context->setContextProperty(QStringLiteral("miniAppCatalog"), previewServices.get());
     context->setContextProperty(QStringLiteral("presentationBridge"), previewServices.get());
     // A text-bearing CastItem now exercises the single shared caption Loader.
     // Supply an empty native-rich sidecar so the standalone media fixture
@@ -1155,6 +1163,11 @@ int main(int argc, char** argv)
             cardItem->setHeight(cardItem->implicitHeight());
             QTest::qWait(80);
             const double reservedHeight = cardItem->implicitHeight();
+            if (qEnvironmentVariableIsSet("GENYCASTER_MEDIA_DIAGNOSTICS"))
+                std::println("CARD kind={} width={} initial={} layout={} aspect={}",
+                    cardKind.toStdString(), cardWidth, reservedHeight,
+                    card->property("reservedLayout").toMap().value("kind").toString().toStdString(),
+                    card->property("previewImageAspect").toDouble());
             const double reservedAspect = card->property("previewImageAspect").toDouble();
             expect(reservedHeight > 100, "link reserves card geometry before metadata arrives");
             QVariantMap metadata{
@@ -1169,12 +1182,18 @@ int main(int argc, char** argv)
             card->setProperty("externalPreview", metadata);
             QTest::qWait(80);
             polishTree(cardItem);
+            if (qEnvironmentVariableIsSet("GENYCASTER_MEDIA_DIAGNOSTICS"))
+                std::println("CARD kind={} width={} resolved={}",
+                    cardKind.toStdString(), cardWidth, cardItem->implicitHeight());
             expect(cardItem->implicitHeight() == reservedHeight,
                 "late link title, summary and artwork metadata preserve card height");
             expect(card->property("previewImageAspect").toDouble() == reservedAspect,
                 "late image dimensions preserve reserved poster aspect");
             images->completePending();
             QTest::qWait(100);
+            if (qEnvironmentVariableIsSet("GENYCASTER_MEDIA_DIAGNOSTICS"))
+                std::println("CARD kind={} width={} image={}",
+                    cardKind.toStdString(), cardWidth, cardItem->implicitHeight());
             expect(cardItem->implicitHeight() == reservedHeight, "link image completion preserves card height");
             if (cardWidth == 360 && cardKind == QStringLiteral("web")) {
                 QTest::mouseMove(&window, QPoint{520, 700});
@@ -1337,6 +1356,11 @@ int main(int argc, char** argv)
     }
     qobject_cast<QQuickItem*>(menuCast.get())->setVisible(false);
 
+    // The tooltip intentionally does not appear on narrow touch layouts.
+    // Use a desktop-width test window for pointer-only tooltip acceptance,
+    // then return to the original compact viewport for the feed stress test.
+    const QSize priorWindowSize = window.size();
+    window.resize(1100, 760);
     auto hintButton = createSurface(engine, QStringLiteral("ActionButton"), *scroll,
         {{QStringLiteral("iconOnly"), true}, {QStringLiteral("text"), QStringLiteral("Media action")}});
     if (!hintButton) { return 1; }
@@ -1356,6 +1380,7 @@ int main(int argc, char** argv)
         return !hint || !hint->property("visible").toBool();
     }), "tooltip closes when hover ends");
     hintItem->setVisible(false);
+    window.resize(priorWindowSize);
 
     QVariantList feedRows;
     for (int index = 0; index < 40; ++index) {
@@ -1432,6 +1457,7 @@ int main(int argc, char** argv)
         expect(reusedRows > 0, "real feed regression exercises pooled delegates");
     }
     images->completePending();
+    expect(qmlWarnings.empty(), "real media/feed scrolling emits zero QQmlEngine warnings");
     std::println("Media scroll regression: {} failure(s)", failures);
     return failures == 0 ? 0 : 1;
 }

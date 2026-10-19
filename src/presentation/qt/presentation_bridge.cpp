@@ -116,6 +116,22 @@ struct ContextualReactionRule final {
     return castId;
 }
 
+// Public Farcaster v2-compatible read APIs may return 40 hex characters without
+// a prefix. Protocol writes accept either form; normalize the reply target once
+// at this presentation boundary rather than rejecting a valid fetched cast.
+[[nodiscard]] QString canonicalProtocolCastId(const QString& castId)
+{
+    const QString hash = canonicalCastKey(castId);
+    if (hash.size() != 40) { return {}; }
+    for (const QChar character : hash) {
+        const ushort code = character.unicode();
+        if (!((code >= '0' && code <= '9') || (code >= 'a' && code <= 'f'))) {
+            return {};
+        }
+    }
+    return QStringLiteral("0x") + hash;
+}
+
 void updateReactionPresentation(
     QVariantMap& map,
     const QString& castId,
@@ -821,6 +837,7 @@ void PresentationBridge::selectFeed(const QString& feed)
     if (m_activeView != QStringLiteral("feed") || m_activeFeed != nextFeed) {
         m_pendingFeedRows.clear();
         m_bufferNextFeedRefresh = false;
+        m_feedSourceSwitchPending = true;
     }
     m_activeView = QStringLiteral("feed");
     m_feedStarted = true;
@@ -843,6 +860,7 @@ void PresentationBridge::openChannel(const QString& channelId)
         || m_channelId != canonical) {
         m_pendingFeedRows.clear();
         m_bufferNextFeedRefresh = false;
+        m_feedSourceSwitchPending = true;
     }
     m_activeView = QStringLiteral("feed");
     m_feedStarted = true;
@@ -1208,6 +1226,24 @@ void PresentationBridge::loadMore()
 void PresentationBridge::retry()
 {
     retryCurrent(true);
+}
+
+void PresentationBridge::refreshLatestFeed()
+{
+    if (m_isBusy || m_activeView != QStringLiteral("feed")) {
+        return;
+    }
+    // An explicit Explorer refresh is not a background new-post probe. Reveal
+    // already-fetched new casts immediately instead of discarding them when a
+    // subsequent network refresh is unavailable.
+    m_bufferNextFeedRefresh = false;
+    revealPendingPosts();
+    m_allowRecoveryProbeForNextIntent = true;
+    if (m_activeFeed == QStringLiteral("channel")) {
+        openChannel(m_channelId);
+    } else {
+        selectFeed(m_activeFeed);
+    }
 }
 
 void PresentationBridge::persistReadPreference(const QString& key, const QVariant& value)
@@ -1657,7 +1693,7 @@ void PresentationBridge::beginComposer()
 
 bool PresentationBridge::prepareReply(const QString& parentCastId)
 {
-    const QString canonicalParentId = parentCastId.trimmed();
+    const QString canonicalParentId = canonicalProtocolCastId(parentCastId);
     if (canonicalParentId.isEmpty()) {
         m_writeErrorText = qtTrId("genycaster.bridge.that_reply_target_has_an_empty_cast_identifier");
         emit stateChanged();
@@ -1665,7 +1701,9 @@ bool PresentationBridge::prepareReply(const QString& parentCastId)
     }
 
     auto capture = [this, &canonicalParentId](const QVariantMap& map) {
-        if (map.value(QStringLiteral("castId")).toString() != canonicalParentId) { return false; }
+        if (canonicalProtocolCastId(map.value(QStringLiteral("castId")).toString()) != canonicalParentId) {
+            return false;
+        }
         bool ok = false;
         const auto fid = map.value(QStringLiteral("authorFid")).toULongLong(&ok);
         if (!ok || fid == 0) { return false; }
@@ -1702,27 +1740,16 @@ bool PresentationBridge::prepareReply(const QString& parentCastId)
 
 bool PresentationBridge::prepareReplyToCast(const QString& parentCastId, double parentAuthorFid)
 {
-    const QString castId = parentCastId.trimmed();
-    // Hashes in the Farcaster public protocol are 20 bytes, hex-encoded.
-    // A read adapter provides the cast author FID alongside the hash; it must
-    // not depend on that reply appearing in the primary feed model.
-    if (castId.size() != 42 || !castId.startsWith(QLatin1String("0x"))
-        || !std::isfinite(parentAuthorFid) || parentAuthorFid < 1
+    const QString castId = canonicalProtocolCastId(parentCastId);
+    // Provider-supplied target author identity is authoritative even for nested
+    // replies not present in the top-level model. Both 40- and 42-char hashes
+    // identify the same canonical protocol Cast.
+    if (castId.isEmpty() || !std::isfinite(parentAuthorFid) || parentAuthorFid < 1
         || parentAuthorFid > 9007199254740991.0
         || std::floor(parentAuthorFid) != parentAuthorFid) {
         m_writeErrorText = qtTrId("genycaster.bridge.reply_target_not_available_as_canonical_cast");
         emit stateChanged();
         return false;
-    }
-    for (qsizetype index = 2; index < castId.size(); ++index) {
-        const QChar value = castId.at(index);
-        const ushort code = value.unicode();
-        if (!((code >= '0' && code <= '9') || (code >= 'a' && code <= 'f')
-              || (code >= 'A' && code <= 'F'))) {
-            m_writeErrorText = qtTrId("genycaster.bridge.reply_target_not_available_as_canonical_cast");
-            emit stateChanged();
-            return false;
-        }
     }
     m_replyParentAuthorFid = static_cast<qulonglong>(parentAuthorFid);
     m_replyParentCastId = castId;
@@ -2526,7 +2553,11 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
     // Doing so discards asynchronously hydrated reply/quote context and changes
     // delegate heights above the viewport before the network page arrives. Keep
     // the current presentation immutable until the terminal pagination snapshot.
-    if (paginationRequest && sameSurface && busy && !m_rows.isEmpty()) {
+    if (sameSurface && busy && !m_rows.isEmpty() && !m_feedSourceSwitchPending) {
+        // Cached snapshots published at the start of ANY in-place refresh
+        // are not fresh content. Keep the already-rendered timeline intact
+        // until the provider result arrives instead of replacing its rich
+        // delegates with cached copies mid-scroll (including first pages).
         m_statusText = std::move(status);
         m_isBusy = true;
         m_isStale = stale;
@@ -2540,13 +2571,6 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
 
     const bool bufferedFeedRefresh = !paginationRequest && sameSurface
         && view == QStringLiteral("feed") && m_bufferNextFeedRefresh && !m_rows.isEmpty();
-    if (bufferedFeedRefresh && busy) {
-        m_statusText = std::move(status);
-        m_isBusy = true;
-        m_isStale = stale;
-        emit stateChanged();
-        return;
-    }
     if (bufferedFeedRefresh) {
         m_pendingFeedRows = reconcileRefreshPresentation(m_rows, rows, m_pendingFeedRows);
         rows = m_rows;
@@ -2555,6 +2579,7 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
 
     m_activeView = std::move(view);
     if (m_activeView == QStringLiteral("feed")) {
+        m_feedSourceSwitchPending = false;
         m_feedStarted = true;
         m_activeFeed = std::move(selector);
     } else if (m_activeView == QStringLiteral("profile")) {

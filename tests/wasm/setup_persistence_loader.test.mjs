@@ -271,15 +271,14 @@ test('mobile navigation belongs to readingPane, not the outer RowLayout or Qt ro
     assert.match(app,/anchors\.bottomMargin: root\.mobile && !root\.homeComposerFocused/);
 });
 
-test('mobile Account keeps a reachable Sign Out action that returns to Setup',()=>{
+test('mobile Sign Out is reachable through Settings and requires confirmation',()=>{
     const app=read('ui/components/AppShell.qml');
-    const account=app.split('id: accountPopup')[1].split('InitialSetup {')[0];
-    const sticky=account.indexOf('id: mobileAccountSignOutButton');
-    const scroll=account.indexOf('id: accountScroll');
-    assert.ok(sticky>scroll,'mobile exit is outside the scrollable account details');
-    assert.match(account,/visible: root\.mobile && presentationBridge\.isAuthenticated/);
-    assert.match(account,/id: mobileAccountSignOutButton[\s\S]*?presentationBridge\.signOut\(\)/);
-    assert.match(account,/id: accountSignOutButton[\s\S]*?visible: presentationBridge\.isAuthenticated && !root\.mobile/);
+    const settings=read('ui/components/LocaleSettingsPopup.qml');
+    assert.match(app,/function requestSignOut\(\)/);
+    assert.match(app,/onSignOutConfirmationRequested: root\.requestSignOut\(\)/);
+    assert.match(app,/objectName: "signOutConfirmation"/);
+    assert.match(settings,/objectName: "settingsRecoverySignOut"/);
+    assert.match(settings,/visible: presentationBridge\.isAuthenticated[\s\S]*?root\.signOutConfirmationRequested\(\)/);
     const bridge=read('src/presentation/qt/presentation_bridge.cpp');
     assert.match(bridge,/m_showSetupAfterSignOut = true/);
 });
@@ -298,14 +297,13 @@ test('mobile Home editing collapses dashboard cards and removes floating navigat
     assert.match(app,/anchors\.bottomMargin: root\.mobile && !root\.homeComposerFocused/);
 });
 
-test('Account header opens the management sheet, not profile, on mobile',()=>{
+test('account header navigates to profile when signed in and opens sign-in otherwise',()=>{
     const header=read('ui/components/AppHeader.qml');
-    assert.match(header,/onClicked: root\.accountRequested\(\)/);
-    assert.doesNotMatch(header,/onClicked:[\s\S]*?if \(root\.isAuthenticated\)[\s\S]*?ownProfileRequested/);
+    assert.match(header,/onClicked: root\.isAuthenticated \? root\.ownProfileRequested\(\) : root\.accountRequested\(\)/);
     const app=read('ui/components/AppShell.qml');
     assert.match(app,/onAccountRequested: root\.openAccountPopup\(\)/);
+    assert.match(app,/onOwnProfileRequested: root\.openMyProfileFromNavigation\(\)/);
     assert.match(app,/objectName: "mobileAccountProfileButton"/);
-    assert.match(app,/objectName: "mobileAccountSignOutButton"/);
 });
 
 test('mobile keyboard dismissal restores dashboard and touch never opens desktop hints',()=>{

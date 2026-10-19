@@ -29,7 +29,9 @@ function browser() {
         body: { append(node) { node.isConnected = true; } },
     };
     const window = { location: { origin: 'https://app.genycaster.example' } };
-    vm.runInNewContext(hostSource, { window, document, URL }, {
+    vm.runInNewContext(hostSource, { window, document, URL,
+        navigator: { language: 'en-US' },
+        setTimeout: () => 1, clearTimeout: () => {} }, {
         filename: 'miniapp-host-pre.js',
     });
     return { controller: window.__genycasterMiniAppOverlay, nodes };
@@ -45,10 +47,12 @@ test('Mini App opens inside a sandboxed viewport, with no external tab', () => {
     assert.match(frame.attributes.sandbox, /allow-scripts/);
     assert.doesNotMatch(frame.attributes.sandbox, /allow-top-navigation/);
     assert.doesNotMatch(frame.attributes.sandbox, /allow-downloads/);
-    assert.doesNotMatch(hostSource, /window\.open\(/);
+    // The in-app frame is primary; a user-initiated external fallback is allowed.
+    assert.match(hostSource, /window\.open\(url\.href/);
     assert.equal(nodes.find(node => node.tagName === 'strong').textContent, 'Gig Bot');
-    assert.equal(nodes.find(node => node.tagName === 'button').focused, true);
-    assert.equal(nodes.find(node => node.tagName === 'button').attributes['aria-label'], 'بستن');
+    const close = nodes.filter(node => node.tagName === 'button').at(-1);
+    assert.equal(close.focused, true);
+    assert.equal(close.attributes['aria-label'], 'بستن');
     controller.close();
     assert.equal(controller.active(), false);
 });

@@ -398,12 +398,144 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(!afterSignOut.initialSetupRequired());
 }
 
+
+void testReplyCanonicalizationForPublicFeedHashes()
+{
+    const QString bare = QString(40, QLatin1Char('a'));
+    const QString canonical = QStringLiteral("0x") + bare;
+    PresentationBridge bridge{};
+    bridge.applyRuntimeState(true);
+    bridge.applyAuthenticationState(
+        true, QStringLiteral("authenticated"), 77, {}, {}, {}, {}, {}, {});
+    bridge.applySignerState(QStringLiteral("ready"), false, true, {}, {});
+
+    QString publishedParent{};
+    qulonglong publishedFid{};
+    QObject::connect(&bridge, &PresentationBridge::publishReplyRequested, &bridge,
+        [&publishedParent, &publishedFid](QString, QVariantList, QVariantList, QVariantList,
+                                           qulonglong authorFid, QString castId) {
+            publishedParent = castId;
+            publishedFid = authorFid;
+        });
+    assert(bridge.prepareReplyToCast(bare.toUpper(), 539854));
+    bridge.publishPreparedReply(QStringLiteral("Canonical reply"), {}, {}, {});
+    assert(publishedParent == canonical);
+    assert(publishedFid == 539854);
+
+    PresentationBridge cached{};
+    cached.applyList(
+        QStringLiteral("feed"), QStringLiteral("trending"),
+        {QVariantMap{{QStringLiteral("castId"), bare},
+                     {QStringLiteral("authorFid"), 539854}}},
+        {}, {}, {}, {}, false, false, false, false);
+    assert(cached.prepareReply(canonical.toUpper()));
+    assert(cached.prepareReplyToCast(canonical.toUpper(), 539854));
+    assert(!cached.prepareReplyToCast(QString(39, QLatin1Char('a')), 539854));
+    assert(!cached.prepareReplyToCast(QString(40, QLatin1Char('z')), 539854));
+    assert(!cached.prepareReplyToCast(bare, 0));
+    assert(!cached.prepareReplyToCast(bare, 539854.5));
+}
+
+void testExplicitExplorerRefreshRevealsLatestPage()
+{
+    QTemporaryDir directory{};
+    assert(directory.isValid());
+    QSettings settings{directory.filePath(QStringLiteral("refresh.ini")), QSettings::IniFormat};
+    settings.setValue(QStringLiteral("read/bufferNewPosts"), true);
+    PresentationBridge bridge{nullptr, &settings};
+    bridge.applyRuntimeState(true);
+    const QVariantMap oldRow{{QStringLiteral("castId"), QStringLiteral("0xold")}};
+    const QVariantMap newRow{{QStringLiteral("castId"), QStringLiteral("0xnew")}};
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("trending"), {oldRow},
+                     {}, {}, {}, {}, false, false, false, false);
+    bridge.retry();
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("trending"), {newRow, oldRow},
+                     {}, {}, {}, {}, false, false, false, false);
+    assert(bridge.pendingNewPostCount() == 1);
+
+    QString requestedFeed{};
+    QObject::connect(&bridge, &PresentationBridge::feedRequested, &bridge,
+        [&requestedFeed](const QString& feed, qulonglong, const QString&, const QString&, bool) {
+            requestedFeed = feed;
+        });
+    bridge.refreshLatestFeed();
+    assert(requestedFeed == QStringLiteral("trending"));
+    assert(bridge.pendingNewPostCount() == 0);
+    assert(bridge.rows().front().toMap().value(QStringLiteral("castId")).toString()
+        == QStringLiteral("0xnew"));
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("trending"), {newRow, oldRow},
+                     {}, {}, {}, {}, false, false, false, false);
+    assert(bridge.pendingNewPostCount() == 0);
+    assert(bridge.rows().size() == 2);
+    assert(bridge.rows().front().toMap().value(QStringLiteral("castId")).toString()
+        == QStringLiteral("0xnew"));
+}
+
+
+void testFirstPageCacheDoesNotRemountLiveTimeline()
+{
+    PresentationBridge bridge{};
+    const QVariantMap visible{
+        {QStringLiteral("castId"), QStringLiteral("0xvisible")},
+        {QStringLiteral("_referencedRevision"), QStringLiteral("enriched")},
+        {QStringLiteral("text"), QStringLiteral("Live hydrated cast")},
+    };
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("trending"), {visible},
+                     {}, {}, {}, {}, false, false, false, false);
+    // Starting a first-page refresh republishes a cached snapshot; it must
+    // not tear down already-hydrated delegates before the provider responds.
+    const QVariantMap stale{
+        {QStringLiteral("castId"), QStringLiteral("0xvisible")},
+        {QStringLiteral("text"), QStringLiteral("Old cached cast")},
+    };
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("trending"), {stale},
+                     {}, {}, {}, {}, true, true, false, false);
+    const auto retained = bridge.rows().front().toMap();
+    assert(retained.value(QStringLiteral("text")).toString()
+        == QStringLiteral("Live hydrated cast"));
+    assert(retained.value(QStringLiteral("_referencedRevision")).toString()
+        == QStringLiteral("enriched"));
+    const QVariantMap fresh{
+        {QStringLiteral("castId"), QStringLiteral("0xlatest")},
+        {QStringLiteral("text"), QStringLiteral("Newest live cast")},
+    };
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("trending"), {fresh},
+                     {}, {}, {}, {}, false, false, false, false);
+    assert(bridge.rows().front().toMap().value(QStringLiteral("castId")).toString()
+        == QStringLiteral("0xlatest"));
+}
+
+
+void testSourceSwitchAdmitsCachedTimeline()
+{
+    PresentationBridge bridge{};
+    bridge.applyRuntimeState(true);
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("following"),
+                     {QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xfollowing")}}},
+                     {}, {}, {}, {}, false, false, false, false);
+    bridge.selectFeed(QStringLiteral("trending"));
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("trending"),
+                     {QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xcached-trending")}}},
+                     {}, {}, {}, {}, true, true, false, false);
+    assert(bridge.rows().front().toMap().value(QStringLiteral("castId")).toString()
+        == QStringLiteral("0xcached-trending"));
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("trending"),
+                     {QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xlive-trending")}}},
+                     {}, {}, {}, {}, false, false, false, false);
+    assert(bridge.rows().front().toMap().value(QStringLiteral("castId")).toString()
+        == QStringLiteral("0xlive-trending"));
+}
+
 } // namespace
 
 int main(int argc, char* argv[])
 {
     QCoreApplication application{argc, argv};
     testContextualReactionPriorityAndBoundaries();
+    testReplyCanonicalizationForPublicFeedHashes();
+    testExplicitExplorerRefreshRevealsLatestPage();
+    testFirstPageCacheDoesNotRemountLiveTimeline();
+    testSourceSwitchAdmitsCachedTimeline();
     testPaginationPreservesHydratedReferencedContext();
     testPaginationPreservesResolvedMediaOnlyReferencedContext();
     testReadPreferencesAreBoundedAndPersisted();

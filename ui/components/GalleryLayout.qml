@@ -304,18 +304,13 @@ Item {
                         // Single-media casts must show the complete image at every
                         // breakpoint. Multi-image galleries intentionally crop tiles.
                         preserveAspect: root.visibleCount === 1
-                        // Keep feed artwork on the direct scene-graph texture path.
-                        // GalleryTile's vector corner covers provide the visual crop
-                        // without allocating a full-size offscreen layer + MultiEffect,
-                        // including the very common single-image post.
-                        // The inverse-vector corner cover occasionally leaves
-                        // one-pixel seams on Safari/WebGL at fractional DPR.
-                        // Use the same image-layer mask across all WASM tiles.
-                        // Use one alpha mask for the large single image on
-                        // Metal and for all browser/WebGL gallery tiles. This
-                        // removes inverse-vector antialias seams without adding
-                        // extra offscreen layers to every native mosaic tile.
-                        useLayeredMask: root.visibleCount === 1 || Qt.platform.os === "wasm"
+                        // Keep native gallery artwork on the direct QSG image
+                        // path, avoiding one offscreen image and mask layer per
+                        // common single-cast photo. Safari/WebGL still needs the
+                        // mask because its vector corner cover can show seams at
+                        // fractional DPR. Retain Metal's mask for single photos.
+                        useLayeredMask: Qt.platform.os === "wasm"
+                                        || (Qt.platform.os === "osx" && root.visibleCount === 1)
                         ambientEnabled: root.visibleCount === 1
                         loadDelayMs: tileSlot.index * 48
                         continuationText: tileSlot.index === root.visibleCount - 1

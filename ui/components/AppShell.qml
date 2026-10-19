@@ -99,6 +99,7 @@ Item {
     readonly property int adaptiveDashboardWidth: Math.max(320, width - root.navigationReservation - (root.desktop ? Theme.space4 : Theme.mobileGutter * 2))
     readonly property bool listViewActive: presentationBridge.activeView === "feed" || presentationBridge.activeView === "followers" || presentationBridge.activeView === "following"
     property var composerParent: null
+    property string replyTargetErrorText: ""
     property string shellRoute: ""
     // Shell route (e.g. Notifications) that was visible when a cast or profile
     // opened above it. Back from that content restores this route instead of
@@ -256,9 +257,10 @@ Item {
         root.shellRoute = ""
         // The redesigned Home is a dashboard surface. Keep a live feed model
         // warm behind it so recent activity panels have content immediately.
-        if (presentationBridge.activeView !== "feed" || !presentationBridge.feedStarted) {
-            const source = presentationBridge.isAuthenticated && root.identityAvailable
-                           ? "following" : "trending"
+        const source = presentationBridge.isAuthenticated && root.identityAvailable
+                       ? "following" : "trending"
+        if (presentationBridge.activeView !== "feed" || !presentationBridge.feedStarted
+                || presentationBridge.activeFeed !== source) {
             presentationBridge.selectFeed(source)
         }
     }
@@ -276,13 +278,11 @@ Item {
         root.explorerPresentationMode = nextMode
         root.explorerVisualFilter = "nfts"
 
-        // Explorer tabs are presentation projections of one stable source. An
-        // An authenticated session stays on Following for every tab. A signed-out
-        // verification fixture may use Trending; production setup blocks this state.
-        // Switching Visuals/Conversations/Devs must never tear down a
-        // healthy source merely to reclassify rows already available locally.
-        const source = presentationBridge.isAuthenticated && root.identityAvailable
-                       ? "following" : "trending"
+        // Explorer discovers network-wide casts. Following is Home's personal
+        // timeline and can be empty for an account that follows nobody. Keep
+        // one stable Trending source across semantic tabs; the read adapter
+        // owns pagination and provider fallback, never QML.
+        const source = "trending"
         const emptySettledSource = presentationBridge.feedStarted
                                    && !presentationBridge.isBusy
                                    && presentationBridge.rows.length === 0
@@ -297,9 +297,9 @@ Item {
             presentationBridge.selectFeed(source)
         } else if ((refreshRequested || (modeChanged && presentationBridge.isStale))
                    && !presentationBridge.isBusy) {
-            // Refresh the live feed in place. Visuals no longer injects the
-            // independently cached art channel, which could surface old NFTs.
-            presentationBridge.retry()
+            // Explorer explicitly requests the latest page; ordinary background
+            // refresh buffering must not leave newly arrived posts hidden.
+            presentationBridge.refreshLatestFeed()
         }
     }
 
@@ -331,8 +331,16 @@ Item {
             const prepared = authorFid > 0
                              ? presentationBridge.prepareReplyToCast(String(parentCast.castId), authorFid)
                              : presentationBridge.prepareReply(String(parentCast.castId))
-            if (!parentCast.castId || !prepared)
+            if (!parentCast.castId || !prepared) {
+                root.replyTargetErrorText = String(presentationBridge.writeErrorText
+                    || qsTrId("genycaster.bridge.reply_target_not_available_as_canonical_cast"))
+                replyTargetErrorLoader.active = true
+                Qt.callLater(function() {
+                    if (replyTargetErrorLoader.item !== null)
+                        replyTargetErrorLoader.item.open()
+                })
                 return
+            }
             composerParent = {
                 "castId": String(parentCast.castId),
                 "author": String(parentCast.author || parentCast.username || ""),
@@ -905,11 +913,13 @@ Item {
                                             onRemoveCastRequested: cast =>
                                                 presentationBridge.removeCast(Number(cast.authorFid || 0), String(cast.castId || ""))
                                             onLoadMoreRequested: presentationBridge.loadMore()
-                                            onRefreshRequested: presentationBridge.retry()
+                                            onRefreshRequested: root.primaryDestination === "explorer"
+                                                ? presentationBridge.refreshLatestFeed() : presentationBridge.retry()
                                             onRevealPendingPostsRequested: presentationBridge.revealPendingPosts()
                                             onExternalRequested: url => presentationBridge.openExternalUrl(url)
                                             onMediaRequested: (mediaItems, index) => mediaGallery.openAt(mediaItems, index)
-                                            onRetryRequested: presentationBridge.retry()
+                                            onRetryRequested: root.primaryDestination === "explorer"
+                                                ? presentationBridge.refreshLatestFeed() : presentationBridge.retry()
                                             onIdentityRequested: presentationBridge.selectFeed("trending")
                                             onFollowingRequested: presentationBridge.selectFeed("following")
                                             onTrendingRequested: presentationBridge.selectFeed("trending")
@@ -1820,6 +1830,42 @@ Item {
                     text: qsTrId("genycaster.shell.sign_out")
                     destructive: true
                     onClicked: root.requestSignOut()
+                }
+            }
+        }
+    }
+
+    // Invalid or unavailable reply targets must never fail silently. Instantiate
+    // this rare error surface only after an actual failed reply preparation.
+    Loader {
+        id: replyTargetErrorLoader
+        active: false
+        sourceComponent: Component {
+            GenyAdaptiveDialog {
+                id: replyTargetErrorDialog
+                objectName: "replyTargetErrorDialog"
+                parent: Overlay.overlay
+                blurSourceItem: shellContent
+                popupZ: 20000
+                mobileHeightRatio: 1.0
+                width: root.mobile ? (parent ? parent.width : 420) : 440
+                height: root.mobile ? 230 : 215
+                onDidClose: Qt.callLater(function() { replyTargetErrorLoader.active = false })
+                contentItem: ColumnLayout {
+                    spacing: Theme.space3
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        text: root.replyTargetErrorText
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeBodySize
+                        wrapMode: Text.WordWrap
+                    }
+                    ActionButton {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.shell.close")
+                        onClicked: replyTargetErrorDialog.close()
+                    }
                 }
             }
         }

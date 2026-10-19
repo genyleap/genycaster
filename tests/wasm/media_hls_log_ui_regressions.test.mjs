@@ -51,6 +51,7 @@ test('home composer focus is visible on desktop and phone, link card is compact 
 test('gallery avoids subpixel inverse covers on Metal and WebGL',()=>{
  const gallery=read('ui/components/GalleryLayout.qml');
  const tile=read('ui/components/GalleryTile.qml');
- assert.match(gallery,/useLayeredMask: root\.visibleCount === 1 \|\| Qt\.platform\.os === "wasm"/);
+ assert.match(gallery,/useLayeredMask: Qt\.platform\.os === "wasm"/);
+ assert.match(gallery,/Qt\.platform\.os === "osx" && root\.visibleCount === 1/);
  assert.match(tile,/clip: true/);
 });
