@@ -243,6 +243,17 @@ target_sources(farcaster_client
 set_property(TARGET farcaster_client PROPERTY CXX_SCAN_FOR_MODULES ON)
 target_compile_features(farcaster_client PRIVATE cxx_std_26)
 
+# GCC 16 can exhaust small Linux builders while emitting DWARF for the broad
+# C++26 runtime-composition module interface. Preserve Debug for every other
+# source; omitting debug symbols for this interface changes no code or ABI and
+# avoids excessive swapping during Qt 6.12 native verification.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT EMSCRIPTEN)
+    set_source_files_properties(
+        mobile/runtime_composition.cppm
+        PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-g0>"
+    )
+endif()
+
 # This optional leaf is composition-owned: core/application/presentation never
 # import WebKit or the Mini App runtime. Other platforms remain explicitly
 # unavailable rather than silently launching an external browser.

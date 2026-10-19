@@ -1,6 +1,6 @@
 module;
 
-#include "emoji_controller.hpp"
+#include "emoji_controller_fwd.hpp"
 #include <memory>
 #include <filesystem>
 
