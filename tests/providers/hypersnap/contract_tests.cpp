@@ -1,13 +1,28 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <condition_variable>
+#include <cstdio>
+#include <memory>
+#include <deque>
+#include <filesystem>
+#include <future>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <utility>
 #include <vector>
 
+import farcaster.application.read.async_gateway;
+import farcaster.application.read.model;
+import farcaster.execution.serial;
+import farcaster.execution.weighted_thread_pool;
+import farcaster.transport.async_http;
+import farcaster.provider.hypersnap.async_gateway;
 import farcaster.capability.catalog;
+import farcaster.capability.feed;
 import farcaster.capability.model;
 import farcaster.capability.pagination;
 import farcaster.capability.notification;
@@ -154,6 +169,153 @@ void testRecentNetworkEventDecoding()
     auto broken = provider::hypersnap::codec::decodeRecentCastEvents(
         R"json({"events":"invalid"})json", 0U, 1U);
     assert(!broken);
+}
+
+// A deterministic provider-level runtime exercise without a Qt display or
+// system audio service. Asynchronous callbacks are delivered on a bounded
+// worker, mirroring the production reactor/decoder separation.
+class RecentAsyncTransport final : public transport::async_http::IAsyncHttpTransport {
+public:
+    RecentAsyncTransport() : m_worker{[this] { drain(); }} {}
+    ~RecentAsyncTransport() override {
+        {
+            const std::scoped_lock lock{m_mutex};
+            m_closed = true;
+        }
+        m_cv.notify_all();
+        m_worker.join();
+    }
+
+    [[nodiscard]] foundation::result::Result<transport::async_http::Operation>
+    start(transport::async_http::Request request,
+          transport::async_http::Completion completion) override
+    {
+        {
+            const std::scoped_lock lock{m_mutex};
+            m_pending.emplace_back(std::move(request), std::move(completion));
+        }
+        m_cv.notify_one();
+        return transport::async_http::Operation{[] {}};
+    }
+
+    [[nodiscard]] std::vector<std::string> requestedUrls() const {
+        const std::scoped_lock lock{m_mutex};
+        return m_urls;
+    }
+
+private:
+    void drain() {
+        while (true) {
+            std::pair<transport::async_http::Request,
+                      transport::async_http::Completion> pending{};
+            {
+                std::unique_lock lock{m_mutex};
+                m_cv.wait(lock, [this] { return m_closed || !m_pending.empty(); });
+                if (m_pending.empty()) {
+                    if (m_closed) { return; }
+                    continue;
+                }
+                pending = std::move(m_pending.front());
+                m_pending.pop_front();
+                m_urls.push_back(pending.first.url);
+            }
+            auto response = transport::http::HttpResponse{
+                .statusCode = 200U,
+                .body = responseFor(pending.first.url),
+            };
+            pending.second(std::move(response));
+        }
+    }
+
+    static std::string responseFor(const std::string& url) {
+        constexpr std::string_view hashA{
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+        constexpr std::string_view hashB{
+            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"};
+        if (url.find("/v1/info") != std::string::npos) {
+            return R"json({"shardInfos":[{"shardId":0,"maxHeight":1300},
+                     {"shardId":2,"maxHeight":1500},{"shardId":1,"maxHeight":1500}]})json";
+        }
+        if (url.find("/v1/events") != std::string::npos) {
+            if (url.find("shard_index=2") != std::string::npos) {
+                return R"json({"events":[]})json";
+            }
+            return R"json({"events":[{"id":23756802,"blockNumber":1450,"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","mergeMessageBody":{"message":{"hash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600010,"castAddBody":{"text":"A"}}}}},{"id":23756801,"blockNumber":1450,"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","mergeMessageBody":{"message":{"hash":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600000,"castAddBody":{"text":"B"}}}}},{"id":23756800,"blockNumber":1450,"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","mergeMessageBody":{"message":{"hash":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600015,"castAddBody":{"parentCastId":{"fid":2,"hash":"0xparent"}}}}}}]})json";
+        }
+        if (url.find("/v2/farcaster/cast/bulk") != std::string::npos) {
+            std::string body = test::hypersnap::fixtures::rootPostFeedResponse();
+            const std::string replacement{
+                url.find(std::string{hashB}) != std::string::npos ? hashB : hashA};
+            const auto old = body.find("0xabc123");
+            assert(old != std::string::npos);
+            body.replace(old, std::string{"0xabc123"}.size(), replacement);
+            return body;
+        }
+        return "{}";
+    }
+
+    mutable std::mutex m_mutex{};
+    std::condition_variable m_cv{};
+    std::deque<std::pair<transport::async_http::Request,
+                         transport::async_http::Completion>> m_pending{};
+    std::vector<std::string> m_urls{};
+    bool m_closed{};
+    std::thread m_worker;
+};
+
+void testRecentAsyncFeedAndCursor()
+{
+    const auto path = std::filesystem::temp_directory_path() /
+        ("genycaster-recent-contract-" + std::to_string(
+            std::chrono::steady_clock::now().time_since_epoch().count()) + ".sqlite3");
+    auto continuation = storage::continuation::openContinuationStore(path);
+    assert(continuation);
+    RecentAsyncTransport transport{};
+    execution::weighted_thread_pool::WeightedThreadPoolExecutor decode{1, 32, 4U * 1024U * 1024U};
+    execution::serial::SerialExecutor serial{32};
+    provider::hypersnap::async_gateway::AsyncGateway gateway{
+        transport, decode, serial, *continuation, testConfig()};
+
+    auto requestPage = [&](std::optional<capability::pagination::ContinuationToken> token)
+        -> capability::feed::FeedPage {
+        auto pending = std::make_shared<
+            std::promise<foundation::result::Result<capability::feed::FeedPage>>>();
+        auto future = pending->get_future();
+        auto request = gateway.feed(
+            application::read::model::FeedQuery{
+                .kind = application::read::model::FeedQuery::Kind::Recent,
+                .limit = 1U, .continuation = std::move(token)},
+            [pending](foundation::result::Result<capability::feed::FeedPage> page) {
+                pending->set_value(std::move(page));
+            });
+        assert(request);
+        assert(future.wait_for(std::chrono::seconds{5}) == std::future_status::ready);
+        auto result = future.get();
+        if (!result) { std::fprintf(stderr, "Recent provider error: %s\n", result.error().message.c_str()); }
+        assert(result);
+        return std::move(*result);
+    };
+    auto first = requestPage(std::nullopt);
+    assert(first.casts.size() == 1U);
+    assert(first.casts.front().id.value
+        == "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    assert(first.next);
+    auto second = requestPage(first.next);
+    assert(second.casts.size() == 1U);
+    assert(second.casts.front().id.value
+        == "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    assert(second.next);
+
+    const auto paths = transport.requestedUrls();
+    assert(std::ranges::count_if(paths, [](const auto& url) {
+        return url.find("/v1/info") != std::string::npos; }) == 1);
+    assert(std::ranges::count_if(paths, [](const auto& url) {
+        return url.find("/v1/events?") != std::string::npos; }) == 4);
+    assert(std::ranges::count_if(paths, [](const auto& url) {
+        return url.find("/v2/farcaster/cast/bulk?") != std::string::npos; }) == 2);
+    // The SQLite continuation mapping is a real provider-affine token, not a
+    // raw network cursor. Keep it available while the test constructs the
+    // second page and remove its isolated file only after all workers exit.
 }
 
 void testProfileCastAndIdentityEndpoints()
@@ -602,6 +764,7 @@ int main()
 {
     testCanonicalCodec();
     testRecentNetworkEventDecoding();
+    testRecentAsyncFeedAndCursor();
     testProfileCastAndIdentityEndpoints();
     testHttpErrorMappingAndConfigValidation();
     testFeedPaginationAffinity();
