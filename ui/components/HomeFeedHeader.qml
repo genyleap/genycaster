@@ -9,6 +9,8 @@ Item {
     property string visualFilter: "all"
     property string displayName: ""
     property string avatarUrl: ""
+    // Forward the signed-in account photo to the self-story delegate.
+    property string ownAvatarUrl: ""
     property var recentProfiles: []
     property bool authenticated: false
     property bool interactionsAvailable: false
@@ -151,6 +153,7 @@ Item {
         StoryStrip {
             Layout.fillWidth: true
             profiles: root.recentProfiles
+            ownAvatarUrl: root.ownAvatarUrl
             compact: root.compact
             onProfileRequested: profile => root.recentProfileRequested(profile)
             onOwnStoryRequested: root.composeRequested()

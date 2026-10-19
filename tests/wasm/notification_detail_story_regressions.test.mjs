@@ -6,6 +6,16 @@ import { test } from 'node:test';
 const root = resolve(import.meta.dirname, '../..');
 const read = path => readFileSync(resolve(root, path), 'utf8');
 
+test('shell self-story avatar is declared and forwarded through the header', () => {
+    const shell = read('ui/components/AppShell.qml');
+    const header = read('ui/components/HomeFeedHeader.qml');
+    const strip = read('ui/components/StoryStrip.qml');
+    assert.match(shell, /ownAvatarUrl: String\(presentationBridge\.accountAvatarUrl/);
+    assert.match(header, /property string ownAvatarUrl: ""/);
+    assert.match(header, /StoryStrip \{[\s\S]*?ownAvatarUrl: root\.ownAvatarUrl/);
+    assert.match(strip, /property string ownAvatarUrl: ""/);
+});
+
 test('first Following story is a clean, untruncated Add action', () => {
     const item = read('ui/components/StoryItem.qml');
     assert.match(item, /visible: !root\.addStory \|\| root\.avatarUrl\.length > 0/);
