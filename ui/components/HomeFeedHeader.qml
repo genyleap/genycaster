@@ -153,6 +153,7 @@ Item {
             profiles: root.recentProfiles
             compact: root.compact
             onProfileRequested: profile => root.recentProfileRequested(profile)
+            onOwnStoryRequested: root.composeRequested()
         }
 
         ContentTabs {

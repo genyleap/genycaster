@@ -13,6 +13,7 @@ Item {
     property int emojiSurface: 1
     property bool fontBold: false
     signal externalRequested(string url)
+    signal bodyActivated()
 
     // Required means the binding must exist; its value may still become null
     // briefly while a model delegate is being recycled.
@@ -72,6 +73,7 @@ Item {
         codeFontFamily: Theme.codeFontFamily
         alignRight: root.rtlContent
         onLinkActivated: link => root.externalRequested(link)
+        onPlainTextActivated: root.bodyActivated()
     }
 
     Repeater {

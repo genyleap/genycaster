@@ -477,15 +477,18 @@ Item {
                     else root.shellRoute = "spaces"
                 }
                 onRecentProfileRequested: profile => {
-                    // A Story is a verified recent activity, not a shortcut to
-                    // the profile's root-only Posts tab (which can be empty
-                    // even when the person is actively replying).
                     const castId = String(profile && profile.latestCastId
                                           ? profile.latestCastId : "")
-                    if (castId.length === 0) return
                     root.clearPendingShellReturn()
                     root.shellRoute = ""
-                    presentationBridge.openCast(castId)
+                    if (castId.length > 0) {
+                        // When a verified latest cast is available, open its
+                        // conversation directly, including reply-only activity.
+                        presentationBridge.openCast(castId)
+                    } else if (Number(profile.fid || 0) > 0) {
+                        // Less active followees stay useful, never dead taps.
+                        presentationBridge.openProfileFid(Number(profile.fid))
+                    }
                 }
                 onAuthenticationRequested: root.openAccountPopup()
                 onSearchRequested: searchPalette.open()

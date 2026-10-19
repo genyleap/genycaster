@@ -55,6 +55,15 @@ Superellipse {
 
     HoverHandler { id: composerHover; cursorShape: Qt.PointingHandCursor }
     TapHandler {
+        acceptedButtons: Qt.LeftButton
+        gesturePolicy: TapHandler.ReleaseWithinBounds
+        onTapped: root.invokeCompose()
+    }
+
+    // The home prompt is a launcher, not an editable TextArea. Right-clicking
+    // it enters the real themed composer instead of a browser-native menu.
+    TapHandler {
+        acceptedButtons: Qt.RightButton
         gesturePolicy: TapHandler.ReleaseWithinBounds
         onTapped: root.invokeCompose()
     }

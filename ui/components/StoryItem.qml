@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Shapes
 
 Item {
     id: root
@@ -19,7 +20,7 @@ Item {
                                        : root.storyState === "special" ? Theme.positive
                                        : root.storyState === "viewed" ? Theme.borderDefault
                                        : Theme.story
-    readonly property real ringOpacity: root.storyState === "viewed" ? 0.55
+    readonly property real ringOpacity: root.storyState === "viewed" ? 0.34
                                         : root.storyState === "partial" ? 0.72 : 1.0
 
     readonly property int frameSize: root.compact ? 52 : 58
@@ -41,12 +42,65 @@ Item {
 
             Superellipse {
                 anchors.fill: parent
-                fillColor: root.addStory ? Theme.primarySurface : root.ringColor
+                fillColor: root.addStory ? Theme.primarySurface
+                           : root.storyState === "active" ? Theme.backgroundPrimary
+                           : root.ringColor
                 borderWidth: root.addStory ? 1 : 0
                 borderColor: Theme.primaryFill
                 opacity: root.addStory ? 1.0 : root.ringOpacity
                 exponent: 3.8
                 curveDepth: root.frameCurveDepth
+            }
+
+            // Instagram-inspired tri-color ring. Stroke arcs are GPU-native
+            // Qt Quick Shapes, not a blurred mask or a per-frame shader.
+            Shape {
+                visible: !root.addStory && root.storyState === "active"
+                anchors.fill: parent
+                preferredRendererType: Shape.CurveRenderer
+                asynchronous: false
+                ShapePath {
+                    fillColor: "transparent"
+                    strokeColor: "#f9c43c"
+                    strokeWidth: 3
+                    capStyle: ShapePath.RoundCap
+                    PathAngleArc {
+                        centerX: root.frameSize / 2
+                        centerY: root.frameSize / 2
+                        radiusX: (root.frameSize - 4) / 2
+                        radiusY: (root.frameSize - 4) / 2
+                        startAngle: -90
+                        sweepAngle: 118
+                    }
+                }
+                ShapePath {
+                    fillColor: "transparent"
+                    strokeColor: "#f45b42"
+                    strokeWidth: 3
+                    capStyle: ShapePath.RoundCap
+                    PathAngleArc {
+                        centerX: root.frameSize / 2
+                        centerY: root.frameSize / 2
+                        radiusX: (root.frameSize - 4) / 2
+                        radiusY: (root.frameSize - 4) / 2
+                        startAngle: 30
+                        sweepAngle: 118
+                    }
+                }
+                ShapePath {
+                    fillColor: "transparent"
+                    strokeColor: "#c52db8"
+                    strokeWidth: 3
+                    capStyle: ShapePath.RoundCap
+                    PathAngleArc {
+                        centerX: root.frameSize / 2
+                        centerY: root.frameSize / 2
+                        radiusX: (root.frameSize - 4) / 2
+                        radiusY: (root.frameSize - 4) / 2
+                        startAngle: 150
+                        sweepAngle: 118
+                    }
+                }
             }
 
             Superellipse {
@@ -61,6 +115,7 @@ Item {
 
             Avatar {
                 anchors.centerIn: parent
+                opacity: root.storyState === "viewed" && !root.addStory ? 0.74 : 1.0
                 avatarSize: root.avatarSize
                 avatarCurveDepth: root.avatarCurveDepth
                 avatarExponent: 3.8

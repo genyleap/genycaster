@@ -698,11 +698,23 @@ Item {
                 }
 
                 Loader {
+                    id: castTextBody
                     objectName: "castTextBody"
                     active: root.displayText.length > 0
                     visible: active
                     asynchronous: true
                     Layout.fillWidth: true
+
+                    TapHandler {
+                        acceptedButtons: Qt.LeftButton
+                        gesturePolicy: TapHandler.DragThreshold
+                        onTapped: {
+                            const castId = String(root.modelData.castId || "")
+                            if (!root.scrollMoving && castId.length > 0)
+                                root.openRequested(castId)
+                        }
+                    }
+
                     sourceComponent: Component {
                         RichCastRenderer {
                             castId: String(root.modelData.castId || "")
@@ -711,6 +723,11 @@ Item {
                             suppressedEmbedUrls: root.protocolEmbedUrls
                             onExternalRequested: url => root.externalRequested(url)
                             onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
+                            onBodyActivated: {
+                                const castId = String(root.modelData.castId || "")
+                                if (!root.scrollMoving && castId.length > 0)
+                                    root.openRequested(castId)
+                            }
                             onCastRequested: castId => root.openRequested(castId)
                         }
                     }

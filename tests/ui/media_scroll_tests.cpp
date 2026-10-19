@@ -1393,8 +1393,24 @@ int main(int argc, char** argv)
             "lazy menu action targets the correct cast");
         auto nextRow = menuRow;
         nextRow.insert(QStringLiteral("castId"), QStringLiteral("menu-second"));
+        nextRow.insert(QStringLiteral("text"),
+                       QStringLiteral("Tap the cast body to view the conversation"));
         menuCast->setProperty("modelData", nextRow);
-        expect(QTest::qWaitFor([&] { return menu.isNull(); }), "recycling a cast releases its old menu");
+        expect(QTest::qWaitFor([&] { return menu.isNull(); }),
+            "recycling a cast releases its old menu");
+        auto* textBody = menuCast->findChild<QQuickItem*>(QStringLiteral("castTextBody"));
+        expect(textBody && QTest::qWaitFor([&] {
+            return textBody->property("active").toBool()
+                && textBody->width() > 100 && textBody->height() > 0;
+        }), "the ordinary cast text is available as a tappable content region");
+        if (textBody) {
+            const QPoint point = textBody->mapToScene(
+                QPointF{std::min(125.0, textBody->width() / 2), textBody->height() / 2}).toPoint();
+            QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, point);
+            expect(QTest::qWaitFor([&] { return conversationRequested.count() == 2; })
+                && conversationRequested.at(1).at(0).toString() == QStringLiteral("menu-second"),
+                "tapping ordinary cast body opens the same conversation as the menu action");
+        }
     }
     qobject_cast<QQuickItem*>(menuCast.get())->setVisible(false);
 

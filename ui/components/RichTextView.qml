@@ -7,6 +7,7 @@ Item {
     property bool compact: false
     property int emojiSurface: 1
     signal externalRequested(string url)
+    signal bodyActivated()
 
     // Loader/Repeater teardown can transiently replace a QVariantMap with null.
     // Normalize at the component boundary so bindings never dereference it.
@@ -46,6 +47,7 @@ Item {
             blockData: root.safeBlockData
             fontBold: root.kind === "heading"
             onExternalRequested: url => root.externalRequested(url)
+            onBodyActivated: root.bodyActivated()
         }
     }
 }

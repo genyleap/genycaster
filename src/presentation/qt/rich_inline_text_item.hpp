@@ -7,6 +7,7 @@
 
 #include <QColor>
 #include <QObject>
+#include <QPointF>
 #include <QQuickPaintedItem>
 #include <QVariantList>
 #include <QVariantMap>
@@ -114,6 +115,8 @@ signals:
     void emojiRectsChanged();
     /** @brief Emitted when a link target inside the text is activated. */
     void linkActivated(const QString& url);
+    /** @brief A short left-click on ordinary text (never a hyperlink). */
+    void plainTextActivated();
 
 protected:
     void componentComplete() override;
@@ -125,4 +128,6 @@ protected:
 private:
     class Impl;
     std::unique_ptr<Impl> m_impl;
+    QPointF m_pressPosition{};
+    bool m_leftPressed{};
 };

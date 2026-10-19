@@ -174,3 +174,43 @@ test('mobile brand header keeps crisp native text without an offscreen elevation
     assert.match(header, /renderType: Text\.NativeRendering/);
     assert.match(header, /elevation: Theme\.elevationNone/);
 });
+
+test('stories always start with current identity; fresh Following casts use colored rings while older follows remain visible', () => {
+    const bridge = read('src/presentation/qt/presentation_bridge.cpp');
+    const strip = read('ui/components/StoryStrip.qml');
+    const item = read('ui/components/StoryItem.qml');
+    const header = read('ui/components/HomeFeedHeader.qml');
+    const shell = read('ui/components/AppShell.qml');
+    assert.match(bridge, /following\.prepend\(std::move\(own\)\)/);
+    assert.match(bridge, /\{QStringLiteral\("isSelf"\), true\}/);
+    assert.match(bridge, /QSet<qulonglong> seen/);
+    assert.match(strip, /addStory: Boolean\(modelData\.isSelf\)/);
+    assert.match(strip, /Date\.now\(\) - 86400000/);
+    assert.match(strip, /root\.ownStoryRequested\(\)/);
+    assert.match(header, /onOwnStoryRequested: root\.composeRequested\(\)/);
+    assert.match(shell, /presentationBridge\.openProfileFid\(Number\(profile\.fid\)\)/);
+    assert.match(item, /import QtQuick\.Shapes/);
+    assert.match(item, /strokeColor: "#f9c43c"/);
+    assert.match(item, /strokeColor: "#f45b42"/);
+    assert.match(item, /strokeColor: "#c52db8"/);
+    assert.match(item, /opacity: root\.storyState === "viewed".*0\.74/);
+});
+
+test('tapping ordinary cast text opens conversation without covering interactive media or controls', () => {
+    const cast = read('ui/components/CastItem.qml');
+    assert.match(cast, /id: castTextBody/);
+    assert.match(cast, /TapHandler \{\s+acceptedButtons: Qt\.LeftButton/);
+    assert.match(cast, /gesturePolicy: TapHandler\.DragThreshold/);
+    assert.match(cast, /!root\.scrollMoving && castId\.length > 0/);
+    assert.match(cast, /root\.openRequested\(castId\)/);
+    assert.match(cast, /onTapped: root\.openMoreMenu\(\)/);
+});
+
+test('home desktop and mobile draft editors use the same themed context menu as composer', () => {
+    const home = read('ui/components/HomeDashboard.qml');
+    const menu = read('ui/components/EditorContextMenu.qml');
+    assert.match(home, /ContextMenu\.menu: EditorContextMenu \{ editor: desktopDraftEditor \}/);
+    assert.match(home, /ContextMenu\.menu: EditorContextMenu \{ editor: mobileDraftEditor \}/);
+    assert.match(menu, /popupType: Popup\.Item/);
+    assert.match(menu, /background: Superellipse/);
+});

@@ -5,6 +5,8 @@
 #include <QFont>
 #include <QFontMetricsF>
 #include <QGuiApplication>
+#include <QLineF>
+#include <QStyleHints>
 #include <QMetaType>
 #include <QMouseEvent>
 #include <QPainter>
@@ -576,15 +578,24 @@ void RichInlineTextItem::paint(QPainter* painter)
 
 void RichInlineTextItem::mousePressEvent(QMouseEvent* event)
 {
+    m_leftPressed = event->button() == Qt::LeftButton;
+    m_pressPosition = event->position();
     event->accept();
 }
 
 void RichInlineTextItem::mouseReleaseEvent(QMouseEvent* event)
 {
-    const QString anchor = m_impl->anchorAt(event->position());
+    const bool shortTap = m_leftPressed && event->button() == Qt::LeftButton
+        && QLineF{m_pressPosition, event->position()}.length()
+               <= QGuiApplication::styleHints()->startDragDistance();
+    m_leftPressed = false;
     event->accept();
+    if (!shortTap) { return; }
+    const QString anchor = m_impl->anchorAt(event->position());
     if (!anchor.isEmpty()) {
         emit linkActivated(anchor);
+    } else {
+        emit plainTextActivated();
     }
 }
 

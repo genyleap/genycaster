@@ -12,6 +12,7 @@ ColumnLayout {
     // not show the same link twice.
     property var suppressedEmbedUrls: []
     signal externalRequested(string url)
+    signal bodyActivated()
     signal mediaRequested(var mediaItems, int index)
     signal castRequested(string castId)
 
@@ -118,6 +119,7 @@ ColumnLayout {
         blockData: root.fallbackBlock
         compact: root.compact
         onExternalRequested: url => root.externalRequested(url)
+        onBodyActivated: root.bodyActivated()
     }
 
     Repeater {
@@ -139,6 +141,7 @@ ColumnLayout {
             emojiSurface: root.emojiSurface
             compact: root.compact
             onExternalRequested: url => root.externalRequested(url)
+            onBodyActivated: root.bodyActivated()
         }
     }
 

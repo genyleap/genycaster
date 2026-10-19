@@ -271,6 +271,7 @@ Item {
 
                         TextArea {
                             id: desktopDraftEditor
+                            ContextMenu.menu: EditorContextMenu { editor: desktopDraftEditor }
                             Layout.fillWidth: true
                             implicitHeight: 80
                             text: root.draftText
@@ -429,6 +430,7 @@ Item {
                     TextArea {
                         id: mobileDraftEditor
                         objectName: "homeMobileDraftEditor"
+                        ContextMenu.menu: EditorContextMenu { editor: mobileDraftEditor }
                         Layout.fillWidth: true
                         implicitHeight: 92
                         text: root.draftText

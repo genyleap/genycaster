@@ -4,13 +4,14 @@
 #include <QTemporaryDir>
 #include <QVariantMap>
 
+#include <algorithm>
 #include <cassert>
 
 #include "presentation_bridge.hpp"
 
 namespace {
 
-void testFollowingStoriesPrioritizeVerifiedClickableActivity()
+void testFollowingStoriesKeepOwnFirstAndOlderFollowees()
 {
     PresentationBridge bridge{};
     bridge.applyAuthenticationState(
@@ -46,13 +47,25 @@ void testFollowingStoriesPrioritizeVerifiedClickableActivity()
     }, true, true);
 
     const auto first = bridge.followingStoryProfiles();
-    assert(first.size() == 2);
-    assert(first[0].toMap().value(QStringLiteral("username")).toString()
+    assert(first.size() == 4);
+    // Own profile is always first, including when the account has no cast.
+    assert(first[0].toMap().value(QStringLiteral("fid")).toULongLong() == 42U);
+    assert(first[0].toMap().value(QStringLiteral("isSelf")).toBool());
+    assert(first[1].toMap().value(QStringLiteral("username")).toString()
         == QStringLiteral("first"));
-    assert(first[0].toMap().value(QStringLiteral("latestCastId")).toString()
+    assert(first[1].toMap().value(QStringLiteral("latestCastId")).toString()
         == QStringLiteral("0x") + firstCast);
-    assert(first[0].toMap().value(QStringLiteral("activityKind")).toString()
+    assert(first[1].toMap().value(QStringLiteral("activityKind")).toString()
         == QStringLiteral("reply"));
+    assert(first[2].toMap().value(QStringLiteral("username")).toString()
+        == QStringLiteral("second"));
+    // The inactive followed account remains visible rather than disappearing.
+    assert(first[3].toMap().value(QStringLiteral("username")).toString()
+        == QStringLiteral("inactive"));
+    assert(first[3].toMap().value(QStringLiteral("createdAtMs")).toLongLong() == 0LL);
+    assert(std::none_of(first.cbegin(), first.cend(), [](const QVariant& item) {
+        return item.toMap().value(QStringLiteral("fid")).toULongLong() == 123U;
+    }));
 
     // A newer observed cast moves a previously older follow to the front.
     bridge.applyFollowingStoryActivities(42, {
@@ -60,12 +73,13 @@ void testFollowingStoriesPrioritizeVerifiedClickableActivity()
                     {QStringLiteral("latestCastId"), secondCast},
                     {QStringLiteral("createdAtMs"), 3000LL}},
     }, true, true);
-    assert(bridge.followingStoryProfiles()[0].toMap()
+    assert(bridge.followingStoryProfiles()[0].toMap().value(QStringLiteral("isSelf")).toBool());
+    assert(bridge.followingStoryProfiles()[1].toMap()
         .value(QStringLiteral("username")).toString() == QStringLiteral("second"));
 
     // One failed refresh must not make a known clickable activity disappear.
     bridge.applyFollowingStoryActivities(42, {}, true, false);
-    assert(bridge.followingStoryProfiles().size() == 2);
+    assert(bridge.followingStoryProfiles().size() == 4);
 
     // An account switch invalidates both the follow graph and its activity.
     bridge.applyAuthenticationState(
@@ -73,7 +87,9 @@ void testFollowingStoriesPrioritizeVerifiedClickableActivity()
         QStringLiteral("other"), QStringLiteral("Other"), {}, {}, {}, {});
     assert(bridge.followingStoryProfiles().isEmpty());
     bridge.refreshFollowingStories();
-    assert(bridge.followingStoryProfiles().isEmpty());
+    assert(bridge.followingStoryProfiles().size() == 1);
+    assert(bridge.followingStoryProfiles().front().toMap()
+        .value(QStringLiteral("fid")).toULongLong() == 43U);
 }
 
 void testContextualReactionPriorityAndBoundaries()
@@ -597,7 +613,7 @@ void testSourceSwitchAdmitsCachedTimeline()
 int main(int argc, char* argv[])
 {
     QCoreApplication application{argc, argv};
-    testFollowingStoriesPrioritizeVerifiedClickableActivity();
+    testFollowingStoriesKeepOwnFirstAndOlderFollowees();
     testContextualReactionPriorityAndBoundaries();
     testReplyCanonicalizationForPublicFeedHashes();
     testExplicitExplorerRefreshRevealsLatestPage();

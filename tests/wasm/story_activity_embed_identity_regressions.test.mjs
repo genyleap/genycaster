@@ -34,7 +34,7 @@ test('duplicate link cards ignore referral/tracking variants, but not meaningful
     assert.match(panel, /if \(key\.length > 0 && seen\[key\]\)/);
 });
 
-test('following story avatars require a confirmed author cast and sort by latest activity timestamp', () => {
+test('following stories use verified cast timestamps to sort follows while retaining older accounts', () => {
     const bridge = read('src/presentation/qt/presentation_bridge.cpp');
     const h = read('src/presentation/qt/presentation_bridge.hpp');
     const runtime = read('ui/mobile/main.cpp');
@@ -43,7 +43,8 @@ test('following story avatars require a confirmed author cast and sort by latest
     assert.match(h, /followingStoryActivitiesRequested\(qulonglong viewerFid\)/);
     assert.match(bridge, /m_followingStoryActivity\.constFind\(fid\)/);
     assert.match(bridge, /latestCastId/);
-    assert.match(bridge, /std::ranges::sort\(active,/);
+    assert.match(bridge, /std::ranges::sort\(following,/);
+    assert.match(bridge, /following\.prepend\(std::move\(own\)\)/);
     assert.match(bridge, /createdAtMs/);
     assert.match(runtime, /followingStoryActivitiesRequested/);
     assert.match(runtime, /FeedQuery::Kind::Following/);
@@ -51,7 +52,8 @@ test('following story avatars require a confirmed author cast and sort by latest
     assert.match(shell, /recentProfiles: presentationBridge\.followingStoryProfiles/);
     assert.match(shell, /presentationBridge\.openCast\(castId\)/);
     assert.doesNotMatch(shell, /onRecentProfileRequested: profile => \{[\s\S]{0,300}openSuggestedProfile/);
-    assert.match(strip, /storyState: Number\(modelData\.createdAtMs/);
+    assert.match(strip, /Number\(modelData\.createdAtMs \|\| 0\) > 0/);
+    assert.match(strip, /Date\.now\(\) - 86400000/);
 });
 
 test('following story results are isolated by viewer and never join unrelated public authors', () => {
@@ -61,6 +63,8 @@ test('following story results are isolated by viewer and never join unrelated pu
     const getter = cpp.slice(start, end);
     assert.match(getter, /m_accountFid != m_followingStoriesViewerFid/);
     assert.match(getter, /for \(const auto& candidate : m_followingStoryProfiles\)/);
-    assert.match(getter, /if \(found == m_followingStoryActivity\.cend\(\)\) \{ continue; \}/);
+    assert.match(getter, /const auto activity = m_followingStoryActivity\.constFind\(fid\)/);
+    assert.match(getter, /if \(activity != m_followingStoryActivity\.cend\(\)\)/);
+    assert.match(getter, /seen\.insert\(m_accountFid\)/);
     assert.match(cpp, /m_followingStoryActivity\.clear\(\)/);
 });

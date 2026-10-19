@@ -8,6 +8,7 @@
 #include <QDesktopServices>
 #include <QList>
 #include <QSettings>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QUrl>
@@ -776,28 +777,31 @@ QVariantList PresentationBridge::rows() const { return m_rows; }
 QVariantList PresentationBridge::explorerArtRows() const { return m_explorerArtRows; }
 QVariantList PresentationBridge::followingStoryProfiles() const
 {
-    // An avatar only becomes a Story after a real, clickable cast by a followed
-    // account has been observed in the viewer's Following timeline. An account
-    // with zero confirmed activity must not open an empty Posts profile.
-    if (!m_isAuthenticated || m_accountFid != m_followingStoriesViewerFid) {
+    // Only a verified signed-in identity and its Following graph may enter
+    // this strip. Followees without a cast in the bounded Following window
+    // remain visible with a subdued ring; unknown activity is never "fresh".
+    if (!m_isAuthenticated || m_accountFid == 0U
+        || m_accountFid != m_followingStoriesViewerFid) {
         return {};
     }
-    QVariantList active{};
+    QVariantList following{};
+    following.reserve(m_followingStoryProfiles.size());
+    QSet<qulonglong> seen{};
+    seen.insert(m_accountFid);
     for (const auto& candidate : m_followingStoryProfiles) {
         auto profile = candidate.toMap();
         const qulonglong fid = profile.value(QStringLiteral("fid")).toULongLong();
-        const auto found = m_followingStoryActivity.constFind(fid);
-        if (found == m_followingStoryActivity.cend()) { continue; }
-        const QVariantMap& activity = *found;
-        if (activity.value(QStringLiteral("latestCastId")).toString().isEmpty()) {
-            continue;
+        if (fid == 0U || seen.contains(fid)) { continue; }
+        seen.insert(fid);
+        const auto activity = m_followingStoryActivity.constFind(fid);
+        if (activity != m_followingStoryActivity.cend()) {
+            for (auto it = activity->cbegin(); it != activity->cend(); ++it) {
+                profile.insert(it.key(), it.value());
+            }
         }
-        for (auto it = activity.cbegin(); it != activity.cend(); ++it) {
-            profile.insert(it.key(), it.value());
-        }
-        active.push_back(profile);
+        following.push_back(profile);
     }
-    std::ranges::sort(active, [](const QVariant& a, const QVariant& b) {
+    std::ranges::sort(following, [](const QVariant& a, const QVariant& b) {
         const auto lhs = a.toMap();
         const auto rhs = b.toMap();
         const qint64 left = lhs.value(QStringLiteral("createdAtMs")).toLongLong();
@@ -807,7 +811,15 @@ QVariantList PresentationBridge::followingStoryProfiles() const
                 < rhs.value(QStringLiteral("fid")).toULongLong()
             : left > right;
     });
-    return active;
+    QVariantMap own{
+        {QStringLiteral("fid"), m_accountFid},
+        {QStringLiteral("username"), m_accountUsername},
+        {QStringLiteral("displayName"), m_accountName},
+        {QStringLiteral("avatarUrl"), m_accountAvatarUrl},
+        {QStringLiteral("isSelf"), true},
+    };
+    following.prepend(std::move(own));
+    return following;
 }
 bool PresentationBridge::explorerArtBusy() const noexcept { return m_explorerArtBusy; }
 QVariantMap PresentationBridge::detail() const { return m_detail; }
