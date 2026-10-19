@@ -2,6 +2,7 @@ module;
 
 #include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <charconv>
 #include <chrono>
 #include <cstddef>
@@ -737,7 +738,22 @@ foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
                                     std::unordered_map<std::string, domain::cast::Cast> byHash{};
                                     byHash.reserve(page.casts.size());
                                     for (auto& cast : page.casts) {
-                                        byHash.insert_or_assign(cast.id.value, std::move(cast));
+                                        // Snapchain event hashes include 0x, but the
+                                        // public cast/bulk response returns bare 40-hex
+                                        // IDs. Normalize both the lookup key and the
+                                        // visible CastId; otherwise every valid cast is
+                                        // silently discarded from Explorer.
+                                        auto& id = cast.id.value;
+                                        if (id.size() == 40U) { id.insert(0U, "0x"); }
+                                        if (id.size() != 42U || !id.starts_with("0x")) {
+                                            continue;
+                                        }
+                                        std::ranges::transform(id, id.begin(),
+                                            [](const unsigned char character) {
+                                                return static_cast<char>(std::tolower(character));
+                                            });
+                                        const std::string lookupKey{id};
+                                        byHash.insert_or_assign(lookupKey, std::move(cast));
                                     }
                                     page.casts.clear();
                                     for (const auto& hash : selected) {

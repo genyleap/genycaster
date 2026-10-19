@@ -248,7 +248,9 @@ private:
                 url.find(std::string{hashB}) != std::string::npos ? hashB : hashA};
             const auto old = body.find("0xabc123");
             assert(old != std::string::npos);
-            body.replace(old, std::string{"0xabc123"}.size(), replacement);
+            // Match the live Hypersnap cast/bulk contract: unlike event hashes,
+            // hydrated cast IDs contain 40 hex characters WITHOUT 0x.
+            body.replace(old, std::string{"0xabc123"}.size(), replacement.substr(2U));
             return body;
         }
         return "{}";
