@@ -1,82 +1,97 @@
 import QtQuick
 import QtQuick.Layouts
 
+// Height-bounded, text-shaped placeholder. Every bar declares Layout sizes:
+// Qt layouts do not use a child item's plain width/height as its preferred
+// size, which previously collapsed the bars into blank white rectangles.
 Item {
     id: root
     property bool mediaPreview: false
-    implicitHeight: mediaPreview ? 318 : 164
+    implicitHeight: mediaPreview ? 222 : 142
 
     SequentialAnimation on opacity {
         running: root.visible && !Theme.reduceMotion
         loops: Animation.Infinite
-        NumberAnimation { to: 0.56; duration: 720; easing.type: Easing.InOutSine }
-        NumberAnimation { to: 1.0; duration: 720; easing.type: Easing.InOutSine }
+        NumberAnimation { to: 0.72; duration: 900; easing.type: Easing.InOutSine }
+        NumberAnimation { to: 1.0; duration: 900; easing.type: Easing.InOutSine }
     }
 
     RowLayout {
         anchors.left: parent.left
-        layoutDirection: Theme.uiDirection
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.margins: Theme.space2
+        anchors.margins: Theme.space3
         spacing: Theme.space2
+        layoutDirection: Theme.uiDirection
 
         Superellipse {
             Layout.alignment: Qt.AlignTop
-            Layout.topMargin: Theme.space1
-            Layout.preferredWidth: 42
-            Layout.preferredHeight: 42
-            curveDepth: 21
+            Layout.preferredWidth: 38
+            Layout.preferredHeight: 38
+            curveDepth: 19
             exponent: 2.01
             fillColor: Theme.surfaceMuted
         }
 
-        Superellipse {
+        ColumnLayout {
             Layout.fillWidth: true
-            implicitHeight: skeletonContent.implicitHeight + Theme.space3 * 2
-            fillColor: Theme.surface
-            borderWidth: 1
-            borderColor: Theme.borderMuted
-            curveDepth: Theme.curveContainer
+            Layout.alignment: Qt.AlignTop
+            spacing: Theme.space2
 
-            ColumnLayout {
-                id: skeletonContent
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: Theme.space3
+            RowLayout {
+                Layout.fillWidth: true
                 spacing: Theme.space2
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: Theme.space2
-                    layoutDirection: Theme.uiDirection
-                    Superellipse { width: 116; height: 11; curveDepth: 5; fillColor: Theme.surfaceMuted }
-                    Superellipse { width: 72; height: 9; curveDepth: 4; fillColor: Theme.surfaceMuted }
-                    Item { Layout.fillWidth: true }
-                }
-
-                Superellipse { Layout.fillWidth: true; height: 11; curveDepth: 5; fillColor: Theme.surfaceMuted }
-                Superellipse { Layout.preferredWidth: Math.max(140, parent.width * 0.72); height: 11; curveDepth: 5; fillColor: Theme.surfaceMuted }
-
+                layoutDirection: Theme.uiDirection
                 Superellipse {
-                    visible: root.mediaPreview
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: visible ? 142 : 0
-                    curveDepth: Theme.shapeMedia
+                    Layout.preferredWidth: 100
+                    Layout.preferredHeight: 11
                     fillColor: Theme.surfaceMuted
+                    curveDepth: 5
                 }
+                Superellipse {
+                    Layout.preferredWidth: 56
+                    Layout.preferredHeight: 9
+                    fillColor: Theme.surfaceMuted
+                    curveDepth: 5
+                }
+                Item { Layout.fillWidth: true }
+            }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: Theme.space4
-                    layoutDirection: Theme.uiDirection
-                    Superellipse { width: 42; height: 9; curveDepth: 4; fillColor: Theme.surfaceMuted }
-                    Superellipse { width: 42; height: 9; curveDepth: 4; fillColor: Theme.surfaceMuted }
-                    Superellipse { width: 42; height: 9; curveDepth: 4; fillColor: Theme.surfaceMuted }
-                    Item { Layout.fillWidth: true }
-                    Superellipse { width: 54; height: 8; curveDepth: 4; fillColor: Theme.surfaceMuted }
+            Superellipse {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 12
+                fillColor: Theme.surfaceMuted
+                curveDepth: 6
+            }
+            Superellipse {
+                Layout.preferredWidth: Math.max(120, Math.min(260, parent.width * 0.66))
+                Layout.preferredHeight: 12
+                fillColor: Theme.surfaceMuted
+                curveDepth: 6
+            }
+
+            Superellipse {
+                visible: root.mediaPreview
+                Layout.fillWidth: true
+                Layout.preferredHeight: visible ? 94 : 0
+                fillColor: Theme.surfaceMuted
+                curveDepth: Theme.shapeMedia
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space3
+                layoutDirection: Theme.uiDirection
+                Repeater {
+                    model: 3
+                    delegate: Superellipse {
+                        Layout.preferredWidth: 35
+                        Layout.preferredHeight: 8
+                        fillColor: Theme.surfaceMuted
+                        curveDepth: 4
+                    }
                 }
+                Item { Layout.fillWidth: true }
             }
         }
     }

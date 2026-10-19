@@ -774,6 +774,13 @@ bool PresentationBridge::hasReadActivity() const noexcept { return m_hasReadActi
 bool PresentationBridge::feedStarted() const noexcept { return m_feedStarted; }
 QVariantList PresentationBridge::rows() const { return m_rows; }
 QVariantList PresentationBridge::explorerArtRows() const { return m_explorerArtRows; }
+QVariantList PresentationBridge::followingStoryProfiles() const
+{
+    // Never expose a previous account's Follow graph, even transiently while
+    // the active session is switching or signing out.
+    return m_isAuthenticated && m_accountFid == m_followingStoriesViewerFid
+        ? m_followingStoryProfiles : QVariantList{};
+}
 bool PresentationBridge::explorerArtBusy() const noexcept { return m_explorerArtBusy; }
 QVariantMap PresentationBridge::detail() const { return m_detail; }
 QVariantList PresentationBridge::searchResults() const { return m_searchResults; }
@@ -834,6 +841,8 @@ void PresentationBridge::selectFeed(const QString& feed)
     }
     const QString nextFeed = feed == QStringLiteral("following")
         ? QStringLiteral("following")
+        : feed == QStringLiteral("nfts") ? QStringLiteral("nfts")
+        : feed == QStringLiteral("developers") ? QStringLiteral("developers")
         : feed == QStringLiteral("recent") ? QStringLiteral("recent")
         : QStringLiteral("trending");
     if (m_activeView != QStringLiteral("feed") || m_activeFeed != nextFeed) {
@@ -1418,6 +1427,48 @@ void PresentationBridge::showFeed()
 {
     if (m_activeFeed == QStringLiteral("channel")) { openChannel(m_channelId); }
     else { selectFeed(m_activeFeed); }
+}
+
+void PresentationBridge::refreshFollowingStories()
+{
+    const qulonglong viewer = m_isAuthenticated ? m_accountFid : 0U;
+    if (viewer != m_followingStoriesViewerFid) {
+        m_followingStoriesViewerFid = viewer;
+        m_followingStoryProfiles.clear();
+        m_followingStoriesLoaded = false;
+        m_followingStoriesLoading = false;
+        m_followingStoriesCheckedAtMs = 0;
+        emit followingStoriesChanged();
+    }
+    if (viewer == 0U || !m_runtimeReady || m_followingStoriesLoading) {
+        return;
+    }
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (m_followingStoriesLoaded && now - m_followingStoriesCheckedAtMs < 180'000) {
+        return;
+    }
+    m_followingStoriesLoading = true;
+    emit followingStoriesRequested(viewer);
+}
+
+void PresentationBridge::applyFollowingStoryProfiles(
+    const qulonglong viewer, QVariantList profiles, const bool finished, const bool successful)
+{
+    if (viewer != m_followingStoriesViewerFid || viewer != m_accountFid || !m_isAuthenticated) {
+        return;
+    }
+    if (finished) {
+        m_followingStoriesLoading = false;
+        m_followingStoriesLoaded = successful;
+        if (successful) {
+            m_followingStoriesCheckedAtMs = QDateTime::currentMSecsSinceEpoch();
+        }
+    }
+    // Preserve a previously verified following list across transient errors.
+    if (!successful && finished) { return; }
+    if (m_followingStoryProfiles == profiles) { return; }
+    m_followingStoryProfiles = std::move(profiles);
+    emit followingStoriesChanged();
 }
 
 void PresentationBridge::requestExplorerArt()

@@ -20,6 +20,7 @@ Rectangle {
 
     implicitHeight: Theme.appBarHeight
     color: Theme.backgroundPrimary
+    layer.enabled: false
 
     readonly property int gutter: Theme.gutter(root.width)
 
@@ -40,8 +41,10 @@ Rectangle {
                 Layout.preferredHeight: 38
                 fillColor: Theme.primaryFill
                 curveDepth: Theme.curveControl
-                elevation: Theme.elevationControl
-                shadowOpacityScale: 0.48
+                // An offscreen elevation layer caused the fixed brand/header
+                // group to appear soft at fractional iPhone DPR in WebGL.
+                elevation: Theme.elevationNone
+                shadowOpacityScale: 0
 
                 Icon {
                     anchors.centerIn: parent
@@ -59,6 +62,7 @@ Rectangle {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.typeTitle3Size
                     font.weight: Theme.weightBold
+                    renderType: Text.NativeRendering
                 }
                 Label {
                     text: qsTrId("genycaster.release.beta_1_0")
@@ -66,6 +70,7 @@ Rectangle {
                     font.family: Theme.latinFontFamily
                     font.pixelSize: Theme.typeCaptionSize
                     font.weight: Theme.weightDemiBold
+                    renderType: Text.NativeRendering
                     Accessible.ignored: true
                 }
             }

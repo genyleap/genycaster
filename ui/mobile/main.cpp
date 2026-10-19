@@ -1019,6 +1019,12 @@ void applyFeedState(PresentationBridge& bridge, application::read::model::FeedSt
     case application::read::model::FeedQuery::Kind::Recent:
         selector = QStringLiteral("recent");
         break;
+    case application::read::model::FeedQuery::Kind::Nfts:
+        selector = QStringLiteral("nfts");
+        break;
+    case application::read::model::FeedQuery::Kind::Developers:
+        selector = QStringLiteral("developers");
+        break;
     case application::read::model::FeedQuery::Kind::Channel:
         selector = QStringLiteral("channel");
         break;
@@ -3157,6 +3163,10 @@ void connectRuntime(
             application::read::model::FeedQuery query{};
             if (feed == QStringLiteral("following")) {
                 query.kind = application::read::model::FeedQuery::Kind::Following;
+            } else if (feed == QStringLiteral("nfts")) {
+                query.kind = application::read::model::FeedQuery::Kind::Nfts;
+            } else if (feed == QStringLiteral("developers")) {
+                query.kind = application::read::model::FeedQuery::Kind::Developers;
             } else if (feed == QStringLiteral("recent")) {
                 query.kind = application::read::model::FeedQuery::Kind::Recent;
             } else if (feed == QStringLiteral("channel")) {
@@ -3468,6 +3478,54 @@ void connectRuntime(
                 });
             if (request) { runtime->keepPrimaryRequest(std::move(*request)); }
             else { bridge.applyRuntimeState(false, qtTrId("genycaster.runtime.the_read_worker_is_unavailable")); }
+        });
+
+    QObject::connect(&bridge, &PresentationBridge::followingStoriesRequested, &bridge,
+        [&bridge, runtime](const qulonglong viewerFid) {
+            if (viewerFid == 0U || viewerFid != bridge.accountFid()
+                || !bridge.isAuthenticated()) {
+                return;
+            }
+            // This request owns its lifetime independently of the active feed,
+            // profile, and art reads. Navigating Explorer must not cancel it.
+            application::read::model::SocialQuery query{
+                .kind = application::read::model::SocialQuery::Kind::Following,
+                .fid = domain::identity::Fid{static_cast<std::uint64_t>(viewerFid)},
+                .limit = 60,
+            };
+            auto request = runtime->service->openSocial(
+                std::move(query),
+                [&bridge, viewerFid](application::read::model::SocialState state) {
+                    const bool finished = !isBusy(state.metadata);
+                    const bool successful = finished && !state.metadata.error.has_value();
+                    QVariantList following{};
+                    if (!state.metadata.error) {
+                        following.reserve(static_cast<qsizetype>(state.profiles.size()));
+                        for (const auto& profile : state.profiles) {
+                            following.push_back(QVariantMap{
+                                {QStringLiteral("fid"), static_cast<qulonglong>(profile.fid.value)},
+                                {QStringLiteral("username"), username(&profile)},
+                                {QStringLiteral("displayName"), displayName(&profile)},
+                                {QStringLiteral("avatarUrl"), avatarUrl(&profile)},
+                                {QStringLiteral("activityKind"), QStringLiteral("cast")},
+                            });
+                        }
+                    }
+                    QMetaObject::invokeMethod(&bridge,
+                        [&bridge, viewerFid, following = std::move(following),
+                         finished, successful]() mutable {
+                            bridge.applyFollowingStoryProfiles(
+                                viewerFid, std::move(following), finished, successful);
+                        }, Qt::QueuedConnection);
+                },
+                application::read::model::ReadOptions{
+                    .intent = application::read::model::ReadIntent::Prefetch,
+                });
+            if (request) {
+                runtime->keepFollowingStoriesRequest(std::move(*request));
+            } else {
+                bridge.applyFollowingStoryProfiles(viewerFid, {}, true, false);
+            }
         });
 
     QObject::connect(&bridge, &PresentationBridge::socialRequested, &bridge,

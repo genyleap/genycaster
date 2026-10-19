@@ -202,6 +202,15 @@ void Runtime::keepExplorerArtRequest(application::read::async_service::ReadReque
     explorerArtRequests.push_back(std::move(request));
 }
 
+void Runtime::keepFollowingStoriesRequest(application::read::async_service::ReadRequest request)
+{
+    std::scoped_lock lock{requestMutex};
+    if (activeFollowingStoriesRequest) {
+        activeFollowingStoriesRequest->cancel();
+    }
+    activeFollowingStoriesRequest = std::move(request);
+}
+
 void Runtime::cancelExplorerArtRequests()
 {
     explorerArtRequestGeneration.fetch_add(1U, std::memory_order_acq_rel);

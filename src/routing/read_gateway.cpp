@@ -232,7 +232,11 @@ foundation::result::Result<capability::feed::FeedPage> RoutedReadGateway::feed(
     const application::read::model::ReadOptions options)
 {
     capability::model::CapabilityId capabilityId = capability::catalog::feedTrendingRead();
-    if (query.kind == application::read::model::FeedQuery::Kind::Recent) {
+    if (query.kind == application::read::model::FeedQuery::Kind::Nfts) {
+        capabilityId = capability::catalog::feedNftsRead();
+    } else if (query.kind == application::read::model::FeedQuery::Kind::Developers) {
+        capabilityId = capability::catalog::feedDevelopersRead();
+    } else if (query.kind == application::read::model::FeedQuery::Kind::Recent) {
         capabilityId = capability::catalog::feedRecentRead();
     } else if (query.kind == application::read::model::FeedQuery::Kind::Following) {
         capabilityId = capability::catalog::feedFollowingRead();
@@ -264,7 +268,9 @@ foundation::result::Result<capability::feed::FeedPage> RoutedReadGateway::feed(
         .limit = query.limit,
         .continuation = query.continuation,
     };
-    if (query.kind == application::read::model::FeedQuery::Kind::Recent) {
+    if (query.kind == application::read::model::FeedQuery::Kind::Recent
+        || query.kind == application::read::model::FeedQuery::Kind::Nfts
+        || query.kind == application::read::model::FeedQuery::Kind::Developers) {
         return std::unexpected(foundation::error::Error::make(
             foundation::error::ErrorCode::Unsupported,
             "Confirmed Recent discovery requires the asynchronous provider gateway."));

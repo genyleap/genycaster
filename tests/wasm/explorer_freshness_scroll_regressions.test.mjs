@@ -61,7 +61,8 @@ test('Explorer uses confirmed Recent; Home restores personalized Following or ra
         .split('function openExplorer() {')[0];
     const home = shell.split('function openHome() {')[1]
         .split('function selectHomePresentationMode(mode) {')[0];
-    assert.match(explorer, /const source = "recent"/);
+    assert.match(explorer, /nextMode === "visuals" \? "nfts"/);
+    assert.match(explorer, /nextMode === "devs" \? "developers" : "recent"/);
     assert.match(read('ui/mobile/main.cpp'), /FeedQuery::Kind::Recent/);
     assert.match(read('src/storage/read_store.cpp'), /"feed:recent"/);
     assert.doesNotMatch(explorer, /const source = presentationBridge\.isAuthenticated/);
@@ -97,7 +98,8 @@ test('Recent has independent native C++ cache, routing and Explorer presentation
     assert.match(header, /root\.activeFeed === "recent"/);
     assert.match(header, /root\.discoveryFeed/);
     assert.match(empty, /root\.activeFeed === "recent"/);
-    assert.match(shell, /const source = "recent"/);
+    assert.match(shell, /nextMode === "visuals" \? "nfts"/);
+    assert.match(shell, /nextMode === "devs" \? "developers" : "recent"/);
     assert.match(cpp, /recentFeed\(std::move\(query\), std::move\(completion\), options\)/);
     assert.match(cpp, /"\/v1\/events"/);
     assert.match(cpp, /"\/v2\/farcaster\/cast\/bulk"/);
@@ -126,4 +128,49 @@ test('video playback preserves production audio while headless Qt 6.12 QA avoids
     assert.match(preview, /property bool audioOutputEnabled: true/);
     assert.match(preview, /audioOutputEnabled: root\.audioOutputEnabled/);
     assert.match(testFixture, /QStringLiteral\("audioOutputEnabled"\), false/);
+});
+
+test('NFT and developer tabs have independent provider searches and cache keys', () => {
+    const gateway = read('src/providers/hypersnap/async_gateway.cpp');
+    const local = read('src/storage/read_store.cpp');
+    const model = read('src/application/read_model.cppm');
+    const surface = read('ui/components/FeedSurface.qml');
+    assert.match(gateway, /spec\.path = "\/v2\/farcaster\/cast\/search"/);
+    assert.match(gateway, /\{"q", query\.kind/);
+    assert.match(gateway, /\? "nft" : "github"/);
+    assert.match(local, /"feed:nfts"/);
+    assert.match(local, /"feed:developers"/);
+    assert.match(model, /Nfts, Developers/);
+    assert.match(surface, /root\.activeFeed === "nfts"/);
+    assert.match(surface, /root\.activeFeed === "developers"/);
+});
+
+test('story strip uses the current account Following graph, never public cast authors', () => {
+    const shell = read('ui/components/AppShell.qml');
+    const bridge = read('src/presentation/qt/presentation_bridge.hpp');
+    const runtime = read('ui/mobile/main.cpp');
+    const stories = read('ui/components/StoryStrip.qml');
+    assert.match(shell, /recentProfiles: presentationBridge\.followingStoryProfiles/);
+    assert.doesNotMatch(shell, /recentProfiles: root\.recentPosterProfiles\(presentationBridge\.rows, 8\)/);
+    assert.match(bridge, /Q_PROPERTY\(QVariantList followingStoryProfiles/);
+    assert.match(bridge, /followingStoriesRequested\(qulonglong viewerFid\)/);
+    assert.match(runtime, /SocialQuery::Kind::Following/);
+    assert.match(runtime, /keepFollowingStoriesRequest/);
+    assert.match(stories, /implicitHeight: visible \?/);
+});
+
+test('loading placeholders have real layout sizes and fixed modest row height', () => {
+    const skeleton = read('ui/components/CastSkeleton.qml');
+    const surface = read('ui/components/FeedSurface.qml');
+    assert.match(skeleton, /implicitHeight: mediaPreview \? 222 : 142/);
+    assert.match(skeleton, /Layout\.preferredWidth: 100/);
+    assert.match(skeleton, /Layout\.preferredHeight: 11/);
+    assert.match(surface, /root\.presentationMode === "visuals" \? 2 : 3/);
+});
+
+test('mobile brand header keeps crisp native text without an offscreen elevation layer', () => {
+    const header = read('ui/components/AppHeader.qml');
+    assert.match(header, /layer\.enabled: false/);
+    assert.match(header, /renderType: Text\.NativeRendering/);
+    assert.match(header, /elevation: Theme\.elevationNone/);
 });

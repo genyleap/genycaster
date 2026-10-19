@@ -242,6 +242,12 @@ private:
             }
             return R"json({"events":[{"id":23756802,"blockNumber":1450,"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","mergeMessageBody":{"message":{"hash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600010,"castAddBody":{"text":"A"}}}}},{"id":23756801,"blockNumber":1450,"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","mergeMessageBody":{"message":{"hash":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600000,"castAddBody":{"text":"B"}}}}},{"id":23756800,"blockNumber":1450,"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","mergeMessageBody":{"message":{"hash":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600015,"castAddBody":{"parentCastId":{"fid":2,"hash":"0xparent"}}}}}}]})json";
         }
+        if (url.find("/v2/farcaster/cast/search") != std::string::npos) {
+            // Matches the provider's real {result:{casts,next}} envelope.
+            // The search index returns a bare, unprefixed cast hash.
+            std::string body = test::hypersnap::fixtures::rootPostFeedResponse();
+            return std::string{"{\"result\":"} + body + "}";
+        }
         if (url.find("/v2/farcaster/cast/bulk") != std::string::npos) {
             std::string body = test::hypersnap::fixtures::rootPostFeedResponse();
             const std::string replacement{
@@ -315,9 +321,31 @@ void testRecentAsyncFeedAndCursor()
         return url.find("/v1/events?") != std::string::npos; }) == 4);
     assert(std::ranges::count_if(paths, [](const auto& url) {
         return url.find("/v2/farcaster/cast/bulk?") != std::string::npos; }) == 2);
-    // The SQLite continuation mapping is a real provider-affine token, not a
-    // raw network cursor. Keep it available while the test constructs the
-    // second page and remove its isolated file only after all workers exit.
+    const auto querySemantic = [&](const application::read::model::FeedQuery::Kind kind) {
+        auto pending = std::make_shared<
+            std::promise<foundation::result::Result<capability::feed::FeedPage>>>();
+        auto future = pending->get_future();
+        auto request = gateway.feed(
+            application::read::model::FeedQuery{.kind = kind, .limit = 3U},
+            [pending](foundation::result::Result<capability::feed::FeedPage> page) {
+                pending->set_value(std::move(page));
+            });
+        assert(request);
+        assert(future.wait_for(std::chrono::seconds{5}) == std::future_status::ready);
+        auto result = future.get();
+        assert(result && !result->casts.empty());
+        assert(result->casts.front().id.value.starts_with("0x"));
+    };
+    querySemantic(application::read::model::FeedQuery::Kind::Nfts);
+    querySemantic(application::read::model::FeedQuery::Kind::Developers);
+    const auto searches = transport.requestedUrls();
+    assert(std::ranges::any_of(searches, [](const auto& url) {
+        return url.find("/v2/farcaster/cast/search") != std::string::npos
+            && url.find("q=nft") != std::string::npos; }));
+    assert(std::ranges::any_of(searches, [](const auto& url) {
+        return url.find("/v2/farcaster/cast/search") != std::string::npos
+            && url.find("q=github") != std::string::npos; }));
+    // Every semantic source is isolated by its own provider-affine cursor key.
 }
 
 void testProfileCastAndIdentityEndpoints()
@@ -728,7 +756,7 @@ void testCurlTransportConstruction()
 void testCapabilityRegistration()
 {
     const auto capabilities = provider::hypersnap::registration::capabilities();
-    assert(capabilities.size() == 16);
+    assert(capabilities.size() == 18);
 
     const auto has = [&](const capability::model::CapabilityId& id) {
         return std::ranges::any_of(capabilities, [&](const auto& item) {
@@ -744,6 +772,8 @@ void testCapabilityRegistration()
     assert(has(capability::catalog::feedFollowingRead()));
     assert(has(capability::catalog::feedTrendingRead()));
     assert(has(capability::catalog::feedRecentRead()));
+    assert(has(capability::catalog::feedNftsRead()));
+    assert(has(capability::catalog::feedDevelopersRead()));
     assert(has(capability::catalog::feedChannelRead()));
     assert(has(capability::catalog::feedUserPostsRead()));
     assert(has(capability::catalog::feedUserQuotesRead()));

@@ -285,7 +285,8 @@ Item {
         // Explorer uses a separate confirmed chronological network feed.
         // Home's personal Following and ranked Trending timelines remain intact.
         // The provider owns cursor-based continuation and bulk hydration.
-        const source = "recent"
+        const source = nextMode === "visuals" ? "nfts"
+                     : nextMode === "devs" ? "developers" : "recent"
         const emptySettledSource = presentationBridge.feedStarted
                                    && !presentationBridge.isBusy
                                    && presentationBridge.rows.length === 0
@@ -307,6 +308,7 @@ Item {
     }
 
     function openExplorer() {
+        presentationBridge.refreshFollowingStories()
         root.clearPendingShellReturn()
         root.primaryDestination = "explorer"
         root.shellRoute = ""
@@ -461,7 +463,8 @@ Item {
                 visualFilter: root.explorerVisualFilter
                 displayName: presentationBridge.accountName.length > 0 ? presentationBridge.accountName : presentationBridge.identityName
                 avatarUrl: presentationBridge.accountAvatarUrl
-                recentProfiles: root.recentPosterProfiles(presentationBridge.rows, 8)
+                // StoryStrip is an account-only Follow graph, never public Recent authors.
+                recentProfiles: presentationBridge.followingStoryProfiles
                 authenticated: presentationBridge.isAuthenticated
                 interactionsAvailable: presentationBridge.isAuthenticated && presentationBridge.writeReady && !presentationBridge.writeBusy
                 compact: root.compact
@@ -1987,12 +1990,14 @@ Item {
 
     Component.onCompleted: {
         root.notificationBusySnapshot = presentationBridge.notificationsBusy
+        presentationBridge.refreshFollowingStories()
     }
 
     Connections {
         target: presentationBridge
 
         function onAuthenticationStateChanged() {
+            presentationBridge.refreshFollowingStories()
             if (!presentationBridge.isAuthenticated) {
                 root.confirmedReply = ({})
                 root.submittedReplyParentId = ""

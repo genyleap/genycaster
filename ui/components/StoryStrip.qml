@@ -9,8 +9,8 @@ Item {
 
     signal profileRequested(var profile)
 
-    implicitHeight: root.compact ? 80 : 86
     visible: root.profiles && root.profiles.length > 0
+    implicitHeight: visible ? (root.compact ? 80 : 86) : 0
 
     ListView {
         id: storyList

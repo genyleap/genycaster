@@ -54,8 +54,8 @@ Item {
     readonly property bool curateHomeForYou: false
     readonly property bool presentationFilterActive: !root.socialMode
     readonly property int filterTargetCount: root.compact ? 5 : 8
-    readonly property int filterPrefetchLimit: 6
-    readonly property int automaticPrefetchLimit: 12
+    readonly property int filterPrefetchLimit: 8
+    readonly property int automaticPrefetchLimit: 16
     property Component headerContent: null
     // Presentation filters preserve provider order; they only select eligible
     // rows. Pagination therefore remains provider-stable across every branch.
@@ -266,10 +266,21 @@ Item {
     }
 
     function hasCollectible(data) {
-        // NFTs is a live semantic projection of the current feed. Require both
-        // visual media and NFT/mint evidence so generic art-channel posts do not
-        // keep stale, unrelated content in this tab.
-        return root.rowHasImage(data) && root.containsCollectibleLink(data)
+        const row = data || ({})
+        const text = String(row.text || "")
+        const channel = String(row.channelId || "").toLowerCase()
+        const isNftChannel = channel === "nft" || channel === "cryptoart"
+                             || channel === "superrare" || channel === "basepaint"
+                             || channel === "zora" || channel === "collectibles"
+        const explicitNft = /(?:#nft\b|\bnfts\b|\bnft\b|\bmint(?:ed|ing)?\b|\bonchain art\b|\bdigital collectible\b|\berc[- ]?(?:721|1155)\b)/i.test(text)
+        // Text or provider evidence can identify NFT casts even before artwork
+        // link metadata has arrived. Art-only posts without NFT evidence are
+        // intentionally excluded from the collectible tab.
+        return root.containsCollectibleLink(row)
+                || (isNftChannel && (root.rowHasImage(row) || explicitNft))
+                || (explicitNft && (root.rowHasImage(row)
+                                   || (row.embeds || []).length > 0
+                                   || isNftChannel))
     }
 
     function primeArtPreviews() {
@@ -331,8 +342,16 @@ Item {
         // Devs is evidence-based: a post belongs here when it actually links
         // to GitHub (repository, issue, PR, commit, gist, raw file, etc.).
         haystack = haystack.toLowerCase()
+        const channel = String(row.channelId || "").toLowerCase()
+        if (["dev", "developers", "build", "builders", "programming",
+             "code", "opensource", "engineering", "hackathon"].indexOf(channel) >= 0)
+            return true
         return haystack.indexOf("github.com/") >= 0
                 || haystack.indexOf("raw.githubusercontent.com/") >= 0
+                || haystack.indexOf("gitlab.com/") >= 0
+                || haystack.indexOf("npmjs.com/") >= 0
+                || haystack.indexOf("crates.io/") >= 0
+                || /(?:#(?:dev|build|coding|opensource|programming)\b|\bopen[ -]source\b|\bshipp(?:ed|ing)\b|\bsoftware engineering\b|\bdeveloper tools?\b|\bapi\b|\bsdk\b|\bprogramming\b|\bcodebase\b|\brepository\b|\bsmart contracts?\b)/i.test(haystack)
     }
 
     function semanticKind(data) {
@@ -403,7 +422,9 @@ Item {
         }
         for (let index = 0; index < primary.length; ++index)
             appendUnique(primary[index])
-        if (root.presentationMode === "visuals") {
+        if (root.presentationMode === "visuals" && root.activeFeed !== "nfts") {
+            // A topic-backed NFT search is authoritative. Never append stale
+            // unrelated artwork discovered for an older generic feed.
             const artRows = root.supplementalRows || []
             for (let index = 0; index < artRows.length; ++index)
                 appendUnique(artRows[index])
@@ -420,13 +441,13 @@ Item {
                 if (root.isRootPost(row))
                     result.push({ payload: row, presentationKind: "conversation" })
             } else if (root.presentationMode === "visuals") {
-                if (root.hasCollectible(row))
+                if (root.activeFeed === "nfts" || root.hasCollectible(row))
                     result.push({ payload: row, presentationKind: "visual" })
             } else if (root.presentationMode === "devs") {
-                if (root.semanticKind(row) === "devs")
+                if (root.activeFeed === "developers" || root.looksDeveloper(row))
                     result.push({ payload: row, presentationKind: "developer" })
             } else if (root.presentationMode === "conversations") {
-                if (root.semanticKind(row) === "conversations")
+                if (root.isConversation(row))
                     result.push({ payload: row, presentationKind: "conversation" })
             } else if (root.isRootPost(row)) {
                 result.push({ payload: row, presentationKind: "conversation" })
@@ -1262,7 +1283,7 @@ Item {
         visible: stableRows.count === 0 && root.runtimeReady
                  && (root.busy || root.supplementalBusy || root.needsFilteredPrefetch() || filterPrefetchDebounce.running)
         Repeater {
-            model: root.presentationMode === "visuals" ? 3 : 4
+            model: root.presentationMode === "visuals" ? 2 : 3
             delegate: CastSkeleton {
                 width: root.width
                 mediaPreview: root.presentationMode === "visuals"

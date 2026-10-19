@@ -73,6 +73,12 @@ using ErrorCode = foundation::error::ErrorCode;
     case model::FeedQuery::Kind::Recent:
         kind = local::read::FeedKey::Kind::Recent;
         break;
+    case model::FeedQuery::Kind::Nfts:
+        kind = local::read::FeedKey::Kind::Nfts;
+        break;
+    case model::FeedQuery::Kind::Developers:
+        kind = local::read::FeedKey::Kind::Developers;
+        break;
     case model::FeedQuery::Kind::Channel:
         kind = local::read::FeedKey::Kind::Channel;
         break;

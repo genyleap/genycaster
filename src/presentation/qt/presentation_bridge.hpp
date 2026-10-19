@@ -81,6 +81,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool linkPreviewPrefetchEnabled READ linkPreviewPrefetchEnabled NOTIFY readPreferencesChanged)
     Q_PROPERTY(bool inlineYouTubeEnabled READ inlineYouTubeEnabled NOTIFY readPreferencesChanged)
     Q_PROPERTY(bool bufferNewPosts READ bufferNewPosts NOTIFY readPreferencesChanged)
+    Q_PROPERTY(QVariantList followingStoryProfiles READ followingStoryProfiles NOTIFY followingStoriesChanged)
     Q_PROPERTY(int pendingNewPostCount READ pendingNewPostCount NOTIFY stateChanged)
 
 public:
@@ -148,6 +149,8 @@ public:
     [[nodiscard]] bool feedStarted() const noexcept;
     [[nodiscard]] QVariantList rows() const;
     [[nodiscard]] QVariantList explorerArtRows() const;
+    /** @brief Actual followed identities, never inferred from public cast authors. */
+    [[nodiscard]] QVariantList followingStoryProfiles() const;
     [[nodiscard]] bool explorerArtBusy() const noexcept;
     [[nodiscard]] QVariantMap detail() const;
     [[nodiscard]] QVariantList searchResults() const;
@@ -215,6 +218,10 @@ public:
     Q_INVOKABLE void showFeed();
     /** @brief Starts one bounded background discovery read across curated Farcaster art channels. */
     Q_INVOKABLE void requestExplorerArt();
+    /** @brief Refreshes only the signed-in account's Follow graph for StoryStrip. */
+    Q_INVOKABLE void refreshFollowingStories();
+    /** @brief Applies an isolated Following graph read without navigating away from Explorer. */
+    void applyFollowingStoryProfiles(qulonglong viewerFid, QVariantList profiles, bool finished, bool successful);
     Q_INVOKABLE void openExternalUrl(const QString& url);
     /** @brief Opens an approved rich-media URL in Genycaster's isolated native web-media host. */
     Q_INVOKABLE void openEmbeddedMedia(const QString& url, const QString& title = {});
@@ -359,6 +366,7 @@ signals:
     void stateChanged();
     void searchChanged();
     void notificationsChanged();
+    void followingStoriesChanged();
     void readPreferencesChanged();
     /** @brief Emitted only when OS/network reachability knowledge or online state changes. */
     void networkReachabilityChanged(bool known, bool online);
@@ -378,6 +386,7 @@ signals:
         QString continuation,
         bool allowRecoveryProbe);
     void explorerArtRequested();
+    void followingStoriesRequested(qulonglong viewerFid);
     void castRequested(QString castId, bool allowRecoveryProbe);
     void profileRequested(qulonglong fid, bool allowRecoveryProbe);
     void signInRequested(QString route);
@@ -442,6 +451,11 @@ private:
     QVariantMap m_viewerReactionSnapshot{};
     QVariantMap m_reactionOverrides{};
     QVariantMap m_followOverrides{};
+    QVariantList m_followingStoryProfiles{};
+    qulonglong m_followingStoriesViewerFid{};
+    bool m_followingStoriesLoaded{false};
+    bool m_followingStoriesLoading{false};
+    qint64 m_followingStoriesCheckedAtMs{};
     QVariantMap m_followsMeSnapshot{};
     QHash<qulonglong, QVariantMap> m_profileDetailCache{};
     QHash<QString, QVariantList> m_profileListCache{};

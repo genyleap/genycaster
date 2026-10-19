@@ -908,6 +908,21 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
     case application::read::model::FeedQuery::Kind::Recent:
         spec.capabilityId = capability::catalog::feedRecentRead();
         break;
+    case application::read::model::FeedQuery::Kind::Nfts:
+    case application::read::model::FeedQuery::Kind::Developers:
+        // A semantic tab must query its own index. Filtering the first few
+        // arbitrary global casts cannot discover a sparse NFT/dev topic.
+        spec.capabilityId = query.kind == application::read::model::FeedQuery::Kind::Nfts
+            ? capability::catalog::feedNftsRead()
+            : capability::catalog::feedDevelopersRead();
+        spec.path = "/v2/farcaster/cast/search";
+        spec.query = {
+            {"q", query.kind == application::read::model::FeedQuery::Kind::Nfts
+                ? "nft" : "github"},
+            {"sort_type", "recent"},
+        };
+        spec.timeout = discoveryRequestTimeout;
+        break;
     case application::read::model::FeedQuery::Kind::Trending:
         spec.capabilityId = capability::catalog::feedTrendingRead();
         spec.path = "/v2/farcaster/feed/trending";
@@ -1158,6 +1173,23 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                             *providerCursor = std::string{communityCursorPrefix} + *providerCursor;
                         }
                         auto page = pageFromPayload(std::move(*payload));
+                        if (spec.path == "/v2/farcaster/cast/search") {
+                            // The public search index can return old results before
+                            // newer ones even with sort_type=recent. Sort this
+                            // single page by canonical Cast timestamp, never by
+                            // presentation order or animation state.
+                            for (auto& cast : page.casts) {
+                                auto& id = cast.id.value;
+                                if (id.size() == 40U) { id.insert(0U, "0x"); }
+                            }
+                            std::ranges::sort(page.casts, std::greater<>{},
+                                              &domain::cast::Cast::createdAt);
+                            page.entries.clear();
+                            for (const auto& cast : page.casts) {
+                                page.entries.push_back(domain::feed::FeedEntry{
+                                    .castId = cast.id, .sortTime = cast.createdAt});
+                            }
+                        }
                         page.communityFallback = communityFallback;
                         switch (spec.filter) {
                         case FeedSpec::Filter::None:
