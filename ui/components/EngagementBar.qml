@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 
 RowLayout {
@@ -6,6 +7,7 @@ RowLayout {
     objectName: "engagementBar"
     layoutDirection: Theme.uiDirection
 
+    property bool compact: false
     property int replyCount: 0
     property int recastCount: 0
     property int likeCount: 0
@@ -46,7 +48,7 @@ RowLayout {
     signal likeRequested(bool active)
     signal authenticationRequested()
 
-    spacing: Theme.space2
+    spacing: root.compact ? Theme.space1 : Theme.space2
     Accessible.description: qsTrId("genycaster.engagement.value_replies").arg(LocaleFormat.formatInteger(root.replyCount))
 
     EngagementButton {
@@ -94,14 +96,35 @@ RowLayout {
         onClicked: root.likeInteractive ? root.likeRequested(!root.likedByMe) : root.authenticationRequested()
     }
 
-    EngagementButton {
+    // An impression is metadata, not an action. It should not consume a
+    // 46px touch target or squeeze mobile replies/quotes into the timestamp.
+    RowLayout {
+        id: castViewsLabel
         objectName: "castViewCount"
         visible: root.resolvedViewCount !== null && root.resolvedViewCount !== undefined
                  && Number(root.resolvedViewCount) >= 0 && isFinite(Number(root.resolvedViewCount))
-        iconGlyph: "eye"
-        metricText: visible ? LocaleFormat.formatCompactNumber(Number(root.resolvedViewCount)) : ""
-        enabled: false
-        Accessible.name: "Views: " + metricText
+        spacing: Theme.space1
+        Layout.alignment: Qt.AlignVCenter
+        Accessible.role: Accessible.StaticText
+        Accessible.name: "Views: " + viewMetric.text
+
+        Icon {
+            text: Theme.iconPreview
+            preferredSize: Theme.iconSizeSmall
+            color: Theme.inkMuted
+            Layout.preferredWidth: Theme.iconSizeSmall
+            Layout.preferredHeight: Theme.iconSizeSmall
+        }
+
+        Label {
+            id: viewMetric
+            text: castViewsLabel.visible
+                  ? LocaleFormat.formatCompactNumber(Number(root.resolvedViewCount)) : ""
+            color: Theme.inkMuted
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.typeCaptionSize
+            font.weight: Theme.weightMedium
+        }
     }
 
     Item { Layout.fillWidth: true }

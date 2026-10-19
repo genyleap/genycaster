@@ -9,6 +9,7 @@ test('one shared QML singleton batches at most 16 visible cast view queries acro
   assert.match(cmake,/components\/CastViews.qml/);
   assert.match(cmake,/set_source_files_properties\(components\/CastViews.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE\)/);
   assert.match(provider,/pragma Singleton/);
+  assert.match(provider,/raw\.startsWith\("0x"\) \? raw : "0x" \+ raw/);
   assert.match(provider,/Object\.keys\(root\.pending\)\.slice\(0, 16\)/);
   assert.match(provider,/storage-farcaster\.genyleap\.com\/v1\/browser\/cast-views/);
   assert.match(provider,/xhr\.send\(JSON\.stringify\(\{casts: batch\}\)\)/);
@@ -24,6 +25,9 @@ test('every cast and reply uses the same view counter cache without replacing fe
   assert.match(bar,/return CastViews\.countFor\(root\.castId\)/);
   assert.match(bar,/resolvedViewCount !== null && root\.resolvedViewCount !== undefined/);
   assert.match(bar,/LocaleFormat\.formatCompactNumber\(Number\(root\.resolvedViewCount\)\)/);
+  assert.match(bar,/text: Theme\.iconPreview/);
+  assert.match(bar,/Accessible\.role: Accessible\.StaticText/);
+  assert.match(bar,/spacing: root\.compact \? Theme\.space1 : Theme\.space2/);
   assert.match(provider,/return value === undefined \? null : value/);
   for(const name of ['CastItem.qml','ThreadReplyItem.qml','DetailSurface.qml']){
     const text=read('ui/components/'+name);

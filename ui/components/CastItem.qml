@@ -794,6 +794,7 @@ Item {
 
                     EngagementBar {
                         Layout.fillWidth: true
+                        compact: root.compact
                         replyCount: Number(root.modelData.replyCount || 0)
                         recastCount: Number(root.modelData.recastCount || 0)
                         likeCount: Number(root.modelData.likeCount || 0)
@@ -874,6 +875,7 @@ Item {
 
                     EngagementBar {
                         Layout.fillWidth: true
+                        compact: root.compact
                         replyCount: Number(root.modelData.replyCount || 0)
                         recastCount: Number(root.modelData.recastCount || 0)
                         likeCount: Number(root.modelData.likeCount || 0)

@@ -477,6 +477,7 @@ Flickable {
                 }
 
                 EngagementBar {
+                    compact: root.compact
                     visible: root.activeView === "cast"
                     Layout.fillWidth: true
                     Layout.leftMargin: Theme.space1

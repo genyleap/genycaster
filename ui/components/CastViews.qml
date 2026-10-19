@@ -21,7 +21,8 @@ QtObject {
     }
 
     function normalizeHash(value) {
-        const hash = String(value || "").trim().toLowerCase()
+        const raw = String(value || "").trim().toLowerCase()
+        const hash = raw.startsWith("0x") ? raw : "0x" + raw
         return /^0x[0-9a-f]{40}$/.test(hash) ? hash : ""
     }
 
