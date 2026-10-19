@@ -142,6 +142,7 @@ struct Runtime final {
     std::optional<farcaster::application::read::async_service::ReadRequest> activeNotificationBadgeRequest{};
     std::optional<farcaster::application::read::async_service::ReadRequest> activeAccountProfileRequest{};
     std::optional<farcaster::application::read::async_service::ReadRequest> activeFollowingStoriesRequest{};
+    std::optional<farcaster::application::read::async_service::ReadRequest> activeFollowingActivityRequest{};
 
     Runtime() = default;
     Runtime(const Runtime&) = delete;
@@ -161,6 +162,7 @@ struct Runtime final {
     [[nodiscard]] bool isCurrentExplorerArtRequestGeneration(std::uint64_t generation) const noexcept;
     void keepExplorerArtRequest(farcaster::application::read::async_service::ReadRequest request);
     void keepFollowingStoriesRequest(farcaster::application::read::async_service::ReadRequest request);
+    void keepFollowingActivityRequest(farcaster::application::read::async_service::ReadRequest request);
     void cancelExplorerArtRequests();
     void cancelViewerReactionRequest();
     void cancelReferencedPreviewRequests();

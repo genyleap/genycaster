@@ -1317,6 +1317,25 @@ int main(int argc, char** argv)
         }
         collectibleItem->setVisible(false);
     }
+    // Regression: the same destination may appear once as a protocol embed
+    // and again as an inferred/referral link with a different sharedBy key.
+    // One visual link card must survive without swallowing meaningful IDs.
+    auto duplicateLinks = createSurface(engine, QStringLiteral("CastEmbedsPanel"), *scroll,
+        {{QStringLiteral("supportingEmbeds"), QVariantList{
+            QVariantMap{{QStringLiteral("kind"), QStringLiteral("link")},
+                        {QStringLiteral("url"), QStringLiteral("https://gm.lens.xyz?sharedBy=one")}},
+            QVariantMap{{QStringLiteral("kind"), QStringLiteral("link")},
+                        {QStringLiteral("url"), QStringLiteral("https://gm.lens.xyz/?sharedBy=two&utm_source=feed")}},
+            QVariantMap{{QStringLiteral("kind"), QStringLiteral("link")},
+                        {QStringLiteral("url"), QStringLiteral("https://example.test/post?id=7")}},
+            QVariantMap{{QStringLiteral("kind"), QStringLiteral("link")},
+                        {QStringLiteral("url"), QStringLiteral("https://example.test/post?id=8")}},
+        }}});
+    if (!duplicateLinks) { return 1; }
+    expect(duplicateLinks->property("supportingCount").toInt() == 3,
+           "matching referral links render one card, different content IDs remain distinct");
+    qobject_cast<QQuickItem*>(duplicateLinks.get())->setVisible(false);
+
     auto supportingPanel = createSurface(engine, QStringLiteral("CastEmbedsPanel"), *scroll,
         {{QStringLiteral("supportingEmbeds"), QVariantList{QVariantMap{
             {QStringLiteral("kind"), QStringLiteral("link")},

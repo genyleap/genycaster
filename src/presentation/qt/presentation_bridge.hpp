@@ -222,6 +222,8 @@ public:
     Q_INVOKABLE void refreshFollowingStories();
     /** @brief Applies an isolated Following graph read without navigating away from Explorer. */
     void applyFollowingStoryProfiles(qulonglong viewerFid, QVariantList profiles, bool finished, bool successful);
+    /** @brief Recent, clickable casts from the same viewer's Following timeline. */
+    void applyFollowingStoryActivities(qulonglong viewerFid, QVariantList activities, bool finished, bool successful);
     Q_INVOKABLE void openExternalUrl(const QString& url);
     /** @brief Opens an approved rich-media URL in Genycaster's isolated native web-media host. */
     Q_INVOKABLE void openEmbeddedMedia(const QString& url, const QString& title = {});
@@ -387,6 +389,7 @@ signals:
         bool allowRecoveryProbe);
     void explorerArtRequested();
     void followingStoriesRequested(qulonglong viewerFid);
+    void followingStoryActivitiesRequested(qulonglong viewerFid);
     void castRequested(QString castId, bool allowRecoveryProbe);
     void profileRequested(qulonglong fid, bool allowRecoveryProbe);
     void signInRequested(QString route);
@@ -452,9 +455,13 @@ private:
     QVariantMap m_reactionOverrides{};
     QVariantMap m_followOverrides{};
     QVariantList m_followingStoryProfiles{};
+    QHash<qulonglong, QVariantMap> m_followingStoryActivity{};
     qulonglong m_followingStoriesViewerFid{};
     bool m_followingStoriesLoaded{false};
     bool m_followingStoriesLoading{false};
+    bool m_followingActivityLoaded{false};
+    bool m_followingActivityLoading{false};
+    qint64 m_followingActivityCheckedAtMs{};
     qint64 m_followingStoriesCheckedAtMs{};
     QVariantMap m_followsMeSnapshot{};
     QHash<qulonglong, QVariantMap> m_profileDetailCache{};

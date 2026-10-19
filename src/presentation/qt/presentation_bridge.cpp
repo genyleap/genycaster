@@ -776,10 +776,38 @@ QVariantList PresentationBridge::rows() const { return m_rows; }
 QVariantList PresentationBridge::explorerArtRows() const { return m_explorerArtRows; }
 QVariantList PresentationBridge::followingStoryProfiles() const
 {
-    // Never expose a previous account's Follow graph, even transiently while
-    // the active session is switching or signing out.
-    return m_isAuthenticated && m_accountFid == m_followingStoriesViewerFid
-        ? m_followingStoryProfiles : QVariantList{};
+    // An avatar only becomes a Story after a real, clickable cast by a followed
+    // account has been observed in the viewer's Following timeline. An account
+    // with zero confirmed activity must not open an empty Posts profile.
+    if (!m_isAuthenticated || m_accountFid != m_followingStoriesViewerFid) {
+        return {};
+    }
+    QVariantList active{};
+    for (const auto& candidate : m_followingStoryProfiles) {
+        auto profile = candidate.toMap();
+        const qulonglong fid = profile.value(QStringLiteral("fid")).toULongLong();
+        const auto found = m_followingStoryActivity.constFind(fid);
+        if (found == m_followingStoryActivity.cend()) { continue; }
+        const QVariantMap& activity = *found;
+        if (activity.value(QStringLiteral("latestCastId")).toString().isEmpty()) {
+            continue;
+        }
+        for (auto it = activity.cbegin(); it != activity.cend(); ++it) {
+            profile.insert(it.key(), it.value());
+        }
+        active.push_back(profile);
+    }
+    std::ranges::sort(active, [](const QVariant& a, const QVariant& b) {
+        const auto lhs = a.toMap();
+        const auto rhs = b.toMap();
+        const qint64 left = lhs.value(QStringLiteral("createdAtMs")).toLongLong();
+        const qint64 right = rhs.value(QStringLiteral("createdAtMs")).toLongLong();
+        return left == right
+            ? lhs.value(QStringLiteral("fid")).toULongLong()
+                < rhs.value(QStringLiteral("fid")).toULongLong()
+            : left > right;
+    });
+    return active;
 }
 bool PresentationBridge::explorerArtBusy() const noexcept { return m_explorerArtBusy; }
 QVariantMap PresentationBridge::detail() const { return m_detail; }
@@ -1435,20 +1463,29 @@ void PresentationBridge::refreshFollowingStories()
     if (viewer != m_followingStoriesViewerFid) {
         m_followingStoriesViewerFid = viewer;
         m_followingStoryProfiles.clear();
+        m_followingStoryActivity.clear();
         m_followingStoriesLoaded = false;
         m_followingStoriesLoading = false;
         m_followingStoriesCheckedAtMs = 0;
+        m_followingActivityLoaded = false;
+        m_followingActivityLoading = false;
+        m_followingActivityCheckedAtMs = 0;
         emit followingStoriesChanged();
     }
-    if (viewer == 0U || !m_runtimeReady || m_followingStoriesLoading) {
-        return;
-    }
+    if (viewer == 0U || !m_runtimeReady) { return; }
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
-    if (m_followingStoriesLoaded && now - m_followingStoriesCheckedAtMs < 180'000) {
-        return;
+    if (!m_followingStoriesLoading &&
+        (!m_followingStoriesLoaded || now - m_followingStoriesCheckedAtMs >= 180'000)) {
+        m_followingStoriesLoading = true;
+        emit followingStoriesRequested(viewer);
     }
-    m_followingStoriesLoading = true;
-    emit followingStoriesRequested(viewer);
+    // One bounded shared Following read supplies real recent cast targets.
+    // Avoid N per-profile requests and UI-thread ranking work.
+    if (!m_followingActivityLoading &&
+        (!m_followingActivityLoaded || now - m_followingActivityCheckedAtMs >= 180'000)) {
+        m_followingActivityLoading = true;
+        emit followingStoryActivitiesRequested(viewer);
+    }
 }
 
 void PresentationBridge::applyFollowingStoryProfiles(
@@ -1469,6 +1506,42 @@ void PresentationBridge::applyFollowingStoryProfiles(
     if (m_followingStoryProfiles == profiles) { return; }
     m_followingStoryProfiles = std::move(profiles);
     emit followingStoriesChanged();
+}
+
+void PresentationBridge::applyFollowingStoryActivities(
+    const qulonglong viewer, QVariantList activities, const bool finished, const bool successful)
+{
+    if (viewer != m_followingStoriesViewerFid || viewer != m_accountFid
+        || !m_isAuthenticated) {
+        return;
+    }
+    if (finished) {
+        m_followingActivityLoading = false;
+        m_followingActivityLoaded = successful;
+        if (successful) {
+            m_followingActivityCheckedAtMs = QDateTime::currentMSecsSinceEpoch();
+        }
+    }
+    if (!successful && activities.isEmpty()) { return; }
+    bool updated = false;
+    for (const auto& value : activities) {
+        const QVariantMap item = value.toMap();
+        const qulonglong author = item.value(QStringLiteral("fid")).toULongLong();
+        const QString castId = canonicalProtocolCastId(
+            item.value(QStringLiteral("latestCastId")).toString());
+        if (author == 0U || castId.isEmpty()) { continue; }
+        const qint64 createdAt = item.value(QStringLiteral("createdAtMs")).toLongLong();
+        const auto prior = m_followingStoryActivity.constFind(author);
+        if (prior != m_followingStoryActivity.cend()
+            && prior->value(QStringLiteral("createdAtMs")).toLongLong() >= createdAt) {
+            continue;
+        }
+        QVariantMap normalized = item;
+        normalized.insert(QStringLiteral("latestCastId"), castId);
+        m_followingStoryActivity.insert(author, std::move(normalized));
+        updated = true;
+    }
+    if (updated) { emit followingStoriesChanged(); }
 }
 
 void PresentationBridge::requestExplorerArt()

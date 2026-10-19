@@ -33,7 +33,10 @@ Item {
             displayName: String(modelData.displayName || modelData.username || "")
             username: String(modelData.username || "")
             avatarUrl: String(modelData.avatarUrl || "")
-            storyState: "active"
+            // Solid accent rings indicate fresh activity within 24 hours.
+            // Older verified activity remains tappable but visually recedes.
+            storyState: Number(modelData.createdAtMs || 0) >= Date.now() - 86400000
+                        ? "active" : "viewed"
             activityKind: String(modelData.activityKind || "cast")
             onActivated: root.profileRequested(modelData)
         }

@@ -211,6 +211,15 @@ void Runtime::keepFollowingStoriesRequest(application::read::async_service::Read
     activeFollowingStoriesRequest = std::move(request);
 }
 
+void Runtime::keepFollowingActivityRequest(application::read::async_service::ReadRequest request)
+{
+    std::scoped_lock lock{requestMutex};
+    if (activeFollowingActivityRequest) {
+        activeFollowingActivityRequest->cancel();
+    }
+    activeFollowingActivityRequest = std::move(request);
+}
+
 void Runtime::cancelExplorerArtRequests()
 {
     explorerArtRequestGeneration.fetch_add(1U, std::memory_order_acq_rel);

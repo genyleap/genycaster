@@ -72,22 +72,29 @@ ColumnLayout {
 
     function canonicalUrl(value) {
         let text = String(value || "").trim()
-        if (text.length === 0)
-            return ""
-        const fragment = text.indexOf("#")
-        if (fragment >= 0)
-            text = text.substring(0, fragment)
-        while (text.length > 1 && text.endsWith("/"))
-            text = text.slice(0, -1)
+        if (!text) return ""
+        text = text.split("#")[0]
         const scheme = text.indexOf("://")
-        if (scheme < 0)
-            return text
-        const prefix = text.substring(0, scheme).toLowerCase()
-        const remainder = text.substring(scheme + 3)
-        const slash = remainder.indexOf("/")
-        const authority = (slash >= 0 ? remainder.substring(0, slash) : remainder).toLowerCase()
-        const path = slash >= 0 ? remainder.substring(slash) : ""
-        return prefix + "://" + authority + path
+        if (scheme < 0) return text
+        const rest = text.substring(scheme + 3)
+        let boundary = rest.length
+        const slash = rest.indexOf("/")
+        const question = rest.indexOf("?")
+        if (slash >= 0) boundary = Math.min(boundary, slash)
+        if (question >= 0) boundary = Math.min(boundary, question)
+        const host = rest.substring(0, boundary).toLowerCase()
+        const tail = rest.substring(boundary)
+        const queryStart = tail.indexOf("?")
+        let path = queryStart >= 0 ? tail.substring(0, queryStart) : tail
+        while (path.endsWith("/")) path = path.slice(0, -1)
+        // Only discard attribution/tracking parameters; keep meaningful IDs.
+        const rawQuery = queryStart >= 0 ? tail.substring(queryStart + 1) : ""
+        const query = rawQuery.split("&").filter(part => {
+            if (!part) return false
+            const key = part.split("=")[0].toLowerCase()
+            return !/^(?:utm_[a-z0-9_]+|fbclid|gclid|igshid|ref|referrer|sharedby|si|mc_cid|mc_eid)$/.test(key)
+        }).sort().join("&")
+        return "https://" + host + path + (query ? "?" + query : "")
     }
 
     function embedKey(embed) {

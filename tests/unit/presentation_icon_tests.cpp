@@ -10,6 +10,72 @@
 
 namespace {
 
+void testFollowingStoriesPrioritizeVerifiedClickableActivity()
+{
+    PresentationBridge bridge{};
+    bridge.applyAuthenticationState(
+        true, QStringLiteral("authenticated"), 42,
+        QStringLiteral("viewer"), QStringLiteral("Viewer"), {}, {}, {}, {});
+    bridge.refreshFollowingStories();
+
+    bridge.applyFollowingStoryProfiles(42, {
+        QVariantMap{{QStringLiteral("fid"), 12U},
+                    {QStringLiteral("username"), QStringLiteral("first")}},
+        QVariantMap{{QStringLiteral("fid"), 15U},
+                    {QStringLiteral("username"), QStringLiteral("second")}},
+        QVariantMap{{QStringLiteral("fid"), 77U},
+                    {QStringLiteral("username"), QStringLiteral("inactive")}},
+    }, true, true);
+
+    const QString firstCast = QStringLiteral("a").repeated(40);
+    const QString secondCast = QStringLiteral("b").repeated(40);
+    bridge.applyFollowingStoryActivities(42, {
+        QVariantMap{{QStringLiteral("fid"), 15U},
+                    {QStringLiteral("latestCastId"), secondCast},
+                    {QStringLiteral("createdAtMs"), 1000LL}},
+        QVariantMap{{QStringLiteral("fid"), 12U},
+                    {QStringLiteral("latestCastId"), firstCast},
+                    {QStringLiteral("createdAtMs"), 2000LL},
+                    {QStringLiteral("activityKind"), QStringLiteral("reply")}},
+        // This author is not followed and must never become a public story.
+        QVariantMap{{QStringLiteral("fid"), 123U},
+                    {QStringLiteral("latestCastId"), firstCast},
+                    {QStringLiteral("createdAtMs"), 4000LL}},
+        QVariantMap{{QStringLiteral("fid"), 77U},
+                    {QStringLiteral("latestCastId"), QStringLiteral("invalid")}},
+    }, true, true);
+
+    const auto first = bridge.followingStoryProfiles();
+    assert(first.size() == 2);
+    assert(first[0].toMap().value(QStringLiteral("username")).toString()
+        == QStringLiteral("first"));
+    assert(first[0].toMap().value(QStringLiteral("latestCastId")).toString()
+        == QStringLiteral("0x") + firstCast);
+    assert(first[0].toMap().value(QStringLiteral("activityKind")).toString()
+        == QStringLiteral("reply"));
+
+    // A newer observed cast moves a previously older follow to the front.
+    bridge.applyFollowingStoryActivities(42, {
+        QVariantMap{{QStringLiteral("fid"), 15U},
+                    {QStringLiteral("latestCastId"), secondCast},
+                    {QStringLiteral("createdAtMs"), 3000LL}},
+    }, true, true);
+    assert(bridge.followingStoryProfiles()[0].toMap()
+        .value(QStringLiteral("username")).toString() == QStringLiteral("second"));
+
+    // One failed refresh must not make a known clickable activity disappear.
+    bridge.applyFollowingStoryActivities(42, {}, true, false);
+    assert(bridge.followingStoryProfiles().size() == 2);
+
+    // An account switch invalidates both the follow graph and its activity.
+    bridge.applyAuthenticationState(
+        true, QStringLiteral("authenticated"), 43,
+        QStringLiteral("other"), QStringLiteral("Other"), {}, {}, {}, {});
+    assert(bridge.followingStoryProfiles().isEmpty());
+    bridge.refreshFollowingStories();
+    assert(bridge.followingStoryProfiles().isEmpty());
+}
+
 void testContextualReactionPriorityAndBoundaries()
 {
     PresentationBridge bridge{};
@@ -531,6 +597,7 @@ void testSourceSwitchAdmitsCachedTimeline()
 int main(int argc, char* argv[])
 {
     QCoreApplication application{argc, argv};
+    testFollowingStoriesPrioritizeVerifiedClickableActivity();
     testContextualReactionPriorityAndBoundaries();
     testReplyCanonicalizationForPublicFeedHashes();
     testExplicitExplorerRefreshRevealsLatestPage();

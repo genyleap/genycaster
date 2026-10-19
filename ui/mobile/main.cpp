@@ -3528,6 +3528,65 @@ void connectRuntime(
             }
         });
 
+    QObject::connect(&bridge, &PresentationBridge::followingStoryActivitiesRequested, &bridge,
+        [&bridge, runtime](const qulonglong viewerFid) {
+            if (viewerFid == 0U || viewerFid != bridge.accountFid()
+                || !bridge.isAuthenticated()) {
+                return;
+            }
+            application::read::model::FeedQuery query{
+                .kind = application::read::model::FeedQuery::Kind::Following,
+                .fid = domain::identity::Fid{static_cast<std::uint64_t>(viewerFid)},
+                .limit = 80U,
+            };
+            auto request = runtime->service->openFeed(
+                std::move(query),
+                [&bridge, viewerFid](application::read::model::FeedState state) {
+                    const bool finished = !isBusy(state.metadata);
+                    const bool successful = !state.metadata.error.has_value();
+                    QHash<qulonglong, QVariantMap> latest{};
+                    if (successful) {
+                        for (const auto& cast : state.casts) {
+                            const qulonglong fid = cast.author.value;
+                            const qint64 when = static_cast<qint64>(
+                                cast.createdAt.time_since_epoch().count());
+                            if (fid == 0U || cast.id.value.empty()) { continue; }
+                            const auto prior = latest.constFind(fid);
+                            if (prior != latest.cend()
+                                && prior->value(QStringLiteral("createdAtMs")).toLongLong() >= when) {
+                                continue;
+                            }
+                            latest.insert(fid, QVariantMap{
+                                {QStringLiteral("fid"), fid},
+                                {QStringLiteral("latestCastId"), QString::fromStdString(cast.id.value)},
+                                {QStringLiteral("createdAtMs"), when},
+                                {QStringLiteral("activityKind"), cast.parent
+                                    ? QStringLiteral("reply") : QStringLiteral("cast")},
+                            });
+                        }
+                    }
+                    QVariantList activities{};
+                    activities.reserve(latest.size());
+                    for (auto it = latest.cbegin(); it != latest.cend(); ++it) {
+                        activities.push_back(it.value());
+                    }
+                    QMetaObject::invokeMethod(&bridge,
+                        [&bridge, viewerFid, activities = std::move(activities),
+                         finished, successful]() mutable {
+                            bridge.applyFollowingStoryActivities(
+                                viewerFid, std::move(activities), finished, successful);
+                        }, Qt::QueuedConnection);
+                },
+                application::read::model::ReadOptions{
+                    .intent = application::read::model::ReadIntent::Prefetch,
+                });
+            if (request) {
+                runtime->keepFollowingActivityRequest(std::move(*request));
+            } else {
+                bridge.applyFollowingStoryActivities(viewerFid, {}, true, false);
+            }
+        });
+
     QObject::connect(&bridge, &PresentationBridge::socialRequested, &bridge,
         [&bridge, runtime](const QString& kind, const qulonglong fid,
             const QString& continuation, const bool allowRecoveryProbe) {

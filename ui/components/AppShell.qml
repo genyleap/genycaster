@@ -477,10 +477,15 @@ Item {
                     else root.shellRoute = "spaces"
                 }
                 onRecentProfileRequested: profile => {
-                    const username = String(profile && profile.username ? profile.username : "")
-                    const fid = Number(profile && profile.fid ? profile.fid : 0)
-                    if (username.length > 0) root.openSuggestedProfile(username)
-                    else if (fid > 0) { root.shellRoute = ""; presentationBridge.openProfileFid(fid) }
+                    // A Story is a verified recent activity, not a shortcut to
+                    // the profile's root-only Posts tab (which can be empty
+                    // even when the person is actively replying).
+                    const castId = String(profile && profile.latestCastId
+                                          ? profile.latestCastId : "")
+                    if (castId.length === 0) return
+                    root.clearPendingShellReturn()
+                    root.shellRoute = ""
+                    presentationBridge.openCast(castId)
                 }
                 onAuthenticationRequested: root.openAccountPopup()
                 onSearchRequested: searchPalette.open()
