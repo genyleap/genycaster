@@ -43,6 +43,7 @@ test('quote action travels from every cast list to a protocol cast-reference', (
         const source = read('ui/components/' + file);
         assert.match(source, /signal quoteRequested\(var cast\)/, file);
         assert.match(source, /onQuoteRequested:/, file);
+        assert.doesNotMatch(source, /function on[A-Za-z]+:/, file);
     }
     assert.match(shell, /function openQuoteComposer\(cast\)/);
     assert.match(shell, /onQuoteRequested: cast => root\.openQuoteComposer\(cast\)/);

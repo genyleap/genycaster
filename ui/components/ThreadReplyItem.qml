@@ -341,7 +341,7 @@ ColumnLayout {
                 function onProfileRequested(fid) { root.profileRequested(fid) }
                 function onReplyRequested(cast) { root.replyRequested(cast) }
                 function onQuoteRequested(cast) { root.quoteRequested(cast) }
-                function onReactionRequested:(kind, cast, active) {
+                function onReactionRequested(kind, cast, active) {
                     root.reactionRequested(kind, cast, active)
                 }
                 function onExternalRequested(url) { root.externalRequested(url) }
