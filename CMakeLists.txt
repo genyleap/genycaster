@@ -312,14 +312,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(CTest)
 
 if(FARCASTER_BUILD_UI)
-    find_package(Qt6 6.6 REQUIRED COMPONENTS Quick Qml QuickControls2 Network Multimedia Concurrent LinguistTools)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Quick Qml QuickControls2 Network Multimedia Concurrent LinguistTools)
     set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qml")
 
     if(QT_KNOWN_POLICY_QTP0004)
         qt_policy(SET QTP0004 NEW)
     endif()
 
-    qt_standard_project_setup(REQUIRES 6.6)
+    qt_standard_project_setup(REQUIRES 6.12)
 endif()
 
 add_subdirectory(src/foundation)

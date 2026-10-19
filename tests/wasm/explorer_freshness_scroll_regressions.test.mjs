@@ -103,3 +103,15 @@ test('Recent has independent native C++ cache, routing and Explorer presentation
     assert.match(cpp, /"\/v2\/farcaster\/cast\/bulk"/);
     assert.match(cpp, /encodeRecentCursor/);
 });
+
+test('native UI and WebAssembly require Qt 6.12 and offer a pinned host preset', () => {
+    const root = read('CMakeLists.txt');
+    const presets = JSON.parse(read('CMakePresets.json'));
+    assert.match(root, /find_package\(Qt6 6\.12 REQUIRED COMPONENTS/);
+    assert.match(root, /qt_standard_project_setup\(REQUIRES 6\.12\)/);
+    const preset = presets.configurePresets.find(item => item.name === 'ui-qt612-debug');
+    assert.equal(preset.inherits, 'ui-debug');
+    assert.equal(preset.cacheVariables.Qt6_DIR,
+        '/opt/genycaster/Qt/6.12.0/gcc_64/lib/cmake/Qt6');
+    assert.equal(preset.cacheVariables.CMAKE_CXX_COMPILER, '/opt/gcc-16.2.0/bin/c++');
+});

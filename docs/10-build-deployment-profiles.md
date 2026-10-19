@@ -28,7 +28,7 @@ Headless protocol-signer profile. It keeps read/auth providers and Qt disabled w
 
 ### `ui-debug`
 
-Qt Quick debug surface with tests. Requires Qt 6.6+ and must additionally pass strict QML lint and warning-fatal smoke verification. The preset explicitly compiles the Hypersnap adapter because it is the only implemented live-read UI provider in the current checkpoint.
+Qt Quick debug surface with tests. Requires Qt 6.12+ and must additionally pass strict QML lint and warning-fatal smoke verification. Use `cmake --preset ui-qt612-debug` and `cmake --build --preset ui-qt612-debug` on the Genycaster build server to select the version-pinned `/opt/genycaster/Qt/6.12.0/gcc_64` host toolchain and GCC 16. The `ui-debug` preset is retained for generic development, but it also requires Qt 6.12 or newer; do not reuse a Qt 6.11 CMake build directory because compiler module artifacts are toolchain-specific. The preset explicitly compiles the Hypersnap adapter because it is the only implemented live-read UI provider in the current checkpoint.
 
 ### Fresh IDE/default UI configuration
 

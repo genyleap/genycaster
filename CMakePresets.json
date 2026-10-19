@@ -122,6 +122,17 @@
       }
     },
     {
+      "name": "ui-qt612-debug",
+      "displayName": "Qt 6.12 Native UI Debug (GCC 16)",
+      "inherits": "ui-debug",
+      "binaryDir": "${sourceDir}/build/ui-qt612-debug",
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "/opt/genycaster/Qt/6.12.0/gcc_64",
+        "Qt6_DIR": "/opt/genycaster/Qt/6.12.0/gcc_64/lib/cmake/Qt6",
+        "CMAKE_CXX_COMPILER": "/opt/gcc-16.2.0/bin/c++"
+      }
+    },
+    {
       "name": "ui-debug",
       "displayName": "Qt Quick Debug",
       "inherits": "core-debug",
@@ -183,6 +194,10 @@
     {
       "name": "ui-debug",
       "configurePreset": "ui-debug"
+    },
+    {
+      "name": "ui-qt612-debug",
+      "configurePreset": "ui-qt612-debug"
     }
   ],
   "testPresets": [
@@ -252,6 +267,13 @@
     {
       "name": "ui-debug",
       "configurePreset": "ui-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "ui-qt612-debug",
+      "configurePreset": "ui-qt612-debug",
       "output": {
         "outputOnFailure": true
       }
