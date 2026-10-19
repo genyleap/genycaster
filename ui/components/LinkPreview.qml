@@ -43,6 +43,17 @@ Superellipse {
     // Reserve the pending artwork slot before asynchronous metadata arrives.
     // The reservation is frozen per URL; removing the thumbnail after a failed
     // OpenGraph lookup would otherwise change row height while scrolling.
+    // Latch terminal artwork failure independently from Image geometry. Binding
+    // a frame height directly to Image.loadFailed can oscillate: collapsing the
+    // frame clears Image.source and resets the error, growing it again.
+    property bool miniAppArtworkUnavailable: false
+    property bool richArtworkUnavailable: false
+    property bool genericArtworkUnavailable: false
+    onPreviewSourceChanged: {
+        root.miniAppArtworkUnavailable = false
+        root.richArtworkUnavailable = false
+        root.genericArtworkUnavailable = false
+    }
     readonly property bool reserveArtwork: !root.suppressArtwork
                                            && (root.reservedLayout.artwork
                                                || root.previewSource.length > 0)
@@ -108,9 +119,20 @@ Superellipse {
                                                || root.embed.title || root.embed.fileName
                                                || root.siteName || root.domainText)
     readonly property string summaryText: String(root.previewData.summary || root.embed.summary || root.embed.description || "")
-    readonly property string previewSource: String(root.previewData.previewImage
-                                                   || root.embed.imageSource || root.embed.previewImage
-                                                   || root.knownMiniApp.iconSource || "")
+    readonly property string rawPreviewSource: String(root.previewData.previewImage
+                                                      || root.embed.imageSource || root.embed.previewImage
+                                                      || root.knownMiniApp.iconSource || "")
+    // Browser-resolved OpenGraph and catalogue pictures may be raw HTTPS URLs.
+    // Route them through the same bounded remote-image provider as native QML
+    // metadata so CORS, cache policy and image decoding behave identically.
+    readonly property string previewSource: {
+        const source = root.rawPreviewSource.trim()
+        if (/^image:\/\/remote\//i.test(source) || /^qrc:\//i.test(source))
+            return source
+        if (/^https?:\/\//i.test(source))
+            return linkPreviewResolver.imageSourceForUrl(source)
+        return ""
+    }
     readonly property string animatedPosterUrl: {
         const raw = String(root.previewData.animatedPoster || "")
         return /^https:\/\/[^\s?#]+\.gif(?:\?[^#]*)?$/i.test(raw)
@@ -174,7 +196,7 @@ Superellipse {
                    : ["youtube", "spotify", "apple-music", "soundcloud", "video"].indexOf(hint) >= 0
                    ? "poster" : "generic"
         return ({kind: kind, aspect: kind === "miniapp" ? 3 / 2 : 16 / 9,
-                 artwork: kind !== "generic" || root.targetUrl.length > 0})
+                 artwork: kind !== "generic" || root.previewSource.length > 0})
     }
 
     function initialLayout() {
@@ -189,8 +211,7 @@ Superellipse {
         const height = Number(metadata.imageHeight || root.embed.imageHeight || 0)
         const aspect = width > 0 && height > 0 ? width / height : kind === "miniapp" ? 3 / 2 : 16 / 9
         return { kind: kind, aspect: aspect,
-                 artwork: kind !== "generic" || !Boolean(metadata.resolved)
-                          || String(metadata.previewImage || root.embed.imageSource || root.embed.previewImage || "").length > 0 }
+                 artwork: kind !== "generic" || root.previewSource.length > 0 }
     }
 
     // Freeze only geometry, not metadata/actions. A cold URL gets a reserved
@@ -446,7 +467,7 @@ Superellipse {
     // lines upfront so asynchronous metadata never grows an existing feed row.
     // Use semantic line metrics instead of a fixed pixel size for text scaling.
     readonly property real genericReservedHeight: Math.max(
-        root.compact ? 150 : 186,
+        root.reserveArtwork ? (root.compact ? 150 : 186) : (root.compact ? 92 : 104),
         (root.castCaption.length > 0 ? root.bodyLineHeight * 2 + Theme.space2 : 0)
            + 20 + root.bodyLineHeight * (root.compact ? 1 : 2)
            + root.metaLineHeight * (root.compact ? 1 : 2)
@@ -554,10 +575,12 @@ Superellipse {
 
             Item {
                 id: miniAppPosterFrame
-                readonly property real readyHeight: Math.max(root.compact ? 158 : 184,
-                                                              Math.min(root.compact ? 420 : 640,
-                                                                       width / Math.max(0.5, Math.min(3.0, root.previewImageAspect))))
-                readonly property real targetHeight: root.reserveArtwork ? readyHeight : 0
+                readonly property real readyHeight: Math.max(root.compact ? 116 : 142,
+                                                              Math.min(root.compact ? 220 : 280,
+                                                                       width / Math.max(0.8, Math.min(3.0, root.previewImageAspect))))
+                // Missing/failed artwork is metadata, not 640px of blank canvas.
+                readonly property real targetHeight: root.reserveArtwork
+                    && root.previewSource.length > 0 && !root.miniAppArtworkUnavailable ? readyHeight : 0
                 visible: targetHeight > 0
                 Layout.fillWidth: true
                 Layout.preferredHeight: targetHeight
@@ -584,6 +607,10 @@ Superellipse {
 
                 SuperellipseImage {
                     id: miniAppPoster
+                    onLoadFailedChanged: {
+                        if (loadFailed && root.previewSource.length > 0)
+                            root.miniAppArtworkUnavailable = true
+                    }
                     anchors.fill: parent
                     visible: root.previewSource.length > 0
                     source: root.previewSource
@@ -735,10 +762,11 @@ Superellipse {
 
             Item {
                 id: richPosterFrame
-                readonly property real readyHeight: Math.max(root.compact ? 148 : 176,
-                                                              Math.min(root.compact ? 360 : 560,
-                                                                       width / Math.max(0.5, Math.min(3.0, root.previewImageAspect))))
-                readonly property real targetHeight: readyHeight
+                readonly property real readyHeight: Math.max(root.compact ? 116 : 142,
+                                                              Math.min(root.compact ? 238 : 328,
+                                                                       width / Math.max(0.75, Math.min(3.0, root.previewImageAspect))))
+                readonly property real targetHeight: root.previewSource.length > 0
+                    && !root.richArtworkUnavailable ? readyHeight : 0
                 visible: targetHeight > 0
                 Layout.fillWidth: true
                 Layout.preferredHeight: targetHeight
@@ -764,10 +792,15 @@ Superellipse {
 
                 SuperellipseImage {
                     id: richPoster
+                    onLoadFailedChanged: {
+                        if (loadFailed && root.previewSource.length > 0)
+                            root.richArtworkUnavailable = true
+                    }
                     anchors.fill: parent
                     visible: root.previewSource.length > 0
                     source: root.previewSource
                     mediaCategory: "link-previews"
+                    forceAutomaticDownload: true
                     requestedSourceWidth: Math.max(640, Math.round(width))
                     requestedSourceHeight: Math.max(360, Math.round(height))
                     // Poster-first link previews may contain titles or UI chrome.
@@ -1009,6 +1042,8 @@ Superellipse {
             Item {
                 id: genericThumbFrame
                 readonly property bool shouldReserve: root.reserveArtwork
+                                                     && root.previewSource.length > 0
+                                                     && !root.genericArtworkUnavailable
                 visible: shouldReserve
                 Layout.preferredWidth: shouldReserve ? (root.compact ? 116 : 184) : 0
                 Layout.preferredHeight: shouldReserve ? (root.compact ? 116 : 156) : 0
@@ -1034,10 +1069,15 @@ Superellipse {
 
                 SuperellipseImage {
                     id: genericThumb
+                    onLoadFailedChanged: {
+                        if (loadFailed && root.previewSource.length > 0)
+                            root.genericArtworkUnavailable = true
+                    }
                     anchors.fill: parent
                     visible: root.previewSource.length > 0
                     source: root.previewSource
                     mediaCategory: "link-previews"
+                    forceAutomaticDownload: true
                     requestedSourceWidth: Math.max(320, Math.round(width))
                     requestedSourceHeight: Math.max(240, Math.round(height))
                     fillMode: Image.PreserveAspectCrop

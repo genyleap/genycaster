@@ -10,7 +10,17 @@ Superellipse {
     property bool scrollMoving: false
 
     readonly property string targetUrl: String(root.embed.url || root.embed.value || "")
-    readonly property string artworkSource: String(root.embed.imageSource || root.embed.artwork || root.embed.previewImage || "")
+    readonly property string rawArtworkSource: String(root.embed.imageSource || root.embed.artwork || root.embed.previewImage || "")
+    property bool artworkUnavailable: false
+    onArtworkSourceChanged: root.artworkUnavailable = false
+    readonly property string artworkSource: {
+        const source = root.rawArtworkSource.trim()
+        if (/^image:\/\/remote\//i.test(source) || /^qrc:\//i.test(source))
+            return source
+        if (/^https?:\/\//i.test(source))
+            return linkPreviewResolver.imageSourceForUrl(source)
+        return ""
+    }
     readonly property string titleText: String(root.embed.title || root.embed.collection
                                                || qsTrId("genycaster.collectible.default_title"))
     readonly property string collectionText: String(root.embed.collection || "")
@@ -100,9 +110,12 @@ Superellipse {
 
         Item {
             id: artworkFrame
+            // A mint page with missing artwork is still a valid destination,
+            // but must not occupy a giant empty image pane.
+            visible: root.artworkSource.length > 0 && !root.artworkUnavailable
             Layout.fillWidth: !root.horizontalCard
             Layout.preferredWidth: root.horizontalCard ? root.artworkWidth : -1
-            Layout.preferredHeight: root.artworkHeight
+            Layout.preferredHeight: visible ? root.artworkHeight : 0
             Layout.alignment: Qt.AlignTop
 
             AmbientMediaBackdrop {
@@ -118,9 +131,16 @@ Superellipse {
 
             SuperellipseImage {
                 id: collectibleArtwork
+                onLoadFailedChanged: {
+                    if (loadFailed && root.artworkSource.length > 0)
+                        root.artworkUnavailable = true
+                }
                 anchors.fill: parent
                 source: root.artworkSource
                 mediaCategory: "nfts"
+                forceAutomaticDownload: true
+                requestedSourceWidth: 520
+                requestedSourceHeight: 360
                 fillMode: Image.PreserveAspectFit
                 fillColor: Theme.backgroundSecondary
                 borderWidth: 0

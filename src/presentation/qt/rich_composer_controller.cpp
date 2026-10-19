@@ -1300,6 +1300,36 @@ bool RichComposerController::insertEmbed(const QString& url, const QString& titl
     return true;
 }
 
+bool RichComposerController::insertCastReference(const QString& castId, const qulonglong authorFid)
+{
+    const QString normalized = castId.trimmed();
+    if (authorFid == 0 || m_impl->document.blocks.size() >= farcaster::domain::rich::MaxDocumentBlocks
+        || normalized.size() != 42 || !normalized.startsWith(QStringLiteral("0x")))
+        return false;
+    for (qsizetype index = 2; index < normalized.size(); ++index) {
+        const char16_t digit = normalized.at(index).unicode();
+        if (!((digit >= u'0' && digit <= u'9')
+              || (digit >= u'a' && digit <= u'f')
+              || (digit >= u'A' && digit <= u'F')))
+            return false;
+    }
+    using namespace farcaster::domain::rich;
+    RichBlock block{
+        .id = makeBlockId(m_impl->revision + 1U, "cast-reference"),
+        .kind = BlockKind::CastReference,
+        .payload = CastReferenceBlock{
+            .castId = normalized.toUtf8().toStdString(),
+            .author = farcaster::domain::identity::Fid{authorFid},
+        },
+    };
+    m_impl->pushHistory();
+    m_impl->document.blocks.push_back(std::move(block));
+    m_impl->syncMarkdownFromDocument();
+    m_impl->rebuild();
+    m_impl->markDirty();
+    return true;
+}
+
 bool RichComposerController::insertMedia(
     const QString& url, const QString& mediaType, const QString& altText, const int afterIndex)
 {

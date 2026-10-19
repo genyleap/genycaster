@@ -9,6 +9,8 @@ RowLayout {
     property int replyCount: 0
     property int recastCount: 0
     property int likeCount: 0
+    // Optional verified impressions; unavailable provider values stay absent.
+    property var viewCount: null
     property bool replyInteractive: false
     property bool recastInteractive: false
     property bool likeInteractive: false
@@ -22,6 +24,7 @@ RowLayout {
                                                  ? "actions/heart-filled" : root.contextualLikeIcon
 
     signal replyRequested()
+    signal quoteRequested()
     signal recastRequested(bool active)
     signal likeRequested(bool active)
     signal authenticationRequested()
@@ -61,6 +64,24 @@ RowLayout {
                          ? qsTrId("genycaster.engagement.unlike_value_likes").arg(LocaleFormat.formatInteger(root.likeCount))
                          : qsTrId("genycaster.engagement.like_value_likes").arg(LocaleFormat.formatInteger(root.likeCount))
         onClicked: root.likeInteractive ? root.likeRequested(!root.likedByMe) : root.authenticationRequested()
+    }
+
+    EngagementButton {
+        objectName: "castQuoteButton"
+        iconGlyph: Theme.iconQuote
+        enabled: true
+        Accessible.name: qsTrId("genycaster.composer.quote")
+        onClicked: root.quoteRequested()
+    }
+
+    EngagementButton {
+        objectName: "castViewCount"
+        visible: root.viewCount !== null && root.viewCount !== undefined
+                 && Number(root.viewCount) >= 0 && isFinite(Number(root.viewCount))
+        iconGlyph: "eye"
+        metricText: visible ? LocaleFormat.formatInteger(Number(root.viewCount)) : ""
+        enabled: false
+        Accessible.name: "Views: " + metricText
     }
 
     Item { Layout.fillWidth: true }

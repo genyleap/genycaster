@@ -323,7 +323,14 @@ Item {
         presentationBridge.openSearchQuery(String(username || ""))
     }
 
-    function openComposer(parentCast, initialAction, suggestedText) {
+    function openQuoteComposer(cast) {
+        if (!cast || !/^0x[0-9a-f]{40}$/i.test(String(cast.castId || ""))
+                || Number(cast.authorFid || 0) <= 0)
+            return
+        root.openComposer(null, "quote", "", cast)
+    }
+
+    function openComposer(parentCast, initialAction, suggestedText, quoteCast) {
         if (!presentationBridge.isAuthenticated || !presentationBridge.writeReady) {
             accountPopup.open()
             return
@@ -358,6 +365,7 @@ Item {
             composerParent = null
         }
         composerDrawer.parentCast = composerParent
+        composerDrawer.quotedCast = initialAction === "quote" ? (quoteCast || null) : null
         composerDrawer.initialAction = String(initialAction || "")
         composerDrawer.transientDraft = false
         composerDrawer.suggestedText = String(suggestedText || "")
@@ -925,6 +933,7 @@ Item {
                                             onCastRequested: castId => presentationBridge.openCast(castId)
                                             onProfileRequested: fid => presentationBridge.openProfileFid(fid)
                                             onReplyRequested: cast => root.openComposer(cast)
+                                            onQuoteRequested: cast => root.openQuoteComposer(cast)
                                             onReactionRequested: (kind, cast, active) =>
                                                 presentationBridge.setReaction(kind, Number(cast.authorFid || 0), String(cast.castId || ""), active)
                                             onRemoveCastRequested: cast =>
@@ -988,6 +997,7 @@ Item {
                                             onCastRequested: castId => presentationBridge.openCast(castId)
                                             onProfileRequested: fid => presentationBridge.openProfileFid(fid)
                                             onReplyRequested: cast => root.openComposer(cast)
+                                            onQuoteRequested: cast => root.openQuoteComposer(cast)
                                             onReactionRequested: (kind, cast, active) =>
                                                 presentationBridge.setReaction(kind, Number(cast.authorFid || 0), String(cast.castId || ""), active)
                                             onFollowingMutationRequested: (targetFid, following) =>
@@ -1037,6 +1047,7 @@ Item {
                                             onCastRequested: castId => presentationBridge.openCast(castId)
                                             onProfileRequested: fid => presentationBridge.openProfileFid(fid)
                                             onReplyRequested: cast => root.openComposer(cast)
+                                            onQuoteRequested: cast => root.openQuoteComposer(cast)
                                             onReactionRequested: (kind, cast, active) =>
                                                 presentationBridge.setReaction(kind, Number(cast.authorFid || 0), String(cast.castId || ""), active)
                                             onRemoveCastRequested: cast =>

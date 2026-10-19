@@ -102,6 +102,8 @@ public:
         int blockIndex, int selectionStart, int selectionLength, const QString& target);
     /** @brief Inserts optional enhancement blocks without making them required for plain-text rendering. */
     Q_INVOKABLE bool insertEmbed(const QString& url, const QString& title = {}, int afterIndex = -1);
+    /** @brief Inserts a protocol-native quoted Cast, not an external URL. */
+    Q_INVOKABLE bool insertCastReference(const QString& castId, qulonglong authorFid);
     Q_INVOKABLE bool insertMedia(
         const QString& url, const QString& mediaType = {}, const QString& altText = {}, int afterIndex = -1);
     /** @brief Inserts uploaded media while retaining its opaque local lifecycle token. */

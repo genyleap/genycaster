@@ -22,6 +22,7 @@ Item {
     signal openRequested(string castId)
     signal profileRequested(double fid)
     signal replyRequested(var cast)
+    signal quoteRequested(var cast)
     signal reactionRequested(string kind, var cast, bool active)
     signal removeRequested(var cast)
     signal externalRequested(string url)
@@ -785,6 +786,7 @@ Item {
                         replyCount: Number(root.modelData.replyCount || 0)
                         recastCount: Number(root.modelData.recastCount || 0)
                         likeCount: Number(root.modelData.likeCount || 0)
+                        viewCount: root.modelData.viewCount === undefined ? null : root.modelData.viewCount
                         contextText: String(root.modelData.text || "")
                         replyInteractive: root.interactionsAvailable
                                           && root.modelData.castId !== undefined
@@ -794,6 +796,7 @@ Item {
                         recastedByMe: Boolean(root.modelData.recastedByMe || false)
                         likedByMe: Boolean(root.modelData.likedByMe || false)
                         onReplyRequested: root.replyRequested(root.modelData)
+                        onQuoteRequested: root.quoteRequested(root.modelData)
                         onRecastRequested: active => root.reactionRequested("recast", root.modelData, active)
                         onLikeRequested: active => root.reactionRequested("like", root.modelData, active)
                         onAuthenticationRequested: root.authenticationRequested()
@@ -860,6 +863,7 @@ Item {
                         replyCount: Number(root.modelData.replyCount || 0)
                         recastCount: Number(root.modelData.recastCount || 0)
                         likeCount: Number(root.modelData.likeCount || 0)
+                        viewCount: root.modelData.viewCount === undefined ? null : root.modelData.viewCount
                         contextText: String(root.modelData.text || "")
                         replyInteractive: root.interactionsAvailable
                                           && root.modelData.castId !== undefined
@@ -869,6 +873,7 @@ Item {
                         recastedByMe: Boolean(root.modelData.recastedByMe || false)
                         likedByMe: Boolean(root.modelData.likedByMe || false)
                         onReplyRequested: root.replyRequested(root.modelData)
+                        onQuoteRequested: root.quoteRequested(root.modelData)
                         onRecastRequested: active => root.reactionRequested("recast", root.modelData, active)
                         onLikeRequested: active => root.reactionRequested("like", root.modelData, active)
                         onAuthenticationRequested: root.authenticationRequested()

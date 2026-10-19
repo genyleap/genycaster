@@ -8,6 +8,7 @@ GenyDrawer {
     objectName: "composerDrawer"
 
     property var parentCast: null
+    property var quotedCast: null
     property string initialAction: ""
     property string suggestedText: ""
     property var suggestedEmbeds: []
@@ -284,7 +285,7 @@ GenyDrawer {
         root.mediaMetadata = ({})
         root.clearPendingMediaQueue()
         if (!mediaUpload.busy) mediaUpload.clear()
-        if (root.transientDraft || root.parentCast) {
+        if (root.transientDraft || root.parentCast || root.quotedCast) {
             richComposer.newDocument()
             restoredDraft = false
         } else {
@@ -304,6 +305,10 @@ GenyDrawer {
             richComposer.newDocument()
             restoredDraft = false
             richComposer.setBlockText(0, root.suggestedText)
+        }
+        if (root.initialAction === "quote" && root.quotedCast) {
+            richComposer.insertCastReference(String(root.quotedCast.castId || ""),
+                                             Number(root.quotedCast.authorFid || 0))
         }
         if (root.initialAction === "media") {
             root.pendingMediaBlockIndex = visualEditor.activeBlockIndex
@@ -480,7 +485,8 @@ GenyDrawer {
 
             Superellipse {
                 id: replyContextCard
-                visible: root.parentCast !== null && !root.keyboardVisible
+                visible: (root.parentCast !== null || root.quotedCast !== null)
+                         && !root.keyboardVisible
                 Layout.fillWidth: true
                 implicitHeight: replyContextContent.implicitHeight + Theme.space4 * 2
                 curveDepth: Theme.curveContainer
@@ -489,7 +495,9 @@ GenyDrawer {
                 borderColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b,
                                      Theme.dark ? 0.46 : 0.28)
                 Accessible.role: Accessible.Button
-                Accessible.name: qsTrId("genycaster.cast.replying_to_value").arg(
+                Accessible.name: root.quotedCast
+                                 ? qsTrId("genycaster.composer.quote")
+                                 : qsTrId("genycaster.cast.replying_to_value").arg(
                                      root.replyAuthor.length > 0 ? "@" + root.replyAuthor : root.replyName)
                 Accessible.description: root.replyText
 
@@ -509,8 +517,9 @@ GenyDrawer {
                     Avatar {
                         Layout.alignment: Qt.AlignTop
                         avatarSize: root.compact ? 44 : 48
-                        sourceUrl: root.parentCast ? String(root.parentCast.avatarUrl || "") : ""
-                        displayName: root.replyName
+                        sourceUrl: root.quotedCast ? String(root.quotedCast.avatarUrl || "")
+                                                  : root.parentCast ? String(root.parentCast.avatarUrl || "") : ""
+                        displayName: root.quotedCast ? String(root.quotedCast.displayName || root.quotedCast.author || "") : root.replyName
                     }
 
                     ColumnLayout {
@@ -530,7 +539,7 @@ GenyDrawer {
 
                                 Icon {
                                     anchors.centerIn: parent
-                                    text: Theme.iconReply
+                                    text: root.quotedCast ? Theme.iconQuote : Theme.iconReply
                                     color: Theme.accent
                                     preferredSize: Theme.iconSizeSmall
                                 }
@@ -538,7 +547,8 @@ GenyDrawer {
 
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: qsTrId("genycaster.cast.replying_to_value").arg(
+                                text: root.quotedCast ? qsTrId("genycaster.composer.quote")
+                                      : qsTrId("genycaster.cast.replying_to_value").arg(
                                           root.replyAuthor.length > 0 ? "@" + root.replyAuthor : root.replyName)
                                 color: Theme.accent
                                 font.pixelSize: Theme.typeMetaSize
@@ -549,7 +559,9 @@ GenyDrawer {
 
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: root.replyName
+                            text: root.quotedCast
+                                  ? String(root.quotedCast.displayName || root.quotedCast.author || "")
+                                  : root.replyName
                             color: Theme.ink
                             font.pixelSize: Theme.typeLabelSize
                             font.weight: Theme.weightBold
@@ -558,8 +570,10 @@ GenyDrawer {
 
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: root.replyText.length > 0
-                                  ? root.replyText : qsTrId("genycaster.embed.open_quoted_cast")
+                            text: root.quotedCast
+                                  ? String(root.quotedCast.text || qsTrId("genycaster.embed.open_quoted_cast"))
+                                  : root.replyText.length > 0
+                                    ? root.replyText : qsTrId("genycaster.embed.open_quoted_cast")
                             color: Theme.ink
                             font.pixelSize: Theme.typeBodySize
                             font.weight: Theme.weightRegular
@@ -592,7 +606,8 @@ GenyDrawer {
                 TapHandler {
                     gesturePolicy: TapHandler.ReleaseWithinBounds
                     onTapped: {
-                        const castId = root.parentCast ? String(root.parentCast.castId || "") : ""
+                        const castId = root.quotedCast ? String(root.quotedCast.castId || "")
+                                       : root.parentCast ? String(root.parentCast.castId || "") : ""
                         if (castId.length > 0) presentationBridge.openCast(castId)
                     }
                 }

@@ -21,6 +21,7 @@ ColumnLayout {
     signal castRequested(string castId)
     signal profileRequested(double fid)
     signal replyRequested(var cast)
+    signal quoteRequested(var cast)
     signal reactionRequested(string kind, var cast, bool active)
     signal externalRequested(string url)
     signal mediaRequested(var mediaItems, int index)
@@ -216,6 +217,7 @@ ColumnLayout {
                 recastedByMe: Boolean(root.reply.recastedByMe || false)
                 likedByMe: Boolean(root.reply.likedByMe || false)
                 onReplyRequested: root.replyRequested(root.reply)
+                onQuoteRequested: root.quoteRequested(root.reply)
                 onRecastRequested: active => root.reactionRequested("recast", root.reply, active)
                 onLikeRequested: active => root.reactionRequested("like", root.reply, active)
                 onAuthenticationRequested: root.authenticationRequested()
@@ -338,7 +340,8 @@ ColumnLayout {
                 function onCastRequested(castId) { root.castRequested(castId) }
                 function onProfileRequested(fid) { root.profileRequested(fid) }
                 function onReplyRequested(cast) { root.replyRequested(cast) }
-                function onReactionRequested(kind, cast, active) {
+                function onQuoteRequested(cast) { root.quoteRequested(cast) }
+                function onReactionRequested:(kind, cast, active) {
                     root.reactionRequested(kind, cast, active)
                 }
                 function onExternalRequested(url) { root.externalRequested(url) }

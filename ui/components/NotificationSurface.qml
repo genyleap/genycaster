@@ -732,6 +732,9 @@ Item {
                     return root.payloadForStableKey(notificationRow.stableKey)
                 }
                 readonly property string kindKey: String(modelData.kind || "")
+                readonly property var visibleActors: root.actorRows(notificationRow.modelData)
+                readonly property bool latestActivity: root.visibleRows.length > 0
+                    && notificationRow.stableKey === root.notificationKey(root.visibleRows[0], 0)
                 readonly property color kindColor: root.kindColor(kindKey)
                 readonly property string kindGlyph: root.kindGlyph(kindKey)
                 width: list.width - list.leftMargin - list.rightMargin
@@ -740,7 +743,17 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     color: rowTap.pressed ? Theme.surfacePressed
-                           : rowHover.hovered ? Theme.surfaceHover : "transparent"
+                           : rowHover.hovered ? Theme.surfaceHover
+                           : notificationRow.latestActivity ? root.kindTint(notificationRow.kindKey)
+                           : "transparent"
+                }
+                Rectangle {
+                    visible: notificationRow.latestActivity
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    width: 3
+                    color: notificationRow.kindColor
                 }
                 Rectangle {
                     anchors.left: parent.left
@@ -760,10 +773,9 @@ Item {
                     spacing: Theme.space2
                     layoutDirection: Theme.uiDirection
 
-                    // One legible actor portrait per notification. Aggregated
-                    // reactions already show the full count in the title; the
-                    // former avatar Repeater drew up to eight translucent faces
-                    // outside a 52px column and obscured the neighboring quote.
+                    // Single activities keep an actor portrait; group activity
+                    // keeps its reaction symbol in the gutter and lays actors
+                    // out above the title, without overlapping its text.
                     Item {
                         readonly property var firstActor: {
                             const actors = root.actorRows(notificationRow.modelData)
@@ -774,6 +786,7 @@ Item {
                         Layout.preferredHeight: root.compact ? 42 : 46
 
                         Avatar {
+                            visible: notificationRow.visibleActors.length <= 1
                             anchors.left: parent.left
                             anchors.top: parent.top
                             avatarSize: root.compact ? 40 : 44
@@ -782,8 +795,25 @@ Item {
                                                 || parent.firstActor.username || "")
                         }
 
-                        // Icon belongs to the avatar, never to the cast body.
                         Superellipse {
+                            visible: notificationRow.visibleActors.length > 1
+                            anchors.centerIn: parent
+                            width: root.compact ? 36 : 40
+                            height: width
+                            fillColor: root.kindTint(notificationRow.kindKey)
+                            borderWidth: 0
+                            curveDepth: 15
+                            Icon {
+                                anchors.centerIn: parent
+                                text: notificationRow.kindGlyph
+                                color: notificationRow.kindColor
+                                preferredSize: 21
+                            }
+                        }
+
+                        // A small reaction chip is useful on singular activities.
+                        Superellipse {
+                            visible: notificationRow.visibleActors.length <= 1
                             width: 19
                             height: 19
                             anchors.right: parent.right
@@ -804,6 +834,30 @@ Item {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: Theme.space1
+
+                        // Bounded horizontal actor stack: each portrait is
+                        // distinct, fully visible and never overflows its own
+                        // slot into the notification title or quoted cast.
+                        Item {
+                            id: actorStack
+                            readonly property int count: Math.min(6, notificationRow.visibleActors.length)
+                            visible: count > 1
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: visible ? (root.compact ? 34 : 38) : 0
+
+                            Repeater {
+                                model: actorStack.visible ? actorStack.count : 0
+                                delegate: Avatar {
+                                    required property int index
+                                    readonly property var actor: notificationRow.visibleActors[index] || ({})
+                                    x: index * (root.compact ? 30 : 34)
+                                    y: 0
+                                    avatarSize: root.compact ? 32 : 36
+                                    sourceUrl: String(actor.avatarUrl || "")
+                                    displayName: String(actor.displayName || actor.username || "")
+                                }
+                            }
+                        }
 
                         // Give the activity title the full column width. On
                         // narrow phones a trailing timestamp in the same row
