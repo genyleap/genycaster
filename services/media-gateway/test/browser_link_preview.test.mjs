@@ -15,6 +15,7 @@ function requesterWith(body,headers={'content-type':'text/html; charset=UTF-8'},
       callback(response);response.end(body);
     });
     req.destroy=()=>req.emit('error',new Error('destroyed'));
+    req.write=()=>{};
     return req;
   };
 }
@@ -119,10 +120,66 @@ test('OpenSea API fallback refuses private DNS, oversized data and arbitrary API
   });
   assert.equal(result.status,200);
   assert.equal(result.data.title,'Account & security');
-  assert.equal(apiCalls,2);
+  // Official API + bounded ERC-721/ERC-1155 attempts + public HTML fallback.
+  assert.equal(apiCalls,4);
   const denied=await publicLinkPreview(link,{
     lookupHost:async()=>[{address:'192.168.1.15',family:4}],
     requester:()=>{throw Error('should never reach an internal IP');},
   });
   assert.equal(denied.status,404);
+});
+
+test('canonical ERC-721 OpenSea card reads public tokenURI and verified IPFS artwork when OpenSea requires a key',async()=>{
+  const {normalizeNftAssetUrl}=await import('../browser_link_preview.mjs');
+  const link='https://opensea.io/assets/ethereum/0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d/1';
+  const metadataCid='QmeSjSinHpPnmXmspMjwiXyN6zS4E9zccariGR3jxcaWtq';
+  const imageCid='QmPbxeGcXhYQQNgsC6a36dDyYUcHgMLnGKnF8pVFmGsvqi';
+  const uri='ipfs://'+metadataCid+'/1';
+  const uriBytes=Buffer.from(uri);
+  const abi='0x'+'20'.padStart(64,'0')+uriBytes.length.toString(16).padStart(64,'0')
+    +uriBytes.toString('hex').padEnd(Math.ceil(uriBytes.length/32)*64,'0');
+  const calls=[];
+  const fakeRequester=(url,options,callback)=>{
+    calls.push({host:url.hostname,method:options.method,lookup:typeof options.lookup});
+    let text='',headers={'content-type':'application/json'},status=200;
+    if(url.hostname==='api.opensea.io'){status=401;text='{"errors":["Missing an API Key"]}';}
+    else if(url.hostname==='ethereum-rpc.publicnode.com'){
+      assert.equal(options.method,'POST');
+      text=JSON.stringify({jsonrpc:'2.0',id:1,result:abi});
+    }else if(url.hostname==='gateway.pinata.cloud'){
+      assert.match(url.pathname,/\/ipfs\//);
+      text=JSON.stringify({image:'ipfs://'+imageCid,description:'Onchain art'});
+    }else assert.fail('An unexpected external host was requested: '+url.hostname);
+    const request=requesterWith(text,headers,status)(url,options,callback);
+    request.write=()=>{};
+    return request;
+  };
+  const result=await publicLinkPreview(link,{lookupHost:publicDns,requester:fakeRequester});
+  assert.equal(result.status,200);
+  assert.deepEqual(calls.map(x=>x.host),[
+    'api.opensea.io','ethereum-rpc.publicnode.com','gateway.pinata.cloud',
+  ]);
+  assert.ok(calls.every(x=>x.lookup==='function'));
+  const artwork='https://gateway.pinata.cloud/ipfs/'+imageCid;
+  assert.equal(result.data.verifiedImageUrl,artwork);
+  assert.equal(result.data.previewImage,'image://remote/'+Buffer.from(artwork).toString('base64url'));
+  assert.equal(result.data.title,'#1');
+  assert.equal(normalizeNftAssetUrl('ipfs://'+imageCid),artwork);
+  for(const unsafe of ['ipfs://../private','ipfs://'+imageCid+'/../private',
+    'http://127.0.0.1/private','https://localhost/private',
+    'https://bad:pass@example.org/logo.svg','ftp://example.org/public.jpg']){
+    assert.equal(normalizeNftAssetUrl(unsafe),'',unsafe);
+  }
+});
+test('ERC-1155 token metadata fallback is constrained to read-only RPC methods and rejects private DNS',async()=>{
+  const {publicOnchainNftPreview,parseOpenSeaAsset}=await import('../browser_link_preview.mjs');
+  const link='https://opensea.io/assets/base/0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d/42';
+  const asset=parseOpenSeaAsset(new URL(link));
+  let connected=false;
+  const denied=await publicOnchainNftPreview(asset,new URL(link),{
+    lookupHost:async()=>[{address:'10.1.2.3',family:4}],
+    requester:()=>{connected=true;throw Error('invalid destination');},
+  });
+  assert.equal(denied,null);
+  assert.equal(connected,false);
 });

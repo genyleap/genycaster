@@ -6,6 +6,133 @@ import {validMiniAppTarget} from './browser_miniapp_preview.mjs';
 
 const MAX_HTML_BYTES = 192 * 1024;
 const MAX_NFT_JSON_BYTES = 96 * 1024;
+const NFT_RPC_ORIGINS = Object.freeze({
+  ethereum:'https://ethereum-rpc.publicnode.com',
+  base:'https://base-rpc.publicnode.com',
+  polygon:'https://polygon-bor-rpc.publicnode.com',
+  arbitrum:'https://arbitrum-one-rpc.publicnode.com',
+  optimism:'https://optimism-rpc.publicnode.com',
+  avalanche:'https://avalanche-c-chain-rpc.publicnode.com',
+  zora:'https://rpc.zora.energy',
+});
+
+// A token contract's public metadata may reference IPFS. Do not treat its
+// contents as a network request; constrain CID/path and use a fixed public
+// gateway, with the same pinned DNS and raster-only response rules as HTML art.
+export function normalizeNftAssetUrl(value) {
+  const input=String(value||'').trim();
+  if(input.startsWith('ipfs://')){
+    const path=input.slice(7).replace(/^ipfs\//i,'');
+    const sections=path.split('/');
+    if(!sections.length || !/^(?:Qm[1-9A-HJ-NP-Za-km-z]{44}|b[a-z2-7]{30,100})$/i.test(sections[0])
+       || sections.length>5 || sections.slice(1).some(v=>!v||v==='.'||v==='..'
+           || !/^[A-Za-z0-9._~-]{1,100}$/.test(v)))return '';
+    return 'https://gateway.pinata.cloud/ipfs/'+sections.join('/');
+  }
+  try {
+    const url=new URL(input);
+    return input.length<=2048 && safePreviewPage(url.href) ? url.href : '';
+  }catch{return '';}
+}
+
+async function readPublicNftJson(url,{
+  lookupHost=lookup,requester=https.request,
+}={},body=null) {
+  if (!safePreviewPage(url.href) || url.href.length>2048) return null;
+  let addresses;
+  try{addresses=await lookupHost(url.hostname,{all:true,verbatim:true});}catch{return null;}
+  if(!Array.isArray(addresses)||addresses.length===0
+      ||addresses.some(entry=>!isPublicAddress(entry.address,entry.family)))return null;
+  const selected=addresses.find(value=>value.family===4)??addresses[0];
+  return await new Promise(resolve=>{
+    let finished=false;
+    const finish=value=>{if(!finished){finished=true;resolve(value);}};
+    const req=requester(url,{
+      method:body===null?'GET':'POST',timeout:6500,
+      headers:{
+        accept:'application/json',
+        ...(body!==null?{'content-type':'application/json','content-length':String(Buffer.byteLength(body))}:{}),
+        'user-agent':'Genycaster/1.0 NFTMetadata',
+      },
+      lookup:(_host,opts,cb)=>opts.all?cb(null,[selected]):cb(null,selected.address,selected.family),
+    },res=>{
+      if(res.statusCode!==200
+         ||!String(res.headers['content-type']||'').toLowerCase().includes('application/json')){
+        res.resume();return finish(null);
+      }
+      const declared=Number(res.headers['content-length']||0);
+      if(!Number.isFinite(declared)||declared>MAX_NFT_JSON_BYTES){
+        res.destroy();return finish(null);
+      }
+      let size=0;const chunks=[];
+      res.on('data',chunk=>{
+        size+=chunk.length;
+        if(size>MAX_NFT_JSON_BYTES){res.destroy();finish(null);return;}
+        chunks.push(chunk);
+      });
+      res.on('end',()=>{
+        if(finished)return;
+        try{finish(JSON.parse(Buffer.concat(chunks,size).toString('utf8')));}
+        catch{finish(null);}
+      });
+      res.on('error',()=>finish(null));
+    });
+    req.on('timeout',()=>req.destroy(new Error('Public NFT metadata timeout')));
+    req.on('error',()=>finish(null));
+    if(body!==null)req.write(body);
+    req.end();
+  });
+}
+
+function decodeEthereumString(hex) {
+  if(typeof hex!=='string'||!/^0x[0-9a-f]*$/i.test(hex)
+      ||hex.length<130||hex.length>8194||hex.length%2!==0)return '';
+  const raw=Buffer.from(hex.slice(2),'hex');
+  const offset=Number(BigInt('0x'+raw.subarray(0,32).toString('hex')));
+  if(!Number.isSafeInteger(offset)||offset<32||offset+32>raw.length)return '';
+  const size=Number(BigInt('0x'+raw.subarray(offset,offset+32).toString('hex')));
+  if(!Number.isSafeInteger(size)||size<=0||size>2048||offset+32+size>raw.length)return '';
+  return raw.subarray(offset+32,offset+32+size).toString('utf8');
+}
+
+export async function publicOnchainNftPreview(asset,pageUrl,dependencies={}) {
+  const origin=NFT_RPC_ORIGINS[asset.chain];
+  if(!origin)return null;
+  const numeric=BigInt(asset.tokenId);
+  if(numeric>((1n<<256n)-1n))return null;
+  const idHex=numeric.toString(16).padStart(64,'0');
+  // Both ERC-721 tokenURI(uint256) and ERC-1155 uri(uint256) are read-only
+  // eth_call methods. No wallet, auth, signing, RPC methods or arbitrary
+  // contract/user-provided network endpoints are exposed.
+  for(const selector of ['c87b56dd','0e89341c']){
+    const payload=JSON.stringify({
+      jsonrpc:'2.0',id:1,method:'eth_call',
+      params:[{to:asset.contract,data:'0x'+selector+idHex},'latest'],
+    });
+    const response=await readPublicNftJson(new URL(origin),dependencies,payload);
+    const tokenUri=decodeEthereumString(response?.result);
+    if(!tokenUri)continue;
+    const expanded=tokenUri.replace(/\{id\}/gi,idHex);
+    let metadata=null;
+    if(/^data:application\/json;base64,/i.test(expanded)&&expanded.length<MAX_NFT_JSON_BYTES*2){
+      try{metadata=JSON.parse(Buffer.from(expanded.split(',')[1],'base64').toString('utf8'));}
+      catch{metadata=null;}
+    }else{
+      const normalized=normalizeNftAssetUrl(expanded);
+      if(normalized)metadata=await readPublicNftJson(new URL(normalized),dependencies);
+    }
+    if(!metadata||typeof metadata!=='object')continue;
+    const image=normalizeNftAssetUrl(metadata.image||metadata.image_url||metadata.imageUrl||'');
+    if(!image)continue;
+    return openSeaNftPreview({nft:{
+      name:metadata.name||'',
+      description:metadata.description||'',
+      image_url:image,
+    }},pageUrl);
+  }
+  return null;
+}
+
 
 // OpenSea blocks many server-side HTML preview requests, but its public
 // read-only NFT endpoint exposes the original artwork. Only a canonical
@@ -191,7 +318,8 @@ export async function publicLinkPreview(rawUrl,dependencies={}) {
   if(!target)return {status:400,error:'invalid_preview_url'};
   const openSeaAsset=parseOpenSeaAsset(target);
   if(openSeaAsset){
-    const artwork=await fetchOpenSeaArtwork(openSeaAsset,target,dependencies);
+    const artwork=await fetchOpenSeaArtwork(openSeaAsset,target,dependencies)
+       || await publicOnchainNftPreview(openSeaAsset,target,dependencies);
     if(artwork)return {status:200,data:artwork};
   }
   const html=await getHtml(target,dependencies);
