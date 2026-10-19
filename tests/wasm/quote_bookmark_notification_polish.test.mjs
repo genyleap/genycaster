@@ -35,15 +35,17 @@ test('direct cast detail hydrates quote and parent context with a distinct prima
   assert.match(bridge,/m_referencedPreviewCache.insert\(targetKey, preview\)/);
 });
 
-test('cast detail separates full date and exact impressions from responsive action rail',()=>{
+test('cast detail keeps timestamp beside author and views in the same action footer',()=>{
   const detail=read('ui/components/DetailSurface.qml');
   const bar=read('ui/components/EngagementBar.qml');
-  assert.match(detail,/id: detailMetadata/);
-  assert.match(detail,/LocaleFormat.formatDateTime\(Number\(root\.detail\.createdAtMs\)\)/);
-  assert.match(detail,/return CastViews.countFor\(String\(root.detail.castId \|\| ""\)\)/);
-  assert.match(detail,/showViews: false/);
-  assert.match(bar,/showViews: true/);
+  assert.doesNotMatch(detail,/id: detailMetadata/);
+  assert.match(detail,/LocaleFormat\.formatDateTime\(milliseconds\)/);
+  assert.match(detail,/LocaleFormat\.formatRelativeTime\(milliseconds\)/);
+  assert.match(detail,/EngagementBar \{[\s\S]*?showViews: true/);
   assert.match(bar,/visible: root.showViews && root.resolvedViewCount/);
+  assert.match(bar,/Layout.fillWidth: true[\s\S]*?iconGlyph: Theme.iconReply/);
+  assert.match(bar,/Layout.fillWidth: true[\s\S]*?iconGlyph: Theme.iconRepost/);
+  assert.match(bar,/metricText: root.likeCount > 0 \? LocaleFormat.formatCompactNumber\(root.likeCount\)/);
   assert.match(bar,/id: bookmarkButton/);
   assert.match(bar,/iconFilled: root.isBookmarked/);
 });
@@ -65,13 +67,21 @@ test('bookmarks persist on-device per verified account and have a navigable rout
   assert.match(read('ui/CMakeLists.txt'),/components\/BookmarksSurface.qml/);
 });
 
-test('compact feed action rail keeps five touch targets and moves views beside time',()=>{
+test('main casts and every threaded reply show views in a common footer at all widths',()=>{
   const cast=read('ui/components/CastItem.qml');
   const reply=read('ui/components/ThreadReplyItem.qml');
-  assert.match(cast,/readonly property string compactViewsText/);
-  assert.equal((cast.match(/showViews: !root.compact/g)||[]).length,2);
-  assert.match(cast,/root.compactViewsText \+ \(root.formattedTime.length > 0/);
-  assert.match(reply,/showViews: !root.compact/);
+  const bar=read('ui/components/EngagementBar.qml');
+  const button=read('ui/components/EngagementButton.qml');
+  assert.equal((cast.match(/showViews: true/g)||[]).length,2);
+  assert.match(reply,/showViews: true/);
+  assert.match(reply,/authorFid: Number\(root.reply.authorFid \|\| 0\)/);
+  assert.match(reply,/castText: String\(root.reply.text \|\| ""\)/);
+  assert.doesNotMatch(cast,/compactViewsText/);
+  assert.match(cast,/root.compact && Number\(root.modelData.createdAtMs \|\| 0\) > 0/);
+  assert.match(bar,/id: castViewsLabel[\s\S]*?Layout.fillWidth: true/);
+  assert.match(bar,/metricText: root.replyCount > 0 \? LocaleFormat.formatCompactNumber/);
+  assert.match(bar,/objectName: "castBookmarkButton"/);
+  assert.match(button,/RowLayout \{[\s\S]*?Item \{ Layout.fillWidth: true/);
 });
 
 test('quote notifications preserve a clickable reference when embedded cast details are absent',()=>{
@@ -81,4 +91,11 @@ test('quote notifications preserve a clickable reference when embedded cast deta
   assert.match(ui,/quotedCastId: source.quotedCastId/);
   assert.match(ui,/notificationRow.kindKey === "quote"[\s\S]*?notificationRow.modelData.quotedCastId/);
   assert.match(ui,/onTapped: root.castRequested\(String\(notificationRow.modelData.quotedCastId/);
+});
+
+test('quoted-cast author avatar is inset and aligned inside the media card',()=>{
+  const card=read('ui/components/EmbedCard.qml');
+  assert.match(card,/anchors.margins: root.isCastReference \? Theme.space4 : Theme.space2/);
+  assert.match(card,/Layout.preferredWidth: 32[\s\S]*?Layout.preferredHeight: 32[\s\S]*?avatarSize: 32/);
+  assert.match(card,/spacing: Theme.space3[\s\S]*?layoutDirection: root.quotedRtl/);
 });

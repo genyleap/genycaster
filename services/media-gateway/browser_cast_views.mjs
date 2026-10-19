@@ -127,12 +127,19 @@ export function createCastViewService({fetchImpl=fetch,now=()=>Date.now()}={}) {
       if(count!==undefined)counts[row.castId]=count;
       else missing.push(row);
     }
-    // Older casts may have fallen off the 50 most recent author posts.
-    // Bound exploratory queries, even for a full page of historic replies.
-    const searched=await Promise.all(missing.slice(0,4).map(row=>searchExact(row)));
-    searched.forEach((count,index)=>{
-      if(count!==null)counts[missing[index].castId]=count;
-    });
+    // Older replies frequently fall outside their author's 50 newest
+    // casts. The previous slice(0,4) silently left up to 12 replies in every
+    // viewport batch unqueried, even when Farcaster had their view counts.
+    // Every requested cast now gets a chance, but cap concurrent public
+    // search requests at three so heavily replied-to threads cannot stampede
+    // the upstream service. Unknown values still stay absent, never zero.
+    for(let index=0;index<missing.length;index+=3){
+      const group=missing.slice(index,index+3);
+      const searched=await Promise.all(group.map(row=>searchExact(row)));
+      searched.forEach((count,offset)=>{
+        if(count!==null)counts[group[offset].castId]=count;
+      });
+    }
     return {status:200,data:{counts}};
   }
 

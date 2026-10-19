@@ -52,13 +52,16 @@ RowLayout {
     signal likeRequested(bool active)
     signal authenticationRequested()
 
-    spacing: root.compact ? Theme.space1 : Theme.space2
+    // Six equally flexible slots prevent the large dead zone formerly left
+    // between Like and Views, while preserving full touch hit targets.
+    spacing: root.compact ? 0 : Theme.space1
     Accessible.description: qsTrId("genycaster.engagement.value_replies").arg(LocaleFormat.formatInteger(root.replyCount))
 
     EngagementButton {
         objectName: "castReplyButton"
+        Layout.fillWidth: true
         iconGlyph: Theme.iconReply
-        metricText: root.replyCount > 0 ? LocaleFormat.formatInteger(root.replyCount) : ""
+        metricText: root.replyCount > 0 ? LocaleFormat.formatCompactNumber(root.replyCount) : ""
         enabled: true
         Accessible.name: qsTrId("genycaster.engagement.reply_value_replies").arg(LocaleFormat.formatInteger(root.replyCount))
         // Reply always enters the central composer action. It owns the
@@ -69,6 +72,7 @@ RowLayout {
 
     EngagementButton {
         objectName: "castQuoteButton"
+        Layout.fillWidth: true
         iconGlyph: Theme.iconQuote
         enabled: true
         Accessible.name: qsTrId("genycaster.composer.quote")
@@ -76,8 +80,9 @@ RowLayout {
     }
 
     EngagementButton {
+        Layout.fillWidth: true
         iconGlyph: Theme.iconRepost
-        metricText: root.recastCount > 0 ? LocaleFormat.formatInteger(root.recastCount) : ""
+        metricText: root.recastCount > 0 ? LocaleFormat.formatCompactNumber(root.recastCount) : ""
         active: root.recastedByMe
         activeColor: Theme.positive
         enabled: true
@@ -88,10 +93,11 @@ RowLayout {
     }
 
     EngagementButton {
+        Layout.fillWidth: true
         iconGlyph: root.displayedLikeIcon
         iconFilled: root.likedByMe
         activeColor: Theme.negative
-        metricText: root.likeCount > 0 ? LocaleFormat.formatInteger(root.likeCount) : ""
+        metricText: root.likeCount > 0 ? LocaleFormat.formatCompactNumber(root.likeCount) : ""
         active: root.likedByMe
         enabled: true
         Accessible.name: root.likedByMe
@@ -100,18 +106,20 @@ RowLayout {
         onClicked: root.likeInteractive ? root.likeRequested(!root.likedByMe) : root.authenticationRequested()
     }
 
-    // An impression is metadata, not an action. It should not consume a
-    // 46px touch target or squeeze mobile replies/quotes into the timestamp.
-    Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
-
+    // Views remain inside the same footer as actions for every cast,
+    // including threaded replies. The metric itself is not clickable.
     RowLayout {
         id: castViewsLabel
         objectName: "castViewCount"
         visible: root.showViews && root.resolvedViewCount !== null && root.resolvedViewCount !== undefined
                  && Number(root.resolvedViewCount) >= 0 && isFinite(Number(root.resolvedViewCount))
-        spacing: Theme.space1
+        Layout.fillWidth: true
+        Layout.minimumWidth: Theme.iconSizeSmall + Theme.space2
+        spacing: root.compact ? 2 : Theme.space1
         Layout.alignment: Qt.AlignVCenter
         Accessible.role: Accessible.StaticText
+
+        Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
         Accessible.name: "Views: " + viewMetric.text
 
         Icon {
@@ -131,11 +139,14 @@ RowLayout {
             font.pixelSize: Theme.typeCaptionSize
             font.weight: Theme.weightMedium
         }
+
+        Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
     }
 
     EngagementButton {
         id: bookmarkButton
         objectName: "castBookmarkButton"
+        Layout.fillWidth: true
         iconGlyph: Theme.iconBookmark
         iconFilled: root.isBookmarked
         active: root.isBookmarked

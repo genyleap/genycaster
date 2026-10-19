@@ -361,18 +361,6 @@ Item {
             ? LocaleFormat.formatTimestamp(Number(root.modelData.createdAtMs))
             : String(root.modelData.time || "")
     }
-    // On narrow screens the engagement row owns five 44px touch targets.
-    // Show view metadata beside the time rather than squeezing those targets.
-    readonly property string compactViewsText: {
-        if (!root.compact)
-            return ""
-        const direct = root.modelData.viewCount
-        const count = direct !== null && direct !== undefined
-                      && isFinite(Number(direct)) && Number(direct) >= 0
-                    ? Number(direct) : CastViews.countFor(String(root.modelData.castId || ""))
-        return count === null || count === undefined ? ""
-            : LocaleFormat.formatCompactNumber(Number(count))
-    }
 
     Timer {
         id: parentHydrationDeadline
@@ -504,6 +492,17 @@ Item {
                         elide: Text.ElideRight
                     }
 
+
+                    DirectionAwareLabel {
+                        visible: root.compact && Number(root.modelData.createdAtMs || 0) > 0
+                        Layout.maximumWidth: Math.max(58, messageSurface.width * 0.20)
+                        text: visible
+                              ? LocaleFormat.formatRelativeTime(Number(root.modelData.createdAtMs))
+                              : ""
+                        color: Theme.inkSubtle
+                        font.pixelSize: Theme.typeCaptionSize
+                        elide: Text.ElideRight
+                    }
 
                     Item { Layout.fillWidth: true }
 
@@ -807,7 +806,7 @@ Item {
                     EngagementBar {
                         Layout.fillWidth: true
                         compact: root.compact
-                        showViews: !root.compact
+                        showViews: true
                         replyCount: Number(root.modelData.replyCount || 0)
                         recastCount: Number(root.modelData.recastCount || 0)
                         likeCount: Number(root.modelData.likeCount || 0)
@@ -832,10 +831,8 @@ Item {
                     }
 
                     DirectionAwareLabel {
-                        visible: root.formattedTime.length > 0 || root.compactViewsText.length > 0
-                        text: root.compactViewsText.length > 0
-                              ? root.compactViewsText + (root.formattedTime.length > 0 ? " · " + root.formattedTime : "")
-                              : root.formattedTime
+                        visible: !root.compact && root.formattedTime.length > 0
+                        text: root.formattedTime
                         color: Theme.inkSubtle
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightRegular
@@ -892,7 +889,7 @@ Item {
                     EngagementBar {
                         Layout.fillWidth: true
                         compact: root.compact
-                        showViews: !root.compact
+                        showViews: true
                         replyCount: Number(root.modelData.replyCount || 0)
                         recastCount: Number(root.modelData.recastCount || 0)
                         likeCount: Number(root.modelData.likeCount || 0)
@@ -917,10 +914,8 @@ Item {
                     }
 
                     DirectionAwareLabel {
-                        visible: root.formattedTime.length > 0 || root.compactViewsText.length > 0
-                        text: root.compactViewsText.length > 0
-                              ? root.compactViewsText + (root.formattedTime.length > 0 ? " · " + root.formattedTime : "")
-                              : root.formattedTime
+                        visible: !root.compact && root.formattedTime.length > 0
+                        text: root.formattedTime
                         color: Theme.inkSubtle
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightRegular

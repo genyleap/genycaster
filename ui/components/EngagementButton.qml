@@ -37,6 +37,11 @@ Button {
         layoutDirection: Theme.uiDirection
         spacing: control.metricText.length > 0 ? Theme.space1 : 0
 
+        // RowLayout stretches all six footer cells equally; centering each
+        // icon/count cluster keeps the action-to-count gap identical in
+        // RTL, LTR, detail views and nested replies.
+        Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
+
         // Give every contextual reaction a stable square viewport. Some SVGs
         // have non-square intrinsic viewBoxes; never stretch the image to fill
         // the metric row or allow its geometry to alter the action height.
@@ -59,6 +64,8 @@ Button {
             font.pixelSize: Theme.typeCaptionSize
             font.weight: control.active ? Theme.weightDemiBold : Theme.weightMedium
         }
+
+        Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
     }
 
     // Keep the complete touch target, but do not draw a permanent box around

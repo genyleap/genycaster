@@ -27,7 +27,7 @@ test('every cast and reply uses the same view counter cache without replacing fe
   assert.match(bar,/LocaleFormat\.formatCompactNumber\(Number\(root\.resolvedViewCount\)\)/);
   assert.match(bar,/text: Theme\.iconPreview/);
   assert.match(bar,/Accessible\.role: Accessible\.StaticText/);
-  assert.match(bar,/spacing: root\.compact \? Theme\.space1 : Theme\.space2/);
+  assert.match(bar,/spacing: root\.compact \? 0 : Theme\.space1/);
   assert.match(provider,/return value === undefined \? null : value/);
   for(const name of ['CastItem.qml','ThreadReplyItem.qml','DetailSurface.qml']){
     const text=read('ui/components/'+name);

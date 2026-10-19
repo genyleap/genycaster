@@ -352,7 +352,29 @@ Flickable {
                                 horizontalAlignment: Text.AlignLeft
                             }
 
-                            Item { Layout.fillWidth: true }
+                            // Timestamp belongs with the author identity, as
+                            // it does for replies. Show relative on narrow
+                            // screens and localized full datetime on desktop.
+                            DirectionAwareLabel {
+                                visible: root.activeView === "cast"
+                                         && Number(root.detail.createdAtMs || 0) > 0
+                                Layout.fillWidth: true
+                                text: {
+                                    const milliseconds = Number(root.detail.createdAtMs || 0)
+                                    return milliseconds > 0
+                                           ? "· " + (root.compact
+                                              ? LocaleFormat.formatRelativeTime(milliseconds)
+                                              : LocaleFormat.formatDateTime(milliseconds))
+                                           : ""
+                                }
+                                color: Theme.inkSubtle
+                                font.pixelSize: Theme.typeCaptionSize
+                                elide: Text.ElideRight
+                            }
+
+                            Item {
+                                Layout.fillWidth: root.activeView === "profile"
+                            }
                         }
                     }
                 }
@@ -467,61 +489,6 @@ Flickable {
                     onCastRequested: castId => root.castRequested(castId)
                 }
 
-                // Twitter-style detail information: the complete timestamp and
-                // exact verified impressions belong above the actions, not
-                // squeezed between 44px tap targets on the footer.
-                RowLayout {
-                    id: detailMetadata
-                    visible: root.activeView === "cast"
-                             && (Number(root.detail.createdAtMs || 0) > 0
-                                 || detailViews.text.length > 0)
-                    Layout.fillWidth: true
-                    Layout.topMargin: Theme.space2
-                    spacing: Theme.space2
-                    layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
-
-                    DirectionAwareLabel {
-                        visible: Number(root.detail.createdAtMs || 0) > 0
-                        Layout.fillWidth: true
-                        text: visible
-                              ? LocaleFormat.formatDateTime(Number(root.detail.createdAtMs))
-                              : ""
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeMetaSize
-                        elide: Text.ElideRight
-                    }
-
-                    RowLayout {
-                        visible: detailViews.text.length > 0
-                        spacing: Theme.space1
-                        Icon {
-                            text: Theme.iconPreview
-                            color: Theme.inkMuted
-                            preferredSize: Theme.iconSizeSmall
-                        }
-                        Label {
-                            id: detailViews
-                            readonly property var count: {
-                                const direct = root.detail.viewCount
-                                if (direct !== undefined && direct !== null
-                                        && isFinite(Number(direct)) && Number(direct) >= 0)
-                                    return Number(direct)
-                                return CastViews.countFor(String(root.detail.castId || ""))
-                            }
-                            text: count === null || count === undefined
-                                  ? "" : LocaleFormat.formatInteger(Number(count))
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeMetaSize
-                            font.weight: Theme.weightDemiBold
-                        }
-                        Label {
-                            text: "Views"
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeMetaSize
-                        }
-                    }
-                }
-
                 Rectangle {
                     visible: root.activeView === "cast"
                     Layout.fillWidth: true
@@ -541,7 +508,7 @@ Flickable {
                     viewCount: root.detail.viewCount === undefined ? null : root.detail.viewCount
                     castId: String(root.detail.castId || "")
                     castData: root.detail
-                    showViews: false
+                    showViews: true
                     authorFid: Number(root.detail.authorFid || 0)
                     castText: String(root.detail.text || "")
                     contextText: String(root.detail.text || "")

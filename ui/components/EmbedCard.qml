@@ -71,7 +71,8 @@ Superellipse {
     }
 
     Layout.fillWidth: true
-    implicitHeight: content.implicitHeight + Theme.space2 * 2
+    implicitHeight: content.implicitHeight
+                    + (root.isCastReference ? Theme.space4 : Theme.space2) * 2
     curveDepth: Theme.shapeMedia
     fillColor: !root.scrollMoving && hover.hovered ? Theme.surfaceHover : Theme.surfaceMuted
     borderWidth: 1
@@ -84,20 +85,22 @@ Superellipse {
     ColumnLayout {
         id: content
         anchors.fill: parent
-        anchors.margins: Theme.space2
-        spacing: Theme.space2
+        anchors.margins: root.isCastReference ? Theme.space4 : Theme.space2
+        spacing: root.isCastReference ? Theme.space3 : Theme.space2
         LayoutMirroring.enabled: false
         LayoutMirroring.childrenInherit: true
 
         RowLayout {
             visible: root.isCastReference
             Layout.fillWidth: true
-            spacing: Theme.space2
+            spacing: Theme.space3
             layoutDirection: root.quotedRtl ? Qt.RightToLeft : Qt.LeftToRight
 
             Avatar {
                 Layout.alignment: Qt.AlignTop
-                avatarSize: 30
+                Layout.preferredWidth: 32
+                Layout.preferredHeight: 32
+                avatarSize: 32
                 sourceUrl: root.embed.avatarUrl || ""
                 displayName: root.quotedName.length > 0 ? root.quotedName : qsTrId("genycaster.embed.quoted_cast")
             }

@@ -218,7 +218,7 @@ ColumnLayout {
             EngagementBar {
                 Layout.fillWidth: true
                 compact: root.compact
-                showViews: !root.compact
+                showViews: true
                 replyCount: Number(root.reply.replyCount || 0)
                 recastCount: Number(root.reply.recastCount || 0)
                 likeCount: Number(root.reply.likeCount || 0)

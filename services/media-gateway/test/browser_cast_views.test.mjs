@@ -78,3 +78,38 @@ test('strictly validates requests, caps batches and rejects another author match
   const result=await service.resolve([row(a)]);
   assert.deepEqual({...result.data.counts},{});
 });
+test('all old replies in a full view batch are checked, without a four-result truncation',async()=>{
+  const requests=Array.from({length:10},(_,i)=>({
+    castId:'0x'+(500+i).toString(16).padStart(40,'0'),
+    authorFid:321969,
+    text:'Unique archived reply text number '+i+' from the original thread',
+  }));
+  let active=0,maxConcurrent=0,searchCount=0,authorCount=0;
+  const service=createCastViewService({fetchImpl:async url=>{
+    const parsed=new URL(url);
+    if(parsed.pathname==='/v2/casts'){
+      authorCount++;
+      return json({result:{casts:[]}});
+    }
+    searchCount++;
+    active++;
+    maxConcurrent=Math.max(maxConcurrent,active);
+    await new Promise(done=>setTimeout(done,3));
+    active--;
+    const requested=requests.find(row=>
+      row.text.slice(0,85)===parsed.searchParams.get('q'));
+    assert.ok(requested,'Unexpected search text');
+    return json({result:{casts:[{
+      hash:requested.castId,
+      author:{fid:requested.authorFid},
+      viewCount:200+Number(requested.text.match(/number (\d+)/)[1]),
+    }]}});
+  }});
+  const resolved=await service.resolve(requests);
+  assert.equal(resolved.status,200);
+  assert.equal(Object.keys(resolved.data.counts).length,requests.length);
+  assert.equal(resolved.data.counts[requests[9].castId],209);
+  assert.equal(authorCount,1,'Recent author data is fetched once');
+  assert.equal(searchCount,10,'No archived reply is silently skipped');
+  assert.ok(maxConcurrent<=3,'Parallel searches are bounded');
+});
