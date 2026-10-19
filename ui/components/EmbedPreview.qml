@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 
 // Authoritative dispatcher for canonical embed presentation.
 //
