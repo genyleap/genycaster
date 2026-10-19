@@ -118,6 +118,44 @@ void testCanonicalCodec()
     assert(wrappedFeed->casts.size() == 1U);
 }
 
+void testRecentNetworkEventDecoding()
+{
+    auto shards = provider::hypersnap::codec::decodeRecentShardInfo(R"json({
+      "shardInfos": [
+        {"shardId": 2, "maxHeight": 220},
+        {"shardId": 0, "maxHeight": 200},
+        {"shardId": 1, "maxHeight": 230}
+      ]
+    })json");
+    assert(shards && shards->size() == 2U);
+    assert((*shards)[0].shard == 1U && (*shards)[0].height == 230U);
+    assert((*shards)[1].shard == 2U && (*shards)[1].height == 220U);
+    const auto events = provider::hypersnap::codec::decodeRecentCastEvents(R"json({
+      "events": [
+        {"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","id":3244033,"blockNumber":198,
+         "mergeMessageBody":{"message":{"hash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+           "data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600000,
+                    "castAddBody":{"text":"confirmed root"}}}}},
+        {"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","id":3260417,"blockNumber":199,
+         "mergeMessageBody":{"message":{"hash":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+           "data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600001,
+                    "castAddBody":{"parentCastId":{"hash":"0xdead","fid":42}}}}}},
+        {"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","id":3276800,"blockNumber":200,
+         "mergeMessageBody":{"message":{"hash":"0xcccccccccccccccccccccccccccccccccccccccc",
+           "data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600002,
+                    "castAddBody":{}}}}}
+      ]
+    })json", 198U, 200U);
+    assert(events && events->size() == 1U);
+    assert(events->front().hash == "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    assert(events->front().protocolTimestamp == 182600000U);
+    auto invalid = provider::hypersnap::codec::decodeRecentShardInfo(R"json({"shardInfos":[]})json");
+    assert(!invalid);
+    auto broken = provider::hypersnap::codec::decodeRecentCastEvents(
+        R"json({"events":"invalid"})json", 0U, 1U);
+    assert(!broken);
+}
+
 void testProfileCastAndIdentityEndpoints()
 {
     test::hypersnap::transport::FakeTransport transport{};
@@ -526,7 +564,7 @@ void testCurlTransportConstruction()
 void testCapabilityRegistration()
 {
     const auto capabilities = provider::hypersnap::registration::capabilities();
-    assert(capabilities.size() == 15);
+    assert(capabilities.size() == 16);
 
     const auto has = [&](const capability::model::CapabilityId& id) {
         return std::ranges::any_of(capabilities, [&](const auto& item) {
@@ -541,6 +579,7 @@ void testCapabilityRegistration()
     assert(has(capability::catalog::graphFollowingRead()));
     assert(has(capability::catalog::feedFollowingRead()));
     assert(has(capability::catalog::feedTrendingRead()));
+    assert(has(capability::catalog::feedRecentRead()));
     assert(has(capability::catalog::feedChannelRead()));
     assert(has(capability::catalog::feedUserPostsRead()));
     assert(has(capability::catalog::feedUserQuotesRead()));
@@ -562,6 +601,7 @@ void testCapabilityRegistration()
 int main()
 {
     testCanonicalCodec();
+    testRecentNetworkEventDecoding();
     testProfileCastAndIdentityEndpoints();
     testHttpErrorMappingAndConfigValidation();
     testFeedPaginationAffinity();

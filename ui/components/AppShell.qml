@@ -65,7 +65,11 @@ Item {
     readonly property bool showSocialContextRail: root.contextRailFits && root.socialSurfaceActive
     readonly property bool showContextRail: root.showHomeContextRail || root.showSocialContextRail
     readonly property bool identityAvailable: presentationBridge.identityFid > 0
-    readonly property bool passiveSignedOutDiscoveryFailure: presentationBridge.activeView === "feed" && presentationBridge.activeFeed === "trending" && !presentationBridge.isAuthenticated && presentationBridge.sourceUnavailable
+    readonly property bool passiveSignedOutDiscoveryFailure: presentationBridge.activeView === "feed"
+                                                 && (presentationBridge.activeFeed === "trending"
+                                                     || presentationBridge.activeFeed === "recent")
+                                                 && !presentationBridge.isAuthenticated
+                                                 && presentationBridge.sourceUnavailable
     readonly property int desktopNavigationWidth: root.desktop
                                                   ? Math.round(Math.min(460, Math.max(264, appearanceController.socialNavigationWidth)))
                                                   : Theme.navigationWidth
@@ -278,11 +282,10 @@ Item {
         root.explorerPresentationMode = nextMode
         root.explorerVisualFilter = "nfts"
 
-        // Explorer discovers network-wide casts. Following is Home's personal
-        // timeline and can be empty for an account that follows nobody. Keep
-        // one stable Trending source across semantic tabs; the read adapter
-        // owns pagination and provider fallback, never QML.
-        const source = "trending"
+        // Explorer uses a separate confirmed chronological network feed.
+        // Home's personal Following and ranked Trending timelines remain intact.
+        // The provider owns cursor-based continuation and bulk hydration.
+        const source = "recent"
         const emptySettledSource = presentationBridge.feedStarted
                                    && !presentationBridge.isBusy
                                    && presentationBridge.rows.length === 0
@@ -922,7 +925,7 @@ Item {
                                                 ? presentationBridge.refreshLatestFeed() : presentationBridge.retry()
                                             onIdentityRequested: presentationBridge.selectFeed("trending")
                                             onFollowingRequested: presentationBridge.selectFeed("following")
-                                            onTrendingRequested: presentationBridge.selectFeed("trending")
+                                            onTrendingRequested: root.openExplorer()
                                             onAuthenticationRequested: root.openAccountPopup()
                                         }
                                     }

@@ -52,7 +52,7 @@ struct ReadMetadata final {
 
 /** @brief Operation-safe feed selector owned by Application. */
 struct FeedQuery final {
-    enum class Kind : std::uint8_t { Following, Trending, Channel, UserPosts, UserQuotes, UserReplies, UserLikes, UserPopular };
+    enum class Kind : std::uint8_t { Following, Trending, Channel, UserPosts, UserQuotes, UserReplies, UserLikes, UserPopular, Recent };
     Kind kind{Kind::Trending};
     std::optional<domain::identity::Fid> fid{};
     std::optional<domain::channel::ChannelId> channel{};

@@ -70,6 +70,9 @@ using ErrorCode = foundation::error::ErrorCode;
     case model::FeedQuery::Kind::Trending:
         kind = local::read::FeedKey::Kind::Trending;
         break;
+    case model::FeedQuery::Kind::Recent:
+        kind = local::read::FeedKey::Kind::Recent;
+        break;
     case model::FeedQuery::Kind::Channel:
         kind = local::read::FeedKey::Kind::Channel;
         break;

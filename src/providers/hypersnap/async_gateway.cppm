@@ -96,6 +96,13 @@ public:
         std::function<void(foundation::result::Result<bool>)> completion);
 
 private:
+    /** @brief Loads confirmed network casts, keeping blocking work off Qt. */
+    [[nodiscard]] foundation::result::Result<application::read::async_gateway::Request>
+    recentFeed(
+        application::read::model::FeedQuery query,
+        application::read::async_gateway::FeedCompletion completion,
+        application::read::model::ReadOptions options);
+
     async_request::Client m_client;
     application::executor::IExecutor& m_continuationExecutor;
     storage::continuation::ContinuationStore& m_continuations;

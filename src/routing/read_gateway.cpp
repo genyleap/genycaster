@@ -232,7 +232,9 @@ foundation::result::Result<capability::feed::FeedPage> RoutedReadGateway::feed(
     const application::read::model::ReadOptions options)
 {
     capability::model::CapabilityId capabilityId = capability::catalog::feedTrendingRead();
-    if (query.kind == application::read::model::FeedQuery::Kind::Following) {
+    if (query.kind == application::read::model::FeedQuery::Kind::Recent) {
+        capabilityId = capability::catalog::feedRecentRead();
+    } else if (query.kind == application::read::model::FeedQuery::Kind::Following) {
         capabilityId = capability::catalog::feedFollowingRead();
     } else if (query.kind == application::read::model::FeedQuery::Kind::Channel) {
         capabilityId = capability::catalog::feedChannelRead();
@@ -262,6 +264,11 @@ foundation::result::Result<capability::feed::FeedPage> RoutedReadGateway::feed(
         .limit = query.limit,
         .continuation = query.continuation,
     };
+    if (query.kind == application::read::model::FeedQuery::Kind::Recent) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::Unsupported,
+            "Confirmed Recent discovery requires the asynchronous provider gateway."));
+    }
     if (query.kind == application::read::model::FeedQuery::Kind::Following) {
         return executeObserved(m_health, *route, capabilityId, options,
             [&] { return (*binding)->feed->following(*query.fid, pageRequest); });

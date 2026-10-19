@@ -2,10 +2,13 @@ module;
 
 #include <algorithm>
 #include <atomic>
+#include <charconv>
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <expected>
 #include <functional>
+#include <iterator>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -334,6 +337,62 @@ void mergeHydratedReplyMetrics(
     return "{\"fids\":[" + std::to_string(fid.value) + "]}";
 }
 
+constexpr std::uint64_t recentWindowBlocks{500U};
+constexpr std::uint64_t recentEventShift{14U};
+constexpr std::string_view recentCursorPrefix{"recent:v1:"};
+
+struct RecentCursor final {
+    std::uint64_t firstEnd{};
+    std::uint64_t secondEnd{};
+    std::size_t offset{};
+};
+
+[[nodiscard]] std::string encodeRecentCursor(const RecentCursor cursor)
+{
+    return std::string{recentCursorPrefix} + std::to_string(cursor.firstEnd)
+        + ":" + std::to_string(cursor.secondEnd) + ":"
+        + std::to_string(cursor.offset);
+}
+
+[[nodiscard]] foundation::result::Result<RecentCursor> decodeRecentCursor(
+    const std::string_view serialized)
+{
+    if (!serialized.starts_with(recentCursorPrefix)) {
+        return std::unexpected(makeError(ErrorCode::InvalidArgument, "Invalid Recent cursor version."));
+    }
+    auto tail = serialized.substr(recentCursorPrefix.size());
+    std::uint64_t fields[3]{};
+    for (std::size_t i = 0; i < 3U; ++i) {
+        const auto colon = tail.find(':');
+        const auto part = i == 2U ? tail : tail.substr(0, colon);
+        if (part.empty() || (i != 2U && colon == std::string_view::npos)
+            || (i == 2U && colon != std::string_view::npos)) {
+            return std::unexpected(makeError(ErrorCode::InvalidArgument, "Malformed Recent cursor."));
+        }
+        const auto [end, error] = std::from_chars(part.data(), part.data() + part.size(), fields[i]);
+        if (error != std::errc{} || end != part.data() + part.size()) {
+            return std::unexpected(makeError(ErrorCode::InvalidArgument, "Invalid Recent cursor value."));
+        }
+        if (i < 2U) { tail.remove_prefix(colon + 1U); }
+    }
+    if (fields[0] == 0U || fields[1] == 0U || fields[0] > 1'000'000'000U
+        || fields[1] > 1'000'000'000U || fields[2] > 4000U) {
+        return std::unexpected(makeError(ErrorCode::InvalidArgument, "Recent cursor out of range."));
+    }
+    return RecentCursor{fields[0], fields[1], static_cast<std::size_t>(fields[2])};
+}
+
+[[nodiscard]] std::vector<std::pair<std::string, std::string>> recentEventQuery(
+    const std::uint64_t endBlock, const std::uint64_t shard)
+{
+    const auto start = endBlock > recentWindowBlocks
+        ? endBlock - recentWindowBlocks : 0U;
+    return {
+        {"from_event_id", std::to_string(start << recentEventShift)},
+        {"shard_index", std::to_string(shard)}
+    };
+}
+
 struct FeedSpec final {
     capability::model::CapabilityId capabilityId{};
     std::string path{};
@@ -563,6 +622,244 @@ foundation::result::Result<AppRequest> AsyncGateway::cast(
     return applicationRequest(group);
 }
 
+foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
+    application::read::model::FeedQuery query,
+    application::read::async_gateway::FeedCompletion completion,
+    const application::read::model::ReadOptions options)
+{
+    auto group = std::make_shared<Group>();
+    const auto capabilityId = capability::catalog::feedRecentRead();
+    const auto requestPriority = priorityFor(options, transport::async_http::Priority::Visible);
+    const capability::pagination::PageRequest pageRequest{
+        .limit = query.limit, .continuation = query.continuation};
+    auto resultCallback = std::make_shared<
+        application::read::async_gateway::FeedCompletion>(std::move(completion));
+    auto deliver = [group, resultCallback](
+        foundation::result::Result<capability::feed::FeedPage> page) mutable {
+        if (group->cancelled.load(std::memory_order_acquire) || !*resultCallback) {
+            return;
+        }
+        auto callback = std::move(*resultCallback);
+        callback(std::move(page));
+    };
+
+    auto start = m_continuationExecutor.post(
+        [this, group, capabilityId, pageRequest, requestPriority, deliver]() mutable {
+            if (group->cancelled.load(std::memory_order_acquire)) { return; }
+            continuation::Store store{m_continuations, m_config.provider.id};
+            auto raw = store.resolve(capabilityId, pageRequest);
+            if (!raw) {
+                deliver(std::unexpected(std::move(raw.error())));
+                return;
+            }
+
+            auto loadWindow = [this, group, capabilityId, pageRequest,
+                               requestPriority, deliver](RecentCursor cursor) mutable {
+                auto first = m_client.getJson(
+                    "/v1/events", recentEventQuery(cursor.firstEnd, 1U),
+                    [this, group, capabilityId, pageRequest, requestPriority, deliver, cursor](
+                        foundation::result::Result<std::string> firstBody) mutable {
+                        if (group->cancelled.load(std::memory_order_acquire)) { return; }
+                        if (!firstBody) {
+                            deliver(std::unexpected(std::move(firstBody.error())));
+                            return;
+                        }
+                        auto firstEvents = codec::decodeRecentCastEvents(
+                            *firstBody,
+                            cursor.firstEnd > recentWindowBlocks
+                                ? cursor.firstEnd - recentWindowBlocks : 0U,
+                            cursor.firstEnd);
+                        if (!firstEvents) {
+                            deliver(std::unexpected(std::move(firstEvents.error())));
+                            return;
+                        }
+                        auto second = m_client.getJson(
+                            "/v1/events", recentEventQuery(cursor.secondEnd, 2U),
+                            [this, group, capabilityId, pageRequest, requestPriority,
+                             deliver, cursor, firstEvents = std::move(*firstEvents)](
+                                foundation::result::Result<std::string> secondBody) mutable {
+                                if (group->cancelled.load(std::memory_order_acquire)) { return; }
+                                if (!secondBody) {
+                                    deliver(std::unexpected(std::move(secondBody.error())));
+                                    return;
+                                }
+                                auto secondEvents = codec::decodeRecentCastEvents(
+                                    *secondBody,
+                                    cursor.secondEnd > recentWindowBlocks
+                                        ? cursor.secondEnd - recentWindowBlocks : 0U,
+                                    cursor.secondEnd);
+                                if (!secondEvents) {
+                                    deliver(std::unexpected(std::move(secondEvents.error())));
+                                    return;
+                                }
+                                firstEvents.insert(firstEvents.end(),
+                                    std::make_move_iterator(secondEvents->begin()),
+                                    std::make_move_iterator(secondEvents->end()));
+                                std::ranges::sort(firstEvents, [](const auto& a, const auto& b) {
+                                    if (a.protocolTimestamp != b.protocolTimestamp) {
+                                        return a.protocolTimestamp > b.protocolTimestamp;
+                                    }
+                                    return a.hash < b.hash;
+                                });
+                                std::unordered_set<std::string> seen{};
+                                std::vector<std::string> orderedHashes{};
+                                orderedHashes.reserve(firstEvents.size());
+                                for (const auto& event : firstEvents) {
+                                    if (seen.insert(event.hash).second) {
+                                        orderedHashes.push_back(event.hash);
+                                    }
+                                }
+                                const auto begin = std::min(cursor.offset, orderedHashes.size());
+                                const auto end = std::min(
+                                    orderedHashes.size(), begin + pageRequest.limit);
+                                std::vector<std::string> selected(
+                                    orderedHashes.begin() + static_cast<std::ptrdiff_t>(begin),
+                                    orderedHashes.begin() + static_cast<std::ptrdiff_t>(end));
+                                std::optional<std::string> nextCursor{};
+                                if (end < orderedHashes.size()) {
+                                    nextCursor = encodeRecentCursor(
+                                        RecentCursor{cursor.firstEnd, cursor.secondEnd, end});
+                                } else if (cursor.firstEnd > recentWindowBlocks
+                                           && cursor.secondEnd > recentWindowBlocks) {
+                                    nextCursor = encodeRecentCursor(RecentCursor{
+                                        cursor.firstEnd - recentWindowBlocks,
+                                        cursor.secondEnd - recentWindowBlocks, 0U});
+                                }
+                                auto completePage = [this, group, capabilityId, deliver,
+                                                     selected, nextCursor = std::move(nextCursor)](
+                                    foundation::result::Result<codec::FeedPayload> hydrated) mutable {
+                                    if (group->cancelled.load(std::memory_order_acquire)) { return; }
+                                    if (!hydrated) {
+                                        deliver(std::unexpected(std::move(hydrated.error())));
+                                        return;
+                                    }
+                                    auto page = pageFromPayload(std::move(*hydrated));
+                                    std::unordered_map<std::string, domain::cast::Cast> byHash{};
+                                    byHash.reserve(page.casts.size());
+                                    for (auto& cast : page.casts) {
+                                        byHash.insert_or_assign(cast.id.value, std::move(cast));
+                                    }
+                                    page.casts.clear();
+                                    for (const auto& hash : selected) {
+                                        auto it = byHash.find(hash);
+                                        if (it != byHash.end()) {
+                                            page.casts.push_back(std::move(it->second));
+                                        }
+                                    }
+                                    // The hydrated response order is not chronological.
+                                    // Rebuild the canonical entries in the same order as casts.
+                                    page.entries.clear();
+                                    for (const auto& cast : page.casts) {
+                                        page.entries.push_back(domain::feed::FeedEntry{
+                                            .castId = cast.id, .sortTime = cast.createdAt});
+                                    }
+                                    auto bound = m_continuationExecutor.post(
+                                        [this, group, capabilityId, deliver,
+                                         nextCursor = std::move(nextCursor),
+                                         page = std::move(page)]() mutable {
+                                            if (group->cancelled.load(std::memory_order_acquire)) {
+                                                return;
+                                            }
+                                            continuation::Store completedStore{
+                                                m_continuations, m_config.provider.id};
+                                            auto next = completedStore.bind(
+                                                capabilityId, std::move(nextCursor));
+                                            if (!next) {
+                                                deliver(std::unexpected(std::move(next.error())));
+                                                return;
+                                            }
+                                            page.next = std::move(*next);
+                                            deliver(std::move(page));
+                                        });
+                                    if (!bound) {
+                                        deliver(std::unexpected(std::move(bound.error())));
+                                    }
+                                };
+                                if (selected.empty()) {
+                                    completePage(codec::FeedPayload{});
+                                    return;
+                                }
+                                std::string hashes{};
+                                for (const auto& hash : selected) {
+                                    if (!hashes.empty()) { hashes.push_back(','); }
+                                    hashes.append(hash);
+                                }
+                                auto hydrate = m_client.getJson(
+                                    "/v2/farcaster/cast/bulk", {{"hashes", hashes}},
+                                    [group, completePage](
+                                        foundation::result::Result<std::string> body) mutable {
+                                        if (group->cancelled.load(std::memory_order_acquire)) { return; }
+                                        if (!body) {
+                                            completePage(std::unexpected(std::move(body.error())));
+                                            return;
+                                        }
+                                        completePage(codec::decodeFeed(*body));
+                                    },
+                                    request::GetOptions{.timeout = profileFeedRequestTimeout},
+                                    requestPriority);
+                                if (!hydrate) {
+                                    deliver(std::unexpected(std::move(hydrate.error())));
+                                    return;
+                                }
+                                group->add(std::move(*hydrate));
+                            },
+                            request::GetOptions{.timeout = discoveryRequestTimeout},
+                            requestPriority);
+                        if (!second) {
+                            deliver(std::unexpected(std::move(second.error())));
+                            return;
+                        }
+                        group->add(std::move(*second));
+                    },
+                    request::GetOptions{.timeout = discoveryRequestTimeout},
+                    requestPriority);
+                if (!first) {
+                    deliver(std::unexpected(std::move(first.error())));
+                    return;
+                }
+                group->add(std::move(*first));
+            };
+
+            if (*raw) {
+                auto cursor = decodeRecentCursor(**raw);
+                if (!cursor) {
+                    deliver(std::unexpected(std::move(cursor.error())));
+                    return;
+                }
+                loadWindow(*cursor);
+                return;
+            }
+            auto info = m_client.getJson(
+                "/v1/info", {},
+                [group, loadWindow, deliver](
+                    foundation::result::Result<std::string> body) mutable {
+                    if (group->cancelled.load(std::memory_order_acquire)) { return; }
+                    if (!body) {
+                        deliver(std::unexpected(std::move(body.error())));
+                        return;
+                    }
+                    auto shards = codec::decodeRecentShardInfo(*body);
+                    if (!shards) {
+                        deliver(std::unexpected(std::move(shards.error())));
+                        return;
+                    }
+                    loadWindow(RecentCursor{
+                        (*shards)[0].height + 1U,
+                        (*shards)[1].height + 1U, 0U});
+                },
+                request::GetOptions{.timeout = discoveryRequestTimeout}, requestPriority);
+            if (!info) {
+                deliver(std::unexpected(std::move(info.error())));
+                return;
+            }
+            group->add(std::move(*info));
+        });
+    if (!start) {
+        return std::unexpected(std::move(start.error()));
+    }
+    return applicationRequest(group);
+}
+
 foundation::result::Result<AppRequest> AsyncGateway::feed(
     application::read::model::FeedQuery query,
     application::read::async_gateway::FeedCompletion completion,
@@ -574,6 +871,9 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
     auto limit = validatedLimit(query.limit);
     if (!limit) {
         return std::unexpected(std::move(limit.error()));
+    }
+    if (query.kind == application::read::model::FeedQuery::Kind::Recent) {
+        return recentFeed(std::move(query), std::move(completion), options);
     }
 
     FeedSpec spec{};
@@ -588,6 +888,9 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
         spec.fallbackPath = "/v2/farcaster/feed";
         spec.fallbackQuery = {{"feed_type", "following"}, {"fid", std::to_string(query.fid->value)}};
         spec.timeout = followingRequestTimeout;
+        break;
+    case application::read::model::FeedQuery::Kind::Recent:
+        spec.capabilityId = capability::catalog::feedRecentRead();
         break;
     case application::read::model::FeedQuery::Kind::Trending:
         spec.capabilityId = capability::catalog::feedTrendingRead();

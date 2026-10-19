@@ -63,7 +63,9 @@ using foundation::error::ErrorCode;
 [[nodiscard]] local::read::FeedKey toLocalKey(const model::FeedQuery& query)
 {
     local::read::FeedKey::Kind kind = local::read::FeedKey::Kind::Trending;
-    if (query.kind == model::FeedQuery::Kind::Following) {
+    if (query.kind == model::FeedQuery::Kind::Recent) {
+        kind = local::read::FeedKey::Kind::Recent;
+    } else if (query.kind == model::FeedQuery::Kind::Following) {
         kind = local::read::FeedKey::Kind::Following;
     } else if (query.kind == model::FeedQuery::Kind::Channel) {
         kind = local::read::FeedKey::Kind::Channel;

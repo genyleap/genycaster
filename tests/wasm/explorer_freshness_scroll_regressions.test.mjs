@@ -55,13 +55,15 @@ test('reply intent always reaches the composer gate and failed canonical targets
     assert.match(shell, /onDidClose: Qt.callLater\(function\(\) \{ replyTargetErrorLoader.active = false \}\)/);
 });
 
-test('Explorer uses network discovery; Home restores the personal following stream', () => {
+test('Explorer uses confirmed Recent; Home restores personalized Following or ranked Trending', () => {
     const shell = read('ui/components/AppShell.qml');
     const explorer = shell.split('function selectExplorerPresentationMode(mode, forceRefresh) {')[1]
         .split('function openExplorer() {')[0];
     const home = shell.split('function openHome() {')[1]
         .split('function selectHomePresentationMode(mode) {')[0];
-    assert.match(explorer, /const source = "trending"/);
+    assert.match(explorer, /const source = "recent"/);
+    assert.match(read('ui/mobile/main.cpp'), /FeedQuery::Kind::Recent/);
+    assert.match(read('src/storage/read_store.cpp'), /"feed:recent"/);
     assert.doesNotMatch(explorer, /const source = presentationBridge\.isAuthenticated/);
     assert.match(home, /\? "following" : "trending"/);
     assert.match(home, /presentationBridge\.activeFeed !== source/);
@@ -85,4 +87,19 @@ test('link previews reconcile metadata without binding loops or geometry jumps',
     assert.match(qml, /Math\.max\(content\.implicitHeight \+ Theme\.space3 \* 2,/);
     assert.match(qml, /root\.reservedLayout\.artwork/);
     assert.match(qml, /root\.browserMiniAppPreview\.providerKind === "miniapp"/);
+});
+
+test('Recent has independent native C++ cache, routing and Explorer presentation', () => {
+    const header = read('ui/components/FeedHeader.qml');
+    const empty = read('ui/components/EmptyState.qml');
+    const shell = read('ui/components/AppShell.qml');
+    const cpp = read('src/providers/hypersnap/async_gateway.cpp');
+    assert.match(header, /root\.activeFeed === "recent"/);
+    assert.match(header, /root\.discoveryFeed/);
+    assert.match(empty, /root\.activeFeed === "recent"/);
+    assert.match(shell, /const source = "recent"/);
+    assert.match(cpp, /recentFeed\(std::move\(query\), std::move\(completion\), options\)/);
+    assert.match(cpp, /"\/v1\/events"/);
+    assert.match(cpp, /"\/v2\/farcaster\/cast\/bulk"/);
+    assert.match(cpp, /encodeRecentCursor/);
 });

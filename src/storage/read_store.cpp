@@ -67,7 +67,7 @@ namespace {
     if (key.kind == local::read::FeedKey::Kind::UserPopular) {
         return "feed:user:popular:" + std::to_string(key.fid ? key.fid->value : 0);
     }
-    return "feed:trending";
+    return key.kind == local::read::FeedKey::Kind::Recent ? "feed:recent" : "feed:trending";
 }
 
 [[nodiscard]] std::string socialKey(const local::read::SocialKey& key)

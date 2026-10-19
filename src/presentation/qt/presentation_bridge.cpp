@@ -833,7 +833,9 @@ void PresentationBridge::selectFeed(const QString& feed)
         return;
     }
     const QString nextFeed = feed == QStringLiteral("following")
-        ? QStringLiteral("following") : QStringLiteral("trending");
+        ? QStringLiteral("following")
+        : feed == QStringLiteral("recent") ? QStringLiteral("recent")
+        : QStringLiteral("trending");
     if (m_activeView != QStringLiteral("feed") || m_activeFeed != nextFeed) {
         m_pendingFeedRows.clear();
         m_bufferNextFeedRefresh = false;

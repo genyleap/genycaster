@@ -1016,6 +1016,9 @@ void applyFeedState(PresentationBridge& bridge, application::read::model::FeedSt
     case application::read::model::FeedQuery::Kind::Trending:
         selector = QStringLiteral("trending");
         break;
+    case application::read::model::FeedQuery::Kind::Recent:
+        selector = QStringLiteral("recent");
+        break;
     case application::read::model::FeedQuery::Kind::Channel:
         selector = QStringLiteral("channel");
         break;
@@ -3154,6 +3157,8 @@ void connectRuntime(
             application::read::model::FeedQuery query{};
             if (feed == QStringLiteral("following")) {
                 query.kind = application::read::model::FeedQuery::Kind::Following;
+            } else if (feed == QStringLiteral("recent")) {
+                query.kind = application::read::model::FeedQuery::Kind::Recent;
             } else if (feed == QStringLiteral("channel")) {
                 query.kind = application::read::model::FeedQuery::Kind::Channel;
             } else if (feed == QStringLiteral("user-posts")) {
@@ -5093,13 +5098,13 @@ int main(int argc, char* argv[])
                     presentationBridge.applyRuntimeState(true);
                     if (startupIdentity.isEmpty()) {
                         if (openExploreForTest) {
-                            presentationBridge.selectFeed(QStringLiteral("trending"));
+                            presentationBridge.selectFeed(QStringLiteral("recent"));
                         }
                         return;
                     }
                     // PresentationBridge owns the identity-to-Home transition for both
-                    // restored and manually opened identities. This keeps Trending an
-                    // explicit Explore capability and avoids startup-only orchestration.
+                    // restored and manually opened identities. Explorer is an
+                    // explicit Recent capability, independent of personal Home.
                     presentationBridge.openIdentity(startupIdentity);
                 }, Qt::QueuedConnection);
         };
@@ -5175,7 +5180,7 @@ int main(int argc, char* argv[])
             }
         }
         if (openExploreForTest) {
-            presentationBridge.selectFeed(QStringLiteral("trending"));
+            presentationBridge.selectFeed(QStringLiteral("recent"));
         }
         if (arguments.contains(QStringLiteral("--open-composer"))) {
             if (auto* const popup = window->findChild<QObject*>(QStringLiteral("composerDrawer"))) {

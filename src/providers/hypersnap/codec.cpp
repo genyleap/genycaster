@@ -565,6 +565,82 @@ struct MappedCast final {
 
 }
 
+foundation::result::Result<std::vector<RecentShardHeight>>
+decodeRecentShardInfo(const std::string_view body)
+{
+    auto document = parseJson(body);
+    if (!document) { return std::unexpected(std::move(document.error())); }
+    if (!document->is_object()) {
+        return std::unexpected(protocolError("Snapchain shard information must be an object."));
+    }
+    const JsonValue* shards = findValue(document->as_object(), "shardInfos");
+    if (shards == nullptr || !shards->is_array()) {
+        return std::unexpected(protocolError("Snapchain shardInfos array is required."));
+    }
+    std::vector<RecentShardHeight> result{};
+    for (const auto& shard : shards->as_array()) {
+        if (!shard.is_object()) { continue; }
+        const auto id = optionalUnsigned(shard.as_object(), "shardId");
+        const auto height = optionalUnsigned(shard.as_object(), "maxHeight");
+        if (id && height && *id != 0U && *height > 0U) {
+            result.push_back(RecentShardHeight{.shard = *id, .height = *height});
+        }
+    }
+    std::ranges::sort(result, {}, &RecentShardHeight::shard);
+    if (result.size() != 2U || result[0].shard != 1U || result[1].shard != 2U) {
+        return std::unexpected(protocolError(
+            "Snapchain recent discovery requires both data shards (1, 2)."));
+    }
+    return result;
+}
+
+foundation::result::Result<std::vector<RecentCastEvent>>
+decodeRecentCastEvents(const std::string_view body, const std::uint64_t startBlock,
+                       const std::uint64_t endBlock)
+{
+    auto document = parseJson(body);
+    if (!document) { return std::unexpected(std::move(document.error())); }
+    if (!document->is_object()) {
+        return std::unexpected(protocolError("Snapchain events response must be an object."));
+    }
+    const JsonValue* events = findValue(document->as_object(), "events");
+    if (events == nullptr || !events->is_array()) {
+        return std::unexpected(protocolError("Snapchain events array is required."));
+    }
+    // Snapchain returns a bounded event batch. If the window did not fit, never
+    // claim chronological completeness, as that would silently skip new casts.
+    if (events->as_array().size() >= 2000U) {
+        return std::unexpected(protocolError("Snapchain recent event window exceeded 2000 events."));
+    }
+    std::vector<RecentCastEvent> result{};
+    for (const auto& event : events->as_array()) {
+        if (!event.is_object()) { continue; }
+        const auto& object = event.as_object();
+        const auto block = optionalUnsigned(object, "blockNumber");
+        if (!block || *block < startBlock || *block >= endBlock) { continue; }
+        if (optionalString(object, "type") != "HUB_EVENT_TYPE_MERGE_MESSAGE") { continue; }
+        const JsonValue* merged = findValue(object, "mergeMessageBody");
+        if (merged == nullptr || !merged->is_object()) { continue; }
+        const JsonValue* message = findValue(merged->as_object(), "message");
+        if (message == nullptr || !message->is_object()) { continue; }
+        const JsonValue* data = findValue(message->as_object(), "data");
+        if (data == nullptr || !data->is_object()) { continue; }
+        if (optionalString(data->as_object(), "type") != "MESSAGE_TYPE_CAST_ADD") { continue; }
+        const JsonValue* castBody = findValue(data->as_object(), "castAddBody");
+        if (castBody == nullptr || !castBody->is_object()) { continue; }
+        if (const JsonValue* parent = findValue(castBody->as_object(), "parentCastId");
+            parent != nullptr && !parent->is_null()) { continue; }
+        const auto hash = optionalString(message->as_object(), "hash");
+        const auto timestamp = optionalUnsigned(data->as_object(), "timestamp");
+        const auto id = optionalUnsigned(object, "id");
+        if (!hash || hash->size() != 42U || !hash->starts_with("0x")
+            || !timestamp || !id) { continue; }
+        result.push_back(RecentCastEvent{
+            .hash = *hash, .protocolTimestamp = *timestamp, .eventId = *id});
+    }
+    return result;
+}
+
 foundation::result::Result<FeedPayload> decodeFeed(const std::string_view body)
 {
     auto document = parseJson(body);

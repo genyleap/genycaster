@@ -37,7 +37,8 @@ Item {
                                      && !root.busy
                                      && root.errorText.length === 0
     readonly property bool recoverableSourceFailure: root.runtimeReady && root.sourceUnavailable && !root.offline && !root.busy
-    readonly property bool trendingUnavailable: root.recoverableSourceFailure && root.activeFeed === "trending"
+    readonly property bool discoveryUnavailable: root.recoverableSourceFailure
+                                               && (root.activeFeed === "trending" || root.activeFeed === "recent")
     readonly property string stateIcon: root.setupFailure || root.sourceUnavailable ? Theme.iconWarning
                                         : root.offline ? Theme.iconWifi
                                         : root.idleHome ? Theme.iconProfile
@@ -98,7 +99,7 @@ Item {
                        : qsTrId("genycaster.empty.open_an_identity_for_your_home_feed_or_use_explore_for"))
                     : root.offline
                       ? qsTrId("genycaster.empty.reconnect_and_refresh_once_to_populate_the_local_cache")
-                    : root.trendingUnavailable
+                    : root.discoveryUnavailable
                       ? (root.identityAvailable
                          ? qsTrId("genycaster.empty.explore_is_temporarily_unavailable_your_home_feed_rema")
                          : qsTrId("genycaster.empty.explore_is_temporarily_unavailable_open_an_identity_fo"))
@@ -124,7 +125,7 @@ Item {
             spacing: Theme.space2
 
             ActionButton {
-                visible: root.idleHome || (root.trendingUnavailable && root.identityAvailable)
+                visible: root.idleHome || (root.discoveryUnavailable && root.identityAvailable)
                 text: root.identityAvailable ? qsTrId("genycaster.empty.open_home") : qsTrId("genycaster.empty.open_identity")
                 prominent: true
                 onClicked: root.identityAvailable ? root.followingRequested() : root.identityRequested()
@@ -140,8 +141,8 @@ Item {
             ActionButton {
                 visible: !root.idleHome
                 text: root.offline ? qsTrId("genycaster.empty.try_again") : qsTrId("genycaster.empty.retry")
-                selected: root.trendingUnavailable
-                quiet: !root.trendingUnavailable
+                selected: root.discoveryUnavailable
+                quiet: !root.discoveryUnavailable
                 onClicked: root.retryRequested()
             }
         }

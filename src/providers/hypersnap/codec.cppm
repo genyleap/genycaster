@@ -72,6 +72,33 @@ struct SocialPayload final {
     std::optional<std::string> providerCursor{};
 };
 
+/** @brief One confirmed Snapchain root cast identified without user or text fields. */
+struct RecentCastEvent final {
+    std::string hash{};
+    std::uint64_t protocolTimestamp{};
+    std::uint64_t eventId{};
+};
+
+/** @brief The confirmed chain height of one data shard. */
+struct RecentShardHeight final {
+    std::uint64_t shard{};
+    std::uint64_t height{};
+};
+
+/** @brief Decodes shard heights needed for a deterministic recent-cast window.
+ * The protocol identity shard (zero) is excluded. Unexpected schema fails
+ * explicitly rather than showing stale ranked results as recent.
+ */
+[[nodiscard]] foundation::result::Result<std::vector<RecentShardHeight>>
+decodeRecentShardInfo(std::string_view body);
+
+/** @brief Decodes confirmed root CastAdd messages inside a bounded block interval.
+ * Author identity, text and signatures are hydrated separately from the cast API.
+ */
+[[nodiscard]] foundation::result::Result<std::vector<RecentCastEvent>>
+decodeRecentCastEvents(std::string_view body, std::uint64_t startBlock,
+                       std::uint64_t endBlock);
+
 /** @brief Decodes the pinned Hypersnap v2 feed schema into canonical entities. */
 [[nodiscard]] foundation::result::Result<FeedPayload> decodeFeed(std::string_view body);
 

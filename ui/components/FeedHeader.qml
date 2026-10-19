@@ -6,6 +6,7 @@ Item {
     id: root
 
     property string activeFeed: "trending"
+    readonly property bool discoveryFeed: root.activeFeed === "trending" || root.activeFeed === "recent"
     property var channelInfo: ({})
     property bool identityAvailable: false
     property bool compact: false
@@ -23,7 +24,7 @@ Item {
     implicitHeight: headerColumn.implicitHeight
     Accessible.description: root.activeFeed === "channel"
                             ? qsTrId("genycaster.feed_header.casts_scoped_to_the_channel_you_opened")
-                            : root.activeFeed === "trending"
+                            : root.discoveryFeed
                               ? qsTrId("genycaster.feed_header.a_network_wide_view_from_the_selected_live_source")
                               : qsTrId("genycaster.feed_header.recent_casts_from_the_people_this_identity_follows")
 
@@ -42,12 +43,12 @@ Item {
 
         RowLayout {
             Layout.fillWidth: true
-            implicitHeight: root.activeFeed === "trending" ? 52 : 44
+            implicitHeight: root.discoveryFeed ? 52 : 44
             layoutDirection: Theme.uiDirection
             spacing: Theme.space2
 
             Superellipse {
-                visible: root.activeFeed === "trending"
+                visible: root.discoveryFeed
                 Layout.preferredWidth: 42
                 Layout.preferredHeight: 42
                 fillColor: Theme.primarySurface
@@ -73,11 +74,11 @@ Item {
                           ? (String(root.channelInfo.name || root.channelInfo.id || "").length > 0
                              ? String(root.channelInfo.name || root.channelInfo.id)
                              : qsTrId("genycaster.feed_header.channel"))
-                          : root.activeFeed === "trending" ? qsTrId("genycaster.feed_header.explore")
+                          : root.discoveryFeed ? qsTrId("genycaster.feed_header.explore")
                           : qsTrId("genycaster.feed_header.home")
                     color: Theme.ink
                     font.family: Theme.fontFamily
-                    font.pixelSize: root.activeFeed === "trending" && !root.compact
+                    font.pixelSize: root.discoveryFeed && !root.compact
                                     ? Theme.typeTitle1Size : Theme.typeTitle2Size
                     font.weight: Theme.weightBold
                     horizontalAlignment: Theme.textStartAlignment
@@ -87,7 +88,7 @@ Item {
                 Label {
                     visible: !root.compact
                     Layout.fillWidth: true
-                    text: root.activeFeed === "trending"
+                    text: root.discoveryFeed
                           ? qsTrId("genycaster.feed_header.discover_people_channels_and_casts")
                           : root.activeFeed === "channel"
                             ? qsTrId("genycaster.feed_header.casts_scoped_to_the_channel_you_opened")
@@ -159,7 +160,7 @@ Item {
         }
 
         Superellipse {
-            visible: root.activeFeed === "trending" || root.activeFeed === "channel"
+            visible: root.discoveryFeed || root.activeFeed === "channel"
             Layout.fillWidth: true
             implicitHeight: 48
             fillColor: searchInput.activeFocus ? Theme.surfaceElevated : Theme.surfaceRaised
@@ -220,7 +221,7 @@ Item {
         }
 
         RowLayout {
-            visible: root.activeFeed === "trending" || root.activeFeed === "channel"
+            visible: root.discoveryFeed || root.activeFeed === "channel"
             layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             spacing: Theme.space2
@@ -243,7 +244,7 @@ Item {
             }
 
             RowLayout {
-                visible: root.activeFeed === "trending"
+                visible: root.discoveryFeed
                 spacing: Theme.space1
                 layoutDirection: Theme.uiDirection
 

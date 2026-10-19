@@ -18,6 +18,8 @@ export namespace farcaster::capability::catalog {
 [[nodiscard]] model::CapabilityId feedFollowingRead();
 /** @brief Trending feed read capability. */
 [[nodiscard]] model::CapabilityId feedTrendingRead();
+/** @brief Network-wide, strictly time-ordered confirmed cast discovery. */
+[[nodiscard]] model::CapabilityId feedRecentRead();
 /** @brief Channel feed read capability. */
 [[nodiscard]] model::CapabilityId feedChannelRead();
 /** @brief User-authored root-post feed read capability. */
