@@ -10,6 +10,17 @@
 - **Platform assumptions:** Qt/C++26 native Linux build, QML/Qt network on native and WASM; mobile foreground/background and browser transport/runtime still require targeted verification. No native-thread or native-database assumption is added to domain/application.
 - **Regression evidence:** deterministic Qt socket test for Views queue/reacquisition, Node HTTP gateway fixtures for bounded partial and quote identity. Existing core/provider/storage and QML tests are required to validate other boundaries; source checks do not substitute for a runtime.
 
+## Browser reaction Gateway — shared admission and partial-response repair (2026-10-20)
+
+The previous per-HTTP-request loop capped upstream fan-out at two **per client**, not two globally; simultaneous viewer requests could multiply concurrent public API reads. The shared `createBrowserReactionService` now owns a service-wide two-slot upstream pool and at most 32 waiting lookup admissions. Shared cast-hash reads are reused across concurrent viewers, and an individual viewer's six-second logical response deadline cannot abort a shared provider request required by others. Deadline expiry returns an immutable copy of verified positive results accumulated so far; absence remains unknown, never `false`. Failed or rejected lookups receive a five-second unavailable backoff; old positive evidence remains cached for its existing TTL. Response bodies are streamed with a 3-MiB limit even when content length is absent, and parsing examines at most 100 results.
+
+Verification from a deterministic Node transport with delays, delayed completion, shared viewers, saturation and an unlimited streaming body:
+- `node --test services/media-gateway/test/browser_cast_reactions.test.mjs`: **10/10 PASS**.
+- `node --test services/media-gateway/test/browser_cast_views.test.mjs`: **10/10 PASS** (unchanged adjacent gateway).
+- `node --test services/media-gateway/test/*.test.mjs`: **82/83 PASS**. The one failure remains the native Quilibrium storage addon fixture: `storage/native/genyleap_quilibrium_storage.node` is absent from this environment. This failure was not suppressed and is not caused by browser reaction logic.
+
+The separate `ui/components/CastReactions.qml` still owns HTTP and violates the QML architecture guard; this Gateway correction alone does **not** resolve that boundary, and WASM/browser runtime delivery has not been verified. No production services were restarted or deployed.
+
 ## Runtime/navigation follow-up — 2026-10-20
 
 Revalidated source defects: replacing a feed page could abort preview and viewer-reaction work owned by the same active surface; treating a returned feed identity as current after leaving for profile/notifications could allow an obsolete cast-detail request to survive the return. The page generation and surface generation now have separate cancellation paths. Switching to a new surface cancels old operations before committing its identity; leaving clears that identity. Retained referenced-preview callbacks are bound to their surface generation, not the superseded page generation. Viewer-reaction acquisitions queue additional cast identities instead of canceling a shared active batch, preserve independent Like/Recast evidence and avoid a double retry after synchronous completion. Request cancellation was moved outside request-owner mutexes, and GUI-owned page/hydration settings are captured before worker callbacks.
