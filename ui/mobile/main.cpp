@@ -1036,7 +1036,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<MiniAppCatalogController> miniAppCatalogControllerOwner{};
     std::unique_ptr<MiniAppTaskManagerController> miniAppTaskManagerControllerOwner{};
 #if FARCASTER_HAS_MINIAPP_EVM_WALLET
-    std::unique_ptr<capability::wallet::IEthereumWalletBridge> miniAppWalletBridgeOwner{};
+    std::unique_ptr<farcaster::capability::wallet::IEthereumWalletBridge> miniAppWalletBridgeOwner{};
 #endif
 #if GENYCASTER_HAS_MINIAPP_HOST
     std::unique_ptr<farcaster::runtime::miniapp::MiniAppRuntime> miniAppRuntimeOwner{};
