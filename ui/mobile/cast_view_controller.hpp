@@ -33,6 +33,13 @@ private:
     qint64 m_retryAfter{0};
     qint64 m_touched{0};
     int m_consumers{0};
+    enum class Lifecycle { Idle, Queued, Active, Resolved, Unavailable, Failed, CanceledBeforeDispatch, Invalid };
+    Lifecycle m_state{Lifecycle::Idle};
+    qint64 m_desiredAuthorFid{0};
+    QString m_desiredText{};
+    qint64 m_sentAuthorFid{0};
+    QString m_sentText{};
+    bool m_metadataFollowUpUsed{false};
     bool m_inFlight{false};
 };
 
@@ -44,7 +51,7 @@ class CastViewController final : public QObject {
 public:
     explicit CastViewController(
         bool useDirectProxy, bool networkEnabled, QObject* parent = nullptr,
-        QUrl endpoint = {});
+        QUrl endpoint = {}, qint64 retryIntervalMs = 90 * 1000);
     ~CastViewController() override;
 
     Q_INVOKABLE [[nodiscard]] QObject* entryFor(const QString& castId);
@@ -62,6 +69,7 @@ private:
     [[nodiscard]] static QString normalizeHash(const QString& input);
     [[nodiscard]] CastViewEntry* getOrCreate(const QString& normalized);
     void evictUnused();
+    void queueInterested();
     void dispatch();
     void finish(QNetworkReply* reply, const QStringList& hashes);
 
@@ -71,6 +79,8 @@ private:
     QNetworkAccessManager m_network{};
     QUrl m_endpoint{};
     QTimer m_dispatchTimer{};
+    QTimer m_retryTimer{};
     QNetworkReply* m_activeReply{nullptr};
     bool m_networkEnabled{false};
+    qint64 m_retryIntervalMs{90 * 1000};
 };

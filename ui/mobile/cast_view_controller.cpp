@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace {
 
@@ -24,8 +25,9 @@ constexpr int maxPending = 96;
 #endif
 constexpr int maxBatch = 16;
 constexpr qint64 validForMs = 3 * 60 * 1000;
-constexpr qint64 retryForMs = 90 * 1000;
-constexpr qint64 requestDeadlineMs = 6 * 1000;
+// The gateway's 6-second logical operation budget must finish before the
+// client's end-to-end deadline, including response transfer and scheduling.
+constexpr qint64 requestDeadlineMs = 8 * 1000;
 constexpr qint64 maxSafeFid = 9'007'199'254'740'991LL;
 constexpr qint64 maxResponseBytes = 64 * 1024;
 
@@ -37,13 +39,15 @@ CastViewEntry::CastViewEntry(QString castId, QObject* parent)
 }
 
 CastViewController::CastViewController(
-    const bool useDirectProxy, const bool networkEnabled, QObject* parent, QUrl endpoint)
+    const bool useDirectProxy, const bool networkEnabled, QObject* parent, QUrl endpoint,
+    const qint64 retryIntervalMs)
     : QObject(parent),
       m_endpoint(endpoint.isValid() && !endpoint.isEmpty()
           ? std::move(endpoint)
           : QUrl{QStringLiteral(
               "https://storage-farcaster.genyleap.com/v1/browser/cast-views")}),
-      m_networkEnabled(networkEnabled)
+      m_networkEnabled(networkEnabled),
+      m_retryIntervalMs(std::max<qint64>(1, retryIntervalMs))
 {
     if (useDirectProxy) {
         m_network.setProxy(QNetworkProxy{QNetworkProxy::NoProxy});
@@ -51,12 +55,15 @@ CastViewController::CastViewController(
     m_dispatchTimer.setSingleShot(true);
     m_dispatchTimer.setInterval(220);
     connect(&m_dispatchTimer, &QTimer::timeout, this, &CastViewController::dispatch);
+    m_retryTimer.setSingleShot(true);
+    connect(&m_retryTimer, &QTimer::timeout, this, &CastViewController::queueInterested);
     m_clock.start();
 }
 
 CastViewController::~CastViewController()
 {
     m_dispatchTimer.stop();
+    m_retryTimer.stop();
     if (m_activeReply) {
         disconnect(m_activeReply, nullptr, this, nullptr);
         // Only one bounded derived-analytics request can remain in flight.
@@ -138,6 +145,7 @@ void CastViewController::retain(const QString& castId)
     }
     if (auto* entry = getOrCreate(key)) {
         ++entry->m_consumers;
+        queueInterested();
     }
 }
 
@@ -150,8 +158,13 @@ void CastViewController::release(const QString& castId)
     }
     entry->m_consumers = std::max(0, entry->m_consumers - 1);
     if (entry->m_consumers == 0) {
-        m_pending.remove(key);
+        if (m_pending.remove(key) != 0) {
+            entry->m_state = CastViewEntry::Lifecycle::CanceledBeforeDispatch;
+            entry->m_retryAfter = 0; // No request was made.
+        }
+        entry->m_metadataFollowUpUsed = false;
     }
+    queueInterested();
 }
 
 void CastViewController::ensure(
@@ -170,21 +183,63 @@ void CastViewController::ensure(
     if (!entry || entry->m_consumers == 0) {
         return;
     }
-    const qint64 now = m_clock.elapsed();
-    if (entry->m_inFlight || entry->m_freshUntil > now
-        || entry->m_retryAfter > now || m_pending.contains(key)
-        || m_pending.size() >= maxPending) {
+    const auto newFid = static_cast<qint64>(authorFid);
+    const QString compact = text.simplified().left(160);
+    const bool changed = (newFid > 0 && entry->m_desiredAuthorFid != newFid)
+        || (!compact.isEmpty() && compact != entry->m_desiredText);
+    // Preserve newer usable metadata through transient QML null/empty states.
+    if (newFid > 0) {
+        entry->m_desiredAuthorFid = newFid;
+    }
+    // A transient empty QML text binding cannot destroy usable metadata.
+    if (!compact.isEmpty()) {
+        entry->m_desiredText = compact;
+    }
+    if (changed && entry->m_state == CastViewEntry::Lifecycle::Invalid) {
+        entry->m_state = CastViewEntry::Lifecycle::Idle;
+        entry->m_retryAfter = 0;
+    }
+    if (auto it = m_pending.find(key); it != m_pending.end()) {
+        it->authorFid = entry->m_desiredAuthorFid;
+        it->text = entry->m_desiredText;
+    }
+    queueInterested();
+}
+
+void CastViewController::queueInterested()
+{
+    m_retryTimer.stop();
+    if (!m_networkEnabled) {
         return;
     }
-    QString compact = text.simplified().left(160);
-    m_pending.insert(key, Pending{
-        .castId = key,
-        .authorFid = static_cast<qint64>(authorFid),
-        .text = std::move(compact),
-    });
-    entry->m_retryAfter = now + retryForMs;
-    if (!m_activeReply && !m_dispatchTimer.isActive()) {
+    const qint64 now = m_clock.elapsed();
+    qint64 nextWake = std::numeric_limits<qint64>::max();
+    for (auto* entry : m_entries) {
+        if (entry->m_consumers == 0 || entry->m_desiredAuthorFid <= 0
+            || entry->m_inFlight || entry->m_state == CastViewEntry::Lifecycle::Invalid
+            || m_pending.contains(entry->m_castId)) {
+            continue;
+        }
+        const qint64 eligibleAt = std::max(entry->m_freshUntil, entry->m_retryAfter);
+        if (eligibleAt > now) {
+            nextWake = std::min(nextWake, eligibleAt - now);
+        } else if (m_pending.size() < maxPending) {
+            m_pending.insert(entry->m_castId, Pending{
+                .castId = entry->m_castId,
+                .authorFid = entry->m_desiredAuthorFid,
+                .text = entry->m_desiredText,
+            });
+            entry->m_state = CastViewEntry::Lifecycle::Queued;
+        } else {
+            // Demand remains active even when the bounded queue is full.
+            nextWake = std::min<qint64>(nextWake, 220);
+        }
+    }
+    if (!m_pending.isEmpty() && !m_activeReply && !m_dispatchTimer.isActive()) {
         m_dispatchTimer.start();
+    }
+    if (nextWake != std::numeric_limits<qint64>::max()) {
+        m_retryTimer.start(static_cast<int>(std::clamp<qint64>(nextWake, 1, 2'147'483'647)));
     }
 }
 
@@ -206,6 +261,9 @@ void CastViewController::dispatch()
             continue;
         }
         entry->m_inFlight = true;
+        entry->m_state = CastViewEntry::Lifecycle::Active;
+        entry->m_sentAuthorFid = pending.authorFid;
+        entry->m_sentText = pending.text;
         hashes.append(key);
         QJsonObject row{};
         row.insert(QStringLiteral("castId"), pending.castId);
@@ -225,6 +283,12 @@ void CastViewController::dispatch()
     auto* reply = m_network.post(request, QJsonDocument{payload}.toJson(
         QJsonDocument::Compact));
     m_activeReply = reply;
+    // setTransferTimeout is an inactivity watchdog, not a total deadline.
+    QTimer::singleShot(requestDeadlineMs, reply, [reply] {
+        if (reply->isRunning()) {
+            reply->abort();
+        }
+    });
     connect(reply, &QNetworkReply::finished, this,
         [this, reply, hashes] { finish(reply, hashes); });
     connect(reply, &QNetworkReply::downloadProgress, this,
@@ -244,8 +308,10 @@ void CastViewController::finish(QNetworkReply* reply, const QStringList& hashes)
     m_activeReply = nullptr;
     const qint64 now = m_clock.elapsed();
     QJsonObject counts{};
-    if (reply->error() == QNetworkReply::NoError
-        && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200) {
+    const int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    const bool transportOk = reply->error() == QNetworkReply::NoError
+        && httpStatus == 200;
+    if (transportOk) {
         const QByteArray body = reply->read(maxResponseBytes + 1);
         if (body.size() <= maxResponseBytes) {
             QJsonParseError error{};
@@ -262,25 +328,45 @@ void CastViewController::finish(QNetworkReply* reply, const QStringList& hashes)
         }
         entry->m_inFlight = false;
         const QJsonValue raw = counts.value(hash);
+        bool verified = false;
         if (raw.isDouble()) {
             const double number = raw.toDouble();
             if (std::isfinite(number) && number >= 0.0
                 && std::trunc(number) == number
                 && number <= static_cast<double>(maxSafeFid)) {
                 const QVariant count{static_cast<qulonglong>(number)};
+                verified = true;
+                entry->m_state = CastViewEntry::Lifecycle::Resolved;
                 entry->m_freshUntil = now + validForMs;
-                entry->m_retryAfter = entry->m_freshUntil;
+                entry->m_retryAfter = 0;
+                entry->m_metadataFollowUpUsed = false;
                 if (entry->m_count != count) {
                     entry->m_count = count;
                     emit entry->countChanged();
                 }
             }
         }
-        // No value is not zero. Keep any older verified count untouched and
-        // use the retry deadline already recorded at admission.
+        if (!verified) {
+            const bool permanent = httpStatus == 400 || httpStatus == 422;
+            entry->m_state = permanent ? CastViewEntry::Lifecycle::Invalid
+                : transportOk ? CastViewEntry::Lifecycle::Unavailable
+                              : CastViewEntry::Lifecycle::Failed;
+            const bool metadataImproved = entry->m_sentAuthorFid != entry->m_desiredAuthorFid
+                || entry->m_sentText != entry->m_desiredText;
+            // One immediate follow-up is permitted when a better descriptor
+            // arrived during the unresolved request. Repeated changes obey
+            // ordinary backoff to bound provider load.
+            if (!permanent && metadataImproved && !entry->m_metadataFollowUpUsed
+                && entry->m_consumers > 0) {
+                entry->m_metadataFollowUpUsed = true;
+                entry->m_retryAfter = 0;
+            } else {
+                entry->m_retryAfter = permanent
+                    ? std::numeric_limits<qint64>::max() : now + m_retryIntervalMs;
+            }
+            // Existing verified values remain present across refresh failures.
+        }
     }
     reply->deleteLater();
-    if (!m_pending.isEmpty()) {
-        m_dispatchTimer.start();
-    }
+    queueInterested();
 }
