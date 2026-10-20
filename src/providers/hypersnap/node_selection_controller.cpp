@@ -1,4 +1,4 @@
-#include "node_selection_controller.hpp"
+#include "../../../ui/mobile/node_selection_controller.hpp"
 
 #include <QNetworkAccessManager>
 #include <QNetworkReply>

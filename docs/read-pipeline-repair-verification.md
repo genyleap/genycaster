@@ -1,5 +1,16 @@
 # Genycaster read-pipeline repair: verification record
 
+## Provider-specific Qt node-probe adapter boundary — 2026-10-20
+
+- **Responsibility:** Discover, validate and persist supported read-provider nodes without bringing provider HTTP/JSON response contracts into presentation or application.
+- **Capability origin:** Provider compatibility read infrastructure; optional when node probing is disabled, independent of signer and local cached-feed storage.
+- **Public contract:** Existing Qt MOC-facing `NodeSelectionController` offers provider-neutral selection and reachability roles for QML. Its HTTP implementation lives under `src/providers/hypersnap/`, while the stable Qt MOC declaration remains in `ui/mobile/` as the documented textual-compatibility boundary and the outer executable explicitly composes it; no core modules depend on Qt.
+- **Canonical invariants:** Preserve persisted QSettings keys, stable node IDs, `/v1/info` validation, reported availability and latency, proxy/restart semantics, and cancellation of obsolete probes. Do not treat an arbitrary HTTP 200 as protocol compatibility.
+- **Failures/offline:** Unknown/unreachable nodes are unavailable, never invented online. Offline state and previously selected endpoint remain useful.
+- **Verification:** `cmake --build --preset ui-qt612-debug --target farcaster_node_selection_tests -j1 && cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen ctest --test-dir build/ui-qt612-debug -R '^ui.node_selection_contract$' --output-on-failure`: **1/1 PASS** on Linux Qt 6.12 (0.24 seconds). A temporary INI settings file proves duplicate/invalid endpoint filtering, persisted node ID and URL, automatic/manual selection, disabled-probing offline state, Proxy selection/restart requirements and reconstruction. No upstream HTTP was attempted.
+- **Boundary correction:** `src/providers/hypersnap/node_selection_controller.cpp` now owns provider-specific `/v1/info` parsing and QNetwork requests; the `NodeSelectionController` MOC header remains in `ui/mobile` because the repository requires explicit textual Qt headers at approved boundaries. Qt executable CMake composes them without adding provider dependencies to domain or application.
+- `python3 tools/check_architecture.py`: **FAIL**, now **5** existing vendor/QML text/settings leaks (previously 6), without changing the guard. Full `farcaster_client` link/startup, active provider probing and WASM browser startup remain **NOT VERIFIED**.
+
 ## Provider-neutral route-affinity selection — 2026-10-20
 
 - **Responsibility:** Core routing policy selects an eligible capability implementation by preference without embedding concrete provider identifiers.

@@ -239,7 +239,7 @@ qt_add_executable(farcaster_client
     mobile/miniapp_task_manager_controller.hpp
     mobile/live_insights_controller.cpp
     mobile/live_insights_controller.hpp
-    mobile/node_selection_controller.cpp
+    ../src/providers/hypersnap/node_selection_controller.cpp
     mobile/node_selection_controller.hpp
     mobile/update_controller.cpp
     mobile/update_controller.hpp
@@ -1098,6 +1098,18 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
         COMMAND farcaster_browser_link_metadata_tests)
     set_tests_properties(ui.browser_link_metadata_contract PROPERTIES
         LABELS "ui;metadata;qt;wasm"
+        TIMEOUT 15)
+
+    qt_add_executable(farcaster_node_selection_tests
+        tests/node_selection_controller_tests.cpp
+        ../src/providers/hypersnap/node_selection_controller.cpp
+        mobile/node_selection_controller.hpp)
+    target_compile_features(farcaster_node_selection_tests PRIVATE cxx_std_26)
+    target_link_libraries(farcaster_node_selection_tests PRIVATE Qt6::Core Qt6::Network)
+    farcaster_enable_warnings(farcaster_node_selection_tests)
+    add_test(NAME ui.node_selection_contract COMMAND farcaster_node_selection_tests)
+    set_tests_properties(ui.node_selection_contract PROPERTIES
+        LABELS "ui;provider;qt;offline"
         TIMEOUT 15)
 
     qt_add_executable(farcaster_browser_token_tests
