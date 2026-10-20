@@ -43,7 +43,9 @@ test('replies and nested replies share real threaded connector and padded cards'
     assert.match(thread, /GenyThreadRail \{[\s\S]*?depth: root.depth/);
     assert.match(thread, /id: replyCard[\s\S]*?fillColor: root.highlighted \? Theme.surfaceSelected/);
     assert.match(thread, /anchors.margins: root.compact \? Theme.space3 : Theme.space4/);
-    assert.match(thread, /source: Qt.resolvedUrl\("ThreadReplyItem.qml"\)/);
+    assert.doesNotMatch(thread, /source: Qt.resolvedUrl\("ThreadReplyItem.qml"\)/);
+    assert.match(read('ui/components/DetailSurface.qml'), /reuseItems: true/);
+    assert.match(read('ui/components/DetailSurface.qml'), /delegate: ThreadReplyItem/);
     assert.match(thread, /onQuoteRequested: root.quoteRequested\(root.reply\)/);
     assert.match(rail, /borderColor: root.highlighted \? Theme.accent : Theme.borderStrong/);
     assert.match(rail, /curveDepth: width \/ 2/);

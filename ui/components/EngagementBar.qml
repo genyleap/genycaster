@@ -39,29 +39,63 @@ RowLayout {
             CastReactions.ensure(root.castId, root.viewerFid)
     }
     onViewerFidChanged: requestBrowserReactions()
-    onScrollMovingChanged: if (!root.scrollMoving) requestBrowserReactions()
-    readonly property var resolvedViewCount: {
-        if (root.viewCount !== null && root.viewCount !== undefined
-                && isFinite(Number(root.viewCount)) && Number(root.viewCount) >= 0)
-            return root.viewCount
-        return CastViews.countFor(root.castId)
+    // Every visible/near-visible consumer retains just its own cast. The C++
+    // controller removes queued work when the last delegate releases interest.
+    readonly property bool hasCanonicalViewCount:
+        root.viewCount !== null && root.viewCount !== undefined
+        && isFinite(Number(root.viewCount)) && Number(root.viewCount) >= 0
+    readonly property bool wantsDerivedViews: root.showViews
+        && !root.hasCanonicalViewCount && root.authorFid > 0
+        && CastViews.normalizeHash(root.castId).length > 0
+    readonly property var castViewEntry: root.wantsDerivedViews
+        ? castViewController.entryFor(root.castId) : null
+    property string retainedViewsCastId: ""
+
+    readonly property var resolvedViewCount: root.hasCanonicalViewCount
+        ? root.viewCount : root.castViewEntry ? root.castViewEntry.count : null
+
+    function syncViewInterest() {
+        const next = root.wantsDerivedViews ? CastViews.normalizeHash(root.castId) : ""
+        if (root.retainedViewsCastId === next)
+            return
+        if (root.retainedViewsCastId.length > 0)
+            castViewController.release(root.retainedViewsCastId)
+        root.retainedViewsCastId = next
+        if (next.length > 0)
+            castViewController.retain(next)
     }
 
     function requestViews() {
-        if (root.castId.length > 0 && root.authorFid > 0)
-            CastViews.ensure(root.castId, root.authorFid, root.castText)
+        if (root.wantsDerivedViews && !root.scrollMoving)
+            castViewController.ensure(root.castId, root.authorFid, root.castText)
     }
 
     Component.onCompleted: {
+        syncViewInterest()
         requestViews()
         requestBrowserReactions()
     }
+    Component.onDestruction: {
+        if (root.retainedViewsCastId.length > 0)
+            castViewController.release(root.retainedViewsCastId)
+    }
     onCastIdChanged: {
+        syncViewInterest()
         requestViews()
         requestBrowserReactions()
+    }
+    onWantsDerivedViewsChanged: {
+        syncViewInterest()
+        requestViews()
     }
     onAuthorFidChanged: requestViews()
     onCastTextChanged: requestViews()
+    onScrollMovingChanged: {
+        if (!root.scrollMoving) {
+            requestBrowserReactions()
+            requestViews()
+        }
+    }
     property bool replyInteractive: false
     property bool recastInteractive: false
     property bool likeInteractive: false

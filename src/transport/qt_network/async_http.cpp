@@ -372,9 +372,17 @@ public:
             static_cast<void>(id);
             if (context && context->completion) {
                 auto completion = std::move(context->completion);
-                completion(std::unexpected(makeError(
-                    ErrorCode::Unavailable,
-                    "Qt asynchronous network reactor shut down before completion.")));
+#if defined(__cpp_exceptions)
+                try {
+#endif
+                    completion(std::unexpected(makeError(
+                        ErrorCode::Unavailable,
+                        "Qt asynchronous network reactor shut down before completion.")));
+#if defined(__cpp_exceptions)
+                } catch (...) {
+                    // Shutdown must not unwind past Qt thread ownership.
+                }
+#endif
             }
         }
         m_manager.reset();
@@ -827,7 +835,17 @@ private:
         // application code from the reactor thread.
         std::string{}.swap(context->request.body);
         if (completion) {
+#if defined(__cpp_exceptions)
+            try {
+                completion(std::move(result));
+            } catch (...) {
+                // A consumer callback cannot unwind out of Qt's network
+                // reactor event loop and strand all unrelated requests.
+                // Context and byte accounting were released above.
+            }
+#else
             completion(std::move(result));
+#endif
         }
     }
 

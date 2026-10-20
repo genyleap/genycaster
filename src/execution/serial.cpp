@@ -47,7 +47,16 @@ struct CooperativeSerialState final : std::enable_shared_from_this<CooperativeSe
             }
             auto job = std::move(state->jobs.front());
             state->jobs.pop_front();
+#if defined(__cpp_exceptions)
+            try {
+                job();
+            } catch (...) {
+                // A callback may fail; keep the browser event loop alive and
+                // continue with other admitted work.
+            }
+#else
             job();
+#endif
             state->schedule();
         }, ticket, 0);
     }
@@ -124,7 +133,16 @@ struct SerialExecutor::Impl final {
                 isExecuting = true;
             }
 
+#if defined(__cpp_exceptions)
+            try {
+                job();
+            } catch (...) {
+                // Preserve worker and destructor/drain bookkeeping when an
+                // application callback unexpectedly throws.
+            }
+#else
             job();
+#endif
 
             {
                 std::scoped_lock lock{mutex};

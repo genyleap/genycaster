@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Flickable {
+ListView {
     id: root
 
     property string activeView: ""
@@ -41,10 +41,10 @@ Flickable {
     function focusConfirmedReply() {
         if (!root.hasConfirmedReply) return
         Qt.callLater(function() {
-            if (!root.hasConfirmedReply) return
-            const position = repliesContainer.mapToItem(detailColumn, 0, 0).y
-            root.contentY = Math.max(0, Math.min(root.contentHeight - root.height,
-                                position - Theme.space3))
+            if (!root.hasConfirmedReply || root.prioritizedReplies.length === 0) return
+            // Confirmed local replies are pinned at the beginning of the
+            // flattened virtual list and can be focused without instantiation.
+            root.positionViewAtIndex(0, ListView.Beginning)
         })
     }
     onHasConfirmedReplyChanged: if (hasConfirmedReply) focusConfirmedReply()
@@ -222,12 +222,13 @@ Flickable {
     }
 
     clip: true
-    contentWidth: width
-    contentHeight: detailColumn.implicitHeight + (root.compact ? Theme.space5 : Theme.space7)
     boundsBehavior: Flickable.StopAtBounds
+    spacing: Theme.space2
+    reuseItems: true
+    cacheBuffer: root.compact ? 340 : 650
+    model: root.activeView === "cast" ? root.prioritizedReplies : []
 
-
-    ColumnLayout {
+    header: ColumnLayout {
         id: detailColumn
         // Cast threads may spread to the wide detail bound on desktop; only the
         // reading-style profile view keeps the narrower centered column. Compact
@@ -622,30 +623,31 @@ Flickable {
                 Item { Layout.fillWidth: true }
             }
 
-            Repeater {
-                model: root.prioritizedReplies
-                delegate: ThreadReplyItem {
-                    required property var modelData
-                    Layout.fillWidth: true
-                    reply: modelData
-                    highlighted: root.hasConfirmedReply &&
-                                 root.normalizedCastHash(modelData.castId)
-                                     === root.normalizedCastHash(root.confirmedReply.castId)
-                    depth: 1
-                    compact: root.compact
-                    interactionsAvailable: root.interactionsAvailable
-                    accountFid: root.accountFid
-                    onCastRequested: castId => root.castRequested(castId)
-                    onProfileRequested: fid => root.profileRequested(fid)
-                    onReplyRequested: cast => root.replyRequested(cast)
-                    onQuoteRequested: cast => root.quoteRequested(cast)
-                    onReactionRequested: (kind, cast, active) => root.reactionRequested(kind, cast, active)
-                    onExternalRequested: url => root.externalRequested(url)
-                    onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
-                    onAuthenticationRequested: root.authenticationRequested()
-                    onRemoveCastRequested: cast => root.removeCastRequested(cast)
-                }
-            }
         }
+    }
+
+    delegate: ThreadReplyItem {
+        required property var modelData
+        width: Math.min(root.width - (root.compact ? Theme.mobileGutter * 2 : Theme.contentGutter * 2),
+                        root.compact ? Theme.detailWidth : Theme.detailWidthWide)
+        x: Math.max(root.compact ? Theme.mobileGutter : Theme.contentGutter,
+                    (root.width - width) / 2)
+        reply: modelData
+        highlighted: root.hasConfirmedReply
+                     && root.normalizedCastHash(modelData.castId)
+                        === root.normalizedCastHash(root.confirmedReply.castId)
+        depth: Number(modelData.depth || 1)
+        compact: root.compact
+        interactionsAvailable: root.interactionsAvailable
+        accountFid: root.accountFid
+        onCastRequested: castId => root.castRequested(castId)
+        onProfileRequested: fid => root.profileRequested(fid)
+        onReplyRequested: cast => root.replyRequested(cast)
+        onQuoteRequested: cast => root.quoteRequested(cast)
+        onReactionRequested: (kind, cast, active) => root.reactionRequested(kind, cast, active)
+        onExternalRequested: url => root.externalRequested(url)
+        onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
+        onAuthenticationRequested: root.authenticationRequested()
+        onRemoveCastRequested: cast => root.removeCastRequested(cast)
     }
 }

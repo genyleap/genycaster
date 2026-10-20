@@ -214,12 +214,15 @@ aimcpp_reject_final_qml_creatable_types(
 
 qt_add_executable(farcaster_client
     mobile/main.cpp
+    mobile/runtime_ui_bindings.cpp
     mobile/data_storage_controller.cpp
     mobile/data_storage_controller.hpp
     mobile/geo_location_resolver.cpp
     mobile/geo_location_resolver.hpp
     mobile/link_preview_resolver.cpp
     mobile/link_preview_resolver.hpp
+    mobile/cast_view_controller.cpp
+    mobile/cast_view_controller.hpp
     mobile/miniapp_host_controller.cpp
     mobile/miniapp_host_controller.hpp
     mobile/media_web_host_controller.cpp
@@ -249,12 +252,16 @@ target_sources(farcaster_client
 set_property(TARGET farcaster_client PROPERTY CXX_SCAN_FOR_MODULES ON)
 target_compile_features(farcaster_client PRIVATE cxx_std_26)
 
-# GCC 16 can exhaust small Linux builders while emitting DWARF for the broad
-# C++26 runtime-composition module interface. Preserve Debug for every other
-# source; omitting debug symbols for this interface changes no code or ABI and
-# avoids excessive swapping during Qt 6.12 native verification.
+# GCC 16 can exhaust memory on small Linux builders while emitting DWARF
+# for the C++26 runtime module and the unusually large Qt composition root.
+# Keep Debug symbols in libraries and UI adapters; omitting DWARF only for
+# these three outer-composition translation units changes no code or ABI.
+# This is a build-memory workaround, not a release optimization.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT EMSCRIPTEN)
     set_source_files_properties(
+        mobile/main.cpp
+        mobile/runtime_ui_bindings.cpp
+        mobile/runtime_composition.cpp
         mobile/runtime_composition.cppm
         PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-g0>"
     )
@@ -317,6 +324,7 @@ target_compile_definitions(farcaster_client
     PRIVATE
         FARCASTER_QT_QUICK_CONTROLS_STYLE="Basic"
         GENYCASTER_APP_VERSION="${PROJECT_VERSION}"
+        GENYCASTER_CAST_VIEWS_ENABLED=$<BOOL:${FARCASTER_ENABLE_DERIVED_CAST_VIEWS}>
 )
 
 target_link_libraries(farcaster_client
@@ -946,6 +954,7 @@ set(farcasterTranslationFiles
 set(farcasterTranslationSources
     ${farcasterQmlFiles}
     mobile/main.cpp
+    mobile/runtime_ui_bindings.cpp
     mobile/data_storage_controller.cpp
     mobile/data_storage_controller.hpp
     mobile/miniapp_host_controller.cpp
@@ -1042,6 +1051,21 @@ add_custom_target(farcaster_client_qmllint_strict
 )
 
 if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
+    # A standalone real-Qt network/QObject test, independent of the giant
+    # executable and its C++ module graph. The local test server makes request
+    # batching, exact cast counts and unknown values deterministic.
+    qt_add_executable(farcaster_cast_views_tests
+        tests/cast_view_controller_tests.cpp
+        mobile/cast_view_controller.cpp
+        mobile/cast_view_controller.hpp)
+    target_compile_features(farcaster_cast_views_tests PRIVATE cxx_std_26)
+    target_link_libraries(farcaster_cast_views_tests PRIVATE Qt6::Core Qt6::Network)
+    farcaster_enable_warnings(farcaster_cast_views_tests)
+    add_test(NAME ui.cast_views_contract COMMAND farcaster_cast_views_tests)
+    set_tests_properties(ui.cast_views_contract PROPERTIES
+        LABELS "ui;analytics;qt"
+        TIMEOUT 15)
+
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     set(farcasterHeadlessPlatform "offscreen")
     if(APPLE)

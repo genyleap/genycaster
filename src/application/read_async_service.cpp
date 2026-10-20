@@ -239,6 +239,22 @@ void publish(
     }
 }
 
+// A rejected cache queue job cannot silently strand the UI in Refreshing.
+// Fail on the completing worker without attempting SQLite access while the
+// serialized cache executor is saturated or shutting down.
+template <typename Control, typename Observer, typename State>
+void publishRejectedCacheJob(
+    const std::shared_ptr<Control>& control,
+    Observer& observer,
+    State state,
+    foundation::result::Status status)
+{
+    if (!status) {
+        state.metadata = failedMetadata(std::move(status.error()), false);
+        publish(control, observer, std::move(state));
+    }
+}
+
 }
 
 ReadRequest::ReadRequest(std::shared_ptr<Control> control) noexcept
@@ -319,7 +335,8 @@ foundation::result::Result<ReadRequest> ReadService::openIdentity(
                                 state.metadata = failedMetadata(std::move(error), state.profile.has_value());
                                 publish(control, observer, std::move(state));
                             });
-                        static_cast<void>(status);
+                        publishRejectedCacheJob(control, observer,
+                            model::IdentityState{.username = username}, std::move(status));
                         return;
                     }
 
@@ -360,7 +377,9 @@ foundation::result::Result<ReadRequest> ReadService::openIdentity(
                                     state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
                                     publish(control, observer, std::move(state));
                                 });
-                            static_cast<void>(status);
+                            publishRejectedCacheJob(control, observer,
+                                model::IdentityState{.username = username, .fid = resolvedFid},
+                                std::move(status));
                         },
                         options);
                     if (!profile) {
@@ -380,7 +399,9 @@ foundation::result::Result<ReadRequest> ReadService::openIdentity(
                                     std::move(error), state.profile.has_value());
                                 publish(control, observer, std::move(state));
                             });
-                        static_cast<void>(status);
+                        publishRejectedCacheJob(control, observer,
+                            model::IdentityState{.username = username, .fid = resolvedFid},
+                            std::move(status));
                         return;
                     }
                     control->attach(std::move(*profile));
@@ -461,7 +482,8 @@ foundation::result::Result<ReadRequest> ReadService::openProfile(
                             state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
                             publish(control, observer, std::move(state));
                         });
-                    static_cast<void>(status);
+                    publishRejectedCacheJob(control, observer,
+                        model::ProfileState{.fid = fid}, std::move(status));
                 },
                 options);
             if (!request) {
@@ -535,11 +557,41 @@ foundation::result::Result<ReadRequest> ReadService::openCast(
                                     std::move(error), state.cast.has_value());
                                 publish(control, observer, std::move(state));
                             });
-                        static_cast<void>(status);
+                        publishRejectedCacheJob(control, observer,
+                            model::CastState{.castId = castId}, std::move(status));
                         return;
                     }
 
                     auto castValue = std::make_shared<domain::cast::Cast>(std::move(*fresh));
+                    if (options.intent == model::ReadIntent::Prefetch) {
+                        // A quote/parent card needs canonical content immediately.
+                        // Optional author enrichment must not add a second provider
+                        // round trip or block this background read.
+                        auto status = m_cacheExecutor.post(
+                            [this, castId, castValue, observer, control]() mutable {
+                                if (control->cancelled.load(std::memory_order_acquire)) {
+                                    return;
+                                }
+                                model::CastState state{
+                                    .castId = castId,
+                                    .cast = std::move(*castValue),
+                                };
+                                auto saved = m_store.putCast(*state.cast);
+                                if (auto author = m_store.findProfile(state.cast->author); author) {
+                                    state.author = std::move(*author);
+                                }
+                                state.metadata = saved
+                                    ? model::ReadMetadata{.phase = model::ReadPhase::Ready}
+                                    : failedMetadata(std::move(saved.error()), true);
+                                publish(control, observer, std::move(state));
+                            });
+                        if (!status) {
+                            model::CastState failed{.castId = castId};
+                            failed.metadata = failedMetadata(std::move(status.error()), false);
+                            publish(control, observer, std::move(failed));
+                        }
+                        return;
+                    }
                     auto authorRequest = m_gateway.profile(
                         castValue->author,
                         [this, castId, castValue, observer, control](
@@ -571,7 +623,8 @@ foundation::result::Result<ReadRequest> ReadService::openCast(
                                     state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
                                     publish(control, observer, std::move(state));
                                 });
-                            static_cast<void>(status);
+                            publishRejectedCacheJob(control, observer,
+                                model::CastState{.castId = castId}, std::move(status));
                         },
                         options);
                     if (!authorRequest) {
@@ -589,7 +642,8 @@ foundation::result::Result<ReadRequest> ReadService::openCast(
                                 state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
                                 publish(control, observer, std::move(state));
                             });
-                        static_cast<void>(status);
+                        publishRejectedCacheJob(control, observer,
+                            model::CastState{.castId = castId}, std::move(status));
                         return;
                     }
                     control->attach(std::move(*authorRequest));
@@ -637,22 +691,21 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
     auto initialStatus = m_cacheExecutor.post(
         [this, query = std::move(query), observer = std::move(observer), options, control]() mutable {
             const auto localKey = toLocalKey(query);
-            model::FeedState state{.query = query};
-            auto cached = m_store.readFeed(localKey);
-            if (cached) {
-                state.casts = std::move(cached->casts);
-                state.profiles = std::move(cached->profiles);
-                state.entries = std::move(cached->entries);
-                state.next = std::move(cached->next);
-                state.metadata = refreshingMetadata(!state.entries.empty());
-            } else {
-                state.metadata = failedMetadata(std::move(cached.error()), false);
-            }
-            // First-page reads publish cache immediately. A continuation read is
-            // different: the UI already owns this exact accumulated snapshot, so
-            // republishing it before the provider response only rebuilds complex
-            // delegates and can temporarily discard async enrichment.
+            // Continuation already has a stable accumulated presentation in
+            // the caller. Avoid materializing the entire SQLite timeline only
+            // to discard it before issuing the next provider page.
             if (!query.continuation) {
+                model::FeedState state{.query = query};
+                auto cached = m_store.readFeed(localKey);
+                if (cached) {
+                    state.casts = std::move(cached->casts);
+                    state.profiles = std::move(cached->profiles);
+                    state.entries = std::move(cached->entries);
+                    state.next = std::move(cached->next);
+                    state.metadata = refreshingMetadata(!state.entries.empty());
+                } else {
+                    state.metadata = failedMetadata(std::move(cached.error()), false);
+                }
                 publish(control, observer, std::move(state));
             }
 
@@ -695,25 +748,52 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                                 publish(control, observer, std::move(state));
                                 return;
                             }
-                            std::optional<capability::feed::FeedPage> existing{};
-                            if (query.continuation) {
-                                if (auto cachedBeforeWrite = m_store.readFeed(localKey); cachedBeforeWrite) {
-                                    existing = std::move(*cachedBeforeWrite);
+                            // In the normal continuation path there is exactly one
+                            // post-append materialization, not three full reads.
+                            // Only construct the expensive offline fallback if
+                            // storage really fails.
+                            const auto failedFallback = [this, &query, &localKey, &fresh]() {
+                                std::optional<capability::feed::FeedPage> existing{};
+                                if (query.continuation) {
+                                    if (auto cached = m_store.readFeed(localKey); cached) {
+                                        existing = std::move(*cached);
+                                    }
                                 }
-                            }
-                            model::FeedState fallback = feedFallbackState(query, existing, *fresh);
-                            fallback.metadata.communityFallback = fresh->communityFallback;
-
+                                auto fallback = feedFallbackState(query, existing, *fresh);
+                                fallback.metadata.communityFallback = fresh->communityFallback;
+                                return fallback;
+                            };
                             auto saved = m_store.writeFeed(
                                 localKey, *fresh, query.continuation.has_value());
                             if (!saved) {
+                                model::FeedState fallback = failedFallback();
                                 fallback.metadata = failedMetadata(
                                     std::move(saved.error()), !fallback.entries.empty());
                                 publish(control, observer, std::move(fallback));
                                 return;
                             }
+                            if (query.continuation && options.pageOnlyContinuation) {
+                                // The Qt presentation already retains the earlier pages
+                                // by stable cast ID. Publishing only the newly persisted
+                                // page prevents an O(total-feed-length) SQLite scan,
+                                // profile lookup and QVariant rebuild on every append.
+                                // The provider page contains the canonical entries and
+                                // hydration required for this visible delta. Offline
+                                // restarts still call readFeed() for a full warm snapshot.
+                                state.casts = std::move(fresh->casts);
+                                state.profiles = std::move(fresh->profiles);
+                                state.entries = std::move(fresh->entries);
+                                state.next = std::move(fresh->next);
+                                state.metadata = model::ReadMetadata{
+                                    .phase = model::ReadPhase::Ready,
+                                    .communityFallback = fresh->communityFallback,
+                                };
+                                publish(control, observer, std::move(state));
+                                return;
+                            }
                             auto materialized = m_store.readFeed(localKey);
                             if (!materialized) {
+                                model::FeedState fallback = failedFallback();
                                 fallback.metadata = failedMetadata(
                                     std::move(materialized.error()), !fallback.entries.empty());
                                 publish(control, observer, std::move(fallback));
@@ -729,7 +809,8 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                             };
                             publish(control, observer, std::move(state));
                         });
-                    static_cast<void>(status);
+                    publishRejectedCacheJob(control, observer,
+                        model::FeedState{.query = query}, std::move(status));
                 },
                 options);
             if (!request) {
@@ -925,7 +1006,8 @@ foundation::result::Result<ReadRequest> ReadService::openSocial(
                             state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
                             publish(control, observer, std::move(state));
                         });
-                    static_cast<void>(status);
+                    publishRejectedCacheJob(control, observer,
+                        model::SocialState{.query = query}, std::move(status));
                 },
                 options);
             if (!request) {

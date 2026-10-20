@@ -27,7 +27,9 @@ test('confirmed reply returns to parent conversation and is shown first exactly 
  assert.match(detail,/readonly property var prioritizedReplies:/);
  assert.match(detail,/if \(!found\) ordered\.unshift\(root\.confirmedReply\)/);
  assert.match(detail,/ordered\.unshift\(reply\)/);
- assert.match(detail,/model: root\.prioritizedReplies/);
+ assert.match(detail,/ListView \{/);
+ assert.match(detail,/model: root\.activeView === "cast" \? root\.prioritizedReplies : \[\]/);
+ assert.match(detail,/reuseItems: true/);
  assert.match(detail,/function focusConfirmedReply\(\)/);
  assert.match(reply,/property bool highlighted: false/);
  assert.match(reply,/genycaster\.detail\.your_confirmed_reply/);

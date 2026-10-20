@@ -65,6 +65,33 @@ FARCASTER_ENABLE_SEARCH
 
 These flags are useful only if the dependency graph already respects the boundaries.
 
+## Derived cast-view analytics gate
+
+`FARCASTER_ENABLE_DERIVED_CAST_VIEWS` is an optional Qt composition flag
+(default ON). It controls the external, public view-count HTTP enrichment
+adapter; it does not remove canonical casts, protocol reactions, replies,
+or offline reading. Disabled builds leave count values unknown rather
+than inventing zero. The same flag applies on native and WebAssembly.
+The Qt adapter owns viewport interest, single-flight batch admission
+(16 casts), a 96-item waiting limit, 384 retained per-cast observables,
+three-minute positive freshness, 90-second unknown retry, and a six-second
+transport deadline. Mobile and WASM builds instead use a 48-target queue and
+192 retained observables to reduce memory pressure while keeping the same
+batching/data semantics. The gateway independently imposes a six-second logical
+work budget and global upstream concurrency of three.
+
+The controller is a Qt MOC compatibility boundary under `ui/mobile`, not
+a new stable core service or generic helper library. Every QML consumer
+only observes an individual count and explicitly retains/releases interest.
+
+The existing native link-preview resolver remains an independent provider
+adapter. It admits at most two concurrent metadata requests and 64 queued
+preview URLs, retaining at most 320 cached previews. Newer pending links
+replace the oldest unstarted work, with a 15-minute successful-preview
+freshness policy. Active requests are never evicted from its metadata cache.
+On the single-threaded browser path it retains only safe URL-derived seeds,
+without native worker threads or blocking waits.
+
 ## Mini App decomposition
 
 Mini Apps must not be represented as one monolithic provider capability.

@@ -39,6 +39,11 @@ enum class ReadIntent : std::uint8_t {
 struct ReadOptions final {
     bool allowRecoveryProbe{false};
     ReadIntent intent{ReadIntent::UserVisible};
+    // Opt-in presentation contract: for successful continuation reads publish
+    // only the newly fetched provider page after durable persistence. The
+    // consumer must reconcile it by canonical cast ID with its existing rows.
+    // Full snapshots remain the default for non-incremental consumers.
+    bool pageOnlyContinuation{false};
 };
 
 /** @brief Provider-neutral lifecycle metadata presented alongside usable data. */

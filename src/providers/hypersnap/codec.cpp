@@ -517,13 +517,15 @@ struct MappedCast final {
         cast.directReplies.reserve(replyValues.size());
         for (const JsonValue& replyValue : replyValues) {
             if (!replyValue.is_object()) {
-                continue;
+                return std::unexpected(protocolError(
+                    "Hypersnap conversation reply is not a cast object."));
             }
-            // A thread should remain usable even if one historical reply cannot
-            // be normalized. Skip only that child instead of rejecting the root.
+            // Never silently lose a reply while presenting the resulting
+            // conversation as complete. The caller can retain a usable warm
+            // snapshot and report that the network conversation was malformed.
             auto reply = mapCast(replyValue.as_object(), retainAuthorProfiles);
             if (!reply) {
-                continue;
+                return std::unexpected(std::move(reply.error()));
             }
             if (retainAuthorProfiles) {
                 // The v2 conversation schema embeds the full author object on
@@ -1008,6 +1010,35 @@ foundation::result::Result<ConversationPayload> decodeConversationPayload(
             "Hypersnap conversation response.conversation.cast must be a JSON object."));
     }
 
+    // Bound both width and depth before recursive canonical decoding. A
+    // four-level provider hint does not limit the number of direct replies,
+    // and invalid/oversized trees must not silently disappear from a thread.
+    constexpr std::size_t maximumConversationNodes{2'048};
+    constexpr std::size_t maximumConversationDepth{32};
+    std::vector<std::pair<const JsonValue*, std::size_t>> pending{
+        {castValue, 0U}};
+    std::size_t nodes{0U};
+    while (!pending.empty()) {
+        const auto [candidate, depth] = pending.back();
+        pending.pop_back();
+        if (!candidate->is_object() || depth > maximumConversationDepth
+            || ++nodes > maximumConversationNodes) {
+            return std::unexpected(protocolError(
+                "Hypersnap conversation exceeds the supported node/depth budget."));
+        }
+        if (const JsonValue* replies = findValue(candidate->as_object(), "direct_replies");
+            replies != nullptr) {
+            if (!replies->is_array()) {
+                return std::unexpected(protocolError(
+                    "Hypersnap conversation direct_replies must be an array."));
+            }
+            for (const auto& child : replies->as_array()) {
+                if (child.is_object()) {
+                    pending.emplace_back(&child, depth + 1);
+                }
+            }
+        }
+    }
     auto mapped = mapCast(castValue->as_object(), true);
     if (!mapped) {
         return std::unexpected(std::move(mapped.error()));
@@ -1192,6 +1223,9 @@ foundation::result::Result<domain::feed::ViewerReactionSnapshot> decodeCastInter
             continue;
         }
         sawHashEntry = true;
+        // Only a per-target record is evidence that an absent reaction is
+        // actually false. The provider may omit unrelated account casts.
+        snapshot.examined.push_back(domain::cast::CastId{*hash});
         if (optionalBool(interaction, "liked").value_or(false)) {
             snapshot.liked.push_back(domain::cast::CastId{*hash});
         }

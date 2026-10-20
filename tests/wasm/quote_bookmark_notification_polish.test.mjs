@@ -1,12 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+
+// Runtime binding functions live in a separate Qt composition unit to keep
+// GCC C++26 module compilation bounded; test both halves as one read pipeline.
+function readGenycasterMain() {
+  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+}
 const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
 
 test('Farcaster Quote and Recast notification events survive the provider and presentation boundaries',()=>{
   const capability=read('src/capabilities/notification.cppm');
   const codec=read('src/providers/hypersnap/codec.cpp');
-  const presenter=read('ui/mobile/main.cpp');
+  const presenter=readGenycasterMain();
   const screen=read('ui/components/NotificationSurface.qml');
   assert.match(capability,/\bQuote,/);
   for(const type of ['cast-quote','quote-cast','cast-recast']) assert.ok(codec.includes('"'+type+'"'));
@@ -22,7 +29,7 @@ test('Farcaster Quote and Recast notification events survive the provider and pr
 });
 
 test('direct cast detail hydrates quote and parent context with a distinct primary request lifetime',()=>{
-  const source=read('ui/mobile/main.cpp');
+  const source=readGenycasterMain();
   const bridge=read('src/presentation/qt/presentation_bridge.cpp');
   assert.match(source,/std::vector<domain::cast::CastId> detailReferences/);
   assert.match(source,/if \(state.cast->parent\) appendReference\(\*state.cast->parent\)/);
@@ -30,8 +37,9 @@ test('direct cast detail hydrates quote and parent context with a distinct prima
   assert.match(source,/for \(const auto& referencedId : detailReferences\)/);
   assert.match(source,/runtime->isCurrentPrimaryRequestGeneration\(requestGeneration\)/);
   assert.match(source,/bridge.applyReferencedCastPreview\(/);
-  assert.match(bridge,/void applyReferencePreviewCache\(QVariantMap& row/);
-  assert.match(bridge,/applyReferencePreviewCache\(m_detail, m_referencedPreviewCache\)/);
+  assert.match(bridge,/bool applyReferencePreviewCache\(\s*QVariantMap& row/);
+  assert.match(bridge,/changed = applyReferencePreviewCache\(m_detail, m_referencedPreviewCache\)/);
+  assert.match(bridge,/if \(applyReferencePreviewCache\(reply, cache\)\)/);
   assert.match(bridge,/m_referencedPreviewCache.insert\(targetKey, preview\)/);
 });
 
@@ -86,7 +94,7 @@ test('main casts and every threaded reply show views in a common footer at all w
 });
 
 test('quote notifications preserve a clickable reference when embedded cast details are absent',()=>{
-  const presenter=read('ui/mobile/main.cpp');
+  const presenter=readGenycasterMain();
   const ui=read('ui/components/NotificationSurface.qml');
   assert.match(presenter,/NotificationKind::Quote\) \{[\s\S]*?row.insert\(QStringLiteral\("quotedCastId"\)/);
   assert.match(ui,/quotedCastId: source.quotedCastId/);

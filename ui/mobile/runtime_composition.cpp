@@ -237,10 +237,14 @@ void Runtime::cancelExplorerArtRequests()
 void Runtime::cancelViewerReactionRequest()
 {
     std::scoped_lock lock{viewerOperationMutex};
+    ++viewerOperationGeneration;
     if (activeViewerReactionRequest) {
         activeViewerReactionRequest->cancel();
     }
     activeViewerReactionRequest.reset();
+    activeViewerTargetIds.clear();
+    // Navigation cancels obsolete interests; retain fresh canonical evidence
+    // for this viewer, but a subsequent account switch clears it explicitly.
 }
 
 void Runtime::cancelReferencedPreviewRequests()

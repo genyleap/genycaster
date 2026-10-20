@@ -8,6 +8,7 @@
 #include <functional>
 #include <optional>
 #include <mutex>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -16,6 +17,8 @@
 #include <vector>
 
 import farcaster.application.executor;
+import farcaster.application.read.async_gateway;
+import farcaster.application.read.async_service;
 import farcaster.application.read.gateway;
 import farcaster.application.read.model;
 import farcaster.application.read.service;
@@ -50,6 +53,161 @@ public:
         job();
         return {};
     }
+};
+
+// The first cache job is admitted. The completion job is deterministically
+// rejected, emulating a bounded serial queue under sustained pressure.
+class RejectCompletionExecutor final : public application::executor::IExecutor {
+public:
+    int jobs{};
+    [[nodiscard]] foundation::result::Status post(application::executor::Job job) override
+    {
+        if (++jobs == 1) {
+            job();
+            return {};
+        }
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::RateLimited,
+            "Test cache queue admission refused."));
+    }
+};
+
+class FakeAsyncCastGateway final
+    : public application::read::async_gateway::IAsyncReadGateway {
+public:
+    using Request = application::read::async_gateway::Request;
+    using Options = application::read::model::ReadOptions;
+    bool failCast{true};
+    int profileCalls{};
+    std::optional<capability::feed::FeedPage> servedFeed{};
+
+    [[nodiscard]] foundation::result::Result<Request> resolveIdentity(
+        std::string_view,
+        application::read::async_gateway::IdentityCompletion,
+        Options) override
+    {
+        return unsupported();
+    }
+    [[nodiscard]] foundation::result::Result<Request> profile(
+        domain::identity::Fid,
+        application::read::async_gateway::ProfileCompletion,
+        Options) override
+    {
+        ++profileCalls;
+        return unsupported();
+    }
+    [[nodiscard]] foundation::result::Result<Request> cast(
+        domain::cast::CastId castId,
+        application::read::async_gateway::CastCompletion completion,
+        Options) override
+    {
+        if (failCast) {
+            completion(std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::Unavailable, "Test cast source unavailable.")));
+        } else {
+            completion(domain::cast::Cast{
+                .id = std::move(castId),
+                .author = domain::identity::Fid{42},
+                .text = "Cached background preview",
+            });
+        }
+        return Request{};
+    }
+    [[nodiscard]] foundation::result::Result<Request> feed(
+        application::read::model::FeedQuery,
+        application::read::async_gateway::FeedCompletion completion,
+        Options) override
+    {
+        if (!servedFeed) {
+            return unsupported();
+        }
+        completion(*servedFeed);
+        return Request{};
+    }
+    [[nodiscard]] foundation::result::Result<Request> search(
+        application::read::model::SearchQuery,
+        application::read::async_gateway::SearchCompletion,
+        Options) override
+    {
+        return unsupported();
+    }
+    [[nodiscard]] foundation::result::Result<Request> notifications(
+        application::read::model::NotificationQuery,
+        application::read::async_gateway::NotificationCompletion,
+        Options) override
+    {
+        return unsupported();
+    }
+    [[nodiscard]] foundation::result::Result<Request> social(
+        application::read::model::SocialQuery,
+        application::read::async_gateway::SocialCompletion,
+        Options) override
+    {
+        return unsupported();
+    }
+
+private:
+    [[nodiscard]] static foundation::result::Result<Request> unsupported()
+    {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::Unsupported,
+            "Other read capabilities not enabled in test."));
+    }
+};
+
+// Counts timeline-wide reads independently of the provider's single-page
+// response. A Qt page delta must persist durably without re-materializing all
+// earlier pages through the SQLite local-first port.
+class CountingReadStore final : public farcaster::local::read::IReadStore {
+public:
+    explicit CountingReadStore(
+        std::unique_ptr<farcaster::local::read::IReadStore> delegate)
+        : m_delegate{std::move(delegate)} {}
+
+    int feedMaterializations{};
+
+    [[nodiscard]] foundation::result::Result<std::optional<domain::profile::Profile>>
+    findProfileByUsername(std::string_view value) override {
+        return m_delegate->findProfileByUsername(value);
+    }
+    [[nodiscard]] foundation::result::Result<std::optional<domain::profile::Profile>>
+    findProfile(domain::identity::Fid fid) override {
+        return m_delegate->findProfile(fid);
+    }
+    [[nodiscard]] foundation::result::Result<std::optional<domain::cast::Cast>>
+    findCast(const domain::cast::CastId& id) override {
+        return m_delegate->findCast(id);
+    }
+    [[nodiscard]] foundation::result::Status
+    putProfile(const domain::profile::Profile& value) override {
+        return m_delegate->putProfile(value);
+    }
+    [[nodiscard]] foundation::result::Status
+    putCast(const domain::cast::Cast& value) override {
+        return m_delegate->putCast(value);
+    }
+    [[nodiscard]] foundation::result::Result<capability::feed::FeedPage>
+    readFeed(const farcaster::local::read::FeedKey& key) override {
+        ++feedMaterializations;
+        return m_delegate->readFeed(key);
+    }
+    [[nodiscard]] foundation::result::Status
+    writeFeed(const farcaster::local::read::FeedKey& key,
+              const capability::feed::FeedPage& page, bool append) override {
+        return m_delegate->writeFeed(key, page, append);
+    }
+    [[nodiscard]] foundation::result::Result<capability::social::SocialGraphPage>
+    readSocial(const farcaster::local::read::SocialKey& key) override {
+        return m_delegate->readSocial(key);
+    }
+    [[nodiscard]] foundation::result::Status
+    writeSocial(const farcaster::local::read::SocialKey& key,
+                const capability::social::SocialGraphPage& page, bool append) override {
+        return m_delegate->writeSocial(key, page, append);
+    }
+
+private:
+    std::unique_ptr<farcaster::local::read::IReadStore> m_delegate{};
 };
 
 struct DatabaseFixture final {
@@ -549,6 +707,277 @@ void embeddedFeedProfilesDoNotRegressAuthoritativeProfileMetadata()
     assert((*persisted)->bio == authoritative.bio);
 }
 
+void normalizedConversationSurvivesRestartAndOfflineRead()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    domain::cast::Cast root = makeCast("0xthread-root", 42, "Root cast", 1000);
+    root.engagement.replies = 3;
+    domain::cast::Cast first = makeCast("0xreply-first", 11, "First", 1100);
+    first.parent = root.id;
+    first.authorProfile = makeProfile(11, "reply-author", "Reply Author");
+    domain::cast::Cast nested = makeCast("0xreply-nested", 12, "Nested", 1200);
+    nested.parent = first.id;
+    first.directReplies.push_back(std::move(nested));
+    domain::cast::Cast second = makeCast("0xreply-second", 13, "Second", 1300);
+    second.parent = root.id;
+    root.directReplies.push_back(std::move(first));
+    root.directReplies.push_back(std::move(second));
+    {
+        auto store = storage::read::openReadStore(database.path);
+        assert(store && (*store)->putCast(root));
+        auto stored = (*store)->findCast(root.id);
+        assert(stored && *stored);
+        assert((*stored)->directReplies.size() == 2);
+        assert((*stored)->directReplies[0].id.value == "0xreply-first");
+        assert((*stored)->directReplies[0].directReplies.size() == 1);
+        assert((*stored)->directReplies[0].directReplies[0].id.value == "0xreply-nested");
+        // A plain feed delta carries only the root, and must not discard a
+        // separately hydrated, complete conversation already in local state.
+        auto shallow = root;
+        shallow.directReplies.clear();
+        shallow.engagement.likes = 5;
+        assert((*store)->putCast(shallow));
+        stored = (*store)->findCast(root.id);
+        assert(stored && *stored && (*stored)->directReplies.size() == 2);
+        assert((*stored)->engagement.likes == 5);
+    }
+    auto reopened = storage::read::openReadStore(database.path);
+    assert(reopened);
+    const auto restored = (*reopened)->findCast(root.id);
+    assert(restored && *restored && (*restored)->directReplies.size() == 2);
+    assert((*restored)->directReplies[0].directReplies.size() == 1);
+    assert((*restored)->directReplies[0].authorProfile);
+    assert((*restored)->directReplies[0].authorProfile->displayName);
+    assert((*restored)->directReplies[0].authorProfile->displayName->value == "Reply Author");
+    // Reading an accumulated timeline must NOT deserialize the persisted
+    // reply tree for every cast. It is requested only on detail navigation.
+    const local::read::FeedKey feedKey{
+        .kind = local::read::FeedKey::Kind::Recent,
+    };
+    auto feedSummary = root;
+    feedSummary.directReplies.clear();
+    auto listingPage = pageFor(
+        makeProfile(42, "root-author", "Root Author"), std::move(feedSummary));
+    assert((*reopened)->writeFeed(feedKey, listingPage, false));
+    const auto listing = (*reopened)->readFeed(feedKey);
+    assert(listing && listing->casts.size() == 1);
+    assert(listing->casts.front().id.value == root.id.value);
+    assert(listing->casts.front().directReplies.empty());
+    assert(listing->casts.front().engagement.replies == root.engagement.replies);
+    const auto stillWarm = (*reopened)->findCast(root.id);
+    assert(stillWarm && *stillWarm && (*stillWarm)->directReplies.size() == 2);
+    assert((*stillWarm)->directReplies.front().directReplies.size() == 1);
+    ImmediateExecutor executor{};
+    FakeAsyncCastGateway unavailable{};
+    application::read::async_service::ReadService service{executor, **reopened, unavailable};
+    bool sawWarmConversation = false;
+    auto request = service.openCast(root.id,
+        [&sawWarmConversation](application::read::model::CastState state) {
+            if (state.cast && state.cast->directReplies.size() == 2) {
+                sawWarmConversation = true;
+            }
+        });
+    assert(request && sawWarmConversation);
+}
+
+void largeConversationEmbedsRemainDistinctAfterBatchPersistence()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    auto store = storage::read::openReadStore(database.path);
+    assert(store);
+    auto root = makeCast("0xlarge-batch", 42, "root", 1000);
+    constexpr std::size_t replyCount{96};
+    for (std::size_t index = 0; index < replyCount; ++index) {
+        auto child = makeCast(
+            "0xbatch-reply-" + std::to_string(index), 18,
+            "reply-" + std::to_string(index), 1010 + static_cast<std::int64_t>(index));
+        child.parent = root.id;
+        child.embeds.push_back(domain::cast::Embed{
+            .kind = domain::cast::EmbedKind::Url,
+            .value = "https://example.com/item/" + std::to_string(index),
+        });
+        child.embeds.push_back(domain::cast::Embed{
+            .kind = domain::cast::EmbedKind::CastReference,
+            .value = "0xquote-" + std::to_string(index),
+            .referencedAuthor = domain::identity::Fid{19},
+        });
+        root.directReplies.push_back(std::move(child));
+    }
+    assert((*store)->putCast(root));
+    const auto restored = (*store)->findCast(root.id);
+    assert(restored && *restored);
+    assert((*restored)->directReplies.size() == replyCount);
+    for (std::size_t index = 0; index < replyCount; ++index) {
+        const auto& child = (*restored)->directReplies[index];
+        assert(child.id.value == "0xbatch-reply-" + std::to_string(index));
+        assert(child.embeds.size() == 2);
+        assert(child.embeds[0].value ==
+            "https://example.com/item/" + std::to_string(index));
+        assert(child.embeds[1].kind == domain::cast::EmbedKind::CastReference);
+        assert(child.embeds[1].value == "0xquote-" + std::to_string(index));
+        assert(child.embeds[1].referencedAuthor
+            && child.embeds[1].referencedAuthor->value == 19);
+    }
+}
+
+void overBudgetConversationFailsAtomically()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    auto store = storage::read::openReadStore(database.path);
+    assert(store);
+    auto root = makeCast("0xoversize", 42, "Too many replies", 2000);
+    for (std::size_t index = 0; index < 2050; ++index) {
+        root.directReplies.push_back(makeCast(
+            "0xnode-" + std::to_string(index), 42, "Child", 2100));
+    }
+    auto status = (*store)->putCast(root);
+    assert(!status);
+    assert(status.error().code == foundation::error::ErrorCode::InvalidArgument);
+    const auto absent = (*store)->findCast(root.id);
+    assert(absent && !*absent);
+}
+
+void rejectedAsyncCacheCompletionIsTerminal()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    auto store = storage::read::openReadStore(database.path);
+    assert(store);
+    RejectCompletionExecutor executor{};
+    FakeAsyncCastGateway gateway{};
+    application::read::async_service::ReadService service{executor, **store, gateway};
+    std::vector<application::read::model::ReadPhase> phases{};
+    auto request = service.openCast(domain::cast::CastId{"0xqueue-rejection"},
+        [&phases](application::read::model::CastState state) {
+            phases.push_back(state.metadata.phase);
+            if (state.metadata.phase == application::read::model::ReadPhase::Failed) {
+                assert(state.metadata.error);
+                assert(state.metadata.error->code == foundation::error::ErrorCode::RateLimited);
+            }
+        });
+    assert(request);
+    assert(executor.jobs == 2);
+    assert(phases.size() == 2);
+    assert(phases.front() == application::read::model::ReadPhase::Refreshing);
+    assert(phases.back() == application::read::model::ReadPhase::Failed);
+}
+
+void asyncPaginationPublishesOnlyNewPageWhenPresentationOptsIn()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    auto opened = storage::read::openReadStore(database.path);
+    assert(opened);
+    CountingReadStore store{std::move(*opened)};
+    ImmediateExecutor executor{};
+    FakeAsyncCastGateway gateway{};
+    application::read::async_service::ReadService service{executor, store, gateway};
+    const application::read::model::FeedQuery firstQuery{
+        .kind = application::read::model::FeedQuery::Kind::Recent,
+        .limit = 1U,
+    };
+    gateway.servedFeed = pageFor(makeProfile(1, "first", "First"),
+        makeCast("0xincremental-first", 1, "First page", 1000),
+        capability::pagination::ContinuationToken{"second"});
+    std::vector<application::read::model::FeedState> observed{};
+    auto first = service.openFeed(firstQuery,
+        [&observed](application::read::model::FeedState state) {
+            observed.push_back(std::move(state));
+        });
+    assert(first);
+    assert(observed.size() == 2);
+    assert(observed.back().metadata.phase == application::read::model::ReadPhase::Ready);
+    assert(observed.back().entries.size() == 1);
+    assert(observed.back().next && observed.back().next->value == "second");
+    assert(store.feedMaterializations == 2); // Warm-cache read and cold first page.
+
+    observed.clear();
+    gateway.servedFeed = pageFor(makeProfile(2, "second", "Second"),
+        makeCast("0xincremental-second", 2, "Second page", 2000),
+        capability::pagination::ContinuationToken{"third"});
+    auto second = service.openFeed(
+        application::read::model::FeedQuery{
+            .kind = application::read::model::FeedQuery::Kind::Recent,
+            .limit = 1U,
+            .continuation = capability::pagination::ContinuationToken{"second"},
+        },
+        [&observed](application::read::model::FeedState state) {
+            observed.push_back(std::move(state));
+        },
+        application::read::model::ReadOptions{
+            .intent = application::read::model::ReadIntent::Prefetch,
+            .pageOnlyContinuation = true,
+        });
+    assert(second);
+    assert(observed.size() == 1);
+    assert(observed.front().entries.size() == 1);
+    assert(observed.front().entries.front().castId.value == "0xincremental-second");
+    assert(observed.front().casts.size() == 1);
+    assert(observed.front().next && observed.front().next->value == "third");
+    assert(observed.front().metadata.phase == application::read::model::ReadPhase::Ready);
+    assert(store.feedMaterializations == 2); // No O(total timeline) read on append.
+    const local::read::FeedKey key{.kind = local::read::FeedKey::Kind::Recent};
+    const auto durable = store.readFeed(key);
+    assert(store.feedMaterializations == 3);
+    assert(durable && durable->entries.size() == 2);
+    assert(durable->entries.front().castId.value == "0xincremental-first");
+    assert(durable->entries.back().castId.value == "0xincremental-second");
+
+    // Legacy consumers keep the default complete snapshot semantics.
+    observed.clear();
+    gateway.servedFeed = pageFor(makeProfile(3, "third", "Third"),
+        makeCast("0xincremental-third", 3, "Third page", 3000));
+    auto third = service.openFeed(
+        application::read::model::FeedQuery{
+            .kind = application::read::model::FeedQuery::Kind::Recent,
+            .limit = 1U,
+            .continuation = capability::pagination::ContinuationToken{"third"},
+        },
+        [&observed](application::read::model::FeedState state) {
+            observed.push_back(std::move(state));
+        });
+    assert(third);
+    assert(observed.size() == 1);
+    assert(observed.front().entries.size() == 3);
+    assert(store.feedMaterializations == 4); // The opt-out still materializes.
+    assert(observed.front().entries[0].castId.value == "0xincremental-first");
+    assert(observed.front().entries[1].castId.value == "0xincremental-second");
+    assert(observed.front().entries[2].castId.value == "0xincremental-third");
+}
+
+void lightweightCastPreviewSkipsOptionalProfileNetwork()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    auto store = storage::read::openReadStore(database.path);
+    assert(store);
+    ImmediateExecutor executor{};
+    FakeAsyncCastGateway gateway{};
+    gateway.failCast = false;
+    application::read::async_service::ReadService service{executor, **store, gateway};
+    int readyEvents{};
+    auto request = service.openCast(
+        domain::cast::CastId{"0xpreview-only"},
+        [&readyEvents](application::read::model::CastState state) {
+            if (state.metadata.phase == application::read::model::ReadPhase::Ready) {
+                assert(state.cast);
+                assert(state.cast->text == "Cached background preview");
+                ++readyEvents;
+            }
+        },
+        application::read::model::ReadOptions{
+            .intent = application::read::model::ReadIntent::Prefetch,
+        });
+    assert(request);
+    assert(readyEvents == 1);
+    assert(gateway.profileCalls == 0);
+    const auto warm = (*store)->findCast(domain::cast::CastId{"0xpreview-only"});
+    assert(warm && *warm && (*warm)->text == "Cached background preview");
+}
+
 void serializedExecutorKeepsBlockingReadOffCallerThread()
 {
     DatabaseFixture database{};
@@ -596,6 +1025,12 @@ int main()
     identityCastProfileAndSocialFlowsPersistCanonicalData();
     profileFeedCachesRemainIsolated();
     embeddedFeedProfilesDoNotRegressAuthoritativeProfileMetadata();
+    normalizedConversationSurvivesRestartAndOfflineRead();
+    largeConversationEmbedsRemainDistinctAfterBatchPersistence();
+    overBudgetConversationFailsAtomically();
+    rejectedAsyncCacheCompletionIsTerminal();
+    asyncPaginationPublishesOnlyNewPageWhenPresentationOptsIn();
+    lightweightCastPreviewSkipsOptionalProfileNetwork();
     serializedExecutorKeepsBlockingReadOffCallerThread();
     return 0;
 }

@@ -888,7 +888,14 @@ Item {
 
     Loader {
         id: audioOutput
+        // QAudioOutput probes system audio devices on construction. Creating
+        // one for each idle feed/media card is both unnecessary and can crash
+        // in Linux headless environments with no PipeWire configuration.
+        // User-initiated playback and explicitly eager, source-backed players
+        // still acquire audio immediately when activated.
         active: root.audioOutputEnabled
+                && (typeof nativeAudioOutputEnabled === "undefined" || nativeAudioOutputEnabled)
+                && (activation.activated || (root.eager && root.hasSource))
         property real volume: 1.0
         property bool muted: root.effectiveMuted
         sourceComponent: AudioOutput {

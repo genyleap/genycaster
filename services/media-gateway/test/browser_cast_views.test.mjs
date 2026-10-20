@@ -113,3 +113,55 @@ test('all old replies in a full view batch are checked, without a four-result tr
   assert.equal(searchCount,10,'No archived reply is silently skipped');
   assert.ok(maxConcurrent<=3,'Parallel searches are bounded');
 });
+
+
+test('concurrent viewport batches share one upstream concurrency budget',async()=>{
+  let active=0,maxActive=0;
+  const service=createCastViewService({fetchImpl:async ()=>{
+    ++active;
+    maxActive=Math.max(maxActive,active);
+    await new Promise(resolve=>setTimeout(resolve,7));
+    --active;
+    return json({result:{casts:[]}});
+  }});
+  const groups=Array.from({length:3},(_,batch)=>
+    Array.from({length:10},(_,index)=>row(
+      '0x'+(10000+batch*10+index).toString(16).padStart(40,'0'),
+      1000+batch*10+index,'')));
+  const outputs=await Promise.all(groups.map(group=>service.resolve(group)));
+  assert.equal(outputs.length,3);
+  for(const result of outputs){
+    assert.equal(result.status,200);
+    assert.equal(Object.keys(result.data.counts).length,0);
+  }
+  assert.ok(maxActive<=3,'global admission must bound independent client batches');
+});
+
+test('overall deadline returns verified partial views and preserves unknowns',async()=>{
+  const fast=row(a,101,'');
+  const slow=row(b,102,'');
+  const service=createCastViewService({
+    workBudgetMs:35,
+    fetchImpl:(url,{signal})=>{
+      if(new URL(url).searchParams.get('fid')==='101')
+        return Promise.resolve(json({result:{casts:[
+          {hash:a,author:{fid:101},viewCount:14},
+        ]}}));
+      return new Promise((resolve,reject)=>{
+        if(signal.aborted){reject(new Error('aborted'));return;}
+        signal.addEventListener('abort',()=>reject(new Error('aborted')),{once:true});
+      });
+    },
+  });
+  const begin=Date.now();
+  // AbortSignal.timeout is intentionally unref'ed by Node; keep the fake
+  // event loop active while testing a transport that never resolves.
+  const keepAlive=setTimeout(()=>{},90);
+  let result;
+  try{result=await service.resolve([fast,slow]);}
+  finally{clearTimeout(keepAlive);}
+  assert.equal(result.status,200);
+  assert.equal(result.data.counts[a],14);
+  assert.equal(result.data.counts[b],undefined);
+  assert.ok(Date.now()-begin<500,'one stalled author must not stall the whole batch');
+});

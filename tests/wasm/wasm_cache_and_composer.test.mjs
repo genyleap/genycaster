@@ -174,7 +174,8 @@ test('context menu is attached globally to all QML text areas and uses themed po
 });
 
 test('recovery failures are not mislabeled Genyleap login errors',()=>{
-    const cpp=read(new URL('../../ui/mobile/main.cpp',import.meta.url),'utf8');
+    const cpp=read(new URL('../../ui/mobile/main.cpp',import.meta.url),'utf8') + '\n' +
+        read(new URL('../../ui/mobile/runtime_ui_bindings.cpp',import.meta.url),'utf8');
     assert.match(cpp,/route == QStringLiteral\("recovery"\)/);
     assert.match(cpp,/genycaster\.setup\.recovery_failed_retry/);
     assert.match(cpp,/event\.phase != BrowserOpenProofState::Phase::SignedOut/);

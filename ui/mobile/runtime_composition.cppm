@@ -110,6 +110,13 @@ struct Runtime final {
     std::atomic_bool viewerStateRefreshInFlight{false};
     std::atomic<std::int64_t> viewerStateLastRefreshMs{0};
     std::mutex viewerOperationMutex{};
+    std::uint64_t viewerOperationGeneration{0};
+    std::uint64_t activeViewerFid{0};
+    std::vector<std::string> activeViewerTargetIds{};
+    // Per-viewer/cast freshness; only complete positive/negative evidence is
+    // cached. Protected by viewerOperationMutex.
+    std::unordered_map<std::string, std::chrono::steady_clock::time_point>
+        viewerReactionFreshUntil{};
     std::optional<farcaster::application::read::async_gateway::Request> activeViewerReactionRequest{};
     std::mutex profileRelationshipMutex{};
     std::unordered_map<std::string, bool> followsMeCache{};

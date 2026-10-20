@@ -136,43 +136,59 @@ struct ContextualReactionRule final {
 // Hydrated quoted casts are keyed by canonical protocol hash, not by the
 // particular feed snapshot that fetched them. Never overwrite a fully
 // resolved quote when a later cache-first detail response contains only an ID.
-void applyReferencePreviewCache(QVariantMap& row, const QHash<QString, QVariantMap>& cache)
+bool applyReferencePreviewCache(
+    QVariantMap& row, const QHash<QString, QVariantMap>& cache)
 {
     if (cache.isEmpty())
-        return;
+        return false;
     QVariantList embeds = row.value(QStringLiteral("embeds")).toList();
     bool changed = false;
+    bool embedsChanged = false;
     for (qsizetype i = 0; i < embeds.size(); ++i) {
-        QVariantMap embed = embeds.at(i).toMap();
-        if (embed.value(QStringLiteral("kind")).toString() != QStringLiteral("cast-reference"))
+        const QVariantMap original = embeds.at(i).toMap();
+        if (original.value(QStringLiteral("kind")).toString() != QStringLiteral("cast-reference"))
             continue;
         const auto it = cache.constFind(canonicalCastKey(
-            embed.value(QStringLiteral("castId")).toString()));
+            original.value(QStringLiteral("castId")).toString()));
         if (it == cache.cend())
             continue;
+        QVariantMap embed = original;
         for (auto value = it->cbegin(); value != it->cend(); ++value) {
             if (value.key() != QStringLiteral("kind"))
                 embed.insert(value.key(), value.value());
         }
         embed.insert(QStringLiteral("kind"), QStringLiteral("cast-reference"));
-        embeds[i] = std::move(embed);
+        if (embed != original) {
+            embeds[i] = std::move(embed);
+            embedsChanged = true;
+        }
+    }
+    if (embedsChanged) {
+        row.insert(QStringLiteral("embeds"), std::move(embeds));
         changed = true;
     }
-    if (changed)
-        row.insert(QStringLiteral("embeds"), std::move(embeds));
     const auto parent = cache.constFind(canonicalCastKey(
         row.value(QStringLiteral("parentCastId")).toString()));
-    if (parent != cache.cend())
+    if (parent != cache.cend()
+        && row.value(QStringLiteral("parentPreview")).toMap() != *parent) {
         row.insert(QStringLiteral("parentPreview"), *parent);
+        changed = true;
+    }
 
     QVariantList replies = row.value(QStringLiteral("threadReplies")).toList();
+    bool repliesChanged = false;
     for (qsizetype i = 0; i < replies.size(); ++i) {
         QVariantMap reply = replies.at(i).toMap();
-        applyReferencePreviewCache(reply, cache);
-        replies[i] = std::move(reply);
+        if (applyReferencePreviewCache(reply, cache)) {
+            replies[i] = std::move(reply);
+            repliesChanged = true;
+        }
     }
-    if (!replies.isEmpty())
+    if (repliesChanged) {
         row.insert(QStringLiteral("threadReplies"), std::move(replies));
+        changed = true;
+    }
+    return changed;
 }
 
 void updateReactionPresentation(
@@ -410,14 +426,21 @@ void applyViewerReactionSnapshotTo(QVariantList& rows, const QVariantMap& snapsh
     }
 }
 
-void applyViewerReactionDeltaTo(
+// Apply one batch by indexed cast ID in a single walk. Do not rebuild every
+// feed row once per target, and do not touch embeds/text/media of unaffected
+// rows. Complete network evidence is overlaid by newer optimistic writes.
+[[nodiscard]] bool applyViewerReactionDeltasTo(
     QVariantMap& map,
-    const QString& targetCastId,
-    const bool liked,
-    const bool recasted)
+    const QHash<QString, quint8>& deltas,
+    const QVariantMap& overrides)
 {
+    bool changed = false;
     const QString castId = canonicalCastKey(map.value(QStringLiteral("castId")).toString());
-    if (!castId.isEmpty() && castId == canonicalCastKey(targetCastId)) {
+    const auto found = deltas.constFind(castId);
+    if (found != deltas.cend()) {
+        const quint8 state = found.value();
+        const bool liked = (state & 1U) != 0U;
+        const bool recasted = (state & 2U) != 0U;
         map.insert(QStringLiteral("likedByMe"), liked);
         map.insert(QStringLiteral("recastedByMe"), recasted);
         if (liked && map.value(QStringLiteral("likeCount")).toULongLong() == 0U) {
@@ -426,30 +449,54 @@ void applyViewerReactionDeltaTo(
         if (recasted && map.value(QStringLiteral("recastCount")).toULongLong() == 0U) {
             map.insert(QStringLiteral("recastCount"), qulonglong{1});
         }
+        const QString likeKey = reactionOverrideKey(castId, QStringLiteral("like"));
+        if (overrides.contains(likeKey)) {
+            const bool value = overrides.value(likeKey).toBool();
+            map.insert(QStringLiteral("likedByMe"), value);
+            if (value && map.value(QStringLiteral("likeCount")).toULongLong() == 0U) {
+                map.insert(QStringLiteral("likeCount"), qulonglong{1});
+            }
+        }
+        const QString recastKey = reactionOverrideKey(castId, QStringLiteral("recast"));
+        if (overrides.contains(recastKey)) {
+            const bool value = overrides.value(recastKey).toBool();
+            map.insert(QStringLiteral("recastedByMe"), value);
+            if (value && map.value(QStringLiteral("recastCount")).toULongLong() == 0U) {
+                map.insert(QStringLiteral("recastCount"), qulonglong{1});
+            }
+        }
+        changed = true;
     }
 
     QVariantList replies = map.value(QStringLiteral("threadReplies")).toList();
+    bool hasChangedReplies = false;
     for (qsizetype index = 0; index < replies.size(); ++index) {
-        QVariantMap reply = replies[index].toMap();
-        applyViewerReactionDeltaTo(reply, targetCastId, liked, recasted);
-        replies[index] = std::move(reply);
+        QVariantMap reply = replies.at(index).toMap();
+        if (applyViewerReactionDeltasTo(reply, deltas, overrides)) {
+            replies[index] = std::move(reply);
+            hasChangedReplies = true;
+        }
     }
-    if (!replies.isEmpty()) {
+    if (hasChangedReplies) {
         map.insert(QStringLiteral("threadReplies"), std::move(replies));
     }
+    return changed || hasChangedReplies;
 }
 
-void applyViewerReactionDeltaTo(
+[[nodiscard]] bool applyViewerReactionDeltasTo(
     QVariantList& rows,
-    const QString& castId,
-    const bool liked,
-    const bool recasted)
+    const QHash<QString, quint8>& deltas,
+    const QVariantMap& overrides)
 {
+    bool changed = false;
     for (qsizetype index = 0; index < rows.size(); ++index) {
-        auto map = rows[index].toMap();
-        applyViewerReactionDeltaTo(map, castId, liked, recasted);
-        rows[index] = std::move(map);
+        QVariantMap row = rows.at(index).toMap();
+        if (applyViewerReactionDeltasTo(row, deltas, overrides)) {
+            rows[index] = std::move(row);
+            changed = true;
+        }
     }
+    return changed;
 }
 
 [[nodiscard]] QString profileCacheKey(const qulonglong fid, const QString& feed)
@@ -576,12 +623,12 @@ void preserveReferencedPresentation(QVariantMap& incoming, const QVariantMap& pr
     return {};
 }
 
-void reconcilePaginationPresentation(const QVariantList& previousRows, QVariantList& incomingRows)
+[[nodiscard]] QList<qsizetype> reconcilePaginationPresentation(
+    const QVariantList& previousRows, QVariantList& incomingRows)
 {
     // Continuation is an append/reconcile contract, never a replacement contract.
-    // Preserve the already-present ordering and update matching rows in place; only
-    // genuinely new stable keys are appended. This protects the viewport even if a
-    // provider/storage fallback accidentally returns only the latest provider page.
+    // Record precisely which existing/new rows are touched so the GUI does
+    // not reprocess media, threads and reaction overlays for the entire feed.
     QVariantList reconciled = previousRows;
     QHash<QString, qsizetype> indexByKey{};
     indexByKey.reserve(reconciled.size() + incomingRows.size());
@@ -592,24 +639,35 @@ void reconcilePaginationPresentation(const QVariantList& previousRows, QVariantL
         }
     }
 
+    QList<qsizetype> changedIndexes{};
+    changedIndexes.reserve(incomingRows.size());
+    QSet<qsizetype> changedExisting{};
     for (const QVariant& value : incomingRows) {
         QVariantMap row = value.toMap();
         const QString key = paginationRowKey(row);
         if (key.isEmpty()) {
+            changedIndexes.push_back(reconciled.size());
             reconciled.push_back(value);
             continue;
         }
         const auto found = indexByKey.constFind(key);
         if (found == indexByKey.cend()) {
-            indexByKey.insert(key, reconciled.size());
+            const qsizetype index = reconciled.size();
+            indexByKey.insert(key, index);
+            changedIndexes.push_back(index);
             reconciled.push_back(std::move(row));
             continue;
         }
         const qsizetype index = found.value();
         preserveReferencedPresentation(row, reconciled[index].toMap());
         reconciled[index] = std::move(row);
+        if (!changedExisting.contains(index)) {
+            changedExisting.insert(index);
+            changedIndexes.push_back(index);
+        }
     }
     incomingRows = std::move(reconciled);
+    return changedIndexes;
 }
 
 [[nodiscard]] QVariantList reconcileRefreshPresentation(
@@ -2583,6 +2641,7 @@ void PresentationBridge::applyReactionProjections(QVariantList reactions)
 void PresentationBridge::applyViewerReactionSnapshot(QVariantList reactions)
 {
     m_viewerReactionSnapshot.clear();
+    m_viewerReactionKnownStates.clear();
     for (const auto& value : reactions) {
         const QVariantMap snapshot = value.toMap();
         const QString castId = snapshot.value(QStringLiteral("castId")).toString();
@@ -2606,6 +2665,7 @@ void PresentationBridge::applyViewerReactionSnapshot(QVariantList reactions)
 
 void PresentationBridge::applyViewerReactionDelta(QVariantList reactions)
 {
+    QHash<QString, quint8> deltas{};
     for (const auto& value : reactions) {
         const QVariantMap reaction = value.toMap();
         const QString castId = reaction.value(QStringLiteral("castId")).toString();
@@ -2616,8 +2676,19 @@ void PresentationBridge::applyViewerReactionDelta(QVariantList reactions)
 
         const bool liked = reaction.value(QStringLiteral("liked")).toBool();
         const bool recasted = reaction.value(QStringLiteral("recasted")).toBool();
-        m_viewerReactionSnapshot.remove(reactionOverrideKey(canonical, QStringLiteral("like")));
-        m_viewerReactionSnapshot.remove(reactionOverrideKey(canonical, QStringLiteral("recast")));
+        const QString likeKey = reactionOverrideKey(canonical, QStringLiteral("like"));
+        const QString recastKey = reactionOverrideKey(canonical, QStringLiteral("recast"));
+        const quint8 knownState = static_cast<quint8>((liked ? 1U : 0U)
+                                                       | (recasted ? 2U : 0U));
+        const auto previous = m_viewerReactionKnownStates.constFind(canonical);
+        if (previous != m_viewerReactionKnownStates.cend()
+            && previous.value() == knownState) {
+            continue; // Identical complete evidence, no broad QML update.
+        }
+        m_viewerReactionKnownStates.insert(canonical, knownState);
+        deltas.insert(canonical, knownState);
+        m_viewerReactionSnapshot.remove(likeKey);
+        m_viewerReactionSnapshot.remove(recastKey);
         if (liked) {
             rememberReactionOverride(m_viewerReactionSnapshot, canonical, QStringLiteral("like"), true);
         }
@@ -2625,19 +2696,22 @@ void PresentationBridge::applyViewerReactionDelta(QVariantList reactions)
             rememberReactionOverride(m_viewerReactionSnapshot, canonical, QStringLiteral("recast"), true);
         }
 
-        applyViewerReactionDeltaTo(m_rows, canonical, liked, recasted);
-        applyViewerReactionDeltaTo(m_pendingFeedRows, canonical, liked, recasted);
-        applyViewerReactionDeltaTo(m_writeRows, canonical, liked, recasted);
-        applyViewerReactionDeltaTo(m_detail, canonical, liked, recasted);
     }
-
-    // Local optimistic/durable write projections are newer than an eventually
-    // consistent network read and therefore remain the final authority.
-    applyReactionOverrides(m_rows, m_reactionOverrides);
-    applyReactionOverrides(m_pendingFeedRows, m_reactionOverrides);
-    applyReactionOverrides(m_writeRows, m_reactionOverrides);
-    applyReactionOverrides(m_detail, m_reactionOverrides);
-    emit stateChanged();
+    if (deltas.isEmpty()) {
+        return;
+    }
+    // One pass over each retained surface, not one per received cast.
+    // Each modified row applies optimistic overrides locally.
+    bool visibleChanged = applyViewerReactionDeltasTo(m_rows, deltas, m_reactionOverrides);
+    visibleChanged |= applyViewerReactionDeltasTo(
+        m_pendingFeedRows, deltas, m_reactionOverrides);
+    visibleChanged |= applyViewerReactionDeltasTo(
+        m_writeRows, deltas, m_reactionOverrides);
+    visibleChanged |= applyViewerReactionDeltasTo(
+        m_detail, deltas, m_reactionOverrides);
+    if (visibleChanged) {
+        emit stateChanged();
+    }
 }
 
 void PresentationBridge::applyFollowingProjections(QVariantList following)
@@ -2815,8 +2889,12 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
         return;
     }
 
+    QList<qsizetype> touchedPaginationRows{};
+    const bool incrementalFeedPage = paginationRequest && sameSurface
+        && view == QStringLiteral("feed") && !m_rows.isEmpty()
+        && m_writeRows.isEmpty() && !m_feedSourceSwitchPending;
     if (paginationRequest && sameSurface && !m_rows.isEmpty()) {
-        reconcilePaginationPresentation(m_rows, rows);
+        touchedPaginationRows = reconcilePaginationPresentation(m_rows, rows);
     }
 
     const bool bufferedFeedRefresh = !paginationRequest && sameSurface
@@ -2895,14 +2973,33 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
     } else {
         m_rows = std::move(rows);
     }
-    for (QVariant& value : m_rows) {
-        QVariantMap row = value.toMap();
-        applyReferencePreviewCache(row, m_referencedPreviewCache);
-        value = std::move(row);
+    if (incrementalFeedPage) {
+        // Already-visible rows retain their hydrated quotes, follower state,
+        // reactions and media. Mutating every previous QVariantMap here used
+        // to detach/copy all prior rows for each newly appended page.
+        for (const qsizetype index : touchedPaginationRows) {
+            if (index < 0 || index >= m_rows.size()) {
+                continue;
+            }
+            auto row = m_rows.at(index).toMap();
+            applyReferencePreviewCache(row, m_referencedPreviewCache);
+            applyViewerReactionSnapshotTo(row, m_viewerReactionSnapshot);
+            applyReactionOverrides(row, m_reactionOverrides);
+            applyFollowingOverride(row, m_followOverrides);
+            m_rows[index] = std::move(row);
+        }
+    } else {
+        // Surface replacements, cached refreshes and locally authored rows
+        // continue to receive a complete authority/override reconciliation.
+        for (QVariant& value : m_rows) {
+            QVariantMap row = value.toMap();
+            applyReferencePreviewCache(row, m_referencedPreviewCache);
+            value = std::move(row);
+        }
+        applyViewerReactionSnapshotTo(m_rows, m_viewerReactionSnapshot);
+        applyReactionOverrides(m_rows, m_reactionOverrides);
+        applyFollowingOverrides(m_rows, m_followOverrides);
     }
-    applyViewerReactionSnapshotTo(m_rows, m_viewerReactionSnapshot);
-    applyReactionOverrides(m_rows, m_reactionOverrides);
-    applyFollowingOverrides(m_rows, m_followOverrides);
     m_next = std::move(next);
     if (m_activeView == QStringLiteral("profile") && m_profileFid != 0) {
         const QString key = profileCacheKey(m_profileFid, m_profileFeed);
@@ -2966,8 +3063,11 @@ void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap 
         m_referencedPreviewCache.clear();
     m_referencedPreviewCache.insert(targetKey, preview);
 
-    auto patchEmbeds = [&targetKey, &preview](QVariantMap& row) {
-        QVariantList embeds = row.value(QStringLiteral("embeds")).toList();
+    auto patchEmbeds = [&targetKey, &preview](QVariantMap& row) -> bool {
+        const QVariantList existing = row.value(QStringLiteral("embeds")).toList();
+        if (existing.isEmpty())
+            return false;
+        QVariantList embeds = existing;
         bool changed = false;
         for (qsizetype index = 0; index < embeds.size(); ++index) {
             QVariantMap embed = embeds[index].toMap();
@@ -2981,12 +3081,15 @@ void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap 
                 }
             }
             embed.insert(QStringLiteral("kind"), QStringLiteral("cast-reference"));
-            embeds[index] = std::move(embed);
-            changed = true;
+            if (embed != existing.at(index).toMap()) {
+                embeds[index] = std::move(embed);
+                changed = true;
+            }
         }
         if (changed) {
             row.insert(QStringLiteral("embeds"), std::move(embeds));
         }
+        return changed;
     };
 
     const QString previewRevision = QStringList{
@@ -3007,20 +3110,17 @@ void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap 
         for (qsizetype index = 0; index < rows.size(); ++index) {
             QVariantMap row = rows[index].toMap();
             bool rowChanged = false;
-            if (canonicalCastKey(row.value(QStringLiteral("parentCastId")).toString()) == targetKey) {
+            if (canonicalCastKey(row.value(QStringLiteral("parentCastId")).toString()) == targetKey
+                && row.value(QStringLiteral("parentPreview")).toMap() != preview) {
                 row.insert(QStringLiteral("parentPreview"), preview);
                 rowChanged = true;
             }
-            const QVariantList before = row.value(QStringLiteral("embeds")).toList();
-            patchEmbeds(row);
-            if (before != row.value(QStringLiteral("embeds")).toList()) {
-                rowChanged = true;
-            }
+            rowChanged = patchEmbeds(row) || rowChanged;
             if (rowChanged) {
                 row.insert(QStringLiteral("_referencedRevision"), previewRevision);
+                rows[index] = std::move(row);
                 listChanged = true;
             }
-            rows[index] = std::move(row);
         }
         return listChanged;
     };
@@ -3030,16 +3130,17 @@ void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap 
     // parent/quote previews must patch the pending buffer as well as visible rows.
     changed = patchRows(m_pendingFeedRows) || changed;
 
-    if (canonicalCastKey(m_detail.value(QStringLiteral("parentCastId")).toString()) == targetKey) {
+    if (canonicalCastKey(m_detail.value(QStringLiteral("parentCastId")).toString()) == targetKey
+        && m_detail.value(QStringLiteral("parentPreview")).toMap() != preview) {
         m_detail.insert(QStringLiteral("parentPreview"), preview);
         changed = true;
     }
-    const QVariantList detailBefore = m_detail.value(QStringLiteral("embeds")).toList();
-    patchEmbeds(m_detail);
-    applyReferencePreviewCache(m_detail, m_referencedPreviewCache);
-    if (detailBefore != m_detail.value(QStringLiteral("embeds")).toList()) {
-        changed = true;
-    }
+    changed = patchEmbeds(m_detail) || changed;
+    // A quoted cast or parent in a nested reply must invalidate the active
+    // detail view even when the root cast itself has no matching reference.
+    // Unchanged nested branches retain their existing shared QVariant state.
+    changed = applyReferencePreviewCache(m_detail, m_referencedPreviewCache)
+        || changed;
 
     if (changed) {
         emit stateChanged();

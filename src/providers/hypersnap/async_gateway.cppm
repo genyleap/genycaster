@@ -1,6 +1,8 @@
 module;
 
+#include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string_view>
@@ -96,6 +98,7 @@ public:
         std::function<void(foundation::result::Result<bool>)> completion);
 
 private:
+    struct RecentWindowCache;
     /** @brief Loads confirmed network casts, keeping blocking work off Qt. */
     [[nodiscard]] foundation::result::Result<application::read::async_gateway::Request>
     recentFeed(
@@ -103,10 +106,15 @@ private:
         application::read::async_gateway::FeedCompletion completion,
         application::read::model::ReadOptions options);
 
+    std::shared_ptr<RecentWindowCache> m_recentWindowCache{};
     async_request::Client m_client;
     application::executor::IExecutor& m_continuationExecutor;
     storage::continuation::ContinuationStore& m_continuations;
     config::Config m_config{};
+    // Provider-shape incompatibility is global to this adapter, not to the
+    // visible cast. Avoid probing the same unsupported batch contract on
+    // every navigation for fifteen minutes.
+    std::atomic<std::int64_t> m_batchReactionProbeAfterMs{0};
 };
 
 }

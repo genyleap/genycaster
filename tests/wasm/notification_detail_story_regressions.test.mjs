@@ -3,6 +3,13 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { test } from 'node:test';
 
+// Runtime binding functions live in a separate Qt composition unit to keep
+// GCC C++26 module compilation bounded; test both halves as one read pipeline.
+function readGenycasterMain() {
+  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+}
+
 const root = resolve(import.meta.dirname, '../..');
 const read = path => readFileSync(resolve(root, path), 'utf8');
 
@@ -41,14 +48,17 @@ test('notification activity filters affect the real stable list and never claim 
     const ui = read('ui/components/NotificationSurface.qml');
     assert.match(ui, /readonly property var visibleRows: root\.filterKind === "all"/);
     assert.match(ui, /const source = root\.visibleRows \|\| \[\]/);
-    assert.match(ui, /onFilterKindChanged: Qt\.callLater\(root\.requestStableModelSync\)/);
+    assert.match(ui, /onFilterKindChanged: stableModelSyncTimer\.restart\(\)/);
+    assert.match(ui, /onRowsChanged: stableModelSyncTimer\.restart\(\)/);
+    assert.match(ui, /id: stableModelSyncTimer[\s\S]*?onTriggered: root\.requestStableModelSync\(\)/);
+    assert.doesNotMatch(ui, /Qt\.callLater\(root\.requestStableModelSync\)/);
     assert.match(ui, /kind: "mention", title: qsTrId\("genycaster\.notifications\.filter_mentions"\)/);
     assert.match(ui, /kind: "reactions", title: qsTrId\("genycaster\.notifications\.filter_reactions"\)/);
     assert.doesNotMatch(ui, /kind: "channels"/);
 });
 
 test('notification cast and quoted-parent media reach the UI without losing navigation', () => {
-    const bridge = read('ui/mobile/main.cpp');
+    const bridge = readGenycasterMain();
     const ui = read('ui/components/NotificationSurface.qml');
     assert.match(bridge, /row\.insert\(QStringLiteral\("castEmbedUrl"\)/);
     assert.match(bridge, /row\.insert\(QStringLiteral\("parentEmbedUrl"\)/);

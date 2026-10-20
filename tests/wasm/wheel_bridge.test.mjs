@@ -4,7 +4,14 @@ import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
 
-const main = readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8');
+// Runtime binding functions live in a separate Qt composition unit to keep
+// GCC C++26 module compilation bounded; test both halves as one read pipeline.
+function readGenycasterMain() {
+  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+}
+
+const main = readGenycasterMain();
 const beginMarker = '    return EM_ASM_DOUBLE({';
 const begin = main.indexOf(beginMarker);
 const end = main.indexOf('    }, clientX, clientY, axis);', begin);

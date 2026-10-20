@@ -37,6 +37,9 @@ constexpr int requestTimeoutMilliseconds = 6'000;
 constexpr int absoluteRequestDeadlineMilliseconds = 9'000;
 constexpr int maximumRedirects = 4;
 constexpr qsizetype maximumConcurrentPreviewRequests = 2;
+constexpr qsizetype maximumPendingPreviewRequests = 64;
+constexpr qsizetype maximumRetainedPreviewEntries = 320;
+constexpr qint64 previewFreshnessMilliseconds = 15 * 60 * 1000;
 constexpr qsizetype maximumJsonBytes = 128 * 1024;
 
 [[nodiscard]] QString normalizedUrl(const QString& rawUrl)
@@ -738,6 +741,31 @@ public:
         networkWorker = nullptr;
     }
 
+    // FIFO eviction never discards a running or queued URL. A scroll across
+    // thousands of links therefore retains at most 320 metadata snapshots and
+    // 64 pending operations instead of growing with historical feed length.
+    [[nodiscard]] bool rememberPreview(const QString& key, QVariantMap value)
+    {
+        if (!cache.contains(key)) {
+            qsizetype attempts = cacheOrder.size();
+            while (cache.size() >= maximumRetainedPreviewEntries && attempts-- > 0) {
+                const QString victim = cacheOrder.dequeue();
+                if (inFlight.contains(victim) || queued.contains(victim)) {
+                    cacheOrder.enqueue(victim);
+                    continue;
+                }
+                cache.remove(victim);
+                observedAt.remove(victim);
+            }
+            if (cache.size() >= maximumRetainedPreviewEntries) {
+                return false;
+            }
+            cacheOrder.enqueue(key);
+        }
+        cache.insert(key, std::move(value));
+        return true;
+    }
+
     [[nodiscard]] QVariantMap previewFor(const QString& rawUrl) const
     {
         const QString key = normalizedUrl(rawUrl);
@@ -763,24 +791,33 @@ public:
             return;
         }
         const auto cached = cache.constFind(key);
-        if (cached != cache.cend() && cached.value().value(QStringLiteral("resolved")).toBool()) {
+        if (cached != cache.cend() && cached.value().value(QStringLiteral("resolved")).toBool()
+            && QDateTime::currentMSecsSinceEpoch() - observedAt.value(key, 0)
+                   < previewFreshnessMilliseconds) {
             return;
         }
-
-        if (!cache.contains(key)) {
-            cache.insert(key, seedPreview(url));
+        if (!cache.contains(key) && !rememberPreview(key, seedPreview(url))) {
+            return;
         }
 #if defined(__EMSCRIPTEN__)
         // Metadata parsing requires a native worker. Avoid queuing requests
         // against a non-existent browser thread; keep the clickable URL seed.
         QVariantMap fallback = cache.value(key);
         fallback.insert(QStringLiteral("resolved"), true);
-        cache.insert(key, fallback);
+        if (!rememberPreview(key, fallback)) {
+            return;
+        }
+        observedAt.insert(key, QDateTime::currentMSecsSinceEpoch());
         ++revisionValue;
         emit q.revisionChanged();
         emit q.previewReady(key, fallback);
         return;
 #endif
+        if (pending.size() >= maximumPendingPreviewRequests) {
+            // New viewport interests supersede the oldest unresolved preview.
+            // That URL remains clickable and can be re-admitted if visible.
+            queued.remove(pending.dequeue().key);
+        }
         queued.insert(key);
         pending.enqueue(PendingPreview{.key = key, .url = url});
         drainPending();
@@ -987,7 +1024,11 @@ public:
         }
         result.insert(QStringLiteral("resolved"), true);
         const QVariantMap previous = cache.value(key);
-        cache.insert(key, result);
+        if (!rememberPreview(key, result)) {
+            drainPending();
+            return;
+        }
+        observedAt.insert(key, QDateTime::currentMSecsSinceEpoch());
         if (previous != result) {
             ++revisionValue;
             emit q.revisionChanged();
@@ -1001,6 +1042,8 @@ public:
     LinkPreviewNetworkWorker* networkWorker{};
     QThreadPool parsePool{};
     QHash<QString, QVariantMap> cache{};
+    QQueue<QString> cacheOrder{};
+    QHash<QString, qint64> observedAt{};
     QQueue<PendingPreview> pending{};
     QSet<QString> queued{};
     QSet<QString> inFlight{};

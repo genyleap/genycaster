@@ -77,6 +77,7 @@ test('reaction and view lifecycle handlers are combined rather than assigned twi
   const bar=read('ui/components/EngagementBar.qml');
   assert.equal((bar.match(/Component.onCompleted:/g)||[]).length,1);
   assert.equal((bar.match(/onCastIdChanged:/g)||[]).length,1);
-  assert.match(bar,/Component.onCompleted: \{\s*requestViews\(\)\s*requestBrowserReactions\(\)/);
-  assert.match(bar,/onCastIdChanged: \{\s*requestViews\(\)\s*requestBrowserReactions\(\)/);
+  assert.match(bar,/Component.onCompleted: \{\s*syncViewInterest\(\)\s*requestViews\(\)\s*requestBrowserReactions\(\)/);
+  assert.match(bar,/onCastIdChanged: \{\s*syncViewInterest\(\)\s*requestViews\(\)\s*requestBrowserReactions\(\)/);
+  assert.match(bar,/Component.onDestruction: \{\s*if \(root.retainedViewsCastId.length > 0\)\s*castViewController.release\(root.retainedViewsCastId\)/);
 });

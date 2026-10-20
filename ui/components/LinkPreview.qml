@@ -54,9 +54,11 @@ Superellipse {
         root.richArtworkUnavailable = false
         root.genericArtworkUnavailable = false
     }
+    // Every actionable link keeps the same small artwork/poster slot from its
+    // first frame. Waiting for late OpenGraph art to create that slot changes
+    // the ListView delegate height in the middle of a flick.
     readonly property bool reserveArtwork: !root.suppressArtwork
-                                           && (root.reservedLayout.artwork
-                                               || root.previewSource.length > 0)
+                                           && root.targetUrl.length > 0
     readonly property real bodyLineHeight: Math.ceil(Theme.typeBodySize * Theme.typeBodyLineHeight)
     readonly property real metaLineHeight: Math.ceil(Theme.typeMetaSize * Theme.typeMetaLineHeight)
     readonly property real captionLineHeight: Math.ceil(Theme.typeCaptionSize * Theme.typeCaptionLineHeight)
@@ -584,10 +586,7 @@ Superellipse {
                                                                        width / Math.max(0.7, Math.min(3.0, root.previewImageAspect))))
                 // A working Mini App keeps its full 3:2 discovery poster.
                 // Only a confirmed load failure falls back to a compact action.
-                readonly property real targetHeight: root.reserveArtwork
-                    && root.previewSource.length > 0
-                    ? (root.miniAppArtworkUnavailable ? (root.compact ? 156 : 176) : readyHeight)
-                    : 0
+                readonly property real targetHeight: root.reserveArtwork ? readyHeight : 0
                 visible: targetHeight > 0
                 Layout.fillWidth: true
                 Layout.preferredHeight: targetHeight
@@ -772,8 +771,7 @@ Superellipse {
                 readonly property real readyHeight: Math.max(root.compact ? 116 : 142,
                                                               Math.min(root.compact ? 238 : 328,
                                                                        width / Math.max(0.75, Math.min(3.0, root.previewImageAspect))))
-                readonly property real targetHeight: root.previewSource.length > 0
-                    && !root.richArtworkUnavailable ? readyHeight : 0
+                readonly property real targetHeight: root.reserveArtwork ? readyHeight : 0
                 visible: targetHeight > 0
                 Layout.fillWidth: true
                 Layout.preferredHeight: targetHeight
@@ -1052,8 +1050,6 @@ Superellipse {
             Item {
                 id: genericThumbFrame
                 readonly property bool shouldReserve: root.reserveArtwork
-                                                     && root.previewSource.length > 0
-                                                     && !root.genericArtworkUnavailable
                 visible: shouldReserve
                 // Cap the artwork by actual card width; a fixed 184px
                 // thumbnail plus long metadata made narrow cards overflow.

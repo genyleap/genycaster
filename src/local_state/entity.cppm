@@ -62,6 +62,27 @@ public:
      */
     [[nodiscard]] virtual foundation::result::Result<std::optional<domain::cast::Cast>>
     findCast(const domain::cast::CastId& castId) = 0;
+
+    /**
+     * @brief Loads one cast without expanding locally persisted reply edges.
+     *
+     * Feed/list callers need the canonical cast and its embeds, not a complete
+     * conversation tree for every visible row. Implementations should avoid
+     * traversing reply relationships; this default keeps other stores source-
+     * compatible while suppressing descendants in the returned value.
+     *
+     * @param castId Canonical cast identifier to query.
+     * @return Optional cast with empty directReplies or a storage failure.
+     */
+    [[nodiscard]] virtual foundation::result::Result<std::optional<domain::cast::Cast>>
+    findCastShallow(const domain::cast::CastId& castId)
+    {
+        auto cast = findCast(castId);
+        if (cast && *cast) {
+            (*cast)->directReplies.clear();
+        }
+        return cast;
+    }
 };
 
 }

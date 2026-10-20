@@ -26,6 +26,8 @@ struct FeedEntry final {
 struct ViewerReactionSnapshot final {
     std::vector<cast::CastId> liked{};
     std::vector<cast::CastId> recasted{};
+    /** @brief Targets whose negative state is established by a complete read. */
+    std::vector<cast::CastId> examined{};
 };
 
 }

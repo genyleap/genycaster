@@ -1,7 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { webcrypto } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { uploadBrowserImage } from '../../ui/wasm/browser_media_upload.mjs';
+
+// Runtime binding functions live in a separate Qt composition unit to keep
+// GCC C++26 module compilation bounded; test both halves as one read pipeline.
+function readGenycasterMain() {
+  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+}
 
 const fid='123456';
 const key='ab'.repeat(32);
@@ -70,7 +78,7 @@ test('mobile browser picker is synchronous and signing key stays in vault',async
     const {readFileSync}=await import('node:fs');
     const js=readFileSync(new URL('../../ui/wasm/protocol-signer-pre.js',import.meta.url),'utf8');
     const qml=readFileSync(new URL('../../ui/components/ComposerDrawer.qml',import.meta.url),'utf8');
-    const main=readFileSync(new URL('../../ui/mobile/main.cpp',import.meta.url),'utf8');
+    const main=readGenycasterMain();
     assert.match(js,/picker\.click\(\)/);
     assert.match(js,/import\('\.\/browser_media_upload\.mjs'\)/);
     assert.match(qml,/mediaUpload\.browseBrowserImage\(root\.pendingMediaBlockIndex\)/);
@@ -114,7 +122,7 @@ test('managed media deletion is signed, owner-scoped and never accepts raw asset
 test('WASM cleanup is durable, signer-gated, and only triggered by confirmed deletion',async()=>{
     const {readFileSync}=await import('node:fs');
     const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
-    const main=read('ui/mobile/main.cpp');
+    const main=readGenycasterMain();
     const signer=read('ui/mobile/browser_signer_bridge.hpp');
     const pre=read('ui/wasm/protocol-signer-pre.js');
     const panel=read('ui/components/MediaUploadPanel.qml');

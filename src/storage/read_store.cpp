@@ -13,6 +13,7 @@ module;
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -238,7 +239,35 @@ SqliteReadStore::findProfile(const domain::identity::Fid fid)
 foundation::result::Result<std::optional<domain::cast::Cast>>
 SqliteReadStore::findCast(const domain::cast::CastId& castId)
 {
-    return m_entities->findCast(castId);
+    auto loaded = m_entities->findCast(castId);
+    if (!loaded || !*loaded) {
+        return loaded;
+    }
+    // Restore embedded author summaries for replies as well as the normalized
+    // cast graph. Reuse each FID once even in large fan-out conversations.
+    std::unordered_map<std::uint64_t, std::optional<domain::profile::Profile>> authors{};
+    std::vector<domain::cast::Cast*> pending{&**loaded};
+    while (!pending.empty()) {
+        auto* cast = pending.back();
+        pending.pop_back();
+        if (!cast->authorProfile && cast->author.value != 0) {
+            const auto [it, fresh] = authors.try_emplace(cast->author.value);
+            if (fresh) {
+                auto profile = m_entities->findProfile(cast->author);
+                if (!profile) {
+                    return std::unexpected(std::move(profile.error()));
+                }
+                it->second = std::move(*profile);
+            }
+            if (it->second) {
+                cast->authorProfile = *it->second;
+            }
+        }
+        for (auto& reply : cast->directReplies) {
+            pending.push_back(&reply);
+        }
+    }
+    return loaded;
 }
 
 foundation::result::Status SqliteReadStore::putProfile(const domain::profile::Profile& profile)
@@ -248,6 +277,24 @@ foundation::result::Status SqliteReadStore::putProfile(const domain::profile::Pr
 
 foundation::result::Status SqliteReadStore::putCast(const domain::cast::Cast& cast)
 {
+    // Thread responses embed their authors. Persist each identity once, with
+    // the same non-regressing summary policy used by feed hydration.
+    std::vector<const domain::cast::Cast*> pending{&cast};
+    std::unordered_set<std::uint64_t> seenProfiles{};
+    while (!pending.empty()) {
+        const auto* current = pending.back();
+        pending.pop_back();
+        if (current->authorProfile && current->author.value != 0
+            && seenProfiles.insert(current->author.value).second) {
+            if (auto status = putEmbeddedProfileSummary(*m_entities, *current->authorProfile);
+                !status) {
+                return status;
+            }
+        }
+        for (const auto& reply : current->directReplies) {
+            pending.push_back(&reply);
+        }
+    }
     return m_entities->putCast(cast);
 }
 
@@ -325,7 +372,7 @@ foundation::result::Result<capability::feed::FeedPage> SqliteReadStore::readFeed
     page.entries = std::move(*entries);
     std::unordered_set<std::uint64_t> seenProfiles{};
     for (const auto& entry : page.entries) {
-        auto cast = m_entities->findCast(entry.castId);
+        auto cast = m_entities->findCastShallow(entry.castId);
         if (!cast) {
             return std::unexpected(std::move(cast.error()));
         }

@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
+// Runtime binding functions live in a separate Qt composition unit to keep
+// GCC C++26 module compilation bounded; test both halves as one read pipeline.
+function readGenycasterMain() {
+  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+}
+
 const root=new URL('../../',import.meta.url);
 const read=path=>readFileSync(new URL(path,root),'utf8');
 const html=read('ui/wasm/genycaster-shell.html');
@@ -51,7 +58,7 @@ test('completed Setup is independent of a volatile session and signer revocation
     const signer=bridge.split('void PresentationBridge::applySignerState(')[1]
         .split('void PresentationBridge::applyVerifiedBrowserWrite(')[0];
     assert.doesNotMatch(signer,/resetInitialSetupProgress\(/);
-    const app=read('ui/mobile/main.cpp');
+    const app=readGenycasterMain();
     assert.match(app,/\/home\/web_user\/\.local\/share\/genycaster-settings\.ini/);
     assert.match(app,/QObject::connect\(&presentationBridge, &PresentationBridge::setupStateChanged/);
     assert.doesNotMatch(app,/QObject::connect\(&bridge, &PresentationBridge::setupStateChanged/);

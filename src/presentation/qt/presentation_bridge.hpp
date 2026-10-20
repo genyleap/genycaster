@@ -459,6 +459,9 @@ private:
     QString m_replyParentCastId{};
     QVariantList m_writeRows{};
     QVariantMap m_viewerReactionSnapshot{};
+    // Only complete per-target reads establish a known negative reaction.
+    // Distinguish first negative evidence from an unchanged negative result.
+    QHash<QString, quint8> m_viewerReactionKnownStates{};
     QVariantMap m_reactionOverrides{};
     QVariantMap m_followOverrides{};
     QVariantList m_followingStoryProfiles{};

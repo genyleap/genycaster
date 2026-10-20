@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+
+// Runtime binding functions live in a separate Qt composition unit to keep
+// GCC C++26 module compilation bounded; test both halves as one read pipeline.
+function readGenycasterMain() {
+  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+}
 const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path,root),'utf8');
 
@@ -36,7 +43,7 @@ test('browser native HLS modal and local hls.js work without third-party runtime
  assert.match(js,/vendor\/hls-1\.6\.15\.min\.js/);
  assert.match(cmake,/browser-hls-pre\.js/);
  assert.match(packageScript,/vendor\/hls-1\.6\.15\.min\.js/);
- const main=read('ui/mobile/main.cpp');
+ const main=readGenycasterMain();
  assert.match(main,/path\(\)\.endsWith\(QLatin1StringView\{"\.m3u8"\}, Qt::CaseInsensitive\)/);
  assert.match(main,/dispatch\(true\)/);
 });

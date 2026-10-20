@@ -56,6 +56,11 @@ Item {
     readonly property int filterTargetCount: root.compact ? 5 : 8
     readonly property int filterPrefetchLimit: 8
     readonly property int automaticPrefetchLimit: 16
+    // One bounded automatic chain between real user scroll gestures. Content
+    // geometry and busy-state changes must not replenish the budget.
+    property int automaticLastRowCount: -1
+    property int automaticNoProgressPages: 0
+    readonly property int automaticNoProgressLimit: 2
     property Component headerContent: null
     // Presentation filters preserve provider order; they only select eligible
     // rows. Pagination therefore remains provider-stable across every branch.
@@ -369,8 +374,28 @@ Item {
             ++root.developerPrefetchPages
         else if (root.presentationMode === "conversations")
             ++root.conversationPrefetchPages
+        root.recordAutomaticPage()
+    }
+
+    function canAutomaticallyPage() {
+        return root.automaticPrefetchPages < root.automaticPrefetchLimit
+            && root.automaticNoProgressPages < root.automaticNoProgressLimit
+    }
+
+    function recordAutomaticPage() {
+        if (root.automaticLastRowCount >= 0
+                && stableRows.count <= root.automaticLastRowCount)
+            ++root.automaticNoProgressPages
+        else
+            root.automaticNoProgressPages = 0
+        root.automaticLastRowCount = stableRows.count
         ++root.automaticPrefetchPages
-        automaticPrefetchCooldown.restart()
+    }
+
+    function resetAutomaticPageBudget() {
+        root.automaticPrefetchPages = 0
+        root.automaticNoProgressPages = 0
+        root.automaticLastRowCount = -1
     }
 
     function resetCurrentFilterPrefetchBudget() {
@@ -389,8 +414,7 @@ Item {
         root.visualPrefetchPages = 0
         root.conversationPrefetchPages = 0
         root.developerPrefetchPages = 0
-        root.automaticPrefetchPages = 0
-        automaticPrefetchCooldown.stop()
+        root.resetAutomaticPageBudget()
     }
 
     function sourceRows() {
@@ -639,11 +663,16 @@ Item {
         // Keep the model incremental. Tail pagination should only append rows;
         // in-place payload revisions update the existing delegate and never
         // reposition the ListView. Qt ListView owns viewport continuity.
+        // Side-store ownership follows the current stable IDs. Without this
+        // sweep, deleted or replaced casts retain all of their media/embed
+        // metadata across long browsing sessions.
+        const liveKeys = ({})
         for (let index = 0; index < source.length; ++index) {
             const entry = source[index] || ({})
             const payload = entry.payload || ({})
             const presentationKind = String(entry.presentationKind || "conversation")
             const key = root.rowKey(payload, index)
+            liveKeys[key] = true
             const revision = root.rowRevision(payload)
             // Mutate the side store before changing revisionKey. Delegates bind
             // through revisionKey, so only the affected row re-reads its payload.
@@ -686,6 +715,11 @@ Item {
 
         while (stableRows.count > source.length)
             stableRows.remove(stableRows.count - 1)
+
+        for (const key of Object.keys(root.stablePayloads)) {
+            if (!liveKeys[key])
+                delete root.stablePayloads[key]
+        }
     }
 
     function isNearEnd() {
@@ -727,6 +761,8 @@ Item {
             loadMoreDebounce.stop()
             return
         }
+        if (!root.canAutomaticallyPage())
+            return
         if (root.needsFilteredPrefetch()) {
             filterPrefetchDebounce.restart()
             return
@@ -866,23 +902,11 @@ Item {
     }
 
     Timer {
-        id: automaticPrefetchCooldown
-        interval: 1400
-        repeat: false
-        onTriggered: {
-            // Rate-limit automatic semantic pagination as a short rolling window
-            // rather than permanently starving tabs visited later in the session.
-            root.automaticPrefetchPages = 0
-            root.scheduleLoadMore()
-        }
-    }
-
-    Timer {
         id: filterPrefetchDebounce
         interval: 240
         repeat: false
         onTriggered: {
-            if (!root.needsFilteredPrefetch())
+            if (!root.needsFilteredPrefetch() || !root.canAutomaticallyPage())
                 return
             root.incrementFilterPrefetchPages()
             root.loadMorePending = true
@@ -897,8 +921,10 @@ Item {
         repeat: false
         onTriggered: {
             if (root.loadMorePending || root.busy || !root.hasMore || !root.isNearEnd()
-                    || root.offline || root.sourceUnavailable || root.errorText.length > 0)
+                    || root.offline || root.sourceUnavailable || root.errorText.length > 0
+                    || !root.canAutomaticallyPage())
                 return
+            root.recordAutomaticPage()
             root.loadMorePending = true
             root.loadMoreRequested()
             loadMoreRelease.restart()
@@ -949,6 +975,9 @@ Item {
         pixelAligned: false
 
         onMovementEnded: {
+            // A genuine scroll gesture is explicit user intent, unlike geometry
+            // updates from an empty/duplicate continuation page.
+            root.resetAutomaticPageBudget()
             scrollWorkThrottle.stop()
             if (root.stableModelSyncPending)
                 root.requestStableModelSync()
@@ -1181,7 +1210,7 @@ Item {
                     // Explicit user intent may start a new bounded search window. Automatic
                     // tab switching itself never resets the shared source-pressure budget.
                     root.resetCurrentFilterPrefetchBudget()
-                    root.automaticPrefetchPages = 0
+                    root.resetAutomaticPageBudget()
                     root.scheduleLoadMore()
                 }
                 anchors.fill: parent

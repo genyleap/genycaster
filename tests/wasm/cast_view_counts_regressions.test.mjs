@@ -3,32 +3,34 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
 
-test('one shared QML singleton batches at most 16 visible cast view queries across recycled delegates',()=>{
+test('the Qt Views controller batches and bounds network work outside QML',()=>{
   const cmake=read('ui/CMakeLists.txt');
-  const provider=read('ui/components/CastViews.qml');
-  assert.match(cmake,/components\/CastViews.qml/);
-  assert.match(cmake,/set_source_files_properties\(components\/CastViews.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE\)/);
-  assert.match(provider,/pragma Singleton/);
-  assert.match(provider,/raw\.startsWith\("0x"\) \? raw : "0x" \+ raw/);
-  assert.match(provider,/Object\.keys\(root\.pending\)\.slice\(0, 16\)/);
-  assert.match(provider,/storage-farcaster\.genyleap\.com\/v1\/browser\/cast-views/);
-  assert.match(provider,/xhr\.send\(JSON\.stringify\(\{casts: batch\}\)\)/);
-  assert.match(provider,/property int revision: 0/);
-  assert.match(provider,/root\.revision \+= 1/);
-  assert.match(provider,/root\.retryAfter\[key\] = now \+ 90 \* 1000/);
+  const facade=read('ui/components/CastViews.qml');
+  const controller=read('ui/mobile/cast_view_controller.cpp');
+  const header=read('ui/mobile/cast_view_controller.hpp');
+  assert.match(cmake,/mobile\/cast_view_controller.cpp/);
+  assert.match(facade,/pragma Singleton/);
+  assert.doesNotMatch(facade,/XMLHttpRequest|JSON\.parse|revision/);
+  assert.match(controller,/maxBatch = 16/);
+  assert.match(controller,/maxPending = 96/);
+  assert.match(controller,/maxEntries = 384/);
+  assert.match(controller,/requestDeadlineMs = 6 \* 1000/);
+  assert.match(controller,/storage-farcaster\.genyleap\.com\/v1\/browser\/cast-views/);
+  assert.match(controller,/QJsonDocument::fromJson/);
+  assert.match(header,/Q_PROPERTY\(QVariant count READ count NOTIFY countChanged FINAL\)/);
 });
 
-test('every cast and reply uses the same view counter cache without replacing feed delegates',()=>{
+test('cast delegates retain and release per-cast analytics interest without global invalidation',()=>{
   const bar=read('ui/components/EngagementBar.qml');
-  const provider=read('ui/components/CastViews.qml');
-  assert.match(bar,/CastViews\.ensure\(root\.castId, root\.authorFid, root\.castText\)/);
-  assert.match(bar,/return CastViews\.countFor\(root\.castId\)/);
+  assert.match(bar,/castViewController\.ensure\(root\.castId, root\.authorFid, root\.castText\)/);
+  assert.match(bar,/root\.castViewEntry\.count/);
+  assert.match(bar,/castViewController\.retain\(next\)/);
+  assert.match(bar,/castViewController\.release\(root\.retainedViewsCastId\)/);
   assert.match(bar,/resolvedViewCount !== null && root\.resolvedViewCount !== undefined/);
   assert.match(bar,/LocaleFormat\.formatCompactNumber\(Number\(root\.resolvedViewCount\)\)/);
   assert.match(bar,/text: Theme\.iconPreview/);
   assert.match(bar,/Accessible\.role: Accessible\.StaticText/);
   assert.match(bar,/spacing: root\.compact \? 0 : Theme\.space1/);
-  assert.match(provider,/return value === undefined \? null : value/);
   for(const name of ['CastItem.qml','ThreadReplyItem.qml','DetailSurface.qml']){
     const text=read('ui/components/'+name);
     assert.match(text,/castId: String\(root\.(?:modelData|reply|detail)\.castId \|\| ""\)/,name);

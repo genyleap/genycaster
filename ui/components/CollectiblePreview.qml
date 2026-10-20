@@ -115,7 +115,9 @@ Superellipse {
             id: artworkFrame
             // Never hide artwork on a transient provider failure. Failure
             // state can clear on re-admission after kinetic scrolling.
-            visible: root.artworkSource.length > 0
+            // Reserve the artwork region as soon as the collectible URL is
+            // known, even before the marketplace resolves its image.
+            visible: root.targetUrl.length > 0 && !Boolean(root.embed.pairedVisual)
             Layout.fillWidth: !root.horizontalCard
             Layout.preferredWidth: root.horizontalCard ? root.artworkWidth : -1
             Layout.preferredHeight: visible ? root.artworkHeight : 0
@@ -156,7 +158,7 @@ Superellipse {
 
             Icon {
                 anchors.centerIn: parent
-                visible: collectibleArtwork.loadFailed
+                visible: root.artworkSource.length === 0 || collectibleArtwork.loadFailed
                 text: Theme.iconImage
                 color: Theme.textTertiary
                 preferredSize: Theme.iconSizeLarge
@@ -216,8 +218,9 @@ Superellipse {
 
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                Layout.preferredHeight: Math.max(root.titleLineHeight,
-                                                 Math.min(root.titleLineHeight * 2, implicitHeight))
+                // The title may grow from one line to two once metadata lands.
+                // Allocate both lines before the first presentation frame.
+                Layout.preferredHeight: root.titleLineHeight * 2
                 Layout.minimumHeight: Layout.preferredHeight
                 Layout.maximumHeight: Layout.preferredHeight
                 verticalAlignment: Text.AlignTop
@@ -231,7 +234,7 @@ Superellipse {
             }
 
             DirectionAwareLabel {
-                visible: root.creatorText.length > 0
+                visible: root.targetUrl.length > 0
                 Layout.preferredHeight: visible ? root.captionLineHeight : 0
                 Layout.minimumHeight: Layout.preferredHeight
                 Layout.maximumHeight: Layout.preferredHeight
@@ -243,7 +246,7 @@ Superellipse {
             }
 
             DirectionAwareLabel {
-                visible: root.collectionText.length > 0 && root.collectionText !== root.titleText
+                visible: root.targetUrl.length > 0
                 Layout.preferredHeight: visible ? root.captionLineHeight : 0
                 Layout.minimumHeight: Layout.preferredHeight
                 Layout.maximumHeight: Layout.preferredHeight
@@ -257,7 +260,7 @@ Superellipse {
             Flow {
                 id: metadataChips
                 Layout.fillWidth: true
-                visible: root.chainText.length > 0 || root.editionText.length > 0 || root.priceText.length > 0
+                visible: root.targetUrl.length > 0
                 Layout.preferredHeight: visible ? 28 : 0
                 Layout.minimumHeight: Layout.preferredHeight
                 Layout.maximumHeight: Layout.preferredHeight

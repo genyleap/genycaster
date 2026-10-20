@@ -474,8 +474,17 @@ Item {
             Qt.callLater(function() { root.restoreViewportAnchor(anchorKey, anchorOffset) })
     }
 
-    onRowsChanged: Qt.callLater(root.requestStableModelSync)
-    onFilterKindChanged: Qt.callLater(root.requestStableModelSync)
+    // Queue model updates through an object-owned timer, not Qt.callLater on a
+    // QML method reference. NotificationSurface can be destroyed while a
+    // sidebar route changes; delayed callbacks must die with their owner.
+    Timer {
+        id: stableModelSyncTimer
+        interval: 0
+        repeat: false
+        onTriggered: root.requestStableModelSync()
+    }
+    onRowsChanged: stableModelSyncTimer.restart()
+    onFilterKindChanged: stableModelSyncTimer.restart()
 
     ColumnLayout {
         anchors.fill: parent

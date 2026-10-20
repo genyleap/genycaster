@@ -156,6 +156,75 @@ void testPaginationPreservesHydratedReferencedContext()
 }
 
 
+void testIncrementalPaginationDecoratesOnlyNewOrRevisedRows()
+{
+    PresentationBridge bridge{};
+    QVariantList initial{};
+    initial.reserve(180);
+    for (int index = 0; index < 180; ++index) {
+        initial.push_back(QVariantMap{
+            {QStringLiteral("castId"), QStringLiteral("0xfeed-%1").arg(index)},
+            {QStringLiteral("text"), QStringLiteral("Original item %1").arg(index)},
+            {QStringLiteral("embeds"), QVariantList{QVariantMap{
+                {QStringLiteral("kind"), QStringLiteral("image")},
+                {QStringLiteral("url"), QStringLiteral("https://example.invalid/%1").arg(index)},
+            }}},
+        });
+    }
+    bridge.applyList(
+        QStringLiteral("feed"), QStringLiteral("recent"), initial, QStringLiteral("p2"),
+        {}, {}, {}, false, false, false, false);
+    bridge.applyViewerReactionDelta({
+        QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xfeed-0")},
+                    {QStringLiteral("liked"), true},
+                    {QStringLiteral("recasted"), false}},
+        QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xnext")},
+                    {QStringLiteral("liked"), true},
+                    {QStringLiteral("recasted"), false}},
+    });
+    const QVariantMap original = bridge.rows().first().toMap();
+    assert(original.value(QStringLiteral("likedByMe")).toBool());
+
+    bridge.applyReferencedCastPreview(QStringLiteral("0xparent"),
+        QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xparent")},
+                    {QStringLiteral("text"), QStringLiteral("Loaded parent")}});
+    const QVariantMap next{
+        {QStringLiteral("castId"), QStringLiteral("0xnext")},
+        {QStringLiteral("parentCastId"), QStringLiteral("0xparent")},
+        {QStringLiteral("parentPreview"), QVariantMap{}},
+        {QStringLiteral("likeCount"), 0},
+    };
+    // An incremental page must keep the rich prefix intact and decorate only
+    // the incoming row from existing reaction and reference caches.
+    bridge.applyList(
+        QStringLiteral("feed"), QStringLiteral("recent"), {next}, QStringLiteral("p3"),
+        {}, {}, {}, false, false, false, true);
+    assert(bridge.rows().size() == 181);
+    assert(bridge.rows().first().toMap() == original);
+    const QVariantMap appended = bridge.rows().last().toMap();
+    assert(appended.value(QStringLiteral("likedByMe")).toBool());
+    assert(appended.value(QStringLiteral("likeCount")).toULongLong() == 1);
+    assert(appended.value(QStringLiteral("parentPreview")).toMap()
+        .value(QStringLiteral("text")).toString() == QStringLiteral("Loaded parent"));
+
+    // A duplicate arriving in a later slice must update only its old index,
+    // preserving the revision of a previously hydrated item and the ordering.
+    bridge.applyList(
+        QStringLiteral("feed"), QStringLiteral("recent"),
+        {QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xfeed-1")},
+                     {QStringLiteral("text"), QStringLiteral("Revised second item")}},
+         QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xnext")},
+                     {QStringLiteral("parentCastId"), QStringLiteral("0xparent")}}},
+        {}, {}, {}, {}, false, false, false, true);
+    assert(bridge.rows().size() == 181);
+    assert(bridge.rows().first().toMap() == original);
+    assert(bridge.rows().at(1).toMap().value(QStringLiteral("text")).toString()
+        == QStringLiteral("Revised second item"));
+    assert(bridge.rows().last().toMap().value(QStringLiteral("likedByMe")).toBool());
+    assert(bridge.rows().last().toMap().value(QStringLiteral("parentPreview")).toMap()
+        .value(QStringLiteral("text")).toString() == QStringLiteral("Loaded parent"));
+}
+
 void testPaginationPreservesResolvedMediaOnlyReferencedContext()
 {
     PresentationBridge bridge{};
@@ -300,7 +369,11 @@ void testReferencedPreviewHydratesReplyAndQuoteMetrics()
         {QStringLiteral("recastCount"), 3},
         {QStringLiteral("likeCount"), 19},
     };
+    int changes = 0;
+    QObject::connect(&bridge, &PresentationBridge::stateChanged, &bridge,
+        [&changes] { ++changes; });
     bridge.applyReferencedCastPreview(QStringLiteral("0xparent"), preview);
+    assert(changes == 1);
 
     const QVariantMap hydratedReply = bridge.rows().at(0).toMap()
         .value(QStringLiteral("parentPreview")).toMap();
@@ -316,6 +389,74 @@ void testReferencedPreviewHydratesReplyAndQuoteMetrics()
     assert(hydratedQuote.value(QStringLiteral("resolved")).toBool());
     assert(hydratedQuote.value(QStringLiteral("replyCount")).toInt() == 7);
     assert(hydratedQuote.value(QStringLiteral("recastCount")).toInt() == 3);
+
+    const QVariantList hydrated = bridge.rows();
+    // The same network preview and unrelated offscreen completions must not
+    // detach all visible QVariant maps or invalidate QML bindings again.
+    bridge.applyReferencedCastPreview(QStringLiteral("0xparent"), preview);
+    bridge.applyReferencedCastPreview(QStringLiteral("0xunrelated"), QVariantMap{
+        {QStringLiteral("castId"), QStringLiteral("0xunrelated")},
+        {QStringLiteral("text"), QStringLiteral("Offscreen content")},
+    });
+    assert(changes == 1);
+    assert(bridge.rows() == hydrated);
+
+    auto revised = preview;
+    revised.insert(QStringLiteral("likeCount"), 23);
+    bridge.applyReferencedCastPreview(QStringLiteral("0xparent"), revised);
+    assert(changes == 2);
+    assert(bridge.rows().at(1).toMap().value(QStringLiteral("embeds"))
+        .toList().front().toMap().value(QStringLiteral("likeCount")).toInt() == 23);
+}
+
+void testNestedQuoteHydrationNotifiesDetailExactlyOnce()
+{
+    PresentationBridge bridge{};
+    const QVariantMap nestedReply{
+        {QStringLiteral("castId"), QStringLiteral("0xchild")},
+        {QStringLiteral("parentCastId"), QStringLiteral("0xroot")},
+        {QStringLiteral("embeds"), QVariantList{QVariantMap{
+            {QStringLiteral("kind"), QStringLiteral("cast-reference")},
+            {QStringLiteral("castId"), QStringLiteral("0xquote")},
+        }}},
+    };
+    bridge.applyDetail(
+        QStringLiteral("cast"), QVariantMap{
+            {QStringLiteral("castId"), QStringLiteral("0xroot")},
+            {QStringLiteral("threadReplies"), QVariantList{nestedReply}},
+        }, {}, {}, {}, false, false, false);
+
+    int notifications = 0;
+    QObject::connect(&bridge, &PresentationBridge::stateChanged, &bridge,
+        [&notifications] { ++notifications; });
+    const QVariantMap quoted{
+        {QStringLiteral("castId"), QStringLiteral("0xquote")},
+        {QStringLiteral("text"), QStringLiteral("Hydrated quote in nested reply")},
+        {QStringLiteral("likeCount"), 12},
+    };
+    bridge.applyReferencedCastPreview(QStringLiteral("0xquote"), quoted);
+    assert(notifications == 1);
+    const auto replies = bridge.detail().value(QStringLiteral("threadReplies")).toList();
+    assert(replies.size() == 1);
+    const auto embeds = replies.front().toMap().value(QStringLiteral("embeds")).toList();
+    assert(embeds.size() == 1);
+    assert(embeds.front().toMap().value(QStringLiteral("text")).toString()
+        == QStringLiteral("Hydrated quote in nested reply"));
+    assert(embeds.front().toMap().value(QStringLiteral("likeCount")).toInt() == 12);
+
+    const QVariantMap hydratedRoot = bridge.detail();
+    bridge.applyReferencedCastPreview(QStringLiteral("0xquote"), quoted);
+    assert(notifications == 1);
+    assert(bridge.detail() == hydratedRoot);
+
+    auto revised = quoted;
+    revised.insert(QStringLiteral("likeCount"), 15);
+    bridge.applyReferencedCastPreview(QStringLiteral("0xquote"), revised);
+    assert(notifications == 2);
+    const auto updatedReplies = bridge.detail().value(QStringLiteral("threadReplies")).toList();
+    const auto updatedEmbeds = updatedReplies.front().toMap()
+        .value(QStringLiteral("embeds")).toList();
+    assert(updatedEmbeds.front().toMap().value(QStringLiteral("likeCount")).toInt() == 15);
 }
 
 void testAuthenticatedProfilePresentationIsCached()
@@ -588,6 +729,60 @@ void testFirstPageCacheDoesNotRemountLiveTimeline()
 }
 
 
+void testViewerReactionFirstNegativeAndDuplicateEvidence()
+{
+    PresentationBridge bridge{};
+    const QString id{QStringLiteral("0x") + QString(40, QLatin1Char('a'))};
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("trending"),
+        {QVariantMap{
+            {QStringLiteral("castId"), id},
+            {QStringLiteral("likedByMe"), true},
+            {QStringLiteral("recastedByMe"), true},
+            {QStringLiteral("likeCount"), 7U},
+            {QStringLiteral("recastCount"), 2U},
+        }},
+        {}, {}, {}, {}, false, false, false, false);
+    int invalidations{0};
+    QObject::connect(&bridge, &PresentationBridge::stateChanged,
+                     &bridge, [&invalidations] { ++invalidations; });
+    const QVariantMap negative{
+        {QStringLiteral("castId"), id},
+        {QStringLiteral("liked"), false},
+        {QStringLiteral("recasted"), false},
+    };
+    bridge.applyViewerReactionDelta({negative});
+    assert(invalidations == 1);
+    assert(!bridge.rows().front().toMap().value(QStringLiteral("likedByMe")).toBool());
+    assert(!bridge.rows().front().toMap().value(QStringLiteral("recastedByMe")).toBool());
+    // No repeated whole-feed update when an identical complete result arrives.
+    bridge.applyViewerReactionDelta({negative});
+    assert(invalidations == 1);
+    bridge.applyViewerReactionDelta({
+        QVariantMap{
+            {QStringLiteral("castId"), QStringLiteral("0x") + QString(40, QLatin1Char('f'))},
+            {QStringLiteral("liked"), true},
+            {QStringLiteral("recasted"), false},
+        }});
+    assert(invalidations == 1); // An offscreen target is not a UI update.
+    const QVariantMap positive{
+        {QStringLiteral("castId"), id},
+        {QStringLiteral("liked"), true},
+        {QStringLiteral("recasted"), false},
+    };
+    bridge.applyViewerReactionDelta({positive});
+    assert(invalidations == 2);
+    assert(bridge.rows().front().toMap().value(QStringLiteral("likedByMe")).toBool());
+
+    bridge.applyReactionProjections({
+        QVariantMap{
+            {QStringLiteral("castId"), id},
+            {QStringLiteral("kind"), QStringLiteral("like")},
+            {QStringLiteral("active"), true},
+        }});
+    bridge.applyViewerReactionDelta({negative});
+    assert(bridge.rows().front().toMap().value(QStringLiteral("likedByMe")).toBool());
+}
+
 void testSourceSwitchAdmitsCachedTimeline()
 {
     PresentationBridge bridge{};
@@ -619,11 +814,14 @@ int main(int argc, char* argv[])
     testExplicitExplorerRefreshRevealsLatestPage();
     testFirstPageCacheDoesNotRemountLiveTimeline();
     testSourceSwitchAdmitsCachedTimeline();
+    testViewerReactionFirstNegativeAndDuplicateEvidence();
     testPaginationPreservesHydratedReferencedContext();
     testPaginationPreservesResolvedMediaOnlyReferencedContext();
+    testIncrementalPaginationDecoratesOnlyNewOrRevisedRows();
     testReadPreferencesAreBoundedAndPersisted();
     testBufferedRefreshPreservesTimelineUntilReveal();
     testReferencedPreviewHydratesReplyAndQuoteMetrics();
+    testNestedQuoteHydrationNotifiesDetailExactlyOnce();
     testAuthenticatedProfilePresentationIsCached();
     testInitialSetupRequiresAuthenticationAndFirstRunCompletion();
     return 0;

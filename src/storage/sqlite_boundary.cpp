@@ -133,6 +133,16 @@ CREATE TABLE IF NOT EXISTS cast_embed_items (
     PRIMARY KEY (cast_id, position),
     FOREIGN KEY (cast_id) REFERENCES casts(id) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS conversation_edges (
+    parent_cast_id TEXT NOT NULL,
+    child_cast_id TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    PRIMARY KEY (parent_cast_id, child_cast_id),
+    FOREIGN KEY (parent_cast_id) REFERENCES casts(id) ON DELETE CASCADE,
+    FOREIGN KEY (child_cast_id) REFERENCES casts(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_conversation_edges_parent
+    ON conversation_edges(parent_cast_id, position);
 CREATE TABLE IF NOT EXISTS timeline_entries (
     timeline_id TEXT NOT NULL,
     position INTEGER NOT NULL,
@@ -672,6 +682,13 @@ WHERE current.kind IN ('follow', 'unfollow')
         }
     }
     if (auto status = recordMigration(connection, 24, appliedAt); !status) {
+        return status;
+    }
+
+    // Additive, provider-neutral conversation edges preserve the exact ordered
+    // relationships between normalized cast entities. Opening an older
+    // database creates the table without replacing or rewriting user casts.
+    if (auto status = recordMigration(connection, 25, appliedAt); !status) {
         return status;
     }
 

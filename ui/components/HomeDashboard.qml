@@ -4,6 +4,7 @@ import QtQuick.Layouts
 
 Item {
     id: root
+    objectName: "homeDashboard"
 
     property string displayName: ""
     property string username: ""

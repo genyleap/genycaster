@@ -1,9 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
+import fs, { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
+
+// Runtime binding functions live in a separate Qt composition unit to keep
+// GCC C++26 module compilation bounded; test both halves as one read pipeline.
+function readGenycasterMain() {
+  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+}
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
@@ -37,7 +44,7 @@ test('duplicate link cards ignore referral/tracking variants, but not meaningful
 test('following stories use verified cast timestamps to sort follows while retaining older accounts', () => {
     const bridge = read('src/presentation/qt/presentation_bridge.cpp');
     const h = read('src/presentation/qt/presentation_bridge.hpp');
-    const runtime = read('ui/mobile/main.cpp');
+    const runtime = readGenycasterMain();
     const shell = read('ui/components/AppShell.qml');
     const strip = read('ui/components/StoryStrip.qml');
     assert.match(h, /followingStoryActivitiesRequested\(qulonglong viewerFid\)/);

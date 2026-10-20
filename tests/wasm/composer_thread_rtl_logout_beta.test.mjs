@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+
+// Runtime binding functions live in a separate Qt composition unit to keep
+// GCC C++26 module compilation bounded; test both halves as one read pipeline.
+function readGenycasterMain() {
+  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+}
 const read=name=>readFileSync(new URL('../../'+name, import.meta.url),'utf8');
 
 test('thread composer owns vertical scrolling and cannot be swiped away mid-edit',()=>{
@@ -27,7 +34,7 @@ test('formatting and verbose hints stay optional on compact screens',()=>{
  assert.match(composer,/visible: !root\.compact \|\| presentationBridge\.writeErrorText\.length > 0/);
 });
 test('WASM Sign Out unconditionally transitions to Guest even for recovery-only logins',()=>{
- const main=read('ui/mobile/main.cpp');
+ const main=readGenycasterMain();
  const section=main.split('QObject::connect(&bridge, &PresentationBridge::signOutRequested,')[1]?.split('#else')[0];
  assert.ok(section);
  assert.match(section,/browserSigner->forgetAccount\(\)/);

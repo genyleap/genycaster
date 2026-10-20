@@ -2,6 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 
+// Runtime binding functions live in a separate Qt composition unit to keep
+// GCC C++26 module compilation bounded; test both halves as one read pipeline.
+function readGenycasterMain() {
+  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+}
+
 const read = relative => readFileSync(new URL('../../' + relative, import.meta.url), 'utf8');
 
 test('Explorer For You keeps all recent root casts in provider order', () => {
@@ -42,7 +49,10 @@ test('Explorer Conversations uses verified network replies instead of text heuri
         .split('void PresentationBridge::openChannel')[0];
     assert.match(selector, /feed == QStringLiteral\("conversations"\) \? QStringLiteral\("conversations"\)/);
     assert.match(gateway, /feedConversationsRead\(\)/);
-    assert.match(gateway, /decodeRecentCastEvents\([\s\S]*?cursor.firstEnd, repliesOnly\)/);
+    assert.match(gateway, /const auto end = shard == 1U \? cursor.firstEnd : cursor.secondEnd/);
+    assert.match(gateway, /codec::decodeRecentCastEvents\(\s*\*body, start, end, repliesOnly\)/);
+    assert.match(gateway, /completeShard\(1U, std::move\(body\)\)/);
+    assert.match(gateway, /completeShard\(2U, std::move\(body\)\)/);
     assert.match(decoder, /if \(isReply != repliesOnly\) \{ continue; \}/);
     assert.match(read('src/storage/read_store.cpp'), /"feed:conversations"/);
 });
@@ -108,7 +118,7 @@ test('Explorer uses confirmed Recent; Home restores personalized Following or ra
     assert.match(explorer, /nextMode === "visuals" \? "nfts"/);
     assert.match(explorer, /nextMode === "devs" \? "developers"/);
     assert.match(explorer, /nextMode === "conversations" \? "conversations" : "recent"/);
-    assert.match(read('ui/mobile/main.cpp'), /FeedQuery::Kind::Recent/);
+    assert.match(readGenycasterMain(), /FeedQuery::Kind::Recent/);
     assert.match(read('src/storage/read_store.cpp'), /"feed:recent"/);
     assert.doesNotMatch(explorer, /const source = presentationBridge\.isAuthenticated/);
     assert.match(home, /\? "following" : "trending"/);
@@ -131,7 +141,8 @@ test('link previews reconcile metadata without binding loops or geometry jumps',
     assert.match(qml, /onTriggered: root\.previewData = root\.selectedPreviewData\(\)/);
     assert.match(qml, /readonly property real genericReservedHeight/);
     assert.match(qml, /Math\.max\(content\.implicitHeight \+ Theme\.space3 \* 2,/);
-    assert.match(qml, /root\.reservedLayout\.artwork/);
+    assert.match(qml, /readonly property bool reserveArtwork: !root\.suppressArtwork\s*&& root\.targetUrl\.length > 0/);
+    assert.match(qml, /readonly property var reservedLayout:/);
     assert.match(qml, /root\.browserMiniAppPreview\.providerKind === "miniapp"/);
 });
 
@@ -169,7 +180,7 @@ test('video playback preserves production audio while headless Qt 6.12 QA avoids
     const preview = read('ui/components/VideoPreview.qml');
     const testFixture = read('tests/ui/media_scroll_tests.cpp');
     assert.match(player, /property bool audioOutputEnabled: true/);
-    assert.match(player, /id: audioOutput\s+active: root\.audioOutputEnabled/);
+    assert.match(player, /id: audioOutput[\s\S]*?active: root\.audioOutputEnabled\s*&& \(typeof nativeAudioOutputEnabled === "undefined" \|\| nativeAudioOutputEnabled\)\s*&& \(activation\.activated \|\| \(root\.eager && root\.hasSource\)\)/);
     assert.match(player, /audioOutput: audioOutput\.item/);
     assert.match(preview, /property bool audioOutputEnabled: true/);
     assert.match(preview, /audioOutputEnabled: root\.audioOutputEnabled/);
@@ -198,7 +209,7 @@ test('NFT and developer tabs have independent provider searches and cache keys',
 test('story strip uses the current account Following graph, never public cast authors', () => {
     const shell = read('ui/components/AppShell.qml');
     const bridge = read('src/presentation/qt/presentation_bridge.hpp');
-    const runtime = read('ui/mobile/main.cpp');
+    const runtime = readGenycasterMain();
     const stories = read('ui/components/StoryStrip.qml');
     assert.match(shell, /recentProfiles: presentationBridge\.followingStoryProfiles/);
     assert.doesNotMatch(shell, /recentProfiles: root\.recentPosterProfiles\(presentationBridge\.rows, 8\)/);

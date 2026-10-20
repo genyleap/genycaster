@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <chrono>
 #include <condition_variable>
@@ -21,12 +22,14 @@ import farcaster.execution.serial;
 import farcaster.execution.weighted_thread_pool;
 import farcaster.transport.async_http;
 import farcaster.provider.hypersnap.async_gateway;
+import farcaster.provider.hypersnap.async_request;
 import farcaster.capability.catalog;
 import farcaster.capability.feed;
 import farcaster.capability.model;
 import farcaster.capability.pagination;
 import farcaster.capability.notification;
 import farcaster.domain.cast;
+import farcaster.domain.feed;
 import farcaster.domain.channel;
 import farcaster.domain.identity;
 import farcaster.domain.social;
@@ -117,6 +120,18 @@ void testCanonicalCodec()
     assert(conversation->cast.directReplies.front().directReplies.size() == 1U);
     assert(conversation->cast.directReplies.front().directReplies.front().id.value == "0xreply-grandchild");
 
+    // A malformed nested cast must fail truthfully, rather than returning
+    // an apparently complete conversation with silently missing replies.
+    auto malformedConversation = test::hypersnap::fixtures::conversationResponse();
+    const std::string malformedHash{R"json("hash": "0xreply-one")json"};
+    const auto malformedOffset = malformedConversation.find(malformedHash);
+    assert(malformedOffset != std::string::npos);
+    malformedConversation.replace(malformedOffset, malformedHash.size(), R"json("hash": null)json");
+    const auto incomplete = provider::hypersnap::codec::decodeConversationPayload(
+        malformedConversation);
+    assert(!incomplete);
+    assert(incomplete.error().code == foundation::error::ErrorCode::ProtocolFailure);
+
     const auto expectedTime = std::chrono::sys_days{std::chrono::year{2026}/8/27} +
         std::chrono::hours{12} + std::chrono::minutes{34} +
         std::chrono::seconds{56} + std::chrono::milliseconds{789};
@@ -192,7 +207,11 @@ void testRecentNetworkEventDecoding()
 // worker, mirroring the production reactor/decoder separation.
 class RecentAsyncTransport final : public transport::async_http::IAsyncHttpTransport {
 public:
-    RecentAsyncTransport() : m_worker{[this] { drain(); }} {}
+    explicit RecentAsyncTransport(
+        const bool probeParallelShards = false, const bool corruptSecondShard = false)
+        : m_probeParallelShards{probeParallelShards},
+          m_corruptSecondShard{corruptSecondShard},
+          m_worker{[this] { drain(); }} {}
     ~RecentAsyncTransport() override {
         {
             const std::scoped_lock lock{m_mutex};
@@ -208,15 +227,31 @@ public:
     {
         {
             const std::scoped_lock lock{m_mutex};
+            if (m_probeParallelShards) {
+                if (request.url.find("/v1/events") != std::string::npos
+                    && request.url.find("shard_index=1") != std::string::npos) {
+                    m_firstShardScheduled = true;
+                }
+                if (request.url.find("/v1/events") != std::string::npos
+                    && request.url.find("shard_index=2") != std::string::npos
+                    && m_firstShardScheduled && !m_firstShardCompleted) {
+                    m_parallelShardsObserved = true;
+                }
+            }
             m_pending.emplace_back(std::move(request), std::move(completion));
         }
-        m_cv.notify_one();
+        m_cv.notify_all();
         return transport::async_http::Operation{[] {}};
     }
 
     [[nodiscard]] std::vector<std::string> requestedUrls() const {
         const std::scoped_lock lock{m_mutex};
         return m_urls;
+    }
+
+    [[nodiscard]] bool parallelShardsObserved() const {
+        const std::scoped_lock lock{m_mutex};
+        return m_parallelShardsObserved;
     }
 
 private:
@@ -235,9 +270,23 @@ private:
                 m_pending.pop_front();
                 m_urls.push_back(pending.first.url);
             }
+            if (m_probeParallelShards
+                && pending.first.url.find("/v1/events") != std::string::npos
+                && pending.first.url.find("shard_index=1") != std::string::npos) {
+                std::unique_lock lock{m_mutex};
+                m_cv.wait_for(lock, std::chrono::milliseconds{400}, [this] {
+                    return m_parallelShardsObserved || m_closed;
+                });
+                m_firstShardCompleted = true;
+            }
+            const bool corruptShard = m_corruptSecondShard
+                && pending.first.url.find("/v1/events") != std::string::npos
+                && pending.first.url.find("shard_index=2") != std::string::npos;
             auto response = transport::http::HttpResponse{
                 .statusCode = 200U,
-                .body = responseFor(pending.first.url),
+                .body = corruptShard
+                    ? R"json({"events":"malformed-shard"})json"
+                    : responseFor(pending.first.url),
             };
             pending.second(std::move(response));
         }
@@ -284,8 +333,150 @@ private:
                          transport::async_http::Completion>> m_pending{};
     std::vector<std::string> m_urls{};
     bool m_closed{};
+    bool m_probeParallelShards{};
+    bool m_corruptSecondShard{};
+    bool m_firstShardScheduled{};
+    bool m_firstShardCompleted{};
+    bool m_parallelShardsObserved{};
     std::thread m_worker;
 };
+
+void testDecodeAdmissionFailureCompletesOnce()
+{
+    RecentAsyncTransport transport{};
+    // The decoded body cannot fit this one-byte queue weight budget. The
+    // completion must survive its move into the (rejected) executor job.
+    execution::weighted_thread_pool::WeightedThreadPoolExecutor decode{1, 1, 1};
+    provider::hypersnap::async_request::Client client{transport, decode, testConfig()};
+    std::promise<foundation::result::Result<std::string>> delivered{};
+    auto ready = delivered.get_future();
+    std::atomic_int completions{0};
+    auto request = client.getJson("/v1/info", {},
+        [&delivered, &completions](foundation::result::Result<std::string> result) {
+            completions.fetch_add(1, std::memory_order_relaxed);
+            delivered.set_value(std::move(result));
+        });
+    assert(request);
+    assert(ready.wait_for(std::chrono::seconds{3}) == std::future_status::ready);
+    auto result = ready.get();
+    assert(!result);
+    assert(result.error().code == foundation::error::ErrorCode::RateLimited);
+    assert(completions.load(std::memory_order_relaxed) == 1);
+}
+
+void testRejectedAsyncDecodeDeliversExactlyOnce()
+{
+    // A two-byte response exceeds the one-byte weighted decode budget.
+    // The original implementation moved its callback into the rejected job,
+    // then attempted to call a moved-from std::function.
+    RecentAsyncTransport transport{};
+    execution::weighted_thread_pool::WeightedThreadPoolExecutor decode{1, 1, 1};
+    provider::hypersnap::async_request::Client client{transport, decode, testConfig()};
+    const auto verify = [&](const bool post) {
+        auto delivered = std::make_shared<std::atomic_int>(0);
+        auto promised = std::make_shared<
+            std::promise<foundation::result::Result<std::string>>>();
+        auto future = promised->get_future();
+        const auto callback = [delivered, promised](
+            foundation::result::Result<std::string> result) mutable {
+            if (delivered->fetch_add(1) == 0) {
+                promised->set_value(std::move(result));
+            }
+        };
+        auto request = post
+            ? client.postReadJson("/v2/farcaster/batch/cast-interactions",
+                                 "{}", callback)
+            : client.getJson("/v2/farcaster/cast", {}, callback);
+        assert(request);
+        assert(future.wait_for(std::chrono::seconds{3}) == std::future_status::ready);
+        auto result = future.get();
+        assert(!result && result.error().code == foundation::error::ErrorCode::RateLimited);
+        assert(delivered->load() == 1);
+    };
+    verify(false);
+    verify(true);
+}
+
+void testIncompatibleViewerBatchFallsBackWithoutRepeatedProbe()
+{
+    const auto path = std::filesystem::temp_directory_path() /
+        ("genycaster-reaction-probe-" + std::to_string(
+            std::chrono::steady_clock::now().time_since_epoch().count()) + ".sqlite3");
+    auto continuation = storage::continuation::openContinuationStore(path);
+    assert(continuation);
+    RecentAsyncTransport transport{};
+    execution::weighted_thread_pool::WeightedThreadPoolExecutor decode{1, 32, 4U * 1024U * 1024U};
+    execution::serial::SerialExecutor serial{32};
+    provider::hypersnap::async_gateway::AsyncGateway gateway{
+        transport, decode, serial, *continuation, testConfig()};
+    using Snapshot = domain::feed::ViewerReactionSnapshot;
+    const auto verifyFailure = [&] {
+        auto delivered = std::make_shared<std::promise<foundation::result::Result<Snapshot>>>();
+        auto future = delivered->get_future();
+        auto request = gateway.viewerReactionsFor(
+            domain::identity::Fid{42},
+            {domain::cast::CastReference{
+                .author = domain::identity::Fid{1},
+                .id = domain::cast::CastId{"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+            }},
+            [delivered](foundation::result::Result<Snapshot> result) mutable {
+                delivered->set_value(std::move(result));
+            });
+        assert(request);
+        assert(future.wait_for(std::chrono::seconds{5}) == std::future_status::ready);
+        assert(!future.get()); // No response has sufficient scope for negatives.
+    };
+    verifyFailure();
+    verifyFailure();
+    const auto urls = transport.requestedUrls();
+    assert(std::ranges::count_if(urls, [](const std::string& url) {
+        return url.find("/v2/farcaster/batch/cast-interactions") != std::string::npos;
+    }) == 1);
+    assert(std::ranges::count_if(urls, [](const std::string& url) {
+        return url.find("/v2/farcaster/reaction/user") != std::string::npos;
+    }) == 4);
+    std::error_code ignored{};
+    std::filesystem::remove(path, ignored);
+}
+
+void testParallelRecentShardFailureCompletesOnlyOnce()
+{
+    const auto path = std::filesystem::temp_directory_path() /
+        ("genycaster-shard-error-" + std::to_string(
+            std::chrono::steady_clock::now().time_since_epoch().count()) + ".sqlite3");
+    auto continuation = storage::continuation::openContinuationStore(path);
+    assert(continuation);
+    RecentAsyncTransport transport{true, true};
+    execution::weighted_thread_pool::WeightedThreadPoolExecutor decode{
+        1, 32, 4U * 1024U * 1024U};
+    execution::serial::SerialExecutor serial{32};
+    provider::hypersnap::async_gateway::AsyncGateway gateway{
+        transport, decode, serial, *continuation, testConfig()};
+    using Result = foundation::result::Result<capability::feed::FeedPage>;
+    auto delivered = std::make_shared<std::promise<Result>>();
+    auto future = delivered->get_future();
+    std::atomic_int completions{};
+    auto request = gateway.feed(
+        application::read::model::FeedQuery{
+            .kind = application::read::model::FeedQuery::Kind::Recent,
+            .limit = 1U,
+        },
+        [delivered, &completions](Result result) mutable {
+            if (completions.fetch_add(1, std::memory_order_relaxed) == 0) {
+                delivered->set_value(std::move(result));
+            }
+        });
+    assert(request);
+    assert(future.wait_for(std::chrono::seconds{5}) == std::future_status::ready);
+    const auto result = future.get();
+    assert(!result);
+    assert(result.error().code == foundation::error::ErrorCode::ProtocolFailure);
+    assert(transport.parallelShardsObserved());
+    std::this_thread::sleep_for(std::chrono::milliseconds{50});
+    assert(completions.load(std::memory_order_relaxed) == 1);
+    std::error_code ignored{};
+    std::filesystem::remove(path, ignored);
+}
 
 void testRecentAsyncFeedAndCursor()
 {
@@ -294,7 +485,7 @@ void testRecentAsyncFeedAndCursor()
             std::chrono::steady_clock::now().time_since_epoch().count()) + ".sqlite3");
     auto continuation = storage::continuation::openContinuationStore(path);
     assert(continuation);
-    RecentAsyncTransport transport{};
+    RecentAsyncTransport transport{true};
     execution::weighted_thread_pool::WeightedThreadPoolExecutor decode{1, 32, 4U * 1024U * 1024U};
     execution::serial::SerialExecutor serial{32};
     provider::hypersnap::async_gateway::AsyncGateway gateway{
@@ -320,6 +511,9 @@ void testRecentAsyncFeedAndCursor()
         return std::move(*result);
     };
     auto first = requestPage(std::nullopt);
+    // The first shard's network completion was deliberately delayed. The
+    // second independent shard must already have been admitted.
+    assert(transport.parallelShardsObserved());
     assert(first.casts.size() == 1U);
     assert(first.casts.front().id.value
         == "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
@@ -333,10 +527,19 @@ void testRecentAsyncFeedAndCursor()
     const auto paths = transport.requestedUrls();
     assert(std::ranges::count_if(paths, [](const auto& url) {
         return url.find("/v1/info") != std::string::npos; }) == 1);
+    // Both pages share the same confirmed two-shard event window. Only cast
+    // hydration advances; no duplicate event download/sort is needed.
     assert(std::ranges::count_if(paths, [](const auto& url) {
-        return url.find("/v1/events?") != std::string::npos; }) == 4);
+        return url.find("/v1/events?") != std::string::npos; }) == 2);
     assert(std::ranges::count_if(paths, [](const auto& url) {
         return url.find("/v2/farcaster/cast/bulk?") != std::string::npos; }) == 2);
+    // Explicit first-page refreshes must not serve a 45s cached shard
+    // window; a new cast may have arrived without any head height change.
+    auto refreshed = requestPage(std::nullopt);
+    assert(refreshed.casts.size() == 1U);
+    const auto refreshPaths = transport.requestedUrls();
+    assert(std::ranges::count_if(refreshPaths, [](const auto& url) {
+        return url.find("/v1/events?") != std::string::npos; }) == 4);
     const auto querySemantic = [&](const application::read::model::FeedQuery::Kind kind,
                                    std::optional<capability::pagination::ContinuationToken> token = std::nullopt) {
         auto pending = std::make_shared<
@@ -867,6 +1070,10 @@ int main()
 {
     testCanonicalCodec();
     testRecentNetworkEventDecoding();
+    testDecodeAdmissionFailureCompletesOnce();
+    testRejectedAsyncDecodeDeliversExactlyOnce();
+    testIncompatibleViewerBatchFallsBackWithoutRepeatedProbe();
+    testParallelRecentShardFailureCompletesOnlyOnce();
     testRecentAsyncFeedAndCursor();
     testProfileCastAndIdentityEndpoints();
     testHttpErrorMappingAndConfigValidation();

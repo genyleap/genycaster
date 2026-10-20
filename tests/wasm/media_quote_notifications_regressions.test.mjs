@@ -15,15 +15,19 @@ test('remote link, collectible, and miniapp art use the CORS-safe image provider
     assert.match(link, /forceAutomaticDownload: true/);
 });
 
-test('missing or failed web artwork and miniapp art collapse instead of giant empty poster', () => {
+test('late or failed link/NFT artwork retains first-frame geometry during scrolling', () => {
     const link = read('ui/components/LinkPreview.qml');
     const collectible = read('ui/components/CollectiblePreview.qml');
-    assert.match(link, /root\.miniAppArtworkUnavailable \? \(root\.compact \? 156 : 176\) : readyHeight/);
-    assert.match(link, /root\.previewSource\.length > 0\s+&& !root\.richArtworkUnavailable/);
-    assert.match(link, /&& !root\.genericArtworkUnavailable/);
+    // The native Qt media-scroll test verifies these fixed reservations at
+    // both breakpoints, across late metadata, failures, and kinetic flicks.
+    assert.match(link, /readonly property bool reserveArtwork: !root\.suppressArtwork\s+&& root\.targetUrl\.length > 0/);
+    assert.match(link, /readonly property real targetHeight: root\.reserveArtwork \? readyHeight : 0/g);
+    assert.match(link, /readonly property bool shouldReserve: root\.reserveArtwork/);
     assert.match(link, /root\.compact \? 420 : 640/);
     assert.match(link, /root\.compact \? 238 : 328/);
-    assert.match(collectible, /visible: root\.artworkSource\.length > 0/);
+    assert.match(collectible, /visible: root\.targetUrl\.length > 0 && !Boolean\(root\.embed\.pairedVisual\)/);
+    assert.match(collectible, /Layout\.preferredHeight: root\.titleLineHeight \* 2/);
+    assert.match(collectible, /visible: root\.artworkSource\.length === 0 \|\| collectibleArtwork\.loadFailed/);
     assert.doesNotMatch(collectible, /root\.artworkUnavailable/);
     assert.match(link, /onLoadFailedChanged: \{/);
     assert.match(link, /onPreviewSourceChanged: \{/);

@@ -71,7 +71,9 @@ constexpr std::chrono::milliseconds viewerReactionRequestTimeout{7'500};
 // cover reactions on casts the viewer engaged with recently. Mirrors the exact
 // blocking source (feed.cpp viewerReactionsFor) so async reads cannot silently
 // drop older reactions that /reaction/user would still report.
-constexpr std::size_t viewerReactionSnapshotLimit{10'000};
+// User-scoped reaction reads are capped. A continuation cursor makes the
+// snapshot incomplete: callers must not interpret absent targets as false.
+constexpr std::size_t viewerReactionSnapshotLimit{256U};
 
 [[nodiscard]] transport::async_http::Priority priorityFor(
     const application::read::model::ReadOptions options,
@@ -483,13 +485,73 @@ struct FeedSpec final {
 
 }
 
+// Reuse already-normalized Explorer event windows across continuation pages.
+// A bounded three-window cache avoids repeated shard downloads/sorting, while
+// provider continuation tokens remain private to the existing store.
+struct AsyncGateway::RecentWindowCache final {
+    struct Window final {
+        std::uint64_t firstEnd{};
+        std::uint64_t secondEnd{};
+        bool repliesOnly{};
+        std::vector<std::string> orderedHashes{};
+        std::unordered_map<std::string, std::string> parentByHash{};
+        std::chrono::steady_clock::time_point observedAt{};
+    };
+
+    std::mutex mutex{};
+    std::vector<Window> windows{};
+
+    [[nodiscard]] std::optional<Window> find(const RecentCursor& cursor, const bool replies)
+    {
+        std::scoped_lock lock{mutex};
+        const auto now = std::chrono::steady_clock::now();
+        constexpr auto lifetime = std::chrono::seconds{45};
+        std::erase_if(windows, [now, lifetime](const Window& window) {
+            return now - window.observedAt >= lifetime;
+        });
+        const auto found = std::ranges::find_if(windows, [&](const Window& window) {
+            return window.firstEnd == cursor.firstEnd && window.secondEnd == cursor.secondEnd
+                && window.repliesOnly == replies;
+        });
+        return found == windows.end() ? std::nullopt : std::optional<Window>{*found};
+    }
+
+    void remember(const RecentCursor& cursor, const bool replies,
+                  const std::vector<std::string>& hashes,
+                  const std::unordered_map<std::string, std::string>& parents)
+    {
+        constexpr std::size_t maximumRetainedHashes{4'096U};
+        constexpr std::size_t maximumWindows{3U};
+        if (hashes.size() > maximumRetainedHashes) {
+            return;
+        }
+        std::scoped_lock lock{mutex};
+        std::erase_if(windows, [&](const Window& window) {
+            return window.firstEnd == cursor.firstEnd && window.secondEnd == cursor.secondEnd
+                && window.repliesOnly == replies;
+        });
+        if (windows.size() >= maximumWindows) {
+            windows.erase(windows.begin());
+        }
+        windows.push_back(Window{
+            .firstEnd = cursor.firstEnd,
+            .secondEnd = cursor.secondEnd,
+            .repliesOnly = replies,
+            .orderedHashes = hashes,
+            .parentByHash = parents,
+            .observedAt = std::chrono::steady_clock::now(),
+        });
+    }
+};
+
 AsyncGateway::AsyncGateway(
     transport::async_http::IAsyncHttpTransport& transport,
     execution::weighted_thread_pool::WeightedThreadPoolExecutor& decodeExecutor,
     application::executor::IExecutor& continuationExecutor,
     storage::continuation::ContinuationStore& continuations,
     config::Config config)
-    : m_client(transport, decodeExecutor, config),
+    : m_recentWindowCache(std::make_shared<RecentWindowCache>()),
+      m_client(transport, decodeExecutor, config),
       m_continuationExecutor(continuationExecutor),
       m_continuations(continuations),
       m_config(std::move(config))
@@ -672,6 +734,14 @@ foundation::result::Result<AppRequest> AsyncGateway::cast(
         group->add(std::move(*operation));
     };
 
+    // Quote/parent previews are explicitly background reads; their caller
+    // needs only the cast, not the four-level conversation tree. Preserve the
+    // full conversation request for foreground detail navigation.
+    if (options.intent == application::read::model::ReadIntent::Prefetch) {
+        fallback();
+        return applicationRequest(group);
+    }
+
     auto conversation = m_client.getJson(
         "/v2/farcaster/cast/conversation",
         {{"identifier", castId.value}, {"type", "hash"}, {"reply_depth", "4"}},
@@ -732,68 +802,10 @@ foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
                 return;
             }
 
-            auto loadWindow = [this, group, capabilityId, pageRequest,
-                               requestPriority, deliver, repliesOnly](RecentCursor cursor) mutable {
-                auto first = m_client.getJson(
-                    "/v1/events", recentEventQuery(cursor.firstEnd, 1U),
-                    [this, group, capabilityId, pageRequest, requestPriority, deliver, cursor, repliesOnly](
-                        foundation::result::Result<std::string> firstBody) mutable {
-                        if (group->cancelled.load(std::memory_order_acquire)) { return; }
-                        if (!firstBody) {
-                            deliver(std::unexpected(std::move(firstBody.error())));
-                            return;
-                        }
-                        auto firstEvents = codec::decodeRecentCastEvents(
-                            *firstBody,
-                            cursor.firstEnd > recentWindowBlocks
-                                ? cursor.firstEnd - recentWindowBlocks : 0U,
-                            cursor.firstEnd, repliesOnly);
-                        if (!firstEvents) {
-                            deliver(std::unexpected(std::move(firstEvents.error())));
-                            return;
-                        }
-                        auto second = m_client.getJson(
-                            "/v1/events", recentEventQuery(cursor.secondEnd, 2U),
-                            [this, group, capabilityId, pageRequest, requestPriority,
-                             deliver, cursor, repliesOnly, firstEvents = std::move(*firstEvents)](
-                                foundation::result::Result<std::string> secondBody) mutable {
-                                if (group->cancelled.load(std::memory_order_acquire)) { return; }
-                                if (!secondBody) {
-                                    deliver(std::unexpected(std::move(secondBody.error())));
-                                    return;
-                                }
-                                auto secondEvents = codec::decodeRecentCastEvents(
-                                    *secondBody,
-                                    cursor.secondEnd > recentWindowBlocks
-                                        ? cursor.secondEnd - recentWindowBlocks : 0U,
-                                    cursor.secondEnd, repliesOnly);
-                                if (!secondEvents) {
-                                    deliver(std::unexpected(std::move(secondEvents.error())));
-                                    return;
-                                }
-                                firstEvents.insert(firstEvents.end(),
-                                    std::make_move_iterator(secondEvents->begin()),
-                                    std::make_move_iterator(secondEvents->end()));
-                                std::ranges::sort(firstEvents, [](const auto& a, const auto& b) {
-                                    if (a.protocolTimestamp != b.protocolTimestamp) {
-                                        return a.protocolTimestamp > b.protocolTimestamp;
-                                    }
-                                    return a.hash < b.hash;
-                                });
-                                std::unordered_set<std::string> seen{};
-                                // The hydrated bulk index can omit parent_hash for valid
-                                // replies. Preserve the canonical protocol parent from
-                                // Snapchain rather than hiding the row as a root post.
-                                std::unordered_map<std::string, std::string> parentByHash{};
-                                std::vector<std::string> orderedHashes{};
-                                orderedHashes.reserve(firstEvents.size());
-                                for (const auto& event : firstEvents) {
-                                    if (seen.insert(event.hash).second) {
-                                        orderedHashes.push_back(event.hash);
-                                        if (event.parentHash)
-                                            parentByHash.emplace(event.hash, *event.parentHash);
-                                    }
-                                }
+            auto serveWindow = [this, group, capabilityId, pageRequest,
+                                requestPriority, deliver, repliesOnly](
+                RecentCursor cursor, std::vector<std::string> orderedHashes,
+                std::unordered_map<std::string, std::string> parentByHash) mutable {
                                 const auto begin = std::min(cursor.offset, orderedHashes.size());
                                 const auto end = std::min(
                                     orderedHashes.size(), begin + pageRequest.limit);
@@ -907,22 +919,135 @@ foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
                                     return;
                                 }
                                 group->add(std::move(*hydrate));
-                            },
-                            request::GetOptions{.timeout = discoveryRequestTimeout},
-                            requestPriority);
-                        if (!second) {
-                            deliver(std::unexpected(std::move(second.error())));
+
+            };
+
+            auto loadWindow = [this, group, capabilityId, pageRequest,
+                               requestPriority, deliver, repliesOnly, serveWindow](RecentCursor cursor) mutable {
+                if (group->cancelled.load(std::memory_order_acquire)) { return; }
+                if (cursor.offset > 0U) {
+                    if (auto cached = m_recentWindowCache->find(cursor, repliesOnly)) {
+                        // A cursor continuation should reuse a stable event
+                        // window; it must not refetch two shard ranges per page.
+                        serveWindow(cursor, std::move(cached->orderedHashes),
+                                    std::move(cached->parentByHash));
+                        return;
+                    }
+                }
+                // offset == 0 is a first-page refresh, not a continuation.
+                // Bypass the 45s snapshot cache so Recent can show newly
+                // confirmed casts even if both head block heights are unchanged.
+                using Events = std::vector<codec::RecentCastEvent>;
+                using EventsResult = foundation::result::Result<Events>;
+                struct ShardMerge final {
+                    std::mutex mutex{};
+                    std::optional<EventsResult> first{};
+                    std::optional<EventsResult> second{};
+                    bool finished{};
+                };
+                auto merge = std::make_shared<ShardMerge>();
+                // Both independent shards start without waiting for either
+                // reply. Only their result join is serialized, and no user
+                // callback or further network request runs with this lock.
+                auto completeShard = [this, group, deliver, cursor, repliesOnly,
+                                      serveWindow, merge](
+                    const unsigned shard,
+                    foundation::result::Result<std::string> body) mutable {
+                    if (group->cancelled.load(std::memory_order_acquire)) {
+                        return;
+                    }
+                    const auto end = shard == 1U ? cursor.firstEnd : cursor.secondEnd;
+                    const auto start = end > recentWindowBlocks
+                        ? end - recentWindowBlocks : 0U;
+                    const auto decode = [&]() -> EventsResult {
+                        if (!body) {
+                            return std::unexpected(std::move(body.error()));
+                        }
+                        return codec::decodeRecentCastEvents(
+                            *body, start, end, repliesOnly);
+                    };
+                    auto decoded = decode();
+                    Events events{};
+                    std::optional<Error> error{};
+                    bool ready = false;
+                    {
+                        std::scoped_lock lock{merge->mutex};
+                        if (merge->finished) {
                             return;
                         }
-                        group->add(std::move(*second));
+                        auto& slot = shard == 1U ? merge->first : merge->second;
+                        slot.emplace(std::move(decoded));
+                        if (!slot->has_value()) {
+                            error.emplace(std::move(slot->error()));
+                            merge->finished = true;
+                        } else if (merge->first && merge->second) {
+                            events = std::move(merge->first->value());
+                            auto& secondEvents = merge->second->value();
+                            events.insert(events.end(),
+                                std::make_move_iterator(secondEvents.begin()),
+                                std::make_move_iterator(secondEvents.end()));
+                            merge->finished = true;
+                            ready = true;
+                        }
+                    }
+                    if (error) {
+                        deliver(std::unexpected(std::move(*error)));
+                        return;
+                    }
+                    if (!ready || group->cancelled.load(std::memory_order_acquire)) {
+                        return;
+                    }
+                    std::ranges::sort(events, [](const auto& a, const auto& b) {
+                        if (a.protocolTimestamp != b.protocolTimestamp) {
+                            return a.protocolTimestamp > b.protocolTimestamp;
+                        }
+                        return a.hash < b.hash;
+                    });
+                    std::unordered_set<std::string> seen{};
+                    // Preserve parent hashes from Snapchain; the hydrated
+                    // bulk index can omit them for otherwise valid replies.
+                    std::unordered_map<std::string, std::string> parentByHash{};
+                    std::vector<std::string> orderedHashes{};
+                    orderedHashes.reserve(events.size());
+                    for (const auto& event : events) {
+                        if (seen.insert(event.hash).second) {
+                            orderedHashes.push_back(event.hash);
+                            if (event.parentHash) {
+                                parentByHash.emplace(event.hash, *event.parentHash);
+                            }
+                        }
+                    }
+                    m_recentWindowCache->remember(
+                        cursor, repliesOnly, orderedHashes, parentByHash);
+                    serveWindow(cursor, std::move(orderedHashes),
+                                std::move(parentByHash));
+                };
+
+                auto first = m_client.getJson(
+                    "/v1/events", recentEventQuery(cursor.firstEnd, 1U),
+                    [completeShard](foundation::result::Result<std::string> body) mutable {
+                        completeShard(1U, std::move(body));
                     },
                     request::GetOptions{.timeout = discoveryRequestTimeout},
                     requestPriority);
                 if (!first) {
-                    deliver(std::unexpected(std::move(first.error())));
+                    completeShard(1U, std::unexpected(std::move(first.error())));
                     return;
                 }
                 group->add(std::move(*first));
+
+                auto second = m_client.getJson(
+                    "/v1/events", recentEventQuery(cursor.secondEnd, 2U),
+                    [completeShard](foundation::result::Result<std::string> body) mutable {
+                        completeShard(2U, std::move(body));
+                    },
+                    request::GetOptions{.timeout = discoveryRequestTimeout},
+                    requestPriority);
+                if (!second) {
+                    completeShard(2U, std::unexpected(std::move(second.error())));
+                    return;
+                }
+                group->add(std::move(*second));
             };
 
             if (*raw) {
@@ -1775,6 +1900,7 @@ foundation::result::Result<AppRequest> AsyncGateway::viewerReactionsFor(
         const auto finish = [group, targetState, completionState, state]() {
             std::optional<foundation::result::Result<codec::ReactionTargetsPayload>> likes{};
             std::optional<foundation::result::Result<codec::ReactionTargetsPayload>> recasts{};
+            std::function<void(foundation::result::Result<domain::feed::ViewerReactionSnapshot>)> completion{};
             {
                 std::scoped_lock lock{state->mutex};
                 if (!state->likes || !state->recasts || !*completionState) {
@@ -1782,11 +1908,11 @@ foundation::result::Result<AppRequest> AsyncGateway::viewerReactionsFor(
                 }
                 likes = std::move(state->likes);
                 recasts = std::move(state->recasts);
+                completion = std::move(*completionState);
             }
             if (group->cancelled.load(std::memory_order_acquire)) {
                 return;
             }
-            auto completion = std::move(*completionState);
             auto likeResult = std::move(*likes);
             auto recastResult = std::move(*recasts);
             if (!likeResult) {
@@ -1795,6 +1921,14 @@ foundation::result::Result<AppRequest> AsyncGateway::viewerReactionsFor(
             }
             if (!recastResult) {
                 completion(std::unexpected(std::move(recastResult.error())));
+                return;
+            }
+            if (likeResult->providerCursor || recastResult->providerCursor) {
+                // An absent target in a partial account snapshot is unknown,
+                // not evidence of an inactive reaction.
+                completion(std::unexpected(makeError(
+                    ErrorCode::Unavailable,
+                    "Viewer reaction snapshot is paginated; target absence is unknown.")));
                 return;
             }
             std::unordered_set<std::string> liked{};
@@ -1808,7 +1942,11 @@ foundation::result::Result<AppRequest> AsyncGateway::viewerReactionsFor(
             domain::feed::ViewerReactionSnapshot snapshot{};
             snapshot.liked.reserve(targetState->size());
             snapshot.recasted.reserve(targetState->size());
+            snapshot.examined.reserve(targetState->size());
             for (const auto& target : *targetState) {
+                // Both canonical user-reaction pages are complete; negative
+                // evidence is now valid for exactly these requested targets.
+                snapshot.examined.push_back(target.id);
                 if (liked.contains(target.id.value)) {
                     snapshot.liked.push_back(target.id);
                 }
@@ -1819,7 +1957,7 @@ foundation::result::Result<AppRequest> AsyncGateway::viewerReactionsFor(
             completion(std::move(snapshot));
         };
         const auto fallbackLimit = viewerReactionSnapshotLimit;
-        const auto startReaction = [this, group, viewer, fallbackLimit, state, finish](
+        const auto startReaction = [this, group, viewer, state, finish](
                                        const char* type,
                                        const bool likes) {
             auto operation = m_client.getJson(
@@ -1847,14 +1985,17 @@ foundation::result::Result<AppRequest> AsyncGateway::viewerReactionsFor(
                 request::GetOptions{.timeout = viewerReactionRequestTimeout},
                 transport::async_http::Priority::Visible);
             if (!operation) {
-                std::scoped_lock lock{state->mutex};
-                auto errorResult = foundation::result::Result<codec::ReactionTargetsPayload>{
-                    std::unexpected(std::move(operation.error()))};
-                if (likes) {
-                    state->likes = std::move(errorResult);
-                } else {
-                    state->recasts = std::move(errorResult);
+                {
+                    std::scoped_lock lock{state->mutex};
+                    auto errorResult = foundation::result::Result<codec::ReactionTargetsPayload>{
+                        std::unexpected(std::move(operation.error()))};
+                    if (likes) {
+                        state->likes = std::move(errorResult);
+                    } else {
+                        state->recasts = std::move(errorResult);
+                    }
                 }
+                // finish() takes the same mutex; never call it under that lock.
                 finish();
                 return;
             }
@@ -1864,10 +2005,18 @@ foundation::result::Result<AppRequest> AsyncGateway::viewerReactionsFor(
         startReaction("recasts", false);
     };
 
+    const auto nowMilliseconds = [] {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
+    };
+    if (nowMilliseconds() < m_batchReactionProbeAfterMs.load(std::memory_order_acquire)) {
+        fallback();
+        return applicationRequest(group);
+    }
     auto batch = m_client.postReadJson(
         "/v2/farcaster/batch/cast-interactions",
         batchFidBody(viewer),
-        [group, viewer, targetState, completionState, fallback](
+        [this, group, viewer, targetState, completionState, fallback](
             foundation::result::Result<std::string> body) mutable {
             if (group->cancelled.load(std::memory_order_acquire) || !*completionState) {
                 return;
@@ -1880,16 +2029,33 @@ foundation::result::Result<AppRequest> AsyncGateway::viewerReactionsFor(
                     for (const auto& target : *targetState) {
                         targetIds.insert(target.id.value);
                     }
-                    std::erase_if(decoded->liked, [&](const auto& id) {
-                        return !targetIds.contains(id.value);
-                    });
-                    std::erase_if(decoded->recasted, [&](const auto& id) {
-                        return !targetIds.contains(id.value);
-                    });
-                    auto completion = std::move(*completionState);
-                    completion(std::move(*decoded));
-                    return;
+                    std::unordered_set<std::string> examined{};
+                    examined.reserve(decoded->examined.size());
+                    for (const auto& id : decoded->examined) {
+                        examined.insert(id.value);
+                    }
+                    const bool coversTargets = std::ranges::all_of(
+                        targetIds, [&](const auto& id) { return examined.contains(id); });
+                    if (coversTargets) {
+                        std::erase_if(decoded->liked, [&](const auto& id) {
+                            return !targetIds.contains(id.value);
+                        });
+                        std::erase_if(decoded->recasted, [&](const auto& id) {
+                            return !targetIds.contains(id.value);
+                        });
+                        auto callback = std::move(*completionState);
+                        callback(std::move(*decoded));
+                        return;
+                    }
                 }
+                // A response without each requested hash is not a target
+                // query. Mark the unsupported provider shape once instead
+                // of re-probing it for every visible delegate.
+                constexpr auto incompatibleFor = std::chrono::minutes{15};
+                const auto until = std::chrono::steady_clock::now() + incompatibleFor;
+                m_batchReactionProbeAfterMs.store(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        until.time_since_epoch()).count(), std::memory_order_release);
             }
             fallback();
         },

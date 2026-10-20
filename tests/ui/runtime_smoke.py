@@ -5,6 +5,7 @@ import json
 import pathlib
 import subprocess
 import sys
+import time
 import tempfile
 import threading
 from urllib.parse import parse_qs, urlsplit
@@ -144,7 +145,9 @@ def main() -> int:
 
             database = temporary / "recent.sqlite3"
             Handler.paths.clear()
+            cold_started = time.perf_counter()
             completed = run_client(sys.argv[1], base_url, database, "--open-explore")
+            cold_elapsed_ms = round((time.perf_counter() - cold_started) * 1000)
             if completed.returncode != 0:
                 return report_failure(completed)
             if not database.exists():
@@ -160,6 +163,7 @@ def main() -> int:
                       file=sys.stderr)
                 return 4
 
+            cold_requests = list(Handler.paths)
             home_database = temporary / "home.sqlite3"
             settings = temporary / "settings.ini"
             Handler.paths.clear()
@@ -192,6 +196,7 @@ def main() -> int:
                 return 7
 
             Handler.paths.clear()
+            guest_started = time.perf_counter()
             completed = run_client(
                 sys.argv[1],
                 base_url,
@@ -199,6 +204,7 @@ def main() -> int:
                 f"--settings-path={settings}",
                 "--open-explore",
             )
+            guest_elapsed_ms = round((time.perf_counter() - guest_started) * 1000)
             if completed.returncode != 0:
                 return report_failure(completed)
             guest_restart_paths = list(Handler.paths)
@@ -208,6 +214,17 @@ def main() -> int:
             if any("/feed/following?" in path for path in guest_restart_paths):
                 print("guest restart incorrectly restored a browsed identity as Home", file=sys.stderr)
                 return 9
+            # These are smoke-process timings with a deterministic local fake
+            # provider, not human interaction/frame-time performance claims.
+            print(json.dumps({
+                "metric": "local-fake-provider-runtime-smoke",
+                "coldExplorerProcessMs": cold_elapsed_ms,
+                "coldExplorerHttpRequests": len(cold_requests),
+                "coldExplorerEventRequests": sum(
+                    "/v1/events?" in path for path in cold_requests),
+                "guestRestartProcessMs": guest_elapsed_ms,
+                "guestRestartHttpRequests": len(guest_restart_paths),
+            }, sort_keys=True))
     finally:
         server.shutdown()
         server.server_close()

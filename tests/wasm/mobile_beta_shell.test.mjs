@@ -2,6 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 
+// Runtime binding functions live in a separate Qt composition unit to keep
+// GCC C++26 module compilation bounded; test both halves as one read pipeline.
+function readGenycasterMain() {
+  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+}
+
 const read = filename => readFileSync(new URL("../../"+filename,import.meta.url),"utf8");
 test("Beta 1.0 is the public identity across the web shell and Qt headers",()=>{
     const cmake=read("CMakeLists.txt");
@@ -22,7 +29,7 @@ test("Beta 1.0 is the public identity across the web shell and Qt headers",()=>{
 test("iOS safe-area background and PWA metadata use the app appearance",()=>{
     const html=read("ui/wasm/genycaster-shell.html");
     const js=read("ui/wasm/genycaster-loader.js");
-    const cpp=read("ui/mobile/main.cpp");
+    const cpp=readGenycasterMain();
     const manifest=JSON.parse(read("ui/wasm/genycaster.webmanifest"));
     assert.match(html,/viewport-fit=cover/);
     assert.match(html,/<meta name="theme-color" content="#0b0c0f">/);

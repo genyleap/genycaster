@@ -149,6 +149,8 @@ option(FARCASTER_ENABLE_CHAT "Enable chat product composition" OFF)
 option(FARCASTER_ENABLE_SEARCH "Enable search product composition" OFF)
 option(FARCASTER_ENABLE_NOTIFICATIONS "Enable notifications product composition" ON)
 option(FARCASTER_ENABLE_WALLET "Enable wallet product composition" OFF)
+option(FARCASTER_ENABLE_DERIVED_CAST_VIEWS
+    "Enable optional public view-count analytics in the Qt client" ON)
 
 set(_farcasterHypersnapProviderDefault OFF)
 if(FARCASTER_BUILD_UI)

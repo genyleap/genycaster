@@ -3,6 +3,13 @@ import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
 import {readFileSync} from "node:fs";
 
+// Runtime binding functions live in a separate Qt composition unit to keep
+// GCC C++26 module compilation bounded; test both halves as one read pipeline.
+function readGenycasterMain() {
+  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+}
+
 const read = path => readFileSync(new URL("../../" + path, import.meta.url));
 const fallback = read("ui/assets/fonts/GenycasterEmojiFallback.ttf");
 
@@ -49,7 +56,7 @@ test("lightweight fallback includes common emoji and DNA glyph", () => {
 
 test("WASM uses the lightweight embedded fallback, never downloads or loads old color font", () => {
     const cmake = read("ui/CMakeLists.txt").toString("utf8");
-    const main = read("ui/mobile/main.cpp").toString("utf8");
+    const main = readGenycasterMain().toString("utf8");
     assert.match(cmake, /qt_add_resources\(farcaster_client genycaster_emoji_fallback/);
     assert.match(cmake, /_emojiFallbackSize GREATER 1048576/);
     assert.match(cmake, /_emojiFallbackHash STREQUAL/);

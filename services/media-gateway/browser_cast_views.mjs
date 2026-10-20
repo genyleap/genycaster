@@ -4,6 +4,9 @@
 const HASH=/^0x[0-9a-f]{40}$/;
 const TTL_MS=3*60*1000;
 const MAX_RESPONSE_BYTES=2*1024*1024;
+const MAX_UPSTREAM_ACTIVE=3;
+const MAX_UPSTREAM_QUEUED=32;
+const OVERALL_BUDGET_MS=6_000;
 
 export function normalizeViewRequest(value) {
   if(!value || typeof value!=='object')return null;
@@ -20,12 +23,13 @@ function verifiedViewCount(row) {
   return Number.isSafeInteger(value)&&value>=0?value:null;
 }
 
-async function getPublicJson(url,fetchImpl) {
+async function getPublicJson(url,fetchImpl,signal) {
   try {
     const response=await fetchImpl(url,{
       method:'GET',redirect:'error',
       headers:{accept:'application/json'},
-      signal:AbortSignal.timeout(8_000),
+      signal:signal ? AbortSignal.any([signal,AbortSignal.timeout(8_000)])
+        : AbortSignal.timeout(8_000),
     });
     if(!response.ok||!String(response.headers.get('content-type')||'')
        .toLowerCase().includes('application/json')){
@@ -51,20 +55,70 @@ async function getPublicJson(url,fetchImpl) {
   }catch{return null;}
 }
 
-export function createCastViewService({fetchImpl=fetch,now=()=>Date.now()}={}) {
+export function createCastViewService({fetchImpl=fetch,now=()=>Date.now(),
+  workBudgetMs=OVERALL_BUDGET_MS}={}) {
   const authorCache=new Map();
   const searchCache=new Map();
+  let upstreamActive=0;
+  const upstreamWaiting=[];
 
-  async function authorViews(fid) {
+  // Admission belongs to the service, not each HTTP request. A busy batch
+  // cannot spawn three more upstream requests for every concurrent client.
+  function withUpstreamSlot(run,signal) {
+    return new Promise(resolve=>{
+      if(signal.aborted || (upstreamActive>=MAX_UPSTREAM_ACTIVE
+            && upstreamWaiting.length>=MAX_UPSTREAM_QUEUED)) {
+        resolve(null);return;
+      }
+      const launch=async()=>{
+        if(signal.aborted){resolve(null);drain();return;}
+        ++upstreamActive;
+        try{resolve(await run());}
+        catch{resolve(null);}
+        finally{--upstreamActive;drain();}
+      };
+      if(upstreamActive<MAX_UPSTREAM_ACTIVE)launch();
+      else upstreamWaiting.push({launch,signal,resolve});
+    });
+  }
+
+  function drain() {
+    while(upstreamActive<MAX_UPSTREAM_ACTIVE && upstreamWaiting.length>0){
+      const next=upstreamWaiting.shift();
+      if(next.signal.aborted){next.resolve(null);continue;}
+      next.launch();
+    }
+  }
+
+  function retain(cache,key,value,maximum) {
+    cache.delete(key);
+    cache.set(key,value);
+    while(cache.size>maximum)cache.delete(cache.keys().next().value);
+  }
+
+  async function withinDeadline(promise,signal) {
+    if(signal.aborted)return;
+    let expired;
+    const timeout=new Promise(resolve=>{
+      expired=()=>resolve();
+      signal.addEventListener('abort',expired,{once:true});
+    });
+    try{await Promise.race([promise,timeout]);}
+    finally{signal.removeEventListener('abort',expired);}
+  }
+
+  async function authorViews(fid,signal) {
     const key=String(fid),t=now();
     const found=authorCache.get(key);
     if(found&&found.expires>t)return found.promise;
     // One recent-cast request for every author, shared across all visible
     // posts from that account and all concurrent client batches.
-    const promise=getPublicJson(
+    const promise=withUpstreamSlot(() => getPublicJson(
       'https://api.farcaster.xyz/v2/casts?fid='+encodeURIComponent(key)+'&limit=50',
-      fetchImpl,
-    ).then(data=>{
+      fetchImpl,signal,
+    ),signal).then(data=>{
+      if(!data && authorCache.get(key)?.promise===promise)
+        authorCache.get(key).expires=now()+5_000;
       const views=new Map();
       for(const cast of (Array.isArray(data?.result?.casts)?data.result.casts:[])){
         const hash=String(cast?.hash||'').toLowerCase();
@@ -74,12 +128,11 @@ export function createCastViewService({fetchImpl=fetch,now=()=>Date.now()}={}) {
       }
       return views;
     }).catch(()=>new Map());
-    if(authorCache.size>=400)authorCache.clear();
-    authorCache.set(key,{promise,expires:t+TTL_MS});
+    retain(authorCache,key,{promise,expires:t+TTL_MS},400);
     return promise;
   }
 
-  async function searchExact(row) {
+  async function searchExact(row,signal) {
     if(row.text.length<12)return null;
     const t=now();
     const cached=searchCache.get(row.castId);
@@ -87,17 +140,18 @@ export function createCastViewService({fetchImpl=fetch,now=()=>Date.now()}={}) {
     // Only search a short, normalized prefix. Never trust text-match alone:
     // the authoritative identity is the full cast hash AND author FID.
     const query=row.text.slice(0,85);
-    const promise=getPublicJson(
+    const promise=withUpstreamSlot(() => getPublicJson(
       'https://api.farcaster.xyz/v2/search-casts?q='
-      +encodeURIComponent(query)+'&limit=10',fetchImpl,
-    ).then(data=>{
+      +encodeURIComponent(query)+'&limit=10',fetchImpl,signal,
+    ),signal).then(data=>{
+      if(!data && searchCache.get(row.castId)?.promise===promise)
+        searchCache.get(row.castId).expires=now()+5_000;
       const matched=(Array.isArray(data?.result?.casts)?data.result.casts:[])
         .find(cast=>String(cast?.hash||'').toLowerCase()===row.castId
           && Number(cast?.author?.fid)===row.authorFid);
       return verifiedViewCount(matched);
     }).catch(()=>null);
-    if(searchCache.size>=700)searchCache.clear();
-    searchCache.set(row.castId,{promise,expires:t+TTL_MS});
+    retain(searchCache,row.castId,{promise,expires:t+TTL_MS},700);
     return promise;
   }
 
@@ -111,15 +165,15 @@ export function createCastViewService({fetchImpl=fetch,now=()=>Date.now()}={}) {
       if(seen.has(row.castId))continue;
       seen.add(row.castId);rows.push(row);
     }
+    const deadline=AbortSignal.timeout(workBudgetMs);
     const fids=[...new Set(rows.map(row=>row.authorFid))];
     const recent=new Map();
-    // Cap concurrent upstream requests; a fast, popular feed may otherwise
-    // stampede the public API and induce 429 responses for everyone.
-    for(let index=0;index<fids.length;index+=3){
-      const group=await Promise.all(fids.slice(index,index+3)
-        .map(fid=>authorViews(fid)));
-      group.forEach((views,offset)=>recent.set(fids[index+offset],views));
-    }
+    // Bound all upstream work by one operation deadline, rather than a fresh
+    // timeout for every sequential group. Completed partial rows are usable.
+    await withinDeadline(Promise.all(fids.map(async fid=>{
+      const views=await authorViews(fid,deadline);
+      if(views)recent.set(fid,views);
+    })),deadline);
     const counts=Object.create(null);
     const missing=[];
     for(const row of rows){
@@ -127,19 +181,12 @@ export function createCastViewService({fetchImpl=fetch,now=()=>Date.now()}={}) {
       if(count!==undefined)counts[row.castId]=count;
       else missing.push(row);
     }
-    // Older replies frequently fall outside their author's 50 newest
-    // casts. The previous slice(0,4) silently left up to 12 replies in every
-    // viewport batch unqueried, even when Farcaster had their view counts.
-    // Every requested cast now gets a chance, but cap concurrent public
-    // search requests at three so heavily replied-to threads cannot stampede
-    // the upstream service. Unknown values still stay absent, never zero.
-    for(let index=0;index<missing.length;index+=3){
-      const group=missing.slice(index,index+3);
-      const searched=await Promise.all(group.map(row=>searchExact(row)));
-      searched.forEach((count,offset)=>{
-        if(count!==null)counts[group[offset].castId]=count;
-      });
-    }
+    // Search missing hashes only while budget remains. Slot admission is
+    // shared across HTTP clients; unknowns stay absent rather than zero.
+    if(!deadline.aborted)await withinDeadline(Promise.all(missing.map(async row=>{
+      const count=await searchExact(row,deadline);
+      if(count!==null && count!==undefined)counts[row.castId]=count;
+    })),deadline);
     return {status:200,data:{counts}};
   }
 

@@ -19,16 +19,32 @@ Superellipse {
         return leaf.length > 0 ? decodeURIComponent(leaf) : String(root.embed.host || root.embed.domain || root.targetUrl)
     }
     readonly property bool localPlaybackAvailable: root.targetUrl.startsWith("file:") || root.targetUrl.startsWith("qrc:")
-    readonly property real progress: player.duration > 0 ? Math.max(0, Math.min(1, player.position / player.duration)) : 0
+    readonly property var activePlayer: playbackLoader.item ? playbackLoader.item.player : null
+    readonly property real progress: root.activePlayer && root.activePlayer.duration > 0
+        ? Math.max(0, Math.min(1, root.activePlayer.position / root.activePlayer.duration)) : 0
+    // Recycled/offscreen delegates must not keep decoder or audio-device work.
+    onTargetUrlChanged: root.activated = false
+    onVisibleChanged: {
+        if (!root.visible)
+            root.activated = false
+    }
 
     signal openRequested(string url)
 
     function togglePlayback() {
-        if (!root.activated) {
-            root.activated = true
-            Qt.callLater(function() { player.play() })
+        if (!root.localPlaybackAvailable) {
+            root.openRequested(root.targetUrl)
             return
         }
+        if (!root.activated) {
+            // Loading the player creates a platform audio device: only do it
+            // after explicit Play, never while creating/recycling feed rows.
+            root.activated = true
+            return
+        }
+        const player = root.activePlayer
+        if (!player)
+            return
         if (player.playbackState === MediaPlayer.PlayingState)
             player.pause()
         else
@@ -51,11 +67,25 @@ Superellipse {
     borderColor: Theme.borderSubtle
     curveDepth: Theme.shapeSurface
 
-    AudioOutput { id: audioOutput }
-    MediaPlayer {
-        id: player
-        source: root.activated && root.localPlaybackAvailable ? root.targetUrl : ""
-        audioOutput: audioOutput
+    Loader {
+        id: playbackLoader
+        objectName: "audioPreviewPlaybackLoader"
+        active: root.activated && root.localPlaybackAvailable
+                && (typeof nativeAudioOutputEnabled === "undefined" || nativeAudioOutputEnabled)
+        asynchronous: true
+        onLoaded: {
+            if (item && item.player)
+                item.player.play()
+        }
+        sourceComponent: Item {
+            property alias player: playback
+            AudioOutput { id: audioOutput }
+            MediaPlayer {
+                id: playback
+                source: root.targetUrl
+                audioOutput: audioOutput
+            }
+        }
     }
 
     RowLayout {
@@ -68,7 +98,8 @@ Superellipse {
             compact: true
             iconOnly: true
             quiet: false
-            iconGlyph: root.localPlaybackAvailable && player.playbackState === MediaPlayer.PlayingState
+            iconGlyph: root.localPlaybackAvailable && root.activePlayer
+                       && root.activePlayer.playbackState === MediaPlayer.PlayingState
                        ? Theme.iconPause : Theme.iconPlay
             text: root.localPlaybackAvailable ? qsTrId("genycaster.embed.play_video")
                                               : qsTrId("genycaster.embed.open_link")
@@ -100,8 +131,12 @@ Superellipse {
                 }
 
                 TapHandler {
-                    enabled: root.activated && player.duration > 0
-                    onTapped: eventPoint => player.position = Math.round((eventPoint.position.x / width) * player.duration)
+                    enabled: root.activePlayer && root.activePlayer.duration > 0
+                    onTapped: eventPoint => {
+                        if (root.activePlayer)
+                            root.activePlayer.position = Math.round(
+                                (eventPoint.position.x / width) * root.activePlayer.duration)
+                    }
                 }
             }
 
@@ -110,14 +145,14 @@ Superellipse {
                 layoutDirection: Qt.LeftToRight
 
                 Label {
-                    text: root.durationLabel(player.position)
+                    text: root.durationLabel(root.activePlayer ? root.activePlayer.position : 0)
                     color: Theme.textTertiary
                     font.family: Theme.fontFamilyForText(text)
                     font.pixelSize: Theme.typeCaptionSize
                 }
                 Item { Layout.fillWidth: true }
                 Label {
-                    text: root.durationLabel(player.duration)
+                    text: root.durationLabel(root.activePlayer ? root.activePlayer.duration : 0)
                     color: Theme.textTertiary
                     font.family: Theme.fontFamilyForText(text)
                     font.pixelSize: Theme.typeCaptionSize

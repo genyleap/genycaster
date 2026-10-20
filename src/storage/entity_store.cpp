@@ -12,6 +12,7 @@ module;
 #include <string>
 #include <string_view>
 #include <utility>
+#include <unordered_set>
 #include <vector>
 
 module farcaster.storage.entity;
@@ -39,8 +40,13 @@ public:
     [[nodiscard]] foundation::result::Result<std::optional<domain::profile::Profile>> findProfile(domain::identity::Fid fid) override;
     [[nodiscard]] foundation::result::Result<std::optional<domain::profile::Profile>> findProfileByUsername(std::string_view username) override;
     [[nodiscard]] foundation::result::Status putCast(const domain::cast::Cast& cast) override;
-    [[nodiscard]] foundation::result::Result<std::optional<domain::cast::Cast>> findCast(const domain::cast::CastId& castId) override;
+    [[nodiscard]] foundation::result::Result<std::optional<domain::cast::Cast>>
+    findCast(const domain::cast::CastId& castId) override;
+    [[nodiscard]] foundation::result::Result<std::optional<domain::cast::Cast>>
+    findCastShallow(const domain::cast::CastId& castId) override;
 private:
+    [[nodiscard]] foundation::result::Result<std::optional<domain::cast::Cast>>
+    findCastWithReplyGraph(const domain::cast::CastId& castId, bool includeReplies);
     struct Impl;
     explicit SqliteEntityStore(std::unique_ptr<Impl> impl) noexcept;
     std::unique_ptr<Impl> m_impl{};
@@ -321,14 +327,48 @@ SqliteEntityStore::findProfileByUsername(const std::string_view username)
     return std::optional<domain::profile::Profile>{std::move(profile)};
 }
 
-foundation::result::Status SqliteEntityStore::putCast(const domain::cast::Cast& cast)
+foundation::result::Status SqliteEntityStore::putCast(const domain::cast::Cast& rootCast)
 {
+    struct Frame final {
+        const domain::cast::Cast* cast{};
+        std::string parentId{};
+        std::size_t position{};
+        std::size_t depth{};
+    };
+    constexpr std::size_t maxConversationNodes{2'048};
+    constexpr std::size_t maxConversationDepth{32};
+    // Validate the entire normalized snapshot before touching the database.
+    // Reject malformed/oversized trees rather than silently discarding replies.
+    std::vector<Frame> pending{{&rootCast, {}, 0, 0}};
+    std::vector<Frame> frames{};
+    std::unordered_set<std::string> visited{};
+    while (!pending.empty()) {
+        Frame frame = std::move(pending.back());
+        pending.pop_back();
+        if (!frame.cast || frame.cast->id.value.empty()
+            || frame.depth > maxConversationDepth || frames.size() >= maxConversationNodes
+            || !visited.insert(frame.cast->id.value).second) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Conversation contains an invalid, repeated or over-budget cast."));
+        }
+        const auto& children = frame.cast->directReplies;
+        for (std::size_t index = children.size(); index > 0; --index) {
+            pending.push_back(Frame{
+                &children[index - 1], frame.cast->id.value, index - 1, frame.depth + 1});
+        }
+        frames.push_back(std::move(frame));
+    }
     std::scoped_lock lock{m_impl->mutex};
     sqlite::Transaction transaction{m_impl->connection};
     if (auto status = transaction.begin(); !status) {
         return std::unexpected(toFoundationError(std::move(status.error())));
     }
 
+    // One transaction stores every child and its ordered edge. Reuse three
+    // prepared statements across the entire bounded reply tree rather than
+    // compiling fresh SQLite SQL for every cast/each embed collection.
+    // Plain feed hydration with no directReplies preserves a warmer thread.
     auto preparedCast = sqlite::Statement::prepare(m_impl->connection, R"SQL(
 INSERT INTO casts(id, author_fid, text, parent_id, parent_url, created_at_ms, reply_count, recast_count, like_count)
 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -346,6 +386,24 @@ ON CONFLICT(id) DO UPDATE SET
         return std::unexpected(toFoundationError(std::move(preparedCast.error())));
     }
     auto castStatement = std::move(*preparedCast);
+    auto preparedDelete = sqlite::Statement::prepare(
+        m_impl->connection, "DELETE FROM cast_embed_items WHERE cast_id = ?;");
+    if (!preparedDelete) {
+        return std::unexpected(toFoundationError(std::move(preparedDelete.error())));
+    }
+    auto deleteEmbeds = std::move(*preparedDelete);
+    auto preparedEmbed = sqlite::Statement::prepare(
+        m_impl->connection,
+        "INSERT INTO cast_embed_items(cast_id, position, kind, url, cast_ref_id, cast_ref_fid) "
+        "VALUES(?, ?, ?, ?, ?, ?);");
+    if (!preparedEmbed) {
+        return std::unexpected(toFoundationError(std::move(preparedEmbed.error())));
+    }
+    auto insertEmbed = std::move(*preparedEmbed);
+    for (const auto& frame : frames) {
+        const auto& cast = *frame.cast;
+        castStatement.reset();
+        deleteEmbeds.reset();
     const std::optional<std::string> parentId = cast.parent
         ? std::optional<std::string>{cast.parent->value}
         : std::nullopt;
@@ -380,13 +438,6 @@ ON CONFLICT(id) DO UPDATE SET
         return std::unexpected(toFoundationError(std::move(status.error())));
     }
 
-    auto preparedDelete = sqlite::Statement::prepare(
-        m_impl->connection,
-        "DELETE FROM cast_embed_items WHERE cast_id = ?;");
-    if (!preparedDelete) {
-        return std::unexpected(toFoundationError(std::move(preparedDelete.error())));
-    }
-    auto deleteEmbeds = std::move(*preparedDelete);
     if (auto status = sqlite::bindText(deleteEmbeds.native(), 1, cast.id.value); !status) {
         return std::unexpected(toFoundationError(std::move(status.error())));
     }
@@ -394,14 +445,6 @@ ON CONFLICT(id) DO UPDATE SET
         return std::unexpected(toFoundationError(std::move(status.error())));
     }
 
-    auto preparedEmbed = sqlite::Statement::prepare(
-        m_impl->connection,
-        "INSERT INTO cast_embed_items(cast_id, position, kind, url, cast_ref_id, cast_ref_fid) "
-        "VALUES(?, ?, ?, ?, ?, ?);");
-    if (!preparedEmbed) {
-        return std::unexpected(toFoundationError(std::move(preparedEmbed.error())));
-    }
-    auto insertEmbed = std::move(*preparedEmbed);
     for (std::size_t index = 0; index < cast.embeds.size(); ++index) {
         insertEmbed.reset();
         if (auto status = sqlite::bindText(insertEmbed.native(), 1, cast.id.value); !status) {
@@ -456,6 +499,52 @@ ON CONFLICT(id) DO UPDATE SET
         }
     }
 
+
+    }
+    auto removeEdges = sqlite::Statement::prepare(
+        m_impl->connection, "DELETE FROM conversation_edges WHERE parent_cast_id = ?;");
+    auto insertEdge = sqlite::Statement::prepare(
+        m_impl->connection,
+        "INSERT INTO conversation_edges(parent_cast_id, child_cast_id, position) VALUES(?, ?, ?);");
+    if (!removeEdges || !insertEdge) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::StorageFailure,
+            "Unable to prepare conversation relationships."));
+    }
+    auto remove = std::move(*removeEdges);
+    auto insert = std::move(*insertEdge);
+    for (const auto& frame : frames) {
+        if (frame.cast->directReplies.empty()) {
+            continue;
+        }
+        remove.reset();
+        if (auto status = sqlite::bindText(remove.native(), 1, frame.cast->id.value); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+        if (auto status = sqlite::stepDone(m_impl->connection, remove); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+    }
+    for (const auto& frame : frames) {
+        if (frame.parentId.empty()) {
+            continue;
+        }
+        insert.reset();
+        if (auto status = sqlite::bindText(insert.native(), 1, frame.parentId); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+        if (auto status = sqlite::bindText(insert.native(), 2, frame.cast->id.value); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+        if (sqlite3_bind_int64(insert.native(), 3,
+                               static_cast<sqlite3_int64>(frame.position)) != SQLITE_OK) {
+            return std::unexpected(toFoundationError(sqlite::makeError(
+                m_impl->connection.native(), "Failed to bind conversation reply order")));
+        }
+        if (auto status = sqlite::stepDone(m_impl->connection, insert); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+    }
     if (auto status = transaction.commit(); !status) {
         return std::unexpected(toFoundationError(std::move(status.error())));
     }
@@ -465,7 +554,22 @@ ON CONFLICT(id) DO UPDATE SET
 foundation::result::Result<std::optional<domain::cast::Cast>>
 SqliteEntityStore::findCast(const domain::cast::CastId& castId)
 {
+    return findCastWithReplyGraph(castId, true);
+}
+
+foundation::result::Result<std::optional<domain::cast::Cast>>
+SqliteEntityStore::findCastShallow(const domain::cast::CastId& castId)
+{
+    return findCastWithReplyGraph(castId, false);
+}
+
+foundation::result::Result<std::optional<domain::cast::Cast>>
+SqliteEntityStore::findCastWithReplyGraph(
+    const domain::cast::CastId& castId, const bool includeReplies)
+{
     std::scoped_lock lock{m_impl->mutex};
+    // A hydrated thread can contain hundreds of replies. Prepare each read
+    // query once, then reset/bind it for every node under the same store lock.
     auto prepared = sqlite::Statement::prepare(
         m_impl->connection,
         R"SQL(
@@ -482,7 +586,19 @@ WHERE c.id = ?
         return std::unexpected(toFoundationError(std::move(prepared.error())));
     }
     auto statement = std::move(*prepared);
-    if (auto status = sqlite::bindText(statement.native(), 1, castId.value); !status) {
+    auto preparedEmbeds = sqlite::Statement::prepare(
+        m_impl->connection,
+        "SELECT kind, url, cast_ref_id, cast_ref_fid FROM cast_embed_items "
+        "WHERE cast_id = ? ORDER BY position ASC;");
+    if (!preparedEmbeds) {
+        return std::unexpected(toFoundationError(std::move(preparedEmbeds.error())));
+    }
+    auto embeds = std::move(*preparedEmbeds);
+    const auto loadOne = [this, &statement, &embeds](
+        const domain::cast::CastId& requestedCastId)
+        -> foundation::result::Result<std::optional<domain::cast::Cast>> {
+    statement.reset();
+    if (auto status = sqlite::bindText(statement.native(), 1, requestedCastId.value); !status) {
         return std::unexpected(toFoundationError(std::move(status.error())));
     }
 
@@ -496,7 +612,7 @@ WHERE c.id = ?
     }
 
     domain::cast::Cast cast{};
-    cast.id = castId;
+    cast.id = requestedCastId;
     cast.author = domain::identity::Fid{static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 0))};
     cast.text = sqlite::columnText(statement.native(), 1);
     if (auto parent = sqlite::optionalColumnText(statement.native(), 2)) {
@@ -508,15 +624,8 @@ WHERE c.id = ?
     cast.engagement.recasts = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 6));
     cast.engagement.likes = static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 7));
 
-    auto preparedEmbeds = sqlite::Statement::prepare(
-        m_impl->connection,
-        "SELECT kind, url, cast_ref_id, cast_ref_fid FROM cast_embed_items "
-        "WHERE cast_id = ? ORDER BY position ASC;");
-    if (!preparedEmbeds) {
-        return std::unexpected(toFoundationError(std::move(preparedEmbeds.error())));
-    }
-    auto embeds = std::move(*preparedEmbeds);
-    if (auto status = sqlite::bindText(embeds.native(), 1, castId.value); !status) {
+    embeds.reset();
+    if (auto status = sqlite::bindText(embeds.native(), 1, requestedCastId.value); !status) {
         return std::unexpected(toFoundationError(std::move(status.error())));
     }
     while (true) {
@@ -564,8 +673,79 @@ WHERE c.id = ?
         }
     }
     return std::optional<domain::cast::Cast>{std::move(cast)};
-}
+    };
 
+    auto root = loadOne(castId);
+    if (!root || !*root || !includeReplies) {
+        return root;
+    }
+    constexpr std::size_t maxConversationNodes{2'048};
+    constexpr std::size_t maxConversationDepth{32};
+    std::unordered_set<std::string> visited{castId.value};
+    struct Pending final {
+        domain::cast::Cast* cast{};
+        std::size_t depth{};
+    };
+    std::vector<Pending> pending{{&**root, 0}};
+    std::size_t retainedNodes{1};
+    auto edgesPrepared = sqlite::Statement::prepare(
+        m_impl->connection,
+        "SELECT child_cast_id FROM conversation_edges WHERE parent_cast_id = ? "
+        "ORDER BY position ASC;");
+    if (!edgesPrepared) {
+        return std::unexpected(toFoundationError(std::move(edgesPrepared.error())));
+    }
+    auto edges = std::move(*edgesPrepared);
+    while (!pending.empty()) {
+        const auto [parent, depth] = pending.back();
+        pending.pop_back();
+        edges.reset();
+        if (auto status = sqlite::bindText(edges.native(), 1, parent->id.value); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+        std::vector<std::string> children{};
+        while (true) {
+            const auto step = sqlite3_step(edges.native());
+            if (step == SQLITE_DONE) {
+                break;
+            }
+            if (step != SQLITE_ROW) {
+                return std::unexpected(toFoundationError(sqlite::makeError(
+                    m_impl->connection.native(), "Failed to read conversation relationships")));
+            }
+            children.push_back(sqlite::columnText(edges.native(), 0));
+        }
+        if (children.empty()) {
+            continue;
+        }
+        if (depth >= maxConversationDepth || retainedNodes + children.size() > maxConversationNodes) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::StorageFailure,
+                "Stored conversation exceeds the supported read budget."));
+        }
+        parent->directReplies.reserve(children.size());
+        for (const auto& id : children) {
+            if (!visited.insert(id).second) {
+                return std::unexpected(foundation::error::Error::make(
+                    foundation::error::ErrorCode::StorageFailure,
+                    "Stored conversation contains repeated/cyclic replies."));
+            }
+            auto child = loadOne(domain::cast::CastId{id});
+            if (!child) {
+                return std::unexpected(std::move(child.error()));
+            }
+            if (!*child) { // Local tombstone: do not resurrect deleted replies.
+                continue;
+            }
+            parent->directReplies.push_back(std::move(**child));
+            ++retainedNodes;
+        }
+        for (auto it = parent->directReplies.rbegin(); it != parent->directReplies.rend(); ++it) {
+            pending.push_back(Pending{&*it, depth + 1});
+        }
+    }
+    return root;
+}
 
 foundation::result::Result<std::unique_ptr<local::entity::IEntityStore>>
 openEntityStore(const std::filesystem::path& path)

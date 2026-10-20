@@ -219,15 +219,24 @@ foundation::result::Result<Operation> Client::getJson(
             }
             const std::size_t retainedBytes = response->body.size();
             auto body = std::move(response->body);
+            // Rejected executor admission must not invoke the moved-from
+            // completion: both paths share one ownership slot.
+            auto delivery = std::make_shared<JsonCompletion>(std::move(completion));
             auto status = m_decodeExecutor.post(
                 retainedBytes,
-                [state, completion = std::move(completion), body = std::move(body)]() mutable {
+                [state, delivery, body = std::move(body)]() mutable {
                     if (!state->cancelled.load(std::memory_order_acquire)) {
-                        completion(std::move(body));
+                        auto callback = std::move(*delivery);
+                        if (callback) {
+                            callback(std::move(body));
+                        }
                     }
                 });
             if (!status && !state->cancelled.load(std::memory_order_acquire)) {
-                completion(std::unexpected(std::move(status.error())));
+                auto callback = std::move(*delivery);
+                if (callback) {
+                    callback(std::unexpected(std::move(status.error())));
+                }
             }
         });
     if (!start) {
@@ -281,15 +290,24 @@ foundation::result::Result<Operation> Client::postReadJson(
             }
             const std::size_t retainedBytes = response->body.size();
             auto responseBody = std::move(response->body);
+            // Rejected executor admission must not invoke the moved-from
+            // completion: both paths share one ownership slot.
+            auto delivery = std::make_shared<JsonCompletion>(std::move(completion));
             auto status = m_decodeExecutor.post(
                 retainedBytes,
-                [state, completion = std::move(completion), body = std::move(responseBody)]() mutable {
+                [state, delivery, body = std::move(responseBody)]() mutable {
                     if (!state->cancelled.load(std::memory_order_acquire)) {
-                        completion(std::move(body));
+                        auto callback = std::move(*delivery);
+                        if (callback) {
+                            callback(std::move(body));
+                        }
                     }
                 });
             if (!status && !state->cancelled.load(std::memory_order_acquire)) {
-                completion(std::unexpected(std::move(status.error())));
+                auto callback = std::move(*delivery);
+                if (callback) {
+                    callback(std::unexpected(std::move(status.error())));
+                }
             }
         });
     if (!start) {

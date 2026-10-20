@@ -62,6 +62,27 @@ QtObject {
         if (!key || Number(root.retryAfter[key] || 0) > Date.now()
                 || root.pending[key] !== undefined)
             return
+        // An unbounded QML singleton queue would retain every cast a long
+        // scrolling session has ever crossed, even after delegates recycle.
+        // Prefer the newest visible interests; evicted work can be retried
+        // when that cast returns to the viewport.
+        const waiting = Object.keys(root.pending)
+        if (waiting.length >= 32) {
+            const obsolete = waiting[0]
+            delete root.pending[obsolete]
+            delete root.retryAfter[obsolete]
+            delete root.positive[obsolete + ":like"]
+            delete root.positive[obsolete + ":recast"]
+        }
+        // Positive evidence is opportunistic; retain only a bounded recent
+        // window. Never evict the separate optimistic local-write state.
+        const retained = Object.keys(root.retryAfter)
+        if (retained.length >= 256) {
+            const obsolete = retained[0]
+            delete root.retryAfter[obsolete]
+            delete root.positive[obsolete + ":like"]
+            delete root.positive[obsolete + ":recast"]
+        }
         const split = key.indexOf(":")
         root.pending[key] = {castId: key.slice(split + 1), viewerFid: Number(key.slice(0, split))}
         // A recycled row should not immediately repeat a network lookup.

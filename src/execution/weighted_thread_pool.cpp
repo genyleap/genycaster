@@ -57,7 +57,15 @@ struct CooperativeWeightedState final : std::enable_shared_from_this<Cooperative
             Entry entry = std::move(state->jobs.front());
             state->jobs.pop_front();
             state->queuedWeightBytes -= entry.retainedBytes;
+#if defined(__cpp_exceptions)
+            try {
+                entry.job();
+            } catch (...) {
+                // Keep cooperative dispatch alive after a bad callback.
+            }
+#else
             entry.job();
+#endif
             // A job may destroy its executor; the shared state remains valid.
             state->schedule();
         }, ticket, 0);
@@ -173,7 +181,15 @@ struct WeightedThreadPoolExecutor::Impl final {
                 ++activeJobs;
             }
 
+#if defined(__cpp_exceptions)
+            try {
+                weightedJob.job();
+            } catch (...) {
+                // Restore active-work accounting and allow later jobs to run.
+            }
+#else
             weightedJob.job();
+#endif
 
             {
                 std::scoped_lock lock{mutex};

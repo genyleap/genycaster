@@ -1,0 +1,43 @@
+#pragma once
+
+#include <memory>
+#include <string>
+#include <QString>
+
+// Qt application composition boundary: C++/Qt QObject implementations are
+// owned by their existing MOC-compatible headers, not by the domain layer.
+class PresentationBridge;
+class RichComposerController;
+class MediaUploadController;
+class MediaPlaybackCoordinator;
+// The importer must import genycaster.ui.runtime before this header;
+// redeclaring a named-module type in the global module is not valid C++26.
+
+namespace genycaster::ui::bindings {
+
+// Fixture wiring is used only when the application is launched in its
+// explicitly enabled verification mode.
+void applyProfileVerificationFixture(PresentationBridge& bridge);
+
+// Own the GUI-facing application event graph separately from the entrypoint.
+// Signal connections retain their prior QObject context and lifetime.
+void connectRuntime(PresentationBridge& bridge, RichComposerController& richComposer,
+                    const std::shared_ptr<runtime::Runtime>& runtime,
+                    bool authenticationAvailable, std::string siwfDomain,
+                    std::string siwfUri, const QString& browserSnapchainOrigin);
+
+#if FARCASTER_HAS_MEDIA_UPLOAD
+void connectMediaUpload(MediaUploadController& controller,
+                        const std::shared_ptr<runtime::Runtime>& runtime);
+#endif
+
+#if defined(__EMSCRIPTEN__)
+void connectBrowserMediaUpload(MediaUploadController& controller,
+                               PresentationBridge& bridge,
+                               RichComposerController& richComposer);
+#endif
+
+void connectMediaPlayback(MediaPlaybackCoordinator& coordinator,
+                          const std::shared_ptr<runtime::Runtime>& runtime);
+
+} // namespace genycaster::ui::bindings
