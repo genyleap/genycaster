@@ -4,6 +4,7 @@
 #include "rendering_controller.hpp"
 #include "rich_inline_text_item.hpp"
 #include "scene_graph_superellipse_item.hpp"
+#include "../../ui/mobile/feed_rows_model.hpp"
 
 #include <QGuiApplication>
 #include <QDir>
@@ -211,6 +212,7 @@ int main(int argc, char** argv)
     application.setApplicationName(QStringLiteral("media-scroll"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     qmlRegisterType<RichInlineTextItem>("Farcaster.Client", 1, 0, "RichInlineTextItem");
+    qmlRegisterType<FeedRowsModel>("Farcaster.Client", 1, 0, "FeedRowsModel");
     qmlRegisterType<SceneGraphSuperellipseItem>(
         "Farcaster.Client", 1, 0, "SceneGraphSuperellipse");
     // Source-loaded components normally get native types from their enclosing

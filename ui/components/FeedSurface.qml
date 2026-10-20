@@ -957,7 +957,7 @@ Item {
         }
     }
 
-    ListModel {
+    FeedRowsModel {
         id: stableRows
     }
 

@@ -926,6 +926,8 @@ qt_add_qml_module(farcaster_client
         render/scene_graph_stroke_item.hpp
         render/scene_graph_superellipse_item.cpp
         render/scene_graph_superellipse_item.hpp
+        mobile/feed_rows_model.cpp
+        mobile/feed_rows_model.hpp
     RESOURCES
 )
 
@@ -1248,8 +1250,22 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
         LABELS "ui;scroll;wasm"
         ENVIRONMENT "QT_QPA_PLATFORM=${farcasterHeadlessPlatform};QT_QUICK_BACKEND=software")
 
+    add_executable(farcaster_feed_rows_model_tests
+        tests/feed_rows_model_tests.cpp
+        mobile/feed_rows_model.cpp
+        mobile/feed_rows_model.hpp)
+    target_compile_features(farcaster_feed_rows_model_tests PRIVATE cxx_std_26)
+    target_link_libraries(farcaster_feed_rows_model_tests PRIVATE
+        Qt6::Core Qt6::Qml Qt6::Test)
+    farcaster_enable_warnings(farcaster_feed_rows_model_tests)
+    add_test(NAME ui.feed_rows_model COMMAND farcaster_feed_rows_model_tests)
+    set_tests_properties(ui.feed_rows_model PROPERTIES
+        TIMEOUT 30 LABELS "ui;qt;model;read-pipeline")
+
     add_executable(farcaster_media_scroll_tests
         ../tests/ui/media_scroll_tests.cpp
+        mobile/feed_rows_model.cpp
+        mobile/feed_rows_model.hpp
         render/scene_graph_superellipse_item.cpp)
     target_include_directories(farcaster_media_scroll_tests PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/render")
