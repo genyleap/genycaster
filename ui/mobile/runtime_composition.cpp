@@ -280,11 +280,13 @@ void Runtime::cancelViewerReactionRequest()
     {
         std::scoped_lock lock{viewerOperationMutex};
         ++viewerOperationGeneration;
+        ++viewerSurfaceGeneration;
         obsolete = std::move(activeViewerReactionRequest);
         activeViewerReactionRequest.reset();
         viewerReactionRegistering = false;
         activeViewerTargetIds.clear();
         deferredViewerTargets.clear();
+        viewerReactionConsumerCounts.clear();
     }
     // Cancel outside the ownership lock: some transports can complete inline.
     if (obsolete) {

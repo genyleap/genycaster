@@ -159,24 +159,28 @@ export function createCastViewService({fetchImpl=fetch,now=()=>Date.now(),
   async function searchExact(row) {
     if(row.text.length<12)return null;
     const t=now();
-    const cached=searchCache.get(row.castId);
+    // An earlier unsuccessful search cannot suppress a later request with
+    // improved metadata for the same hash. Cache by the actual upstream query,
+    // author and canonical identity, not the hash alone.
+    const query=row.text.slice(0,85);
+    const searchKey=row.castId+'\x1f'+row.authorFid+'\x1f'+query;
+    const cached=searchCache.get(searchKey);
     if(cached&&cached.expires>t)return cached.promise;
     // Only search a short, normalized prefix. Never trust text-match alone:
     // the authoritative identity is the full cast hash AND author FID.
-    const query=row.text.slice(0,85);
     const sharedSignal=AbortSignal.timeout(Math.max(25,Math.min(workBudgetMs,8_000)));
     const promise=withUpstreamSlot(() => getPublicJson(
       'https://api.farcaster.xyz/v2/search-casts?q='
       +encodeURIComponent(query)+'&limit=10',fetchImpl,sharedSignal,
     ),sharedSignal).then(data=>{
-      if(!data && searchCache.get(row.castId)?.promise===promise)
-        searchCache.get(row.castId).expires=now()+5_000;
+      if(!data && searchCache.get(searchKey)?.promise===promise)
+        searchCache.get(searchKey).expires=now()+5_000;
       const matched=(Array.isArray(data?.result?.casts)?data.result.casts:[])
         .find(cast=>String(cast?.hash||'').toLowerCase()===row.castId
           && Number(cast?.author?.fid)===row.authorFid);
       return verifiedViewCount(matched);
     }).catch(()=>null);
-    retain(searchCache,row.castId,{promise,expires:t+TTL_MS},700);
+    retain(searchCache,searchKey,{promise,expires:t+TTL_MS},700);
     return promise;
   }
 

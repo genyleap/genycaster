@@ -111,12 +111,20 @@ struct Runtime final {
     std::atomic<std::int64_t> viewerStateLastRefreshMs{0};
     std::mutex viewerOperationMutex{};
     std::uint64_t viewerOperationGeneration{0};
+    // Changes only when the owning surface/account becomes invalid, not on each batch.
+    std::uint64_t viewerSurfaceGeneration{0};
     std::uint64_t activeViewerFid{0};
+    // A separate version for each confirmed field prevents out-of-order GUI deliveries
+    // from undoing newer Like/Recast evidence for the same canonical cast.
+    std::unordered_map<std::string, std::uint64_t> viewerReactionDeliveredGeneration{};
     bool viewerReactionRegistering{false};
     std::vector<std::string> activeViewerTargetIds{};
     // Demand arriving during a shared account acquisition is queued, not
     // allowed to cancel a provider operation serving other visible casts.
     std::vector<farcaster::domain::cast::CastReference> deferredViewerTargets{};
+    // Active QML consumers share one canonical cast demand, independent of
+    // the viewport row object, and release it on pooling/destruction.
+    std::unordered_map<std::string, std::size_t> viewerReactionConsumerCounts{};
     // Per-viewer/cast freshness; only complete positive/negative evidence is
     // cached. Protected by viewerOperationMutex.
     std::unordered_map<std::string, std::chrono::steady_clock::time_point>

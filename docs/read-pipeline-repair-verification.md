@@ -1,5 +1,53 @@
 # Genycaster read-pipeline repair: verification record
 
+## Current repair iteration (2026-10-21) — boundary contract and status
+
+**Status:** Implementation in progress. Evidence from entries dated 2026-10-20 and earlier is historical; it does not verify this iteration's final executable or deployment.
+
+**Boundary contract (recorded before implementation):**
+- Responsibility: reaction completion ownership, ordering and freshness at the existing Qt composition/presentation boundary; bounded feed/read and derived analytics remain separate capabilities.
+- Capability origin: Protocol read for account reactions; optional Derived for Views; Local for cache/page reconciliation.
+- Mandatory/optional: cached cast feeds work without either enrichment; reactions require a signed-in viewer; Views can be disabled independently.
+- Public contract: canonical CastId/FID and account/surface scoped evidence, explicit unknown versus verified negative, stable-ID presentation deltas; no provider cursor or transport DTO crosses a domain/application boundary.
+- Invariants: no stale account/navigation commits; a newer batch does not invalidate earlier same-surface evidence; independently confirmed Like/Recast and optimistic writes are preserved; exactly-once completion, bounded demand and worker queues.
+- Dependencies: Qt GUI owns QObjects and model mutations; bounded workers may prepare immutable snapshots; provider-specific HTTP/JSON must remain within adapters.
+- Failures: cancellation, late completion, partially covered responses, backpressure and offline operation may result in unknown, never synthetic false/zero.
+- Local state: cached cast/reply pages and stable IDs remain authoritative; ephemeral account-scoped freshness/delivery ordering is not durable canonical state.
+- Offline: local feed and older pages remain accessible; enrichment can remain unknown while disconnected.
+- Provider policy/disablement/failover: capabilities are operation-routed, optional analytics disableable; no invented exact Views lookup; alternate providers must not require new cast models.
+- Tests: deterministic interleaving, account switch/navigation, partial evidence and ordering, counting local-store windows, QML viewport lifecycle, current native link/startup and architecture guard.
+
+
+### Current iteration results and outstanding gates (2026-10-21)
+
+**Current source status: PARTIAL.** All entries dated 2026-10-20 and earlier are historical and do not verify the present source tree. No production deployment, service restart, or credential edits.
+
+**Implemented in this iteration:**
+- Reaction completion: distinct surface/account epoch versus batch generation; GUI-accepted evidence alone receives 90-second freshness; per-cast independent Like/Recast ordering rejects older confirmed deltas; unknown-result cooldown renews when expired; cancel outside lock; inline completion remains exactly once.
+- Visible native reaction interest: EngagementBar acquires/releases on visibility, pooling, navigation and scroll state; composition reference-counts duplicate consumers, uses bounded 64-target batches and a 512-target deferred queue, and retains the independent WASM path. Page-first and root-only speculative reaction hydration removed.
+- Warm local reading: 64-row first window for both cold/warm entry; PresentationBridge reconciles a bounded refreshed prefix without discarding previously visible older rows; explicit offline local pagination remains independent of remote cursor.
+- Feed preparation: rich row index, embeds, classification and revision preparation execute in the bounded read-service callback, using a snapshotted viewer FID; Qt bridge and stable-ID model still mutate on the owning GUI thread.
+- Views gateway: improved cast text/author metadata uses a separate negative search-cache key; unchanged query remains deduplicated; exact hash/FID and unknown-versus-zero validation unchanged.
+
+**Current verification:**
+- cmake --preset ui-qt612-debug: PASS (non-fatal missing Qt6TaskTree/Vulkan/QtKeychain warnings).
+- cmake --build --preset ui-qt612-debug --target farcaster_presentation_icon_tests farcaster_read_pipeline_tests -j1: PASS.
+- ctest (presentation.contextual_icons and application.local_first_read, Qt offscreen): 2/2 PASS.
+- node --test tests/wasm/*.test.mjs: 286/286 PASS (JavaScript and source fixtures, not compiled WASM).
+- node --test services/media-gateway/test/*.test.mjs: 85/85 PASS.
+- python3 tools/check_architecture.py: PASS; git diff --check: PASS.
+- Full farcaster_client: the first attempt was SIGTERM-interrupted while compiling runtime_ui_bindings.cpp after the one-CPU server spent >20 minutes on it; later attempt started but no successful final link/startup evidence at this recording. A registrar object and older binary are insufficient.
+
+**Open or unverified (do not claim resolved):**
+- Full current executable link/startup and Explorer/reply/quote-to-source interaction on Linux; mobile/iOS/Android/macOS/Windows and compiled-browser WASM all NOT VERIFIED.
+- Current storage writeFeed with append=false still replaces the entire persisted timeline following a successful remote first-page refresh; offline access to all older cached pages after that write is NOT guaranteed. The warm in-memory prefix test and counted 64-row reads do not resolve this persisted retention defect.
+- Complete reconcile rules for deleted/reordered old rows, bounded in-memory retention, GUI frame-time measurements, targeted URL-metadata indices and fully bounded semantic QML reconcile still need implementation/measurement.
+- CastViewController still owns concrete endpoint/HTTP/provider JSON instead of the requested provider-neutral application Views capability/adapter; architecture refactor NOT COMPLETE.
+- No supported exact-hash analytics viewCount contract was verified for the current public analytics source. Protocol cast identity endpoints are not proof of an impressions endpoint. Older/short/empty/unindexed quoted casts may return unknown, not synthetic zero. Reproduced by faithful deterministic gateway fixture, NOT a live affected production cast.
+- New reaction A/B race simulation is deterministic JS event-loop plus source-shape checks, NOT yet a native compiled Qt queued-delivery interleaving fixture; retained consumers/pooling need native runtime measurement.
+
+**Platform status:** Linux Qt unit/integration subset VERIFIED; Linux current complete application NOT VERIFIED; macOS, Windows, Android, iOS, compiled WebAssembly runtime NOT VERIFIED.
+
 ## Native QML type registrar include boundary — 2026-10-20
 
 - **Responsibility / origin:** Qt executable's generated QML registration for the native stable-ID feed model; local presentation build integration only, no new application or provider boundary.

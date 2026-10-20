@@ -829,6 +829,59 @@ void testViewerReactionPartialTypeCoverage()
     assert(!bridge.rows().front().toMap().value(QStringLiteral("recastedByMe")).toBool());
 }
 
+void testBoundedWarmRefreshRetainsAnchorAndOlderCachedRows()
+{
+    PresentationBridge bridge{};
+    const auto id = [](const int value) {
+        return QStringLiteral("0x") + QString::number(value, 16)
+            .rightJustified(40, QLatin1Char('0'));
+    };
+    QVariantList history{};
+    for (int i = 0; i < 130; ++i) {
+        history.push_back(QVariantMap{
+            {QStringLiteral("castId"), id(i)},
+            {QStringLiteral("text"), QStringLiteral("old-content")},
+        });
+    }
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("recent"),
+        history, {}, {}, {}, {}, false, false, false, false);
+    QVariantList fresh{};
+    for (int i = 0; i < 2; ++i) {
+        fresh.push_back(QVariantMap{
+            {QStringLiteral("castId"), id(5000 + i)},
+            {QStringLiteral("text"), QStringLiteral("new-content")},
+        });
+    }
+    for (int i = 0; i < 62; ++i) {
+        fresh.push_back(QVariantMap{
+            {QStringLiteral("castId"), id(i)},
+            {QStringLiteral("text"), QStringLiteral("fresh-content")},
+        });
+    }
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("recent"), fresh,
+        {}, {}, {}, {}, false, false, false, false, true);
+    const auto merged = bridge.rows();
+    assert(merged.size() == 132);
+    assert(merged[0].toMap().value(QStringLiteral("castId")).toString()
+        == id(5000));
+    assert(merged[1].toMap().value(QStringLiteral("castId")).toString()
+        == id(5001));
+    int anchors{};
+    int changed{};
+    for (const auto& value : merged) {
+        const auto row = value.toMap();
+        if (row.value(QStringLiteral("castId")).toString() == id(129)) {
+            ++anchors;
+        }
+        if (row.value(QStringLiteral("castId")).toString() == id(5)
+            && row.value(QStringLiteral("text")).toString()
+                == QStringLiteral("fresh-content")) {
+            ++changed;
+        }
+    }
+    assert(anchors == 1 && changed == 1);
+}
+
 void testSourceSwitchAdmitsCachedTimeline()
 {
     PresentationBridge bridge{};
@@ -859,6 +912,7 @@ int main(int argc, char* argv[])
     testReplyCanonicalizationForPublicFeedHashes();
     testExplicitExplorerRefreshRevealsLatestPage();
     testFirstPageCacheDoesNotRemountLiveTimeline();
+    testBoundedWarmRefreshRetainsAnchorAndOlderCachedRows();
     testSourceSwitchAdmitsCachedTimeline();
     testViewerReactionFirstNegativeAndDuplicateEvidence();
     testViewerReactionPartialTypeCoverage();

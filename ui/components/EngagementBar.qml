@@ -49,6 +49,34 @@ RowLayout {
         && root.reactionCastId.length > 0
         ? String(root.viewerFid) + ":" + root.reactionCastId : ""
     property string retainedBrowserInterestKey: ""
+    // Desktop/mobile use the provider-routed native acquisition, while WASM
+    // retains its existing browser reaction adapter. Never request both.
+    readonly property string nativeInterestKey: Qt.platform.os !== "wasm"
+        && root.enrichmentActive && root.visible && !root.scrollMoving
+        && presentationBridge.isAuthenticated && root.viewerFid > 0
+        && root.reactionCastId.length > 0
+        && Number(root.viewDescriptor.authorFid || root.authorFid) > 0
+        ? String(root.viewerFid) + ":" + root.reactionCastId : ""
+    property string retainedNativeInterestKey: ""
+
+    function syncNativeInterest() {
+        const next = root.nativeInterestKey
+        if (root.retainedNativeInterestKey === next)
+            return
+        const previous = root.retainedNativeInterestKey
+        if (previous.length > 0) {
+            const separator = previous.indexOf(":")
+            presentationBridge.releaseViewerReactionInterest(
+                previous.slice(separator + 1), Number(previous.slice(0, separator)))
+        }
+        root.retainedNativeInterestKey = next
+        if (next.length > 0) {
+            presentationBridge.retainViewerReactionInterest(
+                root.reactionCastId, Number(root.viewDescriptor.authorFid || root.authorFid),
+                root.viewerFid)
+        }
+    }
+    onNativeInterestKeyChanged: syncNativeInterest()
 
     function syncBrowserInterest() {
         const next = root.browserInterestKey
@@ -112,6 +140,7 @@ RowLayout {
         syncViewInterest()
         requestViews()
         requestBrowserReactions()
+        syncNativeInterest()
     }
     Component.onDestruction: {
         if (root.retainedViewsCastId.length > 0)
@@ -122,21 +151,30 @@ RowLayout {
             CastReactions.release(previous.slice(separator + 1),
                                   Number(previous.slice(0, separator)))
         }
+        if (root.retainedNativeInterestKey.length > 0) {
+            const previous = root.retainedNativeInterestKey
+            const separator = previous.indexOf(":")
+            presentationBridge.releaseViewerReactionInterest(
+                previous.slice(separator + 1), Number(previous.slice(0, separator)))
+        }
     }
     onCastDataChanged: {
         syncViewInterest()
         requestViews()
         requestBrowserReactions()
+        syncNativeInterest()
     }
     onEnrichmentActiveChanged: {
         syncViewInterest()
         requestViews()
         requestBrowserReactions()
+        syncNativeInterest()
     }
     onVisibleChanged: {
         syncViewInterest()
         requestViews()
         requestBrowserReactions()
+        syncNativeInterest()
     }
     onWantsDerivedViewsChanged: {
         syncViewInterest()
@@ -146,6 +184,7 @@ RowLayout {
     // independently updating compatibility properties.
     onScrollMovingChanged: {
         requestBrowserReactions()
+        syncNativeInterest()
         if (!root.scrollMoving)
             requestViews()
     }

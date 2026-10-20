@@ -282,3 +282,26 @@ test('expired shared waiting work releases admission before stalled active reque
     clearTimeout(keepAlive);
   }
 });
+
+test('a corrected quoted-source text re-probes after a cached negative with stale metadata',async()=>{
+  const searches=[];
+  const service=createCastViewService({fetchImpl:async url=>{
+    const u=new URL(url);
+    if(u.pathname==='/v2/casts')return json({result:{casts:[]}});
+    const q=u.searchParams.get('q');
+    searches.push(q);
+    return json({result:{casts:q?.startsWith('Corrected original')
+      ? [{hash:a,author:{fid:321969},viewCount:42}] : [
+        {hash:a,author:{fid:55},viewCount:9999}, // mismatched author is unusable
+      ]}});
+  }});
+  const first=await service.resolve([row(a,321969,'Incorrect cached descriptive text for this quote')]);
+  assert.equal(first.data.counts[a],undefined);
+  const repeated=await service.resolve([row(a,321969,'Incorrect cached descriptive text for this quote')]);
+  assert.equal(repeated.data.counts[a],undefined);
+  assert.equal(searches.length,1,'identical metadata shares the original lookup');
+  const corrected=await service.resolve([row(a,321969,'Corrected original author content for the source cast')]);
+  assert.equal(corrected.data.counts[a],42,'more accurate metadata must bypass old negative');
+  assert.equal(searches.length,2);
+  assert.notEqual(searches[0],searches[1]);
+});

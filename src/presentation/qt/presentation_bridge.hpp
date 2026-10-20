@@ -222,6 +222,10 @@ public:
      * Preserves the user's new-post buffering preference for ordinary background reads.
      */
     Q_INVOKABLE void refreshLatestFeed();
+    /** @brief Retains one account-scoped visible cast reaction interest; deduplicated in composition. */
+    Q_INVOKABLE void retainViewerReactionInterest(QString castId, qulonglong authorFid, qulonglong viewerFid);
+    /** @brief Releases one consumer on pooling, navigation or account change. */
+    Q_INVOKABLE void releaseViewerReactionInterest(QString castId, qulonglong viewerFid);
     /** @brief Applies pending refresh rows at the top without losing the current viewport history. */
     Q_INVOKABLE void revealPendingPosts();
     /** @brief Sets the bounded number of casts requested per page (1..100). */
@@ -358,7 +362,8 @@ public:
     }
     void applyList(QString view, QString selector, QVariantList rows, QString next,
         QString status, QString error, QString diagnostic, bool busy, bool stale,
-        bool sourceUnavailable, bool paginationRequest = false);
+        bool sourceUnavailable, bool paginationRequest = false,
+        bool boundedLocalSnapshot = false);
     /** @brief Merges one bounded batch of art-channel discovery rows without replacing the active feed. */
     void applyExplorerArtRows(QVariantList rows, bool busy);
     /** @brief Patches a hydrated parent/quoted cast preview into visible rows without exposing raw ids. */
@@ -415,6 +420,8 @@ signals:
     void followingStoriesRequested(qulonglong viewerFid);
     void followingStoryActivitiesRequested(qulonglong viewerFid);
     void castRequested(QString castId, bool allowRecoveryProbe);
+    void viewerReactionInterestRetained(QString castId, qulonglong authorFid, qulonglong viewerFid);
+    void viewerReactionInterestReleased(QString castId, qulonglong viewerFid);
     void profileRequested(qulonglong fid, bool allowRecoveryProbe);
     void signInRequested(QString route);
     void signInCancelRequested();

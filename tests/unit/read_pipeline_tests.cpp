@@ -681,6 +681,17 @@ void initialFeedReadsBoundedCacheAndOfflinePages()
     assert(store.feedMaterializations == 0);
     assert(store.windowReads == 2 && store.maximumWindowRequested == 64U);
 
+    // A warm entry/refresh must stay on the same counted storage window;
+    // the large persisted timeline is never materialized again.
+    states.clear();
+    auto warm = service.openFeed(query,
+        [&states](auto state) { states.push_back(std::move(state)); }, windowOptions);
+    assert(warm && states.size() == 2U);
+    assert(states.front().entries.size() == 64U);
+    assert(states.back().entries.size() == 64U);
+    assert(store.feedMaterializations == 0);
+    assert(store.windowReads == 4 && store.maximumWindowRequested == 64U);
+
     // The disconnected viewport explicitly requests another local window;
     // no remote cursor is passed and no full materialization is performed.
     states.clear();

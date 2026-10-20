@@ -1578,6 +1578,18 @@ void PresentationBridge::retry()
     retryCurrent(true);
 }
 
+void PresentationBridge::retainViewerReactionInterest(
+    QString castId, const qulonglong authorFid, const qulonglong viewerFid)
+{
+    emit viewerReactionInterestRetained(std::move(castId), authorFid, viewerFid);
+}
+
+void PresentationBridge::releaseViewerReactionInterest(
+    QString castId, const qulonglong viewerFid)
+{
+    emit viewerReactionInterestReleased(std::move(castId), viewerFid);
+}
+
 void PresentationBridge::refreshLatestFeed()
 {
     if (m_isBusy || m_activeView != QStringLiteral("feed")) {
@@ -3059,7 +3071,8 @@ void PresentationBridge::restoreNotificationSeenAt(
 
 void PresentationBridge::applyList(QString view, QString selector, QVariantList rows,
     QString next, QString status, QString error, QString diagnostic, const bool busy,
-    const bool stale, const bool sourceUnavailable, const bool paginationRequest)
+    const bool stale, const bool sourceUnavailable, const bool paginationRequest,
+    const bool boundedLocalSnapshot)
 {
     const QString currentSelector = m_activeView == QStringLiteral("feed") ? m_activeFeed
         : m_activeView == QStringLiteral("profile") ? m_profileFeed : m_activeView;
@@ -3102,6 +3115,20 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
         && m_writeRows.isEmpty() && !m_feedSourceSwitchPending;
     if (paginationRequest && sameSurface && !m_rows.isEmpty()) {
         touchedPaginationRows = reconcilePaginationPresentation(m_rows, rows);
+    }
+
+    // A bounded warm cache refresh is authoritative only for its leading
+    // window. Reconciling that prefix by stable identity keeps already-loaded
+    // older windows and the current scroll anchor reachable (also offline).
+    // Entries absent from a partial prefix cannot be declared deleted.
+    const bool preserveWarmTail = boundedLocalSnapshot && sameSurface
+        && !busy && !paginationRequest && error.isEmpty()
+        && !m_feedSourceSwitchPending && !m_bufferNextFeedRefresh
+        && (view == QStringLiteral("feed") || view == QStringLiteral("profile"))
+        && m_rows.size() >= rows.size();
+    if (preserveWarmTail) {
+        m_pendingFeedRows = reconcileRefreshPresentation(m_rows, rows, m_pendingFeedRows);
+        rows = m_rows;
     }
 
     const bool bufferedFeedRefresh = !paginationRequest && sameSurface
@@ -3223,6 +3250,9 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
     m_isStale = stale;
     emit rowsChanged();
     emit stateChanged();
+    if (preserveWarmTail && !m_pendingFeedRows.isEmpty()) {
+        revealPendingPosts();
+    }
 }
 
 
