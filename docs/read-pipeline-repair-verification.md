@@ -10,6 +10,25 @@
 - **Platform assumptions:** Qt/C++26 native Linux build, QML/Qt network on native and WASM; mobile foreground/background and browser transport/runtime still require targeted verification. No native-thread or native-database assumption is added to domain/application.
 - **Regression evidence:** deterministic Qt socket test for Views queue/reacquisition, Node HTTP gateway fixtures for bounded partial and quote identity. Existing core/provider/storage and QML tests are required to validate other boundaries; source checks do not substitute for a runtime.
 
+## Browser token-preview boundary contract — 2026-10-20
+
+- **Responsibility/origin:** optional Derived market-token metadata for browser-only token cards, leaving the native market adapter and protocol/domain untouched.
+- **Public boundary:** Qt MOC adapter `BrowserTokenPreviewController` validates canonical `base|eth:0x<40 hex>` identity, caches verified snapshots, coalesces in-flight requests and emits typed `tokenReady(locator,map)`; QML only observes data and requests refresh.
+- **Invariants:** bounded one-at-a-time upstream work, queue, response bytes, cache TTL and deadline; exact `network` and `address` verification, no synthetic price/zero, stale URL/locator callbacks ignored. Only configured gateway route can be requested.
+- **Failure/disablement:** unavailable responses are recoverable, bounded by a retry cooldown, and must not clear a verified cached snapshot. The optional relay is disabled for headless/smoke test modes. In normal native builds the original public-data adapter remains primary; the browser relay is consulted only when that optional provider is unavailable, preserving existing fallback behavior. Stale cached state remains useful offline.
+- **Verification:** deterministic Qt local HTTP fixture for deduplication, identity mismatch, oversized responses, retry and cache reuse; WASM QML source and import checks. Browser WASM application runtime remains NOT VERIFIED.
+
+### Implemented behavior and measured verification
+
+- `TokenAddressPreview.qml` no longer performs XMLHttpRequest or parses remote JSON. It observes typed `tokenReady` results from a purpose-specific Qt adapter, guards against stale locator updates, and preserves verified cached values when refreshing fails. `EmbedPreview.qml` propagates viewport motion/visibility to delay optional token admission during rapid scrolling.
+- The outer adapter permits only canonical `base`/`eth` plus 20-byte hexadecimal addresses; it requests the fixed browser token endpoint through Qt, verifies both chain and full address before delivery, deduplicates in-flight reads, and bounds active work to one request, queued work to 16, cache entries to 128 and response content to 32 KiB with a seven-second logical request deadline. Unavailable results receive a 15-second retry cooldown; queue eviction emits an empty completion; verified cached values remain readable offline.
+- `cmake --build --preset ui-qt612-debug --target farcaster_browser_token_tests -j1`: **PASS**; compiled Qt adapter, MOC, and real loopback network test.
+- `ctest --test-dir build/ui-qt612-debug -R '^ui.browser_token_contract$' --output-on-failure`: **1/1 PASS**, including positive cache reuse, duplicate admission, exact identity rejection, oversized replies, retry cooldown, and bounded queue overflow.
+- `cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic ctest --test-dir build/ui-qt612-debug -R '^(ui.browser_token_contract|ui.browser_link_metadata_contract|ui.cast_views_contract|ui.browser_reactions_contract|ui.qml_import_smoke|ui.media_scroll|presentation.contextual_icons)$' --output-on-failure`: **7/7 PASS**, 24.96 seconds total on native Linux Qt 6.12.
+- `node --test tests/wasm/*.test.mjs`: **263/263 PASS** (source and JS behavior, **not** a WASM browser executable).
+- `python3 tools/check_architecture.py`: **FAIL** on remaining vendor/backend naming and routing violations; none of `CastReactions.qml`, `LinkPreview.qml`, `EmbedPreview.qml`, or `TokenAddressPreview.qml` remain listed for direct network I/O. The guard has not been changed.
+- Full native `farcaster_client` link/startup and actual WASM browser sessions remain **NOT VERIFIED**. No live endpoint calls, production restarts or deployments were performed.
+
 ## Browser link/miniapp metadata boundary contract — 2026-10-20
 
 - **Responsibility:** move optional browser link and Mini App preview relay reads out of LinkPreview/EmbedPreview QML, without disturbing native HTML/OpenGraph resolution or the existing layout reservation.
@@ -28,7 +47,7 @@
 - `node --test tests/wasm/*.test.mjs`: **261/261 PASS**, including updated boundary-oriented checks; **not** a compiled WASM browser runtime.
 - `cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic ctest --test-dir build/ui-qt612-debug -R '^(ui.browser_link_metadata_contract|ui.cast_views_contract|ui.browser_reactions_contract|ui.qml_import_smoke|ui.media_scroll|presentation.contextual_icons)$' --output-on-failure`: **6/6 PASS**, 23.99 seconds, Linux native/headless Qt 6.12. This exercises the standalone adapter but does not build/link the changed application composition.
 - `git diff --check`: **PASS**. The native `farcaster_client` link/startup and actual WASM browser behavior remain **NOT VERIFIED**.
-- `python3 tools/check_architecture.py`: **FAIL**; the remaining QML network violation is `TokenAddressPreview.qml`, with additional pre-existing provider-name leaks. The guard was not weakened.
+- `python3 tools/check_architecture.py`: **FAIL** at the link/Embed stage; `TokenAddressPreview.qml` was the last listed direct-QML-network violation then. The subsequent token adapter section above records its removal. Provider-name guard failures remain.
 - No production deployment, restart, or credential change.
 
 ## Browser reactions: presentation/adapter boundary contract
@@ -60,7 +79,7 @@ Verification for this adapter on Linux/Qt 6.12 (2026-10-20):
 - `python3 tools/check_architecture.py`: **FAIL**; `CastReactions.qml` was removed from the violations, but other network-QML and provider-name violations remain.
 - `git diff --check`: **PASS**.
 
-The full `farcaster_client` application has **not** been successfully rebuilt or executed with this new adapter, nor has the WASM artifact been compiled or exercised in a browser. Browser CORS/platform compatibility therefore remains **NOT VERIFIED**. The architecture guard still fails on unrelated remaining QML network consumers (`EmbedPreview.qml`, `LinkPreview.qml`, `TokenAddressPreview.qml`) and other provider naming leaks. No production services were restarted or deployed.
+The full `farcaster_client` application has **not** been successfully rebuilt or executed with this adapter, nor has the WASM artifact been compiled or exercised in a browser. Browser CORS/platform compatibility therefore remains **NOT VERIFIED**. This historical stage still had three QML-network violations; later sections above record their removal. Other provider naming leaks remain. No production services were restarted or deployed.
 
 ## Runtime/navigation follow-up — 2026-10-20
 
@@ -75,7 +94,7 @@ Current-turn tests:
 
 **Do not claim full Runtime cancellation behavior or Linux startup verified** until the changed `farcaster_client` binary links and its deterministic runtime/Qt integration tests run. No production deployment, restart or credential change was performed.
 
-## Additional source-confirmed changes (current working tree; not deployed)
+## Additional source-confirmed changes (committed on main; not deployed)
 
 - `cancelFeedRequest` no longer cancels shared preview or reaction requests. Identity changes invalidate the whole surface; pagination/same-identity refresh invalidates only page generations. Leaving the feed for a cast, profile or notification view explicitly clears the identity; returning to the same feed is not mistaken for a continuation. Referenced-preview callbacks check surface generation, continue after cached intermediate results, and accept handles only while in flight. Account identity changes clear account-scoped reaction evidence. Cancellation of the primary, page and viewer-reaction transport handles happens after releasing ownership mutexes to avoid inline completion reentrancy. Page size and reference-hydration limits are snapshotted on the GUI thread, not read from Qt objects in worker callbacks.
 - Fresh cast content is persisted and delivered as the primary ready snapshot before optional author-profile acquisition. Author enrichment is separately delivered if successful; its network failure does not hide the cast or replace replies. A deterministic native C++ fixture with controllable late successful **and failed** author completions asserts prompt Ready cast/replies delivery and no failure regression. This does not yet remove the provider adapter's own base-plus-supplemental profile barrier.

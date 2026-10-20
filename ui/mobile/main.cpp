@@ -71,6 +71,7 @@
 #include "cast_view_controller.hpp"
 #include "browser_reaction_controller.hpp"
 #include "browser_link_metadata_controller.hpp"
+#include "browser_token_preview_controller.hpp"
 #include "miniapp_host_controller.hpp"
 #include "media_web_host_controller.hpp"
 #include "miniapp_catalog_controller.hpp"
@@ -1143,6 +1144,9 @@ int main(int argc, char* argv[])
 
     GeoLocationResolver geoLocationResolver{
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct};
+    BrowserTokenPreviewController browserTokenPreviewController{
+        networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
+        !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest};
     BrowserLinkMetadataController browserLinkMetadataController{
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
 #if defined(__EMSCRIPTEN__)
@@ -1474,6 +1478,8 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("linkPreviewResolver"), &linkPreviewResolver);
     engine.rootContext()->setContextProperty(
         QStringLiteral("browserLinkMetadataController"), &browserLinkMetadataController);
+    engine.rootContext()->setContextProperty(
+        QStringLiteral("browserTokenPreviewController"), &browserTokenPreviewController);
     engine.rootContext()->setContextProperty(QStringLiteral("castViewController"), &castViewController);
     engine.rootContext()->setContextProperty(
         QStringLiteral("browserReactionController"), &browserReactionController);

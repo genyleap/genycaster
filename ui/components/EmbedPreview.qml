@@ -370,6 +370,7 @@ Item {
             locator: root.tokenLocator
             targetUrl: root.targetUrl
             compact: root.compact
+            enrichmentActive: root.visible && !root.scrollMoving
             onOpenRequested: url => root.openRequested(url)
         }
     }

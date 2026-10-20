@@ -227,6 +227,8 @@ qt_add_executable(farcaster_client
     mobile/browser_reaction_controller.hpp
     mobile/browser_link_metadata_controller.cpp
     mobile/browser_link_metadata_controller.hpp
+    mobile/browser_token_preview_controller.cpp
+    mobile/browser_token_preview_controller.hpp
     mobile/miniapp_host_controller.cpp
     mobile/miniapp_host_controller.hpp
     mobile/media_web_host_controller.cpp
@@ -1096,6 +1098,18 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
         COMMAND farcaster_browser_link_metadata_tests)
     set_tests_properties(ui.browser_link_metadata_contract PROPERTIES
         LABELS "ui;metadata;qt;wasm"
+        TIMEOUT 15)
+
+    qt_add_executable(farcaster_browser_token_tests
+        tests/browser_token_preview_controller_tests.cpp
+        mobile/browser_token_preview_controller.cpp
+        mobile/browser_token_preview_controller.hpp)
+    target_compile_features(farcaster_browser_token_tests PRIVATE cxx_std_26)
+    target_link_libraries(farcaster_browser_token_tests PRIVATE Qt6::Core Qt6::Network)
+    farcaster_enable_warnings(farcaster_browser_token_tests)
+    add_test(NAME ui.browser_token_contract COMMAND farcaster_browser_token_tests)
+    set_tests_properties(ui.browser_token_contract PROPERTIES
+        LABELS "ui;market;qt;wasm"
         TIMEOUT 15)
 
     find_package(Python3 REQUIRED COMPONENTS Interpreter)

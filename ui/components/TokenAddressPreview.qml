@@ -8,6 +8,8 @@ Superellipse {
     property string locator: ""
     property string targetUrl: ""
     property bool compact: false
+    // The containing virtualized delegate determines secondary read demand.
+    property bool enrichmentActive: true
     property var snapshot: ({})
     property bool expanded: false
     property bool tokenLoading: false
@@ -50,6 +52,8 @@ Superellipse {
 
     function reload() {
         if (!liveInsights.providerAvailable) {
+            if (!root.enrichmentActive)
+                return
             if (root.requestedLocator !== root.locator)
                 root.requestBrowserToken()
             return
@@ -71,34 +75,35 @@ Superellipse {
             return
         }
         root.tokenLoading = true
-        const url = "https://storage-farcaster.genyleap.com/v1/browser/tokens?network="
-                  + found[1] + "&address=" + found[2]
-        const xhr = new XMLHttpRequest()
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE || root.requestedLocator !== locator)
+        if (typeof browserTokenPreviewController === "undefined") {
+            root.tokenLoading = false
+            root.tokenError = "Market data unavailable"
+            return
+        }
+        const cached = browserTokenPreviewController.tokenFor(locator)
+        if (cached && cached.available) {
+            root.snapshot = cached
+            root.tokenLoading = false
+        }
+        browserTokenPreviewController.requestToken(locator)
+    }
+
+    Connections {
+        target: typeof browserTokenPreviewController !== "undefined"
+            ? browserTokenPreviewController : null
+        function onTokenReady(locator, snapshot) {
+            if (root.requestedLocator !== String(locator))
                 return
             root.tokenLoading = false
-            if (xhr.status !== 200) {
-                root.tokenError = "Market data unavailable"
-                return
-            }
-            try {
-                const result = JSON.parse(xhr.responseText)
-                if (!result.available || String(result.address || "").toLowerCase() !== found[2])
-                    throw new Error("Unexpected token identity")
-                root.snapshot = result
-            } catch(error) {
-                root.tokenError = "Market data unavailable"
+            if (snapshot && snapshot.available) {
+                root.snapshot = snapshot
+                root.tokenError = ""
+            } else {
+                // A failed refresh must not erase previously verified token data.
+                if (!root.snapshot.available)
+                    root.tokenError = "Market data unavailable"
             }
         }
-        xhr.onerror = function() {
-            if (root.requestedLocator === locator) {
-                root.tokenLoading = false
-                root.tokenError = "Market data unavailable"
-            }
-        }
-        xhr.open("GET", url, true)
-        xhr.send()
     }
 
     function money(value) {
@@ -122,6 +127,9 @@ Superellipse {
     }
 
     Component.onCompleted: reload()
+    onEnrichmentActiveChanged: {
+        if (root.enrichmentActive) reload()
+    }
     onLocatorChanged: {
         root.expanded = false
         root.addressCopied = false
