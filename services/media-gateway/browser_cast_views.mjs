@@ -70,22 +70,43 @@ export function createCastViewService({fetchImpl=fetch,now=()=>Date.now(),
             && upstreamWaiting.length>=MAX_UPSTREAM_QUEUED)) {
         resolve(null);return;
       }
-      const launch=async()=>{
-        if(signal.aborted){resolve(null);drain();return;}
+      let settled=false;
+      const finish=value=>{
+        if(settled)return;
+        settled=true;
+        resolve(value);
+      };
+      const task={signal,launch:null};
+      // Shared upstream work can time out while waiting behind a hung
+      // transport. Release its queue admission immediately, not only after
+      // an unrelated active request happens to finish and drains the queue.
+      const cancelQueued=()=>{
+        const index=upstreamWaiting.indexOf(task);
+        if(index<0)return;
+        upstreamWaiting.splice(index,1);
+        signal.removeEventListener('abort',cancelQueued);
+        finish(null);
+      };
+      task.launch=async()=>{
+        signal.removeEventListener('abort',cancelQueued);
+        if(signal.aborted){finish(null);drain();return;}
         ++upstreamActive;
-        try{resolve(await run());}
-        catch{resolve(null);}
+        try{finish(await run());}
+        catch{finish(null);}
         finally{--upstreamActive;drain();}
       };
-      if(upstreamActive<MAX_UPSTREAM_ACTIVE)launch();
-      else upstreamWaiting.push({launch,signal,resolve});
+      if(upstreamActive<MAX_UPSTREAM_ACTIVE)task.launch();
+      else {
+        upstreamWaiting.push(task);
+        signal.addEventListener('abort',cancelQueued,{once:true});
+        if(signal.aborted)cancelQueued();
+      }
     });
   }
 
   function drain() {
     while(upstreamActive<MAX_UPSTREAM_ACTIVE && upstreamWaiting.length>0){
       const next=upstreamWaiting.shift();
-      if(next.signal.aborted){next.resolve(null);continue;}
       next.launch();
     }
   }

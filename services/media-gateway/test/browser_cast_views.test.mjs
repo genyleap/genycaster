@@ -228,3 +228,57 @@ test('a partial HTTP result stays immutable after late upstream completion',asyn
   await new Promise(resolve=>setTimeout(resolve,70));
   assert.equal(first.data.counts[b],undefined,'Late completion cannot rewrite a returned response');
 });
+
+test('expired shared waiting work releases admission before stalled active requests finish',async()=>{
+  const requested=Array.from({length:35},(_,index)=>row(
+    '0x'+(30000+index).toString(16).padStart(40,'0'),
+    600+index,''));
+  const newcomerHash='0x'+(88888).toString(16).padStart(40,'0');
+  let active=0,maxActive=0;
+  const releases=[];
+  let launchedExpired=0;
+  const service=createCastViewService({
+    workBudgetMs:140,
+    fetchImpl:async url=>{
+      const fid=Number(new URL(url).searchParams.get('fid'));
+      active++;
+      maxActive=Math.max(maxActive,active);
+      if(fid<603) {
+        // Deliberately ignore the signal. A blocked transport must not
+        // prevent an expired *waiting* request from freeing its queue slot.
+        await new Promise(resolve=>releases.push(resolve));
+      } else if(fid!==9999) {
+        launchedExpired++;
+      }
+      active--;
+      return json({result:{casts:fid===9999 ? [{
+        hash:newcomerHash,author:{fid:9999},viewCount:42,
+      }] : []}});
+    },
+  });
+  // Fill the global 3 active + 32 waiting admissions with independently
+  // timed-out shared reads. Their consumers all get valid unknown responses.
+  const keepAlive=setTimeout(()=>{},420);
+  try {
+    const timedOut=await Promise.all(requested.map(item=>service.resolve([item])));
+    assert.equal(releases.length,3,'three active transports are still held');
+    assert.equal(launchedExpired,0,'no expired waiting read ran');
+    assert.ok(timedOut.every(result=>result.status===200
+      && Object.keys(result.data.counts).length===0));
+    // A consumer deadline and each separately created shared upstream timeout
+    // can differ by a few event-loop turns. Let every shared timeout fire.
+    await new Promise(resolve=>setTimeout(resolve,35));
+    // The pending queue should already be empty BEFORE releasing the three
+    // held transports; otherwise this new visible cast is falsely rejected.
+    const admitted=service.resolve([row(newcomerHash,9999,'')]);
+    for(const release of releases)release();
+    const resolved=await admitted;
+    assert.equal(resolved.status,200);
+    assert.equal(resolved.data.counts[newcomerHash],42);
+    assert.equal(launchedExpired,0,'no expired request launched later');
+    assert.ok(maxActive<=3,'global upstream concurrency remains bounded');
+  } finally {
+    for(const release of releases)release();
+    clearTimeout(keepAlive);
+  }
+});

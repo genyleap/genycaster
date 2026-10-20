@@ -1,5 +1,21 @@
 # Genycaster read-pipeline repair: verification record
 
+## Views upstream waiting-queue cancellation — 2026-10-20
+
+- **Responsibility:** Derived analytics HTTP adapter's globally bounded upstream scheduler; not a cast-domain or Qt presentation dependency.
+- **Capability origin/optionality:** Optional derived analytics; service can remain disabled without impacting canonical local-first casts.
+- **Contract and canonical invariants:** Active upstream maximum three and queued maximum 32. Queued work releases its waiting admission immediately when its *shared upstream deadline* expires, without canceling any already-running shared operation. A new interested consumer may claim freed capacity. Counts are accepted only for exact canonical hash plus FID and verified nonnegative integers; missing remains unknown, never synthetic zero.
+- **Ownership/failures/offline:** Queued abort completes once, removes its abort listener, and never launches after cancellation. Requests already in progress keep independent ownership and may finish without changing an earlier partial HTTP response. Queue rejection remains bounded and is represented as an unavailable derived count. No new HTTP fan-out, endpoints or provider guessing.
+- **Behavioral verification:** Deterministic fake upstream holds the three active slots, fills all 32 waiting admissions, expires those waits, starts a new consumer while active slots are still occupied, then releases upstream calls; the newly admitted consumer must resolve correctly and global active concurrency must stay bounded. Run standalone gateway and existing media-gateway tests.
+
+### Confirmed defect and actual verification
+
+- The queue previously retained expired waiting admissions until some active upstream request completed. With three stuck transports and 32 expired waiting slots, new visible casts were rejected despite the waiting consumers no longer being interested. A queued task now installs an abort handler to remove itself from the shared waiting queue, settle exactly once and release the listener. Launching a valid queued task removes its listener first. This does not abort a shared active upstream reader or exceed the 3-active/32-waiting caps.
+- `node --test services/media-gateway/test/browser_cast_views.test.mjs`: **11/11 PASS**, twice. The new behavioral test creates 35 independent author lookups (3 active and 32 queued), holds the three active fake transports beyond all shared deadlines, confirms no obsolete queued upstream call starts, submits a fresh consumer, then releases active work. The fresh consumer receives exactly its own verified count (42); observed global concurrency is at most three.
+- `node --test` with the ten explicit `services/media-gateway/test/*.test.mjs` paths excluding only `native_addon.test.mjs`: **83/83 PASS** including HTTP/CORS, media, auth, previews, reactions, Views, and SDK adapter JavaScript behavior. `node --test services/media-gateway/test/native_addon.test.mjs`: **FAIL**, because `storage/native/genyleap_quilibrium_storage.node` is absent in this environment; the native addon build/test was **NOT VERIFIED** and the test was not weakened.
+- `python3 tools/check_architecture.py`: **PASS**, unmodified. No exact-hash analytics endpoint contract or live upstream deployment was verified; old/short/empty casts outside the provider's bounded public search coverage still return **unknown**, not fabricated zero. This queue defect was reproduced deterministically; the user's quoted-cast missing-count symptom was **NOT** reproduced against production.
+- No production service was restarted, deployed or reconfigured. Native desktop final link and browser WASM runtime remain **NOT VERIFIED**.
+
 ## Native Qt stable-ID feed rows model — 2026-10-20
 
 - **Responsibility:** Own exactly one visible FeedSurface row-order model with stable cast/profile IDs and targeted Qt item-model notifications; preserve the provider-neutral read snapshots in `PresentationBridge` as canonical source material.
@@ -59,7 +75,8 @@
 - **Architecture Guard: PASS**, zero violations as verified by `python3 tools/check_architecture.py`, unchanged guard rules. Historic guard failures in older sections below refer to earlier commits and must not be read as the current outcome.
 - **Provider boundaries:** The node probe is implemented in the HyperSnap provider adapter. The Qt MOC interface remains on its approved UI header boundary. Presentation receives route keys from executable composition, which preserves the existing persisted network choices and user-visible branded labels/icons. Provider-branded translation metadata lives with the provider, while all existing TS/QM IDs remain intact.
 - **Linux native Qt 6.12:** Five Qt/QML/presentation lifecycle and scroll tests passed together, and the independent real-English/Persian `QTranslator` test passed. `node --test tests/wasm/*.test.mjs`: **271/271 PASS** after updating the network-selector assertion to check the same behavior using the injected route key.
-- **Open / NOT VERIFIED:** Full `farcaster_client` link and startup, actual WASM browser runtime, Android/iOS/macOS/Windows, 10k+ row memory and frame-time measurements, and the requested stable-ID native Qt item model with targeted role-specific updates. Passing Qt and JavaScript tests does not establish these targets.
+- **Updated on main:** The active FeedSurface now uses a native `FeedRowsModel : QAbstractListModel` instead of its prior QML `ListModel`. A 10,000-row native Qt model test and real QML import/scroll tests pass; role-specific `dataChanged` and stable structural insert/move/remove are covered. See the later detailed native-model verification section below.
+- **Open / NOT VERIFIED:** Full `farcaster_client` link and startup, actual WASM browser runtime, Android/iOS/macOS/Windows, 10k+ row retained memory and GPU frame-time measurements, profile-specific native model and preparing expensive semantic presentation work off the GUI thread. Passing Qt and JavaScript tests does not establish these targets.
 - **Safety:** No deployment, service restart, credential modification or weakening of tests/architecture rules was performed.
 
 # Genycaster read-pipeline repair: verification record
