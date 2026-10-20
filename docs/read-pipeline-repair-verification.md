@@ -1,5 +1,12 @@
 # Genycaster read-pipeline repair: verification record
 
+## Native QML type registrar include boundary — 2026-10-20
+
+- **Responsibility / origin:** Qt executable's generated QML registration for the native stable-ID feed model; local presentation build integration only, no new application or provider boundary.
+- **Confirmed defect:** Full `farcaster_client` compilation failed in generated `farcaster_client_qmltyperegistrations.cpp` because its `__has_include(<feed_rows_model.hpp>)` branch was false: the executable did not expose `ui/mobile` in its target include paths. Consequently `FeedRowsModel`, `QAbstractItemModel` and `QAbstractListModel` were undeclared. The independent unit tests included this header directly, so did not reveal the executable-only compile defect.
+- **Correction:** `target_include_directories(farcaster_client PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/mobile")` supplies the existing Qt MOC textual boundary without touching generated files, Qt runtime semantics, domain APIs, or the architecture checker. This also preserves compatibility with regenerated QML registrars.
+- **Actual verification:** `ninja -C build/ui-qt612-debug -j1 ui/CMakeFiles/farcaster_client.dir/farcaster_client_qmltyperegistrations.cpp.o`: **PASS** (one object compiled successfully). The original complete-client run reproduced the undeclared-type failure; a full rebuild after the include correction was interrupted during broad dependency rescanning before final executable link. **Full-client link/startup, GPU, mobile and browser WASM runtime remain NOT VERIFIED.** No production deployment or credential changes.
+
 ## Profile feed native stable-ID model — 2026-10-20
 
 - **Responsibility:** Reuse the existing native Qt `FeedRowsModel` for profile-feed delegate ordering and targeted row-role changes; do not add a second competing model.

@@ -934,6 +934,9 @@ qt_add_qml_module(farcaster_client
 target_include_directories(farcaster_client
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/render"
+        # The generated QML type registrar conditionally includes the native
+        # item-model header by basename. Expose this Qt/MOC boundary explicitly.
+        "${CMAKE_CURRENT_SOURCE_DIR}/mobile"
 )
 
 # VectorImage track-matte composition needs Qt 6.11+ and the Qt Lottie vector-format plugin.
