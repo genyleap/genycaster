@@ -165,3 +165,66 @@ test('overall deadline returns verified partial views and preserves unknowns',as
   assert.equal(result.data.counts[b],undefined);
   assert.ok(Date.now()-begin<500,'one stalled author must not stall the whole batch');
 });
+
+
+test('a quoted source retains its own unknown count for old short and empty-text casts',async()=>{
+  const quotedSource=row(a,777,'');
+  const shortSource=row(b,777,'hi');
+  const quotingCast=row(c,888,'Long quoting text identifying an unrelated source post');
+  let searches=0;
+  const service=createCastViewService({fetchImpl:async url=>{
+    const u=new URL(url);
+    if(u.pathname==='/v2/casts'){
+      return json({result:{casts:u.searchParams.get('fid')==='888'
+        ? [{hash:c,author:{fid:888},viewCount:81}] : []}});
+    }
+    ++searches;
+    return json({result:{casts:[{hash:c,author:{fid:888},viewCount:81}]}});
+  }});
+  const resolved=await service.resolve([quotedSource,shortSource,quotingCast]);
+  assert.equal(resolved.data.counts[c],81);
+  assert.equal(resolved.data.counts[a],undefined);
+  assert.equal(resolved.data.counts[b],undefined);
+  assert.equal(searches,0,'No speculative text fallback for empty/short sources');
+});
+
+test('a timed-out consumer cannot cancel an unrelated shared upstream reader',async()=>{
+  let calls=0;
+  const service=createCastViewService({
+    workBudgetMs:50,
+    fetchImpl:async (url,{signal})=>{
+      ++calls;
+      await new Promise(resolve=>setTimeout(resolve,30));
+      assert.equal(signal.aborted,false);
+      return json({result:{casts:[{hash:a,author:{fid:333},viewCount:14}]}});
+    },
+  });
+  const result=await Promise.all([
+    service.resolve([row(a,333,'')]),
+    service.resolve([row(a,333,'')]),
+  ]);
+  assert.equal(calls,1,'One shared recent author lookup');
+  assert.equal(result[0].data.counts[a],14);
+  assert.equal(result[1].data.counts[a],14);
+});
+
+test('a partial HTTP result stays immutable after late upstream completion',async()=>{
+  const service=createCastViewService({
+    workBudgetMs:18,
+    fetchImpl:async url=>{
+      const fid=new URL(url).searchParams.get('fid');
+      if(fid==='400')return json({result:{casts:[{
+        hash:a,author:{fid:400},viewCount:9,
+      }]}});
+      await new Promise(resolve=>setTimeout(resolve,40));
+      return json({result:{casts:[{
+        hash:b,author:{fid:401},viewCount:99,
+      }]}});
+    },
+  });
+  const first=await service.resolve([row(a,400,''),row(b,401,'')]);
+  assert.equal(first.data.counts[a],9);
+  assert.equal(first.data.counts[b],undefined);
+  await new Promise(resolve=>setTimeout(resolve,70));
+  assert.equal(first.data.counts[b],undefined,'Late completion cannot rewrite a returned response');
+});

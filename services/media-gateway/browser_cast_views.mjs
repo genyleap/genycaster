@@ -107,16 +107,19 @@ export function createCastViewService({fetchImpl=fetch,now=()=>Date.now(),
     finally{signal.removeEventListener('abort',expired);}
   }
 
-  async function authorViews(fid,signal) {
+  async function authorViews(fid) {
     const key=String(fid),t=now();
     const found=authorCache.get(key);
     if(found&&found.expires>t)return found.promise;
     // One recent-cast request for every author, shared across all visible
     // posts from that account and all concurrent client batches.
+    // Cache entries are shared across client batches. Their upstream lifetime
+    // cannot belong to whichever caller happened to arrive first.
+    const sharedSignal=AbortSignal.timeout(Math.max(25,Math.min(workBudgetMs,8_000)));
     const promise=withUpstreamSlot(() => getPublicJson(
       'https://api.farcaster.xyz/v2/casts?fid='+encodeURIComponent(key)+'&limit=50',
-      fetchImpl,signal,
-    ),signal).then(data=>{
+      fetchImpl,sharedSignal,
+    ),sharedSignal).then(data=>{
       if(!data && authorCache.get(key)?.promise===promise)
         authorCache.get(key).expires=now()+5_000;
       const views=new Map();
@@ -132,7 +135,7 @@ export function createCastViewService({fetchImpl=fetch,now=()=>Date.now(),
     return promise;
   }
 
-  async function searchExact(row,signal) {
+  async function searchExact(row) {
     if(row.text.length<12)return null;
     const t=now();
     const cached=searchCache.get(row.castId);
@@ -140,10 +143,11 @@ export function createCastViewService({fetchImpl=fetch,now=()=>Date.now(),
     // Only search a short, normalized prefix. Never trust text-match alone:
     // the authoritative identity is the full cast hash AND author FID.
     const query=row.text.slice(0,85);
+    const sharedSignal=AbortSignal.timeout(Math.max(25,Math.min(workBudgetMs,8_000)));
     const promise=withUpstreamSlot(() => getPublicJson(
       'https://api.farcaster.xyz/v2/search-casts?q='
-      +encodeURIComponent(query)+'&limit=10',fetchImpl,signal,
-    ),signal).then(data=>{
+      +encodeURIComponent(query)+'&limit=10',fetchImpl,sharedSignal,
+    ),sharedSignal).then(data=>{
       if(!data && searchCache.get(row.castId)?.promise===promise)
         searchCache.get(row.castId).expires=now()+5_000;
       const matched=(Array.isArray(data?.result?.casts)?data.result.casts:[])
@@ -171,7 +175,7 @@ export function createCastViewService({fetchImpl=fetch,now=()=>Date.now(),
     // Bound all upstream work by one operation deadline, rather than a fresh
     // timeout for every sequential group. Completed partial rows are usable.
     await withinDeadline(Promise.all(fids.map(async fid=>{
-      const views=await authorViews(fid,deadline);
+      const views=await authorViews(fid);
       if(views)recent.set(fid,views);
     })),deadline);
     const counts=Object.create(null);
@@ -184,10 +188,12 @@ export function createCastViewService({fetchImpl=fetch,now=()=>Date.now(),
     // Search missing hashes only while budget remains. Slot admission is
     // shared across HTTP clients; unknowns stay absent rather than zero.
     if(!deadline.aborted)await withinDeadline(Promise.all(missing.map(async row=>{
-      const count=await searchExact(row,deadline);
+      const count=await searchExact(row);
       if(count!==null && count!==undefined)counts[row.castId]=count;
     })),deadline);
-    return {status:200,data:{counts}};
+    // Snapshot before returning: late completion after a partial response
+    // must not mutate an object already handed to the HTTP serializer.
+    return {status:200,data:{counts:{...counts}}};
   }
 
   return {resolve};
