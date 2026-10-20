@@ -770,6 +770,18 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                             auto saved = m_store.writeFeed(
                                 localKey, *fresh, query.continuation.has_value());
                             if (!saved) {
+                                if (query.continuation && options.pageOnlyContinuation) {
+                                    // The consumer owns its preceding visible pages.
+                                    // Storage failure must not cause a full SQLite
+                                    // re-materialization (or present an uncommitted
+                                    // remote page as if it were durable local data).
+                                    // An empty failed delta preserves prior rows.
+                                    state.next.reset();
+                                    state.metadata = failedMetadata(
+                                        std::move(saved.error()), true);
+                                    publish(control, observer, std::move(state));
+                                    return;
+                                }
                                 model::FeedState fallback = failedFallback();
                                 fallback.metadata = failedMetadata(
                                     std::move(saved.error()), !fallback.entries.empty());

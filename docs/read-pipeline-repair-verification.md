@@ -1,5 +1,24 @@
 # Genycaster read-pipeline repair: verification record
 
+## Page-only persistence failure recovery — 2026-10-20
+
+- **Responsibility/origin:** Application local-first feed continuation; repair failure handling without altering provider-neutral pagination or Qt presentation ownership.
+- **Boundary:** `ReadOptions.pageOnlyContinuation` means the consumer already owns preceding visible pages. When a successful provider continuation cannot be committed to local storage, deliver a terminal empty delta with the existing recoverable persistence error, not an expensive re-hydrated full timeline or uncommitted items.
+- **Canonical invariants:** old visible rows remain, network/provider continuation is not forged, no missing cache data is interpreted as deletion. Full-snapshot consumers retain the existing fallback semantics.
+- **Failures/offline/ownership:** storage failure is distinct from background network failure; cancel/generation semantics unchanged. Cached timeline stays usable offline. The write remains atomic under the existing storage contract.
+- **Tests:** deterministic write-failure injection and a counting local-store wrapper prove the absence of additional whole-feed materializations after a continuation write failure; assert both page-only and legacy behaviors.
+
+### Implementation and verified results
+
+- Confirmed: the `ReadService::openFeed` persistence-failure branch invoked `failedFallback()`, which unconditionally called `m_store.readFeed(localKey)` on continuations. This reconstructed an accumulated timeline just to report a failed page. `pageOnlyContinuation` now emits one empty, terminal `Failed` state with `StorageFailure`, `isStale=true` and no continuation. The existing page owner preserves its previously displayed rows; neither uncommitted network content nor invented durable rows are published. Default full-snapshot consumers retain the legacy fallback path.
+- A deterministic failure-injecting `CountingReadStore` asserts `feedMaterializations == 2` before/after three page-only failure modes: provider callback 503, rejected provider admission and failed persistence after a verified provider page. The legacy read still materializes and returns the original persisted row. Tests assert the precise failure vocabulary and that the failed page is not exposed as saved content.
+- `cmake --build --preset provider-hypersnap --target farcaster_read_pipeline_tests -j1 && ctest --test-dir build/provider-hypersnap -R '^application.local_first_read$' --output-on-failure`: **PASS**, 1/1; 2.12 seconds.
+- `cmake --build --preset strict-self-hosted --target farcaster_read_pipeline_tests -j1 && ctest --test-dir build/strict-self-hosted -R '^application.local_first_read$' --output-on-failure`: **PASS**, 1/1; 2.84 seconds.
+- `cmake --build --preset minimal-core --target farcaster_read_pipeline_tests -j1 && ctest --test-dir build/minimal-core -R '^application.local_first_read$' --output-on-failure`: **PASS**, 1/1; 2.37 seconds.
+- This fix removes unnecessary full local reads specifically on failed page-only continuations; it does **not** wire initial SQLite windows into the Qt feed, change visible geometry, or prove real-device frame times. Production deployment, macOS/Windows/mobile and compiled browser WASM remain **NOT VERIFIED**.
+
+# Genycaster read-pipeline repair: verification record
+
 ## Account-scoped read-enrichment isolation (2026-10-20)
 
 - **Responsibility / origin:** Application-facing presentation security/correctness; viewer identity is not part of public cast/profile data.

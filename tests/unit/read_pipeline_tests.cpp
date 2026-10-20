@@ -190,6 +190,7 @@ public:
         : m_delegate{std::move(delegate)} {}
 
     int feedMaterializations{};
+    bool failNextFeedWrite{false};
 
     [[nodiscard]] foundation::result::Result<std::optional<domain::profile::Profile>>
     findProfileByUsername(std::string_view value) override {
@@ -224,6 +225,11 @@ public:
     [[nodiscard]] foundation::result::Status
     writeFeed(const farcaster::local::read::FeedKey& key,
               const capability::feed::FeedPage& page, bool append) override {
+        if (std::exchange(failNextFeedWrite, false)) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::StorageFailure,
+                "Deterministic local-feed write failure."));
+        }
         return m_delegate->writeFeed(key, page, append);
     }
     [[nodiscard]] foundation::result::Result<capability::social::SocialGraphPage>
@@ -1125,9 +1131,29 @@ void pageOnlyContinuationFailuresPreserveViewportWithoutFullRead()
     assert(observed.front().entries.empty() && !observed.front().next);
     assert(store.feedMaterializations == 2);
 
+    // The provider returned a valid page, but atomic local persistence failed.
+    // Page-only consumers already own previous visible content. They must
+    // receive the actual failure and no uncommitted rows, and cannot be forced
+    // to hydrate the entire offline timeline for error recovery.
+    observed.clear();
+    gateway.servedFeed = pageFor(makeProfile(89, "new", "New"),
+        makeCast("0xnot-durable", 89, "Should not publish as durable", 2000));
+    store.failNextFeedWrite = true;
+    auto rejectedWrite = service.openFeed(continued,
+        [&observed](auto state) { observed.push_back(std::move(state)); }, pageOnly);
+    assert(rejectedWrite && observed.size() == 1U);
+    assert(observed.front().metadata.phase == application::read::model::ReadPhase::Failed);
+    assert(observed.front().metadata.isStale);
+    assert(observed.front().metadata.error);
+    assert(observed.front().metadata.error->code
+        == foundation::error::ErrorCode::StorageFailure);
+    assert(observed.front().entries.empty() && !observed.front().next);
+    assert(store.feedMaterializations == 2);
+
     // Non-page-only clients still receive the complete cached snapshot on
     // unavailable continuation, preserving their historical semantics.
     observed.clear();
+    gateway.servedFeed.reset();
     auto legacy = service.openFeed(continued,
         [&observed](auto state) { observed.push_back(std::move(state)); });
     assert(legacy && observed.size() == 1U);
