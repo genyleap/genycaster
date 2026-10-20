@@ -1,5 +1,25 @@
 # Genycaster read-pipeline repair: verification record
 
+## Provider-neutral route-affinity selection — 2026-10-20
+
+- **Responsibility:** Core routing policy selects an eligible capability implementation by preference without embedding concrete provider identifiers.
+- **Origin:** Capability/local routing, mandatory neutral contract; only executable composition names the two selected provider registrations.
+- **Public contract:** `routing::policy::PreferredNetwork` denotes independent vs hosted routing preference; `router::PreferredRouteProviders` carries optional provider IDs selected by the composition root. Eligibility, health and deployment restrictions remain authoritative. No provider SDK/DTOs leak into routing.
+- **Canonical invariants:** Existing user-stored `preferredNetwork` route choice maps to the same concrete registered providers at the outer Qt composition; fallback continues when preferred route is absent/unhealthy/ineligible. Empty affinity means score-only ranking. No network I/O.
+- **Failure/disablement:** No candidate still returns an existing `Unavailable` result. Strict self-hosted and compiled-out-provider profiles do not gain a dependency.
+- **Tests:** Core registration with arbitrary provider IDs, preference switching, health failover and StrictSelfHosted constraints; run core/provider/self-hosted test profiles and Architecture Guard. Product UI route-selection behavior must remain unchanged.
+
+### Implementation and verification
+
+- Confirmed architectural defect: `CapabilityRouter::resolve()` hardcoded backend IDs `hypersnap-v2` and `farcaster-snapchain` and a provider-named routing enum in the public policy module. Core selection now receives two optional `ProviderId` values supplied exclusively by executable runtime composition. `PreferredNetwork::Independent/Hosted` is provider-neutral, and an absent mapping always falls back to score-only eligible routing.
+- Outer Qt composition maps the existing persisted `hypersnap` / `farcaster` choices onto these two routing modes without changing settings, endpoint configuration, the two registered implementations or fallback behavior. The core test uses unrelated `test-independent` and `test-hosted` identifiers to prove the router no longer relies on any vendor-name string; the score-only, health-unavailable and strict self-hosted assertions are behavioral.
+- `cmake --build --preset provider-hypersnap --target farcaster_core_tests farcaster_read_pipeline_tests -j1` and `ctest --test-dir build/provider-hypersnap -R '^(core.behavior|application.local_first_read|provider.hypersnap.contract|storage.local)$' --output-on-failure`: **4/4 PASS**, 4.02 sec. First test-target compilation experienced a transient **Clang 23 frontend crash** with spurious `<built-in>` UTF-8 diagnostics; an unchanged rerun of the exact core target compiled and linked successfully. This is not evidence of a C++ source error; host toolchain stability remains a risk.
+- `cmake --build --preset strict-self-hosted --target farcaster_core_tests farcaster_read_pipeline_tests -j1` and `ctest --test-dir build/strict-self-hosted -R '^(core.behavior|application.local_first_read)$' --output-on-failure`: **2/2 PASS**, 2.50 sec.
+- `cmake --build --preset minimal-core --target farcaster_core_tests farcaster_read_pipeline_tests -j1` and `ctest --test-dir build/minimal-core -R '^(core.behavior|application.local_first_read)$' --output-on-failure`: **2/2 PASS**, 2.48 sec.
+- `python3 tools/check_architecture.py`: **FAIL**, violations reduced from 11 to **6** without modifying/weakening the checker. Remaining occurrences are presentation settings/UI/node-selection and localized user-facing provider labels. They require an independent architecture migration preserving user-visible network selection; **NOT CLOSED**.
+- Full Qt client compilation/link/startup is reported separately; these core tests do not demonstrate Qt composition or actual device compatibility.
+
+
 ## Qt Quick viewport-anchor callback ownership — 2026-10-20
 
 - **Responsibility:** Presentation-only deferred viewport restoration, owned by the live surface rather than a global Qt deferred JavaScript callback.

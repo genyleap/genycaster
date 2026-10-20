@@ -825,6 +825,12 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
                            : routing::policy::RoutingMode::Standard,
             .allowManagedProviders = !strict,
             .minimumQuality = farcaster::capability::model::CapabilityQuality::Experimental,
+        },
+        // Only composition names concrete provider registrations. Routing
+        // itself owns an operation preference but never a vendor identifier.
+        routing::router::PreferredRouteProviders{
+            .independent = farcaster::provider::model::ProviderId{"hypersnap-v2"},
+            .hosted = farcaster::provider::model::ProviderId{"farcaster-snapchain"},
         });
 
     const auto identityRoute = runtime->router->resolve(routing::policy::CapabilityRequest{

@@ -22,6 +22,15 @@ struct ProviderRoute final {
 };
 
 /**
+ * @brief Owned preferred provider identities supplied by executable composition.
+ * Empty identities disable affinity for the corresponding read route.
+ */
+struct PreferredRouteProviders final {
+    provider::model::ProviderId independent{};
+    provider::model::ProviderId hosted{};
+};
+
+/**
  * @brief Resolves a capability independently using registry, health, and policy.
  *
  * The referenced registry and health objects must outlive the router. Resolution
@@ -34,11 +43,14 @@ public:
      * @param registry Registry that must outlive this router.
      * @param health Health registry that must outlive this router.
      * @param policy Owned routing policy copied into the router.
+     * @param preferredProviders Optional provider identities supplied only
+     *        by the executable composition; empty means no affinity.
      */
     CapabilityRouter(
         const registry::CapabilityRegistry& registry,
         const health::HealthRegistry& health,
-        policy::RoutingPolicy policy) noexcept;
+        policy::RoutingPolicy policy,
+        PreferredRouteProviders preferredProviders = {}) noexcept;
 
     /**
      * @brief Resolves the best currently eligible provider route.
@@ -55,7 +67,8 @@ private:
     const registry::CapabilityRegistry& m_registry;
     const health::HealthRegistry& m_health;
     policy::RoutingPolicy m_policy{};
-    std::atomic<policy::PreferredNetwork> m_preferredNetwork{policy::PreferredNetwork::Hypersnap};
+    PreferredRouteProviders m_preferredProviders{};
+    std::atomic<policy::PreferredNetwork> m_preferredNetwork{policy::PreferredNetwork::Independent};
     policy::PolicyEngine m_policyEngine{};
 };
 

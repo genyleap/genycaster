@@ -243,8 +243,8 @@ void testCapabilityRouting()
     const auto feed = feedCapability(capability::model::CapabilityQuality::Native, true);
     assert(networkRegistry.registerProvider(routing::registry::ProviderRegistration{
         .provider = provider::model::ProviderDescriptor{
-            .id = provider::model::ProviderId{"hypersnap-v2"},
-            .displayName = "Hypersnap",
+            .id = provider::model::ProviderId{"test-independent"},
+            .displayName = "Independent read adapter",
             .deployment = provider::model::ProviderDeployment::SelfHosted,
             .privacy = provider::model::ProviderPrivacy::Private,
             .priority = 1,
@@ -253,7 +253,7 @@ void testCapabilityRouting()
     }));
     assert(networkRegistry.registerProvider(routing::registry::ProviderRegistration{
         .provider = provider::model::ProviderDescriptor{
-            .id = provider::model::ProviderId{"farcaster-snapchain"},
+            .id = provider::model::ProviderId{"test-hosted"},
             .displayName = "Farcaster",
             .deployment = provider::model::ProviderDeployment::PublicManaged,
             .privacy = provider::model::ProviderPrivacy::Managed,
@@ -264,33 +264,50 @@ void testCapabilityRouting()
     routing::health::HealthRegistry networkHealth{};
     routing::router::CapabilityRouter networkRouter{
         networkRegistry, networkHealth, routing::policy::RoutingPolicy{},
+        routing::router::PreferredRouteProviders{
+            .independent = provider::model::ProviderId{"test-independent"},
+            .hosted = provider::model::ProviderId{"test-hosted"},
+        },
     };
-    const auto hypersnapRoute = networkRouter.resolve(request);
-    assert(hypersnapRoute);
-    assert(hypersnapRoute->provider.id.value == "hypersnap-v2");
-    networkRouter.setPreferredNetwork(routing::policy::PreferredNetwork::Farcaster);
+    const auto independentRoute = networkRouter.resolve(request);
+    assert(independentRoute);
+    assert(independentRoute->provider.id.value == "test-independent");
+    networkRouter.setPreferredNetwork(routing::policy::PreferredNetwork::Hosted);
     const auto farcasterRoute = networkRouter.resolve(request);
     assert(farcasterRoute);
-    assert(farcasterRoute->provider.id.value == "farcaster-snapchain");
+    assert(farcasterRoute->provider.id.value == "test-hosted");
+    // No composition-provided identities means score-only routing; changing
+    // the mode alone must not smuggle backend-name knowledge into the core.
+    routing::router::CapabilityRouter unconfiguredAffinity{
+        networkRegistry, networkHealth, routing::policy::RoutingPolicy{},
+    };
+    unconfiguredAffinity.setPreferredNetwork(routing::policy::PreferredNetwork::Hosted);
+    const auto scoreOnlyRoute = unconfiguredAffinity.resolve(request);
+    assert(scoreOnlyRoute);
+    assert(scoreOnlyRoute->provider.id.value == "test-independent");
     networkHealth.update(routing::health::CapabilityHealth{
-        .providerId = provider::model::ProviderId{"farcaster-snapchain"},
+        .providerId = provider::model::ProviderId{"test-hosted"},
         .capabilityId = capability::catalog::feedFollowingRead(),
         .state = routing::health::HealthState::Unavailable,
     });
     const auto healthyFallback = networkRouter.resolve(request);
     assert(healthyFallback);
-    assert(healthyFallback->provider.id.value == "hypersnap-v2");
+    assert(healthyFallback->provider.id.value == "test-independent");
     routing::router::CapabilityRouter strictNetworkRouter{
         networkRegistry, networkHealth,
         routing::policy::RoutingPolicy{
             .mode = routing::policy::RoutingMode::StrictSelfHosted,
             .allowManagedProviders = false,
         },
+        routing::router::PreferredRouteProviders{
+            .independent = provider::model::ProviderId{"test-independent"},
+            .hosted = provider::model::ProviderId{"test-hosted"},
+        },
     };
-    strictNetworkRouter.setPreferredNetwork(routing::policy::PreferredNetwork::Farcaster);
+    strictNetworkRouter.setPreferredNetwork(routing::policy::PreferredNetwork::Hosted);
     const auto constrainedRoute = strictNetworkRouter.resolve(request);
     assert(constrainedRoute);
-    assert(constrainedRoute->provider.id.value == "hypersnap-v2");
+    assert(constrainedRoute->provider.id.value == "test-independent");
 }
 
 void testRoutingFailureDiagnostics()

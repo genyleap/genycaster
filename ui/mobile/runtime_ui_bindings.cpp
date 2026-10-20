@@ -2201,8 +2201,8 @@ void connectRuntime(
         if (runtime->router) {
             runtime->router->setPreferredNetwork(
                 network == QStringLiteral("farcaster")
-                    ? routing::policy::PreferredNetwork::Farcaster
-                    : routing::policy::PreferredNetwork::Hypersnap);
+                    ? routing::policy::PreferredNetwork::Hosted
+                    : routing::policy::PreferredNetwork::Independent);
         }
     };
     applyNetworkAffinity(bridge.preferredNetwork());

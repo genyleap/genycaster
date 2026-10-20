@@ -24,10 +24,12 @@ namespace farcaster::routing::router {
 CapabilityRouter::CapabilityRouter(
     const registry::CapabilityRegistry& registry,
     const health::HealthRegistry& health,
-    policy::RoutingPolicy policy) noexcept
+    policy::RoutingPolicy policy,
+    PreferredRouteProviders preferredProviders) noexcept
     : m_registry(registry)
     , m_health(health)
     , m_policy(std::move(policy))
+    , m_preferredProviders(std::move(preferredProviders))
 {
 }
 
@@ -68,9 +70,10 @@ CapabilityRouter::resolve(const policy::CapabilityRequest& request) const
         // and health eligibility. It never defeats a hard constraint or excludes
         // a compatible fallback when the preferred adapter is absent.
         const auto preferred = m_preferredNetwork.load(std::memory_order_relaxed);
-        const bool matchesPreference = preferred == policy::PreferredNetwork::Hypersnap
-            ? candidate.provider.id.value == "hypersnap-v2"
-            : candidate.provider.id.value == "farcaster-snapchain";
+        const auto& preferredId = preferred == policy::PreferredNetwork::Independent
+            ? m_preferredProviders.independent.value : m_preferredProviders.hosted.value;
+        const bool matchesPreference = !preferredId.empty()
+            && candidate.provider.id.value == preferredId;
         const auto routeScore = m_policyEngine.score(candidate, healthPointer);
         if (!best || (matchesPreference && !bestMatchesPreference)
             || (matchesPreference == bestMatchesPreference && routeScore < bestScore)) {
