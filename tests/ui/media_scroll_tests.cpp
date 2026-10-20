@@ -551,9 +551,38 @@ int main(int argc, char** argv)
         }});
         profile.reset();
         QCoreApplication::processEvents();
+
+        // The feed formerly scheduled multiple global Qt.callLater closures
+        // while its route, semantic projection and cached rows were changing.
+        // Unloading the surface in the same event turn must cancel them.
+        auto feedRoute = createSurface(engine, QStringLiteral("FeedSurface"), *scroll,
+            {{QStringLiteral("rows"), QVariantList{QVariantMap{
+                 {QStringLiteral("castId"), QStringLiteral("0xrapid-a")},
+                 {QStringLiteral("text"), QStringLiteral("Cached cast")},
+                 {QStringLiteral("createdAtMs"), 1000},
+             }}},
+             {QStringLiteral("presentationMode"), QStringLiteral("for-you")},
+             {QStringLiteral("runtimeReady"), true},
+             {QStringLiteral("feedStarted"), true},
+             {QStringLiteral("compact"), true}});
+        if (!feedRoute) return 1;
+        feedRoute->setProperty("rows", QVariantList{
+            QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xrapid-a")},
+                        {QStringLiteral("text"), QStringLiteral("Changed cache")},
+                        {QStringLiteral("createdAtMs"), 1000}},
+            QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xrapid-b")},
+                        {QStringLiteral("text"), QStringLiteral("Recent cast")},
+                        {QStringLiteral("createdAtMs"), 2000}},
+        });
+        feedRoute->setProperty("presentationMode", QStringLiteral("visuals"));
+        feedRoute->setProperty("presentationMode", QStringLiteral("for-you"));
+        feedRoute->setProperty("presentationActive", false);
+        feedRoute->setProperty("presentationActive", true);
+        feedRoute.reset();
+        QCoreApplication::processEvents();
     }
     expect(qmlWarnings.empty(),
-        "destroyed notification/profile surfaces never evaluate stale viewport callbacks");
+        "destroyed notification/profile/feed surfaces never evaluate stale deferred callbacks");
     qmlWarnings.clear();
 
     for (const QString& surface : {QStringLiteral("SuperellipseImage"),

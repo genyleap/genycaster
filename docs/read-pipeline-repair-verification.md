@@ -1,5 +1,23 @@
 # Genycaster read-pipeline repair: verification record
 
+## FeedSurface deferred-work lifetime and bounded sync admission — 2026-10-20
+
+- **Responsibility:** Safely coordinate QML presentation reconciliation, optional art metadata priming and local/remote page demand while the live FeedSurface owns its ListView.
+- **Origin / optionality:** Qt presentation only; no network, provider or storage I/O in QML. Optional derived art metadata remains separate from primary rows.
+- **Public contract:** An object-owned zero-delay Timer coalesces duplicate row/viewport triggers for the current active surface, and cancels pending work on destruction/deactivation. No unowned `Qt.callLater` callback may reference a destroyed feed or ListView. The current single stable-ID ListModel remains authoritative while this lifecycle repair is being verified.
+- **Canonical behavior:** Reconciliation still waits for a settled kinetic scroll; tab changes reset the intended bounded auto-prefetch budget; visual changes prime art only for the active visual mode; a newly available page schedules an existing bounded load-more request. Locally cached rows remain useful while offline.
+- **Expected failures:** Canceling queued work when a surface becomes inactive cannot discard needed state; resume schedules one fresh reconciliation without automatically burning a pagination budget. No scroll position or geometry reset on ordinary viewer updates.
+- **Tests:** Deterministic JavaScript scheduler coalescing and inactive-surface behavior plus actual Qt Quick create/destroy after rapid rows/mode/visibility changes, with no late callback warnings.
+
+### Implemented and verified
+
+- Confirmed source defect: `FeedSurface.qml` previously used ten unowned `Qt.callLater` calls for row reconciliation, semantic projections, optional art work, pagination admission, resume, and new-post scroll positioning. Those closures retained QML root/ListView references after the route could be unloaded. Replaced them with an object-owned, zero-delay `feedWorkTimer` that accumulates three independent intents (stable-list sync, optional art, bounded page check). Inactive surfaces stop and clear queued work while marking row reconciliation pending for reacquisition. The new-post jump uses a separate owned one-shot timer; the stable-ID ListModel, delegate pool and geometry policy remain unchanged.
+- `node --test tests/wasm/feed_deferred_lifecycle.test.mjs`: **4/4 PASS**. Tests execute the actual extracted `deferFeedWork` and timer-trigger JavaScript, confirming intent coalescing, no work on a hidden surface, correct resume and no optional artwork priming outside Visuals. A source assertion separately verifies no remaining `Qt.callLater` calls in this surface.
+- `node --test tests/wasm/*.test.mjs`: **275/275 PASS** (9.37 seconds), including the four new JS lifecycle tests. This is not a compiled WASM browser test.
+- `cmake --build --preset ui-qt612-debug --target farcaster_media_scroll_tests -j1 && cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic ctest --test-dir build/ui-qt612-debug -R '^(ui.media_scroll|ui.qml_import_smoke|presentation.feed_row_notifications)$' --output-on-failure`: **3/3 PASS**, 20.51 seconds on native Linux Qt 6.12. The real QQmlEngine regression creates and destroys six rapid FeedSurface instances following row, semantic-mode and visibility changes and asserts no QML warning.
+- `python3 tools/check_architecture.py`: **PASS**; unchanged checks. This lifecycle repair is not a native C++ `QAbstractItemModel` implementation or proof of real-device frame-time gains.
+- `cmake --build --preset ui-qt612-debug --target farcaster_client -j1`: **INCOMPLETE / NOT VERIFIED** (414.97 seconds), progressed through `main.cpp` and `runtime_ui_bindings.cpp` to `[62/67]`, but an extremely slow remaining object compile prevented final linking. Job was explicitly SIGTERM-interrupted to restore normal remote server responsiveness; Ninja reports `build stopped: interrupted by user`, **not** a demonstrated C++ build error. No production restart or deployment.
+
 ## Latest verified status — 2026-10-20
 
 - **Architecture Guard: PASS**, zero violations as verified by `python3 tools/check_architecture.py`, unchanged guard rules. Historic guard failures in older sections below refer to earlier commits and must not be read as the current outcome.

@@ -29,6 +29,9 @@ Item {
     property double accountFid: 0
     property bool loadMorePending: false
     property bool stableModelSyncPending: false
+    property bool deferredFeedSync: false
+    property bool deferredArtPrime: false
+    property bool deferredPageCheck: false
     // Complex QVariantMap/QJSValue payloads must not live inside ListModel roles:
     // Qt fixes a role's type from its first value and later C++ QVariantMap vs
     // JS object/list wrappers can otherwise be rejected. Keep only primitive,
@@ -796,28 +799,29 @@ Item {
         return qsTrId("genycaster.home.conversations")
     }
 
-    onRowsChanged: Qt.callLater(function() {
-        if (!root.presentationActive) {
-            root.stableModelSyncPending = true
-            return
-        }
-        root.requestStableModelSync()
-        root.scheduleLoadMore()
-    })
-    onSupplementalRowsChanged: Qt.callLater(function() {
-        if (root.presentationActive && root.presentationMode === "visuals") {
-            root.primeArtPreviews()
-            root.requestStableModelSync()
-        }
-    })
+    // All deferred QML work is owned by this Item's timer, not the global
+    // Qt.callLater queue. Repeated changes coalesce into one reconciliation;
+    // unloading the page destroys the timer and its pending work.
+    function deferFeedWork(syncRows, primeArt, checkPage) {
+        root.deferredFeedSync = root.deferredFeedSync || syncRows
+        root.deferredArtPrime = root.deferredArtPrime || primeArt
+        root.deferredPageCheck = root.deferredPageCheck || checkPage
+        feedWorkTimer.restart()
+    }
+
+    onRowsChanged: root.deferFeedWork(true, false, true)
+    onSupplementalRowsChanged: {
+        if (root.presentationMode === "visuals")
+            root.deferFeedWork(true, true, false)
+    }
     onSupplementalBusyChanged: {
         if (!root.supplementalBusy && root.presentationMode === "visuals")
-            Qt.callLater(root.scheduleLoadMore)
+            root.deferFeedWork(false, false, true)
     }
     onSocialModeChanged: {
         stableRows.clear()
         root.resetAllFilterPrefetchBudgets()
-        Qt.callLater(root.requestStableModelSync)
+        root.deferFeedWork(true, false, false)
     }
     onActiveFeedChanged: {
         // Following and Trending own independent continuation streams. A real
@@ -833,22 +837,14 @@ Item {
         root.resetCurrentFilterPrefetchBudget()
         // Keep the existing delegate pool alive until the new projection can
         // reconcile keys; clearing the whole model forced expensive remounts.
-        Qt.callLater(function() {
-            if (root.presentationMode === "visuals")
-                root.primeArtPreviews()
-            root.requestStableModelSync()
-            root.scheduleLoadMore()
-        })
+        root.deferFeedWork(true, root.presentationMode === "visuals", true)
     }
     onVisualFilterChanged: {
         if (root.presentationMode !== "visuals")
             return
         filterPrefetchDebounce.stop()
         // Reconcile only rows whose semantic presentation actually changed.
-        Qt.callLater(function() {
-            root.requestStableModelSync()
-            root.scheduleLoadMore()
-        })
+        root.deferFeedWork(true, false, true)
     }
     onHasMoreChanged: {
         if (!hasMore) {
@@ -856,7 +852,7 @@ Item {
             loadMoreDebounce.stop()
             loadMoreRelease.stop()
         } else {
-            Qt.callLater(root.scheduleLoadMore)
+            root.deferFeedWork(false, false, true)
         }
     }
     onBusyChanged: {
@@ -864,7 +860,7 @@ Item {
             loadMoreRelease.stop()
         } else {
             loadMorePending = false
-            Qt.callLater(root.scheduleLoadMore)
+            root.deferFeedWork(false, false, true)
         }
     }
     onPresentationActiveChanged: {
@@ -872,16 +868,48 @@ Item {
             previewSyncDebounce.stop()
             filterPrefetchDebounce.stop()
             loadMoreDebounce.stop()
+            feedWorkTimer.stop()
+            root.deferredFeedSync = false
+            root.deferredArtPrime = false
+            root.deferredPageCheck = false
+            root.stableModelSyncPending = true
             return
         }
-        Qt.callLater(function() {
-            if (root.presentationMode === "visuals")
-                root.primeArtPreviews()
-            root.requestStableModelSync()
-            root.scheduleLoadMore()
-        })
+        root.deferFeedWork(true, root.presentationMode === "visuals", true)
     }
     Component.onCompleted: requestStableModelSync()
+
+    Timer {
+        id: feedWorkTimer
+        interval: 0
+        repeat: false
+        onTriggered: {
+            const synchronize = root.deferredFeedSync
+            const prime = root.deferredArtPrime
+            const check = root.deferredPageCheck
+            root.deferredFeedSync = false
+            root.deferredArtPrime = false
+            root.deferredPageCheck = false
+            if (!root.presentationActive) {
+                if (synchronize)
+                    root.stableModelSyncPending = true
+                return
+            }
+            if (prime && root.presentationMode === "visuals")
+                root.primeArtPreviews()
+            if (synchronize)
+                root.requestStableModelSync()
+            if (check)
+                root.scheduleLoadMore()
+        }
+    }
+
+    Timer {
+        id: positionAtTopTimer
+        interval: 0
+        repeat: false
+        onTriggered: readList.positionViewAtBeginning()
+    }
 
     Timer {
         id: previewSyncDebounce
@@ -1313,7 +1341,7 @@ Item {
             gesturePolicy: TapHandler.ReleaseWithinBounds
             onTapped: {
                 root.revealPendingPostsRequested()
-                Qt.callLater(() => readList.positionViewAtBeginning())
+                positionAtTopTimer.restart()
             }
         }
     }
