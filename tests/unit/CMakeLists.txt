@@ -64,6 +64,19 @@ if(FARCASTER_BUILD_UI)
     farcaster_enable_warnings(farcaster_presentation_icon_tests)
     add_test(NAME presentation.contextual_icons COMMAND farcaster_presentation_icon_tests)
     set_tests_properties(presentation.contextual_icons PROPERTIES LABELS "unit;presentation;icons")
+
+    add_executable(farcaster_presentation_row_notifications_tests
+        presentation_row_notifications_tests.cpp)
+    target_link_libraries(farcaster_presentation_row_notifications_tests
+        PRIVATE farcaster::presentation Qt6::Core Qt6::Qml)
+    target_compile_features(farcaster_presentation_row_notifications_tests PRIVATE cxx_std_26)
+    set_property(TARGET farcaster_presentation_row_notifications_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+    farcaster_enable_warnings(farcaster_presentation_row_notifications_tests)
+    add_test(NAME presentation.feed_row_notifications
+        COMMAND farcaster_presentation_row_notifications_tests)
+    set_tests_properties(presentation.feed_row_notifications PROPERTIES
+        LABELS "unit;presentation;qt;read-pipeline"
+        TIMEOUT 20)
 endif()
 
 if(FARCASTER_BUILD_UI)

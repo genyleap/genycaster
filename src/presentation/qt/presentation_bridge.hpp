@@ -63,7 +63,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool hasReadActivity READ hasReadActivity NOTIFY stateChanged)
     Q_PROPERTY(bool feedStarted READ feedStarted NOTIFY stateChanged)
     Q_PROPERTY(bool communityFallback READ communityFallback NOTIFY stateChanged)
-    Q_PROPERTY(QVariantList rows READ rows NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList rows READ rows NOTIFY rowsChanged)
     Q_PROPERTY(QVariantList explorerArtRows READ explorerArtRows NOTIFY stateChanged)
     Q_PROPERTY(bool explorerArtBusy READ explorerArtBusy NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY stateChanged)
@@ -372,6 +372,8 @@ signals:
     /** @brief First-run setup completion or authentication gate visibility changed. */
     void setupStateChanged();
     void stateChanged();
+    /** @brief Feed/profile row payload, order or identity changed (not just read status). */
+    void rowsChanged();
     void searchChanged();
     void notificationsChanged();
     void bookmarksChanged();

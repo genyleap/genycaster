@@ -1,5 +1,23 @@
 # Genycaster read-pipeline repair: verification record
 
+## Feed-row notification boundary (2026-10-20)
+
+- **Responsibility / origin:** Local presentation optimization, not a new feed authority. Preserve `PresentationBridge::rows()` as the single authoritative Qt-visible collection and the already-virtualized QML `stableRows` model.
+- **Public contract:** `rowsChanged()` notifies changes in presented row payload/order/identity. `stateChanged()` continues to notify navigation, loading, failure and detail state independently. Switching the `rows` Q_PROPERTY to `rowsChanged` must not suppress any legitimate cast/reaction/preview/write updates.
+- **Invariants:** busy/status-only and unrelated detail updates must not invalidate the entire feed binding; cached or fresh rows, optimistic writes, quote previews, navigation, account reconciliation and reaction hydration still notify. Individual delegates preserve their stable IDs and scroll geometry under existing QML reconciliation. No GUI-owned object is read from a worker.
+- **Failures / offline / disablement:** no provider or persistence change; cached state remains readable without connectivity. Behavioral Qt signal and QML binding tests required. This does not pretend to deliver the future native QAbstractItemModel or wire local SQL windows into initial presentation.
+
+### Implemented and verified
+
+- Confirmed that `PresentationBridge::rows` previously used `NOTIFY stateChanged`. On each unrelated status/network/detail event, a QML binding to `rows` became dirty and could re-read the full retained `QVariantList` and trigger `FeedSurface`'s O(n) source reconciliation. The property now uses `rowsChanged`, which is emitted by feed/profile replacement, verified pagination, optimistic writes/account changes, referenced-cast preview hydration and relevant reaction/follow changes. Busy in-place updates and unrelated detail/status changes remain `stateChanged` only. QML's existing stable-ID `ListModel` remains the *single* display model; no competing model was added.
+- `cmake --build --preset ui-qt612-debug --target farcaster_presentation_row_notifications_tests -j1`: **PASS**, including compiling the changed Qt presentation library and MOC.
+- `ctest --test-dir build/ui-qt612-debug -R '^presentation.feed_row_notifications$' --output-on-failure`: **1/1 PASS** in 0.17 seconds. A real QQmlEngine property binding with **2,048** cached feed rows observes **zero** extra row invalidations during 96 unrelated state/network/detail events, but reacts to real reference hydration, first positive viewer reaction, one new page, optimistic publish, account switch, and profile navigation. Duplicate reaction evidence is inert. Row count, order, retained optimistic overlays and page append are asserted.
+- `cmake --build --preset ui-qt612-debug --target farcaster_presentation_icon_tests farcaster_media_scroll_tests -j1`: **PASS** (native Qt tests relinked against current PresentationBridge).
+- `cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic ctest --test-dir build/ui-qt612-debug -R '^(presentation.feed_row_notifications|presentation.contextual_icons|ui.qml_import_smoke|ui.media_scroll)$' --output-on-failure`: **4/4 PASS**, 19.74 seconds, Linux offscreen Qt 6.12.
+- `node --test tests/wasm/*.test.mjs`: **263/263 PASS**; JavaScript fixtures and source contracts, not compiled WASM browser validation.
+- `python3 tools/check_architecture.py`: **FAIL** on pre-existing provider/backend-naming boundary violations; the guard was not changed.
+- Measured test condition: native offscreen QQmlEngine, 2,048 synthetic minimal rows and 96 synchronous state events, verifying **invalidation count**, not a GPU frametime improvement or end-user latency. A native item model with role-specific `dataChanged`, initial bounded local read consumption, full application startup, mobile and browser WASM remain **NOT VERIFIED**. No production deploy/restart.
+
 ## Local feed-window contract (2026-10-20)
 
 - **Responsibility/origin:** Local-first read infrastructure for large accumulated feeds; optional windowed read while preserving the complete legacy read contract.
