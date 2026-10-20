@@ -10,6 +10,27 @@
 - **Platform assumptions:** Qt/C++26 native Linux build, QML/Qt network on native and WASM; mobile foreground/background and browser transport/runtime still require targeted verification. No native-thread or native-database assumption is added to domain/application.
 - **Regression evidence:** deterministic Qt socket test for Views queue/reacquisition, Node HTTP gateway fixtures for bounded partial and quote identity. Existing core/provider/storage and QML tests are required to validate other boundaries; source checks do not substitute for a runtime.
 
+## Browser link/miniapp metadata boundary contract — 2026-10-20
+
+- **Responsibility:** move optional browser link and Mini App preview relay reads out of LinkPreview/EmbedPreview QML, without disturbing native HTML/OpenGraph resolution or the existing layout reservation.
+- **Origin/disablement:** optional Derived/Compatibility metadata, controlled by composition; native, headless and unavailable WASM network states retain clickable cached/seed content.
+- **Public contract:** a Qt MOC-compatible presentation adapter accepts validated public HTTPS URLs and `link` or `miniapp` intent, emits typed `previewReady(originalUrl,kind,map)` completions; callers reconcile only a matching current URL and postpone geometry-affecting metadata while scrolling.
+- **Invariants:** no QML HTTP/JSON, no endpoint/provider DTO in core, bounded concurrent requests/queue/response/TTL and explicit end-to-end deadline; deduplicate in-flight URLs, validate miniapp origin and response identity, ignore stale consumers; cache useful metadata independently of delegate lifetimes.
+- **Failure/offline:** missing, invalid, oversize and timed-out replies return an empty typed completion, preserve existing metadata and remain eligible for bounded retries. The native link preview adapter is unchanged.
+- **Tests:** Qt loopback HTTP transport exercises link/miniapp recognition, de-duplication, bounded queue, oversized bodies, and identity mismatch; QML/JS source checks complement but do not replace the native fixture. Browser/WASM executable remains NOT VERIFIED.
+
+### Implementation and verified results
+
+- `BrowserLinkMetadataController` is a presentation-owned Qt Network relay for the two browser preview endpoints; optional metadata remains independent of the core feed. The adapter is enabled for WASM normal runs and disabled for native/headless runs, leaving the established native HTML/OpenGraph resolver unchanged. Link and Mini App metadata are typed separately and share a two-request concurrency limit, 32-entry queue, 192-entry cache, 96-KiB response limit, seven-second deadline, and backoff for unavailable lookups. Cached verified results live across delegate recycling; queue overflow returns an explicit empty completion, not an indefinite pending request.
+- `LinkPreview.qml` and `EmbedPreview.qml` no longer issue HTTP or parse JSON. Mini App preview must match canonical URL host before it is accepted; failures retain the fallback ordinary clickable link. Updates arriving while the feed moves are deferred, and URL-identity checks exclude unrelated recycled delegates. This fixes these **two** QML-network architecture violations, but does not establish complete metadata interest tracking on every platform.
+- `cmake --build --preset ui-qt612-debug --target farcaster_browser_link_metadata_tests -j1`: **PASS**, compiling the actual Qt adapter and socket test.
+- `ctest --test-dir build/ui-qt612-debug -R '^ui.browser_link_metadata_contract$' --output-on-failure`: **1/1 PASS**. Deterministic local socket fixture covers request sharing, two-slot concurrency, mismatched domain rejection, oversize response rejection, cache reuse and overflow notification.
+- `node --test tests/wasm/*.test.mjs`: **261/261 PASS**, including updated boundary-oriented checks; **not** a compiled WASM browser runtime.
+- `cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic ctest --test-dir build/ui-qt612-debug -R '^(ui.browser_link_metadata_contract|ui.cast_views_contract|ui.browser_reactions_contract|ui.qml_import_smoke|ui.media_scroll|presentation.contextual_icons)$' --output-on-failure`: **6/6 PASS**, 23.99 seconds, Linux native/headless Qt 6.12. This exercises the standalone adapter but does not build/link the changed application composition.
+- `git diff --check`: **PASS**. The native `farcaster_client` link/startup and actual WASM browser behavior remain **NOT VERIFIED**.
+- `python3 tools/check_architecture.py`: **FAIL**; the remaining QML network violation is `TokenAddressPreview.qml`, with additional pre-existing provider-name leaks. The guard was not weakened.
+- No production deployment, restart, or credential change.
+
 ## Browser reactions: presentation/adapter boundary contract
 
 - **Responsibility:** provide positive-only browser reaction evidence independently of protocol writes, with viewport-scoped demand and account isolation.

@@ -70,6 +70,7 @@
 #include "link_preview_resolver.hpp"
 #include "cast_view_controller.hpp"
 #include "browser_reaction_controller.hpp"
+#include "browser_link_metadata_controller.hpp"
 #include "miniapp_host_controller.hpp"
 #include "media_web_host_controller.hpp"
 #include "miniapp_catalog_controller.hpp"
@@ -1142,6 +1143,14 @@ int main(int argc, char* argv[])
 
     GeoLocationResolver geoLocationResolver{
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct};
+    BrowserLinkMetadataController browserLinkMetadataController{
+        networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
+#if defined(__EMSCRIPTEN__)
+        !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest
+#else
+        false
+#endif
+    };
     LinkPreviewResolver linkPreviewResolver{
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct};
     CastViewController castViewController{
@@ -1463,6 +1472,8 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("localizationController"), &localizationController);
     engine.rootContext()->setContextProperty(QStringLiteral("geoLocationResolver"), &geoLocationResolver);
     engine.rootContext()->setContextProperty(QStringLiteral("linkPreviewResolver"), &linkPreviewResolver);
+    engine.rootContext()->setContextProperty(
+        QStringLiteral("browserLinkMetadataController"), &browserLinkMetadataController);
     engine.rootContext()->setContextProperty(QStringLiteral("castViewController"), &castViewController);
     engine.rootContext()->setContextProperty(
         QStringLiteral("browserReactionController"), &browserReactionController);

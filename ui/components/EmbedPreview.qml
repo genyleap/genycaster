@@ -228,20 +228,22 @@ Item {
             return
         const target = root.targetUrl
         root.browserMarketplaceRequestedUrl = target
-        const xhr = new XMLHttpRequest()
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE || root.targetUrl !== target
-                    || xhr.status !== 200) return
-            try {
-                const result = JSON.parse(xhr.responseText)
-                if (result && result.resolved && String(result.previewImage || "").length > 0
-                        && String(root.linkMetadata.previewImage || "").length === 0)
-                    root.acceptLinkMetadata(result)
-            } catch (error) { /* The marketplace card remains actionable. */ }
+        if (typeof browserLinkMetadataController !== "undefined")
+            browserLinkMetadataController.requestPreview(target, "link")
+    }
+
+    Connections {
+        target: typeof browserLinkMetadataController !== "undefined"
+            ? browserLinkMetadataController : null
+        function onPreviewReady(url, kind, preview) {
+            if (kind !== "link" || String(url) !== root.targetUrl.split("#")[0]
+                    || !preview || !preview.resolved
+                    || !root.computeCollectibleMarketplace(root.linkMetadata, root.lowerUrl)
+                    || String(preview.previewImage || "").length === 0
+                    || String(root.linkMetadata.previewImage || "").length > 0)
+                return
+            root.acceptLinkMetadata(preview)
         }
-        xhr.open("GET", "https://storage-farcaster.genyleap.com/v1/browser/link-preview?url="
-                 + encodeURIComponent(target), true)
-        xhr.send()
     }
 
     Timer {

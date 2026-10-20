@@ -63,9 +63,12 @@ test('marketplace artwork retries through the CORS-safe browser metadata provide
     const embed = read('ui/components/EmbedPreview.qml');
     const art = read('ui/components/CollectiblePreview.qml');
     assert.match(embed, /function requestBrowserMarketplacePreview\(\)/);
-    assert.match(embed, /storage-farcaster\.genyleap\.com\/v1\/browser\/link-preview\?url=/);
+    const adapter = read('ui/mobile/browser_link_metadata_controller.cpp');
+    assert.match(embed, /browserLinkMetadataController\.requestPreview\(target, "link"\)/);
+    assert.match(adapter, /\/v1\/browser\/link-preview/);
+    assert.doesNotMatch(embed, /XMLHttpRequest|JSON\.parse/);
     assert.match(embed, /marketplacePreviewTimer\.restart\(\)/);
-    assert.match(embed, /root\.acceptLinkMetadata\(result\)/);
+    assert.match(embed, /root\.acceptLinkMetadata\(preview\)/);
     assert.match(art, /forceAutomaticDownload: true/);
     assert.match(art, /Math\.min\(360, Math\.max\(260, width \* 0\.39\)\)/);
     assert.match(art, /onClicked: root\.openRequested\(root\.targetUrl\)/);

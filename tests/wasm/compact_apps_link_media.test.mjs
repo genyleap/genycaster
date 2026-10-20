@@ -30,7 +30,10 @@ test('browser link metadata is separate from Mini App manifests and media slots 
  const link=read('ui/components/LinkPreview.qml');
  const server=read('services/media-gateway/gateway.mjs');
  assert.match(link,/function requestBrowserLinkPreview\(\)/);
- assert.match(link,/browser\/link-preview\?url=/);
+ const adapter=read('ui/mobile/browser_link_metadata_controller.cpp');
+ assert.match(link,/browserLinkMetadataController\.requestPreview\(target, "link"\)/);
+ assert.match(adapter,/\/v1\/browser\/link-preview/);
+ assert.doesNotMatch(link,/XMLHttpRequest|JSON\.parse/);
  assert.match(link,/root\.requestBrowserLinkPreview\(\)/);
  assert.match(link,/root\.previewSource\.length > 0/);
  assert.match(link,/visible: root\.summaryText\.length > 0/);

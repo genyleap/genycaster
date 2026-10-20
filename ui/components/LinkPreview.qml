@@ -263,22 +263,8 @@ Superellipse {
                 || !/^https:\/\//i.test(root.targetUrl)) return
         const target = root.targetUrl
         root.browserLinkRequestedUrl = target
-        const xhr = new XMLHttpRequest()
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE || root.targetUrl !== target
-                    || xhr.status !== 200) return
-            try {
-                const result = JSON.parse(xhr.responseText)
-                if (result && result.resolved && result.providerKind === 'web'
-                        && String(result.domain || '').length > 0) {
-                    if (root.scrollMoving) root.pendingBrowserLinkPreview = result
-                    else root.browserLinkPreview = result
-                }
-            } catch (error) { /* Fall back to the original compact link card. */ }
-        }
-        xhr.open('GET', 'https://storage-farcaster.genyleap.com/v1/browser/link-preview?url='
-                 + encodeURIComponent(target), true)
-        xhr.send()
+        if (typeof browserLinkMetadataController !== "undefined")
+            browserLinkMetadataController.requestPreview(target, "link")
     }
 
     function requestBrowserMiniAppManifest() {
@@ -288,31 +274,32 @@ Superellipse {
                 || root.browserPreviewRequestUrl === root.targetUrl
                 || !/^https:\/\//i.test(root.targetUrl)) return
         const target = root.targetUrl
-        const origin = /^https:\/\/([^\/?#:]+)/i.exec(target)
-        if (!origin) return
         root.browserPreviewRequestUrl = target
-        const xhr = new XMLHttpRequest()
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState !== XMLHttpRequest.DONE || root.targetUrl !== target) return
-            if (xhr.status !== 200) {
-                root.requestBrowserLinkPreview()
+        if (typeof browserLinkMetadataController !== "undefined")
+            browserLinkMetadataController.requestPreview(target, "miniapp")
+    }
+
+    Connections {
+        target: typeof browserLinkMetadataController !== "undefined"
+            ? browserLinkMetadataController : null
+        function onPreviewReady(url, kind, preview) {
+            if (String(root.targetUrl || "").split("#")[0] !== String(url))
                 return
-            }
-            try {
-                const metadata = JSON.parse(xhr.responseText)
-                if (metadata && metadata.resolved && metadata.providerKind === "miniapp"
-                        && String(metadata.domain || "").toLowerCase() === origin[1].toLowerCase()) {
-                    metadata.miniAppLaunchUrl = target
+            if (kind === "miniapp") {
+                if (preview && preview.resolved && preview.providerKind === "miniapp") {
+                    const metadata = Object.assign({}, preview)
+                    metadata.miniAppLaunchUrl = root.targetUrl
                     if (root.scrollMoving) root.pendingBrowserMiniAppPreview = metadata
                     else root.browserMiniAppPreview = metadata
-                    return
+                } else {
+                    root.requestBrowserLinkPreview()
                 }
-            } catch (error) { /* Try safe HTML metadata when not a Mini App. */ }
-            root.requestBrowserLinkPreview()
+            } else if (kind === "link" && preview && preview.resolved
+                       && preview.providerKind === "web" && String(preview.domain || "").length > 0) {
+                if (root.scrollMoving) root.pendingBrowserLinkPreview = preview
+                else root.browserLinkPreview = preview
+            }
         }
-        xhr.open("GET", "https://storage-farcaster.genyleap.com/v1/browser/miniapp-preview?url="
-                 + encodeURIComponent("https://" + origin[1] + "/"), true)
-        xhr.send()
     }
 
     Timer {
