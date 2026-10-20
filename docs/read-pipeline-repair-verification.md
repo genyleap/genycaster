@@ -14,7 +14,8 @@
 - `node --test tests/wasm/*.test.mjs`: **266/266 PASS**, 9.04 seconds in the local Node environment, including these three new behavior tests. This is **not** a compiled WASM run.
 - `cmake --build --preset ui-qt612-debug --target farcaster_media_scroll_tests -j1`: **PASS**, re-linked the native Qt media/scroll test target; existing pre-existing `-Wshadow` warnings in `read_async_service.cpp` remain.
 - `cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic ctest --test-dir build/ui-qt612-debug -R '^(ui.qml_import_smoke|ui.media_scroll|presentation.feed_row_notifications)$' --output-on-failure`: **3/3 PASS**, 20.16 seconds on Linux/headless Qt 6.12.
-- No actual native production startup, macOS/Windows/mobile runtime or WASM browser session was performed; these remain **NOT VERIFIED**. The long-timeline Qt `QAbstractItemModel`/initial-window integration is still incomplete; this does not claim that work finished.
+- `cmake --build --preset ui-qt612-debug --target farcaster_client -j1`: **INCOMPLETE / NOT VERIFIED**. A full native executable build was attempted. It compiled the new Qt browser adapters and generated the application QML cache, then reached approximately step **355/475** of compiling Qt-generated objects without a recorded compiler error; the deliberately interrupted job exited before final link or startup. It must not be described as a successful or failed full-app compile.
+- No actual native application startup, macOS/Windows/mobile runtime or WASM browser session was performed; these remain **NOT VERIFIED**. The long-timeline Qt `QAbstractItemModel`/initial-window integration is still incomplete; this does not claim that work finished.
 
 ## Page-only persistence failure recovery — 2026-10-20
 
