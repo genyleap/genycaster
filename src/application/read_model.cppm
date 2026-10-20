@@ -44,6 +44,10 @@ struct ReadOptions final {
     // consumer must reconcile it by canonical cast ID with its existing rows.
     // Full snapshots remain the default for non-incremental consumers.
     bool pageOnlyContinuation{false};
+    // Opt-in local-first presentation bound. Zero preserves historical
+    // complete feed reads; 1..256 limits the initial/fresh local window.
+    // This is a local row budget, not a provider pagination cursor.
+    std::size_t localFeedWindowLimit{0};
 };
 
 /** @brief Provider-neutral lifecycle metadata presented alongside usable data. */
@@ -72,6 +76,11 @@ struct FeedState final {
     std::vector<domain::profile::Profile> profiles{};
     std::vector<domain::feed::FeedEntry> entries{};
     std::optional<capability::pagination::ContinuationToken> next{};
+    // Local cached rows can continue independently of the remote provider
+    // continuation. Offsets count non-tombstoned entries in canonical order.
+    bool localHasMore{false};
+    std::size_t localNextOffset{0};
+    bool localWindowAppend{false};
     ReadMetadata metadata{};
 };
 

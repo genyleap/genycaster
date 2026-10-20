@@ -933,6 +933,7 @@ Item {
                                             socialMode: presentationBridge.activeView !== "feed"
                                             busy: presentationBridge.isBusy
                                             hasMore: presentationBridge.hasMore
+                                            cachedMore: presentationBridge.cachedFeedHasMore
                                             offline: presentationBridge.isOffline
                                             sourceUnavailable: presentationBridge.sourceUnavailable
                                             errorText: presentationBridge.errorText

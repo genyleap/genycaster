@@ -208,5 +208,122 @@ QtObject {
     assert(!restored.contains(QStringLiteral("followingKnown")));
     assert(!restored.value(QStringLiteral("threadReplies")).toList().front()
         .toMap().contains(QStringLiteral("recastedByMe")));
+
+    // Browser-disabled, offline-only cached feed pagination is a separate
+    // user demand. It must never send the saved network provider cursor as a
+    // fabricated local offset, and must never replace existing stable rows.
+    PresentationBridge windowed{};
+    QVariantList firstWindow{};
+    for (int index = 0; index < 64; ++index)
+        firstWindow.push_back(castRow(QStringLiteral("0xlocal-%1").arg(index)));
+    windowed.applyList(QStringLiteral("feed"), QStringLiteral("trending"),
+        firstWindow, QStringLiteral("remote-cursor"), {},
+        {}, {}, false, true, true, false);
+    windowed.applyLocalFeedWindowProgress(true, 64);
+    assert(windowed.cachedFeedHasMore() && windowed.hasMore());
+    windowed.applyNetworkReachability(true, false);
+    assert(windowed.isOffline());
+
+    int localRequests{};
+    int remoteRequests{};
+    qulonglong requestedOffset{};
+    qulonglong requestedLimit{};
+    QString requestedFeed{};
+    QObject::connect(&windowed, &PresentationBridge::localFeedWindowRequested,
+        &windowed, [&](const QString& feed, qulonglong, const QString&,
+                       qulonglong offset, qulonglong limit) {
+            ++localRequests;
+            requestedFeed = feed;
+            requestedOffset = offset;
+            requestedLimit = limit;
+        });
+    QObject::connect(&windowed, &PresentationBridge::feedRequested,
+        &windowed, [&](const QString&, qulonglong, const QString&,
+                       const QString&, bool) { ++remoteRequests; });
+    windowed.loadMore();
+    assert(localRequests == 1 && remoteRequests == 0);
+    assert(requestedFeed == QStringLiteral("trending"));
+    assert(requestedOffset == 64 && requestedLimit == 64);
+    assert(windowed.isBusy());
+    windowed.loadMore(); // Duplicate demand is not admitted.
+    assert(localRequests == 1);
+
+    QVariantList secondWindow{};
+    for (int index = 64; index < 128; ++index)
+        secondWindow.push_back(castRow(QStringLiteral("0xlocal-%1").arg(index)));
+    windowed.applyList(QStringLiteral("feed"), QStringLiteral("trending"),
+        secondWindow, QStringLiteral("remote-cursor"), {},
+        {}, {}, false, true, true, true);
+    windowed.applyLocalFeedWindowProgress(true, 128);
+    assert(windowed.rows().size() == 128);
+    assert(windowed.rows().first().toMap().value(QStringLiteral("castId"))
+        == QStringLiteral("0xlocal-0"));
+    assert(windowed.rows().last().toMap().value(QStringLiteral("castId"))
+        == QStringLiteral("0xlocal-127"));
+    windowed.loadMore();
+    assert(localRequests == 2 && remoteRequests == 0);
+    assert(requestedOffset == 128);
+
+    // A failed disk read leaves the same 128 visible rows and a retryable
+    // local continuation, even when the provider remains offline.
+    windowed.applyLocalFeedWindowFailure(QStringLiteral("Local storage busy"));
+    assert(!windowed.isBusy() && windowed.cachedFeedHasMore());
+    assert(windowed.rows().size() == 128);
+    windowed.loadMore();
+    assert(localRequests == 3 && requestedOffset == 128);
+    windowed.applyList(QStringLiteral("feed"), QStringLiteral("trending"),
+        {}, QStringLiteral("remote-cursor"), {}, {}, {}, false, true, true, true);
+    windowed.applyLocalFeedWindowProgress(false, 128);
+    assert(windowed.hasMore() && !windowed.cachedFeedHasMore());
+    // The remote cursor is now the only remaining continuation. Offline means
+    // loadMore must not route it until connectivity returns.
+    windowed.loadMore();
+    assert(remoteRequests == 0);
+    windowed.applyNetworkReachability(true, true);
+    windowed.applyLookupState({}, {}, {}, false, false, false);
+    windowed.loadMore();
+    assert(remoteRequests == 1 && localRequests == 3);
+
+    // A failed same-surface refresh must never replace 130 already-visible
+    // hydrated rows with the newly bounded 64-row cached snapshot.
+    PresentationBridge retained{};
+    QVariantList expanded{};
+    for (int index = 0; index < 130; ++index) {
+        expanded.push_back(castRow(QStringLiteral("0xretained-%1").arg(index)));
+    }
+    retained.applyList(QStringLiteral("feed"), QStringLiteral("trending"),
+        expanded, QStringLiteral("existing-provider-next"), {}, {}, {},
+        false, false, false, false);
+    int retainedRowNotifications{};
+    QObject::connect(&retained, &PresentationBridge::rowsChanged,
+        &retained, [&] { ++retainedRowNotifications; });
+    const QVariantList first64 = expanded.mid(0, 64);
+    retained.applyList(QStringLiteral("feed"), QStringLiteral("trending"),
+        first64, QStringLiteral("existing-provider-next"), {}, {}, {},
+        true, true, false, false);
+    assert(retained.rows().size() == 130 && retainedRowNotifications == 0);
+    retained.applyList(QStringLiteral("feed"), QStringLiteral("trending"),
+        first64, QStringLiteral("existing-provider-next"), {},
+        QStringLiteral("Provider unavailable"), {}, false, true, true, false);
+    retained.applyLocalFeedWindowProgress(true, 64);
+    assert(retained.rows().size() == 130 && retainedRowNotifications == 0);
+    assert(retained.hasMore() && retained.cachedFeedHasMore());
+    retained.applyNetworkReachability(true, false);
+    qulonglong resumedOffset{};
+    QObject::connect(&retained, &PresentationBridge::localFeedWindowRequested,
+        &retained, [&](const QString&, qulonglong, const QString&,
+                       qulonglong offset, qulonglong) { resumedOffset = offset; });
+    retained.loadMore();
+    // Never infer SQLite offsets from displayed rows: optimistic/filtered
+    // entries make that count unreliable. Stable-ID merging deduplicates any
+    // cached rows re-read after a failed same-surface refresh.
+    assert(resumedOffset == 64U);
+    assert(retained.rows().first().toMap().value(QStringLiteral("castId"))
+        == QStringLiteral("0xretained-0"));
+
+    // Changing feed surface invalidates the old local position before the
+    // new cached snapshot arrives; it cannot leak into another selector.
+    windowed.selectFeed(QStringLiteral("recent"));
+    assert(!windowed.cachedFeedHasMore());
     return 0;
 }

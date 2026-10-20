@@ -80,6 +80,21 @@ public:
         FeedObserver observer,
         model::ReadOptions options = {});
 
+    /**
+     * @brief Reads the next explicit local cached-feed window, without network I/O.
+     * @param query Canonical feed selector without a network continuation.
+     * @param offset Offset of the first requested non-tombstoned cached row.
+     * @param limit Maximum cached rows in this window (1..256).
+     * @param observer Receives one owned terminal local snapshot on the cache worker.
+     * @return Cancelable request or a recoverable scheduling/argument error.
+     * Caller owns active-surface identity and must ignore obsolete completions.
+     */
+    [[nodiscard]] foundation::result::Result<ReadRequest> openLocalFeedWindow(
+        model::FeedQuery query,
+        std::size_t offset,
+        std::size_t limit,
+        FeedObserver observer);
+
     [[nodiscard]] foundation::result::Result<ReadRequest> openSearch(
         model::SearchQuery query,
         SearchObserver observer,

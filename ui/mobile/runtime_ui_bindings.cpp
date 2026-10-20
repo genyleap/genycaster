@@ -828,8 +828,45 @@ void applyProfileVerificationFixture(PresentationBridge& bridge)
     return rows;
 }
 
+[[nodiscard]] application::read::model::FeedQuery feedQueryForSurface(
+    const QString& feed, const qulonglong fid, const QString& channel,
+    const std::size_t pageSize)
+{
+    application::read::model::FeedQuery query{};
+    using Kind = application::read::model::FeedQuery::Kind;
+    if (feed == QStringLiteral("following")) query.kind = Kind::Following;
+    else if (feed == QStringLiteral("nfts")) query.kind = Kind::Nfts;
+    else if (feed == QStringLiteral("developers")) query.kind = Kind::Developers;
+    else if (feed == QStringLiteral("recent")) query.kind = Kind::Recent;
+    else if (feed == QStringLiteral("conversations")) query.kind = Kind::Conversations;
+    else if (feed == QStringLiteral("channel")) query.kind = Kind::Channel;
+    else if (feed == QStringLiteral("user-posts")) query.kind = Kind::UserPosts;
+    else if (feed == QStringLiteral("user-quotes")) query.kind = Kind::UserQuotes;
+    else if (feed == QStringLiteral("user-replies")) query.kind = Kind::UserReplies;
+    else if (feed == QStringLiteral("user-likes")) query.kind = Kind::UserLikes;
+    else if (feed == QStringLiteral("user-popular")) query.kind = Kind::UserPopular;
+    else query.kind = Kind::Trending;
+
+    if (query.kind == Kind::Following || query.kind == Kind::UserPosts ||
+        query.kind == Kind::UserQuotes || query.kind == Kind::UserReplies ||
+        query.kind == Kind::UserLikes || query.kind == Kind::UserPopular) {
+        query.fid = domain::identity::Fid{static_cast<std::uint64_t>(fid)};
+    }
+    if (query.kind == Kind::Channel) {
+        query.channel = domain::channel::ChannelId{channel.toStdString()};
+    }
+    query.limit = pageSize;
+    return query;
+}
+
 void applyFeedState(PresentationBridge& bridge, application::read::model::FeedState state)
 {
+    if (state.localWindowAppend && state.metadata.phase == application::read::model::ReadPhase::Failed) {
+        // The requested local slice failed. Existing viewport rows and its
+        // local continuation remain valid; nothing is appended or erased.
+        bridge.applyLocalFeedWindowFailure(errorText(state.metadata));
+        return;
+    }
     bridge.setCommunityFallback(state.metadata.communityFallback);
     QVariantList rows = feedPresentationRows(bridge, state);
     QString selector{};
@@ -881,7 +918,12 @@ void applyFeedState(PresentationBridge& bridge, application::read::model::FeedSt
         std::move(view), std::move(selector), std::move(rows),
         state.next ? QString::fromStdString(state.next->value) : QString{},
         statusText(state.metadata), errorText(state.metadata), diagnosticText(state.metadata), isBusy(state.metadata),
-        state.metadata.isStale, state.metadata.isSourceUnavailable, state.query.continuation.has_value());
+        state.metadata.isStale, state.metadata.isSourceUnavailable,
+        state.query.continuation.has_value() || state.localWindowAppend);
+    if (!state.query.continuation || state.localWindowAppend) {
+        bridge.applyLocalFeedWindowProgress(
+            state.localHasMore, static_cast<qulonglong>(state.localNextOffset));
+    }
 }
 
 void applyNotificationState(
@@ -3215,6 +3257,9 @@ void connectRuntime(
             // Snapshot GUI-owned read settings before asynchronous callbacks.
             const std::size_t requestedPageSize = static_cast<std::size_t>(bridge.feedPageSize());
             const std::size_t contextHydrationLimit = static_cast<std::size_t>(bridge.contextHydrationLimit());
+            // Only cold entry opts in until warmed-surface scroll-anchor
+            // restoration has a separately verified window contract.
+            const bool coldFeedEntry = !continuationRequest && bridge.rows().isEmpty();
             // Feed identity, not the presence of a cursor, owns previews and
             // viewer enrichment. A new page or same-surface refresh must not
             // discard work shared by the currently visible cast delegates.
@@ -3232,48 +3277,9 @@ void connectRuntime(
                     domain::identity::Fid{static_cast<std::uint64_t>(bridge.accountFid())},
                     false);
             }
-            application::read::model::FeedQuery query{};
-            if (feed == QStringLiteral("following")) {
-                query.kind = application::read::model::FeedQuery::Kind::Following;
-            } else if (feed == QStringLiteral("nfts")) {
-                query.kind = application::read::model::FeedQuery::Kind::Nfts;
-            } else if (feed == QStringLiteral("developers")) {
-                query.kind = application::read::model::FeedQuery::Kind::Developers;
-            } else if (feed == QStringLiteral("recent")) {
-                query.kind = application::read::model::FeedQuery::Kind::Recent;
-            } else if (feed == QStringLiteral("conversations")) {
-                query.kind = application::read::model::FeedQuery::Kind::Conversations;
-            } else if (feed == QStringLiteral("channel")) {
-                query.kind = application::read::model::FeedQuery::Kind::Channel;
-            } else if (feed == QStringLiteral("user-posts")) {
-                query.kind = application::read::model::FeedQuery::Kind::UserPosts;
-            } else if (feed == QStringLiteral("user-quotes")) {
-                query.kind = application::read::model::FeedQuery::Kind::UserQuotes;
-            } else if (feed == QStringLiteral("user-replies")) {
-                query.kind = application::read::model::FeedQuery::Kind::UserReplies;
-            } else if (feed == QStringLiteral("user-likes")) {
-                query.kind = application::read::model::FeedQuery::Kind::UserLikes;
-            } else if (feed == QStringLiteral("user-popular")) {
-                query.kind = application::read::model::FeedQuery::Kind::UserPopular;
-            } else {
-                query.kind = application::read::model::FeedQuery::Kind::Trending;
-            }
-
-            const bool needsFid = query.kind == application::read::model::FeedQuery::Kind::Following ||
-                query.kind == application::read::model::FeedQuery::Kind::UserPosts ||
-                query.kind == application::read::model::FeedQuery::Kind::UserQuotes ||
-                query.kind == application::read::model::FeedQuery::Kind::UserReplies ||
-                query.kind == application::read::model::FeedQuery::Kind::UserLikes ||
-                query.kind == application::read::model::FeedQuery::Kind::UserPopular;
-            if (needsFid) {
-                query.fid = domain::identity::Fid{static_cast<std::uint64_t>(fid)};
-            }
-            if (query.kind == application::read::model::FeedQuery::Kind::Channel) {
-                query.channel = domain::channel::ChannelId{channel.toStdString()};
-            }
-            // User-tunable read budget. The canonical provider contract validates
-            // the same 1..100 range before any request leaves the presentation boundary.
-            query.limit = requestedPageSize;
+            // A local cache offset and a remote provider continuation must not
+            // share the same selector or pagination vocabulary.
+            auto query = feedQueryForSurface(feed, fid, channel, requestedPageSize);
             if (continuationRequest) {
                 query.continuation = capability::pagination::ContinuationToken{continuation.toStdString()};
             }
@@ -3406,9 +3412,60 @@ void connectRuntime(
                     // stable Cast ID; never rehydrate the entire SQLite feed
                     // only to render one new page.
                     .pageOnlyContinuation = continuationRequest,
+                    // Bound the first cache paint and fresh local hydration.
+                    // All remaining local pages are requested on explicit
+                    // viewport demand using a separate offset contract.
+                    .localFeedWindowLimit = coldFeedEntry ? 64U : 0U,
                 });
             if (request) { runtime->keepFeedRequest(std::move(*request)); }
             else { bridge.applyRuntimeState(false, qtTrId("genycaster.runtime.the_read_worker_is_unavailable")); }
+        });
+
+    QObject::connect(&bridge, &PresentationBridge::localFeedWindowRequested, &bridge,
+        [&bridge, runtime](const QString& feed, const qulonglong fid,
+                           const QString& channel, const qulonglong offset,
+                           const qulonglong limit) {
+            // The active feed owns this demand. Do not start another remote
+            // request or release referenced previews to fetch cached rows.
+            const std::string identity = feed.toStdString() + "\x1f"
+                + std::to_string(fid) + "\x1f" + channel.toStdString();
+            bool belongsToActiveSurface{};
+            {
+                std::scoped_lock lock{runtime->feedSurfaceMutex};
+                belongsToActiveSurface = runtime->feedSurfaceIdentity == identity;
+            }
+            if (!belongsToActiveSurface) {
+                bridge.applyLocalFeedWindowFailure(
+                    qtTrId("genycaster.runtime.the_read_worker_is_unavailable"));
+                return;
+            }
+            const auto surfaceGeneration =
+                runtime->feedSurfaceGeneration.load(std::memory_order_acquire);
+            const auto requestGeneration = runtime->beginFeedRequestGeneration();
+            const auto pageSize = static_cast<std::size_t>(bridge.feedPageSize());
+            auto query = feedQueryForSurface(feed, fid, channel, pageSize);
+            auto request = runtime->service->openLocalFeedWindow(
+                std::move(query), static_cast<std::size_t>(offset),
+                static_cast<std::size_t>(limit),
+                [&bridge, runtime, requestGeneration, surfaceGeneration](
+                    application::read::model::FeedState state) {
+                    if (!runtime->isCurrentFeedRequestGeneration(requestGeneration)
+                        || !runtime->isCurrentFeedSurfaceGeneration(surfaceGeneration))
+                        return;
+                    QMetaObject::invokeMethod(&bridge,
+                        [&bridge, runtime, requestGeneration, surfaceGeneration,
+                         state = std::move(state)]() mutable {
+                            if (runtime->isCurrentFeedRequestGeneration(requestGeneration)
+                                && runtime->isCurrentFeedSurfaceGeneration(surfaceGeneration))
+                                applyFeedState(bridge, std::move(state));
+                        }, Qt::QueuedConnection);
+                });
+            if (request) {
+                runtime->keepFeedRequest(std::move(*request));
+            } else {
+                bridge.applyLocalFeedWindowFailure(
+                    qtTrId("genycaster.runtime.the_read_worker_is_unavailable"));
+            }
         });
 
     QObject::connect(&bridge, &PresentationBridge::notificationsRequested, &bridge,

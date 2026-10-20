@@ -13,6 +13,9 @@ Item {
     property bool socialMode: false
     property bool busy: false
     property bool hasMore: false
+    // Cached local rows may continue even while the provider is offline.
+    // The bridge always consumes them before the independent network cursor.
+    property bool cachedMore: false
     property bool offline: false
     property bool sourceUnavailable: false
     property string errorText: ""
@@ -749,7 +752,8 @@ Item {
         if (root.presentationMode === "visuals" && root.supplementalBusy)
             return false
         if (!root.presentationFilterActive || root.busy || root.loadMorePending || !root.hasMore
-                || root.offline || root.sourceUnavailable || root.errorText.length > 0)
+                || (!root.cachedMore && (root.offline || root.sourceUnavailable
+                                         || root.errorText.length > 0)))
             return false
         if (root.filterPrefetchPages >= root.filterPrefetchLimit
                 || root.automaticPrefetchPages >= root.automaticPrefetchLimit)
@@ -767,7 +771,8 @@ Item {
         // movementEnded schedules the same work once the viewport is stable.
         if (readList.moving && stableRows.count > 0)
             return
-        if (root.offline || root.sourceUnavailable || root.errorText.length > 0) {
+        if (!root.cachedMore
+                && (root.offline || root.sourceUnavailable || root.errorText.length > 0)) {
             filterPrefetchDebounce.stop()
             loadMoreDebounce.stop()
             return
@@ -932,7 +937,8 @@ Item {
         repeat: false
         onTriggered: {
             if (root.loadMorePending || root.busy || !root.hasMore || !root.isNearEnd()
-                    || root.offline || root.sourceUnavailable || root.errorText.length > 0
+                    || (!root.cachedMore && (root.offline || root.sourceUnavailable
+                                             || root.errorText.length > 0))
                     || !root.canAutomaticallyPage())
                 return
             root.recordAutomaticPage()

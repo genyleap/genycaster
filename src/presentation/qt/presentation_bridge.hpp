@@ -60,6 +60,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool sourceUnavailable READ sourceUnavailable NOTIFY stateChanged)
     Q_PROPERTY(bool networkReachabilityKnown READ networkReachabilityKnown NOTIFY stateChanged)
     Q_PROPERTY(bool hasMore READ hasMore NOTIFY stateChanged)
+    Q_PROPERTY(bool cachedFeedHasMore READ cachedFeedHasMore NOTIFY stateChanged)
     Q_PROPERTY(bool hasReadActivity READ hasReadActivity NOTIFY stateChanged)
     Q_PROPERTY(bool feedStarted READ feedStarted NOTIFY stateChanged)
     Q_PROPERTY(bool communityFallback READ communityFallback NOTIFY stateChanged)
@@ -147,6 +148,7 @@ public:
     [[nodiscard]] bool sourceUnavailable() const noexcept;
     [[nodiscard]] bool networkReachabilityKnown() const noexcept;
     [[nodiscard]] bool hasMore() const noexcept;
+    [[nodiscard]] bool cachedFeedHasMore() const noexcept;
     [[nodiscard]] bool hasReadActivity() const noexcept;
     [[nodiscard]] bool feedStarted() const noexcept;
     [[nodiscard]] QVariantList rows() const;
@@ -204,6 +206,10 @@ public:
     Q_INVOKABLE void returnFromSocial();
     Q_INVOKABLE void returnFromDetail();
     Q_INVOKABLE void loadMore();
+    /** @brief Update independent local pagination after a cached/fresh read. */
+    void applyLocalFeedWindowProgress(bool hasMore, qulonglong nextOffset);
+    /** @brief Finish an unsuccessful local window without removing cached rows. */
+    void applyLocalFeedWindowFailure(QString error);
     Q_INVOKABLE void retry();
     /** @brief Explicitly refreshes the first feed page without buffering newer casts.
      * Preserves the user's new-post buffering preference for ordinary background reads.
@@ -396,6 +402,8 @@ signals:
         QString channelId,
         QString continuation,
         bool allowRecoveryProbe);
+    void localFeedWindowRequested(QString feed, qulonglong fid, QString channelId,
+                                  qulonglong offset, qulonglong limit);
     void explorerArtRequested();
     void followingStoriesRequested(qulonglong viewerFid);
     void followingStoryActivitiesRequested(qulonglong viewerFid);
@@ -512,6 +520,9 @@ private:
     bool m_feedSourceSwitchPending{false};
     QVariantList m_pendingFeedRows{};
     QString m_next{};
+    bool m_cachedFeedHasMore{false};
+    bool m_localWindowPending{false};
+    qulonglong m_localNextOffset{0};
     QVariantList m_rows{};
     QVariantList m_explorerArtRows{};
     bool m_explorerArtBusy{false};

@@ -935,7 +935,8 @@ bool PresentationBridge::isStale() const noexcept { return m_isStale; }
 bool PresentationBridge::isOffline() const noexcept { return m_isOffline; }
 bool PresentationBridge::sourceUnavailable() const noexcept { return m_sourceUnavailable; }
 bool PresentationBridge::networkReachabilityKnown() const noexcept { return m_networkReachabilityKnown; }
-bool PresentationBridge::hasMore() const noexcept { return !m_next.isEmpty(); }
+bool PresentationBridge::hasMore() const noexcept { return m_cachedFeedHasMore || !m_next.isEmpty(); }
+bool PresentationBridge::cachedFeedHasMore() const noexcept { return m_cachedFeedHasMore; }
 bool PresentationBridge::hasReadActivity() const noexcept { return m_hasReadActivity; }
 bool PresentationBridge::feedStarted() const noexcept { return m_feedStarted; }
 QVariantList PresentationBridge::rows() const { return m_rows; }
@@ -1118,6 +1119,9 @@ void PresentationBridge::selectFeed(const QString& feed)
     m_activeFeed = nextFeed;
     m_channelId.clear();
     m_next.clear();
+    m_cachedFeedHasMore = false;
+    m_localNextOffset = 0;
+    m_localWindowPending = false;
     beginIntent(qtTrId("genycaster.bridge.reading_cached_feed"));
     emit feedRequested(m_activeFeed, m_identityFid, {}, {}, consumeRecoveryProbe());
 }
@@ -1141,6 +1145,9 @@ void PresentationBridge::openChannel(const QString& channelId)
     m_activeFeed = QStringLiteral("channel");
     m_channelId = canonical;
     m_next.clear();
+    m_cachedFeedHasMore = false;
+    m_localNextOffset = 0;
+    m_localWindowPending = false;
     beginIntent(qtTrId("genycaster.bridge.reading_cached_channel"));
     emit feedRequested(
         m_activeFeed, m_identityFid, m_channelId, {}, consumeRecoveryProbe());
@@ -1357,6 +1364,9 @@ void PresentationBridge::openProfileUsername(const QString& username)
     m_detail.clear();
     m_rows.clear();
     m_next.clear();
+    m_cachedFeedHasMore = false;
+    m_localNextOffset = 0;
+    m_localWindowPending = false;
     emit rowsChanged();
     beginIntent(qtTrId("genycaster.bridge.checking_local_identity"));
     emit profileUsernameRequested(canonical, consumeRecoveryProbe());
@@ -1371,6 +1381,9 @@ void PresentationBridge::openProfileFid(const qulonglong fid)
     }
     m_profileFid = fid;
     m_activeView = QStringLiteral("profile");
+    m_cachedFeedHasMore = false;
+    m_localNextOffset = 0;
+    m_localWindowPending = false;
     if (const auto detail = m_profileDetailCache.constFind(fid); detail != m_profileDetailCache.cend()) {
         m_detail = *detail;
     } else {
@@ -1402,6 +1415,9 @@ void PresentationBridge::selectProfileFeed(const QString& feed)
         return;
     }
     m_activeView = QStringLiteral("profile");
+    m_cachedFeedHasMore = false;
+    m_localNextOffset = 0;
+    m_localWindowPending = false;
     const QString requestedFeed =
         feed == QStringLiteral("user-quotes") ? QStringLiteral("user-quotes") :
         feed == QStringLiteral("user-replies") ? QStringLiteral("user-replies") :
@@ -1442,6 +1458,9 @@ void PresentationBridge::openFollowers()
     }
     m_activeView = QStringLiteral("followers");
     m_next.clear();
+    m_cachedFeedHasMore = false;
+    m_localNextOffset = 0;
+    m_localWindowPending = false;
     beginIntent(qtTrId("genycaster.bridge.reading_cached_followers"));
     emit socialRequested(
         QStringLiteral("followers"), m_socialFid, {}, consumeRecoveryProbe());
@@ -1462,6 +1481,9 @@ void PresentationBridge::openFollowing()
     }
     m_activeView = QStringLiteral("following");
     m_next.clear();
+    m_cachedFeedHasMore = false;
+    m_localNextOffset = 0;
+    m_localWindowPending = false;
     beginIntent(qtTrId("genycaster.bridge.reading_cached_following"));
     emit socialRequested(
         QStringLiteral("following"), m_socialFid, {}, consumeRecoveryProbe());
@@ -1487,9 +1509,26 @@ void PresentationBridge::returnFromDetail()
 
 void PresentationBridge::loadMore()
 {
-    if (m_next.isEmpty() || m_isBusy || m_sourceUnavailable || m_isOffline || !m_errorText.isEmpty()) {
+    if (m_isBusy) return;
+    // The local continuation remains useful even without network access.
+    // It is never interpreted as a provider continuation and never changes
+    // which backend page the next online request will obtain.
+    if (m_cachedFeedHasMore &&
+        (m_activeView == QStringLiteral("feed") || m_activeView == QStringLiteral("profile"))) {
+        if (m_localWindowPending) return;
+        m_localWindowPending = true;
+        m_isBusy = true;
+        m_errorText.clear();
+        emit stateChanged();
+        emit localFeedWindowRequested(
+            m_activeView == QStringLiteral("feed") ? m_activeFeed : m_profileFeed,
+            m_activeView == QStringLiteral("feed") ? m_identityFid : m_profileFid,
+            m_activeView == QStringLiteral("feed") ? m_channelId : QString{},
+            m_localNextOffset, 64);
         return;
     }
+    if (m_next.isEmpty() || m_sourceUnavailable || m_isOffline || !m_errorText.isEmpty())
+        return;
     beginIntent(qtTrId("genycaster.bridge.loading_the_next_page"));
     if (m_activeView == QStringLiteral("feed")) {
         emit feedRequested(m_activeFeed, m_identityFid, m_channelId, m_next, false);
@@ -1498,6 +1537,29 @@ void PresentationBridge::loadMore()
     } else {
         emit socialRequested(m_activeView, m_socialFid, m_next, false);
     }
+}
+
+void PresentationBridge::applyLocalFeedWindowProgress(
+    const bool hasMore, const qulonglong nextOffset)
+{
+    m_cachedFeedHasMore = hasMore;
+    // A failed refresh may retain more visible rows than the first local
+    // window. Continue from the last *known local offset*, never infer a
+    // storage offset from visible row count: optimistic rows or filtered
+    // profile casts are not necessarily entries in the persisted timeline.
+    // Revisited cached IDs are reconciled by stable cast identity.
+    m_localNextOffset = !m_errorText.isEmpty() && !m_rows.isEmpty()
+        ? std::max(m_localNextOffset, nextOffset) : nextOffset;
+    m_localWindowPending = false;
+    emit stateChanged();
+}
+
+void PresentationBridge::applyLocalFeedWindowFailure(QString error)
+{
+    m_localWindowPending = false;
+    m_isBusy = false;
+    m_errorText = std::move(error);
+    emit stateChanged();
 }
 
 void PresentationBridge::retry()
@@ -2996,6 +3058,21 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
     // Doing so discards asynchronously hydrated reply/quote context and changes
     // delegate heights above the viewport before the network page arrives. Keep
     // the current presentation immutable until the terminal pagination snapshot.
+    if (sameSurface && !busy && !paginationRequest && !error.isEmpty()
+        && !m_rows.isEmpty() && !m_feedSourceSwitchPending
+        && (view == QStringLiteral("feed") || view == QStringLiteral("profile"))) {
+        // A failed refresh is not an authoritative replacement. A bounded
+        // cache snapshot must never truncate already-present hydrated rows
+        // or move a user's reading position when the provider is offline.
+        m_statusText = std::move(status);
+        m_errorText = std::move(error);
+        m_diagnosticText = std::move(diagnostic);
+        m_sourceUnavailable = sourceUnavailable;
+        m_isBusy = false;
+        m_isStale = stale;
+        emit stateChanged();
+        return;
+    }
     if (sameSurface && busy && !m_rows.isEmpty() && !m_feedSourceSwitchPending) {
         // Cached snapshots published at the start of ANY in-place refresh
         // are not fresh content. Keep the already-rendered timeline intact

@@ -60,6 +60,31 @@ using ErrorCode = foundation::error::ErrorCode;
     };
 }
 
+[[nodiscard]] foundation::result::Result<local::read::FeedWindow>
+readLocalPresentationWindow(local::read::IReadStore& store,
+                            const local::read::FeedKey& key,
+                            const std::size_t limit)
+{
+    if (limit > 0U) {
+        return store.readFeedWindow(key, 0U, limit);
+    }
+    auto full = store.readFeed(key);
+    if (!full) return std::unexpected(std::move(full.error()));
+    return local::read::FeedWindow{.page = std::move(*full), .hasMore = false};
+}
+
+void assignLocalFeedState(model::FeedState& state,
+                          local::read::FeedWindow window,
+                          const std::size_t offset = 0U)
+{
+    state.casts = std::move(window.page.casts);
+    state.profiles = std::move(window.page.profiles);
+    state.entries = std::move(window.page.entries);
+    state.next = std::move(window.page.next);
+    state.localHasMore = window.hasMore;
+    state.localNextOffset = offset + state.entries.size();
+}
+
 [[nodiscard]] local::read::FeedKey toLocalKey(const model::FeedQuery& query)
 {
     local::read::FeedKey::Kind kind = local::read::FeedKey::Kind::Trending;
@@ -660,7 +685,7 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
     FeedObserver observer,
     const model::ReadOptions options)
 {
-    if (query.limit == 0U || !observer ||
+    if (query.limit == 0U || !observer || options.localFeedWindowLimit > 256U ||
         ((query.kind == model::FeedQuery::Kind::Following ||
           query.kind == model::FeedQuery::Kind::UserPosts ||
           query.kind == model::FeedQuery::Kind::UserQuotes ||
@@ -683,12 +708,10 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
             // to discard it before issuing the next provider page.
             if (!query.continuation) {
                 model::FeedState state{.query = query};
-                auto cached = m_store.readFeed(localKey);
+                auto cached = readLocalPresentationWindow(
+                    m_store, localKey, options.localFeedWindowLimit);
                 if (cached) {
-                    state.casts = std::move(cached->casts);
-                    state.profiles = std::move(cached->profiles);
-                    state.entries = std::move(cached->entries);
-                    state.next = std::move(cached->next);
+                    assignLocalFeedState(state, std::move(*cached));
                     state.metadata = refreshingMetadata(!state.entries.empty());
                 } else {
                     state.metadata = failedMetadata(std::move(cached.error()), false);
@@ -725,12 +748,10 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                                     publish(control, observer, std::move(state));
                                     return;
                                 }
-                                auto cached = m_store.readFeed(localKey);
+                                auto cached = readLocalPresentationWindow(
+                                    m_store, localKey, options.localFeedWindowLimit);
                                 if (cached) {
-                                    state.casts = std::move(cached->casts);
-                                    state.profiles = std::move(cached->profiles);
-                                    state.entries = std::move(cached->entries);
-                                    state.next = std::move(cached->next);
+                                    assignLocalFeedState(state, std::move(*cached));
                                 }
                                 if (query.continuation
                                     && options.intent == model::ReadIntent::Prefetch
@@ -770,6 +791,18 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                             auto saved = m_store.writeFeed(
                                 localKey, *fresh, query.continuation.has_value());
                             if (!saved) {
+                                if (!query.continuation && options.localFeedWindowLimit > 0U) {
+                                    // A failed first-page transaction must not evict
+                                    // the bounded, still-useful offline snapshot
+                                    // with uncommitted network content.
+                                    auto existing = readLocalPresentationWindow(
+                                        m_store, localKey, options.localFeedWindowLimit);
+                                    if (existing) assignLocalFeedState(state, std::move(*existing));
+                                    state.metadata = failedMetadata(
+                                        std::move(saved.error()), !state.entries.empty());
+                                    publish(control, observer, std::move(state));
+                                    return;
+                                }
                                 if (query.continuation && options.pageOnlyContinuation) {
                                     // The consumer owns its preceding visible pages.
                                     // Storage failure must not cause a full SQLite
@@ -807,7 +840,8 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                                 publish(control, observer, std::move(state));
                                 return;
                             }
-                            auto materialized = m_store.readFeed(localKey);
+                            auto materialized = readLocalPresentationWindow(
+                                m_store, localKey, options.localFeedWindowLimit);
                             if (!materialized) {
                                 model::FeedState fallback = failedFallback();
                                 fallback.metadata = failedMetadata(
@@ -815,10 +849,7 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                                 publish(control, observer, std::move(fallback));
                                 return;
                             }
-                            state.casts = std::move(materialized->casts);
-                            state.profiles = std::move(materialized->profiles);
-                            state.entries = std::move(materialized->entries);
-                            state.next = std::move(materialized->next);
+                            assignLocalFeedState(state, std::move(*materialized));
                             state.metadata = model::ReadMetadata{
                                 .phase = model::ReadPhase::Ready,
                                 .communityFallback = fresh->communityFallback,
@@ -844,12 +875,10 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                     publish(control, observer, std::move(failed));
                     return;
                 }
-                auto cachedAgain = m_store.readFeed(localKey);
+                auto cachedAgain = readLocalPresentationWindow(
+                    m_store, localKey, options.localFeedWindowLimit);
                 if (cachedAgain) {
-                    failed.casts = std::move(cachedAgain->casts);
-                    failed.profiles = std::move(cachedAgain->profiles);
-                    failed.entries = std::move(cachedAgain->entries);
-                    failed.next = std::move(cachedAgain->next);
+                    assignLocalFeedState(failed, std::move(*cachedAgain));
                 }
                 if (query.continuation
                     && options.intent == model::ReadIntent::Prefetch
@@ -870,6 +899,49 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
     if (!initialStatus) {
         return std::unexpected(std::move(initialStatus.error()));
     }
+    return ReadRequest{control};
+}
+
+foundation::result::Result<ReadRequest> ReadService::openLocalFeedWindow(
+    model::FeedQuery query,
+    const std::size_t offset,
+    const std::size_t limit,
+    FeedObserver observer)
+{
+    if (!observer || query.continuation || query.limit == 0U
+        || limit == 0U || limit > 256U
+        || ((query.kind == model::FeedQuery::Kind::Following ||
+             query.kind == model::FeedQuery::Kind::UserPosts ||
+             query.kind == model::FeedQuery::Kind::UserQuotes ||
+             query.kind == model::FeedQuery::Kind::UserReplies ||
+             query.kind == model::FeedQuery::Kind::UserLikes ||
+             query.kind == model::FeedQuery::Kind::UserPopular) &&
+            (!query.fid || query.fid->value == 0U))
+        || (query.kind == model::FeedQuery::Kind::Channel &&
+            (!query.channel || query.channel->value.empty()))) {
+        return std::unexpected(Error::make(ErrorCode::InvalidArgument,
+            "Local feed window requires a selector, observer and limit 1..256."));
+    }
+
+    auto control = std::make_shared<ReadRequest::Control>();
+    auto status = m_cacheExecutor.post(
+        [this, query = std::move(query), offset, limit,
+         observer = std::move(observer), control]() mutable {
+            if (control->cancelled.load(std::memory_order_acquire)) return;
+            model::FeedState state{.query = query};
+            // Retain the append intent even if the storage read fails, so Qt
+            // does not mistake a failed local page for an empty first page.
+            state.localWindowAppend = true;
+            auto window = m_store.readFeedWindow(toLocalKey(query), offset, limit);
+            if (window) {
+                assignLocalFeedState(state, std::move(*window), offset);
+                state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
+            } else {
+                state.metadata = failedMetadata(std::move(window.error()), true);
+            }
+            publish(control, observer, std::move(state));
+        });
+    if (!status) return std::unexpected(std::move(status.error()));
     return ReadRequest{control};
 }
 

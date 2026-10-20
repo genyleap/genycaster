@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <condition_variable>
@@ -59,6 +60,22 @@ public:
 
 // The first cache job is admitted. The completion job is deterministically
 // rejected, emulating a bounded serial queue under sustained pressure.
+class HeldExecutor final : public application::executor::IExecutor {
+public:
+    [[nodiscard]] foundation::result::Status post(application::executor::Job job) override
+    {
+        m_jobs.push_back(std::move(job));
+        return {};
+    }
+    void drain()
+    {
+        auto jobs = std::move(m_jobs);
+        for (auto& job : jobs) job();
+    }
+private:
+    std::vector<application::executor::Job> m_jobs{};
+};
+
 class RejectCompletionExecutor final : public application::executor::IExecutor {
 public:
     int jobs{};
@@ -190,7 +207,10 @@ public:
         : m_delegate{std::move(delegate)} {}
 
     int feedMaterializations{};
+    int windowReads{};
+    std::size_t maximumWindowRequested{};
     bool failNextFeedWrite{false};
+    bool failNextWindowRead{false};
 
     [[nodiscard]] foundation::result::Result<std::optional<domain::profile::Profile>>
     findProfileByUsername(std::string_view value) override {
@@ -220,6 +240,13 @@ public:
     [[nodiscard]] foundation::result::Result<farcaster::local::read::FeedWindow>
     readFeedWindow(const farcaster::local::read::FeedKey& key,
                    std::size_t offset, std::size_t limit) override {
+        ++windowReads;
+        maximumWindowRequested = std::max(maximumWindowRequested, limit);
+        if (std::exchange(failNextWindowRead, false)) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::StorageFailure,
+                "Deterministic local-window read failure."));
+        }
         return m_delegate->readFeedWindow(key, offset, limit);
     }
     [[nodiscard]] foundation::result::Status
@@ -379,6 +406,140 @@ private:
     }
 };
 
+void windowedAsyncFeedRetainsOfflineTailAndProviderCursor()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    auto opened = storage::read::openReadStore(database.path);
+    assert(opened);
+    CountingReadStore store{std::move(*opened)};
+    ImmediateExecutor executor{};
+    FakeAsyncCastGateway gateway{};
+    application::read::async_service::ReadService service{executor, store, gateway};
+    const local::read::FeedKey key{
+        .kind = local::read::FeedKey::Kind::Recent, .limit = 20U,
+    };
+    capability::feed::FeedPage saved{};
+    saved.profiles.push_back(makeProfile(91, "window", "Window"));
+    constexpr std::size_t count = 640U;
+    for (std::size_t index = 0U; index < count; ++index) {
+        auto cast = makeCast("0xwindow-test-" + std::to_string(index), 91,
+            "cached", static_cast<std::int64_t>(1000U + index));
+        saved.entries.push_back(domain::feed::FeedEntry{
+            .castId = cast.id, .sortTime = cast.createdAt});
+        saved.casts.push_back(std::move(cast));
+    }
+    saved.next = capability::pagination::ContinuationToken{"persisted-provider-cursor"};
+    assert(store.writeFeed(key, saved, false));
+
+    // A simulated provider failure leaves the first usable local window and
+    // a separate local offset; a remote cursor is not a local row offset.
+    gateway.failFeedCompletion = true;
+    application::read::model::FeedQuery query{
+        .kind = application::read::model::FeedQuery::Kind::Recent,
+        .limit = 20U,
+    };
+    const application::read::model::ReadOptions options{
+        .localFeedWindowLimit = 64U,
+    };
+    std::vector<application::read::model::FeedState> presented{};
+    auto initial = service.openFeed(query,
+        [&](auto state) { presented.push_back(std::move(state)); }, options);
+    assert(initial && presented.size() == 2U);
+    assert(store.feedMaterializations == 0);
+    assert(presented.front().metadata.phase
+        == application::read::model::ReadPhase::Refreshing);
+    assert(presented.front().entries.size() == 64U);
+    assert(presented.front().localHasMore);
+    assert(presented.front().localNextOffset == 64U);
+    assert(presented.front().next
+        && presented.front().next->value == "persisted-provider-cursor");
+    assert(presented.back().entries.size() == 64U);
+    assert(presented.back().localHasMore);
+    assert(presented.back().metadata.phase
+        == application::read::model::ReadPhase::Failed);
+    assert(presented.back().entries.front().castId.value == "0xwindow-test-0");
+
+    // Explicit offline demand never invokes a provider. Every window owns
+    // its cast/profile values, and the saved provider cursor is unchanged.
+    presented.clear();
+    for (std::size_t offset = 64U; offset < count; offset += 64U) {
+        auto page = service.openLocalFeedWindow(query, offset, 64U,
+            [&](auto state) { presented.push_back(std::move(state)); });
+        assert(page);
+        assert(presented.back().localWindowAppend);
+        assert(presented.back().metadata.phase
+            == application::read::model::ReadPhase::Ready);
+        assert(presented.back().entries.size() == 64U);
+        assert(presented.back().casts.size() == 64U);
+        assert(presented.back().localNextOffset == offset + 64U);
+        assert(presented.back().localHasMore == (offset + 64U < count));
+        assert(presented.back().entries.front().castId.value
+            == "0xwindow-test-" + std::to_string(offset));
+        assert(presented.back().next
+            && presented.back().next->value == "persisted-provider-cursor");
+    }
+    assert(presented.size() == 9U);
+    assert(store.feedMaterializations == 0);
+    store.failNextWindowRead = true;
+    auto failedWindow = service.openLocalFeedWindow(query, 64U, 64U,
+        [&](auto state) { presented.push_back(std::move(state)); });
+    assert(failedWindow && presented.size() == 10U);
+    assert(presented.back().localWindowAppend);
+    assert(presented.back().metadata.phase
+        == application::read::model::ReadPhase::Failed);
+    assert(presented.back().metadata.error
+        && presented.back().metadata.error->code
+            == foundation::error::ErrorCode::StorageFailure);
+    assert(presented.back().entries.empty());
+    assert(store.feedMaterializations == 0);
+    assert(!service.openLocalFeedWindow(query, 0U, 0U, [](auto) {}));
+    assert(!service.openLocalFeedWindow(query, 0U, 257U, [](auto) {}));
+    auto invalidQuery = query;
+    invalidQuery.continuation =
+        capability::pagination::ContinuationToken{"not-a-local-offset"};
+    assert(!service.openLocalFeedWindow(invalidQuery, 0U, 64U, [](auto) {}));
+
+    // The next successful network page is not a second local continuation:
+    // the first cached paint remains bounded and the fresh result is final.
+    presented.clear();
+    gateway.failFeedCompletion = false;
+    gateway.servedFeed = pageFor(makeProfile(92, "fresh", "Fresh"),
+        makeCast("0xfresh-window", 92, "current", 9000),
+        capability::pagination::ContinuationToken{"new-provider-cursor"});
+    auto refreshed = service.openFeed(query,
+        [&](auto state) { presented.push_back(std::move(state)); }, options);
+    assert(refreshed && presented.size() == 2U);
+    assert(presented.front().entries.size() == 64U);
+    assert(presented.front().metadata.phase
+        == application::read::model::ReadPhase::Refreshing);
+    assert(presented.back().entries.size() == 1U);
+    assert(!presented.back().localHasMore);
+    assert(presented.back().localNextOffset == 1U);
+    assert(presented.back().next
+        && presented.back().next->value == "new-provider-cursor");
+    assert(store.feedMaterializations == 0);
+
+    // Navigation can cancel a pending local page before its cache worker runs.
+    // There must be no late observer delivery and no unowned SQLite read.
+    HeldExecutor held{};
+    application::read::async_service::ReadService heldService{held, store, gateway};
+    const int priorWindowReads = store.windowReads;
+    bool canceledCallbackDelivered{false};
+    auto canceled = heldService.openLocalFeedWindow(query, 0U, 64U,
+        [&](auto) { canceledCallbackDelivered = true; });
+    assert(canceled);
+    canceled->cancel();
+    held.drain();
+    assert(!canceledCallbackDelivered);
+    assert(store.windowReads == priorWindowReads);
+
+    // Opt-out remains complete, not implicitly truncated to 64 rows.
+    auto legacy = store.readFeed(key);
+    assert(legacy && legacy->entries.size() == 1U);
+    assert(store.feedMaterializations == 1);
+}
+
 void largeLocalFeedWindowPreservesOrderAndRemoteContinuation()
 {
     using namespace farcaster;
@@ -468,6 +629,119 @@ void largeLocalFeedWindowPreservesOrderAndRemoteContinuation()
     assert(filteredLast && !filteredLast->hasMore);
     assert(filteredLast->page.entries.size() == 1U);
     assert(filteredLast->page.entries.back().castId.value == "0xwindow-639");
+}
+
+void initialFeedReadsBoundedCacheAndOfflinePages()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    auto opened = storage::read::openReadStore(database.path);
+    assert(opened);
+    CountingReadStore store{std::move(*opened)};
+    const local::read::FeedKey key{
+        .kind = local::read::FeedKey::Kind::Recent, .limit = 20U};
+    capability::feed::FeedPage cached{};
+    cached.profiles.push_back(makeProfile(71, "local-reader", "Local Reader"));
+    constexpr std::size_t total{640U};
+    for (std::size_t index = 0; index < total; ++index) {
+        auto cast = makeCast("0xlocal-" + std::to_string(index), 71,
+            "Large persisted feed", static_cast<std::int64_t>(index + 1000U));
+        cached.entries.push_back(domain::feed::FeedEntry{
+            .castId = cast.id, .sortTime = cast.createdAt});
+        cached.casts.push_back(std::move(cast));
+    }
+    cached.next = capability::pagination::ContinuationToken{"provider-next"};
+    assert(store.writeFeed(key, cached, false));
+
+    ImmediateExecutor executor{};
+    FakeAsyncCastGateway gateway{};
+    gateway.failFeedCompletion = true;  // Offline/remote failure.
+    application::read::async_service::ReadService service{executor, store, gateway};
+    const application::read::model::FeedQuery query{
+        .kind = application::read::model::FeedQuery::Kind::Recent,
+        .limit = 20U,
+    };
+    std::vector<application::read::model::FeedState> states{};
+    const application::read::model::ReadOptions windowOptions{
+        .localFeedWindowLimit = 64U,
+    };
+    auto read = service.openFeed(query,
+        [&states](auto state) { states.push_back(std::move(state)); }, windowOptions);
+    assert(read && states.size() == 2U);
+    assert(states[0].metadata.phase == application::read::model::ReadPhase::Refreshing);
+    assert(states[1].metadata.phase == application::read::model::ReadPhase::Failed);
+    for (const auto& state : states) {
+        assert(state.entries.size() == 64U && state.casts.size() == 64U);
+        assert(state.profiles.size() == 1U);
+        assert(state.entries.front().castId.value == "0xlocal-0");
+        assert(state.entries.back().castId.value == "0xlocal-63");
+        assert(state.localHasMore && state.localNextOffset == 64U);
+        assert(state.next && state.next->value == "provider-next");
+    }
+    assert(store.feedMaterializations == 0);
+    assert(store.windowReads == 2 && store.maximumWindowRequested == 64U);
+
+    // The disconnected viewport explicitly requests another local window;
+    // no remote cursor is passed and no full materialization is performed.
+    states.clear();
+    auto second = service.openLocalFeedWindow(query, 64U, 64U,
+        [&states](auto state) { states.push_back(std::move(state)); });
+    assert(second && states.size() == 1U);
+    assert(states[0].metadata.phase == application::read::model::ReadPhase::Ready);
+    assert(states[0].localWindowAppend && states[0].localHasMore);
+    assert(states[0].localNextOffset == 128U);
+    assert(states[0].entries.front().castId.value == "0xlocal-64");
+    assert(states[0].entries.back().castId.value == "0xlocal-127");
+    assert(states[0].next && states[0].next->value == "provider-next");
+
+    states.clear();
+    auto last = service.openLocalFeedWindow(query, 576U, 64U,
+        [&states](auto state) { states.push_back(std::move(state)); });
+    assert(last && states.size() == 1U);
+    assert(!states[0].localHasMore && states[0].localNextOffset == 640U);
+    assert(states[0].entries.size() == 64U);
+    assert(states[0].entries.back().castId.value == "0xlocal-639");
+    assert(store.feedMaterializations == 0 && store.maximumWindowRequested == 64U);
+
+    // No network fallback for a failed or invalid local page: it reports a
+    // structured validation error and leaves the prior presentation intact.
+    assert(!service.openLocalFeedWindow(query, 64U, 257U,
+        [](auto) {}));
+    assert(!service.openLocalFeedWindow(query, 64U, 64U,
+        {}));
+    assert(!service.openFeed(query, [](auto) {},
+        application::read::model::ReadOptions{.localFeedWindowLimit = 257U}));
+
+    // A provider response cannot replace cached evidence until the first
+    // local transaction commits. Failing that transaction must still return
+    // just the first 64 persisted rows, never the uncommitted remote cast.
+    gateway.failFeedCompletion = false;
+    gateway.servedFeed = pageFor(makeProfile(72, "live", "Live"),
+        makeCast("0xnot-committed", 72, "Not persisted", 1500));
+    store.failNextFeedWrite = true;
+    states.clear();
+    auto rejected = service.openFeed(query,
+        [&states](auto state) { states.push_back(std::move(state)); }, windowOptions);
+    assert(rejected && states.size() == 2U);
+    assert(states[0].localHasMore && states[0].entries.size() == 64U);
+    assert(states[1].metadata.phase == application::read::model::ReadPhase::Failed);
+    assert(states[1].metadata.error
+        && states[1].metadata.error->code == foundation::error::ErrorCode::StorageFailure);
+    assert(states[1].localHasMore && states[1].entries.size() == 64U);
+    assert(states[1].entries.front().castId.value == "0xlocal-0");
+    assert(store.feedMaterializations == 0);
+    // A successful online refresh remains independent of local offset state.
+    gateway.servedFeed = pageFor(makeProfile(72, "live", "Live"),
+        makeCast("0xlive", 72, "Fresh", 2000));
+    states.clear();
+    auto refresh = service.openFeed(query,
+        [&states](auto state) { states.push_back(std::move(state)); }, windowOptions);
+    assert(refresh && states.size() == 2U);
+    assert(states[0].entries.size() == 64U && states[0].localHasMore);
+    assert(states[1].metadata.phase == application::read::model::ReadPhase::Ready);
+    assert(states[1].entries.size() == 1U && !states[1].localHasMore);
+    assert(states[1].entries.front().castId.value == "0xlive");
+    assert(store.feedMaterializations == 0);
 }
 
 void cachedFeedPrecedesRefreshAndPaginationReconciles()
@@ -1295,7 +1569,9 @@ void serializedExecutorKeepsBlockingReadOffCallerThread()
 
 int main()
 {
+    windowedAsyncFeedRetainsOfflineTailAndProviderCursor();
     largeLocalFeedWindowPreservesOrderAndRemoteContinuation();
+    initialFeedReadsBoundedCacheAndOfflinePages();
     cachedFeedPrecedesRefreshAndPaginationReconciles();
     prefetchContinuationFailurePreservesUsableFeed();
     refreshFailureWithoutCacheIsNotMarkedStale();
