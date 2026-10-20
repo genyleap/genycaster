@@ -9,6 +9,7 @@
 #include <QGuiApplication>
 #include <QDir>
 #include <QImage>
+#include <QJSValue>
 #include <QMediaPlayer>
 #include <QPointer>
 #include <QQmlComponent>
@@ -545,12 +546,46 @@ int main(int argc, char** argv)
                   {QStringLiteral("createdAtMs"), 1000},
              }}}});
         if (!profile) return 1;
+        auto* profileModel = profile->findChild<FeedRowsModel*>(
+            QStringLiteral("profileRowsModel"));
+        expect(profileModel != nullptr,
+            "profile feed uses the same native stable-ID Qt model as Explorer");
+        if (profileModel) {
+            expect(QTest::qWaitFor([&] { return profileModel->rowCount() == 1; }),
+                "initial cached profile row is delivered to native model");
+            QSignalSpy changes{profileModel, &QAbstractItemModel::dataChanged};
+            profile->setProperty("rows", QVariantList{QVariantMap{
+                {QStringLiteral("castId"), QStringLiteral("0xviewport")},
+                {QStringLiteral("text"), QStringLiteral("Cached local cast")},
+                {QStringLiteral("createdAtMs"), 1000},
+                {QStringLiteral("likedByMe"), true},
+            }});
+            expect(QTest::qWaitFor([&] { return changes.count() > 0; }),
+                "hydrated viewer evidence updates one native profile row role");
+            expect(profileModel->rowCount() == 1,
+                "profile reaction update retains one row and stable geometry");
+        }
         profile->setProperty("profileSortMode", QStringLiteral("oldest"));
         profile->setProperty("rows", QVariantList{});
         profile->setProperty("rows", QVariantList{QVariantMap{
              {QStringLiteral("castId"), QStringLiteral("0xviewport-2")},
              {QStringLiteral("createdAtMs"), 2000},
         }});
+        if (profileModel) {
+            expect(QTest::qWaitFor([&] {
+                return profileModel->rowCount() == 1
+                    && profileModel->get(0).value(QStringLiteral("stableKey"))
+                        == QStringLiteral("cast:0xviewport-2");
+            }), "replacing profile rows updates the same native model");
+            const QVariant cachedPayloads = profile->property("stablePayloads");
+            const QVariantMap payloads = cachedPayloads.metaType() == QMetaType::fromType<QJSValue>()
+                ? cachedPayloads.value<QJSValue>().toVariant().toMap()
+                : cachedPayloads.toMap();
+            expect(payloads.size() == 1
+                && payloads.contains(QStringLiteral("cast:0xviewport-2"))
+                && !payloads.contains(QStringLiteral("cast:0xviewport")),
+                "profile switch releases obsolete cast payloads but retains current cast");
+        }
         profile.reset();
         QCoreApplication::processEvents();
 

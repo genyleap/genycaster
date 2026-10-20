@@ -250,10 +250,10 @@ Item {
         return Math.max(88, Math.ceil(reservation))
     }
 
-    // The list keeps a stable ListModel and diff-synchronizes it against the
-    // sorted source rows. Feeding the ListView a freshly allocated array on every
-    // rows change made it reset contentY to the top mid-scroll, which read as a
-    // flicker whenever a refresh or load-more delivered new rows.
+    // The profile reuses the same native stable-ID row model as Explorer.
+    // Feeding ListView a freshly allocated array on every row change formerly
+    // reset contentY to the top; targeted inserts/moves now preserve delegates
+    // while the heavyweight content remains in our keyed payload store.
     function captureViewportAnchor() {
         if (root.restoringViewport || profileRowsModel.count === 0) return
         const headerHeight = profileList.headerItem ? profileList.headerItem.implicitHeight : 0
@@ -319,6 +319,7 @@ Item {
         let anchorKey = ""
         let anchorOffset = 0
         let structureChanged = false
+        const retainedKeys = Object.create(null)
         const headerHeight = profileList.headerItem ? profileList.headerItem.implicitHeight : 0
         const probeY = Math.max(0, headerHeight - profileList.contentY) + 1
         const anchorIndex = profileList.indexAt(Math.max(1, profileList.width / 2), probeY)
@@ -331,6 +332,7 @@ Item {
         for (let index = 0; index < source.length; ++index) {
             const key = root.rowKey(source[index], index)
             const revision = root.rowRevision(source[index])
+            retainedKeys[key] = true
             root.stablePayloads[key] = source[index]
             if (index < profileRowsModel.count
                     && String(profileRowsModel.get(index).stableKey) === key) {
@@ -362,6 +364,14 @@ Item {
         while (profileRowsModel.count > source.length) {
             profileRowsModel.remove(profileRowsModel.count - 1)
             structureChanged = true
+        }
+
+        // ProfileSurface can stay instantiated while navigating between
+        // identities. Release former casts' large media/embed payloads after
+        // their stable delegate keys have left this one authoritative model.
+        for (const key in root.stablePayloads) {
+            if (!retainedKeys[key])
+                delete root.stablePayloads[key]
         }
 
         if (structureChanged && anchorKey.length > 0)
@@ -494,8 +504,9 @@ Item {
         }
     }
 
-    ListModel {
+    FeedRowsModel {
         id: profileRowsModel
+        objectName: "profileRowsModel"
     }
 
     ListView {

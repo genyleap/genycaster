@@ -1,5 +1,22 @@
 # Genycaster read-pipeline repair: verification record
 
+## Profile feed native stable-ID model — 2026-10-20
+
+- **Responsibility:** Reuse the existing native Qt `FeedRowsModel` for profile-feed delegate ordering and targeted row-role changes; do not add a second competing model.
+- **Capability origin/necessity:** Qt presentation only, required for the active profile feed; no core, local-store, provider, HTTP or authentication contract changes.
+- **Public contract:** Existing QML stable-ID reconciliation calls `count/get/insert/move/remove/setProperty` on the identical `QAbstractListModel` type already used by Explorer. The QML model object is owned by the live ProfileSurface, and its primitive roles are `stableKey`, `revisionKey`, `presentationKind`, `mediaLayoutKind`. Rich cast metadata remains in the existing per-surface keyed payload store.
+- **Canonical invariants and failures:** Stable cast IDs and feed ordering persist across insert/move, Like/Recast/Follow revisions trigger only their row's `dataChanged`, cached content stays useful offline, and deferred viewport restoration remains owned by surface timers. No network/SQLite I/O in QML and no worker access to QObjects.
+- **Behavioral verification:** Qt headless ProfileSurface creates a genuine `FeedRowsModel` object, applies cached content changes and immediate route destruction, and sees no QML warnings or scroll jumps. Existing native 10k-row model signal tests and full Qt/QML scroll suite must pass. Browser WASM and mobile-device runtime remain separately unverified.
+
+### Implementation and verified results
+
+- `ProfileSurface.qml` now instantiates the existing `FeedRowsModel` in place of its QML `ListModel`. Its current stable-ID diff and virtualized ListView still own only one profile row order. Cached cast/media content remains in the surface's keyed payload store; after a structural update, obsolete profile cast payload keys are removed. Switching accounts or profiles no longer retains old rich content indefinitely in that per-surface side store.
+- The actual `ui.media_scroll` headless QQmlEngine test creates/destroys real ProfileSurface objects repeatedly and now asserts their child is a native `FeedRowsModel`, the initial cached row appears, a changed `likedByMe` triggers `dataChanged` without adding a row, a replaced cast has the correct stable ID, and the obsolete cast's payload is released while the new payload remains.
+- `cmake --build --preset ui-qt612-debug --target farcaster_media_scroll_tests farcaster_feed_rows_model_tests -j1 && cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic ctest --test-dir build/ui-qt612-debug -R '^(ui.media_scroll|ui.feed_rows_model|ui.qml_import_smoke|presentation.feed_row_notifications)$' --output-on-failure`: **4/4 PASS**, Linux Qt 6.12 (20.85 sec).
+- After adding the obsolete-payload assertion, the first test build failed due to a test-only use of the nonexistent `QMetaType::QJSValue` enumerator. It was corrected to `QMetaType::fromType<QJSValue>()`; the unchanged production code then rebuilt and `ui.media_scroll` passed **1/1** in 32.55 sec. The test error was not concealed or attributed to application runtime.
+- `node --test tests/wasm/*.test.mjs`: **279/279 PASS**. `python3 tools/check_architecture.py`: **PASS**, unmodified.
+- Actual compiled browser WASM execution, mobile/desktop GPU frame timings, initial semantic projection moved off the GUI thread and the complete native application final link/startup remain **NOT VERIFIED**. No production deployment or restart.
+
 ## Views upstream waiting-queue cancellation — 2026-10-20
 
 - **Responsibility:** Derived analytics HTTP adapter's globally bounded upstream scheduler; not a cast-domain or Qt presentation dependency.
