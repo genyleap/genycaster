@@ -17,7 +17,8 @@
 - `cmake --build --preset strict-self-hosted --target farcaster_core_tests farcaster_read_pipeline_tests -j1` and `ctest --test-dir build/strict-self-hosted -R '^(core.behavior|application.local_first_read)$' --output-on-failure`: **2/2 PASS**, 2.50 sec.
 - `cmake --build --preset minimal-core --target farcaster_core_tests farcaster_read_pipeline_tests -j1` and `ctest --test-dir build/minimal-core -R '^(core.behavior|application.local_first_read)$' --output-on-failure`: **2/2 PASS**, 2.48 sec.
 - `python3 tools/check_architecture.py`: **FAIL**, violations reduced from 11 to **6** without modifying/weakening the checker. Remaining occurrences are presentation settings/UI/node-selection and localized user-facing provider labels. They require an independent architecture migration preserving user-visible network selection; **NOT CLOSED**.
-- Full Qt client compilation/link/startup is reported separately; these core tests do not demonstrate Qt composition or actual device compatibility.
+- `cmake --build --preset ui-qt612-debug --target farcaster_client -j1`: **INCOMPLETE / NOT VERIFIED**. On the Linux host with Qt 6.12, build progressed through `runtime_composition.cppm` and `main.cpp`, reaching `runtime_ui_bindings.cpp` at **32/34** remaining steps. This last object compile did not finish during a resource-constrained 423-second attempt; the build was explicitly interrupted rather than allowed to run indefinitely. No compiler or linker error for the new routing boundary was reported, but the final executable did **not** link, launch, or undergo a browser/runtime check. Do not count this as a passed full-app build.
+- These core tests do not demonstrate Qt composition end-to-end or actual device compatibility. Production deployment/restart was not performed.
 
 
 ## Qt Quick viewport-anchor callback ownership — 2026-10-20
