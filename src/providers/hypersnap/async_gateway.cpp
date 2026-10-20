@@ -1915,42 +1915,50 @@ foundation::result::Result<AppRequest> AsyncGateway::viewerReactionsFor(
             }
             auto likeResult = std::move(*likes);
             auto recastResult = std::move(*recasts);
-            if (!likeResult) {
+            if (!likeResult && !recastResult) {
                 completion(std::unexpected(std::move(likeResult.error())));
                 return;
             }
-            if (!recastResult) {
-                completion(std::unexpected(std::move(recastResult.error())));
-                return;
-            }
-            if (likeResult->providerCursor || recastResult->providerCursor) {
-                // An absent target in a partial account snapshot is unknown,
-                // not evidence of an inactive reaction.
-                completion(std::unexpected(makeError(
-                    ErrorCode::Unavailable,
-                    "Viewer reaction snapshot is paginated; target absence is unknown.")));
-                return;
-            }
+            // Positive evidence is valid even on a paginated account page.
+            // Only a completed page can establish a negative answer.
             std::unordered_set<std::string> liked{};
             std::unordered_set<std::string> recasted{};
-            for (const auto& target : likeResult->targets) {
-                liked.insert(target.castId.value);
+            if (likeResult) {
+                for (const auto& target : likeResult->targets) {
+                    liked.insert(target.castId.value);
+                }
             }
-            for (const auto& target : recastResult->targets) {
-                recasted.insert(target.castId.value);
+            if (recastResult) {
+                for (const auto& target : recastResult->targets) {
+                    recasted.insert(target.castId.value);
+                }
             }
             domain::feed::ViewerReactionSnapshot snapshot{};
             snapshot.liked.reserve(targetState->size());
             snapshot.recasted.reserve(targetState->size());
+            snapshot.likeExamined.reserve(targetState->size());
+            snapshot.recastExamined.reserve(targetState->size());
             snapshot.examined.reserve(targetState->size());
             for (const auto& target : *targetState) {
-                // Both canonical user-reaction pages are complete; negative
-                // evidence is now valid for exactly these requested targets.
-                snapshot.examined.push_back(target.id);
-                if (liked.contains(target.id.value)) {
+                const bool isLiked = liked.contains(target.id.value);
+                const bool isRecasted = recasted.contains(target.id.value);
+                const bool knowsLike = likeResult
+                    && (isLiked || !likeResult->providerCursor);
+                const bool knowsRecast = recastResult
+                    && (isRecasted || !recastResult->providerCursor);
+                if (knowsLike) {
+                    snapshot.likeExamined.push_back(target.id);
+                }
+                if (knowsRecast) {
+                    snapshot.recastExamined.push_back(target.id);
+                }
+                if (knowsLike && knowsRecast) {
+                    snapshot.examined.push_back(target.id);
+                }
+                if (isLiked) {
                     snapshot.liked.push_back(target.id);
                 }
-                if (recasted.contains(target.id.value)) {
+                if (isRecasted) {
                     snapshot.recasted.push_back(target.id);
                 }
             }

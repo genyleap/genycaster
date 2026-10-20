@@ -78,6 +78,9 @@ public:
     using Request = application::read::async_gateway::Request;
     using Options = application::read::model::ReadOptions;
     bool failCast{true};
+    bool holdProfile{};
+    bool includeReply{};
+    application::read::async_gateway::ProfileCompletion pendingProfile{};
     int profileCalls{};
     std::optional<capability::feed::FeedPage> servedFeed{};
 
@@ -90,10 +93,14 @@ public:
     }
     [[nodiscard]] foundation::result::Result<Request> profile(
         domain::identity::Fid,
-        application::read::async_gateway::ProfileCompletion,
+        application::read::async_gateway::ProfileCompletion completion,
         Options) override
     {
         ++profileCalls;
+        if (holdProfile) {
+            pendingProfile = std::move(completion);
+            return Request{};
+        }
         return unsupported();
     }
     [[nodiscard]] foundation::result::Result<Request> cast(
@@ -105,11 +112,20 @@ public:
             completion(std::unexpected(foundation::error::Error::make(
                 foundation::error::ErrorCode::Unavailable, "Test cast source unavailable.")));
         } else {
-            completion(domain::cast::Cast{
+            domain::cast::Cast cast{
                 .id = std::move(castId),
                 .author = domain::identity::Fid{42},
                 .text = "Cached background preview",
-            });
+            };
+            if (includeReply) {
+                cast.directReplies.push_back(domain::cast::Cast{
+                    .id = domain::cast::CastId{"0xreply-fresh"},
+                    .author = domain::identity::Fid{16},
+                    .text = "Fresh reply before optional author",
+                    .parent = cast.id,
+                });
+            }
+            completion(std::move(cast));
         }
         return Request{};
     }
@@ -978,6 +994,48 @@ void lightweightCastPreviewSkipsOptionalProfileNetwork()
     assert(warm && *warm && (*warm)->text == "Cached background preview");
 }
 
+void freshCastAndRepliesDoNotWaitForOptionalAuthor()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    auto store = storage::read::openReadStore(database.path);
+    assert(store);
+    ImmediateExecutor executor{};
+    FakeAsyncCastGateway gateway{};
+    gateway.failCast = false;
+    gateway.includeReply = true;
+    gateway.holdProfile = true;
+    application::read::async_service::ReadService service{executor, **store, gateway};
+
+    std::vector<application::read::model::CastState> deliveries{};
+    auto request = service.openCast(
+        domain::cast::CastId{"0xprimary-before-author"},
+        [&deliveries](application::read::model::CastState state) {
+            if (state.metadata.phase == application::read::model::ReadPhase::Ready) {
+                deliveries.push_back(std::move(state));
+            }
+        });
+    assert(request);
+    assert(gateway.profileCalls == 1);
+    assert(gateway.pendingProfile);
+    assert(deliveries.size() == 1U);
+    assert(deliveries[0].cast);
+    assert(deliveries[0].cast->directReplies.size() == 1U);
+    assert(deliveries[0].cast->directReplies[0].text
+        == "Fresh reply before optional author");
+    assert(!deliveries[0].author);
+
+    // A delayed optional author can enrich the already usable detail without
+    // clearing the confirmed reply tree or producing another loading state.
+    auto reply = std::move(gateway.pendingProfile);
+    reply(makeProfile(42, "fresh-author", "Fresh Author"));
+    assert(deliveries.size() == 2U);
+    assert(deliveries.back().author && deliveries.back().author->displayName);
+    assert(deliveries.back().author->displayName->value == "Fresh Author");
+    assert(deliveries.back().cast);
+    assert(deliveries.back().cast->directReplies.size() == 1U);
+}
+
 void serializedExecutorKeepsBlockingReadOffCallerThread()
 {
     DatabaseFixture database{};
@@ -1031,6 +1089,7 @@ int main()
     rejectedAsyncCacheCompletionIsTerminal();
     asyncPaginationPublishesOnlyNewPageWhenPresentationOptsIn();
     lightweightCastPreviewSkipsOptionalProfileNetwork();
+    freshCastAndRepliesDoNotWaitForOptionalAuthor();
     serializedExecutorKeepsBlockingReadOffCallerThread();
     return 0;
 }

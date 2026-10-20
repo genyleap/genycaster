@@ -441,8 +441,14 @@ void applyViewerReactionSnapshotTo(QVariantList& rows, const QVariantMap& snapsh
         const quint8 state = found.value();
         const bool liked = (state & 1U) != 0U;
         const bool recasted = (state & 2U) != 0U;
-        map.insert(QStringLiteral("likedByMe"), liked);
-        map.insert(QStringLiteral("recastedByMe"), recasted);
+        const bool knowsLike = (state & 4U) != 0U;
+        const bool knowsRecast = (state & 8U) != 0U;
+        if (knowsLike) {
+            map.insert(QStringLiteral("likedByMe"), liked);
+        }
+        if (knowsRecast) {
+            map.insert(QStringLiteral("recastedByMe"), recasted);
+        }
         if (liked && map.value(QStringLiteral("likeCount")).toULongLong() == 0U) {
             map.insert(QStringLiteral("likeCount"), qulonglong{1});
         }
@@ -2674,26 +2680,41 @@ void PresentationBridge::applyViewerReactionDelta(QVariantList reactions)
             continue;
         }
 
+        const bool knowsLike = reaction.contains(QStringLiteral("liked"));
+        const bool knowsRecast = reaction.contains(QStringLiteral("recasted"));
+        if (!knowsLike && !knowsRecast) {
+            continue;
+        }
         const bool liked = reaction.value(QStringLiteral("liked")).toBool();
         const bool recasted = reaction.value(QStringLiteral("recasted")).toBool();
         const QString likeKey = reactionOverrideKey(canonical, QStringLiteral("like"));
         const QString recastKey = reactionOverrideKey(canonical, QStringLiteral("recast"));
-        const quint8 knownState = static_cast<quint8>((liked ? 1U : 0U)
-                                                       | (recasted ? 2U : 0U));
         const auto previous = m_viewerReactionKnownStates.constFind(canonical);
+        quint8 knownState = previous == m_viewerReactionKnownStates.cend()
+            ? quint8{0} : previous.value();
+        if (knowsLike) {
+            knownState = static_cast<quint8>((knownState & ~1U) | 4U | (liked ? 1U : 0U));
+        }
+        if (knowsRecast) {
+            knownState = static_cast<quint8>((knownState & ~2U) | 8U | (recasted ? 2U : 0U));
+        }
         if (previous != m_viewerReactionKnownStates.cend()
             && previous.value() == knownState) {
             continue; // Identical complete evidence, no broad QML update.
         }
         m_viewerReactionKnownStates.insert(canonical, knownState);
         deltas.insert(canonical, knownState);
-        m_viewerReactionSnapshot.remove(likeKey);
-        m_viewerReactionSnapshot.remove(recastKey);
-        if (liked) {
-            rememberReactionOverride(m_viewerReactionSnapshot, canonical, QStringLiteral("like"), true);
+        if (knowsLike) {
+            m_viewerReactionSnapshot.remove(likeKey);
+            if (liked) {
+                rememberReactionOverride(m_viewerReactionSnapshot, canonical, QStringLiteral("like"), true);
+            }
         }
-        if (recasted) {
-            rememberReactionOverride(m_viewerReactionSnapshot, canonical, QStringLiteral("recast"), true);
+        if (knowsRecast) {
+            m_viewerReactionSnapshot.remove(recastKey);
+            if (recasted) {
+                rememberReactionOverride(m_viewerReactionSnapshot, canonical, QStringLiteral("recast"), true);
+            }
         }
 
     }

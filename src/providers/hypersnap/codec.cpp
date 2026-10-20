@@ -1226,6 +1226,8 @@ foundation::result::Result<domain::feed::ViewerReactionSnapshot> decodeCastInter
         // Only a per-target record is evidence that an absent reaction is
         // actually false. The provider may omit unrelated account casts.
         snapshot.examined.push_back(domain::cast::CastId{*hash});
+        snapshot.likeExamined.push_back(domain::cast::CastId{*hash});
+        snapshot.recastExamined.push_back(domain::cast::CastId{*hash});
         if (optionalBool(interaction, "liked").value_or(false)) {
             snapshot.liked.push_back(domain::cast::CastId{*hash});
         }

@@ -783,6 +783,50 @@ void testViewerReactionFirstNegativeAndDuplicateEvidence()
     assert(bridge.rows().front().toMap().value(QStringLiteral("likedByMe")).toBool());
 }
 
+void testViewerReactionPartialTypeCoverage()
+{
+    PresentationBridge bridge{};
+    const QString id{QStringLiteral("0x") + QString(40, QLatin1Char('b'))};
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("recent"),
+        {QVariantMap{{QStringLiteral("castId"), id},
+                     {QStringLiteral("likedByMe"), true},
+                     {QStringLiteral("recastedByMe"), true}}},
+        {}, {}, {}, {}, false, false, false, false);
+    int notifications{};
+    QObject::connect(&bridge, &PresentationBridge::stateChanged,
+        &bridge, [&notifications] { ++notifications; });
+
+    // A complete negative Like read must never pretend to know Recast.
+    bridge.applyViewerReactionDelta({
+        QVariantMap{{QStringLiteral("castId"), id},
+                    {QStringLiteral("liked"), false}},
+    });
+    assert(notifications == 1);
+    assert(!bridge.rows().front().toMap().value(QStringLiteral("likedByMe")).toBool());
+    assert(bridge.rows().front().toMap().value(QStringLiteral("recastedByMe")).toBool());
+
+    // Incomplete Like coverage has no value key and cannot undo the latest
+    // verified Like evidence; Recast may still be known independently.
+    bridge.applyViewerReactionDelta({
+        QVariantMap{{QStringLiteral("castId"), id},
+                    {QStringLiteral("recasted"), false}},
+    });
+    assert(notifications == 2);
+    assert(!bridge.rows().front().toMap().value(QStringLiteral("likedByMe")).toBool());
+    assert(!bridge.rows().front().toMap().value(QStringLiteral("recastedByMe")).toBool());
+    bridge.applyViewerReactionDelta({
+        QVariantMap{{QStringLiteral("castId"), id}},
+    });
+    assert(notifications == 2);
+    bridge.applyViewerReactionDelta({
+        QVariantMap{{QStringLiteral("castId"), id},
+                    {QStringLiteral("liked"), true}},
+    });
+    assert(notifications == 3);
+    assert(bridge.rows().front().toMap().value(QStringLiteral("likedByMe")).toBool());
+    assert(!bridge.rows().front().toMap().value(QStringLiteral("recastedByMe")).toBool());
+}
+
 void testSourceSwitchAdmitsCachedTimeline()
 {
     PresentationBridge bridge{};
@@ -815,6 +859,7 @@ int main(int argc, char* argv[])
     testFirstPageCacheDoesNotRemountLiveTimeline();
     testSourceSwitchAdmitsCachedTimeline();
     testViewerReactionFirstNegativeAndDuplicateEvidence();
+    testViewerReactionPartialTypeCoverage();
     testPaginationPreservesHydratedReferencedContext();
     testPaginationPreservesResolvedMediaOnlyReferencedContext();
     testIncrementalPaginationDecoratesOnlyNewOrRevisedRows();

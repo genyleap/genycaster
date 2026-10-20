@@ -208,9 +208,11 @@ void testRecentNetworkEventDecoding()
 class RecentAsyncTransport final : public transport::async_http::IAsyncHttpTransport {
 public:
     explicit RecentAsyncTransport(
-        const bool probeParallelShards = false, const bool corruptSecondShard = false)
+        const bool probeParallelShards = false, const bool corruptSecondShard = false,
+        const bool partialReactionPages = false)
         : m_probeParallelShards{probeParallelShards},
           m_corruptSecondShard{corruptSecondShard},
+          m_partialReactionPages{partialReactionPages},
           m_worker{[this] { drain(); }} {}
     ~RecentAsyncTransport() override {
         {
@@ -282,11 +284,18 @@ private:
             const bool corruptShard = m_corruptSecondShard
                 && pending.first.url.find("/v1/events") != std::string::npos
                 && pending.first.url.find("shard_index=2") != std::string::npos;
+            std::string responseBody = corruptShard
+                ? R"json({"events":"malformed-shard"})json"
+                : responseFor(pending.first.url);
+            if (m_partialReactionPages
+                && pending.first.url.find("/v2/farcaster/reaction/user") != std::string::npos) {
+                responseBody = pending.first.url.find("type=likes") != std::string::npos
+                    ? R"json({"reactions":[{"cast":{"hash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","fid":1}}],"next":{"cursor":"page-2"}})json"
+                    : R"json({"reactions":[],"next":null})json";
+            }
             auto response = transport::http::HttpResponse{
                 .statusCode = 200U,
-                .body = corruptShard
-                    ? R"json({"events":"malformed-shard"})json"
-                    : responseFor(pending.first.url),
+                .body = std::move(responseBody),
             };
             pending.second(std::move(response));
         }
@@ -335,6 +344,7 @@ private:
     bool m_closed{};
     bool m_probeParallelShards{};
     bool m_corruptSecondShard{};
+    bool m_partialReactionPages{};
     bool m_firstShardScheduled{};
     bool m_firstShardCompleted{};
     bool m_parallelShardsObserved{};
@@ -435,6 +445,63 @@ void testIncompatibleViewerBatchFallsBackWithoutRepeatedProbe()
     assert(std::ranges::count_if(urls, [](const std::string& url) {
         return url.find("/v2/farcaster/reaction/user") != std::string::npos;
     }) == 4);
+    std::error_code ignored{};
+    std::filesystem::remove(path, ignored);
+}
+
+
+void testPartialReactionPagesPreserveIndependentEvidence()
+{
+    const auto path = std::filesystem::temp_directory_path() /
+        ("genycaster-partial-reactions-" + std::to_string(
+            std::chrono::steady_clock::now().time_since_epoch().count()) + ".sqlite3");
+    auto continuation = storage::continuation::openContinuationStore(path);
+    assert(continuation);
+    RecentAsyncTransport transport{false, false, true};
+    execution::weighted_thread_pool::WeightedThreadPoolExecutor decode{
+        1, 32, 4U * 1024U * 1024U};
+    execution::serial::SerialExecutor serial{32};
+    provider::hypersnap::async_gateway::AsyncGateway gateway{
+        transport, decode, serial, *continuation, testConfig()};
+    auto promised = std::make_shared<
+        std::promise<foundation::result::Result<domain::feed::ViewerReactionSnapshot>>>();
+    auto resultFuture = promised->get_future();
+    constexpr std::string_view a{"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"};
+    constexpr std::string_view b{"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"};
+    auto request = gateway.viewerReactionsFor(
+        domain::identity::Fid{42},
+        {
+            domain::cast::CastReference{
+                .author = domain::identity::Fid{1},
+                .id = domain::cast::CastId{std::string{a}},
+            },
+            domain::cast::CastReference{
+                .author = domain::identity::Fid{2},
+                .id = domain::cast::CastId{std::string{b}},
+            },
+        },
+        [promised](foundation::result::Result<domain::feed::ViewerReactionSnapshot> result) {
+            promised->set_value(std::move(result));
+        });
+    assert(request);
+    assert(resultFuture.wait_for(std::chrono::seconds{5}) == std::future_status::ready);
+    auto snapshot = resultFuture.get();
+    assert(snapshot);
+    assert(snapshot->liked.size() == 1U && snapshot->liked.front().value == a);
+    assert(snapshot->recasted.empty());
+    assert(snapshot->likeExamined.size() == 1U && snapshot->likeExamined.front().value == a);
+    assert(snapshot->recastExamined.size() == 2U);
+    assert(snapshot->examined.size() == 1U && snapshot->examined.front().value == a);
+    // Cast B is not liked in the first account page: incomplete like coverage
+    // cannot establish false, although complete recast coverage does.
+    assert(std::ranges::none_of(snapshot->likeExamined,
+        [](const domain::cast::CastId& id) {
+            return id.value == "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+        }));
+    const auto urls = transport.requestedUrls();
+    assert(std::ranges::count_if(urls, [](const std::string& url) {
+        return url.find("/v2/farcaster/reaction/user") != std::string::npos;
+    }) == 2);
     std::error_code ignored{};
     std::filesystem::remove(path, ignored);
 }
@@ -1073,6 +1140,7 @@ int main()
     testDecodeAdmissionFailureCompletesOnce();
     testRejectedAsyncDecodeDeliversExactlyOnce();
     testIncompatibleViewerBatchFallsBackWithoutRepeatedProbe();
+    testPartialReactionPagesPreserveIndependentEvidence();
     testParallelRecentShardFailureCompletesOnlyOnce();
     testRecentAsyncFeedAndCursor();
     testProfileCastAndIdentityEndpoints();

@@ -563,90 +563,77 @@ foundation::result::Result<ReadRequest> ReadService::openCast(
                     }
 
                     auto castValue = std::make_shared<domain::cast::Cast>(std::move(*fresh));
-                    if (options.intent == model::ReadIntent::Prefetch) {
-                        // A quote/parent card needs canonical content immediately.
-                        // Optional author enrichment must not add a second provider
-                        // round trip or block this background read.
-                        auto status = m_cacheExecutor.post(
-                            [this, castId, castValue, observer, control]() mutable {
-                                if (control->cancelled.load(std::memory_order_acquire)) {
-                                    return;
-                                }
-                                model::CastState state{
-                                    .castId = castId,
-                                    .cast = std::move(*castValue),
-                                };
-                                auto saved = m_store.putCast(*state.cast);
-                                if (auto author = m_store.findProfile(state.cast->author); author) {
-                                    state.author = std::move(*author);
-                                }
-                                state.metadata = saved
-                                    ? model::ReadMetadata{.phase = model::ReadPhase::Ready}
-                                    : failedMetadata(std::move(saved.error()), true);
-                                publish(control, observer, std::move(state));
-                            });
-                        if (!status) {
-                            model::CastState failed{.castId = castId};
-                            failed.metadata = failedMetadata(std::move(status.error()), false);
-                            publish(control, observer, std::move(failed));
-                        }
+                    // Canonical cast content is the primary read. Publish it
+                    // independently of the optional author network round trip.
+                    // Cached author information is useful immediately.
+                    auto primaryStatus = m_cacheExecutor.post(
+                        [this, castId, castValue, observer, control]() mutable {
+                            if (control->cancelled.load(std::memory_order_acquire)) {
+                                return;
+                            }
+                            model::CastState state{
+                                .castId = castId,
+                                .cast = *castValue,
+                            };
+                            auto saved = m_store.putCast(*state.cast);
+                            if (auto author = m_store.findProfile(state.cast->author); author) {
+                                state.author = std::move(*author);
+                            }
+                            state.metadata = saved
+                                ? model::ReadMetadata{.phase = model::ReadPhase::Ready}
+                                : failedMetadata(std::move(saved.error()), true);
+                            publish(control, observer, std::move(state));
+                        });
+                    if (!primaryStatus) {
+                        model::CastState failed{.castId = castId};
+                        failed.metadata = failedMetadata(std::move(primaryStatus.error()), false);
+                        publish(control, observer, std::move(failed));
                         return;
                     }
+
+                    if (options.intent == model::ReadIntent::Prefetch) {
+                        return;
+                    }
+
+                    // Enrichment is separately owned by the same cancellation
+                    // token but can only publish metadata after a successful
+                    // primary snapshot. Failure must not replace valid content.
                     auto authorRequest = m_gateway.profile(
                         castValue->author,
-                        [this, castId, castValue, observer, control](
+                        [this, castId, observer, control](
                             foundation::result::Result<domain::profile::Profile> author) mutable {
+                            if (!author || control->cancelled.load(std::memory_order_acquire)) {
+                                return;
+                            }
                             auto status = m_cacheExecutor.post(
-                                [this, castId, castValue, observer, control,
-                                 author = std::move(author)]() mutable {
+                                [this, castId, observer, control,
+                                 author = std::move(*author)]() mutable {
                                     if (control->cancelled.load(std::memory_order_acquire)) {
+                                        return;
+                                    }
+                                    if (auto saved = m_store.putProfile(author); !saved) {
+                                        return;
+                                    }
+                                    auto cachedCast = m_store.findCast(castId);
+                                    if (!cachedCast || !cachedCast->has_value()) {
                                         return;
                                     }
                                     model::CastState state{
                                         .castId = castId,
-                                        .cast = std::move(*castValue),
+                                        .cast = std::move(**cachedCast),
+                                        .author = std::move(author),
+                                        .metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready},
                                     };
-                                    if (auto saved = m_store.putCast(*state.cast); !saved) {
-                                        state.metadata = failedMetadata(std::move(saved.error()), true);
-                                        publish(control, observer, std::move(state));
-                                        return;
-                                    }
-                                    if (author) {
-                                        static_cast<void>(m_store.putProfile(*author));
-                                        state.author = std::move(*author);
-                                    } else {
-                                        auto cachedAuthor = m_store.findProfile(state.cast->author);
-                                        if (cachedAuthor) {
-                                            state.author = std::move(*cachedAuthor);
-                                        }
-                                    }
-                                    state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
                                     publish(control, observer, std::move(state));
                                 });
-                            publishRejectedCacheJob(control, observer,
-                                model::CastState{.castId = castId}, std::move(status));
+                            // Optional work can be dropped when the cache lane
+                            // is saturated; never fail the primary cast read.
+                            static_cast<void>(status);
                         },
                         options);
-                    if (!authorRequest) {
-                        auto status = m_cacheExecutor.post(
-                            [this, castId, castValue, observer, control]() mutable {
-                                model::CastState state{
-                                    .castId = castId,
-                                    .cast = std::move(*castValue),
-                                };
-                                static_cast<void>(m_store.putCast(*state.cast));
-                                auto cachedAuthor = m_store.findProfile(state.cast->author);
-                                if (cachedAuthor) {
-                                    state.author = std::move(*cachedAuthor);
-                                }
-                                state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
-                                publish(control, observer, std::move(state));
-                            });
-                        publishRejectedCacheJob(control, observer,
-                            model::CastState{.castId = castId}, std::move(status));
-                        return;
+                    if (authorRequest) {
+                        control->attach(std::move(*authorRequest));
                     }
-                    control->attach(std::move(*authorRequest));
                 },
                 options);
             if (!request) {
