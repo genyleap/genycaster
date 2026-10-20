@@ -60,6 +60,8 @@ QtObject {
     assert(binding);
     const int initialBindings = binding->property("rowBindingUpdates").toInt();
 
+    bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), 42,
+        QStringLiteral("viewer"), QStringLiteral("Viewer"), {}, {}, {}, {});
     QVariantList initial{};
     constexpr int largeTimeline = 2048;
     initial.reserve(largeTimeline);
@@ -103,7 +105,10 @@ QtObject {
         QVariantMap{{QStringLiteral("text"), QStringLiteral("Ignore")}});
     assert(rowSignals == afterRestore);
     bridge.applyReferencedCastPreview(QStringLiteral("0xquoted"),
-        QVariantMap{{QStringLiteral("text"), QStringLiteral("Quoted root")}});
+        QVariantMap{{QStringLiteral("text"), QStringLiteral("Quoted root")},
+                    {QStringLiteral("likedByMe"), true},
+                    {QStringLiteral("recastedByMe"), true},
+                    {QStringLiteral("followingKnown"), true}});
     assert(rowSignals == afterRestore + 1);
     assert(bridge.rows().first().toMap().value(QStringLiteral("_referencedRevision"))
         .toString().contains(QStringLiteral("quoted")));
@@ -151,10 +156,57 @@ QtObject {
     assert(bridge.rows().size() == largeTimeline + 1);
     assert(bridge.rows().first().toMap().value(QStringLiteral("castId"))
         == QStringLiteral("0xrow-0"));
+    const auto cleanRow = bridge.rows().first().toMap();
+    assert(!cleanRow.contains(QStringLiteral("likedByMe")));
+    const auto cleanQuote = cleanRow.value(QStringLiteral("embeds")).toList()
+        .first().toMap();
+    assert(!cleanQuote.contains(QStringLiteral("likedByMe")));
+    assert(!cleanQuote.contains(QStringLiteral("recastedByMe")));
+    assert(!cleanQuote.contains(QStringLiteral("followingKnown")));
+    assert(cleanQuote.value(QStringLiteral("text")) == QStringLiteral("Quoted root"));
+    // The old account's known-positive dedup cache must not suppress a
+    // genuine same-value positive arriving for the new viewer.
+    bridge.applyViewerReactionDelta(QVariantList{
+        QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xrow-0")},
+                    {QStringLiteral("liked"), true}},
+    });
+    assert(rowSignals == afterPagination + 3);
+    assert(bridge.rows().first().toMap().value(QStringLiteral("likedByMe")).toBool());
 
     const int beforeProfile = rowSignals;
     bridge.openProfileFid(77);
     assert(rowSignals == beforeProfile + 1);
     assert(bridge.rows().isEmpty());
+
+    // Profile feed caches are keyed by subject, not by viewer; stored
+    // viewer-only evidence must be scrubbed on account switch as well.
+    PresentationBridge profileCache{};
+    profileCache.applyAuthenticationState(true, QStringLiteral("authenticated"), 42,
+        QStringLiteral("viewer"), QStringLiteral("Viewer"), {}, {}, {}, {});
+    profileCache.openProfileFid(77);
+    profileCache.applyList(QStringLiteral("profile"), QStringLiteral("user-posts"),
+        QVariantList{QVariantMap{
+            {QStringLiteral("castId"), QStringLiteral("0xcached-profile")},
+            {QStringLiteral("text"), QStringLiteral("Public profile cast")},
+            {QStringLiteral("likedByMe"), true},
+            {QStringLiteral("followingByMe"), true},
+            {QStringLiteral("followingKnown"), true},
+            {QStringLiteral("threadReplies"), QVariantList{QVariantMap{
+                {QStringLiteral("castId"), QStringLiteral("0xcached-reply")},
+                {QStringLiteral("recastedByMe"), true},
+            }}},
+        }}, {}, {}, {}, {}, false, false, false, false);
+    profileCache.applyAuthenticationState(true, QStringLiteral("authenticated"), 43,
+        QStringLiteral("another"), QStringLiteral("Another"), {}, {}, {}, {});
+    profileCache.openProfileFid(77);
+    assert(profileCache.rows().size() == 1);
+    const auto restored = profileCache.rows().front().toMap();
+    assert(restored.value(QStringLiteral("text"))
+        == QStringLiteral("Public profile cast"));
+    assert(!restored.contains(QStringLiteral("likedByMe")));
+    assert(!restored.contains(QStringLiteral("followingByMe")));
+    assert(!restored.contains(QStringLiteral("followingKnown")));
+    assert(!restored.value(QStringLiteral("threadReplies")).toList().front()
+        .toMap().contains(QStringLiteral("recastedByMe")));
     return 0;
 }

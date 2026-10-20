@@ -1,5 +1,23 @@
 # Genycaster read-pipeline repair: verification record
 
+## Account-scoped read-enrichment isolation (2026-10-20)
+
+- **Responsibility / origin:** Application-facing presentation security/correctness; viewer identity is not part of public cast/profile data.
+- **Contract:** on an actual viewer FID change (including sign-out), clear old viewer-only like/recast, follow and follows-me evidence from retained rows, nested quote/reply previews, active detail and profile caches. Preserve public cast IDs, text, media and published counts. Clear account-dependent admission/known-state maps so a different account can hydrate independently.
+- **Ownership and expected failures:** invalidate account-derived presentation atomically on the GUI thread before publishing the account change; late async callbacks still rely on existing runtime generations. Old cached public content remains visible offline with unknown viewer state, never an invented false/zero. No provider/network boundary changes.
+- **Tests:** deterministic Qt/QML bridge test covering two viewer transitions, nested quoted/reply evidence, cached profile revisit and a new account's reaction knowledge; no stale own-like or follows-me state leaks across accounts.
+
+### Implementation and evidence
+
+- Confirmed in source: `applyAuthenticationState()` cleared `m_viewerReactionSnapshot` and account overrides but left `likedByMe`, `recastedByMe`, `followingByMe`, `followingKnown`, `followsMe` and `followsMeKnown` copied into retained `QVariantMap` payloads. It also failed to clear `m_viewerReactionKnownStates`, so matching positive evidence from the next viewer could be silently deduplicated. Both defects are now corrected when the canonical viewer FID changes.
+- Account invalidation removes viewer-only keys from existing rows, pending feed rows, nested reply/quote payloads, active detail, Explorer art rows, profile list/detail caches, referenced-cast preview cache and search rows. Public cast content, author/media, counts, stable IDs and offline caches remain. Valid data mutations trigger `rowsChanged`; loading/progress-only updates do not.
+- `cmake --build --preset ui-qt612-debug --target farcaster_presentation_row_notifications_tests -j1`: **PASS**, rebuilding presentation and Qt target.
+- `ctest --test-dir build/ui-qt612-debug -R '^presentation.feed_row_notifications$' --output-on-failure`: **1/1 PASS**, 0.15 seconds; adds deterministic viewer 42→43 switch, old reaction and nested quoted-cast cleanup, preserved public quote content, a new viewer's same-valued positive reaction, plus profile-cache/recursive reply cleanup on revisit. No live account/provider call is inferred.
+- `cmake --build --preset ui-qt612-debug --target farcaster_presentation_icon_tests farcaster_media_scroll_tests -j1`: **PASS**, both relinked against the changed presentation library.
+- `cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic ctest --test-dir build/ui-qt612-debug -R '^(presentation.feed_row_notifications|presentation.contextual_icons|ui.qml_import_smoke|ui.media_scroll)$' --output-on-failure`: **4/4 PASS**, 20.12 seconds on Linux.
+- `python3 tools/check_architecture.py`: **FAIL** on the same eleven existing provider/backend boundary leaks, not on the added viewer cleanup. The guard was not modified.
+- Actual mobile resume, WASM browser account switching and long-lived production account sessions remain **NOT VERIFIED**; no production services were restarted or deployed.
+
 ## Feed-row notification boundary (2026-10-20)
 
 - **Responsibility / origin:** Local presentation optimization, not a new feed authority. Preserve `PresentationBridge::rows()` as the single authoritative Qt-visible collection and the already-virtualized QML `stableRows` model.

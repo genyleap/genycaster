@@ -120,6 +120,65 @@ struct ContextualReactionRule final {
 // Public Farcaster v2-compatible read APIs may return 40 hex characters without
 // a prefix. Protocol writes accept either form; normalize the reply target once
 // at this presentation boundary rather than rejecting a valid fetched cast.
+// Viewer-specific evidence cannot be reused by a different account. Traverse
+// only the already-retained presentation values (no network or SQL), including
+// nested quoted casts and replies. Keep public engagement totals untouched:
+// their provenance is not account-scoped and unknown is not synthetic zero.
+bool clearViewerFields(QVariantMap& row, const unsigned depth = 0U)
+{
+    bool changed = false;
+    for (const QString& key : {
+             QStringLiteral("likedByMe"), QStringLiteral("recastedByMe"),
+             QStringLiteral("followingByMe"), QStringLiteral("followingKnown"),
+             QStringLiteral("followsMe"), QStringLiteral("followsMeKnown"),
+         }) {
+        changed = row.remove(key) > 0 || changed;
+    }
+    // Providers and cached embed trees are bounded, but do not permit
+    // arbitrarily deep variant nesting to exhaust the GUI stack on sign-out.
+    if (depth >= 16U) return changed;
+    for (auto it = row.begin(); it != row.end(); ++it) {
+        const QVariant value = it.value();
+        if (value.metaType().id() == QMetaType::QVariantMap) {
+            QVariantMap nested = value.toMap();
+            if (clearViewerFields(nested, depth + 1U)) {
+                it.value() = std::move(nested);
+                changed = true;
+            }
+        } else if (value.metaType().id() == QMetaType::QVariantList) {
+            QVariantList children = value.toList();
+            bool listChanged = false;
+            for (qsizetype index = 0; index < children.size(); ++index) {
+                if (children.at(index).metaType().id() != QMetaType::QVariantMap)
+                    continue;
+                QVariantMap child = children.at(index).toMap();
+                if (clearViewerFields(child, depth + 1U)) {
+                    children[index] = std::move(child);
+                    listChanged = true;
+                }
+            }
+            if (listChanged) {
+                it.value() = std::move(children);
+                changed = true;
+            }
+        }
+    }
+    return changed;
+}
+
+bool clearViewerFields(QVariantList& rows)
+{
+    bool changed = false;
+    for (qsizetype index = 0; index < rows.size(); ++index) {
+        QVariantMap row = rows.at(index).toMap();
+        if (clearViewerFields(row)) {
+            rows[index] = std::move(row);
+            changed = true;
+        }
+    }
+    return changed;
+}
+
 [[nodiscard]] QString canonicalProtocolCastId(const QString& castId)
 {
     const QString hash = canonicalCastKey(castId);
@@ -2357,6 +2416,24 @@ void PresentationBridge::applyAuthenticationState(
                 .toList().mid(0, 200)
             : QVariantList{};
         emit bookmarksChanged();
+        // Cached public content survives an account switch, but its viewer
+        // overlays do not. The previous snapshot and per-cast known-state map
+        // must both be invalidated before the next account hydrates them.
+        accountRowsChanged = clearViewerFields(m_rows) || accountRowsChanged;
+        clearViewerFields(m_pendingFeedRows);
+        clearViewerFields(m_explorerArtRows);
+        clearViewerFields(m_detail);
+        for (auto it = m_profileListCache.begin(); it != m_profileListCache.end(); ++it) {
+            clearViewerFields(it.value());
+        }
+        for (auto it = m_profileDetailCache.begin(); it != m_profileDetailCache.end(); ++it) {
+            clearViewerFields(it.value());
+        }
+        for (auto it = m_referencedPreviewCache.begin(); it != m_referencedPreviewCache.end(); ++it) {
+            clearViewerFields(it.value());
+        }
+        if (clearViewerFields(m_searchResults)) emit searchChanged();
+        m_viewerReactionKnownStates.clear();
     }
     m_accountUsername = m_isAuthenticated ? std::move(username) : QString{};
     m_accountName = m_isAuthenticated
