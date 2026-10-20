@@ -658,17 +658,24 @@ Item {
             root.stablePayloads = ({})
             return
         }
+        // One native-ListModel read per retained stable ID constructs an
+        // ephemeral position index. Searching the model from every mismatch
+        // was quadratic on a heavily reordered cached timeline.
+        const currentOrder = []
+        const positions = Object.create(null)
+        for (let index = 0; index < stableRows.count; ++index) {
+            const key = String(stableRows.get(index).stableKey)
+            currentOrder.push(key)
+            positions[key] = index
+        }
         if (stableRows.count > 0) {
             // Cross-tab changes and first-page refreshes may replace nearly
-            // every cast. Inserting those rows individually at index zero is
-            // quadratic and blocks the Qt GUI thread during navigation.
-            const priorKeys = ({})
-            for (let index = 0; index < stableRows.count; ++index)
-                priorKeys[String(stableRows.get(index).stableKey)] = true
+            // every cast. A mostly unrelated new timeline is cheaper to
+            // replace than to insert every element at the beginning.
             let retained = 0
             for (let index = 0; index < source.length; ++index) {
                 const entry = source[index] || ({})
-                if (priorKeys[root.rowKey(entry.payload || ({}), index)])
+                if (positions[root.rowKey(entry.payload || ({}), index)] !== undefined)
                     ++retained
             }
             if (retained * 4 < Math.min(stableRows.count, source.length)) {
@@ -694,39 +701,48 @@ Item {
             // Mutate the side store before changing revisionKey. Delegates bind
             // through revisionKey, so only the affected row re-reads its payload.
             root.stablePayloads[key] = payload
-            if (index < stableRows.count && String(stableRows.get(index).stableKey) === key) {
-                const revisionChanged = String(stableRows.get(index).revisionKey || "") !== revision
-                const presentationChanged = String(stableRows.get(index).presentationKind || "") !== presentationKind
+            if (index < stableRows.count && currentOrder[index] === key) {
+                const existing = stableRows.get(index)
+                const revisionChanged = String(existing.revisionKey || "") !== revision
+                const presentationChanged = String(existing.presentationKind || "") !== presentationKind
                 if (revisionChanged)
                     stableRows.setProperty(index, "revisionKey", revision)
                 if (presentationChanged)
                     stableRows.setProperty(index, "presentationKind", presentationKind)
-                if (revisionChanged)
-                    stableRows.setProperty(index, "mediaLayoutKind", root.mediaLayoutKind(payload))
+                if (revisionChanged) {
+                    const layoutKind = root.mediaLayoutKind(payload)
+                    if (String(existing.mediaLayoutKind || "") !== layoutKind)
+                        stableRows.setProperty(index, "mediaLayoutKind", layoutKind)
+                }
                 continue
             }
 
-            let existingIndex = -1
-            for (let probe = index + 1; probe < stableRows.count; ++probe) {
-                if (String(stableRows.get(probe).stableKey) === key) {
-                    existingIndex = probe
-                    break
-                }
-            }
-            if (existingIndex >= 0) {
+            const existingIndex = positions[key] === undefined ? -1 : positions[key]
+            if (existingIndex > index) {
                 stableRows.move(existingIndex, index, 1)
-                const revisionChanged = String(stableRows.get(index).revisionKey || "") !== revision
-                const presentationChanged = String(stableRows.get(index).presentationKind || "") !== presentationKind
+                currentOrder.splice(existingIndex, 1)
+                currentOrder.splice(index, 0, key)
+                for (let shifted = index; shifted <= existingIndex; ++shifted)
+                    positions[currentOrder[shifted]] = shifted
+                const existing = stableRows.get(index)
+                const revisionChanged = String(existing.revisionKey || "") !== revision
+                const presentationChanged = String(existing.presentationKind || "") !== presentationKind
                 if (revisionChanged)
                     stableRows.setProperty(index, "revisionKey", revision)
                 if (presentationChanged)
                     stableRows.setProperty(index, "presentationKind", presentationKind)
-                if (revisionChanged)
-                    stableRows.setProperty(index, "mediaLayoutKind", root.mediaLayoutKind(payload))
+                if (revisionChanged) {
+                    const layoutKind = root.mediaLayoutKind(payload)
+                    if (String(existing.mediaLayoutKind || "") !== layoutKind)
+                        stableRows.setProperty(index, "mediaLayoutKind", layoutKind)
+                }
             } else {
                 stableRows.insert(index, { stableKey: key, revisionKey: revision,
                                            presentationKind: presentationKind,
                                            mediaLayoutKind: root.mediaLayoutKind(payload) })
+                currentOrder.splice(index, 0, key)
+                for (let offset = index; offset < currentOrder.length; ++offset)
+                    positions[currentOrder[offset]] = offset
             }
         }
 

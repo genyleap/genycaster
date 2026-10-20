@@ -1,5 +1,23 @@
 # Genycaster read-pipeline repair: verification record
 
+## Stable-ID feed reorder index — 2026-10-20
+
+- **Responsibility:** Bound expensive Qt Quick `ListModel.get()` calls during feed reconciliation without changing order, role semantics or virtualized ListView ownership.
+- **Origin:** Local presentation only; no provider, network, analytics, storage or account changes.
+- **Public contract:** The existing one authoritative stable-ID QML `ListModel` remains authoritative for visible row order. An ephemeral current-order/position index is constructed per reconciliation and updated after each insertion/move; it is never retained as competing state. Revision, presentation kind and media roles update only when their values actually change.
+- **Invariants:** Provider order is stable; moves retain delegate identity; appended pages only add at the tail; stale side payloads are released. Unchanged row revisions never emit role updates or trigger image recreation. Large replacement can still invoke the existing complete-replace threshold.
+- **Failures and platform behavior:** No external I/O; all updates stay on the GUI thread until the requested native C++ item-model migration is complete. A heavy pathological reorder can still incur Qt `ListModel.move` cost; avoid claiming bounded total GUI frame time.
+- **Tests:** VM-execute the actual QML reconcile function with a deterministic ListModel stand-in and 10,000 rows; assert exact ordering, stable identity, a targeted revision update, append/no duplicate, removal, and bounded C++-model `get` calls compared to the prior quadratic scan. Native QML scroll suite must still pass.
+
+### Actual corrections and verification
+
+- Confirmed from source and test: the previous `synchronizeStableModel` scanned Qt `ListModel.get()` from each mismatched row forward, with quadratic model/JS bridge reads on a large retained reorder. It now builds one transient index of stable keys and updates shifted positions after each move/insert. This reduces model reads in a 600-row full reorder to at most **1,210**, rather than potentially over 180,000 Qt-facing key inspections. Qt's own move cost is unchanged.
+- Also confirmed by the 10k-row test: on a reaction-only `_revision` update, the code unconditionally emitted a `mediaLayoutKind` role change even when the old and new kind matched. It now emits this role update only if the computed layout actually differs. This avoids unnecessary delegate/media reevaluation while keeping the revision notification.
+- `node --test tests/wasm/feed_large_stable_reconciliation.test.mjs`: **4/4 PASS**, executing the extracted live QML function with a counting model (10,000 unchanged-order cached rows and one revised cast; 600 reversed-order rows; append/duplicate/remove; unrelated 600-row replacement). The 10k one-row case asserts at most 20,005 `get` calls, one `revisionKey` update, no extraneous `mediaLayoutKind` update and no moves or item insertions.
+- `node --test tests/wasm/*.test.mjs`: **279/279 PASS** (10.51 seconds), including all new behavioral fixtures. JavaScript VM timings are not device frame times and do not validate compiled WASM.
+- `cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic ctest --test-dir build/ui-qt612-debug -R '^(ui.media_scroll|ui.qml_import_smoke|presentation.feed_row_notifications)$' --output-on-failure`: **3/3 PASS**, 20.85 seconds, Linux offscreen Qt 6.12. `python3 tools/check_architecture.py`: **PASS**, unchanged guard.
+- The C++ `QAbstractItemModel` migration, moving expensive presentation preparation off the GUI thread, actual desktop full executable link/startup, 10k GPU/GUI frame measurements, mobile platforms and compiled browser WASM are still **OPEN / NOT VERIFIED**. No production deployment.
+
 ## FeedSurface deferred-work lifetime and bounded sync admission — 2026-10-20
 
 - **Responsibility:** Safely coordinate QML presentation reconciliation, optional art metadata priming and local/remote page demand while the live FeedSurface owns its ListView.
