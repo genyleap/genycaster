@@ -1034,6 +1034,28 @@ void freshCastAndRepliesDoNotWaitForOptionalAuthor()
     assert(deliveries.back().author->displayName->value == "Fresh Author");
     assert(deliveries.back().cast);
     assert(deliveries.back().cast->directReplies.size() == 1U);
+
+    // A failed optional profile read also leaves fresh content and replies
+    // usable, without publishing a new Failed primary state.
+    std::vector<application::read::model::CastState> failedAuthorDeliveries{};
+    auto failedRequest = service.openCast(
+        domain::cast::CastId{"0xauthor-unavailable"},
+        [&failedAuthorDeliveries](application::read::model::CastState state) {
+            if (state.metadata.phase == application::read::model::ReadPhase::Ready) {
+                failedAuthorDeliveries.push_back(std::move(state));
+            }
+        });
+    assert(failedRequest && gateway.pendingProfile);
+    assert(failedAuthorDeliveries.size() == 1U);
+    assert(failedAuthorDeliveries.front().metadata.phase
+        == application::read::model::ReadPhase::Ready);
+    auto failedProfile = std::move(gateway.pendingProfile);
+    failedProfile(std::unexpected(foundation::error::Error::make(
+        foundation::error::ErrorCode::Unavailable,
+        "Deliberately failed optional profile.")));
+    assert(failedAuthorDeliveries.size() == 1U);
+    assert(failedAuthorDeliveries.front().cast);
+    assert(failedAuthorDeliveries.front().cast->directReplies.size() == 1U);
 }
 
 void serializedExecutorKeepsBlockingReadOffCallerThread()
