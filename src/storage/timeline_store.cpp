@@ -8,6 +8,7 @@ module;
 #include <expected>
 #include <filesystem>
 #include <memory>
+#include <limits>
 #include <mutex>
 #include <span>
 #include <utility>
@@ -35,6 +36,9 @@ public:
     auto operator=(SqliteTimelineStore&& other) noexcept -> SqliteTimelineStore&;
     [[nodiscard]] foundation::result::Status replaceTimeline(const local::timeline::TimelineId& timelineId, std::span<const domain::feed::FeedEntry> entries) override;
     [[nodiscard]] foundation::result::Result<std::vector<domain::feed::FeedEntry>> readTimeline(const local::timeline::TimelineId& timelineId, std::size_t limit) override;
+    [[nodiscard]] foundation::result::Result<local::timeline::TimelineWindow> readTimelineWindow(
+        const local::timeline::TimelineId& timelineId,
+        std::size_t offset, std::size_t limit) override;
     [[nodiscard]] foundation::result::Result<std::vector<domain::feed::FeedEntry>> readAllTimeline(const local::timeline::TimelineId& timelineId) override;
 private:
     struct Impl;
@@ -201,6 +205,67 @@ LIMIT ?;
     return result;
 }
 
+
+foundation::result::Result<local::timeline::TimelineWindow> SqliteTimelineStore::readTimelineWindow(
+    const local::timeline::TimelineId& timelineId,
+    const std::size_t offset,
+    const std::size_t limit)
+{
+    constexpr std::size_t maximumWindow{256U};
+    constexpr auto largestOffset = static_cast<std::uint64_t>(
+        std::numeric_limits<sqlite3_int64>::max());
+    if (timelineId.value.empty() || limit == 0U || limit > maximumWindow
+        || static_cast<std::uint64_t>(offset) > largestOffset) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Local timeline window requires an id, limit 1..256 and valid offset."));
+    }
+    std::scoped_lock lock{m_impl->mutex};
+    auto prepared = sqlite::Statement::prepare(m_impl->connection, R"SQL(
+SELECT entry.cast_id, entry.sort_time_ms
+FROM timeline_entries AS entry
+WHERE entry.timeline_id = ?
+  AND NOT EXISTS (
+      SELECT 1 FROM cast_local_tombstones AS tombstone
+      WHERE tombstone.cast_id = entry.cast_id
+  )
+ORDER BY entry.position ASC
+LIMIT ? OFFSET ?;
+)SQL");
+    if (!prepared) {
+        return std::unexpected(toFoundationError(std::move(prepared.error())));
+    }
+    auto statement = std::move(*prepared);
+    if (auto status = sqlite::bindText(statement.native(), 1, timelineId.value); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+    // One extra matching row distinguishes a full last window from one with
+    // further local data; it is never copied into the presented collection.
+    if (sqlite3_bind_int64(statement.native(), 2,
+            static_cast<sqlite3_int64>(limit + 1U)) != SQLITE_OK
+        || sqlite3_bind_int64(statement.native(), 3,
+            static_cast<sqlite3_int64>(offset)) != SQLITE_OK) {
+        return std::unexpected(toFoundationError(sqlite::makeError(
+            m_impl->connection.native(), "Failed to bind local timeline window.")));
+    }
+    local::timeline::TimelineWindow window{};
+    window.entries.reserve(limit + 1U);
+    while (true) {
+        const auto step = sqlite3_step(statement.native());
+        if (step == SQLITE_DONE) break;
+        if (step != SQLITE_ROW) {
+            return std::unexpected(toFoundationError(sqlite::makeError(
+                m_impl->connection.native(), "Failed to read local timeline window.")));
+        }
+        window.entries.push_back(domain::feed::FeedEntry{
+            .castId = domain::cast::CastId{sqlite::columnText(statement.native(), 0)},
+            .sortTime = fromMilliseconds(sqlite3_column_int64(statement.native(), 1)),
+        });
+    }
+    window.hasMore = window.entries.size() > limit;
+    if (window.hasMore) window.entries.pop_back();
+    return window;
+}
 
 foundation::result::Result<std::vector<domain::feed::FeedEntry>> SqliteTimelineStore::readAllTimeline(
     const local::timeline::TimelineId& timelineId)

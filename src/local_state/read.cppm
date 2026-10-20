@@ -39,7 +39,13 @@ struct SocialKey final {
     std::size_t limit{30};
 };
 
-/** @brief Stable persistence boundary for complete local-first read snapshots. */
+/** @brief Owned local cached-feed slice with a separate local hasMore flag. */
+struct FeedWindow final {
+    capability::feed::FeedPage page{};
+    bool hasMore{false};
+};
+
+/** @brief Stable persistence boundary for local-first read snapshots. */
 class IReadStore {
 public:
     /** @brief Destroys the persistence port. */
@@ -62,6 +68,16 @@ public:
     /** @brief Materializes the complete cached feed accumulated for a query. */
     [[nodiscard]] virtual foundation::result::Result<capability::feed::FeedPage>
     readFeed(const FeedKey& key) = 0;
+    /**
+     * @brief Hydrates a bounded local feed window without a full timeline scan.
+     * @param key Canonical materialized local feed selector.
+     * @param offset Visible (non-tombstoned) row offset in stable order.
+     * @param limit Maximum returned rows, between 1 and 256.
+     * @return Hydrated local slice, local hasMore, and separately persisted
+     * provider continuation in page.next, or structured error.
+     */
+    [[nodiscard]] virtual foundation::result::Result<FeedWindow>
+    readFeedWindow(const FeedKey& key, std::size_t offset, std::size_t limit) = 0;
     /** @brief Upserts entities, then atomically commits feed ordering and continuation. */
     [[nodiscard]] virtual foundation::result::Status writeFeed(
         const FeedKey& key,

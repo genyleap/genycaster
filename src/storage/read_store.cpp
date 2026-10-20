@@ -166,6 +166,9 @@ public:
     putCast(const domain::cast::Cast& cast) override;
     [[nodiscard]] foundation::result::Result<capability::feed::FeedPage>
     readFeed(const local::read::FeedKey& key) override;
+    [[nodiscard]] foundation::result::Result<local::read::FeedWindow> readFeedWindow(
+        const local::read::FeedKey& key,
+        std::size_t offset, std::size_t limit) override;
     [[nodiscard]] foundation::result::Status writeFeed(
         const local::read::FeedKey& key,
         const capability::feed::FeedPage& page,
@@ -183,6 +186,8 @@ private:
         std::unique_ptr<local::timeline::ITimelineStore> timelines,
         sqlite::Connection metadata) noexcept;
 
+    [[nodiscard]] foundation::result::Result<capability::feed::FeedPage>
+    hydrateFeed(std::string_view id, std::vector<domain::feed::FeedEntry> entries);
     [[nodiscard]] foundation::result::Result<std::optional<capability::pagination::ContinuationToken>>
     readContinuation(std::string_view key);
     [[nodiscard]] foundation::result::Status writeContinuationLocked(
@@ -360,16 +365,41 @@ foundation::result::Result<capability::feed::FeedPage> SqliteReadStore::readFeed
     const local::read::FeedKey& key)
 {
     const std::string id = feedKey(key);
-    // `key.limit` is the provider page size, not the size of the already
-    // materialized local snapshot. Pagination appends each fetched page to this
-    // timeline, so returning only the first network page makes load-more appear
-    // to succeed while the UI never sees the accumulated rows.
+    // Legacy complete reads remain available until the Qt presentation has
+    // explicitly migrated to local-window pagination.
     auto entries = m_timelines->readAllTimeline(local::timeline::TimelineId{id});
     if (!entries) {
         return std::unexpected(std::move(entries.error()));
     }
+    return hydrateFeed(id, std::move(*entries));
+}
+
+foundation::result::Result<local::read::FeedWindow> SqliteReadStore::readFeedWindow(
+    const local::read::FeedKey& key, const std::size_t offset,
+    const std::size_t limit)
+{
+    const std::string id = feedKey(key);
+    auto window = m_timelines->readTimelineWindow(
+        local::timeline::TimelineId{id}, offset, limit);
+    if (!window) {
+        return std::unexpected(std::move(window.error()));
+    }
+    const bool hasMore = window->hasMore;
+    auto hydrated = hydrateFeed(id, std::move(window->entries));
+    if (!hydrated) {
+        return std::unexpected(std::move(hydrated.error()));
+    }
+    return local::read::FeedWindow{
+        .page = std::move(*hydrated),
+        .hasMore = hasMore,
+    };
+}
+
+foundation::result::Result<capability::feed::FeedPage> SqliteReadStore::hydrateFeed(
+    const std::string_view id, std::vector<domain::feed::FeedEntry> entries)
+{
     capability::feed::FeedPage page{};
-    page.entries = std::move(*entries);
+    page.entries = std::move(entries);
     std::unordered_set<std::uint64_t> seenProfiles{};
     for (const auto& entry : page.entries) {
         auto cast = m_entities->findCastShallow(entry.castId);

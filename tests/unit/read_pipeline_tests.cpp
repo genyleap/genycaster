@@ -16,6 +16,8 @@
 #include <utility>
 #include <vector>
 
+#include <sqlite3.h>
+
 import farcaster.application.executor;
 import farcaster.application.read.async_gateway;
 import farcaster.application.read.async_service;
@@ -80,6 +82,7 @@ public:
     bool failCast{true};
     bool holdProfile{};
     bool includeReply{};
+    bool failFeedCompletion{};
     application::read::async_gateway::ProfileCompletion pendingProfile{};
     int profileCalls{};
     std::optional<capability::feed::FeedPage> servedFeed{};
@@ -134,6 +137,12 @@ public:
         application::read::async_gateway::FeedCompletion completion,
         Options) override
     {
+        if (failFeedCompletion) {
+            completion(std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::Unavailable,
+                "Delayed continuation failed at the transport.")));
+            return Request{};
+        }
         if (!servedFeed) {
             return unsupported();
         }
@@ -206,6 +215,11 @@ public:
     readFeed(const farcaster::local::read::FeedKey& key) override {
         ++feedMaterializations;
         return m_delegate->readFeed(key);
+    }
+    [[nodiscard]] foundation::result::Result<farcaster::local::read::FeedWindow>
+    readFeedWindow(const farcaster::local::read::FeedKey& key,
+                   std::size_t offset, std::size_t limit) override {
+        return m_delegate->readFeedWindow(key, offset, limit);
     }
     [[nodiscard]] foundation::result::Status
     writeFeed(const farcaster::local::read::FeedKey& key,
@@ -358,6 +372,97 @@ private:
         return value;
     }
 };
+
+void largeLocalFeedWindowPreservesOrderAndRemoteContinuation()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    auto store = storage::read::openReadStore(database.path);
+    assert(store);
+    const local::read::FeedKey key{
+        .kind = local::read::FeedKey::Kind::Recent,
+        .limit = 20U,
+    };
+    capability::feed::FeedPage source{};
+    source.profiles.push_back(makeProfile(91, "window-reader", "Window Reader"));
+    constexpr std::size_t count{640U};
+    source.entries.reserve(count);
+    source.casts.reserve(count);
+    for (std::size_t index = 0; index < count; ++index) {
+        auto cast = makeCast(
+            "0xwindow-" + std::to_string(index), 91,
+            "Bounded cached window", static_cast<std::int64_t>(index + 1000U));
+        source.entries.push_back(domain::feed::FeedEntry{
+            .castId = cast.id,
+            .sortTime = cast.createdAt,
+        });
+        source.casts.push_back(std::move(cast));
+    }
+    source.next = capability::pagination::ContinuationToken{"provider-next-only"};
+    assert((*store)->writeFeed(key, source, false));
+
+    // Network page size is independent of local-window size.
+    auto first = (*store)->readFeedWindow(key, 0U, 64U);
+    assert(first && first->hasMore);
+    assert(first->page.entries.size() == 64U);
+    assert(first->page.casts.size() == 64U);
+    assert(first->page.profiles.size() == 1U);
+    assert(first->page.entries.front().castId.value == "0xwindow-0");
+    assert(first->page.entries.back().castId.value == "0xwindow-63");
+    assert(first->page.next && first->page.next->value == "provider-next-only");
+
+    auto middle = (*store)->readFeedWindow(key, 64U, 64U);
+    assert(middle && middle->hasMore);
+    assert(middle->page.entries.size() == 64U);
+    assert(middle->page.entries.front().castId.value == "0xwindow-64");
+    assert(middle->page.entries.back().castId.value == "0xwindow-127");
+    assert(middle->page.next && middle->page.next->value == "provider-next-only");
+
+    auto last = (*store)->readFeedWindow(key, 576U, 64U);
+    assert(last && !last->hasMore && last->page.entries.size() == 64U);
+    assert(last->page.entries.back().castId.value == "0xwindow-639");
+    auto beyond = (*store)->readFeedWindow(key, 640U, 64U);
+    assert(beyond && !beyond->hasMore && beyond->page.entries.empty());
+    assert(beyond->page.next && beyond->page.next->value == "provider-next-only");
+
+    assert(!(*store)->readFeedWindow(key, 0U, 0U));
+    assert(!(*store)->readFeedWindow(key, 0U, 257U));
+    // Original callers still obtain the complete accumulated offline snapshot.
+    auto original = (*store)->readFeed(key);
+    assert(original && original->entries.size() == count);
+    assert(original->entries.front().castId.value == "0xwindow-0");
+    assert(original->entries.back().castId.value == "0xwindow-639");
+
+    (*store).reset();
+    auto reopened = storage::read::openReadStore(database.path);
+    assert(reopened);
+    auto resumed = (*reopened)->readFeedWindow(key, 128U, 64U);
+    assert(resumed && resumed->hasMore);
+    assert(resumed->page.entries.front().castId.value == "0xwindow-128");
+    assert(resumed->page.entries.back().castId.value == "0xwindow-191");
+
+    // Tombstones are excluded before OFFSET, not after materializing a page;
+    // a locally removed cast must never create a gap or duplicate on scroll.
+    sqlite3* db{};
+    assert(sqlite3_open(database.path.string().c_str(), &db) == SQLITE_OK);
+    const char* tombstoneSql =
+        "INSERT INTO cast_local_tombstones("
+        "cast_id, idempotency_key, author_fid, created_at_ms) "
+        "VALUES('0xwindow-2','local-delete-window-2',91,1002);";
+    assert(sqlite3_exec(db, tombstoneSql, nullptr, nullptr, nullptr) == SQLITE_OK);
+    assert(sqlite3_close(db) == SQLITE_OK);
+    auto filtered = (*reopened)->readFeedWindow(key, 1U, 4U);
+    assert(filtered && filtered->hasMore);
+    assert(filtered->page.entries.size() == 4U);
+    assert(filtered->page.entries[0].castId.value == "0xwindow-1");
+    assert(filtered->page.entries[1].castId.value == "0xwindow-3");
+    assert(filtered->page.entries[2].castId.value == "0xwindow-4");
+    assert(filtered->page.entries[3].castId.value == "0xwindow-5");
+    auto filteredLast = (*reopened)->readFeedWindow(key, 638U, 2U);
+    assert(filteredLast && !filteredLast->hasMore);
+    assert(filteredLast->page.entries.size() == 1U);
+    assert(filteredLast->page.entries.back().castId.value == "0xwindow-639");
+}
 
 void cachedFeedPrecedesRefreshAndPaginationReconciles()
 {
@@ -964,6 +1069,73 @@ void asyncPaginationPublishesOnlyNewPageWhenPresentationOptsIn()
     assert(observed.front().entries[2].castId.value == "0xincremental-third");
 }
 
+void pageOnlyContinuationFailuresPreserveViewportWithoutFullRead()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    auto opened = storage::read::openReadStore(database.path);
+    assert(opened);
+    CountingReadStore store{std::move(*opened)};
+    ImmediateExecutor executor{};
+    FakeAsyncCastGateway gateway{};
+    application::read::async_service::ReadService service{executor, store, gateway};
+    gateway.servedFeed = pageFor(makeProfile(88, "cached", "Cached"),
+        makeCast("0xkept-visible", 88, "still visible", 1000),
+        capability::pagination::ContinuationToken{"page-next"});
+    const application::read::model::FeedQuery firstQuery{
+        .kind = application::read::model::FeedQuery::Kind::Recent,
+        .limit = 20U,
+    };
+    std::vector<application::read::model::FeedState> observed{};
+    auto first = service.openFeed(firstQuery,
+        [&observed](auto state) { observed.push_back(std::move(state)); });
+    assert(first && observed.size() == 2U);
+    assert(store.feedMaterializations == 2);
+
+    const application::read::model::FeedQuery continued{
+        .kind = application::read::model::FeedQuery::Kind::Recent,
+        .limit = 20U,
+        .continuation = capability::pagination::ContinuationToken{"page-next"},
+    };
+    const application::read::model::ReadOptions pageOnly{
+        .intent = application::read::model::ReadIntent::Prefetch,
+        .pageOnlyContinuation = true,
+    };
+
+    // A callback-time 503 must publish an empty terminal delta. Older pages
+    // are already owned by the active surface and must not be read again.
+    observed.clear();
+    gateway.failFeedCompletion = true;
+    auto failure = service.openFeed(continued,
+        [&observed](auto state) { observed.push_back(std::move(state)); }, pageOnly);
+    assert(failure && observed.size() == 1U);
+    assert(observed.front().metadata.phase == application::read::model::ReadPhase::Ready);
+    assert(observed.front().entries.empty() && !observed.front().next);
+    assert(store.feedMaterializations == 2);
+
+    // Admission failure before a request handle exists must follow exactly
+    // the same page-only path; it cannot accidentally re-scan all local rows.
+    observed.clear();
+    gateway.failFeedCompletion = false;
+    gateway.servedFeed.reset();
+    auto rejected = service.openFeed(continued,
+        [&observed](auto state) { observed.push_back(std::move(state)); }, pageOnly);
+    assert(rejected && observed.size() == 1U);
+    assert(observed.front().metadata.phase == application::read::model::ReadPhase::Ready);
+    assert(observed.front().entries.empty() && !observed.front().next);
+    assert(store.feedMaterializations == 2);
+
+    // Non-page-only clients still receive the complete cached snapshot on
+    // unavailable continuation, preserving their historical semantics.
+    observed.clear();
+    auto legacy = service.openFeed(continued,
+        [&observed](auto state) { observed.push_back(std::move(state)); });
+    assert(legacy && observed.size() == 1U);
+    assert(observed.front().entries.size() == 1U);
+    assert(observed.front().entries.front().castId.value == "0xkept-visible");
+    assert(store.feedMaterializations == 3);
+}
+
 void lightweightCastPreviewSkipsOptionalProfileNetwork()
 {
     using namespace farcaster;
@@ -1097,6 +1269,7 @@ void serializedExecutorKeepsBlockingReadOffCallerThread()
 
 int main()
 {
+    largeLocalFeedWindowPreservesOrderAndRemoteContinuation();
     cachedFeedPrecedesRefreshAndPaginationReconciles();
     prefetchContinuationFailurePreservesUsableFeed();
     refreshFailureWithoutCacheIsNotMarkedStale();
@@ -1110,6 +1283,7 @@ int main()
     overBudgetConversationFailsAtomically();
     rejectedAsyncCacheCompletionIsTerminal();
     asyncPaginationPublishesOnlyNewPageWhenPresentationOptsIn();
+    pageOnlyContinuationFailuresPreserveViewportWithoutFullRead();
     lightweightCastPreviewSkipsOptionalProfileNetwork();
     freshCastAndRepliesDoNotWaitForOptionalAuthor();
     serializedExecutorKeepsBlockingReadOffCallerThread();

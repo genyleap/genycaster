@@ -1,5 +1,25 @@
 # Genycaster read-pipeline repair: verification record
 
+## Local feed-window contract (2026-10-20)
+
+- **Responsibility/origin:** Local-first read infrastructure for large accumulated feeds; optional windowed read while preserving the complete legacy read contract.
+- **Public boundary:** `local::timeline::ITimelineStore::readTimelineWindow(id, offset, limit)` and `local::read::IReadStore::readFeedWindow(key, offset, limit)` use canonical feed entries and a `hasMore` boolean, never provider continuations for local pagination.
+- **Ordering/identity:** stable `position ASC`, tombstones filtered before offset, no duplicate or synthetic entries. Returned cast/profile hydration is limited to the requested visible slice. Provider `next` remains distinct from local `hasMore`.
+- **Ownership/failures:** returned snapshots own their values; database work stays off the GUI thread. Reject invalid/oversized windows with the existing structured error vocabulary and preserve complete reads for older consumers.
+- **Testing/rollout:** storage unit tests cover large ordered timelines, filtered tombstones, first/middle/last windows and independent persisted remote continuation. Do **not** route the Qt feed to this port until local-window consumption and stable list model correctly preserve offline rows and scroll restoration. That UI integration remains NOT VERIFIED.
+
+### Actual fixes and verification in this iteration
+
+- Confirmed in source: `SqliteReadStore::readFeed()` called `readAllTimeline()` and hydrated every accumulated cast/profile on first entry and refresh. A bounded `readFeedWindow(key, offset, limit)` is now available. `SqliteTimelineStore::readTimelineWindow()` performs an indexed stable `position ASC` query with `LIMIT limit+1 OFFSET offset`, filters local tombstones **before** offset, rejects invalid/oversized limits and returns a separate local `hasMore`. The legacy complete read remains unchanged for existing UI consumers. The new boundary is therefore **implemented and tested at storage level**, not yet claimed as an end-user initial-feed performance fix.
+- Confirmed in source: the asynchronous `pageOnlyContinuation` callback-error and request-rejection branches each called `readFeed()`, rescan/hydrating all existing rows even though Qt already retained them. Both now return an empty terminal page delta on page-only failure. A regression test counts complete-feed materializations: **two** before and after each failure case, versus **three** when a legacy complete-snapshot consumer deliberately requests the old behavior. The Qt reconciliation code preserves existing rows when appending an empty delta.
+- `cmake --build --preset provider-hypersnap --target farcaster_read_pipeline_tests -j1`: **PASS**, C++26 native Clang 23 in the existing provider-hypersnap build preset.
+- `ctest --test-dir build/provider-hypersnap -R '^application.local_first_read$' --output-on-failure`: **1/1 PASS**, 2.04 seconds for the full suite including the new 640-entry SQLite fixture. The fixture asserts exact ordering, first/middle/end windows, 64-row hydration bounds, no duplicate/skip after a tombstone, local reopening, remote continuation separation, invalid limits, and original complete-snapshot compatibility.
+- `ctest --test-dir build/provider-hypersnap -R '^(application.local_first_read|provider.hypersnap.contract|storage.local|core.behavior|execution.bounded_read_pool)$' --output-on-failure`: **5/5 PASS**, 2.84 seconds total.
+- `git diff --check`: **PASS**.
+- `python3 tools/check_architecture.py`: **FAIL** on existing vendor/backend boundary naming violations in routing, QML setup, and other files; this iteration added none, and the guard was not modified.
+- These are native Linux tests on a small local 640-entry fixture; throughput under real 10k+ row timelines, GUI-thread latency, retained memory, **actual Qt feed consumption**, Windows/macOS/mobile builds and WASM browser sessions are **NOT VERIFIED**. No application deployment, production restart or credential change.
+
+
 ## Feature and boundary contract — iteration at 895fbb9
 
 - **Responsibility:** local-first cast/feed reading, navigation-generation isolation, optional per-cast analytics, viewer-reaction snapshots, and virtualized presentation interest.

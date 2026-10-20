@@ -708,6 +708,23 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                             }
                             model::FeedState state{.query = query};
                             if (!fresh) {
+                                if (query.continuation && options.pageOnlyContinuation) {
+                                    // The presentation already owns the prior pages. A
+                                    // rejected/failed continuation must not trigger an
+                                    // O(entire accumulated feed) SQLite recovery read.
+                                    // Empty deltas preserve the earlier visible rows.
+                                    state.next.reset();
+                                    if (options.intent == model::ReadIntent::Prefetch) {
+                                        state.metadata = model::ReadMetadata{
+                                            .phase = model::ReadPhase::Ready,
+                                        };
+                                    } else {
+                                        state.metadata = failedMetadata(
+                                            std::move(fresh.error()), true);
+                                    }
+                                    publish(control, observer, std::move(state));
+                                    return;
+                                }
                                 auto cached = m_store.readFeed(localKey);
                                 if (cached) {
                                     state.casts = std::move(cached->casts);
@@ -802,6 +819,19 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                 options);
             if (!request) {
                 model::FeedState failed{.query = query};
+                if (query.continuation && options.pageOnlyContinuation) {
+                    failed.next.reset();
+                    if (options.intent == model::ReadIntent::Prefetch) {
+                        failed.metadata = model::ReadMetadata{
+                            .phase = model::ReadPhase::Ready,
+                        };
+                    } else {
+                        failed.metadata = failedMetadata(
+                            std::move(request.error()), true);
+                    }
+                    publish(control, observer, std::move(failed));
+                    return;
+                }
                 auto cachedAgain = m_store.readFeed(localKey);
                 if (cachedAgain) {
                     failed.casts = std::move(cachedAgain->casts);
