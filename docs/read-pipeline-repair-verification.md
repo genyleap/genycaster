@@ -1,5 +1,21 @@
 # Genycaster read-pipeline repair: verification record
 
+## QML stable-row viewer knowledge — 2026-10-20
+
+- **Responsibility/origin:** Local Qt Quick presentation; stable-key model revision must represent account-scoped viewer knowledge independently of public engagement totals.
+- **Boundary:** `FeedSurface.rowRevision(row)` is a pure presentation fingerprint, not another authority. Distinguish unknown from explicit false and true for like/recast/follow/follows-me in cast and profile delegates. Do not change row keys, network, persistence or delegate geometry.
+- **Ownership/availability:** Account switches invalidate the C++ viewer fields, then QML must rerender affected stable rows while keeping cast content and scroll positions. Unknown evidence never manufactures false or zero.
+- **Tests:** Run the real extracted QML revision function in a JavaScript VM; assert knowledge transitions and unchanged payload stability. Qt QML import and scroll checks remain required.
+
+### Implementation and measured verification
+
+- Confirmed: the old `rowRevision()` encoded `Boolean(likedByMe)` and `Boolean(recastedByMe)` so absent (unknown) and verified `false` shared the same revision. It also omitted `followingKnown`/`followingByMe` and `followsMeKnown`/`followsMe` for both cast and social-profile rows. Changing account-scoped evidence could leave a recycled delegate showing stale viewer state. The fingerprint now encodes unknown, false and true separately while retaining canonical cast/section keys and quote-preview revisions. It does not reserialize nested embeds or rebuild geometry.
+- `node --test tests/wasm/feed_viewer_revision_regressions.test.mjs`: **3/3 PASS**, evaluating the extracted **actual** QML function with Node's JavaScript VM; tests verify like/recast knowledge, follow/follows-me on cast and profile rows, identical revisions for unchanged payloads, ignored unverified fields, section identity and quote revision changes.
+- `node --test tests/wasm/*.test.mjs`: **266/266 PASS**, 9.04 seconds in the local Node environment, including these three new behavior tests. This is **not** a compiled WASM run.
+- `cmake --build --preset ui-qt612-debug --target farcaster_media_scroll_tests -j1`: **PASS**, re-linked the native Qt media/scroll test target; existing pre-existing `-Wshadow` warnings in `read_async_service.cpp` remain.
+- `cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic ctest --test-dir build/ui-qt612-debug -R '^(ui.qml_import_smoke|ui.media_scroll|presentation.feed_row_notifications)$' --output-on-failure`: **3/3 PASS**, 20.16 seconds on Linux/headless Qt 6.12.
+- No actual native production startup, macOS/Windows/mobile runtime or WASM browser session was performed; these remain **NOT VERIFIED**. The long-timeline Qt `QAbstractItemModel`/initial-window integration is still incomplete; this does not claim that work finished.
+
 ## Page-only persistence failure recovery — 2026-10-20
 
 - **Responsibility/origin:** Application local-first feed continuation; repair failure handling without altering provider-neutral pagination or Qt presentation ownership.
@@ -16,8 +32,6 @@
 - `cmake --build --preset strict-self-hosted --target farcaster_read_pipeline_tests -j1 && ctest --test-dir build/strict-self-hosted -R '^application.local_first_read$' --output-on-failure`: **PASS**, 1/1; 2.84 seconds.
 - `cmake --build --preset minimal-core --target farcaster_read_pipeline_tests -j1 && ctest --test-dir build/minimal-core -R '^application.local_first_read$' --output-on-failure`: **PASS**, 1/1; 2.37 seconds.
 - This fix removes unnecessary full local reads specifically on failed page-only continuations; it does **not** wire initial SQLite windows into the Qt feed, change visible geometry, or prove real-device frame times. Production deployment, macOS/Windows/mobile and compiled browser WASM remain **NOT VERIFIED**.
-
-# Genycaster read-pipeline repair: verification record
 
 ## Account-scoped read-enrichment isolation (2026-10-20)
 

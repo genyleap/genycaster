@@ -586,19 +586,30 @@ Item {
         const value = row || ({})
         if (value._genySection)
             return "section:" + String(value._genySection)
+        // Viewer evidence can be *unknown*. Verified false must never share
+        // a revision with an absent value, especially on account switches.
+        function viewerEvidence(field, knowledgeField) {
+            if (knowledgeField && value[knowledgeField] !== true)
+                return "unknown"
+            if (value[field] === undefined || value[field] === null)
+                return "unknown"
+            return Boolean(value[field]) ? "true" : "false"
+        }
+        const followRevision = [viewerEvidence("followingByMe", "followingKnown"),
+                                viewerEvidence("followsMe", "followsMeKnown")].join(":")
         if (root.socialMode) {
             return [String(value.fid || value.authorFid || 0),
                     String(value.author || ""), String(value.displayName || ""),
-                    String(value.avatarUrl || "")].join("\u001f")
+                    String(value.avatarUrl || ""), followRevision].join("\u001f")
         }
         // Structural content receives a C++-generated revision. Mutable viewer
-        // state remains explicit so optimistic Like/Recast updates refresh only
-        // the affected row without serializing nested QVariant trees in JS.
+        // state invalidates only its stable row, without serializing embeds.
         return [String(value._revision || value.castId || value.hash || value.id || ""),
                 String(value._referencedRevision || ""),
                 String(value.likeCount || 0), String(value.recastCount || 0),
-                String(value.replyCount || 0), String(Boolean(value.likedByMe)),
-                String(Boolean(value.recastedByMe)), String(value.writeState || "")].join("\u001f")
+                String(value.replyCount || 0), viewerEvidence("likedByMe"),
+                viewerEvidence("recastedByMe"), followRevision,
+                String(value.writeState || "")].join("\u001f")
     }
 
     function payloadForStableKey(key) {
