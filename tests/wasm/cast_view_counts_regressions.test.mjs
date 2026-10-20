@@ -14,7 +14,8 @@ test('the Qt Views controller batches and bounds network work outside QML',()=>{
   assert.match(controller,/maxBatch = 16/);
   assert.match(controller,/maxPending = 96/);
   assert.match(controller,/maxEntries = 384/);
-  assert.match(controller,/requestDeadlineMs = 6 \* 1000/);
+  assert.match(controller,/requestDeadlineMs = 8 \* 1000/);
+  assert.match(controller,/QTimer::singleShot\(requestDeadlineMs, reply/);
   assert.match(controller,/storage-farcaster\.genyleap\.com\/v1\/browser\/cast-views/);
   assert.match(controller,/QJsonDocument::fromJson/);
   assert.match(header,/Q_PROPERTY\(QVariant count READ count NOTIFY countChanged FINAL\)/);
@@ -22,7 +23,10 @@ test('the Qt Views controller batches and bounds network work outside QML',()=>{
 
 test('cast delegates retain and release per-cast analytics interest without global invalidation',()=>{
   const bar=read('ui/components/EngagementBar.qml');
-  assert.match(bar,/castViewController\.ensure\(root\.castId, root\.authorFid, root\.castText\)/);
+  assert.match(bar,/castViewController\.ensure\(root\.descriptorCastId,/);
+  assert.match(bar,/root\.viewDescriptor\.authorFid/);
+  assert.match(bar,/root\.enrichmentActive/);
+  assert.match(bar,/onCastDataChanged:/);
   assert.match(bar,/root\.castViewEntry\.count/);
   assert.match(bar,/castViewController\.retain\(next\)/);
   assert.match(bar,/castViewController\.release\(root\.retainedViewsCastId\)/);

@@ -5,6 +5,7 @@ Item {
     property var modelData
     property bool compact: false
     property bool interactionsAvailable: false
+    property bool enrichmentActive: true
     property double accountFid: 0
 
     signal openRequested(string castId)
@@ -28,6 +29,7 @@ Item {
         modelData: root.modelData
         compact: root.compact
         interactionsAvailable: root.interactionsAvailable
+        enrichmentActive: root.enrichmentActive
         accountFid: root.accountFid
         onOpenRequested: castId => root.openRequested(castId)
         onProfileRequested: fid => root.profileRequested(fid)

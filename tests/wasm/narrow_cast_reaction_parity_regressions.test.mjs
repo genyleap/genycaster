@@ -30,7 +30,8 @@ test('browser reactions fetch positive evidence through bounded account-scoped s
   assert.match(qml,/positive\[key \+ ":" \+ kind\] = true/);
   assert.match(qml,/root.revision \+= 1/);
   assert.match(qml,/storage-farcaster.genyleap.com\/v1\/browser\/cast-reactions/);
-  assert.match(bar,/CastReactions.ensure\(root.castId, root.viewerFid\)/);
+  assert.match(bar,/CastReactions.ensure\(root.descriptorCastId, root.viewerFid\)/);
+  assert.match(bar,/root.enrichmentActive/);
   assert.match(bar,/effectiveLikedByMe/);
   assert.match(bar,/CastReactions.setLocal\(root.castId, root.viewerFid, "recast", next\)/);
   assert.match(bar,/CastReactions.setLocal\(root.castId, root.viewerFid, "like", next\)/);
@@ -76,8 +77,8 @@ test('generic link cards constrain thumbnail and metadata to available width',()
 test('reaction and view lifecycle handlers are combined rather than assigned twice',()=>{
   const bar=read('ui/components/EngagementBar.qml');
   assert.equal((bar.match(/Component.onCompleted:/g)||[]).length,1);
-  assert.equal((bar.match(/onCastIdChanged:/g)||[]).length,1);
+  assert.equal((bar.match(/onCastDataChanged:/g)||[]).length,1);
   assert.match(bar,/Component.onCompleted: \{\s*syncViewInterest\(\)\s*requestViews\(\)\s*requestBrowserReactions\(\)/);
-  assert.match(bar,/onCastIdChanged: \{\s*syncViewInterest\(\)\s*requestViews\(\)\s*requestBrowserReactions\(\)/);
+  assert.match(bar,/onCastDataChanged: \{\s*syncViewInterest\(\)\s*requestViews\(\)\s*requestBrowserReactions\(\)/);
   assert.match(bar,/Component.onDestruction: \{\s*if \(root.retainedViewsCastId.length > 0\)\s*castViewController.release\(root.retainedViewsCastId\)/);
 });

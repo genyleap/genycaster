@@ -510,6 +510,9 @@ ListView {
                     castId: String(root.detail.castId || "")
                     castData: root.detail
                     showViews: true
+                    scrollMoving: root.moving
+                    enrichmentActive: root.activeView === "cast" && root.visible
+                        && root.contentY < (root.headerItem ? root.headerItem.height : 700) + 320
                     authorFid: Number(root.detail.authorFid || 0)
                     castText: String(root.detail.text || "")
                     contextText: String(root.detail.text || "")
@@ -633,6 +636,10 @@ ListView {
         x: Math.max(root.compact ? Theme.mobileGutter : Theme.contentGutter,
                     (root.width - width) / 2)
         reply: modelData
+        enrichmentActive: root.activeView === "cast" && root.visible
+            && y + height >= root.contentY - 320
+            && y <= root.contentY + root.height + 320
+        scrollMoving: root.moving
         highlighted: root.hasConfirmedReply
                      && root.normalizedCastHash(modelData.castId)
                         === root.normalizedCastHash(root.confirmedReply.castId)

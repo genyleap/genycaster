@@ -8,6 +8,7 @@ Item {
     property string presentationKind: "conversation"
     property bool compact: false
     property bool interactionsAvailable: false
+    property bool enrichmentActive: true
     property double accountFid: 0
 
     signal openRequested(string castId)
@@ -41,6 +42,7 @@ Item {
             compact: root.compact
             interactionsAvailable: root.interactionsAvailable
             accountFid: root.accountFid
+            enrichmentActive: root.enrichmentActive
             onOpenRequested: castId => root.openRequested(castId)
             onProfileRequested: fid => root.profileRequested(fid)
             onReplyRequested: data => root.replyRequested(data)
@@ -60,6 +62,7 @@ Item {
             compact: root.compact
             interactionsAvailable: root.interactionsAvailable
             accountFid: root.accountFid
+            enrichmentActive: root.enrichmentActive
             onOpenRequested: castId => root.openRequested(castId)
             onProfileRequested: fid => root.profileRequested(fid)
             onReplyRequested: data => root.replyRequested(data)
@@ -79,6 +82,7 @@ Item {
             compact: root.compact
             interactionsAvailable: root.interactionsAvailable
             accountFid: root.accountFid
+            enrichmentActive: root.enrichmentActive
             onOpenRequested: castId => root.openRequested(castId)
             onProfileRequested: fid => root.profileRequested(fid)
             onReplyRequested: data => root.replyRequested(data)

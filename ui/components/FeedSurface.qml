@@ -1164,6 +1164,10 @@ Item {
                     presentationKind: rowDelegate.presentationKind
                     compact: root.compact
                     interactionsAvailable: root.interactionsAvailable
+                    // Keep only a small near-viewport margin subscribed.
+                    enrichmentActive: root.presentationActive && rowDelegate.visible
+                        && rowDelegate.y + rowDelegate.height >= readList.contentY - 320
+                        && rowDelegate.y <= readList.contentY + readList.height + 320
                     accountFid: root.accountFid
                     onOpenRequested: castId => root.castRequested(castId)
                     onProfileRequested: fid => root.profileRequested(fid)

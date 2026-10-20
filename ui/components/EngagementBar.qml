@@ -19,6 +19,12 @@ RowLayout {
     property double authorFid: 0
     property string castText: ""
     property bool scrollMoving: false
+    // The owning viewport/delegate controls secondary network interest.
+    property bool enrichmentActive: true
+    readonly property var viewDescriptor: root.castData && typeof root.castData === "object"
+        ? root.castData : ({})
+    readonly property string descriptorCastId:
+        CastViews.normalizeHash(root.viewDescriptor.castId || "")
     readonly property double viewerFid: Number(presentationBridge.accountFid || 0)
     readonly property bool browserLikeEvidence: Qt.platform.os === "wasm"
                                                 && CastReactions.reacted(root.castId, root.viewerFid, "like")
@@ -34,9 +40,10 @@ RowLayout {
         ? root.browserRecastOverride : root.recastedByMe || root.browserRecastEvidence
 
     function requestBrowserReactions() {
-        if (Qt.platform.os === "wasm" && !root.scrollMoving
-                && presentationBridge.isAuthenticated && root.viewerFid > 0)
-            CastReactions.ensure(root.castId, root.viewerFid)
+        if (Qt.platform.os === "wasm" && root.enrichmentActive
+                && !root.scrollMoving && presentationBridge.isAuthenticated
+                && root.viewerFid > 0 && root.descriptorCastId.length > 0)
+            CastReactions.ensure(root.descriptorCastId, root.viewerFid)
     }
     onViewerFidChanged: requestBrowserReactions()
     // Every visible/near-visible consumer retains just its own cast. The C++
@@ -44,18 +51,19 @@ RowLayout {
     readonly property bool hasCanonicalViewCount:
         root.viewCount !== null && root.viewCount !== undefined
         && isFinite(Number(root.viewCount)) && Number(root.viewCount) >= 0
-    readonly property bool wantsDerivedViews: root.showViews
-        && !root.hasCanonicalViewCount && root.authorFid > 0
-        && CastViews.normalizeHash(root.castId).length > 0
+    readonly property bool wantsDerivedViews: root.showViews && root.enrichmentActive
+        && root.visible && !root.hasCanonicalViewCount
+        && Number(root.viewDescriptor.authorFid || 0) > 0
+        && root.descriptorCastId.length > 0
     readonly property var castViewEntry: root.wantsDerivedViews
-        ? castViewController.entryFor(root.castId) : null
+        ? castViewController.entryFor(root.descriptorCastId) : null
     property string retainedViewsCastId: ""
 
     readonly property var resolvedViewCount: root.hasCanonicalViewCount
         ? root.viewCount : root.castViewEntry ? root.castViewEntry.count : null
 
     function syncViewInterest() {
-        const next = root.wantsDerivedViews ? CastViews.normalizeHash(root.castId) : ""
+        const next = root.wantsDerivedViews ? root.descriptorCastId : ""
         if (root.retainedViewsCastId === next)
             return
         if (root.retainedViewsCastId.length > 0)
@@ -66,8 +74,12 @@ RowLayout {
     }
 
     function requestViews() {
+        // One atomic castData map supplies identity, author and text. Separate
+        // QML property bindings can otherwise transiently cross cast identities.
         if (root.wantsDerivedViews && !root.scrollMoving)
-            castViewController.ensure(root.castId, root.authorFid, root.castText)
+            castViewController.ensure(root.descriptorCastId,
+                                      Number(root.viewDescriptor.authorFid || 0),
+                                      String(root.viewDescriptor.text || ""))
     }
 
     Component.onCompleted: {
@@ -79,7 +91,17 @@ RowLayout {
         if (root.retainedViewsCastId.length > 0)
             castViewController.release(root.retainedViewsCastId)
     }
-    onCastIdChanged: {
+    onCastDataChanged: {
+        syncViewInterest()
+        requestViews()
+        requestBrowserReactions()
+    }
+    onEnrichmentActiveChanged: {
+        syncViewInterest()
+        requestViews()
+        requestBrowserReactions()
+    }
+    onVisibleChanged: {
         syncViewInterest()
         requestViews()
         requestBrowserReactions()
@@ -88,8 +110,8 @@ RowLayout {
         syncViewInterest()
         requestViews()
     }
-    onAuthorFidChanged: requestViews()
-    onCastTextChanged: requestViews()
+    // The descriptor is read atomically from castData, not from these
+    // independently updating compatibility properties.
     onScrollMovingChanged: {
         if (!root.scrollMoving) {
             requestBrowserReactions()

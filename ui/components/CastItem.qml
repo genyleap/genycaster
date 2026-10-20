@@ -8,6 +8,7 @@ Item {
     property var modelData
     property bool compact: false
     property bool interactionsAvailable: false
+    property bool enrichmentActive: true
     property double accountFid: 0
     property var scrollHost: null
     property bool supportingAdmitted: false
@@ -848,6 +849,7 @@ Item {
                         Layout.fillWidth: true
                         compact: root.compact
                         scrollMoving: root.scrollMoving
+                        enrichmentActive: root.enrichmentActive
                         showViews: true
                         replyCount: Number(root.modelData.replyCount || 0)
                         recastCount: Number(root.modelData.recastCount || 0)
@@ -932,6 +934,7 @@ Item {
                         Layout.fillWidth: true
                         compact: root.compact
                         scrollMoving: root.scrollMoving
+                        enrichmentActive: root.enrichmentActive
                         showViews: true
                         replyCount: Number(root.modelData.replyCount || 0)
                         recastCount: Number(root.modelData.recastCount || 0)

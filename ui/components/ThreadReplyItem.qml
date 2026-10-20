@@ -15,6 +15,8 @@ ColumnLayout {
     property int depth: 1
     property bool compact: false
     property bool interactionsAvailable: false
+    property bool enrichmentActive: true
+    property bool scrollMoving: false
     property double accountFid: 0
     property bool highlighted: false
 
@@ -219,6 +221,8 @@ ColumnLayout {
                 Layout.fillWidth: true
                 compact: root.compact
                 showViews: true
+                enrichmentActive: root.enrichmentActive
+                scrollMoving: root.scrollMoving
                 replyCount: Number(root.reply.replyCount || 0)
                 recastCount: Number(root.reply.recastCount || 0)
                 likeCount: Number(root.reply.likeCount || 0)
