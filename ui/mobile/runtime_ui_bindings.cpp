@@ -44,6 +44,7 @@
 #include <exception>
 #include <filesystem>
 #include <functional>
+#include <iterator>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -1679,9 +1680,8 @@ void refreshVisibleViewerReactionState(
     if (accountFid.value == 0 || targets.empty() || !runtime->asyncGateway) {
         return;
     }
-    if (targets.size() > 24U) {
-        targets.resize(24U);
-    }
+    // Provider batches are at most 64 targets, but a feed page may be
+    // larger. Defer overflow instead of silently discarding casts 65..100.
     // Identity-based admission applies to the casts being hydrated, not the
     // position of the page within an accumulated feed snapshot. The cache only
     // stores complete target-specific evidence, never partial absence.
@@ -1695,7 +1695,9 @@ void refreshVisibleViewerReactionState(
                 runtime->activeViewerReactionRequest->cancel();
             }
             runtime->activeViewerReactionRequest.reset();
+            runtime->viewerReactionRegistering = false;
             runtime->activeViewerTargetIds.clear();
+            runtime->deferredViewerTargets.clear();
             runtime->viewerReactionFreshUntil.clear();
             runtime->activeViewerFid = accountFid.value;
         }
@@ -1705,8 +1707,10 @@ void refreshVisibleViewerReactionState(
             if (target.id.value.empty() || !unique.insert(target.id.value).second) {
                 continue;
             }
-            const auto found = runtime->viewerReactionFreshUntil.find(target.id.value);
-            if (found != runtime->viewerReactionFreshUntil.end() && found->second > now) {
+            const auto like = runtime->viewerReactionFreshUntil.find("like:" + target.id.value);
+            const auto recast = runtime->viewerReactionFreshUntil.find("recast:" + target.id.value);
+            if (like != runtime->viewerReactionFreshUntil.end() && like->second > now
+                && recast != runtime->viewerReactionFreshUntil.end() && recast->second > now) {
                 continue;
             }
             pendingTargets.push_back(target);
@@ -1714,21 +1718,34 @@ void refreshVisibleViewerReactionState(
         if (pendingTargets.empty()) {
             return;
         }
-        // Retain a shared in-flight request if it already covers all newly
-        // requested IDs; constructing another delegate is not new work.
-        if (runtime->activeViewerReactionRequest) {
-            const auto covers = std::ranges::all_of(pendingTargets, [&](const auto& target) {
-                return std::ranges::find(runtime->activeViewerTargetIds,
-                                         target.id.value) != runtime->activeViewerTargetIds.end();
-            });
-            if (covers) {
-                return;
+        constexpr std::size_t maximumBatch{64U};
+        if (pendingTargets.size() > maximumBatch) {
+            for (std::size_t i = maximumBatch; i < pendingTargets.size(); ++i) {
+                const auto& target = pendingTargets[i];
+                const bool queued = std::ranges::any_of(runtime->deferredViewerTargets,
+                    [&](const auto& other) { return other.id.value == target.id.value; });
+                if (!queued && runtime->deferredViewerTargets.size() < 128U) {
+                    runtime->deferredViewerTargets.push_back(target);
+                }
             }
+            pendingTargets.resize(maximumBatch);
+        }
+        // The provider operation may serve other live consumers. Queue new
+        // targets and drain them on completion instead of canceling its work.
+        if (runtime->activeViewerReactionRequest || runtime->viewerReactionRegistering) {
+            for (const auto& target : pendingTargets) {
+                const bool active = std::ranges::find(runtime->activeViewerTargetIds,
+                    target.id.value) != runtime->activeViewerTargetIds.end();
+                const bool deferred = std::ranges::any_of(runtime->deferredViewerTargets,
+                    [&](const auto& queued) { return queued.id.value == target.id.value; });
+                if (!active && !deferred && runtime->deferredViewerTargets.size() < 128U) {
+                    runtime->deferredViewerTargets.push_back(target);
+                }
+            }
+            return;
         }
         generation = ++runtime->viewerOperationGeneration;
-        if (runtime->activeViewerReactionRequest) {
-            runtime->activeViewerReactionRequest->cancel();
-        }
+        runtime->viewerReactionRegistering = true;
         runtime->activeViewerReactionRequest.reset();
         runtime->activeViewerTargetIds.clear();
         for (const auto& target : pendingTargets) {
@@ -1736,6 +1753,9 @@ void refreshVisibleViewerReactionState(
         }
     }
     auto rowTargets = pendingTargets;
+    // Keep the rejected batch's demand; a synchronous failure must not cause
+    // this active viewport to be permanently forgotten.
+    auto rejectedTargets = pendingTargets;
     auto terminal = std::make_shared<std::atomic_bool>(false);
     const QPointer<PresentationBridge> bridgeGuard{&bridge};
     auto request = runtime->asyncGateway->viewerReactionsFor(
@@ -1745,19 +1765,37 @@ void refreshVisibleViewerReactionState(
          rowTargets = std::move(rowTargets)](
             foundation::result::Result<domain::feed::ViewerReactionSnapshot> snapshot) mutable {
             terminal->store(true, std::memory_order_release);
+            std::vector<domain::cast::CastReference> deferredTargets{};
             {
                 std::scoped_lock lock{runtime->viewerOperationMutex};
                 if (generation != runtime->viewerOperationGeneration) {
                     return;
                 }
                 runtime->activeViewerReactionRequest.reset();
+                runtime->viewerReactionRegistering = false;
                 runtime->activeViewerTargetIds.clear();
+                deferredTargets = std::move(runtime->deferredViewerTargets);
+                runtime->deferredViewerTargets.clear();
                 if (snapshot) {
                     constexpr auto freshFor = std::chrono::seconds{90};
                     const auto observedAt = std::chrono::steady_clock::now();
-                    for (const auto& id : snapshot->examined) {
+                    for (const auto& id : snapshot->likeExamined) {
                         runtime->viewerReactionFreshUntil.insert_or_assign(
-                            id.value, observedAt + freshFor);
+                            std::string{"like:"} + id.value, observedAt + freshFor);
+                    }
+                    for (const auto& id : snapshot->recastExamined) {
+                        runtime->viewerReactionFreshUntil.insert_or_assign(
+                            std::string{"recast:"} + id.value, observedAt + freshFor);
+                    }
+                    // Unknown coverage is not re-probed on every refresh.
+                    // Short negative admission backoff also limits repeated
+                    // bounded but incomplete account snapshots.
+                    for (const auto& target : rowTargets) {
+                        for (const std::string_view prefix : {"like:", "recast:"}) {
+                            const std::string cacheKey = std::string{prefix} + target.id.value;
+                            runtime->viewerReactionFreshUntil.try_emplace(
+                                cacheKey, observedAt + std::chrono::seconds{15});
+                        }
                     }
                     // A fixed-size account-scoped cache, never an unlimited
                     // history of previously encountered feed identities.
@@ -1774,6 +1812,36 @@ void refreshVisibleViewerReactionState(
                 }
             }
             if (!snapshot) {
+                // Failure cannot erase active demand. Retry this page and any
+                // targets admitted during the request after a bounded cooldown.
+                rowTargets.insert(rowTargets.end(),
+                    std::make_move_iterator(deferredTargets.begin()),
+                    std::make_move_iterator(deferredTargets.end()));
+                if (bridgeGuard) {
+                    QMetaObject::invokeMethod(bridgeGuard.data(),
+                        [bridgeGuard, runtime, generation, accountFid,
+                         retryTargets = std::move(rowTargets)]() mutable {
+                            if (!bridgeGuard) {
+                                return;
+                            }
+                            QTimer::singleShot(15'000, bridgeGuard.data(),
+                                [bridgeGuard, runtime, generation, accountFid,
+                                 retryTargets = std::move(retryTargets)]() mutable {
+                                    if (!bridgeGuard || !bridgeGuard->isAuthenticated()
+                                        || bridgeGuard->accountFid() != accountFid.value) {
+                                        return;
+                                    }
+                                    {
+                                        std::scoped_lock lock{runtime->viewerOperationMutex};
+                                        if (generation != runtime->viewerOperationGeneration) {
+                                            return;
+                                        }
+                                    }
+                                    refreshVisibleViewerReactionState(*bridgeGuard, runtime,
+                                        accountFid, std::move(retryTargets));
+                                });
+                        }, Qt::QueuedConnection);
+                }
                 return;
             }
             QVariantList rows{};
@@ -1781,22 +1849,25 @@ void refreshVisibleViewerReactionState(
             for (const auto& target : rowTargets) {
                 // A missing target from an incomplete enrichment is unknown.
                 // Never let it clear optimistic or previously confirmed state.
-                if (std::ranges::none_of(snapshot->examined, [&target](
-                        const domain::cast::CastId& id) {
-                        return id.value == target.id.value;
-                    })) {
-                    continue;
-                }
                 const auto isPresent = [&target](const std::vector<domain::cast::CastId>& ids) {
                     return std::ranges::any_of(ids, [&target](const domain::cast::CastId& id) {
                         return id.value == target.id.value;
                     });
                 };
-                rows.push_back(QVariantMap{
-                    {QStringLiteral("castId"), QString::fromStdString(target.id.value)},
-                    {QStringLiteral("liked"), isPresent(snapshot->liked)},
-                    {QStringLiteral("recasted"), isPresent(snapshot->recasted)},
-                });
+                const bool knowsLike = isPresent(snapshot->likeExamined);
+                const bool knowsRecast = isPresent(snapshot->recastExamined);
+                if (!knowsLike && !knowsRecast) {
+                    continue;
+                }
+                QVariantMap reaction{{QStringLiteral("castId"),
+                                      QString::fromStdString(target.id.value)}};
+                if (knowsLike) {
+                    reaction.insert(QStringLiteral("liked"), isPresent(snapshot->liked));
+                }
+                if (knowsRecast) {
+                    reaction.insert(QStringLiteral("recasted"), isPresent(snapshot->recasted));
+                }
+                rows.push_back(std::move(reaction));
             }
             PresentationBridge* const targetBridge = bridgeGuard.data();
             if (targetBridge == nullptr) {
@@ -1804,7 +1875,8 @@ void refreshVisibleViewerReactionState(
             }
             QMetaObject::invokeMethod(
                 targetBridge,
-                [bridgeGuard, runtime, generation, accountFid, rows = std::move(rows)]() mutable {
+                [bridgeGuard, runtime, generation, accountFid,
+                 rows = std::move(rows), deferredTargets = std::move(deferredTargets)]() mutable {
                     // A replacement may start after the worker-side generation
                     // check but before this queued GUI commit.
                     {
@@ -1820,15 +1892,48 @@ void refreshVisibleViewerReactionState(
                                 std::chrono::steady_clock::now().time_since_epoch()).count(),
                             std::memory_order_release);
                         bridgeGuard->applyViewerReactionDelta(std::move(rows));
+                        if (!deferredTargets.empty()) {
+                            refreshVisibleViewerReactionState(*bridgeGuard, runtime,
+                                accountFid, std::move(deferredTargets));
+                        }
                     }
                 },
                 Qt::QueuedConnection);
         });
     if (!request) {
-        std::scoped_lock lock{runtime->viewerOperationMutex};
-        if (generation == runtime->viewerOperationGeneration) {
+        {
+            std::scoped_lock lock{runtime->viewerOperationMutex};
+            if (generation != runtime->viewerOperationGeneration
+                || terminal->load(std::memory_order_acquire)) {
+                // A provider can complete inline before returning its handle.
+                // Such a completion is already terminal: no second retry.
+                return;
+            }
             runtime->activeViewerTargetIds.clear();
+            runtime->viewerReactionRegistering = false;
+            rejectedTargets.insert(rejectedTargets.end(),
+                std::make_move_iterator(runtime->deferredViewerTargets.begin()),
+                std::make_move_iterator(runtime->deferredViewerTargets.end()));
+            runtime->deferredViewerTargets.clear();
         }
+        // Provider-admission failure is not a terminal rejection of active
+        // demand. Retry at a bounded cadence while this viewer remains active.
+        QTimer::singleShot(15'000, &bridge,
+            [bridgeGuard, runtime, accountFid, generation,
+             targets = std::move(rejectedTargets)]() mutable {
+                if (!bridgeGuard || !bridgeGuard->isAuthenticated()
+                    || bridgeGuard->accountFid() != accountFid.value) {
+                    return;
+                }
+                {
+                    std::scoped_lock lock{runtime->viewerOperationMutex};
+                    if (generation != runtime->viewerOperationGeneration) {
+                        return;
+                    }
+                }
+                refreshVisibleViewerReactionState(*bridgeGuard, runtime,
+                    accountFid, std::move(targets));
+            });
         return;
     }
     std::scoped_lock lock{runtime->viewerOperationMutex};
@@ -1838,6 +1943,7 @@ void refreshVisibleViewerReactionState(
         return;
     }
     runtime->activeViewerReactionRequest = std::move(*request);
+    runtime->viewerReactionRegistering = false;
 }
 #else
 void refreshViewerReactionSnapshot(
@@ -3106,16 +3212,19 @@ void connectRuntime(
             const QString& channel, const QString& continuation,
             const bool allowRecoveryProbe) {
             const bool continuationRequest = !continuation.isEmpty();
-            const bool profileFeedRequest = feed.startsWith(QStringLiteral("user-"));
-            if (profileFeedRequest || continuationRequest) {
-                // Pagination replaces only the active page request. Do not
-                // evict in-flight quote/parent previews, reaction hydration or
-                // other interests that remain visible on the same surface.
+            // Snapshot GUI-owned read settings before asynchronous callbacks.
+            const std::size_t requestedPageSize = static_cast<std::size_t>(bridge.feedPageSize());
+            const std::size_t contextHydrationLimit = static_cast<std::size_t>(bridge.contextHydrationLimit());
+            // Feed identity, not the presence of a cursor, owns previews and
+            // viewer enrichment. A new page or same-surface refresh must not
+            // discard work shared by the currently visible cast delegates.
+            const std::string surfaceIdentity = feed.toStdString() + "\x1f"
+                + std::to_string(fid) + "\x1f" + channel.toStdString();
+            if (!runtime->selectFeedSurfaceIdentity(surfaceIdentity)) {
                 runtime->cancelFeedRequest();
-            } else {
-                // Replacing the navigation surface ends its former consumers.
-                runtime->cancelAllRequests();
             }
+            const std::uint64_t surfaceGeneration =
+                runtime->feedSurfaceGeneration.load(std::memory_order_acquire);
             const std::uint64_t requestGeneration = runtime->beginFeedRequestGeneration();
             if (!continuationRequest && bridge.isAuthenticated() && bridge.accountFid() > 0) {
                 refreshViewerReactionSnapshot(
@@ -3164,12 +3273,13 @@ void connectRuntime(
             }
             // User-tunable read budget. The canonical provider contract validates
             // the same 1..100 range before any request leaves the presentation boundary.
-            query.limit = static_cast<std::size_t>(bridge.feedPageSize());
+            query.limit = requestedPageSize;
             if (continuationRequest) {
                 query.continuation = capability::pagination::ContinuationToken{continuation.toStdString()};
             }
             auto request = runtime->service->openFeed(std::move(query),
-                [&bridge, runtime, requestGeneration](application::read::model::FeedState state) {
+                [&bridge, runtime, requestGeneration, surfaceGeneration,
+                 requestedPageSize, contextHydrationLimit](application::read::model::FeedState state) {
                     if (!runtime->isCurrentFeedRequestGeneration(requestGeneration)) {
                         return;
                     }
@@ -3178,7 +3288,7 @@ void connectRuntime(
                     if (state.metadata.phase == application::read::model::ReadPhase::Ready) {
                         missingReferences = missingReferencedCastIds(
                             state, std::min(
-                                static_cast<std::size_t>(bridge.contextHydrationLimit()),
+                                contextHydrationLimit,
                                 maximumContextHydrationsPerFeedState));
                     }
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
@@ -3190,9 +3300,9 @@ void connectRuntime(
                         // whenever the provider batch contract allows it. Limiting this to the
                         // first 12 casts made liked/recast state disappear on later rows and on
                         // sparse Explorer projections (Devs/NFTs often select rows well past 12).
-                        constexpr std::size_t maximumVisibleReactionHydrations{64U};
+                        constexpr std::size_t maximumVisibleReactionHydrations{100U};
                         const std::size_t visibleReactionLimit = std::min<std::size_t>(
-                            {state.casts.size(), static_cast<std::size_t>(bridge.feedPageSize()),
+                            {state.casts.size(), requestedPageSize,
                              maximumVisibleReactionHydrations});
                         visibleTargets.reserve(visibleReactionLimit);
                         // A continuation state contains every accumulated cast. Hydrate
@@ -3235,8 +3345,11 @@ void connectRuntime(
                         }
                         auto previewRequest = runtime->service->openCast(
                             referencedId,
-                            [&bridge, runtime, referencedId, requestGeneration](
+                            [&bridge, runtime, referencedId, surfaceGeneration](
                                 application::read::model::CastState referencedState) {
+                                if (!runtime->isCurrentFeedSurfaceGeneration(surfaceGeneration)) {
+                                    return;
+                                }
                                 const auto phase = referencedState.metadata.phase;
                                 const QString castId = referencedState.cast
                                     ? QString::fromStdString(referencedState.cast->id.value) : QString{};
@@ -3254,14 +3367,20 @@ void connectRuntime(
                                     }
                                     return;
                                 }
-                                runtime->finishReferencedPreviewRequest(referencedId, true);
-                                if (!runtime->isCurrentFeedRequestGeneration(requestGeneration)) {
+                                // A cached preview may be followed by a fresher
+                                // provider snapshot. Only the terminal state
+                                // releases the in-flight request's ownership.
+                                if (phase == application::read::model::ReadPhase::Ready
+                                    || phase == application::read::model::ReadPhase::Failed) {
+                                    runtime->finishReferencedPreviewRequest(referencedId, true);
+                                }
+                                if (!runtime->isCurrentFeedSurfaceGeneration(surfaceGeneration)) {
                                     return;
                                 }
                                 QMetaObject::invokeMethod(
                                     &bridge,
-                                    [&bridge, runtime, requestGeneration, castId, preview] {
-                                        if (runtime->isCurrentFeedRequestGeneration(requestGeneration)) {
+                                    [&bridge, runtime, surfaceGeneration, castId, preview] {
+                                        if (runtime->isCurrentFeedSurfaceGeneration(surfaceGeneration)) {
                                             bridge.applyReferencedCastPreview(castId, preview);
                                         }
                                     },
@@ -3298,7 +3417,11 @@ void connectRuntime(
                 bridge.applyNotifications({}, {}, qtTrId("genycaster.notifications.sign_in_required"), false, false);
                 return;
             }
-            runtime->cancelPrimaryRequest();
+            if (continuation.isEmpty()) {
+                runtime->cancelAllRequests();
+            } else {
+                runtime->cancelPrimaryRequest();
+            }
             application::read::model::NotificationQuery query{
                 .viewer = domain::identity::Fid{static_cast<std::uint64_t>(bridge.accountFid())},
                 .limit = 30,
@@ -3439,6 +3562,9 @@ void connectRuntime(
                             referencedId,
                             [&bridge, runtime, referencedId, requestGeneration](
                                 application::read::model::CastState referencedState) {
+                                if (!runtime->isCurrentPrimaryRequestGeneration(requestGeneration)) {
+                                    return;
+                                }
                                 const auto phase = referencedState.metadata.phase;
                                 if (!referencedState.cast) {
                                     if (phase == application::read::model::ReadPhase::Ready
@@ -3447,7 +3573,10 @@ void connectRuntime(
                                     return;
                                 }
                                 const QVariantMap preview = castPreviewPresentation(referencedState);
-                                runtime->finishReferencedPreviewRequest(referencedId, true);
+                                if (phase == application::read::model::ReadPhase::Ready
+                                    || phase == application::read::model::ReadPhase::Failed) {
+                                    runtime->finishReferencedPreviewRequest(referencedId, true);
+                                }
                                 if (!runtime->isCurrentPrimaryRequestGeneration(requestGeneration))
                                     return;
                                 QMetaObject::invokeMethod(
@@ -3477,7 +3606,9 @@ void connectRuntime(
 
     QObject::connect(&bridge, &PresentationBridge::profileRequested, &bridge,
         [&bridge, runtime](const qulonglong fid, const bool allowRecoveryProbe) {
-            runtime->cancelPrimaryRequest();
+            // Profile navigation retires the previous feed/cast's shared
+            // quote and reaction interests, not only its primary request.
+            runtime->cancelAllRequests();
             const std::uint64_t requestGeneration = runtime->beginPrimaryRequestGeneration();
             auto request = runtime->service->openProfile(
                 domain::identity::Fid{static_cast<std::uint64_t>(fid)},

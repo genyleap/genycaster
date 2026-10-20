@@ -137,8 +137,22 @@ Runtime::~Runtime()
 
 void Runtime::setCurrentSession(std::optional<domain::session::ClientSession> session)
 {
-    std::scoped_lock lock{sessionMutex};
-    currentSession = std::move(session);
+    bool accountChanged{false};
+    {
+        std::scoped_lock lock{sessionMutex};
+        const std::uint64_t previous = currentSession ? currentSession->fid.value : 0U;
+        const std::uint64_t next = session ? session->fid.value : 0U;
+        accountChanged = previous != next;
+        currentSession = std::move(session);
+    }
+    if (accountChanged) {
+        // Authentication-dependent callbacks and caches cannot cross viewers.
+        // Invalidate outside sessionMutex to preserve a deterministic lock order.
+        cancelAllRequests();
+        std::scoped_lock lock{viewerOperationMutex};
+        viewerReactionFreshUntil.clear();
+        activeViewerFid = 0;
+    }
 }
 
 std::optional<domain::session::ClientSession> Runtime::currentSessionSnapshot()
@@ -150,11 +164,13 @@ std::optional<domain::session::ClientSession> Runtime::currentSessionSnapshot()
 void Runtime::cancelPrimaryRequest()
 {
     primaryRequestGeneration.fetch_add(1U, std::memory_order_acq_rel);
-    std::scoped_lock lock{requestMutex};
-    if (activePrimaryRequest) {
-        activePrimaryRequest->cancel();
+    std::optional<application::read::async_service::ReadRequest> obsolete{};
+    {
+        std::scoped_lock lock{requestMutex};
+        obsolete = std::move(activePrimaryRequest);
+        activePrimaryRequest.reset();
     }
-    activePrimaryRequest.reset();
+    if (obsolete) obsolete->cancel();
 }
 
 std::uint64_t Runtime::beginPrimaryRequestGeneration() noexcept
@@ -175,6 +191,30 @@ std::uint64_t Runtime::beginFeedRequestGeneration() noexcept
 bool Runtime::isCurrentFeedRequestGeneration(const std::uint64_t generation) const noexcept
 {
     return feedRequestGeneration.load(std::memory_order_acquire) == generation;
+}
+
+bool Runtime::selectFeedSurfaceIdentity(const std::string& identity)
+{
+    {
+        std::scoped_lock lock{feedSurfaceMutex};
+        if (feedSurfaceIdentity == identity) {
+            return false;
+        }
+    }
+    // A surface change terminates the old navigation interest before the new
+    // identity is committed. Cancellation itself clears the previous identity,
+    // so returning from a cast/profile to this feed cannot look like a page.
+    cancelAllRequests();
+    {
+        std::scoped_lock lock{feedSurfaceMutex};
+        feedSurfaceIdentity = identity;
+    }
+    return true;
+}
+
+bool Runtime::isCurrentFeedSurfaceGeneration(const std::uint64_t generation) const noexcept
+{
+    return feedSurfaceGeneration.load(std::memory_order_acquire) == generation;
 }
 
 std::uint64_t Runtime::beginExplorerArtRequestGeneration()
@@ -236,15 +276,22 @@ void Runtime::cancelExplorerArtRequests()
 
 void Runtime::cancelViewerReactionRequest()
 {
-    std::scoped_lock lock{viewerOperationMutex};
-    ++viewerOperationGeneration;
-    if (activeViewerReactionRequest) {
-        activeViewerReactionRequest->cancel();
+    std::optional<application::read::async_gateway::Request> obsolete{};
+    {
+        std::scoped_lock lock{viewerOperationMutex};
+        ++viewerOperationGeneration;
+        obsolete = std::move(activeViewerReactionRequest);
+        activeViewerReactionRequest.reset();
+        viewerReactionRegistering = false;
+        activeViewerTargetIds.clear();
+        deferredViewerTargets.clear();
     }
-    activeViewerReactionRequest.reset();
-    activeViewerTargetIds.clear();
-    // Navigation cancels obsolete interests; retain fresh canonical evidence
-    // for this viewer, but a subsequent account switch clears it explicitly.
+    // Cancel outside the ownership lock: some transports can complete inline.
+    if (obsolete) {
+        obsolete->cancel();
+    }
+    // Navigation cancels obsolete interests; a same-viewer verified cache is
+    // still usable, while a real account switch clears it explicitly.
 }
 
 void Runtime::cancelReferencedPreviewRequests()
@@ -269,49 +316,57 @@ void Runtime::cancelReferencedPreviewRequests()
 void Runtime::cancelFeedRequest()
 {
     feedRequestGeneration.fetch_add(1U, std::memory_order_acq_rel);
+    std::optional<application::read::async_service::ReadRequest> obsolete{};
     {
         std::scoped_lock lock{requestMutex};
-        if (activeFeedRequest) {
-            activeFeedRequest->cancel();
-        }
+        obsolete = std::move(activeFeedRequest);
         activeFeedRequest.reset();
     }
-    cancelReferencedPreviewRequests();
-    cancelViewerReactionRequest();
+    if (obsolete) obsolete->cancel();
+    // Page requests do not own referenced previews or viewer enrichment.
 }
 
 void Runtime::cancelSearchRequest()
 {
-    std::scoped_lock lock{requestMutex};
-    if (activeSearchRequest) {
-        activeSearchRequest->cancel();
+    std::optional<application::read::async_service::ReadRequest> obsolete{};
+    {
+        std::scoped_lock lock{requestMutex};
+        obsolete = std::move(activeSearchRequest);
+        activeSearchRequest.reset();
     }
-    activeSearchRequest.reset();
+    if (obsolete) obsolete->cancel();
 }
 
 void Runtime::cancelAllRequests()
 {
+    {
+        std::scoped_lock lock{feedSurfaceMutex};
+        feedSurfaceIdentity.clear();
+    }
+    feedSurfaceGeneration.fetch_add(1U, std::memory_order_acq_rel);
     primaryRequestGeneration.fetch_add(1U, std::memory_order_acq_rel);
     feedRequestGeneration.fetch_add(1U, std::memory_order_acq_rel);
+    std::optional<application::read::async_service::ReadRequest> primary{};
+    std::optional<application::read::async_service::ReadRequest> feed{};
+    std::optional<application::read::async_service::ReadRequest> search{};
+    std::optional<application::read::async_service::ReadRequest> badge{};
     {
         std::scoped_lock lock{requestMutex};
-        if (activePrimaryRequest) {
-            activePrimaryRequest->cancel();
-        }
-        if (activeFeedRequest) {
-            activeFeedRequest->cancel();
-        }
-        if (activeSearchRequest) {
-            activeSearchRequest->cancel();
-        }
-        if (activeNotificationBadgeRequest) {
-            activeNotificationBadgeRequest->cancel();
-        }
+        primary = std::move(activePrimaryRequest);
+        feed = std::move(activeFeedRequest);
+        search = std::move(activeSearchRequest);
+        badge = std::move(activeNotificationBadgeRequest);
         activePrimaryRequest.reset();
         activeFeedRequest.reset();
         activeSearchRequest.reset();
         activeNotificationBadgeRequest.reset();
     }
+    // Release ownership locks before cancelling transports: an inline
+    // completion may reenter request handling or invalidate a generation.
+    if (primary) primary->cancel();
+    if (feed) feed->cancel();
+    if (search) search->cancel();
+    if (badge) badge->cancel();
     cancelReferencedPreviewRequests();
     cancelViewerReactionRequest();
 }
@@ -336,7 +391,10 @@ void Runtime::keepReferencedPreviewRequest(
     bool keep{false};
     {
         std::scoped_lock lock{referencedPreviewMutex};
-        keep = !referencedPreviewResolved.contains(castId.value);
+        // A synchronous cached/fresh terminal callback may have completed
+        // before the returned handle is registered.
+        keep = referencedPreviewInFlight.contains(castId.value)
+            && !referencedPreviewResolved.contains(castId.value);
         if (keep) {
             referencedPreviewInFlight.insert(castId.value);
             referencedPreviewRequests.insert_or_assign(castId.value, std::move(request));

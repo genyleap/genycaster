@@ -112,7 +112,11 @@ struct Runtime final {
     std::mutex viewerOperationMutex{};
     std::uint64_t viewerOperationGeneration{0};
     std::uint64_t activeViewerFid{0};
+    bool viewerReactionRegistering{false};
     std::vector<std::string> activeViewerTargetIds{};
+    // Demand arriving during a shared account acquisition is queued, not
+    // allowed to cancel a provider operation serving other visible casts.
+    std::vector<farcaster::domain::cast::CastReference> deferredViewerTargets{};
     // Per-viewer/cast freshness; only complete positive/negative evidence is
     // cached. Protected by viewerOperationMutex.
     std::unordered_map<std::string, std::chrono::steady_clock::time_point>
@@ -136,6 +140,10 @@ struct Runtime final {
     std::mutex requestMutex{};
     std::atomic<std::uint64_t> primaryRequestGeneration{0};
     std::atomic<std::uint64_t> feedRequestGeneration{0};
+    // Page cancellation and navigation are separate lifetimes.
+    std::atomic<std::uint64_t> feedSurfaceGeneration{0};
+    std::mutex feedSurfaceMutex{};
+    std::string feedSurfaceIdentity{};
     std::atomic<std::uint64_t> explorerArtRequestGeneration{0};
     std::mutex explorerArtMutex{};
     std::vector<farcaster::application::read::async_service::ReadRequest> explorerArtRequests{};
@@ -165,6 +173,8 @@ struct Runtime final {
     [[nodiscard]] bool isCurrentPrimaryRequestGeneration(std::uint64_t generation) const noexcept;
     [[nodiscard]] std::uint64_t beginFeedRequestGeneration() noexcept;
     [[nodiscard]] bool isCurrentFeedRequestGeneration(std::uint64_t generation) const noexcept;
+    [[nodiscard]] bool selectFeedSurfaceIdentity(const std::string& identity);
+    [[nodiscard]] bool isCurrentFeedSurfaceGeneration(std::uint64_t generation) const noexcept;
     [[nodiscard]] std::uint64_t beginExplorerArtRequestGeneration();
     [[nodiscard]] bool isCurrentExplorerArtRequestGeneration(std::uint64_t generation) const noexcept;
     void keepExplorerArtRequest(farcaster::application::read::async_service::ReadRequest request);
