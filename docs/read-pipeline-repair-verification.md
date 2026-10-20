@@ -10,6 +10,16 @@
 - **Platform assumptions:** Qt/C++26 native Linux build, QML/Qt network on native and WASM; mobile foreground/background and browser transport/runtime still require targeted verification. No native-thread or native-database assumption is added to domain/application.
 - **Regression evidence:** deterministic Qt socket test for Views queue/reacquisition, Node HTTP gateway fixtures for bounded partial and quote identity. Existing core/provider/storage and QML tests are required to validate other boundaries; source checks do not substitute for a runtime.
 
+## Browser reactions: presentation/adapter boundary contract
+
+- **Responsibility:** provide positive-only browser reaction evidence independently of protocol writes, with viewport-scoped demand and account isolation.
+- **Capability origin:** Derived/Compatibility, optional and independently disableable for native/headless runtimes.
+- **Public contract:** a Qt presentation-facing `BrowserReactionController` offers canonical cast identity + viewer FID, explicit retain/release/ensure, positive evidence, and local write overlays. QML remains an I/O-free facade; gateway parsing and HTTP remain outside core/domain/application.
+- **Invariants:** normalize 20-byte cast hashes; no synthetic negative or zero; bound active/upstream QNetwork requests, queued work, response bytes, retry admission, retained entries and local overlays. Account-scoped keys and immutable positive-only snapshots prevent cross-viewer updates. Pooled consumers release interest; reentering a viewport can reacquire without an unsent network penalty.
+- **Dependencies:** Qt Network at the outer mobile composition boundary and a configured browser-reaction relay URL. No provider DTO, Qt or HTTP enters core/domain; no changes to protocol write semantics.
+- **Expected failures:** invalid ID/FID, HTTP failure/timeout, provider returning unverified/missing rows, oversized/malformed responses, callback after consumer release, queue saturation and offline restarts. Cached positive evidence and optimistic overlays remain readable across network failure.
+- **Verification:** deterministic Qt loopback transport/clock-oriented lifecycle assertions, QML import/smoke, existing WASM JS tests updated to check the facade rather than QML HTTP internals. Actual browser WASM compile/runtime remains a separate target.
+
 ## Browser reaction Gateway — shared admission and partial-response repair (2026-10-20)
 
 The previous per-HTTP-request loop capped upstream fan-out at two **per client**, not two globally; simultaneous viewer requests could multiply concurrent public API reads. The shared `createBrowserReactionService` now owns a service-wide two-slot upstream pool and at most 32 waiting lookup admissions. Shared cast-hash reads are reused across concurrent viewers, and an individual viewer's six-second logical response deadline cannot abort a shared provider request required by others. Deadline expiry returns an immutable copy of verified positive results accumulated so far; absence remains unknown, never `false`. Failed or rejected lookups receive a five-second unavailable backoff; old positive evidence remains cached for its existing TTL. Response bodies are streamed with a 3-MiB limit even when content length is absent, and parsing examines at most 100 results.
@@ -19,7 +29,17 @@ Verification from a deterministic Node transport with delays, delayed completion
 - `node --test services/media-gateway/test/browser_cast_views.test.mjs`: **10/10 PASS** (unchanged adjacent gateway).
 - `node --test services/media-gateway/test/*.test.mjs`: **82/83 PASS**. The one failure remains the native Quilibrium storage addon fixture: `storage/native/genyleap_quilibrium_storage.node` is absent from this environment. This failure was not suppressed and is not caused by browser reaction logic.
 
-The separate `ui/components/CastReactions.qml` still owns HTTP and violates the QML architecture guard; this Gateway correction alone does **not** resolve that boundary, and WASM/browser runtime delivery has not been verified. No production services were restarted or deployed.
+**Subsequent browser-QML boundary change (current iteration):** `CastReactions.qml` is now an I/O-free state facade backed by `BrowserReactionController`, a bounded Qt adapter configured by the composition root and disabled for native/headless app modes. Browser cast identities and viewer FIDs are normalized and isolated; duplicate/pooled delegates use balanced retain/release; network work is single-batch-at-a-time with eight hashes, a 32-target queue, 64-KiB response cap and an end-to-end eight-second deadline. The controller retains positive-only information separately from bounded optimistic local writes. Unsent cancellation has no failure cooldown. A loopback HTTP Qt executable tests actual duplicate demand, viewer isolation, pooling/reacquisition, optimistic overrides, and oversized response rejection. QML no longer invokes XMLHttpRequest for this path. No source-only test is used as a substitute for that Qt behavior test.
+
+Verification for this adapter on Linux/Qt 6.12 (2026-10-20):
+- `cmake --build --preset ui-qt612-debug --target farcaster_browser_reactions_tests -j1`: **PASS**. The standalone C++/Qt target compiles the new adapter and actual loopback HTTP fixture.
+- `ctest --test-dir build/ui-qt612-debug -R '^ui.browser_reactions_contract$' --output-on-failure`: **1/1 PASS**, including a 70-KiB malicious response rejected against the 64-KiB receive limit.
+- `cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic ctest --test-dir build/ui-qt612-debug -R '^(ui.cast_views_contract|ui.browser_reactions_contract|ui.qml_import_smoke|ui.media_scroll|presentation.contextual_icons)$' --output-on-failure`: **5/5 PASS** (24.21 seconds total).
+- `node --test tests/wasm/*.test.mjs`: **259/259 PASS**; JS/source compatibility, **not a WASM binary or browser session**.
+- `python3 tools/check_architecture.py`: **FAIL**; `CastReactions.qml` was removed from the violations, but other network-QML and provider-name violations remain.
+- `git diff --check`: **PASS**.
+
+The full `farcaster_client` application has **not** been successfully rebuilt or executed with this new adapter, nor has the WASM artifact been compiled or exercised in a browser. Browser CORS/platform compatibility therefore remains **NOT VERIFIED**. The architecture guard still fails on unrelated remaining QML network consumers (`EmbedPreview.qml`, `LinkPreview.qml`, `TokenAddressPreview.qml`) and other provider naming leaks. No production services were restarted or deployed.
 
 ## Runtime/navigation follow-up — 2026-10-20
 

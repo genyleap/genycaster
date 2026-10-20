@@ -26,15 +26,18 @@ test('browser reactions fetch positive evidence through bounded account-scoped s
   assert.match(cmake,/components\/CastReactions.qml/);
   assert.match(cmake,/set_source_files_properties\(components\/CastReactions.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE\)/);
   assert.match(qml,/keyFor\(castId, viewerFid\)/);
-  assert.match(qml,/pending\)\.slice\(0, 8\)/);
-  assert.match(qml,/positive\[key \+ ":" \+ kind\] = true/);
-  assert.match(qml,/root.revision \+= 1/);
-  assert.match(qml,/storage-farcaster.genyleap.com\/v1\/browser\/cast-reactions/);
-  assert.match(bar,/CastReactions.ensure\(root.descriptorCastId, root.viewerFid\)/);
+  assert.doesNotMatch(qml,/XMLHttpRequest|JSON\.parse|https:\/\//);
+  assert.match(qml,/browserReactionController/);
+  assert.match(qml,/function retain\(castId, viewerFid\)/);
+  assert.match(qml,/function release\(castId, viewerFid\)/);
+  assert.match(read('ui/mobile/browser_reaction_controller.cpp'),
+    /storage-farcaster.genyleap.com\/v1\/browser\/cast-reactions/);
+  assert.match(bar,/CastReactions.ensure\(root.reactionCastId, root.viewerFid\)/);
+  assert.match(bar,/CastReactions.release\(/);
   assert.match(bar,/root.enrichmentActive/);
   assert.match(bar,/effectiveLikedByMe/);
-  assert.match(bar,/CastReactions.setLocal\(root.castId, root.viewerFid, "recast", next\)/);
-  assert.match(bar,/CastReactions.setLocal\(root.castId, root.viewerFid, "like", next\)/);
+  assert.match(bar,/CastReactions.setLocal\(root.reactionCastId, root.viewerFid, "recast", next\)/);
+  assert.match(bar,/CastReactions.setLocal\(root.reactionCastId, root.viewerFid, "like", next\)/);
   assert.match(bar,/scrollMoving: false/);
   assert.match(read('ui/components/CastItem.qml'),/scrollMoving: root.scrollMoving/g);
   assert.match(gateway,/requestUrl.pathname === '\/v1\/browser\/cast-reactions'/);

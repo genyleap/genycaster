@@ -2,46 +2,41 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 
-const qml = readFileSync(new URL('../../ui/components/CastReactions.qml', import.meta.url), 'utf8');
-const body = qml.match(/^    function ensure\(castId, viewerFid\) \{([\s\S]*?)^    \}\n\n    function dispatch\(/m);
-assert.ok(body, 'reaction admission must remain independently testable');
+const read=path=>readFileSync(new URL('../../'+path, import.meta.url),'utf8');
+const qml=read('ui/components/CastReactions.qml');
+const adapter=read('ui/mobile/browser_reaction_controller.cpp');
+const header=read('ui/mobile/browser_reaction_controller.hpp');
+const bar=read('ui/components/EngagementBar.qml');
+const cmake=read('ui/CMakeLists.txt');
 
-function fixture() {
-    const Qt = {platform: {os: 'wasm'}};
-    const root = {
-        pending: {}, retryAfter: {}, positive: {}, local: {},
-        busy: false, keyFor: (castId, fid) => String(fid) + ':' + castId,
-    };
-    const dispatchTimer = {restart() {}};
-    const admission = new Function('Qt', 'root', 'dispatchTimer',
-        'return function ensure(castId, viewerFid) {' + body[1] + '\n};');
-    return {root, ensure: admission(Qt, root, dispatchTimer)};
-}
-
-test('WASM reaction admission never accumulates an unbounded offscreen request queue', () => {
-    const {root, ensure} = fixture();
-    for (let index = 0; index < 800; ++index) {
-        ensure('cast-' + index, 42);
-    }
-    const queued = Object.keys(root.pending);
-    assert.ok(queued.length <= 32);
-    assert.ok(Object.keys(root.retryAfter).length <= 256);
-    assert.ok(queued.includes('42:cast-799'));
-    assert.ok(!queued.includes('42:cast-0'));
+test('WASM reaction admission is C++ owned and bounded rather than QML network state',()=>{
+  assert.doesNotMatch(qml,/XMLHttpRequest|\.open\(|\.send\(|fetch\(|JSON\.parse/);
+  assert.match(qml,/browserReactionController/);
+  assert.match(qml,/function retain\(castId, viewerFid\)/);
+  assert.match(qml,/function release\(castId, viewerFid\)/);
+  assert.match(adapter,/maximumPending = 32/);
+  assert.match(adapter,/maximumBatch = 8/);
+  assert.match(adapter,/maximumEntries = 192/);
+  assert.match(adapter,/maximumResponseBytes = 64 \* 1024/);
+  assert.match(adapter,/requestDeadlineMs = 8 \* 1000/);
+  assert.match(adapter,/m_pending\.removeAll\(key\)/);
+  assert.match(bar,/onBrowserInterestKeyChanged: requestBrowserReactions\(\)/);
+  assert.match(bar,/CastReactions\.release\(/);
+  assert.match(cmake,/farcaster_browser_reactions_tests/);
+  assert.match(header,/Q_PROPERTY\(quint64 revision/);
 });
 
-test('positive evidence is bounded without discarding local optimistic reactions', () => {
-    const {root, ensure} = fixture();
-    root.local['42:cast-0:like'] = true;
-    for (let index = 0; index < 350; ++index) {
-        ensure('cast-' + index, 42);
-        // Simulate dispatch consuming the pending cast and storing a verified
-        // positive result. The singleton's retention policy must remain bounded.
-        root.pending = {};
-        root.positive['42:cast-' + index + ':like'] = true;
-    }
-    assert.ok(Object.keys(root.retryAfter).length <= 256);
-    assert.ok(Object.keys(root.positive).length <= 256);
-    assert.equal(root.local['42:cast-0:like'], true);
-    assert.equal(root.positive['42:cast-349:like'], true);
+test('verified positive and local optimistic reactions remain independently owned',()=>{
+  assert.match(adapter,/if \(!it->liked && item.value\(QStringLiteral\("liked"\)\)\.toBool\(false\)\)/);
+  assert.match(adapter,/if \(!it->recasted && item.value\(QStringLiteral\("recasted"\)\)\.toBool\(false\)\)/);
+  assert.match(adapter,/if \(const auto override = m_local\.constFind/);
+  assert.match(adapter,/m_local\.size\(\) >= maximumLocal/);
+  assert.match(adapter,/return \{\};/);
+  assert.match(adapter,/canonicalKey\(castId, viewerFid\)/);
+  assert.match(bar,/CastReactions\.setLocal\(root.reactionCastId/);
+  assert.doesNotMatch(qml,/positive:|pending:|retryAfter:|busy:/);
+  // The actual queue, identity, pooling and HTTP behavior is asserted by the
+  // compiled Qt local-socket fixture ui.browser_reactions_contract.
+  assert.match(read('ui/tests/browser_reaction_controller_tests.cpp'),
+    /Unexpected unbounded reaction request/);
 });

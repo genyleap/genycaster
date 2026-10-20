@@ -223,6 +223,8 @@ qt_add_executable(farcaster_client
     mobile/link_preview_resolver.hpp
     mobile/cast_view_controller.cpp
     mobile/cast_view_controller.hpp
+    mobile/browser_reaction_controller.cpp
+    mobile/browser_reaction_controller.hpp
     mobile/miniapp_host_controller.cpp
     mobile/miniapp_host_controller.hpp
     mobile/media_web_host_controller.cpp
@@ -1064,6 +1066,20 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
     add_test(NAME ui.cast_views_contract COMMAND farcaster_cast_views_tests)
     set_tests_properties(ui.cast_views_contract PROPERTIES
         LABELS "ui;analytics;qt"
+        TIMEOUT 15)
+
+    # Actual Qt HTTP/lifecycle fixture for the browser reaction adapter.
+    # QML no longer owns or parses network replies.
+    qt_add_executable(farcaster_browser_reactions_tests
+        tests/browser_reaction_controller_tests.cpp
+        mobile/browser_reaction_controller.cpp
+        mobile/browser_reaction_controller.hpp)
+    target_compile_features(farcaster_browser_reactions_tests PRIVATE cxx_std_26)
+    target_link_libraries(farcaster_browser_reactions_tests PRIVATE Qt6::Core Qt6::Network)
+    farcaster_enable_warnings(farcaster_browser_reactions_tests)
+    add_test(NAME ui.browser_reactions_contract COMMAND farcaster_browser_reactions_tests)
+    set_tests_properties(ui.browser_reactions_contract PROPERTIES
+        LABELS "ui;reactions;qt;wasm"
         TIMEOUT 15)
 
     find_package(Python3 REQUIRED COMPONENTS Interpreter)

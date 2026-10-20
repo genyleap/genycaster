@@ -25,27 +25,53 @@ RowLayout {
         ? root.castData : ({})
     readonly property string descriptorCastId:
         CastViews.normalizeHash(root.viewDescriptor.castId || "")
+    readonly property string reactionCastId:
+        CastViews.normalizeHash(root.viewDescriptor.castId || root.castId)
     readonly property double viewerFid: Number(presentationBridge.accountFid || 0)
     readonly property bool browserLikeEvidence: Qt.platform.os === "wasm"
-                                                && CastReactions.reacted(root.castId, root.viewerFid, "like")
+                                                && CastReactions.reacted(root.reactionCastId, root.viewerFid, "like")
     readonly property bool browserRecastEvidence: Qt.platform.os === "wasm"
-                                                  && CastReactions.reacted(root.castId, root.viewerFid, "recast")
+                                                  && CastReactions.reacted(root.reactionCastId, root.viewerFid, "recast")
     readonly property var browserLikeOverride: Qt.platform.os === "wasm"
-        ? CastReactions.localValue(root.castId, root.viewerFid, "like") : null
+        ? CastReactions.localValue(root.reactionCastId, root.viewerFid, "like") : null
     readonly property var browserRecastOverride: Qt.platform.os === "wasm"
-        ? CastReactions.localValue(root.castId, root.viewerFid, "recast") : null
+        ? CastReactions.localValue(root.reactionCastId, root.viewerFid, "recast") : null
     readonly property bool effectiveLikedByMe: root.browserLikeOverride !== null
         ? root.browserLikeOverride : root.likedByMe || root.browserLikeEvidence
     readonly property bool effectiveRecastedByMe: root.browserRecastOverride !== null
         ? root.browserRecastOverride : root.recastedByMe || root.browserRecastEvidence
 
+    // Browser positive evidence has the same explicit viewport lifetime as
+    // native Views. A pooled row releases its queued demand immediately.
+    readonly property string browserInterestKey: Qt.platform.os === "wasm"
+        && root.enrichmentActive && root.visible && !root.scrollMoving
+        && presentationBridge.isAuthenticated && root.viewerFid > 0
+        && root.reactionCastId.length > 0
+        ? String(root.viewerFid) + ":" + root.reactionCastId : ""
+    property string retainedBrowserInterestKey: ""
+
+    function syncBrowserInterest() {
+        const next = root.browserInterestKey
+        if (next === root.retainedBrowserInterestKey)
+            return
+        const previous = root.retainedBrowserInterestKey
+        if (previous.length > 0) {
+            const separator = previous.indexOf(":")
+            CastReactions.release(previous.slice(separator + 1),
+                                  Number(previous.slice(0, separator)))
+        }
+        root.retainedBrowserInterestKey = next
+        if (next.length > 0)
+            CastReactions.retain(root.reactionCastId, root.viewerFid)
+    }
+
     function requestBrowserReactions() {
-        if (Qt.platform.os === "wasm" && root.enrichmentActive
-                && !root.scrollMoving && presentationBridge.isAuthenticated
-                && root.viewerFid > 0 && root.descriptorCastId.length > 0)
-            CastReactions.ensure(root.descriptorCastId, root.viewerFid)
+        syncBrowserInterest()
+        if (root.browserInterestKey.length > 0)
+            CastReactions.ensure(root.reactionCastId, root.viewerFid)
     }
     onViewerFidChanged: requestBrowserReactions()
+    onBrowserInterestKeyChanged: requestBrowserReactions()
     // Every visible/near-visible consumer retains just its own cast. The C++
     // controller removes queued work when the last delegate releases interest.
     readonly property bool hasCanonicalViewCount:
@@ -90,6 +116,12 @@ RowLayout {
     Component.onDestruction: {
         if (root.retainedViewsCastId.length > 0)
             castViewController.release(root.retainedViewsCastId)
+        if (root.retainedBrowserInterestKey.length > 0) {
+            const previous = root.retainedBrowserInterestKey
+            const separator = previous.indexOf(":")
+            CastReactions.release(previous.slice(separator + 1),
+                                  Number(previous.slice(0, separator)))
+        }
     }
     onCastDataChanged: {
         syncViewInterest()
@@ -113,10 +145,9 @@ RowLayout {
     // The descriptor is read atomically from castData, not from these
     // independently updating compatibility properties.
     onScrollMovingChanged: {
-        if (!root.scrollMoving) {
-            requestBrowserReactions()
+        requestBrowserReactions()
+        if (!root.scrollMoving)
             requestViews()
-        }
     }
     property bool replyInteractive: false
     property bool recastInteractive: false
@@ -180,7 +211,7 @@ RowLayout {
             }
             const next = !root.effectiveRecastedByMe
             if (Qt.platform.os === "wasm" && root.viewerFid > 0)
-                CastReactions.setLocal(root.castId, root.viewerFid, "recast", next)
+                CastReactions.setLocal(root.reactionCastId, root.viewerFid, "recast", next)
             root.recastRequested(next)
         }
     }
@@ -203,7 +234,7 @@ RowLayout {
             }
             const next = !root.effectiveLikedByMe
             if (Qt.platform.os === "wasm" && root.viewerFid > 0)
-                CastReactions.setLocal(root.castId, root.viewerFid, "like", next)
+                CastReactions.setLocal(root.reactionCastId, root.viewerFid, "like", next)
             root.likeRequested(next)
         }
     }

@@ -69,6 +69,7 @@
 #include "geo_location_resolver.hpp"
 #include "link_preview_resolver.hpp"
 #include "cast_view_controller.hpp"
+#include "browser_reaction_controller.hpp"
 #include "miniapp_host_controller.hpp"
 #include "media_web_host_controller.hpp"
 #include "miniapp_catalog_controller.hpp"
@@ -1147,6 +1148,14 @@ int main(int argc, char* argv[])
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
         GENYCASTER_CAST_VIEWS_ENABLED != 0
             && !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest};
+    BrowserReactionController browserReactionController{
+        networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
+#if defined(__EMSCRIPTEN__)
+        !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest
+#else
+        false
+#endif
+    };
     liveInsightsControllerOwner = std::make_unique<LiveInsightsController>(
         settings,
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
@@ -1455,6 +1464,8 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("geoLocationResolver"), &geoLocationResolver);
     engine.rootContext()->setContextProperty(QStringLiteral("linkPreviewResolver"), &linkPreviewResolver);
     engine.rootContext()->setContextProperty(QStringLiteral("castViewController"), &castViewController);
+    engine.rootContext()->setContextProperty(
+        QStringLiteral("browserReactionController"), &browserReactionController);
     engine.rootContext()->setContextProperty(QStringLiteral("miniAppHost"), &miniAppHost);
     engine.rootContext()->setContextProperty(QStringLiteral("miniAppCatalog"), &miniAppCatalog);
     engine.rootContext()->setContextProperty(QStringLiteral("miniAppTaskManager"), &miniAppTaskManager);
