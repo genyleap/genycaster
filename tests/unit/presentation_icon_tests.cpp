@@ -477,7 +477,7 @@ void testAuthenticatedProfilePresentationIsCached()
         {QStringLiteral("fid"), 42},
         {QStringLiteral("displayName"), QStringLiteral("Geny")},
         {QStringLiteral("trustScore"), 0.91},
-        {QStringLiteral("trustScoreSource"), QStringLiteral("neynar")},
+        {QStringLiteral("trustScoreSource"), QStringLiteral("external-source")},
     };
     bridge.applyIdentity(42, QStringLiteral("Geny"), QStringLiteral("geny"), profile,
         {}, {}, {}, false, false, false);
@@ -485,7 +485,7 @@ void testAuthenticatedProfilePresentationIsCached()
     assert(bridge.accountProfile().value(QStringLiteral("fid")).toULongLong() == 42);
     assert(bridge.accountProfile().value(QStringLiteral("trustScore")).toDouble() == 0.91);
     assert(bridge.accountProfile().value(QStringLiteral("trustScoreSource")).toString()
-        == QStringLiteral("neynar"));
+        == QStringLiteral("external-source"));
 }
 
 void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
@@ -500,26 +500,27 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     settings.setValue(QStringLiteral("setup/onboardingVersion"), 2);
     settings.sync();
 
-    PresentationBridge bridge{nullptr, &settings};
+    PresentationBridge bridge{nullptr, &settings,
+        QStringLiteral("fixture-independent"), QStringLiteral("fixture-hosted")};
     assert(bridge.initialSetupRequired());
     assert(!bridge.initialSetupCompleted());
     assert(!bridge.legalConsentAccepted());
     // The preferred read/sign-in route is a validated preference, never a
     // substitute for a linked FID or signer authority.
-    assert(bridge.preferredNetwork() == QStringLiteral("hypersnap"));
+    assert(bridge.preferredNetwork() == QStringLiteral("fixture-independent"));
     assert(!bridge.farcasterReadConfigured());
     bridge.setFarcasterReadConfigured(true);
     assert(bridge.farcasterReadConfigured());
-    bridge.setFarcasterReadEndpoint(QStringLiteral("https://api.neynar.com"));
-    assert(bridge.farcasterReadEndpoint() == QStringLiteral("https://api.neynar.com"));
+    bridge.setFarcasterReadEndpoint(QStringLiteral("https://read.example.invalid"));
+    assert(bridge.farcasterReadEndpoint() == QStringLiteral("https://read.example.invalid"));
     bridge.setFarcasterReadConfigured(false);
     assert(!bridge.farcasterReadConfigured());
     assert(!bridge.setPreferredNetwork(QStringLiteral("arbitrary-provider")));
-    assert(bridge.preferredNetwork() == QStringLiteral("hypersnap"));
-    assert(bridge.setPreferredNetwork(QStringLiteral("farcaster")));
-    assert(bridge.preferredNetwork() == QStringLiteral("farcaster"));
+    assert(bridge.preferredNetwork() == QStringLiteral("fixture-independent"));
+    assert(bridge.setPreferredNetwork(QStringLiteral("fixture-hosted")));
+    assert(bridge.preferredNetwork() == QStringLiteral("fixture-hosted"));
     assert(settings.value(QStringLiteral("connection/preferredNetwork")).toString()
-           == QStringLiteral("farcaster"));
+           == QStringLiteral("fixture-hosted"));
 
     bridge.completeInitialSetup();
     assert(bridge.initialSetupRequired());
@@ -559,12 +560,13 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
 
     // Completed onboarding survives restarts, sign-out and signer revocation;
     // write privileges are still independently gated by authentication.
-    PresentationBridge restored{nullptr, &settings};
+    PresentationBridge restored{nullptr, &settings,
+        QStringLiteral("fixture-independent"), QStringLiteral("fixture-hosted")};
     assert(restored.initialSetupCompleted());
     assert(restored.legalConsentAccepted());
-    assert(restored.preferredNetwork() == QStringLiteral("farcaster"));
-    assert(restored.setPreferredNetwork(QStringLiteral("hypersnap")));
-    assert(restored.preferredNetwork() == QStringLiteral("hypersnap"));
+    assert(restored.preferredNetwork() == QStringLiteral("fixture-hosted"));
+    assert(restored.setPreferredNetwork(QStringLiteral("fixture-independent")));
+    assert(restored.preferredNetwork() == QStringLiteral("fixture-independent"));
     assert(!restored.initialSetupRequired());
     restored.applyAuthenticationState(
         true,

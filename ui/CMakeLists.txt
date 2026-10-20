@@ -971,6 +971,9 @@ set(farcasterTranslationSources
     "${CMAKE_SOURCE_DIR}/src/presentation/qt/presentation_bridge.cpp"
     "${CMAKE_SOURCE_DIR}/src/presentation/qt/localization_controller.cpp"
     i18n/catalog.cpp
+    # Optional read provider's brand-specific translator metadata is owned by
+    # the provider adapter, not the provider-neutral UI catalog.
+    "${CMAKE_SOURCE_DIR}/src/providers/hypersnap/qt_translation_source.cpp"
 )
 
 # Keep source-catalog maintenance separate from release catalog generation.
@@ -1098,6 +1101,20 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
         COMMAND farcaster_browser_link_metadata_tests)
     set_tests_properties(ui.browser_link_metadata_contract PROPERTIES
         LABELS "ui;metadata;qt;wasm"
+        TIMEOUT 15)
+
+    qt_add_executable(farcaster_provider_translation_tests
+        tests/provider_translation_catalog_tests.cpp)
+    target_compile_features(farcaster_provider_translation_tests PRIVATE cxx_std_26)
+    target_link_libraries(farcaster_provider_translation_tests PRIVATE Qt6::Core)
+    target_compile_definitions(farcaster_provider_translation_tests PRIVATE
+        GENYCASTER_QM_EN="${CMAKE_CURRENT_BINARY_DIR}/qml_en_US.qm"
+        GENYCASTER_QM_FA="${CMAKE_CURRENT_BINARY_DIR}/qml_fa_IR.qm")
+    add_dependencies(farcaster_provider_translation_tests farcaster_translation_catalogs)
+    farcaster_enable_warnings(farcaster_provider_translation_tests)
+    add_test(NAME ui.provider_translation_contract COMMAND farcaster_provider_translation_tests)
+    set_tests_properties(ui.provider_translation_contract PROPERTIES
+        LABELS "ui;i18n;provider;qt"
         TIMEOUT 15)
 
     qt_add_executable(farcaster_node_selection_tests

@@ -978,14 +978,10 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.centralized_service_label");
     //% "Decentralized"
     (void)qtTrId("genycaster.setup.decentralized_label");
-    //% "Hosted Farcaster feed requires a configured read endpoint or Neynar API key. Hypersnap remains available."
-    (void)qtTrId("genycaster.setup.farcaster_not_configured");
     //% "Farcaster · Hosted read node"
     (void)qtTrId("genycaster.setup.farcaster_hosted_node");
     //% "Independent Farcaster read adapter configured. Sign-in credentials are separate."
     (void)qtTrId("genycaster.setup.farcaster_configured");
-    //% "Not configured: add a Neynar API key or a compatible hosted read gateway."
-    (void)qtTrId("genycaster.setup.farcaster_missing_key");
     //% "Accepted"
     (void)qtTrId("genycaster.setup.document_accepted");
     //% "Scroll to the end, then confirm this document."
@@ -994,8 +990,6 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.legal_click_to_review");
     //% "Choose how you connect"
     (void)qtTrId("genycaster.setup.connection_mode_title");
-    //% "Select your data network. Farcaster uses a hosted service; Hypersnap uses independently operated nodes."
-    (void)qtTrId("genycaster.setup.connection_mode_help");
     //% "I reviewed the document"
     (void)qtTrId("genycaster.setup.mark_document_reviewed");
     //% "Open the official document and review the summary to continue."
@@ -1024,10 +1018,6 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.review_privacy_first");
     //% "Choose a connection"
     (void)qtTrId("genycaster.setup.choose_network");
-    //% "Uses Hypersnap for live reads. Sign-in and publishing permissions are verified separately."
-    (void)qtTrId("genycaster.setup.hypersnap_explainer");
-    //% "Farcaster hosted read API, when a compatible endpoint is configured; otherwise Hypersnap remains the fallback. Sign-in is separate."
-    (void)qtTrId("genycaster.setup.farcaster_explainer");
     //% "Your profile"
     (void)qtTrId("genycaster.setup.profile_choice");
     //% "Use existing"
@@ -1040,8 +1030,6 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.open_registration");
     //% "I have a profile — connect"
     (void)qtTrId("genycaster.setup.already_created");
-    //% "Choose your preferred connection. Reads currently use Hypersnap and signed writes use Snapchain. Switching does not migrate your identity or keys."
-    (void)qtTrId("genycaster.setup.network_settings_explainer");
     //% "Advanced: choose read node"
     (void)qtTrId("genycaster.setup.advanced_nodes");
     //% "Connect the Farcaster identity you already own."

@@ -1177,7 +1177,8 @@ int main(int argc, char* argv[])
 
     // Construct the bridge only after the translation catalog is active because
     // its initial user-visible status strings are ID-based translations.
-    presentationBridgeOwner = std::make_unique<PresentationBridge>(nullptr, &settings);
+    presentationBridgeOwner = std::make_unique<PresentationBridge>(
+        nullptr, &settings, QStringLiteral("hypersnap"), QStringLiteral("farcaster"));
     PresentationBridge& presentationBridge = *presentationBridgeOwner;
     presentationBridge.setFarcasterReadConfigured(farcasterReadBaseUrl.has_value());
     presentationBridge.setFarcasterReadEndpoint(farcasterReadBaseUrlText);

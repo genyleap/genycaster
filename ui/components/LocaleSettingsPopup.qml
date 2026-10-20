@@ -1274,17 +1274,17 @@ GenyDrawer {
                             ActionButton {
                                 Layout.fillWidth: true
                                 text: qsTrId("genycaster.settings.hypersnap_label")
-                                selected: presentationBridge.preferredNetwork === "hypersnap"
+                                selected: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
                                 elevated: false
-                                onClicked: presentationBridge.setPreferredNetwork("hypersnap")
+                                onClicked: presentationBridge.setPreferredNetwork(presentationBridge.independentNetworkKey)
                             }
 
                             ActionButton {
                                 Layout.fillWidth: true
                                 text: qsTrId("genycaster.settings.farcaster_label")
-                                selected: presentationBridge.preferredNetwork === "farcaster"
+                                selected: presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
                                 elevated: false
-                                onClicked: presentationBridge.setPreferredNetwork("farcaster")
+                                onClicked: presentationBridge.setPreferredNetwork(presentationBridge.hostedNetworkKey)
                             }
                         }
 
@@ -1330,7 +1330,7 @@ GenyDrawer {
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: presentationBridge.preferredNetwork === "hypersnap"
+                            text: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
                                   ? qsTrId("genycaster.settings.hypersnap_v2_only_hypersnap_compatible_api_nodes_are_eligible")
                                   : presentationBridge.farcasterReadConfigured
                                     ? qsTrId("genycaster.settings.farcaster_indexed_api").arg(presentationBridge.farcasterReadEndpoint)
@@ -1341,7 +1341,7 @@ GenyDrawer {
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            visible: presentationBridge.preferredNetwork === "farcaster"
+                            visible: presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
                             text: qsTrId("genycaster.settings.known_farcaster_hubs_pinata_hub_neynar_hub_may_require")
                             color: Theme.inkSubtle
                             font.pixelSize: Theme.typeCaptionSize

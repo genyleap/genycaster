@@ -88,7 +88,7 @@ Item {
     readonly property color setupBorder: Theme.borderMuted
     readonly property color setupSelectedBorder: Theme.accent
     readonly property string genyBrandIcon: "brands/geny"
-    readonly property string hypersnapDisplayName: "HyperSnap v2"
+    readonly property string independentDisplayName: nodeProviderLabel
 
     readonly property bool authenticationStarting: authenticationPhase === "starting"
     readonly property bool awaitingApproval: authenticationPhase === "awaiting-approval"
@@ -99,7 +99,7 @@ Item {
     // action attached to the route that actually initiated the ceremony.
     readonly property string activeSignInRoute: authenticationInProgress
         ? authenticationRoute
-        : (presentationBridge.preferredNetwork === "farcaster" ? "farcaster" : "openproof")
+        : (presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey ? "farcaster" : "openproof")
     readonly property var wizardSteps: [0, 1, 2, 3, 4, 5]
     readonly property var greetings: [
         { tag: "en", hello: "Hello", language: "English" },
@@ -1212,10 +1212,10 @@ Item {
                     Layout.fillWidth: true
                     title: qsTrId("genycaster.setup.network_hypersnap_category").arg(qsTrId("genycaster.setup.decentralized_label"))
                     subtitle: qsTrId("genycaster.setup.hypersnap_explainer")
-                    iconGlyph: "quilibrium/hypersnap"
-                    primary: presentationBridge.preferredNetwork === "hypersnap"
-                    selected: presentationBridge.preferredNetwork === "hypersnap"
-                    onClicked: presentationBridge.setPreferredNetwork("hypersnap")
+                    iconGlyph: nodeProviderIcon
+                    primary: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
+                    selected: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
+                    onClicked: presentationBridge.setPreferredNetwork(presentationBridge.independentNetworkKey)
                 }
 
                 SetupActionCard {
@@ -1225,9 +1225,9 @@ Item {
                               ? qsTrId("genycaster.setup.farcaster_explainer")
                               : qsTrId("genycaster.setup.farcaster_not_configured")
                     iconGlyph: "brands/farcaster"
-                    primary: presentationBridge.preferredNetwork === "farcaster"
-                    selected: presentationBridge.preferredNetwork === "farcaster"
-                    onClicked: presentationBridge.setPreferredNetwork("farcaster")
+                    primary: presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
+                    selected: presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
+                    onClicked: presentationBridge.setPreferredNetwork(presentationBridge.hostedNetworkKey)
                 }
             }
 
@@ -1297,7 +1297,7 @@ Item {
             }
 
             SetupActionCard {
-                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === "farcaster"
+                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.setup.farcaster_hosted_node")
                 subtitle: presentationBridge.farcasterReadConfigured
@@ -1305,13 +1305,13 @@ Item {
                           : qsTrId("genycaster.setup.farcaster_missing_key")
                 iconGlyph: "brands/farcaster"
                 selected: presentationBridge.farcasterReadConfigured
-                          && presentationBridge.preferredNetwork === "farcaster"
+                          && presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
                 enabled: presentationBridge.farcasterReadConfigured
-                onClicked: presentationBridge.setPreferredNetwork("farcaster")
+                onClicked: presentationBridge.setPreferredNetwork(presentationBridge.hostedNetworkKey)
             }
 
             ColumnLayout {
-                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === "farcaster"
+                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
                 Layout.fillWidth: true
                 spacing: Theme.space2
 
@@ -1353,7 +1353,7 @@ Item {
             }
 
             SetupActionCard {
-                visible: presentationBridge.preferredNetwork === "hypersnap"
+                visible: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.setup.network_automatic")
                 subtitle: qsTrId("genycaster.setup.network_experimental")
@@ -1364,7 +1364,7 @@ Item {
             }
 
             RowLayout {
-                visible: presentationBridge.preferredNetwork === "hypersnap"
+                visible: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
                 Layout.fillWidth: true
                 spacing: Theme.space2
                 layoutDirection: Theme.uiDirection
@@ -1388,7 +1388,7 @@ Item {
             }
 
             ColumnLayout {
-                visible: presentationBridge.preferredNetwork === "hypersnap"
+                visible: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
                 Layout.fillWidth: true
                 spacing: Theme.space2
 
@@ -1407,7 +1407,7 @@ Item {
                                       : qsTrId("genycaster.setup.network_unreachable")
                         compactCard: !root.showAdvancedNodes
                         latencyMs: Number(modelData.latencyMs || -1)
-                        iconGlyph: "quilibrium/hypersnap"
+                        iconGlyph: nodeProviderIcon
                         trailingText: modelData.status === "checking" ? "…"
                                       : modelData.latencyMs >= 0 ? modelData.latencyMs + " ms"
                                       : modelData.status === "auth-gated" ? qsTrId("genycaster.setup.requires_authentication")
@@ -1423,7 +1423,7 @@ Item {
             }
 
             Superellipse {
-                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === "hypersnap"
+                visible: root.showAdvancedNodes && presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
                 Layout.fillWidth: true
                 implicitHeight: networkStateRow.implicitHeight + Theme.space2 * 2
                 fillColor: "transparent"
@@ -2027,8 +2027,8 @@ Item {
                 SetupActionCard {
                     Layout.fillWidth: true
                     compactCard: true
-                    title: presentationBridge.preferredNetwork === "farcaster"
-                           ? "Farcaster" : root.hypersnapDisplayName
+                    title: presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
+                           ? "Farcaster" : root.independentDisplayName
                     subtitle: {
                         const nodes = nodeSelectionController.nodes
                         for (let index = 0; index < nodes.length; ++index) {

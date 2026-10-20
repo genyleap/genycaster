@@ -793,12 +793,22 @@ void preserveReferencedPresentation(QVariantMap& incoming, const QVariantMap& pr
 
 }
 
-PresentationBridge::PresentationBridge(QObject* const parent, QSettings* const settings)
+PresentationBridge::PresentationBridge(QObject* const parent, QSettings* const settings,
+    QString independentNetworkKey, QString hostedNetworkKey)
     : QObject(parent),
       m_signerStatusText{qtTrId("genycaster.bridge.sign_in_before_enabling_interactions")},
       m_statusText{qtTrId("genycaster.bridge.starting_local_read_runtime")},
       m_settings{settings}
 {
+    // The composition root supplies provider-specific persisted keys. A
+    // standalone presentation test defaults to provider-neutral route keys.
+    if (!independentNetworkKey.trimmed().isEmpty()
+        && !hostedNetworkKey.trimmed().isEmpty()
+        && independentNetworkKey != hostedNetworkKey) {
+        m_independentNetworkKey = std::move(independentNetworkKey);
+        m_hostedNetworkKey = std::move(hostedNetworkKey);
+    }
+    m_preferredNetwork = m_independentNetworkKey;
     if (m_settings != nullptr) {
         m_initialSetupCompleted = m_settings->value(
             QStringLiteral("setup/onboardingVersion"), 0).toInt() >= kInitialSetupVersion;
@@ -815,8 +825,8 @@ PresentationBridge::PresentationBridge(QObject* const parent, QSettings* const s
             QStringLiteral("read/inlineYouTubeEnabled"), true).toBool();
         m_bufferNewPosts = m_settings->value(QStringLiteral("read/bufferNewPosts"), true).toBool();
         const QString network = m_settings->value(
-            QStringLiteral("connection/preferredNetwork"), QStringLiteral("hypersnap")).toString();
-        if (network == QStringLiteral("farcaster") || network == QStringLiteral("hypersnap")) {
+            QStringLiteral("connection/preferredNetwork"), m_independentNetworkKey).toString();
+        if (network == m_independentNetworkKey || network == m_hostedNetworkKey) {
             m_preferredNetwork = network;
         }
     }
@@ -863,6 +873,8 @@ bool PresentationBridge::authenticationBusy() const noexcept
 QString PresentationBridge::authenticationPhase() const { return m_authenticationPhase; }
 QString PresentationBridge::authenticationRoute() const { return m_authenticationRoute; }
 QString PresentationBridge::preferredNetwork() const { return m_preferredNetwork; }
+QString PresentationBridge::independentNetworkKey() const { return m_independentNetworkKey; }
+QString PresentationBridge::hostedNetworkKey() const { return m_hostedNetworkKey; }
 
 bool PresentationBridge::farcasterReadConfigured() const noexcept { return m_farcasterReadConfigured; }
 QString PresentationBridge::farcasterReadEndpoint() const { return m_farcasterReadEndpoint; }
@@ -886,8 +898,7 @@ void PresentationBridge::setFarcasterReadConfigured(const bool configured)
 
 bool PresentationBridge::setPreferredNetwork(const QString& network)
 {
-    if (network != QStringLiteral("farcaster")
-        && network != QStringLiteral("hypersnap")) {
+    if (network != m_independentNetworkKey && network != m_hostedNetworkKey) {
         return false;
     }
     if (m_preferredNetwork == network) {

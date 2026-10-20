@@ -58,6 +58,32 @@ QtObject {
     assert(component.isReady());
     std::unique_ptr<QObject> binding{component.create()};
     assert(binding);
+
+    // Actual QML bindings must use injected route keys rather than a vendor
+    // name. Switching the read route updates this binding without invalidating
+    // any feed rows or modifying authentication.
+    QQmlComponent networkChoice{&engine};
+    networkChoice.setData(R"QML(
+import QtQml
+QtObject {
+    property bool independent: bridge.preferredNetwork === bridge.independentNetworkKey
+    property bool hosted: bridge.preferredNetwork === bridge.hostedNetworkKey
+}
+)QML", QUrl{});
+    assert(networkChoice.isReady());
+    std::unique_ptr<QObject> choice{networkChoice.create()};
+    assert(choice);
+    assert(choice->property("independent").toBool());
+    assert(!choice->property("hosted").toBool());
+    assert(bridge.setPreferredNetwork(bridge.hostedNetworkKey()));
+    assert(!choice->property("independent").toBool());
+    assert(choice->property("hosted").toBool());
+    assert(!bridge.setPreferredNetwork(QStringLiteral("unregistered-provider")));
+    assert(choice->property("hosted").toBool());
+    assert(bridge.setPreferredNetwork(bridge.independentNetworkKey()));
+    assert(choice->property("independent").toBool());
+    assert(rowSignals == 0);
+
     const int initialBindings = binding->property("rowBindingUpdates").toInt();
 
     bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), 42,

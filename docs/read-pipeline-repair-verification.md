@@ -1,5 +1,26 @@
 # Genycaster read-pipeline repair: verification record
 
+## Latest verified status — 2026-10-20
+
+- **Architecture Guard: PASS**, zero violations as verified by `python3 tools/check_architecture.py`, unchanged guard rules. Historic guard failures in older sections below refer to earlier commits and must not be read as the current outcome.
+- **Provider boundaries:** The node probe is implemented in the HyperSnap provider adapter. The Qt MOC interface remains on its approved UI header boundary. Presentation receives route keys from executable composition, which preserves the existing persisted network choices and user-visible branded labels/icons. Provider-branded translation metadata lives with the provider, while all existing TS/QM IDs remain intact.
+- **Linux native Qt 6.12:** Five Qt/QML/presentation lifecycle and scroll tests passed together, and the independent real-English/Persian `QTranslator` test passed. `node --test tests/wasm/*.test.mjs`: **271/271 PASS** after updating the network-selector assertion to check the same behavior using the injected route key.
+- **Open / NOT VERIFIED:** Full `farcaster_client` link and startup, actual WASM browser runtime, Android/iOS/macOS/Windows, 10k+ row memory and frame-time measurements, and the requested stable-ID native Qt item model with targeted role-specific updates. Passing Qt and JavaScript tests does not establish these targets.
+- **Safety:** No deployment, service restart, credential modification or weakening of tests/architecture rules was performed.
+
+# Genycaster read-pipeline repair: verification record
+
+## Provider-neutral Qt connection choice contract — 2026-10-20
+
+- **Responsibility:** Present and persist a configured choice between two read routes; do not interpret a provider name or protocol inside presentation/QML.
+- **Capability origin / optionality:** Qt presentation adapter, mandatory to display existing route preference; optional hosted read availability remains independent.
+- **Public contract:** `PresentationBridge` receives two distinct immutable connection keys from executable composition. They are exposed to QML as read-only `independentNetworkKey`/`hostedNetworkKey` and accepted by `setPreferredNetwork`. Main supplies the existing persisted provider keys and branded display/icon context values, so existing saved user preferences and visible brands remain identical.
+- **Canonical invariants:** No signing route or account identity is altered by read selection. Settings preserve the exact previously configured key, and malformed choices fail closed. The runtime router uses the same bridge-hosted key for affinity; offline cached feeds remain independent of the selected network.
+- **Dependencies/failures:** Presentation holds only Qt string choices, not concrete provider endpoints or DTOs. Missing/malformed saved preference falls back to the injected independent key; hosted unavailability is reported separately. No QML network I/O or changed persistence path.
+- **Verification results:** `cmake --build --preset ui-qt612-debug --target farcaster_presentation_row_notifications_tests farcaster_presentation_icon_tests farcaster_media_scroll_tests farcaster_translation_catalogs -j1`: **PASS** on native Linux Qt 6.12. `cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic ctest --test-dir build/ui-qt612-debug -R '^(presentation.feed_row_notifications|presentation.contextual_icons|ui.qml_import_smoke|ui.media_scroll|ui.node_selection_contract)$' --output-on-failure`: **5/5 PASS**, 20.19 seconds. Tests include a live `QQmlEngine` binding to the two configured route keys, invalid-choice rejection, and existing stored-choice round-trips with unrelated fixture keys.
+- **Localization ownership:** Six brand-specific source-metadata `qtTrId` declarations moved without changing any IDs or translated text to `src/providers/hypersnap/qt_translation_source.cpp`; this tool-only file is included in `farcasterTranslationSources`, not linked into core. The original TS files are untouched. `cmake --build --preset ui-qt612-debug --target farcaster_provider_translation_tests -j1` and `cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen ctest --test-dir build/ui-qt612-debug -R '^ui.provider_translation_contract$' --output-on-failure`: **1/1 PASS**, confirming all six IDs resolve through actual compiled English and Persian `.qm` catalogs.
+- `python3 tools/check_architecture.py`: **PASS, zero outstanding violations**, with no changes to guard logic or exemptions. The UI receives legacy provider choice IDs, brand label and icon from executable composition and never embeds provider-specific network routing logic. Live full-client composition/link and browser/mobile startup are **NOT VERIFIED** by these tests.
+
 ## Provider-specific Qt node-probe adapter boundary — 2026-10-20
 
 - **Responsibility:** Discover, validate and persist supported read-provider nodes without bringing provider HTTP/JSON response contracts into presentation or application.

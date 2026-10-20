@@ -2197,10 +2197,10 @@ void connectRuntime(
 #else
     Q_UNUSED(browserSnapchainOrigin);
 #endif
-    const auto applyNetworkAffinity = [runtime](const QString& network) {
+    const auto applyNetworkAffinity = [runtime, &bridge](const QString& network) {
         if (runtime->router) {
             runtime->router->setPreferredNetwork(
-                network == QStringLiteral("farcaster")
+                network == bridge.hostedNetworkKey()
                     ? routing::policy::PreferredNetwork::Hosted
                     : routing::policy::PreferredNetwork::Independent);
         }

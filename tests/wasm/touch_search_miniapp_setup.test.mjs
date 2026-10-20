@@ -60,7 +60,7 @@ test('account summary has an aligned avatar and visible text target',()=>{
 });
 test('network setup reveals measured public nodes by default, advanced proxy is optional',()=>{
   const qml=read('ui/components/InitialSetup.qml');
-  assert.match(qml,/visible: presentationBridge\.preferredNetwork === "hypersnap"[\s\S]*?model: nodeSelectionController\.nodes/);
+  assert.match(qml,/visible: presentationBridge\.preferredNetwork === presentationBridge\.independentNetworkKey[\s\S]*?model: nodeSelectionController\.nodes/);
   assert.match(qml,/latencyMs: Number\(modelData\.latencyMs \|\| -1\)/);
   assert.match(qml,/visible: root\.showAdvancedNodes[\s\S]*?genycaster\.setup\.network_connection/);
   assert.match(read('ui/components/SetupActionCard.qml'),/root\.latencyMs <= 300 \? Theme\.success/);

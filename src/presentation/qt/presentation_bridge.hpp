@@ -25,6 +25,8 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QString authenticationPhase READ authenticationPhase NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString authenticationRoute READ authenticationRoute NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString preferredNetwork READ preferredNetwork NOTIFY preferredNetworkChanged)
+    Q_PROPERTY(QString independentNetworkKey READ independentNetworkKey CONSTANT)
+    Q_PROPERTY(QString hostedNetworkKey READ hostedNetworkKey CONSTANT)
     Q_PROPERTY(bool farcasterReadConfigured READ farcasterReadConfigured NOTIFY farcasterReadConfigurationChanged)
     Q_PROPERTY(QString farcasterReadEndpoint READ farcasterReadEndpoint NOTIFY farcasterReadConfigurationChanged)
     Q_PROPERTY(bool authenticationApprovalAvailable READ authenticationApprovalAvailable NOTIFY authenticationStateChanged)
@@ -93,7 +95,9 @@ public:
      * @param parent Optional QObject owner.
      * @param settings Optional borrowed settings store; when supplied it must outlive this bridge.
      */
-    explicit PresentationBridge(QObject* parent = nullptr, QSettings* settings = nullptr);
+    explicit PresentationBridge(QObject* parent = nullptr, QSettings* settings = nullptr,
+        QString independentNetworkKey = QStringLiteral("independent"),
+        QString hostedNetworkKey = QStringLiteral("hosted"));
     [[nodiscard]] QString architectureState() const;
     [[nodiscard]] bool isStrictSelfHosted() const noexcept;
     [[nodiscard]] bool diagnosticsEnabled() const noexcept;
@@ -108,11 +112,14 @@ public:
     [[nodiscard]] QString authenticationRoute() const;
     /** @brief Preferred connection route, independent of account identity and signing authority. */
     [[nodiscard]] QString preferredNetwork() const;
+    /** @brief Read-only route keys supplied by executable composition; no provider DTOs. */
+    [[nodiscard]] QString independentNetworkKey() const;
+    [[nodiscard]] QString hostedNetworkKey() const;
     [[nodiscard]] bool farcasterReadConfigured() const noexcept;
     [[nodiscard]] QString farcasterReadEndpoint() const;
     void setFarcasterReadConfigured(bool configured);
     void setFarcasterReadEndpoint(QString endpoint);
-    /** @brief Persist a validated Farcaster/Hypersnap preference for subsequent routing. */
+    /** @brief Persist one of the two composition-configured provider-neutral route keys. */
     Q_INVOKABLE bool setPreferredNetwork(const QString& network);
     [[nodiscard]] bool authenticationApprovalAvailable() const noexcept;
     [[nodiscard]] QString authenticationErrorText() const;
@@ -443,7 +450,9 @@ private:
     bool m_isAuthenticated{false};
     QString m_authenticationPhase{QStringLiteral("signed-out")};
     QString m_authenticationRoute{QStringLiteral("openproof")};
-    QString m_preferredNetwork{QStringLiteral("hypersnap")};
+    QString m_independentNetworkKey{QStringLiteral("independent")};
+    QString m_hostedNetworkKey{QStringLiteral("hosted")};
+    QString m_preferredNetwork{};
     bool m_farcasterReadConfigured{false};
     QString m_farcasterReadEndpoint{};
     QString m_authenticationApprovalUrl{};
