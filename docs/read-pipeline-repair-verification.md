@@ -1,5 +1,32 @@
 # Genycaster read-pipeline repair: verification record
 
+## Qt Quick viewport-anchor callback ownership — 2026-10-20
+
+- **Responsibility:** Presentation-only deferred viewport restoration, owned by the live surface rather than a global Qt deferred JavaScript callback.
+- **Origin/optionality:** Local UI stability; no application or provider port changes.
+- **Contract:** Changes in Notification/Profile stable-list geometry schedule one coalesced restoration using an object-owned `Timer` that is destroyed with the surface. The current stable key and pixel offset remain the authority; scroll geometry remains unchanged.
+- **Failures:** Destruction or route replacement cancels queued work without calling methods on null QML objects; pool/recycle is not treated as destruction.
+- **Tests:** Reproduce immediate destruction following stable model and rich notification updates, require real Qt media-scroll suite to complete without QML exceptions; ensure complete UI import smoke and client startup still work.
+
+## Profile viewer-state revision boundary — 2026-10-20
+
+- **Responsibility:** Correct role-specific Qt Quick revision of profile-feed row delegates without changing canonical cast or account ownership.
+- **Origin/optionality:** Local presentation; reads already-materialized provider-neutral row maps without I/O.
+- **Contract:** Profile `rowRevision` distinguishes unknown, verified false, verified true for Like/Recast and independently for Following/Follows-me; also includes referenced-cast enrichment revision. Public counts remain independent and stable ID remains authoritative.
+- **Failures:** Missing/partial viewer hydration is unknown, not false. On account switch, scrubbed fields force updated revision but retain public content and geometry.
+- **Tests:** Run the exact extracted QML function in a deterministic JS VM with both current and cleared viewer evidence, and native Qt/QML import plus media scroll regression checks. WASM browser runtime remains unverified.
+
+### Confirmed fixes and verification in this iteration
+
+- Confirmed: `ProfileSurface.rowRevision()` previously encoded `Boolean(likedByMe)` and `Boolean(recastedByMe)`, treating missing evidence as verified false, omitted follow/follows-me viewer knowledge, and omitted `_referencedRevision`. It now distinguishes unknown, false and true for both reactions and independent follow directions, updates quoted-source metadata, and preserves stable IDs, public counts and write state.
+- Confirmed/reproduced in a real headless Qt test: `NotificationSurface.qml:474` could execute a `Qt.callLater` viewport restoration after route destruction and raise `TypeError: Cannot call method 'restoreViewportAnchor' of null`. Pending Notification and Profile viewport restoration, deferred stable model synchronization, profile load-more and header repositioning are now owned by local `Timer` objects destroyed with their surface, rather than unowned global delayed closures. This is a lifecycle repair, not a redesign of the existing virtualized list.
+- `node --test tests/wasm/profile_viewer_revision_regressions.test.mjs`: **3/3 PASS**, executing the actual extracted `ProfileSurface.rowRevision()` function with truth table for unknown/verified-negative/positive viewer signals, account transition, referenced cast and public count changes.
+- `node --test tests/wasm/*.test.mjs`: **271/271 PASS**, on Linux Node; a JavaScript test suite, **not** a compiled WASM browser runtime.
+- `cmake --build --preset ui-qt612-debug --target farcaster_media_scroll_tests -j1 && cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic ctest --test-dir build/ui-qt612-debug -R '^(ui.qml_import_smoke|ui.media_scroll|presentation.feed_row_notifications)$' --output-on-failure`: **3/3 PASS**, 20.83 seconds, including a new loop that creates/destroys real Notification and Profile surfaces immediately after mutating cached rows. The earlier Qt exception was reproduced before the repair; it did not recur in this controlled run. This is not proof of indefinite lifecycle stability on mobile.
+- `ctest --test-dir build/provider-hypersnap -R '^(core.behavior|storage.local|application.local_first_read|provider.hypersnap.contract)$' --output-on-failure`: **4/4 PASS** (5.23 seconds), unaffected core/provider/storage path.
+- `python3 tools/check_architecture.py`: **FAIL**, same 11 previously reported provider naming/routing violations. The checker and its expected results are unchanged; these remain open.
+- A native `farcaster_client` rebuild was attempted with `cmake --build --preset ui-qt612-debug --target farcaster_client -j2`. It progressed through QML cache objects to `runtime_composition.cppm` at **40/44** remaining build steps without a recorded compile error, but was interrupted under constrained host resources before a final link. **Full native link/startup NOT VERIFIED**. This build attempt did not deploy or run production services. Actual compiled WASM, Windows/macOS/Android/iOS builds, 10k-row frame-time/memory benchmarks, native `QAbstractItemModel` role-specific updates and outstanding architecture-policy closure are **NOT VERIFIED / OPEN**.
+
 ## Windowed initial-feed read and independent offline continuation — 2026-10-20
 
 - **Responsibility:** Native/Qt local-first feed read: bound first cached presentation and fresh rehydration, while allowing explicit demand for older local rows without inventing a provider continuation.

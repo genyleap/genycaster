@@ -21,6 +21,9 @@ Item {
     property bool restoringViewport: false
     property bool stableModelSyncPending: false
     property var stablePayloads: ({})
+    property string pendingRestoreKey: ""
+    property real pendingRestoreOffset: 0
+    property bool pendingRestoreCapture: false
 
     signal refreshRequested()
     signal loadMoreRequested()
@@ -376,16 +379,19 @@ Item {
         root.viewportAnchorOffset = item.y - list.contentY
     }
 
+    function scheduleViewportRestore(key, offset, captureAfter) {
+        if (key.length === 0)
+            return
+        root.pendingRestoreKey = key
+        root.pendingRestoreOffset = offset
+        root.pendingRestoreCapture = root.pendingRestoreCapture || captureAfter
+        viewportRestoreTimer.restart()
+    }
+
     function stabilizeViewportAfterGeometryChange() {
         if (list.moving || root.viewportAnchorKey.length === 0 || root.restoringViewport) return
         root.restoringViewport = true
-        const key = root.viewportAnchorKey
-        const offset = root.viewportAnchorOffset
-        Qt.callLater(function() {
-            root.restoreViewportAnchor(key, offset)
-            root.restoringViewport = false
-            root.captureViewportAnchor()
-        })
+        root.scheduleViewportRestore(root.viewportAnchorKey, root.viewportAnchorOffset, true)
     }
 
     function restoreViewportAnchor(anchorKey, anchorOffset) {
@@ -471,7 +477,27 @@ Item {
         }
 
         if (structureChanged && anchorKey.length > 0)
-            Qt.callLater(function() { root.restoreViewportAnchor(anchorKey, anchorOffset) })
+            root.scheduleViewportRestore(anchorKey, anchorOffset, false)
+    }
+
+    // The pending callback belongs to this surface. A route/Loader destruction
+    // destroys the timer, preventing a stale Qt.callLater from invoking null.
+    Timer {
+        id: viewportRestoreTimer
+        interval: 0
+        repeat: false
+        onTriggered: {
+            const key = root.pendingRestoreKey
+            const offset = root.pendingRestoreOffset
+            const recapture = root.pendingRestoreCapture
+            root.pendingRestoreKey = ""
+            root.pendingRestoreCapture = false
+            root.restoreViewportAnchor(key, offset)
+            if (recapture) {
+                root.restoringViewport = false
+                root.captureViewportAnchor()
+            }
+        }
     }
 
     // Queue model updates through an object-owned timer, not Qt.callLater on a

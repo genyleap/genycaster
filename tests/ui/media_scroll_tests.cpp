@@ -517,6 +517,45 @@ int main(int argc, char** argv)
     expect(qmlWarnings.empty(), "notification row instantiates without Qt 6.12 QML warnings");
     qmlWarnings.clear();
 
+    // Regression: a notification/profile route can be destroyed in the turn
+    // where stable-list and geometry updates schedule viewport restoration.
+    // The former unowned Qt.callLater path invoked a method on a null QML
+    // root after the enclosing Loader was released.
+    for (int iteration = 0; iteration < 6; ++iteration) {
+        auto notices = createSurface(engine, QStringLiteral("NotificationSurface"), *scroll,
+            {{QStringLiteral("authenticated"), true},
+             {QStringLiteral("compact"), true},
+             {QStringLiteral("rows"), QVariantList{replyNotice}}});
+        if (!notices) return 1;
+        notices->setProperty("rows", QVariantList{replyNotice, reactedNotice});
+        notices->setProperty("filterKind", QStringLiteral("reactions"));
+        notices->setProperty("rows", QVariantList{reactedNotice});
+        notices.reset();
+        QCoreApplication::processEvents();
+
+        auto profile = createSurface(engine, QStringLiteral("ProfileSurface"), *scroll,
+            {{QStringLiteral("detail"), QVariantMap{
+                  {QStringLiteral("fid"), 44},
+                  {QStringLiteral("username"), QStringLiteral("profile-test")}}},
+             {QStringLiteral("rows"), QVariantList{QVariantMap{
+                  {QStringLiteral("castId"), QStringLiteral("0xviewport")},
+                  {QStringLiteral("text"), QStringLiteral("Cached local cast")},
+                  {QStringLiteral("createdAtMs"), 1000},
+             }}}});
+        if (!profile) return 1;
+        profile->setProperty("profileSortMode", QStringLiteral("oldest"));
+        profile->setProperty("rows", QVariantList{});
+        profile->setProperty("rows", QVariantList{QVariantMap{
+             {QStringLiteral("castId"), QStringLiteral("0xviewport-2")},
+             {QStringLiteral("createdAtMs"), 2000},
+        }});
+        profile.reset();
+        QCoreApplication::processEvents();
+    }
+    expect(qmlWarnings.empty(),
+        "destroyed notification/profile surfaces never evaluate stale viewport callbacks");
+    qmlWarnings.clear();
+
     for (const QString& surface : {QStringLiteral("SuperellipseImage"),
                                    QStringLiteral("AmbientMediaBackdrop")}) {
         auto creationContext = std::make_unique<QQmlContext>(context);

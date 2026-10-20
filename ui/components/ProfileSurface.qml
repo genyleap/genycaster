@@ -26,6 +26,10 @@ Item {
     property real viewportAnchorOffset: 0
     property bool restoringViewport: false
     property bool stableModelSyncPending: false
+    property string pendingRestoreKey: ""
+    property real pendingRestoreOffset: 0
+    property bool pendingRestoreCapture: false
+    property int resetPositionPasses: 0
     // Keep QVariantMap payloads out of ListModel roles; the model itself stays
     // type-stable and delegates re-read only when their revision role changes.
     property var stablePayloads: ({})
@@ -165,10 +169,24 @@ Item {
 
     function rowRevision(row) {
         const value = row || ({})
+        // Viewer state is tri-state: a missing field means not yet hydrated,
+        // not a verified negative. A recycled profile cast must be updated
+        // when the account changes or follow/reaction evidence arrives.
+        function viewerEvidence(field, knowledgeField) {
+            if (knowledgeField && value[knowledgeField] !== true)
+                return "unknown"
+            if (value[field] === undefined || value[field] === null)
+                return "unknown"
+            return Boolean(value[field]) ? "true" : "false"
+        }
         return [String(value._revision || value.castId || value.hash || value.id || ""),
+                String(value._referencedRevision || ""),
                 String(value.likeCount || 0), String(value.recastCount || 0),
-                String(value.replyCount || 0), String(Boolean(value.likedByMe)),
-                String(Boolean(value.recastedByMe)), String(value.writeState || "")].join("\u001f")
+                String(value.replyCount || 0), viewerEvidence("likedByMe"),
+                viewerEvidence("recastedByMe"),
+                viewerEvidence("followingByMe", "followingKnown"),
+                viewerEvidence("followsMe", "followsMeKnown"),
+                String(value.writeState || "")].join("\u001f")
     }
 
     function rowIncubationHeight(row, availableWidth) {
@@ -248,16 +266,19 @@ Item {
         root.viewportAnchorOffset = item.y - profileList.contentY
     }
 
+    function scheduleViewportRestore(key, offset, captureAfter) {
+        if (key.length === 0)
+            return
+        root.pendingRestoreKey = key
+        root.pendingRestoreOffset = offset
+        root.pendingRestoreCapture = root.pendingRestoreCapture || captureAfter
+        viewportRestoreTimer.restart()
+    }
+
     function stabilizeViewportAfterGeometryChange() {
         if (profileList.moving || root.viewportAnchorKey.length === 0 || root.restoringViewport) return
         root.restoringViewport = true
-        const key = root.viewportAnchorKey
-        const offset = root.viewportAnchorOffset
-        Qt.callLater(function() {
-            root.restoreViewportAnchor(key, offset)
-            root.restoringViewport = false
-            root.captureViewportAnchor()
-        })
+        root.scheduleViewportRestore(root.viewportAnchorKey, root.viewportAnchorOffset, true)
     }
 
     function restoreViewportAnchor(anchorKey, anchorOffset) {
@@ -344,7 +365,7 @@ Item {
         }
 
         if (structureChanged && anchorKey.length > 0)
-            Qt.callLater(function() { root.restoreViewportAnchor(anchorKey, anchorOffset) })
+            root.scheduleViewportRestore(anchorKey, anchorOffset, false)
     }
 
     function isNearEnd() {
@@ -363,7 +384,7 @@ Item {
                 || !root.isNearEnd())
             return
         root.loadMorePending = true
-        Qt.callLater(root.requestScheduledLoadMore)
+        scheduledLoadMoreTimer.restart()
     }
 
     function requestScheduledLoadMore() {
@@ -378,15 +399,10 @@ Item {
             return
         root.positionedProfileFid = fid
         root.viewportAnchorKey = ""
-        Qt.callLater(function() {
-            const beginning = profileList.headerItem
-                    ? -profileList.headerItem.height : profileList.originY
-            profileList.contentY = beginning
-            Qt.callLater(function() {
-                profileList.contentY = profileList.headerItem
-                        ? -profileList.headerItem.height : profileList.originY
-            })
-        })
+        // Two event turns permit the ListView header to settle without a
+        // delayed closure outliving a recycled/destroyed profile surface.
+        root.resetPositionPasses = 2
+        resetPositionTimer.restart()
     }
 
     onVisibleChanged: root.positionNewProfileAtBeginning()
@@ -399,20 +415,17 @@ Item {
         }
         root.positionNewProfileAtBeginning()
     }
-    onRowsChanged: Qt.callLater(root.requestStableModelSync)
+    onRowsChanged: stableModelSyncTimer.restart()
     onProfileFeedChanged: {
         profileSortMode = "newest"
         popularMetric = "all"
         root.viewportAnchorKey = ""
-        Qt.callLater(root.requestStableModelSync)
-        Qt.callLater(function() {
-            const beginning = profileList.headerItem
-                    ? -profileList.headerItem.height : profileList.originY
-            profileList.contentY = beginning
-        })
+        stableModelSyncTimer.restart()
+        root.resetPositionPasses = 1
+        resetPositionTimer.restart()
     }
-    onProfileSortModeChanged: Qt.callLater(root.requestStableModelSync)
-    onPopularMetricChanged: Qt.callLater(root.requestStableModelSync)
+    onProfileSortModeChanged: stableModelSyncTimer.restart()
+    onPopularMetricChanged: stableModelSyncTimer.restart()
 
     onHasMoreChanged: {
         if (!hasMore)
@@ -422,6 +435,53 @@ Item {
     onBusyChanged: {
         if (!busy)
             loadMorePending = false
+    }
+
+    Timer {
+        id: scheduledLoadMoreTimer
+        interval: 0
+        repeat: false
+        onTriggered: root.requestScheduledLoadMore()
+    }
+
+    Timer {
+        id: viewportRestoreTimer
+        interval: 0
+        repeat: false
+        onTriggered: {
+            const key = root.pendingRestoreKey
+            const offset = root.pendingRestoreOffset
+            const recapture = root.pendingRestoreCapture
+            root.pendingRestoreKey = ""
+            root.pendingRestoreCapture = false
+            root.restoreViewportAnchor(key, offset)
+            if (recapture) {
+                root.restoringViewport = false
+                root.captureViewportAnchor()
+            }
+        }
+    }
+
+    Timer {
+        id: stableModelSyncTimer
+        interval: 0
+        repeat: false
+        onTriggered: root.requestStableModelSync()
+    }
+
+    Timer {
+        id: resetPositionTimer
+        interval: 0
+        repeat: false
+        onTriggered: {
+            if (root.resetPositionPasses <= 0)
+                return
+            profileList.contentY = profileList.headerItem
+                ? -profileList.headerItem.height : profileList.originY
+            --root.resetPositionPasses
+            if (root.resetPositionPasses > 0)
+                resetPositionTimer.restart()
+        }
     }
 
     Timer {
