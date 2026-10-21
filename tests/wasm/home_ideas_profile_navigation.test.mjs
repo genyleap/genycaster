@@ -4,16 +4,14 @@ import {readFileSync} from 'node:fs';
 
 const qml = name => readFileSync(new URL('../../ui/components/' + name + '.qml', import.meta.url), 'utf8');
 
-test('Home provides a real composer and a future-facing noninteractive hub', () => {
-    const home = qml('HomeDashboard');
-    assert.match(home, /component HubWorkspace: ColumnLayout/);
-    assert.match(home, /"homeLocked_" \+ modelData.key/);
-    assert.match(home, /key: "agent"/);
-    assert.match(home, /key: "studio"/);
-    assert.match(home, /key: "wallet"/);
-    assert.equal((home.match(/HubWorkspace \{/g) || []).length, 2);
-    assert.match(home, /onClicked: root.activateHubShortcut\(modelData.destination\)/);
-    assert.doesNotMatch(home, /CastIdeaSection|homeContinuation|homeRecentCastPreview/);
+test('Home keeps active shortcuts, locked Wallet and GENY announcement', () => {
+ const home=qml('HomeDashboard');
+ assert.match(home,/component HubWorkspace: ColumnLayout/);
+ assert.match(home,/component GenyTokenBanner: Superellipse/);
+ assert.match(home,/destination: "wallet"/);
+ assert.match(home,/enabled: !shortcut.locked/);
+ assert.doesNotMatch(home,/key: "agent"|key: "studio"|CastIdeaSection/);
+ assert.equal((home.match(/HubWorkspace \{/g)||[]).length,2);
 });
 
 test('mobile nav Profile replaces redundant Settings, with guest sign-in preserved', () => {

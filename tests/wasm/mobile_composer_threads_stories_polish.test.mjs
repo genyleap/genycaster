@@ -25,14 +25,14 @@ test('Home prompt opens a full-page mobile composer without an inline keyboard',
  assert.match(shell,/onComposeRequested: text => root\.openComposer\(null, "", text\)/);
 });
 
-test('thread reply rail uses solid rounded nodes and own replies have distinct cards', () => {
+test('thread reply rail nodes align and incoming replies to my cast stand out', () => {
  const rail = qml('GenyThreadRail');
  const item = qml('ThreadReplyItem');
  const detail = qml('DetailSurface');
  assert.match(rail, /fillColor: root\.highlighted \? Theme\.accent : Theme\.borderStrong/);
- assert.match(rail, /width: root\.compact \? 9 : 10[\s\S]*?borderWidth: 0/);
- assert.match(item, /root\.ownReply \? Theme\.primarySurface : Theme\.surfaceRaised/);
- assert.match(item, /root\.ownReply \? Theme\.borderStrong : Theme\.borderSubtle/);
+ assert.match(rail, /width: root\.compact \? 8 : 9[\s\S]*?borderWidth: 0/);
+ assert.match(item, /root\.replyToMyCast \? Theme\.primarySurface/);
+ assert.match(item, /root\.replyToMyCast \? Theme\.borderStrong : Theme\.borderSubtle/);
  assert.match(detail, /id: replyCountLabel[\s\S]*?LocaleFormat\.formatInteger\(root\.prioritizedReplies\.length\)/);
  assert.match(detail, /curveDepth: height \/ 2/);
 });

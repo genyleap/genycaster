@@ -1302,6 +1302,38 @@
             <source>Your assets and decentralized identity.</source>
             <translation>دارایی‌ها و هویت غیرمتمرکز شما.</translation>
         </message>
+        <message id="genycaster.home.geny_token_slide_one">
+            <source>Discover GENY in the Genyleap ecosystem.</source>
+            <translation>با GENY در اکوسیستم جنی‌لیپ آشنا شوید.</translation>
+        </message>
+        <message id="genycaster.home.geny_token_slide_two">
+            <source>A new chapter for decentralized experiences.</source>
+            <translation>فصل تازه‌ای برای تجربه‌های غیرمتمرکز.</translation>
+        </message>
+        <message id="genycaster.composer.channel">
+            <source>Channel</source>
+            <translation>کانال</translation>
+        </message>
+        <message id="genycaster.composer.ticker">
+            <source>Ticker</source>
+            <translation>توکن</translation>
+        </message>
+        <message id="genycaster.composer.channel_url_hint">
+            <source>Paste the verified channel parent URL, not just its name.</source>
+            <translation>آدرس اصلی و معتبر کانال را وارد کنید، نه فقط نام آن را.</translation>
+        </message>
+        <message id="genycaster.composer.ticker_contract_hint">
+            <source>Enter the token contract address (0x…); choose its network.</source>
+            <translation>آدرس قرارداد توکن (0x…) را همراه با شبکه انتخاب کنید.</translation>
+        </message>
+        <message id="genycaster.composer.context_clear">
+            <source>Clear</source>
+            <translation>پاک کردن</translation>
+        </message>
+        <message id="genycaster.composer.context_invalid">
+            <source>Use a valid channel URL or token contract address.</source>
+            <translation>آدرس معتبر کانال یا قرارداد توکن را وارد کنید.</translation>
+        </message>
         <message id="genycaster.home.hub_workspace">
             <source>Your workspace</source>
             <translation>فضای شخصی شما</translation>

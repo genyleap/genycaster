@@ -5,59 +5,32 @@ import {runInNewContext} from 'node:vm';
 
 const qml = file => readFileSync(new URL('../../ui/components/' + file + '.qml', import.meta.url), 'utf8');
 
-test('every Home shortcut dispatches its corresponding, existing route', () => {
-    const home = qml('HomeDashboard');
-    const actions = ['explorer', 'search', 'apps', 'trends'];
-    const start = home.indexOf('    function activateHubShortcut(destination) {');
-    const end = home.indexOf('\n    }',start) + 6;
-    assert.ok(start >= 0 && end > start);
-    const source = home.slice(start,end).trim();
-    const events = [];
-    const root = {
-        exploreRequested: () => events.push('explorer'),
-        searchRequested: () => events.push('search'),
-        appsRequested: () => events.push('apps'),
-        trendsRequested: () => events.push('trends'),
-    };
-    const dispatch = runInNewContext('(' + source + ')', {root});
-    for (const action of actions) {
-        assert.match(home,new RegExp('destination: "'+action+'"'));
-        dispatch(action);
-    }
-    dispatch('wallet');
-    dispatch('agent');
-    dispatch('studio');
-    assert.deepEqual(events,actions);
-    assert.match(home,/Accessible\.onPressAction: root\.activateHubShortcut\(modelData\.destination\)/);
-    assert.match(home,/onClicked: root\.activateHubShortcut\(modelData\.destination\)/);
+test('Home routes Explorer, Search, Apps and keeps Wallet disabled', () => {
+ const home=qml('HomeDashboard');
+ const shell=qml('AppShell');
+ const actions=['explorer','search','apps'];
+ const block=home.slice(home.indexOf('function activateHubShortcut'),home.indexOf('component HubWorkspace'));
+ const calls=[];
+ const root={exploreRequested:()=>calls.push('explorer'),searchRequested:()=>calls.push('search'),appsRequested:()=>calls.push('apps')};
+ const dispatch=runInNewContext('('+block.trim()+')',{root});
+ for (const action of actions) dispatch(action);
+ dispatch('wallet');
+ assert.deepEqual(calls,actions);
+ assert.match(home,/destination: "wallet"/);
+ assert.match(home,/enabled: !shortcut.locked/);
+ assert.match(home,/Accessible.role: locked \? Accessible.StaticText : Accessible.Button/);
+ assert.doesNotMatch(home,/destination: "trends"|key: "agent"|key: "studio"/);
+ assert.match(shell,/onSearchRequested: searchPalette.open\(\)/);
+ assert.match(shell,/onAppsRequested: root.openShellRoute\("apps"\)/);
 });
 
-test('Trends navigates to real Trending feed, and apps/search use existing destinations', () => {
-    const shell = qml('AppShell');
-    const start = shell.indexOf('    function openTrends() {');
-    const end = shell.indexOf('    function openSuggestedProfile(',start);
-    assert.ok(start >= 0 && end > start);
-    const trends = shell.slice(start,end);
-    assert.match(trends,/root\.primaryDestination = "explorer"/);
-    assert.match(trends,/root\.explorerPresentationMode = "for-you"/);
-    assert.match(trends,/presentationBridge\.selectFeed\("trending"\)/);
-    assert.match(trends,/feedSurfaceLoader\.item\.scrollToBeginning\(\)/);
-    assert.match(shell,/onTrendsRequested: root\.openTrends\(\)/);
-    assert.match(shell,/onExploreRequested: root\.openExplorer\(\)/);
-    assert.match(shell,/onSearchRequested: searchPalette\.open\(\)/);
-    assert.match(shell,/onAppsRequested: root\.openShellRoute\("apps"\)/);
-});
-
-test('Wallet spans a full row beneath passive Agent and Studio cards', () => {
-    const home = qml('HomeDashboard');
-    const locked = home.slice(home.indexOf('{ key: "agent"'),home.indexOf('    RowLayout {\n        id: desktopLayout'));
-    assert.match(locked,/\{ key: "agent"/);
-    assert.match(locked,/\{ key: "studio"/);
-    assert.match(locked,/\{ key: "wallet"/);
-    assert.match(home,/Layout.columnSpan: isWallet \? 2 : 1/);
-    assert.match(locked,/text: "system\/lock"/);
-    assert.match(locked,/Accessible\.role: Accessible\.StaticText/);
-    assert.doesNotMatch(locked,/\n\s*(?:MouseArea|TapHandler)\s*\{|\bonClicked:|\bonActivated:/);
+test('GENY banners rotate without token price claims or fake navigation',()=>{
+ const home=qml('HomeDashboard');
+ assert.match(home,/component GenyTokenBanner: Superellipse/);
+ assert.equal((home.match(/GenyTokenBanner \{/g)||[]).length,2);
+ assert.match(home,/interval: 6200/);
+ assert.match(home,/objectName: "genyTokenBanner"/);
+ assert.doesNotMatch(home,/tokenPrice|GENY.*price/);
 });
 
 test('five new shortcut and wallet strings exist in every supported locale', () => {

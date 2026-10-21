@@ -19,6 +19,8 @@ ColumnLayout {
     property bool scrollMoving: false
     property double accountFid: 0
     property bool highlighted: false
+    property bool parentAuthoredByMe: false
+    readonly property bool replyToMyCast: root.parentAuthoredByMe && !root.ownReply
 
     signal castRequested(string castId)
     signal profileRequested(double fid)
@@ -95,7 +97,7 @@ ColumnLayout {
     }
 
     Layout.fillWidth: true
-    spacing: Theme.space3
+    spacing: Theme.space2
 
     DirectionAwareLabel {
         visible: root.highlighted
@@ -108,7 +110,7 @@ ColumnLayout {
 
     RowLayout {
         Layout.fillWidth: true
-        spacing: Theme.space2
+        spacing: Theme.space1
         layoutDirection: Theme.uiDirection
 
         GenyThreadRail {
@@ -124,11 +126,14 @@ ColumnLayout {
             id: replyCard
             Layout.fillWidth: true
             implicitHeight: replyContent.implicitHeight + (root.compact ? Theme.space3 : Theme.space4) * 2
+            // Replies from other accounts on my own cast deserve the accent
+            // treatment. My own replies should not monopolize emphasis.
             fillColor: root.highlighted ? Theme.surfaceSelected
-                       : root.ownReply ? Theme.primarySurface : Theme.surfaceRaised
-            borderWidth: root.ownReply || root.highlighted ? 1 : Theme.strokeHairline
+                       : root.replyToMyCast ? Theme.primarySurface
+                       : root.ownReply ? Theme.surface : Theme.surfaceRaised
+            borderWidth: root.replyToMyCast || root.highlighted ? 1 : Theme.strokeHairline
             borderColor: root.highlighted ? Theme.accent
-                         : root.ownReply ? Theme.borderStrong : Theme.borderSubtle
+                         : root.replyToMyCast ? Theme.borderStrong : Theme.borderSubtle
             curveDepth: Theme.curveModal
 
             ColumnLayout {

@@ -189,7 +189,7 @@ export function unsignedKeyAdd({
     return {data,hash:blake3Digest20(data),key};
 }
 export function unsignedCastAdd({
-    fid,publicKeyHex,text,mentions=[],mentionPositions=[],embeds=[],parent=null,
+    fid,publicKeyHex,text,mentions=[],mentionPositions=[],embeds=[],parent=null,parentUrl='',
     timestamp=farcasterTimestamp()
 }){
     const id=fidString(fid),key=fromHex(publicKeyHex,32);
@@ -199,6 +199,14 @@ export function unsignedCastAdd({
               && embeds.length<=2,'cast field limit exceeded');
     let body=new Uint8Array();
     const castId=ref=>concat(fieldNum(1,fidString(ref.fid)),fieldBytes(2,fromHex(ref.hash,20)));
+    invariant(!(parent && parentUrl),'CAST_ADD cannot have both a parent cast and a parent URL');
+    if(parentUrl) {
+        const length=encoder.encode(parentUrl).length;
+        invariant(length>=1&&length<=256,'parent URL exceeds Farcaster 256-byte limit');
+        invariant(/^(https:\/\/|chain:\/\/)/.test(parentUrl),'invalid parent URL scheme');
+        invariant(!/[\x00-\x1f]/.test(parentUrl),'invalid parent URL');
+        body=concat(body,fieldBytes(7,parentUrl));
+    }
     if(parent)body=concat(body,fieldBytes(3,castId(parent),true));
     if(mentions.length)body=concat(body,fieldBytes(2,concat(...mentions.map(x=>varint(fidString(x))))));
     body=concat(body,fieldBytes(4,bodyText));

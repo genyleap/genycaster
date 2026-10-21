@@ -484,19 +484,16 @@ int main(int argc, char** argv)
         home->setSize(QSizeF{390, 760});
         polishTree(home);
         QCoreApplication::processEvents();
-        const auto agentCards = visualItemsNamed(*home, QStringLiteral("homeLocked_agent"));
-        const auto studioCards = visualItemsNamed(*home, QStringLiteral("homeLocked_studio"));
-        const auto walletCards = visualItemsNamed(*home, QStringLiteral("homeLocked_wallet"));
+        const auto walletCards = visualItemsNamed(*home, QStringLiteral("homeShortcut_wallet"));
         const auto explorerCards = visualItemsNamed(*home, QStringLiteral("homeShortcut_explorer"));
         const auto searchCards = visualItemsNamed(*home, QStringLiteral("homeShortcut_search"));
         const auto appsCards = visualItemsNamed(*home, QStringLiteral("homeShortcut_apps"));
-        const auto trendCards = visualItemsNamed(*home, QStringLiteral("homeShortcut_trends"));
-        expect(agentCards.size() == 1 && studioCards.size() == 1
-                   && walletCards.size() == 1,
-               "Home Hub renders all three passive future capabilities");
+        const auto banners = visualItemsNamed(*home, QStringLiteral("genyTokenBanner"));
+        expect(banners.size() == 1,
+               "Home Hub renders one compact GENY announcement banner");
         expect(explorerCards.size() == 1 && searchCards.size() == 1
-                   && appsCards.size() == 1 && trendCards.size() == 1,
-               "Home Hub renders the four available navigation shortcuts");
+                   && appsCards.size() == 1 && walletCards.size() == 1,
+               "Home Hub renders three active destinations and one disabled Wallet");
     }
 
     // Exercise the real notification delegate with reply body, quote context,

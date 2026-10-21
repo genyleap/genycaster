@@ -8,7 +8,7 @@ Item {
     property bool highlighted: false
     property int depth: 1
 
-    implicitWidth: compact ? 19 : 24
+    implicitWidth: compact ? 17 : 22
     implicitHeight: compact ? 108 : 126
 
     // The thread stem is a softly terminated capsule, not a sharp rule.
@@ -17,7 +17,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.topMargin: root.compact ? 12 : 15
+        anchors.topMargin: root.compact ? 15 : 17
         anchors.bottomMargin: Theme.space1
         width: root.highlighted ? 3 : 2
         curveDepth: width / 2
@@ -30,8 +30,8 @@ Item {
     Superellipse {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
-        anchors.topMargin: root.compact ? 9 : 11
-        width: root.compact ? 9 : 10
+        anchors.topMargin: root.compact ? 11 : 13
+        width: root.compact ? 8 : 9
         height: width
         fillColor: root.highlighted ? Theme.accent : Theme.borderStrong
         borderWidth: 0

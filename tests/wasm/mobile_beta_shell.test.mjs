@@ -42,20 +42,14 @@ test("iOS safe-area background and PWA metadata use the app appearance",()=>{
     assert.match(cpp,/#if defined\(__EMSCRIPTEN__\)/);
 });
 
-test("phone Home is an uncluttered hub, not duplicate navigation cards",()=>{
-    const home=read("ui/components/HomeDashboard.qml");
-    assert.match(home,/component HubWorkspace: ColumnLayout/);
-    assert.match(home,/columns: 2/);
-    assert.match(home,/"homeLocked_" \+ modelData.key/);
-    assert.match(home,/key: "wallet"/);
-    assert.match(home,/Layout.columnSpan: isWallet \? 2 : 1/);
-    assert.match(home,/"homeShortcut_" \+ modelData.destination/);
-    assert.match(home,/destination: "explorer"/);
-    assert.match(home,/destination: "search"/);
-    assert.match(home,/destination: "apps"/);
-    assert.match(home,/destination: "trends"/);
-    assert.doesNotMatch(home,/component ActionTile|homeRecentCastPreview|CastIdeaSection/);
-    assert.match(home,/Layout.leftMargin: Theme.space3/);
+test("phone Home is focused on three active actions and a locked Wallet",()=>{
+ const home=read("ui/components/HomeDashboard.qml");
+ assert.match(home,/component HubWorkspace: ColumnLayout/);
+ assert.match(home,/columns: 2/);
+ assert.match(home,/"homeShortcut_" \+ modelData.destination/);
+ assert.match(home,/destination: "wallet"/);
+ assert.doesNotMatch(home,/destination: "trends"|key: "agent"|key: "studio"/);
+ assert.match(home,/GenyTokenBanner \{/);
 });
 
 test("Boot Beta badge and footer remain in separate non-overlapping rows",()=>{

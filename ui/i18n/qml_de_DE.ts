@@ -1302,6 +1302,38 @@
             <source>Your assets and decentralized identity.</source>
             <translation>Deine Assets und dezentrale Identität.</translation>
         </message>
+        <message id="genycaster.home.geny_token_slide_one">
+            <source>Discover GENY in the Genyleap ecosystem.</source>
+            <translation>Discover GENY in the Genyleap ecosystem.</translation>
+        </message>
+        <message id="genycaster.home.geny_token_slide_two">
+            <source>A new chapter for decentralized experiences.</source>
+            <translation>A new chapter for decentralized experiences.</translation>
+        </message>
+        <message id="genycaster.composer.channel">
+            <source>Channel</source>
+            <translation>Channel</translation>
+        </message>
+        <message id="genycaster.composer.ticker">
+            <source>Ticker</source>
+            <translation>Ticker</translation>
+        </message>
+        <message id="genycaster.composer.channel_url_hint">
+            <source>Paste the verified channel parent URL, not just its name.</source>
+            <translation>Paste the verified channel parent URL, not just its name.</translation>
+        </message>
+        <message id="genycaster.composer.ticker_contract_hint">
+            <source>Enter the token contract address (0x…); choose its network.</source>
+            <translation>Enter the token contract address (0x…); choose its network.</translation>
+        </message>
+        <message id="genycaster.composer.context_clear">
+            <source>Clear</source>
+            <translation>Clear</translation>
+        </message>
+        <message id="genycaster.composer.context_invalid">
+            <source>Use a valid channel URL or token contract address.</source>
+            <translation>Use a valid channel URL or token contract address.</translation>
+        </message>
         <message id="genycaster.home.hub_workspace">
             <source>Your workspace</source>
             <translation>Dein Arbeitsbereich</translation>

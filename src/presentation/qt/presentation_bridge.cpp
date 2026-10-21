@@ -2090,7 +2090,7 @@ void PresentationBridge::publishCast(const QString& text)
 
 void PresentationBridge::publishPreparedCast(
     const QString& text, const QVariantList& mentionFids, const QVariantList& mentionPositions,
-    const QVariantList& embeds)
+    const QVariantList& embeds, const QString& parentUrl)
 {
     if (!m_runtimeReady) {
         m_writeErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
@@ -2128,12 +2128,20 @@ void PresentationBridge::publishPreparedCast(
         emit stateChanged();
         return;
     }
+    const QString target = parentUrl.trimmed();
+    if (!target.isEmpty() && (target.toUtf8().size() > 256
+            || !(target.startsWith(QStringLiteral("https://"))
+                 || target.startsWith(QStringLiteral("chain://"))))) {
+        m_writeErrorText = QStringLiteral("Invalid channel or token parent URL.");
+        emit stateChanged();
+        return;
+    }
     m_writeBusy = true;
     m_writePhase = QStringLiteral("preparing");
     m_writeStatusText = qtTrId("genycaster.bridge.preparing_a_canonical_farcaster_cast");
     m_writeErrorText.clear();
     emit stateChanged();
-    emit publishCastRequested(text, mentionFids, mentionPositions, embeds);
+    emit publishCastRequested(text, mentionFids, mentionPositions, embeds, target);
 }
 
 void PresentationBridge::beginComposer()

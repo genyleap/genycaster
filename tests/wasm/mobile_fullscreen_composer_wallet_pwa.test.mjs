@@ -5,15 +5,13 @@ import {readFileSync} from 'node:fs';
 const qml = file => readFileSync(new URL('../../ui/components/' + file + '.qml', import.meta.url), 'utf8');
 const wasm = file => readFileSync(new URL('../../ui/wasm/' + file, import.meta.url), 'utf8');
 
-test('Home presents Agent and Studio together, Wallet across a full row', () => {
-    const home=qml('HomeDashboard');
-    assert.match(home,/columns: 2/);
-    assert.match(home,/Layout\.columnSpan: isWallet \? 2 : 1/);
-    assert.match(home,/readonly property bool isWallet: modelData\.key === "wallet"/);
-    assert.match(home,/visible: isWallet[\s\S]*?Theme\.iconWallet/);
-    assert.match(home,/visible: !isWallet[\s\S]*?text: modelData\.glyph/);
-    for(const key of ['agent','studio','wallet']) assert.match(home, new RegExp('key: "'+key+'"'));
-    assert.doesNotMatch(home.slice(home.indexOf('key: "agent"'),home.indexOf('    RowLayout {\n        id: desktopLayout')), /onClicked:|TapHandler \{/);
+test('Home replaces Trends with locked Wallet and removes Agent and Studio', () => {
+ const home=qml('HomeDashboard');
+ for(const id of ['explorer','search','apps','wallet'])
+   assert.match(home,new RegExp('destination: "'+id+'"'));
+ assert.doesNotMatch(home,/destination: "trends"|key: "agent"|key: "studio"/);
+ assert.match(home,/objectName: "genyTokenBanner"/);
+ assert.match(home,/enabled: !shortcut.locked/);
 });
 
 test('Mobile home launcher is vertically centered, accessible and skips inline input', () => {
@@ -72,4 +70,14 @@ test('iOS standalone uses full viewport bleed and theme-aware top inset', () => 
     assert.match(html,/:root\[data-chrome-theme="dark"\]\{[^}]*--boot-ink/);
     assert.match(loader,/dark\?"black-translucent":"default"/);
     assert.match(loader,/__genycasterSetBrowserChromeTheme=applyBrowserChromeTheme/);
+});
+
+test('GIF selection is offered and accepted end to end by native MIME policy',()=>{
+ const composer=qml('ComposerDrawer');
+ const picker=readFileSync(new URL('../../src/presentation/qt/media_upload_controller.cpp',import.meta.url),'utf8');
+ const upload=readFileSync(new URL('../../src/transport/qt_network/media_upload.cpp',import.meta.url),'utf8');
+ assert.match(composer,/\*\.gif/);
+ assert.match(composer,/text: "GIF"/);
+ assert.match(picker,/SupportedMedia\{u"gif", u"image\/gif", u"image"\}/);
+ assert.match(upload,/contentType == QStringLiteral\("image\/gif"\)/);
 });

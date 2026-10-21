@@ -40,6 +40,7 @@ struct CastAddInput final {
     std::vector<domain::identity::Fid> mentions{};
     std::vector<std::uint32_t> mentionPositions{};
     std::optional<domain::cast::CastReference> parent{};
+    std::optional<std::string> parentUrl{};
     CastType type{CastType::Cast};
     std::uint32_t timestamp{};
     Network network{Network::Mainnet};

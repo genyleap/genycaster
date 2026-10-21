@@ -611,8 +611,8 @@ ListView {
 
                 Superellipse {
                     // A quiet count, not a button competing with the Replies title.
-                    Layout.preferredWidth: Math.max(24, replyCountLabel.implicitWidth + Theme.space2)
-                    Layout.preferredHeight: 24
+                    Layout.preferredWidth: Math.max(26, replyCountLabel.implicitWidth + Theme.space3)
+                    Layout.preferredHeight: 26
                     fillColor: Theme.surfaceSelected
                     borderWidth: 0
                     borderColor: Theme.borderMuted
@@ -651,6 +651,8 @@ ListView {
         compact: root.compact
         interactionsAvailable: root.interactionsAvailable
         accountFid: root.accountFid
+        parentAuthoredByMe: Number(root.detail.authorFid || 0) > 0
+                             && Number(root.detail.authorFid || 0) === Number(root.accountFid)
         onCastRequested: castId => root.castRequested(castId)
         onProfileRequested: fid => root.profileRequested(fid)
         onReplyRequested: cast => root.replyRequested(cast)

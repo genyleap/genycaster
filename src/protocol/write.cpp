@@ -100,6 +100,7 @@ public:
             .mentions = intent.mentions,
             .mentionPositions = intent.mentionPositions,
             .parent = intent.parent,
+            .parentUrl = intent.parentUrl,
             .type = intent.text.size() <= 320U
                 ? protocol::message::CastType::Cast
                 : protocol::message::CastType::LongCast,
@@ -117,6 +118,7 @@ public:
             .parent = intent.parent
                 ? std::optional<domain::cast::CastId>{intent.parent->id}
                 : std::nullopt,
+            .parentUrl = intent.parentUrl,
             .embeds = intent.embeds,
             .createdAt = intent.createdAt,
         };

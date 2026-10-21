@@ -5,21 +5,15 @@ import {readFileSync} from 'node:fs';
 const qml = name => readFileSync(new URL('../../ui/components/' + name + '.qml', import.meta.url), 'utf8');
 const wasm = name => readFileSync(new URL('../../ui/wasm/' + name, import.meta.url), 'utf8');
 
-test('Home keeps four primary shortcuts while Wallet spans a new row', () => {
-    const home = qml('HomeDashboard');
-    assert.equal((home.match(/HubWorkspace \{/g) || []).length, 2);
-    assert.match(home, /id: mobileFlick/);
-    assert.match(home, /avatarSize: root\.densePhone \? 56 : 76/);
-    assert.match(home, /Layout\.preferredHeight: root\.compact \? 116 : 120/);
-    assert.match(home, /Layout.columnSpan: isWallet \? 2 : 1/);
-    for(const id of ['explorer', 'search', 'apps', 'trends'])
-        assert.match(home, new RegExp('destination: "' + id + '"'));
-    for(const id of ['agent','studio','wallet'])
-        assert.match(home,new RegExp('key: "' + id + '"'));
-    assert.match(home,/Agent, Studio, and Wallet stay passive until available/);
-    const lockedSection = home.slice(home.indexOf('{ key: "agent"'), home.indexOf('    RowLayout {\n        id: desktopLayout'));
-    assert.doesNotMatch(lockedSection,/\n\s*(?:MouseArea|TapHandler)\s*\{/);
-    assert.equal((lockedSection.match(/text: qsTrId\("genycaster\.home\.hub_coming_soon"\)/g) || []).length, 0);
+test('Home keeps original layout with GENY banner and four compact slots', () => {
+ const home=qml('HomeDashboard');
+ assert.equal((home.match(/HubWorkspace \{/g)||[]).length,2);
+ assert.match(home,/id: mobileFlick/);
+ assert.match(home,/avatarSize: root.densePhone \? 56 : 76/);
+ for(const id of ['explorer','search','apps','wallet'])
+   assert.match(home,new RegExp('destination: "'+id+'"'));
+ assert.match(home,/GenyTokenBanner \{/);
+ assert.doesNotMatch(home,/key: "agent"|key: "studio"/);
 });
 
 test('Settings occupies the full phone viewport, without a partial-height sheet', () => {

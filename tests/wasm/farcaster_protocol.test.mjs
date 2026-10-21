@@ -37,6 +37,32 @@ test('canonical CastAdd protobuf matches exact native C++ vector',()=>{
     assert.equal(hex(reply.data),
         '0801102a18f8c00720012a211a1808071214000102030405060708090a0b0c0d0e0f10111213220568656c6c6f');
 });
+test('channel and token CAST_ADD parentUrl is encoded as field 7 and excludes parent CastId',()=>{
+    const args={fid:'42',publicKeyHex,text:'Hello channel',timestamp:123000};
+    const url='https://warpcast.com/~/channel/degen';
+    const message=unsignedCastAdd({...args,parentUrl:url});
+    const bytes=Buffer.from(message.data);
+    const bodyStart=bytes.indexOf(Buffer.from(url));
+    assert.ok(bodyStart>0,'parent URL serialized in canonical message');
+    assert.equal(bytes[bodyStart-2],0x3a,'protobuf body field 7 (wire type 2)');
+    const token='chain://eip155:8453/erc20:0x0000000000000000000000000000000000000001';
+    assert.doesNotThrow(()=>unsignedCastAdd({...args,parentUrl:token}));
+    assert.throws(()=>unsignedCastAdd({...args,parentUrl:'https://a.example',parent:{fid:'7',hash:'0x000102030405060708090a0b0c0d0e0f10111213'}}),/both a parent cast and a parent URL/);
+    assert.throws(()=>unsignedCastAdd({...args,parentUrl:'http://unsafe.example'}),/scheme/);
+    assert.throws(()=>unsignedCastAdd({...args,parentUrl:'https://a.example/'+'x'.repeat(257)}),/256-byte/);
+});
+test('channel and ticker CAST_ADD parent_url is encoded as field 7 and excludes reply parent',()=>{
+ const common={fid:'42',publicKeyHex,text:'hello',timestamp:123000};
+ const url='https://farcaster.group/dev';
+ const result=unsignedCastAdd({...common,parentUrl:url});
+ const bytes=hex(result.data);
+ assert.ok(bytes.includes('3a1b'+hex(new TextEncoder().encode(url))));
+ const ticker='chain://eip155:8453/erc20:0x1234567890123456789012345678901234567890';
+ assert.doesNotThrow(()=>unsignedCastAdd({...common,parentUrl:ticker}));
+ assert.throws(()=>unsignedCastAdd({...common,parentUrl:'https://'+'x'.repeat(255)}),/256-byte/);
+ assert.throws(()=>unsignedCastAdd({...common,parentUrl:'javascript:alert(1)'}),/parent URL scheme/);
+ assert.throws(()=>unsignedCastAdd({...common,parentUrl:url,parent:{fid:'7',hash:'0x'+'0'.repeat(40)}}),/cannot have both/);
+});
 test('canonical Farcaster / HyperSnap embeds use URL or CastId, with a strict 256 UTF-8 byte bound',()=>{
     const source={fid:'42',publicKeyHex,text:'image',timestamp:123000};
     const good='https://media-farcaster.genyleap.com/m/v1/2026/10/photo.jpg';

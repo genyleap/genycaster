@@ -300,6 +300,17 @@ void appendMessage(
 [[nodiscard]] foundation::result::Result<std::string> encodeCastAddBody(const CastAddInput& input)
 {
     std::string body{};
+    if (input.parentUrl) {
+        // CAST_ADD parent is oneof: a reply reference and a channel/token
+        // URL are mutually exclusive. Never publish a silently wrong target.
+        if (input.parent || input.parentUrl->empty()
+                || input.parentUrl->size() > 256U
+                || (input.parentUrl->rfind("https://", 0) != 0
+                    && input.parentUrl->rfind("chain://", 0) != 0)) {
+            return std::unexpected(invalid("CAST_ADD requires a valid, exclusive parent URL."));
+        }
+        appendBytes(body, 7U, *input.parentUrl);
+    }
     if (input.parent) {
         auto parentHash = decodeCastHash(input.parent->id.value, "CAST_ADD parent cast");
         if (!parentHash) {

@@ -51,7 +51,6 @@ Item {
     }
 
     signal exploreRequested()
-    signal trendsRequested()
     signal composeRequested(string text)
     signal photoRequested()
     signal searchRequested()
@@ -95,7 +94,6 @@ Item {
         if (destination === "search") root.searchRequested()
         else if (destination === "apps") root.appsRequested()
         else if (destination === "explorer") root.exploreRequested()
-        else if (destination === "trends") root.trendsRequested()
     }
 
     component HubWorkspace: ColumnLayout {
@@ -121,26 +119,29 @@ Item {
                     { destination: "explorer", name: qsTrId("genycaster.side_nav.explorer"), description: qsTrId("genycaster.home.hub_discover_detail"), glyph: Theme.iconCompass },
                     { destination: "search", name: qsTrId("genycaster.feed_header.universal_search"), description: qsTrId("genycaster.home.search_description"), glyph: Theme.iconSearch },
                     { destination: "apps", name: qsTrId("genycaster.apps.title"), description: qsTrId("genycaster.home.apps_description"), glyph: Theme.iconApps },
-                    { destination: "trends", name: qsTrId("genycaster.home.hub_trends"), description: qsTrId("genycaster.home.hub_trends_detail"), glyph: Theme.iconChart }
+                    { destination: "wallet", name: qsTrId("genycaster.home.hub_wallet"), description: qsTrId("genycaster.home.hub_coming_soon"), glyph: Theme.iconWallet }
                 ]
                 delegate: Superellipse {
+                    id: shortcut
                     required property var modelData
                     objectName: "homeShortcut_" + modelData.destination
                     Layout.fillWidth: true
                     Layout.preferredWidth: 0
                     Layout.preferredHeight: root.compact ? 116 : 120
-                    fillColor: actionMouse.pressed ? Theme.surfacePressed
+                    readonly property bool locked: modelData.destination === "wallet"
+                    fillColor: locked ? Theme.surfaceMuted
+                               : actionMouse.pressed ? Theme.surfacePressed
                                : actionMouse.containsMouse ? Theme.surfaceHover : Theme.surface
                     borderWidth: 1
-                    borderColor: actionMouse.containsMouse ? Theme.borderStrong : Theme.borderMuted
+                    borderColor: !locked && actionMouse.containsMouse ? Theme.borderStrong : Theme.borderMuted
                     curveDepth: Theme.curveContainer
-                    activeFocusOnTab: true
-                    Accessible.role: Accessible.Button
+                    activeFocusOnTab: !locked
+                    Accessible.role: locked ? Accessible.StaticText : Accessible.Button
                     Accessible.name: modelData.name
                     Accessible.description: modelData.description
-                    Accessible.onPressAction: root.activateHubShortcut(modelData.destination)
-                    Keys.onReturnPressed: root.activateHubShortcut(modelData.destination)
-                    Keys.onSpacePressed: root.activateHubShortcut(modelData.destination)
+                    Accessible.onPressAction: if (!locked) root.activateHubShortcut(modelData.destination)
+                    Keys.onReturnPressed: if (!locked) root.activateHubShortcut(modelData.destination)
+                    Keys.onSpacePressed: if (!locked) root.activateHubShortcut(modelData.destination)
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -153,11 +154,12 @@ Item {
                             Icon {
                                 text: modelData.glyph
                                 preferredSize: Theme.iconSizeLarge
-                                color: Theme.accent
+                                color: shortcut.locked ? Theme.textTertiary : Theme.accent
                             }
                             Item { Layout.fillWidth: true }
                             Icon {
-                                text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                                text: shortcut.locked ? "system/lock"
+                                      : Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
                                 preferredSize: Theme.iconSizeSmall
                                 color: Theme.textTertiary
                             }
@@ -184,7 +186,8 @@ Item {
                     MouseArea {
                         id: actionMouse
                         anchors.fill: parent
-                        hoverEnabled: !root.compact
+                        enabled: !shortcut.locked
+                        hoverEnabled: !root.compact && !shortcut.locked
                         cursorShape: Qt.PointingHandCursor
                         onClicked: root.activateHubShortcut(modelData.destination)
                     }
@@ -192,134 +195,85 @@ Item {
             }
         }
 
-        RowLayout {
-            Layout.fillWidth: true
-            layoutDirection: Theme.uiDirection
-            DirectionAwareLabel {
+
+    }
+
+    component GenyTokenBanner: Superellipse {
+                id: genyTokenBanner
+                objectName: "genyTokenBanner"
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.home.hub_workspace")
-                color: Theme.textPrimary
-                font.pixelSize: Theme.typeTitle3Size
-                font.weight: Theme.weightDemiBold
-            }
-            DirectionAwareLabel {
-                text: qsTrId("genycaster.home.hub_coming_soon")
-                color: Theme.textTertiary
-                font.pixelSize: Theme.typeCaptionSize
-            }
-        }
+                Layout.leftMargin: root.compact ? Theme.space3 : Theme.space4
+                Layout.rightMargin: root.compact ? Theme.space3 : Theme.space4
+                Layout.preferredHeight: root.compact ? 96 : 108
+                fillColor: Theme.primarySurface
+                borderWidth: 1
+                borderColor: Theme.borderMuted
+                curveDepth: Theme.curveContainer
+                clip: true
 
-        // The two future creator tools share a balanced row; Wallet is a
-        // wider, distinct capability rather than a third cramped column.
-        GridLayout {
-            Layout.fillWidth: true
-            columns: 2
-            columnSpacing: Theme.space2
-            rowSpacing: Theme.space2
-            layoutDirection: Theme.uiDirection
-
-            Repeater {
-                model: [
-                    { key: "agent", title: qsTrId("genycaster.home.hub_agent"), description: qsTrId("genycaster.home.hub_agent_detail"), glyph: Theme.iconCpu },
-                    { key: "studio", title: qsTrId("genycaster.home.hub_studio"), description: qsTrId("genycaster.home.hub_studio_detail"), glyph: Theme.iconImage },
-                    { key: "wallet", title: qsTrId("genycaster.home.hub_wallet"), description: qsTrId("genycaster.home.hub_wallet_detail"), glyph: Theme.iconWallet }
-                ]
-                delegate: Superellipse {
-                    required property var modelData
-                    readonly property bool isWallet: modelData.key === "wallet"
-                    objectName: "homeLocked_" + modelData.key
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 0
-                    Layout.columnSpan: isWallet ? 2 : 1
-                    Layout.preferredHeight: isWallet ? (root.compact ? 86 : 98)
-                                                     : (root.compact ? 112 : 132)
-                    fillColor: isWallet ? Theme.surfaceRaised : Theme.surface
-                    borderWidth: 1
-                    borderColor: Theme.borderMuted
-                    curveDepth: Theme.curveContainer
-                    Accessible.role: Accessible.StaticText
-                    Accessible.name: modelData.title + " — " + qsTrId("genycaster.home.hub_coming_soon")
-
-                    RowLayout {
-                        visible: isWallet
-                        anchors.fill: parent
-                        anchors.margins: Theme.space3
-                        spacing: Theme.space3
-                        layoutDirection: Theme.uiDirection
+                property int slideIndex: 0
+                Timer {
+                    interval: 6200
+                    repeat: true
+                    running: genyTokenBanner.visible && !root.busy
+                    onTriggered: genyTokenBanner.slideIndex = (genyTokenBanner.slideIndex + 1) % 2
+                }
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: Theme.space3
+                    spacing: Theme.space3
+                    layoutDirection: Theme.uiDirection
+                    Superellipse {
+                        Layout.preferredWidth: 52
+                        Layout.preferredHeight: 52
+                        curveDepth: Theme.curveControl
+                        fillColor: Theme.surfaceRaised
                         Icon {
+                            anchors.centerIn: parent
                             text: Theme.iconWallet
-                            color: Theme.textSecondary
+                            color: Theme.accent
                             preferredSize: Theme.iconSizeLarge
                         }
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: Theme.space1
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: modelData.title
-                                color: Theme.textPrimary
-                                font.pixelSize: Theme.typeBodySize
-                                font.weight: Theme.weightDemiBold
-                            }
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: modelData.description
-                                color: Theme.textSecondary
-                                font.pixelSize: Theme.typeCaptionSize
-                                elide: Text.ElideRight
-                            }
-                        }
-                        Icon {
-                            text: "system/lock"
-                            preferredSize: Theme.iconSizeSmall
-                            color: Theme.textTertiary
-                        }
                     }
-
                     ColumnLayout {
-                        visible: !isWallet
-                        anchors.fill: parent
-                        anchors.margins: Theme.space3
-                        spacing: Theme.space2
-                        RowLayout {
-                            Layout.fillWidth: true
-                            layoutDirection: Theme.uiDirection
-                            Icon {
-                                text: modelData.glyph
-                                preferredSize: Theme.iconSizeLarge
-                                color: Theme.textSecondary
-                            }
-                            Item { Layout.fillWidth: true }
-                            Icon {
-                                text: "system/lock"
-                                preferredSize: Theme.iconSizeSmall
-                                color: Theme.textTertiary
-                            }
-                        }
-                        Item { Layout.fillHeight: true }
+                        Layout.fillWidth: true
+                        spacing: Theme.space1
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: modelData.title
+                            text: "GENY Token"
                             color: Theme.textPrimary
-                            font.pixelSize: Theme.typeBodySize
-                            font.weight: Theme.weightDemiBold
-                            elide: Text.ElideRight
+                            font.weight: Theme.weightBold
+                            font.pixelSize: Theme.typeLabelSize
                         }
                         DirectionAwareLabel {
-                            visible: !root.compact
                             Layout.fillWidth: true
-                            text: modelData.description
+                            text: genyTokenBanner.slideIndex === 0
+                                  ? qsTrId("genycaster.home.geny_token_slide_one")
+                                  : qsTrId("genycaster.home.geny_token_slide_two")
                             color: Theme.textSecondary
                             font.pixelSize: Theme.typeCaptionSize
                             maximumLineCount: 2
                             wrapMode: Text.Wrap
+                            elide: Text.ElideRight
                         }
                     }
-                    // Agent, Studio, and Wallet stay passive until available.
+                    ColumnLayout {
+                        Layout.alignment: Qt.AlignBottom
+                        spacing: Theme.space1
+                        Repeater {
+                            model: 2
+                            delegate: Superellipse {
+                                required property int index
+                                Layout.preferredWidth: 5
+                                Layout.preferredHeight: 5
+                                curveDepth: 3
+                                fillColor: index === genyTokenBanner.slideIndex ? Theme.accent : Theme.textTertiary
+                                borderWidth: 0
+                            }
+                        }
+                    }
                 }
             }
-        }
-    }
 
     RowLayout {
         id: desktopLayout
@@ -446,6 +400,7 @@ Item {
                         }
                     }
                 }
+GenyTokenBanner {}
 
                 HubWorkspace {
                     Layout.alignment: Qt.AlignHCenter
@@ -570,6 +525,7 @@ Item {
                 text: root.draftText
                 onTextChanged: root.draftText = text
             }
+GenyTokenBanner {}
 
             HubWorkspace {
                 visible: !root.composerFocused

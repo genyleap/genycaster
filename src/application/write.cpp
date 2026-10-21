@@ -621,6 +621,7 @@ foundation::result::Status WriteService::publish(
                     .mentions = std::move(request.mentions),
                     .mentionPositions = std::move(request.mentionPositions),
                     .parent = std::move(request.parent),
+                    .parentUrl = std::move(request.parentUrl),
                     .createdAt = foundation::time::now(),
                 },
                 *signer);

@@ -21,7 +21,8 @@ namespace genycaster::ui::browser_signing {
     const QVariantList& mentionFids,
     const QVariantList& mentionPositions,
     const QVariantList& embeds,
-    const std::optional<QJsonObject>& parent = std::nullopt)
+    const std::optional<QJsonObject>& parent = std::nullopt,
+    const QString& parentUrl = {})
 {
     if (mentionFids.size() != mentionPositions.size() ||
         mentionFids.size() > 10 || embeds.size() > 2 ||
@@ -71,6 +72,14 @@ namespace genycaster::ui::browser_signing {
         {QStringLiteral("mentionPositions"), serializedPositions},
         {QStringLiteral("embeds"), serializedEmbeds},
     };
+    if (parent && !parentUrl.isEmpty()) return std::nullopt;
+    if (!parentUrl.isEmpty()) {
+        if (parentUrl.toUtf8().size() > 256
+                || !(parentUrl.startsWith(QStringLiteral("https://"))
+                     || parentUrl.startsWith(QStringLiteral("chain://"))))
+            return std::nullopt;
+        result.insert(QStringLiteral("parentUrl"), parentUrl);
+    }
     if (parent) result.insert(QStringLiteral("parent"), *parent);
     return result;
 }

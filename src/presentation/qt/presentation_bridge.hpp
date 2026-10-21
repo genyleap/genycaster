@@ -273,7 +273,7 @@ public:
     Q_INVOKABLE void revokeSigner();
     Q_INVOKABLE void publishCast(const QString& text);
     /** @brief Publishes the exact safe-serialized rich document projection plus semantic mentions. */
-    Q_INVOKABLE void publishPreparedCast(const QString& text, const QVariantList& mentionFids, const QVariantList& mentionPositions, const QVariantList& embeds);
+    Q_INVOKABLE void publishPreparedCast(const QString& text, const QVariantList& mentionFids, const QVariantList& mentionPositions, const QVariantList& embeds, const QString& parentUrl = {});
     Q_INVOKABLE int utf8ByteCount(const QString& text) const;
     Q_INVOKABLE void beginComposer();
     Q_INVOKABLE bool prepareReply(const QString& parentCastId);
@@ -428,7 +428,7 @@ signals:
     void signOutRequested();
     void signerProvisionRequested();
     void signerRevokeRequested();
-    void publishCastRequested(QString text, QVariantList mentionFids, QVariantList mentionPositions, QVariantList embeds);
+    void publishCastRequested(QString text, QVariantList mentionFids, QVariantList mentionPositions, QVariantList embeds, QString parentUrl);
     void publishReplyRequested(QString text, QVariantList mentionFids, QVariantList mentionPositions, QVariantList embeds, qulonglong parentAuthorFid, QString parentCastId);
     void publishThreadRequested(QVariantList casts, qulonglong parentAuthorFid, QString parentCastId);
     void reactionRequested(QString kind, qulonglong targetAuthorFid, QString targetCastId, bool active);

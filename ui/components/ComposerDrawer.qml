@@ -10,6 +10,13 @@ GenyDrawer {
     property var parentCast: null
     property var quotedCast: null
     property string initialAction: ""
+    // A protocol parent URL is either a channel's verified parent URL or a
+    // CAIP-19 token address. Never infer one from a ticker symbol alone.
+    property string selectedParentUrl: ""
+    property string selectedContextLabel: ""
+    property string contextKind: "channel"
+    property string tokenNetwork: "8453"
+    property int initialFocusAttempts: 0
     property string suggestedText: ""
     property var suggestedEmbeds: []
     property bool transientDraft: false
@@ -46,7 +53,7 @@ GenyDrawer {
     readonly property bool replyContentRtl: localizationController.isRightToLeftText(
                                                 root.replyText || root.replyName)
 
-    signal publishRequested(string text, var mentionFids, var mentionPositions, var embeds)
+    signal publishRequested(string text, var mentionFids, var mentionPositions, var embeds, string parentUrl)
     signal replyRequested(string text, var mentionFids, var mentionPositions, var embeds)
     signal threadRequested(var casts)
     signal abandoned()
@@ -219,6 +226,21 @@ GenyDrawer {
         root.editorMode = nextMode
     }
 
+    function normalizedContextUrl() {
+        const value = contextInput.text.trim()
+        if (root.contextKind === "channel") return value
+        return "chain://eip155:" + root.tokenNetwork + "/erc20:" + value.toLowerCase()
+    }
+    function validContextInput() {
+        const raw = contextInput.text.trim()
+        if (root.contextKind === "ticker")
+            return /^0x[0-9a-fA-F]{40}$/.test(raw)
+        // Channel ids alone are not protocol parent URLs. Require the
+        // canonical URL returned by the channel directory/provider.
+        return (/^https:\/\/[^\s]+$/.test(raw) || /^chain:\/\/eip155:\d+\/[a-z0-9]+:[a-zA-Z0-9]+(?:\/\d+)?$/.test(raw))
+               && raw.length <= 256
+    }
+
     function hasLiveEditorText() {
         if (root.editorMode === "visual")
             return visualEditor.hasLiveContent
@@ -271,21 +293,31 @@ GenyDrawer {
         else if (root.parentCast)
             root.replyRequested(richComposer.safeText, richComposer.mentionFids, richComposer.mentionPositions, richComposer.protocolEmbeds)
         else
-            root.publishRequested(richComposer.safeText, richComposer.mentionFids, richComposer.mentionPositions, richComposer.protocolEmbeds)
+            root.publishRequested(richComposer.safeText, richComposer.mentionFids, richComposer.mentionPositions, richComposer.protocolEmbeds, root.selectedParentUrl)
     }
 
+    // Repeater editors are incubated after the drawer begins opening; a
+    // one-shot 120ms focus call often fires before their first delegate.
     Timer {
         id: initialComposerFocus
-        interval: 120
+        interval: 80
         repeat: false
         onTriggered: {
-            if (root.opened && root.compact && root.editorMode === "visual"
-                    && visualEditor.activeEditor !== null)
-                visualEditor.activeEditor.forceActiveFocus()
+            if (!root.opened || !root.compact || root.editorMode !== "visual") return
+            const editor = visualEditor.activeEditor
+            if (editor) {
+                editor.forceActiveFocus()
+                root.ensureEditorVisible(editor)
+            } else if (root.initialFocusAttempts++ < 9) {
+                initialComposerFocus.restart()
+            }
         }
     }
 
     onOpened: {
+        root.initialFocusAttempts = 0
+        root.selectedParentUrl = ""
+        root.selectedContextLabel = ""
         root.expandedViewportHeight = root.parent ? root.parent.height : root.height
         root.closeComposerPopups()
         editorMode = "visual"
@@ -341,6 +373,7 @@ GenyDrawer {
     }
 
     onClosed: {
+        contextPicker.close()
         initialComposerFocus.stop()
         root.closeComposerPopups()
         root.initialAction = ""
@@ -362,6 +395,107 @@ GenyDrawer {
         parent: Overlay.overlay
         anchorItem: formattingToolbar
         onEmojiSelected: emoji => root.insertEmoji(emoji)
+    }
+
+    Popup {
+        id: contextPicker
+        parent: Overlay.overlay
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        x: Math.max(Theme.space3, Math.floor((parent.width - width) / 2))
+        y: Math.max(Theme.space4, Math.floor((parent.height - height) / 2))
+        width: Math.min(parent.width - Theme.space4 * 2, 420)
+        padding: Theme.space4
+        background: Superellipse {
+            fillColor: Theme.surfaceRaised
+            borderColor: Theme.borderStrong
+            borderWidth: 1
+            curveDepth: Theme.curveModal
+        }
+        contentItem: ColumnLayout {
+            spacing: Theme.space3
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: root.contextKind === "channel"
+                      ? qsTrId("genycaster.composer.channel")
+                      : qsTrId("genycaster.composer.ticker")
+                color: Theme.textPrimary
+                font.pixelSize: Theme.typeTitle3Size
+                font.weight: Theme.weightBold
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: root.contextKind === "channel"
+                      ? qsTrId("genycaster.composer.channel_url_hint")
+                      : qsTrId("genycaster.composer.ticker_contract_hint")
+                color: Theme.textSecondary
+                wrapMode: Text.Wrap
+                font.pixelSize: Theme.typeCaptionSize
+            }
+            RowLayout {
+                visible: root.contextKind === "ticker"
+                Layout.fillWidth: true
+                ActionButton {
+                    text: "Base"
+                    compact: true
+                    prominent: root.tokenNetwork === "8453"
+                    onClicked: root.tokenNetwork = "8453"
+                }
+                ActionButton {
+                    text: "Ethereum"
+                    compact: true
+                    prominent: root.tokenNetwork === "1"
+                    onClicked: root.tokenNetwork = "1"
+                }
+            }
+            TextField {
+                id: contextInput
+                Layout.fillWidth: true
+                placeholderText: root.contextKind === "channel"
+                                 ? "https://farcaster.group/..."
+                                 : "0x..."
+                selectByMouse: true
+                font.pixelSize: Theme.typeMetaSize
+                color: Theme.textPrimary
+                background: Superellipse {
+                    fillColor: Theme.editorSurface
+                    borderWidth: 1
+                    borderColor: contextInput.activeFocus ? Theme.accent : Theme.borderMuted
+                    curveDepth: Theme.curveControl
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                visible: contextInput.text.trim().length > 0 && !root.validContextInput()
+                text: qsTrId("genycaster.composer.context_invalid")
+                color: Theme.warning
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.Wrap
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+                ActionButton {
+                    quiet: true
+                    text: qsTrId("genycaster.shell.cancel")
+                    onClicked: contextPicker.close()
+                }
+                ActionButton {
+                    prominent: true
+                    text: qsTrId("genycaster.composer.apply")
+                    enabled: root.validContextInput()
+                    onClicked: {
+                        root.selectedParentUrl = root.normalizedContextUrl()
+                        root.selectedContextLabel = root.contextKind === "ticker"
+                            ? qsTrId("genycaster.composer.ticker") + " · "
+                              + (root.tokenNetwork === "8453" ? "Base" : "ETH")
+                            : qsTrId("genycaster.composer.channel")
+                        contextPicker.close()
+                    }
+                }
+            }
+        }
     }
 
     FileDialog {
@@ -663,7 +797,7 @@ GenyDrawer {
 
             ActionButton {
                 objectName: "composerMobileFormattingToggle"
-                visible: root.compact && root.editorMode === "visual" && !root.keyboardVisible
+                visible: false
                 compact: true
                 quiet: true
                 Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
@@ -846,6 +980,51 @@ GenyDrawer {
             // Lightweight, always-available mobile media actions. These are
             // real actions on the existing rich editor, not another composer.
             RowLayout {
+                objectName: "mobileCastContext"
+                visible: root.compact && root.editorMode === "visual"
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    text: root.selectedContextLabel.length > 0
+                          ? root.selectedContextLabel
+                          : qsTrId("genycaster.composer.channel")
+                    onClicked: {
+                        root.contextKind = "channel"
+                        contextInput.text = root.contextKind === "channel" ? root.selectedParentUrl : ""
+                        contextPicker.open()
+                    }
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    text: qsTrId("genycaster.composer.ticker")
+                    onClicked: {
+                        root.contextKind = "ticker"
+                        contextInput.text = root.selectedParentUrl.startsWith("chain://eip155:")
+                            ? root.selectedParentUrl.split("erc20:").pop() : ""
+                        contextPicker.open()
+                    }
+                }
+                Item { Layout.fillWidth: true }
+                ActionButton {
+                    visible: root.selectedParentUrl.length > 0
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: Theme.iconClose
+                    text: qsTrId("genycaster.composer.context_clear")
+                    onClicked: {
+                        root.selectedParentUrl = ""
+                        root.selectedContextLabel = ""
+                    }
+                }
+            }
+
+            RowLayout {
                 objectName: "mobileComposerMediaBar"
                 visible: root.compact && root.editorMode === "visual"
                 Layout.fillWidth: true
@@ -873,6 +1052,16 @@ GenyDrawer {
                         root.emojiThreadCursorPosition = -1
                         emojiPicker.anchorItem = visualEditor
                         emojiPicker.open()
+                    }
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    text: "GIF"
+                    onClicked: {
+                        // The same MIME-safe file picker accepts animated GIF.
+                        root.pendingMediaBlockIndex = visualEditor.activeBlockIndex
+                        root.openMediaPicker()
                     }
                 }
                 Item { Layout.fillWidth: true }

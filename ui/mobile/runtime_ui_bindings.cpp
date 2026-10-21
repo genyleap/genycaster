@@ -2759,7 +2759,7 @@ void connectRuntime(
 #endif
         ](
             const QString& text, const QVariantList& mentionFids, const QVariantList& mentionPositions,
-            const QVariantList& embeds) {
+            const QVariantList& embeds, const QString& parentUrl) {
 #if defined(__EMSCRIPTEN__)
 
             if (!bridge.isAuthenticated() || !bridge.writeReady()) {
@@ -2768,7 +2768,7 @@ void connectRuntime(
                 return;
             }
             const auto payload = genycaster::ui::browser_signing::makeCastPayload(
-                text, mentionFids, mentionPositions, embeds);
+                text, mentionFids, mentionPositions, embeds, std::nullopt, parentUrl);
             if (!payload) {
                 bridge.applyWriteState(QStringLiteral("failed"), false, {},
                     qtTrId("genycaster.bridge.invalid_cast_embeds"));
@@ -2806,6 +2806,9 @@ void connectRuntime(
                     .embeds = *protocolEmbeds,
                     .mentions = fids,
                     .mentionPositions = positions,
+                    .parentUrl = parentUrl.isEmpty()
+                        ? std::nullopt
+                        : std::optional<std::string>{parentUrl.toUtf8().toStdString()},
                 },
                 writeObserver);
             if (!status) {

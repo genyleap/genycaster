@@ -15,13 +15,12 @@ test('Home hub replaces the duplicate cast timeline and prompt carousel', () => 
     assert.doesNotMatch(home, /Math.max\(108, Theme.touchTarget/);
 });
 
-test('Agent, Studio and Wallet remain non-interactive, without a network request', () => {
-    const home = read('HomeDashboard');
-    assert.match(home, /key: "agent"/);
-    assert.match(home, /key: "studio"/);
-    assert.match(home, /key: "wallet"/);
-    assert.match(home, /Agent, Studio, and Wallet stay passive until available/);
-    assert.doesNotMatch(home, /fetch\(|XMLHttpRequest\(|publishCast\(/);
+test('Wallet is noninteractive and the GENY banner makes no network requests', () => {
+ const home=read('HomeDashboard');
+ assert.match(home,/destination: "wallet"/);
+ assert.match(home,/enabled: !shortcut.locked/);
+ assert.match(home,/geny_token_slide_one/);
+ assert.doesNotMatch(home,/fetch\(|XMLHttpRequest\(|publishCast\(/);
 });
 
 test('cast details use their own back toolbar instead of a duplicate global brand bar', () => {

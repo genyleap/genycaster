@@ -56,6 +56,7 @@ struct PublishCastRequest final {
     std::vector<domain::identity::Fid> mentions{};
     std::vector<std::uint32_t> mentionPositions{};
     std::optional<domain::cast::CastReference> parent{};
+    std::optional<std::string> parentUrl{};
 };
 
 /** @brief Product-neutral lifecycle emitted while one durable write is handled. */

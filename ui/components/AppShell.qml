@@ -940,7 +940,6 @@ Item {
                                     rows: presentationBridge.rows
                                     compact: root.compact
                                     onExploreRequested: root.openExplorer()
-                                    onTrendsRequested: root.openTrends()
                                     onComposeRequested: text => root.openComposer(null, "", text)
                                     onPhotoRequested: root.openComposer(null, "media", homeDashboard.draftText)
                                     onSearchRequested: searchPalette.open()
@@ -1158,7 +1157,7 @@ Item {
                                 hostItem: root.mobile ? root : readingPane
                                 blurSourceItem: shellContent
                                 parentCast: root.composerParent
-                                onPublishRequested: (text, mentionFids, mentionPositions, embeds) => {
+                                onPublishRequested: (text, mentionFids, mentionPositions, embeds, parentUrl) => {
                                     root.submittedReplyParentId = ""
                                     root.submittedReplyText = ""
                                     root.awaitingRichCommit = true
@@ -1167,7 +1166,7 @@ Item {
                                         root.pendingMiniAppComposeText = text
                                         root.pendingMiniAppComposeEmbeds = embeds
                                     }
-                                    presentationBridge.publishPreparedCast(text, mentionFids, mentionPositions, embeds)
+                                    presentationBridge.publishPreparedCast(text, mentionFids, mentionPositions, embeds, parentUrl)
                                 }
                                 onReplyRequested: (text, mentionFids, mentionPositions, embeds) => {
                                     root.submittedReplyParentId = root.composerParent
