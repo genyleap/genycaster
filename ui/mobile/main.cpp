@@ -86,6 +86,7 @@
 #endif
 #include "remote_image_provider.hpp"
 #include "browser_openproof_auth.hpp"
+#include "openproof_connections_controller.hpp"
 #if defined(__EMSCRIPTEN__)
 #include "browser_wheel_fallback.hpp"
 #include "browser_signer_bridge.hpp"
@@ -1459,6 +1460,9 @@ int main(int argc, char* argv[])
         QStringLiteral("bundledIconFontFamily"), bundledIconFontFamily);
     engine.rootContext()->setContextProperty(
         QStringLiteral("bundledIconRegularFontFamily"), bundledIconRegularFontFamily);
+    OpenProofConnectionsController openProofConnections{};
+    engine.rootContext()->setContextProperty(
+        QStringLiteral("openProofConnections"), &openProofConnections);
     engine.rootContext()->setContextProperty(QStringLiteral("presentationBridge"), &presentationBridge);
     engine.rootContext()->setContextProperty(QStringLiteral("dataStorage"), &dataStorageController);
     engine.rootContext()->setContextProperty(QStringLiteral("richComposer"), &richComposerController);

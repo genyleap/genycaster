@@ -1013,6 +1013,7 @@ Item {
                                                                    && presentationBridge.writeReady
                                                                    && !presentationBridge.writeBusy
                                             accountFid: presentationBridge.accountFid
+                                            accountIssuer: presentationBridge.accountIdentityIssuer
                                             onBackRequested: root.returnFromProfileSurface()
                                             onFollowersRequested: presentationBridge.openFollowers()
                                             onFollowingRequested: presentationBridge.openFollowing()
@@ -1031,6 +1032,8 @@ Item {
                                             onExternalRequested: url => presentationBridge.openExternalUrl(url)
                                             onMediaRequested: (mediaItems, index) => mediaGallery.openAt(mediaItems, index)
                                             onAuthenticationRequested: root.openAccountPopup()
+                                            onManageAccountConnectionsRequested: provider =>
+                                                openProofConnections.openManager(provider)
                                             onLoadMoreRequested: presentationBridge.loadMore()
                                         }
                                     }

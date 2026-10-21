@@ -25,6 +25,7 @@ Item {
     property string errorText: ""
     property bool interactionsAvailable: false
     property double accountFid: 0
+    property string accountIssuer: ""
     property bool loadMorePending: false
     property double positionedProfileFid: 0
     property string viewportAnchorKey: ""
@@ -54,6 +55,7 @@ Item {
     signal externalRequested(string url)
     signal mediaRequested(var mediaItems, int index)
     signal authenticationRequested()
+    signal manageAccountConnectionsRequested(string provider)
     signal loadMoreRequested()
 
     readonly property bool isOwnProfile: Number(root.activeDetail.fid || 0) > 0
@@ -433,7 +435,11 @@ Item {
         resetPositionTimer.restart()
     }
 
-    onVisibleChanged: root.positionNewProfileAtBeginning()
+    onVisibleChanged: {
+        if (!root.visible)
+            accountConnectionsPopup.close()
+        root.positionNewProfileAtBeginning()
+    }
     onDetailChanged: {
         const incomingFid = Number((root.detail || ({})).fid || 0)
         if (incomingFid > 0)
@@ -886,6 +892,22 @@ Item {
                             }
                         }
 
+                        ActionButton {
+                            objectName: "profileConnectionsButton"
+                            visible: root.isOwnProfile && Number(root.accountFid) > 0
+                                     && typeof openProofConnections !== "undefined"
+                                     && openProofConnections !== null
+                                     && root.accountIssuer === openProofConnections.identityIssuer
+                            compact: true
+                            quiet: true
+                            iconGlyph: Theme.iconPlus
+                            text: qsTr("Connections")
+                            onClicked: {
+                                openProofConnections.refresh()
+                                accountConnectionsPopup.open()
+                            }
+                        }
+
                         Item { Layout.fillWidth: true }
                     }
 
@@ -1213,6 +1235,19 @@ Item {
         }
     }
 
+    AccountConnectionsPopup {
+        id: accountConnectionsPopup
+        parent: root
+        providers: typeof openProofConnections !== "undefined"
+                   && openProofConnections !== null
+                   ? openProofConnections.providers : []
+        onProviderSelected: provider => root.manageAccountConnectionsRequested(provider)
+    }
+
+    onIsOwnProfileChanged: {
+        if (!root.isOwnProfile)
+            accountConnectionsPopup.close()
+    }
     ScrollToTopButton {
         flickable: profileList
         anchors.right: parent.right

@@ -106,6 +106,7 @@ set(farcasterQmlFiles
     components/ProfileListItem.qml
     components/ProgressRing.qml
     components/ProfileSurface.qml
+    components/AccountConnectionsPopup.qml
     components/ProfileTrustCard.qml
     components/SearchPalette.qml
     components/SemanticFeedItem.qml
@@ -248,6 +249,8 @@ qt_add_executable(farcaster_client
     mobile/remote_image_provider.hpp
     mobile/browser_openproof_auth.cpp
     mobile/browser_openproof_auth.hpp
+    mobile/openproof_connections_controller.cpp
+    mobile/openproof_connections_controller.hpp
 )
 
 target_sources(farcaster_client
@@ -917,6 +920,13 @@ qt_add_resources(farcaster_client noto_emoji_metadata
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/emoji/LICENSE.NotoAnimatedEmoji.txt"
 )
 
+qt_add_resources(farcaster_client openproof_public_endpoints
+    PREFIX "/genycaster-config"
+    BASE "${CMAKE_CURRENT_SOURCE_DIR}/config"
+    FILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/config/public_endpoints.json"
+)
+
 qt_add_qml_module(farcaster_client
     URI Farcaster.Client
     VERSION 1.0
@@ -1234,6 +1244,23 @@ endif()
 
 if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
     find_package(Qt6 REQUIRED COMPONENTS Test)
+    add_executable(farcaster_openproof_connections_tests
+        ../tests/ui/openproof_connections_tests.cpp
+        mobile/openproof_connections_controller.cpp
+        mobile/openproof_connections_controller.hpp)
+    target_include_directories(farcaster_openproof_connections_tests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/mobile")
+    target_link_libraries(farcaster_openproof_connections_tests PRIVATE
+        Qt6::Core Qt6::Network Qt6::Gui)
+    farcaster_enable_warnings(farcaster_openproof_connections_tests)
+    qt_add_resources(farcaster_openproof_connections_tests openproof_connections_test_config
+        PREFIX "/genycaster-config"
+        BASE "${CMAKE_CURRENT_SOURCE_DIR}/config"
+        FILES "${CMAKE_CURRENT_SOURCE_DIR}/config/public_endpoints.json")
+    add_test(NAME ui.openproof_connections COMMAND farcaster_openproof_connections_tests)
+    set_tests_properties(ui.openproof_connections PROPERTIES TIMEOUT 10
+        LABELS "ui;openproof;connections;security")
+
     add_executable(farcaster_update_controller_tests
         ../tests/ui/update_controller_tests.cpp
         mobile/update_controller.cpp
