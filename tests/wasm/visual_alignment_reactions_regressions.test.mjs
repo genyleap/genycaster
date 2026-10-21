@@ -28,7 +28,7 @@ test('mobile Home uses viewport-aware dimensions and preserves composer clearanc
     assert.match(home, /Math\.max\(108, Theme\.touchTarget \+ Theme\.space6 \* 2\)/);
     assert.match(home, /visible: !root\.composerFocused/);
     assert.match(shell, /anchors\.bottomMargin: root\.mobile && !root\.homeComposerFocused/);
-    assert.match(shell, /mobileBottomNavigation\.height \+ Theme\.space5 \* 2/);
+    assert.match(shell, /mobileBottomNavigation\.height \+ Theme\.space5/);
 });
 
 test('thread rail has rounded capsule ends and softened accent nodes', () => {

@@ -667,11 +667,13 @@ Item {
                             ColumnLayout {
                                 id: readingContent
                                 anchors.fill: parent
-                                // Reserve a true touch-safe dock region rather
-                                // than letting the composer and final cards
-                                // disappear behind the floating mobile nav.
+                                // The reading surface ends above the full-width
+                                // dark navigation footer. Reserve its height and
+                                // the rounded light-page edge, not a floating
+                                // pill's side/bottom gutters.
                                 anchors.bottomMargin: root.mobile && !root.homeComposerFocused
-                                    ? mobileBottomNavigation.height + Theme.space5 * 2 : 0
+                                                      && !root.initialSetupOpen
+                                    ? mobileBottomNavigation.height + Theme.space5 : 0
                                 spacing: Theme.space3
 
                                 ComingSoonSurface {
@@ -1164,24 +1166,21 @@ Item {
                                 }
                             }
 
-                        // Compact navigation floats above content instead of reserving a
-                        // permanent slab at the bottom of the viewport. The blurred glass
-                        // surface keeps the controls legible while preserving context.
+                        // Edge-to-edge mobile chrome: a dark footer fills the
+                        // bottom of the viewport, with a softly curved content
+                        // boundary above it. No floating capsule or exterior
+                        // light-colored gutter at the device's curved corners.
                         BottomNavigation {
                             id: mobileBottomNavigation
-                            // Declared directly under the reading pane, not under RowLayout
-                            // and never reparented after layout has assigned coordinates.
+                            // This stays under readingPane; never reparent a
+                            // Layout-owned item after layout has run.
                             visible: root.mobile && !root.initialSetupOpen
                                      && !root.homeComposerFocused
                             z: 800
-                            // Keep the dock compact and genuinely floating rather than
-                            // recreating a full-width tab bar.
-                            width: Math.max(240, Math.min(readingPane.width - Theme.mobileGutter * 4, 420))
-                            height: 66
-                            anchors.horizontalCenter: readingPane.horizontalCenter
+                            height: 88
+                            anchors.left: readingPane.left
+                            anchors.right: readingPane.right
                             anchors.bottom: readingPane.bottom
-                            anchors.bottomMargin: Math.max(Theme.space4, Theme.mobileGutter)
-                            // Capture content only, never the dock itself.
                             blurSourceItem: readingContent
                             activeView: presentationBridge.activeView
                             activeFeed: presentationBridge.activeFeed

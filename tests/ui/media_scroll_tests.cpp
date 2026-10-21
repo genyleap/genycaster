@@ -447,6 +447,32 @@ int main(int argc, char** argv)
     // in that dead context, even when the visual object still exists.
     QSignalSpy qmlWarnings{&engine, &QQmlEngine::warnings};
 
+    // The mobile footer must render as a full-width edge-to-edge surface,
+    // not as a rounded floating panel with pale gutters at phone corners.
+    // Instantiate the real QML component so property/geometry regressions
+    // cannot hide behind source-pattern tests.
+    {
+        auto footerFixture = createSurface(engine, QStringLiteral("BottomNavigation"), *scroll);
+        if (!footerFixture) { return 1; }
+        auto* footer = qobject_cast<QQuickItem*>(footerFixture.get());
+        footer->setSize(QSizeF{390, 88});
+        polishTree(footer);
+        auto* backdrop = footer->findChild<QQuickItem*>(
+            QStringLiteral("mobileFooterBackground"));
+        auto* lowerEdge = footer->findChild<QQuickItem*>(
+            QStringLiteral("mobileContentLowerEdge"));
+        expect(backdrop != nullptr && lowerEdge != nullptr,
+               "mobile footer provides a dark edge-to-edge backdrop and curved content edge");
+        if (backdrop && lowerEdge) {
+            expect(qAbs(backdrop->width() - footer->width()) < 1
+                       && qAbs(backdrop->height() - footer->height()) < 1,
+                   "dark mobile footer fills the entire viewport width and height");
+            expect(qAbs(lowerEdge->width() - footer->width()) < 1
+                       && lowerEdge->y() < 0,
+                   "rounded page edge spans the viewport and overlaps above the footer");
+        }
+    }
+
     // Exercise the real notification delegate with reply body, quote context,
     // and media under Qt 6.12. Structural string tests cannot detect a missing
     // QML property, a broken ListView model binding or an inert category tab.

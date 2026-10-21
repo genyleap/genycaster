@@ -41,6 +41,9 @@ h1{font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.01em;margin:
 .boot-build{font-size:11px;font-variant-numeric:tabular-nums;color:#7a859a;letter-spacing:.01em;min-height:16px}
 .boot-build:empty{display:none}
 .boot-credit{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 18px;text-align:center;color:#65728c;font-size:12px;letter-spacing:.015em}
+/* When the iPhone safe area extends beyond the Qt canvas, the exposed bottom
+   corners should match the full-bleed dark navigation footer, never turn light. */
+@media(max-width:700px){html,body{background:linear-gradient(to bottom,var(--app-chrome) 0%,var(--app-chrome) 75%,#202128 75%,#202128 100%)}}
 @media(max-width:540px){#genycaster-boot{padding:18px}.boot-content{padding:20px 8px}.boot-mark{margin-bottom:44px}.boot-credit{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.boot-fill{animation:none;transform:none;width:40%}*{transition:none!important}}
 </style>

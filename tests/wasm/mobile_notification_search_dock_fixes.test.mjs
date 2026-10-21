@@ -29,15 +29,22 @@ test('search handles outside taps and offers explicit clearing of results', () =
     assert.match(palette, /onClicked: root\.clearResults\(\)/);
 });
 
-test('Chrome-inspired mobile dock stays curved and high contrast without live WASM blur', () => {
+test('mobile footer is full bleed dark, with curved page edge and no floating capsule', () => {
     const nav = read('ui/components/BottomNavigation.qml');
+    const shell = read('ui/components/AppShell.qml');
     const button = read('ui/components/BottomNavButton.qml');
-    assert.match(nav, /Qt\.platform\.os !== "wasm"/);
-    assert.match(nav, /fillColor: Qt\.rgba\(0\.105, 0\.115, 0\.145, 0\.97\)/);
-    assert.match(nav, /curveDepth: height \/ 2/);
+    const html = read('ui/wasm/genycaster-shell.html');
+    assert.match(nav, /id: footerBackground[\s\S]*?anchors\.fill: parent[\s\S]*?color: root\.footerColor/);
+    assert.match(nav, /footerColor: "#202128"/);
+    assert.match(nav, /id: contentLowerEdge[\s\S]*?curveBottomLeft: true[\s\S]*?curveBottomRight: true/);
+    assert.match(nav, /curveTopLeft: false[\s\S]*?curveTopRight: false/);
+    assert.doesNotMatch(nav, /id: dockSurface|glassCapture|MultiEffect|shadowEnabled: true|borderWidth: 1/);
     assert.equal(nav.split('darkDock: true').length - 1, 5);
     assert.match(button, /darkDock \? "#8bb2ff"/);
-    assert.match(read('ui/components/AppShell.qml'), /id: mobileBottomNavigation[\s\S]*?height: 66/);
+    assert.match(shell, /id: mobileBottomNavigation[\s\S]*?height: 88/);
+    assert.match(shell, /anchors\.left: readingPane\.left\s+anchors\.right: readingPane\.right\s+anchors\.bottom: readingPane\.bottom/);
+    assert.doesNotMatch(shell, /anchors\.bottomMargin: Math\.max\(Theme\.space4, Theme\.mobileGutter\)/);
+    assert.match(html, /@media\(max-width:700px\)\{html,body\{background:linear-gradient\([\s\S]*?#202128/);
 });
 
 test('mentioned content and search controls have localized labels', () => {

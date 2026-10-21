@@ -1,22 +1,18 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Effects
 
 Item {
     id: root
+
     property string activeView: "feed"
     property string activeFeed: "trending"
     property string shellRoute: ""
     property string primaryDestination: "home"
+    // Retained for existing shell bindings. The mobile footer no longer
+    // captures or blurs the live scene (expensive on WebAssembly).
     property Item blurSourceItem: null
-    property bool glassEnabled: true
-    // Chromium/WebGL cannot afford a live full-width scene capture per
-    // navigation frame. Keep a deep matte dock on WASM, frosted on native.
-    readonly property bool glassActive: root.visible && root.glassEnabled
-                                        && root.blurSourceItem !== null
-                                        && Qt.platform.os !== "wasm"
-    readonly property real glassRenderScale: Math.max(0.72,
-                                                       Math.min(1.0, renderingController.effectScale))
+    property bool glassEnabled: false
+    readonly property color footerColor: "#202128"
 
     signal trendingRequested()
     signal followingRequested()
@@ -24,80 +20,43 @@ Item {
     signal settingsRequested()
     signal routeRequested(string route)
 
-    implicitHeight: 66
+    implicitHeight: 88
     clip: false
 
-    Item {
-        id: glassLayer
+    // Unlike a floating dock, the dark footer reaches the left, right and
+    // bottom viewport edges, including the device's rounded lower corners.
+    // There is deliberately no capsule border or outer shadow.
+    Rectangle {
+        id: footerBackground
+        objectName: "mobileFooterBackground"
         anchors.fill: parent
-        anchors.margins: 1
-
-        ShaderEffectSource {
-            id: glassCapture
-            anchors.fill: parent
-            visible: false
-            live: root.glassActive
-            recursive: false
-            sourceItem: root.blurSourceItem
-            textureSize: Qt.size(Math.max(1, Math.round(width * root.glassRenderScale)),
-                                 Math.max(1, Math.round(height * root.glassRenderScale)))
-            smooth: true
-            sourceRect: {
-                if (!root.blurSourceItem || root.width <= 0 || root.height <= 0)
-                    return Qt.rect(0, 0, 1, 1)
-                const origin = root.blurSourceItem.mapFromItem(root, 0, 0)
-                return Qt.rect(origin.x, origin.y, root.width, root.height)
-            }
-        }
-
-        Superellipse {
-            id: glassMask
-            anchors.fill: parent
-            fillColor: "white"
-            curveDepth: height / 2
-            visible: false
-            layer.enabled: root.glassActive
-            layer.samples: renderingController.layerSampleCount
-        }
-
-        MultiEffect {
-            anchors.fill: parent
-            visible: root.glassActive
-            source: glassCapture
-            blurEnabled: true
-            // A navigation dock should read as frosted/matte, not transparent
-            // glass. Strong blur + desaturation preserves context without
-            // leaving legible text or vivid media behind the controls.
-            blur: 1.0
-            blurMax: 64
-            saturation: 0.18
-            brightness: Theme.dark ? -0.12 : 0.02
-            maskEnabled: true
-            maskSource: glassMask
-            autoPaddingEnabled: false
-        }
+        color: root.footerColor
     }
 
+    // Safari/Chrome-style sheet edge: the light content ends in gently curved
+    // *bottom* corners above the uninterrupted dark lower region. Its top
+    // corners stay square and the shell reserves room for this overlap.
     Superellipse {
-        id: dockSurface
-        anchors.fill: parent
-        // Chrome-inspired charcoal floating capsule, independent of the
-        // page's theme and with a curved silhouette and subtle outer lift.
-        fillColor: Qt.rgba(0.105, 0.115, 0.145, 0.97)
-        borderWidth: 1
-        borderColor: Qt.rgba(1, 1, 1, 0.22)
-        curveDepth: height / 2
-        elevation: Theme.elevationPopover
-        shadowEnabled: true
+        id: contentLowerEdge
+        objectName: "mobileContentLowerEdge"
+        anchors.left: parent.left
+        anchors.right: parent.right
+        y: -20
+        height: 40
+        fillColor: Theme.background
+        curveDepth: 22
+        curveTopLeft: false
+        curveTopRight: false
+        curveBottomLeft: true
+        curveBottomRight: true
     }
-
 
     RowLayout {
-        anchors.fill: dockSurface
-        anchors.leftMargin: Theme.space2
-        anchors.rightMargin: Theme.space2
-        anchors.topMargin: 6
-        anchors.bottomMargin: 6
+        anchors.fill: parent
+        anchors.leftMargin: Theme.mobileGutter
+        anchors.rightMargin: Theme.mobileGutter
+        anchors.topMargin: 26
+        anchors.bottomMargin: 10
         spacing: 0
         layoutDirection: Theme.uiDirection
 
