@@ -38,6 +38,8 @@ test('mobile footer is full bleed dark, with curved page edge and no floating ca
     assert.match(nav, /footerColor: "#202128"/);
     assert.match(nav, /id: contentLowerEdge[\s\S]*?curveBottomLeft: true[\s\S]*?curveBottomRight: true/);
     assert.match(nav, /curveTopLeft: false[\s\S]*?curveTopRight: false/);
+    assert.match(nav, /anchors\.topMargin: 17\s+anchors\.bottomMargin: 23/);
+    assert.match(nav, /y: -16\s+height: 32/);
     assert.doesNotMatch(nav, /id: dockSurface|glassCapture|MultiEffect|shadowEnabled: true|borderWidth: 1/);
     assert.equal(nav.split('darkDock: true').length - 1, 5);
     assert.match(button, /darkDock \? "#8bb2ff"/);

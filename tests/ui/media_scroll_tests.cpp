@@ -627,6 +627,23 @@ int main(int argc, char** argv)
              {QStringLiteral("rows"), profileRows},
              {QStringLiteral("compact"), true}});
         if (!profile) return 1;
+        // The mobile sort control must sit in the same real QML row as the
+        // profile tabs. The former dedicated 34px row wasted prime vertical
+        // space between the tab underline and the first cast.
+        auto* tabs = profile->findChild<QQuickItem*>(QStringLiteral("profileTabs"));
+        auto* sort = profile->findChild<QQuickItem*>(QStringLiteral("profileSortFilter"));
+        expect(tabs != nullptr && sort != nullptr,
+               "profile tabs and sort control are both discoverable");
+        if (tabs && sort) {
+            polishTree(qobject_cast<QQuickItem*>(profile.get()));
+            const auto tabPos = tabs->mapToScene(QPointF{0, 0});
+            const auto sortPos = sort->mapToScene(QPointF{0, 0});
+            expect(qAbs(tabPos.y() + tabs->height() / 2
+                        - sortPos.y() - sort->height() / 2) < 5,
+                   "sort/filter is vertically centered in the existing profile tab row");
+            expect(qAbs(tabs->height() - 48) < 1,
+                   "integrated profile tab row retains its expected touch height");
+        }
         auto* connections = profile->findChild<QObject*>(QStringLiteral("profileConnectionsButton"));
         expect(connections != nullptr, "owner has a discoverable Connections button near the avatar");
         if (connections) {

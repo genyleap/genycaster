@@ -667,13 +667,13 @@ Item {
                             ColumnLayout {
                                 id: readingContent
                                 anchors.fill: parent
-                                // The reading surface ends above the full-width
-                                // dark navigation footer. Reserve its height and
-                                // the rounded light-page edge, not a floating
-                                // pill's side/bottom gutters.
+                                // Reserve only the actual footer. The previous
+                                // extra bottom gutter left a blank strip above
+                                // the dark dock and made clipped casts appear
+                                // disconnected from the scrollable viewport.
                                 anchors.bottomMargin: root.mobile && !root.homeComposerFocused
                                                       && !root.initialSetupOpen
-                                    ? mobileBottomNavigation.height + Theme.space5 : 0
+                                    ? mobileBottomNavigation.height : 0
                                 spacing: Theme.space3
 
                                 ComingSoonSurface {

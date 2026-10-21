@@ -1069,6 +1069,9 @@ Item {
                 }
             }
 
+            // One compact navigation row, like the X profile timeline:
+            // the sort/filter action lives alongside the content tabs rather
+            // than occupying an otherwise empty second row above the casts.
             Item {
                 Layout.fillWidth: true
                 implicitHeight: 48
@@ -1086,64 +1089,62 @@ Item {
                         color: Theme.divider
                     }
 
-                    GenyTabStrip {
+                    RowLayout {
                         anchors.fill: parent
-                        distribute: true
-                        segmented: false
-                        minimumTabWidth: 68
-                        spacing: 0
-                        currentId: root.profileFeed
-                        tabs: [
-                            { id: "user-posts", label: qsTrId("genycaster.profile.posts") },
-                            { id: "user-quotes", label: qsTrId("genycaster.profile.quotes") },
-                            { id: "user-replies", label: qsTrId("genycaster.profile.replies") },
-                            { id: "user-likes", label: qsTrId("genycaster.profile.likes") },
-                            { id: "user-popular", label: qsTrId("genycaster.profile.popular") }
-                        ]
-                        onActivated: tabId => root.profileFeedRequested(tabId)
-                    }
-                }
-            }
+                        layoutDirection: Theme.uiDirection
+                        spacing: root.compact ? 2 : Theme.space2
 
-            Item {
-                Layout.fillWidth: true
-                implicitHeight: 34 + Theme.space1
+                        GenyTabStrip {
+                            id: profileTabs
+                            objectName: "profileTabs"
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            Layout.minimumWidth: 0
+                            distribute: true
+                            segmented: false
+                            minimumTabWidth: root.compact ? 52 : 68
+                            spacing: 0
+                            currentId: root.profileFeed
+                            tabs: [
+                                { id: "user-posts", label: qsTrId("genycaster.profile.posts") },
+                                { id: "user-quotes", label: qsTrId("genycaster.profile.quotes") },
+                                { id: "user-replies", label: qsTrId("genycaster.profile.replies") },
+                                { id: "user-likes", label: qsTrId("genycaster.profile.likes") },
+                                { id: "user-popular", label: qsTrId("genycaster.profile.popular") }
+                            ]
+                            onActivated: tabId => root.profileFeedRequested(tabId)
+                        }
 
-                RowLayout {
-                    x: root.profileContentX
-                    width: root.profileContentWidth
-                    height: 34
-                    anchors.verticalCenter: parent.verticalCenter
-                    layoutDirection: Theme.uiDirection
-                    spacing: Theme.space2
-
-                    Item { Layout.fillWidth: true }
-
-                    FilterDropdown {
-                        Layout.maximumWidth: Math.min(176, root.profileContentWidth)
-                        model: root.profileFeed === "user-popular"
-                               ? [
-                                   qsTrId("genycaster.profile.sort_all"),
-                                   qsTrId("genycaster.profile.sort_likes"),
-                                   qsTrId("genycaster.profile.sort_recasts"),
-                                   qsTrId("genycaster.profile.sort_replies")
-                                 ]
-                               : [
-                                   qsTrId("genycaster.profile.sort_newest"),
-                                   qsTrId("genycaster.profile.sort_oldest")
-                                 ]
-                        currentIndex: root.profileFeed === "user-popular"
-                                      ? (root.popularMetric === "likes" ? 1
-                                         : root.popularMetric === "recasts" ? 2
-                                         : root.popularMetric === "replies" ? 3 : 0)
-                                      : (root.profileSortMode === "oldest" ? 1 : 0)
-                        onActivated: index => {
-                            if (root.profileFeed === "user-popular") {
-                                root.popularMetric = index === 1 ? "likes"
-                                                   : index === 2 ? "recasts"
-                                                   : index === 3 ? "replies" : "all"
-                            } else {
-                                root.profileSortMode = index === 1 ? "oldest" : "newest"
+                        FilterDropdown {
+                            id: profileSortFilter
+                            objectName: "profileSortFilter"
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.preferredWidth: implicitWidth
+                            Layout.maximumWidth: root.compact ? 98 : 136
+                            model: root.profileFeed === "user-popular"
+                                   ? [
+                                       qsTrId("genycaster.profile.sort_all"),
+                                       qsTrId("genycaster.profile.sort_likes"),
+                                       qsTrId("genycaster.profile.sort_recasts"),
+                                       qsTrId("genycaster.profile.sort_replies")
+                                     ]
+                                   : [
+                                       qsTrId("genycaster.profile.sort_newest"),
+                                       qsTrId("genycaster.profile.sort_oldest")
+                                     ]
+                            currentIndex: root.profileFeed === "user-popular"
+                                          ? (root.popularMetric === "likes" ? 1
+                                             : root.popularMetric === "recasts" ? 2
+                                             : root.popularMetric === "replies" ? 3 : 0)
+                                          : (root.profileSortMode === "oldest" ? 1 : 0)
+                            onActivated: index => {
+                                if (root.profileFeed === "user-popular") {
+                                    root.popularMetric = index === 1 ? "likes"
+                                                       : index === 2 ? "recasts"
+                                                       : index === 3 ? "replies" : "all"
+                                } else {
+                                    root.profileSortMode = index === 1 ? "oldest" : "newest"
+                                }
                             }
                         }
                     }

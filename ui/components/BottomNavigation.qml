@@ -41,8 +41,8 @@ Item {
         objectName: "mobileContentLowerEdge"
         anchors.left: parent.left
         anchors.right: parent.right
-        y: -20
-        height: 40
+        y: -16
+        height: 32
         fillColor: Theme.background
         curveDepth: 22
         curveTopLeft: false
@@ -55,8 +55,10 @@ Item {
         anchors.fill: parent
         anchors.leftMargin: Theme.mobileGutter
         anchors.rightMargin: Theme.mobileGutter
-        anchors.topMargin: 26
-        anchors.bottomMargin: 10
+        // Keep the hit targets comfortably above the iPhone's lower edge
+        // while leaving the full-width dark safe-area backdrop in place.
+        anchors.topMargin: 17
+        anchors.bottomMargin: 23
         spacing: 0
         layoutDirection: Theme.uiDirection
 
