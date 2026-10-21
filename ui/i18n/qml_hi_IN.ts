@@ -1326,6 +1326,34 @@
             <source>Enter the token contract address (0x…); choose its network.</source>
             <translation>Enter the token contract address (0x…); choose its network.</translation>
         </message>
+        <message id="genycaster.composer.channel_picker_title">
+            <source>Choose a channel</source>
+            <translation>Choose a channel</translation>
+        </message>
+        <message id="genycaster.composer.channel_picker_hint">
+            <source>Choose a channel from the network. Your cast will be published to its verified parent URL.</source>
+            <translation>Choose a channel from the network. Your cast will be published to its verified parent URL.</translation>
+        </message>
+        <message id="genycaster.composer.channel_search">
+            <source>Search channels by name or ID</source>
+            <translation>Search channels by name or ID</translation>
+        </message>
+        <message id="genycaster.composer.channel_suggestions">
+            <source>Channels</source>
+            <translation>Channels</translation>
+        </message>
+        <message id="genycaster.composer.channel_no_results">
+            <source>No channels found. Try another search.</source>
+            <translation>No channels found. Try another search.</translation>
+        </message>
+        <message id="genycaster.composer.channel_search_prompt">
+            <source>Type two or more letters to search.</source>
+            <translation>Type two or more letters to search.</translation>
+        </message>
+        <message id="genycaster.composer.category">
+            <source>Category</source>
+            <translation>Category</translation>
+        </message>
         <message id="genycaster.composer.context_clear">
             <source>Clear</source>
             <translation>Clear</translation>

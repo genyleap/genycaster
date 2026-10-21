@@ -594,7 +594,7 @@ ListView {
             Layout.fillWidth: true
             // Keep the reply header connected to the parent cast without a
             // doubled layout gap before the first conversation rail.
-            Layout.topMargin: Theme.space1
+            Layout.topMargin: Theme.space3
             spacing: Theme.space2
 
             RowLayout {
@@ -630,6 +630,10 @@ ListView {
                 Item { Layout.fillWidth: true }
             }
 
+            // The header is inside ListView.header while replies are delegates.
+            // An explicit trailing gap prevents the count badge from touching
+            // the next card's top stroke across font scales and languages.
+            Item { Layout.preferredHeight: Theme.space4 }
         }
     }
 
@@ -672,6 +676,6 @@ ListView {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space5
-        anchors.bottomMargin: root.compact ? Theme.space5 + 64 : Theme.space5 + 72
+        anchors.bottomMargin: root.compact ? Theme.space2 + 12 : Theme.space4
     }
 }

@@ -1326,6 +1326,34 @@
             <source>Enter the token contract address (0x…); choose its network.</source>
             <translation>أدخل عنوان عقد الرمز وحدد الشبكة.</translation>
         </message>
+        <message id="genycaster.composer.channel_picker_title">
+            <source>Choose a channel</source>
+            <translation>اختيار قناة</translation>
+        </message>
+        <message id="genycaster.composer.channel_picker_hint">
+            <source>Choose a channel from the network. Your cast will be published to its verified parent URL.</source>
+            <translation>اختر قناة من الشبكة لنشر المنشور باستخدام رابطها الأصلي المعتمد.</translation>
+        </message>
+        <message id="genycaster.composer.channel_search">
+            <source>Search channels by name or ID</source>
+            <translation>ابحث عن قناة بالاسم أو المعرّف</translation>
+        </message>
+        <message id="genycaster.composer.channel_suggestions">
+            <source>Channels</source>
+            <translation>القنوات</translation>
+        </message>
+        <message id="genycaster.composer.channel_no_results">
+            <source>No channels found. Try another search.</source>
+            <translation>لم يتم العثور على قنوات. جرب بحثاً آخر.</translation>
+        </message>
+        <message id="genycaster.composer.channel_search_prompt">
+            <source>Type two or more letters to search.</source>
+            <translation>اكتب حرفين أو أكثر للبحث.</translation>
+        </message>
+        <message id="genycaster.composer.category">
+            <source>Category</source>
+            <translation>الفئة</translation>
+        </message>
         <message id="genycaster.composer.context_clear">
             <source>Clear</source>
             <translation>مسح</translation>

@@ -10,12 +10,9 @@ GenyDrawer {
     property var parentCast: null
     property var quotedCast: null
     property string initialAction: ""
-    // A protocol parent URL is either a channel's verified parent URL or a
-    // CAIP-19 token address. Never infer one from a ticker symbol alone.
+    // Canonical parent_url is sourced from the channel search response.
     property string selectedParentUrl: ""
     property string selectedContextLabel: ""
-    property string contextKind: "channel"
-    property string tokenNetwork: "8453"
     property int initialFocusAttempts: 0
     property string suggestedText: ""
     property var suggestedEmbeds: []
@@ -181,6 +178,11 @@ GenyDrawer {
     function insertEmoji(emoji) {
         if (!emoji || emoji.length === 0)
             return
+        if (root.compact && root.editorMode === "visual") {
+            mobilePlainEditor.insert(mobilePlainEditor.cursorPosition, emoji)
+            mobilePlainEditor.forceActiveFocus()
+            return
+        }
         if (root.emojiThreadIndex >= 0 && root.emojiThreadIndex < threadTailModel.count) {
             const current = String(threadTailModel.get(root.emojiThreadIndex).text || "")
             const position = Math.max(0, Math.min(current.length, root.emojiThreadCursorPosition >= 0
@@ -208,6 +210,10 @@ GenyDrawer {
 
     function synchronizeEditorState() {
         if (root.editorMode === "visual") {
+            if (root.compact) {
+                richComposer.setBlockText(0, mobilePlainEditor.text)
+                return
+            }
             visualEditor.commitActiveEditor()
             return
         }
@@ -226,24 +232,10 @@ GenyDrawer {
         root.editorMode = nextMode
     }
 
-    function normalizedContextUrl() {
-        const value = contextInput.text.trim()
-        if (root.contextKind === "channel") return value
-        return "chain://eip155:" + root.tokenNetwork + "/erc20:" + value.toLowerCase()
-    }
-    function validContextInput() {
-        const raw = contextInput.text.trim()
-        if (root.contextKind === "ticker")
-            return /^0x[0-9a-fA-F]{40}$/.test(raw)
-        // Channel ids alone are not protocol parent URLs. Require the
-        // canonical URL returned by the channel directory/provider.
-        return (/^https:\/\/[^\s]+$/.test(raw) || /^chain:\/\/eip155:\d+\/[a-z0-9]+:[a-zA-Z0-9]+(?:\/\d+)?$/.test(raw))
-               && raw.length <= 256
-    }
-
     function hasLiveEditorText() {
         if (root.editorMode === "visual")
-            return visualEditor.hasLiveContent
+            return root.compact ? mobilePlainEditor.text.trim().length > 0
+                                : visualEditor.hasLiveContent
         if (root.editorMode === "markdown")
             return markdownEditor.text.trim().length > 0
         return false
@@ -301,8 +293,8 @@ GenyDrawer {
     function focusVisualEditorNow() {
         // Called synchronously from the originating tap: iOS WebKit normally
         // rejects keyboard activation if focus is deferred to a timer.
-        if (root.compact && visualEditor.activeEditor !== null)
-            visualEditor.activeEditor.forceActiveFocus()
+        if (root.compact)
+            mobilePlainEditor.forceActiveFocus()
     }
 
     Timer {
@@ -311,13 +303,8 @@ GenyDrawer {
         repeat: false
         onTriggered: {
             if (!root.opened || !root.compact || root.editorMode !== "visual") return
-            const editor = visualEditor.activeEditor
-            if (editor) {
-                editor.forceActiveFocus()
-                root.ensureEditorVisible(editor)
-            } else if (root.initialFocusAttempts++ < 9) {
-                initialComposerFocus.restart()
-            }
+            mobilePlainEditor.forceActiveFocus()
+            root.ensureEditorVisible(mobilePlainEditor)
         }
     }
 
@@ -361,8 +348,11 @@ GenyDrawer {
             richComposer.insertCastReference(String(root.quotedCast.castId || ""),
                                              Number(root.quotedCast.authorFid || 0))
         }
-        if (root.compact && root.initialAction !== "media")
-            initialComposerFocus.restart()
+        if (root.compact) {
+            mobilePlainEditor.text = richComposer.safeText
+            if (root.initialAction !== "media")
+                initialComposerFocus.restart()
+        }
         if (root.initialAction === "media") {
             root.pendingMediaBlockIndex = visualEditor.activeBlockIndex
             if (Qt.platform.os === "wasm") {
@@ -380,7 +370,7 @@ GenyDrawer {
     }
 
     onClosed: {
-        contextPicker.close()
+        channelPicker.close()
         initialComposerFocus.stop()
         root.closeComposerPopups()
         root.initialAction = ""
@@ -404,103 +394,218 @@ GenyDrawer {
         onEmojiSelected: emoji => root.insertEmoji(emoji)
     }
 
-    Popup {
-        id: contextPicker
-        parent: Overlay.overlay
-        modal: true
-        focus: true
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        x: Math.max(Theme.space3, Math.floor((parent.width - width) / 2))
-        y: Math.max(Theme.space4, Math.floor((parent.height - height) / 2))
-        width: Math.min(parent.width - Theme.space4 * 2, 420)
-        padding: Theme.space4
-        background: Superellipse {
-            fillColor: Theme.surfaceRaised
-            borderColor: Theme.borderStrong
-            borderWidth: 1
-            curveDepth: Theme.curveModal
+    GenyDrawer {
+        id: channelPicker
+        objectName: "composerChannelDrawer"
+        hostItem: root.hostItem
+        bottomSheet: true
+        showHandle: true
+        dimBackground: true
+        interactive: false
+        width: parent ? parent.width : root.width
+        height: parent ? Math.min(parent.height * 0.76, 670) : 580
+        contentPadding: Theme.space3
+        property var channelRows: {
+            const source = presentationBridge.searchResults || []
+            const rows = []
+            for (let i = 0; i < source.length && rows.length < 30; ++i) {
+                const item = source[i] || ({})
+                const url = String(item.parentUrl || "")
+                // A short ID, invented URL or unsupported parent scheme is
+                // never presented as a publishable protocol channel.
+                if (item.kind === "channel" && url.length > 0 && url.length <= 256
+                        && (url.startsWith("https://") || url.startsWith("chain://")))
+                    rows.push(item)
+            }
+            return rows
+        }
+
+        function searchFor(value) {
+            const query = String(value || "").trim()
+            if (query.length >= 2)
+                presentationBridge.requestSearchSuggestions(query)
+            else
+                presentationBridge.clearSearchSuggestions()
+        }
+        onOpened: {
+            channelSearch.text = ""
+            channelQueryTimer.stop()
+            channelResults.positionViewAtBeginning()
+            // Show real provider-backed channels immediately, then allow the
+            // user to search all channel names/IDs in the same drawer.
+            root.selectedParentUrl.length > 0
+                ? searchFor(root.selectedContextLabel) : searchFor("dev")
+        }
+        onClosed: {
+            channelQueryTimer.stop()
+            presentationBridge.clearSearchSuggestions()
+        }
+        Timer {
+            id: channelQueryTimer
+            interval: 260
+            repeat: false
+            onTriggered: channelPicker.searchFor(channelSearch.text)
         }
         contentItem: ColumnLayout {
             spacing: Theme.space3
-            DirectionAwareLabel {
+            RowLayout {
                 Layout.fillWidth: true
-                text: root.contextKind === "channel"
-                      ? qsTrId("genycaster.composer.channel")
-                      : qsTrId("genycaster.composer.ticker")
-                color: Theme.textPrimary
-                font.pixelSize: Theme.typeTitle3Size
-                font.weight: Theme.weightBold
+                spacing: Theme.space2
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.composer.channel_picker_title")
+                    color: Theme.textPrimary
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightBold
+                }
+                ActionButton {
+                    iconOnly: true
+                    compact: true
+                    quiet: true
+                    iconGlyph: Theme.iconClose
+                    text: qsTrId("genycaster.shell.cancel")
+                    onClicked: channelPicker.close()
+                }
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: root.contextKind === "channel"
-                      ? qsTrId("genycaster.composer.channel_url_hint")
-                      : qsTrId("genycaster.composer.ticker_contract_hint")
                 color: Theme.textSecondary
                 wrapMode: Text.Wrap
+                text: qsTrId("genycaster.composer.channel_picker_hint")
                 font.pixelSize: Theme.typeCaptionSize
             }
-            RowLayout {
-                visible: root.contextKind === "ticker"
+            Superellipse {
                 Layout.fillWidth: true
-                ActionButton {
-                    text: "Base"
-                    compact: true
-                    prominent: root.tokenNetwork === "8453"
-                    onClicked: root.tokenNetwork = "8453"
-                }
-                ActionButton {
-                    text: "Ethereum"
-                    compact: true
-                    prominent: root.tokenNetwork === "1"
-                    onClicked: root.tokenNetwork = "1"
-                }
-            }
-            TextField {
-                id: contextInput
-                Layout.fillWidth: true
-                placeholderText: root.contextKind === "channel"
-                                 ? "https://farcaster.group/..."
-                                 : "0x..."
-                selectByMouse: true
-                font.pixelSize: Theme.typeMetaSize
-                color: Theme.textPrimary
-                background: Superellipse {
-                    fillColor: Theme.editorSurface
-                    borderWidth: 1
-                    borderColor: contextInput.activeFocus ? Theme.accent : Theme.borderMuted
-                    curveDepth: Theme.curveControl
+                Layout.preferredHeight: 48
+                fillColor: Theme.editorSurface
+                borderWidth: 1
+                borderColor: channelSearch.activeFocus ? Theme.accent : Theme.borderMuted
+                curveDepth: Theme.curveControl
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: Theme.space3
+                    anchors.rightMargin: Theme.space3
+                    spacing: Theme.space2
+                    Icon {
+                        text: Theme.iconSearch
+                        color: Theme.textSecondary
+                        preferredSize: Theme.iconSizeSmall
+                    }
+                    TextField {
+                        id: channelSearch
+                        objectName: "composerChannelSearch"
+                        Layout.fillWidth: true
+                        placeholderText: qsTrId("genycaster.composer.channel_search")
+                        color: Theme.textPrimary
+                        background: null
+                        selectByMouse: true
+                        onTextChanged: {
+                            if (channelPicker.opened)
+                                channelQueryTimer.restart()
+                        }
+                    }
                 }
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                visible: contextInput.text.trim().length > 0 && !root.validContextInput()
-                text: qsTrId("genycaster.composer.context_invalid")
-                color: Theme.warning
+                text: qsTrId("genycaster.composer.channel_suggestions")
+                color: Theme.textSecondary
                 font.pixelSize: Theme.typeCaptionSize
-                wrapMode: Text.Wrap
+                font.weight: Theme.weightDemiBold
             }
-            RowLayout {
+            ListView {
+                id: channelResults
+                objectName: "composerChannelResults"
                 Layout.fillWidth: true
-                Item { Layout.fillWidth: true }
-                ActionButton {
-                    quiet: true
-                    text: qsTrId("genycaster.shell.cancel")
-                    onClicked: contextPicker.close()
-                }
-                ActionButton {
-                    prominent: true
-                    text: qsTrId("genycaster.composer.apply")
-                    enabled: root.validContextInput()
-                    onClicked: {
-                        root.selectedParentUrl = root.normalizedContextUrl()
-                        root.selectedContextLabel = root.contextKind === "ticker"
-                            ? qsTrId("genycaster.composer.ticker") + " · "
-                              + (root.tokenNetwork === "8453" ? "Base" : "ETH")
-                            : qsTrId("genycaster.composer.channel")
-                        contextPicker.close()
+                Layout.fillHeight: true
+                clip: true
+                spacing: Theme.space1
+                boundsBehavior: Flickable.StopAtBounds
+                model: channelPicker.channelRows
+                ScrollBar.vertical: GenyScrollBar {}
+                delegate: Item {
+                    id: channelRow
+                    required property var modelData
+                    width: channelResults.width
+                    height: 70
+                    readonly property string channelParentUrl: String(modelData.parentUrl || "")
+                    Superellipse {
+                        anchors.fill: parent
+                        fillColor: rowTap.pressed ? Theme.surfacePressed
+                                   : rowTap.containsMouse ? Theme.surfaceHover
+                                   : Theme.surfaceRaised
+                        borderWidth: 1
+                        borderColor: Theme.borderSubtle
+                        curveDepth: Theme.curveControl
+                    }
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: Theme.space2
+                        spacing: Theme.space3
+                        layoutDirection: Theme.uiDirection
+                        Avatar {
+                            Layout.alignment: Qt.AlignVCenter
+                            avatarSize: 42
+                            sourceUrl: String(channelRow.modelData.imageUrl || "")
+                            displayName: String(channelRow.modelData.name || "")
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                color: Theme.textPrimary
+                                font.pixelSize: Theme.typeBodySize
+                                font.weight: Theme.weightDemiBold
+                                text: String(channelRow.modelData.name || channelRow.modelData.id || "")
+                                elide: Text.ElideRight
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.typeCaptionSize
+                                text: String(channelRow.modelData.description
+                                             || ("/" + channelRow.modelData.id))
+                                elide: Text.ElideRight
+                                maximumLineCount: 1
+                            }
+                        }
+                        Icon {
+                            text: channelRow.channelParentUrl === root.selectedParentUrl
+                                  ? Theme.iconCheck : Theme.iconArrowRight
+                            color: channelRow.channelParentUrl === root.selectedParentUrl
+                                   ? Theme.accent : Theme.textTertiary
+                            preferredSize: Theme.iconSizeSmall
+                        }
+                    }
+                    MouseArea {
+                        id: rowTap
+                        anchors.fill: parent
+                        hoverEnabled: !root.compact
+                        onClicked: {
+                            root.selectedParentUrl = channelRow.channelParentUrl
+                            root.selectedContextLabel = String(channelRow.modelData.name || channelRow.modelData.id)
+                            channelPicker.close()
+                        }
                     }
                 }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                visible: !presentationBridge.searchBusy && channelPicker.channelRows.length === 0
+                color: Theme.textSecondary
+                wrapMode: Text.Wrap
+                text: presentationBridge.searchErrorText.length > 0
+                      ? presentationBridge.searchErrorText
+                      : channelSearch.text.trim().length >= 2
+                        ? qsTrId("genycaster.composer.channel_no_results")
+                        : qsTrId("genycaster.composer.channel_search_prompt")
+                font.pixelSize: Theme.typeCaptionSize
+            }
+            GenySpinner {
+                Layout.alignment: Qt.AlignHCenter
+                visible: presentationBridge.searchBusy
+                running: visible
             }
         }
     }
@@ -933,9 +1038,32 @@ GenyDrawer {
                     borderColor: Theme.borderSubtle
                     curveDepth: root.compact ? 0 : Theme.curveLarge
 
+                    DirectionAwareTextArea {
+                        id: mobilePlainEditor
+                        objectName: "composerPrimaryMobileEditor"
+                        visible: root.compact && root.editorMode === "visual"
+                        anchors.fill: parent
+                        anchors.margins: Theme.space2
+                        placeholderText: qsTrId("genycaster.shell.whats_happening")
+                        background: null
+                        selectByMouse: true
+                        persistentSelection: true
+                        wrapMode: TextEdit.Wrap
+                        font.pixelSize: Theme.typeBodySize
+                        onTextChanged: {
+                            if (root.opened && root.compact && root.editorMode === "visual"
+                                    && richComposer.safeText !== text)
+                                richComposer.setBlockText(0, text)
+                        }
+                        onActiveFocusChanged: {
+                            if (activeFocus)
+                                root.ensureEditorVisible(mobilePlainEditor)
+                        }
+                    }
+
                     RichTextEditor {
                         id: visualEditor
-                        visible: root.editorMode === "visual"
+                        visible: !root.compact && root.editorMode === "visual"
                         onActiveEditorChangedExternally: (blockIndex, editor) =>
                             root.ensureEditorVisible(editor)
                         anchors.fill: parent
@@ -990,31 +1118,22 @@ GenyDrawer {
                 objectName: "mobileCastContext"
                 visible: root.compact && root.editorMode === "visual"
                 Layout.fillWidth: true
-                spacing: Theme.space2
                 layoutDirection: Theme.uiDirection
-
+                spacing: Theme.space2
                 ActionButton {
                     compact: true
                     quiet: true
+                    iconGlyph: Theme.iconGlobe
                     text: root.selectedContextLabel.length > 0
-                          ? root.selectedContextLabel
-                          : qsTrId("genycaster.composer.channel")
-                    onClicked: {
-                        root.contextKind = "channel"
-                        contextInput.text = root.contextKind === "channel" ? root.selectedParentUrl : ""
-                        contextPicker.open()
-                    }
+                          ? root.selectedContextLabel : qsTrId("genycaster.composer.channel")
+                    onClicked: channelPicker.open()
                 }
                 ActionButton {
                     compact: true
                     quiet: true
-                    text: qsTrId("genycaster.composer.ticker")
-                    onClicked: {
-                        root.contextKind = "ticker"
-                        contextInput.text = root.selectedParentUrl.startsWith("chain://eip155:")
-                            ? root.selectedParentUrl.split("erc20:").pop() : ""
-                        contextPicker.open()
-                    }
+                    enabled: false
+                    text: qsTrId("genycaster.composer.category")
+                    Accessible.description: qsTrId("genycaster.home.hub_coming_soon")
                 }
                 Item { Layout.fillWidth: true }
                 ActionButton {

@@ -1326,6 +1326,34 @@
             <source>Enter the token contract address (0x…); choose its network.</source>
             <translation>آدرس قرارداد توکن (0x…) را همراه با شبکه انتخاب کنید.</translation>
         </message>
+        <message id="genycaster.composer.channel_picker_title">
+            <source>Choose a channel</source>
+            <translation>انتخاب کانال</translation>
+        </message>
+        <message id="genycaster.composer.channel_picker_hint">
+            <source>Choose a channel from the network. Your cast will be published to its verified parent URL.</source>
+            <translation>یک کانال از شبکه انتخاب کنید تا کست با آدرس معتبر همان کانال منتشر شود.</translation>
+        </message>
+        <message id="genycaster.composer.channel_search">
+            <source>Search channels by name or ID</source>
+            <translation>جستجوی نام یا شناسهٔ کانال</translation>
+        </message>
+        <message id="genycaster.composer.channel_suggestions">
+            <source>Channels</source>
+            <translation>کانال‌ها</translation>
+        </message>
+        <message id="genycaster.composer.channel_no_results">
+            <source>No channels found. Try another search.</source>
+            <translation>کانالی پیدا نشد. عبارت دیگری را امتحان کنید.</translation>
+        </message>
+        <message id="genycaster.composer.channel_search_prompt">
+            <source>Type two or more letters to search.</source>
+            <translation>برای جستجو حداقل دو حرف بنویسید.</translation>
+        </message>
+        <message id="genycaster.composer.category">
+            <source>Category</source>
+            <translation>دسته‌بندی</translation>
+        </message>
         <message id="genycaster.composer.context_clear">
             <source>Clear</source>
             <translation>پاک کردن</translation>

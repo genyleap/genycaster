@@ -29,5 +29,5 @@ test('cast details use their own back toolbar instead of a duplicate global bran
     assert.match(shell, /AppHeader \{\s+\/\/ Cast details[\s\S]*?visible: root.mobile && \(root.shellRoute.length > 0[\s\S]*?presentationBridge.activeView !== "cast"\)/);
     assert.match(detail, /genycaster.detail.back_back_to_feed/);
     assert.match(detail, /onClicked: root.backRequested\(\)/);
-    assert.match(detail, /Layout.topMargin: Theme.space1[\s\S]*?spacing: Theme.space2/);
+    assert.match(detail, /Layout.topMargin: Theme.space3[\s\S]*?spacing: Theme.space2/);
 });

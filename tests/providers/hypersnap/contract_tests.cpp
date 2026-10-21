@@ -1083,6 +1083,7 @@ void testSearchSemantics()
         "id": "dev",
         "url": "https://warpcast.com/~/channel/dev",
         "name": "dev",
+        "parent_url": "https://warpcast.com/~/channel/dev",
         "image_url": "https://cdn.test/dev.png",
         "description": "Developer conversations",
         "created_at": "2026-08-27T00:00:00.000Z",
@@ -1097,6 +1098,8 @@ void testSearchSemantics()
     assert(result->profiles.front().fid.value == 42U);
     assert(result->channels.size() == 1U);
     assert(result->channels.front().id.value == "dev");
+    assert(result->channels.front().parentUrl
+           && *result->channels.front().parentUrl == "https://warpcast.com/~/channel/dev");
     assert(result->channels.front().followerCount == 99U);
     assert(transport.urls().size() == 2U);
     assert(transport.urls()[0] == "https://node.test/v2/farcaster/user/search?q=dev&limit=4");

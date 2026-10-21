@@ -850,6 +850,9 @@ decodeSearchChannels(const std::string_view body)
         capability::search::ChannelSuggestion suggestion{};
         suggestion.id = domain::channel::ChannelId{std::move(*id)};
         suggestion.name = std::move(*name);
+        suggestion.parentUrl = optionalString(channel, "parent_url");
+        if ((!suggestion.parentUrl || suggestion.parentUrl->empty()))
+            suggestion.parentUrl = optionalString(channel, "url");
         suggestion.imageUrl = optionalString(channel, "image_url");
         suggestion.description = optionalString(channel, "description");
         if (auto followers = optionalUnsigned(channel, "follower_count")) {

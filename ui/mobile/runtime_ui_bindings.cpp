@@ -708,6 +708,8 @@ struct FeedPresentationIndex final {
             {QStringLiteral("kind"), QStringLiteral("channel")},
             {QStringLiteral("id"), QString::fromStdString(channel.id.value)},
             {QStringLiteral("name"), QString::fromStdString(channel.name)},
+            {QStringLiteral("parentUrl"), channel.parentUrl
+                ? QString::fromStdString(*channel.parentUrl) : QString{}},
             {QStringLiteral("imageUrl"), channel.imageUrl
                 ? remoteImageSource(QString::fromStdString(*channel.imageUrl)) : QString{}},
             {QStringLiteral("description"), channel.description

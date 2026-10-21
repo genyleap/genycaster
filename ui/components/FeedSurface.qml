@@ -1341,7 +1341,7 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space5
-        anchors.bottomMargin: root.compact ? Theme.space5 + 64 : Theme.space5 + 72
+        anchors.bottomMargin: root.compact ? Theme.space2 + 12 : Theme.space4
     }
 
     Item {

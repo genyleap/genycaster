@@ -19,6 +19,8 @@ export namespace farcaster::capability::search {
 struct ChannelSuggestion final {
     domain::channel::ChannelId id{};
     std::string name{};
+    /** Exact protocol parent_url, never inferred from channel ID. */
+    std::optional<std::string> parentUrl{};
     std::optional<std::string> imageUrl{};
     std::optional<std::string> description{};
     std::uint64_t followerCount{};

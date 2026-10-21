@@ -24,18 +24,36 @@ test('reply rail and count use aligned, solid geometry and incoming highlight',(
  assert.match(rail,/anchors.horizontalCenter: parent.horizontalCenter/);
  assert.match(detail,/Math.max\(26, replyCountLabel.implicitWidth \+ Theme.space3\)/);
 });
-test('channel/ticker context propagates to protocol without treating plain symbol as a contract',()=>{
+test('channel selection uses a bottom drawer and real Hypersnap search results',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
- const shell=read('ui/components/AppShell.qml');
- const bridge=read('src/presentation/qt/presentation_bridge.cpp');
+ const codec=read('src/providers/hypersnap/codec.cpp');
  const runtime=read('ui/mobile/runtime_ui_bindings.cpp');
- assert.match(composer,/objectName: "mobileCastContext"/);
- assert.match(composer,/function validContextInput\(\)/);
- assert.match(composer,/\^0x\[0-9a-fA-F\]\{40\}\$/);
+ const shell=read('ui/components/AppShell.qml');
+ assert.match(composer,/id: channelPicker[\s\S]*?bottomSheet: true/);
+ assert.match(composer,/objectName: "composerChannelResults"/);
+ assert.match(composer,/presentationBridge.requestSearchSuggestions\(query\)/);
+ assert.match(composer,/channelRow.channelParentUrl/);
+ assert.match(codec,/suggestion.parentUrl = optionalString\(channel, "parent_url"\)/);
+ assert.match(runtime, /QStringLiteral\("parentUrl"\), channel.parentUrl/);
+ assert.match(composer,/qsTrId\("genycaster.composer.category"\)/);
+ assert.doesNotMatch(composer,/contextPicker|tokenNetwork|qsTrId\("genycaster.composer.ticker"\)/);
  assert.match(composer,/signal publishRequested\(string text, var mentionFids, var mentionPositions, var embeds, string parentUrl\)/);
  assert.match(shell,/publishPreparedCast\(text, mentionFids, mentionPositions, embeds, parentUrl\)/);
- assert.match(bridge,/emit publishCastRequested\(text, mentionFids, mentionPositions, embeds, target\)/);
- assert.match(runtime,/makeCastPayload\([\s\S]*?std::nullopt, parentUrl\)/);
+});
+test('mobile composer uses an eagerly created editable TextArea for iOS gesture focus',()=>{
+ const composer=read('ui/components/ComposerDrawer.qml');
+ const shell=read('ui/components/AppShell.qml');
+ assert.match(composer,/id: mobilePlainEditor[\s\S]*?anchors.fill: parent/);
+ assert.match(composer,/function focusVisualEditorNow\(\)[\s\S]*?mobilePlainEditor.forceActiveFocus\(\)/);
+ assert.match(composer,/richComposer.setBlockText\(0, mobilePlainEditor.text\)/);
+ assert.match(shell,/composerDrawer.open\(\)\s*composerDrawer.focusVisualEditorNow\(\)/);
+});
+test('reply counter has safe trailing spacing and scroll jump stays near bottom edge',()=>{
+ const detail=read('ui/components/DetailSurface.qml');
+ const profile=read('ui/components/ProfileSurface.qml');
+ assert.match(detail,/id: repliesContainer[\s\S]*?Item \{ Layout.preferredHeight: Theme.space4 \}/);
+ assert.match(detail,/anchors.bottomMargin: root.compact \? Theme.space2 \+ 12 : Theme.space4/);
+ assert.match(profile,/anchors.bottomMargin: root.compact \? Theme.space2 \+ 12 : Theme.space4/);
 });
 test('image picker and upload pipeline accept GIF without converting to PNG',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
