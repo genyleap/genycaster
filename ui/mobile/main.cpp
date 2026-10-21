@@ -1534,7 +1534,8 @@ int main(int argc, char* argv[])
                   QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation).toStdString()}
                   / "genycaster.sqlite3"
             : std::filesystem::path{databasePathText.toStdString()};
-        auto bootstrapRuntime = [&presentationBridge, &richComposerController, &mediaUploadController,
+        auto bootstrapRuntime = [&presentationBridge, &richComposerController, &openProofConnections,
+                                 &mediaUploadController,
                                   &mediaPlayback, &runtime,
                                   databasePath, networkProxyPolicy, providerBaseUrl,
                                   farcasterReadBaseUrl, farcasterReadApiKey, authRelayUrl,
