@@ -193,7 +193,8 @@ bool Runtime::isCurrentFeedRequestGeneration(const std::uint64_t generation) con
     return feedRequestGeneration.load(std::memory_order_acquire) == generation;
 }
 
-bool Runtime::selectFeedSurfaceIdentity(const std::string& identity)
+bool Runtime::selectFeedSurfaceIdentity(
+    const std::string& identity, const bool preserveProfileRequest)
 {
     {
         std::scoped_lock lock{feedSurfaceMutex};
@@ -201,10 +202,19 @@ bool Runtime::selectFeedSurfaceIdentity(const std::string& identity)
             return false;
         }
     }
-    // A surface change terminates the old navigation interest before the new
-    // identity is committed. Cancellation itself clears the previous identity,
-    // so returning from a cast/profile to this feed cannot look like a page.
-    cancelAllRequests();
+    if (preserveProfileRequest) {
+        // Profile navigation begins its metadata read before it starts its
+        // independently paged feed. Switching the latter must never cancel
+        // the just-started metadata request or advance its primary generation.
+        // Leaving the profile still uses cancelAllRequests() and retires both.
+        feedSurfaceGeneration.fetch_add(1U, std::memory_order_acq_rel);
+        cancelFeedRequest();
+        cancelReferencedPreviewRequests();
+        cancelViewerReactionRequest();
+    } else {
+        // A genuinely different navigation terminates the whole old surface.
+        cancelAllRequests();
+    }
     {
         std::scoped_lock lock{feedSurfaceMutex};
         feedSurfaceIdentity = identity;

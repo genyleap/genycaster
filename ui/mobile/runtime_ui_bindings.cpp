@@ -3385,7 +3385,11 @@ void connectRuntime(
             // discard work shared by the currently visible cast delegates.
             const std::string surfaceIdentity = feed.toStdString() + "\x1f"
                 + std::to_string(fid) + "\x1f" + channel.toStdString();
-            if (!runtime->selectFeedSurfaceIdentity(surfaceIdentity)) {
+            // Profile metadata and its feed are siblings, not replacements.
+            // The profileRequested signal has already started openProfile();
+            // selecting the initial or another profile tab must not retire it.
+            const bool profileFeed = feed.startsWith(QStringLiteral("user-"));
+            if (!runtime->selectFeedSurfaceIdentity(surfaceIdentity, profileFeed)) {
                 runtime->cancelFeedRequest();
             }
             const std::uint64_t surfaceGeneration =

@@ -1,5 +1,28 @@
 # Genycaster read-pipeline repair: verification record
 
+## Profile header request ownership (2026-10-21)
+
+**Boundary contract recorded before changing production code.**
+
+- **Responsibility:** Qt composition owns navigation lifetime for profile metadata and profile feed as two independent requests on the same profile surface.
+- **Capability origin:** protocol read for canonical profile metadata; local cache/read and paged protocol feed are separate operations.
+- **Mandatory/optional:** profile metadata is required to display identity; feed contents can load independently or offline.
+- **Public contract:** a profile FID navigation emits a metadata read and an initial selected feed read; switching tabs replaces only feed-owned requests, not active metadata.
+- **Canonical data/invariants:** validated FID and profile payload, cached profile identity, avatar and follower/following counts are never synthesized from feed row authors or replaced by blank failed fetches.
+- **Dependencies:** Runtime generation/cancellation in Qt composition only; no QML network/database I/O or domain/provider-boundary change.
+- **Failures:** navigation away/account change cancels both; rapid tab changes preserve the matching profile header request; transport failure preserves previously resolved matching metadata and exposes error/unknown otherwise.
+- **Local-state representation and offline behavior:** cached profile details remain useful while the independently bounded feed window loads or the provider is offline.
+- **Provider policy/disablement and failover:** provider-selected profile gateway is unchanged; a failed/missing provider cannot counterfeit a successful zero-valued profile.
+- **Tests:** navigation signal order; deterministic mock request cancellation and delayed delivery; tab switches and full navigation; Qt cached-detail preservation; JS/QML regression and architecture guard; final WASM build, release verifier and origin/CDN smoke before deployment.
+
+
+### Profile-header regression: current evidence
+
+- **Reproduction (source and deterministic fixture):** `PresentationBridge::openProfileFid` emits `profileRequested` followed immediately by `feedRequested`. The former starts `openProfile`, but the latter selected a new feed identity through `Runtime::selectFeedSurfaceIdentity`, which unconditionally called `cancelAllRequests`. The primary profile read and its generation were invalidated before the cached/live profile callback could update the header. The feed request itself survived, explaining visible Quotes/Likes rows alongside avatar `?`, fallback title, and counts `0` in the supplied browser screenshots.
+- **Fix:** Profile-feed changes now cancel only obsolete feed, quoted-preview and reaction work, preserving the independently active profile read and its primary generation. Genuine full navigation still invokes `cancelAllRequests`; switching account or profile continues to reject obsolete callback generations. The presenter retains matching cached identity metadata on an incomplete/failed refresh. QML hides follower/following counters until an identified profile arrives, so an unknown value is not displayed as verified zero. Known zero for a verified profile still displays normally.
+- **Actual verification:** `node --test tests/wasm/*.test.mjs`: **289/289 PASS** (three new deterministic navigation interleavings and source guards); `cmake --build --preset ui-qt612-debug --target farcaster_presentation_icon_tests -j1`: **PASS**; `cmake -E env LD_LIBRARY_PATH=/opt/gcc-16.2.0/lib64 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QT_QUICK_CONTROLS_STYLE=Basic ctest --test-dir build/ui-qt612-debug -R '^(presentation.contextual_icons|ui.media_scroll|ui.qml_import_smoke|ui.feed_rows_model)$' --output-on-failure`: **4/4 PASS**. New native Qt presentation test verifies metadata/feed signal order, fast tab switches, cached follower counts/avatar survival, navigation FID isolation and known zero. `python3 tools/check_architecture.py`: **PASS**.
+- **Remaining verification:** compiled WebAssembly fresh link, real browser profile header after login/no login and provider availability not yet established in this iteration. The JS interleaving fixture simulates composition cancellation rather than running that C++ method. The user screenshots establish the live symptom, not a successful browser fix. This section will be amended after a current release build and smoke/deployment.
+
 ## Current repair iteration (2026-10-21) — boundary contract and status
 
 **Status:** Implementation in progress. Evidence from entries dated 2026-10-20 and earlier is historical; it does not verify this iteration's final executable or deployment.

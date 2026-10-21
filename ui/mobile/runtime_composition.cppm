@@ -181,7 +181,13 @@ struct Runtime final {
     [[nodiscard]] bool isCurrentPrimaryRequestGeneration(std::uint64_t generation) const noexcept;
     [[nodiscard]] std::uint64_t beginFeedRequestGeneration() noexcept;
     [[nodiscard]] bool isCurrentFeedRequestGeneration(std::uint64_t generation) const noexcept;
-    [[nodiscard]] bool selectFeedSurfaceIdentity(const std::string& identity);
+    /** @brief Switches feed identity, optionally retaining independent profile-header work.
+     * @param preserveProfileRequest True for tabs within the same profile navigation.
+     *        The owning profile request remains live; feed/preview/reaction work is replaced.
+     * @return True when this operation changed the active feed identity.
+     */
+    [[nodiscard]] bool selectFeedSurfaceIdentity(
+        const std::string& identity, bool preserveProfileRequest = false);
     [[nodiscard]] bool isCurrentFeedSurfaceGeneration(std::uint64_t generation) const noexcept;
     [[nodiscard]] std::uint64_t beginExplorerArtRequestGeneration();
     [[nodiscard]] bool isCurrentExplorerArtRequestGeneration(std::uint64_t generation) const noexcept;

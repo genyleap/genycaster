@@ -459,6 +459,71 @@ void testNestedQuoteHydrationNotifiesDetailExactlyOnce()
     assert(updatedEmbeds.front().toMap().value(QStringLiteral("likeCount")).toInt() == 15);
 }
 
+void testProfileNavigationKeepsIndependentMetadataAndCachedCounts()
+{
+    PresentationBridge bridge{};
+    QStringList emissions{};
+    QObject::connect(&bridge, &PresentationBridge::profileRequested, &bridge,
+        [&emissions](qulonglong fid, bool) {
+            emissions.push_back(QStringLiteral("profile:%1").arg(fid));
+        });
+    QObject::connect(&bridge, &PresentationBridge::feedRequested, &bridge,
+        [&emissions](const QString& kind, qulonglong fid,
+                     const QString&, const QString&, bool) {
+            emissions.push_back(QStringLiteral("feed:%1:%2").arg(kind).arg(fid));
+        });
+
+    bridge.openProfileFid(101);
+    assert((emissions == QStringList{
+        QStringLiteral("profile:101"), QStringLiteral("feed:user-posts:101")}));
+    bridge.applyDetail(QStringLiteral("profile"), QVariantMap{
+        {QStringLiteral("fid"), 101U},
+        {QStringLiteral("username"), QStringLiteral("alice")},
+        {QStringLiteral("displayName"), QStringLiteral("Alice")},
+        {QStringLiteral("avatarUrl"), QStringLiteral("https://example.test/alice.png")},
+        {QStringLiteral("followerCount"), 9384U},
+        {QStringLiteral("followingCount"), 238U},
+    }, {}, {}, {}, false, false, false);
+
+    emissions.clear();
+    bridge.selectProfileFeed(QStringLiteral("user-likes"));
+    bridge.selectProfileFeed(QStringLiteral("user-quotes"));
+    bridge.selectProfileFeed(QStringLiteral("user-replies"));
+    assert((emissions == QStringList{
+        QStringLiteral("feed:user-likes:101"),
+        QStringLiteral("feed:user-quotes:101"),
+        QStringLiteral("feed:user-replies:101")}));
+    assert(bridge.detail().value(QStringLiteral("displayName")).toString()
+        == QStringLiteral("Alice"));
+    assert(bridge.detail().value(QStringLiteral("followerCount")).toUInt() == 9384U);
+
+    // A pending or failed metadata refresh may report no profile, but an
+    // existing matching identity must not be replaced by synthetic zeros.
+    bridge.applyDetail(QStringLiteral("profile"), {}, {}, {}, {}, true, true, true);
+    assert(bridge.detail().value(QStringLiteral("followerCount")).toUInt() == 9384U);
+    bridge.applyDetail(QStringLiteral("profile"), {}, {},
+        QStringLiteral("provider unavailable"), {}, false, true, true);
+    assert(bridge.detail().value(QStringLiteral("followingCount")).toUInt() == 238U);
+    assert(bridge.detail().value(QStringLiteral("avatarUrl")).toString()
+        == QStringLiteral("https://example.test/alice.png"));
+
+    // A different profile must never inherit the old identity or counters.
+    emissions.clear();
+    bridge.openProfileFid(202);
+    assert((emissions == QStringList{
+        QStringLiteral("profile:202"), QStringLiteral("feed:user-replies:202")}));
+    assert(bridge.detail().isEmpty());
+    bridge.applyDetail(QStringLiteral("profile"), {}, {}, {}, {}, true, false, false);
+    assert(bridge.detail().isEmpty());
+    // A legitimate verified zero for another FID remains a known zero.
+    bridge.applyDetail(QStringLiteral("profile"), QVariantMap{
+        {QStringLiteral("fid"), 202U}, {QStringLiteral("displayName"), QStringLiteral("Bob")},
+        {QStringLiteral("followerCount"), 0U}, {QStringLiteral("followingCount"), 0U},
+    }, {}, {}, {}, false, false, false);
+    assert(bridge.detail().value(QStringLiteral("fid")).toUInt() == 202U);
+    assert(bridge.detail().value(QStringLiteral("followerCount")).toUInt() == 0U);
+}
+
 void testAuthenticatedProfilePresentationIsCached()
 {
     PresentationBridge bridge{};
@@ -924,6 +989,7 @@ int main(int argc, char* argv[])
     testReferencedPreviewHydratesReplyAndQuoteMetrics();
     testNestedQuoteHydrationNotifiesDetailExactlyOnce();
     testAuthenticatedProfilePresentationIsCached();
+    testProfileNavigationKeepsIndependentMetadataAndCachedCounts();
     testInitialSetupRequiresAuthenticationAndFirstRunCompletion();
     return 0;
 }

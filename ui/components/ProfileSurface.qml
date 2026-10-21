@@ -945,6 +945,9 @@ Item {
                     }
 
                     RowLayout {
+                        // Unknown profile metadata must never be presented as
+                        // verified zero followers/following on an empty header.
+                        visible: Number(root.detail.fid || 0) > 0
                         Layout.fillWidth: true
                         spacing: Theme.space1
                         layoutDirection: Theme.uiDirection

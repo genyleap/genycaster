@@ -3390,6 +3390,16 @@ void PresentationBridge::applyReferencedCastPreview(QString castId, QVariantMap 
 void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString status,
     QString error, QString diagnostic, const bool busy, const bool stale, const bool sourceUnavailable)
 {
+    // A cache miss or failed profile refresh is not evidence that a resolved
+    // identity has zero followers or no avatar. Preserve only the matching
+    // profile's prior known metadata; openProfileFid clears the detail when
+    // changing to an uncached FID, so another account cannot leak through.
+    if (view == QStringLiteral("profile") && detail.isEmpty()
+        && m_activeView == QStringLiteral("profile")
+        && m_profileFid != 0
+        && m_detail.value(QStringLiteral("fid")).toULongLong() == m_profileFid) {
+        detail = m_detail;
+    }
     m_activeView = std::move(view);
     m_detail = std::move(detail);
     if (m_activeView == QStringLiteral("cast"))
