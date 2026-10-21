@@ -287,6 +287,28 @@ int main(int argc, char** argv)
     context->setContextProperty(QStringLiteral("miniAppHost"), previewServices.get());
     context->setContextProperty(QStringLiteral("miniAppCatalog"), previewServices.get());
     context->setContextProperty(QStringLiteral("presentationBridge"), previewServices.get());
+    // The profile connection manager is another native context object in the
+    // application. Its presence is required when source-loading ProfileSurface.
+    auto openProofConnections = createInline(engine, R"(
+        import QtQml
+        QtObject {
+            property var providers: []
+            property var connections: []
+            property bool authorized: false
+            property bool authorizing: false
+            property bool actionBusy: false
+            property string approvalUrl: ""
+            property string error: ""
+            function refresh() {}
+            function authorizeAccount() {}
+            function refreshConnections() {}
+            function connectProvider(provider) {}
+            function disconnectProvider(provider, subject) {}
+            function stopAuthorization() {}
+        }
+    )");
+    if (!openProofConnections) { return 1; }
+    context->setContextProperty(QStringLiteral("openProofConnections"), openProofConnections.get());
     // A text-bearing CastItem now exercises the single shared caption Loader.
     // Supply an empty native-rich sidecar so the standalone media fixture
     // takes the regular plain-text rendering path.
@@ -607,6 +629,19 @@ int main(int argc, char** argv)
         QTest::qWait(110);
         expect(view->property("contentY").toDouble() > 400,
             "metadata refresh does not teleport a deep profile scroll to the banner");
+        // A stale anchor may refer to a delegate recycled hundreds of pixels
+        // away. An asynchronous geometry event must never resurrect that old
+        // row and teleport a profile reader back to the header.
+        const double scrollBeforeStaleAnchor = view->property("contentY").toDouble();
+        profile->setProperty("viewportAnchorKey", QStringLiteral("cast:0xscroll-0"));
+        profile->setProperty("viewportAnchorOffset", 0.0);
+        expect(QMetaObject::invokeMethod(profile.get(), "stabilizeViewportAfterGeometryChange"),
+            "simulate a delayed profile geometry update with a stale row anchor");
+        QTest::qWait(100);
+        expect(view->property("contentY").toDouble() > 400
+                   && qAbs(view->property("contentY").toDouble() - scrollBeforeStaleAnchor) < 200,
+            "a recycled/stale profile anchor never scrolls to the beginning");
+        QMetaObject::invokeMethod(profile.get(), "captureViewportAnchor");
         expect(QMetaObject::invokeMethod(view, "positionViewAtIndex",
             Q_ARG(int, 18), Q_ARG(int, 0)), "move deeper before testing the floating return control");
         expect(QTest::qWaitFor([&] { return topButton->property("visible").toBool(); }),

@@ -53,6 +53,21 @@ test('native composition explicitly preserves primary metadata while switching p
   assert.match(profileQml, /if \(incomingFid > 0 && incomingFid !== root\.positionedProfileFid\)/);
 });
 
+test('profile never resurrects a recycled anchor or overrides a user scroll with a deferred reset', () => {
+  const restore = profileQml.split('function restoreViewportAnchor(')[1]
+    .split('function payloadForStableKey(')[0];
+  assert.match(restore, /if \(!item\) \{[\s\S]*?return/);
+  assert.doesNotMatch(restore, /positionViewAtIndex\(/,
+    'a recycled old anchor must never teleport the current list viewport');
+  const capture = profileQml.split('function captureViewportAnchor(')[1]
+    .split('function scheduleViewportRestore(')[0];
+  assert.match(capture, /index < 0[\s\S]*?root\.viewportAnchorKey = ""/);
+  const reset = profileQml.split('id: resetPositionTimer')[1]
+    .split('id: scrollWorkThrottle')[0];
+  assert.match(reset, /if \(profileList\.moving[\s\S]*?root\.resetPositionPasses = 0/);
+  assert.match(profileQml, /onContentYChanged: \{[\s\S]*?resetPositionTimer\.stop\(\)/);
+});
+
 test('profile metadata completes after feed starts and after multiple tab changes', () => {
   const runtime = new ProfileNavigation();
   const pending = runtime.open(101);

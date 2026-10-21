@@ -268,9 +268,17 @@ Item {
         // Probing near y=0 while scrolled past the header never finds a row.
         const probeY = Math.max(headerHeight + 1, profileList.contentY + 1)
         const index = profileList.indexAt(Math.max(1, profileList.width / 2), probeY)
-        if (index < 0 || index >= profileRowsModel.count) return
+        if (index < 0 || index >= profileRowsModel.count) {
+            // An empty incubation slot is not evidence that the old anchor
+            // is still visible. Retaining it could teleport the view later.
+            root.viewportAnchorKey = ""
+            return
+        }
         const item = profileList.itemAtIndex(index)
-        if (!item) return
+        if (!item) {
+            root.viewportAnchorKey = ""
+            return
+        }
         root.viewportAnchorKey = String(profileRowsModel.get(index).stableKey || "")
         root.viewportAnchorOffset = item.y - profileList.contentY
     }
@@ -304,12 +312,16 @@ Item {
             return
         const item = profileList.itemAtIndex(targetIndex)
         if (!item) {
-            // Large image-driven reflows can recycle the anchored delegate
-            // before the queued restoration runs. Recover by stable ID rather
-            // than retaining Qt's arbitrary new pixel offset.
-            profileList.positionViewAtIndex(targetIndex, ListView.Beginning)
+            // The old row is no longer instantiated. Forcing it back into view
+            // during a late image/layout update is an unwanted scroll jump.
+            // Let ListView keep the current visible range instead.
             return
         }
+        // A cached-but-offscreen delegate is as stale as a pooled one. Never
+        // drag the reader multiple viewports to satisfy an obsolete anchor.
+        const currentOffset = item.y - profileList.contentY
+        if (Math.abs(currentOffset - anchorOffset) > Math.max(320, profileList.height))
+            return
         const minimum = profileList.originY
         const maximum = Math.max(minimum, profileList.contentHeight - profileList.height)
         profileList.contentY = Math.max(minimum, Math.min(maximum, item.y - anchorOffset))
@@ -432,6 +444,9 @@ Item {
         // Two event turns permit the ListView header to settle without a
         // delayed closure outliving a recycled/destroyed profile surface.
         root.resetPositionPasses = 2
+        // A real identity navigation resets immediately. Only the follow-up
+        // layout pass is deferred and may be cancelled by a user scroll.
+        profileList.positionViewAtBeginning()
         resetPositionTimer.restart()
     }
 
@@ -460,6 +475,9 @@ Item {
         root.viewportAnchorKey = ""
         stableModelSyncTimer.restart()
         root.resetPositionPasses = 1
+        // A selected profile tab is an explicit route change, unlike metadata
+        // reflow. Reset synchronously before any new wheel event can intervene.
+        profileList.positionViewAtBeginning()
         resetPositionTimer.restart()
     }
     onProfileSortModeChanged: stableModelSyncTimer.restart()
@@ -516,8 +534,15 @@ Item {
         onTriggered: {
             if (root.resetPositionPasses <= 0)
                 return
-            // Qt tracks a moving origin as asynchronously measured delegates
-            // settle; a hardcoded negative header height is not the real top.
+            // A queued reset belongs to navigation, never to the next wheel
+            // frame. Desktop wheel input can change contentY without entering
+            // ListView.moving; do not override a reader already scrolling.
+            if (profileList.moving
+                    || profileList.contentY - profileList.originY
+                        > Math.max(100, profileList.height * 0.4)) {
+                root.resetPositionPasses = 0
+                return
+            }
             profileList.positionViewAtBeginning()
             --root.resetPositionPasses
             if (root.resetPositionPasses > 0)
@@ -575,6 +600,12 @@ Item {
         // The anchor is captured once when movement ends; geometry stabilization
         // is only meaningful while the viewport is stationary.
         onContentYChanged: {
+            if (root.resetPositionPasses > 0
+                    && profileList.contentY - profileList.originY
+                        > Math.max(100, profileList.height * 0.4)) {
+                root.resetPositionPasses = 0
+                resetPositionTimer.stop()
+            }
             if (!profileList.moving && !root.restoringViewport && !scrollWorkThrottle.running)
                 scrollWorkThrottle.start()
         }
