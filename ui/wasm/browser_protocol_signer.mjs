@@ -273,7 +273,7 @@ export function createBrowserProtocolSigner({
     }
 
     // Derive FID from onchain custody without exporting phrase to Qt.
-    async function recoverAccountFromPhrase(phrase, stillCurrent=()=>true) {
+    async function recoverAccountFromPhrase(phrase, stillCurrent=()=>true, onVerifiedCustody=null) {
         const assertCurrent=()=>{if(!stillCurrent())throw new Error('Recovery cancelled');};
         // Errors leave the phrase dialog open. Use non-secret codes so the UI
         // can distinguish a valid mnemonic, an unregistered custody account,
@@ -335,6 +335,19 @@ export function createBrowserProtocolSigner({
             if(!registration || lastPhase!=='ready' || activeFid!==fid || !activeKey)
                 throw recoveryError('recovery-signer',
                     'Signer registration has not been verified by Snapchain');
+            // A failed OPTIONAL central identity request must not undo a
+            // locally verified Farcaster signer or require a second mnemonic.
+            if (typeof onVerifiedCustody === 'function') {
+                try {
+                    assertCurrent();
+                    await onVerifiedCustody(fid,custody);
+                    assertCurrent();
+                } catch (error) {
+                    assertCurrent();
+                    // The UI may explicitly offer future central identity
+                    // reauthorization; never reinterpret this as key failure.
+                }
+            }
             return fid;
         } catch(error) {
             // DOMException.code can be a read-only numeric property. Do not

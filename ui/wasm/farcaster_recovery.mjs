@@ -94,8 +94,31 @@ export async function deriveFarcasterCustody(phrase){
         return Object.freeze({
             address,
             /**
-             * Signs an EIP-712 Farcaster KeyAdd/SignedKeyRequest using only the
-             * in-memory custody key. The caller MUST call dispose() in finally.
+             * Signs one OpenProof SIWF EIP-191 challenge in local memory.
+             * No phrase, custody secret or re-usable signature is persisted.
+             * OpenProof must bind the returned fresh challenge to this FID.
+             */
+            async signMessage(message){
+                invariant(typeof message==='string' && message.length>=40
+                          && message.length<=8192 && !message.includes('\0'),
+                          'invalid OpenProof challenge');
+                const text=encoder.encode(message);
+                const prefix=encoder.encode('\x19Ethereum Signed Message:\n'+text.length);
+                const digest=keccak256(concat(prefix,text));
+                const signature=await signAsync(digest,key,{lowS:true,extraEntropy:true});
+                invariant(signature.recovery===0||signature.recovery===1,
+                    'unexpected EIP-191 recovery bit');
+                const recoveredPublic=signature.recoverPublicKey(digest).toBytes(false);
+                const recoveredAddress='0x'+hex(keccak256(recoveredPublic.subarray(1)).slice(-20));
+                invariant(recoveredAddress===address,
+                    'custody EIP-191 signature failed address verification');
+                text.fill(0);
+                return '0x'+hex(concat(signature.toBytes(),
+                    Uint8Array.of(signature.recovery+27)));
+            },
+            /**
+             * Signs Farcaster KeyAdd/SignedKeyRequest EIP-712 data.
+             * The caller MUST dispose this custody key after proof.
              */
             async signTypedData(document){
                 const digest=eip712Digest(document);

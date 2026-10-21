@@ -28,18 +28,20 @@ namespace genycaster::ui::browser_signing {
 class Bridge final : public QObject {
 public:
     explicit Bridge(PresentationBridge& presentation, RichComposerController& composer,
-                    QString snapchainOrigin)
+                    QString snapchainOrigin, QString recoveryGatewayOrigin)
         : QObject{&presentation},
           m_presentation{&presentation},
           m_composer{&composer},
-          m_snapchainOrigin{std::move(snapchainOrigin)}
+          m_snapchainOrigin{std::move(snapchainOrigin)},
+          m_recoveryGatewayOrigin{std::move(recoveryGatewayOrigin)}
     {
         m_timer.setInterval(100);
         connect(&m_timer, &QTimer::timeout, this, [this] { poll(); });
         m_timer.start();
     }
 
-    using RecoveryObserver = std::function<void(QString, QString, bool, bool)>;
+    using RecoveryObserver = std::function<void(
+        QString, QString, bool, bool, QString, QString, QByteArray, int)>;
     void setRecoveryObserver(RecoveryObserver observer)
     {
         m_recoveryObserver = std::move(observer);
@@ -62,7 +64,8 @@ public:
         // from establishing a fresh identity after cancellation.
         m_pendingRecoveryId = QUuid::createUuid().toString(QUuid::WithoutBraces);
         start(QStringLiteral("recover-account"), {},
-              QJsonObject{{QStringLiteral("requestId"), m_pendingRecoveryId}});
+              QJsonObject{{QStringLiteral("requestId"), m_pendingRecoveryId},
+                          {QStringLiteral("openProofGatewayOrigin"), m_recoveryGatewayOrigin}});
     }
     void cancelRecovery()
     {
@@ -144,7 +147,15 @@ private:
                     m_recoveryObserver(verified ? fid : QString{},
                         error.isEmpty() && outcome != QStringLiteral("cancelled") && !verified
                             ? QStringLiteral("Farcaster recovery was not verified.") : error,
-                        verified, restoredDevice);
+                        verified, restoredDevice,
+                        enteredRecovery && verified
+                            ? event.value(QStringLiteral("identitySubject")).toString() : QString{},
+                        enteredRecovery && verified
+                            ? event.value(QStringLiteral("identityIssuer")).toString() : QString{},
+                        enteredRecovery && verified
+                            ? event.value(QStringLiteral("accountTicket")).toString().toUtf8() : QByteArray{},
+                        enteredRecovery && verified
+                            ? event.value(QStringLiteral("accountExpiresSeconds")).toInt() : 0);
                 }
                 continue;
             }
@@ -221,6 +232,7 @@ private:
     QPointer<PresentationBridge> m_presentation{};
     QPointer<RichComposerController> m_composer{};
     QString m_snapchainOrigin{};
+    QString m_recoveryGatewayOrigin{};
     QTimer m_timer{};
 };
 

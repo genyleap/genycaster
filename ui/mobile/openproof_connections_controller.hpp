@@ -40,6 +40,9 @@ public:
     [[nodiscard]] bool catalogFallback() const noexcept;
     [[nodiscard]] QString error() const;
     [[nodiscard]] QString identityIssuer() const;
+    /** @brief Configured browser gateway origin for a one-shot recovery proof.
+     * Returns empty on invalid/non-HTTPS configuration. No bearer is exposed. */
+    [[nodiscard]] QString recoveryGatewayOrigin() const;
     [[nodiscard]] bool authorized() const noexcept;
     [[nodiscard]] bool authorizing() const noexcept;
     [[nodiscard]] QString approvalUrl() const;
@@ -64,6 +67,10 @@ public:
      * account; other subjects/tokens are erased without affecting the session. */
     void acceptAuthenticatedGrant(QByteArray bearer, QString subject,
                                   std::uint64_t fid, int expiresSeconds);
+    /** @brief Adopts the bounded, server-held OpenProof session issued by an
+     * independently verified Farcaster custody recovery; never persists it. */
+    void acceptRecoveryGrant(QByteArray ticket, QString subject,
+                             std::uint64_t fid, int expiresSeconds);
 
     /** @brief Refreshes public provider capabilities over bounded HTTPS.
      * Network or CORS errors preserve the last known display-only list. */

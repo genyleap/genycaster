@@ -810,3 +810,86 @@ test('read-only browser cast reactions endpoint enforces CORS, rate, and the bat
     assert.equal((await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:'X'.repeat(3000)})).status,413);
   },{browserReactionService});
 });
+
+test('direct Farcaster phrase-recovery broker endpoints pass only fixed proofs, no phrase',async()=>{
+  const calls=[];
+  const fake={
+    async startDirect(fid,address){
+      calls.push(['start',fid,address]);
+      return {ticket:'Q'.repeat(43),
+        message:'genyleap.com Farcaster Auth farcaster://fid/123 '.padEnd(55,'.'),
+        fid,expires_in:120};
+    },
+    async completeDirect(ticket,signature){
+      calls.push(['complete',ticket,signature]);
+      return {authenticated:true,subject:'canonical-123',
+        fid:'123',issuer:'https://openproof.genyleap.com'};
+    }
+  };
+  await withGateway(async({origin})=>{
+    const prefix='/v1/browser/farcaster/recovery/';
+    const opts={method:'POST',headers:{'content-type':'application/json',
+      origin:'https://caster.genyleap.com'}};
+    const preflight=await fetch(origin+prefix+'start',{method:'OPTIONS',
+      headers:{origin:'https://caster.genyleap.com'}});
+    assert.equal(preflight.status,204);
+    assert.equal(preflight.headers.get('access-control-allow-origin'),'*');
+    const attack=await fetch(origin+prefix+'start',{...opts,body:JSON.stringify({
+      fid:'123',address:'0x'+'11'.repeat(20),mnemonic:'secret',
+    })});
+    assert.equal(attack.status,400);
+    const started=await fetch(origin+prefix+'start',{...opts,body:JSON.stringify({
+      fid:'123',address:'0x'+'11'.repeat(20)
+    })});
+    assert.equal(started.status,200);
+    assert.equal((await started.json()).fid,'123');
+    const complete=await fetch(origin+prefix+'complete',{...opts,body:JSON.stringify({
+      ticket:'Q'.repeat(43),signature:'0x'+'ab'.repeat(64)+'1b'
+    })});
+    assert.equal(complete.status,200);
+    assert.deepEqual(await complete.json(),{authenticated:true,subject:'canonical-123',
+      fid:'123',issuer:'https://openproof.genyleap.com'});
+  },{farcasterBroker:fake});
+  assert.deepEqual(calls,[['start','123','0x'+'11'.repeat(20)],
+    ['complete','Q'.repeat(43),'0x'+'ab'.repeat(64)+'1b']]);
+});
+
+test('temporary recovered OpenProof account capability reuses server cookie without OAuth signup',async()=>{
+  const secret='Bearer recovery.'+'R'.repeat(43);
+  const seen=[];
+  const fakeBroker={
+    authorizeRecoveryAccount:token=>token===secret
+      ?{fid:'123',subject:'canonical-123',cookie:'__Host-openproof-session=hidden-cookie'}:null
+  };
+  await withGateway(async({origin})=>{
+    const route='/v1/browser/openproof/connections';
+    const r=await fetch(origin+route,{headers:{authorization:secret}});
+    assert.equal(r.status,200);
+    assert.deepEqual(await r.json(),{connections:[{provider:'farcaster',fid:'123'},
+      {provider:'x',subject:'x-123'}]});
+    const handoff=await fetch(origin+route+'/handoff',{
+      method:'POST',headers:{authorization:secret,'content-type':'application/json'},
+      body:JSON.stringify({provider:'x'})});
+    assert.equal(handoff.status,200);
+    assert.equal((await handoff.json()).handoff_url,
+      'https://openproof.genyleap.com/account/connections/handoff?ticket=fresh');
+    const rejected=await fetch(origin+route,{headers:{
+      authorization:'Bearer recovery.'+'Z'.repeat(43)}});
+    assert.equal(rejected.status,401);
+    assert.equal(seen.length,2,'unauthorized tickets must not contact OpenProof');
+  },{farcasterBroker:fakeBroker,fetchImpl:async(url,opts)=>{
+    seen.push({url,opts});
+    assert.equal(opts.headers.cookie,'__Host-openproof-session=hidden-cookie');
+    assert.equal(opts.headers.authorization,undefined);
+    if(url.endsWith('/account/connections'))
+      return new Response(JSON.stringify({connections:[
+        {provider:'farcaster',fid:'123'},{provider:'x',subject:'x-123'}
+      ]}),{status:200,headers:{'content-type':'application/json'}});
+    if(url.endsWith('/account/connections/handoff'))
+      return new Response(JSON.stringify({handoff_url:
+        'https://openproof.genyleap.com/account/connections/handoff?ticket=fresh',
+        expires_at:'2026-10-21T12:00:00Z'}),
+        {status:201,headers:{'content-type':'application/json'}});
+    throw new Error('unexpected upstream '+url);
+  }});
+});

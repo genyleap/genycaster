@@ -420,7 +420,19 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   const replayCache = dependencies.replayCache ?? new ReplayCache(config.proofLifetimeSeconds);
   const limiter = dependencies.limiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.rateLimit);
   const partLimiter = dependencies.partLimiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.partRateLimit);
-  const farcasterBroker = dependencies.farcasterBroker ?? createBrowserFarcasterBroker(runtime);
+  const farcasterBroker = dependencies.farcasterBroker ?? createBrowserFarcasterBroker({
+    ...runtime, issuerOrigin:config.openProofIssuer.origin,
+  });
+  // OpenProof's own session remains authoritative. A freshly recovered
+  // custody proof may temporarily authorize the same account without making
+  // the user repeat the device-grant ceremony. The cookie lives server-side.
+  const accountHeaders = authorization => {
+    if (authorization.startsWith('Bearer recovery.')) {
+      const verified = farcasterBroker.authorizeRecoveryAccount?.(authorization);
+      return verified?.cookie ? {cookie:verified.cookie,accept:'application/json'} : null;
+    }
+    return {authorization,accept:'application/json'};
+  };
   const retrieveImage = dependencies.retrieveImage ?? retrieveBrowserImage;
   const resolveMiniAppPreview = dependencies.resolveMiniAppPreview ?? publicMiniAppPreview;
   const verifiedMiniAppIcons = new Map();
@@ -492,7 +504,11 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         && request.method === 'POST';
       const isPoll = requestUrl.pathname === '/v1/browser/farcaster/poll'
         && request.method === 'POST';
-      if (!isStart && !isPoll) {
+      const isRecoveryStart = requestUrl.pathname === '/v1/browser/farcaster/recovery/start'
+        && request.method === 'POST';
+      const isRecoveryComplete = requestUrl.pathname === '/v1/browser/farcaster/recovery/complete'
+        && request.method === 'POST';
+      if (!isStart && !isPoll && !isRecoveryStart && !isRecoveryComplete) {
         writeJson(response, 405, { error: 'method_not_allowed' }); return;
       }
       const rate = limiter.check(clientAddress(request, config.trustCloudflare), runtime.now());
@@ -506,13 +522,27 @@ export function createMediaGateway(config, storage, dependencies = {}) {
             return;
           }
         }
+        let requestBody;
         if (isPoll) {
           const payload = safeJson(await readBody(request, 256));
           ticket = payload?.ticket;
+        } else if (isRecoveryStart || isRecoveryComplete) {
+          requestBody = safeJson(await readBody(request, isRecoveryStart ? 256 : 512));
+          if (!requestBody || typeof requestBody !== 'object'
+              || Array.isArray(requestBody)
+              || Object.keys(requestBody).some(k => !(
+                isRecoveryStart ? ['fid','address'].includes(k)
+                                : ['ticket','signature'].includes(k)))) {
+            writeJson(response,400,{error:'auth_invalid_recovery_request'});return;
+          }
         }
-        const output = isStart ? await farcasterBroker.start()
-          : await farcasterBroker.poll(ticket);
-        if (output.authenticated) farcasterBroker.consume(ticket);
+        const output = isRecoveryStart
+          ? await farcasterBroker.startDirect(requestBody.fid,requestBody.address)
+          : isRecoveryComplete
+            ? await farcasterBroker.completeDirect(requestBody.ticket,requestBody.signature)
+            : isStart ? await farcasterBroker.start()
+                      : await farcasterBroker.poll(ticket);
+        if (output.authenticated && !isRecoveryComplete) farcasterBroker.consume(ticket);
         writeJson(response, output.pending ? 202 : 200, output);
       } catch (error) {
         writeJson(response, Number.isInteger(error.status) ? error.status : 502, {
@@ -847,11 +877,15 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       if (!rate.allowed) {
         writeJson(response, 429, { error: 'rate_limited' }); return;
       }
+      const delegated = accountHeaders(authorization);
+      if (!delegated) {
+        writeJson(response, 401, {error:'openproof_unauthorized'});return;
+      }
       try {
         const upstream = await runtime.fetchImpl(
           config.openProofIssuer.href.replace(/\/$/, '') + '/account/connections', {
             method: 'GET',
-            headers: { authorization, accept: 'application/json' },
+            headers: delegated,
             redirect: 'error',
             signal: AbortSignal.timeout(8_000),
           },
@@ -936,11 +970,15 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       const requestJson = handoff
         ? {provider, return_to:'/account/connections/complete'}
         : {provider,subject:payload.subject};
+      const delegated = accountHeaders(authorization);
+      if (!delegated) {
+        writeJson(response,401,{error:'openproof_unauthorized'});return;
+      }
       try {
         const upstream = await runtime.fetchImpl(
           config.openProofIssuer.href.replace(/\/$/,'') + upstreamPath, {
             method:'POST',
-            headers:{authorization,accept:'application/json','content-type':'application/json'},
+            headers:{...delegated,'content-type':'application/json'},
             body:JSON.stringify(requestJson),
             redirect:'error',
             signal:AbortSignal.timeout(8_000),

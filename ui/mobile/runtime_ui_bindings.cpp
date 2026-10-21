@@ -2243,7 +2243,8 @@ void connectRuntime(
 {
 #if defined(__EMSCRIPTEN__)
     auto* const browserSigner = new genycaster::ui::browser_signing::Bridge(
-        bridge, richComposer, browserSnapchainOrigin);
+        bridge, richComposer, browserSnapchainOrigin,
+        connections.recoveryGatewayOrigin());
 #else
     Q_UNUSED(browserSnapchainOrigin);
 #endif
@@ -2483,8 +2484,10 @@ void connectRuntime(
         applyBrowserSession(std::move(state));
     };
     browserSigner->setRecoveryObserver(
-        [sessionObserver](QString fid, QString error,
-                          const bool verified, const bool restoredDevice) {
+        [sessionObserver, &connections, &bridge](QString fid, QString error,
+                          const bool verified, const bool restoredDevice,
+                          QString openProofSubject, QString openProofIssuer,
+                          QByteArray accountTicket, const int accountExpiresSeconds) {
             application::session::SessionState state{};
             if (!verified) {
                 if (error.isEmpty()) {
@@ -2500,11 +2503,18 @@ void connectRuntime(
                 if (!valid || number == 0U) return;
                 const auto authenticatedAt = foundation::time::now();
                 state.phase = application::session::SessionPhase::Authenticated;
+                const bool canonicalOpenProof = !restoredDevice
+                    && !openProofSubject.isEmpty() && openProofSubject.size() <= 512
+                    && openProofIssuer == connections.identityIssuer();
                 state.session = domain::session::ClientSession{
-                    .identityIssuer = restoredDevice
+                    .identityIssuer = canonicalOpenProof
+                        ? openProofIssuer.toStdString()
+                        : restoredDevice
                         ? std::string{"genycaster:device-local"}
                         : std::string{"farcaster:optimism-idregistry"},
-                    .identitySubject = std::string{"fid:"} + fid.toStdString(),
+                    .identitySubject = canonicalOpenProof
+                        ? openProofSubject.toStdString()
+                        : std::string{"fid:"} + fid.toStdString(),
                     .fid = domain::identity::Fid{static_cast<std::uint64_t>(number)},
                     .method = domain::session::AuthenticationMethod::Custody,
                     .authenticatedAt = authenticatedAt,
@@ -2514,6 +2524,32 @@ void connectRuntime(
                 };
             }
             sessionObserver(std::move(state));
+            // The session commit was queued onto the bridge. Deliver the
+            // ephemeral OpenProof account capability after that same queue
+            // establishes the verified issuer and owning Farcaster FID.
+            if (verified && !restoredDevice && !openProofSubject.isEmpty()
+                && openProofIssuer == connections.identityIssuer()
+                && !accountTicket.isEmpty()) {
+                bool validFid = false;
+                const auto ownerFid = fid.toULongLong(&validFid);
+                if (validFid) {
+                    QMetaObject::invokeMethod(
+                        &bridge,
+                        [&bridge, &connections, ticket = std::move(accountTicket),
+                         subject = std::move(openProofSubject), ownerFid,
+                         accountExpiresSeconds]() mutable {
+                            if (bridge.isAuthenticated()
+                                && bridge.accountFid() == ownerFid
+                                && bridge.accountIdentityIssuer() == connections.identityIssuer()) {
+                                connections.acceptRecoveryGrant(
+                                    std::move(ticket), std::move(subject),
+                                    ownerFid, accountExpiresSeconds);
+                            } else {
+                                ticket.fill('\0');
+                            }
+                        }, Qt::QueuedConnection);
+                }
+            }
         });
     QObject::connect(&bridge, &PresentationBridge::signInRequested, browserAuth,
         [browserAuth, browserObserver, browserSigner, &bridge, &connections, sessionObserver](const QString& route) {

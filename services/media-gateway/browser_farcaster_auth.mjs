@@ -1,6 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
 
-const issuer = 'https://openproof.genyleap.com';
 const relay = 'https://relay.farcaster.xyz';
 const attemptLifetimeMs = 5 * 60_000;
 const maxAttempts = 256;
@@ -71,11 +70,29 @@ async function upstreamJson(fetchImpl, url, options, expected = [200]) {
   return { response, json: await boundedJson(response) };
 }
 
-export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now } = {}) {
+export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now,
+  issuerOrigin = 'https://openproof.genyleap.com' } = {}) {
+  const issuerUrl = new URL(issuerOrigin);
+  if (issuerUrl.protocol !== 'https:' || issuerUrl.username || issuerUrl.password ||
+      issuerUrl.search || issuerUrl.hash || issuerUrl.pathname !== '/' ||
+      issuerUrl.port && issuerUrl.port !== '443')
+    throw resultError('auth_invalid_issuer_configuration',500);
+  const issuer = issuerUrl.origin;
   const attempts = new Map();
+  // Ephemeral, server-held OpenProof session for the SAME locally verified
+  // recovery proof. Only an opaque 45-minute capability crosses into the
+  // Genycaster C++ adapter; no OpenProof cookie or account token reaches QML.
+  const accountSessions = new Map();
+  const accountLifetimeMs = 45 * 60_000;
   function cleanup() {
     for (const [key, attempt] of attempts) {
       if (now() >= attempt.expiresAt) attempts.delete(key);
+    }
+    for (const [key, session] of accountSessions) {
+      if (now() >= session.expiresAt) {
+        session.cookies.clear();
+        accountSessions.delete(key);
+      }
     }
   }
   async function start() {
@@ -124,13 +141,100 @@ export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now
     return { ticket, approval_url: approvalUrl, expires_in: attemptLifetimeMs / 1000 };
   }
 
+  // One-shot direct recovery proof: the browser keeps the BIP39 phrase and
+  // custody key, while this broker alone owns cookie-bound OpenProof state.
+  // The challenge is bound to an exact Farcaster FID and custody address.
+  async function startDirect(fid, address) {
+    if (typeof fid !== 'string' || !/^[1-9][0-9]{0,19}$/.test(fid) ||
+        BigInt(fid) > 0xffffffffffffffffn ||
+        typeof address !== 'string' || !/^0x[0-9a-f]{40}$/i.test(address))
+      throw resultError('auth_invalid_recovery_identity',400);
+    cleanup();
+    if (attempts.size >= maxAttempts) throw resultError('auth_too_many_pending',429);
+    const cookies = new Map();
+    const challenge = await upstreamJson(fetchImpl, issuer + '/auth/web3/start', {
+      method:'POST',
+      headers:{accept:'application/json','content-type':'application/json'},
+      body:JSON.stringify({provider:'farcaster',fid,address}),
+    });
+    absorbCookies(cookies, challenge.response.headers);
+    const body = challenge.json;
+    if (cookies.size < 4 || body?.provider !== 'farcaster'
+        || String(body.fid) !== fid || body.address?.toLowerCase() !== address.toLowerCase()
+        || body.domain !== 'genyleap.com' || body.statement !== 'Farcaster Auth'
+        || body.resource_prefix !== 'farcaster://fid/'
+        || typeof body.message !== 'string' || body.message.length < 40
+        || body.message.length > 8192 || !body.message.includes('farcaster://fid/'+fid)
+        || !/^[A-Za-z0-9]{8,64}$/.test(body.nonce || '')
+        || !body.expires_at) {
+      throw resultError('auth_invalid_openproof_challenge');
+    }
+    const ticket = randomBytes(32).toString('base64url');
+    attempts.set(createHash('sha256').update(ticket).digest('hex'),{
+      cookies, direct:true, fid, message:body.message,
+      expiresAt:now()+Math.min(attemptLifetimeMs, 120_000),busy:false,
+    });
+    return {ticket,message:body.message,fid,expires_in:120};
+  }
+
+  async function completeDirect(ticket, signature) {
+    if (typeof ticket !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(ticket)
+        || typeof signature !== 'string' || !/^0x[0-9a-f]{130}$/i.test(signature))
+      throw resultError('auth_invalid_direct_proof',400);
+    cleanup();
+    const key = createHash('sha256').update(ticket).digest('hex');
+    const attempt = attempts.get(key);
+    if (!attempt || !attempt.direct || attempt.busy)
+      throw resultError('auth_expired_or_unknown',404);
+    // Consume before awaiting any network operation: concurrent calls cannot
+    // replay or race a cookie-bound OpenProof completion.
+    attempts.delete(key);
+    attempt.busy = true;
+    try {
+      const completed = await upstreamJson(fetchImpl,issuer+'/auth/web3/complete',{
+        method:'POST',
+        headers:{accept:'application/json','content-type':'application/json',
+                 cookie:cookieHeader(attempt.cookies)},
+        body:JSON.stringify({message:attempt.message,signature}),
+      });
+      if (completed.json.authenticated !== true)
+        throw resultError('auth_openproof_not_verified',401);
+      absorbCookies(attempt.cookies,completed.response.headers);
+      const headers={accept:'application/json',cookie:cookieHeader(attempt.cookies)};
+      const profile=await upstreamJson(fetchImpl,issuer+'/account/profile',{
+        method:'GET',headers,
+      });
+      const linked=await upstreamJson(fetchImpl,issuer+'/account/connections',{
+        method:'GET',headers,
+      });
+      const subject=profile.json?.identity_id;
+      const fc=linked.json?.connections?.filter(c=>c.provider==='farcaster')||[];
+      if (typeof subject !== 'string' || subject.length<1 || subject.length>512
+          || fc.length!==1 || String(fc[0].fid)!==attempt.fid) {
+        throw resultError('auth_verified_identity_mismatch',401);
+      }
+      cleanup();
+      if (accountSessions.size >= maxAttempts)
+        throw resultError('auth_too_many_pending',429);
+      const accountTicket='recovery.'+randomBytes(32).toString('base64url');
+      accountSessions.set(createHash('sha256').update(accountTicket).digest('hex'),{
+        fid:attempt.fid,subject,cookies:new Map(attempt.cookies),
+        expiresAt:now()+accountLifetimeMs,
+      });
+      return {authenticated:true,issuer,subject,fid:attempt.fid,
+        account_ticket:accountTicket,expires_in:Math.floor(accountLifetimeMs/1000)};
+    } finally {
+      attempt.cookies.clear();
+    }
+  }
+
   async function poll(ticket) {
     if (typeof ticket !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(ticket))
       throw resultError('auth_invalid_ticket', 400);
     cleanup();
     const key = createHash('sha256').update(ticket).digest('hex');
     const attempt = attempts.get(key);
-    if (!attempt) throw resultError('auth_expired_or_unknown', 404);
+    if (!attempt || attempt.direct) throw resultError('auth_expired_or_unknown', 404);
     if (attempt.busy || now() - attempt.lastPollAt < 1200)
       throw resultError('auth_poll_too_fast', 429);
     attempt.busy = true;
@@ -193,9 +297,20 @@ export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now
     }
   }
 
+  function authorizeRecoveryAccount(authorization) {
+    cleanup();
+    if (typeof authorization !== 'string' ||
+        !/^Bearer recovery\.[A-Za-z0-9_-]{43}$/.test(authorization)) return null;
+    const ticket=authorization.slice('Bearer '.length);
+    const session=accountSessions.get(createHash('sha256').update(ticket).digest('hex'));
+    if (!session || now() >= session.expiresAt) return null;
+    return {fid:session.fid,subject:session.subject,
+      cookie:cookieHeader(session.cookies)};
+  }
+
   function consume(ticket) {
     if (typeof ticket === 'string')
       attempts.delete(createHash('sha256').update(ticket).digest('hex'));
   }
-  return { start, poll, consume };
+  return { start, poll, startDirect, completeDirect, authorizeRecoveryAccount, consume };
 }

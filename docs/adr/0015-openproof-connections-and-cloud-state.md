@@ -48,3 +48,40 @@ Create the PostgreSQL database `genycaster` **only** using authorized database a
   built and tests passed before the final issuer-property addition.
   The application QML generators and added C++ controller compiled in the
   native client target; full final link/startup is **not yet verified**.
+
+## Recovery-setup canonical identity convergence (2026-10-21)
+
+- **Responsibility:** After explicit Farcaster phrase recovery, use the verified in-memory custody signer for one fresh direct OpenProof SIWF challenge; resolve or self-provision only the identity associated with that canonical FID. The OpenProof database remains sole account authority.
+- **Capability origin:** Compatibility OpenProof authentication; local Farcaster custody recovery; optional cloud account enrichment.
+- **Contract:** Browser-only recovery can attempt `POST /v1/browser/farcaster/recovery/start` with canonical FID and verified custody address and finish with a signed one-time OpenProof challenge. Return only verified issuer/subject/FID to native Qt; never return mnemonic, custody key, private cookies or upstream tickets.
+- **Canonical invariants:** Exact canonical FID+custody verified on Optimism before signing; fresh server-supplied message, never a client-invented proof; short-lived/replay-limited transaction; server uses its own cookie jar; OpenProof verifies signature and sole linked FID, and issues/retrieves exactly one identity. Do not auto-merge other accounts.
+- **Failure/offline:** OpenProof unavailability does not corrupt a successful local Farcaster recovery or force another phrase entry. Present a clearly scoped local-only session on failure; retry account verification requires fresh authorized proof.
+- **Dependencies:** Browser signer JS → fixed-origin Genycaster media-gateway auth adapter → OpenProof canonical challenge/identity. QML receives only verified identity metadata, never bearer/phrase.
+- **Provider disablement:** No mandatory OpenProof call on cached read/guest or local device account restoration; only explicit new phrase setup tries convergence.
+- **Verification:** Mock upstream OpenProof contracts for direct FID/custody matching, cookies and anti-replay, real secp256k1 personal-sign vector, recovery setup cancellation and optional outage, UI session issuer, architecture checks, WASM linkage. No claim of live auto-provision without an actual authorized user ceremony.
+
+### Temporary account access and deployment gates
+
+- On successful exact-FID proof, OpenProof session cookies remain in the
+  media-gateway process; an opaque 256-bit `recovery.<ticket>` capability is
+  returned once, stored only in Genycaster's native C++ session controller, and
+  expires in at most **45 minutes**. HTTP account adapters exchange it for
+  server-held cookies to list/mutate **that same OpenProof account**. Neither
+  server cookies nor bearer credentials enter QML or persistent storage.
+- Session cleanup occurs on expiry, and the client erases its ticket at
+  sign-out/FID change. Gateway restarts intentionally invalidate outstanding
+  tickets. Restored device-only FID state is *not* a fresh OpenProof proof, so
+  its session is conservatively local until reauthorization.
+- The OpenProof start/complete ceremony is one-shot and bound to canonical
+  custody address and FID; browser-side signing is EIP-191 over the exact
+  server-issued FIP-11 message. No phrase/seed/private key is forwarded.
+- OpenProof outage **never** blocks local signer recovery: only a successfully
+  verified issuer/subject enters the canonical account session; otherwise
+  `farcaster:optimism-idregistry` remains an explicitly local issuer.
+- Native clients without in-browser phrase recovery retain their existing
+  OpenProof OAuth/device onboarding. This iteration does not add a native
+  mnemonic signer.
+- Production gates: compile/link of the *current* client, startup/QML tests,
+  end-to-end signed proof against real OpenProof and explicit consent where
+  required, and jointly verified gateway/client release. Test mocks do not
+  prove that live OpenProof self-provision policy is enabled.

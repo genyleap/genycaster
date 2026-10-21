@@ -161,6 +161,8 @@
                     const controller=new AbortController();
                     recoveryController=controller;
                     if(epoch!==thisEpoch || owner!==fid) return;
+                    const {openProofGatewayOrigin}=JSON.parse(payloadString);
+                    let verifiedOpenProof=null;
                     const recoveredFid=await promptForFarcasterRecovery(
                         window,controller.signal,async phrase=>{
                             if(epoch!==thisEpoch || owner!==fid || controller.signal.aborted)
@@ -169,7 +171,16 @@
                             if(epoch!==thisEpoch || owner!==fid || controller.signal.aborted)
                                 throw new Error("Recovery was cancelled");
                             return current.recoverAccountFromPhrase(
-                                phrase,()=>epoch===thisEpoch && owner===fid && !controller.signal.aborted);
+                                phrase,()=>epoch===thisEpoch && owner===fid && !controller.signal.aborted,
+                                async (verifiedFid,custody)=>{
+                                    if(!openProofGatewayOrigin) return;
+                                    const {verifyRecoveredFarcasterIdentity}=
+                                        await import('./openproof_recovery.mjs');
+                                    verifiedOpenProof=await verifyRecoveredFarcasterIdentity({
+                                        fid:verifiedFid,custody,gatewayOrigin:openProofGatewayOrigin,
+                                        signal:controller.signal,
+                                    });
+                                });
                         });
                     if(epoch!==thisEpoch || owner!==fid) return;
                     rememberedWrite=rememberedWrite.catch(()=>{}).then(async()=>{
@@ -181,7 +192,15 @@
                     await rememberedWrite.catch(error=>
                         console.warn('[Genycaster] Device session could not be saved',error));
                     if(epoch!==thisEpoch || owner!==fid) return;
-                    report({kind:'setup-account',phase:'ready',fid:recoveredFid,requestId});
+                    // Native Qt may mark this as canonical OpenProof identity
+                    // only when the verified subject and issuer accompany the
+                    // exact one-shot recovery request. Missing proof means a
+                    // functional, explicitly local Farcaster session.
+                    report({kind:'setup-account',phase:'ready',fid:recoveredFid,requestId,
+                        identityIssuer:verifiedOpenProof?.issuer || '',
+                        identitySubject:verifiedOpenProof?.subject || '',
+                        accountTicket:verifiedOpenProof?.accountTicket || '',
+                        accountExpiresSeconds:verifiedOpenProof?.expiresSeconds || 0});
                 } else {
                     const current=await createClient(base);
                     if(epoch!==thisEpoch || owner!==fid)return;

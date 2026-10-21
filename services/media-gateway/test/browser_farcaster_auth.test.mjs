@@ -119,3 +119,99 @@ test('pending proof cannot be polled at an unlimited rate', async () => {
   assert.equal((await broker.poll(started.ticket)).pending, true);
   await assert.rejects(() => broker.poll(started.ticket), /auth_poll_too_fast/);
 });
+
+test('recovery signer proves the exact existing Farcaster FID to OpenProof without leaking keys',async()=>{
+  const upstream=[];
+  let timestamp=0;
+  const message='genyleap.com wants you to sign in with your Ethereum account:\\n0x1111111111111111111111111111111111111111\\n\\nFarcaster Auth\\n\\nURI: https://genyleap.com/account\\nVersion: 1\\nChain ID: 10\\nNonce: abcdefgh12345\\nResources:\\n- farcaster://fid/123';
+  const json=(obj)=>new Response(JSON.stringify(obj),{status:200,headers:{'content-type':'application/json'}});
+  const fetchImpl=async(url,opts)=>{
+    upstream.push({url,opts});
+    if(url.endsWith('/auth/web3/start')){
+      assert.deepEqual(JSON.parse(opts.body),{provider:'farcaster',fid:'123',
+        address:'0x1111111111111111111111111111111111111111'});
+      const r=json({provider:'farcaster',fid:'123',
+        address:'0x1111111111111111111111111111111111111111',
+        message,nonce:'abcdefgh12345',domain:'genyleap.com',
+        statement:'Farcaster Auth',resource_prefix:'farcaster://fid/',
+        expires_at:'2026-10-21T00:02:00Z'});
+      r.headers.getSetCookie=()=>['__Host-openproof-a=aa; Path=/',
+        '__Host-openproof-b=bb; Path=/','__Host-openproof-c=cc; Path=/',
+        '__Host-openproof-d=dd; Path=/'];
+      return r;
+    }
+    if(url.endsWith('/auth/web3/complete')){
+      assert.deepEqual(JSON.parse(opts.body),{message,signature:'0x'+'ab'.repeat(64)+'1b'});
+      assert.match(opts.headers.cookie,/__Host-openproof-a=aa/);
+      const r=json({authenticated:true});
+      r.headers.getSetCookie=()=>['__Host-openproof-session=trusted-session; Path=/'];
+      return r;
+    }
+    assert.match(opts.headers.cookie,/__Host-openproof-session=trusted-session/);
+    if(url.endsWith('/account/profile'))return json({identity_id:'canonical-123'});
+    if(url.endsWith('/account/connections'))return json({
+      connections:[{provider:'farcaster',fid:'123'}]});
+    throw Error('unexpected '+url);
+  };
+  const broker=createBrowserFarcasterBroker({fetchImpl,now:()=>timestamp});
+  const started=await broker.startDirect('123','0x1111111111111111111111111111111111111111');
+  assert.equal(started.message,message);
+  assert.equal(started.fid,'123');
+  assert.equal(started.cookies,undefined);
+  await assert.rejects(()=>broker.poll(started.ticket),/auth_expired_or_unknown/);
+  const result=await broker.completeDirect(started.ticket,'0x'+'ab'.repeat(64)+'1b');
+  assert.equal(result.authenticated,true);
+  assert.equal(result.issuer,'https://openproof.genyleap.com');
+  assert.equal(result.subject,'canonical-123');
+  assert.equal(result.fid,'123');
+  assert.match(result.account_ticket,/^recovery\.[A-Za-z0-9_-]{43}$/);
+  assert.equal(result.expires_in,2700);
+  assert.deepEqual(broker.authorizeRecoveryAccount('Bearer '+result.account_ticket),{
+    fid:'123',subject:'canonical-123',
+    cookie:'__Host-openproof-a=aa; __Host-openproof-b=bb; __Host-openproof-c=cc; __Host-openproof-d=dd; __Host-openproof-session=trusted-session',
+  });
+  assert.equal(upstream.length,4);
+  timestamp+=45*60_000+1;
+  assert.equal(broker.authorizeRecoveryAccount('Bearer '+result.account_ticket),null,
+    'temporary account capability must expire even if the app does not sign out');
+  await assert.rejects(
+    ()=>broker.completeDirect(started.ticket,'0x'+'ab'.repeat(64)+'1b'),
+    /auth_expired_or_unknown/);
+  await assert.rejects(()=>broker.startDirect('123','not-an-address'),/auth_invalid_recovery_identity/);
+  await assert.rejects(()=>broker.startDirect('000123','0x1111111111111111111111111111111111111111'),
+    /auth_invalid_recovery_identity/);
+});
+
+test('recovery cannot claim an unrelated OpenProof FID or attacker supplied signed message',async()=>{
+  const json=obj=>new Response(JSON.stringify(obj),{
+    status:200,headers:{'content-type':'application/json'}});
+  let steps=0;
+  const broker=createBrowserFarcasterBroker({fetchImpl:async(url,opts)=>{
+    steps++;
+    if(url.endsWith('/auth/web3/start')){
+      const r=json({provider:'farcaster',fid:'123',
+        address:'0x1111111111111111111111111111111111111111',
+        message:'Farcaster Auth - farcaster://fid/123 '+'.'.repeat(55),
+        nonce:'abcdefgh12345',domain:'genyleap.com',statement:'Farcaster Auth',
+        resource_prefix:'farcaster://fid/',expires_at:'tomorrow'});
+      r.headers.getSetCookie=()=>['__Host-openproof-a=aa','__Host-openproof-b=bb',
+        '__Host-openproof-c=cc','__Host-openproof-d=dd'];
+      return r;
+    }
+    if(url.endsWith('/auth/web3/complete')){
+      const r=json({authenticated:true});
+      r.headers.getSetCookie=()=>['__Host-openproof-session=session'];
+      return r;
+    }
+    if(url.endsWith('/account/profile'))return json({identity_id:'one'});
+    if(url.endsWith('/account/connections'))return json({
+      connections:[{provider:'farcaster',fid:'999'}]});
+    throw Error('unexpected');
+  }});
+  const started=await broker.startDirect('123','0x1111111111111111111111111111111111111111');
+  await assert.rejects(()=>broker.completeDirect(started.ticket,'0x'+'ab'.repeat(64)+'1b'),
+    /auth_verified_identity_mismatch/);
+  assert.equal(steps,4);
+  await assert.rejects(()=>broker.completeDirect(started.ticket,'0x'+'ab'.repeat(64)+'1b'),
+    /auth_expired_or_unknown/);
+});

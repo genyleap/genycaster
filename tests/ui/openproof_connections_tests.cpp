@@ -35,6 +35,11 @@ int main(int argc, char** argv)
     assert(controller.providers().contains(QStringLiteral("farcaster")));
     assert(!controller.providers().contains(QStringLiteral("local")));
     controller.setViewerFid(42);
+    assert(controller.recoveryGatewayOrigin().startsWith(QStringLiteral("https://")));
+    controller.acceptRecoveryGrant(QByteArrayLiteral("invalid-ticket"),
+        QStringLiteral("subject-42"), 42, 2700);
+    controller.acceptRecoveryGrant(QByteArrayLiteral("recovery.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+        QStringLiteral("subject-42"), 999, 2700);
     assert(!controller.authorized());
     assert(controller.connections().isEmpty());
     controller.connectProvider(QStringLiteral("unknown-provider"));

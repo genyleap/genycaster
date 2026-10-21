@@ -87,6 +87,12 @@ QString OpenProofConnectionsController::approvalUrl() const { return m_approvalU
 QString OpenProofConnectionsController::consentUrl() const { return m_consentUrl; }
 QVariantList OpenProofConnectionsController::connections() const { return m_connections; }
 bool OpenProofConnectionsController::actionBusy() const noexcept { return m_actionBusy; }
+QString OpenProofConnectionsController::recoveryGatewayOrigin() const
+{
+    if (!trustedHttpsEndpoint(m_gatewayUrl)) return {};
+    return m_gatewayUrl.adjusted(QUrl::RemovePath | QUrl::RemoveQuery)
+        .toString(QUrl::FullyEncoded);
+}
 QString OpenProofConnectionsController::identityIssuer() const
 {
     return trustedHttpsEndpoint(m_issuerUrl) ? m_issuerUrl.toString(QUrl::FullyEncoded) : QString{};
@@ -202,6 +208,31 @@ void OpenProofConnectionsController::acceptAuthenticatedGrant(
     // unless a previous authenticated grant really needs replacement.
     if (!m_accountBearer.isEmpty()) clearAccountGrant();
     m_accountBearer = std::move(bearer);
+    m_accountSubject = std::move(subject);
+    m_grantExpiry.start(std::clamp(expiresSeconds - 10, 1, 3'590) * 1'000);
+    m_error.clear();
+    refreshConnections();
+}
+
+void OpenProofConnectionsController::acceptRecoveryGrant(
+    QByteArray ticket, QString subject, const std::uint64_t fid,
+    const int expiresSeconds)
+{
+    // The one-time proof established OpenProof identity on the server; only
+    // the time-limited account capability enters this process, never cookies
+    // or a secret custody key. A stale/out-of-order FID must be rejected.
+    static const QRegularExpression ticketFormat{
+        QStringLiteral("^recovery\\.[A-Za-z0-9_-]{43}$")};
+    if (!m_viewerFid || fid != m_viewerFid ||
+        subject.isEmpty() || subject.size() > 512 ||
+        !ticketFormat.match(QString::fromLatin1(ticket)).hasMatch() ||
+        expiresSeconds < 60 || expiresSeconds > 3600 ||
+        !trustedHttpsEndpoint(m_gatewayUrl)) {
+        ticket.fill('\0');
+        return;
+    }
+    if (!m_accountBearer.isEmpty()) clearAccountGrant();
+    m_accountBearer = std::move(ticket);
     m_accountSubject = std::move(subject);
     m_grantExpiry.start(std::clamp(expiresSeconds - 10, 1, 3'590) * 1'000);
     m_error.clear();

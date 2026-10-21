@@ -402,6 +402,9 @@ if(EMSCRIPTEN)
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/farcaster_recovery.mjs"
             "$<TARGET_FILE_DIR:farcaster_client>/farcaster_recovery.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/openproof_recovery.mjs"
+            "$<TARGET_FILE_DIR:farcaster_client>/openproof_recovery.mjs"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/recovery-phrase-dialog.mjs"
             "$<TARGET_FILE_DIR:farcaster_client>/recovery-phrase-dialog.mjs"
         COMMAND ${CMAKE_COMMAND} -E make_directory
