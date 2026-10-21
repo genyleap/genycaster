@@ -9,6 +9,7 @@
 #include <QGuiApplication>
 #include <QDir>
 #include <QImage>
+#include <QImageReader>
 #include <QJSValue>
 #include <QMediaPlayer>
 #include <QPointer>
@@ -297,6 +298,7 @@ int main(int argc, char** argv)
             property bool authorized: false
             property bool authorizing: false
             property bool actionBusy: false
+            property bool catalogFallback: false
             property string approvalUrl: ""
             property string consentUrl: ""
             property string error: ""
@@ -365,6 +367,18 @@ int main(int argc, char** argv)
     // a media geometry regression must not mask an import/attached-property
     // error at application startup.
     if (qEnvironmentVariableIsSet("GENYCASTER_QML_IMPORT_SMOKE_ONLY")) {
+        // Test that every provider vector is bundled and decodable by the
+        // same Qt SVG image plugin used by the actual QML Image delegates.
+        for (const auto& provider : {
+                 "x", "github", "google", "linkedin", "telegram",
+                 "farcaster", "ethereum-wallet"}) {
+            const QString path =
+                QStringLiteral(":/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/")
+                + QString::fromLatin1(provider) + QStringLiteral(".svg");
+            QImageReader image{path};
+            expect(image.canRead(), qPrintable(
+                QStringLiteral("Provider SVG missing or undecodable: ") + path));
+        }
         const QStringList components{
             QStringLiteral("EmbedPreview"),
             QStringLiteral("RichCastRenderer"),
@@ -372,6 +386,7 @@ int main(int argc, char** argv)
             QStringLiteral("ConversationRow"),
             QStringLiteral("SemanticFeedItem"),
             QStringLiteral("FeedSurface"),
+            QStringLiteral("AccountConnectionsPopup"),
             QStringLiteral("AppShell"),
         };
         for (const auto& name : components) {

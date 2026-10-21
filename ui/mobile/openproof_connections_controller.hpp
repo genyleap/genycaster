@@ -23,6 +23,7 @@ class OpenProofConnectionsController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QStringList providers READ providers NOTIFY stateChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY stateChanged)
+    Q_PROPERTY(bool catalogFallback READ catalogFallback NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString identityIssuer READ identityIssuer CONSTANT)
     Q_PROPERTY(bool authorized READ authorized NOTIFY stateChanged)
@@ -36,6 +37,7 @@ public:
 
     [[nodiscard]] QStringList providers() const;
     [[nodiscard]] bool loading() const noexcept;
+    [[nodiscard]] bool catalogFallback() const noexcept;
     [[nodiscard]] QString error() const;
     [[nodiscard]] QString identityIssuer() const;
     [[nodiscard]] bool authorized() const noexcept;
@@ -104,4 +106,5 @@ private:
     QStringList m_providers{};
     QString m_error{};
     bool m_loading{};
+    bool m_catalogFallback{};
 };

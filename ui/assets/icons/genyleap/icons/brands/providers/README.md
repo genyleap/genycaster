@@ -1,0 +1,1 @@
+LinkedIn, Telegram and Farcaster monochrome artwork is tinted to each brand's recognizable primary hue for contrast. Brand marks sourced from existing first-party Genyleap public assets (/assets/site/brand) on 2026-10-21. Marks are third-party trademarks used solely to identify their services in the account-linking interface. Do not recolor or use them as a claim of endorsement.

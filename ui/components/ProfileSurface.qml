@@ -1291,6 +1291,7 @@ Item {
                    && openProofConnections !== null
                    ? openProofConnections.providers : []
         connections: openProofConnections.connections
+        catalogFallback: openProofConnections.catalogFallback
         authorized: openProofConnections.authorized
         authorizing: openProofConnections.authorizing
         approvalUrl: openProofConnections.approvalUrl

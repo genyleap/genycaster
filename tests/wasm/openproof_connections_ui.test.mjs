@@ -78,3 +78,27 @@ test('verified OpenProof session commits before its transient account grant (sam
   assert.equal(gui.shift()(),undefined);
   assert.equal(gui.shift()(),true);
 });
+
+test('connection selector packages provider-owned SVGs and keeps links in the app', () => {
+  const path = '../../ui/assets/icons/genyleap/icons/brands/providers/';
+  for (const provider of ['x','github','google','linkedin','telegram','farcaster','ethereum-wallet']) {
+    const svg = read(path + provider + '.svg');
+    assert.match(svg, /<svg\b/);
+    assert.doesNotMatch(svg, /<script\b|<image\b|<use\b|foreignObject|onload\s*=|\bhref\s*=|url\s*\(/i);
+    assert.match(popup, new RegExp('case "' + provider + '": return logoRoot \\+ "' + provider + '\\.svg"'));
+  }
+  assert.match(popup, /qrc:\/qt\/qml\/Farcaster\/Client\/assets\/icons\/genyleap/);
+  assert.match(popup, /source: picker\.providerIcon\(providerRow\.modelData\)/);
+  assert.match(popup, /Theme\.uiDirection/);
+  assert.match(popup, /Theme\.dark|Theme\.surfaceMuted/);
+  assert.match(popup, /providerRow\.confirmUnlink = true/);
+  assert.match(popup, /picker\.catalogFallback/);
+  assert.doesNotMatch(popup, /https?:\/\//);
+  assert.doesNotMatch(popup, /Verify profile first|Provider catalog unavailable; showing known options/);
+});
+
+test('provider listing failure is a subdued offline hint, never an auth error', () => {
+  assert.match(controller, /m_catalogFallback = latest\.isEmpty\(\)/);
+  assert.doesNotMatch(controller, /m_error = QStringLiteral\("Provider catalog unavailable/);
+  assert.match(qml, /catalogFallback: openProofConnections\.catalogFallback/);
+});

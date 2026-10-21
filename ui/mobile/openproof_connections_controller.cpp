@@ -79,6 +79,7 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent)
 
 QStringList OpenProofConnectionsController::providers() const { return m_providers; }
 bool OpenProofConnectionsController::loading() const noexcept { return m_loading; }
+bool OpenProofConnectionsController::catalogFallback() const noexcept { return m_catalogFallback; }
 QString OpenProofConnectionsController::error() const { return m_error; }
 bool OpenProofConnectionsController::authorized() const noexcept { return m_verified; }
 bool OpenProofConnectionsController::authorizing() const noexcept { return m_authorizing; }
@@ -116,13 +117,10 @@ void OpenProofConnectionsController::refresh()
         const QByteArray payload = ok ? reply->readAll() : QByteArray{};
         reply->deleteLater();
         const QStringList latest = parseProviderCatalog(payload);
-        if (latest.isEmpty()) {
-            // An offline/CORS failure must not blank already visible choices.
-            m_error = QStringLiteral("Provider catalog unavailable; showing known options.");
-        } else {
-            m_providers = latest;
-            m_error.clear();
-        }
+        // Catalog availability is informational, not an account operation
+        // failure: don't flash a red warning or clear a real auth error.
+        m_catalogFallback = latest.isEmpty();
+        if (!latest.isEmpty()) m_providers = latest;
         emit stateChanged();
     });
 }
