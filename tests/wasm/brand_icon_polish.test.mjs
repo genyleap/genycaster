@@ -19,8 +19,8 @@ test("Home greeting displays authenticated account avatar and DNA for guests",()
     const shell=read("ui/components/AppShell.qml");
     assert.match(shell,/avatarUrl: presentationBridge\.accountAvatarUrl/);
     assert.match(shell,/authenticated: presentationBridge\.isAuthenticated/);
-    assert.match(home,/avatarSize: 58/);
-    assert.match(home,/avatarSize: 52/);
+    assert.match(home,/avatarSize: 62/);
+    assert.match(home,/avatarSize: root\.densePhone \? 56 : 76/);
     assert.equal((home.match(/sourceUrl: root\.avatarUrl/g)||[]).length,2);
     assert.equal((home.match(/visible: root\.authenticated && root\.avatarUrl\.length > 0/g)||[]).length,2);
     assert.equal((home.match(/visible: !root\.authenticated \|\| root\.avatarUrl\.length === 0/g)||[]).length,2);

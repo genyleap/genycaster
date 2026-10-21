@@ -80,7 +80,7 @@ Item {
                                                    ? qsTrId("genycaster.home.greeting_evening")
                                                    : qsTrId("genycaster.home.greeting_night")).arg(root.welcomeName)
     implicitWidth: 980
-    implicitHeight: 720
+    implicitHeight: 790
 
     Timer {
         interval: 60000
@@ -98,8 +98,6 @@ Item {
         else if (destination === "trends") root.trendsRequested()
     }
 
-    // One quiet panel for destinations, with future features separated below.
-    // Neither row generates feed data or performs a network request itself.
     component HubWorkspace: ColumnLayout {
         spacing: Theme.space3
 
@@ -111,98 +109,84 @@ Item {
             font.weight: Theme.weightDemiBold
         }
 
-        Superellipse {
-            objectName: "homeToolsPanel"
+        GridLayout {
             Layout.fillWidth: true
-            implicitHeight: toolsGrid.implicitHeight + Theme.space2 * 2
-            fillColor: Theme.surface
-            borderWidth: 1
-            borderColor: Theme.borderMuted
-            curveDepth: Theme.curveSheet
+            columns: 2
+            columnSpacing: Theme.space2
+            rowSpacing: Theme.space2
+            layoutDirection: Theme.uiDirection
 
-            GridLayout {
-                id: toolsGrid
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: Theme.space2
-                anchors.rightMargin: Theme.space2
-                columns: 2
-                columnSpacing: Theme.space1
-                rowSpacing: Theme.space1
-                layoutDirection: Theme.uiDirection
+            Repeater {
+                model: [
+                    { destination: "explorer", name: qsTrId("genycaster.side_nav.explorer"), description: qsTrId("genycaster.home.hub_discover_detail"), glyph: Theme.iconCompass },
+                    { destination: "search", name: qsTrId("genycaster.feed_header.universal_search"), description: qsTrId("genycaster.home.search_description"), glyph: Theme.iconSearch },
+                    { destination: "apps", name: qsTrId("genycaster.apps.title"), description: qsTrId("genycaster.home.apps_description"), glyph: Theme.iconApps },
+                    { destination: "trends", name: qsTrId("genycaster.home.hub_trends"), description: qsTrId("genycaster.home.hub_trends_detail"), glyph: Theme.iconChart }
+                ]
+                delegate: Superellipse {
+                    required property var modelData
+                    objectName: "homeShortcut_" + modelData.destination
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 0
+                    Layout.preferredHeight: root.compact ? 116 : 120
+                    fillColor: actionMouse.pressed ? Theme.surfacePressed
+                               : actionMouse.containsMouse ? Theme.surfaceHover : Theme.surface
+                    borderWidth: 1
+                    borderColor: actionMouse.containsMouse ? Theme.borderStrong : Theme.borderMuted
+                    curveDepth: Theme.curveContainer
+                    activeFocusOnTab: true
+                    Accessible.role: Accessible.Button
+                    Accessible.name: modelData.name
+                    Accessible.description: modelData.description
+                    Accessible.onPressAction: root.activateHubShortcut(modelData.destination)
+                    Keys.onReturnPressed: root.activateHubShortcut(modelData.destination)
+                    Keys.onSpacePressed: root.activateHubShortcut(modelData.destination)
 
-                Repeater {
-                    model: [
-                        { destination: "explorer", name: qsTrId("genycaster.side_nav.explorer"), description: qsTrId("genycaster.home.hub_discover_detail"), glyph: Theme.iconCompass },
-                        { destination: "search", name: qsTrId("genycaster.feed_header.universal_search"), description: qsTrId("genycaster.home.search_description"), glyph: Theme.iconSearch },
-                        { destination: "apps", name: qsTrId("genycaster.apps.title"), description: qsTrId("genycaster.home.apps_description"), glyph: Theme.iconApps },
-                        { destination: "trends", name: qsTrId("genycaster.home.hub_trends"), description: qsTrId("genycaster.home.hub_trends_detail"), glyph: Theme.iconChart }
-                    ]
-                    delegate: Item {
-                        id: shortcut
-                        required property var modelData
-                        objectName: "homeShortcut_" + modelData.destination
-                        Layout.fillWidth: true
-                        Layout.preferredWidth: 0
-                        Layout.preferredHeight: root.compact ? 79 : 88
-                        activeFocusOnTab: true
-                        Accessible.role: Accessible.Button
-                        Accessible.name: modelData.name
-                        Accessible.description: modelData.description
-                        Accessible.onPressAction: root.activateHubShortcut(modelData.destination)
-                        Keys.onReturnPressed: root.activateHubShortcut(modelData.destination)
-                        Keys.onSpacePressed: root.activateHubShortcut(modelData.destination)
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: Theme.space3
+                        spacing: Theme.space1
 
-                        Superellipse {
-                            anchors.fill: parent
-                            fillColor: shortcutMouse.pressed ? Theme.surfacePressed
-                                       : shortcutMouse.containsMouse ? Theme.surfaceHover : "transparent"
-                            borderWidth: 0
-                            curveDepth: Theme.curveControl
-                            Behavior on fillColor {
-                                ColorAnimation { duration: Theme.motionFast }
-                            }
-                        }
                         RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: Theme.space2
+                            Layout.fillWidth: true
                             layoutDirection: Theme.uiDirection
-                            spacing: Theme.space2
                             Icon {
                                 text: modelData.glyph
                                 preferredSize: Theme.iconSizeLarge
                                 color: Theme.accent
                             }
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: Theme.space1
-                                DirectionAwareLabel {
-                                    Layout.fillWidth: true
-                                    text: modelData.name
-                                    color: Theme.textPrimary
-                                    font.pixelSize: Theme.typeBodySize
-                                    font.weight: Theme.weightDemiBold
-                                    elide: Text.ElideRight
-                                }
-                                DirectionAwareLabel {
-                                    visible: !root.compact
-                                    Layout.fillWidth: true
-                                    text: modelData.description
-                                    color: Theme.textSecondary
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    maximumLineCount: 1
-                                    elide: Text.ElideRight
-                                }
+                            Item { Layout.fillWidth: true }
+                            Icon {
+                                text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                                preferredSize: Theme.iconSizeSmall
+                                color: Theme.textTertiary
                             }
                         }
-                        MouseArea {
-                            id: shortcutMouse
-                            anchors.fill: parent
-                            hoverEnabled: !root.compact
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.activateHubShortcut(modelData.destination)
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: modelData.name
+                            color: Theme.textPrimary
+                            font.pixelSize: Theme.typeBodySize
+                            font.weight: Theme.weightDemiBold
+                            elide: Text.ElideRight
                         }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            text: modelData.description
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.typeCaptionSize
+                            maximumLineCount: 2
+                            wrapMode: Text.Wrap
+                            elide: Text.ElideRight
+                        }
+                    }
+                    MouseArea {
+                        id: actionMouse
+                        anchors.fill: parent
+                        hoverEnabled: !root.compact
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.activateHubShortcut(modelData.destination)
                     }
                 }
             }
@@ -234,17 +218,19 @@ Item {
 
             Repeater {
                 model: [
-                    { key: "agent", title: qsTrId("genycaster.home.hub_agent"), glyph: Theme.iconCpu },
-                    { key: "studio", title: qsTrId("genycaster.home.hub_studio"), glyph: Theme.iconImage },
-                    { key: "wallet", title: qsTrId("genycaster.home.hub_wallet"), glyph: Theme.iconWallet }
+                    { key: "agent", title: qsTrId("genycaster.home.hub_agent"), description: qsTrId("genycaster.home.hub_agent_detail"), glyph: Theme.iconCpu },
+                    { key: "studio", title: qsTrId("genycaster.home.hub_studio"), description: qsTrId("genycaster.home.hub_studio_detail"), glyph: Theme.iconImage },
+                    { key: "wallet", title: qsTrId("genycaster.home.hub_wallet"), description: qsTrId("genycaster.home.hub_wallet_detail"), glyph: Theme.iconWallet }
                 ]
                 delegate: Superellipse {
                     required property var modelData
                     objectName: "homeLocked_" + modelData.key
                     Layout.fillWidth: true
                     Layout.preferredWidth: 0
-                    Layout.preferredHeight: root.compact ? 104 : 116
-                    fillColor: Theme.surfaceMuted
+                    // Compact informational tiles; avoid the large empty
+                    // middle and repeating "Coming soon" inside each card.
+                    Layout.preferredHeight: root.compact ? 88 : 116
+                    fillColor: Theme.surface
                     borderWidth: 1
                     borderColor: Theme.borderMuted
                     curveDepth: Theme.curveContainer
@@ -253,7 +239,7 @@ Item {
 
                     ColumnLayout {
                         anchors.fill: parent
-                        anchors.margins: Theme.space2
+                        anchors.margins: root.compact ? Theme.space2 : Theme.space3
                         spacing: Theme.space1
                         RowLayout {
                             Layout.fillWidth: true
@@ -270,7 +256,6 @@ Item {
                                 color: Theme.textTertiary
                             }
                         }
-                        Item { Layout.fillHeight: true }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
                             text: modelData.title
@@ -280,15 +265,23 @@ Item {
                             maximumLineCount: 1
                             elide: Text.ElideRight
                         }
+                        // The section header already announces availability.
+                        // Keep the phone row compact and the desktop detail
+                        // optional, without presenting a fake enabled action.
                         DirectionAwareLabel {
+                            visible: !root.compact
                             Layout.fillWidth: true
-                            text: qsTrId("genycaster.home.hub_coming_soon")
-                            color: Theme.textTertiary
+                            Layout.fillHeight: true
+                            text: modelData.description
+                            color: Theme.textSecondary
                             font.pixelSize: Theme.typeCaptionSize
+                            maximumLineCount: 2
+                            wrapMode: Text.Wrap
                             elide: Text.ElideRight
                         }
+                        Item { visible: root.compact; Layout.fillHeight: true }
                     }
-                    // No MouseArea or TapHandler: a locked feature is not a button.
+                    // Intentionally non-interactive until the feature exists.
                 }
             }
         }
@@ -320,43 +313,49 @@ Item {
                     Layout.preferredHeight: Math.max(24, Math.min(54, root.height * 0.055))
                 }
 
-                RowLayout {
-                    Layout.alignment: Qt.AlignHCenter
+                ColumnLayout {
                     Layout.fillWidth: true
-                    Layout.maximumWidth: 760
-                    spacing: Theme.space3
-                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space2
 
-                    Avatar {
-                        avatarSize: 58
-                        sourceUrl: root.avatarUrl
-                        displayName: root.displayName || root.username
-                        visible: root.authenticated && root.avatarUrl.length > 0
+                    Superellipse {
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.preferredWidth: 66
+                        Layout.preferredHeight: 66
+                        fillColor: "transparent"
+                        borderWidth: 0
+                        curveDepth: 33
+                        Avatar {
+                            anchors.centerIn: parent
+                            avatarSize: 62
+                            sourceUrl: root.avatarUrl
+                            displayName: root.displayName || root.username
+                            visible: root.authenticated && root.avatarUrl.length > 0
+                        }
+                        Icon {
+                            anchors.centerIn: parent
+                            text: Theme.iconLeaf
+                            color: Theme.accent
+                            preferredSize: 42
+                            visible: !root.authenticated || root.avatarUrl.length === 0
+                        }
                     }
-                    Icon {
-                        text: Theme.iconLeaf
-                        color: Theme.accent
-                        preferredSize: 48
-                        visible: !root.authenticated || root.avatarUrl.length === 0
-                    }
-                    ColumnLayout {
+
+                    DirectionAwareLabel {
                         Layout.fillWidth: true
-                        spacing: Theme.space1
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: root.greetingText
-                            color: Theme.textPrimary
-                            font.pixelSize: Theme.typeTitle1Size
-                            font.weight: Theme.weightBold
-                            wrapMode: Text.Wrap
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.home.hub_tagline")
-                            color: Theme.textSecondary
-                            font.pixelSize: Theme.typeMetaSize
-                            elide: Text.ElideRight
-                        }
+                        horizontalAlignment: Text.AlignHCenter
+                        text: root.greetingText
+                        color: Theme.textPrimary
+                        font.pixelSize: Theme.typeDisplaySize
+                        font.weight: Theme.weightBold
+                        wrapMode: Text.Wrap
+                    }
+
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                        text: qsTrId("genycaster.home.hub_tagline")
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.typeMetaSize
                     }
                 }
 
@@ -455,48 +454,31 @@ Item {
             // even after the navigation tiles are hidden by the keyboard.
             Item { Layout.preferredHeight: root.composerFocused ? Theme.space4
                                                   : root.densePhone ? Theme.space1 : Theme.space3 }
-            RowLayout {
+            Superellipse {
                 visible: !root.composerFocused
-                Layout.fillWidth: true
-                Layout.leftMargin: Theme.space3
-                Layout.rightMargin: Theme.space3
-                spacing: Theme.space3
-                layoutDirection: Theme.uiDirection
-
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: root.densePhone ? 60 : 80
+                Layout.preferredHeight: Layout.preferredWidth
+                fillColor: "transparent"
+                borderWidth: 0
+                curveDepth: width / 2
                 Avatar {
-                    avatarSize: 52
+                    anchors.centerIn: parent
+                    avatarSize: root.densePhone ? 56 : 76
                     sourceUrl: root.avatarUrl
                     displayName: root.displayName || root.username
                     visible: root.authenticated && root.avatarUrl.length > 0
                 }
                 Icon {
-                    visible: !root.authenticated || root.avatarUrl.length === 0
+                    anchors.centerIn: parent
                     text: Theme.iconLeaf
                     color: Theme.accent
-                    preferredSize: 48
-                }
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: Theme.space1
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: root.greetingText
-                        color: Theme.textPrimary
-                        font.pixelSize: root.densePhone ? Theme.typeTitle2Size : Theme.typeTitle1Size
-                        font.weight: Theme.weightBold
-                        maximumLineCount: 2
-                        wrapMode: Text.Wrap
-                        elide: Text.ElideRight
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.home.hub_tagline")
-                        color: Theme.textSecondary
-                        font.pixelSize: Theme.typeCaptionSize
-                        elide: Text.ElideRight
-                    }
+                    preferredSize: root.densePhone ? 38 : 50
+                    visible: !root.authenticated || root.avatarUrl.length === 0
                 }
             }
+            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.densePhone ? Theme.typeTitle1Size : Theme.typeDisplaySize; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
+            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.hub_tagline"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }
 
             Superellipse {
                 id: mobileComposerSurface
@@ -510,19 +492,15 @@ Item {
                 implicitHeight: mobileComposer.implicitHeight
                                 + (root.composerFocused ? Theme.space3 * 2 : Theme.space2 * 2)
                 Behavior on implicitHeight {
-                    NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
                 }
                 ColumnLayout {
                     id: mobileComposer
                     anchors.fill: parent
                     anchors.margins: root.composerFocused ? Theme.space3 : Theme.space2
                     spacing: root.composerFocused ? Theme.space2 : 0
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.space2
-                        layoutDirection: Theme.uiDirection
-                        TextArea {
-                            id: mobileDraftEditor
+                    TextArea {
+                        id: mobileDraftEditor
                         objectName: "homeMobileDraftEditor"
                         ContextMenu.menu: EditorContextMenu { editor: mobileDraftEditor }
                         Layout.fillWidth: true
@@ -534,25 +512,6 @@ Item {
                         font.pixelSize: Theme.typeBodySize
                         background: Item {}
                         onTextChanged: root.draftText = text
-                        }
-                        Superellipse {
-                            visible: !root.composerFocused
-                            Layout.preferredWidth: 38
-                            Layout.preferredHeight: 38
-                            fillColor: Theme.accent
-                            curveDepth: Theme.curveControl
-                            Icon {
-                                anchors.centerIn: parent
-                                text: Theme.iconCompose
-                                preferredSize: Theme.iconSize
-                                color: Theme.accentInk
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.composeRequested(root.draftText)
-                            }
-                        }
                     }
                     RowLayout {
                         id: mobileComposeActions

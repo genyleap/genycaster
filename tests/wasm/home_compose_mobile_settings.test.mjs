@@ -8,7 +8,7 @@ test('Home quick composer transfers text to the rich Cast paragraph', () => {
     const home = source('HomeDashboard.qml');
     const shell = source('AppShell.qml');
     const composer = source('ComposerDrawer.qml');
-    assert.equal((home.match(/onClicked: root\.composeRequested\(root\.draftText\)/g) || []).length, 3);
+    assert.equal((home.match(/onClicked: root\.composeRequested\(root\.draftText\)/g) || []).length, 2);
     assert.match(shell, /onComposeRequested: text => root\.openComposer\(null, "", text\)/);
     assert.match(shell, /composerDrawer\.suggestedText = String\(suggestedText \|\| ""\)/);
     assert.match(composer, /!root\.parentCast && root\.suggestedText\.length > 0/);
@@ -18,10 +18,10 @@ test('Home quick composer transfers text to the rich Cast paragraph', () => {
     assert.match(shell, /root\.homeDraftForCast = ""/);
 });
 
-test('Mobile Settings has an outside dismiss area and grouped index navigation', () => {
+test('Mobile Settings remains full-height with grouped index navigation', () => {
     const settings = source('LocaleSettingsPopup.qml');
     const shell = source('AppShell.qml');
-    assert.match(settings, /parent.height - Theme.touchTarget/);
+    assert.match(settings, /height: parent \? parent\.height : 820/);
     assert.match(settings, /component MobileSettingsGroup: ColumnLayout/);
     assert.match(settings, /id: mobileSettingsIndex/);
     assert.match(settings, /visible: root\.mobilePresentation && root\.mobileIndexOpen/);

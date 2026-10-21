@@ -76,12 +76,10 @@ GenyDrawer {
     dimBackground: true
     contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space4
     width: parent ? (mobilePresentation ? parent.width : Math.min(760, parent.width * 0.92)) : 760
-    // Leave one accessible touch target above the phone sheet. A 100%-height
-    // Drawer has no outside region and cannot be dismissed by backdrop touch.
-    // Detail pages still scroll within the available height.
-    height: parent ? (mobilePresentation
-                     ? Math.max(1, parent.height - Theme.touchTarget)
-                     : parent.height) : 820
+    // Settings is a full-screen navigable destination on phones: never leave
+    // a distracting exposed strip above it. Outside-click dismissal still
+    // applies whenever the surface has an uncovered backdrop (e.g. desktop).
+    height: parent ? parent.height : 820
 
     onOpened: {
         if (!presentationBridge.isAuthenticated && root.currentSection === 5) {

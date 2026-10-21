@@ -20,7 +20,7 @@ test('Agent, Studio and Wallet remain non-interactive, without a network request
     assert.match(home, /key: "agent"/);
     assert.match(home, /key: "studio"/);
     assert.match(home, /key: "wallet"/);
-    assert.match(home, /No MouseArea or TapHandler: a locked feature is not a button/);
+    assert.match(home, /Intentionally non-interactive until the feature exists/);
     assert.doesNotMatch(home, /fetch\(|XMLHttpRequest\(|publishCast\(/);
 });
 

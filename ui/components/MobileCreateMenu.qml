@@ -15,11 +15,18 @@ GenyDrawer {
     interactive: false
     dimBackground: true
     contentPadding: Theme.space3
+    // The default sheet inset plus a fixed 360px height left empty bands
+    // above Create and below the actions on iPhone. Size to real content.
+    topPadding: Theme.space5
+    bottomPadding: Theme.space5
     width: parent ? parent.width : 420
-    height: parent ? Math.min(360, Math.max(260, parent.height - Theme.space4)) : 360
+    height: parent ? Math.min(Math.max(1, parent.height - Theme.space4),
+                               sheetContent.implicitHeight + root.topPadding + root.bottomPadding)
+                   : 328
 
     contentItem: ColumnLayout {
-        spacing: Theme.space3
+        id: sheetContent
+        spacing: Theme.space2
 
         ModalHeader {
             Layout.fillWidth: true
@@ -33,7 +40,7 @@ GenyDrawer {
         Superellipse {
             objectName: "createUnifiedActions"
             Layout.fillWidth: true
-            Layout.preferredHeight: 224
+            Layout.preferredHeight: 216
             fillColor: Theme.surface
             borderWidth: 1
             borderColor: Theme.borderMuted
@@ -142,6 +149,5 @@ GenyDrawer {
                 }
             }
         }
-        Item { Layout.fillHeight: true }
     }
 }
