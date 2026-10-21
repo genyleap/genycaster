@@ -29,39 +29,11 @@ ActionButton {
     onClicked: {
         if (!flickable) return
         flickable.cancelFlick()
-        scrollAnimation.stop()
-        const startingY = flickable.contentY
-        // ListView's originY can shift as asynchronous delegates acquire their
-        // final heights. Ask Qt for the actual beginning, then restore the old
-        // offset within this same frame before starting the smooth transition.
+        // A ListView only instantiates delegates near its viewport. Animating
+        // contentY through an entire long feed outruns that incubation and
+        // displays an empty screen for several seconds. Its indexed positioning
+        // API jumps directly to the real header without traversing unloaded
+        // rows or temporarily restoring an obsolete contentY.
         flickable.positionViewAtBeginning()
-        const beginning = flickable.contentY
-        flickable.contentY = startingY
-        scrollAnimation.from = startingY
-        scrollAnimation.to = beginning
-        scrollAnimation.duration = Math.max(220,
-            Math.min(520, Math.abs(scrollAnimation.from - beginning) * 0.12))
-        scrollAnimation.start()
-    }
-
-    Connections {
-        target: control.flickable
-        function onDraggingChanged() {
-            // Programmatic contentY animations can emit movementStarted;
-            // only a real finger/mouse drag should interrupt the transition.
-            if (control.flickable && control.flickable.dragging)
-                scrollAnimation.stop()
-        }
-    }
-
-    NumberAnimation {
-        id: scrollAnimation
-        target: control.flickable
-        property: "contentY"
-        easing.type: Easing.OutCubic
-        onFinished: {
-            if (control.flickable)
-                control.flickable.positionViewAtBeginning()
-        }
     }
 }

@@ -648,18 +648,24 @@ int main(int argc, char** argv)
             Q_ARG(int, 18), Q_ARG(int, 0)), "move deeper before testing the floating return control");
         expect(QTest::qWaitFor([&] { return topButton->property("visible").toBool(); }),
             "floating control becomes visible after a long profile scroll");
+        const int rowCountBeforeReturn = model->rowCount();
         expect(QMetaObject::invokeMethod(topButton, "click"),
             "return-to-top button is actionable, not merely a decorative overlay");
-        const bool reachedTop = QTest::qWaitFor([&] {
-            return view->property("atYBeginning").toBool()
-                && !topButton->property("visible").toBool();
-        }, 1600);
-        if (!reachedTop) std::println("Return-to-top diagnostic: y={} origin={} header={} buttonVisible={}",
-            view->property("contentY").toDouble(), view->property("originY").toDouble(),
-            view->property("contentHeight").toDouble(), topButton->property("visible").toBool());
-        expect(reachedTop, "return-to-top button animates back to the profile header");
+        // Return-to-top must not animate contentY across dozens of recycled
+        // delegates. That produced a several-second empty viewport in WASM.
+        QCoreApplication::processEvents();
+        expect(view->property("atYBeginning").toBool(),
+            "deep return-to-top positions the real header in one event turn");
         expect(!topButton->property("visible").toBool(),
-            "floating return-to-top button hides again at the beginning");
+            "return-to-top control hides promptly at the actual beginning");
+        expect(model->rowCount() == rowCountBeforeReturn,
+            "deep return-to-top preserves loaded profile casts");
+        auto* returnedHeader = view->property("headerItem").value<QQuickItem*>();
+        expect(returnedHeader != nullptr && returnedHeader->height() > 0,
+            "return-to-top restores a populated profile header, not an empty viewport");
+        QTest::qWait(100);
+        expect(view->property("atYBeginning").toBool(),
+            "asynchronous reflow does not move the profile away from the returned header");
         // Switching to an actually different identity must still replace rows.
         profile->setProperty("detail", QVariantMap{
             {QStringLiteral("fid"), 45},

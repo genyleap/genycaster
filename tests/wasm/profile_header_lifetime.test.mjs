@@ -6,6 +6,7 @@ const composition = readFileSync(new URL('../../ui/mobile/runtime_composition.cp
 const bindings = readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
 const bridge = readFileSync(new URL('../../src/presentation/qt/presentation_bridge.cpp', import.meta.url), 'utf8');
 const profileQml = readFileSync(new URL('../../ui/components/ProfileSurface.qml', import.meta.url), 'utf8');
+const returnToTopQml = readFileSync(new URL('../../ui/components/ScrollToTopButton.qml', import.meta.url), 'utf8');
 
 // Deterministic cancellation-order fixture coupled to the actual Qt composition
 // decision points. A native Qt signal/metadata-cache regression complements it.
@@ -51,6 +52,21 @@ test('native composition explicitly preserves primary metadata while switching p
   assert.match(profileQml, /visible: Number\(root\.activeDetail\.fid \|\| 0\) > 0/);
   assert.match(profileQml, /if \(incomingFid > 0\)\s*root\.retainedDetail = root\.detail/);
   assert.match(profileQml, /if \(incomingFid > 0 && incomingFid !== root\.positionedProfileFid\)/);
+});
+
+test('deep return-to-top uses indexed ListView positioning instead of traversing unloaded casts', () => {
+  const click = returnToTopQml.split('onClicked: {')[1];
+  assert.ok(click, 'scroll-to-top must provide an actionable click handler');
+  assert.match(click, /flickable\.cancelFlick\(\)/);
+  assert.match(click, /flickable\.positionViewAtBeginning\(\)/);
+  assert.doesNotMatch(click, /flickable\.contentY\s*=/,
+    'restoring the old pixel offset after a jump causes a blank scrolling viewport');
+  assert.doesNotMatch(returnToTopQml, /NumberAnimation|scrollAnimation/,
+    'full-distance animation outruns asynchronous delegate incubation');
+  for (const surface of ['FeedSurface', 'ProfileSurface', 'NotificationSurface', 'DetailSurface']) {
+    const qml = readFileSync(new URL(`../../ui/components/${surface}.qml`, import.meta.url), 'utf8');
+    assert.match(qml, /ScrollToTopButton\s*\{/, `${surface} should use the shared fix`);
+  }
 });
 
 test('profile never resurrects a recycled anchor or overrides a user scroll with a deferred reset', () => {
