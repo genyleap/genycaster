@@ -1226,6 +1226,58 @@
             <source>Load more</source>
             <translation>और लोड करें</translation>
         </message>
+        <message id="genycaster.home.ideas_title">
+            <source>Ideas for your next cast</source>
+            <translation>आपके अगले कास्ट के लिए विचार</translation>
+        </message>
+        <message id="genycaster.home.ideas_refresh">
+            <source>More ideas</source>
+            <translation>और विचार</translation>
+        </message>
+        <message id="genycaster.home.ideas_hint">
+            <source>Open this idea in the cast editor</source>
+            <translation>इस विचार को कास्ट संपादक में खोलें</translation>
+        </message>
+        <message id="genycaster.home.idea_dev_topic">
+            <source>Development</source>
+            <translation>डेवलपमेंट</translation>
+        </message>
+        <message id="genycaster.home.idea_dev_prompt">
+            <source>What developer tool does Farcaster need most?</source>
+            <translation>Farcaster को किस डेवलपर टूल की सबसे ज़्यादा ज़रूरत है?</translation>
+        </message>
+        <message id="genycaster.home.idea_nft_topic">
+            <source>NFT</source>
+            <translation>NFT</translation>
+        </message>
+        <message id="genycaster.home.idea_nft_prompt">
+            <source>Where do NFTs provide real value beyond speculation?</source>
+            <translation>अटकलों से परे NFT कहाँ वास्तविक मूल्य देते हैं?</translation>
+        </message>
+        <message id="genycaster.home.idea_opinion_topic">
+            <source>Your take</source>
+            <translation>आपकी राय</translation>
+        </message>
+        <message id="genycaster.home.idea_opinion_prompt">
+            <source>What's one unpopular opinion you have about decentralized social media?</source>
+            <translation>विकेंद्रीकृत सोशल मीडिया पर आपकी कौन-सी अलोकप्रिय राय है?</translation>
+        </message>
+        <message id="genycaster.home.idea_privacy_topic">
+            <source>Privacy</source>
+            <translation>गोपनीयता</translation>
+        </message>
+        <message id="genycaster.home.idea_privacy_prompt">
+            <source>How should social apps balance privacy and public identity?</source>
+            <translation>सोशल ऐप्स गोपनीयता और सार्वजनिक पहचान में संतुलन कैसे रखें?</translation>
+        </message>
+        <message id="genycaster.home.idea_farcaster_topic">
+            <source>Farcaster</source>
+            <translation>Farcaster</translation>
+        </message>
+        <message id="genycaster.home.idea_farcaster_prompt">
+            <source>Which Farcaster feature would you improve first, and why?</source>
+            <translation>आप Farcaster की कौन-सी सुविधा पहले सुधारेंगे और क्यों?</translation>
+        </message>
         <message id="genycaster.home.builder_notes">
             <source>Builder Notes</source>
             <translation>बिल्डर नोट्स</translation>

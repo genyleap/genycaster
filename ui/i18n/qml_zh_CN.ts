@@ -1226,6 +1226,58 @@
             <source>Load more</source>
             <translation>加载更多</translation>
         </message>
+        <message id="genycaster.home.ideas_title">
+            <source>Ideas for your next cast</source>
+            <translation>下一条 Cast 的灵感</translation>
+        </message>
+        <message id="genycaster.home.ideas_refresh">
+            <source>More ideas</source>
+            <translation>更多灵感</translation>
+        </message>
+        <message id="genycaster.home.ideas_hint">
+            <source>Open this idea in the cast editor</source>
+            <translation>在 Cast 编辑器中打开此灵感</translation>
+        </message>
+        <message id="genycaster.home.idea_dev_topic">
+            <source>Development</source>
+            <translation>开发</translation>
+        </message>
+        <message id="genycaster.home.idea_dev_prompt">
+            <source>What developer tool does Farcaster need most?</source>
+            <translation>Farcaster 最需要什么开发者工具？</translation>
+        </message>
+        <message id="genycaster.home.idea_nft_topic">
+            <source>NFT</source>
+            <translation>NFT</translation>
+        </message>
+        <message id="genycaster.home.idea_nft_prompt">
+            <source>Where do NFTs provide real value beyond speculation?</source>
+            <translation>除了投机，NFT 在哪里能创造真正的价值？</translation>
+        </message>
+        <message id="genycaster.home.idea_opinion_topic">
+            <source>Your take</source>
+            <translation>你的观点</translation>
+        </message>
+        <message id="genycaster.home.idea_opinion_prompt">
+            <source>What's one unpopular opinion you have about decentralized social media?</source>
+            <translation>你对去中心化社交媒体有什么不太主流的看法？</translation>
+        </message>
+        <message id="genycaster.home.idea_privacy_topic">
+            <source>Privacy</source>
+            <translation>隐私</translation>
+        </message>
+        <message id="genycaster.home.idea_privacy_prompt">
+            <source>How should social apps balance privacy and public identity?</source>
+            <translation>社交应用应如何平衡隐私与公开身份？</translation>
+        </message>
+        <message id="genycaster.home.idea_farcaster_topic">
+            <source>Farcaster</source>
+            <translation>Farcaster</translation>
+        </message>
+        <message id="genycaster.home.idea_farcaster_prompt">
+            <source>Which Farcaster feature would you improve first, and why?</source>
+            <translation>你最想先改进 Farcaster 的哪个功能？为什么？</translation>
+        </message>
         <message id="genycaster.home.builder_notes">
             <source>Builder Notes</source>
             <translation>开发者笔记</translation>

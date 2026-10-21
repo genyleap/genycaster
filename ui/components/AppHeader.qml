@@ -36,22 +36,14 @@ Rectangle {
             layoutDirection: Theme.uiDirection
             spacing: Theme.space2
 
-            Superellipse {
-                Layout.preferredWidth: 38
-                Layout.preferredHeight: 38
-                fillColor: Theme.primaryFill
-                curveDepth: Theme.curveControl
-                // An offscreen elevation layer caused the fixed brand/header
-                // group to appear soft at fractional iPhone DPR in WebGL.
-                elevation: Theme.elevationNone
-                shadowOpacityScale: 0
-
-                Icon {
-                    anchors.centerIn: parent
-                    text: Theme.iconLeaf
-                    color: Theme.accentInk
-                    preferredSize: Theme.iconSizeLarge
-                }
+            // Keep the DNA mark light and crisp: no filled logo tile in
+            // the narrow mobile header, and no offscreen shadow layer.
+            Icon {
+                Layout.preferredWidth: 30
+                Layout.preferredHeight: 34
+                text: Theme.iconLeaf
+                color: Theme.accent
+                preferredSize: 30
             }
 
             ColumnLayout {
@@ -105,6 +97,9 @@ Rectangle {
 
 
         ActionButton {
+            // Signed-in mobile users reach Profile from the bottom tab.
+            // Keep Sign in here for guests, and retain the desktop account action.
+            visible: !root.compact || !root.isAuthenticated
             compact: true
             quiet: root.isAuthenticated
             prominent: !root.isAuthenticated

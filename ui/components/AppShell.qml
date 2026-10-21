@@ -1197,6 +1197,12 @@ Item {
                             onFollowingRequested: root.openHome()
                             onRouteRequested: route => root.openShellRoute(route)
                             onCreateRequested: mobileCreateMenu.open()
+                            onProfileRequested: {
+                                if (presentationBridge.isAuthenticated)
+                                    root.openMyProfileFromNavigation()
+                                else
+                                    root.openAccountPopup()
+                            }
                             onSettingsRequested: root.openLocaleSettings()
                         }
                         }

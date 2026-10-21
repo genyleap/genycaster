@@ -1226,6 +1226,58 @@
             <source>Load more</source>
             <translation>Charger plus</translation>
         </message>
+        <message id="genycaster.home.ideas_title">
+            <source>Ideas for your next cast</source>
+            <translation>Des idées pour votre prochain cast</translation>
+        </message>
+        <message id="genycaster.home.ideas_refresh">
+            <source>More ideas</source>
+            <translation>D’autres idées</translation>
+        </message>
+        <message id="genycaster.home.ideas_hint">
+            <source>Open this idea in the cast editor</source>
+            <translation>Ouvrir cette idée dans l’éditeur de casts</translation>
+        </message>
+        <message id="genycaster.home.idea_dev_topic">
+            <source>Development</source>
+            <translation>Développement</translation>
+        </message>
+        <message id="genycaster.home.idea_dev_prompt">
+            <source>What developer tool does Farcaster need most?</source>
+            <translation>De quel outil de développement Farcaster a-t-il le plus besoin ?</translation>
+        </message>
+        <message id="genycaster.home.idea_nft_topic">
+            <source>NFT</source>
+            <translation>NFT</translation>
+        </message>
+        <message id="genycaster.home.idea_nft_prompt">
+            <source>Where do NFTs provide real value beyond speculation?</source>
+            <translation>Où les NFT apportent-ils une vraie valeur au-delà de la spéculation ?</translation>
+        </message>
+        <message id="genycaster.home.idea_opinion_topic">
+            <source>Your take</source>
+            <translation>Votre avis</translation>
+        </message>
+        <message id="genycaster.home.idea_opinion_prompt">
+            <source>What's one unpopular opinion you have about decentralized social media?</source>
+            <translation>Quelle opinion impopulaire avez-vous sur les réseaux sociaux décentralisés ?</translation>
+        </message>
+        <message id="genycaster.home.idea_privacy_topic">
+            <source>Privacy</source>
+            <translation>Confidentialité</translation>
+        </message>
+        <message id="genycaster.home.idea_privacy_prompt">
+            <source>How should social apps balance privacy and public identity?</source>
+            <translation>Comment concilier vie privée et identité publique dans les applications sociales ?</translation>
+        </message>
+        <message id="genycaster.home.idea_farcaster_topic">
+            <source>Farcaster</source>
+            <translation>Farcaster</translation>
+        </message>
+        <message id="genycaster.home.idea_farcaster_prompt">
+            <source>Which Farcaster feature would you improve first, and why?</source>
+            <translation>Quelle fonctionnalité de Farcaster amélioreriez-vous en premier, et pourquoi ?</translation>
+        </message>
         <message id="genycaster.home.builder_notes">
             <source>Builder Notes</source>
             <translation>Notes des builders</translation>

@@ -1226,6 +1226,58 @@
             <source>Load more</source>
             <translation>더 불러오기</translation>
         </message>
+        <message id="genycaster.home.ideas_title">
+            <source>Ideas for your next cast</source>
+            <translation>다음 캐스트를 위한 아이디어</translation>
+        </message>
+        <message id="genycaster.home.ideas_refresh">
+            <source>More ideas</source>
+            <translation>다른 아이디어</translation>
+        </message>
+        <message id="genycaster.home.ideas_hint">
+            <source>Open this idea in the cast editor</source>
+            <translation>캐스트 편집기에서 이 아이디어 열기</translation>
+        </message>
+        <message id="genycaster.home.idea_dev_topic">
+            <source>Development</source>
+            <translation>개발</translation>
+        </message>
+        <message id="genycaster.home.idea_dev_prompt">
+            <source>What developer tool does Farcaster need most?</source>
+            <translation>Farcaster에 가장 필요한 개발자 도구는 무엇일까요?</translation>
+        </message>
+        <message id="genycaster.home.idea_nft_topic">
+            <source>NFT</source>
+            <translation>NFT</translation>
+        </message>
+        <message id="genycaster.home.idea_nft_prompt">
+            <source>Where do NFTs provide real value beyond speculation?</source>
+            <translation>투기를 넘어 NFT가 실질적인 가치를 만드는 곳은 어디일까요?</translation>
+        </message>
+        <message id="genycaster.home.idea_opinion_topic">
+            <source>Your take</source>
+            <translation>나의 생각</translation>
+        </message>
+        <message id="genycaster.home.idea_opinion_prompt">
+            <source>What's one unpopular opinion you have about decentralized social media?</source>
+            <translation>탈중앙화 소셜 미디어에 대한 소수 의견이 있나요?</translation>
+        </message>
+        <message id="genycaster.home.idea_privacy_topic">
+            <source>Privacy</source>
+            <translation>개인정보 보호</translation>
+        </message>
+        <message id="genycaster.home.idea_privacy_prompt">
+            <source>How should social apps balance privacy and public identity?</source>
+            <translation>소셜 앱은 개인정보 보호와 공개 신원을 어떻게 조화시켜야 할까요?</translation>
+        </message>
+        <message id="genycaster.home.idea_farcaster_topic">
+            <source>Farcaster</source>
+            <translation>Farcaster</translation>
+        </message>
+        <message id="genycaster.home.idea_farcaster_prompt">
+            <source>Which Farcaster feature would you improve first, and why?</source>
+            <translation>Farcaster의 어떤 기능을 가장 먼저 개선하고 싶나요? 그 이유는요?</translation>
+        </message>
         <message id="genycaster.home.builder_notes">
             <source>Builder Notes</source>
             <translation>빌더 노트</translation>

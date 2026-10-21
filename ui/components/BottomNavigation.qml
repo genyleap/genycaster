@@ -18,6 +18,7 @@ Item {
     signal followingRequested()
     signal createRequested()
     signal settingsRequested()
+    signal profileRequested()
     signal routeRequested(string route)
 
     implicitHeight: 88
@@ -100,10 +101,11 @@ Item {
         BottomNavButton {
             darkDock: true
             Layout.fillWidth: true
-            text: qsTrId("genycaster.settings.title")
-            iconGlyph: Theme.iconSettings
+            text: qsTrId("genycaster.side_nav.profile")
+            iconGlyph: Theme.iconProfile
+            selected: root.shellRoute === "" && root.activeView === "profile"
             showLabel: false
-            onClicked: root.settingsRequested()
+            onClicked: root.profileRequested()
         }
     }
 }

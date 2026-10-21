@@ -233,7 +233,10 @@ test('mobile brand header keeps crisp native text without an offscreen elevation
     const header = read('ui/components/AppHeader.qml');
     assert.match(header, /layer\.enabled: false/);
     assert.match(header, /renderType: Text\.NativeRendering/);
-    assert.match(header, /elevation: Theme\.elevationNone/);
+    // Brand DNA is now a bare Icon, not a shadowed/tiled Superellipse.
+    assert.match(header, /\/\/ Keep the DNA mark light and crisp/);
+    assert.doesNotMatch(header, /elevation: Theme\.elevationNone/);
+    assert.doesNotMatch(header, /fillColor: Theme\.primaryFill/);
 });
 
 test('stories always start with current identity; fresh Following casts use colored rings while older follows remain visible', () => {

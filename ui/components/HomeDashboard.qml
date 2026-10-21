@@ -36,6 +36,19 @@ Item {
     }
     property int localHour: new Date().getHours()
     property string draftText: ""
+    // Curated, local-first writing starters. No extra feed request, tracking,
+    // account requirement or automatic publishing.
+    property int ideaOffset: 0
+    readonly property var castIdeas: [
+        { topic: qsTrId("genycaster.home.idea_dev_topic"), prompt: qsTrId("genycaster.home.idea_dev_prompt") },
+        { topic: qsTrId("genycaster.home.idea_nft_topic"), prompt: qsTrId("genycaster.home.idea_nft_prompt") },
+        { topic: qsTrId("genycaster.home.idea_opinion_topic"), prompt: qsTrId("genycaster.home.idea_opinion_prompt") },
+        { topic: qsTrId("genycaster.home.idea_privacy_topic"), prompt: qsTrId("genycaster.home.idea_privacy_prompt") },
+        { topic: qsTrId("genycaster.home.idea_farcaster_topic"), prompt: qsTrId("genycaster.home.idea_farcaster_prompt") }
+    ]
+    function ideaAt(offset) {
+        return root.castIdeas[(root.ideaOffset + offset) % root.castIdeas.length]
+    }
     // The on-screen keyboard shrinks iOS Safari's visual viewport. Keep the
     // draft and its actions visible rather than squeezing the full dashboard
     // and floating dock into the remaining height.
@@ -186,6 +199,120 @@ Item {
         }
     }
 
+    // One reusable, keyboard-accessible idea surface for desktop and mobile.
+    // Rotating examples is entirely local; selecting one opens a draft.
+    component CastIdeaSection: ColumnLayout {
+        spacing: Theme.space2
+
+        RowLayout {
+            Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
+            spacing: Theme.space2
+
+            Icon {
+                text: Theme.iconCompose
+                color: Theme.accent
+                preferredSize: Theme.iconSizeSmall
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.home.ideas_title")
+                color: Theme.textPrimary
+                font.pixelSize: Theme.typeMetaSize
+                font.weight: Theme.weightDemiBold
+                elide: Text.ElideRight
+            }
+            ActionButton {
+                objectName: "homeIdeasRefresh"
+                compact: true
+                quiet: true
+                iconOnly: true
+                iconGlyph: Theme.iconRefresh
+                text: qsTrId("genycaster.home.ideas_refresh")
+                onClicked: root.ideaOffset = (root.ideaOffset + 1) % root.castIdeas.length
+            }
+        }
+
+        Superellipse {
+            id: featuredIdea
+            objectName: "homeFeaturedCastIdea"
+            Layout.fillWidth: true
+            Layout.preferredHeight: root.compact ? 116 : 104
+            fillColor: featuredMouse.pressed ? Theme.surfacePressed
+                                             : featuredMouse.containsMouse ? Theme.surfaceHover : Theme.surface
+            borderWidth: 1
+            borderColor: featuredMouse.containsMouse ? Theme.borderStrong : Theme.borderMuted
+            curveDepth: Theme.curveContainer
+            activeFocusOnTab: true
+            Accessible.role: Accessible.Button
+            Accessible.name: root.ideaAt(0).prompt
+            Accessible.description: qsTrId("genycaster.home.ideas_hint")
+            Accessible.onPressAction: root.composeRequested(root.ideaAt(0).prompt)
+            Keys.onReturnPressed: root.composeRequested(root.ideaAt(0).prompt)
+            Keys.onSpacePressed: root.composeRequested(root.ideaAt(0).prompt)
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: Theme.space3
+                spacing: Theme.space1
+                RowLayout {
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: root.ideaAt(0).topic
+                        color: Theme.accent
+                        font.pixelSize: Theme.typeCaptionSize
+                        font.weight: Theme.weightDemiBold
+                    }
+                    Icon {
+                        text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                        color: Theme.textTertiary
+                        preferredSize: Theme.iconSizeSmall
+                    }
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    text: root.ideaAt(0).prompt
+                    color: Theme.textPrimary
+                    font.pixelSize: Theme.typeBodySize
+                    maximumLineCount: 3
+                    wrapMode: Text.Wrap
+                    elide: Text.ElideRight
+                }
+            }
+            MouseArea {
+                id: featuredMouse
+                anchors.fill: parent
+                hoverEnabled: !root.compact
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.composeRequested(root.ideaAt(0).prompt)
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
+            spacing: Theme.space2
+            ActionButton {
+                compact: true
+                quiet: true
+                iconGlyph: Theme.iconCompose
+                text: root.ideaAt(1).topic
+                onClicked: root.composeRequested(root.ideaAt(1).prompt)
+            }
+            ActionButton {
+                compact: true
+                quiet: true
+                iconGlyph: Theme.iconCompose
+                text: root.ideaAt(2).topic
+                onClicked: root.composeRequested(root.ideaAt(2).prompt)
+            }
+            Item { Layout.fillWidth: true }
+        }
+    }
+
     RowLayout {
         id: desktopLayout
         visible: !root.compact
@@ -297,10 +424,16 @@ Item {
                     }
                 }
 
+                CastIdeaSection {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: 760
+                }
+
                 Item {
                     Layout.fillHeight: true
-                    Layout.minimumHeight: Theme.space3
-                    Layout.maximumHeight: 112
+                    Layout.minimumHeight: Theme.space2
+                    Layout.maximumHeight: 48
                 }
 
                 Superellipse {
@@ -465,6 +598,14 @@ Item {
                 }
             }
 
+            CastIdeaSection {
+                visible: !root.composerFocused
+                Layout.fillWidth: true
+                Layout.leftMargin: Theme.space3
+                Layout.rightMargin: Theme.space3
+                Layout.topMargin: Theme.space1
+            }
+
             Superellipse {
                 id: mobileComposerSurface
                 Layout.fillWidth: true
@@ -523,6 +664,7 @@ Item {
                     }
                 }
             }
+
             // The unused lower half of the original mobile dashboard is now
             // a small, actionable continuation of the *already-loaded* feed.
             // Never synthesize posts, identities, counts, or network requests.

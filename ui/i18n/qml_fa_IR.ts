@@ -1226,6 +1226,58 @@
             <source>Load more</source>
             <translation>بارگذاری بیشتر</translation>
         </message>
+        <message id="genycaster.home.ideas_title">
+            <source>Ideas for your next cast</source>
+            <translation>ایده‌هایی برای کست بعدی</translation>
+        </message>
+        <message id="genycaster.home.ideas_refresh">
+            <source>More ideas</source>
+            <translation>ایده‌های بیشتر</translation>
+        </message>
+        <message id="genycaster.home.ideas_hint">
+            <source>Open this idea in the cast editor</source>
+            <translation>باز کردن این ایده در ویرایشگر کست</translation>
+        </message>
+        <message id="genycaster.home.idea_dev_topic">
+            <source>Development</source>
+            <translation>توسعه</translation>
+        </message>
+        <message id="genycaster.home.idea_dev_prompt">
+            <source>What developer tool does Farcaster need most?</source>
+            <translation>فکر می‌کنی فارکستر بیش از همه به چه ابزار توسعه‌ای نیاز داره؟</translation>
+        </message>
+        <message id="genycaster.home.idea_nft_topic">
+            <source>NFT</source>
+            <translation>NFT</translation>
+        </message>
+        <message id="genycaster.home.idea_nft_prompt">
+            <source>Where do NFTs provide real value beyond speculation?</source>
+            <translation>به نظرت NFTها فراتر از سفته‌بازی کجا ارزش واقعی ایجاد می‌کنن؟</translation>
+        </message>
+        <message id="genycaster.home.idea_opinion_topic">
+            <source>Your take</source>
+            <translation>دیدگاه تو</translation>
+        </message>
+        <message id="genycaster.home.idea_opinion_prompt">
+            <source>What's one unpopular opinion you have about decentralized social media?</source>
+            <translation>چه نظر نامتعارفی دربارهٔ شبکه‌های اجتماعی غیرمتمرکز داری؟</translation>
+        </message>
+        <message id="genycaster.home.idea_privacy_topic">
+            <source>Privacy</source>
+            <translation>حریم خصوصی</translation>
+        </message>
+        <message id="genycaster.home.idea_privacy_prompt">
+            <source>How should social apps balance privacy and public identity?</source>
+            <translation>اپلیکیشن‌های اجتماعی چطور بین حریم خصوصی و هویت عمومی تعادل برقرار کنن؟</translation>
+        </message>
+        <message id="genycaster.home.idea_farcaster_topic">
+            <source>Farcaster</source>
+            <translation>فارکستر</translation>
+        </message>
+        <message id="genycaster.home.idea_farcaster_prompt">
+            <source>Which Farcaster feature would you improve first, and why?</source>
+            <translation>اول کدوم قابلیت فارکستر رو بهبود می‌دادی و چرا؟</translation>
+        </message>
         <message id="genycaster.home.builder_notes">
             <source>Builder Notes</source>
             <translation>یادداشت‌های سازندگان</translation>

@@ -610,11 +610,12 @@ ListView {
                 }
 
                 Superellipse {
-                    Layout.preferredWidth: Math.max(28, replyCountLabel.implicitWidth + Theme.space2 * 2)
-                    Layout.preferredHeight: 28
-                    fillColor: Theme.surfaceRaised
-                    borderWidth: 1
-                    borderColor: Theme.borderStrong
+                    // A quiet count, not a button competing with the Replies title.
+                    Layout.preferredWidth: Math.max(24, replyCountLabel.implicitWidth + Theme.space2)
+                    Layout.preferredHeight: 24
+                    fillColor: Theme.surfaceSelected
+                    borderWidth: 0
+                    borderColor: Theme.borderMuted
                     curveDepth: height / 2
                     DirectionAwareLabel {
                         id: replyCountLabel
