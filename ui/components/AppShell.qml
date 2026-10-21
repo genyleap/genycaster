@@ -420,6 +420,7 @@ Item {
                                 ? composerDrawer.suggestedText : ""
         composerDrawer.suggestedEmbeds = []
         composerDrawer.open()
+        composerDrawer.focusVisualEditorNow()
     }
 
     function openMiniAppComposer(requestId, options) {

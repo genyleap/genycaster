@@ -298,6 +298,13 @@ GenyDrawer {
 
     // Repeater editors are incubated after the drawer begins opening; a
     // one-shot 120ms focus call often fires before their first delegate.
+    function focusVisualEditorNow() {
+        // Called synchronously from the originating tap: iOS WebKit normally
+        // rejects keyboard activation if focus is deferred to a timer.
+        if (root.compact && visualEditor.activeEditor !== null)
+            visualEditor.activeEditor.forceActiveFocus()
+    }
+
     Timer {
         id: initialComposerFocus
         interval: 80
