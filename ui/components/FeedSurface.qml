@@ -654,6 +654,10 @@ Item {
     function synchronizeStableModel() {
         const source = root.sourceRows()
         if (source.length === 0) {
+            // A temporary empty refresh must not collapse the ListView's
+            // scroll extent. Keep its current page until loading finishes.
+            if (root.busy && stableRows.count > 0)
+                return
             stableRows.clear()
             root.stablePayloads = ({})
             return
@@ -876,7 +880,7 @@ Item {
             loadMoreRelease.stop()
         } else {
             loadMorePending = false
-            root.deferFeedWork(false, false, true)
+            root.deferFeedWork(true, false, true)
         }
     }
     onPresentationActiveChanged: {
@@ -1306,6 +1310,14 @@ Item {
                 Accessible.name: qsTrId("genycaster.feed_surface.loading_more")
             }
         }
+    }
+
+    ScrollToTopButton {
+        flickable: readList
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space5
+        anchors.bottomMargin: root.compact ? Theme.space5 + 64 : Theme.space5 + 72
     }
 
     Item {

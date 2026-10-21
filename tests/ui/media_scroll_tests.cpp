@@ -520,6 +520,96 @@ int main(int argc, char** argv)
     expect(qmlWarnings.empty(), "notification row instantiates without Qt 6.12 QML warnings");
     qmlWarnings.clear();
 
+    // Regression: a profile's transient empty metadata/rows during polling must
+    // not reset an already-scrolled ListView or replace the loaded casts. The
+    // reported WASM jump to the banner happened without a user route change.
+    {
+        QVariantList profileRows;
+        for (int index = 0; index < 24; ++index) {
+            profileRows.push_back(QVariantMap{
+                {QStringLiteral("castId"), QStringLiteral("0xscroll-%1").arg(index)},
+                {QStringLiteral("author"), QStringLiteral("reader")},
+                {QStringLiteral("text"), QStringLiteral("Scroll fixture cast %1: ")
+                    .arg(index) + QString(160, QLatin1Char('x'))},
+                {QStringLiteral("createdAtMs"), 300000 - index * 1000},
+            });
+        }
+        auto profile = createSurface(engine, QStringLiteral("ProfileSurface"), *scroll,
+            {{QStringLiteral("detail"), QVariantMap{
+                  {QStringLiteral("fid"), 44},
+                  {QStringLiteral("username"), QStringLiteral("scroll-test")}}},
+             {QStringLiteral("rows"), profileRows},
+             {QStringLiteral("compact"), true}});
+        if (!profile) return 1;
+        auto* view = profile->findChild<QObject*>(QStringLiteral("profileList"));
+        auto* model = profile->findChild<FeedRowsModel*>(QStringLiteral("profileRowsModel"));
+        auto* topButton = profile->findChild<QObject*>(QStringLiteral("scrollToTopButton"));
+        expect(view && model && topButton, "profile exposes its scroll viewport and return-to-top control");
+        if (!view || !model || !topButton) return 1;
+        expect(QTest::qWaitFor([&] { return model->rowCount() == profileRows.size(); }),
+            "profile populates stable feed before scroll");
+        expect(QMetaObject::invokeMethod(view, "positionViewAtIndex",
+            Q_ARG(int, 12), Q_ARG(int, 0)), "scroll fixture moves into later profile casts");
+        expect(QTest::qWaitFor([&] {
+            return view->property("contentY").toDouble() > 550;
+        }), "profile can scroll well beyond its header");
+        // Exercise the native QML anchor logic with a real indexed delegate.
+        expect(QMetaObject::invokeMethod(profile.get(), "captureViewportAnchor"),
+            "capture a stable visible profile row at a deep scroll offset");
+        const QString anchoredCast = profile->property("viewportAnchorKey").toString();
+        expect(!anchoredCast.isEmpty(),
+            "deep profile viewport anchor resolves a visible cast, not header coordinates");
+        expect(topButton->property("visible").toBool(),
+            "return-to-top affordance appears only after substantial scrolling");
+
+        profile->setProperty("busy", true);
+        profile->setProperty("rows", QVariantList{});
+        QTest::qWait(100);
+        expect(model->rowCount() == profileRows.size(),
+            "temporary empty busy profile does not clear loaded casts");
+        // As asynchronous CastItem heights settle, raw pixel offsets can
+        // legitimately change by thousands while the same cast stays in view.
+        // Assert the stable visible row, not a stale pixel coordinate.
+        expect(QMetaObject::invokeMethod(profile.get(), "captureViewportAnchor"),
+            "resample visible profile row after temporary empty response");
+        expect(profile->property("viewportAnchorKey").toString() == anchoredCast,
+            "temporary empty profile response preserves the visible cast");
+        profile->setProperty("detail", QVariantMap{});
+        QTest::qWait(50);
+        expect(model->rowCount() == profileRows.size(),
+            "temporary missing profile fid does not clear stable rows");
+        profile->setProperty("detail", QVariantMap{
+            {QStringLiteral("fid"), 44},
+            {QStringLiteral("username"), QStringLiteral("scroll-test")}});
+        profile->setProperty("rows", profileRows);
+        profile->setProperty("busy", false);
+        QTest::qWait(110);
+        expect(view->property("contentY").toDouble() > 400,
+            "metadata refresh does not teleport a deep profile scroll to the banner");
+        expect(QMetaObject::invokeMethod(view, "positionViewAtIndex",
+            Q_ARG(int, 18), Q_ARG(int, 0)), "move deeper before testing the floating return control");
+        expect(QTest::qWaitFor([&] { return topButton->property("visible").toBool(); }),
+            "floating control becomes visible after a long profile scroll");
+        expect(QMetaObject::invokeMethod(topButton, "click"),
+            "return-to-top button is actionable, not merely a decorative overlay");
+        const bool reachedTop = QTest::qWaitFor([&] {
+            return view->property("atYBeginning").toBool()
+                && !topButton->property("visible").toBool();
+        }, 1600);
+        if (!reachedTop) std::println("Return-to-top diagnostic: y={} origin={} header={} buttonVisible={}",
+            view->property("contentY").toDouble(), view->property("originY").toDouble(),
+            view->property("contentHeight").toDouble(), topButton->property("visible").toBool());
+        expect(reachedTop, "return-to-top button animates back to the profile header");
+        expect(!topButton->property("visible").toBool(),
+            "floating return-to-top button hides again at the beginning");
+        // Switching to an actually different identity must still replace rows.
+        profile->setProperty("detail", QVariantMap{
+            {QStringLiteral("fid"), 45},
+            {QStringLiteral("username"), QStringLiteral("other-person")}});
+        expect(model->rowCount() == 0, "real profile identity change invalidates stale casts");
+        profile.reset();
+    }
+
     // Regression: a notification/profile route can be destroyed in the turn
     // where stable-list and geometry updates schedule viewport restoration.
     // The former unowned Qt.callLater path invoked a method on a null QML
@@ -1785,6 +1875,19 @@ int main(int argc, char** argv)
         expect(allObservedRowsReserveHeight,
             "incubating and pooled feed delegates never collapse to zero height");
         expect(reusedRows > 0, "real feed regression exercises pooled delegates");
+        expect(QMetaObject::invokeMethod(list, "positionViewAtIndex",
+            Q_ARG(int, 18), Q_ARG(int, 0)), "feed scrolls before background refresh");
+        feed->setProperty("busy", true);
+        feed->setProperty("rows", QVariantList{});
+        QTest::qWait(120);
+        expect(list->property("count").toInt() == 40,
+            "temporary empty background feed refresh retains the existing scrollable timeline");
+        expect(list->property("contentY").toDouble() > list->property("height").toDouble(),
+            "temporary empty background feed refresh does not return to the feed header");
+        feed->setProperty("rows", feedRows);
+        feed->setProperty("busy", false);
+        expect(QTest::qWaitFor([&] { return list->property("count").toInt() == 40; }),
+            "completed background refresh reconciles the original feed");
     }
     images->completePending();
     expect(qmlWarnings.empty(), "real media/feed scrolling emits zero QQmlEngine warnings");

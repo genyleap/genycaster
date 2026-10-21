@@ -7,6 +7,11 @@ Item {
     id: root
 
     property var detail
+    // Metadata refreshes can briefly publish an empty profile. Keep the
+    // visible header and its height until a resolved identity arrives.
+    property var retainedDetail: ({})
+    readonly property var activeDetail: Number((root.detail || ({})).fid || 0) > 0
+                                          ? root.detail : root.retainedDetail
     property var rows
     property string profileFeed: "user-posts"
     property string profileSortMode: "newest"
@@ -51,8 +56,8 @@ Item {
     signal authenticationRequested()
     signal loadMoreRequested()
 
-    readonly property bool isOwnProfile: Number(root.detail.fid || 0) > 0
-                                         && Number(root.detail.fid || 0) === Number(root.accountFid)
+    readonly property bool isOwnProfile: Number(root.activeDetail.fid || 0) > 0
+                                         && Number(root.activeDetail.fid || 0) === Number(root.accountFid)
     readonly property int profileAvatarSize: root.compact ? 84 : 96
     readonly property int profileMargin: root.compact ? Theme.mobileGutter : Theme.space5
     readonly property int profileContentLimit: root.compact ? 760 : 880
@@ -64,15 +69,15 @@ Item {
                                            : root.profileContentRtl
                                              ? root.profileContentX + root.profileContentWidth - root.profileAvatarSize - Theme.space3
                                              : root.profileContentX + Theme.space3
-    readonly property bool showUsername: Boolean(root.detail.username) && !root.syntheticUsername(root.detail.username)
-    readonly property string normalizedBio: String(root.detail.bio || "").replace(/\s+/g, " ").trim()
+    readonly property bool showUsername: Boolean(root.activeDetail.username) && !root.syntheticUsername(root.activeDetail.username)
+    readonly property string normalizedBio: String(root.activeDetail.bio || "").replace(/\s+/g, " ").trim()
     readonly property string displayLocation: {
         const geoAvailable = typeof geoLocationResolver !== "undefined" && geoLocationResolver !== null
         const geoRevision = geoAvailable ? geoLocationResolver.revision : 0
         if (!geoAvailable)
             return ""
         return geoLocationResolver.displayLabel(
-            String(root.detail.location || ""), localizationController.effectiveLanguageTag)
+            String(root.activeDetail.location || ""), localizationController.effectiveLanguageTag)
     }
 
     function ltrText(value) {
@@ -109,9 +114,9 @@ Item {
         return text
     }
 
-    readonly property string usernameMetadataKey: root.showUsername ? root.metadataKey(root.detail.username) : ""
-    readonly property string urlMetadataKey: root.metadataKey(root.detail.profileUrl)
-    readonly property string locationMetadataKey: root.metadataKey(root.detail.location)
+    readonly property string usernameMetadataKey: root.showUsername ? root.metadataKey(root.activeDetail.username) : ""
+    readonly property string urlMetadataKey: root.metadataKey(root.activeDetail.profileUrl)
+    readonly property string locationMetadataKey: root.metadataKey(root.activeDetail.location)
     readonly property bool showProfileUrl: root.urlMetadataKey.length > 0
                                            && root.urlMetadataKey !== root.usernameMetadataKey
     readonly property bool showLocation: root.locationMetadataKey.length > 0
@@ -257,7 +262,9 @@ Item {
     function captureViewportAnchor() {
         if (root.restoringViewport || profileRowsModel.count === 0) return
         const headerHeight = profileList.headerItem ? profileList.headerItem.implicitHeight : 0
-        const probeY = Math.max(0, headerHeight - profileList.contentY) + 1
+        // indexAt() takes *content* coordinates, not viewport coordinates.
+        // Probing near y=0 while scrolled past the header never finds a row.
+        const probeY = Math.max(headerHeight + 1, profileList.contentY + 1)
         const index = profileList.indexAt(Math.max(1, profileList.width / 2), probeY)
         if (index < 0 || index >= profileRowsModel.count) return
         const item = profileList.itemAtIndex(index)
@@ -294,8 +301,13 @@ Item {
         if (targetIndex < 0)
             return
         const item = profileList.itemAtIndex(targetIndex)
-        if (!item)
+        if (!item) {
+            // Large image-driven reflows can recycle the anchored delegate
+            // before the queued restoration runs. Recover by stable ID rather
+            // than retaining Qt's arbitrary new pixel offset.
+            profileList.positionViewAtIndex(targetIndex, ListView.Beginning)
             return
+        }
         const minimum = profileList.originY
         const maximum = Math.max(minimum, profileList.contentHeight - profileList.height)
         profileList.contentY = Math.max(minimum, Math.min(maximum, item.y - anchorOffset))
@@ -316,12 +328,18 @@ Item {
 
     function synchronizeStableModel() {
         const source = root.displayRows
+        // A refreshing provider can temporarily expose an empty list. Keep
+        // the last page and its scroll range until the refresh completes.
+        if (root.busy && source.length === 0 && profileRowsModel.count > 0)
+            return
         let anchorKey = ""
         let anchorOffset = 0
         let structureChanged = false
         const retainedKeys = Object.create(null)
         const headerHeight = profileList.headerItem ? profileList.headerItem.implicitHeight : 0
-        const probeY = Math.max(0, headerHeight - profileList.contentY) + 1
+        // indexAt() takes *content* coordinates, not viewport coordinates.
+        // Probing near y=0 while scrolled past the header never finds a row.
+        const probeY = Math.max(headerHeight + 1, profileList.contentY + 1)
         const anchorIndex = profileList.indexAt(Math.max(1, profileList.width / 2), probeY)
         if (anchorIndex >= 0 && anchorIndex < profileRowsModel.count) {
             const anchorItem = profileList.itemAtIndex(anchorIndex)
@@ -404,7 +422,7 @@ Item {
     }
 
     function positionNewProfileAtBeginning() {
-        const fid = Number(root.detail.fid || 0)
+        const fid = Number(root.activeDetail.fid || 0)
         if (!root.visible || fid <= 0 || fid === root.positionedProfileFid)
             return
         root.positionedProfileFid = fid
@@ -417,8 +435,12 @@ Item {
 
     onVisibleChanged: root.positionNewProfileAtBeginning()
     onDetailChanged: {
-        const incomingFid = Number(root.detail.fid || 0)
-        if (incomingFid !== root.positionedProfileFid) {
+        const incomingFid = Number((root.detail || ({})).fid || 0)
+        if (incomingFid > 0)
+            root.retainedDetail = root.detail
+        // A transient empty detail during metadata refresh is not a new
+        // profile; clearing the ListView here teleports the reader to the top.
+        if (incomingFid > 0 && incomingFid !== root.positionedProfileFid) {
             profileRowsModel.clear()
             root.viewportAnchorKey = ""
             root.stableModelSyncPending = false
@@ -443,8 +465,10 @@ Item {
     }
 
     onBusyChanged: {
-        if (!busy)
+        if (!busy) {
             loadMorePending = false
+            stableModelSyncTimer.restart()
+        }
     }
 
     Timer {
@@ -486,8 +510,9 @@ Item {
         onTriggered: {
             if (root.resetPositionPasses <= 0)
                 return
-            profileList.contentY = profileList.headerItem
-                ? -profileList.headerItem.height : profileList.originY
+            // Qt tracks a moving origin as asynchronously measured delegates
+            // settle; a hardcoded negative header height is not the real top.
+            profileList.positionViewAtBeginning()
             --root.resetPositionPasses
             if (root.resetPositionPasses > 0)
                 resetPositionTimer.restart()
@@ -511,6 +536,7 @@ Item {
 
     ListView {
         id: profileList
+        objectName: "profileList"
         anchors.fill: parent
         clip: true
         model: profileRowsModel
@@ -523,6 +549,15 @@ Item {
         cacheBuffer: Math.min(Math.max(height * 0.75, 560), 960)
         pixelAligned: false
 
+        onMovementStarted: {
+            // User gestures outrank a pending initial-position timer.
+            root.resetPositionPasses = 0
+            resetPositionTimer.stop()
+            viewportRestoreTimer.stop()
+            root.restoringViewport = false
+            root.pendingRestoreKey = ""
+            root.viewportAnchorKey = ""
+        }
         onMovementEnded: {
             scrollWorkThrottle.stop()
             if (root.stableModelSyncPending)
@@ -593,7 +628,7 @@ Item {
                         const diagonal = Math.pow(0.5, 1 / exponent)
                         return Math.max(0.5522847498, Math.min(0.985, (8 * diagonal - 4) / 3))
                     }
-                    height: Boolean(root.detail.bannerUrl)
+                    height: Boolean(root.activeDetail.bannerUrl)
                             ? Math.max(root.compact ? 132 : 156,
                                        Math.min(root.compact ? 196 : 280,
                                                 Math.round(width / bannerAspectRatio)))
@@ -603,7 +638,7 @@ Item {
                         anchors.fill: parent
                         curveDepth: Theme.shapeMedia
                         fillColor: Theme.surfaceRaised
-                        borderWidth: Boolean(root.detail.bannerUrl) ? 0 : Theme.strokeHairline
+                        borderWidth: Boolean(root.activeDetail.bannerUrl) ? 0 : Theme.strokeHairline
                         borderColor: Theme.borderMuted
 
                         // Keep the no-banner state deliberately quiet. It must read
@@ -621,8 +656,8 @@ Item {
                     SuperellipseImage {
                         id: bannerImage
                         anchors.fill: parent
-                        visible: Boolean(root.detail.bannerUrl)
-                        source: root.detail.bannerUrl || ""
+                        visible: Boolean(root.activeDetail.bannerUrl)
+                        source: root.activeDetail.bannerUrl || ""
                         mediaCategory: "photos"
                         requestedSourceWidth: Math.max(1, Math.round(width))
                         requestedSourceHeight: Math.max(1, Math.round(height))
@@ -739,10 +774,10 @@ Item {
                     }
 
                     TapHandler {
-                        enabled: Boolean(root.detail.bannerUrl)
+                        enabled: Boolean(root.activeDetail.bannerUrl)
                         gesturePolicy: TapHandler.ReleaseWithinBounds
                         onTapped: root.mediaRequested([
-                            { imageSource: String(root.detail.bannerUrl || ""), kind: "image" }
+                            { imageSource: String(root.activeDetail.bannerUrl || ""), kind: "image" }
                         ], 0)
                     }
                 }
@@ -766,16 +801,16 @@ Item {
                         x: root.profileAvatarX
                         y: -Math.round(root.profileAvatarSize * 0.50)
                         avatarSize: root.profileAvatarSize
-                        sourceUrl: root.detail.avatarUrl || ""
-                        displayName: root.detail.displayName || root.detail.username || ""
+                        sourceUrl: root.activeDetail.avatarUrl || ""
+                        displayName: root.activeDetail.displayName || root.activeDetail.username || ""
                     }
 
                     TapHandler {
                         parent: profileAvatar
-                        enabled: Boolean(root.detail.avatarUrl)
+                        enabled: Boolean(root.activeDetail.avatarUrl)
                         gesturePolicy: TapHandler.ReleaseWithinBounds
                         onTapped: root.mediaRequested([
-                            { imageSource: String(root.detail.avatarUrl || ""), kind: "image" }
+                            { imageSource: String(root.activeDetail.avatarUrl || ""), kind: "image" }
                         ], 0)
                     }
 
@@ -783,15 +818,15 @@ Item {
                         x: root.profileContentRtl ? root.profileContentX : root.profileContentX + root.profileContentWidth - width
                         anchors.top: parent.top
                         anchors.topMargin: Theme.space2
-                        visible: Boolean(root.detail.followingKnown)
-                                 && Number(root.detail.fid || 0) > 0
+                        visible: Boolean(root.activeDetail.followingKnown)
+                                 && Number(root.activeDetail.fid || 0) > 0
                                  && !root.isOwnProfile
                         compact: true
-                        iconGlyph: Boolean(root.detail.followingByMe) ? Theme.iconCheck : ""
-                        text: Boolean(root.detail.followingByMe) ? qsTrId("genycaster.profile.followed") : qsTrId("genycaster.profile.follow")
-                        selected: Boolean(root.detail.followingByMe)
-                        prominent: !Boolean(root.detail.followingByMe)
-                        Accessible.description: Boolean(root.detail.followingByMe)
+                        iconGlyph: Boolean(root.activeDetail.followingByMe) ? Theme.iconCheck : ""
+                        text: Boolean(root.activeDetail.followingByMe) ? qsTrId("genycaster.profile.followed") : qsTrId("genycaster.profile.follow")
+                        selected: Boolean(root.activeDetail.followingByMe)
+                        prominent: !Boolean(root.activeDetail.followingByMe)
+                        Accessible.description: Boolean(root.activeDetail.followingByMe)
                                                 ? qsTrId("genycaster.profile.unfollow") : text
                         onClicked: {
                             if (!root.interactionsAvailable) {
@@ -799,7 +834,7 @@ Item {
                                 return
                             }
                             root.followingMutationRequested(
-                                Number(root.detail.fid), !Boolean(root.detail.followingByMe))
+                                Number(root.activeDetail.fid), !Boolean(root.activeDetail.followingByMe))
                         }
                     }
                 }
@@ -817,7 +852,7 @@ Item {
                         DirectionAwareLabel {
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
-                            text: root.detail.displayName || (root.showUsername ? root.detail.username : "")
+                            text: root.activeDetail.displayName || (root.showUsername ? root.activeDetail.username : "")
                                   || qsTrId("genycaster.profile.farcaster_profile")
                             color: Theme.ink
                             font.pixelSize: root.compact ? Theme.typeTitle2Size : Theme.typeTitle1Size
@@ -828,7 +863,7 @@ Item {
 
                         Item {
                             id: followsYouBadge
-                            visible: Boolean(root.detail.followsMeKnown) && Boolean(root.detail.followsMe)
+                            visible: Boolean(root.activeDetail.followsMeKnown) && Boolean(root.activeDetail.followsMe)
                                      && !root.isOwnProfile
                             implicitWidth: followsYouText.implicitWidth + Theme.space3
                             implicitHeight: Math.max(24, followsYouText.implicitHeight + Theme.space1)
@@ -863,7 +898,7 @@ Item {
                             visible: root.showUsername
                             Layout.maximumWidth: Math.max(160, parent.width * 0.72)
                             LayoutMirroring.enabled: false
-                            text: root.ltrHandle(root.detail.username)
+                            text: root.ltrHandle(root.activeDetail.username)
                             font.family: Theme.latinFontFamily
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeMetaSize
@@ -904,7 +939,7 @@ Item {
                             Label {
                                 Layout.fillWidth: true
                                 LayoutMirroring.enabled: false
-                                text: root.ltrText(root.displayUrl(root.detail.profileUrl))
+                                text: root.ltrText(root.displayUrl(root.activeDetail.profileUrl))
                                 font.family: Theme.latinFontFamily
                                 color: Theme.accent
                                 font.pixelSize: Theme.typeCaptionSize
@@ -915,7 +950,7 @@ Item {
                                 HoverHandler { id: profileLinkHover }
                                 TapHandler {
                                     gesturePolicy: TapHandler.ReleaseWithinBounds
-                                    onTapped: root.externalRequested(root.detail.profileUrl || "")
+                                    onTapped: root.externalRequested(root.activeDetail.profileUrl || "")
                                 }
                                 Accessible.role: Accessible.Link
                                 Accessible.name: qsTrId("genycaster.profile.open_profile_link")
@@ -947,7 +982,7 @@ Item {
                     RowLayout {
                         // Unknown profile metadata must never be presented as
                         // verified zero followers/following on an empty header.
-                        visible: Number(root.detail.fid || 0) > 0
+                        visible: Number(root.activeDetail.fid || 0) > 0
                         Layout.fillWidth: true
                         spacing: Theme.space1
                         layoutDirection: Theme.uiDirection
@@ -956,7 +991,7 @@ Item {
                             compact: true
                             quiet: true
                             alignStart: true
-                            text: qsTrId("genycaster.profile.value_following").arg(root.compactCount(root.detail.followingCount))
+                            text: qsTrId("genycaster.profile.value_following").arg(root.compactCount(root.activeDetail.followingCount))
                             onClicked: root.followingRequested()
                         }
 
@@ -964,7 +999,7 @@ Item {
                             compact: true
                             quiet: true
                             alignStart: true
-                            text: qsTrId("genycaster.profile.value_followers").arg(root.compactCount(root.detail.followerCount))
+                            text: qsTrId("genycaster.profile.value_followers").arg(root.compactCount(root.activeDetail.followerCount))
                             onClicked: root.followersRequested()
                         }
 
@@ -1176,5 +1211,13 @@ Item {
                 Accessible.name: qsTrId("genycaster.profile.loading_more_profile_posts")
             }
         }
+    }
+
+    ScrollToTopButton {
+        flickable: profileList
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space5
+        anchors.bottomMargin: root.compact ? Theme.space5 + 64 : Theme.space5 + 72
     }
 }

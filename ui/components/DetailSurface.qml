@@ -657,4 +657,15 @@ ListView {
         onAuthenticationRequested: root.authenticationRequested()
         onRemoveCastRequested: cast => root.removeCastRequested(cast)
     }
+
+    ScrollToTopButton {
+        // ListView's default child parenting is contentItem; explicitly
+        // parent this overlay to the viewport so it does not scroll away.
+        parent: root
+        flickable: root
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space5
+        anchors.bottomMargin: root.compact ? Theme.space5 + 64 : Theme.space5 + 72
+    }
 }
