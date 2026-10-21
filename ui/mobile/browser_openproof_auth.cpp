@@ -386,6 +386,10 @@ void BrowserOpenProofAuth::checkConnections()
         authenticated.displayName = std::move(displayName);
         authenticated.avatarUrl = std::move(avatarUrl);
         authenticated.tokenExpiresSeconds = m_tokenExpiresSeconds;
+        // Post the verified session to PresentationBridge first. The
+        // optional account capability is queued to the SAME QObject next,
+        // so it can never be admitted before its owning FID is committed.
+        emitState(std::move(authenticated));
         // The optional account controller alone may receive a *transient*
         // delegated account token after the authenticated OpenProof FID has
         // been verified. Normal login always destroys the bearer immediately.
@@ -397,7 +401,6 @@ void BrowserOpenProofAuth::checkConnections()
         m_accessToken.clear();
         m_connectionGrant = {};
         m_sessionExpiryTimer.start(m_tokenExpiresSeconds * 1000);
-        emitState(std::move(authenticated));
     });
 }
 

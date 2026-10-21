@@ -54,3 +54,27 @@ test('origins remain configurable and social data is not copied from OpenProof',
   assert.match(migration, /is_deleted boolean NOT NULL/);
   assert.doesNotMatch(migration, /CREATE TABLE.*\b(users|social_connections|identities|profile_tokens)\b/i);
 });
+
+
+test('verified OpenProof session commits before its transient account grant (same Qt event queue)', () => {
+  const auth = read('../../ui/mobile/browser_openproof_auth.cpp');
+  const runtime = read('../../ui/mobile/runtime_ui_bindings.cpp');
+  const connectionEvidence = auth.slice(
+    auth.indexOf('BrowserOpenProofState authenticated{}'),
+    auth.indexOf('m_sessionExpiryTimer.start(m_tokenExpiresSeconds * 1000);'));
+  assert.ok(connectionEvidence.indexOf('emitState(std::move(authenticated));')
+    < connectionEvidence.indexOf('m_connectionGrant(std::move(m_accessToken)'));
+  const queuedGrant = runtime.slice(
+    runtime.indexOf('browserAuth->begin(browserObserver,'),
+    runtime.indexOf('} else if (route == QStringLiteral("farcaster"))'));
+  assert.match(queuedGrant,/QMetaObject::invokeMethod\(&bridge,/);
+  assert.match(queuedGrant,/Qt::QueuedConnection/);
+  assert.match(queuedGrant,/bridge.accountFid\(\) != fid/);
+  assert.match(queuedGrant,/bridge.accountIdentityIssuer\(\) != connections.identityIssuer\(\)/);
+  assert.doesNotMatch(queuedGrant,/QTimer::singleShot\(0,/);
+  const gui = []; let fid = 0, issuer = '';
+  gui.push(() => { fid = 42; issuer = 'openproof'; });
+  gui.push(() => fid === 42 && issuer === 'openproof');
+  assert.equal(gui.shift()(),undefined);
+  assert.equal(gui.shift()(),true);
+});

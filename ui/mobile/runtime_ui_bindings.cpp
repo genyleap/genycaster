@@ -2520,19 +2520,26 @@ void connectRuntime(
             if (route == QStringLiteral("openproof")) {
                 browserSigner->cancelRecovery();
                 browserAuth->begin(browserObserver,
-                    [&connections](QByteArray bearer, QString subject,
+                    [&bridge, &connections](QByteArray bearer, QString subject,
                                    const std::uint64_t fid, const int expiresSeconds) {
-                        // Deliver on the next GUI turn after the same verified
-                        // login has updated PresentationBridge.accountFid.
-                        // Invalidated or different-FID sessions discard the
-                        // grant inside the connection controller.
-                        QTimer::singleShot(0, &connections,
-                            [&connections, bearer = std::move(bearer),
+                        // BrowserOpenProofAuth posts its verified session state
+                        // before calling this grant callback. Queue both GUI
+                        // operations to the same bridge receiver and priority:
+                        // unlike a zero-timer, this makes their order strict.
+                        QMetaObject::invokeMethod(&bridge,
+                            [&bridge, &connections, bearer = std::move(bearer),
                              subject = std::move(subject), fid, expiresSeconds]() mutable {
+                                if (!bridge.isAuthenticated()
+                                    || bridge.accountFid() != fid
+                                    || bridge.authenticationRoute() != QStringLiteral("openproof")
+                                    || bridge.accountIdentityIssuer() != connections.identityIssuer()) {
+                                    bearer.fill('\0');
+                                    return;
+                                }
                                 connections.acceptAuthenticatedGrant(
                                     std::move(bearer), std::move(subject),
                                     fid, expiresSeconds);
-                            });
+                            }, Qt::QueuedConnection);
                     });
             } else if (route == QStringLiteral("farcaster")) {
                 browserSigner->cancelRecovery();
