@@ -298,7 +298,9 @@ int main(int argc, char** argv)
             property bool authorizing: false
             property bool actionBusy: false
             property string approvalUrl: ""
+            property string consentUrl: ""
             property string error: ""
+            function openConsent() {}
             function refresh() {}
             function authorizeAccount() {}
             function refreshConnections() {}

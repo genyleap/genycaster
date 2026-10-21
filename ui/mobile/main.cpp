@@ -1463,6 +1463,13 @@ int main(int argc, char* argv[])
     OpenProofConnectionsController openProofConnections{};
     engine.rootContext()->setContextProperty(
         QStringLiteral("openProofConnections"), &openProofConnections);
+    QObject::connect(&presentationBridge, &PresentationBridge::authenticationStateChanged,
+        &openProofConnections, [&presentationBridge, &openProofConnections] {
+            openProofConnections.setViewerFid(
+                presentationBridge.isAuthenticated() ? presentationBridge.accountFid() : 0);
+        });
+    openProofConnections.setViewerFid(
+        presentationBridge.isAuthenticated() ? presentationBridge.accountFid() : 0);
     engine.rootContext()->setContextProperty(QStringLiteral("presentationBridge"), &presentationBridge);
     engine.rootContext()->setContextProperty(QStringLiteral("dataStorage"), &dataStorageController);
     engine.rootContext()->setContextProperty(QStringLiteral("richComposer"), &richComposerController);
@@ -1561,13 +1568,15 @@ int main(int argc, char* argv[])
             }
             auto readyRuntime = std::shared_ptr<Runtime>{std::move(*made)};
             QMetaObject::invokeMethod(&presentationBridge,
-                [&presentationBridge, &richComposerController, &mediaUploadController,
+                [&presentationBridge, &richComposerController, &openProofConnections,
+                 &mediaUploadController,
                  &mediaPlayback, &runtime, readyRuntime = std::move(readyRuntime),
                  siwfDomain, siwfUri, startupIdentity,
                  snapchainBaseUrl, openExploreForTest]() mutable {
                     runtime = std::move(readyRuntime);
                     connectRuntime(
-                        presentationBridge, richComposerController, runtime, authenticationAvailable,
+                        presentationBridge, richComposerController, openProofConnections,
+                        runtime, authenticationAvailable,
                         siwfDomain, siwfUri,
                         snapchainBaseUrl ? QString::fromStdString(*snapchainBaseUrl)
                                          : QStringLiteral("https://snapchain.genyleap.com"));

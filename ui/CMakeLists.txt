@@ -1247,7 +1247,9 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
     add_executable(farcaster_openproof_connections_tests
         ../tests/ui/openproof_connections_tests.cpp
         mobile/openproof_connections_controller.cpp
-        mobile/openproof_connections_controller.hpp)
+        mobile/openproof_connections_controller.hpp
+        mobile/browser_openproof_auth.cpp
+        mobile/browser_openproof_auth.hpp)
     target_include_directories(farcaster_openproof_connections_tests PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/mobile")
     target_link_libraries(farcaster_openproof_connections_tests PRIVATE

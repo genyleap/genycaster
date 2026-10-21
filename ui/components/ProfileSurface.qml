@@ -55,7 +55,6 @@ Item {
     signal externalRequested(string url)
     signal mediaRequested(var mediaItems, int index)
     signal authenticationRequested()
-    signal manageAccountConnectionsRequested(string provider)
     signal loadMoreRequested()
 
     readonly property bool isOwnProfile: Number(root.activeDetail.fid || 0) > 0
@@ -851,6 +850,30 @@ Item {
                         ], 0)
                     }
 
+                    // Keep the owner's connection manager as discoverable as
+                    // the Follow action for other profiles. The browser portal
+                    // performs its own OpenProof authentication when needed;
+                    // a Farcaster recovery session must not hide this entry.
+                    ActionButton {
+                        objectName: "profileConnectionsButton"
+                        x: root.profileContentRtl ? root.profileContentX
+                                                  : root.profileContentX + root.profileContentWidth - width
+                        anchors.top: parent.top
+                        anchors.topMargin: Theme.space2
+                        visible: root.isOwnProfile && Number(root.accountFid) > 0
+                        compact: true
+                        quiet: true
+                        iconGlyph: Theme.iconPlus
+                        text: qsTr("Connections")
+                        onClicked: {
+                            if (typeof openProofConnections === "undefined"
+                                    || openProofConnections === null)
+                                return
+                            openProofConnections.refresh()
+                            accountConnectionsPopup.open()
+                        }
+                    }
+
                     ActionButton {
                         x: root.profileContentRtl ? root.profileContentX : root.profileContentX + root.profileContentWidth - width
                         anchors.top: parent.top
@@ -920,22 +943,6 @@ Item {
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 font.weight: Theme.weightDemiBold
-                            }
-                        }
-
-                        ActionButton {
-                            objectName: "profileConnectionsButton"
-                            visible: root.isOwnProfile && Number(root.accountFid) > 0
-                                     && typeof openProofConnections !== "undefined"
-                                     && openProofConnections !== null
-                                     && root.accountIssuer === openProofConnections.identityIssuer
-                            compact: true
-                            quiet: true
-                            iconGlyph: Theme.iconPlus
-                            text: qsTr("Connections")
-                            onClicked: {
-                                openProofConnections.refresh()
-                                accountConnectionsPopup.open()
                             }
                         }
 
@@ -1283,7 +1290,21 @@ Item {
         providers: typeof openProofConnections !== "undefined"
                    && openProofConnections !== null
                    ? openProofConnections.providers : []
-        onProviderSelected: provider => root.manageAccountConnectionsRequested(provider)
+        connections: openProofConnections.connections
+        authorized: openProofConnections.authorized
+        authorizing: openProofConnections.authorizing
+        approvalUrl: openProofConnections.approvalUrl
+        consentUrl: openProofConnections.consentUrl
+        actionBusy: openProofConnections.actionBusy
+        onConsentRequested: openProofConnections.openConsent()
+        errorText: openProofConnections.error
+        onAuthorizeRequested: openProofConnections.authorizeAccount()
+        onApprovalRequested: url => Qt.openUrlExternally(url)
+        onRefreshRequested: openProofConnections.refreshConnections()
+        onConnectRequested: provider => openProofConnections.connectProvider(provider)
+        onDisconnectRequested: (provider, subject) =>
+            openProofConnections.disconnectProvider(provider, subject)
+        onClosed: openProofConnections.stopAuthorization()
     }
 
     onIsOwnProfileChanged: {

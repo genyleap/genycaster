@@ -58,6 +58,7 @@
 #include <vector>
 
 #include "presentation_bridge.hpp"
+#include "openproof_connections_controller.hpp"
 #include "rendering_controller.hpp"
 #include "emoji_controller.hpp"
 #include "rich_inline_text_item.hpp"
@@ -2233,6 +2234,7 @@ void scheduleManagedMediaCleanup(
 void connectRuntime(
     PresentationBridge& bridge,
     RichComposerController& richComposer,
+    OpenProofConnectionsController& connections,
     const std::shared_ptr<Runtime>& runtime,
     const bool authenticationAvailable,
     std::string siwfDomain,
@@ -2514,10 +2516,24 @@ void connectRuntime(
             sessionObserver(std::move(state));
         });
     QObject::connect(&bridge, &PresentationBridge::signInRequested, browserAuth,
-        [browserAuth, browserObserver, browserSigner, &bridge, sessionObserver](const QString& route) {
+        [browserAuth, browserObserver, browserSigner, &bridge, &connections, sessionObserver](const QString& route) {
             if (route == QStringLiteral("openproof")) {
                 browserSigner->cancelRecovery();
-                browserAuth->begin(browserObserver);
+                browserAuth->begin(browserObserver,
+                    [&connections](QByteArray bearer, QString subject,
+                                   const std::uint64_t fid, const int expiresSeconds) {
+                        // Deliver on the next GUI turn after the same verified
+                        // login has updated PresentationBridge.accountFid.
+                        // Invalidated or different-FID sessions discard the
+                        // grant inside the connection controller.
+                        QTimer::singleShot(0, &connections,
+                            [&connections, bearer = std::move(bearer),
+                             subject = std::move(subject), fid, expiresSeconds]() mutable {
+                                connections.acceptAuthenticatedGrant(
+                                    std::move(bearer), std::move(subject),
+                                    fid, expiresSeconds);
+                            });
+                    });
             } else if (route == QStringLiteral("farcaster")) {
                 browserSigner->cancelRecovery();
                 browserAuth->beginFarcaster(browserObserver);

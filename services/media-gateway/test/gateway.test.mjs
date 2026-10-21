@@ -533,6 +533,98 @@ test('browser OpenProof connections route requires bearer and permits explicit C
   } });
 });
 
+
+test('OpenProof issuer configuration never permits cleartext token forwarding', () => {
+  assert.throws(() => loadConfig({
+    GENYLEAP_MEDIA_TICKET_SECRET:'0123456789abcdef0123456789abcdef',
+    GENYCASTER_OPENPROOF_ISSUER:'http://identity.example.test'
+  }), /must use HTTPS/);
+});
+
+test('browser OpenProof account handoff binds provider and local return path server-side', async () => {
+  const upstreamCalls = [];
+  await withGateway(async ({ origin }) => {
+    const base = '/v1/browser/openproof/connections/handoff';
+    const preflight = await fetch(origin + base, {method:'OPTIONS', headers: {
+      origin:'https://caster.genyleap.com', 'access-control-request-method':'POST',
+      'access-control-request-headers':'authorization,content-type'
+    }});
+    assert.equal(preflight.status,204);
+    assert.match(preflight.headers.get('access-control-allow-headers')||'',/content-type/);
+    const noBearer = await fetch(origin + base, {method:'POST', headers:{
+      'content-type':'application/json'
+    },body:JSON.stringify({provider:'x'})});
+    assert.equal(noBearer.status,401);
+    const badProvider = await fetch(origin + base, {method:'POST', headers:{
+      authorization:'Bearer valid-token','content-type':'application/json'
+    },body:JSON.stringify({provider:'local'})});
+    assert.equal(badProvider.status,400);
+    const injectedReturn = await fetch(origin + base, {method:'POST', headers:{
+      authorization:'Bearer valid-token','content-type':'application/json'
+    },body:JSON.stringify({provider:'x',return_to:'https://evil.example'})});
+    assert.equal(injectedReturn.status,400);
+    const accepted = await fetch(origin + base, {method:'POST', headers:{
+      authorization:'Bearer valid-token','content-type':'application/json'
+    },body:JSON.stringify({provider:'x'})});
+    assert.equal(accepted.status,200);
+    assert.deepEqual(await accepted.json(),{
+      handoff_url:'https://openproof.genyleap.com/account/connections/handoff?ticket=one-time',
+      expires_at:'2026-10-21T12:02:00Z',
+    });
+    assert.equal(upstreamCalls.length,1);
+    assert.deepEqual(upstreamCalls[0].payload,{
+      provider:'x',return_to:'/account/connections/complete'
+    });
+    assert.equal(upstreamCalls[0].authorization,'Bearer valid-token');
+  }, {fetchImpl: async(url,options)=>{
+    assert.equal(url,'https://openproof.genyleap.com/account/connections/handoff');
+    assert.equal(options.method,'POST');
+    assert.equal(options.redirect,'error');
+    upstreamCalls.push({payload:JSON.parse(options.body),authorization:options.headers.authorization});
+    return new Response(JSON.stringify({
+      handoff_url:'https://openproof.genyleap.com/account/connections/handoff?ticket=one-time',
+      expires_at:'2026-10-21T12:02:00Z'
+    }),{status:201,headers:{'content-type':'application/json'}});
+  }});
+});
+
+test('browser OpenProof disconnect requires exact provider and subject, refuses last-method removal',async()=>{
+  const calls = [];
+  await withGateway(async({origin})=>{
+    const base='/v1/browser/openproof/connections/disconnect';
+    const bad = await fetch(origin+base,{method:'POST',headers:{
+      authorization:'Bearer verified','content-type':'application/json'},
+      body:JSON.stringify({provider:'github',subject:'',account:'other'})});
+    assert.equal(bad.status,400);
+    const refused = await fetch(origin+base,{method:'POST',headers:{
+      authorization:'Bearer verified','content-type':'application/json'},
+      body:JSON.stringify({provider:'github',subject:'login-1'})});
+    assert.equal(refused.status,412);
+    assert.deepEqual(await refused.json(),{error:'last_sign_in_method'});
+    assert.equal(calls.length,1);
+  },{fetchImpl: async(url,opts)=>{
+    assert.equal(url,'https://openproof.genyleap.com/account/connections/disconnect');
+    assert.equal(opts.method,'POST');
+    calls.push(JSON.parse(opts.body));
+    return new Response(JSON.stringify({error:'LAST_METHOD'}),{
+      status:412,headers:{'content-type':'application/json'}});
+  }});
+});
+
+test('browser OpenProof refuses forged off-issuer handoff URLs',async()=>{
+  await withGateway(async({origin})=>{
+    const response=await fetch(origin+'/v1/browser/openproof/connections/handoff',{
+      method:'POST',headers:{authorization:'Bearer verified','content-type':'application/json'},
+      body:JSON.stringify({provider:'x'})
+    });
+    assert.equal(response.status,502);
+    assert.deepEqual(await response.json(),{error:'openproof_invalid_handoff'});
+  },{fetchImpl:async()=>new Response(JSON.stringify({
+    handoff_url:'https://attacker.example/connect?ticket=secret',
+    expires_at:'2026-10-21T12:02:00Z'
+  }),{status:201,headers:{'content-type':'application/json'}})});
+});
+
 test('browser Mini App catalogue uses only fixed public discovery routes', async () => {
   const calls = [];
   await withGateway(async ({ origin }) => {

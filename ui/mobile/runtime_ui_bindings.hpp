@@ -8,6 +8,7 @@
 // owned by their existing MOC-compatible headers, not by the domain layer.
 class PresentationBridge;
 class RichComposerController;
+class OpenProofConnectionsController;
 class MediaUploadController;
 class MediaPlaybackCoordinator;
 // The importer must import genycaster.ui.runtime before this header;
@@ -22,6 +23,7 @@ void applyProfileVerificationFixture(PresentationBridge& bridge);
 // Own the GUI-facing application event graph separately from the entrypoint.
 // Signal connections retain their prior QObject context and lifetime.
 void connectRuntime(PresentationBridge& bridge, RichComposerController& richComposer,
+                    OpenProofConnectionsController& connections,
                     const std::shared_ptr<runtime::Runtime>& runtime,
                     bool authenticationAvailable, std::string siwfDomain,
                     std::string siwfUri, const QString& browserSnapchainOrigin);

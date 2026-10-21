@@ -42,6 +42,12 @@ function normalizeOrigin(value, name) {
 }
 
 export function loadConfig(env = process.env) {
+  const openProofIssuer = normalizeOrigin(
+    env.GENYCASTER_OPENPROOF_ISSUER || 'https://openproof.genyleap.com',
+    'GENYCASTER_OPENPROOF_ISSUER',
+  );
+  if (openProofIssuer.protocol !== 'https:')
+    throw new Error('GENYCASTER_OPENPROOF_ISSUER must use HTTPS');
   const ticketSecret = String(env.GENYLEAP_MEDIA_TICKET_SECRET || '');
   if (ticketSecret.length < 32) throw new Error('GENYLEAP_MEDIA_TICKET_SECRET must contain at least 32 characters.');
   const multipartPartBytes = positiveInteger(
@@ -75,6 +81,7 @@ export function loadConfig(env = process.env) {
     rateLimit: positiveInteger(env.GENYLEAP_MEDIA_RATE_LIMIT, 60, 'GENYLEAP_MEDIA_RATE_LIMIT'),
     partRateLimit: positiveInteger(env.GENYLEAP_MEDIA_PART_RATE_LIMIT, 240, 'GENYLEAP_MEDIA_PART_RATE_LIMIT'),
     trustCloudflare: env.GENYLEAP_MEDIA_TRUST_CLOUDFLARE === '1',
+    openProofIssuer,
   });
 }
 
@@ -780,7 +787,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       }
       try {
         const upstream = await runtime.fetchImpl(
-          'https://openproof.genyleap.com/account/connections', {
+          config.openProofIssuer.href.replace(/\/$/, '') + '/account/connections', {
             method: 'GET',
             headers: { authorization, accept: 'application/json' },
             redirect: 'error',
@@ -818,6 +825,118 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         response.end(JSON.stringify({ connections: decoded.connections }));
       } catch {
         writeJson(response, 502, { error: 'openproof_unavailable' });
+      }
+      return;
+    }
+
+    if (requestUrl.pathname === '/v1/browser/openproof/connections/handoff'
+        || requestUrl.pathname === '/v1/browser/openproof/connections/disconnect') {
+      // Fixed-scope browser gateway. The OpenProof issuer itself does not
+      // expose a browser CORS contract. Never accept a user-supplied upstream
+      // URL, canonical subject or arbitrary callback. Bearer is checked by
+      // OpenProof, and account mutations remain bound to that identity.
+      response.setHeader('access-control-allow-origin', '*');
+      response.setHeader('access-control-allow-methods', 'POST, OPTIONS');
+      response.setHeader('access-control-allow-headers', 'authorization,content-type');
+      response.setHeader('cache-control', 'no-store');
+      response.setHeader('x-content-type-options', 'nosniff');
+      if (request.method === 'OPTIONS') { response.writeHead(204); response.end(); return; }
+      if (request.method !== 'POST') {
+        writeJson(response, 405, {error:'method_not_allowed'}); return;
+      }
+      const authorization = String(request.headers.authorization || '');
+      if (authorization.length > 8192 ||
+          !/^Bearer [A-Za-z0-9._~+\/-]+={0,2}$/.test(authorization)) {
+        writeJson(response, 401, {error:'bearer_token_required'}); return;
+      }
+      const rate = limiter.check(clientAddress(request, config.trustCloudflare), runtime.now());
+      if (!rate.allowed) {
+        writeJson(response, 429, {error:'rate_limited'}); return;
+      }
+      let payload;
+      try { payload = safeJson(await readBody(request, 2048)); }
+      catch {
+        writeJson(response, 413, {error:'request_too_large'}); return;
+      }
+      const provider = payload?.provider;
+      if (typeof provider !== 'string' || !/^(x|github|google|linkedin|telegram)$/.test(provider)) {
+        writeJson(response, 400, {error:'unsupported_provider'}); return;
+      }
+      const handoff = requestUrl.pathname.endsWith('/handoff');
+      if ((handoff && Object.keys(payload).some(key => key !== 'provider'))
+          || (!handoff && (typeof payload.subject !== 'string'
+              || payload.subject.length < 1 || payload.subject.length > 512
+              || Object.keys(payload).some(key => key !== 'provider' && key !== 'subject')))) {
+        writeJson(response, 400, {error:'invalid_connection_request'}); return;
+      }
+      const upstreamPath = handoff ? '/account/connections/handoff'
+                                   : '/account/connections/disconnect';
+      const requestJson = handoff
+        ? {provider, return_to:'/account/connections/complete'}
+        : {provider,subject:payload.subject};
+      try {
+        const upstream = await runtime.fetchImpl(
+          config.openProofIssuer.href.replace(/\/$/,'') + upstreamPath, {
+            method:'POST',
+            headers:{authorization,accept:'application/json','content-type':'application/json'},
+            body:JSON.stringify(requestJson),
+            redirect:'error',
+            signal:AbortSignal.timeout(8_000),
+          });
+        if (upstream.status === 401 || upstream.status === 403) {
+          writeJson(response, 401, {error:'openproof_unauthorized'}); return;
+        }
+        if (upstream.status === 412) {
+          writeJson(response, 412, {error:'last_sign_in_method'}); return;
+        }
+        if ((handoff && upstream.status !== 201)
+            || (!handoff && upstream.status !== 200)
+            || !String(upstream.headers.get('content-type') || '')
+              .toLowerCase().startsWith('application/json')) {
+          writeJson(response, 502, {error:'openproof_unavailable'}); return;
+        }
+        const contentLength = Number(upstream.headers.get('content-length') || 0);
+        if (contentLength > 4096) {
+          writeJson(response, 502, {error:'openproof_invalid_reply'}); return;
+        }
+        if (!upstream.body) {
+          writeJson(response,502,{error:'openproof_invalid_reply'});return;
+        }
+        const reader = upstream.body.getReader();
+        const chunks = [];
+        let size = 0;
+        while (true) {
+          const {done,value} = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > 4096) {
+            await reader.cancel();
+            writeJson(response,502,{error:'openproof_invalid_reply'});return;
+          }
+          chunks.push(Buffer.from(value));
+        }
+        const raw = Buffer.concat(chunks,size);
+        const decoded = safeJson(raw);
+        if (handoff) {
+          let url;
+          try { url = new URL(decoded?.handoff_url,config.openProofIssuer); }
+          catch { writeJson(response,502,{error:'openproof_invalid_handoff'});return; }
+          if (url.origin !== config.openProofIssuer.origin
+              || url.pathname !== '/account/connections/handoff'
+              || !url.searchParams.get('ticket') || url.username || url.password
+              || url.hash) {
+            writeJson(response,502,{error:'openproof_invalid_handoff'});return;
+          }
+          writeJson(response,200,{
+            handoff_url:url.href,expires_at:decoded.expires_at,
+          });
+        } else if (decoded?.disconnected === true) {
+          writeJson(response,200,{disconnected:true});
+        } else {
+          writeJson(response,502,{error:'openproof_invalid_reply'});
+        }
+      } catch {
+        writeJson(response,502,{error:'openproof_unavailable'});
       }
       return;
     }

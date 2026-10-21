@@ -71,6 +71,7 @@ void BrowserOpenProofAuth::reset()
     m_directFarcaster = false;
     m_accessToken.fill('\0');
     m_accessToken.clear();
+    m_connectionGrant = {};
     m_subject.clear();
     m_approvalUrl.clear();
     m_deadlineMs = 0;
@@ -125,10 +126,11 @@ void BrowserOpenProofAuth::send(QNetworkRequest request, QByteArray body, Respon
     });
 }
 
-void BrowserOpenProofAuth::begin(Observer observer)
+void BrowserOpenProofAuth::begin(Observer observer, ConnectionGrant connectionGrant)
 {
     reset();
     m_observer = std::move(observer);
+    m_connectionGrant = std::move(connectionGrant);
     emitState(BrowserOpenProofState{.phase = BrowserOpenProofState::Phase::Starting});
 
     QUrlQuery form{};
@@ -384,10 +386,16 @@ void BrowserOpenProofAuth::checkConnections()
         authenticated.displayName = std::move(displayName);
         authenticated.avatarUrl = std::move(avatarUrl);
         authenticated.tokenExpiresSeconds = m_tokenExpiresSeconds;
-        // All token material remains ephemeral; no local-storage bearer or
-        // refresh token. Protocol signing still requires a separate signer.
+        // The optional account controller alone may receive a *transient*
+        // delegated account token after the authenticated OpenProof FID has
+        // been verified. Normal login always destroys the bearer immediately.
+        if (m_connectionGrant) {
+            m_connectionGrant(std::move(m_accessToken), m_subject, fid,
+                              m_tokenExpiresSeconds);
+        }
         m_accessToken.fill('\0');
         m_accessToken.clear();
+        m_connectionGrant = {};
         m_sessionExpiryTimer.start(m_tokenExpiresSeconds * 1000);
         emitState(std::move(authenticated));
     });

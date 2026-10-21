@@ -3,17 +3,29 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-/** A lightweight, account-owner-only selector. OpenProof owns the actual
- * provider links, disconnects and browser-session validation. */
+/** Account connections stay inside Genycaster. Provider consent is delegated
+ * to the signed OpenProof handoff, and no OAuth token enters QML. */
 GenyModal {
     id: picker
     objectName: "accountConnectionsPopup"
-    property bool compactLayout: width < 440
     property var providers: []
-    signal providerSelected(string provider)
+    property var connections: []
+    property bool authorized: false
+    property bool authorizing: false
+    property bool actionBusy: false
+    property string approvalUrl: ""
+    property string consentUrl: ""
+    property string errorText: ""
+    signal consentRequested()
 
-    width: Math.min(480, parent ? Math.max(280, parent.width - Theme.space4 * 2) : 480)
-    height: Math.min(580, parent ? Math.max(280, parent.height - Theme.space4 * 2) : 580)
+    signal authorizeRequested()
+    signal approvalRequested(string url)
+    signal refreshRequested()
+    signal connectRequested(string provider)
+    signal disconnectRequested(string provider, string subject)
+
+    width: Math.min(500, parent ? Math.max(280, parent.width - Theme.space4 * 2) : 500)
+    height: Math.min(620, parent ? Math.max(310, parent.height - Theme.space4 * 2) : 620)
     padding: Theme.space3
 
     function providerTitle(provider) {
@@ -29,14 +41,84 @@ GenyModal {
         }
     }
 
+    function connectionFor(provider) {
+        for (let i = 0; i < connections.length; i++) {
+            const connection = connections[i]
+            if (String(connection.provider || "") === provider)
+                return connection
+        }
+        return null
+    }
+
     contentItem: ColumnLayout {
         spacing: Theme.space2
 
         ModalHeader {
             Layout.fillWidth: true
-            title: qsTr("Connected accounts")
-            subtitle: qsTr("Choose a provider to manage its connection securely through OpenProof.")
+            title: qsTr("Connections")
+            subtitle: qsTr("Connect accounts securely without leaving Genycaster.")
             onCloseRequested: picker.close()
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            visible: !picker.authorized
+            spacing: Theme.space2
+
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: picker.authorizing
+                      ? qsTr("Confirm your Farcaster identity with OpenProof. Connections will be linked only to this verified profile.")
+                      : qsTr("Verify this Farcaster profile once through OpenProof to manage your social connections here.")
+                color: Theme.inkMuted
+                wrapMode: Text.Wrap
+            }
+
+            ActionButton {
+                Layout.fillWidth: true
+                enabled: !picker.authorizing
+                text: picker.authorizing ? qsTr("Waiting for authorization…")
+                                         : qsTr("Verify my Farcaster profile")
+                iconGlyph: Theme.iconLink
+                prominent: true
+                onClicked: picker.authorizeRequested()
+            }
+
+            ActionButton {
+                Layout.fillWidth: true
+                visible: picker.authorizing && picker.approvalUrl.length > 0
+                text: qsTr("Open secure approval")
+                quiet: true
+                onClicked: picker.approvalRequested(picker.approvalUrl)
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            visible: picker.authorized
+
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTr("Verified by OpenProof")
+                color: Theme.inkMuted
+            }
+
+            ActionButton {
+                compact: true
+                quiet: true
+                text: qsTr("Refresh")
+                enabled: !picker.actionBusy
+                onClicked: picker.refreshRequested()
+            }
+        }
+
+        ActionButton {
+            Layout.fillWidth: true
+            visible: picker.consentUrl.length > 0
+            text: qsTr("Continue to secure provider approval")
+            iconGlyph: Theme.iconLink
+            prominent: true
+            onClicked: picker.consentRequested()
         }
 
         ScrollView {
@@ -54,17 +136,66 @@ GenyModal {
 
                 Repeater {
                     model: picker.providers
-                    delegate: ActionButton {
+
+                    delegate: RowLayout {
+                        id: providerRow
                         required property string modelData
+                        property var activeConnection: picker.connectionFor(modelData)
+                        property bool isConnected: activeConnection !== null
+                        property bool needsWeb3Proof: modelData === "farcaster"
+                                                       || modelData === "ethereum-wallet"
+                        property bool confirmUnlink: false
                         Layout.fillWidth: true
-                        Layout.minimumHeight: 48
-                        text: picker.providerTitle(modelData)
-                        iconGlyph: Theme.iconLink
-                        quiet: true
-                        alignStart: true
-                        onClicked: {
-                            picker.providerSelected(modelData)
-                            picker.close()
+                        spacing: Theme.space2
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: picker.providerTitle(modelData)
+                                font.weight: Theme.weightDemiBold
+                            }
+
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: providerRow.isConnected
+                                      ? qsTr("Connected") + " · " +
+                                        String(providerRow.activeConnection.displayName
+                                               || providerRow.activeConnection.username || "")
+                                      : providerRow.needsWeb3Proof
+                                        ? qsTr("Requires a signed identity proof")
+                                        : picker.authorized ? qsTr("Not connected")
+                                                            : qsTr("Verify profile first")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        ActionButton {
+                            compact: true
+                            quiet: true
+                            enabled: picker.authorized && !picker.actionBusy
+                                     && (!isConnected && !needsWeb3Proof
+                                         || isConnected && modelData !== "farcaster")
+                            text: isConnected ? confirmUnlink ? qsTr("Confirm")
+                                                                 : qsTr("Disconnect")
+                                              : needsWeb3Proof ? qsTr("Verified proof") : qsTr("Connect")
+                            onClicked: {
+                                if (isConnected) {
+                                    if (!confirmUnlink) {
+                                        confirmUnlink = true
+                                    } else {
+                                        picker.disconnectRequested(modelData,
+                                            String(activeConnection.subject || ""))
+                                        confirmUnlink = false
+                                    }
+                                } else {
+                                    picker.connectRequested(modelData)
+                                }
+                            }
                         }
                     }
                 }
@@ -73,7 +204,15 @@ GenyModal {
 
         DirectionAwareLabel {
             Layout.fillWidth: true
-            text: qsTr("Connection status and confirmation are verified in your OpenProof account. This list only shows supported providers.")
+            visible: picker.errorText.length > 0
+            text: picker.errorText
+            color: Theme.danger
+            wrapMode: Text.Wrap
+        }
+
+        DirectionAwareLabel {
+            Layout.fillWidth: true
+            text: qsTr("Only OpenProof can confirm linked identities. Provider consent may open its secure authentication window.")
             color: Theme.inkMuted
             font.pixelSize: Theme.typeCaptionSize
             wrapMode: Text.Wrap

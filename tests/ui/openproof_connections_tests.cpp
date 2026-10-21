@@ -34,6 +34,12 @@ int main(int argc, char** argv)
     assert(controller.providers().contains(QStringLiteral("x")));
     assert(controller.providers().contains(QStringLiteral("farcaster")));
     assert(!controller.providers().contains(QStringLiteral("local")));
-    assert(!controller.openManager(QStringLiteral("unknown-provider")));
+    controller.setViewerFid(42);
+    assert(!controller.authorized());
+    assert(controller.connections().isEmpty());
+    controller.connectProvider(QStringLiteral("unknown-provider"));
+    assert(!controller.actionBusy());
+    controller.setViewerFid(0);
+    assert(!controller.authorized());
     return 0;
 }

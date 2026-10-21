@@ -33,11 +33,14 @@ struct BrowserOpenProofState final {
 class BrowserOpenProofAuth final : public QObject {
 public:
     using Observer = std::function<void(BrowserOpenProofState)>;
+    // C++-only transient account capability, delivered after userinfo and
+    // Farcaster-FID verification. Never exposed through QML/JS or persisted.
+    using ConnectionGrant = std::function<void(QByteArray, QString, std::uint64_t, int)>;
 
     explicit BrowserOpenProofAuth(QObject* parent = nullptr);
     ~BrowserOpenProofAuth() override;
 
-    void begin(Observer observer);
+    void begin(Observer observer, ConnectionGrant connectionGrant = {});
     void beginFarcaster(Observer observer);
     void cancel();
     void signOut();
@@ -60,6 +63,7 @@ private:
     QTimer m_sessionExpiryTimer{this};
     QPointer<QNetworkReply> m_reply{};
     Observer m_observer{};
+    ConnectionGrant m_connectionGrant{};
     QByteArray m_deviceCode{};
     QByteArray m_farcasterTicket{};
     bool m_directFarcaster{false};
