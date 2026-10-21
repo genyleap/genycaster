@@ -143,6 +143,35 @@ void testReplyCastAddProtobufFixture()
     assert(result->hashBytes.size() == 20U);
 }
 
+void testChannelAndTokenParentUrls()
+{
+    protocol::message::CastAddInput input{
+        .fid = domain::identity::Fid{42U},
+        .publicKey = fixturePublicKey(),
+        .text = "hello",
+        .parentUrl = std::string{"https://farcaster.group/dev"},
+        .timestamp = 123'000U,
+        .network = protocol::message::Network::Mainnet,
+    };
+    const auto channel = protocol::message::encodeCastAdd(input);
+    assert(channel);
+    // CAST_ADD oneof parent_url is protobuf field 7, wire type 2.
+    const std::string field{"\x3a", 1};
+    assert(channel->dataBytes.find(field) != std::string::npos);
+    input.parentUrl = "chain://eip155:8453/erc20:0x1234567890123456789012345678901234567890";
+    assert(protocol::message::encodeCastAdd(input));
+    input.parentUrl = std::string(257, 'x');
+    assert(!protocol::message::encodeCastAdd(input));
+    input.parentUrl = "javascript:alert(1)";
+    assert(!protocol::message::encodeCastAdd(input));
+    input.parentUrl = "https://farcaster.group/dev";
+    input.parent = domain::cast::CastReference{
+        .author = domain::identity::Fid{7U},
+        .id = domain::cast::CastId{"0x000102030405060708090a0b0c0d0e0f10111213"},
+    };
+    assert(!protocol::message::encodeCastAdd(input));
+}
+
 void testCastRejectsMalformedUtf8()
 {
     const protocol::message::CastAddInput input{
@@ -471,6 +500,7 @@ int main()
     testBlake3OfficialVectors();
     testCastAddProtobufFixture();
     testReplyCastAddProtobufFixture();
+    testChannelAndTokenParentUrls();
     testCastRejectsMalformedUtf8();
     testLongCastEncodesTypeDiscriminant();
     testCastAddFailsClosed();
