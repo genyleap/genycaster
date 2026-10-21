@@ -7,10 +7,11 @@ import QtQuick.Layouts
 Item {
     id: root
     property bool mediaPreview: false
+    property bool animate: true
     implicitHeight: mediaPreview ? 222 : 142
 
     SequentialAnimation on opacity {
-        running: root.visible && !Theme.reduceMotion
+        running: root.visible && root.animate && !Theme.reduceMotion
         loops: Animation.Infinite
         NumberAnimation { to: 0.72; duration: 900; easing.type: Easing.InOutSine }
         NumberAnimation { to: 1.0; duration: 900; easing.type: Easing.InOutSine }

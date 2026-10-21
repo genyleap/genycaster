@@ -6,8 +6,12 @@ const read=relative=>readFileSync(new URL('../../'+relative,import.meta.url),'ut
 test('nested and profile replies keep their measured hit targets while scrolling',()=>{
   const profile=read('ui/components/ProfileSurface.qml');
   const feed=read('ui/components/FeedSurface.qml');
-  assert.match(profile,/resolvedHeight > profileCastDelegate\.committedHeight/);
-  assert.match(feed,/resolvedHeight > rowDelegate\.committedHeight/);
+  // Fully measured delegates must use their real height even during a flick.
+  // Waiting until movement stops exposed blank bands between replies/casts.
+  assert.match(profile,/profileCastLoader\.status === Loader\.Ready/);
+  assert.match(profile,/profileCastDelegate\.committedHeight = profileCastDelegate\.resolvedHeight/);
+  assert.match(feed,/!rowDelegate\.incubating && rowDelegate\.resolvedHeight > 0/);
+  assert.match(feed,/rowDelegate\.committedHeight = rowDelegate\.resolvedHeight/);
   assert.match(profile,/onReplyRequested: cast => root\.replyRequested\(cast\)/);
   assert.match(feed,/onReactionRequested: \(kind, cast, active\) => root\.reactionRequested/);
 });

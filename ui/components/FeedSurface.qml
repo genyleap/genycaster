@@ -1162,15 +1162,14 @@ Item {
             property real committedHeight: reservedHeight
 
             function synchronizeHeight() {
-                // Rows may hydrate a quoted parent, link preview or image while
-                // the user scrolls. Grow immediately to preserve hit testing;
-                // only shrink at rest to avoid avoidable scroll jumps.
-                if (rowDelegate.resolvedHeight > rowDelegate.committedHeight
-                        || rowDelegate.resolvedHeight > 0 && !readList.moving) {
+                // The estimate is only a placeholder until incubation ends.
+                // Deferring a downward correction until movement stops leaves
+                // enormous invisible gaps between casts during a long flick.
+                // Qt ListView tracks the actual delegate heights as they settle.
+                if (!rowDelegate.incubating && rowDelegate.resolvedHeight > 0)
                     rowDelegate.committedHeight = rowDelegate.resolvedHeight
-                } else if (rowDelegate.incubating || rowDelegate.resolvedHeight <= 0) {
+                else
                     rowDelegate.committedHeight = rowDelegate.reservedHeight
-                }
             }
 
             width: readList.width
@@ -1190,6 +1189,18 @@ Item {
             onReservedHeightChanged: rowDelegate.synchronizeHeight()
             onResolvedHeightChanged: rowDelegate.synchronizeHeight()
             onStableKeyChanged: rowDelegate.committedHeight = rowDelegate.reservedHeight
+
+            // An asynchronous delegate may still be incubating when a fast
+            // flick brings its slot on screen. Show a real cast-shaped loading
+            // state rather than a vacant patch of the feed.
+            CastSkeleton {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                visible: rowDelegate.incubating && !rowDelegate.sectionRow
+                mediaPreview: rowDelegate.mediaLayoutKind !== "other"
+                animate: !readList.moving
+            }
 
             Connections {
                 target: readList

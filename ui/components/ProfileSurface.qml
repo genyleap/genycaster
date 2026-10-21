@@ -1130,11 +1130,13 @@ Item {
             property real committedHeight: reservedHeight
 
             function synchronizeHeight() {
-                if (profileCastDelegate.resolvedHeight > profileCastDelegate.committedHeight
-                        || profileCastDelegate.resolvedHeight > 0 && !profileList.moving)
+                // The estimated slot must not outlive the real delegate geometry:
+                // keeping an oversized reservation until a flick ends exposes a
+                // large empty gap between profile casts.
+                if (profileCastLoader.status === Loader.Ready
+                        && profileCastDelegate.resolvedHeight > 0)
                     profileCastDelegate.committedHeight = profileCastDelegate.resolvedHeight
-                else if (profileCastLoader.status === Loader.Loading
-                         || profileCastDelegate.resolvedHeight <= 0)
+                else
                     profileCastDelegate.committedHeight = profileCastDelegate.reservedHeight
             }
 
@@ -1149,6 +1151,15 @@ Item {
             onReservedHeightChanged: profileCastDelegate.synchronizeHeight()
             onResolvedHeightChanged: profileCastDelegate.synchronizeHeight()
             onStableKeyChanged: profileCastDelegate.committedHeight = profileCastDelegate.reservedHeight
+
+            CastSkeleton {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                visible: profileCastLoader.status !== Loader.Ready
+                mediaPreview: profileCastDelegate.reservedHeight > 320
+                animate: !profileList.moving
+            }
 
             Loader {
                 id: profileCastLoader

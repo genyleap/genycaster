@@ -541,6 +541,27 @@ int main(int argc, char** argv)
              {QStringLiteral("rows"), profileRows},
              {QStringLiteral("compact"), true}});
         if (!profile) return 1;
+        auto* connections = profile->findChild<QObject*>(QStringLiteral("profileConnectionsButton"));
+        expect(connections != nullptr, "owner has a discoverable Connections button near the avatar");
+        if (connections) {
+            profile->setProperty("accountFid", 44);
+            profile->setProperty("accountIssuer", QStringLiteral("genycaster:device-local"));
+            QCoreApplication::processEvents();
+            expect(connections->property("visible").toBool(),
+                "own profile connections remains visible after local Farcaster recovery");
+            profile->setProperty("accountIssuer", QString{});
+            QCoreApplication::processEvents();
+            expect(connections->property("visible").toBool(),
+                "own profile connections is not tied to a fragile issuer comparison");
+            profile->setProperty("accountFid", 55);
+            QCoreApplication::processEvents();
+            expect(!connections->property("visible").toBool(),
+                "another user's profile cannot show owner connection controls");
+            profile->setProperty("accountFid", 0);
+            QCoreApplication::processEvents();
+            expect(!connections->property("visible").toBool(),
+                "guest sessions cannot show owner connection controls");
+        }
         auto* view = profile->findChild<QObject*>(QStringLiteral("profileList"));
         auto* model = profile->findChild<FeedRowsModel*>(QStringLiteral("profileRowsModel"));
         auto* topButton = profile->findChild<QObject*>(QStringLiteral("scrollToTopButton"));
@@ -1875,6 +1896,37 @@ int main(int argc, char** argv)
         expect(allObservedRowsReserveHeight,
             "incubating and pooled feed delegates never collapse to zero height");
         expect(reusedRows > 0, "real feed regression exercises pooled delegates");
+
+        // Regress the reported WASM hole: an already-incubated Cast can be
+        // shorter than its initial media/text reservation. Even during a real
+        // kinetic flick it must release that extra height immediately instead
+        // of leaving an empty band until onMovementEnded.
+        expect(QMetaObject::invokeMethod(list, "positionViewAtIndex",
+            Q_ARG(int, 18), Q_ARG(int, 0)), "position feed for kinetic gap regression");
+        QTest::qWait(100);
+        auto* realFeedItem = qobject_cast<QQuickItem*>(feed.get());
+        QQuickItem* readyRow = nullptr;
+        for (auto* candidate : visualItemsNamed(*realFeedItem, QStringLiteral("feedRow"))) {
+            if (!candidate->property("incubating").toBool()
+                && candidate->property("resolvedHeight").toDouble() > 1.0) {
+                readyRow = candidate;
+                break;
+            }
+        }
+        expect(readyRow != nullptr, "gap regression finds a measured asynchronous cast");
+        if (readyRow) {
+            expect(QMetaObject::invokeMethod(list, "flick",
+                Q_ARG(qreal, 0.0), Q_ARG(qreal, -1800.0)), "start a real feed flick");
+            expect(QTest::qWaitFor([&] { return list->property("moving").toBool(); }),
+                "feed kinetic gap regression runs during motion");
+            const double measured = readyRow->property("resolvedHeight").toDouble();
+            readyRow->setProperty("committedHeight", measured + 240.0);
+            expect(QMetaObject::invokeMethod(readyRow, "synchronizeHeight"),
+                "reconcile inflated placeholder during kinetic scrolling");
+            expect(qAbs(readyRow->height() - measured) < 1.0,
+                "ready feed cast never retains a gap-sized reservation during motion");
+            QMetaObject::invokeMethod(list, "cancelFlick");
+        }
         expect(QMetaObject::invokeMethod(list, "positionViewAtIndex",
             Q_ARG(int, 18), Q_ARG(int, 0)), "feed scrolls before background refresh");
         feed->setProperty("busy", true);
