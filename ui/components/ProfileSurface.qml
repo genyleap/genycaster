@@ -571,10 +571,10 @@ Item {
         clip: true
         model: profileRowsModel
         spacing: 0
-        // Keep the profile header and last cast inside the viewport on mobile
-        // and desktop. Refresh is available through the header action.
-        boundsBehavior: Flickable.StopAtBounds
-        boundsMovement: Flickable.StopAtBounds
+        // Only a deliberate pull is allowed past the top; wheel scrolling
+        // stays bounded and the shared indicator requests real profile reload.
+        boundsBehavior: Flickable.DragOverBounds
+        boundsMovement: Flickable.FollowBoundsBehavior
         reuseItems: true
         cacheBuffer: Math.min(Math.max(height * 0.75, 560), 960)
         pixelAligned: false
@@ -1312,6 +1312,13 @@ Item {
         if (!root.isOwnProfile)
             accountConnectionsPopup.close()
     }
+    PullToRefresh {
+        flickable: profileList
+        busy: root.busy
+        refreshEnabled: Number(root.activeDetail.fid || 0) > 0
+        onRefreshRequested: root.refreshRequested()
+    }
+
     ScrollToTopButton {
         flickable: profileList
         anchors.right: parent.right

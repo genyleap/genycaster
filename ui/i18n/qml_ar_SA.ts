@@ -1198,6 +1198,10 @@
             <source>Activity</source>
             <translation>النشاط</translation>
         </message>
+        <message id="genycaster.notifications.filter_channels">
+            <source>Channels</source>
+            <translation>القنوات</translation>
+        </message>
         <message id="genycaster.notifications.filter_replies">
             <source>Replies</source>
             <translation>الردود</translation>

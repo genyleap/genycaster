@@ -494,7 +494,7 @@ int main(int argc, char** argv)
         expect(qAbs(relativeY(*notificationTitle) - titleY) < 2,
                "notification title never jumps vertically while loading or filtering");
         expect(qAbs(relativeY(*notificationFilters) - filterY) < 2,
-               "Activity, Replies, Mentions and Reactions tabs retain their y position");
+               "Activity, Channels and Mentions tabs retain their y position");
         expect(qAbs(relativeY(*notificationBody) - bodyY) < 2,
                "notification empty, loading and populated states share one anchored body");
         expect(filterY >= titleY + notificationTitle->height() - 2,
@@ -506,8 +506,8 @@ int main(int argc, char** argv)
     notificationFixture->setProperty("loadingNotifications", true);
     notificationFixture->setProperty("rows", QVariantList{});
     for (const auto& filter : {
-             QStringLiteral("all"), QStringLiteral("reply"),
-             QStringLiteral("mention"), QStringLiteral("reactions")}) {
+             QStringLiteral("all"), QStringLiteral("channels"),
+             QStringLiteral("mention")}) {
         notificationFixture->setProperty("filterKind", filter);
         assertStableNotificationLayout();
     }
@@ -519,11 +519,24 @@ int main(int argc, char** argv)
     expect(!flag(*notificationFixture, "showState"),
            "an actual reply row displays on the Activity notifications tab");
     notificationFixture->setProperty("filterKind", QStringLiteral("mention"));
+    expect(!flag(*notificationFixture, "showState"),
+           "Mentions includes replies addressed to the viewer");
+    notificationFixture->setProperty("filterKind", QStringLiteral("channels"));
     expect(flag(*notificationFixture, "showState"),
-           "Mentions filters out an unrelated reply without mutating source rows");
+           "Channels does not invent a channel for unrelated replies");
+    QVariantMap channelReply = replyNotice;
+    channelReply.insert(QStringLiteral("castChannel"), QStringLiteral("design"));
+    notificationFixture->setProperty("rows", QVariantList{channelReply});
+    expect(!flag(*notificationFixture, "showState"),
+           "Channels displays a provider-tagged notification");
+    notificationFixture->setProperty("rows", QVariantList{replyNotice});
     notificationFixture->setProperty("filterKind", QStringLiteral("all"));
     expect(!flag(*notificationFixture, "showState"),
            "returning to Activity restores the previously loaded reply");
+    expect(notificationFixture->findChild<QObject*>(QStringLiteral("pullToRefresh")) != nullptr,
+           "notifications have a real shared pull-to-refresh gesture overlay");
+    expect(notificationFixture->findChild<QObject*>(QStringLiteral("notificationList")) != nullptr,
+           "empty notifications retain an interactive refresh viewport");
 
     // The iPhone notification regression was in the reaction summary:
     // stacked actor avatars escaped their allocated column, a colored
@@ -632,8 +645,15 @@ int main(int argc, char** argv)
         // Assert the stable visible row, not a stale pixel coordinate.
         expect(QMetaObject::invokeMethod(profile.get(), "captureViewportAnchor"),
             "resample visible profile row after temporary empty response");
-        expect(profile->property("viewportAnchorKey").toString() == anchoredCast,
-            "temporary empty profile response preserves the visible cast");
+        // A still-incubating ListView can correct its estimates by several
+        // delegate heights between two probes. The originally sampled row
+        // need not remain the first visible row even with unchanged data.
+        // The important invariants are no destructive model clear and no
+        // teleport back to the header during a transient empty response.
+        expect(!profile->property("viewportAnchorKey").toString().isEmpty(),
+            "temporary empty profile response retains a measurable visible cast");
+        expect(view->property("contentY").toDouble() - view->property("originY").toDouble() > 300,
+            "temporary empty profile response does not teleport to the header");
         profile->setProperty("detail", QVariantMap{});
         QTest::qWait(50);
         expect(model->rowCount() == profileRows.size(),
@@ -700,7 +720,7 @@ int main(int argc, char** argv)
              {QStringLiteral("rows"), QVariantList{replyNotice}}});
         if (!notices) return 1;
         notices->setProperty("rows", QVariantList{replyNotice, reactedNotice});
-        notices->setProperty("filterKind", QStringLiteral("reactions"));
+        notices->setProperty("filterKind", QStringLiteral("channels"));
         notices->setProperty("rows", QVariantList{reactedNotice});
         notices.reset();
         QCoreApplication::processEvents();

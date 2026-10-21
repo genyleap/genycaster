@@ -1198,6 +1198,10 @@
             <source>Activity</source>
             <translation>Actividad</translation>
         </message>
+        <message id="genycaster.notifications.filter_channels">
+            <source>Channels</source>
+            <translation>Canales</translation>
+        </message>
         <message id="genycaster.notifications.filter_replies">
             <source>Replies</source>
             <translation>Respuestas</translation>

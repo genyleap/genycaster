@@ -1198,6 +1198,10 @@
             <source>Activity</source>
             <translation>动态</translation>
         </message>
+        <message id="genycaster.notifications.filter_channels">
+            <source>Channels</source>
+            <translation>频道</translation>
+        </message>
         <message id="genycaster.notifications.filter_replies">
             <source>Replies</source>
             <translation>回复</translation>

@@ -52,6 +52,15 @@ Item {
     model: 100
     delegate: Rectangle { width: 48; height: 40 }
   }
+  Item {
+    objectName: "offsetViewport"
+    x: 250; y: 270; width: 165; height: 125
+    clip: true
+    property real contentY: -120
+    property real originY: -120
+    property real contentHeight: 800
+    property bool interactive: true
+  }
   Popup {
     objectName: "testPopup"
     modal: true
@@ -89,6 +98,18 @@ Item {
                    "disabled Flickable stays at zero");
             expect(!scroll(window, QPointF{490, 120}, QPoint{0, -96}),
                    "outside viewport never scrolls");
+            auto* offset = root->findChild<QQuickItem*>(QStringLiteral("offsetViewport"));
+            expect(offset != nullptr, "offset-origin viewport exists");
+            if (offset) {
+                expect(scroll(window, QPointF{280, 300}, QPoint{0, -70}),
+                       "wheel advances a list with a negative origin");
+                expect(std::abs(offset->property("contentY").toDouble() + 50.) < 0.1,
+                       "wheel does not clamp the negative list origin to zero");
+                expect(scroll(window, QPointF{280, 300}, QPoint{0, 500}),
+                       "wheel can return toward a shifted origin");
+                expect(std::abs(offset->property("contentY").toDouble() + 120.) < 0.1,
+                       "wheel returns exactly to the shifted origin");
+            }
             auto* popup = root->findChild<QObject*>(QStringLiteral("testPopup"));
             expect(popup != nullptr, "popup fixture exists");
             if (popup) {

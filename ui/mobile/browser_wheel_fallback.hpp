@@ -2,6 +2,7 @@
 
 #include <QPoint>
 #include <QPointF>
+#include <QPointer>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QString>
@@ -38,9 +39,15 @@ inline bool moveAxis(QQuickItem* item, const char* positionName,
     if (!std::isfinite(viewport) || !std::isfinite(content)
         || !std::isfinite(previous) || viewport <= 0) return false;
 
-    const double maximum = std::max(0.0, content - viewport);
-    if (maximum < 1) return false;
-    const double next = std::clamp(previous + delta, 0.0, maximum);
+    // ListView/Flickable can have a non-zero (including negative) origin
+    // after reusing and remeasuring delegates. Clamping to absolute zero
+    // makes wheel ticks appear stuck at the wrong beginning/end.
+    const auto originValue = item->property(vertical ? "originY" : "originX");
+    const double minimum = originValue.isValid() ? originValue.toDouble() : 0.0;
+    if (!std::isfinite(minimum)) return false;
+    const double maximum = minimum + std::max(0.0, content - viewport);
+    if (maximum - minimum < 1) return false;
+    const double next = std::clamp(previous + delta, minimum, maximum);
     if (std::abs(previous - next) < 0.1) return false;
 
     if (!item->setProperty(positionName, next)) return false;
@@ -94,13 +101,29 @@ inline bool scroll(QQuickWindow& window, const QPointF& position,
         || position.x() >= window.width() || position.y() >= window.height()) {
         return false;
     }
+    // Modal popup QObjects can be owned by the screen instead of the visual
+    // overlay. Looking them up via findChildren() on *every wheel tick* was a
+    // linear scan of the entire feed/delegate QObject tree, especially costly
+    // in Chrome and on screens with many casts. Cache only a currently open
+    // modal and invalidate it when it closes, is destroyed or focus enters
+    // another popup. This does not retain raw pointers across route changes.
+    static QPointer<QQuickWindow> cachedWindow{};
+    static QPointer<QObject> cachedModal{};
+    if (cachedWindow == &window && cachedModal
+        && cachedModal->property("modal").toBool()
+        && cachedModal->property("visible").toBool()) {
+        auto* content = cachedModal->property("contentItem").value<QQuickItem*>();
+        auto* focus = window.activeFocusItem();
+        if (content && (!focus || focus == content || content->isAncestorOf(focus)))
+            return scrollBranch(content, position, qtPixelDelta) == Result::Scrolled;
+    }
+    cachedWindow = &window;
+    cachedModal.clear();
     // Qt Quick's modal Popup/Drawer content lives in an overlay, with the
     // Popup QObject parented to the originating control rather than always
     // to the visual overlay Item. Before walking the feed, route the wheel
     // strictly into the topmost open modal's content item. Otherwise scrolling
     // outside the modal would incorrectly move the feed behind its scrim.
-    // QQuickItem::setParentItem does not necessarily change QObject
-    // ownership. Check every top-level visual branch's QObject subtree.
     for (auto* branch : root->childItems()) {
         const QVariant overlayState = branch->property("overlayOpen");
         if (overlayState.isValid() && !overlayState.toBool()) {
@@ -117,6 +140,7 @@ inline bool scroll(QQuickWindow& window, const QPointF& position,
             if (!content.isValid()) continue;
             auto* item = content.value<QQuickItem*>();
             if (!item) continue;
+            cachedModal = object;
             return scrollBranch(item, position, qtPixelDelta) == Result::Scrolled;
         }
     }

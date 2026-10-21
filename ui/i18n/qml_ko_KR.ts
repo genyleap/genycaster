@@ -1198,6 +1198,10 @@
             <source>Activity</source>
             <translation>활동</translation>
         </message>
+        <message id="genycaster.notifications.filter_channels">
+            <source>Channels</source>
+            <translation>채널</translation>
+        </message>
         <message id="genycaster.notifications.filter_replies">
             <source>Replies</source>
             <translation>답글</translation>

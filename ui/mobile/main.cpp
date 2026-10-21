@@ -169,12 +169,24 @@ EM_BOOL browserWheelCallback(int type, const EmscriptenWheelEvent* event, void*)
     const auto bounded = [](double v) {
         return static_cast<int>(std::lround(std::clamp(v, -2000.0, 2000.0)));
     };
+    // Chromium touchpads can emit sub-pixel deltas in rapid succession.
+    // Rounding each event independently to zero makes scrolling feel as if
+    // some wheel ticks never arrive. Carry fractional pixels to the next tick.
+    static QPointF wheelRemainder{};
+    const auto pixelsForAxis = [](double value, double& remainder) {
+        const double accumulated = std::clamp(value, -2000.0, 2000.0) + remainder;
+        const int whole = static_cast<int>(std::trunc(accumulated));
+        remainder = accumulated - whole;
+        return whole;
+    };
     Qt::KeyboardModifiers modifiers = Qt::NoModifier;
     if (event->mouse.shiftKey) modifiers |= Qt::ShiftModifier;
     if (event->mouse.altKey) modifiers |= Qt::AltModifier;
     if (event->mouse.metaKey) modifiers |= Qt::MetaModifier;
     const QPointF local{x * window->width(), y * window->height()};
-    const QPoint pixels{bounded(-event->deltaX * scale), bounded(-event->deltaY * scale)};
+    const QPoint pixels{
+        pixelsForAxis(-event->deltaX * scale, wheelRemainder.rx()),
+        pixelsForAxis(-event->deltaY * scale, wheelRemainder.ry())};
     const QPoint angles{bounded(-event->deltaX * scale * 1.2),
                         bounded(-event->deltaY * scale * 1.2)};
     // WebAssembly Qt's synthesized wheel events are not reliable for
@@ -183,11 +195,21 @@ EM_BOOL browserWheelCallback(int type, const EmscriptenWheelEvent* event, void*)
     // Flickable's viewport directly, including ComboBox popup ListViews.
     if (genycaster::ui::browser_wheel::scroll(*window, local, pixels)) {
         EM_ASM({
+            // The listener on window is registered in capture phase, before
+            // Qt's own canvas listener. Chromium may otherwise deliver the
+            // same wheel tick twice (native viewport + Qt synthetic event),
+            // sometimes scrolling back to the previous location.
+            const e = window.__genycasterWheelEvent;
+            if (e && e.clientX === $0 && e.clientY === $1) {
+                e.stopImmediatePropagation();
+                if (e.cancelable) e.preventDefault();
+                window.__genycasterWheelEvent = null;
+            }
             if (window.__genycasterWheelDiagnostics) {
                 window.__genycasterWheelDiagnostics.forwarded += 1;
                 window.__genycasterWheelDiagnostics.directScrolled += 1;
             }
-        });
+        }, event->mouse.clientX, event->mouse.clientY);
         return EM_TRUE;
     }
     // Retain Qt wheel delivery for non-Flickable controls, e.g. an editable
@@ -201,9 +223,15 @@ EM_BOOL browserWheelCallback(int type, const EmscriptenWheelEvent* event, void*)
     // unaccepted; allow Qt's own web event routing to handle those.
     if (!wheel.isAccepted()) return EM_FALSE;
     EM_ASM({
+        const e = window.__genycasterWheelEvent;
+        if (e && e.clientX === $0 && e.clientY === $1) {
+            e.stopImmediatePropagation();
+            if (e.cancelable) e.preventDefault();
+            window.__genycasterWheelEvent = null;
+        }
         if (window.__genycasterWheelDiagnostics)
             window.__genycasterWheelDiagnostics.forwarded += 1;
-    });
+    }, event->mouse.clientX, event->mouse.clientY);
     return EM_TRUE;
 }
 
@@ -229,6 +257,7 @@ void installBrowserWheelBridge(QQuickWindow* window)
                     }
                 }
                 window.__genycasterWheelHit = hit;
+                window.__genycasterWheelEvent = event;
             }, {capture: true, passive: true});
         }
     });

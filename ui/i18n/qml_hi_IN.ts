@@ -1198,6 +1198,10 @@
             <source>Activity</source>
             <translation>गतिविधि</translation>
         </message>
+        <message id="genycaster.notifications.filter_channels">
+            <source>Channels</source>
+            <translation>चैनल</translation>
+        </message>
         <message id="genycaster.notifications.filter_replies">
             <source>Replies</source>
             <translation>जवाब</translation>

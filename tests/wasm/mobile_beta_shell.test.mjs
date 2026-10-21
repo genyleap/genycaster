@@ -73,15 +73,14 @@ test("Boot Beta badge and footer remain in separate non-overlapping rows",()=>{
     assert.match(html,/#qt-screen canvas\{touch-action:none/);
 });
 
-test("Feed and profile do not rubber-band beyond their content; empty state scrolls after header",()=>{
+test("Feed and profile allow only drag-triggered top refresh; empty state scrolls after header",()=>{
     const feed=read("ui/components/FeedSurface.qml");
     const profile=read("ui/components/ProfileSurface.qml");
     const empty=read("ui/components/EmptyState.qml");
     for(const source of [feed,profile]) {
-        assert.match(source,/boundsBehavior: Flickable\.StopAtBounds/);
-        assert.match(source,/boundsMovement: Flickable\.StopAtBounds/);
-        assert.doesNotMatch(source,/Flickable\.DragOverBounds/);
-        assert.doesNotMatch(source,/Flickable\.FollowBoundsBehavior/);
+        assert.match(source,/boundsBehavior: Flickable\.DragOverBounds/);
+        assert.match(source,/boundsMovement: Flickable\.FollowBoundsBehavior/);
+        assert.match(source,/PullToRefresh \{/);
     }
     const footer=feed.split("footer: Item {")[1].split("id: newPostsBanner")[0];
     assert.match(footer,/id: feedEmptyState/);

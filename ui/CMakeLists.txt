@@ -97,6 +97,7 @@ set(farcasterQmlFiles
     components/GenyModal.qml
     components/GenyScrollBar.qml
     components/ScrollToTopButton.qml
+    components/PullToRefresh.qml
     components/GenySpinner.qml
     components/GenySwitch.qml
     components/GenyRadioIndicator.qml

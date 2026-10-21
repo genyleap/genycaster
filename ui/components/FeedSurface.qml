@@ -1022,11 +1022,10 @@ Item {
         clip: true
         model: stableRows
         spacing: 0
-        // A bounded timeline must not stretch beyond the visible viewport:
-        // rubber-banding exposed a large empty area below short/filtered feeds.
-        // Refresh remains available from the FeedHeader action.
-        boundsBehavior: Flickable.StopAtBounds
-        boundsMovement: Flickable.StopAtBounds
+        // Pulling past the top is a deliberate refresh gesture; the content
+        // remains bounded during ordinary wheel/flick movement.
+        boundsBehavior: Flickable.DragOverBounds
+        boundsMovement: Flickable.FollowBoundsBehavior
         headerPositioning: root.compact || stableRows.count === 0
                            ? ListView.InlineHeader : ListView.OverlayHeader
         reuseItems: true
@@ -1321,6 +1320,12 @@ Item {
                 Accessible.name: qsTrId("genycaster.feed_surface.loading_more")
             }
         }
+    }
+
+    PullToRefresh {
+        flickable: readList
+        busy: root.busy
+        onRefreshRequested: root.refreshRequested()
     }
 
     ScrollToTopButton {

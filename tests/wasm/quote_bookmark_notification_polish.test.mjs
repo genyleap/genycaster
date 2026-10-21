@@ -22,7 +22,8 @@ test('Farcaster Quote and Recast notification events survive the provider and pr
   assert.match(screen,/case "quote": return Theme.iconQuote/);
   assert.match(screen,/kind === "quote"/);
   assert.match(screen,/kind === "recast"/);
-  assert.match(screen,/root\.filterKind === "reactions"[\s\S]*?String\(row.kind \|\| ""\) === "quote"/);
+  assert.match(screen,/if \(category === "all"\) return true/);
+  assert.match(screen,/kind === "quote"/);
   assert.match(screen,/fillColor: rowTap.pressed \? Theme.surfacePressed[\s\S]*?Qt\.rgba\(Theme\.accent/);
   assert.match(screen,/id: castExcerpt[\s\S]*?implicitHeight: excerptText.implicitHeight/);
   assert.doesNotMatch(screen,/id: castExcerpt[\s\S]{0,450}fillColor: Theme.surfaceMuted/);

@@ -44,7 +44,7 @@ test('notification list uses subtle superellipse cards and real category icons',
     assert.doesNotMatch(ui, /maximumLineCount: 14/);
 });
 
-test('notification activity filters affect the real stable list and never claim unsupported channels', () => {
+test('activity, channels and mentions filter provider-backed notifications in the stable list', () => {
     const ui = read('ui/components/NotificationSurface.qml');
     assert.match(ui, /readonly property var visibleRows: root\.filterKind === "all"/);
     assert.match(ui, /const source = root\.visibleRows \|\| \[\]/);
@@ -53,8 +53,10 @@ test('notification activity filters affect the real stable list and never claim 
     assert.match(ui, /id: stableModelSyncTimer[\s\S]*?onTriggered: root\.requestStableModelSync\(\)/);
     assert.doesNotMatch(ui, /Qt\.callLater\(root\.requestStableModelSync\)/);
     assert.match(ui, /kind: "mention", title: qsTrId\("genycaster\.notifications\.filter_mentions"\)/);
-    assert.match(ui, /kind: "reactions", title: qsTrId\("genycaster\.notifications\.filter_reactions"\)/);
-    assert.doesNotMatch(ui, /kind: "channels"/);
+    assert.match(ui, /kind: "channels", title: qsTrId\("genycaster\.notifications\.filter_channels"\)/);
+    assert.match(ui, /category === "channels"[\s\S]*?row\.castChannel/);
+    assert.match(ui, /category === "mention"[\s\S]*?=== "mention" \|\| String\(row\.kind \|\| ""\) === "reply"/);
+    assert.doesNotMatch(ui, /kind: "reactions", title:/);
 });
 
 test('notification cast and quoted-parent media reach the UI without losing navigation', () => {
@@ -74,9 +76,8 @@ test('short Add and notification category strings are translated for every suppo
         const ts = read('ui/i18n/qml_' + locale + '.ts');
         for (const key of ['genycaster.home.add_short',
                            'genycaster.notifications.filter_activity',
-                           'genycaster.notifications.filter_replies',
+                           'genycaster.notifications.filter_channels',
                            'genycaster.notifications.filter_mentions',
-                           'genycaster.notifications.filter_reactions',
                            'genycaster.notifications.filtered_empty',
                            'genycaster.notifications.filtered_description',
                            'genycaster.notifications.load_more']) {

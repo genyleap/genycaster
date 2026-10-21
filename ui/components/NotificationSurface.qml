@@ -161,12 +161,19 @@ Item {
     // Replies, mentions and follows stay one row each: every reply is a
     // distinct cast with its own content, and each follow is its own event.
     readonly property var displayRows: root.groupNotificationRows(root.rows)
+    // Activity is the full chronological inbox. Channels includes only events
+    // with a channel attached by the provider; mentions includes both direct
+    // mentions and replies. Do not manufacture channel events from follows.
+    function belongsToCategory(row, category) {
+        if (category === "all") return true
+        if (category === "channels")
+            return String(row.castChannel || "").length > 0
+        if (category === "mention")
+            return String(row.kind || "") === "mention" || String(row.kind || "") === "reply"
+        return false
+    }
     readonly property var visibleRows: root.filterKind === "all" ? root.displayRows
-        : root.asList(root.displayRows).filter(row =>
-            root.filterKind === "reactions"
-            ? String(row.kind || "") === "reaction" || String(row.kind || "") === "recast"
-              || String(row.kind || "") === "quote"
-            : String(row.kind || "") === root.filterKind)
+        : root.asList(root.displayRows).filter(row => root.belongsToCategory(row, root.filterKind))
 
     function cloneNotificationRow(row) {
         const source = row || ({})
@@ -559,8 +566,8 @@ Item {
             }
         }
 
-        // These filters operate on the actual, grouped notifications.
-        // Never render non-functional "Channels" pills without channel events.
+        // Provider-backed notification tabs: activity (all), channel-tagged
+        // events and direct mentions/replies. Filter only actual fetched rows.
         RowLayout {
             objectName: "notificationFilterRow"
             visible: root.authenticated
@@ -574,9 +581,8 @@ Item {
             Repeater {
                 model: [
                     { kind: "all", title: qsTrId("genycaster.notifications.filter_activity") },
-                    { kind: "reply", title: qsTrId("genycaster.notifications.filter_replies") },
-                    { kind: "mention", title: qsTrId("genycaster.notifications.filter_mentions") },
-                    { kind: "reactions", title: qsTrId("genycaster.notifications.filter_reactions") }
+                    { kind: "channels", title: qsTrId("genycaster.notifications.filter_channels") },
+                    { kind: "mention", title: qsTrId("genycaster.notifications.filter_mentions") }
                 ]
                 delegate: Superellipse {
                     required property var modelData
@@ -711,7 +717,10 @@ Item {
 
         ListView {
             id: list
-            visible: root.authenticated && root.visibleRows.length > 0
+            objectName: "notificationList"
+            // Keep an interactive viewport even for an empty inbox, so a
+            // top-edge pull can refresh a currently empty notification list.
+            visible: root.authenticated
             anchors.fill: parent
             clip: true
             model: notificationModel
@@ -722,6 +731,8 @@ Item {
             bottomMargin: Theme.space5
             cacheBuffer: Math.max(height, 800)
             reuseItems: true
+            boundsBehavior: Flickable.DragOverBounds
+            boundsMovement: Flickable.FollowBoundsBehavior
             ScrollBar.vertical: GenyScrollBar {}
 
             // Overlay is viewport-owned and does not feed back into ListView's
@@ -1274,6 +1285,12 @@ Item {
             // bottomMargin reserves room for the overlay indicator.
             footer: null
         }
+            PullToRefresh {
+                flickable: list
+                busy: root.loadingNotifications
+                refreshEnabled: root.authenticated && list.visible
+                onRefreshRequested: root.refreshRequested()
+            }
         } // notificationBody
     }
 
