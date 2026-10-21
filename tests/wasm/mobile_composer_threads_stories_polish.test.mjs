@@ -14,7 +14,7 @@ test('dark mobile navigation uses neutral theme-independent selection instead of
 test('mobile composer starts as a compact prompt and smoothly grows with editing and keyboard', () => {
  const home = qml('HomeDashboard');
  const shell = qml('AppShell');
- assert.match(home, /id: mobileComposerSurface[\s\S]*?Behavior on implicitHeight \{[\s\S]*?NumberAnimation \{ duration: 240/);
+ assert.match(home, /id: mobileComposerSurface[\s\S]*?Behavior on implicitHeight \{[\s\S]*?NumberAnimation \{ duration: Theme\.reduceMotion \? 0 : Theme\.motionEmphasis/);
  assert.match(home, /implicitHeight: root\.composerFocused \? 98 : 38/);
  assert.match(home, /id: mobileComposeActions\s+visible: root\.composerFocused/);
  assert.match(home, /contentHeight: mobileColumn\.implicitHeight \+ Theme\.space3/);

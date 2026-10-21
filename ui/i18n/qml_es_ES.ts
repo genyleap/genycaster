@@ -1307,16 +1307,16 @@
             <translation>Próximamente</translation>
         </message>
         <message id="genycaster.home.hub_agent">
-            <source>Geny Agent</source>
-            <translation>Agente Geny</translation>
+            <source>Agent</source>
+            <translation>Agent</translation>
         </message>
         <message id="genycaster.home.hub_agent_detail">
             <source>Your intelligent Farcaster companion.</source>
             <translation>Tu compañero inteligente de Farcaster.</translation>
         </message>
         <message id="genycaster.home.hub_studio">
-            <source>Geny Studio</source>
-            <translation>Geny Studio</translation>
+            <source>Studio</source>
+            <translation>Studio</translation>
         </message>
         <message id="genycaster.home.hub_studio_detail">
             <source>Create and manage rich content.</source>

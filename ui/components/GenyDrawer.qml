@@ -49,8 +49,8 @@ Drawer {
             NumberAnimation {
                 property: "position"
                 to: 0.0
-                duration: Theme.reduceMotion ? 0 : Theme.motionFast
-                easing.type: Easing.InCubic
+                duration: Theme.reduceMotion ? 0 : Theme.motionStandard
+                easing.type: Easing.InOutCubic
             }
             NumberAnimation {
                 property: "opacity"

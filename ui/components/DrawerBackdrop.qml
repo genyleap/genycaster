@@ -9,12 +9,24 @@ Item {
     property bool addScrim: true
     property bool blockInput: false
     property bool snapshotBlurOnBrowser: false
+    // Pointer presses and synthesized taps may both be delivered on WASM.
+    // Dismiss exactly once per open, even if both handlers receive the gesture.
+    property bool outsideDismissConsumed: false
     readonly property bool useBrowserSnapshot: root.browserRenderer && root.snapshotBlurOnBrowser
     onActiveChanged: {
-        if (root.active && root.useBrowserSnapshot && root.sourceItem)
-            Qt.callLater(() => capture.scheduleUpdate())
+        if (root.active) {
+            root.outsideDismissConsumed = false
+            if (root.useBrowserSnapshot && root.sourceItem)
+                Qt.callLater(() => capture.scheduleUpdate())
+        }
     }
     signal backgroundTapped()
+    function requestOutsideDismiss() {
+        if (!root.active || !root.blockInput || root.outsideDismissConsumed)
+            return
+        root.outsideDismissConsumed = true
+        root.backgroundTapped()
+    }
     // WebAssembly's Qt Quick render loop runs on the browser main thread.
     // Sampling a live full-screen feed into a blurred texture every frame
     // duplicates GPU work and causes scroll hitching on mobile Safari/WebGL.
@@ -81,7 +93,7 @@ Item {
     TapHandler {
         enabled: root.blockInput
         gesturePolicy: TapHandler.ReleaseWithinBounds
-        onTapped: root.backgroundTapped()
+        onTapped: root.requestOutsideDismiss()
     }
 
     MouseArea {
@@ -96,13 +108,13 @@ Item {
             mouse.accepted = true
             // Browsers may skip a synthesized click after focus/keyboard
             // transitions; dismiss the search drawer on outside *press*.
-            root.backgroundTapped()
+            root.requestOutsideDismiss()
         }
         onReleased: mouse => mouse.accepted = true
         onDoubleClicked: mouse => mouse.accepted = true
         onClicked: mouse => {
             mouse.accepted = true
-            root.backgroundTapped()
+            // The press (or touch TapHandler) already dismissed the popup.
         }
         onWheel: wheel => wheel.accepted = true
     }

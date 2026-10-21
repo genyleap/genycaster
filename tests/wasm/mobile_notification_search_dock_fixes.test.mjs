@@ -22,7 +22,7 @@ test('search handles outside taps and offers explicit clearing of results', () =
     const palette = read('ui/components/SearchPalette.qml');
     const backdrop = read('ui/components/DrawerBackdrop.qml');
     assert.match(palette, /closePolicy: Popup\.CloseOnEscape \| Popup\.CloseOnPressOutside/);
-    assert.match(backdrop, /TapHandler \{[\s\S]*?onTapped: root\.backgroundTapped\(\)/);
+    assert.match(backdrop, /TapHandler \{[\s\S]*?onTapped: root\.requestOutsideDismiss\(\)/);
     assert.match(palette, /function clearResults\(\) \{[\s\S]*?resultRows\.clear\(\)/);
     assert.match(palette, /root\.suggestionsCleared\(\)/);
     assert.match(palette, /objectName: "clearSearchResults"/);

@@ -10,7 +10,7 @@ Popup {
     padding: Theme.space4
     x: parent ? Math.round(Math.max(0, (parent.width - width) / 2)) : 0
     y: parent ? Math.round(Math.max(0, (parent.height - height) / 2)) : 0
-    closePolicy: Popup.CloseOnEscape
+    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     Overlay.modal: Rectangle {
         color: Theme.overlay
@@ -23,7 +23,10 @@ Popup {
             acceptedButtons: Qt.AllButtons
             hoverEnabled: true
             preventStealing: true
-            onPressed: function(mouse) { mouse.accepted = true }
+            onPressed: function(mouse) {
+                mouse.accepted = true
+                control.close()
+            }
             onReleased: function(mouse) { mouse.accepted = true }
             onClicked: function(mouse) { mouse.accepted = true }
             onDoubleClicked: function(mouse) { mouse.accepted = true }

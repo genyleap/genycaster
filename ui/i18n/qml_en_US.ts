@@ -1279,8 +1279,8 @@
             <translation>Which Farcaster feature would you improve first, and why?</translation>
         </message>
         <message id="genycaster.home.hub_quick_access">
-            <source>Quick access</source>
-            <translation>Quick access</translation>
+            <source>Explore &amp; tools</source>
+            <translation>Explore &amp; tools</translation>
         </message>
         <message id="genycaster.home.hub_trends">
             <source>Trends</source>
@@ -1299,24 +1299,24 @@
             <translation>Your assets and decentralized identity.</translation>
         </message>
         <message id="genycaster.home.hub_workspace">
-            <source>Your workspace</source>
-            <translation>Your workspace</translation>
+            <source>The next chapter</source>
+            <translation>The next chapter</translation>
         </message>
         <message id="genycaster.home.hub_coming_soon">
             <source>Coming soon</source>
             <translation>Coming soon</translation>
         </message>
         <message id="genycaster.home.hub_agent">
-            <source>Geny Agent</source>
-            <translation>Geny Agent</translation>
+            <source>Agent</source>
+            <translation>Agent</translation>
         </message>
         <message id="genycaster.home.hub_agent_detail">
             <source>Your intelligent Farcaster companion.</source>
             <translation>Your intelligent Farcaster companion.</translation>
         </message>
         <message id="genycaster.home.hub_studio">
-            <source>Geny Studio</source>
-            <translation>Geny Studio</translation>
+            <source>Studio</source>
+            <translation>Studio</translation>
         </message>
         <message id="genycaster.home.hub_studio_detail">
             <source>Create and manage rich content.</source>

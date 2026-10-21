@@ -68,18 +68,20 @@ GenyDrawer {
     }
 
     bottomSheet: mobilePresentation
-    // Scrolling settings must never control the Drawer.position or dismiss it.
-    // The explicit Back / Close actions own navigation on all platforms.
+    // Scrolling settings must not drag the sheet. Dismiss only by Back/Close,
+    // Escape, or a deliberate press in the uncovered backdrop above it.
     interactive: false
-    closePolicy: Popup.CloseOnEscape
-    // Full-screen phone navigation and desktop settings have no drag handle.
+    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     showHandle: false
     dimBackground: true
     contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space4
     width: parent ? (mobilePresentation ? parent.width : Math.min(760, parent.width * 0.92)) : 760
-    // On phones, settings is a full-height navigable surface, not a 90%
-    // bottom sheet with a clipped list beneath the iOS browser chrome.
-    height: parent ? parent.height : 820
+    // Leave one accessible touch target above the phone sheet. A 100%-height
+    // Drawer has no outside region and cannot be dismissed by backdrop touch.
+    // Detail pages still scroll within the available height.
+    height: parent ? (mobilePresentation
+                     ? Math.max(1, parent.height - Theme.touchTarget)
+                     : parent.height) : 820
 
     onOpened: {
         if (!presentationBridge.isAuthenticated && root.currentSection === 5) {

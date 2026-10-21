@@ -108,9 +108,30 @@ Drawer {
     bottomPadding: root.compact ? Theme.space2 : Theme.space5
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
+    // Match the common drawer's interruptible edge-motion contract. Animate
+    // Drawer.position (not x/y, which Qt owns), respecting reduced motion.
+    enter: Transition {
+        NumberAnimation {
+            property: "position"
+            from: 0.0
+            to: 1.0
+            duration: Theme.motionStandard
+            easing.type: Easing.OutCubic
+        }
+    }
+    exit: Transition {
+        NumberAnimation {
+            property: "position"
+            to: 0.0
+            duration: Theme.motionStandard
+            easing.type: Easing.InOutCubic
+        }
+    }
+
     Overlay.modal: DrawerBackdrop {
         sourceItem: root.blurSourceItem
-        active: root.opened
+        active: root.position > 0
+        opacity: root.position
         snapshotBlurOnBrowser: true
         addScrim: true
         blockInput: true

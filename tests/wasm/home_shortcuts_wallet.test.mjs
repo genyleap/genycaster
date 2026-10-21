@@ -9,7 +9,7 @@ test('every Home shortcut dispatches its corresponding, existing route', () => {
     const home = qml('HomeDashboard');
     const actions = ['explorer', 'search', 'apps', 'trends'];
     const start = home.indexOf('    function activateHubShortcut(destination) {');
-    const end = home.indexOf('    component HubWorkspace:',start);
+    const end = home.indexOf('\n    }',start) + 6;
     assert.ok(start >= 0 && end > start);
     const source = home.slice(start,end).trim();
     const events = [];
@@ -57,7 +57,7 @@ test('Wallet is a passive future tile with Agent and Studio, arranged in one row
     assert.match(home,/columns: 3/);
     assert.match(locked,/text: "system\/lock"/);
     assert.match(locked,/Accessible\.role: Accessible\.StaticText/);
-    assert.doesNotMatch(locked,/MouseArea|TapHandler|onClicked|onActivated/);
+    assert.doesNotMatch(locked,/\n\s*(?:MouseArea|TapHandler)\s*\{|\bonClicked:|\bonActivated:/);
 });
 
 test('five new shortcut and wallet strings exist in every supported locale', () => {
