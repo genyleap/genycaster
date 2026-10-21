@@ -721,6 +721,9 @@ Item {
             // Keep an interactive viewport even for an empty inbox, so a
             // top-edge pull can refresh a currently empty notification list.
             visible: root.authenticated
+            // The empty/error actions remain above the transparent ListView.
+            // Blank portions still pass drag input through for pull-to-refresh.
+            z: root.showState ? -1 : 0
             anchors.fill: parent
             clip: true
             model: notificationModel

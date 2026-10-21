@@ -57,6 +57,8 @@ test('notification categories classify only provider-backed channel data, mentio
     assert.equal(matcher(event('reply','music'), 'channels'), true);
     assert.equal(matcher(event('reaction', 'crypto'), 'channels'), true);
     assert.equal(matcher(event('unknown'), 'channels'), false);
+    assert.match(notification, /z: root\.showState \? -1 : 0/,
+      'empty-state sign-in and retry buttons must remain clickable above the refresh viewport');
     assert.match(notification, /kind: "channels", title: qsTrId\("genycaster\.notifications\.filter_channels"\)/);
     assert.doesNotMatch(notification, /kind: "reactions", title:/);
     for (const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
