@@ -534,6 +534,50 @@ test('browser OpenProof connections route requires bearer and permits explicit C
 });
 
 
+test('browser OpenProof provider catalog is CORS-safe, bounded and excludes provider URL injection', async () => {
+  const called = [];
+  await withGateway(async({origin}) => {
+    const path = '/v1/browser/openproof/providers';
+    const preflight = await fetch(origin+path,{method:'OPTIONS',headers:{
+      origin:'https://caster.genyleap.com',
+      'access-control-request-method':'GET'
+    }});
+    assert.equal(preflight.status,204);
+    assert.equal(preflight.headers.get('access-control-allow-origin'),'*');
+    const unsupported = await fetch(origin+path,{method:'POST'});
+    assert.equal(unsupported.status,405);
+    const response = await fetch(origin+path+'?url=https://attacker.invalid');
+    assert.equal(response.status,200);
+    assert.equal(response.headers.get('access-control-allow-origin'),'*');
+    assert.equal(response.headers.get('cache-control'),'public, max-age=180');
+    assert.deepEqual(await response.json(),{
+      providers:['x','github'],
+      challenge_providers:['farcaster','ethereum-wallet','local','passkey']
+    });
+    assert.equal(called.length,1);
+  },{fetchImpl:async(url,options)=>{
+    assert.equal(url,'https://openproof.genyleap.com/auth/providers');
+    assert.equal(options.method,'GET');
+    assert.equal(options.redirect,'error');
+    assert.equal(options.headers.authorization,undefined);
+    called.push(url);
+    return new Response(JSON.stringify({
+      providers:['x','github','x','invalid!'],
+      challenge_providers:['farcaster','ethereum-wallet','local','passkey'],
+      upstreamSecrets:'never exposed'
+    }),{status:200,headers:{'content-type':'application/json'}});
+  }});
+});
+
+test('browser OpenProof provider catalog rejects malformed upstream data',async()=>{
+  await withGateway(async({origin})=>{
+    const response=await fetch(origin+'/v1/browser/openproof/providers');
+    assert.equal(response.status,502);
+  },{fetchImpl:async()=>new Response(JSON.stringify({providers:['x']}),{
+    status:200,headers:{'content-type':'application/json'}
+  })});
+});
+
 test('OpenProof issuer configuration never permits cleartext token forwarding', () => {
   assert.throws(() => loadConfig({
     GENYLEAP_MEDIA_TICKET_SECRET:'0123456789abcdef0123456789abcdef',

@@ -763,6 +763,68 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       return;
     }
 
+    if (requestUrl.pathname === '/v1/browser/openproof/providers') {
+      // OpenProof deliberately has no cross-origin browser contract. Proxy
+      // only its PUBLIC provider capabilities; never reflect cookies or
+      // account state and never permit a caller-selected upstream URL.
+      response.setHeader('access-control-allow-origin', '*');
+      response.setHeader('access-control-allow-methods', 'GET, OPTIONS');
+      response.setHeader('access-control-allow-headers', 'accept');
+      response.setHeader('x-content-type-options', 'nosniff');
+      if (request.method === 'OPTIONS') {
+        response.writeHead(204); response.end(); return;
+      }
+      if (request.method !== 'GET') {
+        writeJson(response, 405, {error:'method_not_allowed'}); return;
+      }
+      const rate = limiter.check(clientAddress(request,config.trustCloudflare),runtime.now());
+      if (!rate.allowed) {
+        writeJson(response,429,{error:'rate_limited'}); return;
+      }
+      try {
+        const upstream = await runtime.fetchImpl(
+          config.openProofIssuer.href.replace(/\/$/,'') + '/auth/providers', {
+            method:'GET',
+            headers:{accept:'application/json'},
+            redirect:'error',
+            signal:AbortSignal.timeout(8_000),
+          });
+        if (upstream.status !== 200 || !upstream.body ||
+            !String(upstream.headers.get('content-type') || '').toLowerCase()
+              .startsWith('application/json')) {
+          upstream.body?.cancel();
+          writeJson(response,502,{error:'provider_catalog_unavailable'});return;
+        }
+        const reader = upstream.body.getReader();
+        const chunks = [];
+        let size = 0;
+        while (true) {
+          const {done,value} = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > 32 * 1024) {
+            await reader.cancel();
+            writeJson(response,502,{error:'provider_catalog_too_large'});return;
+          }
+          chunks.push(Buffer.from(value));
+        }
+        const document = safeJson(Buffer.concat(chunks,size));
+        if (!Array.isArray(document?.providers)
+            || !Array.isArray(document?.challenge_providers)) {
+          writeJson(response,502,{error:'provider_catalog_invalid'});return;
+        }
+        const normalize = entries => [...new Set(entries.filter(
+          p => typeof p === 'string' && /^[a-z][a-z0-9-]{0,39}$/.test(p)))].slice(0,32);
+        writeJson(response,200,{
+          providers:normalize(document.providers),
+          challenge_providers:normalize(document.challenge_providers),
+        },{'cache-control':'public, max-age=180'});
+      } catch {
+        writeJson(response,502,{error:'provider_catalog_unavailable'});
+      }
+      return;
+    }
+
     if (requestUrl.pathname === '/v1/browser/openproof/connections') {
       // The OpenProof account API intentionally has no browser CORS contract.
       // Relay only its fixed, bearer-authenticated identity connections route;
