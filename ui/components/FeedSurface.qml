@@ -651,6 +651,14 @@ Item {
         root.synchronizeStableModel()
     }
 
+    // Explicit primary navigation only. Detail -> Back never calls this,
+    // so reading position remains continuous during conversations.
+    function scrollToBeginning() {
+        readList.cancelFlick()
+        readList.positionViewAtBeginning()
+        positionAtTopTimer.restart()
+    }
+
     function synchronizeStableModel() {
         const source = root.sourceRows()
         if (source.length === 0) {

@@ -22,7 +22,7 @@ test('mobile Home uses viewport-aware dimensions and preserves composer clearanc
     const home = read('HomeDashboard.qml');
     const shell = read('AppShell.qml');
     assert.match(home, /readonly property bool densePhone: root\.compact && root\.height < 840/);
-    assert.match(home, /implicitHeight: root\.compact \? \(root\.densePhone \? 148 : 170\)/);
+    assert.match(home, /component HubWorkspace: ColumnLayout/);
     assert.match(home, /avatarSize: root\.densePhone \? 56 : 76/);
     assert.match(home, /implicitHeight: root\.composerFocused \? 98 : 38/);
     assert.match(home, /contentHeight: mobileColumn\.implicitHeight \+ Theme\.space3/);

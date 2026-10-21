@@ -434,6 +434,18 @@ Item {
             root.loadMoreRequested()
     }
 
+    // Re-tapping Profile is intentional navigation, unlike row refreshes.
+    function scrollToBeginning() {
+        viewportRestoreTimer.stop()
+        root.pendingRestoreKey = ""
+        root.viewportAnchorKey = ""
+        root.restoringViewport = false
+        profileList.cancelFlick()
+        profileList.positionViewAtBeginning()
+        root.resetPositionPasses = 1
+        resetPositionTimer.restart()
+    }
+
     function positionNewProfileAtBeginning() {
         const fid = Number(root.activeDetail.fid || 0)
         if (!root.visible || fid <= 0 || fid === root.positionedProfileFid)

@@ -1278,6 +1278,46 @@
             <source>Which Farcaster feature would you improve first, and why?</source>
             <translation>Farcaster의 어떤 기능을 가장 먼저 개선하고 싶나요? 그 이유는요?</translation>
         </message>
+        <message id="genycaster.home.hub_workspace">
+            <source>Your workspace</source>
+            <translation>나의 작업 공간</translation>
+        </message>
+        <message id="genycaster.home.hub_coming_soon">
+            <source>Coming soon</source>
+            <translation>출시 예정</translation>
+        </message>
+        <message id="genycaster.home.hub_agent">
+            <source>Geny Agent</source>
+            <translation>Geny Agent</translation>
+        </message>
+        <message id="genycaster.home.hub_agent_detail">
+            <source>Your intelligent Farcaster companion.</source>
+            <translation>Farcaster를 위한 지능형 동반자.</translation>
+        </message>
+        <message id="genycaster.home.hub_studio">
+            <source>Geny Studio</source>
+            <translation>Geny Studio</translation>
+        </message>
+        <message id="genycaster.home.hub_studio_detail">
+            <source>Create and manage rich content.</source>
+            <translation>풍부한 콘텐츠를 만들고 관리하세요.</translation>
+        </message>
+        <message id="genycaster.home.hub_discover">
+            <source>Discover Farcaster</source>
+            <translation>Farcaster 탐색</translation>
+        </message>
+        <message id="genycaster.home.hub_discover_detail">
+            <source>Explore conversations, creators and communities.</source>
+            <translation>대화, 크리에이터, 커뮤니티를 발견하세요.</translation>
+        </message>
+        <message id="genycaster.home.hub_tagline">
+            <source>Your space in the decentralized world.</source>
+            <translation>탈중앙화된 세상 속 나만의 공간.</translation>
+        </message>
+        <message id="genycaster.home.hub_photo_detail">
+            <source>Share moments with your community.</source>
+            <translation>커뮤니티와 순간을 공유하세요.</translation>
+        </message>
         <message id="genycaster.home.builder_notes">
             <source>Builder Notes</source>
             <translation>빌더 노트</translation>

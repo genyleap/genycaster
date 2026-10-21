@@ -20,19 +20,15 @@ test('reaction actions have touch-safe hit targets without permanent card border
         assert.ok(bar.includes(kind),kind);
 });
 
-test('home navigation matches the four Superellipse action cards and adaptive composer', () => {
-    const home = read('ui/components/HomeDashboard.qml');
-    const desktop = home.split('id: desktopLayout')[1].split('id: desktopComposerSurface')[0];
-    const phone = home.split('id: mobileFlick')[1].split('id: mobileComposerSurface')[0];
-    assert.match(home, /component ActionTile: Superellipse/);
-    assert.match(home, /fillColor: Theme.surfaceSelected/);
-    assert.match(home, /curveDepth: Theme.curveModal/);
-    assert.match(home, /text: Theme.rtl \? Theme.iconArrowLeft : Theme.iconArrowRight/);
-    assert.match(desktop, /columns: 4/);
-    assert.equal((desktop.match(/ActionTile \{/g)||[]).length,4);
-    assert.match(phone, /columns: 2/);
-    assert.equal((phone.match(/ActionTile \{/g)||[]).length,4);
-    assert.match(home, /ContextMenu.menu: EditorContextMenu \{ editor: mobileDraftEditor \}/);
+test('Home hub uses restrained Superellipse workspace cards and accessible composer', () => {
+    const home=read('ui/components/HomeDashboard.qml');
+    assert.match(home,/component HubWorkspace: ColumnLayout/);
+    assert.equal((home.match(/HubWorkspace \{/g)||[]).length,2);
+    assert.match(home,/"homeAgentComingSoon"/);
+    assert.match(home,/"homeStudioComingSoon"/);
+    assert.match(home,/No TapHandler: capabilities are disabled until shipped/);
+    assert.match(home,/curveDepth: Theme.curveContainer/);
+    assert.match(home,/ContextMenu.menu: EditorContextMenu \{ editor: mobileDraftEditor \}/);
 });
 
 test('replies and nested replies share real threaded connector and padded cards', () => {

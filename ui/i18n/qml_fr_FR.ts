@@ -1278,6 +1278,46 @@
             <source>Which Farcaster feature would you improve first, and why?</source>
             <translation>Quelle fonctionnalité de Farcaster amélioreriez-vous en premier, et pourquoi ?</translation>
         </message>
+        <message id="genycaster.home.hub_workspace">
+            <source>Your workspace</source>
+            <translation>Votre espace</translation>
+        </message>
+        <message id="genycaster.home.hub_coming_soon">
+            <source>Coming soon</source>
+            <translation>Bientôt disponible</translation>
+        </message>
+        <message id="genycaster.home.hub_agent">
+            <source>Geny Agent</source>
+            <translation>Agent Geny</translation>
+        </message>
+        <message id="genycaster.home.hub_agent_detail">
+            <source>Your intelligent Farcaster companion.</source>
+            <translation>Votre assistant intelligent sur Farcaster.</translation>
+        </message>
+        <message id="genycaster.home.hub_studio">
+            <source>Geny Studio</source>
+            <translation>Geny Studio</translation>
+        </message>
+        <message id="genycaster.home.hub_studio_detail">
+            <source>Create and manage rich content.</source>
+            <translation>Créez et gérez des contenus riches.</translation>
+        </message>
+        <message id="genycaster.home.hub_discover">
+            <source>Discover Farcaster</source>
+            <translation>Découvrir Farcaster</translation>
+        </message>
+        <message id="genycaster.home.hub_discover_detail">
+            <source>Explore conversations, creators and communities.</source>
+            <translation>Explorez les échanges, créateurs et communautés.</translation>
+        </message>
+        <message id="genycaster.home.hub_tagline">
+            <source>Your space in the decentralized world.</source>
+            <translation>Votre espace dans le monde décentralisé.</translation>
+        </message>
+        <message id="genycaster.home.hub_photo_detail">
+            <source>Share moments with your community.</source>
+            <translation>Partagez des moments avec votre communauté.</translation>
+        </message>
         <message id="genycaster.home.builder_notes">
             <source>Builder Notes</source>
             <translation>Notes des builders</translation>

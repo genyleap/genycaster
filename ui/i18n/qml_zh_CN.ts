@@ -1278,6 +1278,46 @@
             <source>Which Farcaster feature would you improve first, and why?</source>
             <translation>你最想先改进 Farcaster 的哪个功能？为什么？</translation>
         </message>
+        <message id="genycaster.home.hub_workspace">
+            <source>Your workspace</source>
+            <translation>你的工作空间</translation>
+        </message>
+        <message id="genycaster.home.hub_coming_soon">
+            <source>Coming soon</source>
+            <translation>即将推出</translation>
+        </message>
+        <message id="genycaster.home.hub_agent">
+            <source>Geny Agent</source>
+            <translation>Geny Agent</translation>
+        </message>
+        <message id="genycaster.home.hub_agent_detail">
+            <source>Your intelligent Farcaster companion.</source>
+            <translation>你的 Farcaster 智能助手。</translation>
+        </message>
+        <message id="genycaster.home.hub_studio">
+            <source>Geny Studio</source>
+            <translation>Geny Studio</translation>
+        </message>
+        <message id="genycaster.home.hub_studio_detail">
+            <source>Create and manage rich content.</source>
+            <translation>创建和管理精彩内容。</translation>
+        </message>
+        <message id="genycaster.home.hub_discover">
+            <source>Discover Farcaster</source>
+            <translation>探索 Farcaster</translation>
+        </message>
+        <message id="genycaster.home.hub_discover_detail">
+            <source>Explore conversations, creators and communities.</source>
+            <translation>发现对话、创作者和社区。</translation>
+        </message>
+        <message id="genycaster.home.hub_tagline">
+            <source>Your space in the decentralized world.</source>
+            <translation>你在去中心化世界中的空间。</translation>
+        </message>
+        <message id="genycaster.home.hub_photo_detail">
+            <source>Share moments with your community.</source>
+            <translation>与社区分享精彩时刻。</translation>
+        </message>
         <message id="genycaster.home.builder_notes">
             <source>Builder Notes</source>
             <translation>开发者笔记</translation>

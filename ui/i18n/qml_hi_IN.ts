@@ -1278,6 +1278,46 @@
             <source>Which Farcaster feature would you improve first, and why?</source>
             <translation>आप Farcaster की कौन-सी सुविधा पहले सुधारेंगे और क्यों?</translation>
         </message>
+        <message id="genycaster.home.hub_workspace">
+            <source>Your workspace</source>
+            <translation>आपका कार्यक्षेत्र</translation>
+        </message>
+        <message id="genycaster.home.hub_coming_soon">
+            <source>Coming soon</source>
+            <translation>जल्द आ रहा है</translation>
+        </message>
+        <message id="genycaster.home.hub_agent">
+            <source>Geny Agent</source>
+            <translation>जिनी एजेंट</translation>
+        </message>
+        <message id="genycaster.home.hub_agent_detail">
+            <source>Your intelligent Farcaster companion.</source>
+            <translation>Farcaster पर आपका स्मार्ट साथी।</translation>
+        </message>
+        <message id="genycaster.home.hub_studio">
+            <source>Geny Studio</source>
+            <translation>जिनी स्टूडियो</translation>
+        </message>
+        <message id="genycaster.home.hub_studio_detail">
+            <source>Create and manage rich content.</source>
+            <translation>बेहतरीन सामग्री बनाएँ और सँभालें।</translation>
+        </message>
+        <message id="genycaster.home.hub_discover">
+            <source>Discover Farcaster</source>
+            <translation>Farcaster खोजें</translation>
+        </message>
+        <message id="genycaster.home.hub_discover_detail">
+            <source>Explore conversations, creators and communities.</source>
+            <translation>बातचीत, रचनाकार और समुदाय खोजें।</translation>
+        </message>
+        <message id="genycaster.home.hub_tagline">
+            <source>Your space in the decentralized world.</source>
+            <translation>विकेंद्रीकृत दुनिया में आपकी जगह।</translation>
+        </message>
+        <message id="genycaster.home.hub_photo_detail">
+            <source>Share moments with your community.</source>
+            <translation>समुदाय के साथ अपने पल साझा करें।</translation>
+        </message>
         <message id="genycaster.home.builder_notes">
             <source>Builder Notes</source>
             <translation>बिल्डर नोट्स</translation>

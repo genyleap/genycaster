@@ -42,21 +42,17 @@ test("iOS safe-area background and PWA metadata use the app appearance",()=>{
     assert.match(cpp,/#if defined\(__EMSCRIPTEN__\)/);
 });
 
-test("phone home screen is a genuine two-column grid, not three huge stacked cards",()=>{
+test("phone Home is an uncluttered hub, not duplicate navigation cards",()=>{
     const home=read("ui/components/HomeDashboard.qml");
-    const mobile=home.split("Flickable {\n        id: mobileFlick\n        visible: root.compact")[1];
-    assert.ok(mobile,"mobile home surface must exist");
-    const tileGrid=mobile.split("GridLayout {")[1].split("Superellipse {\n                Layout.fillWidth")[0];
-    assert.match(tileGrid,/columns: 2/);
-    assert.equal((tileGrid.match(/ActionTile \{/g)||[]).length,4);
-    for(const route of ["exploreRequested","composeRequested","appsRequested","searchRequested"])
-        assert.match(tileGrid,new RegExp("root\\."+route+"\\("));
-    assert.match(home,/component ActionTile: Superellipse/);
-    assert.match(home,/fillColor: Theme.surfaceSelected/);
-    assert.match(home,/curveDepth: Theme.curveModal/);
-    assert.match(mobile,/Layout\.leftMargin: Theme\.space3/);
+    assert.match(home,/component HubWorkspace: ColumnLayout/);
+    assert.match(home,/columns: 2/);
+    assert.match(home,/"homeAgentComingSoon"/);
+    assert.match(home,/"homeStudioComingSoon"/);
+    assert.match(home,/objectName: "homeDiscoverFarcaster"/);
+    assert.match(home,/onClicked: root.exploreRequested\(\)/);
+    assert.doesNotMatch(home,/component ActionTile|homeRecentCastPreview|CastIdeaSection/);
+    assert.match(home,/Layout.leftMargin: Theme.space3/);
 });
-
 
 test("Boot Beta badge and footer remain in separate non-overlapping rows",()=>{
     const html=read("ui/wasm/genycaster-shell.html");

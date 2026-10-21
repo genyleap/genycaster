@@ -15,6 +15,13 @@ Item {
 
     signal authenticationRequested()
 
+    function scrollToBeginning() {
+        appsScroller.cancelFlick()
+        appsScroller.contentY = 0
+        appGrid.cancelFlick()
+        appGrid.positionViewAtBeginning()
+    }
+
     function refreshExplorer() {
         if (root.explorerMode === "forYou") {
             const fid = Number(presentationBridge.accountFid || 0)

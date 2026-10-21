@@ -14,47 +14,20 @@ Item {
     property bool busy: false
     property int notificationUnreadCount: 0
     property var rows: []
-    // Reuse casts already held by the feed pipeline. Home must not trigger an
-    // extra request or invent personalized activity just to fill vertical space.
-    readonly property var recentCasts: {
-        const source = root.rows || []
-        const result = []
-        const seen = ({})
-        for (let i = 0; i < source.length && result.length < 2; ++i) {
-            const row = source[i] || ({})
-            const castId = String(row.castId || "")
-            if (!castId || seen[castId]) continue
-            seen[castId] = true
-            result.push({
-                castId: castId,
-                name: String(row.displayName || row.author || row.username || ""),
-                avatarUrl: String(row.avatarUrl || ""),
-                text: String(row.text || "").replace(/\s+/g, " ").trim()
-            })
-        }
-        return result
-    }
     property int localHour: new Date().getHours()
     property string draftText: ""
-    // Curated, local-first writing starters. No extra feed request, tracking,
-    // account requirement or automatic publishing.
-    property int ideaOffset: 0
-    readonly property var castIdeas: [
-        { topic: qsTrId("genycaster.home.idea_dev_topic"), prompt: qsTrId("genycaster.home.idea_dev_prompt") },
-        { topic: qsTrId("genycaster.home.idea_nft_topic"), prompt: qsTrId("genycaster.home.idea_nft_prompt") },
-        { topic: qsTrId("genycaster.home.idea_opinion_topic"), prompt: qsTrId("genycaster.home.idea_opinion_prompt") },
-        { topic: qsTrId("genycaster.home.idea_privacy_topic"), prompt: qsTrId("genycaster.home.idea_privacy_prompt") },
-        { topic: qsTrId("genycaster.home.idea_farcaster_topic"), prompt: qsTrId("genycaster.home.idea_farcaster_prompt") }
-    ]
-    function ideaAt(offset) {
-        return root.castIdeas[(root.ideaOffset + offset) % root.castIdeas.length]
-    }
     // The on-screen keyboard shrinks iOS Safari's visual viewport. Keep the
     // draft and its actions visible rather than squeezing the full dashboard
     // and floating dock into the remaining height.
     readonly property bool composerFocused: mobileDraftEditor.activeFocus
     // A phone's usable height excludes the shell header and floating dock.
     // Fit the hero, four shortcuts and composer above the dock on short screens.
+    function scrollToBeginning() {
+        if (root.compact) {
+            mobileFlick.cancelFlick()
+            mobileFlick.contentY = 0
+        }
+    }
     readonly property bool densePhone: root.compact && root.height < 840
     // Dismiss the draft editor without discarding its contents.
     TapHandler {
@@ -106,7 +79,7 @@ Item {
                                                    ? qsTrId("genycaster.home.greeting_evening")
                                                    : qsTrId("genycaster.home.greeting_night")).arg(root.welcomeName)
     implicitWidth: 980
-    implicitHeight: 720
+    implicitHeight: 630
 
     Timer {
         interval: 60000
@@ -115,201 +88,159 @@ Item {
         onTriggered: root.localHour = new Date().getHours()
     }
 
-    component ActionTile: Superellipse {
-        id: tile
-        property string titleText: ""
-        property string subtitleText: ""
-        property string iconGlyph: Theme.iconLeaf
-        signal clicked()
-
-        implicitHeight: root.compact ? (root.densePhone ? 148 : 170) : 156
-        fillColor: tileMouse.pressed ? Theme.surfacePressed
-                                     : tileMouse.containsMouse ? Theme.surfaceHover : Theme.surface
-        borderWidth: 1
-        borderColor: tileMouse.containsMouse ? Theme.borderStrong : Theme.borderMuted
-        curveDepth: Theme.curveModal
-        scale: tileMouse.pressed ? 0.988 : 1.0
-
-        Behavior on fillColor { ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast } }
-        Behavior on borderColor { ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast } }
-        Behavior on scale { NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast; easing.type: Easing.OutCubic } }
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: root.densePhone ? Theme.space3 : Theme.space4
-            spacing: root.densePhone ? Theme.space2 : Theme.space3
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Theme.space2
-                layoutDirection: Theme.uiDirection
-
-                Superellipse {
-                    Layout.preferredWidth: root.compact ? 48 : 52
-                    Layout.preferredHeight: Layout.preferredWidth
-                    fillColor: Theme.surfaceSelected
-                    borderWidth: 0
-                    curveDepth: Theme.curveContainer
-
-                    Icon {
-                        anchors.centerIn: parent
-                        text: tile.iconGlyph
-                        color: Theme.accent
-                        preferredSize: root.compact ? 27 : 29
-                    }
-                }
-
-                Item { Layout.fillWidth: true }
-
-                Icon {
-                    text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
-                    color: Theme.textTertiary
-                    preferredSize: Theme.iconSizeSmall
-                }
-            }
-
-            DirectionAwareLabel {
-                Layout.fillWidth: true
-                text: tile.titleText
-                color: Theme.textPrimary
-                font.pixelSize: Theme.typeLabelSize
-                font.weight: Theme.weightDemiBold
-                maximumLineCount: 1
-                elide: Text.ElideRight
-            }
-
-            DirectionAwareLabel {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                text: tile.subtitleText
-                color: Theme.textSecondary
-                font.pixelSize: Theme.typeCaptionSize
-                maximumLineCount: 2
-                wrapMode: Text.Wrap
-                elide: Text.ElideRight
-            }
-        }
-
-        MouseArea {
-            id: tileMouse
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: tile.clicked()
-        }
-    }
-
-    // One reusable, keyboard-accessible idea surface for desktop and mobile.
-    // Rotating examples is entirely local; selecting one opens a draft.
-    component CastIdeaSection: ColumnLayout {
+    // Hub is intentionally distinct from Explorer: no fake feed and no
+    // network dependency. Locked capability tiles are informational only.
+    component HubWorkspace: ColumnLayout {
         spacing: Theme.space2
 
         RowLayout {
             Layout.fillWidth: true
             layoutDirection: Theme.uiDirection
-            spacing: Theme.space2
-
-            Icon {
-                text: Theme.iconCompose
-                color: Theme.accent
-                preferredSize: Theme.iconSizeSmall
-            }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.home.ideas_title")
+                text: qsTrId("genycaster.home.hub_workspace")
                 color: Theme.textPrimary
-                font.pixelSize: Theme.typeMetaSize
+                font.pixelSize: Theme.typeTitle3Size
                 font.weight: Theme.weightDemiBold
-                elide: Text.ElideRight
             }
-            ActionButton {
-                objectName: "homeIdeasRefresh"
-                compact: true
-                quiet: true
-                iconOnly: true
-                iconGlyph: Theme.iconRefresh
-                text: qsTrId("genycaster.home.ideas_refresh")
-                onClicked: root.ideaOffset = (root.ideaOffset + 1) % root.castIdeas.length
+            DirectionAwareLabel {
+                text: qsTrId("genycaster.home.hub_coming_soon")
+                color: Theme.textTertiary
+                font.pixelSize: Theme.typeCaptionSize
+            }
+        }
+
+        GridLayout {
+            Layout.fillWidth: true
+            columns: 2
+            columnSpacing: Theme.space2
+            rowSpacing: Theme.space2
+            layoutDirection: Theme.uiDirection
+
+            Repeater {
+                model: [
+                    { title: qsTrId("genycaster.home.hub_agent"), description: qsTrId("genycaster.home.hub_agent_detail"), glyph: Theme.iconCpu },
+                    { title: qsTrId("genycaster.home.hub_studio"), description: qsTrId("genycaster.home.hub_studio_detail"), glyph: Theme.iconImage }
+                ]
+                delegate: Superellipse {
+                    required property int index
+                    required property var modelData
+                    objectName: index === 0 ? "homeAgentComingSoon" : "homeStudioComingSoon"
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: 0
+                    Layout.preferredHeight: root.compact ? 148 : 156
+                    fillColor: Theme.surface
+                    borderWidth: 1
+                    borderColor: Theme.borderMuted
+                    curveDepth: Theme.curveContainer
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: Theme.space3
+                        spacing: Theme.space1
+                        RowLayout {
+                            Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
+                            Icon {
+                                text: modelData.glyph
+                                preferredSize: Theme.iconSizeLarge
+                                color: Theme.textSecondary
+                            }
+                            Item { Layout.fillWidth: true }
+                            Icon {
+                                text: "system/lock"
+                                preferredSize: Theme.iconSizeSmall
+                                color: Theme.textTertiary
+                            }
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: modelData.title
+                            color: Theme.textPrimary
+                            font.pixelSize: Theme.typeBodySize
+                            font.weight: Theme.weightDemiBold
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            text: modelData.description
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.typeCaptionSize
+                            maximumLineCount: 2
+                            wrapMode: Text.Wrap
+                            elide: Text.ElideRight
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.home.hub_coming_soon")
+                            color: Theme.textTertiary
+                            font.pixelSize: Theme.typeCaptionSize
+                        }
+                    }
+                    // No TapHandler: capabilities are disabled until shipped.
+                }
             }
         }
 
         Superellipse {
-            id: featuredIdea
-            objectName: "homeFeaturedCastIdea"
+            id: discoverCard
+            objectName: "homeDiscoverFarcaster"
             Layout.fillWidth: true
-            Layout.preferredHeight: root.compact ? 116 : 104
-            fillColor: featuredMouse.pressed ? Theme.surfacePressed
-                                             : featuredMouse.containsMouse ? Theme.surfaceHover : Theme.surface
+            Layout.preferredHeight: root.compact ? 86 : 92
+            fillColor: discoverMouse.pressed ? Theme.surfacePressed
+                       : discoverMouse.containsMouse ? Theme.surfaceHover : Theme.surface
             borderWidth: 1
-            borderColor: featuredMouse.containsMouse ? Theme.borderStrong : Theme.borderMuted
+            borderColor: Theme.borderMuted
             curveDepth: Theme.curveContainer
             activeFocusOnTab: true
             Accessible.role: Accessible.Button
-            Accessible.name: root.ideaAt(0).prompt
-            Accessible.description: qsTrId("genycaster.home.ideas_hint")
-            Accessible.onPressAction: root.composeRequested(root.ideaAt(0).prompt)
-            Keys.onReturnPressed: root.composeRequested(root.ideaAt(0).prompt)
-            Keys.onSpacePressed: root.composeRequested(root.ideaAt(0).prompt)
+            Accessible.name: qsTrId("genycaster.home.hub_discover")
+            Accessible.onPressAction: root.exploreRequested()
+            Keys.onReturnPressed: root.exploreRequested()
+            Keys.onSpacePressed: root.exploreRequested()
 
-            ColumnLayout {
+            RowLayout {
                 anchors.fill: parent
                 anchors.margins: Theme.space3
-                spacing: Theme.space1
-                RowLayout {
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space2
+                Icon {
+                    text: Theme.iconCompass
+                    preferredSize: Theme.iconSizeLarge
+                    color: Theme.accent
+                }
+                ColumnLayout {
                     Layout.fillWidth: true
-                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space1
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: root.ideaAt(0).topic
-                        color: Theme.accent
-                        font.pixelSize: Theme.typeCaptionSize
+                        text: qsTrId("genycaster.home.hub_discover")
+                        color: Theme.textPrimary
+                        font.pixelSize: Theme.typeBodySize
                         font.weight: Theme.weightDemiBold
                     }
-                    Icon {
-                        text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
-                        color: Theme.textTertiary
-                        preferredSize: Theme.iconSizeSmall
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.home.hub_discover_detail")
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.typeCaptionSize
+                        maximumLineCount: 2
+                        wrapMode: Text.Wrap
                     }
                 }
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    text: root.ideaAt(0).prompt
-                    color: Theme.textPrimary
-                    font.pixelSize: Theme.typeBodySize
-                    maximumLineCount: 3
-                    wrapMode: Text.Wrap
-                    elide: Text.ElideRight
+                Icon {
+                    text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                    preferredSize: Theme.iconSizeSmall
+                    color: Theme.textTertiary
                 }
             }
             MouseArea {
-                id: featuredMouse
+                id: discoverMouse
                 anchors.fill: parent
                 hoverEnabled: !root.compact
                 cursorShape: Qt.PointingHandCursor
-                onClicked: root.composeRequested(root.ideaAt(0).prompt)
+                onClicked: root.exploreRequested()
             }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            layoutDirection: Theme.uiDirection
-            spacing: Theme.space2
-            ActionButton {
-                compact: true
-                quiet: true
-                iconGlyph: Theme.iconCompose
-                text: root.ideaAt(1).topic
-                onClicked: root.composeRequested(root.ideaAt(1).prompt)
-            }
-            ActionButton {
-                compact: true
-                quiet: true
-                iconGlyph: Theme.iconCompose
-                text: root.ideaAt(2).topic
-                onClicked: root.composeRequested(root.ideaAt(2).prompt)
-            }
-            Item { Layout.fillWidth: true }
         }
     }
 
@@ -379,61 +310,10 @@ Item {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignHCenter
-                        text: qsTrId("genycaster.home.prompt")
+                        text: qsTrId("genycaster.home.hub_tagline")
                         color: Theme.textSecondary
                         font.pixelSize: Theme.typeMetaSize
                     }
-                }
-
-                GridLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.fillWidth: true
-                    layoutDirection: Theme.uiDirection
-                    Layout.maximumWidth: 720
-                    columns: 4
-                    columnSpacing: Theme.space2
-                    rowSpacing: Theme.space2
-
-                    ActionTile {
-                        Layout.fillWidth: true
-                        titleText: qsTrId("genycaster.feed_header.explore")
-                        subtitleText: qsTrId("genycaster.feed_header.discover_people_channels_and_casts")
-                        iconGlyph: Theme.iconExplore
-                        onClicked: root.exploreRequested()
-                    }
-                    ActionTile {
-                        Layout.fillWidth: true
-                        titleText: qsTrId("genycaster.home.share_cast")
-                        subtitleText: qsTrId("genycaster.home.compose_description")
-                        iconGlyph: Theme.iconCompose
-                        onClicked: root.composeRequested(root.draftText)
-                    }
-                    ActionTile {
-                        Layout.fillWidth: true
-                        titleText: qsTrId("genycaster.apps.title")
-                        subtitleText: qsTrId("genycaster.home.apps_description")
-                        iconGlyph: Theme.iconApps
-                        onClicked: root.appsRequested()
-                    }
-                    ActionTile {
-                        Layout.fillWidth: true
-                        titleText: qsTrId("genycaster.feed_header.universal_search")
-                        subtitleText: qsTrId("genycaster.home.search_description")
-                        iconGlyph: Theme.iconSearch
-                        onClicked: root.searchRequested()
-                    }
-                }
-
-                CastIdeaSection {
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: 760
-                }
-
-                Item {
-                    Layout.fillHeight: true
-                    Layout.minimumHeight: Theme.space2
-                    Layout.maximumHeight: 48
                 }
 
                 Superellipse {
@@ -490,7 +370,12 @@ Item {
                     }
                 }
 
-                Item { Layout.preferredHeight: Theme.space2 }
+                HubWorkspace {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: 760
+                }
+                Item { Layout.fillHeight: true; Layout.minimumHeight: Theme.space2 }
             }
         }
 
@@ -550,61 +435,7 @@ Item {
                 }
             }
             DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.densePhone ? Theme.typeTitle1Size : Theme.typeDisplaySize; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
-            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.prompt"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }
-
-            // Phone: a true two-column navigation grid. All four targets
-            // remain visible at once instead of three wasteful full-width rows.
-            GridLayout {
-                visible: !root.composerFocused
-                Layout.fillWidth: true
-                Layout.leftMargin: Theme.space3
-                Layout.rightMargin: Theme.space3
-                columns: 2
-                columnSpacing: root.densePhone ? Theme.space2 : Theme.space3
-                rowSpacing: root.densePhone ? Theme.space2 : Theme.space3
-                layoutDirection: Theme.uiDirection
-
-                ActionTile {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 0
-                    titleText: qsTrId("genycaster.feed_header.explore")
-                    subtitleText: qsTrId("genycaster.feed_header.discover_people_channels_and_casts")
-                    iconGlyph: Theme.iconExplore
-                    onClicked: root.exploreRequested()
-                }
-                ActionTile {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 0
-                    titleText: qsTrId("genycaster.home.share_cast")
-                    subtitleText: qsTrId("genycaster.home.compose_description")
-                    iconGlyph: Theme.iconCompose
-                    onClicked: root.composeRequested(root.draftText)
-                }
-                ActionTile {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 0
-                    titleText: qsTrId("genycaster.apps.title")
-                    subtitleText: qsTrId("genycaster.home.apps_description")
-                    iconGlyph: Theme.iconApps
-                    onClicked: root.appsRequested()
-                }
-                ActionTile {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 0
-                    titleText: qsTrId("genycaster.feed_header.universal_search")
-                    subtitleText: qsTrId("genycaster.home.search_description")
-                    iconGlyph: Theme.iconSearch
-                    onClicked: root.searchRequested()
-                }
-            }
-
-            CastIdeaSection {
-                visible: !root.composerFocused
-                Layout.fillWidth: true
-                Layout.leftMargin: Theme.space3
-                Layout.rightMargin: Theme.space3
-                Layout.topMargin: Theme.space1
-            }
+            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.hub_tagline"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }
 
             Superellipse {
                 id: mobileComposerSurface
@@ -665,134 +496,12 @@ Item {
                 }
             }
 
-            // The unused lower half of the original mobile dashboard is now
-            // a small, actionable continuation of the *already-loaded* feed.
-            // Never synthesize posts, identities, counts, or network requests.
-            ColumnLayout {
-                id: homeContinuation
-                objectName: "homeContinuation"
+            HubWorkspace {
                 visible: !root.composerFocused
                 Layout.fillWidth: true
                 Layout.leftMargin: Theme.space3
                 Layout.rightMargin: Theme.space3
                 Layout.topMargin: Theme.space2
-                spacing: Theme.space2
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    layoutDirection: Theme.uiDirection
-
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.home.catch_up")
-                        color: Theme.textSecondary
-                        font.pixelSize: Theme.typeMetaSize
-                        font.weight: Theme.weightDemiBold
-                        wrapMode: Text.Wrap
-                    }
-                    ActionButton {
-                        compact: true
-                        quiet: true
-                        iconGlyph: Theme.iconArrowRight
-                        text: qsTrId("genycaster.feed_header.explore")
-                        onClicked: root.exploreRequested()
-                    }
-                }
-
-                Repeater {
-                    model: root.recentCasts
-                    delegate: Superellipse {
-                        required property var modelData
-                        objectName: "homeRecentCastPreview"
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 76
-                        fillColor: recentHover.pressed ? Theme.surfacePressed : Theme.surface
-                        borderWidth: 1
-                        borderColor: Theme.borderMuted
-                        curveDepth: Theme.curveContainer
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: Theme.space2
-                            layoutDirection: Theme.uiDirection
-                            spacing: Theme.space2
-
-                            Avatar {
-                                avatarSize: 40
-                                sourceUrl: String(modelData.avatarUrl || "")
-                                displayName: String(modelData.name || "")
-                            }
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 2
-                                DirectionAwareLabel {
-                                    Layout.fillWidth: true
-                                    text: String(modelData.name || "")
-                                    color: Theme.textPrimary
-                                    font.pixelSize: Theme.typeBodySize
-                                    font.weight: Theme.weightDemiBold
-                                    elide: Text.ElideRight
-                                    maximumLineCount: 1
-                                }
-                                DirectionAwareLabel {
-                                    Layout.fillWidth: true
-                                    text: String(modelData.text || "")
-                                    color: Theme.textSecondary
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    maximumLineCount: 2
-                                    wrapMode: Text.Wrap
-                                    elide: Text.ElideRight
-                                }
-                            }
-                            Icon {
-                                text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
-                                color: Theme.textTertiary
-                                preferredSize: Theme.iconSizeSmall
-                            }
-                        }
-                        MouseArea {
-                            id: recentHover
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.castRequested(String(modelData.castId))
-                        }
-                    }
-                }
-
-                Superellipse {
-                    visible: root.recentCasts.length === 0
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 64
-                    fillColor: Theme.surface
-                    borderWidth: 1
-                    borderColor: Theme.borderMuted
-                    curveDepth: Theme.curveContainer
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: Theme.space3
-                        spacing: Theme.space2
-                        layoutDirection: Theme.uiDirection
-                        Icon {
-                            text: Theme.iconCompass
-                            color: Theme.textSecondary
-                            preferredSize: Theme.iconSizeLarge
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.feed_header.explore")
-                            color: Theme.textPrimary
-                            font.pixelSize: Theme.typeBodySize
-                        }
-                        Icon {
-                            text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
-                            color: Theme.textTertiary
-                            preferredSize: Theme.iconSizeSmall
-                        }
-                    }
-                    TapHandler {
-                        onTapped: root.exploreRequested()
-                    }
-                }
             }
         }
     }

@@ -11,6 +11,18 @@ GenyDrawer {
     property bool showRecoveryExplanation: false
     readonly property bool webAssembly: Qt.platform.os === "wasm"
     readonly property bool mobilePresentation: parent ? parent.width < Theme.breakpointMobile : true
+    function scrollToBeginning() {
+        // Only explicit Settings entry resets state. Switching controls or
+        // returning from a nested detail does not discard unsaved values.
+        const pages = [mobileSettingsIndex, appearanceScroll, localeScroll,
+                       marketScroll, readSettingsScroll, updatesScroll,
+                       recoverySettingsScroll]
+        for (let i = 0; i < pages.length; ++i) {
+            if (pages[i].contentItem)
+                pages[i].contentItem.contentY = 0
+        }
+    }
+
     function openMobileSection(section) {
         if (section === -1) {
             root.close()

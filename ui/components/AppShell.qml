@@ -176,6 +176,7 @@ Item {
             if (popup.mobilePresentation)
                 popup.mobileIndexOpen = requestedSection < 0
             popup.open()
+            popup.scrollToBeginning()
         })
     }
 
@@ -220,6 +221,11 @@ Item {
         root.clearPendingShellReturn()
         root.shellRoute = ""
         presentationBridge.openMyProfile()
+        Qt.callLater(() => {
+            if (root.shellRoute === "" && presentationBridge.activeView === "profile"
+                    && profileSurfaceLoader.item)
+                profileSurfaceLoader.item.scrollToBeginning()
+        })
     }
 
     Connections {
@@ -253,20 +259,29 @@ Item {
         root.shellRoute = nextRoute
         if (nextRoute === "notifications")
             presentationBridge.openNotifications()
+        if (nextRoute === "apps")
+            Qt.callLater(() => {
+                if (root.shellRoute === "apps" && appsSurfaceLoader.item)
+                    appsSurfaceLoader.item.scrollToBeginning()
+            })
     }
 
     function openHome() {
         root.clearPendingShellReturn()
         root.primaryDestination = "home"
         root.shellRoute = ""
-        // The redesigned Home is a dashboard surface. Keep a live feed model
-        // warm behind it so recent activity panels have content immediately.
+        // Home is a standalone hub. Preserve its draft and the existing feed
+        // cache; tapping Home still returns to the top of the dashboard.
         const source = presentationBridge.isAuthenticated && root.identityAvailable
                        ? "following" : "trending"
         if (presentationBridge.activeView !== "feed" || !presentationBridge.feedStarted
                 || presentationBridge.activeFeed !== source) {
             presentationBridge.selectFeed(source)
         }
+        Qt.callLater(() => {
+            if (root.homeSurfaceActive)
+                homeDashboard.scrollToBeginning()
+        })
     }
 
     function selectHomePresentationMode(mode) {
@@ -309,11 +324,22 @@ Item {
     }
 
     function openExplorer() {
-        presentationBridge.refreshFollowingStories()
+        const wasExplorer = root.primaryDestination === "explorer"
+                            && root.shellRoute === ""
+                            && presentationBridge.activeView === "feed"
+        if (!wasExplorer)
+            presentationBridge.refreshFollowingStories()
         root.clearPendingShellReturn()
         root.primaryDestination = "explorer"
         root.shellRoute = ""
-        root.selectExplorerPresentationMode(root.explorerPresentationMode, true)
+        // A re-tap navigates within cached rows; it must not trigger an
+        // avoidable network refresh or leave the viewport far down the feed.
+        root.selectExplorerPresentationMode(root.explorerPresentationMode, false)
+        Qt.callLater(() => {
+            if (root.primaryDestination === "explorer" && root.shellRoute === ""
+                    && feedSurfaceLoader.item)
+                feedSurfaceLoader.item.scrollToBeginning()
+        })
     }
 
     function openSuggestedProfile(username) {
@@ -749,6 +775,7 @@ Item {
                                 }
 
                                 Loader {
+                                    id: appsSurfaceLoader
                                     active: root.shellRoute === "apps"
                                     visible: active
                                     opacity: active ? 1.0 : 0.0
@@ -995,6 +1022,7 @@ Item {
                                 }
 
                                 Loader {
+                                    id: profileSurfaceLoader
                                     readonly property bool surfaceRequested: root.shellRoute.length === 0
                                                                              && presentationBridge.activeView === "profile"
                                     active: surfaceRequested || item !== null
