@@ -39,10 +39,10 @@ test('mobile footer is full bleed dark, with curved page edge and no floating ca
     assert.match(nav, /id: contentLowerEdge[\s\S]*?curveBottomLeft: true[\s\S]*?curveBottomRight: true/);
     assert.match(nav, /curveTopLeft: false[\s\S]*?curveTopRight: false/);
     assert.match(nav, /anchors\.topMargin: 17\s+anchors\.bottomMargin: 23/);
-    assert.match(nav, /y: -16\s+height: 32/);
+    assert.match(nav, /y: -7\s+height: 14/);
     assert.doesNotMatch(nav, /id: dockSurface|glassCapture|MultiEffect|shadowEnabled: true|borderWidth: 1/);
     assert.equal(nav.split('darkDock: true').length - 1, 5);
-    assert.match(button, /darkDock \? "#8bb2ff"/);
+    assert.match(button, /darkDock \? "#ffffff"/);
     assert.match(shell, /id: mobileBottomNavigation[\s\S]*?height: 88/);
     assert.match(shell, /anchors\.left: readingPane\.left\s+anchors\.right: readingPane\.right\s+anchors\.bottom: readingPane\.bottom/);
     assert.doesNotMatch(shell, /anchors\.bottomMargin: Math\.max\(Theme\.space4, Theme\.mobileGutter\)/);

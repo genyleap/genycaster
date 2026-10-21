@@ -124,9 +124,11 @@ ColumnLayout {
             id: replyCard
             Layout.fillWidth: true
             implicitHeight: replyContent.implicitHeight + (root.compact ? Theme.space3 : Theme.space4) * 2
-            fillColor: root.highlighted ? Theme.surfaceSelected : Theme.surfaceRaised
-            borderWidth: Theme.strokeHairline
-            borderColor: root.highlighted ? Theme.accent : Theme.borderSubtle
+            fillColor: root.highlighted ? Theme.surfaceSelected
+                       : root.ownReply ? Theme.primarySurface : Theme.surfaceRaised
+            borderWidth: root.ownReply || root.highlighted ? 1 : Theme.strokeHairline
+            borderColor: root.highlighted ? Theme.accent
+                         : root.ownReply ? Theme.borderStrong : Theme.borderSubtle
             curveDepth: Theme.curveModal
 
             ColumnLayout {

@@ -608,18 +608,19 @@ ListView {
                 }
 
                 Superellipse {
-                    Layout.preferredWidth: Math.max(30, replyCountLabel.implicitWidth + Theme.space3 * 2)
-                    Layout.preferredHeight: 30
-                    fillColor: Theme.surfaceSelected
-                    borderWidth: 0
-                    curveDepth: Theme.curveControl
+                    Layout.preferredWidth: Math.max(28, replyCountLabel.implicitWidth + Theme.space2 * 2)
+                    Layout.preferredHeight: 28
+                    fillColor: Theme.surfaceRaised
+                    borderWidth: 1
+                    borderColor: Theme.borderStrong
+                    curveDepth: height / 2
                     DirectionAwareLabel {
                         id: replyCountLabel
                         anchors.centerIn: parent
                         text: LocaleFormat.formatInteger(root.prioritizedReplies.length)
-                        color: Theme.accent
+                        color: Theme.textPrimary
                         font.pixelSize: Theme.typeCaptionSize
-                        font.weight: Theme.weightDemiBold
+                        font.weight: Theme.weightBold
                     }
                 }
 

@@ -53,7 +53,7 @@ test('editorial link artwork and focus rings on both home composers',()=>{
  assert.match(link,/root\.compact \? 116 : 184/);
  assert.match(link,/visible: root\.authorText\.length > 0 \|\| root\.dateText\.length > 0/);
  assert.match(home,/desktopDraftEditor\.activeFocus \? Theme\.accent/);
- assert.match(home,/mobileDraftEditor\.activeFocus \? Theme\.accent/);
+ assert.match(home,/borderColor: root\.composerFocused \? Theme\.borderStrong : Theme\.borderMuted/);
 });
 test('single photo and WASM galleries use alpha mask rather than inverse edge fills',()=>{
  const gallery=read('ui/components/GalleryLayout.qml');

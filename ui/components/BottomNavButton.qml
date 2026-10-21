@@ -37,10 +37,10 @@ Button {
             Superellipse {
                 anchors.fill: parent
                 fillColor: control.selected
-                           ? (control.darkDock ? Qt.rgba(0.22, 0.38, 0.76, 0.44) : Theme.surfaceSelected)
+                           ? (control.darkDock ? Qt.rgba(1, 1, 1, 0.14) : Theme.surfaceSelected)
                            : "transparent"
                 borderWidth: control.selected && control.darkDock ? 1 : 0
-                borderColor: Qt.rgba(0.55, 0.68, 1, 0.23)
+                borderColor: Qt.rgba(1, 1, 1, 0.18)
                 curveDepth: height / 2
             }
 
@@ -50,9 +50,9 @@ Button {
                 // Selected destinations share the same quiet accent capsule
                 // used by Home actions and Explore filters.
                 filled: control.selected
-                color: !control.enabled ? (control.darkDock ? "#606877" : Theme.inkDisabled)
-                       : control.selected ? (control.darkDock ? "#8bb2ff" : Theme.accent)
-                       : (control.darkDock ? "#e0e5ef" : Theme.inkMuted)
+                color: !control.enabled ? (control.darkDock ? "#747781" : Theme.inkDisabled)
+                       : control.selected ? (control.darkDock ? "#ffffff" : Theme.accent)
+                       : (control.darkDock ? "#cbd0d9" : Theme.inkMuted)
                 preferredSize: Theme.iconSizeNavigation
                 opacity: control.selected ? 1.0 : (control.hovered ? 0.94 : (control.darkDock ? 0.86 : 0.72))
                 scale: control.selected ? 1.04 : 1.0

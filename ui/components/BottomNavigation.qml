@@ -41,8 +41,8 @@ Item {
         objectName: "mobileContentLowerEdge"
         anchors.left: parent.left
         anchors.right: parent.right
-        y: -16
-        height: 32
+        y: -7
+        height: 14
         fillColor: Theme.background
         curveDepth: 22
         curveTopLeft: false

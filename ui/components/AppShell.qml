@@ -674,7 +674,10 @@ Item {
                                 anchors.bottomMargin: root.mobile && !root.homeComposerFocused
                                                       && !root.initialSetupOpen
                                     ? mobileBottomNavigation.height : 0
-                                spacing: Theme.space3
+                                // A mobile ListView must reach the curved dock edge;
+                                // extra ColumnLayout spacing otherwise clips its
+                                // final visible cast behind a blank gutter.
+                                spacing: root.mobile ? 0 : Theme.space3
 
                                 ComingSoonSurface {
                                     visible: root.shellRoute.length > 0 && root.shellRoute !== "notifications" && root.shellRoute !== "apps"

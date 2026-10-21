@@ -24,7 +24,7 @@ test('mobile Home uses viewport-aware dimensions and preserves composer clearanc
     assert.match(home, /readonly property bool densePhone: root\.compact && root\.height < 840/);
     assert.match(home, /implicitHeight: root\.compact \? \(root\.densePhone \? 148 : 170\)/);
     assert.match(home, /avatarSize: root\.densePhone \? 56 : 76/);
-    assert.match(home, /implicitHeight: root\.densePhone \? 62 : 92/);
+    assert.match(home, /implicitHeight: root\.composerFocused \? 98 : 38/);
     assert.match(home, /Math\.max\(108, Theme\.touchTarget \+ Theme\.space6 \* 2\)/);
     assert.match(home, /visible: !root\.composerFocused/);
     assert.match(shell, /anchors\.bottomMargin: root\.mobile && !root\.homeComposerFocused/);
@@ -37,7 +37,7 @@ test('thread rail has rounded capsule ends and softened accent nodes', () => {
     assert.match(rail, /Superellipse \{[\s\S]*?anchors\.bottom: parent\.bottom/);
     assert.match(rail, /curveDepth: width \/ 2/);
     assert.match(rail, /exponent: 2\.01/);
-    assert.match(rail, /opacity: root\.highlighted \? 0\.7 : 0\.32/);
+    assert.match(rail, /opacity: root\.highlighted \? 0\.8 : 0\.48/);
     assert.doesNotMatch(rail, /Rectangle \{/);
 });
 

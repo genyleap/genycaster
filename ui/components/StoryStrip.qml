@@ -13,7 +13,7 @@ Item {
     signal ownStoryRequested()
 
     visible: root.profiles && root.profiles.length > 0
-    implicitHeight: visible ? (root.compact ? 80 : 86) : 0
+    implicitHeight: visible ? (root.compact ? 94 : 98) : 0
 
     ListView {
         id: storyList
@@ -21,7 +21,7 @@ Item {
         anchors.fill: parent
         orientation: ListView.Horizontal
         layoutDirection: Theme.uiDirection
-        spacing: Theme.space1
+        spacing: Theme.space2
         clip: true
         boundsBehavior: Flickable.DragOverBounds
         interactive: true

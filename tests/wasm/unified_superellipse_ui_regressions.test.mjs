@@ -47,7 +47,7 @@ test('replies and nested replies share real threaded connector and padded cards'
     assert.match(read('ui/components/DetailSurface.qml'), /reuseItems: true/);
     assert.match(read('ui/components/DetailSurface.qml'), /delegate: ThreadReplyItem/);
     assert.match(thread, /onQuoteRequested: root.quoteRequested\(root.reply\)/);
-    assert.match(rail, /borderColor: root.highlighted \? Theme.accent : Theme.borderStrong/);
+    assert.match(rail, /fillColor: root.highlighted \? Theme.accent : Theme.borderStrong/);
     assert.match(rail, /curveDepth: width \/ 2/);
     assert.match(rail, /exponent: 2.01/);
     assert.doesNotMatch(rail, /Rectangle \{/);
@@ -67,7 +67,7 @@ test('casts notifications and explorer tabs reuse Superellipse surfaces and acce
     assert.match(tabs, /Layout.preferredWidth: String\(modelData.id\) === "conversations" \? 1.65 : 1/);
     assert.doesNotMatch(tabs, /fillColor: tabButton.selected/);
     assert.match(bottom, /fillColor: control.selected[\s\S]*?Theme.surfaceSelected/);
-    assert.match(bottom, /control.darkDock \? Qt.rgba\(0.22, 0.38, 0.76, 0.44\)/);
+    assert.match(bottom, /control.darkDock \? Qt.rgba\(1, 1, 1, 0.14\)/);
 });
 
 test('thread heading shows actual reply count, not an invented metric', () => {

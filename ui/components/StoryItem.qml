@@ -15,13 +15,13 @@ Item {
 
     signal activated()
 
-    readonly property int frameSize: root.compact ? 52 : 58
-    readonly property int avatarSize: root.compact ? 44 : 50
+    readonly property int frameSize: root.compact ? 62 : 66
+    readonly property int avatarSize: root.compact ? 54 : 58
     readonly property real frameCurveDepth: Math.round(root.frameSize * 0.30)
     readonly property real avatarCurveDepth: Math.round(root.avatarSize * 0.30)
 
-    implicitWidth: root.compact ? 62 : 68
-    implicitHeight: root.compact ? 80 : 86
+    implicitWidth: root.compact ? 74 : 78
+    implicitHeight: root.compact ? 94 : 98
 
     ColumnLayout {
         anchors.fill: parent
@@ -63,14 +63,14 @@ Item {
                 anchors.centerIn: parent
                 text: Theme.iconPlus
                 color: Theme.accent
-                preferredSize: 27
+                preferredSize: 32
             }
 
             Superellipse {
                 objectName: "ownStoryAddBadge"
                 visible: root.addStory && root.avatarUrl.length > 0
-                width: 21
-                height: 21
+                width: 25
+                height: 25
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 anchors.rightMargin: -1
@@ -84,14 +84,14 @@ Item {
                     anchors.centerIn: parent
                     text: Theme.iconPlus
                     color: Theme.inkInverse
-                    preferredSize: 11
+                    preferredSize: 13
                 }
             }
 
             Superellipse {
                 visible: !root.addStory && root.storyState !== "live"
-                width: 20
-                height: 20
+                width: 24
+                height: 24
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 anchors.rightMargin: -2
@@ -115,7 +115,7 @@ Item {
                               : root.activityKind === "media" ? Theme.iconImage
                               : Theme.iconCompose
                         color: root.activityKind === "nft" ? Theme.accent : Theme.ink
-                        preferredSize: 10
+                        preferredSize: 13
                     }
                 }
             }

@@ -349,7 +349,7 @@ Item {
         anchors.fill: parent
         contentWidth: width
         contentHeight: mobileColumn.implicitHeight
-                       + (root.composerFocused ? Theme.space4
+                       + (root.composerFocused ? Theme.space3
                           : Math.max(108, Theme.touchTarget + Theme.space6 * 2))
         clip: true
         boundsBehavior: Flickable.StopAtBounds
@@ -451,22 +451,25 @@ Item {
                 Layout.leftMargin: Theme.space3
                 Layout.rightMargin: Theme.space3
                 fillColor: Theme.surface
-                borderWidth: mobileDraftEditor.activeFocus ? Theme.strokeEmphasis : 1
-                borderColor: mobileDraftEditor.activeFocus ? Theme.accent : Theme.borderMuted
-                curveDepth: Theme.curveModal
+                borderWidth: 1
+                borderColor: root.composerFocused ? Theme.borderStrong : Theme.borderMuted
+                curveDepth: root.composerFocused ? Theme.curveModal : height / 2
                 implicitHeight: mobileComposer.implicitHeight
-                                + (root.densePhone ? Theme.space3 : Theme.space4) * 2
+                                + (root.composerFocused ? Theme.space3 * 2 : Theme.space2 * 2)
+                Behavior on implicitHeight {
+                    NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
+                }
                 ColumnLayout {
                     id: mobileComposer
                     anchors.fill: parent
-                    anchors.margins: root.densePhone ? Theme.space3 : Theme.space4
-                    spacing: Theme.space3
+                    anchors.margins: root.composerFocused ? Theme.space3 : Theme.space2
+                    spacing: root.composerFocused ? Theme.space2 : 0
                     TextArea {
                         id: mobileDraftEditor
                         objectName: "homeMobileDraftEditor"
                         ContextMenu.menu: EditorContextMenu { editor: mobileDraftEditor }
                         Layout.fillWidth: true
-                        implicitHeight: root.densePhone ? 62 : 92
+                        implicitHeight: root.composerFocused ? 98 : 38
                         text: root.draftText
                         placeholderText: qsTrId("genycaster.home.composer_placeholder")
                         wrapMode: TextEdit.Wrap
@@ -476,6 +479,8 @@ Item {
                         onTextChanged: root.draftText = text
                     }
                     RowLayout {
+                        id: mobileComposeActions
+                        visible: root.composerFocused
                         Layout.fillWidth: true
                         spacing: Theme.space2
                         layoutDirection: Theme.uiDirection
