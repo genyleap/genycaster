@@ -39,7 +39,7 @@ test('Explorer tab does not force network refresh when returning to the top', ()
 test('Create sheet is a unified curved surface with real actions and disabled Spaces', () => {
     const menu = qml('MobileCreateMenu');
     assert.match(menu, /objectName: "createUnifiedActions"/);
-    assert.match(menu, /curveDepth: Theme\.curveContainer/);
+    assert.match(menu, /curveDepth: Theme\.curveLarge/);
     assert.equal((menu.match(/component CreateRow:/g) || []).length, 1);
     assert.equal((menu.match(/CreateRow \{/g) || []).length, 3);
     assert.match(menu, /onActivated: \{ root\.close\(\); root\.castRequested\(\) \}/);

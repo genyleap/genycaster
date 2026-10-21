@@ -51,7 +51,7 @@ test('home composer focus is visible and link artwork leads the responsive edito
  const home=read('ui/components/HomeDashboard.qml');
  const link=read('ui/components/LinkPreview.qml');
  assert.match(home,/desktopComposerSurface[\s\S]*borderColor: desktopDraftEditor\.activeFocus \? Theme\.accent/);
- assert.match(home,/mobileComposerSurface[\s\S]*borderColor: root\.composerFocused \? Theme\.borderStrong/);
+ assert.match(home,/mobileComposerSurface[\s\S]*curveDepth: Theme\.curveModal/);
  assert.match(link,/localizationController\.isRightToLeftText\(root\.castCaption\)/);
  assert.match(link,/Layout\.preferredHeight: shouldReserve \? \(root\.compact \? 116 : 156\) : 0/);
 });

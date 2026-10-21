@@ -11,17 +11,18 @@ test('dark mobile navigation uses neutral theme-independent selection instead of
  assert.doesNotMatch(button, /#8bb2ff|0\.22, 0\.38, 0\.76, 0\.44/);
 });
 
-test('mobile composer starts as a compact prompt and smoothly grows with editing and keyboard', () => {
+test('Home prompt opens a full-page mobile composer without an inline keyboard', () => {
  const home = qml('HomeDashboard');
+ const composer = qml('ComposerDrawer');
  const shell = qml('AppShell');
- assert.match(home, /id: mobileComposerSurface[\s\S]*?Behavior on implicitHeight \{[\s\S]*?NumberAnimation \{ duration: 240/);
- assert.match(home, /implicitHeight: root\.composerFocused \? 98 : 38/);
- assert.match(home, /id: mobileComposeActions\s+visible: root\.composerFocused/);
- assert.match(home, /contentHeight: mobileColumn\.implicitHeight \+ Theme\.space3/);
- assert.doesNotMatch(home, /Math\.max\(108, Theme\.touchTarget/);
- assert.match(home, /function onComposerFocusedChanged\(\) \{[\s\S]*?mobileFlick\.contentY = 0/);
- assert.match(shell, /readonly property bool homeComposerFocused:/);
- assert.match(shell, /height < preKeyboardViewportHeight - 140/);
+ assert.match(home,/objectName: "homeComposerLauncher"/);
+ assert.match(home,/Layout\.preferredHeight: 60/);
+ assert.match(home,/verticalAlignment: Text\.AlignVCenter/);
+ assert.match(home,/onClicked: root\.composeRequested\(root\.draftText\)/);
+ assert.match(composer,/fullScreen: compact/);
+ assert.match(composer,/objectName: "mobileComposerNavigation"/);
+ assert.match(composer,/objectName: "mobileComposerMediaBar"/);
+ assert.match(shell,/onComposeRequested: text => root\.openComposer\(null, "", text\)/);
 });
 
 test('thread reply rail uses solid rounded nodes and own replies have distinct cards', () => {

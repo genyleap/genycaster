@@ -60,15 +60,15 @@ test('beta label is short and is translated in every locale',()=>{
  }
 });
 
-test('mobile keyboard expands Composer to visible Qt viewport instead of a reading pane',()=>{
+test('mobile Composer fills the current Qt viewport and preserves desktop host',()=>{
  const app=read('AppShell.qml');
  const composer=read('ComposerDrawer.qml');
  const adaptive=read('GenyAdaptiveDialog.qml');
  assert.match(app,/hostItem: root\.mobile \? root : readingPane/);
- assert.match(composer,/height: parent \? \(compact \? \(keyboardVisible/);
- assert.match(composer,/Math\.max\(1, parent\.height - Theme\.space2\)/);
- assert.match(composer,/visible: !root\.keyboardVisible\n\s+Layout\.fillWidth: true\n\s+mode: root\.editorMode/);
- assert.match(composer,/root\.height - Theme\.space5 \* 7/);
+ assert.match(composer,/fullScreen: compact/);
+ assert.match(composer,/height: parent \? \(compact \? parent\.height/);
+ assert.match(composer,/objectName: "mobileComposerNavigation"/);
+ assert.match(composer,/objectName: "mobileComposerMediaBar"/);
  assert.match(adaptive,/property Item blurSourceItem: null/);
  assert.match(adaptive,/Overlay\.modal: DrawerBackdrop/);
  assert.match(adaptive,/sourceItem: control\.blurSourceItem/);

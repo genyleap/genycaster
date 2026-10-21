@@ -270,11 +270,14 @@ test('tapping ordinary cast text opens conversation without covering interactive
     assert.match(cast, /onTapped: root\.openMoreMenu\(\)/);
 });
 
-test('home desktop and mobile draft editors use the same themed context menu as composer', () => {
+test('desktop quick draft keeps context menu; mobile opens the dedicated editor', () => {
     const home = read('ui/components/HomeDashboard.qml');
+    const composer = read('ui/components/ComposerDrawer.qml');
     const menu = read('ui/components/EditorContextMenu.qml');
     assert.match(home, /ContextMenu\.menu: EditorContextMenu \{ editor: desktopDraftEditor \}/);
-    assert.match(home, /ContextMenu\.menu: EditorContextMenu \{ editor: mobileDraftEditor \}/);
+    assert.match(home, /objectName: "homeComposerLauncher"/);
+    assert.match(home, /onClicked: root\.composeRequested\(root\.draftText\)/);
+    assert.match(composer, /RichTextEditor \{/);
     assert.match(menu, /popupType: Popup\.Item/);
     assert.match(menu, /background: Superellipse/);
 });

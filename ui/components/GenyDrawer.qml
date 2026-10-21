@@ -5,6 +5,8 @@ Drawer {
     id: control
 
     property bool bottomSheet: false
+    property bool fullScreen: false
+    property bool floatingSheet: false
     property bool dimBackground: false
     property int contentPadding: 0
     property Item hostItem: null
@@ -19,10 +21,13 @@ Drawer {
     dim: control.blurSourceItem !== null || control.dimBackground
     edge: bottomSheet ? Qt.BottomEdge : (Theme.rtl ? Qt.LeftEdge : Qt.RightEdge)
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    leftPadding: contentPadding
-    rightPadding: contentPadding
+    leftInset: floatingSheet ? Theme.space3 : 0
+    rightInset: floatingSheet ? Theme.space3 : 0
+    bottomInset: floatingSheet ? Theme.space3 : 0
+    leftPadding: contentPadding + (floatingSheet ? Theme.space3 : 0)
+    rightPadding: contentPadding + (floatingSheet ? Theme.space3 : 0)
     topPadding: contentPadding + sheetTopInset
-    bottomPadding: contentPadding
+    bottomPadding: contentPadding + (floatingSheet ? Theme.space3 : 0)
 
     // One motion contract for side drawers and bottom sheets. Animate the
     // Drawer.position property so interactive edge gestures stay in sync;
@@ -81,12 +86,14 @@ Drawer {
 
     background: PopupSurface {
         fillColor: Theme.surfaceElevated
-        curveDepth: control.bottomSheet ? Theme.curveSheet : Theme.curveDrawer
+        curveDepth: control.fullScreen ? 0
+                    : control.floatingSheet ? Theme.curveSheetFloating
+                    : control.bottomSheet ? Theme.curveSheet : Theme.curveDrawer
         elevation: Theme.elevationNone
-        curveTopLeft: control.bottomSheet || control.edge !== Qt.LeftEdge
-        curveTopRight: control.bottomSheet || control.edge !== Qt.RightEdge
-        curveBottomLeft: !control.bottomSheet && control.edge !== Qt.LeftEdge
-        curveBottomRight: !control.bottomSheet && control.edge !== Qt.RightEdge
+        curveTopLeft: !control.fullScreen && (control.bottomSheet || control.edge !== Qt.LeftEdge)
+        curveTopRight: !control.fullScreen && (control.bottomSheet || control.edge !== Qt.RightEdge)
+        curveBottomLeft: !control.fullScreen && (control.floatingSheet || (!control.bottomSheet && control.edge !== Qt.LeftEdge))
+        curveBottomRight: !control.fullScreen && (control.floatingSheet || (!control.bottomSheet && control.edge !== Qt.RightEdge))
 
         Superellipse {
             visible: control.showHandle

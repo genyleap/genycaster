@@ -53,7 +53,11 @@ GenyDrawer {
 
     ListModel { id: threadTailModel }
 
+    // A native-feeling page on narrow screens; keep the rich editor and
+    // publication/draft logic intact rather than replacing it with a form.
     bottomSheet: true
+    fullScreen: compact
+    showHandle: !compact
     modal: true
     focus: true
     dimBackground: true
@@ -62,10 +66,7 @@ GenyDrawer {
     // During typing the Qt viewport already excludes the on-screen keyboard.
     // Consume its full available height instead of leaving a dead upper gap.
     // Parent is AppShell on mobile (not the scrolling reading column).
-    height: parent ? (compact ? (keyboardVisible
-                                   ? Math.max(1, parent.height - Theme.space2)
-                                   : Math.min(parent.height * 0.92, 820))
-                              : Math.min(parent.height * 0.78, 720)) : 720
+    height: parent ? (compact ? parent.height : Math.min(parent.height * 0.78, 720)) : 720
     // Composer content owns vertical scrolling; drawer-swipe gestures would otherwise
     // compete with Flickable/ScrollView input on touch devices.
     // Scrolling belongs to the content; swipe-to-dismiss was stealing
@@ -273,6 +274,17 @@ GenyDrawer {
             root.publishRequested(richComposer.safeText, richComposer.mentionFids, richComposer.mentionPositions, richComposer.protocolEmbeds)
     }
 
+    Timer {
+        id: initialComposerFocus
+        interval: 120
+        repeat: false
+        onTriggered: {
+            if (root.opened && root.compact && root.editorMode === "visual"
+                    && visualEditor.activeEditor !== null)
+                visualEditor.activeEditor.forceActiveFocus()
+        }
+    }
+
     onOpened: {
         root.expandedViewportHeight = root.parent ? root.parent.height : root.height
         root.closeComposerPopups()
@@ -310,6 +322,8 @@ GenyDrawer {
             richComposer.insertCastReference(String(root.quotedCast.castId || ""),
                                              Number(root.quotedCast.authorFid || 0))
         }
+        if (root.compact && root.initialAction !== "media")
+            initialComposerFocus.restart()
         if (root.initialAction === "media") {
             root.pendingMediaBlockIndex = visualEditor.activeBlockIndex
             if (Qt.platform.os === "wasm") {
@@ -327,6 +341,7 @@ GenyDrawer {
     }
 
     onClosed: {
+        initialComposerFocus.stop()
         root.closeComposerPopups()
         root.initialAction = ""
         root.clearPendingMediaQueue()
@@ -423,7 +438,47 @@ GenyDrawer {
             Item { Layout.preferredHeight: root.keyboardVisible ? 0
                                       : root.compact ? Theme.space1 : Theme.space2 }
 
+            // Full-page mobile top bar: Cancel / Drafts / Cast. Desktop
+            // retains its existing rich-composer header.
             RowLayout {
+                visible: root.compact
+                objectName: "mobileComposerNavigation"
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.touchTarget
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space2
+
+                ActionButton {
+                    quiet: true
+                    compact: true
+                    text: qsTrId("genycaster.shell.cancel")
+                    onClicked: root.close()
+                }
+                Item { Layout.fillWidth: true }
+                ActionButton {
+                    quiet: true
+                    compact: true
+                    text: qsTrId("genycaster.composer.save_draft")
+                    enabled: !presentationBridge.writeBusy
+                    onClicked: {
+                        if (richComposer.dirty)
+                            richComposer.saveDraft()
+                        root.close()
+                    }
+                }
+                ActionButton {
+                    prominent: true
+                    compact: true
+                    text: root.parentCast ? qsTrId("genycaster.shell.reply")
+                                         : qsTrId("genycaster.shell.publish")
+                    enabled: !presentationBridge.writeBusy && !mediaUpload.busy
+                             && richComposer.withinProtocolLimit && root.hasPublishableContent()
+                    onClicked: root.publishCurrent()
+                }
+            }
+
+            RowLayout {
+                visible: !root.compact
                 Layout.fillWidth: true
                 layoutDirection: Theme.uiDirection
                 spacing: Theme.space3
@@ -446,30 +501,23 @@ GenyDrawer {
                         text: root.threadMode ? qsTrId("genycaster.composer.thread_title")
                               : root.parentCast ? qsTrId("genycaster.shell.reply") : qsTrId("genycaster.shell.new_cast")
                         color: Theme.ink
-                        font.pixelSize: root.keyboardVisible ? Theme.typeTitle3Size
-                                                            : Theme.typeTitle2Size
+                        font.pixelSize: Theme.typeTitle2Size
                         font.weight: Theme.weightBold
                     }
                     DirectionAwareLabel {
-                        visible: !root.compact
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.composer.rich_engine_subtitle")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
-                        elide: Text.ElideRight
                     }
                 }
-
 
                 ActionButton {
                     prominent: true
                     compact: true
                     iconGlyph: Theme.iconSend
-                    text: presentationBridge.writeBusy
-                          ? (root.threadMode ? qsTrId("genycaster.composer.publishing_thread")
-                             : root.parentCast ? qsTrId("genycaster.shell.replying") : qsTrId("genycaster.shell.publishing"))
-                          : (root.threadMode ? qsTrId("genycaster.composer.publish_thread")
-                             : root.parentCast ? qsTrId("genycaster.shell.reply") : qsTrId("genycaster.shell.publish"))
+                    text: root.parentCast ? qsTrId("genycaster.shell.reply")
+                                         : qsTrId("genycaster.shell.publish")
                     enabled: !presentationBridge.writeBusy && !mediaUpload.busy
                              && richComposer.withinProtocolLimit && root.hasPublishableContent()
                     onClicked: root.publishCurrent()
@@ -477,7 +525,7 @@ GenyDrawer {
             }
 
             ComposerToolbar {
-                visible: !root.keyboardVisible
+                visible: !root.compact && !root.keyboardVisible
                 Layout.fillWidth: true
                 mode: root.editorMode
                 onModeRequested: mode => root.setEditorMode(mode)
@@ -717,26 +765,32 @@ GenyDrawer {
                                         : root.threadMode
                                           ? (root.compact ? 220 : 250)
                                           : (root.compact
-                                             ? (root.keyboardVisible
-                                                ? Math.max(260, root.height - Theme.space5 * 7)
-                                                : 290)
+                                             ? Math.max(176, root.height
+                                                - (root.keyboardVisible ? 196 : 260))
                                              : 320)
                 Layout.minimumHeight: root.editorMode === "preview"
                                       ? Math.min(farcasterPreview.implicitHeight, root.compact ? 210 : 230)
                                       : root.threadMode
-                                        ? (root.compact ? 200 : 220)
-                                        : (root.compact ? 250 : 280)
+                                        ? (root.compact ? 180 : 220)
+                                        : (root.compact ? 150 : 280)
                 spacing: Theme.space3
                 layoutDirection: Qt.LeftToRight
 
+                Avatar {
+                    visible: root.compact && root.editorMode === "visual"
+                    Layout.alignment: Qt.AlignTop
+                    avatarSize: 42
+                    sourceUrl: String(presentationBridge.accountAvatarUrl || "")
+                    displayName: String(presentationBridge.accountName || "")
+                }
                 Superellipse {
                     visible: root.editorMode !== "preview"
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    fillColor: Theme.editorSurface
-                    borderWidth: Theme.strokeHairline
+                    fillColor: root.compact ? "transparent" : Theme.editorSurface
+                    borderWidth: root.compact ? 0 : Theme.strokeHairline
                     borderColor: Theme.borderSubtle
-                    curveDepth: Theme.curveLarge
+                    curveDepth: root.compact ? 0 : Theme.curveLarge
 
                     RichTextEditor {
                         id: visualEditor
@@ -744,7 +798,7 @@ GenyDrawer {
                         onActiveEditorChangedExternally: (blockIndex, editor) =>
                             root.ensureEditorVisible(editor)
                         anchors.fill: parent
-                        anchors.margins: Theme.space3
+                        anchors.margins: root.compact ? 0 : Theme.space3
                     }
 
                     Item {
@@ -758,7 +812,6 @@ GenyDrawer {
                             repeat: false
                             onTriggered: if (markdownEditor.text !== richComposer.markdownSource) richComposer.markdownSource = markdownEditor.text
                         }
-
                         DirectionAwareTextArea {
                             id: markdownEditor
                             anchors.fill: parent
@@ -787,6 +840,50 @@ GenyDrawer {
                     Layout.fillHeight: true
                     compact: root.compact
                     attachmentMetadata: root.mediaMetadata
+                }
+            }
+
+            // Lightweight, always-available mobile media actions. These are
+            // real actions on the existing rich editor, not another composer.
+            RowLayout {
+                objectName: "mobileComposerMediaBar"
+                visible: root.compact && root.editorMode === "visual"
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: Theme.iconImage
+                    text: qsTrId("genycaster.home.post_photo")
+                    onClicked: {
+                        root.pendingMediaBlockIndex = visualEditor.activeBlockIndex
+                        root.openMediaPicker()
+                    }
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: Theme.iconEmoji
+                    text: qsTrId("genycaster.composer.emoji")
+                    onClicked: {
+                        root.emojiThreadIndex = -1
+                        root.emojiThreadCursorPosition = -1
+                        emojiPicker.anchorItem = visualEditor
+                        emojiPicker.open()
+                    }
+                }
+                Item { Layout.fillWidth: true }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: Theme.iconPlus
+                    text: qsTrId("genycaster.composer.add_cast")
+                    enabled: threadTailModel.count + 1 < root.maximumThreadCasts
+                    onClicked: root.addThreadCast()
                 }
             }
 

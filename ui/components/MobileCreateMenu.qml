@@ -12,13 +12,14 @@ GenyDrawer {
     signal spaceRequested()
 
     bottomSheet: true
+    floatingSheet: true
     interactive: false
     dimBackground: true
     contentPadding: Theme.space3
     // The default sheet inset plus a fixed 360px height left empty bands
     // above Create and below the actions on iPhone. Size to real content.
     topPadding: Theme.space5
-    bottomPadding: Theme.space5
+    bottomPadding: Theme.space3 + Theme.space3
     width: parent ? parent.width : 420
     height: parent ? Math.min(Math.max(1, parent.height - Theme.space4),
                                sheetContent.implicitHeight + root.topPadding + root.bottomPadding)
@@ -44,7 +45,7 @@ GenyDrawer {
             fillColor: Theme.surface
             borderWidth: 1
             borderColor: Theme.borderMuted
-            curveDepth: Theme.curveContainer
+            curveDepth: Theme.curveLarge
 
             ColumnLayout {
                 anchors.fill: parent

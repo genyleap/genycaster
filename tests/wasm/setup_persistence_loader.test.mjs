@@ -313,24 +313,17 @@ test('account header navigates to profile when signed in and opens sign-in other
     assert.match(app,/objectName: "mobileAccountProfileButton"/);
 });
 
-test('mobile keyboard dismissal restores dashboard and touch never opens desktop hints',()=>{
+test('mobile compose launcher avoids inline keyboard and desktop hover hints',()=>{
     const home=read('ui/components/HomeDashboard.qml');
     const app=read('ui/components/AppShell.qml');
     const button=read('ui/components/ActionButton.qml');
-    assert.match(home,/function finishComposerEditing\(\)/);
-    assert.match(home,/root\.forceActiveFocus\(\)/);
-    assert.match(home,/onTapped: point =>/);
-    assert.match(home,/id: mobileComposerSurface/);
-    assert.match(home,/objectName: "homeMobileFinishEditingButton"/);
-    assert.match(app,/onHomeComposerFocusedChanged:/);
-    assert.match(app,/onHeightChanged:/);
-    assert.match(app,/height < preKeyboardViewportHeight - 140/);
-    assert.match(app,/composerKeyboardWasVisible/);
-    assert.match(app,/homeDashboard\.finishComposerEditing\(\)/);
+    assert.match(home,/objectName: "homeComposerLauncher"/);
+    assert.match(home,/onClicked: root\.composeRequested\(root\.draftText\)/);
+    assert.match(home,/id: mobileDraftEditor[\s\S]*?visible: false[\s\S]*?readOnly: true/);
+    assert.match(app,/onComposeRequested: text => root\.openComposer\(null, "", text\)/);
     assert.match(button,/readonly property bool mobileViewport:/);
     assert.match(button,/hoverEnabled: !mobileViewport/);
     assert.match(button,/if \(control\.mobileViewport \|\| !control\.hovered/);
-    assert.match(button,/onMobileViewportChanged:/);
 });
 
 test('mobile Setup approval stays within one column while desktop uses two',()=>{

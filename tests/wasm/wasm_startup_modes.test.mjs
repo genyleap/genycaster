@@ -177,7 +177,7 @@ test("Qt appearance updates browser chrome without changing user account state",
     const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa"});
     assert.equal(h.chrome.scheme,"dark");
     assert.equal(h.chrome.color,"#0b0c0f");
-    assert.equal(h.chrome.statusStyle,"black");
+    assert.equal(h.chrome.statusStyle,"black-translucent");
     h.setBrowserTheme(false);
     assert.equal(h.chrome.scheme,"light");
     assert.equal(h.chrome.color,"#f1f1f3");

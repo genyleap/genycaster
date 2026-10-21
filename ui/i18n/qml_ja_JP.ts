@@ -530,6 +530,10 @@
             <source>Published output is clean, protocol-safe text in every Farcaster client.</source>
             <translation>公開内容はすべての Farcaster クライアントで読みやすい安全なテキストになります。</translation>
         </message>
+        <message id="genycaster.composer.save_draft">
+            <source>Save draft</source>
+            <translation>下書きを保存</translation>
+        </message>
         <message id="genycaster.composer.draft_restored">
             <source>Draft restored</source>
             <translation>下書きを復元しました</translation>

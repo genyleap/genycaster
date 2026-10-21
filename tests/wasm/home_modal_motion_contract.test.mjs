@@ -46,10 +46,10 @@ test('Home restores four familiar tiles and compacts three future cards',()=>{
     const home=qml('HomeDashboard');
     assert.match(home,/"homeShortcut_" \+ modelData.destination/);
     assert.match(home,/columns: 2/);
-    assert.match(home,/columns: 3/);
+    assert.match(home,/Layout.columnSpan: isWallet \? 2 : 1/);
     assert.match(home,/avatarSize: root\.densePhone \? 56 : 76/);
-    assert.match(home,/Intentionally non-interactive until the feature exists/);
-    assert.match(home,/Layout.preferredHeight: root.compact \? 88 : 116/);
+    assert.match(home,/Agent, Studio, and Wallet stay passive until available/);
+    assert.match(home,/Layout.preferredHeight: isWallet/);
     assert.match(home,/function activateHubShortcut\(destination\)/);
     const en=readFileSync(new URL('../../ui/i18n/qml_en_US.ts',import.meta.url),'utf8');
     for(const [id,title] of [['hub_agent','Agent'],['hub_studio','Studio']]){

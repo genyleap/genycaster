@@ -48,7 +48,7 @@ test("phone Home is an uncluttered hub, not duplicate navigation cards",()=>{
     assert.match(home,/columns: 2/);
     assert.match(home,/"homeLocked_" \+ modelData.key/);
     assert.match(home,/key: "wallet"/);
-    assert.match(home,/columns: 3/);
+    assert.match(home,/Layout.columnSpan: isWallet \? 2 : 1/);
     assert.match(home,/"homeShortcut_" \+ modelData.destination/);
     assert.match(home,/destination: "explorer"/);
     assert.match(home,/destination: "search"/);

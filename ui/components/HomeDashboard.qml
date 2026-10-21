@@ -209,9 +209,11 @@ Item {
             }
         }
 
+        // The two future creator tools share a balanced row; Wallet is a
+        // wider, distinct capability rather than a third cramped column.
         GridLayout {
             Layout.fillWidth: true
-            columns: 3
+            columns: 2
             columnSpacing: Theme.space2
             rowSpacing: Theme.space2
             layoutDirection: Theme.uiDirection
@@ -224,23 +226,61 @@ Item {
                 ]
                 delegate: Superellipse {
                     required property var modelData
+                    readonly property bool isWallet: modelData.key === "wallet"
                     objectName: "homeLocked_" + modelData.key
                     Layout.fillWidth: true
                     Layout.preferredWidth: 0
-                    // Compact informational tiles; avoid the large empty
-                    // middle and repeating "Coming soon" inside each card.
-                    Layout.preferredHeight: root.compact ? 88 : 116
-                    fillColor: Theme.surface
+                    Layout.columnSpan: isWallet ? 2 : 1
+                    Layout.preferredHeight: isWallet ? (root.compact ? 86 : 98)
+                                                     : (root.compact ? 112 : 132)
+                    fillColor: isWallet ? Theme.surfaceRaised : Theme.surface
                     borderWidth: 1
                     borderColor: Theme.borderMuted
                     curveDepth: Theme.curveContainer
                     Accessible.role: Accessible.StaticText
                     Accessible.name: modelData.title + " — " + qsTrId("genycaster.home.hub_coming_soon")
 
-                    ColumnLayout {
+                    RowLayout {
+                        visible: isWallet
                         anchors.fill: parent
-                        anchors.margins: root.compact ? Theme.space2 : Theme.space3
-                        spacing: Theme.space1
+                        anchors.margins: Theme.space3
+                        spacing: Theme.space3
+                        layoutDirection: Theme.uiDirection
+                        Icon {
+                            text: Theme.iconWallet
+                            color: Theme.textSecondary
+                            preferredSize: Theme.iconSizeLarge
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space1
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: modelData.title
+                                color: Theme.textPrimary
+                                font.pixelSize: Theme.typeBodySize
+                                font.weight: Theme.weightDemiBold
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: modelData.description
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.typeCaptionSize
+                                elide: Text.ElideRight
+                            }
+                        }
+                        Icon {
+                            text: "system/lock"
+                            preferredSize: Theme.iconSizeSmall
+                            color: Theme.textTertiary
+                        }
+                    }
+
+                    ColumnLayout {
+                        visible: !isWallet
+                        anchors.fill: parent
+                        anchors.margins: Theme.space3
+                        spacing: Theme.space2
                         RowLayout {
                             Layout.fillWidth: true
                             layoutDirection: Theme.uiDirection
@@ -256,32 +296,26 @@ Item {
                                 color: Theme.textTertiary
                             }
                         }
+                        Item { Layout.fillHeight: true }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
                             text: modelData.title
                             color: Theme.textPrimary
-                            font.pixelSize: root.compact ? Theme.typeMetaSize : Theme.typeBodySize
+                            font.pixelSize: Theme.typeBodySize
                             font.weight: Theme.weightDemiBold
-                            maximumLineCount: 1
                             elide: Text.ElideRight
                         }
-                        // The section header already announces availability.
-                        // Keep the phone row compact and the desktop detail
-                        // optional, without presenting a fake enabled action.
                         DirectionAwareLabel {
                             visible: !root.compact
                             Layout.fillWidth: true
-                            Layout.fillHeight: true
                             text: modelData.description
                             color: Theme.textSecondary
                             font.pixelSize: Theme.typeCaptionSize
                             maximumLineCount: 2
                             wrapMode: Text.Wrap
-                            elide: Text.ElideRight
                         }
-                        Item { visible: root.compact; Layout.fillHeight: true }
                     }
-                    // Intentionally non-interactive until the feature exists.
+                    // Agent, Studio, and Wallet stay passive until available.
                 }
             }
         }
@@ -480,63 +514,61 @@ Item {
             DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.densePhone ? Theme.typeTitle1Size : Theme.typeDisplaySize; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
             DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.hub_tagline"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }
 
+            // A single aligned launcher: composing starts in the dedicated
+            // full-screen editor, never in a cramped inline keyboard state.
             Superellipse {
                 id: mobileComposerSurface
+                objectName: "homeComposerLauncher"
                 Layout.fillWidth: true
                 Layout.leftMargin: Theme.space3
                 Layout.rightMargin: Theme.space3
+                Layout.preferredHeight: 60
                 fillColor: Theme.surface
                 borderWidth: 1
-                borderColor: root.composerFocused ? Theme.borderStrong : Theme.borderMuted
-                curveDepth: root.composerFocused ? Theme.curveModal : height / 2
-                implicitHeight: mobileComposer.implicitHeight
-                                + (root.composerFocused ? Theme.space3 * 2 : Theme.space2 * 2)
-                Behavior on implicitHeight {
-                    NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
-                }
-                ColumnLayout {
-                    id: mobileComposer
+                borderColor: Theme.borderMuted
+                curveDepth: Theme.curveModal
+                activeFocusOnTab: true
+                Accessible.role: Accessible.Button
+                Accessible.name: qsTrId("genycaster.home.composer_placeholder")
+                Accessible.onPressAction: root.composeRequested(root.draftText)
+                Keys.onReturnPressed: root.composeRequested(root.draftText)
+                Keys.onSpacePressed: root.composeRequested(root.draftText)
+
+                RowLayout {
                     anchors.fill: parent
-                    anchors.margins: root.composerFocused ? Theme.space3 : Theme.space2
-                    spacing: root.composerFocused ? Theme.space2 : 0
-                    TextArea {
-                        id: mobileDraftEditor
-                        objectName: "homeMobileDraftEditor"
-                        ContextMenu.menu: EditorContextMenu { editor: mobileDraftEditor }
+                    anchors.leftMargin: Theme.space4
+                    anchors.rightMargin: Theme.space4
+                    spacing: Theme.space2
+                    layoutDirection: Theme.uiDirection
+                    DirectionAwareLabel {
                         Layout.fillWidth: true
-                        implicitHeight: root.composerFocused ? 98 : 38
-                        text: root.draftText
-                        placeholderText: qsTrId("genycaster.home.composer_placeholder")
-                        wrapMode: TextEdit.Wrap
-                        color: Theme.textPrimary
+                        text: root.draftText.length > 0 ? root.draftText
+                              : qsTrId("genycaster.home.composer_placeholder")
                         font.pixelSize: Theme.typeBodySize
-                        background: Item {}
-                        onTextChanged: root.draftText = text
+                        color: root.draftText.length > 0 ? Theme.textPrimary : Theme.textSecondary
+                        elide: Text.ElideRight
+                        verticalAlignment: Text.AlignVCenter
                     }
-                    RowLayout {
-                        id: mobileComposeActions
-                        visible: root.composerFocused
-                        Layout.fillWidth: true
-                        spacing: Theme.space2
-                        layoutDirection: Theme.uiDirection
-                        ActionButton { compact: true; quiet: true; iconOnly: true; iconGlyph: Theme.iconImage; text: qsTrId("genycaster.home.post_photo"); onClicked: root.photoRequested() }
-                        ActionButton { compact: true; quiet: true; iconOnly: true; iconGlyph: Theme.iconSearch; text: qsTrId("genycaster.feed_header.universal_search"); onClicked: root.searchRequested() }
-                        // Accessible explicit exit, even if the browser's
-                        // virtual-keyboard dismissal does not clear Qt focus.
-                        ActionButton {
-                            objectName: "homeMobileFinishEditingButton"
-                            visible: root.composerFocused
-                            compact: true
-                            quiet: true
-                            iconOnly: true
-                            iconGlyph: Theme.iconCheck
-                            text: qsTrId("genycaster.shell.close")
-                            onClicked: root.finishComposerEditing()
-                        }
-                        Item { Layout.fillWidth: true }
-                        ActionButton { compact: true; prominent: true; iconGlyph: Theme.iconCompose; text: qsTrId("genycaster.header.new_cast"); onClicked: root.composeRequested(root.draftText) }
+                    Icon {
+                        text: Theme.iconCompose
+                        preferredSize: Theme.iconSizeLarge
+                        color: Theme.accent
                     }
                 }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.composeRequested(root.draftText)
+                }
+            }
+            // Retain this invisible TextArea so legacy focus cleanup and draft
+            // bindings stay harmless; there is no inline keyboard entry.
+            TextArea {
+                id: mobileDraftEditor
+                visible: false
+                readOnly: true
+                text: root.draftText
+                onTextChanged: root.draftText = text
             }
 
             HubWorkspace {

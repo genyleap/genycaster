@@ -27,9 +27,9 @@ test('Home hub uses restrained Superellipse workspace cards and accessible compo
     assert.match(home,/"homeLocked_" \+ modelData.key/);
     assert.match(home,/key: "wallet"/);
     assert.match(home,/"homeShortcut_" \+ modelData.destination/);
-    assert.match(home,/Intentionally non-interactive until the feature exists/);
+    assert.match(home,/Agent, Studio, and Wallet stay passive until available/);
     assert.match(home,/curveDepth: Theme.curveContainer/);
-    assert.match(home,/ContextMenu.menu: EditorContextMenu \{ editor: mobileDraftEditor \}/);
+    assert.match(home,/objectName: "homeComposerLauncher"/);
 });
 
 test('replies and nested replies share real threaded connector and padded cards', () => {

@@ -530,6 +530,10 @@
             <source>Published output is clean, protocol-safe text in every Farcaster client.</source>
             <translation>게시 결과는 모든 Farcaster 클라이언트에서 깨끗하고 프로토콜에 안전한 텍스트입니다.</translation>
         </message>
+        <message id="genycaster.composer.save_draft">
+            <source>Save draft</source>
+            <translation>초안 저장</translation>
+        </message>
         <message id="genycaster.composer.draft_restored">
             <source>Draft restored</source>
             <translation>초안을 복원했습니다</translation>

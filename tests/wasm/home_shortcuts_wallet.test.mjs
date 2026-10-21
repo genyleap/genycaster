@@ -48,13 +48,13 @@ test('Trends navigates to real Trending feed, and apps/search use existing desti
     assert.match(shell,/onAppsRequested: root\.openShellRoute\("apps"\)/);
 });
 
-test('Wallet is a passive future tile with Agent and Studio, arranged in one row', () => {
+test('Wallet spans a full row beneath passive Agent and Studio cards', () => {
     const home = qml('HomeDashboard');
     const locked = home.slice(home.indexOf('{ key: "agent"'),home.indexOf('    RowLayout {\n        id: desktopLayout'));
     assert.match(locked,/\{ key: "agent"/);
     assert.match(locked,/\{ key: "studio"/);
     assert.match(locked,/\{ key: "wallet"/);
-    assert.match(home,/columns: 3/);
+    assert.match(home,/Layout.columnSpan: isWallet \? 2 : 1/);
     assert.match(locked,/text: "system\/lock"/);
     assert.match(locked,/Accessible\.role: Accessible\.StaticText/);
     assert.doesNotMatch(locked,/\n\s*(?:MouseArea|TapHandler)\s*\{|\bonClicked:|\bonActivated:/);

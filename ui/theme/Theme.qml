@@ -702,6 +702,7 @@ QtObject {
     readonly property int curveModal: scaleUi(28)
     readonly property int curveDrawer: scaleUi(32)
     readonly property int curveSheet: scaleUi(26)
+    readonly property int curveSheetFloating: scaleUi(36)
 
     readonly property int radiusSmall: curveCompact
     readonly property int radiusMedium: curveControl

@@ -13,9 +13,9 @@ function applyBrowserChromeTheme(dark) {
     const meta=document.querySelector('meta[name="theme-color"]');
     if(meta)meta.setAttribute("content",color);
     const statusMeta=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-    // The opaque dark style prevents iOS standalone's top status area from
-    // revealing white behind an otherwise dark Qt canvas.
-    if(statusMeta)statusMeta.setAttribute("content",dark?"black":"default");
+    // Standalone iOS can paint the app's own safe-area background behind
+    // translucent system status icons, including before Qt starts.
+    if(statusMeta)statusMeta.setAttribute("content",dark?"black-translucent":"default");
 }
 window.__genycasterSetBrowserChromeTheme=applyBrowserChromeTheme;
 applyBrowserChromeTheme(true);

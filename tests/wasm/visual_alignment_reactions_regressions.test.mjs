@@ -24,7 +24,7 @@ test('mobile Home uses viewport-aware dimensions and preserves composer clearanc
     assert.match(home, /readonly property bool densePhone: root\.compact && root\.height < 840/);
     assert.match(home, /component HubWorkspace: ColumnLayout/);
     assert.match(home, /avatarSize: root\.densePhone \? 56 : 76/);
-    assert.match(home, /implicitHeight: root\.composerFocused \? 98 : 38/);
+    assert.match(home, /Layout\.preferredHeight: 60/);
     assert.match(home, /contentHeight: mobileColumn\.implicitHeight \+ Theme\.space3/);
     assert.doesNotMatch(home, /Math\.max\(108, Theme\.touchTarget/);
     assert.match(home, /visible: !root\.composerFocused/);

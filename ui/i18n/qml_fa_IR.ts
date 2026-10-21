@@ -530,6 +530,10 @@
             <source>Published output is clean, protocol-safe text in every Farcaster client.</source>
             <translation>خروجی منتشرشده در همهٔ کلاینت‌های فارکستر متنی تمیز و سازگار با پروتکل است.</translation>
         </message>
+        <message id="genycaster.composer.save_draft">
+            <source>Save draft</source>
+            <translation>ذخیرهٔ پیش‌نویس</translation>
+        </message>
         <message id="genycaster.composer.draft_restored">
             <source>Draft restored</source>
             <translation>پیش‌نویس بازیابی شد</translation>

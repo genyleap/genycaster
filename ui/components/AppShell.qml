@@ -1244,7 +1244,8 @@ Item {
                             onTrendingRequested: root.openExplorer()
                             onFollowingRequested: root.openHome()
                             onRouteRequested: route => root.openShellRoute(route)
-                            onCreateRequested: mobileCreateMenu.open()
+                            // Primary compose bypasses the secondary action sheet.
+                            onCreateRequested: root.openComposer(null)
                             onProfileRequested: {
                                 if (presentationBridge.isAuthenticated)
                                     root.openMyProfileFromNavigation()
