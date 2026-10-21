@@ -7,11 +7,12 @@ const qml = name => readFileSync(new URL('../../ui/components/' + name + '.qml',
 test('Home provides a real composer and a future-facing noninteractive hub', () => {
     const home = qml('HomeDashboard');
     assert.match(home, /component HubWorkspace: ColumnLayout/);
-    assert.match(home, /"homeAgentComingSoon"/);
-    assert.match(home, /"homeStudioComingSoon"/);
-    assert.match(home, /available: false|No TapHandler: capabilities are disabled until shipped/);
+    assert.match(home, /"homeLocked_" \+ modelData.key/);
+    assert.match(home, /key: "agent"/);
+    assert.match(home, /key: "studio"/);
+    assert.match(home, /key: "wallet"/);
     assert.equal((home.match(/HubWorkspace \{/g) || []).length, 2);
-    assert.match(home, /onClicked: root.exploreRequested\(\)/);
+    assert.match(home, /onClicked: root.activateHubShortcut\(modelData.destination\)/);
     assert.doesNotMatch(home, /CastIdeaSection|homeContinuation|homeRecentCastPreview/);
 });
 
@@ -34,7 +35,8 @@ test('all supported locales include Hub, Agent, Studio and Create labels', () =>
         'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN'];
     const ids = ['hub_workspace','hub_coming_soon','hub_agent','hub_agent_detail',
         'hub_studio','hub_studio_detail','hub_discover','hub_discover_detail',
-        'hub_tagline','hub_photo_detail'];
+        'hub_tagline','hub_photo_detail','hub_quick_access',
+        'hub_trends','hub_trends_detail','hub_wallet','hub_wallet_detail'];
     for (const locale of locales) {
         const ts = readFileSync(new URL('../../ui/i18n/qml_' + locale + '.ts', import.meta.url), 'utf8');
         for (const id of ids) {

@@ -1278,6 +1278,26 @@
             <source>Which Farcaster feature would you improve first, and why?</source>
             <translation>¿Qué función de Farcaster mejorarías primero y por qué?</translation>
         </message>
+        <message id="genycaster.home.hub_quick_access">
+            <source>Quick access</source>
+            <translation>Acceso rápido</translation>
+        </message>
+        <message id="genycaster.home.hub_trends">
+            <source>Trends</source>
+            <translation>Tendencias</translation>
+        </message>
+        <message id="genycaster.home.hub_trends_detail">
+            <source>See what is trending on Farcaster.</source>
+            <translation>Descubre qué es tendencia en Farcaster.</translation>
+        </message>
+        <message id="genycaster.home.hub_wallet">
+            <source>Wallet</source>
+            <translation>Billetera</translation>
+        </message>
+        <message id="genycaster.home.hub_wallet_detail">
+            <source>Your assets and decentralized identity.</source>
+            <translation>Tus activos e identidad descentralizada.</translation>
+        </message>
         <message id="genycaster.home.hub_workspace">
             <source>Your workspace</source>
             <translation>Tu espacio de trabajo</translation>

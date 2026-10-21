@@ -8,18 +8,19 @@ const read = file => readFileSync(new URL('../../ui/components/' + file + '.qml'
 test('Home hub replaces the duplicate cast timeline and prompt carousel', () => {
     const home = read('HomeDashboard');
     assert.match(home, /component HubWorkspace: ColumnLayout/);
-    assert.match(home, /objectName: "homeDiscoverFarcaster"/);
+    assert.match(home, /"homeShortcut_" \+ modelData.destination/);
     assert.match(home, /contentHeight: mobileColumn.implicitHeight \+ Theme.space3/);
     assert.doesNotMatch(home, /homeRecentCastPreview|homeContinuation|recentCasts|castIdeas/);
-    assert.match(home, /onClicked: root.exploreRequested\(\)/);
+    assert.match(home, /onClicked: root.activateHubShortcut\(modelData.destination\)/);
     assert.doesNotMatch(home, /Math.max\(108, Theme.touchTarget/);
 });
 
-test('coming-soon Agent and Studio never start a network request or compose a cast', () => {
+test('Agent, Studio and Wallet remain non-interactive, without a network request', () => {
     const home = read('HomeDashboard');
-    assert.match(home, /homeAgentComingSoon/);
-    assert.match(home, /homeStudioComingSoon/);
-    assert.match(home, /No TapHandler: capabilities are disabled until shipped/);
+    assert.match(home, /key: "agent"/);
+    assert.match(home, /key: "studio"/);
+    assert.match(home, /key: "wallet"/);
+    assert.match(home, /Intentionally non-interactive until the feature exists/);
     assert.doesNotMatch(home, /fetch\(|XMLHttpRequest\(|publishCast\(/);
 });
 

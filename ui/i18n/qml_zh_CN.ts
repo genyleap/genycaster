@@ -1278,6 +1278,26 @@
             <source>Which Farcaster feature would you improve first, and why?</source>
             <translation>你最想先改进 Farcaster 的哪个功能？为什么？</translation>
         </message>
+        <message id="genycaster.home.hub_quick_access">
+            <source>Quick access</source>
+            <translation>快捷入口</translation>
+        </message>
+        <message id="genycaster.home.hub_trends">
+            <source>Trends</source>
+            <translation>热门趋势</translation>
+        </message>
+        <message id="genycaster.home.hub_trends_detail">
+            <source>See what is trending on Farcaster.</source>
+            <translation>查看 Farcaster 上的热门话题。</translation>
+        </message>
+        <message id="genycaster.home.hub_wallet">
+            <source>Wallet</source>
+            <translation>钱包</translation>
+        </message>
+        <message id="genycaster.home.hub_wallet_detail">
+            <source>Your assets and decentralized identity.</source>
+            <translation>你的资产与去中心化身份。</translation>
+        </message>
         <message id="genycaster.home.hub_workspace">
             <source>Your workspace</source>
             <translation>你的工作空间</translation>

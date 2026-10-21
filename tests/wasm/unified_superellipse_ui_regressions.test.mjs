@@ -24,9 +24,10 @@ test('Home hub uses restrained Superellipse workspace cards and accessible compo
     const home=read('ui/components/HomeDashboard.qml');
     assert.match(home,/component HubWorkspace: ColumnLayout/);
     assert.equal((home.match(/HubWorkspace \{/g)||[]).length,2);
-    assert.match(home,/"homeAgentComingSoon"/);
-    assert.match(home,/"homeStudioComingSoon"/);
-    assert.match(home,/No TapHandler: capabilities are disabled until shipped/);
+    assert.match(home,/"homeLocked_" \+ modelData.key/);
+    assert.match(home,/key: "wallet"/);
+    assert.match(home,/"homeShortcut_" \+ modelData.destination/);
+    assert.match(home,/Intentionally non-interactive until the feature exists/);
     assert.match(home,/curveDepth: Theme.curveContainer/);
     assert.match(home,/ContextMenu.menu: EditorContextMenu \{ editor: mobileDraftEditor \}/);
 });

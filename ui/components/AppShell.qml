@@ -342,6 +342,25 @@ Item {
         })
     }
 
+    function openTrends() {
+        // Direct Home shortcut to the provider-backed Trending timeline.
+        // It shares the existing Explorer surface, not a synthetic feed.
+        root.clearPendingShellReturn()
+        root.primaryDestination = "explorer"
+        root.shellRoute = ""
+        root.explorerPresentationMode = "for-you"
+        if (presentationBridge.activeView !== "feed"
+                || presentationBridge.activeFeed !== "trending"
+                || !presentationBridge.feedStarted) {
+            presentationBridge.selectFeed("trending")
+        }
+        Qt.callLater(() => {
+            if (root.primaryDestination === "explorer" && root.shellRoute === ""
+                    && feedSurfaceLoader.item)
+                feedSurfaceLoader.item.scrollToBeginning()
+        })
+    }
+
     function openSuggestedProfile(username) {
         root.clearPendingShellReturn()
         root.primaryDestination = "explorer"
@@ -921,6 +940,7 @@ Item {
                                     rows: presentationBridge.rows
                                     compact: root.compact
                                     onExploreRequested: root.openExplorer()
+                                    onTrendsRequested: root.openTrends()
                                     onComposeRequested: text => root.openComposer(null, "", text)
                                     onPhotoRequested: root.openComposer(null, "media", homeDashboard.draftText)
                                     onSearchRequested: searchPalette.open()

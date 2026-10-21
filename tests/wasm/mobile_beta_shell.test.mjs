@@ -46,10 +46,14 @@ test("phone Home is an uncluttered hub, not duplicate navigation cards",()=>{
     const home=read("ui/components/HomeDashboard.qml");
     assert.match(home,/component HubWorkspace: ColumnLayout/);
     assert.match(home,/columns: 2/);
-    assert.match(home,/"homeAgentComingSoon"/);
-    assert.match(home,/"homeStudioComingSoon"/);
-    assert.match(home,/objectName: "homeDiscoverFarcaster"/);
-    assert.match(home,/onClicked: root.exploreRequested\(\)/);
+    assert.match(home,/"homeLocked_" \+ modelData.key/);
+    assert.match(home,/key: "wallet"/);
+    assert.match(home,/columns: 3/);
+    assert.match(home,/"homeShortcut_" \+ modelData.destination/);
+    assert.match(home,/destination: "explorer"/);
+    assert.match(home,/destination: "search"/);
+    assert.match(home,/destination: "apps"/);
+    assert.match(home,/destination: "trends"/);
     assert.doesNotMatch(home,/component ActionTile|homeRecentCastPreview|CastIdeaSection/);
     assert.match(home,/Layout.leftMargin: Theme.space3/);
 });

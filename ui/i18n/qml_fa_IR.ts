@@ -1278,6 +1278,26 @@
             <source>Which Farcaster feature would you improve first, and why?</source>
             <translation>اول کدوم قابلیت فارکستر رو بهبود می‌دادی و چرا؟</translation>
         </message>
+        <message id="genycaster.home.hub_quick_access">
+            <source>Quick access</source>
+            <translation>دسترسی سریع</translation>
+        </message>
+        <message id="genycaster.home.hub_trends">
+            <source>Trends</source>
+            <translation>ترندها</translation>
+        </message>
+        <message id="genycaster.home.hub_trends_detail">
+            <source>See what is trending on Farcaster.</source>
+            <translation>ببین چه موضوعاتی در فارکستر داغ هستند.</translation>
+        </message>
+        <message id="genycaster.home.hub_wallet">
+            <source>Wallet</source>
+            <translation>کیف پول</translation>
+        </message>
+        <message id="genycaster.home.hub_wallet_detail">
+            <source>Your assets and decentralized identity.</source>
+            <translation>دارایی‌ها و هویت غیرمتمرکز شما.</translation>
+        </message>
         <message id="genycaster.home.hub_workspace">
             <source>Your workspace</source>
             <translation>فضای شخصی شما</translation>
