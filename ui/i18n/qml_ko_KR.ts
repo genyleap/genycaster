@@ -1590,6 +1590,10 @@
             <source>%1 followed you</source>
             <translation>%1님이 회원님을 팔로우했습니다</translation>
         </message>
+        <message id="genycaster.notifications.content_unavailable">
+            <source>Mentioned cast content is unavailable</source>
+            <translation>멘션된 캐스트 내용을 불러올 수 없습니다</translation>
+        </message>
         <message id="genycaster.notifications.in_reply_to_your_cast">
             <source>In reply to your cast</source>
             <translation>내 캐스트에 대한 답장</translation>
@@ -2397,6 +2401,10 @@
         <message id="genycaster.search.profile">
             <source>Profile</source>
             <translation>프로필</translation>
+        </message>
+        <message id="genycaster.search.clear_results">
+            <source>Clear search results</source>
+            <translation>검색 및 결과 지우기</translation>
         </message>
         <message id="genycaster.search.shortcuts">
             <source>Search shortcuts</source>

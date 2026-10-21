@@ -161,15 +161,35 @@ Item {
     // Replies, mentions and follows stay one row each: every reply is a
     // distinct cast with its own content, and each follow is its own event.
     readonly property var displayRows: root.groupNotificationRows(root.rows)
-    // Activity is the full chronological inbox. Channels includes only events
-    // with a channel attached by the provider; mentions includes both direct
-    // mentions and replies. Do not manufacture channel events from follows.
+    // A reply to one of my casts is an Activity, not automatically an @mention.
+    // Only explicit provider mentions or a literal @username directed at the
+    // signed-in account belong under Mentions.
+    function mentionsViewer(row) {
+        const kind = String(row.kind || "")
+        if (kind === "mention") return true
+        if (kind !== "reply" && kind !== "quote" && kind !== "unknown")
+            return false
+        const handle = String(root.accountProfile && root.accountProfile.username || "")
+            .replace(/^@/, "").toLowerCase()
+        if (handle.length === 0) return false
+        const text = String(row.castText || "").toLowerCase()
+        const needle = "@" + handle
+        let offset = text.indexOf(needle)
+        while (offset >= 0) {
+            const end = offset + needle.length
+            const before = offset === 0 || !/[a-z0-9_.-]/.test(text.charAt(offset - 1))
+            const after = end >= text.length || !/[a-z0-9_.-]/.test(text.charAt(end))
+            if (before && after) return true
+            offset = text.indexOf(needle, offset + 1)
+        }
+        return false
+    }
     function belongsToCategory(row, category) {
         if (category === "all") return true
         if (category === "channels")
             return String(row.castChannel || "").length > 0
         if (category === "mention")
-            return String(row.kind || "") === "mention" || String(row.kind || "") === "reply"
+            return root.mentionsViewer(row)
         return false
     }
     readonly property var visibleRows: root.filterKind === "all" ? root.displayRows
@@ -976,6 +996,7 @@ Item {
                             readonly property bool isEngagement: notificationRow.kindKey === "reaction"
                                                                  || notificationRow.kindKey === "recast"
                             visible: String(notificationRow.modelData.castText || "").length > 0
+                                     || notificationRow.kindKey === "mention"
                             Layout.fillWidth: true
                             Layout.topMargin: Theme.space1
                             implicitHeight: excerptText.implicitHeight + Theme.space1 * 2
@@ -1004,7 +1025,9 @@ Item {
                                 DirectionAwareLabel {
                                     id: excerptText
                                     Layout.fillWidth: true
-                                    text: String(notificationRow.modelData.castText || "")
+                                    text: String(notificationRow.modelData.castText || "").length > 0
+                                          ? String(notificationRow.modelData.castText)
+                                          : qsTrId("genycaster.notifications.content_unavailable")
                                     color: castExcerpt.isEngagement ? Theme.textSecondary : Theme.textPrimary
                                     font.pixelSize: Theme.typeMetaSize
                                     wrapMode: Text.Wrap

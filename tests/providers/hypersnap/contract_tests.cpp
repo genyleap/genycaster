@@ -1001,6 +1001,23 @@ void testFeedPaginationAffinity()
         domain::identity::Fid{42}, capability::pagination::PageRequest{.limit = 20});
     assert(recastPage && recastPage->items.size() == 1U);
     assert(recastPage->items.front().kind == capability::notification::NotificationKind::Recast);
+
+    // The notification endpoint sometimes omits a cast's author/timestamp and
+    // supplies those fields only on its envelope. A direct @mention must keep
+    // its actual body rather than rendering a blank notification.
+    transport.enqueue(200, R"json({"notifications":[{
+      "type":"cast-mention",
+      "timestamp":"2026-08-27T12:34:56.789Z",
+      "user":{"fid":7,"username":"bob","display_name":"Bob"},
+      "cast":{"hash":"0xabc123","text":"Hi @alice, please see this!"}
+    }],"next":{"cursor":null}})json");
+    auto mentionPage = notifications.notifications(
+        domain::identity::Fid{42}, capability::pagination::PageRequest{.limit = 20});
+    assert(mentionPage && mentionPage->items.size() == 1U);
+    assert(mentionPage->items.front().kind == capability::notification::NotificationKind::Mention);
+    assert(mentionPage->items.front().cast.has_value());
+    assert(mentionPage->items.front().cast->text == "Hi @alice, please see this!");
+    assert(mentionPage->items.front().cast->author.value == 7U);
 }
 
 void testSocialGraphSemantics()

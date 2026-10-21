@@ -34,7 +34,10 @@ Drawer {
     function syncResults() {
         const payloads = ({})
         let rowIndex = 0
-        for (let index = 0; index < root.results.length; ++index) {
+        // A cleared query must not rehydrate stale search results from the
+        // previous asynchronous bridge snapshot.
+        const activeQuery = searchField.text.trim().length >= 2
+        for (let index = 0; activeQuery && index < root.results.length; ++index) {
             const value = root.results[index] || ({})
             const kind = String(value.kind || '')
             if (root.searchScope !== 'all' && kind !== root.searchScope)
@@ -61,6 +64,15 @@ Drawer {
             return
         root.close()
         root.searchRequested(value)
+    }
+
+    function clearResults() {
+        searchDebounce.stop()
+        searchField.clear()
+        resultRows.clear()
+        root.resultPayloads = ({})
+        root.suggestionsCleared()
+        searchField.forceActiveFocus()
     }
 
     function useScope(prefix) {
@@ -258,16 +270,15 @@ Drawer {
                 }
 
                 ActionButton {
+                    objectName: "clearSearchResults"
                     visible: searchField.text.length > 0
+                             || root.filteredCount > 0
                     compact: true
                     quiet: true
                     iconOnly: true
                     iconGlyph: Theme.iconClose
-                    text: qsTrId("genycaster.shell.close")
-                    onClicked: {
-                        searchField.clear()
-                        searchField.forceActiveFocus()
-                    }
+                    text: qsTrId("genycaster.search.clear_results")
+                    onClicked: root.clearResults()
                 }
 
                 ActionButton {

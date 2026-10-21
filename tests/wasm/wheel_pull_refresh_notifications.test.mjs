@@ -41,15 +41,24 @@ test('pull-to-refresh arms only for a real top-origin drag and emits one refresh
 });
 
 test('notification categories classify only provider-backed channel data, mention and reply', () => {
-    const start = notification.indexOf('function belongsToCategory(row, category) {');
+    const start = notification.indexOf('function mentionsViewer(row) {');
     const end = notification.indexOf('readonly property var visibleRows:', start);
     assert.ok(start >= 0 && end > start);
-    const matcher = vm.runInNewContext('(' + notification.slice(start, end).trim() + ')');
-    const event = (kind, castChannel = '') => ({kind, castChannel});
+    const context = vm.createContext({root: {accountProfile: {username: 'compez'}}});
+    vm.runInContext(notification.slice(start, end)
+        + '\nroot.mentionsViewer = mentionsViewer; root.belongsToCategory = belongsToCategory;', context);
+    const matcher = context.root.belongsToCategory;
+    const event = (kind, castChannel = '', castText = '') => ({kind, castChannel, castText});
     for (const kind of ['reaction','recast','quote','follow','reply','mention']) {
         assert.equal(matcher(event(kind), 'all'), true);
     }
-    assert.equal(matcher(event('reply'), 'mention'), true);
+    assert.equal(matcher(event('reply'), 'mention'), false,
+        'a reply without @username belongs in Activity, not Mentions');
+    assert.equal(matcher(event('reply', '', 'Hello @compez!'), 'mention'), true);
+    assert.equal(matcher(event('reply', '', 'Hello @other'), 'mention'), false);
+    assert.equal(matcher(event('reaction', '', 'Hello @compez'), 'mention'), false);
+    assert.equal(matcher(event('reaction', '', 'Hello @compezeth'), 'mention'), false);
+    assert.equal(matcher(event('reply', '', '@compezeth'), 'mention'), false);
     assert.equal(matcher(event('mention'), 'mention'), true);
     assert.equal(matcher(event('reaction'), 'mention'), false);
     assert.equal(matcher(event('follow'), 'channels'), false);

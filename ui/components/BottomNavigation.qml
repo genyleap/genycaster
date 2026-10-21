@@ -10,8 +10,11 @@ Item {
     property string primaryDestination: "home"
     property Item blurSourceItem: null
     property bool glassEnabled: true
+    // Chromium/WebGL cannot afford a live full-width scene capture per
+    // navigation frame. Keep a deep matte dock on WASM, frosted on native.
     readonly property bool glassActive: root.visible && root.glassEnabled
                                         && root.blurSourceItem !== null
+                                        && Qt.platform.os !== "wasm"
     readonly property real glassRenderScale: Math.max(0.72,
                                                        Math.min(1.0, renderingController.effectScale))
 
@@ -21,7 +24,7 @@ Item {
     signal settingsRequested()
     signal routeRequested(string route)
 
-    implicitHeight: 60
+    implicitHeight: 66
     clip: false
 
     Item {
@@ -78,14 +81,14 @@ Item {
     Superellipse {
         id: dockSurface
         anchors.fill: parent
-        fillColor: Theme.dark ? Qt.rgba(0.035, 0.04, 0.055, 0.92)
-                              : Qt.rgba(0.965, 0.97, 0.98, 0.93)
-        borderWidth: Theme.strokeHairline
-        borderColor: Theme.dark ? Qt.rgba(1, 1, 1, 0.14)
-                                : Qt.rgba(0.08, 0.10, 0.15, 0.10)
+        // Chrome-inspired charcoal floating capsule, independent of the
+        // page's theme and with a curved silhouette and subtle outer lift.
+        fillColor: Qt.rgba(0.105, 0.115, 0.145, 0.97)
+        borderWidth: 1
+        borderColor: Qt.rgba(1, 1, 1, 0.22)
         curveDepth: height / 2
-        elevation: Theme.elevationNone
-        shadowEnabled: false
+        elevation: Theme.elevationPopover
+        shadowEnabled: true
     }
 
 
@@ -93,12 +96,13 @@ Item {
         anchors.fill: dockSurface
         anchors.leftMargin: Theme.space2
         anchors.rightMargin: Theme.space2
-        anchors.topMargin: 3
-        anchors.bottomMargin: 3
+        anchors.topMargin: 6
+        anchors.bottomMargin: 6
         spacing: 0
         layoutDirection: Theme.uiDirection
 
         BottomNavButton {
+            darkDock: true
             Layout.fillWidth: true
             text: qsTrId("genycaster.bottom_nav.home")
             iconGlyph: Theme.iconHome
@@ -107,6 +111,7 @@ Item {
             onClicked: root.followingRequested()
         }
         BottomNavButton {
+            darkDock: true
             Layout.fillWidth: true
             text: qsTrId("genycaster.side_nav.explorer")
             iconGlyph: Theme.iconCompass
@@ -115,6 +120,7 @@ Item {
             onClicked: root.trendingRequested()
         }
         BottomNavButton {
+            darkDock: true
             Layout.fillWidth: true
             text: qsTrId("genycaster.bottom_nav.create")
             iconGlyph: Theme.iconCompose
@@ -122,6 +128,7 @@ Item {
             onClicked: root.createRequested()
         }
         BottomNavButton {
+            darkDock: true
             Layout.fillWidth: true
             text: qsTrId("genycaster.apps.title")
             iconGlyph: Theme.iconApps
@@ -130,6 +137,7 @@ Item {
             onClicked: root.routeRequested("apps")
         }
         BottomNavButton {
+            darkDock: true
             Layout.fillWidth: true
             text: qsTrId("genycaster.settings.title")
             iconGlyph: Theme.iconSettings

@@ -66,7 +66,8 @@ test('casts notifications and explorer tabs reuse Superellipse surfaces and acce
     assert.match(tabs, /color: tabButton.selected \? Theme.accent/);
     assert.match(tabs, /Layout.preferredWidth: String\(modelData.id\) === "conversations" \? 1.65 : 1/);
     assert.doesNotMatch(tabs, /fillColor: tabButton.selected/);
-    assert.match(bottom, /fillColor: control.selected \? Theme.surfaceSelected/);
+    assert.match(bottom, /fillColor: control.selected[\s\S]*?Theme.surfaceSelected/);
+    assert.match(bottom, /control.darkDock \? Qt.rgba\(0.22, 0.38, 0.76, 0.44\)/);
 });
 
 test('thread heading shows actual reply count, not an invented metric', () => {

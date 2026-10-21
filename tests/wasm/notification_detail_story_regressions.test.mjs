@@ -40,7 +40,8 @@ test('notification list uses subtle superellipse cards and real category icons',
     assert.match(ui, /notificationRow.latestActivity[\s\S]*?Qt\.rgba\(Theme\.accent/);
     assert.doesNotMatch(ui, /id: kindBadge/);
     assert.match(ui, /text: notificationRow\.kindGlyph\s+color: notificationRow\.kindColor/);
-    assert.match(ui, /text: String\(notificationRow\.modelData\.castText \|\| ""\)/);
+    assert.match(ui, /text: String\(notificationRow\.modelData\.castText \|\| ""\)\.length > 0/);
+    assert.match(ui, /genycaster\.notifications\.content_unavailable/);
     assert.doesNotMatch(ui, /maximumLineCount: 14/);
 });
 
@@ -55,7 +56,8 @@ test('activity, channels and mentions filter provider-backed notifications in th
     assert.match(ui, /kind: "mention", title: qsTrId\("genycaster\.notifications\.filter_mentions"\)/);
     assert.match(ui, /kind: "channels", title: qsTrId\("genycaster\.notifications\.filter_channels"\)/);
     assert.match(ui, /category === "channels"[\s\S]*?row\.castChannel/);
-    assert.match(ui, /category === "mention"[\s\S]*?=== "mention" \|\| String\(row\.kind \|\| ""\) === "reply"/);
+    assert.match(ui, /category === "mention"[\s\S]*?root\.mentionsViewer\(row\)/);
+    assert.match(ui, /function mentionsViewer\(row\)/);
     assert.doesNotMatch(ui, /kind: "reactions", title:/);
 });
 

@@ -1341,7 +1341,35 @@ foundation::result::Result<NotificationPayload> decodeNotifications(const std::s
 
         const JsonValue* castValue = findValue(object, "cast");
         if (castValue != nullptr && castValue->is_object()) {
-            if (auto mapped = mapCast(castValue->as_object()); mapped) {
+            const JsonObject& castObject = castValue->as_object();
+            auto mapped = mapCast(castObject);
+            // Some notification endpoints send a *partial* mentioned/replied
+            // cast: hash and text are present, while author/timestamp live on
+            // the notification envelope. Without this enrichment mapCast
+            // rejects the cast and the UI silently loses the @mention text.
+            // Only fill fields actually supplied by the provider, never
+            // synthesize a hash or a message body.
+            if (!mapped && (kind == capability::notification::NotificationKind::Mention
+                            || kind == capability::notification::NotificationKind::Reply
+                            || kind == capability::notification::NotificationKind::Quote)) {
+                JsonObject enriched = castObject;
+                if (findValue(enriched, "author") == nullptr) {
+                    if (const JsonValue* actor = findValue(object, "user");
+                        actor != nullptr && actor->is_object())
+                        enriched["author"] = *actor;
+                }
+                if (findValue(enriched, "timestamp") == nullptr) {
+                    if (const JsonValue* time = findValue(object, "timestamp");
+                        time != nullptr && time->is_string())
+                        enriched["timestamp"] = *time;
+                }
+                if (findValue(enriched, "text") == nullptr) {
+                    if (const auto notificationText = optionalString(object, "text"))
+                        enriched["text"] = *notificationText;
+                }
+                mapped = mapCast(enriched);
+            }
+            if (mapped) {
                 item.cast = std::move(mapped->cast);
                 if (item.actors.empty() &&
                     (kind == capability::notification::NotificationKind::Reply ||

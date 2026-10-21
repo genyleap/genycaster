@@ -23,12 +23,13 @@ Item {
 
     anchors.left: parent.left
     anchors.right: parent.right
-    anchors.top: parent.top
+    // Render *inside the exposed overscroll gap*, never over a cast. Once the
+    // finger lifts, the gap springs closed and the indicator disappears;
+    // the actual reload continues independently through refreshRequested.
+    y: Math.max(0, (offset - height) * 0.5)
     height: 44
     z: 35
-    // Pagination deep in the feed must not create a fake top refresh spinner.
-    visible: (busy && flickable && flickable.contentY <= flickable.originY + activationDistance)
-             || (startedAtTop && offset > 8)
+    visible: startedAtTop && offset >= height
     opacity: visible ? 1 : 0
 
     Connections {

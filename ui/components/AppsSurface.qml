@@ -390,8 +390,14 @@ Item {
                     id: contentViewport
                     Layout.fillWidth: true
                     Layout.fillHeight: !root.compact
+                    // A zero-row GridView has no contentHeight, but its
+                    // empty-state card still needs its own measured viewport.
+                    // Without this reservation the centered illustration
+                    // escapes upward into the navigation tabs on mobile.
                     Layout.preferredHeight: root.compact
-                                            ? Math.max(1, appGrid.contentHeight)
+                                            ? (root.visibleApps.length === 0
+                                               ? Math.max(280, Math.min(400, appsScroller.height * 0.43))
+                                               : Math.max(1, appGrid.contentHeight))
                                             : 0
 
                     GridLayout {
@@ -447,7 +453,7 @@ Item {
 
                         ColumnLayout {
                             anchors.centerIn: parent
-                            width: Math.min(parent.width - Theme.space6, 420)
+                            width: Math.max(1, Math.min(parent.width - Theme.space6, 420))
                             spacing: Theme.space2
                             Superellipse {
                                 Layout.alignment: Qt.AlignHCenter

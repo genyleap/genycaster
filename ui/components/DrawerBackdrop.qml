@@ -76,6 +76,14 @@ Item {
                : "transparent"
     }
 
+    // Qt/WASM may deliver touch as a pointer gesture without a synthesized
+    // MouseArea click. Keep outside-tap dismissal reliable on mobile browsers.
+    TapHandler {
+        enabled: root.blockInput
+        gesturePolicy: TapHandler.ReleaseWithinBounds
+        onTapped: root.backgroundTapped()
+    }
+
     MouseArea {
         anchors.fill: parent
         z: 100
@@ -84,7 +92,12 @@ Item {
         hoverEnabled: true
         preventStealing: true
         propagateComposedEvents: false
-        onPressed: mouse => mouse.accepted = true
+        onPressed: mouse => {
+            mouse.accepted = true
+            // Browsers may skip a synthesized click after focus/keyboard
+            // transitions; dismiss the search drawer on outside *press*.
+            root.backgroundTapped()
+        }
         onReleased: mouse => mouse.accepted = true
         onDoubleClicked: mouse => mouse.accepted = true
         onClicked: mouse => {

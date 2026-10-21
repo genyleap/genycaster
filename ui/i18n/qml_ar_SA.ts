@@ -1590,6 +1590,10 @@
             <source>%1 followed you</source>
             <translation>بدأ %1 بمتابعتك</translation>
         </message>
+        <message id="genycaster.notifications.content_unavailable">
+            <source>Mentioned cast content is unavailable</source>
+            <translation>محتوى المنشور المذكور غير متاح</translation>
+        </message>
         <message id="genycaster.notifications.in_reply_to_your_cast">
             <source>In reply to your cast</source>
             <translation>ردًا على كاستك</translation>
@@ -2397,6 +2401,10 @@
         <message id="genycaster.search.profile">
             <source>Profile</source>
             <translation>الملف الشخصي</translation>
+        </message>
+        <message id="genycaster.search.clear_results">
+            <source>Clear search results</source>
+            <translation>مسح البحث والنتائج</translation>
         </message>
         <message id="genycaster.search.shortcuts">
             <source>Search shortcuts</source>

@@ -11,6 +11,7 @@ Button {
     property string iconGlyph: ""
     property string badgeText: ""
     property bool showLabel: true
+    property bool darkDock: false
 
     implicitHeight: showLabel ? 56 : 48
     flat: true
@@ -30,14 +31,17 @@ Button {
 
         Item {
             Layout.alignment: Qt.AlignHCenter
-            width: 40
-            height: 32
+            width: 44
+            height: 38
 
             Superellipse {
                 anchors.fill: parent
-                fillColor: control.selected ? Theme.surfaceSelected : "transparent"
-                borderWidth: 0
-                curveDepth: Theme.curveControl
+                fillColor: control.selected
+                           ? (control.darkDock ? Qt.rgba(0.22, 0.38, 0.76, 0.44) : Theme.surfaceSelected)
+                           : "transparent"
+                borderWidth: control.selected && control.darkDock ? 1 : 0
+                borderColor: Qt.rgba(0.55, 0.68, 1, 0.23)
+                curveDepth: height / 2
             }
 
             Icon {
@@ -46,10 +50,11 @@ Button {
                 // Selected destinations share the same quiet accent capsule
                 // used by Home actions and Explore filters.
                 filled: control.selected
-                color: !control.enabled ? Theme.inkDisabled
-                       : control.selected ? Theme.accent : Theme.inkMuted
+                color: !control.enabled ? (control.darkDock ? "#606877" : Theme.inkDisabled)
+                       : control.selected ? (control.darkDock ? "#8bb2ff" : Theme.accent)
+                       : (control.darkDock ? "#e0e5ef" : Theme.inkMuted)
                 preferredSize: Theme.iconSizeNavigation
-                opacity: control.selected ? 1.0 : (control.hovered ? 0.88 : 0.72)
+                opacity: control.selected ? 1.0 : (control.hovered ? 0.94 : (control.darkDock ? 0.86 : 0.72))
                 scale: control.selected ? 1.04 : 1.0
                 Behavior on opacity { NumberAnimation { duration: Theme.motionFast } }
                 Behavior on scale { NumberAnimation { duration: Theme.motionFast; easing.type: Easing.OutCubic } }

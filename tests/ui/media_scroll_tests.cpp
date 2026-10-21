@@ -519,8 +519,16 @@ int main(int argc, char** argv)
     expect(!flag(*notificationFixture, "showState"),
            "an actual reply row displays on the Activity notifications tab");
     notificationFixture->setProperty("filterKind", QStringLiteral("mention"));
+    expect(flag(*notificationFixture, "showState"),
+           "Mentions excludes replies without a literal @viewer reference");
+    notificationFixture->setProperty("accountProfile", QVariantMap{
+        {QStringLiteral("username"), QStringLiteral("viewer")}});
+    QVariantMap mentionedReply = replyNotice;
+    mentionedReply.insert(QStringLiteral("castText"), QStringLiteral("Hello @viewer!"));
+    notificationFixture->setProperty("rows", QVariantList{mentionedReply});
     expect(!flag(*notificationFixture, "showState"),
-           "Mentions includes replies addressed to the viewer");
+           "Mentions displays replies that explicitly @mention the signed-in account");
+    notificationFixture->setProperty("rows", QVariantList{replyNotice});
     notificationFixture->setProperty("filterKind", QStringLiteral("channels"));
     expect(flag(*notificationFixture, "showState"),
            "Channels does not invent a channel for unrelated replies");

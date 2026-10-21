@@ -1177,7 +1177,7 @@ Item {
                             // Keep the dock compact and genuinely floating rather than
                             // recreating a full-width tab bar.
                             width: Math.max(240, Math.min(readingPane.width - Theme.mobileGutter * 4, 420))
-                            height: 60
+                            height: 66
                             anchors.horizontalCenter: readingPane.horizontalCenter
                             anchors.bottom: readingPane.bottom
                             anchors.bottomMargin: Math.max(Theme.space4, Theme.mobileGutter)

@@ -1590,6 +1590,10 @@
             <source>%1 followed you</source>
             <translation>%1 ने आपको फ़ॉलो किया</translation>
         </message>
+        <message id="genycaster.notifications.content_unavailable">
+            <source>Mentioned cast content is unavailable</source>
+            <translation>उल्लेख किए गए कास्ट की सामग्री उपलब्ध नहीं है</translation>
+        </message>
         <message id="genycaster.notifications.in_reply_to_your_cast">
             <source>In reply to your cast</source>
             <translation>आपके कास्ट के जवाब में</translation>
@@ -2397,6 +2401,10 @@
         <message id="genycaster.search.profile">
             <source>Profile</source>
             <translation>प्रोफ़ाइल</translation>
+        </message>
+        <message id="genycaster.search.clear_results">
+            <source>Clear search results</source>
+            <translation>खोज और परिणाम साफ़ करें</translation>
         </message>
         <message id="genycaster.search.shortcuts">
             <source>Search shortcuts</source>
