@@ -49,4 +49,3 @@ Create the PostgreSQL database `genycaster` **only** using authorized database a
   built and tests passed before the final issuer-property addition.
   The application QML generators and added C++ controller compiled in the
   native client target; full final link/startup is **not yet verified**.
-
