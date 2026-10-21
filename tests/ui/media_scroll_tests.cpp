@@ -473,6 +473,40 @@ int main(int argc, char** argv)
         }
     }
 
+    // The Home continuation must instantiate actual loaded casts and must
+    // never leave a fake scrolling tail. Source-level tests alone miss QML
+    // attached-property and Repeater delegate failures.
+    {
+        const QVariantMap castOne{
+            {QStringLiteral("castId"), QStringLiteral("0xhome1")},
+            {QStringLiteral("displayName"), QStringLiteral("Alice")},
+            {QStringLiteral("text"), QStringLiteral("An already loaded cast")}
+        };
+        const QVariantMap castTwo{
+            {QStringLiteral("castId"), QStringLiteral("0xhome2")},
+            {QStringLiteral("displayName"), QStringLiteral("Bob")},
+            {QStringLiteral("text"), QStringLiteral("A second existing cast")}
+        };
+        auto homeFixture = createSurface(engine, QStringLiteral("HomeDashboard"), *scroll,
+            {{QStringLiteral("compact"), true},
+             {QStringLiteral("rows"), QVariantList{castOne, castOne, castTwo}}});
+        if (!homeFixture) return 1;
+        auto* home = qobject_cast<QQuickItem*>(homeFixture.get());
+        home->setSize(QSizeF{390, 760});
+        polishTree(home);
+        QCoreApplication::processEvents();
+        // Repeater delegates are parented visually by Qt Quick. Their
+        // QObject ownership may belong to the QQml incubation context rather
+        // than the Home root, so walk childItems() instead of findChildren().
+        const auto previews = visualItemsNamed(*home, QStringLiteral("homeRecentCastPreview"));
+        expect(previews.size() == 2,
+               "Home previews only two unique real feed casts");
+        auto* continuation = home->findChild<QQuickItem*>(
+            QStringLiteral("homeContinuation"));
+        expect(continuation != nullptr && continuation->isVisible(),
+               "mobile Home exposes its useful continuation section");
+    }
+
     // Exercise the real notification delegate with reply body, quote context,
     // and media under Qt 6.12. Structural string tests cannot detect a missing
     // QML property, a broken ListView model binding or an inert category tab.

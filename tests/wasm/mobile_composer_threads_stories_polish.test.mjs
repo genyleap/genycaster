@@ -17,7 +17,8 @@ test('mobile composer starts as a compact prompt and smoothly grows with editing
  assert.match(home, /id: mobileComposerSurface[\s\S]*?Behavior on implicitHeight \{[\s\S]*?NumberAnimation \{ duration: 240/);
  assert.match(home, /implicitHeight: root\.composerFocused \? 98 : 38/);
  assert.match(home, /id: mobileComposeActions\s+visible: root\.composerFocused/);
- assert.match(home, /contentHeight: mobileColumn\.implicitHeight\s+\+ \(root\.composerFocused \? Theme\.space3/);
+ assert.match(home, /contentHeight: mobileColumn\.implicitHeight \+ Theme\.space3/);
+ assert.doesNotMatch(home, /Math\.max\(108, Theme\.touchTarget/);
  assert.match(home, /function onComposerFocusedChanged\(\) \{[\s\S]*?mobileFlick\.contentY = 0/);
  assert.match(shell, /readonly property bool homeComposerFocused:/);
  assert.match(shell, /height < preKeyboardViewportHeight - 140/);

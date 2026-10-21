@@ -628,7 +628,11 @@ Item {
                 spacing: 0
 
                 AppHeader {
-                    visible: root.mobile
+                    // Cast details already have their own Back/Refresh bar.
+                    // Keeping the global brand bar above that contextual bar
+                    // duplicates navigation and wastes space on narrow phones.
+                    visible: root.mobile && (root.shellRoute.length > 0
+                               || presentationBridge.activeView !== "cast")
                     Layout.fillWidth: true
                     compact: root.compact
                     showBrand: true

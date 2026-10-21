@@ -592,7 +592,9 @@ ListView {
             visible: root.activeView === "cast"
                      && root.prioritizedReplies.length > 0
             Layout.fillWidth: true
-            Layout.topMargin: Theme.space3
+            // Keep the reply header connected to the parent cast without a
+            // doubled layout gap before the first conversation rail.
+            Layout.topMargin: Theme.space1
             spacing: Theme.space2
 
             RowLayout {

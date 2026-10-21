@@ -14,6 +14,26 @@ Item {
     property bool busy: false
     property int notificationUnreadCount: 0
     property var rows: []
+    // Reuse casts already held by the feed pipeline. Home must not trigger an
+    // extra request or invent personalized activity just to fill vertical space.
+    readonly property var recentCasts: {
+        const source = root.rows || []
+        const result = []
+        const seen = ({})
+        for (let i = 0; i < source.length && result.length < 2; ++i) {
+            const row = source[i] || ({})
+            const castId = String(row.castId || "")
+            if (!castId || seen[castId]) continue
+            seen[castId] = true
+            result.push({
+                castId: castId,
+                name: String(row.displayName || row.author || row.username || ""),
+                avatarUrl: String(row.avatarUrl || ""),
+                text: String(row.text || "").replace(/\s+/g, " ").trim()
+            })
+        }
+        return result
+    }
     property int localHour: new Date().getHours()
     property string draftText: ""
     // The on-screen keyboard shrinks iOS Safari's visual viewport. Keep the
@@ -348,9 +368,9 @@ Item {
         visible: root.compact
         anchors.fill: parent
         contentWidth: width
-        contentHeight: mobileColumn.implicitHeight
-                       + (root.composerFocused ? Theme.space3
-                          : Math.max(108, Theme.touchTarget + Theme.space6 * 2))
+        // The former forced 108px tail made Home scroll into an empty area.
+        // Real continuation rows now determine the content height instead.
+        contentHeight: mobileColumn.implicitHeight + Theme.space3
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         ScrollBar.vertical: GenyScrollBar { policy: ScrollBar.AlwaysOff }
@@ -503,7 +523,135 @@ Item {
                     }
                 }
             }
+            // The unused lower half of the original mobile dashboard is now
+            // a small, actionable continuation of the *already-loaded* feed.
+            // Never synthesize posts, identities, counts, or network requests.
+            ColumnLayout {
+                id: homeContinuation
+                objectName: "homeContinuation"
+                visible: !root.composerFocused
+                Layout.fillWidth: true
+                Layout.leftMargin: Theme.space3
+                Layout.rightMargin: Theme.space3
+                Layout.topMargin: Theme.space2
+                spacing: Theme.space2
 
+                RowLayout {
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.home.catch_up")
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.typeMetaSize
+                        font.weight: Theme.weightDemiBold
+                        wrapMode: Text.Wrap
+                    }
+                    ActionButton {
+                        compact: true
+                        quiet: true
+                        iconGlyph: Theme.iconArrowRight
+                        text: qsTrId("genycaster.feed_header.explore")
+                        onClicked: root.exploreRequested()
+                    }
+                }
+
+                Repeater {
+                    model: root.recentCasts
+                    delegate: Superellipse {
+                        required property var modelData
+                        objectName: "homeRecentCastPreview"
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 76
+                        fillColor: recentHover.pressed ? Theme.surfacePressed : Theme.surface
+                        borderWidth: 1
+                        borderColor: Theme.borderMuted
+                        curveDepth: Theme.curveContainer
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: Theme.space2
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space2
+
+                            Avatar {
+                                avatarSize: 40
+                                sourceUrl: String(modelData.avatarUrl || "")
+                                displayName: String(modelData.name || "")
+                            }
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: String(modelData.name || "")
+                                    color: Theme.textPrimary
+                                    font.pixelSize: Theme.typeBodySize
+                                    font.weight: Theme.weightDemiBold
+                                    elide: Text.ElideRight
+                                    maximumLineCount: 1
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: String(modelData.text || "")
+                                    color: Theme.textSecondary
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    maximumLineCount: 2
+                                    wrapMode: Text.Wrap
+                                    elide: Text.ElideRight
+                                }
+                            }
+                            Icon {
+                                text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                                color: Theme.textTertiary
+                                preferredSize: Theme.iconSizeSmall
+                            }
+                        }
+                        MouseArea {
+                            id: recentHover
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.castRequested(String(modelData.castId))
+                        }
+                    }
+                }
+
+                Superellipse {
+                    visible: root.recentCasts.length === 0
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 64
+                    fillColor: Theme.surface
+                    borderWidth: 1
+                    borderColor: Theme.borderMuted
+                    curveDepth: Theme.curveContainer
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: Theme.space3
+                        spacing: Theme.space2
+                        layoutDirection: Theme.uiDirection
+                        Icon {
+                            text: Theme.iconCompass
+                            color: Theme.textSecondary
+                            preferredSize: Theme.iconSizeLarge
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.feed_header.explore")
+                            color: Theme.textPrimary
+                            font.pixelSize: Theme.typeBodySize
+                        }
+                        Icon {
+                            text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                            color: Theme.textTertiary
+                            preferredSize: Theme.iconSizeSmall
+                        }
+                    }
+                    TapHandler {
+                        onTapped: root.exploreRequested()
+                    }
+                }
+            }
         }
     }
 }
