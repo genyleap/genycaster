@@ -61,6 +61,7 @@
 #include "emoji_controller.hpp"
 #include "rich_inline_text_item.hpp"
 #include "rich_composer_controller.hpp"
+#include "channel_picker_controller.hpp"
 #include "appearance_controller.hpp"
 #include "localization_controller.hpp"
 #include "media_upload_controller.hpp"
@@ -1067,6 +1068,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<MiniAppHostController> miniAppHostControllerOwner{};
     std::unique_ptr<MediaWebHostController> mediaWebHostControllerOwner{};
     std::unique_ptr<MiniAppCatalogController> miniAppCatalogControllerOwner{};
+    std::unique_ptr<ChannelPickerController> channelPickerControllerOwner{};
     std::unique_ptr<MiniAppTaskManagerController> miniAppTaskManagerControllerOwner{};
 #if FARCASTER_HAS_MINIAPP_EVM_WALLET
     std::unique_ptr<farcaster::capability::wallet::IEthereumWalletBridge> miniAppWalletBridgeOwner{};
@@ -1270,6 +1272,11 @@ int main(int argc, char* argv[])
         std::move(fallbackMiniAppCatalogue),
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest);
     MiniAppCatalogController& miniAppCatalog = *miniAppCatalogControllerOwner;
+    channelPickerControllerOwner = std::make_unique<ChannelPickerController>(
+        settings, providerBaseUrlText,
+        networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
+        !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest);
+    ChannelPickerController& channelPickerController = *channelPickerControllerOwner;
     miniAppTaskManagerControllerOwner = std::make_unique<MiniAppTaskManagerController>();
     MiniAppTaskManagerController& miniAppTaskManager = *miniAppTaskManagerControllerOwner;
 
@@ -1500,6 +1507,7 @@ int main(int argc, char* argv[])
     openProofConnections.setViewerFid(
         presentationBridge.isAuthenticated() ? presentationBridge.accountFid() : 0);
     engine.rootContext()->setContextProperty(QStringLiteral("presentationBridge"), &presentationBridge);
+    engine.rootContext()->setContextProperty(QStringLiteral("channelDirectory"), &channelPickerController);
     engine.rootContext()->setContextProperty(QStringLiteral("dataStorage"), &dataStorageController);
     engine.rootContext()->setContextProperty(QStringLiteral("richComposer"), &richComposerController);
     engine.rootContext()->setContextProperty(QStringLiteral("emojiController"), &emojiController);

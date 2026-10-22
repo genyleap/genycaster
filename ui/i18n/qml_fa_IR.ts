@@ -1326,6 +1326,34 @@
             <source>Enter the token contract address (0x…); choose its network.</source>
             <translation>آدرس قرارداد توکن (0x…) را همراه با شبکه انتخاب کنید.</translation>
         </message>
+        <message id="genycaster.composer.your_channels">
+            <source>My channels &amp; discovery</source>
+            <translation>کانال‌های من و سایر کانال‌ها</translation>
+        </message>
+        <message id="genycaster.composer.home_channel">
+            <source>Home</source>
+            <translation>خانه</translation>
+        </message>
+        <message id="genycaster.composer.no_channel">
+            <source>Post without a channel</source>
+            <translation>انتشار در پروفایل، بدون کانال</translation>
+        </message>
+        <message id="genycaster.composer.joined_channel">
+            <source>Joined</source>
+            <translation>عضو هستید</translation>
+        </message>
+        <message id="genycaster.composer.not_joined_channel">
+            <source>Not joined</source>
+            <translation>عضو نیستید</translation>
+        </message>
+        <message id="genycaster.composer.channel_member_count">
+            <source>%1 members</source>
+            <translation>%1 عضو</translation>
+        </message>
+        <message id="genycaster.composer.channel_follower_count">
+            <source>%1 followers</source>
+            <translation>%1 دنبال‌کننده</translation>
+        </message>
         <message id="genycaster.composer.channel_picker_title">
             <source>Choose a channel</source>
             <translation>انتخاب کانال</translation>

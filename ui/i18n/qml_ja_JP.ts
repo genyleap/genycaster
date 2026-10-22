@@ -1326,6 +1326,34 @@
             <source>Enter the token contract address (0x…); choose its network.</source>
             <translation>Enter the token contract address (0x…); choose its network.</translation>
         </message>
+        <message id="genycaster.composer.your_channels">
+            <source>My channels &amp; discovery</source>
+            <translation>My channels &amp; discovery</translation>
+        </message>
+        <message id="genycaster.composer.home_channel">
+            <source>Home</source>
+            <translation>Home</translation>
+        </message>
+        <message id="genycaster.composer.no_channel">
+            <source>Post without a channel</source>
+            <translation>Post without a channel</translation>
+        </message>
+        <message id="genycaster.composer.joined_channel">
+            <source>Joined</source>
+            <translation>Joined</translation>
+        </message>
+        <message id="genycaster.composer.not_joined_channel">
+            <source>Not joined</source>
+            <translation>Not joined</translation>
+        </message>
+        <message id="genycaster.composer.channel_member_count">
+            <source>%1 members</source>
+            <translation>%1 members</translation>
+        </message>
+        <message id="genycaster.composer.channel_follower_count">
+            <source>%1 followers</source>
+            <translation>%1 followers</translation>
+        </message>
         <message id="genycaster.composer.channel_picker_title">
             <source>Choose a channel</source>
             <translation>Choose a channel</translation>

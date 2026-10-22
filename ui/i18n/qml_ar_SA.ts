@@ -1326,6 +1326,34 @@
             <source>Enter the token contract address (0x…); choose its network.</source>
             <translation>أدخل عنوان عقد الرمز وحدد الشبكة.</translation>
         </message>
+        <message id="genycaster.composer.your_channels">
+            <source>My channels &amp; discovery</source>
+            <translation>قنواتي واكتشاف القنوات</translation>
+        </message>
+        <message id="genycaster.composer.home_channel">
+            <source>Home</source>
+            <translation>الصفحة الرئيسية</translation>
+        </message>
+        <message id="genycaster.composer.no_channel">
+            <source>Post without a channel</source>
+            <translation>النشر دون قناة</translation>
+        </message>
+        <message id="genycaster.composer.joined_channel">
+            <source>Joined</source>
+            <translation>مشترك</translation>
+        </message>
+        <message id="genycaster.composer.not_joined_channel">
+            <source>Not joined</source>
+            <translation>غير مشترك</translation>
+        </message>
+        <message id="genycaster.composer.channel_member_count">
+            <source>%1 members</source>
+            <translation>%1 عضو</translation>
+        </message>
+        <message id="genycaster.composer.channel_follower_count">
+            <source>%1 followers</source>
+            <translation>%1 متابع</translation>
+        </message>
         <message id="genycaster.composer.channel_picker_title">
             <source>Choose a channel</source>
             <translation>اختيار قناة</translation>

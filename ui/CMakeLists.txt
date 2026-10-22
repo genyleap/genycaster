@@ -239,6 +239,8 @@ qt_add_executable(farcaster_client
     mobile/media_web_host_controller.hpp
     mobile/miniapp_catalog_controller.cpp
     mobile/miniapp_catalog_controller.hpp
+    mobile/channel_picker_controller.cpp
+    mobile/channel_picker_controller.hpp
     mobile/miniapp_task_manager_controller.cpp
     mobile/miniapp_task_manager_controller.hpp
     mobile/live_insights_controller.cpp
@@ -438,9 +440,6 @@ if(EMSCRIPTEN)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-sw.js"
             "$<TARGET_FILE_DIR:farcaster_client>/genycaster-sw.js"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/channel-icons.json"
-            "$<TARGET_FILE_DIR:farcaster_client>/channel-icons.json"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster.webmanifest"
             "$<TARGET_FILE_DIR:farcaster_client>/genycaster.webmanifest"

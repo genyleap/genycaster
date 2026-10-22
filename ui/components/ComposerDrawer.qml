@@ -15,40 +15,6 @@ GenyDrawer {
     property string selectedContextLabel: ""
     property string selectedContextImage: ""
     property string selectedChannelId: ""
-    property var channelIconIndex: ({})
-    property bool channelIconIndexReady: false
-    property bool channelIconIndexLoading: false
-
-    // Authoritative channel ID and parent_url still come from the HyperSnap
-    // read path. The public Farcaster directory supplies images only.
-    function channelImageFor(id, providerImage) {
-        const image = root.channelIconIndex[String(id || "").toLowerCase()]
-        return image ? String(image) : String(providerImage || "")
-    }
-
-    function loadChannelImages() {
-        if (root.channelIconIndexReady || root.channelIconIndexLoading) return
-        root.channelIconIndexLoading = true
-        const request = new XMLHttpRequest()
-        request.onreadystatechange = function() {
-            if (request.readyState !== XMLHttpRequest.DONE) return
-            root.channelIconIndexLoading = false
-            if (request.status !== 200) return
-            try {
-                const data = JSON.parse(request.responseText)
-                if (!data || !data.icons || typeof data.icons !== "object") return
-                root.channelIconIndex = data.icons
-                root.channelIconIndexReady = true
-                if (root.selectedChannelId.length > 0)
-                    root.selectedContextImage = root.channelImageFor(
-                        root.selectedChannelId, root.selectedContextImage)
-            } catch (ignored) {
-                // Fail soft: Avatar retains the first-letter fallback.
-            }
-        }
-        request.open("GET", "https://caster.genyleap.com/channel-icons.json", true)
-        request.send()
-    }
     property int initialFocusAttempts: 0
     property string suggestedText: ""
     property var suggestedEmbeds: []
@@ -140,14 +106,19 @@ GenyDrawer {
             const caret = activeEditor.cursorRectangle
             const caretY = caret && isFinite(caret.y)
                         ? Math.max(0, Math.min(activeEditor.height - 28, caret.y)) : 0
-            const top = mapped.y + caretY
-            const bottom = top + Math.max(28, caret && caret.height ? caret.height : 28)
-            const margin = Theme.space4
+            const margin = Theme.space3
             const maxY = Math.max(0, flick.contentHeight - flick.height)
-            if (top < flick.contentY + margin)
-                flick.contentY = Math.max(0, Math.min(maxY, top - margin))
-            else if (bottom > flick.contentY + flick.height - margin)
-                flick.contentY = Math.max(0, Math.min(maxY, bottom + margin - flick.height))
+            const panelTop = mapped.y - Theme.space3
+            const panelBottom = mapped.y + activeEditor.height + Theme.space3
+            const fitsFully = panelBottom - panelTop <= flick.height - margin * 2
+            const targetTop = fitsFully ? panelTop : mapped.y + caretY
+            const targetBottom = fitsFully
+                ? panelBottom : targetTop + Math.max(28, caret && caret.height ? caret.height : 28)
+            if (targetTop < flick.contentY + margin)
+                flick.contentY = Math.max(0, Math.min(maxY, targetTop - margin))
+            else if (targetBottom > flick.contentY + flick.height - margin)
+                flick.contentY = Math.max(0, Math.min(maxY,
+                    targetBottom + margin - flick.height))
         })
     }
     onKeyboardVisibleChanged: {
@@ -461,6 +432,20 @@ GenyDrawer {
         onEmojiSelected: emoji => root.insertEmoji(emoji)
     }
 
+    Connections {
+        target: presentationBridge
+        function onAuthenticationStateChanged() {
+            if (!channelPicker.opened) return
+            // A membership from the previous FID must never remain selectable.
+            root.selectedParentUrl = ""
+            root.selectedContextLabel = ""
+            root.selectedContextImage = ""
+            root.selectedChannelId = ""
+            channelDirectory.openForViewer(
+                presentationBridge.isAuthenticated ? presentationBridge.accountFid : 0)
+        }
+    }
+
     GenyDrawer {
         id: channelPicker
         objectName: "composerChannelDrawer"
@@ -472,48 +457,14 @@ GenyDrawer {
         width: parent ? parent.width : root.width
         height: parent ? Math.min(parent.height * 0.76, 670) : 580
         contentPadding: Theme.space3
-        property var channelRows: {
-            const source = presentationBridge.searchResults || []
-            const rows = []
-            for (let i = 0; i < source.length && rows.length < 30; ++i) {
-                const item = source[i] || ({})
-                const url = String(item.parentUrl || "")
-                // A short ID, invented URL or unsupported parent scheme is
-                // never presented as a publishable protocol channel.
-                if (item.kind === "channel" && url.length > 0 && url.length <= 256
-                        && (url.startsWith("https://") || url.startsWith("chain://")))
-                    rows.push(item)
-            }
-            return rows
-        }
-
-        function searchFor(value) {
-            const query = String(value || "").trim()
-            if (query.length >= 2)
-                presentationBridge.requestSearchSuggestions(query)
-            else
-                presentationBridge.clearSearchSuggestions()
-        }
         onOpened: {
-            root.loadChannelImages()
             channelSearch.text = ""
-            channelQueryTimer.stop()
             channelResults.positionViewAtBeginning()
-            // Show real provider-backed channels immediately, then allow the
-            // user to search all channel names/IDs in the same drawer.
-            root.selectedParentUrl.length > 0
-                ? searchFor(root.selectedContextLabel) : searchFor("dev")
+            channelDirectory.openForViewer(
+                presentationBridge.isAuthenticated ? presentationBridge.accountFid : 0)
+            channelDirectory.search("")
         }
-        onClosed: {
-            channelQueryTimer.stop()
-            presentationBridge.clearSearchSuggestions()
-        }
-        Timer {
-            id: channelQueryTimer
-            interval: 260
-            repeat: false
-            onTriggered: channelPicker.searchFor(channelSearch.text)
-        }
+        onClosed: channelDirectory.search("")
         contentItem: ColumnLayout {
             spacing: Theme.space3
             RowLayout {
@@ -569,14 +520,16 @@ GenyDrawer {
                         selectByMouse: true
                         onTextChanged: {
                             if (channelPicker.opened)
-                                channelQueryTimer.restart()
+                                channelDirectory.search(text)
                         }
                     }
                 }
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.composer.channel_suggestions")
+                text: channelSearch.text.trim().length > 0
+                      ? qsTrId("genycaster.composer.channel_suggestions")
+                      : qsTrId("genycaster.composer.your_channels")
                 color: Theme.textSecondary
                 font.pixelSize: Theme.typeCaptionSize
                 font.weight: Theme.weightDemiBold
@@ -589,19 +542,23 @@ GenyDrawer {
                 clip: true
                 spacing: Theme.space1
                 boundsBehavior: Flickable.StopAtBounds
-                model: channelPicker.channelRows
+                model: channelDirectory.rows
                 ScrollBar.vertical: GenyScrollBar {}
                 delegate: Item {
                     id: channelRow
                     required property var modelData
                     width: channelResults.width
-                    height: 70
+                    height: 62
                     readonly property string channelParentUrl: String(modelData.parentUrl || "")
+                    readonly property bool isHome: Boolean(modelData.isHome)
+                    readonly property bool selectable: Boolean(modelData.selectable)
+                    readonly property bool isMember: Boolean(modelData.isMember)
                     Superellipse {
                         anchors.fill: parent
-                        fillColor: rowTap.pressed ? Theme.surfacePressed
-                                   : rowTap.containsMouse ? Theme.surfaceHover
-                                   : Theme.surfaceRaised
+                        fillColor: channelRow.selectable && rowTap.pressed
+                                   ? Theme.surfacePressed
+                                   : channelRow.selectable && rowTap.containsMouse
+                                     ? Theme.surfaceHover : Theme.surfaceRaised
                         borderWidth: 1
                         borderColor: Theme.borderSubtle
                         curveDepth: Theme.curveControl
@@ -613,9 +570,8 @@ GenyDrawer {
                         layoutDirection: Theme.uiDirection
                         Avatar {
                             Layout.alignment: Qt.AlignVCenter
-                            avatarSize: 42
-                            sourceUrl: root.channelImageFor(
-                                channelRow.modelData.id, channelRow.modelData.imageUrl)
+                            avatarSize: 39
+                            sourceUrl: String(channelRow.modelData.imageUrl || "")
                             displayName: String(channelRow.modelData.name || "")
                         }
                         ColumnLayout {
@@ -623,40 +579,71 @@ GenyDrawer {
                             spacing: 2
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                color: Theme.textPrimary
+                                color: channelRow.selectable ? Theme.textPrimary : Theme.textSecondary
                                 font.pixelSize: Theme.typeBodySize
                                 font.weight: Theme.weightDemiBold
-                                text: String(channelRow.modelData.name || channelRow.modelData.id || "")
+                                text: channelRow.isHome
+                                      ? qsTrId("genycaster.composer.home_channel")
+                                      : String(channelRow.modelData.name || channelRow.modelData.id || "")
                                 elide: Text.ElideRight
                             }
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 color: Theme.textSecondary
                                 font.pixelSize: Theme.typeCaptionSize
-                                text: String(channelRow.modelData.description
-                                             || ("/" + channelRow.modelData.id))
+                                text: channelRow.isHome
+                                    ? qsTrId("genycaster.composer.no_channel")
+                                    : channelRow.modelData.memberCount >= 0
+                                      ? qsTrId("genycaster.composer.channel_member_count")
+                                          .arg(LocaleFormat.formatInteger(channelRow.modelData.memberCount))
+                                      : channelRow.modelData.followerCount >= 0
+                                        ? qsTrId("genycaster.composer.channel_follower_count")
+                                            .arg(LocaleFormat.formatInteger(channelRow.modelData.followerCount))
+                                        : (channelRow.isMember
+                                           ? qsTrId("genycaster.composer.joined_channel")
+                                           : qsTrId("genycaster.composer.not_joined_channel"))
                                 elide: Text.ElideRight
                                 maximumLineCount: 1
                             }
                         }
+                        DirectionAwareLabel {
+                            visible: !channelRow.isHome && !channelRow.selectable
+                            text: qsTrId("genycaster.composer.not_joined_channel")
+                            color: Theme.textTertiary
+                            font.pixelSize: Theme.typeCaptionSize
+                        }
                         Icon {
-                            text: channelRow.channelParentUrl === root.selectedParentUrl
-                                  ? Theme.iconCheck : Theme.iconArrowRight
-                            color: channelRow.channelParentUrl === root.selectedParentUrl
-                                   ? Theme.accent : Theme.textTertiary
+                            text: (channelRow.isHome && root.selectedParentUrl.length === 0)
+                                  || (channelRow.channelParentUrl.length > 0
+                                      && channelRow.channelParentUrl === root.selectedParentUrl)
+                                  ? Theme.iconCheck : channelRow.selectable ? Theme.iconArrowRight : "system/lock"
+                            color: channelRow.selectable ? Theme.accent : Theme.textTertiary
                             preferredSize: Theme.iconSizeSmall
                         }
                     }
+                    Accessible.role: channelRow.selectable ? Accessible.Button : Accessible.StaticText
+                    Accessible.name: String(channelRow.modelData.name || "")
+                    Accessible.description: channelRow.isHome
+                        ? qsTrId("genycaster.composer.no_channel")
+                        : channelRow.isMember
+                          ? qsTrId("genycaster.composer.joined_channel")
+                          : qsTrId("genycaster.composer.not_joined_channel")
                     MouseArea {
                         id: rowTap
                         anchors.fill: parent
-                        hoverEnabled: !root.compact
+                        enabled: channelRow.selectable
+                        hoverEnabled: !root.compact && channelRow.selectable
                         onClicked: {
-                            root.selectedParentUrl = channelRow.channelParentUrl
-                            root.selectedContextLabel = String(channelRow.modelData.name || channelRow.modelData.id)
-                            root.selectedChannelId = String(channelRow.modelData.id || "")
-                            root.selectedContextImage = root.channelImageFor(
-                                root.selectedChannelId, channelRow.modelData.imageUrl)
+                            const selection = channelDirectory.chooseChannel(
+                                String(channelRow.modelData.id || ""))
+                            if (!selection || !selection.selectable) return
+                            root.selectedParentUrl = String(selection.parentUrl || "")
+                            root.selectedContextLabel = selection.isHome
+                                ? "" : String(selection.name || "")
+                            root.selectedChannelId = selection.isHome
+                                ? "" : String(selection.id || "")
+                            root.selectedContextImage = selection.isHome
+                                ? "" : String(selection.imageUrl || "")
                             channelPicker.close()
                         }
                     }
@@ -664,19 +651,19 @@ GenyDrawer {
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                visible: !presentationBridge.searchBusy && channelPicker.channelRows.length === 0
+                visible: !channelDirectory.busy && channelDirectory.rows.length <= 1
                 color: Theme.textSecondary
                 wrapMode: Text.Wrap
-                text: presentationBridge.searchErrorText.length > 0
-                      ? presentationBridge.searchErrorText
-                      : channelSearch.text.trim().length >= 2
+                text: channelDirectory.errorText.length > 0
+                      ? channelDirectory.errorText
+                      : channelSearch.text.trim().length > 0
                         ? qsTrId("genycaster.composer.channel_no_results")
                         : qsTrId("genycaster.composer.channel_search_prompt")
                 font.pixelSize: Theme.typeCaptionSize
             }
             GenySpinner {
                 Layout.alignment: Qt.AlignHCenter
-                visible: presentationBridge.searchBusy
+                visible: channelDirectory.busy
                 running: visible
             }
         }
@@ -1089,16 +1076,18 @@ GenyDrawer {
                 Layout.preferredHeight: root.editorMode === "preview"
                                         ? farcasterPreview.implicitHeight
                                         : root.threadMode
-                                          ? (root.compact ? 220 : 250)
+                                          ? (root.compact
+                                             ? Math.max(118, Math.min(188, composerScroll.height * 0.36))
+                                             : 250)
                                           : (root.compact
-                                             ? Math.max(150, root.height
-                                                - (root.keyboardVisible ? 350 : 260))
+                                             ? Math.max(135, composerScroll.height
+                                                - (root.keyboardVisible ? 84 : 126))
                                              : 320)
                 Layout.minimumHeight: root.editorMode === "preview"
                                       ? Math.min(farcasterPreview.implicitHeight, root.compact ? 210 : 230)
                                       : root.threadMode
-                                        ? (root.compact ? 180 : 220)
-                                        : (root.compact ? 150 : 280)
+                                        ? (root.compact ? 118 : 220)
+                                        : (root.compact ? 135 : 280)
                 spacing: Theme.space3
                 layoutDirection: Qt.LeftToRight
 
@@ -1421,12 +1410,12 @@ GenyDrawer {
 
                     Item {
                         id: selectedChannelChip
-                        Layout.preferredHeight: 46
-                        Layout.preferredWidth: Math.min(root.width * 0.70,
-                            Math.max(132, selectedChannelContents.implicitWidth + Theme.space5 * 2))
+                        Layout.preferredHeight: 36
+                        Layout.preferredWidth: Math.min(root.width * 0.57,
+                            Math.max(110, selectedChannelContents.implicitWidth + Theme.space3 * 2))
                         Superellipse {
                             anchors.fill: parent
-                            curveDepth: 23
+                            curveDepth: 18
                             fillColor: root.selectedParentUrl.length > 0
                                        ? Theme.primarySurface : "transparent"
                             borderWidth: 0
@@ -1439,9 +1428,9 @@ GenyDrawer {
                         RowLayout {
                             id: selectedChannelContents
                             anchors.centerIn: parent
-                            spacing: Theme.space2
+                            spacing: Theme.space1
                             Avatar {
-                                avatarSize: 29
+                                avatarSize: 24
                                 sourceUrl: root.selectedContextImage
                                 displayName: root.selectedContextLabel.length > 0
                                              ? root.selectedContextLabel : "#"
@@ -1456,11 +1445,11 @@ GenyDrawer {
                             DirectionAwareLabel {
                                 text: root.selectedContextLabel.length > 0
                                       ? root.selectedContextLabel : qsTrId("genycaster.composer.channel")
-                                font.pixelSize: Theme.typeBodySize
+                                font.pixelSize: Theme.typeMetaSize
                                 font.weight: Theme.weightDemiBold
                                 color: Theme.textPrimary
                                 elide: Text.ElideRight
-                                Layout.maximumWidth: Math.max(70, root.width * 0.45)
+                                Layout.maximumWidth: Math.max(58, root.width * 0.38)
                             }
                             Icon {
                                 text: Theme.iconChevronDown
@@ -1474,8 +1463,8 @@ GenyDrawer {
                         }
                     }
                     Item {
-                        Layout.preferredHeight: 46
-                        Layout.preferredWidth: categoryText.implicitWidth + Theme.space5 * 2
+                        Layout.preferredHeight: 36
+                        Layout.preferredWidth: categoryText.implicitWidth + Theme.space3 * 2
                         opacity: 0.82
                         DashedCapsuleOutline {
                             anchors.fill: parent
@@ -1485,10 +1474,10 @@ GenyDrawer {
                             id: categoryText
                             anchors.centerIn: parent
                             text: qsTrId("genycaster.composer.category")
-                            font.pixelSize: Theme.typeBodySize
+                            font.pixelSize: Theme.typeMetaSize
                             color: Theme.textSecondary
                         }
-                        Accessible.role: Accessible.Button
+                        Accessible.role: Accessible.StaticText
                         Accessible.name: qsTrId("genycaster.composer.category")
                         Accessible.description: qsTrId("genycaster.home.hub_coming_soon")
                     }

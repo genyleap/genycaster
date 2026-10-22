@@ -24,22 +24,27 @@ test('reply rail and count use aligned, solid geometry and incoming highlight',(
  assert.match(rail,/anchors.horizontalCenter: parent.horizontalCenter/);
  assert.match(detail,/Math.max\(26, replyCountLabel.implicitWidth \+ Theme.space3\)/);
 });
-test('channel selection uses a bottom drawer and real Hypersnap search results',()=>{
+test('channel picker relies exclusively on the C++ HyperSnap controller',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
- const codec=read('src/providers/hypersnap/codec.cpp');
- const runtime=read('ui/mobile/runtime_ui_bindings.cpp');
+ const backend=read('ui/mobile/channel_picker_controller.cpp');
+ const header=read('ui/mobile/channel_picker_controller.hpp');
  const shell=read('ui/components/AppShell.qml');
+ const main=read('ui/mobile/main.cpp');
  assert.match(composer,/id: channelPicker[\s\S]*?bottomSheet: true/);
- assert.match(composer,/objectName: "composerChannelResults"/);
- assert.match(composer,/presentationBridge.requestSearchSuggestions\(query\)/);
- assert.match(composer,/channelRow.channelParentUrl/);
- assert.match(codec,/suggestion.parentUrl = optionalString\(channel, "parent_url"\)/);
- assert.match(runtime, /QStringLiteral\("parentUrl"\), channel.parentUrl/);
+ assert.match(composer,/model: channelDirectory.rows/);
+ assert.match(composer,/channelDirectory.openForViewer\(/);
+ assert.match(composer,/channelDirectory.search\(text\)/);
+ assert.match(backend,/user\/memberships\/list/);
+ assert.match(backend,/channel\/search/);
+ assert.match(backend,/channel\/trending/);
+ assert.match(main,/setContextProperty\(QStringLiteral\("channelDirectory"\)/);
+ assert.match(header,/Q_INVOKABLE QVariantMap chooseChannel/);
+ assert.match(composer,/root.selectedParentUrl = String\(selection.parentUrl \|\| ""\)/);
  assert.match(composer,/qsTrId\("genycaster.composer.category"\)/);
- assert.doesNotMatch(composer,/contextPicker|tokenNetwork|qsTrId\("genycaster.composer.ticker"\)/);
- assert.match(composer,/signal publishRequested\(string text, var mentionFids, var mentionPositions, var embeds, string parentUrl\)/);
  assert.match(shell,/publishPreparedCast\(text, mentionFids, mentionPositions, embeds, parentUrl\)/);
+ assert.doesNotMatch(composer,/XMLHttpRequest|channelIconIndex|channelImageFor|searchFor\("dev"\)/);
 });
+
 test('mobile composer uses an eagerly created editable TextArea for iOS gesture focus',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
  const shell=read('ui/components/AppShell.qml');
@@ -55,20 +60,53 @@ test('reply counter has safe trailing spacing and scroll jump stays near bottom 
  assert.match(detail,/anchors.bottomMargin: root.compact \? Theme.space2 \+ 12 : Theme.space4/);
  assert.match(profile,/anchors.bottomMargin: root.compact \? Theme.space2 \+ 12 : Theme.space4/);
 });
-test('channel images use a public API-sourced catalog and preserve HyperSnap parent URLs',()=>{
+test('channel avatars come from HyperSnap, and static image catalogs are removed',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
- const index=JSON.parse(read('ui/wasm/channel-icons.json'));
+ const backend=read('ui/mobile/channel_picker_controller.cpp');
  const packaging=read('tools/package_wasm_assets.py');
- assert.ok(Object.keys(index.icons).length>1000);
- assert.match(index.icons.genyleap,/^https:\/\//);
- assert.match(index.icons.genyleap,/imagedelivery\.net/);
- assert.match(composer,/channelIconIndexReady: false/);
- assert.match(composer,/function channelImageFor\(id, providerImage\)/);
- assert.match(composer,/channelRow\.modelData\.id, channelRow\.modelData\.imageUrl/);
- assert.match(composer,/root\.selectedParentUrl = channelRow\.channelParentUrl/);
- assert.match(composer,/selectedContextImage = root\.channelImageFor/);
- assert.match(packaging,/channel-icons\.json/);
+ const sw=read('ui/wasm/genycaster-sw.js');
+ const cmake=read('ui/CMakeLists.txt');
+ assert.match(backend,/firstString\(channel,\s*\{"image_url", "imageUrl", "icon_url", "iconUrl"\}\)/);
+ assert.match(backend,/image.startsWith\(QStringLiteral\("https:\/\/"\)\)/);
+ assert.match(composer,/sourceUrl: String\(channelRow.modelData.imageUrl \|\| ""\)/);
+ assert.match(composer,/channelDirectory.chooseChannel\(/);
+ assert.doesNotMatch(composer,/XMLHttpRequest|https:\/\/caster.genyleap.com\/channel-icons.json/);
+ for(const file of [packaging,sw,cmake])
+   assert.doesNotMatch(file,/channel-icons\.json/);
 });
+test('membership is verified in C++, Home always appears first, and non-members are disabled',()=>{
+ const backend=read('ui/mobile/channel_picker_controller.cpp');
+ const composer=read('ui/components/ComposerDrawer.qml');
+ assert.match(backend,/QVariantList list\{homeRow\(\)\}/);
+ assert.match(backend,/m_membershipReady && m_members.contains\(id\)/);
+ assert.match(backend,/row.insert\(QStringLiteral\("selectable"\), isJoined\)/);
+ assert.match(backend,/if \(!m_membershipReady\) return \{\}/);
+ assert.match(backend,/if \(it == m_members.cend\(\)\) return \{\}/);
+ assert.match(backend,/m_members.clear\(\);\s*m_membershipReady = false; \/\/ fail closed/);
+ assert.match(composer,/enabled: channelRow.selectable/);
+ assert.match(composer,/qsTrId\("genycaster.composer.home_channel"\)/);
+ assert.match(composer,/qsTrId\("genycaster.composer.not_joined_channel"\)/);
+});
+test('search prioritizes exact or near matches, and remembers frequent choices per account',()=>{
+ const backend=read('ui/mobile/channel_picker_controller.cpp');
+ assert.match(backend,/if \(q == id \|\| q == name\) return 0/);
+ assert.match(backend,/if \(id.startsWith\(q\) \|\| name.startsWith\(q\)\) return 1/);
+ assert.match(backend,/nearDistance\(q, id\) <= 2/);
+ assert.match(backend,/countA != countB\) return countA > countB/);
+ assert.match(backend,/channels\/composeUsage\/%1/);
+ assert.match(backend,/m_settings.setValue\(usageSettingsKey\(m_viewerFid\), counts\)/);
+ assert.match(backend,/constexpr int searchTtlMs/);
+ assert.match(backend,/m_searchCache.insert\(/);
+});
+test('channel results show live HyperSnap member counts, not fabricated follower values',()=>{
+ const backend=read('ui/mobile/channel_picker_controller.cpp');
+ const composer=read('ui/components/ComposerDrawer.qml');
+ assert.match(backend,/channel.value\(QStringLiteral\("member_count"\)\).toInteger\(-1\)/);
+ assert.match(composer,/qsTrId\("genycaster.composer.channel_member_count"\)/);
+ assert.match(composer,/LocaleFormat.formatInteger\(channelRow.modelData.memberCount\)/);
+ assert.match(composer,/qsTrId\("genycaster.composer.channel_follower_count"\)/);
+});
+
 test('composer context uses outline pills before selection and fixed footer above the keyboard',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
  assert.match(composer,/objectName: "mobileComposerStickyFooter"/);
@@ -83,6 +121,9 @@ test('composer context uses outline pills before selection and fixed footer abov
  assert.match(composer,/fillColor: root\.selectedParentUrl\.length > 0[\s\S]*?Theme\.primarySurface : "transparent"/);
  assert.match(composer,/objectName: "mobileCastContext"/);
  assert.match(composer,/objectName: "mobileComposerMediaBar"/);
+ assert.match(composer,/Layout.preferredHeight: 36/);
+ assert.match(composer,/Math.max\(118, Math.min\(188, composerScroll.height \* 0.36\)\)/);
+ assert.match(composer,/const fitsFully = panelBottom - panelTop <= flick.height - margin \* 2/);
  assert.match(composer,/qsTrId\("genycaster\.composer\.category"\)/);
 });
 test('image picker and upload pipeline accept GIF without converting to PNG',()=>{
