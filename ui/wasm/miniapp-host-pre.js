@@ -73,6 +73,23 @@
         browserButton.addEventListener('click', () => {
             window.open(url.href,'_blank','noopener,noreferrer');
         });
+        // Some Mini Apps (including SDK-only apps) deliberately refuse a
+        // plain iframe. A Farcaster client can provide the real host SDK,
+        // identity and permission prompts; Genycaster WASM must never fake
+        // that privileged bridge.
+        const farcasterButton = document.createElement('button');
+        farcasterButton.textContent = isPersian
+          ? 'اجرا در Farcaster' : 'Open in Farcaster';
+        farcasterButton.setAttribute('aria-label', farcasterButton.textContent);
+        Object.assign(farcasterButton.style, {
+            color:'#f5f6fb',background:'#343d66',border:'1px solid #6476a5',
+            borderRadius:'9px',fontSize:'13px',padding:'8px 10px',cursor:'pointer'
+        });
+        farcasterButton.addEventListener('click', () => {
+            const clientUrl = new URL('https://farcaster.xyz/~/mini-apps/launch');
+            clientUrl.searchParams.set('domain',url.hostname);
+            window.open(clientUrl.href,'_blank','noopener,noreferrer');
+        });
         const dismiss = document.createElement("button");
         dismiss.textContent = "×";
         dismiss.setAttribute("aria-label", String(closeLabel || "Close").slice(0, 80));
@@ -83,7 +100,18 @@
             height: "38px"
         });
         dismiss.addEventListener("click", close);
-        top.append(name, domain, browserButton, dismiss);
+        // Keep the mobile app header compact. Launch choices live in a
+        // separate small toolbar so neither Close nor the title is clipped.
+        top.append(name, dismiss);
+        const actionsRow = document.createElement('nav');
+        actionsRow.setAttribute('aria-label', isPersian ? 'گزینه‌های اجرا' : 'Mini App launch options');
+        Object.assign(actionsRow.style,{
+          display:'flex',gap:'8px',padding:'6px 12px',
+          borderBottom:'1px solid #35383f',boxSizing:'border-box'
+        });
+        Object.assign(farcasterButton.style,{flex:'1',minWidth:'0'});
+        Object.assign(browserButton.style,{flex:'1',minWidth:'0'});
+        actionsRow.append(farcasterButton,browserButton);
 
         const frame = document.createElement("iframe");
         frame.title = String(title || "Mini App").slice(0, 160);
@@ -98,23 +126,22 @@
         const warning=document.createElement('div');
         warning.setAttribute('role','status');
         warning.textContent = isPersian
-          ? 'اگر برنامه بارگذاری نشد، آن را در مرورگر باز کنید.'
-          : 'If the app does not load, open it in your browser.';
+          ? 'برخی مینی‌اپ‌ها به SDK میزبان Farcaster نیاز دارند که هنوز در نسخهٔ وب جنی‌کستر موجود نیست. از «اجرا در Farcaster» استفاده کنید.'
+          : 'Some Mini Apps require the Farcaster host SDK, which is not yet available inside Genycaster Web. Choose Open in Farcaster.';
         Object.assign(warning.style, {
           display:'none',padding:'12px 16px',background:'#282321',
           borderTop:'1px solid #5d4d39',color:'#ead6b5',fontSize:'13px',
         });
         frame.addEventListener('error',()=>{warning.style.display='block';});
-        frame.addEventListener('load',()=>{
-          if(app.warningTimer!==null)clearTimeout(app.warningTimer);
-          app.warningTimer=null;
-        });
-        // Cross-origin CSP/frame-ancestors refusals cannot be inspected. An
-        // explicit external fallback must remain reachable at all times.
-        app.warningTimer=setTimeout(()=>{warning.style.display='block';},12000);
+        // A cross-origin iframe's load event says nothing about Farcaster
+        // SDK readiness. Keep a timed compatibility hint even if HTML loads.
+        // Cross-origin frame failures cannot be inspected by design.
+        app.warningTimer=setTimeout(()=>{
+            if (app.frame === frame) warning.style.display='block';
+        },5000);
         // Set the URL only after sandbox and origin restrictions exist.
         frame.src = url.href;
-        sheet.append(top, frame, warning);
+        sheet.append(top, actionsRow, frame, warning);
         document.body.append(sheet);
         app.element = sheet;
         app.frame = frame;

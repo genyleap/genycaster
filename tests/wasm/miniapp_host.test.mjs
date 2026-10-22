@@ -80,3 +80,38 @@ test('one active Mini App at a time and close button releases the frame', () => 
     button.handlers.click();
     assert.equal(controller.active(), false);
 });
+
+test('SDK-dependent Mini Apps expose an explicit real Farcaster host fallback',()=>{
+ const opened=[];
+ const nodes=[];
+ class Element{
+  constructor(tagName){
+   this.tagName=tagName;this.style={};this.attributes={};this.children=[];
+   this.isConnected=false;this.handlers={};this.textContent='';
+   nodes.push(this);
+  }
+  setAttribute(key,value){this.attributes[key]=value;}
+  append(...args){this.children.push(...args);}
+  remove(){this.isConnected=false;}
+  addEventListener(type,handler){this.handlers[type]=handler;}
+  focus(){}
+ }
+ const win={
+  location:{origin:'https://caster.genyleap.com'},
+  open(...args){opened.push(args);}
+ };
+ const dom={
+  createElement:name=>new Element(name),
+  body:{append:node=>{node.isConnected=true;}}
+ };
+ vm.runInNewContext(hostSource,{window:win,document:dom,URL,
+  navigator:{language:'en'},setTimeout:()=>1,clearTimeout:()=>{}});
+ assert.equal(win.__genycasterMiniAppOverlay.open('https://tasks.miniapps.genyleap.com','GenyTask','Close'),true);
+ const launch=nodes.find(n=>n.tagName==='button'&&n.textContent==='Open in Farcaster');
+ assert.ok(launch,'real host must be discoverable without SDK emulation');
+ launch.handlers.click();
+ assert.match(opened[0][0],/^https:\/\/farcaster\.xyz\/\~\/mini-apps\/launch\?domain=tasks\.miniapps\.genyleap\.com$/);
+ assert.equal(opened[0][2],'noopener,noreferrer');
+ assert.doesNotMatch(hostSource,/window\.__genycasterFakeSDK/);
+ assert.doesNotMatch(hostSource,/onload.*clearTimeout/);
+});

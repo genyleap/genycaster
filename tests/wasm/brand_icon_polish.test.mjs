@@ -31,7 +31,7 @@ test("Mini App artwork supports manifest aliases and a visible offline fallback"
     for(const key of ["iconUrl","icon","logoUrl","logo","thumbnailUrl","imageUrl","splashImageUrl"])
         assert.ok(catalog.includes('QStringLiteral("'+key+'")'),key);
     assert.match(catalog,/parsedHome\.resolved\(candidate\)/);
-    assert.match(catalog,/publicImageSource\(iconUrl\)/);
+    assert.match(catalog,/publicMiniAppImageSource\(iconUrl, homeUrl\)/);
     const apps=read("ui/components/AppsSurface.qml");
     assert.match(apps,/id: miniAppArtwork/);
     assert.match(apps,/forceAutomaticDownload: true/);

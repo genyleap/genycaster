@@ -106,7 +106,9 @@ export async function publicMiniAppPreview(rawUrl, dependencies = {}) {
     ? 'image://remote/' + Buffer.from(value.href,'utf8').toString('base64url') : '';
   const imageSource = toImageSource(imageUrl);
   const iconSource = toImageSource(iconUrl);
-  const verifiedImageUrls = [...new Set([imageUrl,iconUrl,splashUrl,gifUrl]
+  const screenshots = (Array.isArray(app.screenshotUrls) ? app.screenshotUrls.slice(0,3) : [])
+    .map(value=>validMiniAppTarget(String(value || ''))).filter(Boolean);
+  const verifiedImageUrls = [...new Set([imageUrl,iconUrl,splashUrl,gifUrl,...screenshots]
     .filter(Boolean).map(value=>value.href))];
   const data = {
     resolved:true,providerKind:'miniapp',

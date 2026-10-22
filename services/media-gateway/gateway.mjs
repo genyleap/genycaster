@@ -2,7 +2,7 @@ import http from 'node:http';
 import { defaultBrowserImageHosts, rasterMimeFromBytes, retrieveBrowserImage, validImageUrl } from './browser_image_proxy.mjs';
 import { createBrowserFarcasterBroker } from './browser_farcaster_auth.mjs';
 import { publicTokenSnapshot } from './browser_token_insights.mjs';
-import { publicMiniAppPreview } from './browser_miniapp_preview.mjs';
+import { publicMiniAppPreview, validMiniAppTarget } from './browser_miniapp_preview.mjs';
 import { publicLinkPreview } from './browser_link_preview.mjs';
 import { createCastViewService } from './browser_cast_views.mjs';
 import { createBrowserReactionService } from './browser_cast_reactions.mjs';
@@ -468,6 +468,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   const channelDirectoryCache = new Map();
   const tokenSnapshots = new Map();
   const miniAppPreviews = new Map();
+  const miniAppArtworkScopes = new Map();
   const webLinkPreviews = new Map();
   const castViewService = dependencies.castViewService ?? createCastViewService(runtime);
   const browserReactionService = dependencies.browserReactionService ?? createBrowserReactionService(runtime);
@@ -847,12 +848,17 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       const query = String(requestUrl.searchParams.get('q') || '').trim();
       const fid = String(requestUrl.searchParams.get('viewer_fid') || '');
       const cursor = requestUrl.searchParams.get('cursor') || '';
+      // The Qt provider uses limit=20 for search. Keep a strict bounded
+      // query contract, but do not reject the legitimate client request.
+      const requestedLimit = requestUrl.searchParams.get('limit');
       const accepted = new Set(kind === 'catalog' ? ['kind','cursor']
-        : kind === 'search' ? ['kind','q'] : ['kind','viewer_fid']);
+        : kind === 'search' ? ['kind','q','limit'] : ['kind','viewer_fid']);
       if ([...requestUrl.searchParams.keys()].some(key=>!accepted.has(key))
           || (kind !== 'catalog' && cursor)
           || (cursor && !/^[A-Za-z0-9%_=+-]{1,480}$/.test(cursor))
           || (kind === 'search' && (query.length === 0 || query.length > 32))
+          || (requestedLimit !== null
+              && (kind !== 'search' || !/^(?:[1-9]|1[0-9]|20)$/.test(requestedLimit)))
           || (kind === 'relevant' && !/^[1-9][0-9]{0,18}$/.test(fid))) {
         writeJson(response, 400, { error: 'invalid_catalogue_parameters' }); return;
       }
@@ -874,7 +880,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         if (cursor) upstreamUrl.searchParams.set('cursor',cursor);
       } else if (kind === 'search') {
         upstreamUrl.searchParams.set('q', query);
-        upstreamUrl.searchParams.set('limit', '20');
+        upstreamUrl.searchParams.set('limit', requestedLimit || '20');
       } else {
         upstreamUrl.searchParams.set('viewer_fid', fid);
         upstreamUrl.searchParams.set('time_window', '7d');
@@ -1223,6 +1229,15 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         writeJson(response, 405, { error: 'method_not_allowed' }); return;
       }
       const requested = requestUrl.searchParams.get('url');
+      const declaringApp = requestUrl.searchParams.get('miniapp');
+      // Do not let a caller claim that arbitrary media belongs to a Mini
+      // App: the gateway verifies the origin's pinned public manifest, then
+      // grants ONLY the exact image URLs declared there.
+      if ([...requestUrl.searchParams.keys()].some(key=>!['url','miniapp'].includes(key))
+          || (declaringApp !== null && (!validMiniAppTarget(declaringApp)
+              || declaringApp.length > 2048))) {
+        writeJson(response,400,{error:'invalid_image_scope'});return;
+      }
       const verifiedArtwork = typeof requested === 'string'
         && ((verifiedMiniAppIcons.get(requested) || 0) > runtime.now()
             || (verifiedMiniAppImages.get(requested) || 0) > runtime.now());
@@ -1233,6 +1248,29 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         return;
       }
       let allowedHosts;
+      if (declaringApp && typeof requested === 'string'
+          && !validImageUrl(requested)
+          && (verifiedMiniAppIcons.get(requested) || 0) <= runtime.now()
+          && (verifiedMiniAppImages.get(requested) || 0) <= runtime.now()) {
+        const cached = miniAppArtworkScopes.get(declaringApp);
+        let verified = cached?.verifiedImageUrls;
+        if (!Array.isArray(verified) || cached.expires <= runtime.now()) {
+          const resolved = await resolveMiniAppPreview(declaringApp);
+          verified = resolved.status === 200 && resolved.data?.resolved === true
+            ? resolved.data.verifiedImageUrls : null;
+          if (Array.isArray(verified)) {
+            // Reuse a short-lived, bounded exact-artwork grant after the
+            // first verified manifest read, including cold saved libraries.
+            if (miniAppArtworkScopes.size > 180) miniAppArtworkScopes.clear();
+            miniAppArtworkScopes.set(declaringApp, {
+              verifiedImageUrls:verified.slice(0, 8),
+              expires:runtime.now()+120000
+            });
+          }
+        }
+        if (Array.isArray(verified) && verified.includes(requested))
+          verifiedMiniAppImages.set(requested,runtime.now()+300000);
+      }
       // First-party catalogue icons and verified OpenGraph images may live
       // outside the static CDN allowlist. Both must match an exact short-lived
       // server-validated URL, never a user-supplied arbitrary image source. Refresh the

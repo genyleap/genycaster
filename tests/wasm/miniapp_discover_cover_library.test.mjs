@@ -11,8 +11,8 @@ test("Neynar manifest cover is parsed separately from square app icon",()=>{
     for(const key of ["hero_image_url","og_image_url","splash_image_url"])
         assert.ok(cpp.includes('QStringLiteral("'+key+'")'),key);
     assert.match(cpp,/app\.value\(QStringLiteral\("screenshot_urls"\)\)\.toArray\(\)/);
-    assert.match(cpp,/\{QStringLiteral\("coverSource"\), publicImageSource\(coverUrl\)\}/);
-    assert.match(cpp,/\{QStringLiteral\("iconSource"\), publicImageSource\(iconUrl\)\}/);
+    assert.match(cpp,/\{QStringLiteral\("coverSource"\), publicMiniAppImageSource\(coverUrl, homeUrl\)\}/);
+    assert.match(cpp,/\{QStringLiteral\("iconSource"\), publicMiniAppImageSource\(iconUrl, homeUrl\)\}/);
     assert.match(cpp,/const QUrl candidate\{coverUrl, QUrl::StrictMode\}/);
     assert.match(cpp,/parsedHome\.resolved\(candidate\)/);
     assert.match(cpp,/url\.scheme\(\) != QStringLiteral\("https"\)/);
@@ -151,4 +151,24 @@ test('WASM uses browser-cacheable first-party raster proxy, native still uses im
  assert.match(cpp,/#if defined\(__EMSCRIPTEN__\)[\s\S]*?storage-farcaster\.genyleap\.com\/v1\/browser\/images/);
  assert.match(cpp,/query\.addQueryItem\(QStringLiteral\("url"\), url\.toString\(QUrl::FullyEncoded\)\)/);
  assert.match(cpp,/#else\s+const QByteArray encoded/);
+});
+
+test('failed pagination keeps the cursor for manual retry and prevents automatic request cascades',()=>{
+ const cpp=read('ui/mobile/miniapp_catalog_controller.cpp');
+ const apps=read('ui/components/AppsSurface.qml');
+ assert.match(cpp,/pendingPageCursor = cursor/);
+ assert.match(cpp,/setNextCursor\(pageToken\)/);
+ assert.match(cpp,/Tap Load more to retry/);
+ assert.match(cpp,/loadingPage = false;\s+pendingPageCursor\.clear\(\);/);
+ assert.match(apps,/dragging \|\| flicking/);
+ assert.match(apps,/now - root\.lastAutomaticPageMs > 2500/);
+ assert.match(apps,/miniAppCatalog\.errorText\.length === 0/);
+});
+test('manifest-scoped images work for Mini Apps saved before image-proxy upgrade',()=>{
+ const cpp=read('ui/mobile/miniapp_catalog_controller.cpp');
+ assert.match(cpp,/publicMiniAppImageSource\(const QString& imageUrl, const QString& homeUrl\)/);
+ assert.match(cpp,/query\.addQueryItem\(QStringLiteral\("miniapp"\), homeUrl\)/);
+ assert.match(cpp,/const auto restoreScope = \[&homeUrl\]/);
+ assert.match(cpp,/QStringLiteral\("image"\)/);
+ assert.match(cpp,/QStringLiteral\("storage-farcaster.genyleap.com"\)/);
 });

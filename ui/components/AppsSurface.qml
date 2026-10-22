@@ -10,6 +10,7 @@ Item {
     property string farcasterSection: "my"
     property string explorerMode: "all"
     property bool requestedInitialDiscovery: false
+    property double lastAutomaticPageMs: 0
     function ensureDiscovery() {
         if (!root.compact || requestedInitialDiscovery || miniAppCatalog.busy
                 || miniAppCatalog.explorerApps.length > 0) return
@@ -109,11 +110,19 @@ Item {
         readonly property real pageInset: root.compact ? Theme.mobileGutter : Theme.space4
         contentHeight: root.compact ? pageColumn.implicitHeight + pageInset * 2 : height
         onContentYChanged: {
-            if (root.compact && root.section === "farcaster"
+            // Only a user gesture may fetch another page. Relayout after an
+            // append must not immediately cascade into more API requests.
+            const now = Date.now()
+            if (root.compact && (dragging || flicking)
+                    && root.section === "farcaster"
                     && root.farcasterSection === "explorer" && root.explorerMode === "all"
                     && !miniAppCatalog.busy && miniAppCatalog.hasMore
-                    && contentY > 0 && contentY + height >= contentHeight - 420)
+                    && miniAppCatalog.errorText.length === 0
+                    && now - root.lastAutomaticPageMs > 2500
+                    && contentY > 0 && contentY + height >= contentHeight - 240) {
+                root.lastAutomaticPageMs = now
                 miniAppCatalog.loadMore()
+            }
         }
 
         ScrollBar.vertical: GenyScrollBar {
@@ -1165,6 +1174,7 @@ Item {
                             boundsBehavior: Flickable.StopAtBounds
                             model: root.selectedMiniApp.screenshots || []
                             delegate: SuperellipseImage {
+                                id: screenshotPreview
                                 required property string modelData
                                 width: 224
                                 height: 148
@@ -1180,6 +1190,13 @@ Item {
                                 requestedSourceHeight: 224
                                 clipToSuperellipse: false
                                 curveDepth: Theme.curveControl
+                                Icon {
+                                    anchors.centerIn: parent
+                                    visible: screenshotPreview.loadFailed
+                                    text: Theme.iconImage
+                                    preferredSize: 25
+                                    color: Theme.inkMuted
+                                }
                             }
                         }
                     }

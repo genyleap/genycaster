@@ -133,6 +133,26 @@ constexpr qsizetype recentMiniAppLimit = 20;
 #endif
 }
 
+// A persisted/saved Mini App can be outside the current 20-item catalogue.
+// Its artwork must be verified against the publisher's pinned HTTPS manifest,
+// not depend on its appearance in the ranked discovery snapshot.
+[[nodiscard]] QString publicMiniAppImageSource(const QString& imageUrl, const QString& homeUrl)
+{
+    const QString source = publicImageSource(imageUrl);
+#if defined(__EMSCRIPTEN__)
+    if (source.isEmpty() || homeUrl.isEmpty()) return source;
+    QUrl scoped{source};
+    QUrlQuery query{scoped};
+    query.removeAllQueryItems(QStringLiteral("miniapp"));
+    query.addQueryItem(QStringLiteral("miniapp"), homeUrl);
+    scoped.setQuery(query);
+    return scoped.toString(QUrl::FullyEncoded);
+#else
+    Q_UNUSED(homeUrl);
+    return source;
+#endif
+}
+
 [[nodiscard]] QString normalizedHomeUrl(QString value)
 {
     value = value.trimmed();
@@ -279,7 +299,7 @@ constexpr qsizetype recentMiniAppLimit = 20;
         const QString raw = screenshot.toString();
         const QUrl source{raw, QUrl::StrictMode};
         const QUrl absolute = source.isRelative() ? parsedHome.resolved(source) : source;
-        const QString image = publicImageSource(absolute.toString(QUrl::FullyEncoded));
+        const QString image = publicMiniAppImageSource(absolute.toString(QUrl::FullyEncoded), homeUrl);
         if (!image.isEmpty()) screenshots.append(image);
     }
     if (authorName.isEmpty()) {
@@ -319,8 +339,8 @@ constexpr qsizetype recentMiniAppLimit = 20;
         {QStringLiteral("description"), description.left(420)},
         {QStringLiteral("domain"), domain.left(255)},
         {QStringLiteral("homeUrl"), homeUrl},
-        {QStringLiteral("iconSource"), publicImageSource(iconUrl)},
-        {QStringLiteral("coverSource"), publicImageSource(coverUrl)},
+        {QStringLiteral("iconSource"), publicMiniAppImageSource(iconUrl, homeUrl)},
+        {QStringLiteral("coverSource"), publicMiniAppImageSource(coverUrl, homeUrl)},
         {QStringLiteral("authorName"), authorName.left(96)},
         {QStringLiteral("authorUsername"), authorUsername.left(80)},
         {QStringLiteral("authorAvatar"), publicImageSource(avatarUrl)},
@@ -417,8 +437,29 @@ constexpr qsizetype recentMiniAppLimit = 20;
     row.insert(QStringLiteral("description"),
                row.value(QStringLiteral("description")).toString().trimmed().left(420));
     row.insert(QStringLiteral("domain"), domain);
+#if defined(__EMSCRIPTEN__)
+    // Migrate older local QSettings rows in-place: those images were stored
+    // without the manifest scope and fail when the app is not currently ranked.
+    const auto restoreScope = [&homeUrl](const QString& stored) {
+        QUrl parsed{stored};
+        QString original{};
+        if (parsed.scheme() == QStringLiteral("image")
+            && parsed.host() == QStringLiteral("remote")) {
+            original = QString::fromUtf8(QByteArray::fromBase64(
+                parsed.path().mid(1).toLatin1(), QByteArray::Base64UrlEncoding));
+        } else if (parsed.scheme() == QStringLiteral("https")
+                   && parsed.host() == QStringLiteral("storage-farcaster.genyleap.com")
+                   && parsed.path() == QStringLiteral("/v1/browser/images")) {
+            original = QUrlQuery{parsed}.queryItemValue(QStringLiteral("url"));
+        }
+        return original.isEmpty() ? stored : publicMiniAppImageSource(original, homeUrl);
+    };
+    row.insert(QStringLiteral("iconSource"), restoreScope(row.value(QStringLiteral("iconSource")).toString()));
+    row.insert(QStringLiteral("coverSource"), restoreScope(row.value(QStringLiteral("coverSource")).toString()));
+#else
     row.insert(QStringLiteral("iconSource"), row.value(QStringLiteral("iconSource")).toString());
     row.insert(QStringLiteral("coverSource"), row.value(QStringLiteral("coverSource")).toString());
+#endif
     row.insert(QStringLiteral("saved"), true);
     return row;
 }
@@ -772,6 +813,8 @@ public:
 
     void refresh()
     {
+        loadingPage = false;
+        pendingPageCursor.clear();
         setNextCursor({});
         const quint64 requestGeneration = beginRequest();
         if (!networkEnabled) {
@@ -795,9 +838,12 @@ public:
             || !query.isEmpty() || nextCursor.isEmpty() || catalogueSnapshot.size() >= 500)
             return;
         const QString cursor = nextCursor;
+        // Retain the page token until a successful response; a temporary
+        // 429/timeout must never force users to discard their loaded apps.
         setNextCursor({});
         const quint64 requestGeneration = beginRequest();
         loadingPage = true;
+        pendingPageCursor = cursor;
         QUrl url = endpointUrl(primaryEndpoint.catalogueUrl);
         QUrlQuery parameters{url};
         parameters.removeAllQueryItems(QStringLiteral("cursor"));
@@ -816,6 +862,8 @@ public:
             emit q.queryChanged();
         }
 
+        loadingPage = false;
+        pendingPageCursor.clear();
         setNextCursor({});
         const quint64 requestGeneration = beginRequest();
         if (query.isEmpty()) {
@@ -845,6 +893,8 @@ public:
 
     void refreshRelevant(const qulonglong viewerFid)
     {
+        loadingPage = false;
+        pendingPageCursor.clear();
         setNextCursor({});
         const quint64 requestGeneration = beginRequest();
         if (!networkEnabled) {
@@ -878,6 +928,8 @@ public:
 
     void searchByFid(const qulonglong authorFid)
     {
+        loadingPage = false;
+        pendingPageCursor.clear();
         if (authorFid == 0) {
             return;
         }
@@ -989,6 +1041,7 @@ public:
     QVariantList explorerApps{};
     QVariantList catalogueSnapshot{};
     QString nextCursor{};
+    QString pendingPageCursor{};
     bool loadingPage{};
     QVariantList myApps{};
     QVariantList recentApps{};
@@ -1110,13 +1163,19 @@ private:
 
         const bool page = loadingPage;
         loadingPage = false;
+        const QString pageToken = std::exchange(pendingPageCursor, QString{});
         if (!result.success || result.rows.isEmpty()) {
             if (page) {
+                if (!result.success) {
+                    setNextCursor(pageToken);
+                    setError(QStringLiteral("Could not load more apps (%1). Tap Load more to retry.")
+                        .arg(result.error.left(150)));
+                } else if (!result.nextCursor.isEmpty()) {
+                    setNextCursor(result.nextCursor);
+                }
+                // Existing catalogue remains intact; a retry uses the
+                // exact failed cursor, not the beginning of the catalogue.
                 setBusy(false);
-                // Existing catalogue is still valid; do not remove it on a
-                // transient page error or trigger an unrelated provider.
-                if (!result.success)
-                    setError(QStringLiteral("More Mini Apps could not be loaded; refresh to retry."));
                 return;
             }
             if (allowFallback && fallbackEndpoint.available()) {

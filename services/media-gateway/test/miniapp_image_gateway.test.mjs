@@ -220,3 +220,57 @@ test('exact verified Mini App images have a separate bounded gallery budget',asy
     assert.notEqual(unrelated.status,200);
   }finally{await new Promise(resolve=>gateway.close(resolve));}
 });
+
+test('Qt search limit=20 is accepted while malformed or oversized limits are rejected',async()=>{
+ await withServer(async(_state,base)=>{
+  const accepted=await fetch(base+'/v1/browser/miniapps?kind=search&q=genytask&limit=20');
+  assert.equal(accepted.status,200);
+  for(const suffix of ['limit=21','limit=-1','limit=2000','limit=two','limit=0']){
+   const result=await fetch(base+'/v1/browser/miniapps?kind=search&q=genytask&'+suffix);
+   assert.equal(result.status,400,suffix);
+  }
+ });
+});
+
+test('saved Mini App artwork is validated against its pinned manifest, not the first catalogue page',async()=>{
+ const origin='https://tasks.miniapps.genyleap.com';
+ const icon=origin+'/assets/logo.png';
+ const cover=origin+'/assets/splash.jpg?v=1.2';
+ const unrelated=origin+'/private.png';
+ let manifestReads=0;
+ let imageReads=0;
+ const gateway=createMediaGateway(config,{},{
+  fetchImpl:async()=>new Response(JSON.stringify({frames:[]}),{
+   status:200,headers:{'content-type':'application/json'}}),
+  resolveMiniAppPreview:async(url)=>{
+   assert.equal(url,origin);
+   manifestReads++;
+   return {status:200,data:{
+    resolved:true,verifiedImageUrls:[icon,cover],
+    title:'GenyTask',domain:'tasks.miniapps.genyleap.com'
+   }};
+  },
+  retrieveImage:async()=>{
+   imageReads++;
+   return {status:200,body:Buffer.from([137,80,78,71]),contentType:'image/png'};
+  },farcasterBroker:{}
+ });
+ await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve));
+ try{
+  const base='http://127.0.0.1:'+gateway.address().port;
+  for(const artwork of [icon,cover]){
+   const query='url='+encodeURIComponent(artwork)+'&miniapp='+encodeURIComponent(origin);
+   assert.equal((await fetch(base+'/v1/browser/images?'+query)).status,200);
+  }
+  assert.equal(manifestReads,1,'verified Mini App manifest should be cached');
+  assert.equal(imageReads,2);
+  assert.equal((await fetch(base+'/v1/browser/images?url='+encodeURIComponent(unrelated)+
+    '&miniapp='+encodeURIComponent(origin))).status,400);
+  assert.equal(imageReads,2,'arbitrary same-domain images must not be proxied');
+  const invalid=await fetch(base+'/v1/browser/images?url='+encodeURIComponent(icon)+
+    '&miniapp='+encodeURIComponent('https://localhost'));
+  assert.equal(invalid.status,400);
+  const preview=await fetch(base+'/v1/browser/miniapp-preview?url='+encodeURIComponent(origin));
+  assert.equal(preview.status,200,'artwork verification must not corrupt the preview response cache');
+ }finally{await new Promise(resolve=>gateway.close(resolve));}
+});
