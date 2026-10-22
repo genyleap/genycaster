@@ -109,6 +109,29 @@ void testCanonicalCodec()
     assert(cast->engagement.recasts == 1);
     assert(cast->engagement.replies == 3);
 
+    // Protocol text has no human-visible @handle. Farcaster positions count
+    // UTF-8 bytes (the 💯 symbol consumes four bytes), not UTF-16 indexes.
+    std::string withMention = test::hypersnap::fixtures::castResponse();
+    const auto textAt = withMention.find("hello native");
+    assert(textAt != std::string::npos);
+    withMention.replace(textAt, std::string{"hello native"}.size(), "Right! 💯 ");
+    const auto profilesAt = withMention.find("\"mentioned_profiles\": []");
+    assert(profilesAt != std::string::npos);
+    withMention.replace(profilesAt, std::string{"\"mentioned_profiles\": []"}.size(),
+        "\"mentioned_profiles\": [{\"fid\": 12345,\"username\":\"vrypan.eth\"}],"
+        "\"mentions_positions\": [12]");
+    auto hydrated = provider::hypersnap::codec::decodeCast(withMention);
+    assert(hydrated);
+    assert(hydrated->text == "Right! 💯 ");
+    assert(hydrated->displayText && *hydrated->displayText == "Right! 💯 @vrypan.eth");
+    // Invalid positions within a UTF-8 code point must never split an emoji.
+    const auto badAt = withMention.find("\"mentions_positions\": [12]");
+    assert(badAt != std::string::npos);
+    withMention.replace(badAt, std::string{"\"mentions_positions\": [12]"}.size(),
+        "\"mentions_positions\": [9]");
+    auto invalidMention = provider::hypersnap::codec::decodeCast(withMention);
+    assert(invalidMention && !invalidMention->displayText);
+
     auto conversation = provider::hypersnap::codec::decodeConversationPayload(
         test::hypersnap::fixtures::conversationResponse());
     assert(conversation);

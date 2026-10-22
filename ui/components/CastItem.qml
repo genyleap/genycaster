@@ -97,6 +97,13 @@ Item {
                                                        || (root.parentPreview.embeds || []).length > 0))
     property bool parentHydrationTimedOut: false
     onParentCastIdChanged: root.parentHydrationTimedOut = false
+    readonly property string castChannel: {
+        const supplied = String(root.modelData.channelId || root.modelData.castChannel || "").trim()
+        const source = String(root.modelData.parentUrl || "")
+        const match = source.match(/\/(?:~\/)?channel\/([a-z0-9][a-z0-9_-]{0,63})(?:[/?#]|$)/i)
+        const candidate = supplied || (match ? match[1] : "")
+        return /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(candidate) ? candidate : ""
+    }
     readonly property string authorName: root.modelData.displayName || root.modelData.author || qsTrId("genycaster.cast.unknown")
     readonly property string directionSeed: String(root.modelData.text || root.authorName || "")
     readonly property bool contentRtl: localizationController.isRightToLeftText(root.directionSeed)
@@ -419,9 +426,9 @@ Item {
             // the wrapper outside media Loaders preserves delegate reuse.
             Superellipse {
                 anchors.fill: parent
-                fillColor: Theme.surfaceRaised
-                borderWidth: Theme.strokeHairline
-                borderColor: Theme.borderSubtle
+                fillColor: Theme.backgroundPrimary
+                borderWidth: root.compact ? 0 : Theme.strokeHairline
+                borderColor: root.compact ? "transparent" : Theme.borderSubtle
                 curveDepth: Theme.curveContainer
             }
 
@@ -469,7 +476,7 @@ Item {
                         // Never derive a Layout constraint from the RowLayout's own
                         // width. That creates a circular size dependency and causes
                         // Qt Quick Layouts to recursively rearrange the row.
-                        Layout.fillWidth: root.compact
+                        Layout.fillWidth: !root.compact
                         Layout.minimumWidth: 0
                         Layout.maximumWidth: root.compact
                             ? Math.max(1, messageSurface.width - Theme.space4 * 2
@@ -485,6 +492,26 @@ Item {
                             enabled: Number(root.modelData.authorFid || 0) > 0
                             gesturePolicy: TapHandler.ReleaseWithinBounds
                             onTapped: root.profileRequested(Number(root.modelData.authorFid))
+                        }
+                    }
+
+                    RowLayout {
+                        visible: root.castChannel.length > 0
+                        Layout.maximumWidth: root.compact ? 140 : 180
+                        Layout.minimumWidth: 0
+                        spacing: Theme.space1
+                        Icon {
+                            text: "hash"
+                            color: Theme.inkMuted
+                            preferredSize: 13
+                        }
+                        DirectionAwareLabel {
+                            Layout.maximumWidth: root.compact ? 105 : 145
+                            text: root.castChannel
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            font.weight: Theme.weightDemiBold
+                            elide: Text.ElideRight
                         }
                     }
 

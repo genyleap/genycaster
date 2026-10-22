@@ -415,6 +415,66 @@ struct MappedCast final {
     domain::profile::Profile author{};
 };
 
+// Farcaster CastAdd text omits the display handles: mentions are inserted
+// at UTF-8 byte offsets. Neynar may expose a hydrated array of profiles and
+// either the canonical mentions_positions offsets or zero-length display
+// ranges. Never change the signed protocol text; only build a presentation
+// string when the provider supplied an unambiguous username and position.
+[[nodiscard]] std::optional<std::string> resolvedMentionText(
+    const JsonObject& castObject, const std::string_view original)
+{
+    const JsonValue* profilesValue = findValue(castObject, "mentioned_profiles");
+    if (profilesValue == nullptr || !profilesValue->is_array()) return std::nullopt;
+    const auto& profiles = profilesValue->as_array();
+    if (profiles.empty() || profiles.size() > 10U) return std::nullopt;
+    const JsonValue* positionsValue = findValue(castObject, "mentions_positions");
+    const JsonValue* rangesValue = findValue(castObject, "mentioned_profiles_ranges");
+    const bool canonical = positionsValue && positionsValue->is_array()
+        && positionsValue->as_array().size() == profiles.size();
+    const bool ranges = !canonical && rangesValue && rangesValue->is_array()
+        && rangesValue->as_array().size() == profiles.size();
+    if (!canonical && !ranges) return std::nullopt;
+    struct Insert {std::size_t position; std::string handle;};
+    std::vector<Insert> inserts{};
+    for (std::size_t i = 0; i < profiles.size(); ++i) {
+        if (!profiles[i].is_object()) return std::nullopt;
+        const auto username = optionalString(profiles[i].as_object(), "username");
+        if (!username || username->empty() || username->size() > 80
+            || !std::all_of(username->begin(),username->end(),[](unsigned char c) {
+                return std::isalnum(c) || c == '_' || c == '.' || c == '-';
+            })) return std::nullopt;
+        const auto& entries = canonical ? positionsValue->as_array() : rangesValue->as_array();
+        const auto& item = entries[i];
+        std::optional<std::uint64_t> offset{};
+        if (canonical) {
+            if (item.is_uint64()) offset = item.as_uint64();
+            else if (item.is_int64() && item.as_int64() >= 0)
+                offset = static_cast<std::uint64_t>(item.as_int64());
+        } else if (item.is_object()) {
+            const auto start = optionalUnsigned(item.as_object(),"start");
+            const auto end = optionalUnsigned(item.as_object(),"end");
+            // Non-empty Neynar ranges point to text already containing the
+            // human-visible handle; do not duplicate these mentions.
+            if (!start || !end || *start != *end) return std::nullopt;
+            offset = start;
+        }
+        if (!offset || *offset > original.size()) return std::nullopt;
+        const auto pos = static_cast<std::size_t>(*offset);
+        if (pos < original.size()
+            && (static_cast<unsigned char>(original[pos]) & 0xc0U) == 0x80U)
+            return std::nullopt;
+        inserts.push_back({pos, "@" + *username});
+    }
+    if (inserts.empty() || !std::is_sorted(inserts.begin(),inserts.end(),
+        [](const Insert& a,const Insert& b){return a.position < b.position;}))
+        return std::nullopt;
+    std::string rendered{original};
+    for (auto it=inserts.rbegin();it!=inserts.rend();++it)
+        rendered.insert(it->position,it->handle);
+    return rendered;
+}
+
+
 [[nodiscard]] foundation::result::Result<MappedCast> mapCast(
     const JsonObject& castObject,
     const bool retainAuthorProfiles = false)
@@ -449,6 +509,7 @@ struct MappedCast final {
     cast.id = domain::cast::CastId{std::move(*hash)};
     cast.author = author->fid;
     cast.text = std::move(*text);
+    cast.displayText = resolvedMentionText(castObject,cast.text);
     cast.createdAt = *timestamp;
     if (auto parentHash = optionalString(castObject, "parent_hash"); parentHash && !parentHash->empty()) {
         cast.parent = domain::cast::CastId{std::move(*parentHash)};

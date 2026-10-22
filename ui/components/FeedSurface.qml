@@ -45,7 +45,7 @@ Item {
     property int conversationPrefetchPages: 0
     property int developerPrefetchPages: 0
     property int automaticPrefetchPages: 0
-    readonly property int filterPrefetchPages: root.presentationMode === "for-you"
+    readonly property int filterPrefetchPages: (root.presentationMode === "for-you" || root.presentationMode === "following")
                                                ? root.forYouPrefetchPages
                                                : root.presentationMode === "visuals"
                                                  ? root.visualPrefetchPages
@@ -372,7 +372,7 @@ Item {
     }
 
     function incrementFilterPrefetchPages() {
-        if (root.presentationMode === "for-you")
+        if ((root.presentationMode === "for-you" || root.presentationMode === "following"))
             ++root.forYouPrefetchPages
         else if (root.presentationMode === "visuals")
             ++root.visualPrefetchPages
@@ -405,7 +405,7 @@ Item {
     }
 
     function resetCurrentFilterPrefetchBudget() {
-        if (root.presentationMode === "for-you")
+        if ((root.presentationMode === "for-you" || root.presentationMode === "following"))
             root.forYouPrefetchPages = 0
         else if (root.presentationMode === "visuals")
             root.visualPrefetchPages = 0
@@ -456,7 +456,7 @@ Item {
         const result = []
         for (let index = 0; index < source.length; ++index) {
             const row = source[index]
-            if (root.presentationMode === "for-you") {
+            if ((root.presentationMode === "for-you" || root.presentationMode === "following")) {
                 // The main Explorer timeline is a complete, provider-ordered
                 // stream of recent root casts, not a residual bucket after
                 // NFT/Devs/Conversation classification. Filtering those out

@@ -389,6 +389,8 @@ struct FeedPresentationIndex final {
     const domain::cast::Cast& cast,
     const FeedPresentationIndex* feedIndex = nullptr);
 
+[[nodiscard]] QString readableCastText(const domain::cast::Cast& cast);
+
 [[nodiscard]] QVariantMap referencedCastPresentation(
     const domain::cast::Embed& embed,
     const FeedPresentationIndex* const feedIndex)
@@ -407,7 +409,7 @@ struct FeedPresentationIndex final {
 
     const domain::profile::Profile* authorProfile = indexedProfile(*feedIndex, referenced->author);
     result.insert(QStringLiteral("resolved"), true);
-    result.insert(QStringLiteral("text"), QString::fromStdString(referenced->text));
+    result.insert(QStringLiteral("text"), readableCastText(*referenced));
     result.insert(QStringLiteral("displayName"), displayName(authorProfile));
     result.insert(QStringLiteral("author"), username(authorProfile));
     result.insert(QStringLiteral("avatarUrl"), avatarUrl(authorProfile));
@@ -501,7 +503,7 @@ struct FeedPresentationIndex final {
         {QStringLiteral("author"), username(authorProfile)},
         {QStringLiteral("displayName"), resolvedName},
         {QStringLiteral("avatarUrl"), avatarUrl(authorProfile)},
-        {QStringLiteral("text"), QString::fromStdString(cast.text)},
+        {QStringLiteral("text"), readableCastText(cast)},
         {QStringLiteral("createdAtMs"), static_cast<qlonglong>(cast.createdAt.time_since_epoch().count())},
         {QStringLiteral("isReply"), true},
         {QStringLiteral("depth"), depth},
@@ -560,7 +562,7 @@ struct FeedPresentationIndex final {
     parent.insert(QStringLiteral("author"), username(profile));
     parent.insert(QStringLiteral("displayName"), displayName(profile));
     parent.insert(QStringLiteral("avatarUrl"), avatarUrl(profile));
-    parent.insert(QStringLiteral("text"), QString::fromStdString(parentCast->text));
+    parent.insert(QStringLiteral("text"), readableCastText(*parentCast));
     parent.insert(QStringLiteral("createdAtMs"),
         static_cast<qlonglong>(parentCast->createdAt.time_since_epoch().count()));
     parent.insert(QStringLiteral("embeds"), embedItems(*parentCast, &feedIndex));
@@ -620,7 +622,7 @@ struct FeedPresentationIndex final {
         {QStringLiteral("castId"), QString::fromStdString(state.cast->id.value)},
         {QStringLiteral("resolved"), true},
         {QStringLiteral("authorFid"), static_cast<qulonglong>(state.cast->author.value)},
-        {QStringLiteral("text"), QString::fromStdString(state.cast->text)},
+        {QStringLiteral("text"), readableCastText(*state.cast)},
         {QStringLiteral("createdAtMs"), static_cast<qlonglong>(state.cast->createdAt.time_since_epoch().count())},
         {QStringLiteral("embeds"), embedItems(*state.cast)},
         {QStringLiteral("replyCount"), static_cast<qulonglong>(state.cast->engagement.replies)},
@@ -747,6 +749,13 @@ void applyProfileVerificationFixture(PresentationBridge& bridge)
     }, {}, {}, {}, false, false, false);
 }
 
+// Preserve raw protocol text in the domain, use the verified hydrated handle
+// projection only for human-facing feed, profile, reply and notification rows.
+[[nodiscard]] QString readableCastText(const domain::cast::Cast& cast)
+{
+    return QString::fromStdString(cast.displayText.value_or(cast.text));
+}
+
 // Immutable feed-state values are prepared on the bounded read executor;
 // never inspect a GUI-owned QObject in this function.
 [[nodiscard]] QVariantList feedPresentationRows(
@@ -765,7 +774,7 @@ void applyProfileVerificationFixture(PresentationBridge& bridge)
         QVariantMap parentPreview = parentCastPresentation(feedIndex, *cast);
         QStringList revisionParts{
             QString::fromStdString(cast->id.value),
-            QString::fromStdString(cast->text),
+            readableCastText(*cast),
             profile && profile->username ? QString::fromStdString(profile->username->value) : QString{},
             profile && profile->displayName ? QString::fromStdString(profile->displayName->value) : QString{},
             avatarUrl(profile),
@@ -802,7 +811,7 @@ void applyProfileVerificationFixture(PresentationBridge& bridge)
             {QStringLiteral("author"), username(profile)},
             {QStringLiteral("displayName"), displayName(profile)},
             {QStringLiteral("avatarUrl"), avatarUrl(profile)},
-            {QStringLiteral("text"), QString::fromStdString(cast->text)},
+            {QStringLiteral("text"), readableCastText(*cast)},
             {QStringLiteral("createdAtMs"), static_cast<qlonglong>(cast->createdAt.time_since_epoch().count())},
             {QStringLiteral("isReply"), cast->parent.has_value()},
             {QStringLiteral("parentCastId"), cast->parent ? QString::fromStdString(cast->parent->value) : QString{}},
@@ -996,7 +1005,7 @@ void applyNotificationState(
             row.insert(QStringLiteral("castId"), QString::fromStdString(item.cast->id.value));
             row.insert(QStringLiteral("castAuthorFid"), static_cast<qulonglong>(item.cast->author.value));
             row.insert(QStringLiteral("castParentId"), item.cast->parent ? QString::fromStdString(item.cast->parent->value) : QString{});
-            row.insert(QStringLiteral("castText"), QString::fromStdString(item.cast->text));
+            row.insert(QStringLiteral("castText"), readableCastText(*item.cast));
             if (item.cast->parentUrl) {
                 const QString channelUrl = QString::fromStdString(*item.cast->parentUrl);
                 if (channelUrl.contains(QStringLiteral("/channel/"))) {
@@ -1020,7 +1029,7 @@ void applyNotificationState(
         }
         if (item.parentCast) {
             row.insert(QStringLiteral("parentCastId"), QString::fromStdString(item.parentCast->id.value));
-            row.insert(QStringLiteral("parentText"), QString::fromStdString(item.parentCast->text));
+            row.insert(QStringLiteral("parentText"), readableCastText(*item.parentCast));
             if (!row.contains(QStringLiteral("castChannel")) && item.parentCast->parentUrl) {
                 const QString channelUrl = QString::fromStdString(*item.parentCast->parentUrl);
                 if (channelUrl.contains(QStringLiteral("/channel/"))) {
@@ -1444,7 +1453,7 @@ void applySignerState(PresentationBridge& bridge, application::signer::SignerSta
         presentation.insert(QStringLiteral("author"), author);
         presentation.insert(QStringLiteral("displayName"), display);
         presentation.insert(QStringLiteral("avatarUrl"), avatar);
-        presentation.insert(QStringLiteral("text"), QString::fromStdString(cast.text));
+        presentation.insert(QStringLiteral("text"), readableCastText(cast));
         presentation.insert(QStringLiteral("createdAtMs"), static_cast<qlonglong>(cast.createdAt.time_since_epoch().count()));
         presentation.insert(QStringLiteral("isReply"), cast.parent.has_value());
         presentation.insert(QStringLiteral("parentCastId"), cast.parent ? QString::fromStdString(cast.parent->value) : QString{});
@@ -3741,7 +3750,7 @@ void connectRuntime(
                         QVariantMap detail{{QStringLiteral("castId"), QString::fromStdString(state.castId.value)}};
                         if (state.cast) {
                             detail.insert(QStringLiteral("authorFid"), static_cast<qulonglong>(state.cast->author.value));
-                            detail.insert(QStringLiteral("text"), QString::fromStdString(state.cast->text));
+                            detail.insert(QStringLiteral("text"), readableCastText(*state.cast));
                             detail.insert(QStringLiteral("createdAtMs"),
                                 static_cast<qlonglong>(state.cast->createdAt.time_since_epoch().count()));
                             detail.insert(QStringLiteral("embedUrl"), firstUrlEmbed(*state.cast));

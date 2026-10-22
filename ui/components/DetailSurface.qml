@@ -52,6 +52,12 @@ ListView {
 
     readonly property string directionSeed: String(root.detail.text || root.detail.bio || root.detail.displayName || root.detail.author || "")
     readonly property bool contentRtl: localizationController.isRightToLeftText(root.directionSeed)
+    readonly property string castChannel: {
+        const source = String(root.detail.parentUrl || "")
+        const match = source.match(/\/(?:~\/)?channel\/([a-z0-9][a-z0-9_-]{0,63})(?:[/?#]|$)/i)
+        const candidate = String(root.detail.channelId || root.detail.castChannel || (match ? match[1] : ""))
+        return /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(candidate) ? candidate : ""
+    }
     readonly property string parentTokenLocator: TokenSemantic.canonicalLocator(String(root.detail.parentUrl || ""))
     readonly property bool hasProtocolTokenParent: root.parentTokenLocator.length > 0
     readonly property var effectiveEmbeds: root.activeView === "cast" ? root.buildEffectiveEmbeds() : []
@@ -270,9 +276,9 @@ ListView {
         Superellipse {
             Layout.fillWidth: true
             implicitHeight: detailBody.implicitHeight + Theme.space4 * 2
-            fillColor: Theme.surfaceRaised
-            borderWidth: Theme.strokeHairline
-            borderColor: Theme.borderSubtle
+            fillColor: root.activeView === "cast" ? Theme.backgroundPrimary : Theme.surfaceRaised
+            borderWidth: root.activeView === "cast" && root.compact ? 0 : Theme.strokeHairline
+            borderColor: root.activeView === "cast" && root.compact ? "transparent" : Theme.borderSubtle
             curveDepth: Theme.curveModal
 
             ColumnLayout {
@@ -331,6 +337,15 @@ ListView {
                             Layout.fillWidth: true
                             spacing: Theme.space1
                             layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
+
+                            DirectionAwareLabel {
+                                visible: root.activeView === "cast" && root.castChannel.length > 0
+                                text: qsTr("in") + " #" + root.castChannel
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: Theme.weightDemiBold
+                                elide: Text.ElideRight
+                            }
 
                             Label {
                                 visible: Boolean(root.detail.username)

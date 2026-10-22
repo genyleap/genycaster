@@ -8,6 +8,12 @@
   "background_color": "#0b0c0f",
   "theme_color": "#0b0c0f",
   "icons": [
-    {"src":"./genycaster-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}
-  ]
+    {
+      "src": "./genycaster-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "orientation": "portrait"
 }

@@ -333,7 +333,9 @@ Item {
         // Explorer uses a separate confirmed chronological network feed.
         // Home's personal Following and ranked Trending timelines remain intact.
         // The provider owns cursor-based continuation and bulk hydration.
-        const source = nextMode === "visuals" ? "nfts"
+        const source = nextMode === "following" ? (presentationBridge.isAuthenticated
+                            && root.identityAvailable ? "following" : "recent")
+                     : nextMode === "visuals" ? "nfts"
                      : nextMode === "devs" ? "developers"
                      : nextMode === "conversations" ? "conversations" : "recent"
         const emptySettledSource = presentationBridge.feedStarted
@@ -402,10 +404,18 @@ Item {
     }
 
     function openQuoteComposer(cast) {
-        if (!cast || !/^0x[0-9a-f]{40}$/i.test(String(cast.castId || ""))
-                || Number(cast.authorFid || 0) <= 0)
+        const hash = String(cast && (cast.castId || cast.hash) || "")
+        const authorFid = Number(cast && cast.authorFid || 0)
+        if (!/^0x[0-9a-f]{40}$/i.test(hash) || authorFid <= 0) {
+            root.replyTargetErrorText = qsTr("This cast cannot be quoted because its canonical reference is unavailable.")
+            replyTargetErrorLoader.active = true
+            Qt.callLater(function() {
+                if (replyTargetErrorLoader.item) replyTargetErrorLoader.item.open()
+            })
             return
-        root.openComposer(null, "quote", "", cast)
+        }
+        root.openComposer(null, "quote", "", Object.assign({}, cast,
+                            { castId: hash, authorFid: authorFid }))
     }
 
     function openComposer(parentCast, initialAction, suggestedText, quoteCast) {

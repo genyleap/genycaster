@@ -67,6 +67,8 @@ struct Cast final {
     CastId id{};
     identity::Fid author{};
     std::string text{};
+    /** @brief Provider-resolved mention display; raw protocol text remains immutable. */
+    std::optional<std::string> displayText{};
     std::optional<CastId> parent{};
     /** @brief Protocol-native parent URL used by channel/root casts when no parent cast is present. */
     std::optional<std::string> parentUrl{};

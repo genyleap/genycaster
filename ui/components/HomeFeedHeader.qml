@@ -152,7 +152,8 @@ Item {
 
         StoryStrip {
             Layout.fillWidth: true
-            profiles: root.recentProfiles
+            profiles: root.authenticated ? root.recentProfiles : []
+            followingOnly: true
             ownAvatarUrl: root.ownAvatarUrl
             compact: root.compact
             onProfileRequested: profile => root.recentProfileRequested(profile)

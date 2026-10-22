@@ -5,6 +5,7 @@ Item {
     id: root
 
     property var profiles: []
+    property bool followingOnly: true
     property bool compact: false
     // Explicit signed-in viewer photo; do not derive it from public feed rows.
     property string ownAvatarUrl: ""
@@ -25,7 +26,9 @@ Item {
         clip: true
         boundsBehavior: Flickable.DragOverBounds
         interactive: true
-        model: root.profiles
+        // Profiles are resolved from the signed-in Follow graph by the
+        // PresentationBridge, never from public Recent/Trending feed rows.
+        model: root.followingOnly ? root.profiles : []
         ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
 
         delegate: StoryItem {
