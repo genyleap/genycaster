@@ -55,6 +55,9 @@ signals:
     void membershipStateChanged();
     void errorTextChanged();
     void queryChanged();
+    // Delivered after a successful choice, outside the ListView delegate's tap
+    // handler; rebuilding the model during the tap used to invalidate its QML.
+    void channelChosen(const QVariantMap& selection);
 
 private:
     struct CachedSearch {

@@ -446,6 +446,20 @@ GenyDrawer {
         }
     }
 
+    // The controller confirms the choice after the delegate's tap returns.
+    // Never mutate/destroy a ListView row inside its own onClicked handler.
+    Connections {
+        target: channelDirectory
+        function onChannelChosen(selection) {
+            if (!root.opened || !channelPicker.opened) return
+            root.selectedParentUrl = String(selection.parentUrl || "")
+            root.selectedContextLabel = selection.isHome ? "" : String(selection.name || "")
+            root.selectedChannelId = selection.isHome ? "" : String(selection.id || "")
+            root.selectedContextImage = selection.isHome ? "" : String(selection.imageUrl || "")
+            channelPicker.close()
+        }
+    }
+
     GenyDrawer {
         id: channelPicker
         objectName: "composerChannelDrawer"
@@ -593,15 +607,10 @@ GenyDrawer {
                                 font.pixelSize: Theme.typeCaptionSize
                                 text: channelRow.isHome
                                     ? qsTrId("genycaster.composer.no_channel")
-                                    : channelRow.modelData.memberCount >= 0
-                                      ? qsTrId("genycaster.composer.channel_member_count")
-                                          .arg(LocaleFormat.formatInteger(channelRow.modelData.memberCount))
-                                      : channelRow.modelData.followerCount >= 0
-                                        ? qsTrId("genycaster.composer.channel_follower_count")
-                                            .arg(LocaleFormat.formatInteger(channelRow.modelData.followerCount))
-                                        : (channelRow.isMember
-                                           ? qsTrId("genycaster.composer.joined_channel")
-                                           : qsTrId("genycaster.composer.not_joined_channel"))
+                                    : qsTrId("genycaster.composer.channel_follower_count")
+                                        .arg(channelRow.modelData.followerCount >= 0
+                                             ? LocaleFormat.formatInteger(channelRow.modelData.followerCount)
+                                             : "—")
                                 elide: Text.ElideRight
                                 maximumLineCount: 1
                             }
@@ -634,17 +643,10 @@ GenyDrawer {
                         enabled: channelRow.selectable
                         hoverEnabled: !root.compact && channelRow.selectable
                         onClicked: {
-                            const selection = channelDirectory.chooseChannel(
-                                String(channelRow.modelData.id || ""))
-                            if (!selection || !selection.selectable) return
-                            root.selectedParentUrl = String(selection.parentUrl || "")
-                            root.selectedContextLabel = selection.isHome
-                                ? "" : String(selection.name || "")
-                            root.selectedChannelId = selection.isHome
-                                ? "" : String(selection.id || "")
-                            root.selectedContextImage = selection.isHome
-                                ? "" : String(selection.imageUrl || "")
-                            channelPicker.close()
+                            // A synchronous model refresh inside chooseChannel
+                            // previously invalidated this delegate before the
+                            // chip was updated. A controller signal applies it.
+                            channelDirectory.chooseChannel(String(channelRow.modelData.id || ""))
                         }
                     }
                 }

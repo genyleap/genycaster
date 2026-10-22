@@ -142,13 +142,40 @@ test('search prioritizes exact or near matches, and remembers frequent choices p
  assert.match(backend,/constexpr int searchTtlMs/);
  assert.match(backend,/m_searchCache.insert\(/);
 });
-test('channel results show live HyperSnap member counts, not fabricated follower values',()=>{
+test('channel rows report only verified follower counts, not HyperSnap membership counts',()=>{
  const backend=read('ui/mobile/channel_picker_controller.cpp');
  const composer=read('ui/components/ComposerDrawer.qml');
- assert.match(backend,/channel.value\(QStringLiteral\("member_count"\)\).toInteger\(-1\)/);
- assert.match(composer,/qsTrId\("genycaster.composer.channel_member_count"\)/);
- assert.match(composer,/LocaleFormat.formatInteger\(channelRow.modelData.memberCount\)/);
+ assert.match(backend,/channel.value\(QStringLiteral\("follower_count"\)\).toInteger\(-1\)/);
  assert.match(composer,/qsTrId\("genycaster.composer.channel_follower_count"\)/);
+ assert.match(composer,/LocaleFormat.formatInteger\(channelRow.modelData.followerCount\)/);
+ assert.doesNotMatch(composer,/qsTrId\("genycaster.composer.channel_member_count"\)/);
+ assert.doesNotMatch(composer,/LocaleFormat.formatInteger\(channelRow.modelData.memberCount\)/);
+});
+
+test('channel selection emits a deferred C++ confirmation instead of invalidating its own delegate',()=>{
+ const backend=read('ui/mobile/channel_picker_controller.cpp');
+ const header=read('ui/mobile/channel_picker_controller.hpp');
+ const composer=read('ui/components/ComposerDrawer.qml');
+ assert.match(header,/void channelChosen\(const QVariantMap& selection\)/);
+ assert.match(backend,/QTimer::singleShot\(0, this, \[this, selected, generation\]/);
+ assert.match(backend,/emit channelChosen\(selected\);\s*rebuildRows\(\)/);
+ assert.match(composer,/function onChannelChosen\(selection\)/);
+ assert.match(composer,/channelDirectory.chooseChannel\(String\(channelRow.modelData.id \|\| ""\)\)/);
+ assert.doesNotMatch(composer,/const selection = channelDirectory.chooseChannel/);
+});
+
+test('composer editing shows compact clipboard actions beside the selection',()=>{
+ const editor=read('ui/components/DirectionAwareTextArea.qml');
+ const composer=read('ui/components/ComposerDrawer.qml');
+ assert.match(editor,/objectName: "editorSelectionActions"/);
+ assert.match(editor,/root.mapToItem\(selectionBar.parent, caret.x, caret.y\)/);
+ assert.match(editor,/onPressAndHold:/);
+ assert.match(editor,/onSelectedTextChanged:/);
+ assert.match(editor,/root.copy\(\)/);
+ assert.match(editor,/root.cut\(\)/);
+ assert.match(editor,/root.selectAll\(\)/);
+ assert.match(composer,/id: mobilePlainEditor/);
+ assert.match(composer,/id: threadEditor/);
 });
 
 test('composer context uses outline pills before selection and fixed footer above the keyboard',()=>{

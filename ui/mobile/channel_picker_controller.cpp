@@ -646,7 +646,14 @@ void ChannelPickerController::rebuildRows()
 
 QVariantMap ChannelPickerController::chooseChannel(const QString& id)
 {
-    if (id.isEmpty()) return homeRow();
+    if (id.isEmpty()) {
+        const QVariantMap home = homeRow();
+        const quint64 generation = m_generation;
+        QTimer::singleShot(0, this, [this, home, generation] {
+            if (generation == m_generation) emit channelChosen(home);
+        });
+        return home;
+    }
     if (m_viewerFid == 0) return {};
     const auto it = m_members.constFind(id);
     if (it == m_members.cend()) return {};
@@ -655,9 +662,16 @@ QVariantMap ChannelPickerController::chooseChannel(const QString& id)
     if (!validParentUrl(row.value(QStringLiteral("parentUrl")).toString())) return {};
     m_usage.insert(id, std::min(m_usage.value(id) + 1, 1'000'000));
     saveUsage();
-    rebuildRows();
     QVariantMap selected = row;
     selected.insert(QStringLiteral("selectable"), true);
     selected.insert(QStringLiteral("isMember"), true);
+    // Changing rows here destroys the QML ListView delegate inside onClicked
+    // before it can apply the selection. Emit from the next event loop turn.
+    const quint64 generation = m_generation;
+    QTimer::singleShot(0, this, [this, selected, generation] {
+        if (generation != m_generation) return;
+        emit channelChosen(selected);
+        rebuildRows();
+    });
     return selected;
 }

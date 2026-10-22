@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 
 TextArea {
     id: root
@@ -11,6 +12,94 @@ TextArea {
     // visual, Markdown, list and thread editor using the shared theme.
     ContextMenu.menu: EditorContextMenu { editor: root }
 
+    // A compact selection menu must appear beside the selected word in both
+    // the cast composer and its reply/thread editors (not at the screen edge).
+    // Keep the existing full context menu for desktop right-click.
+    function showSelectionActions() {
+        if (!root.selectedText.length || !selectionBar.parent) return
+        const caret = root.cursorRectangle
+        const position = root.mapToItem(selectionBar.parent, caret.x, caret.y)
+        selectionBar.x = Math.max(8, Math.min(selectionBar.parent.width
+                                            - selectionBar.implicitWidth - 8,
+                                            position.x - selectionBar.implicitWidth / 2))
+        selectionBar.y = Math.max(8, position.y - selectionBar.implicitHeight - 12)
+        selectionBar.open()
+    }
+
+    Timer {
+        id: selectionDelay
+        interval: 260
+        repeat: false
+        onTriggered: if (root.activeFocus && root.selectedText.length > 0)
+                         root.showSelectionActions()
+    }
+    onSelectedTextChanged: {
+        if (selectedText.length > 0 && activeFocus)
+            selectionDelay.restart()
+        else {
+            selectionDelay.stop()
+            selectionBar.close()
+        }
+    }
+    onPressAndHold: mouse => {
+        if (!root.text.length) return
+        if (!root.selectedText.length) {
+            root.cursorPosition = root.positionAt(mouse.x, mouse.y)
+            root.selectWord()
+        }
+        selectionDelay.stop()
+        root.showSelectionActions()
+    }
+    onActiveFocusChanged: if (!activeFocus) selectionBar.close()
+
+    Popup {
+        id: selectionBar
+        objectName: "editorSelectionActions"
+        parent: Overlay.overlay
+        focus: false
+        modal: false
+        dim: false
+        padding: Theme.space1
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        background: Superellipse {
+            fillColor: Theme.surfaceElevated
+            borderColor: Theme.borderMuted
+            borderWidth: 1
+            curveDepth: Theme.curveContainer
+            elevation: Theme.elevationControl
+        }
+        contentItem: RowLayout {
+            spacing: Theme.space1
+            ActionButton {
+                compact: true
+                quiet: true
+                text: qsTrId("genycaster.feedback.copy")
+                onClicked: {
+                    root.copy()
+                    selectionBar.close()
+                }
+            }
+            ActionButton {
+                compact: true
+                quiet: true
+                text: qsTrId("genycaster.editor.cut")
+                onClicked: {
+                    root.cut()
+                    selectionBar.close()
+                }
+            }
+            ActionButton {
+                compact: true
+                quiet: true
+                text: qsTrId("genycaster.editor.select_all")
+                onClicked: {
+                    root.selectAll()
+                    selectionBar.close()
+                }
+            }
+        }
+    }
+
     readonly property string analyzedText: text.length > 0 ? text : placeholderText
     readonly property int effectiveTextDirection: forceLeftToRight ? Qt.LeftToRight
                                                   : forceRightToLeft ? Qt.RightToLeft
@@ -18,6 +107,11 @@ TextArea {
                                                      ? Theme.uiDirection
                                                      : (localizationController.isRightToLeftText(analyzedText)
                                                         ? Qt.RightToLeft : Qt.LeftToRight))
+
+    // Preserve a selected range when the floating Copy toolbar receives
+    // a tap, including in secondary cast/thread editors.
+    selectByMouse: true
+    persistentSelection: true
 
     leftPadding: Theme.space4
     rightPadding: Theme.space4

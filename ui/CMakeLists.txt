@@ -1270,6 +1270,19 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
     set_tests_properties(ui.openproof_connections PROPERTIES TIMEOUT 10
         LABELS "ui;openproof;connections;security")
 
+    add_executable(farcaster_channel_picker_controller_tests
+        ../tests/ui/channel_picker_controller_tests.cpp
+        mobile/channel_picker_controller.cpp
+        mobile/channel_picker_controller.hpp)
+    target_include_directories(farcaster_channel_picker_controller_tests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/mobile")
+    target_link_libraries(farcaster_channel_picker_controller_tests PRIVATE
+        Qt6::Core Qt6::Network)
+    farcaster_enable_warnings(farcaster_channel_picker_controller_tests)
+    add_test(NAME ui.channel_picker_controller COMMAND farcaster_channel_picker_controller_tests)
+    set_tests_properties(ui.channel_picker_controller PROPERTIES TIMEOUT 12
+        LABELS "ui;channels;selection;network")
+
     add_executable(farcaster_update_controller_tests
         ../tests/ui/update_controller_tests.cpp
         mobile/update_controller.cpp
