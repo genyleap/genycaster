@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 
 // Renders one rich-text block natively (RichInlineTextItem) with emoji as
 // real inline layout objects and optional Noto Lottie animation overlays.
@@ -78,48 +77,6 @@ Item {
         alignRight: root.rtlContent
         onLinkActivated: link => root.externalRequested(link)
         onPlainTextActivated: root.bodyActivated()
-        onSelectionCompleted: {
-            if (selectedText.length > 0)
-                selectionMenu.popup()
-        }
-    }
-
-    // A long press works with Qt's native touch gesture handling on iOS and
-    // Android; mouse dragging also selects through QTextDocument hit-testing.
-    TapHandler {
-        id: selectionGesture
-        acceptedButtons: Qt.LeftButton
-        gesturePolicy: TapHandler.DragThreshold
-        longPressThreshold: 0.48
-        onLongPressed: {
-            textLayout.selectWordAt(point.position.x, point.position.y)
-        }
-    }
-
-    Menu {
-        id: selectionMenu
-        popupType: Popup.Item
-        modal: false
-        width: 214
-        padding: Theme.space2
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Superellipse {
-            fillColor: Theme.surfaceElevated
-            borderColor: Theme.borderStrong
-            borderWidth: Theme.strokeHairline
-            curveDepth: Theme.curveContainer
-        }
-        EditorMenuItem {
-            hostMenu: selectionMenu
-            label: qsTrId("genycaster.feedback.copy")
-            actionEnabled: textLayout.selectedText.length > 0
-            onTriggered: presentationBridge.copyText(textLayout.selectedText)
-        }
-        EditorMenuItem {
-            hostMenu: selectionMenu
-            label: qsTrId("genycaster.editor.select_all")
-            onTriggered: textLayout.selectAllText()
-        }
     }
 
     Repeater {

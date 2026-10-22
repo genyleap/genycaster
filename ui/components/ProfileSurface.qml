@@ -927,7 +927,6 @@ Item {
                             text: root.activeDetail.displayName || (root.showUsername ? root.activeDetail.username : "")
                                   || qsTrId("genycaster.profile.farcaster_profile")
                             color: Theme.ink
-                            selectable: true
                             font.pixelSize: root.compact ? Theme.typeTitle2Size : Theme.typeTitle1Size
                             font.weight: Theme.weightBold
                             horizontalAlignment: Theme.textStartAlignment
@@ -1045,7 +1044,6 @@ Item {
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 text: root.displayLocation
-                                selectable: true
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 elide: Text.ElideRight

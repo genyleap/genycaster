@@ -61,11 +61,12 @@ NodeSelectionController::NodeSelectionController(
         m_proxyMode != QStringLiteral("direct")) {
         m_proxyMode = QStringLiteral("system");
     }
-    // The composition root supplies the applied node and provider defaults.
-    // This controller must not inject an unrelated public node into a custom
-    // provider's candidate list.
-    if (!m_appliedEndpoint.isEmpty())
-        candidateEndpoints.prepend(m_appliedEndpoint);
+    if (m_appliedEndpoint.isEmpty()) {
+        m_appliedEndpoint = QStringLiteral("https://haatz.quilibrium.com");
+    }
+
+    candidateEndpoints.prepend(QStringLiteral("https://haatz.quilibrium.com"));
+    candidateEndpoints.prepend(m_appliedEndpoint);
 
     QStringList uniqueEndpoints{};
     for (QString endpoint : candidateEndpoints) {
@@ -79,9 +80,13 @@ NodeSelectionController::NodeSelectionController(
     for (qsizetype index = 0; index < uniqueEndpoints.size(); ++index) {
         const QString endpoint = uniqueEndpoints.at(index);
         const QUrl url{endpoint};
+        const bool publicDefault = endpoint.compare(
+            QStringLiteral("https://haatz.quilibrium.com"), Qt::CaseInsensitive) == 0;
         m_nodes.push_back(Node{
             .id = nodeIdForIndex(index),
-            .label = QStringLiteral("Hypersnap · %1").arg(url.host()),
+            .label = publicDefault
+                ? QStringLiteral("Hypersnap · Public")
+                : QStringLiteral("Hypersnap · %1").arg(url.host()),
             .endpoint = endpoint,
         });
     }

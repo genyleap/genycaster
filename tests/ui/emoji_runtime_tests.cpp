@@ -144,22 +144,6 @@ int main(int argc, char** argv)
     expect(narrowMetrics.contentHeight() < narrowMetricHeight,
         "wrapping recomputes when a compact desktop window is widened");
 
-    // Native QTextDocument selection must remain interoperable with emoji and
-    // bidirectional text, instead of trapping visible cast text in a picture.
-    const QImage beforeSelection = painted(text);
-    text.selectAllText();
-    const QString copied = text.selectedText();
-    expect(copied.contains(joy + joy), "copy text preserves adjacent emoji clusters");
-    expect(copied.contains(QString::fromUtf8("سلام")),
-        "copy text preserves RTL Unicode words");
-    expect(copied.contains(QString::fromUtf8("🔥")),
-        "copy text restores original emoji instead of U+FFFC objects");
-    const QImage selected = painted(text);
-    expect(selected != beforeSelection,
-        "selection highlight changes the same native rich-text document");
-    text.clearSelection();
-    expect(text.selectedText().isEmpty(), "selection is cleared after dismissal");
-
     const QImage fallback = painted(text);
     for (const auto& box : boxes) {
         text.setEmojiAnimated(box.toMap().value("position").toInt(), true);

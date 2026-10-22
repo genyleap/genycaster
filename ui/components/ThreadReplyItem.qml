@@ -164,7 +164,6 @@ ColumnLayout {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: String(root.reply.displayName || root.reply.author || qsTrId("genycaster.notifications.someone"))
-                        selectable: true
                         color: Theme.textPrimary
                         font.pixelSize: Theme.typeLabelSize
                         font.weight: Theme.weightDemiBold

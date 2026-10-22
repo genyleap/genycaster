@@ -6,10 +6,6 @@ Label {
 
     property bool forceLeftToRight: false
     property bool forceRightToLeft: false
-    property bool selectable: false
-    textInteractionFlags: selectable
-                          ? (Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
-                          : Qt.NoTextInteraction
 
     readonly property string analyzedText: text.length > 0 ? text : (typeof placeholderText !== "undefined" ? placeholderText : "")
     readonly property int effectiveTextDirection: forceLeftToRight ? Qt.LeftToRight

@@ -232,7 +232,6 @@ Superellipse {
                 visible: root.bio.length > 0
                 Layout.fillWidth: true
                 text: root.bio
-                selectable: true
                 color: Theme.textSecondary
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.Wrap
