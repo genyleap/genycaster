@@ -194,3 +194,29 @@ test('catalogue cursor is relayed only as a bounded provider cursor',async()=>{
     }
   }finally{await new Promise(resolve=>gateway.close(resolve));}
 });
+
+test('exact verified Mini App images have a separate bounded gallery budget',async()=>{
+  const strict={...config,rateLimit:1};
+  const icons=Array.from({length:5},(_,index)=>
+    'https://gallery-images.example.org/icon'+index+'.png');
+  const gateway=createMediaGateway(strict,{},{
+    fetchImpl:async()=>new Response(JSON.stringify({frames:icons.map(icon=>({
+      manifest:{miniapp:{name:'App',home_url:'https://apps.example.org/',icon_url:icon}}
+    }))}),{status:200,headers:{'content-type':'application/json'}}),
+    retrieveImage:async()=>({
+      status:200,body:Buffer.from([137,80,78,71]),contentType:'image/png'
+    }),farcasterBroker:{}
+  });
+  await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve));
+  try{
+    const base='http://127.0.0.1:'+gateway.address().port;
+    assert.equal((await fetch(base+'/v1/browser/miniapps?kind=catalog')).status,200);
+    for(const icon of icons){
+      const result=await fetch(base+'/v1/browser/images?url='+encodeURIComponent(icon));
+      assert.equal(result.status,200,icon);
+    }
+    const unrelated=await fetch(base+'/v1/browser/images?url='+
+      encodeURIComponent('https://gallery-images.example.org/private.png'));
+    assert.notEqual(unrelated.status,200);
+  }finally{await new Promise(resolve=>gateway.close(resolve));}
+});

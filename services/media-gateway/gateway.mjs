@@ -443,6 +443,11 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   };
   const replayCache = dependencies.replayCache ?? new ReplayCache(config.proofLifetimeSeconds);
   const limiter = dependencies.limiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.rateLimit);
+  // Verified Mini App artwork is shown in a 3-column scrolling gallery.
+  // It needs a separate *bounded* allowance so a fast fling cannot exhaust
+  // the generic API budget. Only exact URLs from trusted catalogues qualify.
+  const miniAppArtworkLimiter = dependencies.miniAppArtworkLimiter
+    ?? new FixedWindowRateLimiter(config.rateWindowMs, Math.max(config.rateLimit, 180));
   const partLimiter = dependencies.partLimiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.partRateLimit);
   const farcasterBroker = dependencies.farcasterBroker ?? createBrowserFarcasterBroker({
     ...runtime, issuerOrigin:config.openProofIssuer.origin,
@@ -1217,12 +1222,16 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       if (request.method !== 'GET') {
         writeJson(response, 405, { error: 'method_not_allowed' }); return;
       }
-      const rate = limiter.check(clientAddress(request, config.trustCloudflare), runtime.now());
+      const requested = requestUrl.searchParams.get('url');
+      const verifiedArtwork = typeof requested === 'string'
+        && ((verifiedMiniAppIcons.get(requested) || 0) > runtime.now()
+            || (verifiedMiniAppImages.get(requested) || 0) > runtime.now());
+      const limit = verifiedArtwork ? miniAppArtworkLimiter : limiter;
+      const rate = limit.check(clientAddress(request, config.trustCloudflare), runtime.now());
       if (!rate.allowed) {
         writeJson(response, 429, { error: 'rate_limited' }, { 'retry-after': '60' });
         return;
       }
-      const requested = requestUrl.searchParams.get('url');
       let allowedHosts;
       // First-party catalogue icons and verified OpenGraph images may live
       // outside the static CDN allowlist. Both must match an exact short-lived
