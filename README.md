@@ -1,5 +1,16 @@
 # Genycaster — Native Local-First Farcaster Client
 
+## License
+
+**Copyright © 2025–2026 Genyleap.**
+
+GenyCaster's original source code is licensed under the **GNU General Public License, version 3 only** (`GPL-3.0-only`) for all supported platforms, including macOS, Windows, Linux, Android, iOS, and WebAssembly. See [LICENSE](LICENSE) for the full license terms.
+
+People may study, modify, fork, and commercially redistribute the software under the conditions of GPLv3. Anyone distributing a covered modified version must comply with GPLv3, including preserving required notices, marking modifications, and providing the corresponding source code. GPLv3 does **not** prohibit selling forks.
+
+The Genyleap and GenyCaster names and logos are not licensed as trademarks by GPLv3. Third-party code and assets (including Qt modules, fonts, and artwork) retain their own respective license terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The project's GPLv3 license does not override those terms.
+
+
 This repository contains the architectural contract and the buildable foundation for a native Farcaster client designed around five non-negotiable properties:
 
 1. **Protocol-first** — Farcaster protocol semantics are distinct from product/backend semantics.
