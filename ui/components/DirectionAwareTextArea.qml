@@ -50,7 +50,8 @@ TextArea {
         selectionDelay.stop()
         root.showSelectionActions()
     }
-    onActiveFocusChanged: if (!activeFocus) selectionBar.close()
+    // Keep the selection alive while the user taps Copy. Tapping a toolbar
+    // button can change activeFocus before its onClicked runs in Qt/WASM.
 
     Popup {
         id: selectionBar
@@ -73,6 +74,7 @@ TextArea {
             ActionButton {
                 compact: true
                 quiet: true
+                focusPolicy: Qt.NoFocus
                 text: qsTrId("genycaster.feedback.copy")
                 onClicked: {
                     // Use the browser clipboard bridge on WASM/iOS Safari;
@@ -84,6 +86,7 @@ TextArea {
             ActionButton {
                 compact: true
                 quiet: true
+                focusPolicy: Qt.NoFocus
                 text: qsTrId("genycaster.editor.cut")
                 onClicked: {
                     presentationBridge.copyText(root.selectedText)
@@ -94,6 +97,7 @@ TextArea {
             ActionButton {
                 compact: true
                 quiet: true
+                focusPolicy: Qt.NoFocus
                 text: qsTrId("genycaster.editor.select_all")
                 onClicked: {
                     root.selectAll()

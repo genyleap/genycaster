@@ -172,6 +172,8 @@ test('composer editing shows compact clipboard actions beside the selection',()=
  assert.match(editor,/onPressAndHold:/);
  assert.match(editor,/onSelectedTextChanged:/);
  assert.match(editor,/presentationBridge.copyText\(root.selectedText\)/);
+ assert.match(editor,/focusPolicy: Qt.NoFocus/);
+ assert.doesNotMatch(editor,/onActiveFocusChanged: if \(!activeFocus\) selectionBar.close\(\)/);
  assert.match(editor,/root.cut\(\)/);
  assert.match(editor,/root.selectAll\(\)/);
  assert.match(composer,/id: mobilePlainEditor/);
