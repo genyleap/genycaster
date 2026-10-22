@@ -40,13 +40,16 @@ Menu {
         label: qsTrId("genycaster.editor.cut")
         actionEnabled: root.editor !== null && root.editor.selectedText.length > 0
         hostMenu: root
-        onTriggered: root.editor.cut()
+        onTriggered: {
+            presentationBridge.copyText(root.editor.selectedText)
+            root.editor.cut()
+        }
     }
     EditorMenuItem {
         label: qsTrId("genycaster.feedback.copy")
         actionEnabled: root.editor !== null && root.editor.selectedText.length > 0
         hostMenu: root
-        onTriggered: root.editor.copy()
+        onTriggered: presentationBridge.copyText(root.editor.selectedText)
     }
     EditorMenuItem {
         label: qsTrId("genycaster.editor.paste")
@@ -59,5 +62,11 @@ Menu {
         actionEnabled: root.editor !== null && root.editor.text.length > 0
         hostMenu: root
         onTriggered: root.editor.selectAll()
+    }
+    EditorMenuItem {
+        label: qsTrId("genycaster.editor.clear_selection")
+        actionEnabled: root.editor !== null && root.editor.selectedText.length > 0
+        hostMenu: root
+        onTriggered: root.editor.deselect()
     }
 }

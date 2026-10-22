@@ -4142,6 +4142,10 @@
             <source>Paste</source>
             <translation>粘贴</translation>
         </message>
+        <message id="genycaster.editor.clear_selection">
+            <source>Clear selection</source>
+            <translation>取消选择</translation>
+        </message>
         <message id="genycaster.editor.select_all">
             <source>Select All</source>
             <translation>全选</translation>

@@ -136,23 +136,42 @@ Item {
                     curveDepth: Theme.curveControl
                     elevation: Theme.elevationControl
                 }
-                contentItem: Item {
-                    implicitWidth: Math.max(72, copyTextLabel.implicitWidth + Theme.space4 * 2)
-                    implicitHeight: 34
-                    DirectionAwareLabel {
-                        id: copyTextLabel
-                        anchors.centerIn: parent
+                contentItem: RowLayout {
+                    spacing: Theme.space1
+                    ActionButton {
+                        objectName: "castSelectionCopy"
+                        compact: true
+                        quiet: true
+                        focusPolicy: Qt.NoFocus
                         text: qsTrId("genycaster.feedback.copy")
-                        color: Theme.textPrimary
-                        font.pixelSize: Theme.typeCaptionSize
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        Accessible.role: Accessible.Button
-                        Accessible.name: copyTextLabel.text
                         onClicked: {
                             if (textLayout.selectedText.length > 0)
                                 presentationBridge.copyText(textLayout.selectedText)
+                            copyPopup.close()
+                        }
+                    }
+                    ActionButton {
+                        objectName: "castSelectionAll"
+                        compact: true
+                        quiet: true
+                        focusPolicy: Qt.NoFocus
+                        text: qsTrId("genycaster.editor.select_all")
+                        onClicked: {
+                            textLayout.selectAllText()
+                            // Keep the menu open so Copy and Clear remain
+                            // available for the enlarged selection.
+                        }
+                    }
+                    ActionButton {
+                        objectName: "castSelectionReset"
+                        compact: true
+                        quiet: true
+                        focusPolicy: Qt.NoFocus
+                        text: qsTrId("genycaster.editor.clear_selection")
+                        onClicked: {
+                            // onClosed clears the highlight and releases the
+                            // lazy loader. Close first to avoid accessing a
+                            // destroyed popup after selectionChanged.
                             copyPopup.close()
                         }
                     }

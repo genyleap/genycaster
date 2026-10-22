@@ -10,6 +10,20 @@ TextArea {
     // Opt-in for composer fields: mobile users double-tap to select the whole
     // draft rather than only the word under their finger.
     property bool selectAllOnDoubleTap: false
+    // Touchscreen platforms may not provide QInputMethod selection handles
+    // for Qt Quick TextArea, particularly in WASM. These Qt-native handles
+    // operate on TextEdit character indices, preserving normal desktop
+    // mouse dragging, keyboard shift-selection, IME and text editing.
+    property bool selectionGestureActive: false
+    property bool selectionPressActive: false
+    property bool selectionHandleDragging: false
+
+    function resetSelection() {
+        selectionDelay.stop()
+        selectionBar.close()
+        root.deselect() // TextEdit.deselect(): selection only, never erases draft.
+    }
+
 
     TapHandler {
         enabled: root.selectAllOnDoubleTap
@@ -49,7 +63,9 @@ TextArea {
                          root.showSelectionActions()
     }
     onSelectedTextChanged: {
-        if (selectedText.length > 0 && activeFocus)
+        if (selectedText.length > 0 && activeFocus
+                && !selectionPressActive && !selectionGestureActive
+                && !selectionHandleDragging)
             selectionDelay.restart()
         else {
             selectionDelay.stop()
@@ -58,13 +74,106 @@ TextArea {
     }
     onPressAndHold: mouse => {
         if (!root.text.length) return
+        root.selectionGestureActive = true
         if (!root.selectedText.length) {
             root.cursorPosition = root.positionAt(mouse.x, mouse.y)
             root.selectWord()
         }
+        // Let the finger lift before presenting the toolbar: otherwise the
+        // popup steals the gesture that should extend the text selection.
         selectionDelay.stop()
-        root.showSelectionActions()
+        selectionBar.close()
     }
+    onPressed: mouse => {
+        root.selectionPressActive = true
+        selectionDelay.stop()
+        selectionBar.close()
+    }
+    onReleased: mouse => {
+        root.selectionPressActive = false
+        root.selectionGestureActive = false
+        if (root.selectedText.length > 0 && !root.selectionHandleDragging)
+            root.showSelectionActions()
+    }
+    onActiveFocusChanged: {
+        if (!activeFocus) {
+            selectionPressActive = false
+            selectionGestureActive = false
+            selectionDelay.stop()
+        }
+    }
+
+    // Two draggable grips supplement QInputMethod's optional native handles
+    // on Android/iOS/WASM. Only the tiny handles capture pointer events:
+    // the rest of TextArea retains mouse drag, ordinary tap, typing & scroll.
+    Item {
+        id: selectionGrips
+        objectName: "composerTextSelectionHandles"
+        anchors.fill: parent
+        z: 12
+        visible: root.selectAllOnDoubleTap && root.activeFocus
+                 && root.selectedText.length > 0
+                 && !root.inputMethodComposing
+        readonly property rect startRect: root.positionToRectangle(root.selectionStart)
+        readonly property rect endRect: root.positionToRectangle(root.selectionEnd)
+
+        Repeater {
+            model: 2
+            delegate: Item {
+                id: grip
+                required property int index
+                readonly property bool leading: index === 0
+                readonly property rect caretRect: leading
+                    ? selectionGrips.startRect : selectionGrips.endRect
+                width: 44
+                height: 44
+                // Keep grab targets inside the editor while their colored
+                // pins point to the exact UTF-16 selection boundaries.
+                x: Math.max(0, Math.min(root.width - width,
+                    caretRect.x - (leading ? width * 0.65 : width * 0.35)))
+                y: Math.max(0, Math.min(root.height - height,
+                    caretRect.y + (leading ? -height * 0.40
+                                           : caretRect.height - height * 0.60)))
+                z: 1
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 13
+                    height: 13
+                    radius: 6.5
+                    color: Theme.accent
+                    border.width: 2
+                    border.color: Theme.editorSurface
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    preventStealing: true
+                    cursorShape: Qt.SizeHorCursor
+                    property int oppositeEdge: 0
+                    onPressed: mouse => {
+                        oppositeEdge = grip.leading ? root.selectionEnd : root.selectionStart
+                        root.selectionHandleDragging = true
+                        selectionDelay.stop()
+                        selectionBar.close()
+                    }
+                    onPositionChanged: mouse => {
+                        if (!pressed) return
+                        const point = mapToItem(root, mouse.x, mouse.y)
+                        const position = root.positionAt(point.x, point.y)
+                        // Never collapse the selection during a handle drag.
+                        const next = grip.leading ? Math.min(oppositeEdge - 1, position)
+                                                  : Math.max(oppositeEdge + 1, position)
+                        root.select(Math.max(0, Math.min(root.length, next)), oppositeEdge)
+                    }
+                    onReleased: {
+                        root.selectionHandleDragging = false
+                        root.showSelectionActions()
+                    }
+                    onCanceled: root.selectionHandleDragging = false
+                }
+            }
+        }
+    }
+
     // Keep the selection alive while the user taps Copy. Tapping a toolbar
     // button can change activeFocus before its onClicked runs in Qt/WASM.
 
@@ -116,8 +225,15 @@ TextArea {
                 text: qsTrId("genycaster.editor.select_all")
                 onClicked: {
                     root.selectAll()
-                    selectionBar.close()
+                    root.showSelectionActions()
                 }
+            }
+            ActionButton {
+                compact: true
+                quiet: true
+                focusPolicy: Qt.NoFocus
+                text: qsTrId("genycaster.editor.clear_selection")
+                onClicked: root.resetSelection()
             }
         }
     }

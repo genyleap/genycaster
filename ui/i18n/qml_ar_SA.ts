@@ -4142,6 +4142,10 @@
             <source>Paste</source>
             <translation>لصق</translation>
         </message>
+        <message id="genycaster.editor.clear_selection">
+            <source>Clear selection</source>
+            <translation>إلغاء التحديد</translation>
+        </message>
         <message id="genycaster.editor.select_all">
             <source>Select All</source>
             <translation>تحديد الكل</translation>

@@ -4142,6 +4142,10 @@
             <source>Paste</source>
             <translation>Вставить</translation>
         </message>
+        <message id="genycaster.editor.clear_selection">
+            <source>Clear selection</source>
+            <translation>Снять выделение</translation>
+        </message>
         <message id="genycaster.editor.select_all">
             <source>Select All</source>
             <translation>Выделить всё</translation>

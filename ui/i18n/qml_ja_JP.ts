@@ -4142,6 +4142,10 @@
             <source>Paste</source>
             <translation>貼り付け</translation>
         </message>
+        <message id="genycaster.editor.clear_selection">
+            <source>Clear selection</source>
+            <translation>選択を解除</translation>
+        </message>
         <message id="genycaster.editor.select_all">
             <source>Select All</source>
             <translation>すべて選択</translation>

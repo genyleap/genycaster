@@ -4162,6 +4162,10 @@
             <source>Paste</source>
             <translation>Paste</translation>
         </message>
+        <message id="genycaster.editor.clear_selection">
+            <source>Clear selection</source>
+            <translation>Clear selection</translation>
+        </message>
         <message id="genycaster.editor.select_all">
             <source>Select All</source>
             <translation>Select All</translation>
