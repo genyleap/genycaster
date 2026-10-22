@@ -112,27 +112,47 @@ GenyDrawer {
     // Scrolling belongs to the content; swipe-to-dismiss was stealing
     // vertical gestures from multi-cast threads on mobile Safari.
     interactive: false
+    property var focusedComposerEditor: null
+    property bool pendingEditorReveal: false
+
+    // Only reveal the *currently focused* editor. The former keyboard-height
+    // listener scrolled to the first cast even while editing cast 2/3, while
+    // Add Cast independently forced contentY to the bottom. On iOS this
+    // produced the large jumps visible in thread composition recordings.
     function ensureEditorVisible(editor) {
-        if (!root.opened || !editor) return
+        if (!root.opened || !editor || !editor.activeFocus)
+            return
+        root.focusedComposerEditor = editor
+        if (root.pendingEditorReveal)
+            return
+        root.pendingEditorReveal = true
         Qt.callLater(function() {
-            if (!root.opened || !editor) return
+            root.pendingEditorReveal = false
+            const activeEditor = root.focusedComposerEditor
+            if (!root.opened || !activeEditor || !activeEditor.activeFocus)
+                return
             const flick = composerScroll.contentItem
-            if (!flick || flick.height <= 0) return
-            const mapped = editor.mapToItem(composerContent, 0, 0)
-            const upper = Math.max(0, mapped.y - Theme.space3)
-            const lower = mapped.y + Math.min(editor.height, 120) + Theme.space3
-            if (upper < flick.contentY)
-                flick.contentY = upper
-            else if (lower > flick.contentY + flick.height)
-                flick.contentY = Math.min(Math.max(0, flick.contentHeight - flick.height),
-                                          lower - flick.height)
+            if (!flick || flick.height <= 0)
+                return
+            const mapped = activeEditor.mapToItem(composerContent, 0, 0)
+            if (!mapped)
+                return
+            const caret = activeEditor.cursorRectangle
+            const caretY = caret && isFinite(caret.y)
+                        ? Math.max(0, Math.min(activeEditor.height - 28, caret.y)) : 0
+            const top = mapped.y + caretY
+            const bottom = top + Math.max(28, caret && caret.height ? caret.height : 28)
+            const margin = Theme.space4
+            const maxY = Math.max(0, flick.contentHeight - flick.height)
+            if (top < flick.contentY + margin)
+                flick.contentY = Math.max(0, Math.min(maxY, top - margin))
+            else if (bottom > flick.contentY + flick.height - margin)
+                flick.contentY = Math.max(0, Math.min(maxY, bottom + margin - flick.height))
         })
     }
     onKeyboardVisibleChanged: {
-        if (root.keyboardVisible) {
-            root.ensureEditorVisible(root.compact ? mobilePlainEditor : visualEditor.activeEditor)
-            root.ensureEditorVisible(markdownEditor.activeFocus ? markdownEditor : null)
-        }
+        if (root.keyboardVisible && root.focusedComposerEditor)
+            root.ensureEditorVisible(root.focusedComposerEditor)
     }
     function openLinkFromSelection() {
         const editor = visualEditor.formattingEditor
@@ -197,13 +217,19 @@ GenyDrawer {
             return
         root.synchronizeEditorState()
         threadTailModel.append({ "text": "" })
-        // Qt finishes laying out the new delegate on the next event turn.
-        // Scroll to the new card instead of leaving it beneath the fold.
-        Qt.callLater(function() {
-            const flick = composerScroll.contentItem
-            if (flick)
-                flick.contentY = Math.max(0, flick.contentHeight - flick.height)
-        })
+        const index = threadTailModel.count - 1
+        // A Repeater delegate is usually materialized synchronously. Focus
+        // now, in the originating tap, so iOS WebKit may raise its keyboard.
+        const row = threadRepeater.itemAt(index)
+        if (row) {
+            row.focusThreadEditor()
+        } else {
+            Qt.callLater(function() {
+                if (!root.opened) return
+                const pendingRow = threadRepeater.itemAt(index)
+                if (pendingRow) pendingRow.focusThreadEditor()
+            })
+        }
     }
 
     function removeThreadCast(index) {
@@ -345,6 +371,8 @@ GenyDrawer {
     }
 
     onOpened: {
+        root.focusedComposerEditor = null
+        root.pendingEditorReveal = false
         root.initialFocusAttempts = 0
         root.selectedParentUrl = ""
         root.selectedContextLabel = ""
@@ -408,6 +436,7 @@ GenyDrawer {
     }
 
     onClosed: {
+        root.focusedComposerEditor = null
         channelPicker.close()
         initialComposerFocus.stop()
         root.closeComposerPopups()
@@ -716,6 +745,10 @@ GenyDrawer {
         Layout.fillWidth: true
         Layout.fillHeight: true
         clip: true
+        onHeightChanged: {
+            if (root.keyboardVisible && root.focusedComposerEditor)
+                root.ensureEditorVisible(root.focusedComposerEditor)
+        }
         contentWidth: availableWidth
         contentHeight: composerContent.implicitHeight
         ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
@@ -1106,6 +1139,10 @@ GenyDrawer {
                             if (activeFocus)
                                 root.ensureEditorVisible(mobilePlainEditor)
                         }
+                        onCursorRectangleChanged: {
+                            if (activeFocus)
+                                root.ensureEditorVisible(mobilePlainEditor)
+                        }
                     }
 
                     RichTextEditor {
@@ -1168,6 +1205,7 @@ GenyDrawer {
                 spacing: Theme.space2
 
                 Repeater {
+                    id: threadRepeater
                     model: threadTailModel
 
                     // A single-column card avoids competing RTL anchors.
@@ -1177,6 +1215,10 @@ GenyDrawer {
                         id: threadRow
                         required property int index
                         required property string text
+                        function focusThreadEditor() {
+                            threadEditor.forceActiveFocus()
+                            root.ensureEditorVisible(threadEditor)
+                        }
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
                         spacing: Theme.space1
@@ -1247,6 +1289,7 @@ GenyDrawer {
                                 id: threadEditor
                                 objectName: "composerThreadEditor"
                                 onActiveFocusChanged: if (activeFocus) root.ensureEditorVisible(threadEditor)
+                                onCursorRectangleChanged: if (activeFocus) root.ensureEditorVisible(threadEditor)
                                 anchors.fill: parent
                                 anchors.margins: Theme.space1
                                 text: threadRow.text
@@ -1358,6 +1401,11 @@ GenyDrawer {
             spacing: Theme.space1
             Layout.leftMargin: Theme.mobileGutter
             Layout.rightMargin: Theme.mobileGutter
+            // Keep buttons clear of the iOS home indicator and input accessory.
+            // The parent Qt viewport has already shrunk above the keyboard;
+            // never subtract keyboard height twice.
+            Layout.bottomMargin: root.keyboardVisible ? Theme.space4 : Theme.space5
+            Layout.topMargin: Theme.space2
 
             Rectangle {
                 Layout.fillWidth: true
@@ -1383,21 +1431,10 @@ GenyDrawer {
                                        ? Theme.primarySurface : "transparent"
                             borderWidth: 0
                         }
-                        Canvas {
+                        DashedCapsuleOutline {
                             anchors.fill: parent
                             visible: root.selectedParentUrl.length === 0
-                            onVisibleChanged: if (visible) requestPaint()
-                            onPaint: {
-                                const ctx = getContext("2d")
-                                if (!ctx) return
-                                ctx.clearRect(0, 0, width, height)
-                                ctx.beginPath()
-                                ctx.roundedRect(1.5, 1.5, width - 3, height - 3, 22, 22)
-                                ctx.setLineDash([5, 5])
-                                ctx.lineWidth = 1.4
-                                ctx.strokeStyle = Theme.borderMuted
-                                ctx.stroke()
-                            }
+                            lineColor: Theme.textSecondary
                         }
                         RowLayout {
                             id: selectedChannelContents
@@ -1439,20 +1476,10 @@ GenyDrawer {
                     Item {
                         Layout.preferredHeight: 46
                         Layout.preferredWidth: categoryText.implicitWidth + Theme.space5 * 2
-                        opacity: 0.65
-                        Canvas {
+                        opacity: 0.82
+                        DashedCapsuleOutline {
                             anchors.fill: parent
-                            onPaint: {
-                                const ctx = getContext("2d")
-                                if (!ctx) return
-                                ctx.clearRect(0, 0, width, height)
-                                ctx.beginPath()
-                                ctx.roundedRect(1.5, 1.5, width - 3, height - 3, 22, 22)
-                                ctx.setLineDash([5, 5])
-                                ctx.lineWidth = 1.4
-                                ctx.strokeStyle = Theme.borderMuted
-                                ctx.stroke()
-                            }
+                            lineColor: Theme.textSecondary
                         }
                         DirectionAwareLabel {
                             id: categoryText
@@ -1523,15 +1550,6 @@ GenyDrawer {
                         }
                     }
                     Item { Layout.fillWidth: true }
-                    ActionButton {
-                        compact: true
-                        quiet: true
-                        iconOnly: true
-                        iconGlyph: Theme.iconPlus
-                        text: qsTrId("genycaster.composer.add_cast")
-                        enabled: threadTailModel.count + 1 < root.maximumThreadCasts
-                        onClicked: root.addThreadCast()
-                    }
                 }
 
 
@@ -1549,6 +1567,8 @@ GenyDrawer {
                 }
                 Item { Layout.fillWidth: true }
                 DirectionAwareLabel {
+                    Layout.minimumWidth: implicitWidth
+                    Layout.alignment: Qt.AlignVCenter
                     forceLeftToRight: true
                     color: richComposer.withinProtocolLimit ? Theme.textSecondary : Theme.danger
                     font.pixelSize: Theme.typeCaptionSize

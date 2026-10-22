@@ -15,7 +15,9 @@ test('thread composer owns vertical scrolling and cannot be swiped away mid-edit
  assert.match(composer,/interactive: false/);
  assert.match(composer,/contentHeight: composerContent\.implicitHeight/);
  assert.match(composer,/id: composerContent/);
- assert.match(composer,/flick\.contentY = Math\.max\(0, flick\.contentHeight - flick\.height\)/);
+ assert.match(composer,/threadRepeater\.itemAt\(index\)/);
+ assert.match(composer,/row\.focusThreadEditor\(\)/);
+ assert.doesNotMatch(composer,/flick\.contentY = Math\.max\(0, flick\.contentHeight - flick\.height\)/);
  assert.match(composer,/delegate: ColumnLayout \{\s*id: threadRow/);
  assert.match(composer,/objectName: "composerThreadEditor"/);
  assert.doesNotMatch(composer,/anchors\.right: threadActions\.left/);

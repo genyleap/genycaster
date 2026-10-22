@@ -74,7 +74,12 @@ test('composer context uses outline pills before selection and fixed footer abov
  assert.match(composer,/objectName: "mobileComposerStickyFooter"/);
  assert.match(composer,/contentItem: ColumnLayout \{[\s\S]*?ScrollView \{/);
  assert.match(composer,/Layout\.fillHeight: true/);
- assert.match(composer,/ctx\.setLineDash\(\[5, 5\]\)/);
+ const outline=read("ui/components/DashedCapsuleOutline.qml");
+ assert.match(outline,/strokeStyle: ShapePath.DashLine/);
+ assert.match(outline,/dashPattern: \[4, 3\]/);
+ assert.match(composer,/DashedCapsuleOutline \{/);
+ assert.doesNotMatch(composer,/ctx\.roundedRect/);
+ assert.match(composer,/Layout\.bottomMargin: root\.keyboardVisible \? Theme.space4 : Theme.space5/);
  assert.match(composer,/fillColor: root\.selectedParentUrl\.length > 0[\s\S]*?Theme\.primarySurface : "transparent"/);
  assert.match(composer,/objectName: "mobileCastContext"/);
  assert.match(composer,/objectName: "mobileComposerMediaBar"/);

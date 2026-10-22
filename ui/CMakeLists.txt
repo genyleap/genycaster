@@ -35,6 +35,7 @@ set(farcasterQmlFiles
     components/BookmarksSurface.qml
     components/ContextRail.qml
     components/ComposerDrawer.qml
+    components/DashedCapsuleOutline.qml
     components/EmojiPicker.qml
     components/FeedbackDialog.qml
     components/ComposerInsertPanel.qml
