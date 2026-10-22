@@ -436,6 +436,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   const retrieveImage = dependencies.retrieveImage ?? retrieveBrowserImage;
   const resolveMiniAppPreview = dependencies.resolveMiniAppPreview ?? publicMiniAppPreview;
   const verifiedMiniAppIcons = new Map();
+  const channelDirectoryCache = new Map();
   const tokenSnapshots = new Map();
   const miniAppPreviews = new Map();
   const webLinkPreviews = new Map();
@@ -704,6 +705,96 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       if (resolved.status !== 400)
         miniAppPreviews.set(rawUrl,{status:resolved.status,body,expires:runtime.now()+120000});
       writeJson(response,resolved.status,body,{'cache-control':'public, max-age=60'});
+      return;
+    }
+
+    if (requestUrl.pathname === '/v1/browser/channels/search-channels'
+        || requestUrl.pathname === '/v1/browser/channels/channel') {
+      // Public presentation metadata only. The signed cast parent URL and
+      // membership authorization continue to belong to the selected read node.
+      // Fixed upstream and fixed paths: neither is caller-configurable.
+      response.setHeader('access-control-allow-origin', '*');
+      response.setHeader('access-control-allow-methods', 'GET, OPTIONS');
+      response.setHeader('access-control-allow-headers', 'accept');
+      response.setHeader('x-content-type-options', 'nosniff');
+      if (request.method === 'OPTIONS') {
+        response.writeHead(204); response.end(); return;
+      }
+      if (request.method !== 'GET') {
+        writeJson(response, 405, {error:'method_not_allowed'}); return;
+      }
+      const isSearch = requestUrl.pathname.endsWith('/search-channels');
+      const allowed = isSearch ? new Set(['q','limit']) : new Set(['key']);
+      if ([...requestUrl.searchParams.keys()].some(key => !allowed.has(key))) {
+        writeJson(response, 400, {error:'invalid_channel_query'}); return;
+      }
+      const value = String(requestUrl.searchParams.get(isSearch ? 'q' : 'key') || '').trim();
+      const limitText = requestUrl.searchParams.get('limit') || '25';
+      const limit = Number(limitText);
+      if ((isSearch && (value.length < 1 || value.length > 64))
+          || (!isSearch && !/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(value))
+          || (isSearch && (!Number.isInteger(limit) || limit < 1 || limit > 50))) {
+        writeJson(response, 400, {error:'invalid_channel_query'}); return;
+      }
+      const cacheKey = (isSearch ? 's:' : 'c:') + value.toLowerCase()
+        + (isSearch ? ':' + limit : '');
+      const old = channelDirectoryCache.get(cacheKey);
+      if (old && old.expiresAt > runtime.now()) {
+        writeJson(response, 200, old.data,
+          {'cache-control':isSearch ? 'public, max-age=30' : 'public, max-age=90'});
+        return;
+      }
+      const rate = limiter.check(clientAddress(request, config.trustCloudflare), runtime.now());
+      if (!rate.allowed) { writeJson(response, 429, {error:'rate_limited'}); return; }
+      const upstream = new URL('https://client.warpcast.com/v2/'
+          + (isSearch ? 'search-channels' : 'channel'));
+      upstream.searchParams.set(isSearch ? 'q' : 'key', value);
+      if (isSearch) upstream.searchParams.set('limit', String(limit));
+      try {
+        const reply = await runtime.fetchImpl(upstream, {
+          method:'GET', redirect:'error',
+          headers:{accept:'application/json','user-agent':'Genycaster/1.0'},
+          signal:AbortSignal.timeout(9000),
+        });
+        if (reply.status !== 200 || !reply.body
+            || !String(reply.headers.get('content-type') || '').toLowerCase()
+                .startsWith('application/json')) {
+          await reply.body?.cancel();
+          writeJson(response, 502, {error:'channel_directory_unavailable'}); return;
+        }
+        const reader = reply.body.getReader();
+        const chunks = [];
+        let bytes = 0;
+        let oversized = false;
+        while (true) {
+          const {done,value:chunk} = await reader.read();
+          if (done) break;
+          bytes += chunk.byteLength;
+          if (bytes > 512 * 1024) {
+            oversized = true;
+            await reader.cancel(); break;
+          }
+          chunks.push(Buffer.from(chunk));
+        }
+        if (oversized) {
+          writeJson(response, 502, {error:'channel_directory_too_large'}); return;
+        }
+        const data = safeJson(Buffer.concat(chunks,bytes));
+        const result = data?.result;
+        if (!result || (isSearch ? !Array.isArray(result.channels)
+                                  : typeof result.channel !== 'object'
+                                    || !result.channel)) {
+          writeJson(response, 502, {error:'invalid_channel_directory_response'}); return;
+        }
+        if (channelDirectoryCache.size >= 250)
+          channelDirectoryCache.delete(channelDirectoryCache.keys().next().value);
+        channelDirectoryCache.set(cacheKey,
+          {data,expiresAt:runtime.now() + (isSearch ? 45_000 : 120_000)});
+        writeJson(response, 200, data,
+          {'cache-control':isSearch ? 'public, max-age=30' : 'public, max-age=90'});
+      } catch {
+        writeJson(response, 502, {error:'channel_directory_unavailable'});
+      }
       return;
     }
 

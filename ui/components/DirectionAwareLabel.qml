@@ -23,4 +23,82 @@ Label {
     LayoutMirroring.enabled: false
     font.family: Theme.fontFamilyForText(analyzedText)
     horizontalAlignment: effectiveTextDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+
+    // QQC2 Label has no textInteractionFlags. Keep Control's sizing/layout
+    // contract and expose read-only selection only after an explicit hold.
+    // This also covers profile metadata, timestamps and other native labels.
+    property bool selectionActive: false
+    onTextChanged: selectionActive = false
+    onVisibleChanged: if (!visible) selectionActive = false
+
+    TapHandler {
+        enabled: control.selectableText && !control.selectionActive
+                 && control.text.length > 0
+        gesturePolicy: TapHandler.DragThreshold
+        longPressThreshold: 0.50
+        onLongPressed: control.selectionActive = true
+    }
+
+    // Loading selection controls for *every* label would increase delegate
+    // creation cost in the cast feed. Instantiate them only on long press.
+    Loader {
+        id: selectionOverlay
+        active: control.selectionActive
+        anchors.fill: parent
+        z: 5
+        sourceComponent: Component {
+            Item {
+                TextEdit {
+                    id: selectionMirror
+                    anchors.fill: parent
+                    anchors.leftMargin: control.leftPadding
+                    anchors.rightMargin: control.rightPadding
+                    anchors.topMargin: control.topPadding
+                    anchors.bottomMargin: control.bottomPadding
+                    text: control.text
+                    textFormat: TextEdit.PlainText
+                    readOnly: true
+                    selectByMouse: true
+                    persistentSelection: true
+                    wrapMode: control.wrapMode === Text.Wrap
+                              ? TextEdit.Wrap : TextEdit.NoWrap
+                    horizontalAlignment: control.horizontalAlignment
+                    font: control.font
+                    color: "transparent"
+                    selectedTextColor: Theme.textPrimary
+                    selectionColor: Theme.accent
+                    Component.onCompleted: selectAll()
+                }
+
+                Superellipse {
+                    objectName: "labelCopySelection"
+                    z: 2
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    width: Math.max(70, copyText.implicitWidth + Theme.space4 * 2)
+                    height: 34
+                    curveDepth: Theme.curveControl
+                    fillColor: Theme.surfaceElevated
+                    borderColor: Theme.borderStrong
+                    borderWidth: Theme.strokeHairline
+                    Text {
+                        id: copyText
+                        anchors.centerIn: parent
+                        text: qsTrId("genycaster.feedback.copy")
+                        color: Theme.textPrimary
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            presentationBridge.copyText(
+                                selectionMirror.selectedText.length > 0
+                                  ? selectionMirror.selectedText : control.text)
+                            control.selectionActive = false
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

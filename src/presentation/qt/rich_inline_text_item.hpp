@@ -9,6 +9,7 @@
 #include <QObject>
 #include <QPointF>
 #include <QQuickPaintedItem>
+#include <QTimer>
 #include <QVariantList>
 #include <QVariantMap>
 
@@ -133,6 +134,7 @@ protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
+    void mouseUngrabEvent() override;
 
 private:
     class Impl;
@@ -141,5 +143,6 @@ private:
     bool m_leftPressed{};
     bool m_dragSelecting{};
     bool m_longPressSelected{};
+    QTimer m_pressHoldTimer{};
     int m_dragAnchor{-1};
 };

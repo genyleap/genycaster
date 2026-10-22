@@ -1295,11 +1295,15 @@ int main(int argc, char* argv[])
             QStringLiteral("network/channelDirectoryBaseUrl")).toString().trimmed();
 #if defined(__EMSCRIPTEN__)
     if (channelDirectoryBaseUrl.isEmpty()) {
-        // Browser metadata requires same-origin access (Farcaster directory
-        // APIs do not grant cross-origin XMLHttpRequest). The relay URL is
-        // deployment-scoped and independent of the selected read node.
-        channelDirectoryBaseUrl = QString::fromUtf8(emscripten_run_script_string(
-            "new URL('./api/channel-directory', window.location.href).href"));
+        // Discover this optional capability from the configured first-party
+        // gateway, not an additional hard-coded host. A custom deployment or
+        // self-hosted instance retains its own gateway origin.
+        if (!mediaGatewayBaseUrlText.isEmpty()) {
+            channelDirectoryBaseUrl = mediaGatewayBaseUrlText;
+            while (channelDirectoryBaseUrl.endsWith(QLatin1Char('/')))
+                channelDirectoryBaseUrl.chop(1);
+            channelDirectoryBaseUrl += QStringLiteral("/v1/browser/channels");
+        }
     }
 #else
     if (channelDirectoryBaseUrl.isEmpty())

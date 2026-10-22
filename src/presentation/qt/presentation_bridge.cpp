@@ -20,6 +20,10 @@
 #include <cmath>
 #include <utility>
 
+#if defined(__EMSCRIPTEN__)
+#include <emscripten/emscripten.h>
+#endif
+
 import farcaster.application.configuration;
 
 namespace {
@@ -1917,6 +1921,20 @@ void PresentationBridge::copyText(const QString& text)
     if (text.isEmpty()) {
         return;
     }
+#if defined(__EMSCRIPTEN__)
+    // Invoke the browser Clipboard API synchronously inside the user's Copy
+    // click gesture. On iOS WebKit Qt's virtual clipboard can remain local to
+    // the WASM canvas and never reach the OS clipboard. The browser write is
+    // asynchronous but is initiated while user activation is still valid.
+    const QByteArray utf8 = text.toUtf8();
+    EM_ASM({
+        const payload = UTF8ToString($0);
+        const clipboard = navigator.clipboard;
+        if (clipboard && clipboard.writeText) {
+            clipboard.writeText(payload).catch(() => {});
+        }
+    }, utf8.constData());
+#endif
     if (QClipboard* const clipboard = QGuiApplication::clipboard(); clipboard != nullptr) {
         clipboard->setText(text);
     }

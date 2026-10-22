@@ -65,7 +65,9 @@ test('channel metadata is optional and bound to the current deployment origin, n
  const controller=read('ui/mobile/channel_picker_controller.cpp');
  const view=read('ui/components/ComposerDrawer.qml');
  assert.match(cpp,/GENYCASTER_CHANNEL_DIRECTORY_BASE_URL/);
- assert.match(cpp,/new URL\('\.\/api\/channel-directory', window\.location\.href\)\.href/);
+ assert.match(cpp,/channelDirectoryBaseUrl = mediaGatewayBaseUrlText/);
+ assert.match(cpp,/channelDirectoryBaseUrl \+= QStringLiteral\("\/v1\/browser\/channels"\)/);
+ assert.match(cpp,/GENYCASTER_CHANNEL_DIRECTORY_BASE_URL/);
  assert.match(controller,/requestDirectory\(QStringLiteral\("search-channels"\)/);
  assert.match(controller,/m_baseUrl = m_baseUrl\.trimmed\(\)/);
  assert.match(controller,/m_directoryBaseUrl = m_directoryBaseUrl\.trimmed\(\)/);
@@ -77,12 +79,17 @@ test('ordinary labels and cast bodies expose selectable text with explicit copy'
  const qml=read('ui/components/RichInlineText.qml');
  const cpp=read('src/presentation/qt/rich_inline_text_item.cpp');
  assert.match(label,/property bool selectableText: true/);
+ assert.match(label,/Loader \{[\s\S]*?active: control.selectionActive/);
+ assert.match(label,/Component\.onCompleted: selectAll\(\)/);
+ assert.match(label,/presentationBridge.copyText\(/);
  assert.doesNotMatch(label,/^\s*textInteractionFlags\s*:/m,
    'Qt Quick Controls Label has no textInteractionFlags; invalid QML prevents app startup');
  assert.match(cpp,/QAbstractTextDocumentLayout::PaintContext/);
  assert.match(cpp,/RichInlineTextItem::selectWordAt/);
  assert.match(cpp,/RichInlineTextItem::mouseMoveEvent/);
  assert.match(cpp,/m_longPressSelected/);
+ assert.match(cpp,/m_pressHoldTimer\.start\(\)/);
+ assert.match(cpp,/void RichInlineTextItem::mouseUngrabEvent\(\)/);
  assert.match(qml,/onLongPressed: textLayout\.selectWordAt/);
  assert.match(qml,/presentationBridge\.copyText\(textLayout\.selectedText\)/);
 });

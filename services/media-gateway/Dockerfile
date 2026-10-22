@@ -19,7 +19,7 @@ RUN cmake -S . -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build/native --parallel --target genyleap_quilibrium_storage \
     && mkdir -p storage/native \
     && cp build/native/genyleap_quilibrium_storage.node storage/native/ \
-    && node --test test/gateway.test.mjs test/browser_image_proxy.test.mjs test/browser_farcaster_auth.test.mjs test/quilibrium_sdk_adapter.test.mjs test/browser_token_insights.test.mjs test/browser_miniapp_preview.test.mjs test/browser_link_preview.test.mjs test/browser_cast_views.test.mjs test/browser_cast_reactions.test.mjs \
+    && node --test test/gateway.test.mjs test/browser_image_proxy.test.mjs test/browser_farcaster_auth.test.mjs test/quilibrium_sdk_adapter.test.mjs test/browser_token_insights.test.mjs test/browser_miniapp_preview.test.mjs test/browser_link_preview.test.mjs test/browser_cast_views.test.mjs test/browser_cast_reactions.test.mjs test/channel_directory_gateway.test.mjs \
     && node --test test/native_addon.test.mjs
 
 FROM node:22-trixie-slim AS runtime

@@ -355,6 +355,14 @@ RichInlineTextItem::RichInlineTextItem(QQuickItem* parent)
 {
     setAcceptedMouseButtons(Qt::LeftButton);
     setFlag(ItemHasContents, true);
+    // A native hold timer handles synthesized iOS/Qt WASM mouse events.
+    // QML TapHandler remains a fallback for true touchscreen pointer paths.
+    m_pressHoldTimer.setSingleShot(true);
+    m_pressHoldTimer.setInterval(460);
+    connect(&m_pressHoldTimer, &QTimer::timeout, this, [this] {
+        if (m_leftPressed && !m_dragSelecting)
+            selectWordAt(m_pressPosition.x(), m_pressPosition.y());
+    });
 }
 
 RichInlineTextItem::~RichInlineTextItem() = default;
@@ -656,6 +664,7 @@ void RichInlineTextItem::mousePressEvent(QMouseEvent* event)
     m_longPressSelected = false;
     m_dragAnchor = m_impl->document.documentLayout()->hitTest(
         event->position(), Qt::FuzzyHit);
+    if (m_leftPressed && m_dragAnchor >= 0) m_pressHoldTimer.start();
     event->accept();
 }
 
@@ -669,6 +678,13 @@ void RichInlineTextItem::mouseMoveEvent(QMouseEvent* event)
         && QLineF{m_pressPosition, event->position()}.length()
              <= QGuiApplication::styleHints()->startDragDistance())
         return;
+    m_pressHoldTimer.stop();
+    // A touch gesture beginning to scroll a feed must remain a scroll;
+    // only long-press-then-drag selects on synthesized touch mouse events.
+    if (!m_longPressSelected && event->source() != Qt::MouseEventNotSynthesized) {
+        event->ignore();
+        return;
+    }
     m_dragSelecting = true;
     const int end = m_impl->document.documentLayout()->hitTest(
         event->position(), Qt::FuzzyHit);
@@ -682,6 +698,7 @@ void RichInlineTextItem::mouseMoveEvent(QMouseEvent* event)
 
 void RichInlineTextItem::mouseReleaseEvent(QMouseEvent* event)
 {
+    m_pressHoldTimer.stop();
     const bool wasSelecting = m_dragSelecting || m_longPressSelected;
     m_longPressSelected = false;
     const bool shortTap = m_leftPressed && event->button() == Qt::LeftButton
@@ -702,6 +719,14 @@ void RichInlineTextItem::mouseReleaseEvent(QMouseEvent* event)
     const QString anchor = m_impl->anchorAt(event->position());
     if (!anchor.isEmpty()) emit linkActivated(anchor);
     else emit plainTextActivated();
+}
+
+void RichInlineTextItem::mouseUngrabEvent()
+{
+    m_pressHoldTimer.stop();
+    m_leftPressed = false;
+    m_dragSelecting = false;
+    m_longPressSelected = false;
 }
 
 #include "rich_inline_text_item.moc"
