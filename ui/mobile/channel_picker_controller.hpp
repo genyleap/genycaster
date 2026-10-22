@@ -6,6 +6,7 @@
 #include <QNetworkAccessManager>
 #include <QObject>
 #include <QSettings>
+#include <QSet>
 #include <QString>
 #include <QTimer>
 #include <QVariantList>
@@ -31,8 +32,9 @@ class ChannelPickerController final : public QObject {
     Q_PROPERTY(QString query READ query NOTIFY queryChanged FINAL)
 
 public:
-    ChannelPickerController(QSettings& settings, QString hypersnapBaseUrl,
-                            bool directProxy, bool networkEnabled, QObject* parent = nullptr);
+    ChannelPickerController(QSettings& settings, QString readNodeBaseUrl,
+                            QString directoryBaseUrl, bool directProxy,
+                            bool networkEnabled, QObject* parent = nullptr);
 
     [[nodiscard]] QVariantList rows() const;
     [[nodiscard]] bool busy() const noexcept;
@@ -62,6 +64,11 @@ private:
     using JsonCallback = std::function<void(const QJsonObject&, const QString&)>;
 
     void request(const QString& path, const QVariantMap& query, JsonCallback done);
+    void requestDirectory(const QString& path, const QVariantMap& query, JsonCallback done);
+    void hydrateMemberImages();
+    void retrieveDirectoryResults(QString query, quint64 nodeGeneration, quint64 searchGeneration);
+    void mergeMetadata(QVariantMap& channel) const;
+    [[nodiscard]] bool isSocialChannel(const QString& id) const;
     void requestMembershipPage(const QString& cursor, int page, quint64 generation);
     void requestTrending();
     void requestSearchNow();
@@ -80,6 +87,10 @@ private:
     QNetworkAccessManager m_network{};
     QTimer m_debounce{};
     QString m_baseUrl;
+    QString m_directoryBaseUrl;
+    QHash<QString, QVariantMap> m_directoryMetadata{};
+    QSet<QString> m_pendingImageLookups{};
+    QSet<QString> m_triedImageLookups{};
     bool m_networkEnabled{false};
     qulonglong m_viewerFid{0};
     quint64 m_generation{0};
@@ -94,6 +105,7 @@ private:
     QString m_error{};
     QVariantList m_rows{};
     QVariantList m_searchResults{};
+    QVariantList m_directoryResults{};
     QVariantList m_trendingResults{};
     QHash<QString, QVariantMap> m_members{};
     QHash<QString, int> m_usage{};

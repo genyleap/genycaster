@@ -60,6 +60,42 @@ test('reply counter has safe trailing spacing and scroll jump stays near bottom 
  assert.match(detail,/anchors.bottomMargin: root.compact \? Theme.space2 \+ 12 : Theme.space4/);
  assert.match(profile,/anchors.bottomMargin: root.compact \? Theme.space2 \+ 12 : Theme.space4/);
 });
+test('channel metadata is optional and bound to the current deployment origin, not a hardcoded read node',()=>{
+ const cpp=read('ui/mobile/main.cpp');
+ const controller=read('ui/mobile/channel_picker_controller.cpp');
+ const view=read('ui/components/ComposerDrawer.qml');
+ assert.match(cpp,/GENYCASTER_CHANNEL_DIRECTORY_BASE_URL/);
+ assert.match(cpp,/new URL\('\.\/api\/channel-directory', window\.location\.href\)\.href/);
+ assert.match(controller,/requestDirectory\(QStringLiteral\("search-channels"\)/);
+ assert.match(controller,/m_baseUrl = m_baseUrl\.trimmed\(\)/);
+ assert.match(controller,/m_directoryBaseUrl = m_directoryBaseUrl\.trimmed\(\)/);
+ assert.match(view,/channelDirectory.chooseChannel/);
+ assert.doesNotMatch(view,/XMLHttpRequest|channel-icons\.json/);
+});
+test('ordinary labels and cast bodies expose selectable text with explicit copy',()=>{
+ const label=read('ui/components/DirectionAwareLabel.qml');
+ const qml=read('ui/components/RichInlineText.qml');
+ const cpp=read('src/presentation/qt/rich_inline_text_item.cpp');
+ assert.match(label,/property bool selectableText: true/);
+ assert.match(label,/Qt\.TextSelectableByMouse \| Qt\.TextSelectableByKeyboard/);
+ assert.match(cpp,/QAbstractTextDocumentLayout::PaintContext/);
+ assert.match(cpp,/RichInlineTextItem::selectWordAt/);
+ assert.match(cpp,/RichInlineTextItem::mouseMoveEvent/);
+ assert.match(cpp,/m_longPressSelected/);
+ assert.match(qml,/onLongPressed: textLayout\.selectWordAt/);
+ assert.match(qml,/presentationBridge\.copyText\(textLayout\.selectedText\)/);
+});
+test('node switching preserves the source-provider URL and exposes no UI hard-coded node',()=>{
+ const main=read('ui/mobile/main.cpp');
+ const picker=read('ui/mobile/channel_picker_controller.cpp');
+ const node=read('src/providers/hypersnap/node_selection_controller.cpp');
+ assert.match(main,/farcaster::provider::hypersnap::config::Config\{\}\.baseUrl/);
+ assert.match(main,/settings\.value\(\s*QStringLiteral\("network\/channelDirectoryBaseUrl"\)/);
+ assert.match(picker,/m_baseUrl = m_baseUrl\.trimmed\(\)/);
+ assert.match(picker,/m_directoryBaseUrl = m_directoryBaseUrl\.trimmed\(\)/);
+ assert.doesNotMatch(node,/candidateEndpoints\.prepend\(QStringLiteral\("https:\/\/haatz\.quilibrium\.com"\)\)/);
+ assert.doesNotMatch(picker,/m_baseUrl\s*=\s*QStringLiteral\("https:\/\/haatz\.quilibrium\.com"\)/);
+});
 test('channel avatars come from HyperSnap, and static image catalogs are removed',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
  const backend=read('ui/mobile/channel_picker_controller.cpp');
@@ -78,9 +114,9 @@ test('membership is verified in C++, Home always appears first, and non-members 
  const backend=read('ui/mobile/channel_picker_controller.cpp');
  const composer=read('ui/components/ComposerDrawer.qml');
  assert.match(backend,/QVariantList list\{homeRow\(\)\}/);
- assert.match(backend,/m_membershipReady && m_members.contains\(id\)/);
- assert.match(backend,/row.insert\(QStringLiteral\("selectable"\), isJoined\)/);
- assert.match(backend,/if \(!m_membershipReady\) return \{\}/);
+ assert.match(backend,/m_viewerFid > 0 && m_members.contains\(id\)/);
+ assert.match(backend,/row.insert\(QStringLiteral\("selectable"\), isJoined[\s\S]*?validParentUrl/);
+ assert.match(backend,/if \(m_viewerFid == 0\) return \{\}/);
  assert.match(backend,/if \(it == m_members.cend\(\)\) return \{\}/);
  assert.match(backend,/m_members.clear\(\);\s*m_membershipReady = false; \/\/ fail closed/);
  assert.match(composer,/enabled: channelRow.selectable/);

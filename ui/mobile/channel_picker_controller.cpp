@@ -10,6 +10,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QSet>
+#include <QRegularExpression>
 #include <QUrl>
 #include <QUrlQuery>
 
@@ -80,19 +81,20 @@ constexpr int membershipTtlMs = 70 * 1000;
 }
 
 ChannelPickerController::ChannelPickerController(
-    QSettings& settings, QString hypersnapBaseUrl, bool directProxy,
-    bool networkEnabled, QObject* parent)
+    QSettings& settings, QString readNodeBaseUrl, QString directoryBaseUrl,
+    bool directProxy, bool networkEnabled, QObject* parent)
     : QObject(parent),
       m_settings(settings),
-      m_baseUrl(std::move(hypersnapBaseUrl)),
+      m_baseUrl(std::move(readNodeBaseUrl)),
+      m_directoryBaseUrl(std::move(directoryBaseUrl)),
       m_networkEnabled(networkEnabled)
 {
-    // The read URL is configured by the same composition root as HyperSnap's
-    // feed gateway; no other image catalogue or third-party API is contacted.
-    if (m_baseUrl.isEmpty())
-        m_baseUrl = QStringLiteral("https://haatz.quilibrium.com");
+    // Both endpoints are injected at the composition boundary. The node is
+    // exactly the one selected for the core Farcaster runtime, not a fixed host.
     m_baseUrl = m_baseUrl.trimmed();
+    m_directoryBaseUrl = m_directoryBaseUrl.trimmed();
     while (m_baseUrl.endsWith(QLatin1Char('/'))) m_baseUrl.chop(1);
+    while (m_directoryBaseUrl.endsWith(QLatin1Char('/'))) m_directoryBaseUrl.chop(1);
     if (directProxy) m_network.setProxy(QNetworkProxy{QNetworkProxy::NoProxy});
     m_debounce.setInterval(190);
     m_debounce.setSingleShot(true);
@@ -181,8 +183,11 @@ void ChannelPickerController::request(
     for (auto it = args.cbegin(); it != args.cend(); ++it)
         query.addQueryItem(it.key(), it.value().toString());
     url.setQuery(query);
-    if (url.scheme() != QStringLiteral("https")) {
-        done({}, QStringLiteral("Invalid HyperSnap HTTPS endpoint"));
+    // Use the same HTTP/HTTPS scheme as the configured read node. In
+    // particular, do not reject explicitly configured private/local nodes.
+    if (!url.isValid() || (url.scheme() != QStringLiteral("https")
+                           && url.scheme() != QStringLiteral("http"))) {
+        done({}, QStringLiteral("Invalid configured channel read endpoint"));
         return;
     }
     QNetworkRequest request{url};
@@ -209,6 +214,159 @@ void ChannelPickerController::request(
             }
             done(doc.object(), {});
         });
+}
+
+void ChannelPickerController::requestDirectory(
+    const QString& path, const QVariantMap& args, JsonCallback done)
+{
+    if (!m_networkEnabled || m_directoryBaseUrl.isEmpty()) {
+        done({}, QStringLiteral("Farcaster directory not configured"));
+        return;
+    }
+    QUrl url{m_directoryBaseUrl + QLatin1Char('/') + path};
+    QUrlQuery query;
+    for (auto it = args.cbegin(); it != args.cend(); ++it)
+        query.addQueryItem(it.key(), it.value().toString());
+    url.setQuery(query);
+    if (url.scheme() != QStringLiteral("https")) {
+        done({}, QStringLiteral("Directory endpoint requires HTTPS"));
+        return;
+    }
+    QNetworkRequest req{url};
+    req.setTransferTimeout(9500);
+    req.setRawHeader("Accept", "application/json");
+    auto* reply = m_network.get(req);
+    connect(reply, &QNetworkReply::finished, this,
+        [reply, done = std::move(done)] {
+            reply->deleteLater();
+            const QByteArray body = reply->readAll();
+            if (reply->error() != QNetworkReply::NoError) {
+                done({}, reply->errorString());
+                return;
+            }
+            if (body.size() > maxPayloadBytes) {
+                done({}, QStringLiteral("Directory response is too large"));
+                return;
+            }
+            QJsonParseError error;
+            const QJsonDocument doc = QJsonDocument::fromJson(body, &error);
+            if (error.error != QJsonParseError::NoError || !doc.isObject()) {
+                done({}, QStringLiteral("Invalid channel directory response"));
+                return;
+            }
+            done(doc.object(), {});
+        });
+}
+
+bool ChannelPickerController::isSocialChannel(const QString& id) const
+{
+    // FIP-2 permits parent URLs for collectibles/tokens, but these are NOT
+    // human-facing social channels. Exclude them from the channel picker.
+    // Do not alter parent_url for a genuine slug-based channel.
+    static const QRegularExpression slug{
+        QStringLiteral("^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$")};
+    return slug.match(id).hasMatch();
+}
+
+void ChannelPickerController::mergeMetadata(QVariantMap& channel) const
+{
+    const QString id = channel.value(QStringLiteral("id")).toString();
+    const auto it = m_directoryMetadata.constFind(id);
+    if (it == m_directoryMetadata.cend()) return;
+    const QVariantMap& meta = it.value();
+    for (const char* field : {"imageUrl", "description", "followerCount", "memberCount"}) {
+        const auto key = QString::fromLatin1(field);
+        const QVariant value = meta.value(key);
+        if (value.isValid() && !value.isNull()
+            && (value.typeId() != QMetaType::QString || !value.toString().isEmpty()))
+            channel.insert(key, value);
+    }
+    // Prefer the user-facing display name, not the opaque parent URL/name
+    // sometimes returned by an indexed chain-asset read.
+    if (!meta.value(QStringLiteral("name")).toString().isEmpty())
+        channel.insert(QStringLiteral("name"), meta.value(QStringLiteral("name")));
+}
+
+void ChannelPickerController::retrieveDirectoryResults(
+    QString query, quint64 nodeGeneration, quint64 searchGeneration)
+{
+    if (m_directoryBaseUrl.isEmpty()) return;
+    requestDirectory(QStringLiteral("search-channels"),
+        {{QStringLiteral("q"), query}, {QStringLiteral("limit"), 40}},
+        [this, nodeGeneration, searchGeneration](
+            const QJsonObject& body, const QString& error) {
+            if (nodeGeneration != m_generation
+                || searchGeneration != m_searchGeneration) return;
+            if (!error.isEmpty()) return; // node remains functional
+            const QJsonArray results = body.value(QStringLiteral("result"))
+                                           .toObject().value(QStringLiteral("channels")).toArray();
+            QVariantList directoryRows;
+            for (const auto& value : results) {
+                if (!value.isObject()) continue;
+                const QJsonObject item = value.toObject();
+                const QString id = firstString(item, {"key", "id"});
+                if (!isSocialChannel(id)) continue;
+                const QString picture = firstString(item, {"imageUrl", "fastImageUrl"});
+                QVariantMap meta{
+                    {QStringLiteral("id"), id},
+                    {QStringLiteral("name"), firstString(item, {"name", "key", "id"})},
+                    {QStringLiteral("description"), firstString(item, {"description"})},
+                    {QStringLiteral("imageUrl"), picture.startsWith(QStringLiteral("https://"))
+                        ? picture : QString{}},
+                    {QStringLiteral("followerCount"),
+                        item.value(QStringLiteral("followerCount")).toInteger(-1)},
+                    {QStringLiteral("memberCount"),
+                        item.value(QStringLiteral("memberCount")).toInteger(-1)},
+                };
+                m_directoryMetadata.insert(id, meta);
+                directoryRows.push_back(meta);
+            }
+            m_directoryResults = std::move(directoryRows);
+            rebuildRows();
+        });
+}
+
+void ChannelPickerController::hydrateMemberImages()
+{
+    if (m_directoryBaseUrl.isEmpty() || m_members.isEmpty()) return;
+    // Fetch metadata only for visible/recent joined channels; bounded and
+    // deduplicated. Keep caches in C++ and let Qt's image provider cache bytes.
+    QList<QString> ids = m_members.keys();
+    std::stable_sort(ids.begin(), ids.end(), [this](const QString& a, const QString& b) {
+        return m_usage.value(a) > m_usage.value(b);
+    });
+    const quint64 generation = m_generation;
+    int scheduled = 0;
+    for (const QString& id : ids) {
+        if (scheduled >= 12) break;
+        if (!isSocialChannel(id) || m_directoryMetadata.contains(id)
+            || m_pendingImageLookups.contains(id) || m_triedImageLookups.contains(id)) continue;
+        ++scheduled;
+        m_triedImageLookups.insert(id);
+        m_pendingImageLookups.insert(id);
+        requestDirectory(QStringLiteral("channel"), {{QStringLiteral("key"), id}},
+            [this, id, generation](const QJsonObject& body, const QString& error) {
+                if (generation != m_generation) return;
+                m_pendingImageLookups.remove(id);
+                if (!error.isEmpty()) return;
+                const QJsonObject item = body.value(QStringLiteral("result"))
+                                             .toObject().value(QStringLiteral("channel")).toObject();
+                const QString key = firstString(item, {"key", "id"});
+                if (key != id) return;
+                const QString picture = firstString(item, {"imageUrl", "fastImageUrl"});
+                QVariantMap meta{
+                    {QStringLiteral("name"), firstString(item, {"name", "key"})},
+                    {QStringLiteral("imageUrl"), picture.startsWith(QStringLiteral("https://"))
+                        ? picture : QString{}},
+                    {QStringLiteral("followerCount"),
+                        item.value(QStringLiteral("followerCount")).toInteger(-1)},
+                    {QStringLiteral("memberCount"),
+                        item.value(QStringLiteral("memberCount")).toInteger(-1)},
+                };
+                m_directoryMetadata.insert(id, std::move(meta));
+                rebuildRows();
+            });
+    }
 }
 
 void ChannelPickerController::loadUsage()
@@ -250,6 +408,10 @@ void ChannelPickerController::openForViewer(qulonglong fid)
         m_members.clear();
         m_searchCache.clear();
         m_searchResults.clear();
+        m_directoryResults.clear();
+        m_directoryMetadata.clear();
+        m_pendingImageLookups.clear();
+        m_triedImageLookups.clear();
         m_trendingResults.clear();
         m_membershipReady = false;
         m_membershipValidUntil = 0;
@@ -269,8 +431,10 @@ void ChannelPickerController::openForViewer(qulonglong fid)
     if (!m_networkEnabled) return;
     if (m_viewerFid > 0 && (!m_membershipReady || nowMs() >= m_membershipValidUntil))
         refreshMembership();
-    if (m_trendingResults.isEmpty())
-        requestTrending();
+    // No unrelated /channel/trending items in the default composer list.
+    // Show Home and actual joined channels; discovery starts when typing.
+    if (m_membershipReady)
+        hydrateMemberImages();
 }
 
 void ChannelPickerController::refreshMembership()
@@ -319,6 +483,7 @@ void ChannelPickerController::requestMembershipPage(
             if (!next.isEmpty() && page + 1 < maximumMembershipPages) {
                 requestMembershipPage(next, page + 1, generation);
                 rebuildRows();
+                hydrateMemberImages();
                 return;
             }
             const bool wasBusy = busy();
@@ -332,6 +497,7 @@ void ChannelPickerController::requestMembershipPage(
             emit membershipStateChanged();
             if (wasBusy != busy()) emit busyChanged();
             rebuildRows();
+            hydrateMemberImages();
         });
 }
 
@@ -361,6 +527,7 @@ void ChannelPickerController::search(const QString& rawQuery)
     m_query = next;
     ++m_searchGeneration;
     m_debounce.stop();
+    m_directoryResults.clear();
     if (m_searchBusy) setBusy(false);
     emit queryChanged();
     setError({});
@@ -381,6 +548,7 @@ void ChannelPickerController::requestSearchNow()
     const quint64 generation = m_generation;
     const quint64 searchGeneration = m_searchGeneration;
     setBusy(true);
+    retrieveDirectoryResults(m_query, generation, searchGeneration);
     request(QStringLiteral("channel/search"),
             {{QStringLiteral("q"), m_query}, {QStringLiteral("limit"), searchLimit}},
         [this, generation, searchGeneration, requestedQuery](
@@ -427,17 +595,28 @@ void ChannelPickerController::rebuildRows()
         }
     };
     insertRows(m_searchResults);
-    insertRows(m_trendingResults);
+    insertRows(m_directoryResults);
+    // Never pollute the default selection list with arbitrary trending assets.
 
     QList<QVariantMap> found;
     for (auto it = candidates.cbegin(); it != candidates.cend(); ++it) {
         QVariantMap row = it.value();
         const QString id = it.key();
-        const bool isJoined = m_membershipReady && m_members.contains(id);
+        // A positive membership entry is verified immediately, even while
+        // later pages are loading. An incomplete directory must not prevent
+        // selecting channels already confirmed for this FID.
+        const bool isJoined = m_viewerFid > 0 && m_members.contains(id);
         const int relevance = scoreForQuery(row);
-        if (relevance >= 100) continue;
+        if (!isSocialChannel(id) || relevance >= 100) continue;
+        // URL must be canonical from the selected node's channel response.
+        // Directory-only rows are visible but never publishable.
+        if (isJoined)
+            row.insert(QStringLiteral("parentUrl"),
+                       m_members.value(id).value(QStringLiteral("parentUrl")));
+        mergeMetadata(row);
         row.insert(QStringLiteral("isMember"), isJoined);
-        row.insert(QStringLiteral("selectable"), isJoined);
+        row.insert(QStringLiteral("selectable"), isJoined
+            && validParentUrl(row.value(QStringLiteral("parentUrl")).toString()));
         row.insert(QStringLiteral("usedCount"), m_usage.value(id));
         row.insert(QStringLiteral("matchRank"), relevance);
         found.append(row);
@@ -468,10 +647,11 @@ void ChannelPickerController::rebuildRows()
 QVariantMap ChannelPickerController::chooseChannel(const QString& id)
 {
     if (id.isEmpty()) return homeRow();
-    if (!m_membershipReady) return {};
+    if (m_viewerFid == 0) return {};
     const auto it = m_members.constFind(id);
     if (it == m_members.cend()) return {};
-    const QVariantMap row = it.value();
+    QVariantMap row = it.value();
+    mergeMetadata(row);
     if (!validParentUrl(row.value(QStringLiteral("parentUrl")).toString())) return {};
     m_usage.insert(id, std::min(m_usage.value(id) + 1, 1'000'000));
     saveUsage();

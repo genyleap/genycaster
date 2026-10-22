@@ -107,6 +107,9 @@ import farcaster.presentation.media;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.transport.qtnetwork;
+#if FARCASTER_HAS_HYPERSNAP_PROVIDER
+import farcaster.provider.hypersnap.config;
+#endif
 #if FARCASTER_HAS_MINIAPP_EVM_WALLET
 import farcaster.capability.wallet;
 import farcaster.provider.compatibility.browser_wallet.bridge;
@@ -805,9 +808,16 @@ int main(int argc, char* argv[])
     if (!providerBaseUrlText.isEmpty()) {
         nodeCandidateEndpoints.prepend(providerBaseUrlText);
     }
-    const QString appliedNodeEndpoint = providerBaseUrlText.isEmpty()
-        ? QStringLiteral("https://haatz.quilibrium.com")
-        : providerBaseUrlText;
+    // Provider-specific defaults belong to src/providers, never the QML/UI
+    // composition root. A selected custom node still overrides the default.
+    QString appliedNodeEndpoint = providerBaseUrlText;
+#if FARCASTER_HAS_HYPERSNAP_PROVIDER
+    const QString hypersnapDefaultEndpoint = QString::fromStdString(
+        farcaster::provider::hypersnap::config::Config{}.baseUrl);
+    nodeCandidateEndpoints.append(hypersnapDefaultEndpoint);
+    if (appliedNodeEndpoint.isEmpty())
+        appliedNodeEndpoint = hypersnapDefaultEndpoint;
+#endif
 
     QString snapchainBaseUrlText = optionValue(arguments, QStringLiteral("--snapchain-base-url="));
     if (snapchainBaseUrlText.isEmpty()) {
@@ -1272,8 +1282,34 @@ int main(int argc, char* argv[])
         std::move(fallbackMiniAppCatalogue),
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest);
     MiniAppCatalogController& miniAppCatalog = *miniAppCatalogControllerOwner;
+    // Optional provider-neutral presentation capability, independent of the
+    // user's selected read node. The image API has no browser CORS grant,
+    // so WASM needs a deployment-owned, same-origin read-only relay.
+    QString channelDirectoryBaseUrl = optionValue(
+        arguments, QStringLiteral("--channel-directory-base-url="));
+    if (channelDirectoryBaseUrl.isEmpty())
+        channelDirectoryBaseUrl =
+            qEnvironmentVariable("GENYCASTER_CHANNEL_DIRECTORY_BASE_URL").trimmed();
+    if (channelDirectoryBaseUrl.isEmpty())
+        channelDirectoryBaseUrl = settings.value(
+            QStringLiteral("network/channelDirectoryBaseUrl")).toString().trimmed();
+#if defined(__EMSCRIPTEN__)
+    if (channelDirectoryBaseUrl.isEmpty()) {
+        // Browser metadata requires same-origin access (Farcaster directory
+        // APIs do not grant cross-origin XMLHttpRequest). The relay URL is
+        // deployment-scoped and independent of the selected read node.
+        channelDirectoryBaseUrl = QString::fromUtf8(emscripten_run_script_string(
+            "new URL('./api/channel-directory', window.location.href).href"));
+    }
+#else
+    if (channelDirectoryBaseUrl.isEmpty())
+        channelDirectoryBaseUrl = QStringLiteral("https://client.warpcast.com/v2");
+#endif
+    if (!channelDirectoryBaseUrl.isEmpty()
+        && !isValidHttpServiceUrl(channelDirectoryBaseUrl))
+        channelDirectoryBaseUrl.clear();
     channelPickerControllerOwner = std::make_unique<ChannelPickerController>(
-        settings, providerBaseUrlText,
+        settings, appliedNodeEndpoint, channelDirectoryBaseUrl,
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest);
     ChannelPickerController& channelPickerController = *channelPickerControllerOwner;

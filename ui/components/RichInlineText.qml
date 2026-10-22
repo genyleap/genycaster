@@ -77,6 +77,60 @@ Item {
         alignRight: root.rtlContent
         onLinkActivated: link => root.externalRequested(link)
         onPlainTextActivated: root.bodyActivated()
+        // Qt's QTextDocument selects and highlights the actual laid-out
+        // Unicode/emoji text. Completing a drag copies the selection using
+        // Genycaster's existing native/browser clipboard bridge.
+        // Highlight remains visible until the user deliberately taps Copy.
+        // Browser clipboards often require the actual button click as user
+        // activation; auto-copying after a long-press timer is unreliable.
+        // Kept as a signal from the C++ selection engine; the Copy control
+        // listens through selectedText and remains inside user activation.
+    }
+
+    // Long press is captured without a new popup per cast. Unlike the
+    // previous Menu implementation this handler introduces no nested
+    // Controls Popup during the app's startup/QML component resolution.
+    TapHandler {
+        id: selectGesture
+        acceptedButtons: Qt.LeftButton
+        gesturePolicy: TapHandler.DragThreshold
+        longPressThreshold: 0.48
+        onLongPressed: textLayout.selectWordAt(
+            point.position.x, point.position.y)
+    }
+
+    // Deliberate, accessible clipboard action rather than attempting an
+    // automatic clipboard write outside the browser user-activation window.
+    Superellipse {
+        id: selectionCopyAction
+        objectName: "richTextCopySelection"
+        visible: textLayout.selectedText.length > 0
+        z: 30
+        anchors.top: parent.top
+        anchors.right: parent.right
+        width: Math.max(76, copyTextLabel.implicitWidth + Theme.space4 * 2)
+        height: 38
+        fillColor: Theme.surfaceElevated
+        borderColor: Theme.borderStrong
+        borderWidth: Theme.strokeHairline
+        curveDepth: Theme.curveControl
+        DirectionAwareLabel {
+            id: copyTextLabel
+            anchors.centerIn: parent
+            text: qsTrId("genycaster.feedback.copy")
+            color: Theme.textPrimary
+            font.pixelSize: Theme.typeCaptionSize
+        }
+        Accessible.role: Accessible.Button
+        Accessible.name: copyTextLabel.text
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                if (textLayout.selectedText.length > 0)
+                    presentationBridge.copyText(textLayout.selectedText)
+                textLayout.clearSelection()
+            }
+        }
     }
 
     Repeater {
