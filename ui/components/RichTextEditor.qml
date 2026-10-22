@@ -250,6 +250,7 @@ Item {
                 }
 
                 DirectionAwareTextArea {
+                    selectAllOnDoubleTap: true
                     id: listEditor
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -415,6 +416,7 @@ Item {
             }
 
             DirectionAwareTextArea {
+                selectAllOnDoubleTap: true
                 id: editor
                 anchors.left: parent.left
                 anchors.right: blockActions.left

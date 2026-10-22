@@ -7,6 +7,21 @@ TextArea {
 
     property bool forceLeftToRight: false
     property bool forceRightToLeft: false
+    // Opt-in for composer fields: mobile users double-tap to select the whole
+    // draft rather than only the word under their finger.
+    property bool selectAllOnDoubleTap: false
+
+    TapHandler {
+        enabled: root.selectAllOnDoubleTap
+        acceptedButtons: Qt.LeftButton
+        gesturePolicy: TapHandler.DragThreshold
+        onDoubleTapped: {
+            if (root.text.length > 0) {
+                root.selectAll()
+                root.showSelectionActions()
+            }
+        }
+    }
 
     // Override Qt 6.9+'s generic native-looking context menu in every
     // visual, Markdown, list and thread editor using the shared theme.

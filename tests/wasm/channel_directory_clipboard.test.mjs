@@ -27,6 +27,10 @@ test('cast text supports native long press without blocking native touch scrolli
   assert.match(cpp,/m_pressHoldTimer\.setInterval\(460\)/);
   assert.match(cpp,/selectWordAt\(m_pressPosition\.x\(\), m_pressPosition\.y\(\)\)/);
   assert.match(cpp,/event->source\(\) != Qt::MouseEventNotSynthesized/);
+  assert.match(cpp,/setKeepMouseGrab\(true\)/);
+  assert.match(cpp,/setKeepTouchGrab\(true\)/);
+  assert.match(cpp,/void RichInlineTextItem::touchEvent\(QTouchEvent\* event\)/);
+  assert.match(cpp,/setKeepTouchGrab\(false\)/);
   assert.match(cpp,/void RichInlineTextItem::mouseUngrabEvent\(\)/);
   assert.match(cpp,/m_pressHoldTimer\.stop\(\)/);
 });

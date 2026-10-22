@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 
 // Renders one rich-text block natively (RichInlineTextItem) with emoji as
 // real inline layout objects and optional Noto Lottie animation overlays.
@@ -14,6 +15,9 @@ Item {
     property bool fontBold: false
     signal externalRequested(string url)
     signal bodyActivated()
+    // Set only after releasing the selection gesture, avoiding a floating
+    // action button intercepting the very drag that extends the highlight.
+    property bool selectionReady: false
 
     // Required means the binding must exist; its value may still become null
     // briefly while a model delegate is being recycled.
@@ -77,58 +81,86 @@ Item {
         alignRight: root.rtlContent
         onLinkActivated: link => root.externalRequested(link)
         onPlainTextActivated: root.bodyActivated()
-        // Qt's QTextDocument selects and highlights the actual laid-out
-        // Unicode/emoji text. Completing a drag copies the selection using
-        // Genycaster's existing native/browser clipboard bridge.
-        // Highlight remains visible until the user deliberately taps Copy.
-        // Browser clipboards often require the actual button click as user
-        // activation; auto-copying after a long-press timer is unreliable.
-        // Kept as a signal from the C++ selection engine; the Copy control
-        // listens through selectedText and remains inside user activation.
-    }
-
-    // Long press is captured without a new popup per cast. Unlike the
-    // previous Menu implementation this handler introduces no nested
-    // Controls Popup during the app's startup/QML component resolution.
-    TapHandler {
-        id: selectGesture
-        acceptedButtons: Qt.LeftButton
-        gesturePolicy: TapHandler.DragThreshold
-        longPressThreshold: 0.48
-        onLongPressed: textLayout.selectWordAt(
-            point.position.x, point.position.y)
-    }
-
-    // Deliberate, accessible clipboard action rather than attempting an
-    // automatic clipboard write outside the browser user-activation window.
-    Superellipse {
-        id: selectionCopyAction
-        objectName: "richTextCopySelection"
-        visible: textLayout.selectedText.length > 0
-        z: 30
-        anchors.top: parent.top
-        anchors.right: parent.right
-        width: Math.max(76, copyTextLabel.implicitWidth + Theme.space4 * 2)
-        height: 38
-        fillColor: Theme.surfaceElevated
-        borderColor: Theme.borderStrong
-        borderWidth: Theme.strokeHairline
-        curveDepth: Theme.curveControl
-        DirectionAwareLabel {
-            id: copyTextLabel
-            anchors.centerIn: parent
-            text: qsTrId("genycaster.feedback.copy")
-            color: Theme.textPrimary
-            font.pixelSize: Theme.typeCaptionSize
+        onSelectionChanged: {
+            if (textLayout.selectedText.length === 0)
+                root.selectionReady = false
         }
-        Accessible.role: Accessible.Button
-        Accessible.name: copyTextLabel.text
-        MouseArea {
-            anchors.fill: parent
-            onClicked: {
-                if (textLayout.selectedText.length > 0)
-                    presentationBridge.copyText(textLayout.selectedText)
-                textLayout.clearSelection()
+        onSelectionCompleted: {
+            root.selectionReady = textLayout.selectedText.length > 0
+        }
+    }
+
+    // Only instantiate a popup for a finished selection. The popup lives on
+    // the application Overlay, not inside the clipped/recycled cast block.
+    // It can therefore sit immediately above the selected text even when the
+    // first selected word is at y=0 in its QTextDocument.
+    Loader {
+        id: selectionMenuLoader
+        objectName: "richTextCopySelection"
+        active: root.selectionReady && textLayout.selectedText.length > 0
+        sourceComponent: Item {
+            Component.onCompleted: copyPopup.open()
+            Popup {
+                id: copyPopup
+                parent: Overlay.overlay
+                modal: false
+                dim: false
+                focus: false
+                padding: Theme.space1
+                closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnEscape
+                x: {
+                    if (!parent) return 0
+                    const anchor = root.mapToItem(parent,
+                        textLayout.selectionMenuPosition.x,
+                        textLayout.selectionMenuPosition.y)
+                    return Math.max(Theme.space2,
+                        Math.min(Math.max(Theme.space2, parent.width - width - Theme.space2),
+                                 anchor.x - width / 2))
+                }
+                y: {
+                    if (!parent) return 0
+                    const anchor = root.mapToItem(parent,
+                        textLayout.selectionMenuPosition.x,
+                        textLayout.selectionMenuPosition.y)
+                    const above = anchor.y - height - Theme.space2
+                    const below = anchor.y + root.textSize * Theme.typeBodyLineHeight + Theme.space2
+                    const ideal = above >= Theme.space2 ? above : below
+                    return Math.max(Theme.space2,
+                        Math.min(Math.max(Theme.space2, parent.height - height - Theme.space2),
+                                 ideal))
+                }
+                background: Superellipse {
+                    fillColor: Theme.surfaceElevated
+                    borderColor: Theme.borderStrong
+                    borderWidth: Theme.strokeHairline
+                    curveDepth: Theme.curveControl
+                    elevation: Theme.elevationControl
+                }
+                contentItem: Item {
+                    implicitWidth: Math.max(72, copyTextLabel.implicitWidth + Theme.space4 * 2)
+                    implicitHeight: 34
+                    DirectionAwareLabel {
+                        id: copyTextLabel
+                        anchors.centerIn: parent
+                        text: qsTrId("genycaster.feedback.copy")
+                        color: Theme.textPrimary
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        Accessible.role: Accessible.Button
+                        Accessible.name: copyTextLabel.text
+                        onClicked: {
+                            if (textLayout.selectedText.length > 0)
+                                presentationBridge.copyText(textLayout.selectedText)
+                            copyPopup.close()
+                        }
+                    }
+                }
+                onClosed: {
+                    root.selectionReady = false
+                    textLayout.clearSelection()
+                }
             }
         }
     }

@@ -109,7 +109,10 @@ test('ordinary labels and cast bodies expose selectable text with explicit copy'
  assert.match(cpp,/m_longPressSelected/);
  assert.match(cpp,/m_pressHoldTimer\.start\(\)/);
  assert.match(cpp,/void RichInlineTextItem::mouseUngrabEvent\(\)/);
- assert.match(qml,/onLongPressed: textLayout\.selectWordAt/);
+ assert.match(qml,/onSelectionCompleted:/);
+ assert.match(qml,/parent: Overlay.overlay/);
+ assert.match(qml,/textLayout.selectionMenuPosition/);
+ assert.doesNotMatch(qml,/id: selectionCopyAction/);
  assert.match(qml,/presentationBridge\.copyText\(textLayout\.selectedText\)/);
 });
 test('node switching preserves the source-provider URL and exposes no UI hard-coded node',()=>{

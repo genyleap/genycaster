@@ -8,6 +8,7 @@
 #include <QColor>
 #include <QObject>
 #include <QPointF>
+#include <QTouchEvent>
 #include <QQuickPaintedItem>
 #include <QTimer>
 #include <QVariantList>
@@ -46,6 +47,7 @@ class RichInlineTextItem : public QQuickPaintedItem {
     Q_PROPERTY(qreal contentHeight READ contentHeight NOTIFY contentHeightChanged)
     Q_PROPERTY(QVariantList emojiRects READ emojiRects NOTIFY emojiRectsChanged)
     Q_PROPERTY(QString selectedText READ selectedText NOTIFY selectionChanged)
+    Q_PROPERTY(QPointF selectionMenuPosition READ selectionMenuPosition NOTIFY selectionChanged)
 
 public:
     /** @brief Creates the renderer. */
@@ -100,6 +102,7 @@ public:
     /** @brief Suppresses one inline glyph only while its animation replaces it; layout is unchanged. */
     Q_INVOKABLE void setEmojiAnimated(int position, bool animated);
     [[nodiscard]] QString selectedText() const;
+    [[nodiscard]] QPointF selectionMenuPosition() const noexcept;
     /** Native QTextDocument hit-testing; works for bidi runs, emoji and links. */
     Q_INVOKABLE void selectWordAt(qreal x, qreal y);
     Q_INVOKABLE void selectAllText();
@@ -135,11 +138,19 @@ protected:
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void mouseUngrabEvent() override;
+    void touchEvent(QTouchEvent* event) override;
 
 private:
     class Impl;
+    void beginSelectionGesture(const QPointF& position);
+    void extendSelectionGesture(const QPointF& position, bool touch);
+    void finishSelectionGesture(const QPointF& position);
+    void cancelSelectionGesture();
     std::unique_ptr<Impl> m_impl;
     QPointF m_pressPosition{};
+    QPointF m_selectionMenuPosition{};
+    int m_selectedWordStart{-1};
+    int m_selectedWordEnd{-1};
     bool m_leftPressed{};
     bool m_dragSelecting{};
     bool m_longPressSelected{};

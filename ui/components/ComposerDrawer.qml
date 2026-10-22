@@ -1118,6 +1118,7 @@ GenyDrawer {
 
                     DirectionAwareTextArea {
                         id: mobilePlainEditor
+                        selectAllOnDoubleTap: true
                         objectName: "composerPrimaryMobileEditor"
                         visible: root.compact && root.editorMode === "visual"
                         anchors.fill: parent
@@ -1165,6 +1166,7 @@ GenyDrawer {
                         }
                         DirectionAwareTextArea {
                             id: markdownEditor
+                        selectAllOnDoubleTap: true
                             anchors.fill: parent
                             text: richComposer.markdownSource
                             placeholderText: qsTrId("genycaster.composer.markdown_placeholder")
@@ -1285,6 +1287,7 @@ GenyDrawer {
 
                             DirectionAwareTextArea {
                                 id: threadEditor
+                        selectAllOnDoubleTap: true
                                 objectName: "composerThreadEditor"
                                 onActiveFocusChanged: if (activeFocus) root.ensureEditorVisible(threadEditor)
                                 onCursorRectangleChanged: if (activeFocus) root.ensureEditorVisible(threadEditor)

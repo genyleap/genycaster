@@ -18,6 +18,7 @@
 #include <QTextDocument>
 #include <QTextLayout>
 #include <QTextOption>
+#include <QTouchEvent>
 #include <QTextObjectInterface>
 #include <QAbstractTextDocumentLayout>
 
@@ -354,9 +355,10 @@ RichInlineTextItem::RichInlineTextItem(QQuickItem* parent)
       m_impl(std::make_unique<Impl>(*this))
 {
     setAcceptedMouseButtons(Qt::LeftButton);
+    setAcceptTouchEvents(true);
     setFlag(ItemHasContents, true);
-    // A native hold timer handles synthesized iOS/Qt WASM mouse events.
-    // QML TapHandler remains a fallback for true touchscreen pointer paths.
+    // Handle actual touch points as well as synthesized mouse events here.
+    // A separate QML TapHandler used to compete for the same touch grab.
     m_pressHoldTimer.setSingleShot(true);
     m_pressHoldTimer.setInterval(460);
     connect(&m_pressHoldTimer, &QTimer::timeout, this, [this] {
@@ -584,6 +586,11 @@ void RichInlineTextItem::geometryChange(
     }
 }
 
+QPointF RichInlineTextItem::selectionMenuPosition() const noexcept
+{
+    return m_selectionMenuPosition;
+}
+
 QString RichInlineTextItem::selectedText() const
 {
     if (!m_impl->selection.hasSelection()) return {};
@@ -619,7 +626,6 @@ void RichInlineTextItem::clearSelection()
 
 void RichInlineTextItem::selectWordAt(const qreal x, const qreal y)
 {
-    m_longPressSelected = true;
     QTextCursor cursor{&m_impl->document};
     const int pos = m_impl->document.documentLayout()->hitTest(QPointF{x,y}, Qt::FuzzyHit);
     if (pos < 0) return;
@@ -628,16 +634,29 @@ void RichInlineTextItem::selectWordAt(const qreal x, const qreal y)
     if (!cursor.hasSelection())
         cursor.select(QTextCursor::LineUnderCursor);
     m_impl->selection = cursor;
+    m_selectionMenuPosition = QPointF{x, y};
+    m_selectedWordStart = cursor.selectionStart();
+    m_selectedWordEnd = cursor.selectionEnd();
+    m_longPressSelected = true;
+    // Once the user has held the text, subsequent movement belongs to text
+    // selection, not the parent Flickable. Keep the grab only for this gesture.
+    if (m_leftPressed) {
+        setKeepMouseGrab(true);
+        setKeepTouchGrab(true);
+    }
     update();
     emit selectionChanged();
-    emit selectionCompleted();
+    // Show the contextual action after finger release, not underneath
+    // the finger while it is still extending the selection.
 }
 
 void RichInlineTextItem::selectAllText()
 {
     m_impl->selection.select(QTextCursor::Document);
+    m_selectionMenuPosition = QPointF{width() * 0.5, qMin(22.0, height() * 0.5)};
     update();
     emit selectionChanged();
+    emit selectionCompleted();
 }
 
 void RichInlineTextItem::paint(QPainter* painter)
@@ -656,59 +675,78 @@ void RichInlineTextItem::paint(QPainter* painter)
     painter->restore();
 }
 
-void RichInlineTextItem::mousePressEvent(QMouseEvent* event)
+void RichInlineTextItem::beginSelectionGesture(const QPointF& position)
 {
-    m_leftPressed = event->button() == Qt::LeftButton;
-    m_pressPosition = event->position();
+    m_pressPosition = position;
+    m_leftPressed = true;
     m_dragSelecting = false;
     m_longPressSelected = false;
     m_dragAnchor = m_impl->document.documentLayout()->hitTest(
-        event->position(), Qt::FuzzyHit);
-    if (m_leftPressed && m_dragAnchor >= 0) m_pressHoldTimer.start();
-    event->accept();
+        position, Qt::FuzzyHit);
+    m_selectedWordStart = -1;
+    m_selectedWordEnd = -1;
+    if (m_dragAnchor < 0) return;
+
+    // A second gesture on an existing selection can extend either boundary,
+    // without another long press. Fix the opposite end as the drag anchor.
+    if (m_impl->selection.hasSelection()
+        && m_dragAnchor >= m_impl->selection.selectionStart()
+        && m_dragAnchor <= m_impl->selection.selectionEnd()) {
+        const int start = m_impl->selection.selectionStart();
+        const int end = m_impl->selection.selectionEnd();
+        m_dragAnchor = (m_dragAnchor - start <= end - m_dragAnchor) ? end : start;
+        m_longPressSelected = true;
+        setKeepMouseGrab(true);
+        setKeepTouchGrab(true);
+    } else {
+        m_pressHoldTimer.start();
+    }
 }
 
-void RichInlineTextItem::mouseMoveEvent(QMouseEvent* event)
+void RichInlineTextItem::extendSelectionGesture(
+    const QPointF& position, const bool touch)
 {
-    if (!m_leftPressed || m_dragAnchor < 0) {
-        event->ignore();
-        return;
-    }
+    if (!m_leftPressed || m_dragAnchor < 0) return;
     if (!m_dragSelecting
-        && QLineF{m_pressPosition, event->position()}.length()
+        && QLineF{m_pressPosition, position}.length()
              <= QGuiApplication::styleHints()->startDragDistance())
         return;
     m_pressHoldTimer.stop();
-    // A touch gesture beginning to scroll a feed must remain a scroll;
-    // only long-press-then-drag selects on synthesized touch mouse events.
-    if (!m_longPressSelected && event->source() != Qt::MouseEventNotSynthesized) {
-        event->ignore();
-        return;
-    }
+    // Before a hold, a swipe of the phone belongs to Flickable. Desktop mouse
+    // dragging selects as usual. After a hold, both devices extend selection.
+    if (!m_longPressSelected && touch) return;
     m_dragSelecting = true;
+    setKeepMouseGrab(true);
+    setKeepTouchGrab(true);
     const int end = m_impl->document.documentLayout()->hitTest(
-        event->position(), Qt::FuzzyHit);
+        position, Qt::FuzzyHit);
     if (end < 0) return;
-    m_impl->selection.setPosition(m_dragAnchor);
+    // Keep the initially selected whole word, regardless of drag direction.
+    int anchor = m_dragAnchor;
+    if (m_selectedWordStart >= 0 && m_selectedWordEnd >= 0)
+        anchor = end < m_selectedWordStart ? m_selectedWordEnd
+                                           : m_selectedWordStart;
+    m_impl->selection.setPosition(anchor);
     m_impl->selection.setPosition(end, QTextCursor::KeepAnchor);
+    m_selectionMenuPosition = position;
     update();
     emit selectionChanged();
-    event->accept();
 }
 
-void RichInlineTextItem::mouseReleaseEvent(QMouseEvent* event)
+void RichInlineTextItem::finishSelectionGesture(const QPointF& position)
 {
     m_pressHoldTimer.stop();
     const bool wasSelecting = m_dragSelecting || m_longPressSelected;
-    m_longPressSelected = false;
-    const bool shortTap = m_leftPressed && event->button() == Qt::LeftButton
-        && QLineF{m_pressPosition, event->position()}.length()
-               <= QGuiApplication::styleHints()->startDragDistance();
-    m_leftPressed = false;
-    m_dragSelecting = false;
-    event->accept();
+    const bool shortTap = m_leftPressed
+        && QLineF{m_pressPosition, position}.length()
+                <= QGuiApplication::styleHints()->startDragDistance();
+    cancelSelectionGesture();
     if (wasSelecting) {
-        if (m_impl->selection.hasSelection()) emit selectionCompleted();
+        if (m_impl->selection.hasSelection()) {
+            m_selectionMenuPosition = position;
+            emit selectionChanged();
+            emit selectionCompleted();
+        }
         return;
     }
     if (!shortTap) return;
@@ -716,17 +754,106 @@ void RichInlineTextItem::mouseReleaseEvent(QMouseEvent* event)
         clearSelection();
         return;
     }
-    const QString anchor = m_impl->anchorAt(event->position());
+    const QString anchor = m_impl->anchorAt(position);
     if (!anchor.isEmpty()) emit linkActivated(anchor);
     else emit plainTextActivated();
 }
 
-void RichInlineTextItem::mouseUngrabEvent()
+void RichInlineTextItem::cancelSelectionGesture()
 {
     m_pressHoldTimer.stop();
     m_leftPressed = false;
     m_dragSelecting = false;
     m_longPressSelected = false;
+    m_dragAnchor = -1;
+    m_selectedWordStart = -1;
+    m_selectedWordEnd = -1;
+    setKeepMouseGrab(false);
+    setKeepTouchGrab(false);
+}
+
+void RichInlineTextItem::mousePressEvent(QMouseEvent* event)
+{
+    if (event->button() != Qt::LeftButton) {
+        event->ignore();
+        return;
+    }
+    beginSelectionGesture(event->position());
+    event->accept();
+}
+
+void RichInlineTextItem::mouseMoveEvent(QMouseEvent* event)
+{
+    if (!m_leftPressed) {
+        event->ignore();
+        return;
+    }
+    const bool touch = event->source() != Qt::MouseEventNotSynthesized;
+    extendSelectionGesture(event->position(), touch);
+    if (touch && !m_longPressSelected && !m_dragSelecting
+        && QLineF{m_pressPosition, event->position()}.length()
+            > QGuiApplication::styleHints()->startDragDistance()) {
+        // Allow the surrounding feed to steal ordinary swipe-to-scroll.
+        event->ignore();
+        return;
+    }
+    event->accept();
+}
+
+void RichInlineTextItem::mouseReleaseEvent(QMouseEvent* event)
+{
+    if (event->button() != Qt::LeftButton) {
+        event->ignore();
+        return;
+    }
+    finishSelectionGesture(event->position());
+    event->accept();
+}
+
+void RichInlineTextItem::mouseUngrabEvent()
+{
+    cancelSelectionGesture();
+}
+
+void RichInlineTextItem::touchEvent(QTouchEvent* event)
+{
+    if (event->points().isEmpty()) {
+        event->ignore();
+        return;
+    }
+    const QPointF position = event->points().front().position();
+    switch (event->type()) {
+    case QEvent::TouchBegin:
+        beginSelectionGesture(position);
+        event->accept();
+        break;
+    case QEvent::TouchUpdate:
+        if (!m_leftPressed) {
+            event->ignore();
+            return;
+        }
+        extendSelectionGesture(position, true);
+        // Before a hold, touch-drag remains a normal feed scroll.
+        if (!m_longPressSelected && !m_dragSelecting
+            && QLineF{m_pressPosition, position}.length()
+                > QGuiApplication::styleHints()->startDragDistance()) {
+            event->ignore();
+            return;
+        }
+        event->accept();
+        break;
+    case QEvent::TouchEnd:
+        finishSelectionGesture(position);
+        event->accept();
+        break;
+    case QEvent::TouchCancel:
+        cancelSelectionGesture();
+        event->accept();
+        break;
+    default:
+        event->ignore();
+        break;
+    }
 }
 
 #include "rich_inline_text_item.moc"

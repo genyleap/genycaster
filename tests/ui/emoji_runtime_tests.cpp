@@ -159,6 +159,14 @@ int main(int argc, char** argv)
         "selection highlight changes the same native rich-text document");
     text.clearSelection();
     expect(text.selectedText().isEmpty(), "selection is cleared after dismissal");
+    // Copy controls must anchor to the native hit-tested selection point,
+    // not the right edge of the enclosing cast/list delegate.
+    text.selectWordAt(24, 9);
+    expect(!text.selectedText().isEmpty(),
+        "press-and-hold chooses real laid-out text inside the cast");
+    expect(text.selectionMenuPosition() == QPointF{24, 9},
+        "copy toolbar anchors to the touched text coordinates");
+    text.clearSelection();
 
     const QImage fallback = painted(text);
     for (const auto& box : boxes) {
