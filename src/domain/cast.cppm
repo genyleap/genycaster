@@ -72,6 +72,10 @@ struct Cast final {
     std::optional<CastId> parent{};
     /** @brief Protocol-native parent URL used by channel/root casts when no parent cast is present. */
     std::optional<std::string> parentUrl{};
+    /** @brief Provider-resolved channel metadata; no fixed host inference. */
+    std::optional<std::string> channelId{};
+    std::optional<std::string> channelName{};
+    std::optional<std::string> channelImageUrl{};
     std::vector<Embed> embeds{};
     /** @brief Direct conversation replies when a thread-aware read supplied them. */
     std::vector<Cast> directReplies{};

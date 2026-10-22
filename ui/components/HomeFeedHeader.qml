@@ -7,6 +7,8 @@ Item {
 
     property string presentationMode: "for-you"
     property string visualFilter: "all"
+    property string audience: "all"
+    signal audienceRequested(string audience)
     property string displayName: ""
     property string avatarUrl: ""
     // Forward the signed-in account photo to the self-story delegate.
@@ -158,6 +160,54 @@ Item {
             compact: root.compact
             onProfileRequested: profile => root.recentProfileRequested(profile)
             onOwnStoryRequested: root.composeRequested()
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
+            spacing: Theme.space2
+
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTr("Show posts from")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                elide: Text.ElideRight
+            }
+
+            Button {
+                id: audienceSelector
+                objectName: "explorerAudienceSelector"
+                implicitHeight: 32
+                implicitWidth: 146
+                text: root.audience === "following" ? qsTr("Following") : qsTr("Everyone")
+                background: Rectangle {
+                    color: Theme.surfaceRaised
+                    radius: 11
+                    border.width: Theme.strokeHairline
+                    border.color: Theme.borderSubtle
+                }
+                onClicked: audienceMenu.open()
+                Accessible.role: Accessible.Button
+
+                Menu {
+                    id: audienceMenu
+                    y: audienceSelector.height
+                    MenuItem {
+                        text: qsTr("Everyone")
+                        checkable: true
+                        checked: root.audience === "all"
+                        onTriggered: root.audienceRequested("all")
+                    }
+                    MenuItem {
+                        text: qsTr("Following")
+                        enabled: root.authenticated
+                        checkable: true
+                        checked: root.audience === "following"
+                        onTriggered: root.audienceRequested("following")
+                    }
+                }
+            }
         }
 
         ContentTabs {

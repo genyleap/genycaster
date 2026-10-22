@@ -340,11 +340,28 @@ ListView {
 
                             DirectionAwareLabel {
                                 visible: root.activeView === "cast" && root.castChannel.length > 0
-                                text: qsTr("in") + " #" + root.castChannel
+                                text: qsTr("in")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 font.weight: Theme.weightDemiBold
                                 elide: Text.ElideRight
+                            }
+                            Avatar {
+                                visible: root.activeView === "cast" && root.castChannel.length > 0
+                                avatarSize: 20
+                                Layout.preferredHeight: 20
+                                Layout.preferredWidth: 20
+                                sourceUrl: String(root.detail.channelImageUrl || "")
+                                displayName: String(root.detail.channelName || root.castChannel)
+                            }
+                            DirectionAwareLabel {
+                                visible: root.activeView === "cast" && root.castChannel.length > 0
+                                text: String(root.detail.channelName || root.castChannel)
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: Theme.weightDemiBold
+                                elide: Text.ElideRight
+                                Layout.maximumWidth: 130
                             }
 
                             Label {

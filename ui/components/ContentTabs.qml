@@ -11,7 +11,6 @@ Item {
 
     readonly property var tabModel: [
         { id: "for-you", label: qsTrId("genycaster.home.for_you") },
-        { id: "following", label: qsTr("Following") },
         { id: "visuals", label: qsTrId("genycaster.home.visual_filter_nfts") },
         { id: "conversations", label: qsTrId("genycaster.home.conversations") },
         { id: "devs", label: qsTrId("genycaster.home.devs") }

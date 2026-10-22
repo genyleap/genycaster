@@ -132,6 +132,30 @@ void testCanonicalCodec()
     auto invalidMention = provider::hypersnap::codec::decodeCast(withMention);
     assert(invalidMention && !invalidMention->displayText);
 
+    std::string hydratedChannel = test::hypersnap::fixtures::castResponse();
+    const std::string targetText{R"json("text": "hello native")json"};
+    const auto channelAt = hydratedChannel.find(targetText);
+    assert(channelAt != std::string::npos);
+    hydratedChannel.insert(channelAt,
+        R"json("channel": {"id":"test","name":"Testing Channel","image_url":"https://cdn.test/channel.png"},)json");
+    const auto decodedChannel = provider::hypersnap::codec::decodeCast(hydratedChannel);
+    assert(decodedChannel && decodedChannel->channelId && *decodedChannel->channelId == "test");
+    assert(decodedChannel->channelName && *decodedChannel->channelName == "Testing Channel");
+    assert(decodedChannel->channelImageUrl && *decodedChannel->channelImageUrl == "https://cdn.test/channel.png");
+    // Neynar ranges already pointing to a visible username must not double it.
+    std::string visibleMention = test::hypersnap::fixtures::castResponse();
+    const auto visibleTextAt = visibleMention.find(targetText);
+    assert(visibleTextAt != std::string::npos);
+    visibleMention.replace(visibleTextAt,targetText.size(),R"json("text": "Hello @vrypan.eth!")json");
+    const std::string emptyProfiles{R"json("mentioned_profiles": [])json"};
+    const auto position = visibleMention.find(emptyProfiles);
+    assert(position != std::string::npos);
+    visibleMention.replace(position,emptyProfiles.size(),
+        R"json("mentioned_profiles": [{"fid":12345,"username":"vrypan.eth"}], "mentioned_profiles_ranges": [{"start":6,"end":17}])json");
+    const auto intact = provider::hypersnap::codec::decodeCast(visibleMention);
+    assert(intact && intact->text == "Hello @vrypan.eth!");
+    assert(!intact->displayText);
+
     auto conversation = provider::hypersnap::codec::decodeConversationPayload(
         test::hypersnap::fixtures::conversationResponse());
     assert(conversation);

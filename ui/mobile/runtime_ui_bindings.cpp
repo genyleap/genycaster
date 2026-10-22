@@ -390,6 +390,7 @@ struct FeedPresentationIndex final {
     const FeedPresentationIndex* feedIndex = nullptr);
 
 [[nodiscard]] QString readableCastText(const domain::cast::Cast& cast);
+void attachChannelPresentation(QVariantMap& row, const domain::cast::Cast& cast);
 
 [[nodiscard]] QVariantMap referencedCastPresentation(
     const domain::cast::Embed& embed,
@@ -497,7 +498,7 @@ struct FeedPresentationIndex final {
     if (resolvedName.isEmpty()) {
         resolvedName = QStringLiteral("FID %1").arg(authorFid);
     }
-    return QVariantMap{
+    QVariantMap result{
         {QStringLiteral("castId"), QString::fromStdString(cast.id.value)},
         {QStringLiteral("authorFid"), authorFid},
         {QStringLiteral("author"), username(authorProfile)},
@@ -517,6 +518,8 @@ struct FeedPresentationIndex final {
         {QStringLiteral("likeCount"), static_cast<qulonglong>(cast.engagement.likes)},
         {QStringLiteral("threadReplies"), nested ? threadReplyItems(cast, depth) : QVariantList{}},
     };
+    attachChannelPresentation(result, cast);
+    return result;
 }
 
 // Present thread replies as a flat, ordered sequence prepared on the read
@@ -629,6 +632,7 @@ struct FeedPresentationIndex final {
         {QStringLiteral("recastCount"), static_cast<qulonglong>(state.cast->engagement.recasts)},
         {QStringLiteral("likeCount"), static_cast<qulonglong>(state.cast->engagement.likes)},
     };
+    attachChannelPresentation(preview, *state.cast);
     if (state.author) {
         preview.insert(QStringLiteral("author"), username(&*state.author));
         preview.insert(QStringLiteral("displayName"), displayName(&*state.author));
@@ -756,6 +760,18 @@ void applyProfileVerificationFixture(PresentationBridge& bridge)
     return QString::fromStdString(cast.displayText.value_or(cast.text));
 }
 
+void attachChannelPresentation(QVariantMap& row, const domain::cast::Cast& cast)
+{
+    if (cast.channelId && !cast.channelId->empty())
+        row.insert(QStringLiteral("channelId"), QString::fromStdString(*cast.channelId));
+    if (cast.channelName && !cast.channelName->empty())
+        row.insert(QStringLiteral("channelName"), QString::fromStdString(*cast.channelName));
+    if (cast.channelImageUrl && !cast.channelImageUrl->empty())
+        row.insert(QStringLiteral("channelImageUrl"),
+                   remoteImageSource(QString::fromStdString(*cast.channelImageUrl)));
+}
+
+
 // Immutable feed-state values are prepared on the bounded read executor;
 // never inspect a GUI-owned QObject in this function.
 [[nodiscard]] QVariantList feedPresentationRows(
@@ -824,6 +840,7 @@ void applyProfileVerificationFixture(PresentationBridge& bridge)
             {QStringLiteral("recastCount"), static_cast<qulonglong>(cast->engagement.recasts)},
             {QStringLiteral("likeCount"), static_cast<qulonglong>(cast->engagement.likes)},
         };
+        attachChannelPresentation(row, *cast);
         if (state.query.kind == application::read::model::FeedQuery::Kind::UserLikes &&
             state.query.fid && authenticatedViewerFid != 0
             && authenticatedViewerFid == static_cast<qulonglong>(state.query.fid->value)) {
@@ -1002,6 +1019,7 @@ void applyNotificationState(
             row.insert(QStringLiteral("actorAvatarUrl"), avatarUrl(&actor));
         }
         if (item.cast) {
+            attachChannelPresentation(row, *item.cast);
             row.insert(QStringLiteral("castId"), QString::fromStdString(item.cast->id.value));
             row.insert(QStringLiteral("castAuthorFid"), static_cast<qulonglong>(item.cast->author.value));
             row.insert(QStringLiteral("castParentId"), item.cast->parent ? QString::fromStdString(item.cast->parent->value) : QString{});
@@ -1448,6 +1466,7 @@ void applySignerState(PresentationBridge& bridge, application::signer::SignerSta
             else if (session->username) display = QString::fromStdString(*session->username);
             if (session->avatarUrl) avatar = remoteImageSource(QString::fromStdString(*session->avatarUrl));
         }
+        attachChannelPresentation(presentation, cast);
         presentation.insert(QStringLiteral("castId"), QString::fromStdString(cast.id.value));
         presentation.insert(QStringLiteral("authorFid"), static_cast<qulonglong>(cast.author.value));
         presentation.insert(QStringLiteral("author"), author);
@@ -3749,6 +3768,7 @@ void connectRuntime(
                         }
                         QVariantMap detail{{QStringLiteral("castId"), QString::fromStdString(state.castId.value)}};
                         if (state.cast) {
+                            attachChannelPresentation(detail, *state.cast);
                             detail.insert(QStringLiteral("authorFid"), static_cast<qulonglong>(state.cast->author.value));
                             detail.insert(QStringLiteral("text"), readableCastText(*state.cast));
                             detail.insert(QStringLiteral("createdAtMs"),

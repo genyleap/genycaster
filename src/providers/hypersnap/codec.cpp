@@ -453,9 +453,15 @@ struct MappedCast final {
         } else if (item.is_object()) {
             const auto start = optionalUnsigned(item.as_object(),"start");
             const auto end = optionalUnsigned(item.as_object(),"end");
-            // Non-empty Neynar ranges point to text already containing the
-            // human-visible handle; do not duplicate these mentions.
-            if (!start || !end || *start != *end) return std::nullopt;
+            if (!start || !end || *start > *end || *end > original.size())
+                return std::nullopt;
+            if (*start != *end) {
+                const auto begin = static_cast<std::size_t>(*start);
+                const auto finish = static_cast<std::size_t>(*end);
+                const std::string_view span = original.substr(begin,finish-begin);
+                if (!span.starts_with("@")) return std::nullopt;
+                continue;
+            }
             offset = start;
         }
         if (!offset || *offset > original.size()) return std::nullopt;
@@ -516,6 +522,14 @@ struct MappedCast final {
     }
     if (auto parentUrl = optionalString(castObject, "parent_url"); parentUrl && !parentUrl->empty()) {
         cast.parentUrl = std::move(*parentUrl);
+    }
+    if (const auto* value = findValue(castObject, "channel"); value && value->is_object()) {
+        const auto& channel = value->as_object();
+        cast.channelId = optionalString(channel,"id");
+        cast.channelName = optionalString(channel,"name");
+        cast.channelImageUrl = optionalString(channel,"image_url");
+        if (!cast.channelImageUrl || cast.channelImageUrl->empty())
+            cast.channelImageUrl = optionalString(channel,"imageUrl");
     }
     // Some Farcaster v2-compatible nodes preserve both the direct parent hash
     // and the channel/root parent URL as contextual metadata. The protocol's

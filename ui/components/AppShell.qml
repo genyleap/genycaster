@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtCore
 
 Item {
     id: root
@@ -136,6 +137,19 @@ Item {
     property string homeVisualFilter: "nfts"
     property string primaryDestination: "home"
     property var selectedChannelInfo: ({})
+    property string explorerAudience: "all"
+    Settings {
+        id: explorerAudiencePreferences
+        category: "explorer-feed"
+        property alias audience: root.explorerAudience
+    }
+    function chooseExplorerAudience(audience) {
+        const chosen = audience === "following" && presentationBridge.isAuthenticated
+                       && root.identityAvailable ? "following" : "all"
+        if (root.explorerAudience === chosen) return
+        root.explorerAudience = chosen
+        root.selectExplorerPresentationMode(root.explorerPresentationMode, true)
+    }
     property string explorerPresentationMode: "for-you"
     property string explorerVisualFilter: "nfts"
     // Keep the notifications busy flag as an imperative snapshot. Feeding the
@@ -333,11 +347,15 @@ Item {
         // Explorer uses a separate confirmed chronological network feed.
         // Home's personal Following and ranked Trending timelines remain intact.
         // The provider owns cursor-based continuation and bulk hydration.
-        const source = nextMode === "following" ? (presentationBridge.isAuthenticated
-                            && root.identityAvailable ? "following" : "recent")
-                     : nextMode === "visuals" ? "nfts"
-                     : nextMode === "devs" ? "developers"
-                     : nextMode === "conversations" ? "conversations" : "recent"
+        // The content category and audience scope are orthogonal. Every
+        // Explorer category projects from the selected provider feed; never
+        // silently return to global Recent when the user selects Following.
+        const globalSource = nextMode === "visuals" ? "nfts"
+                           : nextMode === "devs" ? "developers"
+                           : nextMode === "conversations" ? "conversations" : "recent"
+        const source = root.explorerAudience === "following"
+                       && presentationBridge.isAuthenticated && root.identityAvailable
+                       ? "following" : globalSource
         const emptySettledSource = presentationBridge.feedStarted
                                    && !presentationBridge.isBusy
                                    && presentationBridge.rows.length === 0
@@ -404,9 +422,11 @@ Item {
     }
 
     function openQuoteComposer(cast) {
-        const hash = String(cast && (cast.castId || cast.hash) || "")
-        const authorFid = Number(cast && cast.authorFid || 0)
-        if (!/^0x[0-9a-f]{40}$/i.test(hash) || authorFid <= 0) {
+        const source = String(cast && (cast.castId || cast.hash) || "").trim()
+        const bare = source.replace(/^0x/i, "")
+        const hash = /^[0-9a-f]{40}$/i.test(bare) ? "0x" + bare.toLowerCase() : ""
+        const authorFid = Number(cast && (cast.authorFid || cast.castAuthorFid || cast.fid) || 0)
+        if (!hash || !Number.isSafeInteger(authorFid) || authorFid <= 0) {
             root.replyTargetErrorText = qsTr("This cast cannot be quoted because its canonical reference is unavailable.")
             replyTargetErrorLoader.active = true
             Qt.callLater(function() {
@@ -573,6 +593,8 @@ Item {
                 width: parent.width
                 presentationMode: root.explorerPresentationMode
                 visualFilter: root.explorerVisualFilter
+                audience: presentationBridge.isAuthenticated ? root.explorerAudience : "all"
+                onAudienceRequested: audience => root.chooseExplorerAudience(audience)
                 displayName: presentationBridge.accountName.length > 0 ? presentationBridge.accountName : presentationBridge.identityName
                 avatarUrl: presentationBridge.accountAvatarUrl
                 // StoryStrip is an account-only Follow graph, never public Recent authors.

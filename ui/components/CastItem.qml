@@ -104,6 +104,8 @@ Item {
         const candidate = supplied || (match ? match[1] : "")
         return /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(candidate) ? candidate : ""
     }
+    readonly property string channelDisplayName: String(root.modelData.channelName || root.castChannel)
+    readonly property string channelImageUrl: String(root.modelData.channelImageUrl || "")
     readonly property string authorName: root.modelData.displayName || root.modelData.author || qsTrId("genycaster.cast.unknown")
     readonly property string directionSeed: String(root.modelData.text || root.authorName || "")
     readonly property bool contentRtl: localizationController.isRightToLeftText(root.directionSeed)
@@ -497,17 +499,24 @@ Item {
 
                     RowLayout {
                         visible: root.castChannel.length > 0
-                        Layout.maximumWidth: root.compact ? 140 : 180
+                        Layout.maximumWidth: root.compact ? 164 : 208
                         Layout.minimumWidth: 0
                         spacing: Theme.space1
-                        Icon {
-                            text: "hash"
+                        DirectionAwareLabel {
+                            text: qsTr("in")
                             color: Theme.inkMuted
-                            preferredSize: 13
+                            font.pixelSize: Theme.typeCaptionSize
+                        }
+                        Avatar {
+                            Layout.preferredWidth: 22
+                            Layout.preferredHeight: 22
+                            avatarSize: 22
+                            sourceUrl: root.channelImageUrl
+                            displayName: root.channelDisplayName
                         }
                         DirectionAwareLabel {
-                            Layout.maximumWidth: root.compact ? 105 : 145
-                            text: root.castChannel
+                            Layout.maximumWidth: root.compact ? 103 : 137
+                            text: root.channelDisplayName
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                             font.weight: Theme.weightDemiBold
