@@ -6,10 +6,10 @@ const read=path=>readFileSync(new URL(path,base),'utf8');
 
 test('mobile Mini App cards are full-width readable rows',()=>{
  const apps=read('ui/components/AppsSurface.qml');
- assert.match(apps,/columns: 3[\s\S]*?Layout\.preferredHeight: root\.compact \? 54 : 64/);
+ assert.match(apps,/columns: 3[\s\S]*?Layout\.preferredHeight: root\.compact \? 48 : 64/);
  assert.match(apps,/targetColumns: root\.compact \? 1/);
- assert.match(apps,/cellHeight: root\.compact \? 224/);
- assert.match(apps,/Layout\.minimumHeight: root\.compact \? 34 : 40/);
+ assert.match(apps,/cellHeight: root\.compact \? 152/);
+ assert.match(apps,/Layout\.minimumHeight: root\.compact \? 28 : 40/);
  assert.match(apps,/wrapMode: root\.compact \? Text\.WrapAtWordBoundaryOrAnywhere/);
  assert.match(apps,/iconOnly: false[\s\S]{0,90}prominent: true/);
 });

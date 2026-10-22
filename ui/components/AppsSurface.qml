@@ -9,9 +9,36 @@ Item {
     property string section: "farcaster"
     property string farcasterSection: "my"
     property string explorerMode: "all"
+    property bool requestedInitialDiscovery: false
+    function ensureDiscovery() {
+        if (!root.compact || requestedInitialDiscovery || miniAppCatalog.busy
+                || miniAppCatalog.explorerApps.length > 0) return
+        requestedInitialDiscovery = true
+        Qt.callLater(function() {
+            if (root.visible) miniAppCatalog.refresh()
+            else root.requestedInitialDiscovery = false
+        })
+    }
+    Component.onCompleted: root.ensureDiscovery()
+    onVisibleChanged: if (visible) root.ensureDiscovery()
     readonly property var visibleApps: root.farcasterSection === "my"
                                        ? miniAppCatalog.myApps
                                        : miniAppCatalog.explorerApps
+    // Display apps with genuine cover artwork first, without claiming that
+    // catalogue order or this shelf constitutes an external popularity rank.
+    readonly property var discoveryShelfApps: {
+        const catalog = miniAppCatalog.explorerApps || []
+        const illustrated = []
+        const other = []
+        for (let index = 0; index < catalog.length; ++index) {
+            const app = catalog[index]
+            if (String(app.coverSource || "").length > 0)
+                illustrated.push(app)
+            else
+                other.push(app)
+        }
+        return illustrated.concat(other).slice(0, 8)
+    }
 
     signal authenticationRequested()
 
@@ -62,6 +89,7 @@ Item {
             root.authenticationRequested()
             return
         }
+        miniAppCatalog.recordRecentUse(app)
         miniAppHost.openWithMetadata(url, name, String(app && app.iconSource ? app.iconSource : ""))
     }
 
@@ -128,9 +156,23 @@ Item {
             }
         }
 
+        // Discover sits above the library tabs, as in the Farcaster-style
+        // mobile app gallery. All artwork comes from provider metadata.
+        MiniAppFeaturedCarousel {
+            Layout.fillWidth: true
+            Layout.preferredHeight: visible ? implicitHeight : 0
+            compact: true
+            heading: qsTr("Discover")
+            apps: root.discoveryShelfApps
+            visible: root.compact && root.section === "farcaster"
+                     && miniAppCatalog.query.length === 0 && root.discoveryShelfApps.length > 0
+            onOpenRequested: function(app) { root.openApp(app) }
+            onSaveRequested: function(app) { miniAppCatalog.addToMyMiniApps(app) }
+        }
+
         GridLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: root.compact ? 58 : 64
+            Layout.preferredHeight: root.compact ? 52 : 64
             columns: 3
             rowSpacing: Theme.space2
             columnSpacing: Theme.space2
@@ -154,9 +196,11 @@ Item {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
                     Layout.preferredWidth: 0
-                    Layout.preferredHeight: root.compact ? 54 : 64
-                    fillColor: selected ? Theme.primarySurface : Theme.surfaceMuted
-                    borderWidth: selected ? Theme.strokeEmphasis : Theme.strokeHairline
+                    Layout.preferredHeight: root.compact ? 48 : 64
+                    fillColor: root.compact ? Qt.rgba(0, 0, 0, 0)
+                                            : selected ? Theme.primarySurface : Theme.surfaceMuted
+                    borderWidth: root.compact ? 0
+                                              : selected ? Theme.strokeEmphasis : Theme.strokeHairline
                     borderColor: selected ? Theme.accent : Theme.borderSubtle
                     curveDepth: Theme.curveContainer
 
@@ -199,6 +243,15 @@ Item {
                         }
                     }
 
+                    Rectangle {
+                        visible: root.compact && destinationCard.selected
+                        anchors.bottom: parent.bottom
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        height: 3
+                        radius: 1.5
+                        color: Theme.accent
+                    }
                     TapHandler { onTapped: root.activateDestination(destinationCard.destinationId) }
                     Accessible.role: Accessible.Button
                     Accessible.name: String(modelData.title || "")
@@ -231,21 +284,60 @@ Item {
                 visible: root.section === "farcaster"
                 spacing: Theme.space2
 
+                // Swipeable discovery cards reuse the same normalized app rows
+                // and host-mediated launch/save actions as the catalogue below.
+                MiniAppFeaturedCarousel {
+                    id: featuredCarousel
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: visible ? implicitHeight : 0
+                    compact: root.compact
+                    apps: root.discoveryShelfApps
+                    heading: root.explorerMode === "forYou"
+                             ? qsTrId("genycaster.apps.for_you")
+                             : qsTrId("genycaster.side_nav.explorer")
+                    visible: !root.compact && root.farcasterSection === "explorer"
+                             && miniAppCatalog.explorerApps.length > 0
+                             && miniAppCatalog.query.length === 0
+                    onOpenRequested: function(app) { root.openApp(app) }
+                    onSaveRequested: function(app) { miniAppCatalog.addToMyMiniApps(app) }
+                }
+
+                MiniAppLibraryShelves {
+                    objectName: "miniAppLibraryShelves"
+                    visible: root.compact && root.farcasterSection === "my"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: visible ? implicitHeight : 0
+                    recentApps: miniAppCatalog.recentApps
+                    savedApps: miniAppCatalog.myApps
+                    onOpenRequested: function(app) { root.openApp(app) }
+                    onExploreRequested: root.farcasterSection = "explorer"
+                }
+
                 ColumnLayout {
                     visible: root.farcasterSection === "explorer" && root.compact
                     Layout.fillWidth: true
                     spacing: Theme.space2
 
-                    GenyComboBox {
+                    RowLayout {
                         Layout.fillWidth: true
-                        textRole: "title"
-                        valueRole: "id"
-                        model: [
-                            { id: "all", title: qsTrId("genycaster.apps.all_apps") },
-                            { id: "forYou", title: qsTrId("genycaster.apps.for_you") }
-                        ]
-                        currentIndex: root.explorerMode === "forYou" ? 1 : 0
-                        onActivated: root.explorerMode = String(currentValue)
+                        spacing: Theme.space2
+                        layoutDirection: Theme.uiDirection
+
+                        Repeater {
+                            model: [
+                                { id: "all", title: qsTrId("genycaster.apps.all_apps") },
+                                { id: "forYou", title: qsTrId("genycaster.apps.for_you") }
+                            ]
+                            delegate: ActionButton {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                compact: true
+                                prominent: root.explorerMode === String(modelData.id)
+                                quiet: root.explorerMode !== String(modelData.id)
+                                text: String(modelData.title)
+                                onClicked: root.explorerMode = String(modelData.id)
+                            }
+                        }
                     }
 
                     RowLayout {
@@ -395,13 +487,14 @@ Item {
 
                 Item {
                     id: contentViewport
+                    visible: !root.compact || root.farcasterSection !== "my"
                     Layout.fillWidth: true
                     Layout.fillHeight: !root.compact
                     // A zero-row GridView has no contentHeight, but its
                     // empty-state card still needs its own measured viewport.
                     // Without this reservation the centered illustration
                     // escapes upward into the navigation tabs on mobile.
-                    Layout.preferredHeight: root.compact
+                    Layout.preferredHeight: !visible ? 0 : root.compact
                                             ? (root.visibleApps.length === 0
                                                ? Math.max(280, Math.min(400, appsScroller.height * 0.43))
                                                : Math.max(1, appGrid.contentHeight))
@@ -511,7 +604,9 @@ Item {
                                 readonly property int targetColumns: root.compact ? 1
                                                                     : width < 660 ? 1 : (width < 1040 ? 2 : 3)
                                 cellWidth: Math.max(1, width / Math.max(1, targetColumns))
-                                cellHeight: root.compact ? 224 : 236 + Theme.space3
+                                // Compact phones use content-dense vertical rows
+                                // instead of the former tall, mostly empty cards.
+                                cellHeight: root.compact ? 152 : 236 + Theme.space3
 
                                 ScrollBar.vertical: GenyScrollBar {
                                     policy: root.compact ? ScrollBar.AlwaysOff : ScrollBar.AsNeeded
@@ -653,7 +748,7 @@ Item {
 
                                             DirectionAwareLabel {
                                                 Layout.fillWidth: true
-                                                Layout.minimumHeight: root.compact ? 34 : 40
+                                                Layout.minimumHeight: root.compact ? 28 : 40
                                                 text: String(cardCell.modelData.description || "")
                                                 color: Theme.inkMuted
                                                 font.pixelSize: Theme.typeMetaSize

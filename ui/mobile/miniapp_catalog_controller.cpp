@@ -36,6 +36,8 @@ constexpr qsizetype savedMiniAppLimit = 200;
 constexpr int cataloguePageSize = 100;
 constexpr int networkTimeoutMs = 12'000;
 constexpr auto savedMiniAppsSettingsKey = "miniapps/savedApps";
+constexpr auto recentMiniAppsSettingsKey = "miniapps/recentApps";
+constexpr qsizetype recentMiniAppLimit = 20;
 
 [[nodiscard]] QString trimmedString(const QJsonObject& object, const QString& key)
 {
@@ -217,6 +219,37 @@ constexpr auto savedMiniAppsSettingsKey = "miniapps/savedApps";
         }
     }
 
+    // Keep discovery cover artwork separate from the square app icon. Never
+    // upscale a tiny icon into a large feature card when no cover is provided.
+    const QStringList coverKeys{
+        QStringLiteral("heroImageUrl"), QStringLiteral("hero_image_url"),
+        QStringLiteral("coverUrl"), QStringLiteral("cover_url"),
+        QStringLiteral("bannerUrl"), QStringLiteral("banner_url"),
+        QStringLiteral("splashImageUrl"), QStringLiteral("splash_image_url"),
+        QStringLiteral("ogImageUrl"), QStringLiteral("og_image_url"),
+        QStringLiteral("posterUrl"), QStringLiteral("poster_url")};
+    QString coverUrl = firstString(app, coverKeys);
+    if (coverUrl.isEmpty()) {
+        // Manifest.frame is distinct from Manifest.miniapp in Neynar's
+        // real catalogue response. Extract its original, supplied cover,
+        // never manufacture a banner from the square app icon.
+        const QJsonObject manifest = objectFromPossiblyEncodedJson(row.value(QStringLiteral("manifest")));
+        coverUrl = firstString(manifest.value(QStringLiteral("frame")).toObject(), coverKeys);
+    }
+    if (coverUrl.isEmpty()) {
+        coverUrl = firstString(row, coverKeys);
+    }
+    if (coverUrl.isEmpty()) {
+        const QJsonArray screenshots = app.value(QStringLiteral("screenshot_urls")).toArray();
+        if (!screenshots.isEmpty()) coverUrl = screenshots.first().toString().trimmed();
+    }
+    if (!coverUrl.isEmpty()) {
+        const QUrl candidate{coverUrl, QUrl::StrictMode};
+        if (candidate.isRelative()) {
+            coverUrl = parsedHome.resolved(candidate).toString(QUrl::FullyEncoded);
+        }
+    }
+
     QString authorName = firstString(author, {
         QStringLiteral("display_name"), QStringLiteral("displayName"), QStringLiteral("username")});
     if (authorName.isEmpty()) {
@@ -257,6 +290,7 @@ constexpr auto savedMiniAppsSettingsKey = "miniapps/savedApps";
         {QStringLiteral("domain"), domain.left(255)},
         {QStringLiteral("homeUrl"), homeUrl},
         {QStringLiteral("iconSource"), publicImageSource(iconUrl)},
+        {QStringLiteral("coverSource"), publicImageSource(coverUrl)},
         {QStringLiteral("authorName"), authorName.left(96)},
         {QStringLiteral("authorFid"), QVariant::fromValue(authorFid)},
         {QStringLiteral("requiredChains"), requiredChains},
@@ -349,6 +383,7 @@ constexpr auto savedMiniAppsSettingsKey = "miniapps/savedApps";
                row.value(QStringLiteral("description")).toString().trimmed().left(420));
     row.insert(QStringLiteral("domain"), domain);
     row.insert(QStringLiteral("iconSource"), row.value(QStringLiteral("iconSource")).toString());
+    row.insert(QStringLiteral("coverSource"), row.value(QStringLiteral("coverSource")).toString());
     row.insert(QStringLiteral("saved"), true);
     return row;
 }
@@ -459,6 +494,7 @@ constexpr auto savedMiniAppsSettingsKey = "miniapps/savedApps";
             {QStringLiteral("domain"), QStringLiteral("farcaster.xyz")},
             {QStringLiteral("homeUrl"), homeUrl},
             {QStringLiteral("iconSource"), publicImageSource(imageUrl)},
+            {QStringLiteral("coverSource"), QString{}},
             {QStringLiteral("authorName"), QString{}},
             {QStringLiteral("authorFid"), QVariant::fromValue<qulonglong>(0)},
             {QStringLiteral("requiredChains"), QStringList{}},
@@ -638,6 +674,7 @@ public:
           networkEnabled(allowNetwork)
     {
         loadSaved();
+        loadRecent();
         if (!networkEnabled || (!primaryEndpoint.available() && !fallbackEndpoint.available())) {
             return;
         }
@@ -805,8 +842,10 @@ public:
         persistSaved();
         decorateSaved(explorerApps);
         decorateSaved(catalogueSnapshot);
+        decorateSaved(recentApps);
         emit q.myAppsChanged();
         emit q.explorerAppsChanged();
+        emit q.recentAppsChanged();
     }
 
     void remove(const QString& rawHomeUrl)
@@ -831,8 +870,26 @@ public:
         persistSaved();
         decorateSaved(explorerApps);
         decorateSaved(catalogueSnapshot);
+        decorateSaved(recentApps);
         emit q.myAppsChanged();
         emit q.explorerAppsChanged();
+        emit q.recentAppsChanged();
+    }
+
+    void recordRecentUse(const QVariantMap& app)
+    {
+        QVariantMap row = normalizeSavedRow(app);
+        const QString homeUrl = row.value(QStringLiteral("homeUrl")).toString();
+        if (homeUrl.isEmpty()) return;
+        row.insert(QStringLiteral("saved"), isSaved(homeUrl));
+        for (qsizetype index = recentApps.size(); index > 0; --index) {
+            if (recentApps.at(index - 1).toMap().value(QStringLiteral("homeUrl")).toString() == homeUrl)
+                recentApps.removeAt(index - 1);
+        }
+        recentApps.prepend(std::move(row));
+        while (recentApps.size() > recentMiniAppLimit) recentApps.removeLast();
+        settings.setValue(QString::fromLatin1(recentMiniAppsSettingsKey), recentApps);
+        emit q.recentAppsChanged();
     }
 
     [[nodiscard]] bool hasRemoteSearch() const noexcept
@@ -860,6 +917,7 @@ public:
     QVariantList explorerApps{};
     QVariantList catalogueSnapshot{};
     QVariantList myApps{};
+    QVariantList recentApps{};
     quint64 generation{};
 
 private:
@@ -1127,6 +1185,21 @@ private:
         myApps = std::move(loaded);
     }
 
+    void loadRecent()
+    {
+        QSet<QString> seen;
+        const QVariantList stored = settings.value(QString::fromLatin1(recentMiniAppsSettingsKey)).toList();
+        for (const QVariant& value : stored) {
+            QVariantMap row = normalizeSavedRow(value.toMap());
+            const QString url = row.value(QStringLiteral("homeUrl")).toString();
+            if (url.isEmpty() || seen.contains(url)) continue;
+            seen.insert(url);
+            row.insert(QStringLiteral("saved"), isSaved(url));
+            recentApps.push_back(std::move(row));
+            if (recentApps.size() >= recentMiniAppLimit) break;
+        }
+    }
+
     void persistSaved()
     {
         settings.setValue(QString::fromLatin1(savedMiniAppsSettingsKey), myApps);
@@ -1175,6 +1248,7 @@ MiniAppCatalogController::~MiniAppCatalogController() = default;
 
 QVariantList MiniAppCatalogController::explorerApps() const { return m_impl->explorerApps; }
 QVariantList MiniAppCatalogController::myApps() const { return m_impl->myApps; }
+QVariantList MiniAppCatalogController::recentApps() const { return m_impl->recentApps; }
 bool MiniAppCatalogController::busy() const noexcept { return m_impl->busy; }
 QString MiniAppCatalogController::errorText() const { return m_impl->errorText; }
 QString MiniAppCatalogController::providerLabel() const { return m_impl->providerLabel; }
@@ -1187,3 +1261,4 @@ void MiniAppCatalogController::refreshRelevant(const qulonglong viewerFid) { m_i
 void MiniAppCatalogController::searchByFid(const qulonglong authorFid) { m_impl->searchByFid(authorFid); }
 void MiniAppCatalogController::addToMyMiniApps(const QVariantMap& app) { m_impl->add(app); }
 void MiniAppCatalogController::removeFromMyMiniApps(const QString& homeUrl) { m_impl->remove(homeUrl); }
+void MiniAppCatalogController::recordRecentUse(const QVariantMap& app) { m_impl->recordRecentUse(app); }

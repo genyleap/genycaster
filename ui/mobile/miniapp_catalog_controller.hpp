@@ -61,6 +61,7 @@ class MiniAppCatalogController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList explorerApps READ explorerApps NOTIFY explorerAppsChanged FINAL)
     Q_PROPERTY(QVariantList myApps READ myApps NOTIFY myAppsChanged FINAL)
+    Q_PROPERTY(QVariantList recentApps READ recentApps NOTIFY recentAppsChanged FINAL)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged FINAL)
     Q_PROPERTY(QString errorText READ errorText NOTIFY errorTextChanged FINAL)
     Q_PROPERTY(QString providerLabel READ providerLabel NOTIFY providerLabelChanged FINAL)
@@ -79,6 +80,7 @@ public:
 
     [[nodiscard]] QVariantList explorerApps() const;
     [[nodiscard]] QVariantList myApps() const;
+    [[nodiscard]] QVariantList recentApps() const;
     [[nodiscard]] bool busy() const noexcept;
     [[nodiscard]] QString errorText() const;
     [[nodiscard]] QString providerLabel() const;
@@ -98,10 +100,13 @@ public:
     Q_INVOKABLE void addToMyMiniApps(const QVariantMap& app);
     /** @brief Removes a saved app by its stable home URL. */
     Q_INVOKABLE void removeFromMyMiniApps(const QString& homeUrl);
+    /** @brief Records only an actual user-triggered local Mini App launch. */
+    Q_INVOKABLE void recordRecentUse(const QVariantMap& app);
 
 signals:
     void explorerAppsChanged();
     void myAppsChanged();
+    void recentAppsChanged();
     void busyChanged();
     void errorTextChanged();
     void providerLabelChanged();
