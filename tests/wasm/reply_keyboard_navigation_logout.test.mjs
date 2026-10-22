@@ -14,8 +14,10 @@ test('reply editor stays visible when iOS visual viewport shrinks',()=>{
  assert.match(drawer,/if \(!root\.opened \|\| !editor \|\| !editor\.activeFocus\)/);
  assert.doesNotMatch(drawer,/root\.ensureEditorVisible\(root\.compact \? mobilePlainEditor : visualEditor\.activeEditor\)/);
  assert.match(drawer,/onKeyboardVisibleChanged:/);
- assert.match(drawer,/visible: \(root\.parentCast !== null \|\| root\.quotedCast !== null\)/);
- assert.match(drawer,/&& !root\.keyboardVisible/);
+ assert.match(drawer,/visible: root\.replyMode \|\| root\.quoteMode/);
+ assert.match(drawer,/visible: root\.replyMode \|\| root\.quoteMode/);
+ assert.match(drawer,/root\.replyMode[\s\S]*?composerScroll\.height \* 0\.36/);
+ assert.match(drawer,/root\.compact && root\.replyMode && !root\.threadMode/);
  assert.match(drawer,/onActiveEditorChangedExternally: \(blockIndex, editor\)/);
  assert.match(drawer,/root\.ensureEditorVisible\(threadEditor\)/);
 });
@@ -68,8 +70,8 @@ test('mobile Composer fills the current Qt viewport and preserves desktop host',
  const composer=read('ComposerDrawer.qml');
  const adaptive=read('GenyAdaptiveDialog.qml');
  assert.match(app,/hostItem: root\.mobile \? root : readingPane/);
- assert.match(composer,/fullScreen: compact/);
- assert.match(composer,/height: parent \? \(compact \? parent\.height/);
+ assert.match(composer,/fullScreen: compact && \(!replyMode \|\| keyboardVisible\)/);
+ assert.match(composer,/height: parent \? \(compact/);
  assert.match(composer,/objectName: "mobileComposerNavigation"/);
  assert.match(composer,/objectName: "mobileComposerMediaBar"/);
  assert.match(adaptive,/property Item blurSourceItem: null/);

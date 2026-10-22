@@ -7,17 +7,24 @@ const track=$("boot-track");
 // Browser chrome is separate from the Qt canvas. Match the actual Qt theme
 // after initialization; HTML defaults dark until the Qt bridge is ready.
 // The installed PWA status bar follows the same theme when iOS permits it.
-function applyBrowserChromeTheme(dark) {
+function applyBrowserChromeTheme(dark, remember=true) {
     const color=dark?"#0b0c0f":"#f1f1f3";
     document.documentElement.setAttribute("data-chrome-theme",dark?"dark":"light");
     const meta=document.querySelector('meta[name="theme-color"]');
     if(meta)meta.setAttribute("content",color);
+    if(remember){
+        try { localStorage.setItem("genycaster.browser.chrome.v1",dark?"dark":"light"); }
+        catch (_) { /* optional appearance cache, never block Qt startup */ }
+    }
     // The PWA status-bar style is chosen by WebKit at installation time;
     // rewriting a meta tag after boot cannot reliably re-style an installed
     // iOS app. Do not force the legacy black-translucent mode.
 }
 window.__genycasterSetBrowserChromeTheme=applyBrowserChromeTheme;
-applyBrowserChromeTheme(true);
+// Keep the early, OS- or user-selected appearance until Qt reports its real
+// theme. Forcing dark here painted a black status bar over light iOS pages.
+applyBrowserChromeTheme(
+    document.documentElement.getAttribute?.("data-chrome-theme") !== "light", false);
 let finished=false, failed=false;
 const bootStarted=performance.now();
 let wasmResourceUrl;

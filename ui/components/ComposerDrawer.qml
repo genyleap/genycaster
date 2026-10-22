@@ -9,6 +9,13 @@ GenyDrawer {
 
     property var parentCast: null
     property var quotedCast: null
+    // One canonical intent for each composition. A quote is a new top-level
+    // cast containing a reference; a reply has a canonical parent cast.
+    readonly property string composeIntent: root.quotedCast !== null ? "quote"
+                                             : root.parentCast !== null ? "reply" : "new"
+    readonly property bool replyMode: composeIntent === "reply"
+    readonly property bool quoteMode: composeIntent === "quote"
+    readonly property bool showTaxonomyControls: composeIntent !== "reply"
     property string initialAction: ""
     // Canonical parent_url is sourced from the channel search response.
     property string selectedParentUrl: ""
@@ -23,8 +30,9 @@ GenyDrawer {
     property bool showAdvancedFormatting: false
     property real expandedViewportHeight: 0
     readonly property bool keyboardVisible: root.compact && root.opened
-        && root.expandedViewportHeight > 0 && root.parent !== null
-        && root.parent.height < root.expandedViewportHeight - 125
+        && (Qt.inputMethod.visible
+            || (root.expandedViewportHeight > 0 && root.parent !== null
+                && root.parent.height < root.expandedViewportHeight - 125))
     property bool restoredDraft: false
     property string insertKind: ""
     property int insertBlockIndex: -1
@@ -50,7 +58,9 @@ GenyDrawer {
     readonly property string replyText: root.parentCast
                                                  ? String(root.parentCast.text || "") : ""
     readonly property bool replyContentRtl: localizationController.isRightToLeftText(
-                                                root.replyText || root.replyName)
+        root.quotedCast
+        ? String(root.quotedCast.text || root.quotedCast.displayName || "")
+        : (root.replyText || root.replyName))
 
     signal publishRequested(string text, var mentionFids, var mentionPositions, var embeds, string parentUrl)
     signal replyRequested(string text, var mentionFids, var mentionPositions, var embeds)
@@ -62,8 +72,11 @@ GenyDrawer {
     // A native-feeling page on narrow screens; keep the rich editor and
     // publication/draft logic intact rather than replacing it with a form.
     bottomSheet: true
-    fullScreen: compact
-    showHandle: !compact
+    // A reply opens as a compact bottom sheet. When the keyboard appears
+    // it uses the available Qt viewport rather than clipping the target or
+    // controls behind the iOS input accessory.
+    fullScreen: compact && (!replyMode || keyboardVisible)
+    showHandle: !fullScreen
     modal: true
     focus: true
     dimBackground: true
@@ -72,7 +85,12 @@ GenyDrawer {
     // During typing the Qt viewport already excludes the on-screen keyboard.
     // Consume its full available height instead of leaving a dead upper gap.
     // Parent is AppShell on mobile (not the scrolling reading column).
-    height: parent ? (compact ? parent.height : Math.min(parent.height * 0.78, 720)) : 720
+    height: parent ? (compact
+                      ? (replyMode && !keyboardVisible
+                         ? Math.min(parent.height * 0.82, 690)
+                         : parent.height)
+                      : (replyMode ? Math.min(parent.height * 0.66, 600)
+                         : Math.min(parent.height * 0.78, 720))) : 720
     // Composer content owns vertical scrolling; drawer-swipe gestures would otherwise
     // compete with Flickable/ScrollView input on touch devices.
     // Scrolling belongs to the content; swipe-to-dismiss was stealing
@@ -107,6 +125,15 @@ GenyDrawer {
             const caretY = caret && isFinite(caret.y)
                         ? Math.max(0, Math.min(activeEditor.height - 28, caret.y)) : 0
             const margin = Theme.space3
+            // Empty/short replies should always start below their parent
+            // context. Scrolling to the oversized editor previously hid the
+            // parent beneath the status bar as soon as iOS raised the keyboard.
+            if (root.compact && root.replyMode && !root.threadMode
+                    && Number(activeEditor.cursorPosition || 0) <= 1
+                    && mapped.y + Math.min(activeEditor.height, 46) < flick.height - margin) {
+                flick.contentY = 0
+                return
+            }
             const maxY = Math.max(0, flick.contentHeight - flick.height)
             const panelTop = mapped.y - Theme.space3
             const panelBottom = mapped.y + activeEditor.height + Theme.space3
@@ -175,7 +202,11 @@ GenyDrawer {
         root.selectedContextLabel = ""
         root.selectedContextImage = ""
         root.selectedChannelId = ""
-        root.quotedCast = null
+        // Clearing a quote draft must preserve the referenced Cast, just as
+        // clearing a reply must never silently lose its reply parent.
+        if (root.quoteMode && root.quotedCast)
+            richComposer.insertCastReference(String(root.quotedCast.castId || ""),
+                                             Number(root.quotedCast.authorFid || 0))
         root.emojiThreadIndex = -1
         root.emojiThreadCursorPosition = -1
         if (root.compact) {
@@ -347,10 +378,12 @@ GenyDrawer {
         richComposer.saveDraft()
         if (root.threadMode)
             root.threadRequested(root.threadPayload())
-        else if (root.parentCast)
+        else if (root.replyMode)
             root.replyRequested(richComposer.safeText, richComposer.mentionFids, richComposer.mentionPositions, richComposer.protocolEmbeds)
         else
-            root.publishRequested(richComposer.safeText, richComposer.mentionFids, richComposer.mentionPositions, richComposer.protocolEmbeds, root.selectedParentUrl)
+            root.publishRequested(richComposer.safeText, richComposer.mentionFids, richComposer.mentionPositions,
+                                  richComposer.protocolEmbeds,
+                                  root.showTaxonomyControls ? root.selectedParentUrl : "")
     }
 
     // Repeater editors are incubated after the drawer begins opening; a
@@ -374,6 +407,9 @@ GenyDrawer {
     }
 
     onOpened: {
+        // Reused Drawer scroll position must not hide the next reply target.
+        if (composerScroll.contentItem)
+            composerScroll.contentItem.contentY = 0
         root.focusedComposerEditor = null
         root.pendingEditorReveal = false
         root.initialFocusAttempts = 0
@@ -487,7 +523,7 @@ GenyDrawer {
     Connections {
         target: channelDirectory
         function onChannelChosen(selection) {
-            if (!root.opened || !channelPicker.opened) return
+            if (!root.opened || !channelPicker.opened || !root.showTaxonomyControls) return
             root.selectedParentUrl = String(selection.parentUrl || "")
             root.selectedContextLabel = selection.isHome ? "" : String(selection.name || "")
             root.selectedChannelId = selection.isHome ? "" : String(selection.id || "")
@@ -567,6 +603,10 @@ GenyDrawer {
         height: parent ? Math.min(parent.height * 0.76, 670) : 580
         contentPadding: Theme.space3
         onOpened: {
+            if (!root.showTaxonomyControls) {
+                close()
+                return
+            }
             channelSearch.text = ""
             channelResults.positionViewAtBeginning()
             channelDirectory.openForViewer(
@@ -959,10 +999,13 @@ GenyDrawer {
 
             Superellipse {
                 id: replyContextCard
-                visible: (root.parentCast !== null || root.quotedCast !== null)
-                         && !root.keyboardVisible
+                visible: root.replyMode || root.quoteMode
                 Layout.fillWidth: true
-                implicitHeight: replyContextContent.implicitHeight + Theme.space4 * 2
+                // Keep the parent/quoted Cast readable even with the keyboard
+                // open, while saving vertical room for the reply editor.
+                implicitHeight: replyContextContent.implicitHeight
+                                + (root.compact && root.keyboardVisible
+                                   ? Theme.space2 * 2 : Theme.space4 * 2)
                 curveDepth: Theme.curveContainer
                 fillColor: replyContextHover.hovered ? Theme.primarySurfaceHover : Theme.primarySurface
                 borderWidth: Theme.strokeHairline
@@ -982,15 +1025,16 @@ GenyDrawer {
                 RowLayout {
                     id: replyContextContent
                     anchors.fill: parent
-                    anchors.margins: Theme.space4
-                    spacing: Theme.space3
+                    anchors.margins: root.compact && root.keyboardVisible
+                                     ? Theme.space2 : Theme.space4
+                    spacing: root.compact && root.keyboardVisible ? Theme.space2 : Theme.space3
                     layoutDirection: root.replyContentRtl ? Qt.RightToLeft : Qt.LeftToRight
                     LayoutMirroring.enabled: false
                     LayoutMirroring.childrenInherit: true
 
                     Avatar {
                         Layout.alignment: Qt.AlignTop
-                        avatarSize: root.compact ? 44 : 48
+                        avatarSize: root.compact ? (root.keyboardVisible ? 32 : 40) : 48
                         sourceUrl: root.quotedCast ? String(root.quotedCast.avatarUrl || "")
                                                   : root.parentCast ? String(root.parentCast.avatarUrl || "") : ""
                         displayName: root.quotedCast ? String(root.quotedCast.displayName || root.quotedCast.author || "") : root.replyName
@@ -1033,6 +1077,7 @@ GenyDrawer {
 
                         DirectionAwareLabel {
                             Layout.fillWidth: true
+                            visible: !root.compact || !root.keyboardVisible
                             text: root.quotedCast
                                   ? String(root.quotedCast.displayName || root.quotedCast.author || "")
                                   : root.replyName
@@ -1052,7 +1097,8 @@ GenyDrawer {
                             font.pixelSize: Theme.typeBodySize
                             font.weight: Theme.weightRegular
                             lineHeight: Theme.typeBodyLineHeight
-                            maximumLineCount: root.compact ? 2 : 3
+                            maximumLineCount: root.compact && root.keyboardVisible ? 1
+                                              : root.compact ? 2 : 3
                             wrapMode: Text.Wrap
                             elide: Text.ElideRight
                         }
@@ -1192,15 +1238,27 @@ GenyDrawer {
                                           ? (root.compact
                                              ? Math.max(118, Math.min(188, composerScroll.height * 0.36))
                                              : 250)
-                                          : (root.compact
-                                             ? Math.max(135, composerScroll.height
-                                                - (root.keyboardVisible ? 84 : 126))
-                                             : 320)
+                                          : root.replyMode
+                                            ? (root.compact
+                                               ? Math.max(118, Math.min(192, composerScroll.height * 0.36))
+                                               : 225)
+                                            : root.quoteMode
+                                              ? (root.compact
+                                                 ? Math.max(138, Math.min(232, composerScroll.height * 0.43))
+                                                 : 280)
+                                              : (root.compact
+                                                 ? Math.max(135, composerScroll.height
+                                                    - (root.keyboardVisible ? 84 : 126))
+                                                 : 320)
                 Layout.minimumHeight: root.editorMode === "preview"
                                       ? Math.min(farcasterPreview.implicitHeight, root.compact ? 210 : 230)
                                       : root.threadMode
                                         ? (root.compact ? 118 : 220)
-                                        : (root.compact ? 135 : 280)
+                                        : root.replyMode
+                                          ? (root.compact ? 118 : 190)
+                                          : root.quoteMode
+                                            ? (root.compact ? 138 : 220)
+                                            : (root.compact ? 135 : 280)
                 spacing: Theme.space3
                 layoutDirection: Qt.LeftToRight
 
@@ -1520,6 +1578,7 @@ GenyDrawer {
                 RowLayout {
                     objectName: "mobileCastContext"
                     visible: root.compact && root.editorMode === "visual"
+                             && root.showTaxonomyControls
                     Layout.fillWidth: true
                     layoutDirection: Theme.uiDirection
                     spacing: Theme.space2
@@ -1575,7 +1634,7 @@ GenyDrawer {
                         }
                         MouseArea {
                             anchors.fill: parent
-                            onClicked: channelPicker.open()
+                            onClicked: if (root.showTaxonomyControls) channelPicker.open()
                         }
                     }
                     Item {

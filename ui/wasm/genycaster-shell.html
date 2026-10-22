@@ -6,6 +6,22 @@
 <meta name="theme-color" content="#0b0c0f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<!-- Paint the initial status-bar sampling surface in the last Qt appearance,
+     not unconditionally dark before WASM/QML has had a chance to initialize. -->
+<script>
+(function () {
+    let dark = window.matchMedia
+        ? window.matchMedia("(prefers-color-scheme: dark)").matches : true;
+    try {
+        const saved = localStorage.getItem("genycaster.browser.chrome.v1");
+        if (saved === "light") dark = false;
+        else if (saved === "dark") dark = true;
+    } catch (_) { /* private-mode storage may be unavailable */ }
+    document.documentElement.setAttribute("data-chrome-theme", dark ? "dark" : "light");
+    document.querySelector('meta[name="theme-color"]')
+        .setAttribute("content", dark ? "#0b0c0f" : "#f1f1f3");
+})();
+</script>
 <!-- Do not force black-translucent: WebKit deprecates it for mixed light/dark
      appearances. Let iOS choose status icons/chrome from the page colors. -->
 <link rel="icon" href="./genycaster-icon.svg?v=brand-2" type="image/svg+xml">

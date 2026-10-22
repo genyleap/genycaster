@@ -453,6 +453,9 @@ Item {
         root.pendingMiniAppComposeText = String(options.text || "")
         root.pendingMiniAppComposeEmbeds = options.embeds || []
         composerDrawer.parentCast = root.composerParent
+        // An earlier Quote must never turn an unrelated Mini App reply into
+        // a top-level post when the shared ComposerDrawer is reused.
+        composerDrawer.quotedCast = null
         composerDrawer.initialAction = ""
         composerDrawer.transientDraft = true
         composerDrawer.suggestedText = root.pendingMiniAppComposeText
@@ -1204,6 +1207,7 @@ Item {
                                     // a late network confirmation may not close a new draft.
                                     root.awaitingRichCommit = false
                                     root.composerParent = null
+                                    composerDrawer.quotedCast = null
                                     if (root.pendingMiniAppComposeRequestId.length > 0 && !root.awaitingRichCommit) {
                                         miniAppHost.cancelComposeCast(root.pendingMiniAppComposeRequestId)
                                         root.pendingMiniAppComposeRequestId = ""
