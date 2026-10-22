@@ -60,6 +60,7 @@ struct MiniAppCatalogEndpoint final {
 class MiniAppCatalogController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList explorerApps READ explorerApps NOTIFY explorerAppsChanged FINAL)
+    Q_PROPERTY(bool hasMore READ hasMore NOTIFY hasMoreChanged FINAL)
     Q_PROPERTY(QVariantList myApps READ myApps NOTIFY myAppsChanged FINAL)
     Q_PROPERTY(QVariantList recentApps READ recentApps NOTIFY recentAppsChanged FINAL)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged FINAL)
@@ -79,6 +80,7 @@ public:
     ~MiniAppCatalogController() override;
 
     [[nodiscard]] QVariantList explorerApps() const;
+    [[nodiscard]] bool hasMore() const noexcept;
     [[nodiscard]] QVariantList myApps() const;
     [[nodiscard]] QVariantList recentApps() const;
     [[nodiscard]] bool busy() const noexcept;
@@ -90,6 +92,8 @@ public:
 
     /** @brief Refreshes the protocol catalogue using the configured provider chain. */
     Q_INVOKABLE void refresh();
+    /** @brief Loads the next bounded provider catalogue page, preserving prior results. */
+    Q_INVOKABLE void loadMore();
     /** @brief Searches remotely when supported, otherwise filters the cached catalogue locally. */
     Q_INVOKABLE void search(const QString& query);
     /** @brief Fetches Mini Apps personalized for a Farcaster viewer FID when the provider supports it. */
@@ -105,6 +109,7 @@ public:
 
 signals:
     void explorerAppsChanged();
+    void hasMoreChanged();
     void myAppsChanged();
     void recentAppsChanged();
     void busyChanged();

@@ -112,3 +112,43 @@ test("mobile browsing modes are slim text tabs, not two large full-width action 
  assert.match(apps,/Accessible\.role: Accessible\.PageTab/);
  assert.doesNotMatch(apps,/prominent: root\.explorerMode === String\(modelData\.id\)/);
 });
+
+test('provider-neutral Mini App paging preserves existing results and rich author metadata',()=>{
+ const cpp=read("ui/mobile/miniapp_catalog_controller.cpp");
+ const hpp=read("ui/mobile/miniapp_catalog_controller.hpp");
+ const view=read("ui/components/AppsSurface.qml");
+ for(const part of [
+    'Q_PROPERTY(bool hasMore READ hasMore NOTIFY hasMoreChanged FINAL)',
+    'Q_INVOKABLE void loadMore()'
+ ])assert.ok(hpp.includes(part),part);
+ assert.match(cpp,/nextCursor = next\.toObject\(\)\.value\(QStringLiteral\("cursor"\)\)\.toString\(\)/);
+ assert.match(cpp,/void loadMore\(\)[\s\S]*?parameters\.addQueryItem\(QStringLiteral\("cursor"\), cursor\)/);
+ assert.match(cpp,/for \(const QVariant& value : result\.rows\)[\s\S]*?catalogueSnapshot\.push_back/);
+ assert.match(view,/onContentYChanged:[\s\S]*?miniAppCatalog\.loadMore\(\)/);
+ assert.match(view,/objectName: "miniAppLoadMore"/);
+ for(const item of ['authorUsername','authorAvatar','category','tags','screenshots']){
+   assert.ok(cpp.includes('{QStringLiteral("'+item+'")'),item);
+ }
+ assert.match(view,/text: qsTr\("Developer"\)/);
+ assert.match(view,/text: qsTr\("Screenshots"\)/);
+ assert.match(view,/model: root\.selectedMiniApp\.screenshots \|\| \[\]/);
+ assert.match(view,/id: detailScroll/);
+});
+
+test('feature carousel counter follows visible position, arrows and touch use one index',()=>{
+ const hero=read("ui/components/MiniAppFeaturedCarousel.qml");
+ assert.match(hero,/property int shownIndex: 0/);
+ assert.match(hero,/function navigateTo\(index\)/);
+ assert.match(hero,/root\.navigateTo\(root\.shownIndex - 1\)/);
+ assert.match(hero,/root\.navigateTo\(root\.shownIndex \+ 1\)/);
+ assert.match(hero,/onContentXChanged:[\s\S]*?root\.shownIndex = Math\.max/);
+ assert.match(hero,/onDragStarted: slideAnimation\.stop\(\)/);
+ assert.match(hero,/property: "contentX"[\s\S]*?Theme\.motionStandard/);
+ assert.doesNotMatch(hero,/positionViewAtIndex\(/);
+});
+test('WASM uses browser-cacheable first-party raster proxy, native still uses image provider',()=>{
+ const cpp=read("ui/mobile/miniapp_catalog_controller.cpp");
+ assert.match(cpp,/#if defined\(__EMSCRIPTEN__\)[\s\S]*?storage-farcaster\.genyleap\.com\/v1\/browser\/images/);
+ assert.match(cpp,/query\.addQueryItem\(QStringLiteral\("url"\), url\.toString\(QUrl::FullyEncoded\)\)/);
+ assert.match(cpp,/#else\s+const QByteArray encoded/);
+});

@@ -115,9 +115,22 @@ constexpr qsizetype recentMiniAppLimit = 20;
         return {};
     }
 
+#if defined(__EMSCRIPTEN__)
+    // Use the browser's HTTP image cache for public Mini App artwork, rather
+    // than cycling its immutable URL through the feed's remote-image admission
+    // and decode-worker pipeline on each recycled Qt Quick delegate.
+    // The first-party gateway enforces exact trusted catalogue URL grants,
+    // public-address checks and bounded raster responses.
+    QUrl browserProxy{QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/images")};
+    QUrlQuery query{};
+    query.addQueryItem(QStringLiteral("url"), url.toString(QUrl::FullyEncoded));
+    browserProxy.setQuery(query);
+    return browserProxy.toString(QUrl::FullyEncoded);
+#else
     const QByteArray encoded = url.toString(QUrl::FullyEncoded).toUtf8().toBase64(
         QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
     return QStringLiteral("image://remote/") + QString::fromLatin1(encoded);
+#endif
 }
 
 [[nodiscard]] QString normalizedHomeUrl(QString value)
@@ -252,6 +265,23 @@ constexpr qsizetype recentMiniAppLimit = 20;
 
     QString authorName = firstString(author, {
         QStringLiteral("display_name"), QStringLiteral("displayName"), QStringLiteral("username")});
+    const QString authorUsername = firstString(author, {
+        QStringLiteral("username"), QStringLiteral("userName")});
+    const QString avatarUrl = firstString(author, {
+        QStringLiteral("pfp_url"), QStringLiteral("pfpUrl")});
+    const QString category = firstString(app, {
+        QStringLiteral("primary_category"), QStringLiteral("primaryCategory"), QStringLiteral("category")});
+    const QStringList tags = stringArray(app.value(QStringLiteral("tags")));
+    const QJsonArray screenshotArray = app.value(QStringLiteral("screenshot_urls")).toArray();
+    QStringList screenshots{};
+    for (const QJsonValue& screenshot : screenshotArray) {
+        if (screenshots.size() >= 5) break;
+        const QString raw = screenshot.toString();
+        const QUrl source{raw, QUrl::StrictMode};
+        const QUrl absolute = source.isRelative() ? parsedHome.resolved(source) : source;
+        const QString image = publicImageSource(absolute.toString(QUrl::FullyEncoded));
+        if (!image.isEmpty()) screenshots.append(image);
+    }
     if (authorName.isEmpty()) {
         authorName = firstString(row, {QStringLiteral("authorName"), QStringLiteral("author_name")});
     }
@@ -292,7 +322,12 @@ constexpr qsizetype recentMiniAppLimit = 20;
         {QStringLiteral("iconSource"), publicImageSource(iconUrl)},
         {QStringLiteral("coverSource"), publicImageSource(coverUrl)},
         {QStringLiteral("authorName"), authorName.left(96)},
+        {QStringLiteral("authorUsername"), authorUsername.left(80)},
+        {QStringLiteral("authorAvatar"), publicImageSource(avatarUrl)},
         {QStringLiteral("authorFid"), QVariant::fromValue(authorFid)},
+        {QStringLiteral("category"), category.left(64)},
+        {QStringLiteral("tags"), tags.mid(0, 8)},
+        {QStringLiteral("screenshots"), screenshots},
         {QStringLiteral("requiredChains"), requiredChains},
         {QStringLiteral("requiredCapabilities"), requiredCapabilities},
         {QStringLiteral("source"), source},
@@ -509,6 +544,7 @@ constexpr qsizetype recentMiniAppLimit = 20;
 
 struct CatalogNetworkResult final {
     QVariantList rows{};
+    QString nextCursor{};
     QString error{};
     bool success{};
 };
@@ -612,6 +648,7 @@ public:
                 }
 
                 QVariantList rows{};
+                QString nextCursor{};
                 if (format == MiniAppCatalogFormat::Json) {
                     QJsonParseError parseError{};
                     const QJsonDocument document = QJsonDocument::fromJson(*bytes, &parseError);
@@ -621,12 +658,18 @@ public:
                         return;
                     }
                     rows = normalizedRows(document, source);
+                    if (document.isObject()) {
+                        const QJsonValue next = document.object().value(QStringLiteral("next"));
+                        if (next.isObject())
+                            nextCursor = next.toObject().value(QStringLiteral("cursor")).toString();
+                    }
                 } else {
                     rows = farcasterDirectoryRows(*bytes, source);
                 }
 
                 completion(CatalogNetworkResult{
                     .rows = std::move(rows),
+                    .nextCursor = std::move(nextCursor),
                     .success = true,
                 });
             });
@@ -729,6 +772,7 @@ public:
 
     void refresh()
     {
+        setNextCursor({});
         const quint64 requestGeneration = beginRequest();
         if (!networkEnabled) {
             setBusy(false);
@@ -745,6 +789,24 @@ public:
         requestFallbackCatalogue(requestGeneration);
     }
 
+    void loadMore()
+    {
+        if (busy || !networkEnabled || !primaryEndpoint.available()
+            || !query.isEmpty() || nextCursor.isEmpty() || catalogueSnapshot.size() >= 500)
+            return;
+        const QString cursor = nextCursor;
+        setNextCursor({});
+        const quint64 requestGeneration = beginRequest();
+        loadingPage = true;
+        QUrl url = endpointUrl(primaryEndpoint.catalogueUrl);
+        QUrlQuery parameters{url};
+        parameters.removeAllQueryItems(QStringLiteral("cursor"));
+        parameters.addQueryItem(QStringLiteral("cursor"), cursor);
+        url.setQuery(parameters);
+        issue(url, endpointHeaders(primaryEndpoint), primaryEndpoint.format,
+              requestGeneration, safeProviderLabel(primaryEndpoint), false);
+    }
+
     void search(QString text)
     {
         text = text.trimmed();
@@ -754,6 +816,7 @@ public:
             emit q.queryChanged();
         }
 
+        setNextCursor({});
         const quint64 requestGeneration = beginRequest();
         if (query.isEmpty()) {
             if (!catalogueSnapshot.isEmpty()) {
@@ -782,6 +845,7 @@ public:
 
     void refreshRelevant(const qulonglong viewerFid)
     {
+        setNextCursor({});
         const quint64 requestGeneration = beginRequest();
         if (!networkEnabled) {
             setBusy(false);
@@ -892,6 +956,14 @@ public:
         emit q.recentAppsChanged();
     }
 
+    void setNextCursor(QString next)
+    {
+        // Neynar cursors are opaque, never interpreted as URLs.
+        if (nextCursor == next) return;
+        nextCursor = std::move(next);
+        emit q.hasMoreChanged();
+    }
+
     [[nodiscard]] bool hasRemoteSearch() const noexcept
     {
         return networkEnabled && remoteSearchEndpoint() != nullptr;
@@ -916,6 +988,8 @@ public:
     QString query{};
     QVariantList explorerApps{};
     QVariantList catalogueSnapshot{};
+    QString nextCursor{};
+    bool loadingPage{};
     QVariantList myApps{};
     QVariantList recentApps{};
     quint64 generation{};
@@ -1034,7 +1108,17 @@ private:
             return;
         }
 
+        const bool page = loadingPage;
+        loadingPage = false;
         if (!result.success || result.rows.isEmpty()) {
+            if (page) {
+                setBusy(false);
+                // Existing catalogue is still valid; do not remove it on a
+                // transient page error or trigger an unrelated provider.
+                if (!result.success)
+                    setError(QStringLiteral("More Mini Apps could not be loaded; refresh to retry."));
+                return;
+            }
             if (allowFallback && fallbackEndpoint.available()) {
                 requestFallbackCatalogue(requestGeneration);
                 return;
@@ -1051,7 +1135,22 @@ private:
             return;
         }
 
-        setExplorer(std::move(result.rows), query.isEmpty(), source);
+        const QString cursor = result.nextCursor;
+        if (page) {
+            QSet<QString> known{};
+            for (const QVariant& value : catalogueSnapshot)
+                known.insert(value.toMap().value(QStringLiteral("homeUrl")).toString());
+            for (const QVariant& value : result.rows) {
+                const QString home = value.toMap().value(QStringLiteral("homeUrl")).toString();
+                if (known.contains(home) || catalogueSnapshot.size() >= 500) continue;
+                known.insert(home);
+                catalogueSnapshot.push_back(value);
+            }
+            setExplorer(catalogueSnapshot, false, source);
+        } else {
+            setExplorer(std::move(result.rows), query.isEmpty(), source);
+        }
+        if (query.isEmpty()) setNextCursor(catalogueSnapshot.size() >= 500 ? QString{} : cursor);
         setProvider(source);
         setError({});
         setBusy(false);
@@ -1247,6 +1346,7 @@ MiniAppCatalogController::MiniAppCatalogController(QSettings& settings,
 MiniAppCatalogController::~MiniAppCatalogController() = default;
 
 QVariantList MiniAppCatalogController::explorerApps() const { return m_impl->explorerApps; }
+bool MiniAppCatalogController::hasMore() const noexcept { return !m_impl->nextCursor.isEmpty(); }
 QVariantList MiniAppCatalogController::myApps() const { return m_impl->myApps; }
 QVariantList MiniAppCatalogController::recentApps() const { return m_impl->recentApps; }
 bool MiniAppCatalogController::busy() const noexcept { return m_impl->busy; }
@@ -1256,6 +1356,7 @@ QString MiniAppCatalogController::query() const { return m_impl->query; }
 bool MiniAppCatalogController::remoteSearchAvailable() const noexcept { return m_impl->hasRemoteSearch(); }
 bool MiniAppCatalogController::personalizedDiscoveryAvailable() const noexcept { return m_impl->hasRelevantDiscovery(); }
 void MiniAppCatalogController::refresh() { m_impl->refresh(); }
+void MiniAppCatalogController::loadMore() { m_impl->loadMore(); }
 void MiniAppCatalogController::search(const QString& value) { m_impl->search(value); }
 void MiniAppCatalogController::refreshRelevant(const qulonglong viewerFid) { m_impl->refreshRelevant(viewerFid); }
 void MiniAppCatalogController::searchByFid(const qulonglong authorFid) { m_impl->searchByFid(authorFid); }

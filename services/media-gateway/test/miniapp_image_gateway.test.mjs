@@ -163,3 +163,34 @@ test('trusted catalogue grants exact Mini App hero covers, not unrelated images'
     assert.equal(seen.length,3);
   }finally{await new Promise(resolve=>gateway.close(resolve));}
 });
+
+test('catalogue cursor is relayed only as a bounded provider cursor',async()=>{
+  const visited=[];
+  const secondCursor='eyJ0cmVuZGluZ19yYW5rIjoyMH0%3D';
+  const gateway=createMediaGateway(config,{},{
+    fetchImpl:async url=>{
+      visited.push(new URL(url));
+      return new Response(JSON.stringify({
+        frames:[{frames_url:'https://demo.example/miniapp',manifest:{miniapp:{
+          name:'Sample Mini App',home_url:'https://demo.example/miniapp',
+          icon_url:'https://demo.example/icon.png'}}}],
+        next:{cursor:visited.length===1?secondCursor:null}
+      }),{status:200,headers:{'content-type':'application/json'}});
+    },farcasterBroker:{},
+  });
+  await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve));
+  try{
+    const base='http://127.0.0.1:'+gateway.address().port+'/v1/browser/miniapps';
+    const first=await (await fetch(base+'?kind=catalog')).json();
+    assert.equal(first.next.cursor,secondCursor);
+    const page=await fetch(base+'?kind=catalog&cursor='+encodeURIComponent(secondCursor));
+    assert.equal(page.status,200);
+    assert.equal(visited[1].searchParams.get('cursor'),secondCursor);
+    assert.equal(visited[1].searchParams.get('limit'),'20');
+    for(const invalid of ['cursor=https%3A%2F%2Fevil.example','cursor=%0A','cursor='+'a'.repeat(481),
+                            'kind=search&q=test&cursor=abc','kind=catalog&url=https%3A%2F%2Fevil.example']){
+      const denied=await fetch(base+'?'+invalid);
+      assert.equal(denied.status,400,invalid);
+    }
+  }finally{await new Promise(resolve=>gateway.close(resolve));}
+});

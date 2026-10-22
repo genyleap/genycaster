@@ -841,7 +841,13 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       }
       const query = String(requestUrl.searchParams.get('q') || '').trim();
       const fid = String(requestUrl.searchParams.get('viewer_fid') || '');
-      if ((kind === 'search' && (query.length === 0 || query.length > 32))
+      const cursor = requestUrl.searchParams.get('cursor') || '';
+      const accepted = new Set(kind === 'catalog' ? ['kind','cursor']
+        : kind === 'search' ? ['kind','q'] : ['kind','viewer_fid']);
+      if ([...requestUrl.searchParams.keys()].some(key=>!accepted.has(key))
+          || (kind !== 'catalog' && cursor)
+          || (cursor && !/^[A-Za-z0-9%_=+-]{1,480}$/.test(cursor))
+          || (kind === 'search' && (query.length === 0 || query.length > 32))
           || (kind === 'relevant' && !/^[1-9][0-9]{0,18}$/.test(fid))) {
         writeJson(response, 400, { error: 'invalid_catalogue_parameters' }); return;
       }
@@ -860,6 +866,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         // truncated in the public reverse-proxy path.
         upstreamUrl.searchParams.set('limit', '20');
         upstreamUrl.searchParams.set('time_window', '7d');
+        if (cursor) upstreamUrl.searchParams.set('cursor',cursor);
       } else if (kind === 'search') {
         upstreamUrl.searchParams.set('q', query);
         upstreamUrl.searchParams.set('limit', '20');
@@ -900,7 +907,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         rememberCatalogueIcons(JSON.parse(payload.toString('utf8')));
         response.writeHead(200, {
           'content-type': 'application/json; charset=utf-8',
-          'cache-control': kind === 'catalog' ? 'public, max-age=180' : 'no-store',
+          'cache-control': kind === 'catalog' ? 'public, max-age=60' : 'no-store',
           'content-length': String(payload.length),
         });
         response.end(payload);

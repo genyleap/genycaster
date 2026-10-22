@@ -108,6 +108,13 @@ Item {
         contentWidth: width
         readonly property real pageInset: root.compact ? Theme.mobileGutter : Theme.space4
         contentHeight: root.compact ? pageColumn.implicitHeight + pageInset * 2 : height
+        onContentYChanged: {
+            if (root.compact && root.section === "farcaster"
+                    && root.farcasterSection === "explorer" && root.explorerMode === "all"
+                    && !miniAppCatalog.busy && miniAppCatalog.hasMore
+                    && contentY > 0 && contentY + height >= contentHeight - 420)
+                miniAppCatalog.loadMore()
+        }
 
         ScrollBar.vertical: GenyScrollBar {
             policy: ScrollBar.AlwaysOff
@@ -922,6 +929,19 @@ Item {
                 }
             }
         }
+
+        ActionButton {
+            objectName: "miniAppLoadMore"
+            visible: root.section === "farcaster" && root.farcasterSection === "explorer"
+                     && root.explorerMode === "all" && miniAppCatalog.hasMore
+            Layout.alignment: Qt.AlignHCenter
+            Layout.preferredHeight: visible ? 40 : 0
+            compact: true
+            quiet: true
+            busy: miniAppCatalog.busy
+            text: qsTr("Load more apps")
+            onClicked: miniAppCatalog.loadMore()
+        }
     }
     }
     // App Store-style drill-in. Only a user-selected app allocates a large
@@ -933,12 +953,15 @@ Item {
         fullScreen: false
         dimBackground: true
         interactive: false
+        showHandle: true
         width: parent ? parent.width : 420
-        height: parent ? Math.min(parent.height * 0.74, 610) : 520
+        height: parent ? Math.min(parent.height * 0.88, 740) : 640
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: Theme.space4
+            anchors.leftMargin: Theme.space4
+            anchors.rightMargin: Theme.space4
+            anchors.bottomMargin: Theme.space3
             spacing: Theme.space3
 
             RowLayout {
@@ -946,7 +969,7 @@ Item {
                 layoutDirection: Theme.uiDirection
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    text: qsTr("Mini App details")
+                    text: qsTr("App details")
                     color: Theme.ink
                     font.weight: Theme.weightBold
                     font.pixelSize: Theme.typeTitle3Size
@@ -961,73 +984,216 @@ Item {
                 }
             }
 
-            SuperellipseImage {
+            Flickable {
+                id: detailScroll
                 Layout.fillWidth: true
-                Layout.preferredHeight: 158
-                visible: String(root.selectedMiniApp.coverSource || "").length > 0
-                source: String(root.selectedMiniApp.coverSource || "")
-                mediaCategory: "miniapps"
-                forceAutomaticDownload: true
-                showLoadingIndicator: false
-                showManualLoadIndicator: false
-                showFailureIndicator: false
-                fillMode: Image.PreserveAspectCrop
-                requestedSourceWidth: 660
-                requestedSourceHeight: 300
-                curveDepth: Theme.curveContainer
-            }
+                Layout.fillHeight: true
+                clip: true
+                contentWidth: width
+                contentHeight: detailsColumn.implicitHeight + Theme.space3
+                boundsBehavior: Flickable.StopAtBounds
 
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: Theme.space3
-                layoutDirection: Theme.uiDirection
-                SuperellipseImage {
-                    Layout.preferredWidth: 68
-                    Layout.preferredHeight: 68
-                    source: String(root.selectedMiniApp.iconSource || "")
-                    mediaCategory: "miniapps"
-                    forceAutomaticDownload: true
-                    showLoadingIndicator: false
-                    showFailureIndicator: false
-                    showManualLoadIndicator: false
-                    fillMode: Image.PreserveAspectFit
-                    requestedSourceWidth: 96
-                    requestedSourceHeight: 96
-                    curveDepth: Theme.curveControl
-                    fillColor: Theme.surfaceRaised
-                }
                 ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: Theme.space1
+                    id: detailsColumn
+                    x: 0
+                    y: 0
+                    width: detailScroll.width
+                    spacing: Theme.space3
+
+                    SuperellipseImage {
+                        id: detailCover
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: visible ? Math.min(180, detailScroll.width * 0.52) : 0
+                        visible: String(root.selectedMiniApp.coverSource || "").length > 0
+                        source: String(root.selectedMiniApp.coverSource || "")
+                        mediaCategory: "miniapps"
+                        forceAutomaticDownload: true
+                        deferNewLoadsWhileScrolling: false
+                        framePacedPresentation: false
+                        showLoadingIndicator: true
+                        showManualLoadIndicator: false
+                        showFailureIndicator: false
+                        fillMode: Image.PreserveAspectCrop
+                        requestedSourceWidth: 560
+                        requestedSourceHeight: 320
+                        clipToSuperellipse: false
+                        curveDepth: Theme.curveContainer
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space3
+                        layoutDirection: Theme.uiDirection
+
+                        SuperellipseImage {
+                            Layout.preferredWidth: 70
+                            Layout.preferredHeight: 70
+                            source: String(root.selectedMiniApp.iconSource || "")
+                            mediaCategory: "miniapps"
+                            forceAutomaticDownload: true
+                            deferNewLoadsWhileScrolling: false
+                            framePacedPresentation: false
+                            showLoadingIndicator: false
+                            showFailureIndicator: false
+                            showManualLoadIndicator: false
+                            fillMode: Image.PreserveAspectFit
+                            requestedSourceWidth: 96
+                            requestedSourceHeight: 96
+                            curveDepth: Theme.curveControl
+                            fillColor: Theme.surfaceRaised
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space1
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: String(root.selectedMiniApp.name || "")
+                                font.pixelSize: Theme.typeTitle3Size
+                                font.weight: Theme.weightBold
+                                color: Theme.ink
+                                wrapMode: Text.Wrap
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: String(root.selectedMiniApp.domain || "")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                forceLeftToRight: true
+                                elide: Text.ElideMiddle
+                            }
+                        }
+                    }
+
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: String(root.selectedMiniApp.name || "")
-                        font.pixelSize: Theme.typeTitle3Size
-                        font.weight: Theme.weightBold
+                        text: String(root.selectedMiniApp.description || "")
                         color: Theme.ink
+                        font.pixelSize: Theme.typeMetaSize
                         wrapMode: Text.Wrap
                     }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        visible: String(root.selectedMiniApp.authorName || "").length > 0
+                        spacing: Theme.space2
+                        layoutDirection: Theme.uiDirection
+                        SuperellipseImage {
+                            Layout.preferredWidth: 36
+                            Layout.preferredHeight: 36
+                            source: String(root.selectedMiniApp.authorAvatar || "")
+                            mediaCategory: "avatars"
+                            forceAutomaticDownload: true
+                            deferNewLoadsWhileScrolling: false
+                            framePacedPresentation: false
+                            showLoadingIndicator: false
+                            showFailureIndicator: false
+                            showManualLoadIndicator: false
+                            fillMode: Image.PreserveAspectCrop
+                            requestedSourceWidth: 64
+                            requestedSourceHeight: 64
+                            curveDepth: Theme.curveControl
+                            fillColor: Theme.surfaceMuted
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 0
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTr("Developer") + " · " + String(root.selectedMiniApp.authorName || "")
+                                color: Theme.ink
+                                font.pixelSize: Theme.typeMetaSize
+                                font.weight: Theme.weightDemiBold
+                                elide: Text.ElideRight
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: String(root.selectedMiniApp.authorUsername || "")
+                                      + (Number(root.selectedMiniApp.authorFid || 0) > 0
+                                         ? " · FID " + String(root.selectedMiniApp.authorFid) : "")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                elide: Text.ElideRight
+                            }
+                        }
+                    }
+
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: String(root.selectedMiniApp.domain || "")
+                        visible: String(root.selectedMiniApp.category || "").length > 0
+                        text: qsTr("Category") + ": " + String(root.selectedMiniApp.category || "")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeMetaSize
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: Boolean(root.selectedMiniApp.tags && root.selectedMiniApp.tags.length > 0)
+                        text: (root.selectedMiniApp.tags || []).join(" · ")
+                        color: Theme.inkSubtle
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                    }
+
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: Boolean(root.selectedMiniApp.requiredChains
+                                         && root.selectedMiniApp.requiredChains.length > 0)
+                        text: qsTr("Networks") + ": " + (root.selectedMiniApp.requiredChains || []).join(" · ")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
-                        forceLeftToRight: true
-                        elide: Text.ElideMiddle
+                        wrapMode: Text.Wrap
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        visible: Boolean(root.selectedMiniApp.screenshots
+                                         && root.selectedMiniApp.screenshots.length > 0)
+                        spacing: Theme.space2
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTr("Screenshots")
+                            font.pixelSize: Theme.typeBodySize
+                            font.weight: Theme.weightDemiBold
+                            color: Theme.ink
+                        }
+                        ListView {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 154
+                            orientation: ListView.Horizontal
+                            layoutDirection: Qt.LeftToRight
+                            spacing: Theme.space2
+                            clip: true
+                            boundsBehavior: Flickable.StopAtBounds
+                            model: root.selectedMiniApp.screenshots || []
+                            delegate: SuperellipseImage {
+                                required property string modelData
+                                width: 224
+                                height: 148
+                                source: modelData
+                                mediaCategory: "miniapps"
+                                forceAutomaticDownload: true
+                                deferNewLoadsWhileScrolling: false
+                                showLoadingIndicator: false
+                                showFailureIndicator: false
+                                showManualLoadIndicator: false
+                                fillMode: Image.PreserveAspectCrop
+                                requestedSourceWidth: 340
+                                requestedSourceHeight: 224
+                                clipToSuperellipse: false
+                                curveDepth: Theme.curveControl
+                            }
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: String(root.selectedMiniApp.source || "").length > 0
+                        text: qsTr("Discovery source") + ": " + String(root.selectedMiniApp.source || "")
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.inkSubtle
+                        wrapMode: Text.Wrap
                     }
                 }
             }
 
-            DirectionAwareLabel {
-                Layout.fillWidth: true
-                text: String(root.selectedMiniApp.description || "")
-                color: Theme.inkMuted
-                font.pixelSize: Theme.typeMetaSize
-                wrapMode: Text.Wrap
-                maximumLineCount: 5
-                elide: Text.ElideRight
-            }
-            Item { Layout.fillHeight: true }
             RowLayout {
                 Layout.fillWidth: true
                 spacing: Theme.space2

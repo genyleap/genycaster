@@ -12,11 +12,38 @@ Item {
     property bool compact: false
     property string heading: qsTrId("genycaster.side_nav.explorer")
     readonly property int cardCount: Math.min(8, apps ? apps.length : 0)
+    property int shownIndex: 0
     readonly property real cardWidth: compact
                                       ? Math.min(370, Math.max(236, width * 0.86))
                                       : Math.min(430, Math.max(285, width * 0.52))
     signal openRequested(var app)
     signal saveRequested(var app)
+
+    function navigateTo(index) {
+        if (cardCount < 2) return
+        const chosen = Math.max(0, Math.min(cardCount - 1, index))
+        const stride = root.cardWidth + deck.spacing
+        const maxX = Math.max(0, deck.contentWidth - deck.width)
+        const targetX = Math.min(maxX, chosen * stride)
+        slideAnimation.stop()
+        // The single authoritative index is shared by arrows and gestures.
+        root.shownIndex = chosen
+        if (Theme.reduceMotion) deck.contentX = targetX
+        else {
+            slideAnimation.from = deck.contentX
+            slideAnimation.to = targetX
+            slideAnimation.start()
+        }
+    }
+    onAppsChanged: {
+        if (root.cardCount === 0) root.shownIndex = 0
+        else root.shownIndex = Math.min(root.shownIndex, root.cardCount - 1)
+        Qt.callLater(function() {
+            if (!deck.dragging && !deck.moving && root.cardCount > 0)
+                deck.contentX = Math.min(Math.max(0, deck.contentWidth - deck.width),
+                                         root.shownIndex * (root.cardWidth + deck.spacing))
+        })
+    }
 
     visible: cardCount > 0
     implicitHeight: visible ? (compact ? 272 : 303) : 0
@@ -38,7 +65,7 @@ Item {
             font.weight: Theme.weightBold
         }
         DirectionAwareLabel {
-            text: String(Math.min(deck.currentIndex + 1, root.cardCount)) + " / " + String(root.cardCount)
+            text: String(root.cardCount > 0 ? root.shownIndex + 1 : 0) + " / " + String(root.cardCount)
             color: Theme.inkMuted
             font.pixelSize: Theme.typeCaptionSize
             forceLeftToRight: true
@@ -49,8 +76,8 @@ Item {
             iconOnly: true
             iconGlyph: Theme.iconArrowLeft
             text: qsTr("Previous app")
-            enabled: deck.currentIndex > 0
-            onClicked: deck.positionViewAtIndex(Math.max(0, deck.currentIndex - 1), ListView.Beginning)
+            enabled: root.shownIndex > 0
+            onClicked: root.navigateTo(root.shownIndex - 1)
         }
         ActionButton {
             compact: true
@@ -58,8 +85,8 @@ Item {
             iconOnly: true
             iconGlyph: Theme.iconArrowRight
             text: qsTr("Next app")
-            enabled: deck.currentIndex < root.cardCount - 1
-            onClicked: deck.positionViewAtIndex(Math.min(root.cardCount - 1, deck.currentIndex + 1), ListView.Beginning)
+            enabled: root.shownIndex < root.cardCount - 1
+            onClicked: root.navigateTo(root.shownIndex + 1)
         }
     }
 
@@ -77,22 +104,34 @@ Item {
         model: root.cardCount
         snapMode: ListView.SnapOneItem
         boundsBehavior: Flickable.StopAtBounds
-        flickDeceleration: 4500
+        flickDeceleration: 3000
         // Retain both adjacent cards so a brief swipe backward does not
         // recreate its image provider and flash the square-icon fallback.
         cacheBuffer: root.cardWidth * 2 + spacing * 2
         interactive: root.cardCount > 1
-        onMovementEnded: {
+        // Qt's ListView.currentIndex tracks selection, not the card visible
+        // after a finger fling or positionViewAtIndex. Derive the counter from
+        // the actual content offset, including kinetic motion and RTL swipes.
+        onContentXChanged: {
+            if (slideAnimation.running) return
             const stride = root.cardWidth + spacing
-            if (stride > 0)
-                currentIndex = Math.max(0, Math.min(root.cardCount - 1,
-                                                   Math.round(contentX / stride)))
+            if (stride > 0 && root.cardCount > 0)
+                root.shownIndex = Math.max(0, Math.min(root.cardCount - 1,
+                                                     Math.round(contentX / stride)))
         }
-        onModelChanged: {
-            currentIndex = 0
-            positionViewAtBeginning()
+        onDragStarted: slideAnimation.stop()
+        onMovementEnded: {
+            if (!slideAnimation.running && root.cardCount > 0)
+                root.navigateTo(Math.round(contentX / (root.cardWidth + spacing)))
         }
 
+        NumberAnimation {
+            id: slideAnimation
+            target: deck
+            property: "contentX"
+            duration: Theme.reduceMotion ? 0 : Theme.motionStandard
+            easing.type: Easing.OutCubic
+        }
 
         delegate: Item {
             id: featuredCell
