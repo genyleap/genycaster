@@ -711,7 +711,7 @@ struct FeedPresentationIndex final {
             {QStringLiteral("parentUrl"), channel.parentUrl
                 ? QString::fromStdString(*channel.parentUrl) : QString{}},
             {QStringLiteral("imageUrl"), channel.imageUrl
-                ? remoteImageSource(QString::fromStdString(*channel.imageUrl)) : QString{}},
+                ? QString::fromStdString(*channel.imageUrl) : QString{}},
             {QStringLiteral("description"), channel.description
                 ? QString::fromStdString(*channel.description) : QString{}},
             {QStringLiteral("followerCount"), static_cast<qulonglong>(channel.followerCount)},

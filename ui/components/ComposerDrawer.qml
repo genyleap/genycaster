@@ -13,6 +13,7 @@ GenyDrawer {
     // Canonical parent_url is sourced from the channel search response.
     property string selectedParentUrl: ""
     property string selectedContextLabel: ""
+    property string selectedContextImage: ""
     property int initialFocusAttempts: 0
     property string suggestedText: ""
     property var suggestedEmbeds: []
@@ -94,7 +95,7 @@ GenyDrawer {
     }
     onKeyboardVisibleChanged: {
         if (root.keyboardVisible) {
-            root.ensureEditorVisible(visualEditor.activeEditor)
+            root.ensureEditorVisible(root.compact ? mobilePlainEditor : visualEditor.activeEditor)
             root.ensureEditorVisible(markdownEditor.activeFocus ? markdownEditor : null)
         }
     }
@@ -312,6 +313,7 @@ GenyDrawer {
         root.initialFocusAttempts = 0
         root.selectedParentUrl = ""
         root.selectedContextLabel = ""
+        root.selectedContextImage = ""
         root.expandedViewportHeight = root.parent ? root.parent.height : root.height
         root.closeComposerPopups()
         editorMode = "visual"
@@ -585,6 +587,7 @@ GenyDrawer {
                         onClicked: {
                             root.selectedParentUrl = channelRow.channelParentUrl
                             root.selectedContextLabel = String(channelRow.modelData.name || channelRow.modelData.id)
+                            root.selectedContextImage = String(channelRow.modelData.imageUrl || "")
                             channelPicker.close()
                         }
                     }
@@ -1011,8 +1014,8 @@ GenyDrawer {
                                         : root.threadMode
                                           ? (root.compact ? 220 : 250)
                                           : (root.compact
-                                             ? Math.max(176, root.height
-                                                - (root.keyboardVisible ? 196 : 260))
+                                             ? Math.max(150, root.height
+                                                - (root.keyboardVisible ? 350 : 260))
                                              : 320)
                 Layout.minimumHeight: root.editorMode === "preview"
                                       ? Math.min(farcasterPreview.implicitHeight, root.compact ? 210 : 230)
@@ -1120,19 +1123,70 @@ GenyDrawer {
                 Layout.fillWidth: true
                 layoutDirection: Theme.uiDirection
                 spacing: Theme.space2
-                ActionButton {
-                    compact: true
-                    quiet: true
-                    iconGlyph: Theme.iconGlobe
-                    text: root.selectedContextLabel.length > 0
-                          ? root.selectedContextLabel : qsTrId("genycaster.composer.channel")
-                    onClicked: channelPicker.open()
+
+                Item {
+                    id: selectedChannelChip
+                    Layout.preferredHeight: 46
+                    Layout.preferredWidth: Math.min(root.width * 0.70,
+                        Math.max(132, selectedChannelContents.implicitWidth + Theme.space5 * 2))
+                    Superellipse {
+                        anchors.fill: parent
+                        curveDepth: 23
+                        fillColor: root.selectedParentUrl.length > 0
+                                   ? Theme.primarySurface : Theme.surfaceRaised
+                        borderWidth: root.selectedParentUrl.length > 0 ? 0 : Theme.strokeHairline
+                        borderColor: Theme.borderSubtle
+                    }
+                    RowLayout {
+                        id: selectedChannelContents
+                        anchors.centerIn: parent
+                        spacing: Theme.space2
+                        Avatar {
+                            avatarSize: 29
+                            sourceUrl: root.selectedContextImage
+                            displayName: root.selectedContextLabel.length > 0
+                                         ? root.selectedContextLabel : "#"
+                            visible: root.selectedParentUrl.length > 0
+                        }
+                        Icon {
+                            visible: root.selectedParentUrl.length === 0
+                            text: Theme.iconGlobe
+                            preferredSize: Theme.iconSizeSmall
+                            color: Theme.textSecondary
+                        }
+                        DirectionAwareLabel {
+                            text: root.selectedContextLabel.length > 0
+                                  ? root.selectedContextLabel : qsTrId("genycaster.composer.channel")
+                            font.pixelSize: Theme.typeBodySize
+                            font.weight: Theme.weightDemiBold
+                            color: Theme.textPrimary
+                            elide: Text.ElideRight
+                            Layout.maximumWidth: Math.max(70, root.width * 0.45)
+                        }
+                        Icon {
+                            text: Theme.iconChevronDown
+                            preferredSize: Theme.iconSizeSmall
+                            color: Theme.textSecondary
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: channelPicker.open()
+                    }
                 }
-                ActionButton {
-                    compact: true
-                    quiet: true
-                    enabled: false
-                    text: qsTrId("genycaster.composer.category")
+                Item {
+                    Layout.preferredHeight: 46
+                    Layout.preferredWidth: categoryText.implicitWidth + Theme.space5 * 2
+                    opacity: 0.45
+                    DirectionAwareLabel {
+                        id: categoryText
+                        anchors.centerIn: parent
+                        text: qsTrId("genycaster.composer.category")
+                        font.pixelSize: Theme.typeBodySize
+                        color: Theme.textSecondary
+                    }
+                    Accessible.role: Accessible.Button
+                    Accessible.name: qsTrId("genycaster.composer.category")
                     Accessible.description: qsTrId("genycaster.home.hub_coming_soon")
                 }
                 Item { Layout.fillWidth: true }
@@ -1146,6 +1200,7 @@ GenyDrawer {
                     onClicked: {
                         root.selectedParentUrl = ""
                         root.selectedContextLabel = ""
+                        root.selectedContextImage = ""
                     }
                 }
             }
@@ -1384,7 +1439,8 @@ GenyDrawer {
                 }
             }
 
-            Item { Layout.preferredHeight: root.compact ? Theme.space3 : Theme.space5 }
+            Item { Layout.preferredHeight: root.keyboardVisible ? 0
+                                              : root.compact ? Theme.space3 : Theme.space5 }
         }
     }
 }
