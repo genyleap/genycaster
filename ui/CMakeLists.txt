@@ -438,6 +438,9 @@ if(EMSCRIPTEN)
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-sw.js"
             "$<TARGET_FILE_DIR:farcaster_client>/genycaster-sw.js"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/channel-icons.json"
+            "$<TARGET_FILE_DIR:farcaster_client>/channel-icons.json"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster.webmanifest"
             "$<TARGET_FILE_DIR:farcaster_client>/genycaster.webmanifest"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different

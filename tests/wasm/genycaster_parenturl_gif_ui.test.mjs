@@ -55,6 +55,31 @@ test('reply counter has safe trailing spacing and scroll jump stays near bottom 
  assert.match(detail,/anchors.bottomMargin: root.compact \? Theme.space2 \+ 12 : Theme.space4/);
  assert.match(profile,/anchors.bottomMargin: root.compact \? Theme.space2 \+ 12 : Theme.space4/);
 });
+test('channel images use a public API-sourced catalog and preserve HyperSnap parent URLs',()=>{
+ const composer=read('ui/components/ComposerDrawer.qml');
+ const index=JSON.parse(read('ui/wasm/channel-icons.json'));
+ const packaging=read('tools/package_wasm_assets.py');
+ assert.ok(Object.keys(index.icons).length>1000);
+ assert.match(index.icons.genyleap,/^https:\/\//);
+ assert.match(index.icons.genyleap,/imagedelivery\.net/);
+ assert.match(composer,/channelIconIndexReady: false/);
+ assert.match(composer,/function channelImageFor\(id, providerImage\)/);
+ assert.match(composer,/channelRow\.modelData\.id, channelRow\.modelData\.imageUrl/);
+ assert.match(composer,/root\.selectedParentUrl = channelRow\.channelParentUrl/);
+ assert.match(composer,/selectedContextImage = root\.channelImageFor/);
+ assert.match(packaging,/channel-icons\.json/);
+});
+test('composer context uses outline pills before selection and fixed footer above the keyboard',()=>{
+ const composer=read('ui/components/ComposerDrawer.qml');
+ assert.match(composer,/objectName: "mobileComposerStickyFooter"/);
+ assert.match(composer,/contentItem: ColumnLayout \{[\s\S]*?ScrollView \{/);
+ assert.match(composer,/Layout\.fillHeight: true/);
+ assert.match(composer,/ctx\.setLineDash\(\[5, 5\]\)/);
+ assert.match(composer,/fillColor: root\.selectedParentUrl\.length > 0[\s\S]*?Theme\.primarySurface : "transparent"/);
+ assert.match(composer,/objectName: "mobileCastContext"/);
+ assert.match(composer,/objectName: "mobileComposerMediaBar"/);
+ assert.match(composer,/qsTrId\("genycaster\.composer\.category"\)/);
+});
 test('image picker and upload pipeline accept GIF without converting to PNG',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
  const upload=read('ui/wasm/browser_media_upload.mjs');

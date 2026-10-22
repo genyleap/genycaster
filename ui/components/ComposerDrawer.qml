@@ -14,6 +14,41 @@ GenyDrawer {
     property string selectedParentUrl: ""
     property string selectedContextLabel: ""
     property string selectedContextImage: ""
+    property string selectedChannelId: ""
+    property var channelIconIndex: ({})
+    property bool channelIconIndexReady: false
+    property bool channelIconIndexLoading: false
+
+    // Authoritative channel ID and parent_url still come from the HyperSnap
+    // read path. The public Farcaster directory supplies images only.
+    function channelImageFor(id, providerImage) {
+        const image = root.channelIconIndex[String(id || "").toLowerCase()]
+        return image ? String(image) : String(providerImage || "")
+    }
+
+    function loadChannelImages() {
+        if (root.channelIconIndexReady || root.channelIconIndexLoading) return
+        root.channelIconIndexLoading = true
+        const request = new XMLHttpRequest()
+        request.onreadystatechange = function() {
+            if (request.readyState !== XMLHttpRequest.DONE) return
+            root.channelIconIndexLoading = false
+            if (request.status !== 200) return
+            try {
+                const data = JSON.parse(request.responseText)
+                if (!data || !data.icons || typeof data.icons !== "object") return
+                root.channelIconIndex = data.icons
+                root.channelIconIndexReady = true
+                if (root.selectedChannelId.length > 0)
+                    root.selectedContextImage = root.channelImageFor(
+                        root.selectedChannelId, root.selectedContextImage)
+            } catch (ignored) {
+                // Fail soft: Avatar retains the first-letter fallback.
+            }
+        }
+        request.open("GET", "https://caster.genyleap.com/channel-icons.json", true)
+        request.send()
+    }
     property int initialFocusAttempts: 0
     property string suggestedText: ""
     property var suggestedEmbeds: []
@@ -314,6 +349,7 @@ GenyDrawer {
         root.selectedParentUrl = ""
         root.selectedContextLabel = ""
         root.selectedContextImage = ""
+        root.selectedChannelId = ""
         root.expandedViewportHeight = root.parent ? root.parent.height : root.height
         root.closeComposerPopups()
         editorMode = "visual"
@@ -430,6 +466,7 @@ GenyDrawer {
                 presentationBridge.clearSearchSuggestions()
         }
         onOpened: {
+            root.loadChannelImages()
             channelSearch.text = ""
             channelQueryTimer.stop()
             channelResults.positionViewAtBeginning()
@@ -548,7 +585,8 @@ GenyDrawer {
                         Avatar {
                             Layout.alignment: Qt.AlignVCenter
                             avatarSize: 42
-                            sourceUrl: String(channelRow.modelData.imageUrl || "")
+                            sourceUrl: root.channelImageFor(
+                                channelRow.modelData.id, channelRow.modelData.imageUrl)
                             displayName: String(channelRow.modelData.name || "")
                         }
                         ColumnLayout {
@@ -587,7 +625,9 @@ GenyDrawer {
                         onClicked: {
                             root.selectedParentUrl = channelRow.channelParentUrl
                             root.selectedContextLabel = String(channelRow.modelData.name || channelRow.modelData.id)
-                            root.selectedContextImage = String(channelRow.modelData.imageUrl || "")
+                            root.selectedChannelId = String(channelRow.modelData.id || "")
+                            root.selectedContextImage = root.channelImageFor(
+                                root.selectedChannelId, channelRow.modelData.imageUrl)
                             channelPicker.close()
                         }
                     }
@@ -669,8 +709,12 @@ GenyDrawer {
     Shortcut { sequence: "Ctrl+Shift+C"; enabled: root.opened && !emojiPicker.opened; onActivated: root.insertCodeBlockFromKeyboard() }
     Shortcut { sequence: "Meta+Shift+C"; enabled: root.opened && !emojiPicker.opened; onActivated: root.insertCodeBlockFromKeyboard() }
 
-    contentItem: ScrollView {
+    contentItem: ColumnLayout {
+        spacing: 0
+        ScrollView {
         id: composerScroll
+        Layout.fillWidth: true
+        Layout.fillHeight: true
         clip: true
         contentWidth: availableWidth
         contentHeight: composerContent.implicitHeight
@@ -1117,146 +1161,6 @@ GenyDrawer {
 
             // Lightweight, always-available mobile media actions. These are
             // real actions on the existing rich editor, not another composer.
-            RowLayout {
-                objectName: "mobileCastContext"
-                visible: root.compact && root.editorMode === "visual"
-                Layout.fillWidth: true
-                layoutDirection: Theme.uiDirection
-                spacing: Theme.space2
-
-                Item {
-                    id: selectedChannelChip
-                    Layout.preferredHeight: 46
-                    Layout.preferredWidth: Math.min(root.width * 0.70,
-                        Math.max(132, selectedChannelContents.implicitWidth + Theme.space5 * 2))
-                    Superellipse {
-                        anchors.fill: parent
-                        curveDepth: 23
-                        fillColor: root.selectedParentUrl.length > 0
-                                   ? Theme.primarySurface : Theme.surfaceRaised
-                        borderWidth: root.selectedParentUrl.length > 0 ? 0 : Theme.strokeHairline
-                        borderColor: Theme.borderSubtle
-                    }
-                    RowLayout {
-                        id: selectedChannelContents
-                        anchors.centerIn: parent
-                        spacing: Theme.space2
-                        Avatar {
-                            avatarSize: 29
-                            sourceUrl: root.selectedContextImage
-                            displayName: root.selectedContextLabel.length > 0
-                                         ? root.selectedContextLabel : "#"
-                            visible: root.selectedParentUrl.length > 0
-                        }
-                        Icon {
-                            visible: root.selectedParentUrl.length === 0
-                            text: Theme.iconGlobe
-                            preferredSize: Theme.iconSizeSmall
-                            color: Theme.textSecondary
-                        }
-                        DirectionAwareLabel {
-                            text: root.selectedContextLabel.length > 0
-                                  ? root.selectedContextLabel : qsTrId("genycaster.composer.channel")
-                            font.pixelSize: Theme.typeBodySize
-                            font.weight: Theme.weightDemiBold
-                            color: Theme.textPrimary
-                            elide: Text.ElideRight
-                            Layout.maximumWidth: Math.max(70, root.width * 0.45)
-                        }
-                        Icon {
-                            text: Theme.iconChevronDown
-                            preferredSize: Theme.iconSizeSmall
-                            color: Theme.textSecondary
-                        }
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: channelPicker.open()
-                    }
-                }
-                Item {
-                    Layout.preferredHeight: 46
-                    Layout.preferredWidth: categoryText.implicitWidth + Theme.space5 * 2
-                    opacity: 0.45
-                    DirectionAwareLabel {
-                        id: categoryText
-                        anchors.centerIn: parent
-                        text: qsTrId("genycaster.composer.category")
-                        font.pixelSize: Theme.typeBodySize
-                        color: Theme.textSecondary
-                    }
-                    Accessible.role: Accessible.Button
-                    Accessible.name: qsTrId("genycaster.composer.category")
-                    Accessible.description: qsTrId("genycaster.home.hub_coming_soon")
-                }
-                Item { Layout.fillWidth: true }
-                ActionButton {
-                    visible: root.selectedParentUrl.length > 0
-                    compact: true
-                    quiet: true
-                    iconOnly: true
-                    iconGlyph: Theme.iconClose
-                    text: qsTrId("genycaster.composer.context_clear")
-                    onClicked: {
-                        root.selectedParentUrl = ""
-                        root.selectedContextLabel = ""
-                        root.selectedContextImage = ""
-                    }
-                }
-            }
-
-            RowLayout {
-                objectName: "mobileComposerMediaBar"
-                visible: root.compact && root.editorMode === "visual"
-                Layout.fillWidth: true
-                spacing: Theme.space2
-                layoutDirection: Theme.uiDirection
-                ActionButton {
-                    compact: true
-                    quiet: true
-                    iconOnly: true
-                    iconGlyph: Theme.iconImage
-                    text: qsTrId("genycaster.home.post_photo")
-                    onClicked: {
-                        root.pendingMediaBlockIndex = visualEditor.activeBlockIndex
-                        root.openMediaPicker()
-                    }
-                }
-                ActionButton {
-                    compact: true
-                    quiet: true
-                    iconOnly: true
-                    iconGlyph: Theme.iconEmoji
-                    text: qsTrId("genycaster.composer.emoji")
-                    onClicked: {
-                        root.emojiThreadIndex = -1
-                        root.emojiThreadCursorPosition = -1
-                        emojiPicker.anchorItem = visualEditor
-                        emojiPicker.open()
-                    }
-                }
-                ActionButton {
-                    compact: true
-                    quiet: true
-                    text: "GIF"
-                    onClicked: {
-                        // The same MIME-safe file picker accepts animated GIF.
-                        root.pendingMediaBlockIndex = visualEditor.activeBlockIndex
-                        root.openMediaPicker()
-                    }
-                }
-                Item { Layout.fillWidth: true }
-                ActionButton {
-                    compact: true
-                    quiet: true
-                    iconOnly: true
-                    iconGlyph: Theme.iconPlus
-                    text: qsTrId("genycaster.composer.add_cast")
-                    enabled: threadTailModel.count + 1 < root.maximumThreadCasts
-                    onClicked: root.addThreadCast()
-                }
-            }
-
             ColumnLayout {
                 visible: root.threadMode
                 Layout.fillWidth: true
@@ -1371,6 +1275,7 @@ GenyDrawer {
             }
 
             RowLayout {
+                visible: !root.compact
                 layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 spacing: Theme.space2
@@ -1394,6 +1299,7 @@ GenyDrawer {
             }
 
             GridLayout {
+                visible: !root.compact || presentationBridge.writeErrorText.length > 0
                 Layout.fillWidth: true
                 columns: root.compact ? 1 : 2
                 rowSpacing: Theme.space1
@@ -1439,8 +1345,217 @@ GenyDrawer {
                 }
             }
 
-            Item { Layout.preferredHeight: root.keyboardVisible ? 0
-                                              : root.compact ? Theme.space3 : Theme.space5 }
+            Item { Layout.preferredHeight: root.compact ? 0 : Theme.space5 }
+        }
+    }
+
+        ColumnLayout {
+            id: mobileComposerFooter
+            objectName: "mobileComposerStickyFooter"
+            visible: root.compact && root.editorMode === "visual"
+            Layout.fillWidth: true
+            Layout.minimumHeight: 0
+            spacing: Theme.space1
+            Layout.leftMargin: Theme.mobileGutter
+            Layout.rightMargin: Theme.mobileGutter
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                color: Theme.borderSubtle
+            }
+                RowLayout {
+                    objectName: "mobileCastContext"
+                    visible: root.compact && root.editorMode === "visual"
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space2
+
+                    Item {
+                        id: selectedChannelChip
+                        Layout.preferredHeight: 46
+                        Layout.preferredWidth: Math.min(root.width * 0.70,
+                            Math.max(132, selectedChannelContents.implicitWidth + Theme.space5 * 2))
+                        Superellipse {
+                            anchors.fill: parent
+                            curveDepth: 23
+                            fillColor: root.selectedParentUrl.length > 0
+                                       ? Theme.primarySurface : "transparent"
+                            borderWidth: 0
+                        }
+                        Canvas {
+                            anchors.fill: parent
+                            visible: root.selectedParentUrl.length === 0
+                            onVisibleChanged: if (visible) requestPaint()
+                            onPaint: {
+                                const ctx = getContext("2d")
+                                if (!ctx) return
+                                ctx.clearRect(0, 0, width, height)
+                                ctx.beginPath()
+                                ctx.roundedRect(1.5, 1.5, width - 3, height - 3, 22, 22)
+                                ctx.setLineDash([5, 5])
+                                ctx.lineWidth = 1.4
+                                ctx.strokeStyle = Theme.borderMuted
+                                ctx.stroke()
+                            }
+                        }
+                        RowLayout {
+                            id: selectedChannelContents
+                            anchors.centerIn: parent
+                            spacing: Theme.space2
+                            Avatar {
+                                avatarSize: 29
+                                sourceUrl: root.selectedContextImage
+                                displayName: root.selectedContextLabel.length > 0
+                                             ? root.selectedContextLabel : "#"
+                                visible: root.selectedParentUrl.length > 0
+                            }
+                            Icon {
+                                visible: root.selectedParentUrl.length === 0
+                                text: Theme.iconGlobe
+                                preferredSize: Theme.iconSizeSmall
+                                color: Theme.textSecondary
+                            }
+                            DirectionAwareLabel {
+                                text: root.selectedContextLabel.length > 0
+                                      ? root.selectedContextLabel : qsTrId("genycaster.composer.channel")
+                                font.pixelSize: Theme.typeBodySize
+                                font.weight: Theme.weightDemiBold
+                                color: Theme.textPrimary
+                                elide: Text.ElideRight
+                                Layout.maximumWidth: Math.max(70, root.width * 0.45)
+                            }
+                            Icon {
+                                text: Theme.iconChevronDown
+                                preferredSize: Theme.iconSizeSmall
+                                color: Theme.textSecondary
+                            }
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: channelPicker.open()
+                        }
+                    }
+                    Item {
+                        Layout.preferredHeight: 46
+                        Layout.preferredWidth: categoryText.implicitWidth + Theme.space5 * 2
+                        opacity: 0.65
+                        Canvas {
+                            anchors.fill: parent
+                            onPaint: {
+                                const ctx = getContext("2d")
+                                if (!ctx) return
+                                ctx.clearRect(0, 0, width, height)
+                                ctx.beginPath()
+                                ctx.roundedRect(1.5, 1.5, width - 3, height - 3, 22, 22)
+                                ctx.setLineDash([5, 5])
+                                ctx.lineWidth = 1.4
+                                ctx.strokeStyle = Theme.borderMuted
+                                ctx.stroke()
+                            }
+                        }
+                        DirectionAwareLabel {
+                            id: categoryText
+                            anchors.centerIn: parent
+                            text: qsTrId("genycaster.composer.category")
+                            font.pixelSize: Theme.typeBodySize
+                            color: Theme.textSecondary
+                        }
+                        Accessible.role: Accessible.Button
+                        Accessible.name: qsTrId("genycaster.composer.category")
+                        Accessible.description: qsTrId("genycaster.home.hub_coming_soon")
+                    }
+                    Item { Layout.fillWidth: true }
+                    ActionButton {
+                        visible: root.selectedParentUrl.length > 0
+                        compact: true
+                        quiet: true
+                        iconOnly: true
+                        iconGlyph: Theme.iconClose
+                        text: qsTrId("genycaster.composer.context_clear")
+                        onClicked: {
+                            root.selectedParentUrl = ""
+                            root.selectedContextLabel = ""
+                            root.selectedContextImage = ""
+                            root.selectedChannelId = ""
+                        }
+                    }
+                }
+
+                RowLayout {
+                    objectName: "mobileComposerMediaBar"
+                    visible: root.compact && root.editorMode === "visual"
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+                    layoutDirection: Theme.uiDirection
+                    ActionButton {
+                        compact: true
+                        quiet: true
+                        iconOnly: true
+                        iconGlyph: Theme.iconImage
+                        text: qsTrId("genycaster.home.post_photo")
+                        onClicked: {
+                            root.pendingMediaBlockIndex = root.compact ? 0 : visualEditor.activeBlockIndex
+                            root.openMediaPicker()
+                        }
+                    }
+                    ActionButton {
+                        compact: true
+                        quiet: true
+                        iconOnly: true
+                        iconGlyph: Theme.iconEmoji
+                        text: qsTrId("genycaster.composer.emoji")
+                        onClicked: {
+                            root.emojiThreadIndex = -1
+                            root.emojiThreadCursorPosition = -1
+                            emojiPicker.anchorItem = root.compact ? mobilePlainEditor : visualEditor
+                            emojiPicker.open()
+                        }
+                    }
+                    ActionButton {
+                        compact: true
+                        quiet: true
+                        text: "GIF"
+                        onClicked: {
+                            // The same MIME-safe file picker accepts animated GIF.
+                            root.pendingMediaBlockIndex = root.compact ? 0 : visualEditor.activeBlockIndex
+                            root.openMediaPicker()
+                        }
+                    }
+                    Item { Layout.fillWidth: true }
+                    ActionButton {
+                        compact: true
+                        quiet: true
+                        iconOnly: true
+                        iconGlyph: Theme.iconPlus
+                        text: qsTrId("genycaster.composer.add_cast")
+                        enabled: threadTailModel.count + 1 < root.maximumThreadCasts
+                        onClicked: root.addThreadCast()
+                    }
+                }
+
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space1
+                layoutDirection: Theme.uiDirection
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    iconGlyph: Theme.iconPlus
+                    text: qsTrId("genycaster.composer.add_cast")
+                    enabled: threadTailModel.count + 1 < root.maximumThreadCasts
+                    onClicked: root.addThreadCast()
+                }
+                Item { Layout.fillWidth: true }
+                DirectionAwareLabel {
+                    forceLeftToRight: true
+                    color: richComposer.withinProtocolLimit ? Theme.textSecondary : Theme.danger
+                    font.pixelSize: Theme.typeCaptionSize
+                    text: LocaleFormat.formatInteger(richComposer.publishedBytes)
+                          + " / " + LocaleFormat.formatInteger(richComposer.maximumPublishedBytes)
+                }
+            }
         }
     }
 }

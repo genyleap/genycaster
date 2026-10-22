@@ -9,7 +9,7 @@ const PUBLIC_FILES=new Set([
     "farcaster_client.wasm","farcaster_client.worker.js","farcaster_client.data",
     "genycaster-loader.js","genycaster-assets.json","genycaster-assets.js",
     "genycaster-sw.js","genycaster.webmanifest","genycaster-icon.svg",
-    "genycaster-brand.svg","apple-touch-icon.png",
+    "genycaster-brand.svg","channel-icons.json","apple-touch-icon.png",
     "apple-touch-icon-precomposed.png",
     "secure_signer_vault.mjs","farcaster_protocol.mjs",
     "browser_protocol_signer.mjs","browser_device_session.mjs","browser_media_upload.mjs",
