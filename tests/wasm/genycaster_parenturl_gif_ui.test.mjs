@@ -171,7 +171,7 @@ test('composer editing shows compact clipboard actions beside the selection',()=
  assert.match(editor,/root.mapToItem\(selectionBar.parent, caret.x, caret.y\)/);
  assert.match(editor,/onPressAndHold:/);
  assert.match(editor,/onSelectedTextChanged:/);
- assert.match(editor,/root.copy\(\)/);
+ assert.match(editor,/presentationBridge.copyText\(root.selectedText\)/);
  assert.match(editor,/root.cut\(\)/);
  assert.match(editor,/root.selectAll\(\)/);
  assert.match(composer,/id: mobilePlainEditor/);

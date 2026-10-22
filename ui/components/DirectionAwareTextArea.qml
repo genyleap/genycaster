@@ -75,7 +75,9 @@ TextArea {
                 quiet: true
                 text: qsTrId("genycaster.feedback.copy")
                 onClicked: {
-                    root.copy()
+                    // Use the browser clipboard bridge on WASM/iOS Safari;
+                    // TextArea.copy() alone can stop at Qt's virtual clipboard.
+                    presentationBridge.copyText(root.selectedText)
                     selectionBar.close()
                 }
             }
@@ -84,6 +86,7 @@ TextArea {
                 quiet: true
                 text: qsTrId("genycaster.editor.cut")
                 onClicked: {
+                    presentationBridge.copyText(root.selectedText)
                     root.cut()
                     selectionBar.close()
                 }
