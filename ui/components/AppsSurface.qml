@@ -41,6 +41,12 @@ Item {
     }
 
     signal authenticationRequested()
+    property var selectedMiniApp: ({})
+    function showAppDetails(app) {
+        if (!app || !String(app.homeUrl || "").length) return
+        root.selectedMiniApp = app
+        miniAppDetailDrawer.open()
+    }
 
     function scrollToBeginning() {
         appsScroller.cancelFlick()
@@ -309,7 +315,7 @@ Item {
                     Layout.preferredHeight: visible ? implicitHeight : 0
                     recentApps: miniAppCatalog.recentApps
                     savedApps: miniAppCatalog.myApps
-                    onOpenRequested: function(app) { root.openApp(app) }
+                    onOpenRequested: function(app) { root.showAppDetails(app) }
                     onExploreRequested: root.farcasterSection = "explorer"
                 }
 
@@ -601,12 +607,13 @@ Item {
                                 model: root.visibleApps
                                 cacheBuffer: Math.min(height, 480)
 
-                                readonly property int targetColumns: root.compact ? 1
+                                readonly property int targetColumns: root.compact
+                                                                    ? (width < 325 ? 2 : 3)
                                                                     : width < 660 ? 1 : (width < 1040 ? 2 : 3)
                                 cellWidth: Math.max(1, width / Math.max(1, targetColumns))
-                                // Compact phones use content-dense vertical rows
-                                // instead of the former tall, mostly empty cards.
-                                cellHeight: root.compact ? 152 : 236 + Theme.space3
+                                // Store-like icon grid on phones; desktop still
+                                // uses descriptive cards with launch controls.
+                                cellHeight: root.compact ? 126 : 236 + Theme.space3
 
                                 ScrollBar.vertical: GenyScrollBar {
                                     policy: root.compact ? ScrollBar.AlwaysOff : ScrollBar.AsNeeded
@@ -631,8 +638,58 @@ Item {
                                                                      || runtimeState === "background"
                                                                      || runtimeState === "minimized"
 
+                                    Item {
+                                        id: miniAppStoreTile
+                                        visible: root.compact
+                                        anchors.fill: parent
+                                        anchors.margins: Theme.space1
+
+                                        SuperellipseImage {
+                                            id: storeIcon
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            anchors.top: parent.top
+                                            width: Math.min(78, parent.width - 14)
+                                            height: width
+                                            source: String(cardCell.modelData.iconSource || "")
+                                            mediaCategory: "miniapps"
+                                            forceAutomaticDownload: true
+                                            showLoadingIndicator: false
+                                            showFailureIndicator: false
+                                            showManualLoadIndicator: false
+                                            fillMode: Image.PreserveAspectFit
+                                            requestedSourceWidth: 120
+                                            requestedSourceHeight: 120
+                                            curveDepth: Theme.curveControl
+                                            fillColor: Theme.surfaceRaised
+
+                                            Icon {
+                                                anchors.centerIn: parent
+                                                visible: !storeIcon.ready
+                                                text: Theme.iconApps
+                                                color: Theme.accent
+                                                preferredSize: 28
+                                            }
+                                        }
+                                        DirectionAwareLabel {
+                                            anchors.top: storeIcon.bottom
+                                            anchors.topMargin: Theme.space2
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            text: String(cardCell.modelData.name || cardCell.modelData.domain || "")
+                                            color: Theme.ink
+                                            font.pixelSize: Theme.typeCaptionSize
+                                            horizontalAlignment: Text.AlignHCenter
+                                            maximumLineCount: 1
+                                            elide: Text.ElideRight
+                                        }
+                                        TapHandler { onTapped: root.showAppDetails(cardCell.modelData) }
+                                        Accessible.role: Accessible.Button
+                                        Accessible.name: String(cardCell.modelData.name || "")
+                                    }
+
                                     Superellipse {
                                         id: card
+                                        visible: !root.compact
                                         anchors.fill: parent
                                         anchors.leftMargin: root.compact ? Theme.space1 : Theme.space2
                                         anchors.rightMargin: root.compact ? Theme.space1 : Theme.space2
@@ -832,5 +889,140 @@ Item {
             }
         }
     }
+    }
+    // App Store-style drill-in. Only a user-selected app allocates a large
+    // information card. Tapping an icon never starts an embedded Mini App.
+    GenyDrawer {
+        id: miniAppDetailDrawer
+        objectName: "miniAppDetailDrawer"
+        bottomSheet: true
+        fullScreen: false
+        dimBackground: true
+        interactive: false
+        width: parent ? parent.width : 420
+        height: parent ? Math.min(parent.height * 0.74, 610) : 520
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: Theme.space4
+            spacing: Theme.space3
+
+            RowLayout {
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTr("Mini App details")
+                    color: Theme.ink
+                    font.weight: Theme.weightBold
+                    font.pixelSize: Theme.typeTitle3Size
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: Theme.iconClose
+                    text: qsTrId("genycaster.action.close")
+                    onClicked: miniAppDetailDrawer.close()
+                }
+            }
+
+            SuperellipseImage {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 158
+                visible: String(root.selectedMiniApp.coverSource || "").length > 0
+                source: String(root.selectedMiniApp.coverSource || "")
+                mediaCategory: "miniapps"
+                forceAutomaticDownload: true
+                showLoadingIndicator: false
+                showManualLoadIndicator: false
+                showFailureIndicator: false
+                fillMode: Image.PreserveAspectCrop
+                requestedSourceWidth: 660
+                requestedSourceHeight: 300
+                curveDepth: Theme.curveContainer
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space3
+                layoutDirection: Theme.uiDirection
+                SuperellipseImage {
+                    Layout.preferredWidth: 68
+                    Layout.preferredHeight: 68
+                    source: String(root.selectedMiniApp.iconSource || "")
+                    mediaCategory: "miniapps"
+                    forceAutomaticDownload: true
+                    showLoadingIndicator: false
+                    showFailureIndicator: false
+                    showManualLoadIndicator: false
+                    fillMode: Image.PreserveAspectFit
+                    requestedSourceWidth: 96
+                    requestedSourceHeight: 96
+                    curveDepth: Theme.curveControl
+                    fillColor: Theme.surfaceRaised
+                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.space1
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: String(root.selectedMiniApp.name || "")
+                        font.pixelSize: Theme.typeTitle3Size
+                        font.weight: Theme.weightBold
+                        color: Theme.ink
+                        wrapMode: Text.Wrap
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: String(root.selectedMiniApp.domain || "")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        forceLeftToRight: true
+                        elide: Text.ElideMiddle
+                    }
+                }
+            }
+
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: String(root.selectedMiniApp.description || "")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeMetaSize
+                wrapMode: Text.Wrap
+                maximumLineCount: 5
+                elide: Text.ElideRight
+            }
+            Item { Layout.fillHeight: true }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+                ActionButton {
+                    Layout.fillWidth: true
+                    prominent: true
+                    iconGlyph: Theme.iconPlay
+                    text: qsTrId("genycaster.miniapp.open_internal")
+                    onClicked: {
+                        const app = root.selectedMiniApp
+                        miniAppDetailDrawer.close()
+                        root.openApp(app)
+                    }
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: root.selectedMiniApp.saved ? Theme.iconCheck : Theme.iconPlus
+                    text: root.selectedMiniApp.saved
+                          ? qsTrId("genycaster.apps.saved") : qsTrId("genycaster.apps.save")
+                    enabled: !Boolean(root.selectedMiniApp.saved)
+                    onClicked: {
+                        miniAppCatalog.addToMyMiniApps(root.selectedMiniApp)
+                        root.selectedMiniApp = Object.assign({}, root.selectedMiniApp, { saved: true })
+                    }
+                }
+            }
+        }
     }
 }

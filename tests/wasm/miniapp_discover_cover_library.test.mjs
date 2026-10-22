@@ -70,3 +70,19 @@ test("mobile App library uses thumbnail shelf and Saved grid; desktop remains in
     for(const component of ["MiniAppLibraryShelves","MiniAppFeaturedCarousel"])
         assert.ok(cmake.includes("components/"+component+".qml"));
 });
+
+test("Explorer and saved grids show compact icons; details are opened before launch",()=>{
+ const apps=read("ui/components/AppsSurface.qml");
+ const library=read("ui/components/MiniAppLibraryShelves.qml");
+ assert.match(apps,/function showAppDetails\(app\)/);
+ assert.match(apps,/miniAppDetailDrawer\.open\(\)/);
+ assert.match(apps,/id: miniAppStoreTile[\s\S]*?id: storeIcon/);
+ assert.match(apps,/targetColumns: root\.compact\s*\? \(width < 325 \? 2 : 3\)/);
+ assert.match(apps,/cellHeight: root\.compact \? 126/);
+ assert.match(apps,/id: card\s+visible: !root\.compact/);
+ assert.match(apps,/objectName: "miniAppDetailDrawer"/);
+ assert.match(apps,/root\.showAppDetails\(cardCell\.modelData\)/);
+ assert.match(apps,/onOpenRequested: function\(app\) \{ root\.showAppDetails\(app\) \}/);
+ assert.match(apps,/miniAppDetailDrawer\.close\(\)\s+root\.openApp\(app\)/);
+ assert.match(library,/TapHandler \{ onTapped: root\.openRequested\(savedCell\.app\) \}/);
+});

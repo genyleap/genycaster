@@ -4,14 +4,16 @@ import {readFileSync} from 'node:fs';
 const base=new URL('../../',import.meta.url);
 const read=path=>readFileSync(new URL(path,base),'utf8');
 
-test('mobile Mini App cards are full-width readable rows',()=>{
+test('mobile Explorer uses App Store icons; desktop keeps descriptive cards',()=>{
  const apps=read('ui/components/AppsSurface.qml');
  assert.match(apps,/columns: 3[\s\S]*?Layout\.preferredHeight: root\.compact \? 48 : 64/);
- assert.match(apps,/targetColumns: root\.compact \? 1/);
- assert.match(apps,/cellHeight: root\.compact \? 152/);
+ assert.match(apps,/targetColumns: root\.compact\s*\? \(width < 325 \? 2 : 3\)/);
+ assert.match(apps,/cellHeight: root\.compact \? 126/);
  assert.match(apps,/Layout\.minimumHeight: root\.compact \? 28 : 40/);
  assert.match(apps,/wrapMode: root\.compact \? Text\.WrapAtWordBoundaryOrAnywhere/);
- assert.match(apps,/iconOnly: false[\s\S]{0,90}prominent: true/);
+ assert.match(apps,/id: miniAppStoreTile[\s\S]*?visible: root\.compact/);
+ assert.match(apps,/id: card\s+visible: !root\.compact/);
+ assert.match(apps,/TapHandler \{ onTapped: root\.showAppDetails\(cardCell\.modelData\) \}/);
 });
 test('WASM gallery corners use one shared image mask, not vector inverse covers',()=>{
  const layout=read('ui/components/GalleryLayout.qml');

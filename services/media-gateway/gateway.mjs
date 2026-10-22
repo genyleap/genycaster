@@ -381,10 +381,16 @@ function validatedCompletionParts(value, expectedCount) {
   return parts;
 }
 
-// Public browser images from Mini App manifests are frequently hosted on
-// independent domains. Only exact HTTPS icon URLs returned by the trusted
-// catalogue are eligible; all other URLs retain the fixed-host image policy.
-export function miniAppIconUrls(document) {
+// Mini App icon and wide cover artwork may live on distinct CDNs. Only exact
+// URLs declared by the trusted catalogue are eligible for the browser image
+// proxy; unrelated URLs on the same host remain forbidden.
+const miniAppIconFields = ['icon_url','iconUrl','icon','logo_url','logoUrl'];
+const miniAppCoverFields = [
+  'hero_image_url','heroImageUrl','cover_url','coverUrl',
+  'banner_url','bannerUrl','og_image_url','ogImageUrl',
+  'splash_image_url','splashImageUrl','poster_url','posterUrl',
+];
+function miniAppManifestUrls(document, includeCovers) {
   const frames = Array.isArray(document?.frames) ? document.frames
     : Array.isArray(document?.miniapps) ? document.miniapps
     : Array.isArray(document?.apps) ? document.apps : [];
@@ -398,18 +404,36 @@ export function miniAppIconUrls(document) {
     const sources = [manifest?.miniapp, manifest?.frame, manifest, row.miniapp, row.frame, row];
     for (const source of sources) {
       if (!source || typeof source !== 'object') continue;
-      for (const key of ['icon_url','iconUrl','icon','logo_url','logoUrl']) {
-        const raw = source[key];
+      const fields = includeCovers ? [...miniAppIconFields,...miniAppCoverFields] : miniAppIconFields;
+      const candidates = fields.map(key => source[key]);
+      if (includeCovers) {
+        for (const key of ['screenshot_urls','screenshotUrls']) {
+          if (Array.isArray(source[key]))
+            candidates.push(...source[key].slice(0,3));
+        }
+      }
+      for (const raw of candidates) {
         if (typeof raw !== 'string' || raw.length > 4096) continue;
         let url;
-        try { url = new URL(raw); } catch { continue; }
+        try {
+          const home = source.home_url || source.homeUrl ||
+                       manifest?.miniapp?.home_url || manifest?.frame?.home_url ||
+                       row.frames_url;
+          url = home ? new URL(raw,home) : new URL(raw);
+        } catch { continue; }
         if (url.protocol !== 'https:' || url.username || url.password || url.hash
-            || url.port && url.port !== '443') continue;
+            || (url.port && url.port !== '443')) continue;
         result.add(url.href);
       }
     }
   }
   return result;
+}
+export function miniAppIconUrls(document) {
+  return miniAppManifestUrls(document,false);
+}
+export function miniAppArtworkUrls(document) {
+  return miniAppManifestUrls(document,true);
 }
 
 export function createMediaGateway(config, storage, dependencies = {}) {
@@ -449,7 +473,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
 
   function rememberCatalogueIcons(document) {
     const expires = runtime.now() + 60 * 60 * 1000;
-    for (const url of miniAppIconUrls(document)) {
+    for (const url of miniAppArtworkUrls(document)) {
       verifiedMiniAppIcons.set(url, expires);
       if (verifiedMiniAppIcons.size > 1200)
         verifiedMiniAppIcons.delete(verifiedMiniAppIcons.keys().next().value);
@@ -463,7 +487,8 @@ export function createMediaGateway(config, storage, dependencies = {}) {
     refreshIconsPromise = (async () => {
       // The catalogue is a fixed Neynar endpoint, never caller-selected.
       const url = new URL('https://api.neynar.com/v2/farcaster/frame/catalog/');
-      url.searchParams.set('limit', '20');
+      // A cold-start gallery may contain 100 entries, not only the first 20.
+      url.searchParams.set('limit', '100');
       url.searchParams.set('time_window', '7d');
       try {
         const reply = await runtime.fetchImpl(url, {

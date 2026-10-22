@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createMediaGateway, loadConfig, miniAppIconUrls } from '../gateway.mjs';
+import { createMediaGateway, loadConfig, miniAppIconUrls, miniAppArtworkUrls } from '../gateway.mjs';
 
 const icon='https://hypria.app/icon.png';
 const catalog={frames:[{manifest:{miniapp:{name:'Hypria Mainframe',icon_url:icon}}}]};
@@ -127,4 +127,39 @@ test('manifest artwork is whitelisted dynamically by exact URL, not by Mini App 
       encodeURIComponent('https://media.unknownnewminiapp.example.net/private.png'));
     assert.equal(unrelated.status,400);
   } finally {await new Promise(resolve=>gateway.close(resolve));}
+});
+
+
+test('trusted catalogue grants exact Mini App hero covers, not unrelated images', async()=>{
+  const hero='https://new-cover-cdn.example.net/art/featured.webp';
+  const alternate='https://app-covers.example.org/gallery/one.png';
+  const appIcon='https://myapp.example/icon.png';
+  const doc={frames:[{frames_url:'https://myapp.example/miniapp',manifest:{
+    miniapp:{home_url:'https://myapp.example/miniapp',icon_url:appIcon,
+      hero_image_url:hero,screenshot_urls:[alternate]},
+    frame:{hero_image_url:hero}
+  }}]};
+  assert.deepEqual([...miniAppIconUrls(doc)],[appIcon]);
+  assert.deepEqual([...miniAppArtworkUrls(doc)].sort(),[alternate,appIcon,hero].sort());
+  const seen=[];
+  const gateway=createMediaGateway(config,{},{
+    fetchImpl:async()=>new Response(JSON.stringify(doc),{status:200,
+      headers:{'content-type':'application/json'}}),
+    retrieveImage:async(url,options)=>{
+      seen.push({url,options});
+      return {status:200,body:Buffer.from([137,80,78,71]),contentType:'image/png'};
+    },farcasterBroker:{}
+  });
+  await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve));
+  try{
+    const base='http://127.0.0.1:'+gateway.address().port;
+    assert.equal((await fetch(base+'/v1/browser/miniapps?kind=catalog')).status,200);
+    for(const image of [hero,alternate,appIcon]){
+      const result=await fetch(base+'/v1/browser/images?url='+encodeURIComponent(image));
+      assert.equal(result.status,200,image);
+    }
+    assert.equal((await fetch(base+'/v1/browser/images?url='+
+      encodeURIComponent('https://new-cover-cdn.example.net/admin/private.png'))).status,400);
+    assert.equal(seen.length,3);
+  }finally{await new Promise(resolve=>gateway.close(resolve));}
 });

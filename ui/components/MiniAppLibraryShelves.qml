@@ -9,7 +9,7 @@ Item {
     property var recentApps: []
     property var savedApps: []
     readonly property int savedColumns: width < 325 ? 2 : 3
-    signal openRequested(var app)
+    signal openRequested(var app) // Selection opens the details sheet, not the Mini App.
     signal exploreRequested()
 
     implicitHeight: shelves.implicitHeight
