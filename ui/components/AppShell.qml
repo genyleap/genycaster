@@ -103,6 +103,9 @@ Item {
     readonly property int adaptiveDashboardWidth: Math.max(320, width - root.navigationReservation - (root.desktop ? Theme.space4 : Theme.mobileGutter * 2))
     readonly property bool listViewActive: presentationBridge.activeView === "feed" || presentationBridge.activeView === "followers" || presentationBridge.activeView === "following"
     property var composerParent: null
+    // A remembered signer may still be undergoing asynchronous network verification
+    // when the user taps Compose. Keep the intent, not an authentication popup.
+    property var pendingComposerIntent: null
     property string replyTargetErrorText: ""
     property string shellRoute: ""
     // Shell route (e.g. Notifications) that was visible when a cast or profile
@@ -160,6 +163,36 @@ Item {
 
     function openAccountPopup() {
         accountPopup.open()
+    }
+
+    function resolvePendingComposer() {
+        const intent = root.pendingComposerIntent
+        if (intent === null)
+            return
+        if (!presentationBridge.isAuthenticated) {
+            root.pendingComposerIntent = null
+            return
+        }
+        if (presentationBridge.signerBusy)
+            return
+        root.pendingComposerIntent = null
+        if (!presentationBridge.writeReady) {
+            accountPopup.open()
+            return
+        }
+        // Recheck after the signer event has completed; never publish or
+        // open an authorized editor from a stale account transition.
+        Qt.callLater(function() {
+            if (presentationBridge.isAuthenticated && presentationBridge.writeReady)
+                root.openComposer(intent.parentCast, intent.initialAction,
+                                  intent.suggestedText, intent.quoteCast)
+        })
+    }
+
+    Connections {
+        target: presentationBridge
+        function onStateChanged() { root.resolvePendingComposer() }
+        function onAuthenticationStateChanged() { root.resolvePendingComposer() }
     }
 
     function openLocaleSettings(section) {
@@ -377,9 +410,20 @@ Item {
 
     function openComposer(parentCast, initialAction, suggestedText, quoteCast) {
         if (!presentationBridge.isAuthenticated || !presentationBridge.writeReady) {
+            if (presentationBridge.isAuthenticated && presentationBridge.signerBusy
+                    && presentationBridge.signerPhase === "checking") {
+                root.pendingComposerIntent = {
+                    "parentCast": parentCast || null,
+                    "initialAction": initialAction || "",
+                    "suggestedText": suggestedText || "",
+                    "quoteCast": quoteCast || null
+                }
+                return
+            }
             accountPopup.open()
             return
         }
+        root.pendingComposerIntent = null
         presentationBridge.beginComposer()
         if (parentCast !== undefined && parentCast !== null) {
             // Nested replies are canonical Casts too, but are not always in

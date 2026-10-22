@@ -66,3 +66,13 @@ test('unverified token branding cannot replace market-source artwork',()=>{
   assert.match(logo,/remoteSource: String\(root\.asset/);
   assert.match(card,/MouseArea \{\s*anchors.fill: parent[\s\S]{0,180}onClicked: root\.expanded/);
 });
+
+test('composer waits for remembered signer verification instead of showing the sign-in sheet',()=>{
+  const shell=read('ui/components/AppShell.qml');
+  assert.match(shell,/property var pendingComposerIntent: null/);
+  assert.ok(shell.includes('presentationBridge.isAuthenticated && presentationBridge.signerBusy'));
+  assert.ok(shell.includes('presentationBridge.signerPhase === "checking"'));
+  assert.ok(shell.includes('function resolvePendingComposer()'));
+  assert.ok(shell.includes('function onStateChanged() { root.resolvePendingComposer() }'));
+  assert.ok(shell.includes('presentationBridge.isAuthenticated && presentationBridge.writeReady'));
+});

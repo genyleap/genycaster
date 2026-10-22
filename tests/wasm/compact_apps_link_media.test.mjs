@@ -4,14 +4,14 @@ import {readFileSync} from 'node:fs';
 const base=new URL('../../',import.meta.url);
 const read=path=>readFileSync(new URL(path,base),'utf8');
 
-test('compact mobile Mini App explorer is a two-column grid of short cards',()=>{
+test('mobile Mini App cards are full-width readable rows',()=>{
  const apps=read('ui/components/AppsSurface.qml');
  assert.match(apps,/columns: 3[\s\S]*?Layout\.preferredHeight: root\.compact \? 54 : 64/);
- assert.match(apps,/targetColumns: root\.compact \? \(width < 340 \? 1 : 2\)/);
- assert.match(apps,/cellHeight: root\.compact \? 136/);
- assert.match(apps,/visible: !root\.compact[\s\S]{0,120}Layout\.minimumHeight: 40/);
- assert.match(apps,/iconOnly: root\.compact/);
- assert.match(apps,/visible: !root\.compact; Layout\.fillHeight: true/);
+ assert.match(apps,/targetColumns: root\.compact \? 1/);
+ assert.match(apps,/cellHeight: root\.compact \? 224/);
+ assert.match(apps,/Layout\.minimumHeight: root\.compact \? 34 : 40/);
+ assert.match(apps,/wrapMode: root\.compact \? Text\.WrapAtWordBoundaryOrAnywhere/);
+ assert.match(apps,/iconOnly: false[\s\S]{0,90}prominent: true/);
 });
 test('WASM gallery corners use one shared image mask, not vector inverse covers',()=>{
  const layout=read('ui/components/GalleryLayout.qml');

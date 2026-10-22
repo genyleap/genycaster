@@ -508,10 +508,10 @@ Item {
                                 model: root.visibleApps
                                 cacheBuffer: Math.min(height, 480)
 
-                                readonly property int targetColumns: root.compact ? (width < 340 ? 1 : 2)
+                                readonly property int targetColumns: root.compact ? 1
                                                                     : width < 660 ? 1 : (width < 1040 ? 2 : 3)
                                 cellWidth: Math.max(1, width / Math.max(1, targetColumns))
-                                cellHeight: root.compact ? 136 : 236 + Theme.space3
+                                cellHeight: root.compact ? 224 : 236 + Theme.space3
 
                                 ScrollBar.vertical: GenyScrollBar {
                                     policy: root.compact ? ScrollBar.AlwaysOff : ScrollBar.AsNeeded
@@ -600,6 +600,8 @@ Item {
                                                         color: Theme.ink
                                                         font.pixelSize: Theme.typeBodySize
                                                         font.weight: Theme.weightDemiBold
+                                                        wrapMode: root.compact ? Text.WrapAtWordBoundaryOrAnywhere : Text.NoWrap
+                                                        maximumLineCount: root.compact ? 2 : 1
                                                         elide: Text.ElideRight
                                                     }
                                                     DirectionAwareLabel {
@@ -650,9 +652,8 @@ Item {
                                             }
 
                                             DirectionAwareLabel {
-                                                visible: !root.compact
                                                 Layout.fillWidth: true
-                                                Layout.minimumHeight: 40
+                                                Layout.minimumHeight: root.compact ? 34 : 40
                                                 text: String(cardCell.modelData.description || "")
                                                 color: Theme.inkMuted
                                                 font.pixelSize: Theme.typeMetaSize
@@ -672,7 +673,7 @@ Item {
                                                 elide: Text.ElideRight
                                             }
 
-                                            Item { visible: !root.compact; Layout.fillHeight: true }
+                                            Item { Layout.fillHeight: true }
 
                                             RowLayout {
                                                 Layout.fillWidth: true
@@ -682,7 +683,7 @@ Item {
                                                 ActionButton {
                                                     Layout.fillWidth: true
                                                     compact: true
-                                                    iconOnly: root.compact
+                                                    iconOnly: false
                                                     prominent: true
                                                     positive: cardCell.runtimeState === "foreground"
                                                     busy: cardCell.launchBusy
