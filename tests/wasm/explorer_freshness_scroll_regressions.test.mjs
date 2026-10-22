@@ -278,6 +278,6 @@ test('desktop quick draft keeps context menu; mobile opens the dedicated editor'
     assert.match(home, /objectName: "homeComposerLauncher"/);
     assert.match(home, /onClicked: root\.composeRequested\(root\.draftText\)/);
     assert.match(composer, /RichTextEditor \{/);
-    assert.match(menu, /popupType: Popup\.Item/);
+    assert.match(menu, /popupType: nativePresentation \? Popup\.Native : Popup\.Item/);
     assert.match(menu, /background: Superellipse/);
 });

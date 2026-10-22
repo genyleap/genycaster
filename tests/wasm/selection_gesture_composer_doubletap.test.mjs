@@ -36,7 +36,8 @@ test('native cast selection reserves mouse and touch gestures from Flickable onl
 test('Copy popup is lazy and anchored to selected text in the window overlay, not card top-right', () => {
   const qml=read('ui/components/RichInlineText.qml');
   assert.match(qml,/Loader \{[\s\S]*?id: selectionMenuLoader/);
-  assert.match(qml,/active: root.selectionReady && textLayout.selectedText.length > 0/);
+  assert.match(qml,/active: !root.usePlatformSelection && root.selectionReady/);
+  assert.match(qml,/textLayout.selectedText.length > 0/);
   assert.match(qml,/parent: Overlay.overlay/);
   assert.match(qml,/textLayout.selectionMenuPosition.x/);
   assert.match(qml,/textLayout.selectionMenuPosition.y/);
@@ -59,8 +60,10 @@ test('composer preserves mouse selection and offers touch drag grips across plat
   assert.match(input,/root\.positionToRectangle\(root\.selectionEnd\)/);
   assert.match(input,/width: 44\s+height: 44/);
   assert.match(input,/preventStealing: true/);
-  assert.match(input,/root\.positionAt\(point\.x, point\.y\)/);
-  assert.match(input,/root\.select\(Math\.max\(0, Math\.min\(root\.length, next\)\), oppositeEdge\)/);
+  assert.match(input,/root\.positionAt\([\s\S]*?point\.x - pressDeltaX, point\.y - pressDeltaY\)/);
+  assert.match(input,/root\.select\(bounded, oppositeEdge\)/);
+  assert.match(input,/parent: Overlay\.overlay/);
+  assert.match(input,/root\.mapToItem\(selectionGrips/);
   assert.match(input,/!root\.inputMethodComposing/);
   assert.match(input,/selectionPressActive/);
   for (const id of ['mobilePlainEditor','threadEditor','markdownEditor'])

@@ -591,6 +591,60 @@ QPointF RichInlineTextItem::selectionMenuPosition() const noexcept
     return m_selectionMenuPosition;
 }
 
+QRectF RichInlineTextItem::boundaryRect(const int position) const
+{
+    const int clamped = qBound(0, position,
+        qMax(0, m_impl->document.characterCount() - 1));
+    const QTextBlock block = m_impl->document.findBlock(clamped);
+    if (!block.isValid() || !block.layout()) return {};
+    const QTextLayout* layout = block.layout();
+    if (layout->lineCount() < 1) return {};
+    const int local = clamped - block.position();
+    QTextLine line = layout->lineForTextPosition(local);
+    if (!line.isValid()) line = layout->lineAt(layout->lineCount() - 1);
+    const QRectF blockRect = m_impl->document.documentLayout()->blockBoundingRect(block);
+    return QRectF(blockRect.left() + line.cursorToX(local),
+                  blockRect.top() + line.y(), 2, line.height());
+}
+
+QRectF RichInlineTextItem::selectionStartRect() const
+{
+    return m_impl->selection.hasSelection()
+        ? boundaryRect(m_impl->selection.selectionStart()) : QRectF{};
+}
+
+QRectF RichInlineTextItem::selectionEndRect() const
+{
+    return m_impl->selection.hasSelection()
+        ? boundaryRect(m_impl->selection.selectionEnd()) : QRectF{};
+}
+
+void RichInlineTextItem::dragSelectionBoundary(
+    const bool leading, const qreal x, const qreal y)
+{
+    if (!m_impl->selection.hasSelection()) return;
+    const int hit = m_impl->document.documentLayout()->hitTest(
+        QPointF{x, y}, Qt::FuzzyHit);
+    if (hit < 0) return;
+    const int first = m_impl->selection.selectionStart();
+    const int last = m_impl->selection.selectionEnd();
+    QTextCursor cursor{&m_impl->document};
+    if (leading) {
+        cursor.setPosition(last);
+        cursor.setPosition(qBound(0, hit, last - 1), QTextCursor::KeepAnchor);
+    } else {
+        cursor.setPosition(first);
+        cursor.setPosition(qBound(first + 1, hit,
+            qMax(first + 1, m_impl->document.characterCount() - 1)),
+            QTextCursor::KeepAnchor);
+    }
+    if (!cursor.hasSelection()) return;
+    m_impl->selection = cursor;
+    m_selectionMenuPosition = QPointF{x, y};
+    update();
+    emit selectionChanged();
+}
+
 QString RichInlineTextItem::selectedText() const
 {
     if (!m_impl->selection.hasSelection()) return {};

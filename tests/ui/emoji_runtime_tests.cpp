@@ -154,6 +154,16 @@ int main(int argc, char** argv)
         "copy text preserves RTL Unicode words");
     expect(copied.contains(QString::fromUtf8("🔥")),
         "copy text restores original emoji instead of U+FFFC objects");
+    const QRectF firstHandle = text.selectionStartRect();
+    const QRectF lastHandle = text.selectionEndRect();
+    expect(firstHandle.height() > 0 && lastHandle.height() > 0,
+        "selection exposes the two QTextDocument caret rectangles");
+    const QString beforeDrag = text.selectedText();
+    text.dragSelectionBoundary(true, lastHandle.x() - 13,
+                               lastHandle.y() + lastHandle.height() / 2);
+    expect(!text.selectedText().isEmpty()
+           && text.selectedText().length() <= beforeDrag.length(),
+        "dragging the first blue handle retains a valid selected range");
     const QImage selected = painted(text);
     expect(selected != beforeSelection,
         "selection highlight changes the same native rich-text document");

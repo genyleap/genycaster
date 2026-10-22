@@ -165,7 +165,7 @@ test('context menu is attached globally to all QML text areas and uses themed po
     const qml=read(new URL('../../ui/components/EditorContextMenu.qml',import.meta.url),'utf8');
     const areas=read(new URL('../../ui/components/DirectionAwareTextArea.qml',import.meta.url),'utf8');
     const code=read(new URL('../../ui/components/CodeBlockEditor.qml',import.meta.url),'utf8');
-    assert.match(qml,/popupType: Popup\.Item/);
+    assert.match(qml,/popupType: nativePresentation \? Popup\.Native : Popup\.Item/);
     assert.match(qml,/EditorMenuItem/);
     assert.doesNotMatch(qml,/delegate: MenuItem/);
     assert.match(qml,/background: Superellipse/);

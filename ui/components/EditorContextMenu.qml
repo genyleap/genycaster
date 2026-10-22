@@ -6,7 +6,8 @@ import QtQuick.Controls
 Menu {
     id: root
     required property var editor
-    popupType: Popup.Item
+    property bool nativePresentation: false
+    popupType: nativePresentation ? Popup.Native : Popup.Item
     width: 220
     padding: Theme.space2
     modal: true

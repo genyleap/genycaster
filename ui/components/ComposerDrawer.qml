@@ -154,6 +154,38 @@ GenyDrawer {
         root.pendingMediaAfterIndex = -1
     }
 
+    function clearAllComposerContent() {
+        // Clear the complete unpublished document, attachments and thread,
+        // never the reply target; losing that would silently change where the
+        // new cast is published. Managed media cleanup is queued by newDocument.
+        if (presentationBridge.writeBusy || presentationBridge.writePhase === "queued")
+            return
+        root.closeComposerPopups()
+        root.clearPendingMediaQueue()
+        if (mediaUpload.busy)
+            mediaUpload.cancel()
+        else
+            mediaUpload.clear()
+        richComposer.newDocument()
+        threadTailModel.clear()
+        root.mediaMetadata = ({})
+        root.mediaInsertFailed = false
+        root.insertKind = ""
+        root.selectedParentUrl = ""
+        root.selectedContextLabel = ""
+        root.selectedContextImage = ""
+        root.selectedChannelId = ""
+        root.quotedCast = null
+        root.emojiThreadIndex = -1
+        root.emojiThreadCursorPosition = -1
+        if (root.compact) {
+            mobilePlainEditor.resetSelection()
+            mobilePlainEditor.clear()
+            mobilePlainEditor.forceActiveFocus()
+        }
+    }
+
+
     function startNextMediaUpload() {
         if (mediaUpload.busy || root.pendingMediaFiles.length === 0)
             return false
@@ -457,6 +489,65 @@ GenyDrawer {
             root.selectedChannelId = selection.isHome ? "" : String(selection.id || "")
             root.selectedContextImage = selection.isHome ? "" : String(selection.imageUrl || "")
             channelPicker.close()
+        }
+    }
+
+    Popup {
+        id: clearContentConfirmation
+        objectName: "composerClearContentConfirmation"
+        parent: Overlay.overlay
+        modal: true
+        dim: true
+        focus: true
+        width: parent ? Math.min(400, parent.width - Theme.space5 * 2) : 360
+        height: clearContentColumns.implicitHeight + Theme.space4 * 2
+        x: parent ? (parent.width - width) / 2 : 0
+        y: parent ? (parent.height - height) / 2 : 0
+        padding: Theme.space4
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        background: Superellipse {
+            fillColor: Theme.surfaceElevated
+            borderWidth: 1
+            borderColor: Theme.borderStrong
+            curveDepth: Theme.curveContainer
+        }
+        contentItem: ColumnLayout {
+            id: clearContentColumns
+            spacing: Theme.space3
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                color: Theme.ink
+                font.pixelSize: Theme.typeTitle3Size
+                font.weight: Theme.weightBold
+                text: qsTrId("genycaster.composer.clear_all_title")
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                color: Theme.textSecondary
+                text: qsTrId("genycaster.composer.clear_all_confirmation")
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                Item { Layout.fillWidth: true }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    text: qsTrId("genycaster.shell.cancel")
+                    onClicked: clearContentConfirmation.close()
+                }
+                ActionButton {
+                    compact: true
+                    prominent: true
+                    iconGlyph: Theme.iconTrash
+                    text: qsTrId("genycaster.composer.clear_content")
+                    onClicked: {
+                        clearContentConfirmation.close()
+                        root.clearAllComposerContent()
+                    }
+                }
+            }
         }
     }
 
@@ -834,6 +925,15 @@ GenyDrawer {
                     }
                 }
 
+                ActionButton {
+                    objectName: "composerClearContentDesktop"
+                    compact: true
+                    quiet: true
+                    iconGlyph: Theme.iconTrash
+                    text: qsTrId("genycaster.composer.clear_content")
+                    enabled: !presentationBridge.writeBusy && root.hasPublishableContent()
+                    onClicked: clearContentConfirmation.open()
+                }
                 ActionButton {
                     prominent: true
                     compact: true
@@ -1567,6 +1667,19 @@ GenyDrawer {
                     onClicked: root.addThreadCast()
                 }
                 Item { Layout.fillWidth: true }
+                ActionButton {
+                    objectName: "composerClearContentMobile"
+                    compact: true
+                    quiet: true
+                    iconGlyph: Theme.iconTrash
+                    text: qsTrId("genycaster.composer.clear_content")
+                    enabled: !presentationBridge.writeBusy &&
+                             (richComposer.safeText.length > 0
+                              || richComposer.protocolEmbeds.length > 0
+                              || threadTailModel.count > 0
+                              || root.selectedParentUrl.length > 0)
+                    onClicked: clearContentConfirmation.open()
+                }
                 DirectionAwareLabel {
                     Layout.minimumWidth: implicitWidth
                     Layout.alignment: Qt.AlignVCenter

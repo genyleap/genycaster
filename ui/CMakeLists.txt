@@ -241,6 +241,8 @@ qt_add_executable(farcaster_client
     mobile/miniapp_catalog_controller.hpp
     mobile/channel_picker_controller.cpp
     mobile/channel_picker_controller.hpp
+    mobile/text_selection_settings.cpp
+    mobile/text_selection_settings.hpp
     mobile/miniapp_task_manager_controller.cpp
     mobile/miniapp_task_manager_controller.hpp
     mobile/live_insights_controller.cpp

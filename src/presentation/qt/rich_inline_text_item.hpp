@@ -48,6 +48,8 @@ class RichInlineTextItem : public QQuickPaintedItem {
     Q_PROPERTY(QVariantList emojiRects READ emojiRects NOTIFY emojiRectsChanged)
     Q_PROPERTY(QString selectedText READ selectedText NOTIFY selectionChanged)
     Q_PROPERTY(QPointF selectionMenuPosition READ selectionMenuPosition NOTIFY selectionChanged)
+    Q_PROPERTY(QRectF selectionStartRect READ selectionStartRect NOTIFY selectionChanged)
+    Q_PROPERTY(QRectF selectionEndRect READ selectionEndRect NOTIFY selectionChanged)
 
 public:
     /** @brief Creates the renderer. */
@@ -103,6 +105,10 @@ public:
     Q_INVOKABLE void setEmojiAnimated(int position, bool animated);
     [[nodiscard]] QString selectedText() const;
     [[nodiscard]] QPointF selectionMenuPosition() const noexcept;
+    [[nodiscard]] QRectF selectionStartRect() const;
+    [[nodiscard]] QRectF selectionEndRect() const;
+    /** Move either boundary using QTextDocument hit-testing, including mixed bidi text. */
+    Q_INVOKABLE void dragSelectionBoundary(bool leading, qreal x, qreal y);
     /** Native QTextDocument hit-testing; works for bidi runs, emoji and links. */
     Q_INVOKABLE void selectWordAt(qreal x, qreal y);
     Q_INVOKABLE void selectAllText();
@@ -146,6 +152,7 @@ private:
     void extendSelectionGesture(const QPointF& position, bool touch);
     void finishSelectionGesture(const QPointF& position);
     void cancelSelectionGesture();
+    [[nodiscard]] QRectF boundaryRect(int position) const;
     std::unique_ptr<Impl> m_impl;
     QPointF m_pressPosition{};
     QPointF m_selectionMenuPosition{};

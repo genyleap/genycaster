@@ -62,6 +62,7 @@
 #include "rich_inline_text_item.hpp"
 #include "rich_composer_controller.hpp"
 #include "channel_picker_controller.hpp"
+#include "text_selection_settings.hpp"
 #include "appearance_controller.hpp"
 #include "localization_controller.hpp"
 #include "media_upload_controller.hpp"
@@ -1063,6 +1064,7 @@ int main(int argc, char* argv[])
     // order tears the QML engine down first.
     std::unique_ptr<AppearanceController> appearanceControllerOwner{};
     std::unique_ptr<RenderingController> renderingControllerOwner{};
+    std::unique_ptr<TextSelectionSettings> textSelectionSettingsOwner{};
     std::unique_ptr<LocalizationController> localizationControllerOwner{};
     std::unique_ptr<PresentationBridge> presentationBridgeOwner{};
     std::unique_ptr<DataStorageController> dataStorageControllerOwner{};
@@ -1119,6 +1121,8 @@ int main(int argc, char* argv[])
 #endif
     renderingControllerOwner = std::make_unique<RenderingController>(settings);
     RenderingController& renderingController = *renderingControllerOwner;
+    textSelectionSettingsOwner = std::make_unique<TextSelectionSettings>(settings);
+    TextSelectionSettings& textSelectionSettings = *textSelectionSettingsOwner;
 
     try {
         localizationControllerOwner = std::make_unique<LocalizationController>(
@@ -1585,6 +1589,7 @@ int main(int argc, char* argv[])
 #endif
     engine.rootContext()->setContextProperty(QStringLiteral("appearanceController"), &appearanceController);
     engine.rootContext()->setContextProperty(QStringLiteral("renderingController"), &renderingController);
+    engine.rootContext()->setContextProperty(QStringLiteral("textSelectionSettings"), &textSelectionSettings);
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
     engine.rootContext()->setContextProperty(QStringLiteral("nodeProviderLabel"), QStringLiteral("Hypersnap v2"));
     engine.rootContext()->setContextProperty(QStringLiteral("nodeProviderIcon"), QStringLiteral("quilibrium/hypersnap"));

@@ -1382,6 +1382,18 @@
             <source>Category</source>
             <translation>Category</translation>
         </message>
+                <message id="genycaster.composer.clear_content">
+            <source>Clear content</source>
+            <translation>Clear content</translation>
+        </message>
+        <message id="genycaster.composer.clear_all_title">
+            <source>Clear this cast?</source>
+            <translation>Clear this cast?</translation>
+        </message>
+        <message id="genycaster.composer.clear_all_confirmation">
+            <source>Delete the text, attachments and additional casts in this draft? This cannot be undone. The reply destination stays unchanged.</source>
+            <translation>Delete the text, attachments and additional casts in this draft? This cannot be undone. The reply destination stays unchanged.</translation>
+        </message>
         <message id="genycaster.composer.context_clear">
             <source>Clear</source>
             <translation>Clear</translation>
@@ -2625,6 +2637,26 @@
         <message id="genycaster.settings.add_market_token_description">
             <source>Add an Ethereum or Base token by contract address.</source>
             <translation>Ethereum 또는 Base 토큰을 컨트랙트 주소로 추가합니다.</translation>
+        </message>
+                <message id="genycaster.settings.text_selection">
+            <source>Text selection</source>
+            <translation>Text selection</translation>
+        </message>
+        <message id="genycaster.settings.text_selection_description">
+            <source>Choose how you select and copy text in casts and the composer.</source>
+            <translation>Choose how you select and copy text in casts and the composer.</translation>
+        </message>
+        <message id="genycaster.settings.selection_genycaster">
+            <source>Genycaster</source>
+            <translation>Genycaster</translation>
+        </message>
+        <message id="genycaster.settings.selection_system">
+            <source>System</source>
+            <translation>System</translation>
+        </message>
+        <message id="genycaster.settings.selection_browser_limit">
+            <source>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</source>
+            <translation>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</translation>
         </message>
         <message id="genycaster.settings.appearance">
             <source>Appearance</source>

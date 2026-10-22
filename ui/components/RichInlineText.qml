@@ -18,6 +18,9 @@ Item {
     // Set only after releasing the selection gesture, avoiding a floating
     // action button intercepting the very drag that extends the highlight.
     property bool selectionReady: false
+    property bool selectionHandleDragging: false
+    property bool preserveSelectionForGrip: false
+    readonly property bool usePlatformSelection: textSelectionSettings.systemSelectionEnabled
 
     // Required means the binding must exist; its value may still become null
     // briefly while a model delegate is being recycled.
@@ -31,7 +34,8 @@ Item {
     readonly property int textSize: root.kind === "heading" ? Theme.typeTitle3Size : Theme.typeBodySize
     readonly property bool reducedMotion: Theme.reduceMotion
 
-    implicitHeight: textLayout.contentHeight
+    implicitHeight: root.usePlatformSelection ? platformText.implicitHeight
+                                              : textLayout.contentHeight
     // Painted inline emoji and text must never spill outside a recycled Cast
     // delegate before the native QTextDocument recomputes after a resize.
     clip: true
@@ -63,8 +67,67 @@ Item {
         return inlines
     }
 
+    function escapedHtml(value) {
+        return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                                 .replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+    }
+
+    function nativeMarkup() {
+        // Qt TextEdit delegates selection to the platform's QInputMethod.
+        // Keep safe bold/emphasis/code/link spans for this optional rendering
+        // mode. Genycaster's richer animated emoji renderer stays the default.
+        const html = []
+        const spans = root.flattenedInlines()
+        for (const span of spans) {
+            if (span === null || span === undefined) continue
+            if (typeof span === "string") {
+                html.push(root.escapedHtml(span).replace(/\n/g, "<br/>"))
+                continue
+            }
+            const kind = String(span.kind || "text")
+            let value = root.escapedHtml(span.text || "")
+            if (kind === "mention" && span.username)
+                value = "@" + root.escapedHtml(span.username)
+            value = value.replace(/\n/g, "<br/>")
+            if (kind === "strong") value = "<b>" + value + "</b>"
+            else if (kind === "emphasis") value = "<i>" + value + "</i>"
+            else if (kind === "inline-code") value = "<code>" + value + "</code>"
+            else if (kind === "link" && /^https?:\/\//i.test(String(span.target || "")))
+                value = "<a href=\"" + root.escapedHtml(span.target) + "\">" + value + "</a>"
+            html.push(value)
+        }
+        if (html.length === 0)
+            html.push(root.escapedHtml(root.safeBlockData.text || "").replace(/\n/g, "<br/>"))
+        return "<p style=\"margin:0;\">" + html.join("") + "</p>"
+    }
+
+    TextEdit {
+        id: platformText
+        objectName: "platformCastSelectableText"
+        visible: root.usePlatformSelection && root.textBlock
+        width: parent.width
+        height: implicitHeight
+        readOnly: true
+        selectByMouse: true
+        selectByKeyboard: true
+        persistentSelection: true
+        activeFocusOnPress: true
+        textFormat: TextEdit.RichText
+        text: root.nativeMarkup()
+        wrapMode: TextEdit.Wrap
+        font.family: Theme.fontFamilyForText(String(root.safeBlockData.text || ""))
+        font.pixelSize: root.textSize
+        font.bold: root.fontBold
+        color: Theme.ink
+        selectionColor: Theme.primarySurfaceHover
+        selectedTextColor: Theme.ink
+        horizontalAlignment: root.rtlContent ? TextEdit.AlignRight : TextEdit.AlignLeft
+        onLinkActivated: url => root.externalRequested(url)
+    }
+
     RichInlineTextItem {
         id: textLayout
+        visible: !root.usePlatformSelection
         anchors.left: parent.left
         anchors.right: parent.right
         height: textLayout.contentHeight
@@ -86,7 +149,87 @@ Item {
                 root.selectionReady = false
         }
         onSelectionCompleted: {
-            root.selectionReady = textLayout.selectedText.length > 0
+            if (!root.selectionHandleDragging)
+                root.selectionReady = textLayout.selectedText.length > 0
+        }
+    }
+
+    // Qt's read-only QTextDocument is a painted item and does not get iOS
+    // UITextView handles. Overlay grips are drawn separately from the clipped
+    // feed card and can move both endpoints across wrapped lines and bidi runs.
+    Loader {
+        id: castSelectionGripLoader
+        active: !root.usePlatformSelection && textLayout.selectedText.length > 0
+                && root.visible && textLayout.visible
+        sourceComponent: Item {
+        id: selectionOverlayGrips
+        objectName: "castTextSelectionHandles"
+        parent: Overlay.overlay
+        width: parent ? parent.width : 0
+        height: parent ? parent.height : 0
+        z: 200
+        Repeater {
+            model: 2
+            delegate: Item {
+                id: grip
+                required property int index
+                readonly property bool leading: index === 0
+                readonly property rect selectionRect: leading
+                    ? textLayout.selectionStartRect : textLayout.selectionEndRect
+                readonly property point onscreen: textLayout.mapToItem(
+                    selectionOverlayGrips, selectionRect.x, selectionRect.y)
+                width: 44
+                height: 44
+                x: Math.max(0, Math.min(selectionOverlayGrips.width - width,
+                    onscreen.x - width * 0.5))
+                y: Math.max(0, Math.min(selectionOverlayGrips.height - height,
+                    onscreen.y + (leading ? -height * 0.52
+                                          : selectionRect.height - height * 0.48)))
+                Rectangle {
+                    x: parent.width / 2 - 1
+                    y: grip.leading ? height / 2 - 2 : -height / 2 + 2
+                    width: 2
+                    height: Math.max(15, grip.selectionRect.height)
+                    color: root.usePlatformSelection ? Theme.accent
+                           : (Theme.dark ? "#0A84FF" : "#007AFF")
+                }
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 13
+                    height: 13
+                    radius: 6.5
+                    color: root.usePlatformSelection ? Theme.accent
+                           : (Theme.dark ? "#0A84FF" : "#007AFF")
+                    border.width: 2
+                    border.color: Theme.surfaceRaised
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    preventStealing: true
+                    cursorShape: Qt.SizeHorCursor
+                    onPressed: {
+                        root.selectionHandleDragging = true
+                        root.preserveSelectionForGrip = true
+                        root.selectionReady = false
+                    }
+                    onPositionChanged: mouse => {
+                        if (!pressed) return
+                        const where = mapToItem(textLayout, mouse.x, mouse.y)
+                        textLayout.dragSelectionBoundary(grip.leading, where.x, where.y)
+                    }
+                    onReleased: {
+                        root.selectionHandleDragging = false
+                        root.selectionReady = textLayout.selectedText.length > 0
+                        Qt.callLater(function() { root.preserveSelectionForGrip = false })
+                    }
+                    onCanceled: {
+                        root.selectionHandleDragging = false
+                        root.selectionReady = textLayout.selectedText.length > 0
+                        Qt.callLater(function() { root.preserveSelectionForGrip = false })
+                    }
+                }
+            }
+        }
         }
     }
 
@@ -97,7 +240,8 @@ Item {
     Loader {
         id: selectionMenuLoader
         objectName: "richTextCopySelection"
-        active: root.selectionReady && textLayout.selectedText.length > 0
+        active: !root.usePlatformSelection && root.selectionReady
+                && !root.selectionHandleDragging && textLayout.selectedText.length > 0
         sourceComponent: Item {
             Component.onCompleted: copyPopup.open()
             Popup {
@@ -178,7 +322,8 @@ Item {
                 }
                 onClosed: {
                     root.selectionReady = false
-                    textLayout.clearSelection()
+                    if (!root.selectionHandleDragging && !root.preserveSelectionForGrip)
+                        textLayout.clearSelection()
                 }
             }
         }

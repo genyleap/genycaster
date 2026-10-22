@@ -1382,6 +1382,18 @@
             <source>Category</source>
             <translation>الفئة</translation>
         </message>
+                <message id="genycaster.composer.clear_content">
+            <source>Clear content</source>
+            <translation>مسح المحتوى</translation>
+        </message>
+        <message id="genycaster.composer.clear_all_title">
+            <source>Clear this cast?</source>
+            <translation>مسح هذه المنشور؟</translation>
+        </message>
+        <message id="genycaster.composer.clear_all_confirmation">
+            <source>Delete the text, attachments and additional casts in this draft? This cannot be undone. The reply destination stays unchanged.</source>
+            <translation>سيتم حذف النص والوسائط والمنشورات الإضافية من المسودة. لا يمكن التراجع عن ذلك. ستبقى جهة الرد كما هي.</translation>
+        </message>
         <message id="genycaster.composer.context_clear">
             <source>Clear</source>
             <translation>مسح</translation>
@@ -2625,6 +2637,26 @@
         <message id="genycaster.settings.add_market_token_description">
             <source>Add an Ethereum or Base token by contract address.</source>
             <translation>أضف توكن Ethereum أو Base باستخدام عنوان العقد.</translation>
+        </message>
+                <message id="genycaster.settings.text_selection">
+            <source>Text selection</source>
+            <translation>تحديد النص</translation>
+        </message>
+        <message id="genycaster.settings.text_selection_description">
+            <source>Choose how you select and copy text in casts and the composer.</source>
+            <translation>اختر طريقة تحديد النص ونسخه في المنشورات والمحرر.</translation>
+        </message>
+        <message id="genycaster.settings.selection_genycaster">
+            <source>Genycaster</source>
+            <translation>جني‌كاستر</translation>
+        </message>
+        <message id="genycaster.settings.selection_system">
+            <source>System</source>
+            <translation>النظام</translation>
+        </message>
+        <message id="genycaster.settings.selection_browser_limit">
+            <source>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</source>
+            <translation>في إصدار Qt/WASM، يُرسم المحتوى داخل Canvas ولا تتوفر مقابض التحديد الأصلية للمتصفح؛ يستمر نمط جني‌كاستر.</translation>
         </message>
         <message id="genycaster.settings.appearance">
             <source>Appearance</source>

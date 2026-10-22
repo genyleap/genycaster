@@ -26,7 +26,7 @@ TextArea {
 
 
     TapHandler {
-        enabled: root.selectAllOnDoubleTap
+        enabled: root.selectAllOnDoubleTap && !textSelectionSettings.systemSelectionEnabled
         acceptedButtons: Qt.LeftButton
         gesturePolicy: TapHandler.DragThreshold
         onDoubleTapped: {
@@ -39,13 +39,17 @@ TextArea {
 
     // Override Qt 6.9+'s generic native-looking context menu in every
     // visual, Markdown, list and thread editor using the shared theme.
-    ContextMenu.menu: EditorContextMenu { editor: root }
+    ContextMenu.menu: EditorContextMenu {
+        editor: root
+        nativePresentation: textSelectionSettings.systemSelectionEnabled
+    }
 
     // A compact selection menu must appear beside the selected word in both
     // the cast composer and its reply/thread editors (not at the screen edge).
     // Keep the existing full context menu for desktop right-click.
     function showSelectionActions() {
-        if (!root.selectedText.length || !selectionBar.parent) return
+        if (textSelectionSettings.systemSelectionEnabled
+                || !root.selectedText.length || !selectionBar.parent) return
         const caret = root.cursorRectangle
         const position = root.mapToItem(selectionBar.parent, caret.x, caret.y)
         selectionBar.x = Math.max(8, Math.min(selectionBar.parent.width
@@ -73,7 +77,7 @@ TextArea {
         }
     }
     onPressAndHold: mouse => {
-        if (!root.text.length) return
+        if (textSelectionSettings.systemSelectionEnabled || !root.text.length) return
         root.selectionGestureActive = true
         if (!root.selectedText.length) {
             root.cursorPosition = root.positionAt(mouse.x, mouse.y)
@@ -103,17 +107,19 @@ TextArea {
         }
     }
 
-    // Two draggable grips supplement QInputMethod's optional native handles
-    // on Android/iOS/WASM. Only the tiny handles capture pointer events:
-    // the rest of TextArea retains mouse drag, ordinary tap, typing & scroll.
+    // Paint and hit-test the handles in the window overlay rather than inside
+    // TextArea. Otherwise touches at either end are clamped to the text item's
+    // geometry and can be stolen by its Flickable/input method on iOS/WASM.
     Item {
         id: selectionGrips
         objectName: "composerTextSelectionHandles"
-        anchors.fill: parent
-        z: 12
-        visible: root.selectAllOnDoubleTap && root.activeFocus
-                 && root.selectedText.length > 0
-                 && !root.inputMethodComposing
+        parent: Overlay.overlay
+        width: parent ? parent.width : 0
+        height: parent ? parent.height : 0
+        z: 201
+        visible: root.selectAllOnDoubleTap && !textSelectionSettings.systemSelectionEnabled
+                 && root.activeFocus && root.selectedText.length > 0
+                 && !root.inputMethodComposing && root.visible
         readonly property rect startRect: root.positionToRectangle(root.selectionStart)
         readonly property rect endRect: root.positionToRectangle(root.selectionEnd)
 
@@ -125,22 +131,29 @@ TextArea {
                 readonly property bool leading: index === 0
                 readonly property rect caretRect: leading
                     ? selectionGrips.startRect : selectionGrips.endRect
+                readonly property point onScreen: root.mapToItem(selectionGrips,
+                    caretRect.x, caretRect.y)
                 width: 44
                 height: 44
-                // Keep grab targets inside the editor while their colored
-                // pins point to the exact UTF-16 selection boundaries.
-                x: Math.max(0, Math.min(root.width - width,
-                    caretRect.x - (leading ? width * 0.65 : width * 0.35)))
-                y: Math.max(0, Math.min(root.height - height,
-                    caretRect.y + (leading ? -height * 0.40
-                                           : caretRect.height - height * 0.60)))
-                z: 1
+                x: Math.max(0, Math.min(selectionGrips.width - width,
+                    onScreen.x - width * 0.5))
+                y: Math.max(0, Math.min(selectionGrips.height - height,
+                    onScreen.y + (leading ? -height * 0.5
+                                         : caretRect.height - height * 0.5)))
+                z: 2
+                Rectangle {
+                    x: parent.width / 2 - 1
+                    y: grip.leading ? parent.height * 0.48 : parent.height * 0.1
+                    width: 2
+                    height: Math.max(14, grip.caretRect.height * 0.7)
+                    color: Theme.dark ? "#0A84FF" : "#007AFF"
+                }
                 Rectangle {
                     anchors.centerIn: parent
-                    width: 13
-                    height: 13
-                    radius: 6.5
-                    color: Theme.accent
+                    width: 14
+                    height: 14
+                    radius: 7
+                    color: Theme.dark ? "#0A84FF" : "#007AFF"
                     border.width: 2
                     border.color: Theme.editorSurface
                 }
@@ -149,8 +162,13 @@ TextArea {
                     preventStealing: true
                     cursorShape: Qt.SizeHorCursor
                     property int oppositeEdge: 0
+                    property real pressDeltaX: 0
+                    property real pressDeltaY: 0
                     onPressed: mouse => {
                         oppositeEdge = grip.leading ? root.selectionEnd : root.selectionStart
+                        const point = mapToItem(root, mouse.x, mouse.y)
+                        pressDeltaX = point.x - grip.caretRect.x
+                        pressDeltaY = point.y - grip.caretRect.y
                         root.selectionHandleDragging = true
                         selectionDelay.stop()
                         selectionBar.close()
@@ -158,11 +176,14 @@ TextArea {
                     onPositionChanged: mouse => {
                         if (!pressed) return
                         const point = mapToItem(root, mouse.x, mouse.y)
-                        const position = root.positionAt(point.x, point.y)
-                        // Never collapse the selection during a handle drag.
+                        const position = root.positionAt(
+                            point.x - pressDeltaX, point.y - pressDeltaY)
+                        // Keep at least one character selected; the opposite
+                        // handle remains fixed throughout the gesture.
                         const next = grip.leading ? Math.min(oppositeEdge - 1, position)
                                                   : Math.max(oppositeEdge + 1, position)
-                        root.select(Math.max(0, Math.min(root.length, next)), oppositeEdge)
+                        const bounded = Math.max(0, Math.min(root.length, next))
+                        root.select(bounded, oppositeEdge)
                     }
                     onReleased: {
                         root.selectionHandleDragging = false
@@ -184,6 +205,7 @@ TextArea {
         focus: false
         modal: false
         dim: false
+        visible: !textSelectionSettings.systemSelectionEnabled
         padding: Theme.space1
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         background: Superellipse {

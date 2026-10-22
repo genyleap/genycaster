@@ -694,6 +694,56 @@ GenyDrawer {
                     Rectangle { Layout.fillWidth: true; height: 1; color: Theme.divider }
 
                     ColumnLayout {
+                        objectName: "textSelectionPreference"
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.settings.text_selection")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.settings.text_selection_description")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.Wrap
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space2
+                            ActionButton {
+                                Layout.fillWidth: true
+                                compact: true
+                                selected: textSelectionSettings.mode === "genycaster"
+                                text: qsTrId("genycaster.settings.selection_genycaster")
+                                onClicked: textSelectionSettings.setMode("genycaster")
+                            }
+                            ActionButton {
+                                Layout.fillWidth: true
+                                compact: true
+                                selected: textSelectionSettings.systemSelectionEnabled
+                                enabled: textSelectionSettings.nativeAvailable
+                                text: qsTrId("genycaster.settings.selection_system")
+                                onClicked: textSelectionSettings.setMode("system")
+                            }
+                        }
+                        DirectionAwareLabel {
+                            visible: !textSelectionSettings.nativeAvailable
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.inkMuted
+                            text: qsTrId("genycaster.settings.selection_browser_limit")
+                        }
+                    }
+
+                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.divider }
+
+                    ColumnLayout {
                         Layout.fillWidth: true
                         spacing: Theme.space2
                         DirectionAwareLabel {

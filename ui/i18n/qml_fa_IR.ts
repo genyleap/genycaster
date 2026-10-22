@@ -1382,6 +1382,18 @@
             <source>Category</source>
             <translation>دسته‌بندی</translation>
         </message>
+                <message id="genycaster.composer.clear_content">
+            <source>Clear content</source>
+            <translation>پاک‌کردن محتوا</translation>
+        </message>
+        <message id="genycaster.composer.clear_all_title">
+            <source>Clear this cast?</source>
+            <translation>محتوای کست پاک شود؟</translation>
+        </message>
+        <message id="genycaster.composer.clear_all_confirmation">
+            <source>Delete the text, attachments and additional casts in this draft? This cannot be undone. The reply destination stays unchanged.</source>
+            <translation>همهٔ متن‌ها، رسانه‌های پیوست و زیرکست‌های این پیش‌نویس پاک می‌شوند. این کار قابل بازگشت نیست. مقصد پاسخ تغییر نمی‌کند.</translation>
+        </message>
         <message id="genycaster.composer.context_clear">
             <source>Clear</source>
             <translation>پاک کردن</translation>
@@ -2625,6 +2637,26 @@
         <message id="genycaster.settings.add_market_token_description">
             <source>Add an Ethereum or Base token by contract address.</source>
             <translation>یک توکن اتریوم یا بیس را با آدرس قرارداد اضافه کنید.</translation>
+        </message>
+                <message id="genycaster.settings.text_selection">
+            <source>Text selection</source>
+            <translation>انتخاب متن</translation>
+        </message>
+        <message id="genycaster.settings.text_selection_description">
+            <source>Choose how you select and copy text in casts and the composer.</source>
+            <translation>نحوهٔ انتخاب و کپی متن در کست‌ها و ویرایشگر را مشخص کنید.</translation>
+        </message>
+        <message id="genycaster.settings.selection_genycaster">
+            <source>Genycaster</source>
+            <translation>جنی‌کستر</translation>
+        </message>
+        <message id="genycaster.settings.selection_system">
+            <source>System</source>
+            <translation>سیستم‌عامل</translation>
+        </message>
+        <message id="genycaster.settings.selection_browser_limit">
+            <source>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</source>
+            <translation>در نسخهٔ وبِ Qt/WASM، محتوا روی Canvas رسم می‌شود و انتخاب متن بومی Safari یا مرورگر قابل استفاده نیست. حالت جنی‌کستر فعال می‌ماند.</translation>
         </message>
         <message id="genycaster.settings.appearance">
             <source>Appearance</source>
