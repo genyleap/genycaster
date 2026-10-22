@@ -41,7 +41,7 @@ test('iOS PWA chrome starts dark and respects light appearance', () => {
     const html=wasm('genycaster-shell.html');
     const loader=wasm('genycaster-loader.js');
     assert.doesNotMatch(html,/<meta name="apple-mobile-web-app-status-bar-style"/);
-    assert.match(html,/body::before\{[^}]*env\(safe-area-inset-top,0px\)[^}]*background:var\(--app-chrome\)/);
+    assert.match(html,/#ios-status-chrome\{[^}]*env\(safe-area-inset-top,0px\)[^}]*background-color:var\(--app-chrome\)/);
     assert.match(html,/<meta name="theme-color" content="#0b0c0f">/);
     assert.doesNotMatch(loader,/statusMeta\.setAttribute/);
     assert.match(loader,/dark\?"#0b0c0f":"#f1f1f3"/);

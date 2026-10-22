@@ -17,6 +17,7 @@ TextArea {
     property bool selectionGestureActive: false
     property bool selectionPressActive: false
     property bool selectionHandleDragging: false
+    property int selectionReleaseRetries: 0
     // Canvas-only fallback. Qt provides platform text-selection affordances on
     // native mobile and desktop; do not draw a second toolbar over them.
     readonly property bool customCanvasSelection: Qt.platform.os === "wasm"
@@ -36,6 +37,7 @@ TextArea {
         selectionPressActive = false
         selectionGestureActive = false
         selectionHandleDragging = false
+        selectionReleaseRetries = 0
     }
     onVisibleChanged: if (!visible) dismissSelectionActions()
     Component.onDestruction: dismissSelectionActions()
@@ -103,7 +105,11 @@ TextArea {
     // the cast composer and its reply/thread editors (not at the screen edge).
     // Keep the existing full context menu for desktop right-click.
     function showSelectionActions() {
-        if (!root.customCanvasSelection || !root.activeFocus || !root.visible
+        // On iOS/WASM TextArea may temporarily lose activeFocus while the
+        // selection/keyboard gesture is being delivered. Selection itself is
+        // authoritative; the parent's visibility and composer close lifecycle
+        // prevent this window-overlay popup from leaking onto Home.
+        if (!root.customCanvasSelection || !root.visible
                 || !root.selectedText.length || !selectionBar.parent) return
         const start = root.positionToRectangle(root.selectionStart)
         const end = root.positionToRectangle(root.selectionEnd)
@@ -130,19 +136,40 @@ TextArea {
 
     Timer {
         id: selectionDelay
-        interval: 260
+        interval: 330
         repeat: false
-        onTriggered: if (root.activeFocus && root.selectedText.length > 0)
-                         root.showSelectionActions()
+        onTriggered: {
+            if (!root.customCanvasSelection || !root.visible
+                    || root.selectedText.length === 0 || root.selectionHandleDragging)
+                return
+            // Qt can deliver selectedTextChanged before onReleased, or drop
+            // the TextArea release when the browser's touch grab changes.
+            // Retry after the finger lifts without losing the selection.
+            if (root.selectionPressActive || root.selectionGestureActive) {
+                // Safari sometimes does not forward the final touch release to
+                // TextArea after a selection gesture. Bound the retry loop so
+                // the user still gets Copy and Select All.
+                if (++root.selectionReleaseRetries < 4) {
+                    selectionDelay.restart()
+                    return
+                }
+                root.selectionPressActive = false
+                root.selectionGestureActive = false
+            }
+            root.selectionReleaseRetries = 0
+            root.showSelectionActions()
+        }
     }
     onSelectedTextChanged: {
-        if (selectedText.length > 0 && activeFocus
-                && !selectionPressActive && !selectionGestureActive
-                && !selectionHandleDragging)
-            selectionDelay.restart()
-        else {
+        if (!root.customCanvasSelection) return
+        root.selectionReleaseRetries = 0
+        if (selectedText.length === 0) {
             selectionDelay.stop()
             selectionBar.close()
+        } else if (!selectionHandleDragging && root.visible) {
+            // The selection signal, not onReleased, is the reliable completion
+            // path for iOS Safari's canvas-based touch gestures.
+            selectionDelay.restart()
         }
     }
     onPressAndHold: mouse => {
@@ -159,6 +186,7 @@ TextArea {
     }
     onPressed: mouse => {
         root.selectionPressActive = true
+        root.selectionReleaseRetries = 0
         selectionDelay.stop()
         selectionBar.close()
     }
@@ -167,14 +195,18 @@ TextArea {
         root.selectionGestureActive = false
         if (root.customCanvasSelection && root.selectedText.length > 0
                 && !root.selectionHandleDragging)
-            root.showSelectionActions()
+            selectionDelay.restart()
     }
     onActiveFocusChanged: {
         if (!activeFocus) {
             selectionPressActive = false
             selectionGestureActive = false
-            selectionDelay.stop()
-            selectionBar.close()
+            // A focus change alone is not selection cancellation on Qt/WASM.
+            // The selection can outlive the keyboard's temporary focus owner.
+            if (root.selectedText.length === 0) {
+                selectionDelay.stop()
+                selectionBar.close()
+            }
         }
     }
 
@@ -189,8 +221,7 @@ TextArea {
         height: parent ? parent.height : 0
         z: 201
         visible: root.selectAllOnDoubleTap && root.customCanvasSelection
-                 && root.activeFocus && root.selectedText.length > 0
-                 && !root.inputMethodComposing && root.visible
+                 && root.selectedText.length > 0 && root.visible
         readonly property rect startRect: root.positionToRectangle(root.selectionStart)
         readonly property rect endRect: root.positionToRectangle(root.selectionEnd)
 

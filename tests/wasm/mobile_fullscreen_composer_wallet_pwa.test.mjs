@@ -65,7 +65,7 @@ test('iOS standalone uses full viewport bleed and theme-aware top inset', () => 
     const html=wasm('genycaster-shell.html'), loader=wasm('genycaster-loader.js');
     assert.match(html,/viewport-fit=cover/);
     assert.doesNotMatch(html,/<meta name="apple-mobile-web-app-status-bar-style"/);
-    assert.match(html,/body::before\{[^}]*z-index:6/);
+    assert.match(html,/#ios-status-chrome\{[^}]*z-index:6/);
     assert.match(html,/:root\[data-chrome-theme="light"\]\{[^}]*--boot-ink/);
     assert.match(html,/:root\[data-chrome-theme="dark"\]\{[^}]*--boot-ink/);
     assert.doesNotMatch(loader,/statusMeta\.setAttribute/);

@@ -64,7 +64,7 @@ test('composer preserves mouse selection and offers touch drag grips across plat
   assert.match(input,/root\.select\(bounded, oppositeEdge\)/);
   assert.match(input,/parent: Overlay\.overlay/);
   assert.match(input,/root\.mapToItem\(selectionGrips/);
-  assert.match(input,/!root\.inputMethodComposing/);
+  assert.doesNotMatch(input,/visible:[^\n]+root\.activeFocus/);
   assert.match(input,/selectionPressActive/);
   for (const id of ['mobilePlainEditor','threadEditor','markdownEditor'])
     assert.match(composer, new RegExp('id: '+id+'\\s+selectAllOnDoubleTap: true'));

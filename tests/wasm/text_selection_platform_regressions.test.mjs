@@ -10,7 +10,7 @@ test('canvas-only selection actions never bind Popup.visible open on Home', () =
  const composer=read('ui/components/ComposerDrawer.qml');
  const popup=editor.slice(editor.indexOf('id: selectionBar'));
  assert.doesNotMatch(popup,/visible:\s*!textSelectionSettings\.systemSelectionEnabled/);
- assert.match(editor,/if \(!root\.customCanvasSelection \|\| !root\.activeFocus \|\| !root\.visible/);
+ assert.match(editor,/if \(!root\.customCanvasSelection \|\| !root\.visible/);
  assert.match(editor,/onVisibleChanged: if \(!visible\) dismissSelectionActions\(\)/);
  assert.match(editor,/onActiveFocusChanged:[\s\S]*?selectionBar\.close\(\)/);
  assert.match(composer,/onClosed: \{[\s\S]*?mobilePlainEditor\.dismissSelectionActions\(\)/);
@@ -39,7 +39,9 @@ test('iOS status style is install-time policy and page theme changes remain live
  assert.doesNotMatch(html,/<meta name="apple-mobile-web-app-status-bar-style"/);
  assert.match(html,/:root\[data-chrome-theme="light"\]\{[^}]*--app-chrome:#f1f1f3/);
  assert.match(html,/:root\[data-chrome-theme="dark"\]\{[^}]*--app-chrome:#0b0c0f/);
- assert.match(html,/body::before\{[^}]*background:var\(--app-chrome\)/);
+ assert.match(html,/#ios-status-chrome\{[^}]*background-color:var\(--app-chrome\)/);
+ assert.match(html,/<div id="ios-status-chrome" aria-hidden="true"><\/div>/);
+ assert.doesNotMatch(html,/html,body\{background:linear-gradient/);
  assert.match(loader,/meta\.setAttribute\("content",color\)/);
  assert.doesNotMatch(loader,/statusMeta\.setAttribute/);
 });

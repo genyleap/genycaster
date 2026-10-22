@@ -46,7 +46,7 @@ test('mobile footer is full bleed dark, with curved page edge and no floating ca
     assert.match(shell, /id: mobileBottomNavigation[\s\S]*?height: 88/);
     assert.match(shell, /anchors\.left: readingPane\.left\s+anchors\.right: readingPane\.right\s+anchors\.bottom: readingPane\.bottom/);
     assert.doesNotMatch(shell, /anchors\.bottomMargin: Math\.max\(Theme\.space4, Theme\.mobileGutter\)/);
-    assert.match(html, /@media\(max-width:700px\)\{html,body\{background:linear-gradient\([\s\S]*?#202128/);
+    assert.match(html, /@media\(max-width:700px\)\{body::after\{[^}]*background-color:#202128/);
 });
 
 test('mentioned content and search controls have localized labels', () => {

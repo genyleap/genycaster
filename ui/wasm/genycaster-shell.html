@@ -17,9 +17,9 @@
 :root[data-chrome-theme="light"]{color-scheme:light;--app-chrome:#f1f1f3;--boot-ink:#142039}
 :root[data-chrome-theme="dark"]{color-scheme:dark;--app-chrome:#0b0c0f;--boot-ink:#f1f1f3}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:var(--app-chrome)}
-/* Paint any exposed top inset before Qt/WASM finishes booting. Modern iOS
-   standalone mode may own the status bar outside the page viewport. */
-body::before{content:"";position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top,0px),1px);background:var(--app-chrome);pointer-events:none;z-index:6}
+/* WebKit samples real fixed DOM elements when painting the installed PWA
+   status bar. Pseudo-elements and a body gradient are not reliable samplers. */
+#ios-status-chrome{position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top,0px),1px);background-color:var(--app-chrome);pointer-events:none;z-index:6}
 #qt-screen{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;z-index:1}
 #qt-screen canvas{touch-action:none;-webkit-touch-callout:none}
 #genycaster-boot{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;background:var(--app-chrome);color:var(--boot-ink);transition:opacity .26s ease}
@@ -47,12 +47,13 @@ h1{font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.01em;margin:
 .boot-credit{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 18px;text-align:center;color:#65728c;font-size:12px;letter-spacing:.015em}
 /* When the iPhone safe area extends beyond the Qt canvas, the exposed bottom
    corners should match the full-bleed dark navigation footer, never turn light. */
-@media(max-width:700px){html,body{background:linear-gradient(to bottom,var(--app-chrome) 0%,var(--app-chrome) 75%,#202128 75%,#202128 100%)}}
+@media(max-width:700px){body::after{content:"";position:fixed;left:0;right:0;bottom:0;height:25%;background-color:#202128;pointer-events:none;z-index:0}}
 @media(max-width:540px){#genycaster-boot{padding:18px}.boot-content{padding:20px 8px}.boot-mark{margin-bottom:44px}.boot-credit{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.boot-fill{animation:none;transform:none;width:40%}*{transition:none!important}}
 </style>
 </head>
 <body>
+<div id="ios-status-chrome" aria-hidden="true"></div>
 <div id="qt-screen" aria-label="Genycaster application"></div>
 <div id="genycaster-boot" role="status" aria-live="polite">
   <div class="boot-content">
