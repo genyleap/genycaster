@@ -17,25 +17,37 @@ through the selected node. Search and image hydration use bounded requests
 and in-memory caches. Per-FID channel selection frequency is cached locally;
 membership and URL authority never come from this cache.
 
-Native builds default to `https://client.warpcast.com/v2` for presentation
-enrichment only. Browser builds require a same-origin read-only proxy because
-Farcaster's directory endpoint does not provide browser CORS access:
+Native builds default to `https://client.warpcast.com/v2` for
+public display metadata only. Browser builds cannot read that endpoint through
+CORS. Instead, the existing Genycaster Media Gateway now exposes fixed
+CORS-safe, read-only paths under
+`https://storage-farcaster.genyleap.com/v1/browser/channels`:
 
-- Add `tools/nginx_channel_directory.conf` within the active TLS server block.
-- Validate the active configuration with `nginx -t` and reload Nginx.
-- Verify `/api/channel-directory/search-channels?q=genyleap&limit=1`
-  returns a real JSON `result.channels[0].imageUrl`, **not the SPA HTML**.
-- Verify `/api/channel-directory/channel?key=genyleap` returns a channel
-  metadata response.
+- `/v1/browser/channels/search-channels?q=genyleap&limit=3`
+- `/v1/browser/channels/channel?key=genyleap`
 
-The web origin is derived from `window.location` within the WASM composition
-root; it does not embed a fixed Genycaster or Hypersnap host. Deployments can
-override `--channel-directory-base-url`,
-`GENYCASTER_CHANNEL_DIRECTORY_BASE_URL`, or
-`network/channelDirectoryBaseUrl` settings as supported.
+The gateway permits only GET/OPTIONS, bounded channel keys/searches, fixed
+upstream URLs, JSON responses, small response sizes, rate limits and short
+caches. Image URLs then pass through the existing bounded
+`/v1/browser/images` raster gateway used by the C++ remote-image provider.
+No Nginx change is required because the Media Gateway is already deployed
+under a publicly accessible, CORS-enabled origin.
 
-**Important:** the immutable WASM release script does not modify
-`/etc/nginx`. Without this independently managed proxy capability, the
-channel picker works with node-supplied data and displays initial-letter avatar
-fallbacks. Do not claim channel icon delivery is fixed until the public relay
-is responding with JSON from both the origin and CDN.
+The directory base URL is an independently configurable presentation
+capability, **not** the read-node URL. Deployments may override it with
+`--channel-directory-base-url`, `GENYCASTER_CHANNEL_DIRECTORY_BASE_URL`,
+or `network/channelDirectoryBaseUrl` without changing the selected provider.
+
+**Semantic limitation:** Quorum's authenticated Farcaster
+`user-following-channels` data is not equivalent to all HyperSnap
+`user/memberships/list` entries. The current picker only authorizes channel
+selection when verified by the selected read-node membership endpoint. A
+provider-neutral, authenticated *followed channels* capability is future work;
+do not claim a complete cross-provider follow list is available.
+
+Verification must confirm both public directory endpoints return actual
+JSON—not the WASM app's HTML—and that the channel `imageUrl` loads through
+the image gateway. The native cast text renderer uses QTextDocument selection
+with native press-and-hold and a user-activated clipboard write; read-only
+labels lazily instantiate a selectable TextEdit on long press, without assigning
+unsupported textInteractionFlags to QtQuick.Controls.Label.
