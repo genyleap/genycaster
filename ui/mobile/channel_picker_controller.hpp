@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QAbstractListModel>
 #include <QDateTime>
 #include <QHash>
 #include <QJsonObject>
@@ -15,6 +16,27 @@
 #include <functional>
 
 /**
+ * Stable, identity-preserving channel rows for Qt Quick ListView.
+ *
+ * The old Q_PROPERTY(QVariantList) rebuilt every QML delegate (including its
+ * remote image) for each metadata response. A single modelData role retains
+ * the existing delegate contract while updates emit dataChanged per row.
+ */
+class ChannelListModel final : public QAbstractListModel {
+public:
+    enum : int { RowRole = Qt::UserRole + 1 };
+    using QAbstractListModel::QAbstractListModel;
+
+    [[nodiscard]] int rowCount(const QModelIndex& parent = {}) const override;
+    [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
+    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
+    void synchronize(const QVariantList& rows);
+
+private:
+    QVariantList m_rows{};
+};
+
+/**
  * Compose-channel read model owned by the Qt composition root.
  *
  * Channel discovery, membership, member counts, avatar URLs and the
@@ -26,6 +48,7 @@
 class ChannelPickerController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList rows READ rows NOTIFY rowsChanged FINAL)
+    Q_PROPERTY(QAbstractItemModel* channelModel READ channelModel CONSTANT FINAL)
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged FINAL)
     Q_PROPERTY(bool membershipReady READ membershipReady NOTIFY membershipStateChanged FINAL)
     Q_PROPERTY(QString errorText READ errorText NOTIFY errorTextChanged FINAL)
@@ -37,6 +60,7 @@ public:
                             bool networkEnabled, QObject* parent = nullptr);
 
     [[nodiscard]] QVariantList rows() const;
+    [[nodiscard]] QAbstractItemModel* channelModel() noexcept;
     [[nodiscard]] bool busy() const noexcept;
     [[nodiscard]] bool membershipReady() const noexcept;
     [[nodiscard]] QString errorText() const;
@@ -89,6 +113,7 @@ private:
     QSettings& m_settings;
     QNetworkAccessManager m_network{};
     QTimer m_debounce{};
+    QTimer m_initialPresentation{};
     QString m_baseUrl;
     QString m_directoryBaseUrl;
     QHash<QString, QVariantMap> m_directoryMetadata{};
@@ -101,12 +126,16 @@ private:
     quint64 m_searchGeneration{0};
     bool m_membershipReady{false};
     bool m_membershipBusy{false};
+    bool m_initialPresentationPending{false};
     bool m_searchBusy{false};
     bool m_trendingBusy{false};
     qint64 m_membershipValidUntil{0};
     QString m_query{};
     QString m_error{};
     QVariantList m_rows{};
+    ChannelListModel m_channelModel{};
+    QHash<QString, int> m_presentationOrder{};
+    int m_nextPresentationOrder{0};
     QVariantList m_searchResults{};
     QVariantList m_directoryResults{};
     QVariantList m_trendingResults{};

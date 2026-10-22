@@ -80,6 +80,57 @@ constexpr int membershipTtlMs = 70 * 1000;
 }
 }
 
+int ChannelListModel::rowCount(const QModelIndex& parent) const
+{
+    return parent.isValid() ? 0 : static_cast<int>(m_rows.size());
+}
+
+QVariant ChannelListModel::data(const QModelIndex& index, int role) const
+{
+    if (!index.isValid() || index.row() < 0 || index.row() >= m_rows.size()
+        || role != RowRole) return {};
+    return m_rows.at(index.row());
+}
+
+QHash<int, QByteArray> ChannelListModel::roleNames() const
+{
+    return {{RowRole, QByteArrayLiteral("modelData")}};
+}
+
+void ChannelListModel::synchronize(const QVariantList& rows)
+{
+    // Preserve delegate and QQuickImage identity across independent API
+    // responses. Never reset the model for metadata-only changes.
+    for (qsizetype target = 0; target < rows.size(); ++target) {
+        const QString id = rows[target].toMap().value(QStringLiteral("id")).toString();
+        qsizetype current = target;
+        while (current < m_rows.size()
+               && m_rows[current].toMap().value(QStringLiteral("id")).toString() != id)
+            ++current;
+        if (current == m_rows.size()) {
+            beginInsertRows({}, static_cast<int>(target), static_cast<int>(target));
+            m_rows.insert(target, rows[target]);
+            endInsertRows();
+        } else if (current != target) {
+            beginMoveRows({}, static_cast<int>(current), static_cast<int>(current),
+                          {}, static_cast<int>(target));
+            m_rows.move(current, target);
+            endMoveRows();
+        }
+        if (m_rows[target] != rows[target]) {
+            m_rows[target] = rows[target];
+            emit dataChanged(index(static_cast<int>(target)),
+                             index(static_cast<int>(target)), {RowRole});
+        }
+    }
+    if (m_rows.size() > rows.size()) {
+        beginRemoveRows({}, static_cast<int>(rows.size()),
+                        static_cast<int>(m_rows.size() - 1));
+        while (m_rows.size() > rows.size()) m_rows.removeLast();
+        endRemoveRows();
+    }
+}
+
 ChannelPickerController::ChannelPickerController(
     QSettings& settings, QString readNodeBaseUrl, QString directoryBaseUrl,
     bool directProxy, bool networkEnabled, QObject* parent)
@@ -99,13 +150,29 @@ ChannelPickerController::ChannelPickerController(
     m_debounce.setInterval(190);
     m_debounce.setSingleShot(true);
     connect(&m_debounce, &QTimer::timeout, this, &ChannelPickerController::requestSearchNow);
+    // Present the first coherent batch of channel names and avatars together.
+    // Slow image responses update the stable model without destroying items.
+    m_initialPresentation.setSingleShot(true);
+    m_initialPresentation.setInterval(950);
+    connect(&m_initialPresentation, &QTimer::timeout, this, [this] {
+        if (!m_initialPresentationPending) return;
+        const bool wasBusy = busy();
+        m_initialPresentationPending = false;
+        if (wasBusy != busy()) emit busyChanged();
+        rebuildRows();
+    });
     rebuildRows();
 }
 
 QVariantList ChannelPickerController::rows() const { return m_rows; }
+QAbstractItemModel* ChannelPickerController::channelModel() noexcept
+{
+    return &m_channelModel;
+}
 bool ChannelPickerController::busy() const noexcept
 {
-    return m_membershipBusy || m_searchBusy || m_trendingBusy;
+    return m_membershipBusy || m_searchBusy || m_trendingBusy
+        || m_initialPresentationPending;
 }
 bool ChannelPickerController::membershipReady() const noexcept { return m_membershipReady; }
 QString ChannelPickerController::errorText() const { return m_error; }
@@ -228,7 +295,10 @@ void ChannelPickerController::requestDirectory(
     for (auto it = args.cbegin(); it != args.cend(); ++it)
         query.addQueryItem(it.key(), it.value().toString());
     url.setQuery(query);
-    if (url.scheme() != QStringLiteral("https")) {
+    const bool loopbackHttp = url.scheme() == QStringLiteral("http")
+        && (url.host() == QStringLiteral("127.0.0.1")
+            || url.host() == QStringLiteral("localhost"));
+    if (url.scheme() != QStringLiteral("https") && !loopbackHttp) {
         done({}, QStringLiteral("Directory endpoint requires HTTPS"));
         return;
     }
@@ -348,11 +418,26 @@ void ChannelPickerController::hydrateMemberImages()
             [this, id, generation](const QJsonObject& body, const QString& error) {
                 if (generation != m_generation) return;
                 m_pendingImageLookups.remove(id);
-                if (!error.isEmpty()) return;
+                const auto finishInitialBatch = [this] {
+                    if (!m_initialPresentationPending || !m_pendingImageLookups.isEmpty())
+                        return;
+                    const bool wasBusy = busy();
+                    m_initialPresentation.stop();
+                    m_initialPresentationPending = false;
+                    if (wasBusy != busy()) emit busyChanged();
+                    rebuildRows();
+                };
+                if (!error.isEmpty()) {
+                    finishInitialBatch();
+                    return;
+                }
                 const QJsonObject item = body.value(QStringLiteral("result"))
                                              .toObject().value(QStringLiteral("channel")).toObject();
                 const QString key = firstString(item, {"key", "id"});
-                if (key != id) return;
+                if (key != id) {
+                    finishInitialBatch();
+                    return;
+                }
                 const QString picture = firstString(item, {"imageUrl", "fastImageUrl"});
                 QVariantMap meta{
                     {QStringLiteral("name"), firstString(item, {"name", "key"})},
@@ -364,7 +449,9 @@ void ChannelPickerController::hydrateMemberImages()
                         item.value(QStringLiteral("memberCount")).toInteger(-1)},
                 };
                 m_directoryMetadata.insert(id, std::move(meta));
-                rebuildRows();
+                finishInitialBatch();
+                if (!m_initialPresentationPending)
+                    rebuildRows();
             });
     }
 }
@@ -404,6 +491,10 @@ void ChannelPickerController::openForViewer(qulonglong fid)
         ++m_membershipGeneration;
         ++m_searchGeneration;
         m_debounce.stop();
+        m_initialPresentation.stop();
+        m_initialPresentationPending = false;
+        m_presentationOrder.clear();
+        m_nextPresentationOrder = 0;
         m_viewerFid = fid;
         m_members.clear();
         m_searchCache.clear();
@@ -444,6 +535,8 @@ void ChannelPickerController::refreshMembership()
     m_membershipReady = false;
     m_membershipBusy = m_viewerFid > 0 && m_networkEnabled;
     m_members.clear();
+    m_initialPresentation.stop();
+    m_initialPresentationPending = false;
     m_membershipValidUntil = 0;
     emit membershipStateChanged();
     if (previousBusy != busy()) emit busyChanged();
@@ -482,8 +575,7 @@ void ChannelPickerController::requestMembershipPage(
                                      .value(QStringLiteral("cursor")).toString();
             if (!next.isEmpty() && page + 1 < maximumMembershipPages) {
                 requestMembershipPage(next, page + 1, generation);
-                rebuildRows();
-                hydrateMemberImages();
+                // Do not replace visible rows after every pagination response.
                 return;
             }
             const bool wasBusy = busy();
@@ -496,8 +588,20 @@ void ChannelPickerController::requestMembershipPage(
                 setError(QStringLiteral("Channel membership list is incomplete"));
             emit membershipStateChanged();
             if (wasBusy != busy()) emit busyChanged();
+            if (m_membershipReady && m_query.isEmpty()
+                && !m_members.isEmpty() && !m_directoryBaseUrl.isEmpty()) {
+                const bool wasBusyBeforeHydration = busy();
+                m_initialPresentationPending = true;
+                hydrateMemberImages();
+                if (m_pendingImageLookups.isEmpty())
+                    m_initialPresentationPending = false;
+                else
+                    m_initialPresentation.start();
+                if (wasBusyBeforeHydration != busy()) emit busyChanged();
+            } else {
+                hydrateMemberImages();
+            }
             rebuildRows();
-            hydrateMemberImages();
         });
 }
 
@@ -525,9 +629,13 @@ void ChannelPickerController::search(const QString& rawQuery)
     const QString next = rawQuery.trimmed().left(64);
     if (m_query == next) return;
     m_query = next;
+    m_presentationOrder.clear();
+    m_nextPresentationOrder = 0;
     ++m_searchGeneration;
     m_debounce.stop();
-    m_directoryResults.clear();
+    // Keep relevant cached hits on screen while the next query is debounced.
+    // rebuildRows filters by the new term, so unrelated old hits disappear
+    // without wiping matching delegates and their already-loaded avatars.
     if (m_searchBusy) setBusy(false);
     emit queryChanged();
     setError({});
@@ -586,6 +694,13 @@ int ChannelPickerController::scoreForQuery(const QVariantMap& channel) const
 void ChannelPickerController::rebuildRows()
 {
     QVariantList list{homeRow()};
+    if (m_query.isEmpty() && (m_membershipBusy || m_initialPresentationPending)) {
+        if (list == m_rows) return;
+        m_channelModel.synchronize(list);
+        m_rows = std::move(list);
+        emit rowsChanged();
+        return;
+    }
     QHash<QString, QVariantMap> candidates = m_members;
     const auto insertRows = [&candidates](const QVariantList& source) {
         for (const QVariant& item : source) {
@@ -594,8 +709,10 @@ void ChannelPickerController::rebuildRows()
             if (!id.isEmpty() && !candidates.contains(id)) candidates.insert(id, row);
         }
     };
-    insertRows(m_searchResults);
-    insertRows(m_directoryResults);
+    if (!m_query.isEmpty()) {
+        insertRows(m_searchResults);
+        insertRows(m_directoryResults);
+    }
     // Never pollute the default selection list with arbitrary trending assets.
 
     QList<QVariantMap> found;
@@ -621,7 +738,19 @@ void ChannelPickerController::rebuildRows()
         row.insert(QStringLiteral("matchRank"), relevance);
         found.append(row);
     }
-    std::stable_sort(found.begin(), found.end(), [](const QVariantMap& a, const QVariantMap& b) {
+    // Assign stable identities before sorting, so asynchronous metadata
+    // cannot reorder the same channel repeatedly while it is visible.
+    std::sort(found.begin(), found.end(),
+              [](const QVariantMap& a, const QVariantMap& b) {
+        return a.value(QStringLiteral("id")).toString()
+             < b.value(QStringLiteral("id")).toString();
+    });
+    for (const QVariantMap& row : std::as_const(found)) {
+        const QString id = row.value(QStringLiteral("id")).toString();
+        if (!m_presentationOrder.contains(id))
+            m_presentationOrder.insert(id, m_nextPresentationOrder++);
+    }
+    std::stable_sort(found.begin(), found.end(), [this](const QVariantMap& a, const QVariantMap& b) {
         const int rankA = a.value(QStringLiteral("matchRank")).toInt();
         const int rankB = b.value(QStringLiteral("matchRank")).toInt();
         if (rankA != rankB) return rankA < rankB;
@@ -631,15 +760,16 @@ void ChannelPickerController::rebuildRows()
         const int countA = a.value(QStringLiteral("usedCount")).toInt();
         const int countB = b.value(QStringLiteral("usedCount")).toInt();
         if (countA != countB) return countA > countB;
-        return QString::localeAwareCompare(
-            a.value(QStringLiteral("name")).toString(),
-            b.value(QStringLiteral("name")).toString()) < 0;
+        const QString idA = a.value(QStringLiteral("id")).toString();
+        const QString idB = b.value(QStringLiteral("id")).toString();
+        return m_presentationOrder.value(idA) < m_presentationOrder.value(idB);
     });
     for (const QVariantMap& row : std::as_const(found)) {
         if (list.size() >= maximumRows) break;
         list.append(row);
     }
     if (list == m_rows) return;
+    m_channelModel.synchronize(list);
     m_rows = std::move(list);
     emit rowsChanged();
 }

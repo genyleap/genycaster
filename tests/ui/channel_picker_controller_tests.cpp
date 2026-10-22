@@ -3,6 +3,8 @@
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QEventLoop>
+#include <QPersistentModelIndex>
+#include <QTimer>
 #include <QSettings>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -44,6 +46,10 @@ public:
                         payload = R"({"channels":[{"id":"genyleap","name":"genyleap","parent_url":"https://warpcast.com/~/channel/genyleap","member_count":3}],"next":{}})";
                     } else if (target.contains("/channel/search")) {
                         payload = R"({"channels":[{"id":"genyleap","name":"genyleap","parent_url":"https://warpcast.com/~/channel/genyleap","member_count":3},{"id":"art","name":"art","parent_url":"https://warpcast.com/~/channel/art","member_count":100}],"next":{}})";
+                    } else if (target.contains("/search-channels")) {
+                        payload = R"({"result":{"channels":[{"key":"genyleap","name":"Genyleap Group","imageUrl":"https://example.com/channel-avatar.png","followerCount":10500}]}})";
+                    } else if (target.contains("/channel?key=")) {
+                        payload = R"({"result":{"channel":{"key":"genyleap","name":"Genyleap","imageUrl":"https://example.com/channel-avatar.png","followerCount":10485}}})";
                     }
                     QByteArray response{"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\nContent-Length: "};
                     response += QByteArray::number(payload.size()) + "\r\n\r\n" + payload;
@@ -139,6 +145,50 @@ int main(int argc, char** argv)
     check(selected.value(QStringLiteral("isHome")).toBool()
               && selected.value(QStringLiteral("parentUrl")).toString().isEmpty(),
           "Home clears the channel without publishing a parent_url");
+
+    // Regression: the formerly exposed QVariantList caused Qt Quick to
+    // recreate each delegate for every arriving image/name/count.
+    // A stable model must use targeted dataChanged without modelReset.
+    ChannelPickerController withMetadata(settings, api.baseUrl(),
+                                         api.baseUrl(), true, true);
+    QAbstractItemModel* stable = withMetadata.channelModel();
+    int resets = 0;
+    int changes = 0;
+    QObject::connect(stable, &QAbstractItemModel::modelReset, &app,
+                     [&] { ++resets; });
+    QObject::connect(stable, &QAbstractItemModel::dataChanged, &app,
+                     [&](const QModelIndex&, const QModelIndex&, const QList<int>&) {
+                         ++changes;
+                     });
+    withMetadata.openForViewer(42);
+    check(stable->roleNames().value(ChannelListModel::RowRole) == "modelData",
+          "incremental model retains the QML modelData delegate role");
+    check(pumpUntil([&] {
+        return withMetadata.membershipReady()
+            && findRow(withMetadata.rows(), QStringLiteral("genyleap"))
+                .value(QStringLiteral("imageUrl")).toString().endsWith(
+                    QStringLiteral("/channel-avatar.png"));
+    }), "joined channels are first hydrated from provider metadata");
+    const QVariantMap hydrated =
+        findRow(withMetadata.rows(), QStringLiteral("genyleap"));
+    check(hydrated.value(QStringLiteral("name")).toString()
+              == QStringLiteral("Genyleap"),
+          "first public snapshot uses the hydrated channel name");
+    check(hydrated.value(QStringLiteral("followerCount")).toInt() == 10485,
+          "first public snapshot includes a real follower count");
+    check(stable->rowCount() == 2, "only Home and verified joined channel appear");
+    QPersistentModelIndex rowIdentity{stable->index(1, 0)};
+    check(rowIdentity.isValid(), "avatar row retains a stable model index");
+    withMetadata.search(QStringLiteral("geny"));
+    check(pumpUntil([&] {
+        return findRow(withMetadata.rows(), QStringLiteral("genyleap"))
+               .value(QStringLiteral("followerCount")).toInt() == 10500;
+    }), "search metadata updates an existing channel in place");
+    check(resets == 0, "async metadata does not reset and recreate channel delegates");
+    check(changes > 0, "image/name/count changes emit targeted dataChanged");
+    check(rowIdentity.isValid() && rowIdentity.data(ChannelListModel::RowRole)
+          .toMap().value(QStringLiteral("id")).toString() == QStringLiteral("genyleap"),
+          "QPersistentModelIndex survives network metadata enrichment");
 
     if (failures == 0) std::println("PASS: channel selection lifecycle");
     return failures == 0 ? 0 : 1;

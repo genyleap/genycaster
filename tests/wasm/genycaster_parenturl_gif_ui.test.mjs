@@ -31,7 +31,8 @@ test('channel picker relies exclusively on the C++ HyperSnap controller',()=>{
  const shell=read('ui/components/AppShell.qml');
  const main=read('ui/mobile/main.cpp');
  assert.match(composer,/id: channelPicker[\s\S]*?bottomSheet: true/);
- assert.match(composer,/model: channelDirectory.rows/);
+ assert.match(composer,/model: channelDirectory.channelModel/);
+ assert.match(header,/Q_PROPERTY\(QAbstractItemModel\* channelModel READ channelModel CONSTANT FINAL\)/);
  assert.match(composer,/channelDirectory.openForViewer\(/);
  assert.match(composer,/channelDirectory.search\(text\)/);
  assert.match(backend,/user\/memberships\/list/);
@@ -45,6 +46,24 @@ test('channel picker relies exclusively on the C++ HyperSnap controller',()=>{
  assert.doesNotMatch(composer,/XMLHttpRequest|channelIconIndex|channelImageFor|searchFor\("dev"\)/);
 });
 
+test('channel avatars stay mounted while C++ metadata updates and initial records are batched',()=>{
+ const backend=read('ui/mobile/channel_picker_controller.cpp');
+ const header=read('ui/mobile/channel_picker_controller.hpp');
+ const composer=read('ui/components/ComposerDrawer.qml');
+ assert.match(header,/class ChannelListModel final : public QAbstractListModel/);
+ assert.match(header,/Q_PROPERTY\(QAbstractItemModel\* channelModel READ channelModel CONSTANT FINAL\)/);
+ assert.match(composer,/model: channelDirectory.channelModel/);
+ assert.match(backend,/beginInsertRows\(/);
+ assert.match(backend,/beginMoveRows\(/);
+ assert.match(backend,/emit dataChanged\(/);
+ assert.doesNotMatch(backend,/beginResetModel\(|endResetModel\(/);
+ assert.match(backend,/m_initialPresentation.setInterval\(950\)/);
+ assert.match(backend,/m_membershipBusy \|\| m_initialPresentationPending/);
+ assert.match(backend,/m_initialPresentationPending = true/);
+ assert.match(backend,/m_presentationOrder.value\(idA\) < m_presentationOrder.value\(idB\)/);
+ assert.match(composer,/LocaleFormat.formatInteger\(channelRow.modelData.memberCount\)/);
+ assert.doesNotMatch(composer,/\? "—"/);
+});
 test('mobile composer uses an eagerly created editable TextArea for iOS gesture focus',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
  const shell=read('ui/components/AppShell.qml');
@@ -148,8 +167,9 @@ test('channel rows report only verified follower counts, not HyperSnap membershi
  assert.match(backend,/channel.value\(QStringLiteral\("follower_count"\)\).toInteger\(-1\)/);
  assert.match(composer,/qsTrId\("genycaster.composer.channel_follower_count"\)/);
  assert.match(composer,/LocaleFormat.formatInteger\(channelRow.modelData.followerCount\)/);
- assert.doesNotMatch(composer,/qsTrId\("genycaster.composer.channel_member_count"\)/);
- assert.doesNotMatch(composer,/LocaleFormat.formatInteger\(channelRow.modelData.memberCount\)/);
+ assert.match(composer,/qsTrId\("genycaster.composer.channel_member_count"\)/);
+ assert.match(composer,/LocaleFormat.formatInteger\(channelRow.modelData.memberCount\)/);
+ assert.doesNotMatch(composer,/\? "—"/);
 });
 
 test('channel selection emits a deferred C++ confirmation instead of invalidating its own delegate',()=>{
