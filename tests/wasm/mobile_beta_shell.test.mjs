@@ -33,7 +33,7 @@ test("iOS safe-area background and PWA metadata use the app appearance",()=>{
     const manifest=JSON.parse(read("ui/wasm/genycaster.webmanifest"));
     assert.match(html,/viewport-fit=cover/);
     assert.match(html,/<meta name="theme-color" content="#0b0c0f">/);
-    assert.match(html,/apple-mobile-web-app-status-bar-style/);
+    assert.doesNotMatch(html,/<meta name="apple-mobile-web-app-status-bar-style"/);
     assert.match(html,/background:var\(--app-chrome\)/);
     assert.equal(manifest.theme_color,"#0b0c0f");
     assert.match(js,/__genycasterSetBrowserChromeTheme=applyBrowserChromeTheme/);

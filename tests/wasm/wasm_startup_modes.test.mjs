@@ -212,11 +212,11 @@ test("Qt appearance updates browser chrome without changing user account state",
     const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa"});
     assert.equal(h.chrome.scheme,"dark");
     assert.equal(h.chrome.color,"#0b0c0f");
-    assert.equal(h.chrome.statusStyle,"black-translucent");
+    assert.equal(h.chrome.statusStyle,"","status style must not be rewritten at runtime");
     h.setBrowserTheme(false);
     assert.equal(h.chrome.scheme,"light");
     assert.equal(h.chrome.color,"#f1f1f3");
-    assert.equal(h.chrome.statusStyle,"default");
+    assert.equal(h.chrome.statusStyle,"","light mode must not force an installed PWA status style");
     h.setBrowserTheme(true);
     assert.equal(h.chrome.scheme,"dark");
     assert.equal(h.chrome.color,"#0b0c0f");

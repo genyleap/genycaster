@@ -1929,9 +1929,57 @@ void PresentationBridge::copyText(const QString& text)
     const QByteArray utf8 = text.toUtf8();
     EM_ASM({
         const payload = UTF8ToString($0);
+        // Qt's canvas has no native DOM text selection. Use the browser
+        // Clipboard API in the actual user gesture; on older iOS WebKit
+        // attempt a synchronous DOM copy as a compatibility fallback.
+        const fallback = () => {
+            let field;
+            const focused = document.activeElement;
+            const selection = document.getSelection();
+            const ranges = [];
+            if (selection) {
+                for (let i = 0; i < selection.rangeCount; ++i)
+                    ranges.push(selection.getRangeAt(i).cloneRange());
+            }
+            try {
+                field = document.createElement("textarea");
+                field.value = payload;
+                field.readOnly = true;
+                field.setAttribute("aria-hidden", "true");
+                field.style.cssText =
+                    "position:fixed;left:-9999px;top:0;opacity:0;font-size:16px";
+                document.body.appendChild(field);
+                field.focus({preventScroll:true});
+                field.select();
+                field.setSelectionRange(0, field.value.length);
+                return document.execCommand("copy");
+            } catch (error) {
+                console.warn("[Genycaster] Clipboard fallback failed", error);
+                return false;
+            } finally {
+                if (field) field.remove();
+                if (selection) {
+                    selection.removeAllRanges();
+                    for (const range of ranges) selection.addRange(range);
+                }
+                if (focused && focused.focus) {
+                    try { focused.focus({preventScroll:true}); } catch {}
+                }
+            }
+        };
         const clipboard = navigator.clipboard;
-        if (clipboard && clipboard.writeText) {
-            clipboard.writeText(payload).catch(() => {});
+        try {
+            if (clipboard && typeof clipboard.writeText === "function") {
+                clipboard.writeText(payload).catch(error => {
+                    if (!fallback())
+                        console.warn("[Genycaster] Clipboard write failed", error);
+                });
+            } else if (!fallback()) {
+                console.warn("[Genycaster] Clipboard permission unavailable");
+            }
+        } catch (error) {
+            if (!fallback())
+                console.warn("[Genycaster] Clipboard write failed", error);
         }
     }, utf8.constData());
 #endif

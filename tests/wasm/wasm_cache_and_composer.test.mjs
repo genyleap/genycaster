@@ -169,7 +169,7 @@ test('context menu is attached globally to all QML text areas and uses themed po
     assert.match(qml,/EditorMenuItem/);
     assert.doesNotMatch(qml,/delegate: MenuItem/);
     assert.match(qml,/background: Superellipse/);
-    assert.match(areas,/ContextMenu\.menu: EditorContextMenu/);
+    assert.match(areas,/ContextMenu\.menu: root\.platformNativeMenu \? nativeContextMenu : canvasContextMenu/);
     assert.match(code,/ContextMenu\.menu: EditorContextMenu/);
 });
 

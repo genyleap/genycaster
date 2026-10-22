@@ -68,7 +68,8 @@ test('composer preserves mouse selection and offers touch drag grips across plat
   assert.match(input,/selectionPressActive/);
   for (const id of ['mobilePlainEditor','threadEditor','markdownEditor'])
     assert.match(composer, new RegExp('id: '+id+'\\s+selectAllOnDoubleTap: true'));
-  assert.doesNotMatch(input,/Qt\.platform\.os\s*===/);
+  assert.match(input,/Qt\.platform\.os === "wasm"/);
+  assert.match(input,/customCanvasSelection/);
 });
 
 test('cast text selection offers Copy, Select all and clear without deleting content', () => {

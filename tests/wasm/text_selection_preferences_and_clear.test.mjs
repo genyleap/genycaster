@@ -54,8 +54,11 @@ test('system mode uses Qt built-in native text selection and menus on native pla
   assert.match(cast,/objectName: "platformCastSelectableText"/);
   assert.match(cast,/readOnly: true/);
   assert.match(cast,/onLinkActivated: url => root.externalRequested\(url\)/);
-  assert.match(input,/nativePresentation: textSelectionSettings.systemSelectionEnabled/);
-  assert.match(menu,/Popup.Native : Popup.Item/);
+  assert.match(input,/ContextMenu\.menu: root\.platformNativeMenu \? nativeContextMenu : canvasContextMenu/);
+  assert.match(input,/popupType: Popup\.Native/);
+  assert.match(input,/MenuItem \{/);
+  assert.match(input,/root\.copy\(\)/);
+  assert.match(menu,/Popup\.Native : Popup\.Item/);
 });
 test('Clear content destroys unsent content and media safely after confirmation',()=>{
   const composer=read('ui/components/ComposerDrawer.qml');

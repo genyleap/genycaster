@@ -17,16 +17,32 @@ TextArea {
     property bool selectionGestureActive: false
     property bool selectionPressActive: false
     property bool selectionHandleDragging: false
+    // Canvas-only fallback. Qt provides platform text-selection affordances on
+    // native mobile and desktop; do not draw a second toolbar over them.
+    readonly property bool customCanvasSelection: Qt.platform.os === "wasm"
+        && !textSelectionSettings.systemSelectionEnabled
+    readonly property bool platformNativeMenu: Qt.platform.os === "ios"
+        || Qt.platform.os === "android"
+        || textSelectionSettings.systemSelectionEnabled
 
     function resetSelection() {
         selectionDelay.stop()
         selectionBar.close()
         root.deselect() // TextEdit.deselect(): selection only, never erases draft.
     }
+    function dismissSelectionActions() {
+        selectionDelay.stop()
+        selectionBar.close()
+        selectionPressActive = false
+        selectionGestureActive = false
+        selectionHandleDragging = false
+    }
+    onVisibleChanged: if (!visible) dismissSelectionActions()
+    Component.onDestruction: dismissSelectionActions()
 
 
     TapHandler {
-        enabled: root.selectAllOnDoubleTap && !textSelectionSettings.systemSelectionEnabled
+        enabled: root.selectAllOnDoubleTap && root.customCanvasSelection
         acceptedButtons: Qt.LeftButton
         gesturePolicy: TapHandler.DragThreshold
         onDoubleTapped: {
@@ -37,25 +53,78 @@ TextArea {
         }
     }
 
-    // Override Qt 6.9+'s generic native-looking context menu in every
-    // visual, Markdown, list and thread editor using the shared theme.
-    ContextMenu.menu: EditorContextMenu {
+    // Qt native menus require real MenuItems: EditorContextMenu uses plain
+    // Items to work around canvas painting bugs and must never be Popup.Native.
+    // Prefer platform menu actions and Qt's own selection behavior everywhere
+    // except the WebAssembly canvas / explicit Genycaster desktop mode.
+    ContextMenu.menu: root.platformNativeMenu ? nativeContextMenu : canvasContextMenu
+    EditorContextMenu {
+        id: canvasContextMenu
         editor: root
-        nativePresentation: textSelectionSettings.systemSelectionEnabled
+        nativePresentation: false
+    }
+    Menu {
+        id: nativeContextMenu
+        popupType: Popup.Native
+        MenuItem {
+            text: qsTrId("genycaster.editor.undo")
+            enabled: root.canUndo
+            onTriggered: root.undo()
+        }
+        MenuItem {
+            text: qsTrId("genycaster.editor.redo")
+            enabled: root.canRedo
+            onTriggered: root.redo()
+        }
+        MenuSeparator {}
+        MenuItem {
+            text: qsTrId("genycaster.editor.cut")
+            enabled: !root.readOnly && root.selectedText.length > 0
+            onTriggered: root.cut()
+        }
+        MenuItem {
+            text: qsTrId("genycaster.feedback.copy")
+            enabled: root.selectedText.length > 0
+            onTriggered: root.copy()
+        }
+        MenuItem {
+            text: qsTrId("genycaster.editor.paste")
+            enabled: !root.readOnly
+            onTriggered: root.paste()
+        }
+        MenuItem {
+            text: qsTrId("genycaster.editor.select_all")
+            enabled: root.text.length > 0
+            onTriggered: root.selectAll()
+        }
     }
 
     // A compact selection menu must appear beside the selected word in both
     // the cast composer and its reply/thread editors (not at the screen edge).
     // Keep the existing full context menu for desktop right-click.
     function showSelectionActions() {
-        if (textSelectionSettings.systemSelectionEnabled
+        if (!root.customCanvasSelection || !root.activeFocus || !root.visible
                 || !root.selectedText.length || !selectionBar.parent) return
-        const caret = root.cursorRectangle
-        const position = root.mapToItem(selectionBar.parent, caret.x, caret.y)
-        selectionBar.x = Math.max(8, Math.min(selectionBar.parent.width
-                                            - selectionBar.implicitWidth - 8,
-                                            position.x - selectionBar.implicitWidth / 2))
-        selectionBar.y = Math.max(8, position.y - selectionBar.implicitHeight - 12)
+        const start = root.positionToRectangle(root.selectionStart)
+        const end = root.positionToRectangle(root.selectionEnd)
+        // Anchor to the selected range, not cursorRectangle (the latter can
+        // point offscreen after Select All or an IME update).
+        const first = root.mapToItem(selectionBar.parent, start.x, start.y)
+        const last = root.mapToItem(selectionBar.parent, end.x, end.y)
+        const selectionTop = Math.min(first.y, last.y)
+        const selectionBottom = Math.max(first.y + start.height, last.y + end.height)
+        const center = (first.x + last.x) / 2
+        const menuWidth = selectionBar.implicitWidth
+        const menuHeight = selectionBar.implicitHeight
+        const edge = 8
+        selectionBar.x = Math.max(edge, Math.min(
+            Math.max(edge, selectionBar.parent.width - menuWidth - edge),
+            center - menuWidth / 2))
+        const above = selectionTop - menuHeight - 12
+        const below = selectionBottom + 12
+        selectionBar.y = Math.max(edge, Math.min(
+            Math.max(edge, selectionBar.parent.height - menuHeight - edge),
+            above >= edge ? above : below))
         selectionBar.open()
     }
 
@@ -77,7 +146,7 @@ TextArea {
         }
     }
     onPressAndHold: mouse => {
-        if (textSelectionSettings.systemSelectionEnabled || !root.text.length) return
+        if (!root.customCanvasSelection || !root.text.length) return
         root.selectionGestureActive = true
         if (!root.selectedText.length) {
             root.cursorPosition = root.positionAt(mouse.x, mouse.y)
@@ -96,7 +165,8 @@ TextArea {
     onReleased: mouse => {
         root.selectionPressActive = false
         root.selectionGestureActive = false
-        if (root.selectedText.length > 0 && !root.selectionHandleDragging)
+        if (root.customCanvasSelection && root.selectedText.length > 0
+                && !root.selectionHandleDragging)
             root.showSelectionActions()
     }
     onActiveFocusChanged: {
@@ -104,6 +174,7 @@ TextArea {
             selectionPressActive = false
             selectionGestureActive = false
             selectionDelay.stop()
+            selectionBar.close()
         }
     }
 
@@ -117,7 +188,7 @@ TextArea {
         width: parent ? parent.width : 0
         height: parent ? parent.height : 0
         z: 201
-        visible: root.selectAllOnDoubleTap && !textSelectionSettings.systemSelectionEnabled
+        visible: root.selectAllOnDoubleTap && root.customCanvasSelection
                  && root.activeFocus && root.selectedText.length > 0
                  && !root.inputMethodComposing && root.visible
         readonly property rect startRect: root.positionToRectangle(root.selectionStart)
@@ -205,7 +276,8 @@ TextArea {
         focus: false
         modal: false
         dim: false
-        visible: !textSelectionSettings.systemSelectionEnabled
+        // Popup.visible is state controlled by open()/close(). Binding it to
+        // !systemSelectionEnabled forced the popup open, even on Home.
         padding: Theme.space1
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         background: Superellipse {

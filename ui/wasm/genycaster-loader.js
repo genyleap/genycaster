@@ -12,10 +12,9 @@ function applyBrowserChromeTheme(dark) {
     document.documentElement.setAttribute("data-chrome-theme",dark?"dark":"light");
     const meta=document.querySelector('meta[name="theme-color"]');
     if(meta)meta.setAttribute("content",color);
-    const statusMeta=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-    // Standalone iOS can paint the app's own safe-area background behind
-    // translucent system status icons, including before Qt starts.
-    if(statusMeta)statusMeta.setAttribute("content",dark?"black-translucent":"default");
+    // The PWA status-bar style is chosen by WebKit at installation time;
+    // rewriting a meta tag after boot cannot reliably re-style an installed
+    // iOS app. Do not force the legacy black-translucent mode.
 }
 window.__genycasterSetBrowserChromeTheme=applyBrowserChromeTheme;
 applyBrowserChromeTheme(true);

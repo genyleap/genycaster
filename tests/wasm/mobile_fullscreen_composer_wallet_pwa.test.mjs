@@ -64,11 +64,11 @@ test('Floating Create sheet has rounded bottom corners and real outside margin',
 test('iOS standalone uses full viewport bleed and theme-aware top inset', () => {
     const html=wasm('genycaster-shell.html'), loader=wasm('genycaster-loader.js');
     assert.match(html,/viewport-fit=cover/);
-    assert.match(html,/content="black-translucent"/);
+    assert.doesNotMatch(html,/<meta name="apple-mobile-web-app-status-bar-style"/);
     assert.match(html,/body::before\{[^}]*z-index:6/);
     assert.match(html,/:root\[data-chrome-theme="light"\]\{[^}]*--boot-ink/);
     assert.match(html,/:root\[data-chrome-theme="dark"\]\{[^}]*--boot-ink/);
-    assert.match(loader,/dark\?"black-translucent":"default"/);
+    assert.doesNotMatch(loader,/statusMeta\.setAttribute/);
     assert.match(loader,/__genycasterSetBrowserChromeTheme=applyBrowserChromeTheme/);
 });
 

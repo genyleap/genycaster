@@ -191,7 +191,7 @@ test('composer editing shows compact clipboard actions beside the selection',()=
  const editor=read('ui/components/DirectionAwareTextArea.qml');
  const composer=read('ui/components/ComposerDrawer.qml');
  assert.match(editor,/objectName: "editorSelectionActions"/);
- assert.match(editor,/root.mapToItem\(selectionBar.parent, caret.x, caret.y\)/);
+ assert.match(editor,/root.mapToItem\(selectionBar.parent, start.x, start.y\)/);
  assert.match(editor,/onPressAndHold:/);
  assert.match(editor,/onSelectedTextChanged:/);
  assert.match(editor,/presentationBridge.copyText\(root.selectedText\)/);

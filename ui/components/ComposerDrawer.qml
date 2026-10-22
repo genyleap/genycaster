@@ -439,6 +439,10 @@ GenyDrawer {
     }
 
     onClosed: {
+        // Overlay-hosted selection popups otherwise survive a closed composer
+        // and can appear on the Home screen with no selected text.
+        mobilePlainEditor.dismissSelectionActions()
+        markdownEditor.dismissSelectionActions()
         root.focusedComposerEditor = null
         channelPicker.close()
         initialComposerFocus.stop()

@@ -40,9 +40,9 @@ test('Create sheet fits content and removes old top/bottom spacer', () => {
 test('iOS PWA chrome starts dark and respects light appearance', () => {
     const html=wasm('genycaster-shell.html');
     const loader=wasm('genycaster-loader.js');
-    assert.match(html,/apple-mobile-web-app-status-bar-style" content="black-translucent"/);
+    assert.doesNotMatch(html,/<meta name="apple-mobile-web-app-status-bar-style"/);
     assert.match(html,/body::before\{[^}]*env\(safe-area-inset-top,0px\)[^}]*background:var\(--app-chrome\)/);
     assert.match(html,/<meta name="theme-color" content="#0b0c0f">/);
-    assert.match(loader,/dark\?"black-translucent":"default"/);
+    assert.doesNotMatch(loader,/statusMeta\.setAttribute/);
     assert.match(loader,/dark\?"#0b0c0f":"#f1f1f3"/);
 });
