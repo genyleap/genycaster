@@ -6,13 +6,11 @@ Label {
 
     property bool forceLeftToRight: false
     property bool forceRightToLeft: false
-    // Most prose throughout Genycaster uses this label. Allow selecting and
-    // copying it directly on desktop and touch/long-press where Qt supports it.
-    // Interactive action labels should opt out via selectableText: false.
+    // QQC2 Label does not support textInteractionFlags. Applying that
+    // property prevents the whole QML root from loading in WebAssembly.
+    // Keep this compatibility hint; selectable body text is implemented by
+    // RichInlineTextItem, whose QTextDocument owns a real selection cursor.
     property bool selectableText: true
-    textInteractionFlags: selectableText
-                          ? (Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
-                          : Qt.NoTextInteraction
 
     readonly property string analyzedText: text.length > 0 ? text : (typeof placeholderText !== "undefined" ? placeholderText : "")
     readonly property int effectiveTextDirection: forceLeftToRight ? Qt.LeftToRight

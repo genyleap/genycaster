@@ -77,7 +77,8 @@ test('ordinary labels and cast bodies expose selectable text with explicit copy'
  const qml=read('ui/components/RichInlineText.qml');
  const cpp=read('src/presentation/qt/rich_inline_text_item.cpp');
  assert.match(label,/property bool selectableText: true/);
- assert.match(label,/Qt\.TextSelectableByMouse \| Qt\.TextSelectableByKeyboard/);
+ assert.doesNotMatch(label,/^\s*textInteractionFlags\s*:/m,
+   'Qt Quick Controls Label has no textInteractionFlags; invalid QML prevents app startup');
  assert.match(cpp,/QAbstractTextDocumentLayout::PaintContext/);
  assert.match(cpp,/RichInlineTextItem::selectWordAt/);
  assert.match(cpp,/RichInlineTextItem::mouseMoveEvent/);
