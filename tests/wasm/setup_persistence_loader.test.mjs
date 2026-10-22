@@ -170,6 +170,9 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     assert.equal(elements.get('boot-percent').textContent,'');
     assert.equal(elements.get('genycaster-boot').hidden,false);
     loadedCallback();
+    assert.equal(elements.get('genycaster-boot').hidden,false,
+        'Qt runtime readiness must not hide the boot screen before QML exists');
+    scope.window.__genycasterQmlStartup(true, '');
     assert.equal(elements.get('genycaster-boot').hidden,true);
     assert.equal(memory.get('genycaster.boot.loaded.v1'),'1');
     assert.equal(elements.get('genycaster-boot').dataset.phase,'ready');

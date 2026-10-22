@@ -290,6 +290,56 @@ function fail(error) {
     retry.classList.add("visible");
     console.error("[Genycaster] startup failed",error);
 }
+// The Qt loader signals only that WebAssembly bootstrapped, NOT that QML
+// constructed Main. Requiring an explicit C++ acknowledgement prevents the
+// silent black screen seen when a type in the AppShell dependency tree fails.
+let qtRuntimeLoaded=false, qmlRootReady=false;
+function revealReady() {
+
+    if(failed||finished||!qtRuntimeLoaded||!qmlRootReady)return;
+    wasmResourceObserver?.disconnect();
+    try{progressReader?.cancel();}catch{}
+    // Ready reflects Qt's actual initialization callback, not
+    // a fabricated timer or estimated download percentage.
+    if(boot?.dataset)boot.dataset.phase="ready";
+    track?.setAttribute?.("aria-valuenow","100");
+    track?.setAttribute?.("aria-valuetext","Ready");
+    bootPhase="ready";
+    finished=true;
+    const timing=wasmResourceUrl?wasmTiming(wasmResourceUrl):null;
+    // A worker-handled request is not proof of a cache hit.
+    // Keep native responses intact rather than injecting headers.
+    console.info("[Genycaster] Startup",JSON.stringify({
+        readyMs:Math.round(performance.now()-bootStarted),
+        file:wasmResourceUrl?new URL(wasmResourceUrl).pathname.split("/").pop():null,
+        resourceMs:timing?Math.round(timing.duration):null,
+        transferBytes:timing?.transferSize ?? null,
+        decodedBytes:timing?.decodedBodySize ?? null,
+        delivery:timing?.workerStart>0?"service-worker"
+            :timing?.transferSize===0 && timing?.decodedBodySize>0
+                ?"browser-cache":"network-or-unknown"
+    }));
+    try{
+        localStorage.setItem(key,"1");
+        if(currentVersion)localStorage.setItem(versionKey,currentVersion);
+    }catch{}
+    announce("Genycaster is ready","Opening your social interface…","Ready");
+    fill.classList.add("measured");fill.style.width="100%";
+    percent.textContent="";
+    boot.classList.add("finished");
+    window.setTimeout(()=>{boot.hidden=true;},280);
+}
+// Called synchronously from main.cpp after the QML root is constructed,
+// or with failure if QQmlApplicationEngine could not load Main.
+window.__genycasterQmlStartup=(success,detail)=>{
+if(failed||finished)return;
+if(!success) {
+fail(new Error("Qt interface failed to load: "+String(detail||"unknown QML error").slice(0,200)));
+return;
+}
+qmlRootReady=true;
+revealReady();
+};
 async function start() {
     try {
         if(typeof qtLoad!=="function")
@@ -327,38 +377,8 @@ async function start() {
                 entryFunction:window.farcaster_client_entry,
                 containerElements:[screen],
                 onLoaded:()=>{
-                    if(failed)return;
-                    wasmResourceObserver?.disconnect();
-                    try{progressReader?.cancel();}catch{}
-                    // Ready reflects Qt's actual initialization callback, not
-                    // a fabricated timer or estimated download percentage.
-                    if(boot?.dataset)boot.dataset.phase="ready";
-                    track?.setAttribute?.("aria-valuenow","100");
-                    track?.setAttribute?.("aria-valuetext","Ready");
-                    bootPhase="ready";
-                    finished=true;
-                    const timing=wasmResourceUrl?wasmTiming(wasmResourceUrl):null;
-                    // A worker-handled request is not proof of a cache hit.
-                    // Keep native responses intact rather than injecting headers.
-                    console.info("[Genycaster] Startup",JSON.stringify({
-                        readyMs:Math.round(performance.now()-bootStarted),
-                        file:wasmResourceUrl?new URL(wasmResourceUrl).pathname.split("/").pop():null,
-                        resourceMs:timing?Math.round(timing.duration):null,
-                        transferBytes:timing?.transferSize ?? null,
-                        decodedBytes:timing?.decodedBodySize ?? null,
-                        delivery:timing?.workerStart>0?"service-worker"
-                            :timing?.transferSize===0 && timing?.decodedBodySize>0
-                                ?"browser-cache":"network-or-unknown"
-                    }));
-                    try{
-                        localStorage.setItem(key,"1");
-                        if(currentVersion)localStorage.setItem(versionKey,currentVersion);
-                    }catch{}
-                    announce("Genycaster is ready","Opening your social interface…","Ready");
-                    fill.classList.add("measured");fill.style.width="100%";
-                    percent.textContent="";
-                    boot.classList.add("finished");
-                    window.setTimeout(()=>{boot.hidden=true;},280);
+                    qtRuntimeLoaded=true;
+                    revealReady();
                 },
                 onExit:exit=>{
                     if(!finished)fail(new Error(

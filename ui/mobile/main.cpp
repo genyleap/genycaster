@@ -1591,10 +1591,33 @@ int main(int argc, char* argv[])
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &application,
         [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
     engine.loadFromModule(QStringLiteral("Farcaster.Client"), QStringLiteral("Main"));
-    if (engine.rootObjects().isEmpty()) { return 1; }
-    renderingController.attachWindow(qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst()));
+    if (engine.rootObjects().isEmpty()) {
 #if defined(__EMSCRIPTEN__)
-    installBrowserWheelBridge(qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst()));
+        // The HTML Qt loader may have declared the runtime ready already.
+        // Surface QML construction failures rather than leaving a blank page.
+        EM_ASM({
+            window.__genycasterQmlStartup?.(false,
+                "QQmlApplicationEngine could not create the Main interface");
+        });
+#endif
+        return 1;
+    }
+    auto* const mainWindow = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
+    if (!mainWindow) {
+#if defined(__EMSCRIPTEN__)
+        EM_ASM({
+            window.__genycasterQmlStartup?.(false,
+                "Qt Main did not produce a QQuickWindow");
+        });
+#endif
+        return 1;
+    }
+    renderingController.attachWindow(mainWindow);
+#if defined(__EMSCRIPTEN__)
+    installBrowserWheelBridge(mainWindow);
+    // This is the only reliable readiness event: the Main.qml object tree
+    // exists, rather than just the Emscripten/Qt runtime being initialized.
+    EM_ASM({ window.__genycasterQmlStartup?.(true, ""); });
 #endif
 
     std::shared_ptr<Runtime> runtime{};

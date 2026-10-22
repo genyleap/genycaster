@@ -65,6 +65,8 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     return {
         nodes,storage,resources,chrome,
         setBrowserTheme:dark=>scope.window.__genycasterSetBrowserChromeTheme(dark),
+        qmlReady:()=>scope.window.__genycasterQmlStartup(true, ""),
+        qmlFailed:reason=>scope.window.__genycasterQmlStartup(false,reason),
         fetch:()=>scope.window.fetch("https://example.test/farcaster_client.wasm"),
         pushBytes(bytes){downloadStream.enqueue(new Uint8Array(bytes));},
         finishBytes(){downloadStream.close();},
@@ -98,6 +100,8 @@ test("first launch uses real download → install → Qt initialize → ready mi
     assert.equal(h.phase(),"interface");
     assert.equal(h.label(),"Almost ready");
     h.config.qt.onLoaded();
+    assert.equal(h.phase(),"interface","Qt runtime alone is not QML readiness");
+    h.qmlReady();
     assert.equal(h.phase(),"ready");
     assert.equal(h.storage.get("genycaster.boot.loaded.v1"),"1");
     assert.equal(h.storage.get("genycaster.boot.version.v1"),"aaaaaaaaaaaaaaaaaaaa");
@@ -115,6 +119,8 @@ test("normal refresh skips Download/Install and restores the Qt runtime",async()
     h.config.monitorRunDependencies(0);
     assert.equal(h.phase(),"interface");
     h.config.qt.onLoaded();
+    assert.equal(h.phase(),"interface","Qt runtime alone is not QML readiness");
+    h.qmlReady();
     assert.equal(h.phase(),"ready");
 });
 
@@ -128,9 +134,36 @@ test("a changed deployment follows update stages rather than a warm reload",asyn
     h.config.monitorRunDependencies(0);
     assert.equal(h.phase(),"interface");
     h.config.qt.onLoaded();
+    h.qmlReady();
     assert.equal(h.storage.get("genycaster.boot.version.v1"),"aaaaaaaaaaaaaaaaaaaa");
 });
 
+test("QML startup acknowledged before Qt onLoaded still completes correctly",()=>{
+    const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa"});
+    h.qmlReady();
+    assert.equal(h.phase(),"initialize","QML acknowledgement alone is not sufficient");
+    h.config.qt.onLoaded();
+    assert.equal(h.phase(),"ready");
+});
+test("a broken Main.qml reports a recoverable failure instead of hiding the overlay",()=>{
+    const h=host();
+    h.config.qt.onLoaded();
+    assert.notEqual(h.phase(),"ready");
+    assert.equal(h.nodes.get("genycaster-boot").classList.contains("finished"),false);
+    h.qmlFailed("QQmlApplicationEngine Main unavailable");
+    assert.equal(h.phase(),"failed");
+    assert.equal(h.nodes.get("genycaster-boot").dataset.phase,"failed");
+    assert.equal(h.nodes.get("boot-retry").classList.contains("visible"),true);
+    assert.match(h.nodes.get("boot-status").textContent,/QML/i);
+    assert.equal(h.storage.get("genycaster.boot.loaded.v1"),undefined);
+    h.qmlReady();
+    assert.equal(h.nodes.get("genycaster-boot").dataset.phase,"failed");
+});
+test("the application emits the QML startup handshake after root creation",()=>{
+    const cpp=readFileSync(new URL("../../ui/mobile/main.cpp",import.meta.url),"utf8");
+    assert.match(cpp,/if \(engine\.rootObjects\(\)\.isEmpty\(\)\) \{[\s\S]*?__genycasterQmlStartup\?\.\(false/);
+    assert.match(cpp,/installBrowserWheelBridge\(mainWindow\);[\s\S]*?__genycasterQmlStartup\?\.\(true/);
+});
 test("failed boot never marks first-time install as completed",async()=>{
     const h=host();
     h.config.qt.onExit({text:"wasm compile failure"});
@@ -161,6 +194,8 @@ test("first download shows measured byte percent without replacing Qt's native r
     assert.equal((await original.arrayBuffer()).byteLength,8);
     h.config.monitorRunDependencies(0);
     h.config.qt.onLoaded();
+    assert.equal(h.phase(),"interface","Qt runtime alone is not QML readiness");
+    h.qmlReady();
     assert.equal(h.phase(),"ready");
 });
 
