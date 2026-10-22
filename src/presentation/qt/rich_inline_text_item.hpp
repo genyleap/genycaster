@@ -44,6 +44,7 @@ class RichInlineTextItem : public QQuickPaintedItem {
     Q_PROPERTY(qreal emojiBoxScale READ emojiBoxScale WRITE setEmojiBoxScale NOTIFY emojiBoxScaleChanged)
     Q_PROPERTY(qreal contentHeight READ contentHeight NOTIFY contentHeightChanged)
     Q_PROPERTY(QVariantList emojiRects READ emojiRects NOTIFY emojiRectsChanged)
+    Q_PROPERTY(QString selectedText READ selectedText NOTIFY selectionChanged)
 
 public:
     /** @brief Creates the renderer. */
@@ -97,6 +98,11 @@ public:
     [[nodiscard]] QVariantList emojiRects() const;
     /** @brief Suppresses one inline glyph only while its animation replaces it; layout is unchanged. */
     Q_INVOKABLE void setEmojiAnimated(int position, bool animated);
+    [[nodiscard]] QString selectedText() const;
+    /** Native QTextDocument hit-testing; works for bidi runs, emoji and links. */
+    Q_INVOKABLE void selectWordAt(qreal x, qreal y);
+    Q_INVOKABLE void selectAllText();
+    Q_INVOKABLE void clearSelection();
 
 signals:
     void inlinesChanged();
@@ -117,12 +123,15 @@ signals:
     void linkActivated(const QString& url);
     /** @brief A short left-click on ordinary text (never a hyperlink). */
     void plainTextActivated();
+    void selectionChanged();
+    void selectionCompleted();
 
 protected:
     void componentComplete() override;
     void geometryChange(const QRectF& newGeometry, const QRectF& oldGeometry) override;
     void paint(QPainter* painter) override;
     void mousePressEvent(QMouseEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
 
 private:
@@ -130,4 +139,7 @@ private:
     std::unique_ptr<Impl> m_impl;
     QPointF m_pressPosition{};
     bool m_leftPressed{};
+    bool m_dragSelecting{};
+    bool m_longPressSelected{};
+    int m_dragAnchor{-1};
 };

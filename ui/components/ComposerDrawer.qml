@@ -593,12 +593,12 @@ GenyDrawer {
                                 font.pixelSize: Theme.typeCaptionSize
                                 text: channelRow.isHome
                                     ? qsTrId("genycaster.composer.no_channel")
-                                    : channelRow.modelData.memberCount >= 0
-                                      ? qsTrId("genycaster.composer.channel_member_count")
-                                          .arg(LocaleFormat.formatInteger(channelRow.modelData.memberCount))
-                                      : channelRow.modelData.followerCount >= 0
-                                        ? qsTrId("genycaster.composer.channel_follower_count")
-                                            .arg(LocaleFormat.formatInteger(channelRow.modelData.followerCount))
+                                    : channelRow.modelData.followerCount >= 0
+                                      ? qsTrId("genycaster.composer.channel_follower_count")
+                                          .arg(LocaleFormat.formatInteger(channelRow.modelData.followerCount))
+                                      : channelRow.modelData.memberCount >= 0
+                                        ? qsTrId("genycaster.composer.channel_member_count")
+                                            .arg(LocaleFormat.formatInteger(channelRow.modelData.memberCount))
                                         : (channelRow.isMember
                                            ? qsTrId("genycaster.composer.joined_channel")
                                            : qsTrId("genycaster.composer.not_joined_channel"))

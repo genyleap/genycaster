@@ -107,6 +107,9 @@ import farcaster.presentation.media;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.transport.qtnetwork;
+#if FARCASTER_HAS_HYPERSNAP_PROVIDER
+import farcaster.provider.hypersnap.config;
+#endif
 #if FARCASTER_HAS_MINIAPP_EVM_WALLET
 import farcaster.capability.wallet;
 import farcaster.provider.compatibility.browser_wallet.bridge;
@@ -805,9 +808,20 @@ int main(int argc, char* argv[])
     if (!providerBaseUrlText.isEmpty()) {
         nodeCandidateEndpoints.prepend(providerBaseUrlText);
     }
-    const QString appliedNodeEndpoint = providerBaseUrlText.isEmpty()
-        ? QStringLiteral("https://haatz.quilibrium.com")
-        : providerBaseUrlText;
+#if FARCASTER_HAS_HYPERSNAP_PROVIDER
+    // Expose the provider-owned public default as a selectable candidate,
+    // even when a custom node is currently applied.
+    nodeCandidateEndpoints.append(QString::fromStdString(
+        farcaster::provider::hypersnap::config::Config{}.baseUrl));
+#endif
+    QString appliedNodeEndpoint = providerBaseUrlText;
+#if FARCASTER_HAS_HYPERSNAP_PROVIDER
+    // The provider owns its public default. Never duplicate a node URL in UI
+    // composition; user-selected and self-hosted endpoints still override it.
+    if (appliedNodeEndpoint.isEmpty())
+        appliedNodeEndpoint = QString::fromStdString(
+            farcaster::provider::hypersnap::config::Config{}.baseUrl);
+#endif
 
     QString snapchainBaseUrlText = optionValue(arguments, QStringLiteral("--snapchain-base-url="));
     if (snapchainBaseUrlText.isEmpty()) {
@@ -1272,8 +1286,32 @@ int main(int argc, char* argv[])
         std::move(fallbackMiniAppCatalogue),
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest);
     MiniAppCatalogController& miniAppCatalog = *miniAppCatalogControllerOwner;
+    // The read-node URL is the SAME applied node as the core read pipeline.
+    // Channel presentation is an optional, independently configured capability
+    // (Quorum uses the Farcaster directory because indexed HyperSnap responses
+    // do not carry channel artwork or actual followed-channel metadata).
+    // On WASM a same-origin public read relay avoids Safari/WebKit CORS;
+    // the native build can address the configured provider directly.
+    QString channelDirectoryBaseUrl = optionValue(
+        arguments, QStringLiteral("--channel-directory-base-url="));
+    if (channelDirectoryBaseUrl.isEmpty())
+        channelDirectoryBaseUrl = qEnvironmentVariable("GENYCASTER_CHANNEL_DIRECTORY_BASE_URL").trimmed();
+    if (channelDirectoryBaseUrl.isEmpty())
+        channelDirectoryBaseUrl = settings.value(
+            QStringLiteral("network/channelDirectoryBaseUrl")).toString().trimmed();
+    if (channelDirectoryBaseUrl.isEmpty()) {
+#if defined(__EMSCRIPTEN__)
+        const char* origin = emscripten_run_script_string("window.location.origin");
+        const QString safeOrigin = QString::fromUtf8(origin ? origin : "");
+        channelDirectoryBaseUrl = safeOrigin + QStringLiteral("/api/channel-directory");
+#else
+        channelDirectoryBaseUrl = QStringLiteral("https://client.warpcast.com/v2");
+#endif
+    }
+    if (!isValidHttpServiceUrl(channelDirectoryBaseUrl))
+        channelDirectoryBaseUrl.clear();
     channelPickerControllerOwner = std::make_unique<ChannelPickerController>(
-        settings, providerBaseUrlText,
+        settings, appliedNodeEndpoint, channelDirectoryBaseUrl,
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest);
     ChannelPickerController& channelPickerController = *channelPickerControllerOwner;

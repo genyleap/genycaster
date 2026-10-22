@@ -19,6 +19,7 @@
 #include <QTextLayout>
 #include <QTextOption>
 #include <QTextObjectInterface>
+#include <QAbstractTextDocumentLayout>
 
 #include <cstddef>
 #include <string_view>
@@ -99,8 +100,11 @@ public:
 
     void rebuild()
     {
+        // QTextCursor selections from a recycled cast are never retained.
+        selection.clearSelection();
         buildDocument();
         recomputeLayout(owner.width());
+        emit owner.selectionChanged();
         owner.update();
     }
 
@@ -325,6 +329,7 @@ public:
 
     RichInlineTextItem& owner;
     QTextDocument document{};
+    QTextCursor selection{&document};
     EmojiObjectHandler handler{};
 
     QVariantList inlines{};
@@ -571,12 +576,75 @@ void RichInlineTextItem::geometryChange(
     }
 }
 
+QString RichInlineTextItem::selectedText() const
+{
+    if (!m_impl->selection.hasSelection()) return {};
+    QString text;
+    const int start = m_impl->selection.selectionStart();
+    const int end = m_impl->selection.selectionEnd();
+    // QTextDocument uses U+FFFC for emoji object glyphs. Preserve their
+    // original Unicode in the clipboard instead of copying replacement boxes.
+    for (int i = start; i < end; ++i) {
+        QTextCursor letter{&m_impl->document};
+        letter.setPosition(i);
+        letter.setPosition(i + 1, QTextCursor::KeepAnchor);
+        const QString character = letter.selectedText();
+        if (character == QString{QChar{0xFFFC}}) {
+            const QString emoji = letter.charFormat().property(EmojiSequenceProperty).toString();
+            text += emoji.isEmpty() ? character : emoji;
+        } else if (character == QString{QChar{0x2029}}) {
+            text += QLatin1Char('\n');
+        } else {
+            text += character;
+        }
+    }
+    return text;
+}
+
+void RichInlineTextItem::clearSelection()
+{
+    if (!m_impl->selection.hasSelection()) return;
+    m_impl->selection.clearSelection();
+    update();
+    emit selectionChanged();
+}
+
+void RichInlineTextItem::selectWordAt(const qreal x, const qreal y)
+{
+    m_longPressSelected = true;
+    QTextCursor cursor{&m_impl->document};
+    const int pos = m_impl->document.documentLayout()->hitTest(QPointF{x,y}, Qt::FuzzyHit);
+    if (pos < 0) return;
+    cursor.setPosition(pos);
+    cursor.select(QTextCursor::WordUnderCursor);
+    if (!cursor.hasSelection())
+        cursor.select(QTextCursor::LineUnderCursor);
+    m_impl->selection = cursor;
+    update();
+    emit selectionChanged();
+    emit selectionCompleted();
+}
+
+void RichInlineTextItem::selectAllText()
+{
+    m_impl->selection.select(QTextCursor::Document);
+    update();
+    emit selectionChanged();
+}
+
 void RichInlineTextItem::paint(QPainter* painter)
 {
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing, true);
     painter->setRenderHint(QPainter::TextAntialiasing, true);
-    m_impl->document.drawContents(painter);
+    QAbstractTextDocumentLayout::PaintContext context{};
+    if (m_impl->selection.hasSelection()) {
+        QAbstractTextDocumentLayout::Selection selection{};
+        selection.cursor = m_impl->selection;
+        selection.format.setBackground(QColor{93, 119, 208, 125});
+        context.selections.push_back(selection);
+    }
+    m_impl->document.documentLayout()->draw(painter, context);
     painter->restore();
 }
 
@@ -584,23 +652,56 @@ void RichInlineTextItem::mousePressEvent(QMouseEvent* event)
 {
     m_leftPressed = event->button() == Qt::LeftButton;
     m_pressPosition = event->position();
+    m_dragSelecting = false;
+    m_longPressSelected = false;
+    m_dragAnchor = m_impl->document.documentLayout()->hitTest(
+        event->position(), Qt::FuzzyHit);
+    event->accept();
+}
+
+void RichInlineTextItem::mouseMoveEvent(QMouseEvent* event)
+{
+    if (!m_leftPressed || m_dragAnchor < 0) {
+        event->ignore();
+        return;
+    }
+    if (!m_dragSelecting
+        && QLineF{m_pressPosition, event->position()}.length()
+             <= QGuiApplication::styleHints()->startDragDistance())
+        return;
+    m_dragSelecting = true;
+    const int end = m_impl->document.documentLayout()->hitTest(
+        event->position(), Qt::FuzzyHit);
+    if (end < 0) return;
+    m_impl->selection.setPosition(m_dragAnchor);
+    m_impl->selection.setPosition(end, QTextCursor::KeepAnchor);
+    update();
+    emit selectionChanged();
     event->accept();
 }
 
 void RichInlineTextItem::mouseReleaseEvent(QMouseEvent* event)
 {
+    const bool wasSelecting = m_dragSelecting || m_longPressSelected;
+    m_longPressSelected = false;
     const bool shortTap = m_leftPressed && event->button() == Qt::LeftButton
         && QLineF{m_pressPosition, event->position()}.length()
                <= QGuiApplication::styleHints()->startDragDistance();
     m_leftPressed = false;
+    m_dragSelecting = false;
     event->accept();
-    if (!shortTap) { return; }
-    const QString anchor = m_impl->anchorAt(event->position());
-    if (!anchor.isEmpty()) {
-        emit linkActivated(anchor);
-    } else {
-        emit plainTextActivated();
+    if (wasSelecting) {
+        if (m_impl->selection.hasSelection()) emit selectionCompleted();
+        return;
     }
+    if (!shortTap) return;
+    if (m_impl->selection.hasSelection()) {
+        clearSelection();
+        return;
+    }
+    const QString anchor = m_impl->anchorAt(event->position());
+    if (!anchor.isEmpty()) emit linkActivated(anchor);
+    else emit plainTextActivated();
 }
 
 #include "rich_inline_text_item.moc"

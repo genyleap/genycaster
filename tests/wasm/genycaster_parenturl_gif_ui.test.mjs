@@ -24,7 +24,7 @@ test('reply rail and count use aligned, solid geometry and incoming highlight',(
  assert.match(rail,/anchors.horizontalCenter: parent.horizontalCenter/);
  assert.match(detail,/Math.max\(26, replyCountLabel.implicitWidth \+ Theme.space3\)/);
 });
-test('channel picker relies exclusively on the C++ HyperSnap controller',()=>{
+test('channel picker uses node-independent and configurable channel providers',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
  const backend=read('ui/mobile/channel_picker_controller.cpp');
  const header=read('ui/mobile/channel_picker_controller.hpp');
@@ -37,6 +37,11 @@ test('channel picker relies exclusively on the C++ HyperSnap controller',()=>{
  assert.match(backend,/user\/memberships\/list/);
  assert.match(backend,/channel\/search/);
  assert.match(backend,/channel\/trending/);
+ assert.match(backend,/requestDirectory\(QStringLiteral\("search-channels"\)/);
+ assert.match(backend,/requestDirectory\(QStringLiteral\("channel"\)/);
+ assert.match(backend,/mergeMetadata\(row\)/);
+ assert.match(main,/appliedNodeEndpoint, channelDirectoryBaseUrl/);
+ assert.doesNotMatch(backend,/https:\/\/haatz\.quilibrium\.com/);
  assert.match(main,/setContextProperty\(QStringLiteral\("channelDirectory"\)/);
  assert.match(header,/Q_INVOKABLE QVariantMap chooseChannel/);
  assert.match(composer,/root.selectedParentUrl = String\(selection.parentUrl \|\| ""\)/);
@@ -60,7 +65,7 @@ test('reply counter has safe trailing spacing and scroll jump stays near bottom 
  assert.match(detail,/anchors.bottomMargin: root.compact \? Theme.space2 \+ 12 : Theme.space4/);
  assert.match(profile,/anchors.bottomMargin: root.compact \? Theme.space2 \+ 12 : Theme.space4/);
 });
-test('channel avatars come from HyperSnap, and static image catalogs are removed',()=>{
+test('channel avatars use the configurable directory capability, with static catalogs removed',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
  const backend=read('ui/mobile/channel_picker_controller.cpp');
  const packaging=read('tools/package_wasm_assets.py');
@@ -78,9 +83,9 @@ test('membership is verified in C++, Home always appears first, and non-members 
  const backend=read('ui/mobile/channel_picker_controller.cpp');
  const composer=read('ui/components/ComposerDrawer.qml');
  assert.match(backend,/QVariantList list\{homeRow\(\)\}/);
- assert.match(backend,/m_membershipReady && m_members.contains\(id\)/);
- assert.match(backend,/row.insert\(QStringLiteral\("selectable"\), isJoined\)/);
- assert.match(backend,/if \(!m_membershipReady\) return \{\}/);
+ assert.match(backend,/m_viewerFid > 0 && m_members.contains\(id\)/);
+ assert.match(backend,/row.insert\(QStringLiteral\("selectable"\), isJoined\s*&& validParentUrl/);
+ assert.match(backend,/if \(m_viewerFid == 0\) return \{\}/);
  assert.match(backend,/if \(it == m_members.cend\(\)\) return \{\}/);
  assert.match(backend,/m_members.clear\(\);\s*m_membershipReady = false; \/\/ fail closed/);
  assert.match(composer,/enabled: channelRow.selectable/);
@@ -136,4 +141,19 @@ test('image picker and upload pipeline accept GIF without converting to PNG',()=
  assert.match(upload,/\['gif','image\/gif'\]/);
  assert.match(qt,/SupportedMedia\{u"gif", u"image\/gif", u"image"\}/);
  assert.match(transport,/QStringLiteral\("image\/gif"\)/);
+});
+
+
+test('native text rendering allows selecting, copying and long press in cast bodies',()=>{
+ const cpp=read('src/presentation/qt/rich_inline_text_item.cpp');
+ const header=read('src/presentation/qt/rich_inline_text_item.hpp');
+ const qml=read('ui/components/RichInlineText.qml');
+ assert.match(header,/Q_PROPERTY\(QString selectedText READ selectedText NOTIFY selectionChanged\)/);
+ assert.match(header,/Q_INVOKABLE void selectWordAt/);
+ assert.match(cpp,/QAbstractTextDocumentLayout::Selection selection/);
+ assert.match(cpp,/void RichInlineTextItem::mouseMoveEvent/);
+ assert.match(cpp,/void RichInlineTextItem::selectAllText/);
+ assert.match(qml,/onLongPressed:/);
+ assert.match(qml,/textLayout.selectWordAt\(point.position.x, point.position.y\)/);
+ assert.match(qml,/presentationBridge.copyText\(textLayout.selectedText\)/);
 });
