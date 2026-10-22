@@ -29,15 +29,14 @@ Item {
     readonly property var discoveryShelfApps: {
         const catalog = miniAppCatalog.explorerApps || []
         const illustrated = []
-        const other = []
         for (let index = 0; index < catalog.length; ++index) {
             const app = catalog[index]
             if (String(app.coverSource || "").length > 0)
                 illustrated.push(app)
-            else
-                other.push(app)
         }
-        return illustrated.concat(other).slice(0, 8)
+        // Unillustrated apps belong to the icon grid. A square icon in a
+        // widescreen hero card is neither a real cover nor a useful fallback.
+        return illustrated.slice(0, 8)
     }
 
     signal authenticationRequested()
@@ -324,9 +323,15 @@ Item {
                     Layout.fillWidth: true
                     spacing: Theme.space2
 
+                    // Compact, keyboard-accessible text tabs rather than two
+                    // full-width filled buttons. The remaining width is left
+                    // clear so search and actual Store results stay visible.
                     RowLayout {
+                        id: miniAppModeTabs
+                        objectName: "miniAppModeTabs"
                         Layout.fillWidth: true
-                        spacing: Theme.space2
+                        Layout.preferredHeight: 34
+                        spacing: Theme.space4
                         layoutDirection: Theme.uiDirection
 
                         Repeater {
@@ -334,16 +339,41 @@ Item {
                                 { id: "all", title: qsTrId("genycaster.apps.all_apps") },
                                 { id: "forYou", title: qsTrId("genycaster.apps.for_you") }
                             ]
-                            delegate: ActionButton {
+                            delegate: Button {
+                                id: modeTab
                                 required property var modelData
-                                Layout.fillWidth: true
-                                compact: true
-                                prominent: root.explorerMode === String(modelData.id)
-                                quiet: root.explorerMode !== String(modelData.id)
+                                readonly property bool selected: root.explorerMode === String(modelData.id)
                                 text: String(modelData.title)
+                                Layout.preferredWidth: Math.min(145, Math.max(78, tabText.implicitWidth + Theme.space4))
+                                Layout.preferredHeight: 34
+                                padding: 0
+                                background: Item {
+                                    Rectangle {
+                                        anchors.bottom: parent.bottom
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        width: parent.width
+                                        height: 2
+                                        radius: 1
+                                        color: Theme.accent
+                                        visible: modeTab.selected
+                                    }
+                                }
+                                contentItem: DirectionAwareLabel {
+                                    id: tabText
+                                    text: modeTab.text
+                                    color: modeTab.selected ? Theme.ink : Theme.inkMuted
+                                    font.pixelSize: Theme.typeMetaSize
+                                    font.weight: modeTab.selected ? Theme.weightDemiBold : Theme.weightRegular
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight
+                                }
                                 onClicked: root.explorerMode = String(modelData.id)
+                                Accessible.role: Accessible.PageTab
+                                Accessible.name: modeTab.text
                             }
                         }
+                        Item { Layout.fillWidth: true }
                     }
 
                     RowLayout {
@@ -653,6 +683,10 @@ Item {
                                             source: String(cardCell.modelData.iconSource || "")
                                             mediaCategory: "miniapps"
                                             forceAutomaticDownload: true
+                                            // Store icons should finish loading while the
+                                            // parent page moves, unlike full feed media.
+                                            deferNewLoadsWhileScrolling: false
+                                            framePacedPresentation: false
                                             showLoadingIndicator: false
                                             showFailureIndicator: false
                                             showManualLoadIndicator: false

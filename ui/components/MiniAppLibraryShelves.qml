@@ -58,6 +58,8 @@ Item {
                         fillMode: Image.PreserveAspectFit
                         mediaCategory: "miniapps"
                         forceAutomaticDownload: true
+                        deferNewLoadsWhileScrolling: false
+                        framePacedPresentation: false
                         showLoadingIndicator: false
                         showFailureIndicator: false
                         showManualLoadIndicator: false
@@ -137,6 +139,8 @@ Item {
                             source: String(savedCell.app.iconSource || "")
                             mediaCategory: "miniapps"
                             forceAutomaticDownload: true
+                            deferNewLoadsWhileScrolling: false
+                            framePacedPresentation: false
                             showLoadingIndicator: false
                             showFailureIndicator: false
                             showManualLoadIndicator: false

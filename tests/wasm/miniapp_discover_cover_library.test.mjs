@@ -86,3 +86,29 @@ test("Explorer and saved grids show compact icons; details are opened before lau
  assert.match(apps,/miniAppDetailDrawer\.close\(\)\s+root\.openApp\(app\)/);
  assert.match(library,/TapHandler \{ onTapped: root\.openRequested\(savedCell\.app\) \}/);
 });
+
+test("Discover excludes entries without a real banner instead of showing empty feature cards",()=>{
+ const apps=read("ui/components/AppsSurface.qml");
+ assert.match(apps,/return illustrated\.slice\(0, 8\)/);
+ assert.doesNotMatch(apps,/illustrated\.concat\(other\)/);
+ assert.match(apps,/root\.discoveryShelfApps\.length > 0/);
+});
+test("mini app image admission is independent of scroll and uses a bounded adjacent cache",()=>{
+ const apps=read("ui/components/AppsSurface.qml");
+ const hero=read("ui/components/MiniAppFeaturedCarousel.qml");
+ const saved=read("ui/components/MiniAppLibraryShelves.qml");
+ assert.match(apps,/id: storeIcon[\s\S]*?deferNewLoadsWhileScrolling: false[\s\S]*?framePacedPresentation: false/);
+ assert.match(saved,/deferNewLoadsWhileScrolling: false/);
+ assert.match(hero,/cacheBuffer: root\.cardWidth \* 2 \+ spacing \* 2/);
+ assert.match(hero,/loadDelayMs: Math\.min\(160, featuredCell\.index \* 35\)/);
+ assert.match(hero,/deferNewLoadsWhileScrolling: false/);
+ assert.match(hero,/requestedSourceWidth: Math\.min\(640/);
+});
+test("mobile browsing modes are slim text tabs, not two large full-width action buttons",()=>{
+ const apps=read("ui/components/AppsSurface.qml");
+ assert.match(apps,/id: miniAppModeTabs[\s\S]*?Layout\.preferredHeight: 34/);
+ assert.match(apps,/delegate: Button \{[\s\S]*?Layout\.preferredHeight: 34/);
+ assert.match(apps,/modeTab\.selected \? Theme\.ink : Theme\.inkMuted/);
+ assert.match(apps,/Accessible\.role: Accessible\.PageTab/);
+ assert.doesNotMatch(apps,/prominent: root\.explorerMode === String\(modelData\.id\)/);
+});

@@ -487,8 +487,9 @@ export function createMediaGateway(config, storage, dependencies = {}) {
     refreshIconsPromise = (async () => {
       // The catalogue is a fixed Neynar endpoint, never caller-selected.
       const url = new URL('https://api.neynar.com/v2/farcaster/frame/catalog/');
-      // A cold-start gallery may contain 100 entries, not only the first 20.
-      url.searchParams.set('limit', '100');
+      // Match the first page returned by /v1/browser/miniapps.
+      // A 100-item request can exceed supported source catalogue limits.
+      url.searchParams.set('limit', '20');
       url.searchParams.set('time_window', '7d');
       try {
         const reply = await runtime.fetchImpl(url, {

@@ -78,7 +78,9 @@ Item {
         snapMode: ListView.SnapOneItem
         boundsBehavior: Flickable.StopAtBounds
         flickDeceleration: 4500
-        cacheBuffer: Math.min(width, root.cardWidth)
+        // Retain both adjacent cards so a brief swipe backward does not
+        // recreate its image provider and flash the square-icon fallback.
+        cacheBuffer: root.cardWidth * 2 + spacing * 2
         interactive: root.cardCount > 1
         onMovementEnded: {
             const stride = root.cardWidth + spacing
@@ -114,6 +116,10 @@ Item {
                     source: String(featuredCell.app.coverSource || "")
                     mediaCategory: "miniapps"
                     forceAutomaticDownload: true
+                    deferNewLoadsWhileScrolling: false
+                    // Keep requests staggered rather than decoding several
+                    // large banner textures on the same Safari render frame.
+                    loadDelayMs: Math.min(160, featuredCell.index * 35)
                     showLoadingIndicator: false
                     showFailureIndicator: false
                     showManualLoadIndicator: false
@@ -121,8 +127,8 @@ Item {
                     // Wide Qt/WASM textures can paint blank with MultiEffect.
                     // The card itself clips the guaranteed plain-image path.
                     clipToSuperellipse: false
-                    requestedSourceWidth: Math.min(880, Math.ceil(width * 1.6))
-                    requestedSourceHeight: Math.min(550, Math.ceil(height * 1.6))
+                    requestedSourceWidth: Math.min(640, Math.ceil(width * 1.4))
+                    requestedSourceHeight: Math.min(440, Math.ceil(height * 1.4))
                 }
 
                 Item {
