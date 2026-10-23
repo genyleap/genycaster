@@ -75,7 +75,8 @@ void runLocalStoreRoundTrip()
     const domain::cast::Cast cast{
         .id = domain::cast::CastId{"cast-1"},
         .author = domain::identity::Fid{42},
-        .text = "hello",
+        .text = "Right! 💯  \n\nhttps://x.com/vrypan/status/2113262913767317648?s=46",
+        .displayText = std::string{"Right! 💯 @vrypan.eth \n\nhttps://x.com/vrypan/status/2113262913767317648?s=46"},
         .parent = std::nullopt,
         .parentUrl = std::string{"https://farcaster.group/dev/chat"},
         .embeds = {
@@ -97,7 +98,19 @@ void runLocalStoreRoundTrip()
     auto loadedCast = entityStore->findCast(domain::cast::CastId{"cast-1"});
     assert(loadedCast);
     assert(loadedCast->has_value());
-    assert((*loadedCast)->text == "hello");
+    assert((*loadedCast)->text == cast.text);
+    assert((*loadedCast)->displayText == cast.displayText);
+
+    // Re-reading the same cast from a sparse search row must not erase an
+    // already hydrated mention projection. Canonical signed text stays raw.
+    auto sparse = cast;
+    sparse.displayText.reset();
+    assert(entityStore->putCast(sparse));
+    auto warmed = entityStore->findCastShallow(domain::cast::CastId{"cast-1"});
+    assert(warmed && warmed->has_value());
+    assert((*warmed)->text == cast.text);
+    assert((*warmed)->displayText == cast.displayText);
+
     assert((*loadedCast)->parentUrl == std::optional<std::string>{"https://farcaster.group/dev/chat"});
     assert((*loadedCast)->embeds.size() == 2);
     assert((*loadedCast)->embeds[0].kind == domain::cast::EmbedKind::Url);

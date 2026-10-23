@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS casts (
     id TEXT PRIMARY KEY NOT NULL,
     author_fid INTEGER NOT NULL,
     text TEXT NOT NULL,
+    display_text TEXT,
     parent_id TEXT,
     parent_url TEXT,
     created_at_ms INTEGER NOT NULL,
@@ -689,6 +690,24 @@ WHERE current.kind IN ('follow', 'unfollow')
     // relationships between normalized cast entities. Opening an older
     // database creates the table without replacing or rewriting user casts.
     if (auto status = recordMigration(connection, 25, appliedAt); !status) {
+        return status;
+    }
+
+    // The signed CastAdd text never contains visible @handles. Cache the
+    // separately hydrated display projection without modifying canonical text.
+    // Existing local snapshots gain a nullable field, and later refreshes
+    // populate it from whichever node the user has selected.
+    {
+        auto exists = tableHasColumn(connection, "casts", "display_text");
+        if (!exists) { return std::unexpected(exists.error()); }
+        if (!*exists) {
+            if (auto status = connection.execute(
+                    "ALTER TABLE casts ADD COLUMN display_text TEXT;"); !status) {
+                return status;
+            }
+        }
+    }
+    if (auto status = recordMigration(connection, 26, appliedAt); !status) {
         return status;
     }
 

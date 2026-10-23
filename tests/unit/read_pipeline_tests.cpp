@@ -1541,6 +1541,77 @@ void freshCastAndRepliesDoNotWaitForOptionalAuthor()
     assert(failedAuthorDeliveries.front().cast->directReplies.size() == 1U);
 }
 
+void schemaUpgradeFromPreMentionCacheIsNonDestructive()
+{
+    DatabaseFixture database{};
+    {
+        auto initial = farcaster::storage::read::openReadStore(database.path);
+        assert(initial);
+        auto cast = makeCast("0xold-cache", 42, "raw signed text", 1000);
+        assert((*initial)->putCast(cast));
+    }
+    // Simulate a database created by the previous released build: the last
+    // migration and optional column were not present, but canonical casts are.
+    sqlite3* handle{};
+    assert(sqlite3_open(database.path.string().c_str(), &handle) == SQLITE_OK);
+    assert(sqlite3_exec(handle,
+        "ALTER TABLE casts DROP COLUMN display_text;"
+        "DELETE FROM schema_migrations WHERE version=26;",
+        nullptr, nullptr, nullptr) == SQLITE_OK);
+    assert(sqlite3_close(handle) == SQLITE_OK);
+    auto upgraded = farcaster::storage::read::openReadStore(database.path);
+    assert(upgraded);
+    const auto old = (*upgraded)->findCast(domain::cast::CastId{"0xold-cache"});
+    assert(old && old->has_value());
+    assert((*old)->text == "raw signed text");
+    assert(!(*old)->displayText);
+    auto refreshed = **old;
+    refreshed.displayText = "raw signed text @user.eth";
+    assert((*upgraded)->putCast(refreshed));
+    const auto recovered = (*upgraded)->findCast(domain::cast::CastId{"0xold-cache"});
+    assert(recovered && recovered->has_value());
+    assert((*recovered)->displayText == refreshed.displayText);
+}
+
+void hydratedMentionsSurviveMaterializationAndOfflineRestart()
+{
+    DatabaseFixture database{};
+    const farcaster::local::read::FeedKey key{
+        .kind = farcaster::local::read::FeedKey::Kind::UserPosts,
+                                   .fid = domain::identity::Fid{321969}};
+    constexpr std::string_view raw{
+        "Right! 💯  \n\nhttps://x.com/vrypan/status/2113262913767317648?s=46"};
+    constexpr std::string_view visible{
+        "Right! 💯 @vrypan.eth  \n\nhttps://x.com/vrypan/status/2113262913767317648?s=46"};
+    auto cast = makeCast("0x09911944b6d94a7e0a6d9192269aead2d167f9c2",
+                          321969, std::string{raw}, 10'000);
+    cast.displayText = std::string{visible};
+    const auto page = pageFor(makeProfile(321969, "compez.eth", "COMPΞZ"), cast);
+    {
+        auto store = farcaster::storage::read::openReadStore(database.path);
+        assert(store);
+        assert((*store)->writeFeed(key, page, false));
+        const auto cached = (*store)->readFeed(key);
+        assert(cached && cached->casts.size() == 1U);
+        assert(cached->casts.front().text == raw);
+        assert(cached->casts.front().displayText == cast.displayText);
+
+        // A later provider response omitting ranges may only update metrics.
+        auto sparse = cast;
+        sparse.displayText.reset();
+        assert((*store)->putCast(sparse));
+        const auto again = (*store)->readFeed(key);
+        assert(again && again->casts.size() == 1U);
+        assert(again->casts.front().displayText == cast.displayText);
+    }
+    auto reopened = farcaster::storage::read::openReadStore(database.path);
+    assert(reopened);
+    const auto offline = (*reopened)->readFeed(key);
+    assert(offline && offline->casts.size() == 1U);
+    assert(offline->casts.front().text == raw);
+    assert(offline->casts.front().displayText == cast.displayText);
+}
+
 void serializedExecutorKeepsBlockingReadOffCallerThread()
 {
     DatabaseFixture database{};
@@ -1599,6 +1670,8 @@ int main()
     pageOnlyContinuationFailuresPreserveViewportWithoutFullRead();
     lightweightCastPreviewSkipsOptionalProfileNetwork();
     freshCastAndRepliesDoNotWaitForOptionalAuthor();
+    schemaUpgradeFromPreMentionCacheIsNonDestructive();
+    hydratedMentionsSurviveMaterializationAndOfflineRestart();
     serializedExecutorKeepsBlockingReadOffCallerThread();
     return 0;
 }

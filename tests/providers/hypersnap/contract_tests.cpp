@@ -184,6 +184,8 @@ void testCanonicalCodec()
     assert(sparseRead && sparseRead->text == precise->text);
     assert(!sparseRead->displayText);
 
+    // Preserve an unmodified fixture for subsequent valid-range tests.
+    const auto validWithMention = withMention;
     // Invalid positions within a UTF-8 code point must never split an emoji.
     const auto badAt = withMention.find("\"mentions_positions\": [12]");
     assert(badAt != std::string::npos);
@@ -193,7 +195,7 @@ void testCanonicalCodec()
     assert(invalidMention && !invalidMention->displayText);
 
     // Hydrated ranges use character boundaries after the multi-byte 💯.
-    auto ranged = withMention;
+    auto ranged = validWithMention;
     const auto rangeAt = ranged.find(R"json("mentions_positions": [12])json");
     assert(rangeAt != std::string::npos);
     ranged.replace(rangeAt, std::string{R"json("mentions_positions": [12])json"}.size(),
@@ -202,7 +204,7 @@ void testCanonicalCodec()
     assert(byCharacters && byCharacters->displayText);
     assert(*byCharacters->displayText == "Right! 💯 @vrypan.eth");
 
-    std::string withoutPositions = withMention;
+    std::string withoutPositions = validWithMention;
     const auto omittedAt = withoutPositions.find(R"json(,"mentions_positions": [12])json");
     assert(omittedAt != std::string::npos);
     withoutPositions.erase(omittedAt, std::string{R"json(,"mentions_positions": [12])json"}.size());

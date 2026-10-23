@@ -623,23 +623,64 @@ foundation::result::Result<AppRequest> AsyncGateway::resolveIdentity(
         return std::unexpected(makeError(ErrorCode::InvalidArgument, "Username and completion are required."));
     }
     auto group = std::make_shared<Group>();
+    const std::string requested{username};
     auto operation = m_client.getJson(
         "/v2/farcaster/user/by-username",
-        {{"username", std::string{username}}},
-        [group, completion = std::move(completion)](foundation::result::Result<std::string> body) mutable {
-            if (group->cancelled.load(std::memory_order_acquire)) {
-                return;
+        {{"username", requested}},
+        [this, group, requested, completion = std::move(completion)](
+            foundation::result::Result<std::string> body) mutable {
+            if (group->cancelled.load(std::memory_order_acquire)) return;
+            if (body) {
+                auto profile = codec::decodeUser(*body);
+                if (profile) {
+                    completion(profile->fid);
+                    return;
+                }
             }
-            if (!body) {
-                completion(std::unexpected(std::move(body.error())));
-                return;
+            // Some v2-compatible nodes resolve ENS usernames through search
+            // but return 404 for /user/by-username (e.g. vrypan.eth). Match
+            // the FULL canonical name exactly; never navigate to a fuzzy hit.
+            auto callback = std::make_shared<
+                application::read::async_gateway::IdentityCompletion>(std::move(completion));
+            auto fallback = m_client.getJson(
+                "/v2/farcaster/user/search",
+                {{"q", requested}, {"limit", "10"}},
+                [group, requested, callback](
+                    foundation::result::Result<std::string> searchBody) mutable {
+                    if (group->cancelled.load(std::memory_order_acquire)) return;
+                    if (!searchBody) {
+                        (*callback)(std::unexpected(std::move(searchBody.error())));
+                        return;
+                    }
+                    auto profiles = codec::decodeUsers(*searchBody);
+                    if (!profiles) {
+                        (*callback)(std::unexpected(std::move(profiles.error())));
+                        return;
+                    }
+                    const auto sameName = [&requested](const domain::profile::Profile& profile) {
+                        if (!profile.username || profile.fid.value == 0U) return false;
+                        const auto& actual = profile.username->value;
+                        return actual.size() == requested.size()
+                            && std::equal(actual.begin(), actual.end(), requested.begin(),
+                                [](unsigned char a, unsigned char b) {
+                                    return std::tolower(a) == std::tolower(b);
+                                });
+                    };
+                    const auto exact = std::ranges::find_if(*profiles, sameName);
+                    if (exact != profiles->end()) {
+                        (*callback)(exact->fid);
+                    } else {
+                        (*callback)(std::unexpected(makeError(
+                            ErrorCode::NotFound, "Farcaster username was not found.")));
+                    }
+                },
+                request::GetOptions{.timeout = std::chrono::milliseconds{4'000}},
+                transport::async_http::Priority::Interactive);
+            if (fallback) {
+                group->add(std::move(*fallback));
+            } else {
+                (*callback)(std::unexpected(std::move(fallback.error())));
             }
-            auto profile = codec::decodeUser(*body);
-            if (!profile) {
-                completion(std::unexpected(std::move(profile.error())));
-                return;
-            }
-            completion(profile->fid);
         },
         {},
         transport::async_http::Priority::Interactive);

@@ -370,11 +370,12 @@ foundation::result::Status SqliteEntityStore::putCast(const domain::cast::Cast& 
     // compiling fresh SQLite SQL for every cast/each embed collection.
     // Plain feed hydration with no directReplies preserves a warmer thread.
     auto preparedCast = sqlite::Statement::prepare(m_impl->connection, R"SQL(
-INSERT INTO casts(id, author_fid, text, parent_id, parent_url, created_at_ms, reply_count, recast_count, like_count)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO casts(id, author_fid, text, parent_id, parent_url, created_at_ms, reply_count, recast_count, like_count, display_text)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE SET
     author_fid = excluded.author_fid,
     text = excluded.text,
+    display_text = COALESCE(excluded.display_text, casts.display_text),
     parent_id = excluded.parent_id,
     parent_url = excluded.parent_url,
     created_at_ms = excluded.created_at_ms,
@@ -433,6 +434,9 @@ ON CONFLICT(id) DO UPDATE SET
         sqlite3_bind_int64(castStatement.native(), 9, static_cast<sqlite3_int64>(cast.engagement.likes)) != SQLITE_OK) {
         return std::unexpected(toFoundationError(sqlite::makeError(
             m_impl->connection.native(), "Failed to bind cast engagement")));
+    }
+    if (auto status = sqlite::bindOptionalText(castStatement.native(), 10, cast.displayText); !status) {
+        return std::unexpected(toFoundationError(std::move(status.error())));
     }
     if (auto status = sqlite::stepDone(m_impl->connection, castStatement); !status) {
         return std::unexpected(toFoundationError(std::move(status.error())));
@@ -574,7 +578,7 @@ SqliteEntityStore::findCastWithReplyGraph(
         m_impl->connection,
         R"SQL(
 SELECT c.author_fid, c.text, c.parent_id, c.parent_url, c.created_at_ms,
-       c.reply_count, c.recast_count, c.like_count
+       c.reply_count, c.recast_count, c.like_count, c.display_text
 FROM casts AS c
 WHERE c.id = ?
   AND NOT EXISTS (
@@ -615,6 +619,7 @@ WHERE c.id = ?
     cast.id = requestedCastId;
     cast.author = domain::identity::Fid{static_cast<std::uint64_t>(sqlite3_column_int64(statement.native(), 0))};
     cast.text = sqlite::columnText(statement.native(), 1);
+    cast.displayText = sqlite::optionalColumnText(statement.native(), 8);
     if (auto parent = sqlite::optionalColumnText(statement.native(), 2)) {
         cast.parent = domain::cast::CastId{std::move(*parent)};
     }
