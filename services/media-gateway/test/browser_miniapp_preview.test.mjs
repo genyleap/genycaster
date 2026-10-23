@@ -53,8 +53,9 @@ test('verified Farcaster frame manifest creates a playable Mini App preview',asy
     'https://assets.foundly.dev/farmverse/embed.png',
     'https://assets.foundly.dev/farmverse/icon.png'
   ]);
-  assert.equal(calls.length,1);
+  assert.equal(calls.length,2);
   assert.equal(calls[0].url,'https://farmverse.farverse.games/.well-known/farcaster.json');
+  assert.equal(calls[1].url,goodHost);
   assert.equal(calls[0].lookup,'function');
 });
 test('legacy frame splash artwork and animated GIF posters are recognized',async()=>{
@@ -113,4 +114,69 @@ test('manifest responses are byte bounded',async()=>{
     requester:responder(' '.repeat(129*1024)),
   });
   assert.equal(result.status,404);
+});
+
+test('Framedl per-result fc:miniapp metadata overrides generic manifest poster and launch action',async()=>{
+  const shared='https://framedl.com/app/v2?app=1&id=9e673b45-f99f-47a0-aa09-68cf411c8440';
+  const resultImage='https://framedl.com/app/v2/frames/image?id=9e673b45-f99f-47a0-aa09-68cf411c8440';
+  const launch='https://framedl.com/app/v2?id=9e673b45-f99f-47a0-aa09-68cf411c8440';
+  const pageEmbed={
+    version:'next',imageUrl:resultImage,
+    button:{title:'Play',action:{
+      type:'launch_miniapp',name:'Framedl',url:launch,
+      splashImageUrl:'https://framedl.com/splash-v2.png',
+      splashBackgroundColor:'#f3f0f9',
+    }},
+  };
+  const html='<html><head><meta name="fc:miniapp" content="'+
+    JSON.stringify(pageEmbed).replaceAll('&','&amp;').replaceAll('"','&quot;')+
+    '"/></head><body>Game</body></html>';
+  const calls=[];
+  const resolved=await publicMiniAppPreview(shared,{
+    lookupHost:publicDns,
+    requester:(url,options,callback)=>{
+      calls.push(url.href);
+      return responder(url.pathname==='/.well-known/farcaster.json'?
+        {miniapp:{
+          name:'Framedl',homeUrl:'https://framedl.com/app/v2',
+          imageUrl:'https://framedl.com/init-v2.png',
+          iconUrl:'https://framedl.com/icon-v2.png',buttonTitle:'Play',
+        }}:html,{
+        headers:{'content-type':url.pathname==='/.well-known/farcaster.json'
+          ? 'application/json':'text/html; charset=utf-8'}
+      })(url,options,callback);
+    },
+  });
+  assert.equal(resolved.status,200);
+  assert.equal(resolved.data.providerKind,'miniapp');
+  assert.equal(resolved.data.miniAppLaunchUrl,launch);
+  assert.equal(resolved.data.miniAppButtonTitle,'Play');
+  assert.equal(resolved.data.previewImage,
+    'image://remote/'+Buffer.from(resultImage).toString('base64url'));
+  assert.ok(resolved.data.verifiedImageUrls.includes(resultImage));
+  assert.deepEqual(calls,[
+    'https://framedl.com/.well-known/farcaster.json',shared
+  ]);
+});
+test('frame HTML cannot replace manifest app identity or launch an unrelated host',async()=>{
+  const shared='https://framedl.com/app/v2?id=game';
+  const fake={version:'next',imageUrl:'https://safe.example/frame.webp',
+    button:{title:'Play',action:{type:'launch_miniapp',url:'https://other.example/app'}}};
+  const result=await publicMiniAppPreview(shared,{
+    lookupHost:publicDns,
+    requester:(url,options,callback)=>{
+      const payload=url.pathname==='/.well-known/farcaster.json'
+        ? {miniapp:{name:'Framedl',homeUrl:'https://framedl.com/app/v2',
+            imageUrl:'https://framedl.com/init-v2.png'}}
+        : '<head><meta name="fc:miniapp" content="'+
+          JSON.stringify(fake).replaceAll('"','&quot;')+'"/></head>';
+      return responder(payload,{headers:{'content-type':typeof payload==='string'
+        ? 'text/html':'application/json'}})(url,options,callback);
+    }
+  });
+  assert.equal(result.status,200);
+  assert.equal(result.data.miniAppLaunchUrl,shared);
+  assert.equal(result.data.previewImage,
+    'image://remote/'+Buffer.from('https://framedl.com/init-v2.png').toString('base64url'));
+  assert.equal(result.data.verifiedImageUrls.includes('https://safe.example/frame.webp'),false);
 });

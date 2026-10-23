@@ -152,14 +152,11 @@ void BrowserLinkMetadataController::dispatch()
             ? QStringLiteral("/v1/browser/miniapp-preview")
             : QStringLiteral("/v1/browser/link-preview"));
         const QUrl original{request.url};
-        QUrl origin{original};
-        origin.setPath(QStringLiteral("/"));
-        origin.setQuery(QString{});
-        origin.setFragment({});
         QUrlQuery query{};
-        query.addQueryItem(QStringLiteral("url"),
-            request.kind == QLatin1String("miniapp")
-                ? origin.toString(QUrl::FullyEncoded) : request.url);
+        // The shared cast URL carries per-post fc:miniapp metadata, often with
+        // an image keyed by query parameters. The gateway separately reads the
+        // root manifest for verified app identity and safe image leases.
+        query.addQueryItem(QStringLiteral("url"),request.url);
         relay.setQuery(query);
         QNetworkRequest networkRequest{relay};
         networkRequest.setRawHeader("Accept", "application/json");

@@ -391,9 +391,12 @@ Item {
         // A re-tap navigates within cached rows; it must not trigger an
         // avoidable network refresh or leave the viewport far down the feed.
         root.selectExplorerPresentationMode(root.explorerPresentationMode, false)
-        Qt.callLater(() => {
+        // Only tapping an already active Explorer tab means "back to top".
+        // Returning to Explorer from a profile/cast or another main tab must
+        // preserve the scroll offset and the existing ListView delegates.
+        if (wasExplorer) Qt.callLater(() => {
             if (root.primaryDestination === "explorer" && root.shellRoute === ""
-                    && feedSurfaceLoader.item)
+                    && presentationBridge.activeView === "feed" && feedSurfaceLoader.item)
                 feedSurfaceLoader.item.scrollToBeginning()
         })
     }

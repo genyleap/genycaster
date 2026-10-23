@@ -37,6 +37,14 @@ Item {
     // JS object/list wrappers can otherwise be rejected. Keep only primitive,
     // type-stable roles in ListModel and store row payloads externally by key.
     property var stablePayloads: ({})
+    property string pendingViewportKey: ""
+    property real pendingViewportOffset: 0
+    property real pendingViewportY: 0
+    property string pendingViewportScope: ""
+    property bool pendingViewportSecondPass: false
+    property string geometryAnchorKey: ""
+    property real geometryAnchorOffset: 0
+    property bool applyingGeometryAnchor: false
     property bool previewSyncPending: false
     property string presentationMode: "for-you"
     property string visualFilter: "nfts"
@@ -622,7 +630,119 @@ Item {
         return root.stablePayloads[String(key || "")] || ({})
     }
 
+    function rememberVisibleGeometry() {
+        if (readList.moving || readList.count === 0
+                || root.pendingViewportScope.length > 0) return
+        const snapshot = root.captureViewportForRebuild()
+        if (snapshot && snapshot.key.length > 0) {
+            root.geometryAnchorKey = snapshot.key
+            root.geometryAnchorOffset = snapshot.offset
+        }
+    }
+
+    function stabilizeGeometryAnchor() {
+        if (readList.moving || root.applyingGeometryAnchor
+                || root.pendingViewportScope.length > 0
+                || root.geometryAnchorKey.length === 0) return
+        const key = root.geometryAnchorKey
+        let anchorIndex = -1
+        for (let i = 0; i < stableRows.count; ++i) {
+            if (String(stableRows.get(i).stableKey) === key) {
+                anchorIndex = i
+                break
+            }
+        }
+        if (anchorIndex < 0) return
+        const item = readList.itemAtIndex(anchorIndex)
+        if (!item) return
+        const shift = item.y - readList.contentY - root.geometryAnchorOffset
+        // A settled image/miniapp preview may increase a preceding delegate
+        // by hundreds of pixels. Keep the visible cast in the same place,
+        // but never treat a real long user gesture as layout correction.
+        if (Math.abs(shift) < 1 || Math.abs(shift) > readList.height * 0.92)
+            return
+        root.applyingGeometryAnchor = true
+        readList.contentY = Math.max(readList.originY,
+            Math.min(readList.originY + Math.max(0,readList.contentHeight-readList.height),
+                     readList.contentY + shift))
+        root.applyingGeometryAnchor = false
+    }
+
+    function captureViewportForRebuild() {
+        if (readList.moving || stableRows.count === 0
+                || readList.contentY - readList.originY < 48)
+            return null
+        const probe = Math.min(116, Math.max(20, readList.height * 0.17))
+        const index = readList.indexAt(Math.max(1, readList.width * 0.5),
+                                       readList.contentY + probe)
+        const item = index >= 0 ? readList.itemAtIndex(index) : null
+        return { key: index >= 0 && item
+                      ? String(stableRows.get(index).stableKey || "") : "",
+                 offset: item ? item.y - readList.contentY : 0,
+                 y: readList.contentY,
+                 scope: root.activeFeed + ":" + root.presentationMode + ":" + root.socialMode }
+    }
+
+    function queueViewportRestore(snapshot) {
+        if (!snapshot || readList.moving) return
+        root.pendingViewportKey = snapshot.key
+        root.pendingViewportOffset = snapshot.offset
+        root.pendingViewportY = snapshot.y
+        root.pendingViewportScope = snapshot.scope
+        root.pendingViewportSecondPass = false
+        stableViewportRestoreTimer.restart()
+    }
+
+    function restoreViewportAfterRebuild() {
+        const scope = root.activeFeed + ":" + root.presentationMode + ":" + root.socialMode
+        if (root.pendingViewportScope !== scope || readList.moving
+                || !root.presentationActive) {
+            root.pendingViewportKey = ""
+            root.pendingViewportScope = ""
+            return
+        }
+        const key = root.pendingViewportKey
+        const previousY = root.pendingViewportY
+        const offset = root.pendingViewportOffset
+        if (!key) {
+            root.pendingViewportScope = ""
+            // Even when every cast changed in a provider refresh, preserve a
+            // useful proportional viewport rather than teleporting to zero.
+            readList.contentY = Math.max(readList.originY,
+                Math.min(readList.originY + Math.max(0, readList.contentHeight-readList.height), previousY))
+            return
+        }
+        let index = -1
+        for (let i = 0; i < stableRows.count; ++i) {
+            if (String(stableRows.get(i).stableKey) === key) { index=i;break }
+        }
+        if (index < 0) {
+            root.pendingViewportScope = ""
+            root.pendingViewportKey = ""
+            readList.contentY = Math.max(readList.originY,
+                Math.min(readList.originY + Math.max(0,readList.contentHeight-readList.height),previousY))
+            return
+        }
+        if (!root.pendingViewportSecondPass) {
+            root.pendingViewportSecondPass = true
+            readList.positionViewAtIndex(index, ListView.Beginning)
+            stableViewportRestoreTimer.restart()
+            return
+        }
+        const item = readList.itemAtIndex(index)
+        if (item) {
+            readList.contentY = Math.max(readList.originY, Math.min(
+                readList.originY + Math.max(0,readList.contentHeight-readList.height),
+                item.y - offset))
+        }
+        root.pendingViewportKey = ""
+        root.pendingViewportScope = ""
+        root.pendingViewportSecondPass = false
+        geometryAnchorDebounce.restart()
+    }
+
     function rebuildStableModel(source) {
+        const snapshot = root.captureViewportForRebuild()
         const payloads = ({})
         stableRows.clear()
         for (let index = 0; index < source.length; ++index) {
@@ -636,6 +756,7 @@ Item {
                                 mediaLayoutKind: root.mediaLayoutKind(payload) })
         }
         root.stablePayloads = payloads
+        root.queueViewportRestore(snapshot)
     }
 
     function requestStableModelSync() {
@@ -654,6 +775,12 @@ Item {
     // Explicit primary navigation only. Detail -> Back never calls this,
     // so reading position remains continuous during conversations.
     function scrollToBeginning() {
+        geometryAnchorDebounce.stop()
+        geometryRestoreTimer.stop()
+        root.geometryAnchorKey = ""
+        stableViewportRestoreTimer.stop()
+        root.pendingViewportKey = ""
+        root.pendingViewportScope = ""
         readList.cancelFlick()
         readList.positionViewAtBeginning()
         positionAtTopTimer.restart()
@@ -858,6 +985,8 @@ Item {
         root.resetAllFilterPrefetchBudgets()
     }
     onPresentationModeChanged: {
+        stableViewportRestoreTimer.stop()
+        root.pendingViewportKey = ""
         filterPrefetchDebounce.stop()
         // Each semantic tab visit gets a fresh bounded continuation budget.
         // Without this, a sparse Devs/NFTs visit could permanently exhaust its
@@ -930,6 +1059,27 @@ Item {
             if (check)
                 root.scheduleLoadMore()
         }
+    }
+
+    Timer {
+        id: geometryAnchorDebounce
+        interval: 110
+        repeat: false
+        onTriggered: root.rememberVisibleGeometry()
+    }
+
+    Timer {
+        id: geometryRestoreTimer
+        interval: 0
+        repeat: false
+        onTriggered: root.stabilizeGeometryAnchor()
+    }
+
+    Timer {
+        id: stableViewportRestoreTimer
+        interval: 0
+        repeat: false
+        onTriggered: root.restoreViewportAfterRebuild()
     }
 
     Timer {
@@ -1046,7 +1196,17 @@ Item {
                                   : Math.min(Math.max(height * 0.65, 480), 820)
         pixelAligned: false
 
+        onMovementStarted: {
+            geometryAnchorDebounce.stop()
+            geometryRestoreTimer.stop()
+            root.geometryAnchorKey = ""
+            // User input always wins over a queued model-rebuild restore.
+            stableViewportRestoreTimer.stop()
+            root.pendingViewportKey = ""
+            root.pendingViewportScope = ""
+        }
         onMovementEnded: {
+            geometryAnchorDebounce.restart()
             // A genuine scroll gesture is explicit user intent, unlike geometry
             // updates from an empty/duplicate continuation page.
             root.resetAutomaticPageBudget()
@@ -1064,8 +1224,23 @@ Item {
         // only schedule work while the view is already at rest. This removes a
         // periodic JavaScript timer from every active flick.
         onContentHeightChanged: {
-            if (!readList.moving && !scrollWorkThrottle.running)
-                scrollWorkThrottle.start()
+            if (!readList.moving) {
+                if (root.geometryAnchorKey.length > 0)
+                    geometryRestoreTimer.restart()
+                if (!scrollWorkThrottle.running)
+                    scrollWorkThrottle.start()
+            }
+        }
+        onContentYChanged: {
+            // A desktop wheel may change contentY without ListView.moving.
+            // Such user input invalidates any old geometry anchor immediately;
+            // never pull the reader backwards while they continue scrolling.
+            if (!readList.moving && !root.applyingGeometryAnchor
+                    && !geometryRestoreTimer.running
+                    && root.pendingViewportScope.length === 0) {
+                root.geometryAnchorKey = ""
+                geometryAnchorDebounce.restart()
+            }
         }
         onHeightChanged: {
             if (!readList.moving && !scrollWorkThrottle.running)

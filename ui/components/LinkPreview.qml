@@ -269,7 +269,7 @@ Superellipse {
 
     function requestBrowserMiniAppManifest() {
         if (Qt.platform.os !== "wasm" || root.targetUrl.length === 0
-                || root.scrollMoving || Boolean(root.knownMiniApp.homeUrl)
+                || root.scrollMoving
                 || Boolean(root.browserMiniAppPreview.resolved)
                 || root.browserPreviewRequestUrl === root.targetUrl
                 || !/^https:\/\//i.test(root.targetUrl)) return
@@ -288,7 +288,8 @@ Superellipse {
             if (kind === "miniapp") {
                 if (preview && preview.resolved && preview.providerKind === "miniapp") {
                     const metadata = Object.assign({}, preview)
-                    metadata.miniAppLaunchUrl = root.targetUrl
+                    // Trust the validated action.url from the frame embed.
+                    // It can carry a different query than the cast share URL.
                     if (root.scrollMoving) root.pendingBrowserMiniAppPreview = metadata
                     else root.browserMiniAppPreview = metadata
                 } else {

@@ -79,6 +79,92 @@ async function pinnedJson(url, {lookupHost = lookup, requester = https.request, 
   });
 }
 
+// Per-cast Frames v2 metadata is embedded in the shared URL's HTML, not
+// necessarily in the app-wide manifest. Framedl, for example, generates an
+// image per game/result ID. Pin DNS, cap bytes, reject cross-origin redirects,
+// and only interpret a valid JSON fc:miniapp/fc:frame tag from the page head.
+async function pinnedEmbedHtml(url, {
+  lookupHost=lookup, requester=https.request, depth=0,
+} = {}) {
+  const valid=validMiniAppTarget(url.href);
+  if (!valid) return null;
+  let addresses;
+  try{addresses=await lookupHost(valid.hostname,{all:true,verbatim:true});}
+  catch{return null;}
+  if(!Array.isArray(addresses)||!addresses.length
+      ||addresses.some(v=>!isPublicAddress(v.address,v.family)))return null;
+  const selected=addresses.find(v=>v.family===4)??addresses[0];
+  return new Promise(resolve=>{
+    let settled=false;
+    const done=value=>{if(!settled){settled=true;resolve(value);}};
+    const req=requester(valid,{
+      method:'GET',timeout:7000,
+      headers:{accept:'text/html','user-agent':'Genycaster/1.0 MiniAppEmbed'},
+      lookup:(_host,opts,cb)=>opts.all?cb(null,[selected])
+        : cb(null,selected.address,selected.family),
+    },async res=>{
+      const status=Number(res.statusCode||502);
+      if([301,302,303,307,308].includes(status)){
+        res.resume();
+        if(depth!==0 || !res.headers.location)return done(null);
+        let next;
+        try{next=new URL(res.headers.location,valid);}catch{return done(null);}
+        if(next.hostname!==valid.hostname)return done(null);
+        return done(await pinnedEmbedHtml(next,{lookupHost,requester,depth:depth+1}));
+      }
+      if(status!==200
+          ||!String(res.headers['content-type']||'').toLowerCase().includes('text/html')){
+        res.resume();return done(null);
+      }
+      const len=Number(res.headers['content-length']||0);
+      if(!Number.isFinite(len)||len>192*1024){res.destroy();return done(null);}
+      let count=0;const chunks=[];
+      res.on('data',part=>{
+        count+=part.length;
+        if(count>192*1024){res.destroy();done(null);return;}
+        chunks.push(part);
+      });
+      res.on('end',()=>done(Buffer.concat(chunks,count).toString('utf8')));
+      res.on('error',()=>done(null));
+    });
+    req.on('timeout',()=>req.destroy(new Error('miniapp embed deadline')));
+    req.on('error',()=>done(null));
+    req.end();
+  });
+}
+
+function pageFrameMetadata(html, pageUrl) {
+  if(typeof html!=='string')return null;
+  // Meta tags belong in the head; never parse arbitrary content/body text.
+  const head=html.split(/<\/head\s*>/i,1)[0];
+  for(const tag of head.match(/<meta\b[^>]*>/gi)||[]){
+    const attributes=Object.create(null);
+    for(const match of tag.matchAll(/([a-z-]+)\s*=\s*(["'])(.*?)\2/gi)){
+      attributes[match[1].toLowerCase()]=match[3];
+    }
+    if(!['fc:miniapp','fc:frame'].includes(String(attributes.name||attributes.property||'').toLowerCase()))continue;
+    const raw=String(attributes.content||'').replace(/&quot;/gi,'"').replace(/&#34;/g,'"')
+      .replace(/&apos;/gi,"'").replace(/&#39;/g,"'").replace(/&amp;/gi,'&')
+      .replace(/&lt;/gi,'<').replace(/&gt;/gi,'>');
+    let embed;
+    try{embed=JSON.parse(raw);}catch{continue;}
+    if(!embed||!['next','1'].includes(embed.version))continue;
+    const button=embed.button;
+    const action=button?.action;
+    const title=String(button?.title||'').trim();
+    if(!['launch_miniapp','launch_frame'].includes(action?.type)
+       ||!title||title.length>32)return null;
+    const image=validMiniAppTarget(String(embed.imageUrl||''));
+    const launch=validMiniAppTarget(String(action.url||''));
+    // A page must not be able to present a fake same-domain game card
+    // that launches an unrelated service.
+    if(!image || !launch || launch.hostname!==pageUrl.hostname)return null;
+    return {imageUrl:image.href,launchUrl:launch.href,buttonTitle:title,
+      appName:String(action.name||'').slice(0,100)};
+  }
+  return null;
+}
+
 export async function publicMiniAppPreview(rawUrl, dependencies = {}) {
   const target = validMiniAppTarget(rawUrl);
   if (!target) return {status:400,error:'invalid_miniapp_url'};
@@ -104,23 +190,25 @@ export async function publicMiniAppPreview(rawUrl, dependencies = {}) {
     && /\.gif$/i.test(value.pathname));
   const toImageSource = value => value
     ? 'image://remote/' + Buffer.from(value.href,'utf8').toString('base64url') : '';
-  const imageSource = toImageSource(imageUrl);
+  const frame=pageFrameMetadata(await pinnedEmbedHtml(target,dependencies),target);
+  const frameImage=frame ? validMiniAppTarget(frame.imageUrl) : null;
+  const imageSource = toImageSource(frameImage || imageUrl);
   const iconSource = toImageSource(iconUrl);
   const screenshots = (Array.isArray(app.screenshotUrls) ? app.screenshotUrls.slice(0,3) : [])
     .map(value=>validMiniAppTarget(String(value || ''))).filter(Boolean);
-  const verifiedImageUrls = [...new Set([imageUrl,iconUrl,splashUrl,gifUrl,...screenshots]
+  const verifiedImageUrls = [...new Set([frameImage,imageUrl,iconUrl,splashUrl,gifUrl,...screenshots]
     .filter(Boolean).map(value=>value.href))];
   const data = {
     resolved:true,providerKind:'miniapp',
-    miniAppLaunchUrl:rawUrl,
-    title:String(app.name || target.hostname).slice(0,100),
+    miniAppLaunchUrl:frame?.launchUrl || rawUrl,
+    title:String(app.name || frame?.appName || target.hostname).slice(0,100),
     siteName:String(app.name || target.hostname).slice(0,100),
     summary:String(app.description || app.subtitle || '').slice(0,280),
     domain:target.hostname,
     previewImage:imageSource,
     animatedPoster:gifUrl ? gifUrl.href : '',
     favicon:iconSource,
-    miniAppButtonTitle:String(app.buttonTitle || '').slice(0,48),
+    miniAppButtonTitle:frame?.buttonTitle || String(app.buttonTitle || '').slice(0,48),
     verifiedImageUrls,
   };
   return {status:200,data};
