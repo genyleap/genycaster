@@ -22,9 +22,26 @@ Item {
     }
     Component.onCompleted: root.ensureDiscovery()
     onVisibleChanged: if (visible) root.ensureDiscovery()
-    readonly property var visibleApps: root.farcasterSection === "my"
-                                       ? miniAppCatalog.myApps
-                                       : miniAppCatalog.explorerApps
+    property string topicFilter: "all"
+    readonly property var availableCategories: {
+        const source = root.farcasterSection === "my"
+                       ? (miniAppCatalog.myApps || []) : (miniAppCatalog.explorerApps || [])
+        const categories = new Set()
+        for (const app of source) {
+            const category = String(app.category || "").trim()
+            if (category.length > 0)
+                categories.add(category)
+        }
+        return [{id: "all", title: qsTr("All topics")}].concat(
+            Array.from(categories).sort((a, b) => a.localeCompare(b))
+                .map(category => ({id: category, title: category})))
+    }
+    readonly property var visibleApps: {
+        const source = root.farcasterSection === "my"
+                       ? (miniAppCatalog.myApps || []) : (miniAppCatalog.explorerApps || [])
+        if (root.topicFilter === "all") return source
+        return source.filter(app => String(app.category || "").trim() === root.topicFilter)
+    }
     // Display apps with genuine cover artwork first, without claiming that
     // catalogue order or this shelf constitutes an external popularity rank.
     readonly property var discoveryShelfApps: {
@@ -437,12 +454,10 @@ Item {
                     }
                 }
 
-                GridLayout {
+                RowLayout {
                     visible: root.farcasterSection === "explorer" && !root.compact
                     Layout.fillWidth: true
-                    columns: 4
-                    rowSpacing: Theme.space2
-                    columnSpacing: Theme.space2
+                    spacing: Theme.space2
                     layoutDirection: Theme.uiDirection
 
                     GenyComboBox {
@@ -457,9 +472,25 @@ Item {
                         onActivated: root.explorerMode = String(currentValue)
                     }
 
+                    GenyComboBox {
+                        objectName: "miniAppTopicFilter"
+                        Layout.preferredWidth: 166
+                        textRole: "title"
+                        valueRole: "id"
+                        model: root.availableCategories
+                        currentIndex: {
+                            const i = root.availableCategories.findIndex(
+                                row => row.id === root.topicFilter)
+                            return i >= 0 ? i : 0
+                        }
+                        onActivated: root.topicFilter = String(currentValue)
+                    }
+
                     DirectionAwareTextField {
                         id: miniAppSearch
                         Layout.fillWidth: true
+                        Layout.preferredWidth: 290
+                        Layout.maximumWidth: 420
                         placeholderText: qsTrId("genycaster.apps.search_placeholder")
                         text: miniAppCatalog.query
                         selectByMouse: true
@@ -468,6 +499,7 @@ Item {
 
                     ActionButton {
                         compact: true
+                        iconOnly: true
                         iconGlyph: Theme.iconSearch
                         text: qsTrId("genycaster.feed_header.universal_search")
                         enabled: !miniAppCatalog.busy
@@ -483,6 +515,8 @@ Item {
                         enabled: !miniAppCatalog.busy
                         onClicked: miniAppCatalog.searchByFid(Number(presentationBridge.accountFid || 0))
                     }
+
+                    Item { Layout.fillWidth: true }
                 }
 
                 DirectionAwareLabel {

@@ -443,8 +443,8 @@ Item {
             Superellipse {
                 anchors.fill: parent
                 fillColor: Theme.backgroundPrimary
-                borderWidth: root.compact ? 0 : Theme.strokeHairline
-                borderColor: root.compact ? "transparent" : Theme.borderSubtle
+                borderWidth: 0
+                borderColor: "transparent"
                 curveDepth: Theme.curveContainer
             }
 
@@ -589,20 +589,9 @@ Item {
                                 }
                             }
 
-                            Label {
+                            SourceClientBadge {
                                 objectName: "castSourceClientBadge"
-                                visible: String(root.modelData.sourceClient || "").length > 0
-                                text: String(root.modelData.sourceClient || "")
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Math.max(9, Theme.typeCaptionSize - 2)
-                                color: Theme.inkSubtle
-                                elide: Text.ElideRight
-                                Layout.maximumWidth: 84
-                                padding: 2
-                                background: Rectangle {
-                                    radius: 5
-                                    color: Theme.surfaceMuted
-                                }
+                                clientName: String(root.modelData.sourceClient || "")
                             }
 
                             DirectionAwareLabel {

@@ -1574,11 +1574,16 @@ Item {
         replyMode: presentationBridge.activeView === "cast" && Boolean(presentationBridge.detail.castId)
         anchors.bottom: parent.bottom
         anchors.bottomMargin: root.wide ? Theme.space5 + 36 : 78
-        x: Theme.rtl
-           ? root.railReservation + Theme.space5
-           : Math.max(Theme.space5, root.width - root.railReservation - Theme.space5 - width)
+        // Pin to the physical viewport edge, not the edge of the reading
+        // column (which is displaced by a large context sidebar).
+        x: Theme.rtl ? Theme.space5 : Math.max(Theme.space5, root.width - Theme.space5 - width)
         onComposeRequested: root.openComposer(null)
         onReplyRequested: root.openComposer(presentationBridge.detail)
+    }
+
+    UpdateNoticeDrawer {
+        id: releaseNotice
+        z: 200
     }
 
     Shortcut {

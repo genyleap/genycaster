@@ -415,29 +415,32 @@ RowLayout {
                             }
                         }
                         ActionButton {
-                            // Quorum's quorummobile:// route is an app URI, not
-                            // an HTTPS link. Browser share menus expose web
-                            // destinations only.
-                            visible: Qt.platform.os !== "wasm"
+                            // Native Quorum accepts its verified app URI;
+                            // WASM opens Quorum's official browser application.
+                            visible: true
                             Layout.fillWidth: true
                             quiet: true
                             alignStart: true
                             iconGlyph: Theme.iconArrowUpRight
-                            text: qsTr("Open in Quorum")
+                            text: Qt.platform.os === "wasm" ? qsTr("Quorum Web") : qsTr("Open in Quorum")
                             onClicked: {
                                 sharePopup.close()
-                                presentationBridge.openQuorumCast(root.normalizedCastId)
+                                if (Qt.platform.os === "wasm")
+                                    presentationBridge.openExternalUrl("https://app.quorummessenger.com/")
+                                else
+                                    presentationBridge.openQuorumCast(root.normalizedCastId)
                             }
                         }
                         ActionButton {
-                            visible: Qt.platform.os !== "wasm"
                             Layout.fillWidth: true
                             quiet: true
                             alignStart: true
                             iconGlyph: Theme.iconCopy
-                            text: qsTr("Copy Quorum URI")
+                            text: Qt.platform.os === "wasm" ? qsTr("Copy Quorum Web") : qsTr("Copy Quorum URI")
                             onClicked: {
-                                presentationBridge.copyText(presentationBridge.quorumCastUri(root.normalizedCastId))
+                                presentationBridge.copyText(Qt.platform.os === "wasm"
+                                    ? "https://app.quorummessenger.com/"
+                                    : presentationBridge.quorumCastUri(root.normalizedCastId))
                                 sharePopup.close()
                             }
                         }

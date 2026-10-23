@@ -71,12 +71,53 @@ test('profile lifecycle and cast identity avoid undefined access and layout feed
 });
 
 
-test('WASM only shows HTTP(S) share destinations, never mobile app schemes', () => {
+test('WASM offers verified web clients and never launches mobile app URIs', () => {
     const cast = read('ui/components/EngagementBar.qml');
-    const profile = read('ui/components/ProfileSurface.qml');
-    assert.match(cast, /visible: Qt\.platform\.os !== "wasm"[\s\S]*?text: qsTr\("Open in Quorum"\)/);
-    assert.match(cast, /visible: Qt\.platform\.os !== "wasm"[\s\S]*?text: qsTr\("Copy Quorum URI"\)/);
+    assert.match(cast, /text: Qt\.platform\.os === "wasm" \? qsTr\("Quorum Web"\)/);
+    assert.match(cast, /presentationBridge\.openExternalUrl\("https:\/\/app\.quorummessenger\.com\/"\)/);
+    assert.match(cast, /text: Qt\.platform\.os === "wasm" \? qsTr\("Copy Quorum Web"\)/);
+    assert.match(cast, /presentationBridge\.farcasterWebCastUrl/);
     assert.match(cast, /visible: Qt\.platform\.os !== "wasm"\s*&& presentationBridge\.farcasterCastUri/);
-    assert.match(profile, /visible: Qt\.platform\.os !== "wasm"[\s\S]*?text: qsTr\("Copy Farcaster URI"\)/);
     assert.match(cast, /presentationBridge\.castShareUrl\(root\.normalizedCastId\)/);
+});
+
+test('Apps search has constrained width and data-driven topic filter', () => {
+    const apps = read('ui/components/AppsSurface.qml');
+    assert.match(apps, /objectName: "miniAppTopicFilter"/);
+    assert.match(apps, /Layout\.maximumWidth: 420/);
+    assert.match(apps, /readonly property var availableCategories/);
+    assert.match(apps, /source\.filter\(app => String\(app\.category \|\| ""\)/);
+});
+
+test('cast backgrounds and floating compose use page canvas and physical right edge', () => {
+    const cast = read('ui/components/CastItem.qml');
+    const reply = read('ui/components/ThreadReplyItem.qml');
+    const shell = read('ui/components/AppShell.qml');
+    assert.match(cast, /fillColor: Theme\.backgroundPrimary\s*borderWidth: 0/);
+    assert.match(reply, /fillColor: Theme\.backgroundPrimary/);
+    assert.match(shell, /root\.width - Theme\.space5 - width/);
+    assert.doesNotMatch(shell, /root\.width - root\.railReservation - Theme\.space5 - width/);
+});
+
+test('release updates use a top-edge drawer with real versions and actions', () => {
+    const notice = read('ui/components/UpdateNoticeDrawer.qml');
+    const shell = read('ui/components/AppShell.qml');
+    assert.match(notice, /edge: Qt\.TopEdge/);
+    assert.match(notice, /updateController\.updateAvailable/);
+    assert.match(notice, /updateController\.appVersion/);
+    assert.match(notice, /updateController\.latestVersion/);
+    assert.match(notice, /updateController\.downloadUpdate\(\)/);
+    assert.match(notice, /updateController\.refreshWebApp\(\)/);
+    assert.match(shell, /UpdateNoticeDrawer \{/);
+});
+
+test('client badge only uses provider-returned metadata in feed and replies', () => {
+    const badge = read('ui/components/SourceClientBadge.qml');
+    const feed = read('ui/components/CastItem.qml');
+    const reply = read('ui/components/ThreadReplyItem.qml');
+    assert.match(badge, /visible: sanitizedName\.length > 0/);
+    assert.match(feed, /objectName: "castSourceClientBadge"/);
+    assert.match(reply, /objectName: "replySourceClientBadge"/);
+    assert.match(feed, /clientName: String\(root\.modelData\.sourceClient/);
+    assert.match(reply, /clientName: String\(root\.reply\.sourceClient/);
 });

@@ -128,12 +128,11 @@ ColumnLayout {
             implicitHeight: replyContent.implicitHeight + (root.compact ? Theme.space3 : Theme.space4) * 2
             // Replies from other accounts on my own cast deserve the accent
             // treatment. My own replies should not monopolize emphasis.
-            fillColor: root.highlighted ? Theme.surfaceSelected
-                       : root.replyToMyCast ? Theme.primarySurface
-                       : root.ownReply ? Theme.surface : Theme.surfaceRaised
-            borderWidth: root.replyToMyCast || root.highlighted ? 1 : Theme.strokeHairline
-            borderColor: root.highlighted ? Theme.accent
-                         : root.replyToMyCast ? Theme.borderStrong : Theme.borderSubtle
+            // Timeline replies share the page canvas. Ownership and selection
+            // use a restrained edge, not a full purple highlighted tile.
+            fillColor: Theme.backgroundPrimary
+            borderWidth: root.highlighted ? Theme.strokeHairline : 0
+            borderColor: root.highlighted ? Theme.accent : "transparent"
             curveDepth: Theme.curveModal
 
             ColumnLayout {
@@ -168,6 +167,11 @@ ColumnLayout {
                         font.pixelSize: Theme.typeLabelSize
                         font.weight: Theme.weightDemiBold
                         elide: Text.ElideRight
+                    }
+
+                    SourceClientBadge {
+                        objectName: "replySourceClientBadge"
+                        clientName: String(root.reply.sourceClient || "")
                     }
 
                     DirectionAwareLabel {

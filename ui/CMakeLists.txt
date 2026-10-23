@@ -33,6 +33,7 @@ set(farcasterQmlFiles
     components/CastEmbedsPanel.qml
     components/ComposerToolbar.qml
     components/CastItem.qml
+    components/SourceClientBadge.qml
     components/CastSkeleton.qml
     components/CastViews.qml
     components/CastReactions.qml
@@ -61,6 +62,7 @@ set(farcasterQmlFiles
     components/AccentColorStudio.qml
     components/AmbientMediaBackdrop.qml
     components/LocaleSettingsPopup.qml
+    components/UpdateNoticeDrawer.qml
     components/LocaleFormat.qml
     components/MiniAppPresentationPreview.qml
     components/LanguageSelector.qml
