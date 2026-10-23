@@ -26,6 +26,8 @@ test('link and embed metadata run through one Qt adapter, not QML HTTP',()=>{
   assert.match(cpp,/maximumActive\{2\}/);
   assert.match(cpp,/maximumResponseBytes\{96 \* 1024\}/);
   assert.match(cpp,/requestDeadlineMs\{7 \* 1000\}/);
+  assert.match(cpp,/miniAppRequestDeadlineMs\{12 \* 1000\}/);
+  assert.match(cpp,/request.kind == QLatin1String\("miniapp"\)\s*\? miniAppRequestDeadlineMs : requestDeadlineMs/);
   assert.match(cpp,/normalizedDomain == normalizedHost/);
 });
 

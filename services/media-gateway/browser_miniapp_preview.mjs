@@ -4,6 +4,15 @@ import https from 'node:https';
 import {isPublicAddress} from './browser_image_proxy.mjs';
 
 const MAX_MANIFEST_BYTES = 128 * 1024;
+// The manifest is per-origin while the embed image/action are per-cast.
+// Many unique shared URLs in a scrolling feed belong to the same app.
+// Keep a short, bounded in-memory cache with in-flight deduplication so the
+// origin manifest isn't downloaded once for every gift/game result.
+// Injected test transports remain uncached for deterministic fixture isolation.
+const manifestCache=new Map();
+const manifestTtlMs=120_000;
+const maximumCachedManifests=128;
+
 
 export function validMiniAppTarget(raw) {
   if (typeof raw !== 'string' || raw.length > 2048) return null;
@@ -79,6 +88,27 @@ async function pinnedJson(url, {lookupHost = lookup, requester = https.request, 
   });
 }
 
+async function manifestForOrigin(url, dependencies) {
+  if (Object.keys(dependencies).length) return pinnedJson(url,dependencies);
+  const key=url.href;
+  const now=Date.now();
+  const existing=manifestCache.get(key);
+  if(existing && existing.expires>now)return existing.promise;
+  if(existing)manifestCache.delete(key);
+  while(manifestCache.size>=maximumCachedManifests)
+    manifestCache.delete(manifestCache.keys().next().value);
+  const promise=pinnedJson(url,dependencies).then(value=>{
+    if(!value && manifestCache.get(key)?.promise===promise)
+      manifestCache.delete(key);
+    return value;
+  }).catch(()=>{
+    if(manifestCache.get(key)?.promise===promise)manifestCache.delete(key);
+    return null;
+  });
+  manifestCache.set(key,{expires:now+manifestTtlMs,promise});
+  return promise;
+}
+
 // Per-cast Frames v2 metadata is embedded in the shared URL's HTML, not
 // necessarily in the app-wide manifest. Framedl, for example, generates an
 // image per game/result ID. Pin DNS, cap bytes, reject cross-origin redirects,
@@ -116,15 +146,30 @@ async function pinnedEmbedHtml(url, {
           ||!String(res.headers['content-type']||'').toLowerCase().includes('text/html')){
         res.resume();return done(null);
       }
-      const len=Number(res.headers['content-length']||0);
-      if(!Number.isFinite(len)||len>192*1024){res.destroy();return done(null);}
-      let count=0;const chunks=[];
+      // We need the meta tags in <head>, not the entire application shell.
+      // Next.js pages commonly exceed 250 KiB because of hydrated RSC state.
+      // A body-size or Content-Length limit must not discard an otherwise
+      // valid <head> (Celebration Hub's cast-specific card is one example).
+      // Still cap bytes *read*, stop immediately on </head>, and never parse
+      // any tags from the body or a partial/oversized head.
+      const maxHeadBytes=96*1024;
+      let prefix=Buffer.alloc(0);
       res.on('data',part=>{
-        count+=part.length;
-        if(count>192*1024){res.destroy();done(null);return;}
-        chunks.push(part);
+        if(settled)return;
+        const remaining=maxHeadBytes-prefix.length;
+        prefix=Buffer.concat([prefix,part.subarray(0,remaining)]);
+        const end=prefix.indexOf('</head>'); // optimize the common lowercase case
+        const headEnd=end>=0?end:prefix.toString('latin1').search(/<\/head\s*>/i);
+        if(headEnd>=0){
+          const html=prefix.subarray(0,headEnd).toString('utf8');
+          done(html);
+          res.destroy(); // close the stream before downloading the large body
+        }else if(part.length>remaining || prefix.length>=maxHeadBytes){
+          done(null);
+          res.destroy();
+        }
       });
-      res.on('end',()=>done(Buffer.concat(chunks,count).toString('utf8')));
+      res.on('end',()=>done(null));
       res.on('error',()=>done(null));
     });
     req.on('timeout',()=>req.destroy(new Error('miniapp embed deadline')));
@@ -153,12 +198,12 @@ function pageFrameMetadata(html, pageUrl) {
     const action=button?.action;
     const title=String(button?.title||'').trim();
     if(!['launch_miniapp','launch_frame'].includes(action?.type)
-       ||!title||title.length>32)return null;
+       ||!title||title.length>32)continue;
     const image=validMiniAppTarget(String(embed.imageUrl||''));
     const launch=validMiniAppTarget(String(action.url||''));
     // A page must not be able to present a fake same-domain game card
     // that launches an unrelated service.
-    if(!image || !launch || launch.hostname!==pageUrl.hostname)return null;
+    if(!image || !launch || launch.hostname!==pageUrl.hostname)continue;
     return {imageUrl:image.href,launchUrl:launch.href,buttonTitle:title,
       appName:String(action.name||'').slice(0,100)};
   }
@@ -169,7 +214,12 @@ export async function publicMiniAppPreview(rawUrl, dependencies = {}) {
   const target = validMiniAppTarget(rawUrl);
   if (!target) return {status:400,error:'invalid_miniapp_url'};
   const manifestUrl = new URL('/.well-known/farcaster.json',target);
-  const payload = await pinnedJson(manifestUrl,dependencies);
+  // Manifest and per-cast head have independent DNS-pinned safety checks.
+  // Fetch them concurrently: sequential cold requests could exceed the
+  // browser's bounded preview deadline on high-latency Mini App servers.
+  const [payload, castHead] = await Promise.all([
+    manifestForOrigin(manifestUrl,dependencies), pinnedEmbedHtml(target,dependencies),
+  ]);
   const app = payload?.miniapp || payload?.frame;
   if (!app || typeof app !== 'object') return {status:404,error:'miniapp_manifest_unavailable'};
   const home = validMiniAppTarget(String(app.homeUrl || ''));
@@ -190,7 +240,7 @@ export async function publicMiniAppPreview(rawUrl, dependencies = {}) {
     && /\.gif$/i.test(value.pathname));
   const toImageSource = value => value
     ? 'image://remote/' + Buffer.from(value.href,'utf8').toString('base64url') : '';
-  const frame=pageFrameMetadata(await pinnedEmbedHtml(target,dependencies),target);
+  const frame=pageFrameMetadata(castHead,target);
   const frameImage=frame ? validMiniAppTarget(frame.imageUrl) : null;
   const imageSource = toImageSource(frameImage || imageUrl);
   const iconSource = toImageSource(iconUrl);

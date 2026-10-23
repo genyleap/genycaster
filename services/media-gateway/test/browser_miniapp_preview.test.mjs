@@ -180,3 +180,108 @@ test('frame HTML cannot replace manifest app identity or launch an unrelated hos
     'image://remote/'+Buffer.from('https://framedl.com/init-v2.png').toString('base64url'));
   assert.equal(result.data.verifiedImageUrls.includes('https://safe.example/frame.webp'),false);
 });
+
+test('large redirecting cast pages use only bounded head metadata, not their oversized hydrated body', async()=>{
+  const share='https://celebration-hub.xyz/g/56796108-3921-4c53-bbb4-5599c5e7b7e7?ref=gift';
+  const destination='https://celebration-hub.xyz/share-gift-nft/56796108-3921-4c53-bbb4-5599c5e7b7e7';
+  const artwork='https://celebration-hub.xyz/api/og-fc?src=%2Fapi%2Fog-gift%2F56796108-3921-4c53-bbb4-5599c5e7b7e7%3Fv%3Dg3';
+  const castMeta={version:'1',imageUrl:artwork,
+    button:{title:'Open NFT Gift',action:{type:'launch_miniapp',
+      name:'Celebration Hub',url:destination}}};
+  const head='<html><head><meta name="fc:miniapp" content="'+
+    JSON.stringify(castMeta).replaceAll('&','&amp;').replaceAll('"','&quot;')+
+    '"/></head>';
+  const html=head+'<body>'+ 'x'.repeat(350*1024) +'</body></html>';
+  let bytesServed=0;
+  const calls=[];
+  const response=await publicMiniAppPreview(share,{
+    lookupHost:publicDns,
+    requester:(url,options,callback)=>{
+      calls.push(url.href);
+      if(url.pathname==='/.well-known/farcaster.json'){
+        return responder({miniapp:{name:'Celebration Hub',
+          homeUrl:'https://celebration-hub.xyz/farcaster',
+          imageUrl:'https://celebration-hub.xyz/cover.png'}})(url,options,callback);
+      }
+      if(url.pathname==='/g/56796108-3921-4c53-bbb4-5599c5e7b7e7'){
+        return responder('',{status:302,headers:{location:destination}})
+          (url,options,callback);
+      }
+      const req=new EventEmitter();
+      req.end=()=>setImmediate(()=>{
+        const res=new PassThrough();
+        res.statusCode=200;
+        res.headers={'content-type':'text/html; charset=utf-8',
+          'content-length':String(Buffer.byteLength(html))};
+        callback(res);
+        // The HTML is fed incrementally. The client must stop after </head>
+        // rather than downloading or parsing the 350 KiB rendered body.
+        for(let i=0;i<html.length;i+=4096){
+          if(res.destroyed)break;
+          const chunk=html.slice(i,i+4096);
+          bytesServed+=Buffer.byteLength(chunk);
+          res.write(chunk);
+        }
+        if(!res.destroyed)res.end();
+      });
+      req.destroy=()=>req.emit('error',new Error('destroyed'));
+      return req;
+    }
+  });
+  assert.equal(response.status,200);
+  assert.equal(response.data.providerKind,'miniapp');
+  assert.equal(response.data.miniAppButtonTitle,'Open NFT Gift');
+  assert.equal(response.data.miniAppLaunchUrl,destination);
+  assert.equal(response.data.previewImage,'image://remote/'+
+    Buffer.from(artwork).toString('base64url'));
+  assert.ok(response.data.verifiedImageUrls.includes(artwork));
+  assert.ok(bytesServed<16*1024,'read only the bounded page head');
+  assert.deepEqual(calls,[ 'https://celebration-hub.xyz/.well-known/farcaster.json',
+    share,destination ]);
+});
+
+test('oversized head is rejected and falls back to manifest without harvesting body tags',async()=>{
+  const share='https://example.org/game/123';
+  const maliciousMeta={version:'next',imageUrl:'https://example.org/different.png',
+    button:{title:'Open Wrong',action:{type:'launch_miniapp',
+      url:'https://example.org/wrong'}}};
+  const page='<head>'+' '.repeat(110*1024)+'</head><body><meta name="fc:miniapp" content="'+
+    JSON.stringify(maliciousMeta).replaceAll('"','&quot;')+'"/></body>';
+  const preview=await publicMiniAppPreview(share,{
+    lookupHost:publicDns,
+    requester:(url,opts,callback)=>responder(url.pathname==='/.well-known/farcaster.json'
+      ? {miniapp:{name:'Example App',homeUrl:'https://example.org/',
+         imageUrl:'https://example.org/manifest.png',buttonTitle:'Default'}}
+      : page,{headers:{'content-type':url.pathname==='/.well-known/farcaster.json'
+      ? 'application/json':'text/html'}})(url,opts,callback),
+  });
+  assert.equal(preview.status,200);
+  assert.equal(preview.data.miniAppButtonTitle,'Default');
+  assert.equal(preview.data.miniAppLaunchUrl,share);
+  assert.equal(preview.data.previewImage,'image://remote/'+
+    Buffer.from('https://example.org/manifest.png').toString('base64url'));
+});
+
+test('invalid preferred embed does not suppress valid fc:frame compatibility metadata',async()=>{
+  const shared='https://gift.example.com/gift/123';
+  const original={version:'next',imageUrl:'https://gift.example.com/hero.png',
+    button:{title:'Open Gift',action:{type:'launch_frame',
+      url:'https://gift.example.com/open/123'}}};
+  const html='<head><meta name="fc:miniapp" content="'+
+    JSON.stringify({...original,button:{title:'Unsafe',action:{type:'launch_miniapp',
+      url:'https://unrelated.example.net/phishing'}}}).replaceAll('"','&quot;')+
+    '"/><meta name="fc:frame" content="'+
+    JSON.stringify(original).replaceAll('"','&quot;')+
+    '"/></head>';
+  const result=await publicMiniAppPreview(shared,{
+    lookupHost:publicDns,
+    requester:(url,opt,cb)=>responder(url.pathname==='/.well-known/farcaster.json'?
+      {miniapp:{name:'Gift',homeUrl:'https://gift.example.com/',
+        imageUrl:'https://gift.example.com/default.png'}}:html,{
+        headers:{'content-type':url.pathname==='/.well-known/farcaster.json'
+          ?'application/json':'text/html'}})(url,opt,cb)
+  });
+  assert.equal(result.status,200);
+  assert.equal(result.data.miniAppButtonTitle,'Open Gift');
+  assert.equal(result.data.miniAppLaunchUrl,'https://gift.example.com/open/123');
+});

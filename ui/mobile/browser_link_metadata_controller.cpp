@@ -20,6 +20,9 @@ constexpr qsizetype maximumResponseBytes{96 * 1024};
 constexpr qint64 verifiedFreshMs{3 * 60 * 1000};
 constexpr qint64 unavailableRetryMs{15 * 1000};
 constexpr int requestDeadlineMs{7 * 1000};
+// A cold Mini App lookup may require manifest + one or two same-origin
+// redirects. Give that path more time without slowing normal link previews.
+constexpr int miniAppRequestDeadlineMs{12 * 1000};
 
 [[nodiscard]] bool safeHost(const QUrl& url)
 {
@@ -162,12 +165,14 @@ void BrowserLinkMetadataController::dispatch()
         networkRequest.setRawHeader("Accept", "application/json");
         networkRequest.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
             QNetworkRequest::ManualRedirectPolicy);
-        networkRequest.setTransferTimeout(requestDeadlineMs);
+        const int deadlineMs = request.kind == QLatin1String("miniapp")
+            ? miniAppRequestDeadlineMs : requestDeadlineMs;
+        networkRequest.setTransferTimeout(deadlineMs);
         QNetworkReply* reply = m_network.get(networkRequest);
         // Limit Qt's socket receive buffer as well as parsed JSON size.
         reply->setReadBufferSize(maximumResponseBytes + 1);
         m_active.insert(request.key, reply);
-        QTimer::singleShot(requestDeadlineMs, reply, [reply] {
+        QTimer::singleShot(deadlineMs, reply, [reply] {
             if (reply->isRunning()) reply->abort();
         });
         connect(reply, &QNetworkReply::finished, this,
