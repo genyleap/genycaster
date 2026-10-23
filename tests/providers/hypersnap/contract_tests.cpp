@@ -124,6 +124,26 @@ void testCanonicalCodec()
     assert(hydrated);
     assert(hydrated->text == "Right! 💯 ");
     assert(hydrated->displayText && *hydrated->displayText == "Right! 💯 @vrypan.eth");
+    // A self-hosted node may return canonical mention FIDs without enriched
+    // username objects. Make the mention visible and navigable by FID,
+    // preserving exact signed bytes and respecting the UTF-8 boundary.
+    auto unhydrated = withMention;
+    const auto profileStart = unhydrated.find(R"json("mentioned_profiles": [{"fid": 12345,"username":"vrypan.eth"}])json");
+    assert(profileStart != std::string::npos);
+    unhydrated.replace(profileStart,
+        std::string{R"json("mentioned_profiles": [{"fid": 12345,"username":"vrypan.eth"}])json"}.size(),
+        R"json("mentions": [12345], "mentioned_profiles": [])json");
+    const auto fidProjection = provider::hypersnap::codec::decodeCast(unhydrated);
+    assert(fidProjection && fidProjection->text == "Right! 💯 ");
+    assert(fidProjection->displayText && *fidProjection->displayText == "Right! 💯 @fid:12345");
+    auto splitUtf8 = unhydrated;
+    const auto validPosition = splitUtf8.find(R"json("mentions_positions": [12])json");
+    assert(validPosition != std::string::npos);
+    splitUtf8.replace(validPosition, std::string{R"json("mentions_positions": [12])json"}.size(),
+        R"json("mentions_positions": [9])json");
+    const auto badFidOffset = provider::hypersnap::codec::decodeCast(splitUtf8);
+    assert(badFidOffset && !badFidOffset->displayText);
+
     // Invalid positions within a UTF-8 code point must never split an emoji.
     const auto badAt = withMention.find("\"mentions_positions\": [12]");
     assert(badAt != std::string::npos);

@@ -43,14 +43,17 @@ test('browser reactions fetch positive evidence through bounded account-scoped s
   assert.match(gateway,/requestUrl.pathname === '\/v1\/browser\/cast-reactions'/);
 });
 
-test('narrow cast header moves handle/time out of crowded name and menu row',()=>{
+test('cast identity keeps name and handle stacked beside the avatar on narrow widths',()=>{
   const cast=read('ui/components/CastItem.qml');
   assert.match(cast,/id: messageSurface[\s\S]*?Layout.minimumWidth: 0/);
-  assert.match(cast,/visible: !root.compact && Boolean\(root.modelData.author\)/);
+  assert.match(cast,/id: castAuthorIdentity/);
+  assert.match(cast,/id: castAuthorIdentity[\s\S]*?text: root.authorName[\s\S]*?text: root.ltrHandle/);
   assert.match(cast,/objectName: "compactCastAuthorMetadata"/);
   assert.match(cast,/Layout.minimumWidth: 0[\s\S]*?text: root.ltrHandle/);
-  assert.match(cast,/Layout.maximumWidth: root.compact[\s\S]*?messageSurface.width - Theme.space4 \* 2/);
+  assert.match(cast,/visible: !root.compact && root.castChannel.length > 0/);
+  assert.match(cast,/visible: root.compact && root.castChannel.length > 0/);
   assert.match(cast,/LocaleFormat.formatRelativeTime\(Number\(root.modelData.createdAtMs\)\)/);
+  assert.doesNotMatch(cast,/Layout.maximumWidth: root.compact[\s\S]*?messageSurface.width - Theme.space4 \* 2/);
 });
 
 test('rich cast text wraps long unspaced terms within its actual width',()=>{

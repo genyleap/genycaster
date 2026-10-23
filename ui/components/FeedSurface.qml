@@ -1416,4 +1416,12 @@ Item {
     }
 
 
+    ContentRefreshIndicator {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        z: 50
+        active: root.busy && root.rows.length > 0
+    }
+
 }

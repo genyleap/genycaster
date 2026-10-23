@@ -263,8 +263,8 @@ test('stories always start with current identity; fresh Following casts use colo
 test('tapping ordinary cast text opens conversation without covering interactive media or controls', () => {
     const cast = read('ui/components/CastItem.qml');
     assert.match(cast, /id: castTextBody/);
-    assert.match(cast, /TapHandler \{\s+acceptedButtons: Qt\.LeftButton/);
-    assert.match(cast, /gesturePolicy: TapHandler\.DragThreshold/);
+    assert.doesNotMatch(cast.slice(cast.indexOf('id: castTextBody'),cast.indexOf('// Protocol cast order')), /TapHandler \{/);
+    assert.match(cast, /onBodyActivated: \{/);
     assert.match(cast, /!root\.scrollMoving && castId\.length > 0/);
     assert.match(cast, /root\.openRequested\(castId\)/);
     assert.match(cast, /onTapped: root\.openMoreMenu\(\)/);

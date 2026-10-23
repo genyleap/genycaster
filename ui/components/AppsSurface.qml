@@ -129,6 +129,14 @@ Item {
             policy: ScrollBar.AlwaysOff
         }
 
+        ContentRefreshIndicator {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            z: 5
+            active: miniAppCatalog.busy && root.visibleApps.length > 0
+        }
+
         ColumnLayout {
             id: pageColumn
             x: appsScroller.pageInset
@@ -558,23 +566,49 @@ Item {
                         anchors.top: parent.top
                         visible: miniAppCatalog.busy && root.visibleApps.length === 0
                         layoutDirection: Theme.uiDirection
-                        columns: width < 360 ? 1 : (width < 1040 ? 2 : 3)
+                        columns: root.compact ? (width < 325 ? 2 : 3)
+                                              : (width < 360 ? 1 : (width < 1040 ? 2 : 3))
                         columnSpacing: Theme.space2
                         rowSpacing: Theme.space2
 
                         Repeater {
-                            model: parent.columns
+                            model: root.compact ? 6 : parent.columns
                             delegate: Superellipse {
                                 required property int index
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 190
+                                Layout.preferredHeight: root.compact ? 126 : 190
                                 fillColor: Theme.surfaceMuted
                                 borderWidth: 1
                                 borderColor: Theme.borderMuted
                                 curveDepth: Theme.curveContainer
                                 opacity: 0.72
 
+                                // On mobile a loading shelf must share the exact
+                                // store grid footprint, not jump from a tall card
+                                // layout to 3 columns when the response arrives.
                                 ColumnLayout {
+                                    visible: root.compact
+                                    anchors.fill: parent
+                                    anchors.margins: Theme.space1
+                                    spacing: Theme.space2
+                                    Superellipse {
+                                        Layout.alignment: Qt.AlignHCenter
+                                        Layout.preferredWidth: 78
+                                        Layout.preferredHeight: 78
+                                        fillColor: Theme.borderMuted
+                                        curveDepth: Theme.curveControl
+                                    }
+                                    Superellipse {
+                                        Layout.alignment: Qt.AlignHCenter
+                                        Layout.preferredWidth: Math.min(75, parent.width * 0.74)
+                                        Layout.preferredHeight: 8
+                                        fillColor: Theme.borderSubtle
+                                        curveDepth: 4
+                                    }
+                                }
+
+                                ColumnLayout {
+                                    visible: !root.compact
                                     anchors.fill: parent
                                     anchors.margins: Theme.space3
                                     spacing: Theme.space3
@@ -712,12 +746,11 @@ Item {
                                             curveDepth: Theme.curveControl
                                             fillColor: Theme.surfaceRaised
 
-                                            Icon {
-                                                anchors.centerIn: parent
-                                                visible: !storeIcon.ready
-                                                text: Theme.iconApps
-                                                color: Theme.accent
-                                                preferredSize: 28
+                                            MiniAppArtPlaceholder {
+                                                anchors.fill: parent
+                                                imageReady: storeIcon.ready
+                                                loadFailed: storeIcon.loadFailed
+                                                hasSource: String(cardCell.modelData.iconSource || "").length > 0
                                             }
                                         }
                                         DirectionAwareLabel {

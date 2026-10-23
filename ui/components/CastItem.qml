@@ -488,31 +488,50 @@ Item {
                         }
                     }
 
-                    DirectionAwareLabel {
-                        // Never derive a Layout constraint from the RowLayout's own
-                        // width. That creates a circular size dependency and causes
-                        // Qt Quick Layouts to recursively rearrange the row.
-                        Layout.fillWidth: !root.compact
+                    ColumnLayout {
+                        id: castAuthorIdentity
+                        Layout.fillWidth: true
                         Layout.minimumWidth: 0
-                        Layout.maximumWidth: root.compact
-                            ? Math.max(1, messageSurface.width - Theme.space4 * 2
-                                       - 36 - Theme.touchTarget - Theme.space3)
-                            : Math.max(100, messageSurface.width * 0.48)
-                        text: root.authorName
-                        color: Theme.ink
-                        font.pixelSize: Theme.typeLabelSize
-                        font.weight: Theme.weightDemiBold
-                        elide: Text.ElideRight
+                        Layout.alignment: Qt.AlignVCenter
+                        spacing: 1
 
-                        TapHandler {
-                            enabled: Number(root.modelData.authorFid || 0) > 0
-                            gesturePolicy: TapHandler.ReleaseWithinBounds
-                            onTapped: root.profileRequested(Number(root.modelData.authorFid))
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            text: root.authorName
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
+                            elide: Text.ElideRight
+
+                            TapHandler {
+                                enabled: Number(root.modelData.authorFid || 0) > 0
+                                gesturePolicy: TapHandler.ReleaseWithinBounds
+                                onTapped: root.profileRequested(Number(root.modelData.authorFid))
+                            }
+                        }
+
+                        Label {
+                            visible: Boolean(root.modelData.author)
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            LayoutMirroring.enabled: false
+                            text: root.ltrHandle(root.modelData.author || "")
+                            font.family: Theme.latinFontFamily
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeMetaSize
+                            horizontalAlignment: Text.AlignLeft
+                            elide: Text.ElideRight
+                            TapHandler {
+                                enabled: Number(root.modelData.authorFid || 0) > 0
+                                gesturePolicy: TapHandler.ReleaseWithinBounds
+                                onTapped: root.profileRequested(Number(root.modelData.authorFid))
+                            }
                         }
                     }
 
                     RowLayout {
-                        visible: root.castChannel.length > 0
+                        visible: !root.compact && root.castChannel.length > 0
                         Layout.maximumWidth: root.compact ? 164 : 208
                         Layout.minimumWidth: 0
                         spacing: Theme.space1
@@ -538,20 +557,16 @@ Item {
                         }
                     }
 
-                    Label {
-                        visible: !root.compact && Boolean(root.modelData.author)
-                        Layout.maximumWidth: 150
-                        LayoutMirroring.enabled: false
-                        text: root.ltrHandle(root.modelData.author)
-                        font.family: Theme.latinFontFamily
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeMetaSize
-                        horizontalAlignment: Text.AlignLeft
+                    DirectionAwareLabel {
+                        objectName: "compactCastAuthorMetadata"
+                        visible: root.compact && Number(root.modelData.createdAtMs || 0) > 0
+                        Layout.maximumWidth: Math.max(62, Math.min(110, messageSurface.width * 0.27))
+                        Layout.alignment: Qt.AlignVCenter
+                        text: visible ? LocaleFormat.formatRelativeTime(Number(root.modelData.createdAtMs)) : ""
+                        color: Theme.inkSubtle
+                        font.pixelSize: Theme.typeCaptionSize
                         elide: Text.ElideRight
                     }
-
-
-                    Item { Layout.fillWidth: true }
 
                     ActionButton {
                         id: moreButton
@@ -564,47 +579,31 @@ Item {
                     }
                 }
 
-                // On phone-sized windows the display name, @handle,
-                // time and menu cannot share one horizontal row. Keep the
-                // identity/time metadata on a bounded second line instead
-                // of overflowing the right edge of the Cast surface.
+                // Keep channel attribution separate from the two-line identity
+                // on compact screens. It must not squeeze the handle or timestamp.
                 RowLayout {
-                    objectName: "compactCastAuthorMetadata"
-                    visible: root.compact
-                             && (Boolean(root.modelData.author)
-                                 || Number(root.modelData.createdAtMs || 0) > 0)
+                    visible: root.compact && root.castChannel.length > 0
                     Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                    Layout.leftMargin: root.mediaContentInset
+                    Layout.leftMargin: root.mediaContentInset + 36 + Theme.space1
                     Layout.rightMargin: root.mediaContentInset
-                    layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
-                    spacing: Theme.space2
-
-                    Item {
-                        Layout.preferredWidth: 36
-                        Layout.preferredHeight: 1
-                    }
-
-                    Label {
-                        visible: Boolean(root.modelData.author)
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 0
-                        LayoutMirroring.enabled: false
-                        text: root.ltrHandle(root.modelData.author || "")
-                        font.family: Theme.latinFontFamily
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeMetaSize
-                        elide: Text.ElideRight
-                    }
-
+                    spacing: Theme.space1
                     DirectionAwareLabel {
-                        visible: Number(root.modelData.createdAtMs || 0) > 0
-                        Layout.maximumWidth: Math.max(68, Math.min(115, messageSurface.width * 0.28))
-                        text: visible
-                              ? LocaleFormat.formatRelativeTime(Number(root.modelData.createdAtMs))
-                              : ""
-                        color: Theme.inkSubtle
+                        text: qsTr("in")
                         font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.inkMuted
+                    }
+                    Avatar {
+                        Layout.preferredWidth: 18
+                        Layout.preferredHeight: 18
+                        avatarSize: 18
+                        sourceUrl: root.channelImageUrl
+                        displayName: root.channelDisplayName
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: root.channelDisplayName
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.inkMuted
                         elide: Text.ElideRight
                     }
                 }
@@ -836,16 +835,11 @@ Item {
                     asynchronous: true
                     Layout.fillWidth: true
 
-                    TapHandler {
-                        acceptedButtons: Qt.LeftButton
-                        gesturePolicy: TapHandler.DragThreshold
-                        onTapped: {
-                            const castId = String(root.modelData.castId || "")
-                            if (!root.scrollMoving && castId.length > 0)
-                                root.openRequested(castId)
-                        }
-                    }
-
+                    // Inline text owns its pointer events. A broad parent
+                    // TapHandler also fires for @mentions/URL anchors and
+                    // races the requested profile/link against opening the
+                    // enclosing cast. Plain text still opens the conversation
+                    // via RichInlineTextItem.plainTextActivated.
                     sourceComponent: Component {
                         RichCastRenderer {
                             castId: String(root.modelData.castId || "")

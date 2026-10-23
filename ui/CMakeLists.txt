@@ -14,6 +14,8 @@ set(farcasterQmlFiles
     components/AppsSurface.qml
     components/MiniAppFeaturedCarousel.qml
     components/MiniAppLibraryShelves.qml
+    components/MiniAppArtPlaceholder.qml
+    components/ContentRefreshIndicator.qml
     components/CompactNavigationRail.qml
     components/ContentTabs.qml
     components/ConversationRow.qml

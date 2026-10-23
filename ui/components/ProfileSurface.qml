@@ -1339,4 +1339,12 @@ Item {
         anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space5
         anchors.bottomMargin: root.compact ? Theme.space2 + 12 : Theme.space4
     }
+    ContentRefreshIndicator {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        z: 50
+        active: root.busy && root.rows.length > 0
+    }
+
 }

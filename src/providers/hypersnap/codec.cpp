@@ -424,10 +424,51 @@ struct MappedCast final {
     const JsonObject& castObject, const std::string_view original)
 {
     const JsonValue* profilesValue = findValue(castObject, "mentioned_profiles");
-    if (profilesValue == nullptr || !profilesValue->is_array()) return std::nullopt;
-    const auto& profiles = profilesValue->as_array();
-    if (profiles.empty() || profiles.size() > 10U) return std::nullopt;
     const JsonValue* positionsValue = findValue(castObject, "mentions_positions");
+    if (profilesValue == nullptr || !profilesValue->is_array()
+        || profilesValue->as_array().empty()) {
+        // Self-hosted and unhydrated providers may supply canonical CastAdd
+        // FIDs/UTF-8 offsets but no Neynar mentioned_profiles. Render an
+        // explicitly FID-labelled, navigable marker rather than silently
+        // deleting the mention from the user's visible post. Signed text is
+        // still untouched and the UI resolves the FID through the active node.
+        const JsonValue* fidsValue = findValue(castObject, "mentions");
+        if (!fidsValue || !fidsValue->is_array() || !positionsValue
+            || !positionsValue->is_array()) return std::nullopt;
+        const auto& fids = fidsValue->as_array();
+        const auto& positions = positionsValue->as_array();
+        if (fids.empty() || fids.size() > 10U || fids.size() != positions.size())
+            return std::nullopt;
+        struct FidInsert {std::size_t position; std::string handle;};
+        std::vector<FidInsert> inserts{};
+        inserts.reserve(fids.size());
+        for (std::size_t i = 0; i < fids.size(); ++i) {
+            const auto readNumber = [](const JsonValue& value) -> std::optional<std::uint64_t> {
+                if (value.is_uint64()) return value.as_uint64();
+                if (value.is_int64() && value.as_int64() >= 0)
+                    return static_cast<std::uint64_t>(value.as_int64());
+                return std::nullopt;
+            };
+            const auto fid = readNumber(fids[i]);
+            const auto offset = readNumber(positions[i]);
+            if (!fid || *fid == 0 || !offset || *offset > original.size())
+                return std::nullopt;
+            const auto pos = static_cast<std::size_t>(*offset);
+            if (pos < original.size()
+                && (static_cast<unsigned char>(original[pos]) & 0xc0U) == 0x80U)
+                return std::nullopt;
+            inserts.push_back({pos, "@fid:" + std::to_string(*fid)});
+        }
+        if (!std::is_sorted(inserts.begin(), inserts.end(),
+            [](const FidInsert& a, const FidInsert& b) { return a.position < b.position; }))
+            return std::nullopt;
+        std::string rendered{original};
+        for (auto it = inserts.rbegin(); it != inserts.rend(); ++it)
+            rendered.insert(it->position, it->handle);
+        return rendered;
+    }
+    const auto& profiles = profilesValue->as_array();
+    if (profiles.size() > 10U) return std::nullopt;
     const JsonValue* rangesValue = findValue(castObject, "mentioned_profiles_ranges");
     const bool canonical = positionsValue && positionsValue->is_array()
         && positionsValue->as_array().size() == profiles.size();

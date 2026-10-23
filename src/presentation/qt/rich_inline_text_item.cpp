@@ -243,7 +243,13 @@ public:
         } else if (kind == QLatin1String("mention")) {
             base.setForeground(linkColor);
             const QString username = map.value(QStringLiteral("username")).toString();
+            // Profile mentions must be actionable in the native text renderer,
+            // not merely accent-colored labels. Resolve via the active provider
+            // in AppShell rather than linking to a fixed Farcaster web client.
             if (!username.isEmpty()) {
+                base.setAnchor(true);
+                base.setAnchorHref(QStringLiteral("@") + username);
+                base.setFontUnderline(false);
                 insertTextWithEmojiObjects(cursor, QStringLiteral("@") + username, base);
                 return;
             }

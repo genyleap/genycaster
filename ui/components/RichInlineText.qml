@@ -89,6 +89,12 @@ Item {
             if (kind === "mention" && span.username)
                 value = "@" + root.escapedHtml(span.username)
             value = value.replace(/\n/g, "<br/>")
+            if (kind === "mention" && /^(?:fid:[1-9][0-9]*|[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)*)$/.test(String(span.username || ""))) {
+                const handle = "@" + root.escapedHtml(span.username)
+                value = "<a href=\"" + handle + "\" style=\"color:" + Theme.accent + ";text-decoration:none\">" + value + "</a>"
+            } else if (span.color) {
+                value = "<span style=\"color:" + root.escapedHtml(span.color) + "\">" + value + "</span>"
+            }
             if (kind === "strong") value = "<b>" + value + "</b>"
             else if (kind === "emphasis") value = "<i>" + value + "</i>"
             else if (kind === "inline-code") value = "<code>" + value + "</code>"

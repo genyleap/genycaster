@@ -417,6 +417,25 @@ Item {
         })
     }
 
+    // Mentions are internal navigation. Never launch a browser or assume a
+    // fixed data-provider hostname for @username links in Cast text.
+    function openCastTextLink(url) {
+        const target = String(url || "").trim()
+        if (/^@fid:[1-9][0-9]*$/.test(target)) {
+            root.clearPendingShellReturn()
+            root.shellRoute = ""
+            presentationBridge.openProfileFid(Number(target.substring(5)))
+            return
+        }
+        if (/^@[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)*$/.test(target)) {
+            root.clearPendingShellReturn()
+            root.shellRoute = ""
+            presentationBridge.openProfileUsername(target.substring(1))
+            return
+        }
+        presentationBridge.openExternalUrl(target)
+    }
+
     function openSuggestedProfile(username) {
         root.clearPendingShellReturn()
         root.primaryDestination = "explorer"
@@ -1106,7 +1125,7 @@ Item {
                                             onRefreshRequested: root.primaryDestination === "explorer"
                                                 ? presentationBridge.refreshLatestFeed() : presentationBridge.retry()
                                             onRevealPendingPostsRequested: presentationBridge.revealPendingPosts()
-                                            onExternalRequested: url => presentationBridge.openExternalUrl(url)
+                                            onExternalRequested: url => root.openCastTextLink(url)
                                             onMediaRequested: (mediaItems, index) => mediaGallery.openAt(mediaItems, index)
                                             onRetryRequested: root.primaryDestination === "explorer"
                                                 ? presentationBridge.refreshLatestFeed() : presentationBridge.retry()
@@ -1170,7 +1189,7 @@ Item {
                                                 presentationBridge.setFollowing(targetFid, following)
                                             onRemoveCastRequested: cast =>
                                                 presentationBridge.removeCast(Number(cast.authorFid || 0), String(cast.castId || ""))
-                                            onExternalRequested: url => presentationBridge.openExternalUrl(url)
+                                            onExternalRequested: url => root.openCastTextLink(url)
                                             onMediaRequested: (mediaItems, index) => mediaGallery.openAt(mediaItems, index)
                                             onAuthenticationRequested: root.openAccountPopup()
                                             onLoadMoreRequested: presentationBridge.loadMore()
@@ -1218,7 +1237,7 @@ Item {
                                                 presentationBridge.setReaction(kind, Number(cast.authorFid || 0), String(cast.castId || ""), active)
                                             onRemoveCastRequested: cast =>
                                                 presentationBridge.removeCast(Number(cast.authorFid || 0), String(cast.castId || ""))
-                                            onExternalRequested: url => presentationBridge.openExternalUrl(url)
+                                            onExternalRequested: url => root.openCastTextLink(url)
                                             onMediaRequested: (mediaItems, index) => mediaGallery.openAt(mediaItems, index)
                                             onAuthenticationRequested: root.openAccountPopup()
                                         }

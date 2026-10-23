@@ -30,11 +30,14 @@ ColumnLayout {
     // accent-colored, everything else is plain text.
     function inlineSpansFor(value) {
         const input = String(value || "")
-        const tokenPattern = /(https?:\/\/[^\s<]+)|(@[A-Za-z0-9_.-]+)|(\/[A-Za-z0-9_-]+)/g
+        const tokenPattern = /(https?:\/\/[^\s<]+)|(@fid:[1-9][0-9]*)|(@[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)*)|([#$][A-Za-z][A-Za-z0-9_]*)|(\/[A-Za-z0-9_-]+)/g
         const spans = []
         let offset = 0
         let match
         while ((match = tokenPattern.exec(input)) !== null) {
+            // Do not style a currency sign in a number, an email domain,
+            // or a token embedded inside another ordinary word.
+            if (match.index > 0 && /[\w@./$#]/.test(input[match.index - 1])) continue
             if (match.index > offset)
                 spans.push({ kind: "text", text: input.substring(offset, match.index) })
             const token = match[0]
@@ -42,6 +45,8 @@ ColumnLayout {
                 spans.push({ kind: "link", text: token, target: token })
             } else if (token.startsWith("@")) {
                 spans.push({ kind: "mention", text: token, username: token.substring(1) })
+            } else if (token.startsWith("$") || token.startsWith("#")) {
+                spans.push({ kind: "text", text: token, color: Theme.accent })
             } else {
                 spans.push({ kind: "text", text: token, color: Theme.accent })
             }

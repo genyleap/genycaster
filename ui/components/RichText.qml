@@ -25,16 +25,19 @@ Text {
 
     function styledText(value) {
         const input = String(value || "")
-        const tokenPattern = /(https?:\/\/[^\s<]+)|(@[A-Za-z0-9_.-]+)|(\/[A-Za-z0-9_-]+)/g
+        const tokenPattern = /(https?:\/\/[^\s<]+)|(@fid:[1-9][0-9]*)|(@[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)*)|([#$][A-Za-z][A-Za-z0-9_]*)|(\/[A-Za-z0-9_-]+)/g
         let result = ""
         let offset = 0
         let match
         while ((match = tokenPattern.exec(input)) !== null) {
+            if (match.index > 0 && /[\w@./$#]/.test(input[match.index - 1])) continue
             result += escapeHtml(input.substring(offset, match.index))
             const token = match[0]
             if (token.startsWith("http://") || token.startsWith("https://")) {
                 const escaped = escapeHtml(token)
                 result += "<a href=\"" + escaped + "\" style=\"color:" + Theme.accent + ";text-decoration:none\">&#x2066;" + escaped + "&#x2069;</a>"
+            } else if (token.startsWith("@")) {
+                result += "<a href=\"" + escapeHtml(token) + "\" style=\"color:" + Theme.accent + ";text-decoration:none\">" + escapeHtml(token) + "</a>"
             } else {
                 result += "<span style=\"color:" + Theme.accent + "\">&#x2066;" + escapeHtml(token) + "&#x2069;</span>"
             }

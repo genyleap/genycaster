@@ -67,12 +67,11 @@ Item {
                         requestedSourceHeight: 96
                         curveDepth: Theme.curveControl
                         fillColor: Theme.surfaceRaised
-                        Icon {
-                            anchors.centerIn: parent
-                            visible: !recentIcon.ready
-                            text: Theme.iconApps
-                            preferredSize: 27
-                            color: Theme.accent
+                        MiniAppArtPlaceholder {
+                            anchors.fill: parent
+                            imageReady: recentIcon.ready
+                            loadFailed: recentIcon.loadFailed
+                            hasSource: String(recentCell.app.iconSource || "").length > 0
                         }
                     }
                     DirectionAwareLabel {
@@ -149,12 +148,11 @@ Item {
                             requestedSourceHeight: 128
                             curveDepth: Theme.curveControl
                             fillColor: Theme.surfaceRaised
-                            Icon {
-                                anchors.centerIn: parent
-                                visible: !savedIcon.ready
-                                text: Theme.iconApps
-                                preferredSize: 28
-                                color: Theme.accent
+                            MiniAppArtPlaceholder {
+                                anchors.fill: parent
+                                imageReady: savedIcon.ready
+                                loadFailed: savedIcon.loadFailed
+                                hasSource: String(savedCell.app.iconSource || "").length > 0
                             }
                         }
                         DirectionAwareLabel {
