@@ -829,6 +829,47 @@ if(GENYCASTER_REQUIRE_SCRIPT_FONTS)
     endif()
 endif()
 
+# Noto's 18.6 MiB TTC has ten faces. This app uses JP/KR/SC only.
+# Remove seven unused faces, retaining the entire 44k+ Unicode cmap
+# and the proper locale glyph forms in each of the three remaining faces.
+option(GENYCASTER_OPTIMIZE_CJK_COLLECTION
+    "Remove unused Noto CJK faces without dropping glyphs" ${EMSCRIPTEN})
+set(GENYCASTER_CJK_FONTTOOLS_PYTHON "" CACHE FILEPATH
+    "Python with fontTools for lossless CJK TTC release compaction")
+if(EMSCRIPTEN AND GENYCASTER_OPTIMIZE_CJK_COLLECTION
+   AND _genycasterCjkFontPath AND EXISTS "${_genycasterCjkFontPath}")
+    if(GENYCASTER_CJK_FONTTOOLS_PYTHON)
+        set(_cjkOptimizerPython "${GENYCASTER_CJK_FONTTOOLS_PYTHON}")
+    else()
+        find_package(Python3 COMPONENTS Interpreter QUIET)
+        set(_cjkOptimizerPython "${Python3_EXECUTABLE}")
+    endif()
+    if(_cjkOptimizerPython)
+        execute_process(
+            COMMAND "${_cjkOptimizerPython}" -c "import fontTools.ttLib"
+            RESULT_VARIABLE _fonttoolsAvailable OUTPUT_QUIET ERROR_QUIET)
+        if(_fonttoolsAvailable EQUAL 0)
+            set(_optimizedCjkPath
+                "${CMAKE_BINARY_DIR}/_deps/genycaster-script-fonts-optimized/NotoSansCJK-Regular.ttc")
+            execute_process(
+                COMMAND "${_cjkOptimizerPython}"
+                        "${PROJECT_SOURCE_DIR}/tools/optimize_cjk_collection.py"
+                        "${_genycasterCjkFontPath}" "${_optimizedCjkPath}"
+                RESULT_VARIABLE _cjkOptimizationResult
+                OUTPUT_VARIABLE _cjkOptimizationOutput
+                ERROR_VARIABLE _cjkOptimizationError)
+            if(NOT _cjkOptimizationResult EQUAL 0)
+                message(FATAL_ERROR
+                    "CJK font optimization failed: ${_cjkOptimizationError}")
+            endif()
+            message(STATUS "${_cjkOptimizationOutput}")
+            set(_genycasterCjkFontPath "${_optimizedCjkPath}")
+        else()
+            message(STATUS "fontTools unavailable; embedding original Noto CJK collection")
+        endif()
+    endif()
+endif()
+
 set(_genycasterScriptFontFiles)
 if(_genycasterDevanagariFontPath AND EXISTS "${_genycasterDevanagariFontPath}")
     set_source_files_properties("${_genycasterDevanagariFontPath}" PROPERTIES
