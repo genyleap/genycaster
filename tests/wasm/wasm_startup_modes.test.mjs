@@ -7,12 +7,14 @@ const script=readFileSync(new URL("../../ui/wasm/genycaster-loader.js",import.me
 function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measured=false,withoutLength=false}={}) {
     const nodes=new Map();
     for(const id of ["genycaster-boot","boot-heading","boot-status","boot-stage",
-        "boot-fill","boot-percent","boot-retry","boot-build-credit","qt-screen"]) {
+        "boot-fill","boot-percent","boot-retry","boot-build-credit","qt-screen",
+        "genycaster-update-banner","genycaster-update-title",
+        "genycaster-update-hint","genycaster-update-now","genycaster-update-later"]) {
         const classes=new Set();
         nodes.set(id,{
-            hidden:false,textContent:"",style:{},dataset:{},
+            hidden:id==="genycaster-update-banner",textContent:"",style:{},dataset:{},
             classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x)},
-            addEventListener(){}
+            handlers:{},addEventListener(type,handler){this.handlers[type]=handler;}
         });
     }
     const storage=new Map();
@@ -21,28 +23,34 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     const resources=new Map();
     const chrome={scheme:"",color:"",statusStyle:""};
     let config=null, observer=null, downloadStream=null;
+    let latestVersion=version, reloadedTo="";
+    const listeners={};
     const binary="farcaster_client.bbbbbbbbbbbbbbbbbbbb.wasm";
     const scope={
         window:{
             __genycasterAssets:{version,wasm:binary,appVersion:"1.0.0",buildId:version.slice(0,8),
                 releaseLabel:"Beta 1.0",wasmBytes:8},
             farcaster_client_entry(){},
-            fetch:async()=>measured
-                ? new Response(new ReadableStream({
-                    start(controller){downloadStream=controller;}
-                }),{headers:{"Content-Type":"application/wasm",
-                    ...(withoutLength?{}:{"Content-Length":"8"})}})
-                : new Response(new Uint8Array([0,97,115,109]),{
-                    headers:{"Content-Type":"application/wasm"}
-                }),
-            addEventListener(){},innerHeight:700,
-            setTimeout:fn=>{fn();},
+            fetch:async(input)=>String(input).includes("genycaster-assets.json")
+                ? new Response(JSON.stringify({version:latestVersion}),
+                    {headers:{"Content-Type":"application/json"}})
+                : measured
+                    ? new Response(new ReadableStream({
+                        start(controller){downloadStream=controller;}
+                    }),{headers:{"Content-Type":"application/wasm",
+                        ...(withoutLength?{}:{"Content-Length":"8"})}})
+                    : new Response(new Uint8Array([0,97,115,109]),{
+                        headers:{"Content-Type":"application/wasm"}
+                    }),
+            addEventListener(name,handler){listeners[name]=handler;},innerHeight:700,
+            setTimeout:(fn,delay)=>{if(delay!==2500)fn();},
         },
         localStorage:{
             getItem:key=>storage.get(key)||null,
             setItem:(key,val)=>storage.set(key,val),
         },
-        document:{getElementById:id=>nodes.get(id),
+        document:{getElementById:id=>nodes.get(id),visibilityState:"visible",
+            addEventListener(name,handler){listeners[name]=handler;},
             documentElement:{setAttribute:(key,value)=>{if(key==="data-chrome-theme")chrome.scheme=value;}},
             querySelector:selector=>({
                 setAttribute:(key,value)=>{
@@ -51,7 +59,8 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
                     if(selector.includes("status-bar-style"))chrome.statusStyle=value;
                 }
             })},
-        location:{href:"https://example.test/farcaster_client.html",origin:"https://example.test"},
+        location:{href:"https://example.test/farcaster_client.html",origin:"https://example.test",
+                  replace(url){reloadedTo=url;}},
         performance:{now:()=>100,getEntriesByName:url=>resources.get(url)||[]},
         PerformanceObserver:class {
             constructor(cb){this.cb=cb;}
@@ -64,6 +73,11 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     vm.runInNewContext(script,scope);
     return {
         nodes,storage,resources,chrome,
+        setLatestVersion(value){latestVersion=value;},
+        fireFocus(){return listeners.focus?.();},
+        clickUpdate(){nodes.get("genycaster-update-now").handlers.click?.();},
+        clickLater(){nodes.get("genycaster-update-later").handlers.click?.();},
+        get reloadedTo(){return reloadedTo;},
         setBrowserTheme:dark=>scope.window.__genycasterSetBrowserChromeTheme(dark),
         qmlReady:()=>scope.window.__genycasterQmlStartup(true, ""),
         qmlFailed:reason=>scope.window.__genycasterQmlStartup(false,reason),
@@ -237,4 +251,29 @@ test("first install reports genuine WASM byte progress without Content-Length",a
     assert.equal(h.phase(),"install");
     assert.equal((await response.arrayBuffer()).byteLength,8,
         "the original native streaming response must remain intact");
+});
+
+test("installed PWA notices a new live release without discarding draft or identity",async()=>{
+    const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa"});
+    h.config.qt.onLoaded();
+    h.qmlReady();
+    // The ready screen does not refresh itself just because a new build exists.
+    h.setLatestVersion("bbbbbbbbbbbbbbbbbbbb");
+    h.fireFocus();
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(h.nodes.get("genycaster-update-banner").hidden,false);
+    assert.equal(h.reloadedTo,"","update prompt cannot navigate without a user tap");
+    assert.equal(h.storage.get("genycaster.boot.loaded.v1"),"1");
+    h.clickUpdate();
+    assert.match(h.reloadedTo,/genycaster-release=bbbbbbbbbbbbbbbbbbbb/);
+});
+
+test("no update prompt is shown when remote and running builds match",async()=>{
+    const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa"});
+    h.config.qt.onLoaded();
+    h.qmlReady();
+    h.fireFocus();
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(h.nodes.get("genycaster-update-banner").hidden,true);
+    assert.equal(h.reloadedTo,"");
 });

@@ -52,6 +52,8 @@ const versionKey="genycaster.boot.version.v1";
 const currentVersion=typeof window.__genycasterAssets?.version==="string"
     ? window.__genycasterAssets.version : "";
 const releaseInfo=window.__genycasterAssets||{};
+// Exposed for diagnosis without accessing any identity, draft, or wallet data.
+window.__genycasterActiveBuild=String(releaseInfo.buildId||"");
 const applicationVersion=typeof releaseInfo.appVersion==="string"
     && /^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/.test(releaseInfo.appVersion)
     ? releaseInfo.appVersion : "";
@@ -281,6 +283,64 @@ async function enableOfflineCache() {
     }
 }
 const cacheStartup=enableOfflineCache();
+// An already-running PWA keeps its old Qt/WASM instance even when a new build
+// is served. Only notify on a confirmed, public manifest mismatch; never
+// reload a composing user without their explicit tap.
+const updateBanner=$("genycaster-update-banner");
+const updateNow=$("genycaster-update-now");
+const updateLater=$("genycaster-update-later");
+let availableRelease="", updateCheckRunning=false, lastCheck=0, dismissedUntil=0;
+if(updateBanner && window.navigator?.language?.toLowerCase().startsWith("fa")){
+    updateBanner.dir="rtl";
+    $("genycaster-update-title").textContent="نسخهٔ جدید آماده است";
+    $("genycaster-update-hint").textContent="پیش از به‌روزرسانی، پیش‌نویس خود را ذخیره کنید.";
+    updateNow.textContent="به‌روزرسانی";
+    updateLater.textContent="بعداً";
+}
+async function checkForNewRelease(){
+    if(!finished || failed || updateCheckRunning ||
+       !/^[0-9a-f]{20}$/.test(currentVersion) ||
+       document.visibilityState==="hidden")return;
+    const now=Date.now();
+    if(now-lastCheck<15000)return;
+    lastCheck=now;
+    updateCheckRunning=true;
+    try{
+        const url=new URL("./genycaster-assets.json",location.href);
+        url.searchParams.set("check",String(now));
+        const response=await originalFetch(url.href,{cache:"no-store",credentials:"omit"});
+        if(!response.ok)return;
+        const fresh=await response.json();
+        const version=String(fresh?.version||"");
+        if(!/^[0-9a-f]{20}$/.test(version) || version===currentVersion)return;
+        availableRelease=version;
+        if(updateBanner && now>=dismissedUntil)updateBanner.hidden=false;
+    }catch{
+        // Offline installs continue normally, using their cached engine.
+    }finally{updateCheckRunning=false;}
+}
+updateLater?.addEventListener("click",()=>{
+    if(updateBanner)updateBanner.hidden=true;
+    dismissedUntil=Date.now()+10*60*1000;
+});
+updateNow?.addEventListener("click",()=>{
+    if(!/^[0-9a-f]{20}$/.test(availableRelease))return;
+    // This is a navigation, not storage cleanup. Preserve local keys,
+    // accounts, recovery data and all immutable cached WASM revisions.
+    const next=new URL(location.href);
+    next.searchParams.set("genycaster-release",availableRelease);
+    location.replace(next.href);
+});
+function watchReleaseUpdates(){
+    if(!/^[0-9a-f]{20}$/.test(currentVersion))return;
+    window.addEventListener("pageshow",checkForNewRelease);
+    window.addEventListener("focus",checkForNewRelease);
+    document.addEventListener?.("visibilitychange",()=>{
+        if(document.visibilityState!=="hidden")void checkForNewRelease();
+    });
+    window.setInterval?.(checkForNewRelease,5*60*1000);
+    window.setTimeout?.(checkForNewRelease,2500);
+}
 function fail(error) {
     if(finished||failed)return;
     failed=true;
@@ -334,6 +394,7 @@ function revealReady() {
     percent.textContent="";
     boot.classList.add("finished");
     window.setTimeout(()=>{boot.hidden=true;},280);
+    watchReleaseUpdates();
 }
 // Called synchronously from main.cpp after the QML root is constructed,
 // or with failure if QQmlApplicationEngine could not load Main.
