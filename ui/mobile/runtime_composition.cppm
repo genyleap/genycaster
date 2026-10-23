@@ -226,9 +226,12 @@ struct Runtime final {
     const std::optional<std::string>& authRelayUrl,
     const std::optional<std::string>& optimismRpcUrl,
     const std::optional<std::string>& snapchainBaseUrl,
+    const std::optional<std::string>& snapchainWriteBaseUrl,
     const std::optional<std::string>& mediaGatewayBaseUrl,
     const std::optional<std::string>& snapchainAuthorizationHeader,
     const std::optional<std::string>& snapchainAuthorizationValue,
+    const std::optional<std::string>& snapchainWriteAuthorizationHeader,
+    const std::optional<std::string>& snapchainWriteAuthorizationValue,
     const std::optional<std::uint64_t> appFid,
     const std::optional<std::string>& signerAttestationUrl,
     std::function<farcaster::foundation::result::Status(const std::string&)> approvalLauncher);

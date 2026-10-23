@@ -396,6 +396,17 @@ void testConfigurationAndHttpErrors()
     assert(!invalid);
     assert(invalid.error().code == foundation::error::ErrorCode::InvalidArgument);
 
+    FakeTransport badValidatorTransport{};
+    auto badValidatorConfig = testConfig();
+    badValidatorConfig.submitBaseUrl = "javascript:invalid";
+    auto badValidatorRegistry = provider::snapchain::signer::makeRegistry(
+        badValidatorTransport, badValidatorConfig);
+    auto badValidator = badValidatorRegistry->inspect(
+        domain::identity::Fid{42}, domain::signer::PublicKey{keyA()}, std::nullopt);
+    assert(!badValidator);
+    assert(badValidator.error().code == foundation::error::ErrorCode::InvalidArgument);
+    assert(badValidatorTransport.urls().empty());
+
     FakeTransport unavailableTransport{};
     unavailableTransport.enqueue(503, R"({"error":"temporarily unavailable"})");
     auto unavailableRegistry = provider::snapchain::signer::makeRegistry(unavailableTransport, testConfig());
@@ -430,7 +441,13 @@ void testGaslessRegistrationSubmitsCanonicalEnvelopeAndReReadsNetwork()
         "requesterFidNonces":{"42":0}
     })");
 
-    auto registry = provider::snapchain::signer::makeRegistry(transport, testConfig());
+    auto splitRouteConfig = testConfig();
+    splitRouteConfig.submitBaseUrl = "https://validator.test///";
+    splitRouteConfig.authorizationHeaderName = "X-Read-Token";
+    splitRouteConfig.authorizationHeaderValue = "read-test-value";
+    splitRouteConfig.submitAuthorizationHeaderName = "X-Write-Token";
+    splitRouteConfig.submitAuthorizationHeaderValue = "write-test-value";
+    auto registry = provider::snapchain::signer::makeRegistry(transport, splitRouteConfig);
     FakeSigner signer{};
     const auto deadline = foundation::time::now() + std::chrono::hours{1};
     auto result = registry->registerGasless(
@@ -457,13 +474,21 @@ void testGaslessRegistrationSubmitsCanonicalEnvelopeAndReReadsNetwork()
     assert(signer.signedBytes().front().size() == 20U);
     assert(transport.posts().size() == 1U);
     const auto& post = transport.posts().front();
-    assert(post.url == "https://snapchain.test/v1/submitMessage");
+    assert(post.url == "https://validator.test/v1/submitMessage");
     assert(!post.body.empty());
     assert(std::ranges::find(post.headers, "Content-Type: application/octet-stream") != post.headers.end());
     assert(std::ranges::find(post.headers, "Accept: application/json") != post.headers.end());
+    assert(std::ranges::find(post.headers, "X-Read-Token: read-test-value") == post.headers.end());
+    assert(std::ranges::find(post.headers, "X-Write-Token: write-test-value") != post.headers.end());
     assert(post.timeout == std::chrono::milliseconds{4'000});
     assert(post.maxBodyBytes == 512U * 1024U);
     assert(transport.urls().size() == 1U);
+    assert(transport.urls().front().starts_with("https://snapchain.test/v1/signersByFid?"));
+    assert(transport.headers().size() == 1U);
+    assert(std::ranges::find(transport.headers().front(),
+        "X-Read-Token: read-test-value") != transport.headers().front().end());
+    assert(std::ranges::find(transport.headers().front(),
+        "X-Write-Token: write-test-value") == transport.headers().front().end());
 }
 
 void testGaslessRegistrationPollsUntilSignerIsObservable()
@@ -531,7 +556,11 @@ void testSelfRevokeSubmitsCanonicalEnvelopeAndVerifiesRemoval()
         "requesterFidNonces":{"42":9}
     })");
 
-    auto registry = provider::snapchain::signer::makeRegistry(transport, testConfig());
+    auto readOnlyConfig = testConfig();
+    readOnlyConfig.submitBaseUrl = "https://validator.test";
+    readOnlyConfig.authorizationHeaderName = "X-Read-Token";
+    readOnlyConfig.authorizationHeaderValue = "read-test-value";
+    auto registry = provider::snapchain::signer::makeRegistry(transport, readOnlyConfig);
     FakeSigner signer{};
     const auto result = registry->selfRevoke(
         domain::identity::Fid{42},
@@ -544,7 +573,9 @@ void testSelfRevokeSubmitsCanonicalEnvelopeAndVerifiesRemoval()
     assert(signer.signedBytes().size() == 1U);
     assert(signer.signedBytes().front().size() == 20U);
     assert(transport.posts().size() == 1U);
-    assert(transport.posts().front().url == "https://snapchain.test/v1/submitMessage");
+    assert(transport.posts().front().url == "https://validator.test/v1/submitMessage");
+    assert(std::ranges::find(transport.posts().front().headers,
+        "X-Read-Token: read-test-value") == transport.posts().front().headers.end());
     assert(!transport.posts().front().body.empty());
     assert(transport.urls().size() == 1U);
 }

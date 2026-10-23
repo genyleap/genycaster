@@ -2,6 +2,18 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.settings.validator_write_endpoint">
+            <source>Snapchain write endpoint (validator)</source>
+            <translation>نشانی ارسال پیام اسنپ‌چین (اعتبارسنج)</translation>
+        </message>
+        <message id="genycaster.settings.validator_write_description">
+            <source>A read-only node cannot publish messages. Choose a validator or write-capable endpoint for casts, reactions, follows and signer keys.</source>
+            <translation>نود فقط‌خواندنی نمی‌تواند پیام منتشر کند. برای کست‌ها، واکنش‌ها، دنبال‌کردن و کلیدهای امضا، نشانی یک اعتبارسنج یا سرویس‌دهندهٔ دارای قابلیت نوشتن را انتخاب کنید.</translation>
+        </message>
+        <message id="genycaster.settings.validator_write_invalid">
+            <source>Enter a valid HTTP(S) URL without credentials.</source>
+            <translation>یک نشانی معتبر HTTP(S) بدون اطلاعات ورود وارد کنید.</translation>
+        </message>
         <message id="genycaster.settings.wasm_update_description">
             <source>You are using the WebAssembly (WASM) web version. Refresh to load the latest published app; no installer or download is needed.</source>
             <translation>شما از نسخهٔ وب‌اسمبلی (WASM) استفاده می‌کنید. برای دریافت آخرین نسخهٔ منتشرشده، صفحه را بازبارگذاری کنید؛ نیازی به دانلود یا نصب نیست.</translation>

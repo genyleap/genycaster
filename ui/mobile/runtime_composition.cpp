@@ -487,9 +487,12 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     [[maybe_unused]] const std::optional<std::string>& authRelayUrl,
     [[maybe_unused]] const std::optional<std::string>& optimismRpcUrl,
     [[maybe_unused]] const std::optional<std::string>& snapchainBaseUrl,
+    [[maybe_unused]] const std::optional<std::string>& snapchainWriteBaseUrl,
     [[maybe_unused]] const std::optional<std::string>& mediaGatewayBaseUrl,
     [[maybe_unused]] const std::optional<std::string>& snapchainAuthorizationHeader,
     [[maybe_unused]] const std::optional<std::string>& snapchainAuthorizationValue,
+    [[maybe_unused]] const std::optional<std::string>& snapchainWriteAuthorizationHeader,
+    [[maybe_unused]] const std::optional<std::string>& snapchainWriteAuthorizationValue,
     [[maybe_unused]] const std::optional<std::uint64_t> appFid,
     [[maybe_unused]] const std::optional<std::string>& signerAttestationUrl,
     [[maybe_unused]] std::function<foundation::result::Status(const std::string&)> approvalLauncher)
@@ -609,9 +612,18 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     if (snapchainBaseUrl && !snapchainBaseUrl->empty()) {
         signerRegistryConfig.baseUrl = *snapchainBaseUrl;
     }
+    // Signer state is read from the selected Snapchain node; KEY_ADD and
+    // KEY_REMOVE must submit to its write-capable route (validator if needed).
+    if (snapchainWriteBaseUrl && !snapchainWriteBaseUrl->empty()) {
+        signerRegistryConfig.submitBaseUrl = *snapchainWriteBaseUrl;
+    }
     if (snapchainAuthorizationHeader && snapchainAuthorizationValue) {
         signerRegistryConfig.authorizationHeaderName = *snapchainAuthorizationHeader;
         signerRegistryConfig.authorizationHeaderValue = *snapchainAuthorizationValue;
+    }
+    if (snapchainWriteAuthorizationHeader && snapchainWriteAuthorizationValue) {
+        signerRegistryConfig.submitAuthorizationHeaderName = *snapchainWriteAuthorizationHeader;
+        signerRegistryConfig.submitAuthorizationHeaderValue = *snapchainWriteAuthorizationValue;
     }
     runtime->signerRegistry = farcaster::provider::snapchain::signer::makeRegistry(
         *runtime->transport, std::move(signerRegistryConfig));
@@ -701,10 +713,26 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
 
 #if FARCASTER_HAS_SNAPCHAIN_WRITE
     auto writeSubmitterConfig = farcaster::provider::snapchain::write::Config{};
-    if (snapchainBaseUrl && !snapchainBaseUrl->empty()) {
+    // All Cast/Reaction/Link writes share the same selected validator route.
+    // Reads for reconciliation remain on the same authoritative endpoint.
+    if (snapchainWriteBaseUrl && !snapchainWriteBaseUrl->empty()) {
+        writeSubmitterConfig.baseUrl = *snapchainWriteBaseUrl;
+    } else if (snapchainBaseUrl && !snapchainBaseUrl->empty()) {
         writeSubmitterConfig.baseUrl = *snapchainBaseUrl;
     }
+    if (snapchainBaseUrl && !snapchainBaseUrl->empty()) {
+        writeSubmitterConfig.readBaseUrl = *snapchainBaseUrl;
+    }
     if (snapchainAuthorizationHeader && snapchainAuthorizationValue) {
+        writeSubmitterConfig.readAuthorizationHeaderName = *snapchainAuthorizationHeader;
+        writeSubmitterConfig.readAuthorizationHeaderValue = *snapchainAuthorizationValue;
+    }
+    // Never forward read-only credentials to a different write destination.
+    if (snapchainWriteAuthorizationHeader && snapchainWriteAuthorizationValue) {
+        writeSubmitterConfig.authorizationHeaderName = *snapchainWriteAuthorizationHeader;
+        writeSubmitterConfig.authorizationHeaderValue = *snapchainWriteAuthorizationValue;
+    } else if (snapchainAuthorizationHeader && snapchainAuthorizationValue
+               && snapchainWriteBaseUrl == snapchainBaseUrl) {
         writeSubmitterConfig.authorizationHeaderName = *snapchainAuthorizationHeader;
         writeSubmitterConfig.authorizationHeaderValue = *snapchainAuthorizationValue;
     }

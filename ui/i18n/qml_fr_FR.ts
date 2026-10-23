@@ -2,6 +2,18 @@
 <TS version="2.1" language="fr_FR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.settings.validator_write_endpoint">
+            <source>Snapchain write endpoint (validator)</source>
+            <translation>Point d’écriture Snapchain (validateur)</translation>
+        </message>
+        <message id="genycaster.settings.validator_write_description">
+            <source>A read-only node cannot publish messages. Choose a validator or write-capable endpoint for casts, reactions, follows and signer keys.</source>
+            <translation>Un nœud en lecture seule ne peut pas publier de messages. Choisissez un validateur ou un point d’accès autorisant l’écriture pour les casts, réactions, abonnements et clés de signature.</translation>
+        </message>
+        <message id="genycaster.settings.validator_write_invalid">
+            <source>Enter a valid HTTP(S) URL without credentials.</source>
+            <translation>Saisissez une URL HTTP(S) valide sans identifiants.</translation>
+        </message>
         <message id="genycaster.settings.wasm_update_description">
             <source>You are using the WebAssembly (WASM) web version. Refresh to load the latest published app; no installer or download is needed.</source>
             <translation>Vous utilisez la version web WebAssembly (WASM). Actualisez la page pour charger la dernière version publiée ; aucun téléchargement ni installateur n’est nécessaire.</translation>

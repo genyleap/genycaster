@@ -104,6 +104,14 @@ inline constexpr std::uint32_t requestedPageSize = 1'000U;
             foundation::error::ErrorCode::InvalidArgument,
             "Snapchain base URL must be an origin/root URL without query, fragment, or control characters."));
     }
+    if (!config.submitBaseUrl.empty() &&
+        ((!config.submitBaseUrl.starts_with("https://") &&
+           !config.submitBaseUrl.starts_with("http://")) ||
+         config.submitBaseUrl.find_first_of("?#\r\n") != std::string::npos)) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Snapchain validator submit URL must be a valid HTTP(S) origin."));
+    }
     if (config.timeout <= std::chrono::milliseconds::zero()) {
         return std::unexpected(makeError(
             foundation::error::ErrorCode::InvalidArgument,
@@ -148,6 +156,25 @@ inline constexpr std::uint32_t requestedPageSize = 1'000U;
                 "Snapchain authorization header value must not contain line breaks."));
         }
     }
+    const bool hasSubmitHeader = !config.submitAuthorizationHeaderName.empty();
+    if (hasSubmitHeader != !config.submitAuthorizationHeaderValue.empty()) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Validator authorization header name and value must be configured together."));
+    }
+    if (hasSubmitHeader) {
+        const auto validHeaderCharacter = [](const unsigned char character) {
+            return std::isalnum(character) != 0 ||
+                std::string_view{"!#$%&'*+-.^_`|~"}.find(static_cast<char>(character)) !=
+                    std::string_view::npos;
+        };
+        if (!std::ranges::all_of(config.submitAuthorizationHeaderName, validHeaderCharacter)
+            || config.submitAuthorizationHeaderValue.find_first_of("\r\n") != std::string::npos) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Validator authorization header contains invalid characters."));
+        }
+    }
     return {};
 }
 
@@ -159,9 +186,19 @@ inline constexpr std::uint32_t requestedPageSize = 1'000U;
     if (binaryBody) {
         headers.emplace_back("Content-Type: application/octet-stream");
     }
-    if (!config.authorizationHeaderName.empty()) {
-        headers.push_back(
-            config.authorizationHeaderName + ": " + config.authorizationHeaderValue);
+    // Never forward a read-node credential to a different validator endpoint.
+    const bool sameRoute = config.submitBaseUrl.empty()
+        || trimTrailingSlashes(config.submitBaseUrl) == trimTrailingSlashes(config.baseUrl);
+    const std::string& headerName = binaryBody && !config.submitAuthorizationHeaderName.empty()
+        ? config.submitAuthorizationHeaderName
+        : binaryBody && !sameRoute ? config.submitAuthorizationHeaderName
+                                    : config.authorizationHeaderName;
+    const std::string& headerValue = binaryBody && !config.submitAuthorizationHeaderName.empty()
+        ? config.submitAuthorizationHeaderValue
+        : binaryBody && !sameRoute ? config.submitAuthorizationHeaderValue
+                                    : config.authorizationHeaderValue;
+    if (!headerName.empty()) {
+        headers.push_back(headerName + ": " + headerValue);
     }
     return headers;
 }
@@ -613,7 +650,8 @@ struct Page final {
     const Config& config,
     std::string body)
 {
-    std::string url = trimTrailingSlashes(config.baseUrl);
+    std::string url = trimTrailingSlashes(
+        config.submitBaseUrl.empty() ? config.baseUrl : config.submitBaseUrl);
     url.append("/v1/submitMessage");
     auto response = transport.post(transport::http::HttpPostRequest{
         .url = std::move(url),

@@ -21,6 +21,13 @@ export namespace farcaster::provider::snapchain::signer {
  */
 struct Config final {
     std::string baseUrl{};
+    // Optional validator/submit endpoint. When absent the node serves both
+    // queries and writes; read-only nodes require an explicit validator URL.
+    std::string submitBaseUrl{};
+    // Credentials are route-scoped: read-node credentials never follow a
+    // submission to a different validator origin.
+    std::string submitAuthorizationHeaderName{};
+    std::string submitAuthorizationHeaderValue{};
     std::string authorizationHeaderName{};
     std::string authorizationHeaderValue{};
     std::chrono::milliseconds timeout{15'000};

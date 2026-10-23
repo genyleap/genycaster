@@ -60,6 +60,7 @@ GenyDrawer {
     readonly property bool compactLayout: width < 640
     readonly property int contentColumns: width >= 700 ? 2 : 1
     property bool marketInputError: false
+    property bool validatorUrlError: false
     property bool customColorError: false
 
     signal customAccentStudioRequested(string color)
@@ -94,6 +95,8 @@ GenyDrawer {
             root.mobileIndexOpen = true
         }
         customAccentField.text = appearanceController.customAccentColor
+        validatorEndpointField.text = nodeSelectionController.snapchainWriteEndpoint
+        root.validatorUrlError = false
         root.customColorError = false
         root.showRecoveryExplanation = false
     }
@@ -1365,6 +1368,57 @@ GenyDrawer {
                             wrapMode: Text.WordWrap
                         }
 
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.settings.validator_write_endpoint")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeMetaSize
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.settings.validator_write_description")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space2
+                            DirectionAwareTextField {
+                                id: validatorEndpointField
+                                Layout.fillWidth: true
+                                inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
+                                placeholderText: "https://validator.example"
+                                onTextChanged: root.validatorUrlError = false
+                                onAccepted: {
+                                    root.validatorUrlError = !nodeSelectionController.setSnapchainWriteEndpoint(text)
+                                }
+                            }
+                            ActionButton {
+                                compact: true
+                                text: qsTrId("genycaster.composer.apply")
+                                onClicked: {
+                                    root.validatorUrlError = !nodeSelectionController.setSnapchainWriteEndpoint(validatorEndpointField.text)
+                                }
+                            }
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: root.validatorUrlError
+                            text: qsTrId("genycaster.settings.validator_write_invalid")
+                            color: Theme.danger
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: nodeSelectionController.writeRestartRequired
+                            text: qsTrId("genycaster.settings.restart_genycaster_to_apply_network_changes")
+                            color: Theme.warning
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
                             text: qsTrId("genycaster.settings.connection_proxy_for_farcaster_relay_and_network_reads")

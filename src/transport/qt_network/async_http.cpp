@@ -23,6 +23,7 @@ module;
 #include <QVariant>
 
 #include <algorithm>
+#include <cctype>
 #include <atomic>
 #include <chrono>
 #include <cstddef>
@@ -468,12 +469,19 @@ private:
             context->request.url.data(),
             static_cast<qsizetype>(context->request.url.size()))};
         QNetworkRequest networkRequest{url};
-        // A hosted API key must not follow cross-host redirects: a 3xx is
-        // surfaced to the provider as an error rather than disclosing the key.
+        // Provider credentials have no prescribed header name. Treat all
+        // non-standard headers as potentially sensitive and never follow a
+        // redirect with them, regardless of the selected read provider.
         const bool credentialedApiRequest = std::any_of(
             context->request.headers.begin(), context->request.headers.end(),
             [](const std::string& header) {
-                return std::string_view{header}.starts_with("x-api-key:");
+                const auto separator = header.find(':');
+                if (separator == std::string::npos) return true;
+                std::string name = header.substr(0U, separator);
+                std::ranges::transform(name, name.begin(), [](const unsigned char c) {
+                    return static_cast<char>(std::tolower(c));
+                });
+                return name != "accept" && name != "content-type";
             });
         networkRequest.setAttribute(
             QNetworkRequest::RedirectPolicyAttribute,

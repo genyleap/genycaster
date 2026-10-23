@@ -825,10 +825,44 @@ int main(int argc, char* argv[])
         snapchainBaseUrlText = qEnvironmentVariable("GENYCASTER_SNAPCHAIN_BASE_URL").trimmed();
     }
     if (snapchainBaseUrlText.isEmpty()) {
+        snapchainBaseUrlText = settings.value(
+            QStringLiteral("network/snapchainReadBaseUrl")).toString().trimmed();
+    }
+    if (snapchainBaseUrlText.isEmpty()) {
         snapchainBaseUrlText = QString::fromStdString(
             std::string{deploymentEndpoints.snapchainBaseUrl});
     }
+    snapchainBaseUrlText = normalizeConfigurationToken(std::move(snapchainBaseUrlText));
+    if (!isValidHttpServiceUrl(snapchainBaseUrlText)) {
+        qCritical().noquote() << "Snapchain read URL must be a credential-free HTTP(S) origin.";
+        return 2;
+    }
     const std::optional<std::string> snapchainBaseUrl{snapchainBaseUrlText.toStdString()};
+
+    // A selected read-only Snapchain node cannot accept submissions. Configure
+    // its validator/write route separately; with no override, preserve the
+    // prior one-origin behavior for deployments whose node supports both.
+    QString snapchainWriteBaseUrlText = optionValue(
+        arguments, QStringLiteral("--snapchain-write-base-url="));
+    if (snapchainWriteBaseUrlText.isEmpty()) {
+        snapchainWriteBaseUrlText = qEnvironmentVariable(
+            "GENYCASTER_SNAPCHAIN_WRITE_BASE_URL").trimmed();
+    }
+    if (snapchainWriteBaseUrlText.isEmpty()) {
+        snapchainWriteBaseUrlText = settings.value(
+            QStringLiteral("network/snapchainWriteBaseUrl")).toString().trimmed();
+    }
+    snapchainWriteBaseUrlText = normalizeConfigurationToken(
+        std::move(snapchainWriteBaseUrlText));
+    if (!snapchainWriteBaseUrlText.isEmpty()
+        && !isValidHttpServiceUrl(snapchainWriteBaseUrlText)) {
+        qCritical().noquote() << "Snapchain validator/write URL must be a credential-free HTTP(S) origin.";
+        return 2;
+    }
+    const std::optional<std::string> snapchainWriteBaseUrl =
+        snapchainWriteBaseUrlText.isEmpty()
+            ? snapchainBaseUrl
+            : std::optional<std::string>{snapchainWriteBaseUrlText.toStdString()};
 
     QString mediaGatewayBaseUrlText = optionValue(
         arguments, QStringLiteral("--media-gateway-base-url="));
@@ -873,6 +907,33 @@ int main(int argc, char* argv[])
             << "Snapchain advanced authorization requires both --snapchain-auth-header/"
                "GENYCASTER_SNAPCHAIN_AUTH_HEADER and --snapchain-auth-value/"
                "GENYCASTER_SNAPCHAIN_AUTH_VALUE.";
+        return 2;
+    }
+
+    QString snapchainWriteAuthorizationHeaderText = optionValue(
+        arguments, QStringLiteral("--snapchain-write-auth-header="));
+    if (snapchainWriteAuthorizationHeaderText.isEmpty()) {
+        snapchainWriteAuthorizationHeaderText =
+            qEnvironmentVariable("GENYCASTER_SNAPCHAIN_WRITE_AUTH_HEADER").trimmed();
+    }
+    QString snapchainWriteAuthorizationValueText = optionValue(
+        arguments, QStringLiteral("--snapchain-write-auth-value="));
+    if (snapchainWriteAuthorizationValueText.isEmpty()) {
+        snapchainWriteAuthorizationValueText =
+            qEnvironmentVariable("GENYCASTER_SNAPCHAIN_WRITE_AUTH_VALUE").trimmed();
+    }
+    const std::optional<std::string> snapchainWriteAuthorizationHeader =
+        snapchainWriteAuthorizationHeaderText.isEmpty()
+            ? std::nullopt
+            : std::optional<std::string>{snapchainWriteAuthorizationHeaderText.toStdString()};
+    const std::optional<std::string> snapchainWriteAuthorizationValue =
+        snapchainWriteAuthorizationValueText.isEmpty()
+            ? std::nullopt
+            : std::optional<std::string>{snapchainWriteAuthorizationValueText.toStdString()};
+    if (snapchainWriteAuthorizationHeader.has_value()
+        != snapchainWriteAuthorizationValue.has_value()) {
+        qCritical().noquote()
+            << "Validator authorization requires both write-auth-header and write-auth-value.";
         return 2;
     }
 
@@ -1136,6 +1197,7 @@ int main(int argc, char* argv[])
     nodeSelectionControllerOwner = std::make_unique<NodeSelectionController>(
         settings,
         appliedNodeEndpoint,
+        QString::fromStdString(snapchainWriteBaseUrl.value_or(std::string{})),
         nodeCandidateEndpoints,
         networkProxyText,
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest);
@@ -1675,9 +1737,11 @@ int main(int argc, char* argv[])
                                   &mediaPlayback, &runtime,
                                   databasePath, networkProxyPolicy, providerBaseUrl,
                                   farcasterReadBaseUrl, farcasterReadApiKey, authRelayUrl,
-                                  optimismRpcUrl, snapchainBaseUrl,
+                                  optimismRpcUrl, snapchainBaseUrl, snapchainWriteBaseUrl,
                                   mediaGatewayBaseUrl, snapchainAuthorizationHeader,
-                                  snapchainAuthorizationValue, appFid,
+                                  snapchainAuthorizationValue,
+                                  snapchainWriteAuthorizationHeader,
+                                  snapchainWriteAuthorizationValue, appFid,
                                   signerAttestationUrl, walletLaunchTemplate,
                                   siwfDomain, siwfUri, startupIdentity,
                                   openExploreForTest] {
@@ -1690,9 +1754,12 @@ int main(int argc, char* argv[])
                 authRelayUrl,
                 optimismRpcUrl,
                 snapchainBaseUrl,
+                snapchainWriteBaseUrl,
                 mediaGatewayBaseUrl,
                 snapchainAuthorizationHeader,
                 snapchainAuthorizationValue,
+                snapchainWriteAuthorizationHeader,
+                snapchainWriteAuthorizationValue,
                 appFid,
                 signerAttestationUrl,
                 makeWalletApprovalLauncher(walletLaunchTemplate, true));

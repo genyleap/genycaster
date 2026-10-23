@@ -26,8 +26,9 @@ constexpr auto kNodeEndpointKey = "network/hypersnapBaseUrl";
         endpoint.chop(1);
     }
     const QUrl url{endpoint};
-    if (!url.isValid() || url.host().isEmpty() ||
-        (url.scheme() != QStringLiteral("https") && url.scheme() != QStringLiteral("http"))) {
+    if (!url.isValid() || url.host().isEmpty() || !url.userInfo().isEmpty()
+        || url.hasQuery() || url.hasFragment()
+        || (url.scheme() != QStringLiteral("https") && url.scheme() != QStringLiteral("http"))) {
         return {};
     }
     return endpoint;
@@ -44,6 +45,7 @@ constexpr auto kNodeEndpointKey = "network/hypersnapBaseUrl";
 NodeSelectionController::NodeSelectionController(
     QSettings& settings,
     QString appliedEndpoint,
+    QString appliedWriteEndpoint,
     QStringList candidateEndpoints,
     QString appliedProxyMode,
     const bool probingEnabled,
@@ -51,10 +53,16 @@ NodeSelectionController::NodeSelectionController(
     : QObject(parent),
       m_settings{settings},
       m_appliedEndpoint{normalizedEndpoint(std::move(appliedEndpoint))},
+      m_appliedWriteEndpoint{normalizedEndpoint(std::move(appliedWriteEndpoint))},
       m_appliedProxyMode{std::move(appliedProxyMode)},
       m_probingEnabled{probingEnabled},
       m_network{new QNetworkAccessManager(this)}
 {
+    m_snapchainWriteEndpoint = normalizedEndpoint(m_settings.value(
+        QStringLiteral("network/snapchainWriteBaseUrl"),
+        m_appliedWriteEndpoint).toString());
+    if (m_snapchainWriteEndpoint.isEmpty())
+        m_snapchainWriteEndpoint = m_appliedWriteEndpoint;
     m_proxyMode = m_settings.value(QStringLiteral("network/proxyMode"),
                                      m_appliedProxyMode).toString();
     if (m_proxyMode != QStringLiteral("system") &&
@@ -143,6 +151,30 @@ QVariantList NodeSelectionController::nodes() const
 QString NodeSelectionController::selectedNodeId() const
 {
     return m_selectedNodeId;
+}
+
+QString NodeSelectionController::snapchainWriteEndpoint() const
+{
+    return m_snapchainWriteEndpoint;
+}
+
+bool NodeSelectionController::writeRestartRequired() const
+{
+    return m_snapchainWriteEndpoint.compare(m_appliedWriteEndpoint,
+                                           Qt::CaseInsensitive) != 0;
+}
+
+bool NodeSelectionController::setSnapchainWriteEndpoint(const QString& endpoint)
+{
+    const QString candidate = normalizedEndpoint(endpoint);
+    if (candidate.isEmpty()) return false;
+    if (candidate.compare(m_snapchainWriteEndpoint, Qt::CaseInsensitive) == 0)
+        return true;
+    m_snapchainWriteEndpoint = candidate;
+    m_settings.setValue(QStringLiteral("network/snapchainWriteBaseUrl"), candidate);
+    m_settings.sync();
+    emit selectionChanged();
+    return true;
 }
 
 QString NodeSelectionController::selectedEndpoint() const

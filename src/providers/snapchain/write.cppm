@@ -22,6 +22,11 @@ export namespace farcaster::provider::snapchain::write {
  */
 struct Config final {
     std::string baseUrl{};
+    // Optional independent authoritative read origin for reconciliation.
+    // The base URL above is the signed submission destination.
+    std::string readBaseUrl{};
+    std::string readAuthorizationHeaderName{};
+    std::string readAuthorizationHeaderValue{};
     std::string authorizationHeaderName{};
     std::string authorizationHeaderValue{};
     std::chrono::milliseconds timeout{5'000};
@@ -31,10 +36,10 @@ struct Config final {
 /**
  * @brief Creates a canonical Snapchain protocol-write submit/reconcile adapter.
  *
- * submit() POSTs the exact protobuf Message to `/v1/submitMessage` and validates
- * the returned canonical hash/type/FID. reconcile() resolves Cast, Reaction and
- * Follow desired state through Snapchain's authoritative read endpoints before
- * retrying an ambiguous operation. The borrowed transport must outlive the adapter.
+ * submit() POSTs the exact protobuf Message to `/v1/submitMessage` at the
+ * selected write-capable origin and validates canonical hash/type/FID.
+ * reconcile() resolves Cast, Reaction and Follow state through the independent
+ * authoritative read origin before retrying an ambiguous operation. The borrowed transport must outlive the adapter.
  */
 [[nodiscard]] std::unique_ptr<capability::write::IWriteSubmitter> makeSubmitter(
     transport::http::IHttpTransport& transport,

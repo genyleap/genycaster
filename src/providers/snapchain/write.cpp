@@ -63,6 +63,14 @@ using domain::write::OperationKind;
             foundation::error::ErrorCode::InvalidArgument,
             "Snapchain write base URL must be an origin/root URL without query or fragment."));
     }
+    if (!config.readBaseUrl.empty() &&
+        ((!config.readBaseUrl.starts_with("https://") &&
+          !config.readBaseUrl.starts_with("http://")) ||
+         config.readBaseUrl.find_first_of("?#\r\n") != std::string::npos)) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Snapchain reconciliation read URL must be a valid HTTP(S) origin."));
+    }
     if (config.timeout <= std::chrono::milliseconds::zero() || config.maxBodyBytes == 0U) {
         return std::unexpected(makeError(
             foundation::error::ErrorCode::InvalidArgument,
@@ -92,6 +100,25 @@ using domain::write::OperationKind;
                 "Snapchain authorization header value must not contain line breaks."));
         }
     }
+    const bool hasReadHeader = !config.readAuthorizationHeaderName.empty();
+    if (hasReadHeader != !config.readAuthorizationHeaderValue.empty()) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Snapchain read authorization header name and value must be configured together."));
+    }
+    if (hasReadHeader) {
+        const auto validHeaderCharacter = [](const unsigned char character) {
+            return std::isalnum(character) != 0 ||
+                std::string_view{"!#$%&'*+-.^_`|~"}.find(static_cast<char>(character)) !=
+                    std::string_view::npos;
+        };
+        if (!std::ranges::all_of(config.readAuthorizationHeaderName, validHeaderCharacter)
+            || config.readAuthorizationHeaderValue.find_first_of("\r\n") != std::string::npos) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Snapchain read authorization header contains invalid characters."));
+        }
+    }
     return {};
 }
 
@@ -103,9 +130,18 @@ using domain::write::OperationKind;
     if (binaryBody) {
         headers.emplace_back("Content-Type: application/octet-stream");
     }
-    if (!config.authorizationHeaderName.empty()) {
-        headers.push_back(
-            config.authorizationHeaderName + ": " + config.authorizationHeaderValue);
+    const bool sameRoute = config.readBaseUrl.empty()
+        || trimTrailingSlashes(config.readBaseUrl) == trimTrailingSlashes(config.baseUrl);
+    const std::string& headerName = !binaryBody && !config.readAuthorizationHeaderName.empty()
+        ? config.readAuthorizationHeaderName
+        : !binaryBody && !sameRoute ? config.readAuthorizationHeaderName
+                                    : config.authorizationHeaderName;
+    const std::string& headerValue = !binaryBody && !config.readAuthorizationHeaderName.empty()
+        ? config.readAuthorizationHeaderValue
+        : !binaryBody && !sameRoute ? config.readAuthorizationHeaderValue
+                                    : config.authorizationHeaderValue;
+    if (!headerName.empty()) {
+        headers.push_back(headerName + ": " + headerValue);
     }
     return headers;
 }
@@ -547,7 +583,8 @@ using domain::write::OperationKind;
     const Config& config,
     const domain::write::SignedOperation& operation)
 {
-    const std::string base = trimTrailingSlashes(config.baseUrl);
+    const std::string base = trimTrailingSlashes(
+        config.readBaseUrl.empty() ? config.baseUrl : config.readBaseUrl);
     switch (operation.kind) {
     case OperationKind::PublishCast:
         return base + "/v1/castById?fid=" + std::to_string(operation.author.value) +

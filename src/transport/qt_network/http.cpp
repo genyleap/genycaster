@@ -24,6 +24,7 @@ module;
 #include <QVariant>
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -280,9 +281,24 @@ private:
         networkRequest.setAttribute(
             QNetworkRequest::CookieSaveControlAttribute,
             static_cast<int>(QNetworkRequest::Manual));
+        // A signed submission must never be re-POSTed to a redirect target.
+        // Also keep credentials on the explicitly selected host: provider
+        // adapters may use arbitrary custom authentication header names.
+        const bool carriesCustomHeaders = std::any_of(
+            requestHeaders.begin(), requestHeaders.end(), [](const std::string& rawHeader) {
+                const auto separator = rawHeader.find(':');
+                if (separator == std::string::npos) return true;
+                std::string name = rawHeader.substr(0U, separator);
+                std::ranges::transform(name, name.begin(), [](const unsigned char c) {
+                    return static_cast<char>(std::tolower(c));
+                });
+                return name != "accept" && name != "content-type";
+            });
         networkRequest.setAttribute(
             QNetworkRequest::RedirectPolicyAttribute,
-            QNetworkRequest::NoLessSafeRedirectPolicy);
+            requestBody != nullptr || carriesCustomHeaders
+                ? QNetworkRequest::ManualRedirectPolicy
+                : QNetworkRequest::NoLessSafeRedirectPolicy);
         if (protocolPolicy_ == ProtocolPolicy::Http1Only) {
             networkRequest.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
         }

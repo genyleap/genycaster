@@ -296,6 +296,52 @@ void mismatchedNetworkIdentityFailsClosed()
     assert(result.error().code == foundation::error::ErrorCode::ProtocolFailure);
 }
 
+void splitReadAndValidatorRoutesKeepCredentialsIsolated()
+{
+    FakeTransport http{};
+    http.postReplies.push_back({.statusCode = 200U, .body = authoritativeJson()});
+    http.getReplies.push_back({.statusCode = 200U, .body = authoritativeJson()});
+    auto submitter = provider::snapchain::write::makeSubmitter(
+        http, provider::snapchain::write::Config{
+            .baseUrl = "https://validator.test",
+            .readBaseUrl = "https://read-node.test",
+            .readAuthorizationHeaderName = "X-Read-Token",
+            .readAuthorizationHeaderValue = "read-test-value",
+            .authorizationHeaderName = "X-Write-Token",
+            .authorizationHeaderValue = "write-test-value",
+        });
+    auto sent = submitter->submit(operation());
+    assert(sent);
+    auto confirmed = submitter->reconcile(operation());
+    assert(confirmed && *confirmed == capability::write::ConfirmationState::Confirmed);
+    assert(http.posts.size() == 1U);
+    assert(http.posts.front().url == "https://validator.test/v1/submitMessage");
+    assert(std::ranges::find(http.posts.front().headers, "X-Read-Token: read-test-value")
+        == http.posts.front().headers.end());
+    assert(std::ranges::find(http.posts.front().headers, "X-Write-Token: write-test-value")
+        != http.posts.front().headers.end());
+    assert(http.gets.size() == 1U);
+    assert(http.gets.front().url ==
+        "https://read-node.test/v1/castById?fid=42&hash=0x00112233445566778899aabbccddeeff00112233");
+    assert(std::ranges::find(http.gets.front().headers, "X-Write-Token: write-test-value")
+        == http.gets.front().headers.end());
+    assert(std::ranges::find(http.gets.front().headers, "X-Read-Token: read-test-value")
+        != http.gets.front().headers.end());
+}
+
+void invalidReadEndpointFailsClosed()
+{
+    FakeTransport http{};
+    auto submitter = provider::snapchain::write::makeSubmitter(
+        http, provider::snapchain::write::Config{
+            .baseUrl = "https://validator.test", .readBaseUrl = "bad:invalid",
+        });
+    const auto status = submitter->reconcile(operation());
+    assert(!status);
+    assert(status.error().code == foundation::error::ErrorCode::InvalidArgument);
+    assert(http.gets.empty());
+}
+
 void submitConflictMapsWithoutClaimingSuccess()
 {
     FakeTransport http{};
@@ -313,6 +359,8 @@ void submitConflictMapsWithoutClaimingSuccess()
 int main()
 {
     defaultConfigurationRequiresCompositionOrigin();
+    splitReadAndValidatorRoutesKeepCredentialsIsolated();
+    invalidReadEndpointFailsClosed();
     explicitAuthorizationHeaderIsForwarded();
     submitUsesCanonicalBinaryEndpoint();
     reconcileUsesCanonicalCastIdentity();

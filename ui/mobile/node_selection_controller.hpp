@@ -25,6 +25,8 @@ class NodeSelectionController final : public QObject {
     Q_PROPERTY(QVariantList nodes READ nodes NOTIFY nodesChanged)
     Q_PROPERTY(QString selectedNodeId READ selectedNodeId NOTIFY selectionChanged)
     Q_PROPERTY(QString selectedEndpoint READ selectedEndpoint NOTIFY selectionChanged)
+    Q_PROPERTY(QString snapchainWriteEndpoint READ snapchainWriteEndpoint NOTIFY selectionChanged)
+    Q_PROPERTY(bool writeRestartRequired READ writeRestartRequired NOTIFY selectionChanged)
     Q_PROPERTY(bool automatic READ automatic NOTIFY selectionChanged)
     Q_PROPERTY(bool probing READ probing NOTIFY nodesChanged)
     Q_PROPERTY(bool restartRequired READ restartRequired NOTIFY selectionChanged)
@@ -35,6 +37,7 @@ public:
     NodeSelectionController(
         QSettings& settings,
         QString appliedEndpoint,
+        QString appliedWriteEndpoint,
         QStringList candidateEndpoints,
         QString appliedProxyMode,
         bool probingEnabled,
@@ -44,6 +47,9 @@ public:
     [[nodiscard]] QVariantList nodes() const;
     [[nodiscard]] QString selectedNodeId() const;
     [[nodiscard]] QString selectedEndpoint() const;
+    [[nodiscard]] QString snapchainWriteEndpoint() const;
+    [[nodiscard]] bool writeRestartRequired() const;
+    Q_INVOKABLE bool setSnapchainWriteEndpoint(const QString& endpoint);
     [[nodiscard]] bool automatic() const noexcept;
     [[nodiscard]] bool probing() const noexcept;
     [[nodiscard]] bool restartRequired() const;
@@ -82,6 +88,8 @@ private:
 
     QSettings& m_settings;
     QString m_appliedEndpoint;
+    QString m_appliedWriteEndpoint;
+    QString m_snapchainWriteEndpoint;
     QString m_appliedProxyMode;
     QString m_proxyMode;
     QList<Node> m_nodes;

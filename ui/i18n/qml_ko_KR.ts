@@ -2,6 +2,18 @@
 <TS version="2.1" language="ko_KR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.settings.validator_write_endpoint">
+            <source>Snapchain write endpoint (validator)</source>
+            <translation>Snapchain 쓰기 엔드포인트(검증자)</translation>
+        </message>
+        <message id="genycaster.settings.validator_write_description">
+            <source>A read-only node cannot publish messages. Choose a validator or write-capable endpoint for casts, reactions, follows and signer keys.</source>
+            <translation>읽기 전용 노드에서는 메시지를 게시할 수 없습니다. 캐스트, 반응, 팔로우 및 서명 키를 위한 검증자 또는 쓰기 지원 엔드포인트를 선택하세요.</translation>
+        </message>
+        <message id="genycaster.settings.validator_write_invalid">
+            <source>Enter a valid HTTP(S) URL without credentials.</source>
+            <translation>인증 정보가 없는 유효한 HTTP(S) URL을 입력하세요.</translation>
+        </message>
         <message id="genycaster.settings.wasm_update_description">
             <source>You are using the WebAssembly (WASM) web version. Refresh to load the latest published app; no installer or download is needed.</source>
             <translation>WebAssembly(WASM) 웹 버전을 사용 중입니다. 최신 공개 버전을 불러오려면 페이지를 새로고침하세요. 다운로드나 설치는 필요하지 않습니다.</translation>
