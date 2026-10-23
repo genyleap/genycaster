@@ -41,6 +41,9 @@ Drawer {
     }
 
     function presentAvailableUpdate() {
+        // WASM uses the browser's live-build manifest drawer. Avoid a second
+        // GitHub-release popup layered on top of the same Qt canvas.
+        if (Qt.platform.os === "wasm") return
         const version = String(updateController.latestVersion || "")
         if (updateController.updateAvailable && version.length > 0
                 && version !== lastPresentedVersion) {
@@ -89,7 +92,7 @@ Drawer {
                 spacing: 3
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    text: qsTr("Genycaster update available")
+                    text: qsTrId("genycaster.update.available")
                     font.pixelSize: Theme.typeTitle3Size
                     font.weight: Theme.weightBold
                     color: Theme.ink
@@ -99,7 +102,7 @@ Drawer {
                     Layout.fillWidth: true
                     text: updateController.releaseTitle.length > 0
                           ? updateController.releaseTitle
-                          : qsTr("A newer release is ready to review.")
+                          : qsTrId("genycaster.update.ready")
                     font.pixelSize: Theme.typeCaptionSize
                     color: Theme.inkMuted
                     elide: Text.ElideRight
@@ -110,7 +113,7 @@ Drawer {
                 iconOnly: true
                 quiet: true
                 iconGlyph: Theme.iconClose
-                text: qsTr("Not now")
+                text: qsTrId("genycaster.update.not_now")
                 onClicked: root.close()
             }
         }
@@ -120,7 +123,7 @@ Drawer {
             ColumnLayout {
                 Layout.fillWidth: true
                 DirectionAwareLabel {
-                    text: qsTr("Current version")
+                    text: qsTrId("genycaster.update.current")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
                 }
@@ -139,7 +142,7 @@ Drawer {
             ColumnLayout {
                 Layout.fillWidth: true
                 DirectionAwareLabel {
-                    text: qsTr("New version")
+                    text: qsTrId("genycaster.update.new")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
                 }
@@ -160,7 +163,7 @@ Drawer {
                 Layout.fillWidth: true
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    text: qsTr("What’s new")
+                    text: qsTrId("genycaster.update.whats_new")
                     color: Theme.ink
                     font.pixelSize: Theme.typeLabelSize
                     font.weight: Theme.weightDemiBold
@@ -184,7 +187,7 @@ Drawer {
                     width: parent.width
                     text: updateController.releaseNotes.length > 0
                           ? updateController.releaseNotes
-                          : qsTr("This release has no published change notes. View the official release for details.")
+                          : qsTrId("genycaster.update.no_notes")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeMetaSize
                     textFormat: Text.PlainText
@@ -199,7 +202,7 @@ Drawer {
                 Layout.fillWidth: true
                 compact: true
                 quiet: true
-                text: qsTr("Release notes")
+                text: qsTrId("genycaster.update.notes")
                 iconGlyph: Theme.iconArrowUpRight
                 onClicked: {
                     root.close()
@@ -212,11 +215,11 @@ Drawer {
                 prominent: true
                 busy: updateController.downloading || updateController.webRefreshing
                 iconGlyph: Theme.iconRefresh
-                text: Qt.platform.os === "wasm" ? qsTr("Refresh to update")
+                text: Qt.platform.os === "wasm" ? qsTrId("genycaster.update.refresh")
                       : updateController.canDownload
                         ? (updateController.downloadedFilePath.length > 0
-                            ? qsTr("Open installer") : qsTr("Download"))
-                        : qsTr("View release")
+                            ? qsTrId("genycaster.update.installer") : qsTrId("genycaster.update.download"))
+                        : qsTrId("genycaster.update.view")
                 onClicked: {
                     root.close()
                     if (Qt.platform.os === "wasm")

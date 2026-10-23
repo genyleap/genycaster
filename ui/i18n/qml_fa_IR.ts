@@ -4286,5 +4286,201 @@
             <source>No profiles match this search.</source>
             <translation>پروفایلی با این جستجو پیدا نشد.</translation>
         </message>
+        <message id="genycaster.apps.category.social">
+            <source>Social</source>
+            <translation>اجتماعی</translation>
+        </message>
+        <message id="genycaster.apps.category.games">
+            <source>Games</source>
+            <translation>بازی‌ها</translation>
+        </message>
+        <message id="genycaster.apps.category.finance">
+            <source>Finance</source>
+            <translation>مالی</translation>
+        </message>
+        <message id="genycaster.apps.category.defi">
+            <source>DeFi</source>
+            <translation>امور مالی غیرمتمرکز</translation>
+        </message>
+        <message id="genycaster.apps.category.crypto">
+            <source>Crypto</source>
+            <translation>رمزارز</translation>
+        </message>
+        <message id="genycaster.apps.category.trading">
+            <source>Trading</source>
+            <translation>معامله‌گری</translation>
+        </message>
+        <message id="genycaster.apps.category.education">
+            <source>Education</source>
+            <translation>آموزش</translation>
+        </message>
+        <message id="genycaster.apps.category.entertainment">
+            <source>Entertainment</source>
+            <translation>سرگرمی</translation>
+        </message>
+        <message id="genycaster.apps.category.productivity">
+            <source>Productivity</source>
+            <translation>بهره‌وری</translation>
+        </message>
+        <message id="genycaster.apps.category.utilities">
+            <source>Utilities</source>
+            <translation>ابزارهای کاربردی</translation>
+        </message>
+        <message id="genycaster.apps.category.tools">
+            <source>Tools</source>
+            <translation>ابزارها</translation>
+        </message>
+        <message id="genycaster.apps.category.music">
+            <source>Music</source>
+            <translation>موسیقی</translation>
+        </message>
+        <message id="genycaster.apps.category.art">
+            <source>Art</source>
+            <translation>هنر</translation>
+        </message>
+        <message id="genycaster.apps.category.collectibles">
+            <source>Collectibles</source>
+            <translation>کلکسیون‌ها</translation>
+        </message>
+        <message id="genycaster.apps.category.sports">
+            <source>Sports</source>
+            <translation>ورزش</translation>
+        </message>
+        <message id="genycaster.apps.category.news">
+            <source>News</source>
+            <translation>اخبار</translation>
+        </message>
+        <message id="genycaster.apps.category.shopping">
+            <source>Shopping</source>
+            <translation>خرید</translation>
+        </message>
+        <message id="genycaster.apps.category.health">
+            <source>Health &amp; Fitness</source>
+            <translation>سلامت و تناسب اندام</translation>
+        </message>
+        <message id="genycaster.apps.category.community">
+            <source>Community</source>
+            <translation>جامعه</translation>
+        </message>
+        <message id="genycaster.apps.category.development">
+            <source>Development</source>
+            <translation>توسعه</translation>
+        </message>
+        <message id="genycaster.apps.category.other">
+            <source>Other</source>
+            <translation>سایر</translation>
+        </message>
+        <message id="genycaster.apps.all_topics">
+            <source>All topics</source>
+            <translation>همهٔ موضوعات</translation>
+        </message>
+        <message id="genycaster.apps.discover">
+            <source>Discover</source>
+            <translation>کشف برنامه‌ها</translation>
+        </message>
+        <message id="genycaster.apps.opening">
+            <source>Opening…</source>
+            <translation>در حال بازکردن…</translation>
+        </message>
+        <message id="genycaster.apps.resume">
+            <source>Resume</source>
+            <translation>ادامه</translation>
+        </message>
+        <message id="genycaster.apps.open">
+            <source>Open</source>
+            <translation>بازکردن</translation>
+        </message>
+        <message id="genycaster.apps.load_more">
+            <source>Load more apps</source>
+            <translation>بارگذاری برنامه‌های بیشتر</translation>
+        </message>
+        <message id="genycaster.apps.details">
+            <source>App details</source>
+            <translation>جزئیات برنامه</translation>
+        </message>
+        <message id="genycaster.apps.developer">
+            <source>Developer</source>
+            <translation>توسعه‌دهنده</translation>
+        </message>
+        <message id="genycaster.apps.category_label">
+            <source>Category</source>
+            <translation>دسته‌بندی</translation>
+        </message>
+        <message id="genycaster.apps.networks">
+            <source>Networks</source>
+            <translation>شبکه‌ها</translation>
+        </message>
+        <message id="genycaster.apps.screenshots">
+            <source>Screenshots</source>
+            <translation>تصاویر برنامه</translation>
+        </message>
+        <message id="genycaster.apps.discovery_source">
+            <source>Discovery source</source>
+            <translation>منبع معرفی</translation>
+        </message>
+        <message id="genycaster.apps.recently_used">
+            <source>Recently used</source>
+            <translation>استفاده‌شده‌های اخیر</translation>
+        </message>
+        <message id="genycaster.apps.previous">
+            <source>Previous app</source>
+            <translation>برنامهٔ قبلی</translation>
+        </message>
+        <message id="genycaster.apps.next">
+            <source>Next app</source>
+            <translation>برنامهٔ بعدی</translation>
+        </message>
+        <message id="genycaster.cast.source_client_accessible">
+            <source>Posted via %1</source>
+            <translation>ارسال‌شده با %1</translation>
+        </message>
+        <message id="genycaster.update.available">
+            <source>Genycaster update available</source>
+            <translation>به‌روزرسانی جنی‌کستر آماده است</translation>
+        </message>
+        <message id="genycaster.update.ready">
+            <source>A newer release is ready to review.</source>
+            <translation>نسخهٔ تازه برای بررسی آماده است.</translation>
+        </message>
+        <message id="genycaster.update.not_now">
+            <source>Not now</source>
+            <translation>فعلاً نه</translation>
+        </message>
+        <message id="genycaster.update.current">
+            <source>Current version</source>
+            <translation>نسخهٔ فعلی</translation>
+        </message>
+        <message id="genycaster.update.new">
+            <source>New version</source>
+            <translation>نسخهٔ جدید</translation>
+        </message>
+        <message id="genycaster.update.whats_new">
+            <source>What’s new</source>
+            <translation>تغییرات نسخه</translation>
+        </message>
+        <message id="genycaster.update.no_notes">
+            <source>This release has no published change notes. View the official release for details.</source>
+            <translation>برای این نسخه یادداشت تغییراتی منتشر نشده است. برای جزئیات به صفحهٔ رسمی انتشار مراجعه کنید.</translation>
+        </message>
+        <message id="genycaster.update.notes">
+            <source>Release notes</source>
+            <translation>یادداشت‌های انتشار</translation>
+        </message>
+        <message id="genycaster.update.refresh">
+            <source>Refresh to update</source>
+            <translation>بازبارگذاری و به‌روزرسانی</translation>
+        </message>
+        <message id="genycaster.update.installer">
+            <source>Open installer</source>
+            <translation>بازکردن نصب‌کننده</translation>
+        </message>
+        <message id="genycaster.update.download">
+            <source>Download</source>
+            <translation>دریافت</translation>
+        </message>
+        <message id="genycaster.update.view">
+            <source>View release</source>
+            <translation>مشاهدهٔ انتشار</translation>
+        </message>
     </context>
 </TS>

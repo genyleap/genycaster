@@ -4286,5 +4286,201 @@
             <source>Saved</source>
             <translation>Guardado</translation>
         </message>
+        <message id="genycaster.apps.category.social">
+            <source>Social</source>
+            <translation>Social</translation>
+        </message>
+        <message id="genycaster.apps.category.games">
+            <source>Games</source>
+            <translation>Juegos</translation>
+        </message>
+        <message id="genycaster.apps.category.finance">
+            <source>Finance</source>
+            <translation>Finanzas</translation>
+        </message>
+        <message id="genycaster.apps.category.defi">
+            <source>DeFi</source>
+            <translation>DeFi</translation>
+        </message>
+        <message id="genycaster.apps.category.crypto">
+            <source>Crypto</source>
+            <translation>Criptomonedas</translation>
+        </message>
+        <message id="genycaster.apps.category.trading">
+            <source>Trading</source>
+            <translation>Comercio</translation>
+        </message>
+        <message id="genycaster.apps.category.education">
+            <source>Education</source>
+            <translation>Educación</translation>
+        </message>
+        <message id="genycaster.apps.category.entertainment">
+            <source>Entertainment</source>
+            <translation>Entretenimiento</translation>
+        </message>
+        <message id="genycaster.apps.category.productivity">
+            <source>Productivity</source>
+            <translation>Productividad</translation>
+        </message>
+        <message id="genycaster.apps.category.utilities">
+            <source>Utilities</source>
+            <translation>Utilidades</translation>
+        </message>
+        <message id="genycaster.apps.category.tools">
+            <source>Tools</source>
+            <translation>Herramientas</translation>
+        </message>
+        <message id="genycaster.apps.category.music">
+            <source>Music</source>
+            <translation>Música</translation>
+        </message>
+        <message id="genycaster.apps.category.art">
+            <source>Art</source>
+            <translation>Arte</translation>
+        </message>
+        <message id="genycaster.apps.category.collectibles">
+            <source>Collectibles</source>
+            <translation>Coleccionables</translation>
+        </message>
+        <message id="genycaster.apps.category.sports">
+            <source>Sports</source>
+            <translation>Deportes</translation>
+        </message>
+        <message id="genycaster.apps.category.news">
+            <source>News</source>
+            <translation>Noticias</translation>
+        </message>
+        <message id="genycaster.apps.category.shopping">
+            <source>Shopping</source>
+            <translation>Compras</translation>
+        </message>
+        <message id="genycaster.apps.category.health">
+            <source>Health &amp; Fitness</source>
+            <translation>Salud y ejercicio</translation>
+        </message>
+        <message id="genycaster.apps.category.community">
+            <source>Community</source>
+            <translation>Comunidad</translation>
+        </message>
+        <message id="genycaster.apps.category.development">
+            <source>Development</source>
+            <translation>Desarrollo</translation>
+        </message>
+        <message id="genycaster.apps.category.other">
+            <source>Other</source>
+            <translation>Otros</translation>
+        </message>
+        <message id="genycaster.apps.all_topics">
+            <source>All topics</source>
+            <translation>Todos los temas</translation>
+        </message>
+        <message id="genycaster.apps.discover">
+            <source>Discover</source>
+            <translation>Descubrir</translation>
+        </message>
+        <message id="genycaster.apps.opening">
+            <source>Opening…</source>
+            <translation>Abriendo…</translation>
+        </message>
+        <message id="genycaster.apps.resume">
+            <source>Resume</source>
+            <translation>Reanudar</translation>
+        </message>
+        <message id="genycaster.apps.open">
+            <source>Open</source>
+            <translation>Abrir</translation>
+        </message>
+        <message id="genycaster.apps.load_more">
+            <source>Load more apps</source>
+            <translation>Cargar más apps</translation>
+        </message>
+        <message id="genycaster.apps.details">
+            <source>App details</source>
+            <translation>Detalles de la app</translation>
+        </message>
+        <message id="genycaster.apps.developer">
+            <source>Developer</source>
+            <translation>Desarrollador</translation>
+        </message>
+        <message id="genycaster.apps.category_label">
+            <source>Category</source>
+            <translation>Categoría</translation>
+        </message>
+        <message id="genycaster.apps.networks">
+            <source>Networks</source>
+            <translation>Redes</translation>
+        </message>
+        <message id="genycaster.apps.screenshots">
+            <source>Screenshots</source>
+            <translation>Capturas de pantalla</translation>
+        </message>
+        <message id="genycaster.apps.discovery_source">
+            <source>Discovery source</source>
+            <translation>Fuente del descubrimiento</translation>
+        </message>
+        <message id="genycaster.apps.recently_used">
+            <source>Recently used</source>
+            <translation>Usadas recientemente</translation>
+        </message>
+        <message id="genycaster.apps.previous">
+            <source>Previous app</source>
+            <translation>App anterior</translation>
+        </message>
+        <message id="genycaster.apps.next">
+            <source>Next app</source>
+            <translation>App siguiente</translation>
+        </message>
+        <message id="genycaster.cast.source_client_accessible">
+            <source>Posted via %1</source>
+            <translation>Publicado desde %1</translation>
+        </message>
+        <message id="genycaster.update.available">
+            <source>Genycaster update available</source>
+            <translation>Actualización de Genycaster disponible</translation>
+        </message>
+        <message id="genycaster.update.ready">
+            <source>A newer release is ready to review.</source>
+            <translation>Hay una nueva versión lista para revisar.</translation>
+        </message>
+        <message id="genycaster.update.not_now">
+            <source>Not now</source>
+            <translation>Ahora no</translation>
+        </message>
+        <message id="genycaster.update.current">
+            <source>Current version</source>
+            <translation>Versión actual</translation>
+        </message>
+        <message id="genycaster.update.new">
+            <source>New version</source>
+            <translation>Versión nueva</translation>
+        </message>
+        <message id="genycaster.update.whats_new">
+            <source>What’s new</source>
+            <translation>Novedades</translation>
+        </message>
+        <message id="genycaster.update.no_notes">
+            <source>This release has no published change notes. View the official release for details.</source>
+            <translation>No hay notas publicadas para esta versión. Consulta el lanzamiento oficial para más detalles.</translation>
+        </message>
+        <message id="genycaster.update.notes">
+            <source>Release notes</source>
+            <translation>Notas de la versión</translation>
+        </message>
+        <message id="genycaster.update.refresh">
+            <source>Refresh to update</source>
+            <translation>Actualizar página</translation>
+        </message>
+        <message id="genycaster.update.installer">
+            <source>Open installer</source>
+            <translation>Abrir instalador</translation>
+        </message>
+        <message id="genycaster.update.download">
+            <source>Download</source>
+            <translation>Descargar</translation>
+        </message>
+        <message id="genycaster.update.view">
+            <source>View release</source>
+            <translation>Ver versión</translation>
+        </message>
     </context>
 </TS>

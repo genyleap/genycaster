@@ -4286,5 +4286,201 @@
             <source>Saved</source>
             <translation>المحفوظات</translation>
         </message>
+        <message id="genycaster.apps.category.social">
+            <source>Social</source>
+            <translation>اجتماعي</translation>
+        </message>
+        <message id="genycaster.apps.category.games">
+            <source>Games</source>
+            <translation>الألعاب</translation>
+        </message>
+        <message id="genycaster.apps.category.finance">
+            <source>Finance</source>
+            <translation>المال</translation>
+        </message>
+        <message id="genycaster.apps.category.defi">
+            <source>DeFi</source>
+            <translation>التمويل اللامركزي</translation>
+        </message>
+        <message id="genycaster.apps.category.crypto">
+            <source>Crypto</source>
+            <translation>العملات المشفرة</translation>
+        </message>
+        <message id="genycaster.apps.category.trading">
+            <source>Trading</source>
+            <translation>التداول</translation>
+        </message>
+        <message id="genycaster.apps.category.education">
+            <source>Education</source>
+            <translation>التعليم</translation>
+        </message>
+        <message id="genycaster.apps.category.entertainment">
+            <source>Entertainment</source>
+            <translation>الترفيه</translation>
+        </message>
+        <message id="genycaster.apps.category.productivity">
+            <source>Productivity</source>
+            <translation>الإنتاجية</translation>
+        </message>
+        <message id="genycaster.apps.category.utilities">
+            <source>Utilities</source>
+            <translation>الأدوات المساعدة</translation>
+        </message>
+        <message id="genycaster.apps.category.tools">
+            <source>Tools</source>
+            <translation>الأدوات</translation>
+        </message>
+        <message id="genycaster.apps.category.music">
+            <source>Music</source>
+            <translation>الموسيقى</translation>
+        </message>
+        <message id="genycaster.apps.category.art">
+            <source>Art</source>
+            <translation>الفن</translation>
+        </message>
+        <message id="genycaster.apps.category.collectibles">
+            <source>Collectibles</source>
+            <translation>المقتنيات</translation>
+        </message>
+        <message id="genycaster.apps.category.sports">
+            <source>Sports</source>
+            <translation>الرياضة</translation>
+        </message>
+        <message id="genycaster.apps.category.news">
+            <source>News</source>
+            <translation>الأخبار</translation>
+        </message>
+        <message id="genycaster.apps.category.shopping">
+            <source>Shopping</source>
+            <translation>التسوق</translation>
+        </message>
+        <message id="genycaster.apps.category.health">
+            <source>Health &amp; Fitness</source>
+            <translation>الصحة واللياقة</translation>
+        </message>
+        <message id="genycaster.apps.category.community">
+            <source>Community</source>
+            <translation>المجتمع</translation>
+        </message>
+        <message id="genycaster.apps.category.development">
+            <source>Development</source>
+            <translation>التطوير</translation>
+        </message>
+        <message id="genycaster.apps.category.other">
+            <source>Other</source>
+            <translation>أخرى</translation>
+        </message>
+        <message id="genycaster.apps.all_topics">
+            <source>All topics</source>
+            <translation>كل المواضيع</translation>
+        </message>
+        <message id="genycaster.apps.discover">
+            <source>Discover</source>
+            <translation>اكتشف</translation>
+        </message>
+        <message id="genycaster.apps.opening">
+            <source>Opening…</source>
+            <translation>جارٍ الفتح…</translation>
+        </message>
+        <message id="genycaster.apps.resume">
+            <source>Resume</source>
+            <translation>متابعة</translation>
+        </message>
+        <message id="genycaster.apps.open">
+            <source>Open</source>
+            <translation>فتح</translation>
+        </message>
+        <message id="genycaster.apps.load_more">
+            <source>Load more apps</source>
+            <translation>تحميل المزيد من التطبيقات</translation>
+        </message>
+        <message id="genycaster.apps.details">
+            <source>App details</source>
+            <translation>تفاصيل التطبيق</translation>
+        </message>
+        <message id="genycaster.apps.developer">
+            <source>Developer</source>
+            <translation>المطوّر</translation>
+        </message>
+        <message id="genycaster.apps.category_label">
+            <source>Category</source>
+            <translation>الفئة</translation>
+        </message>
+        <message id="genycaster.apps.networks">
+            <source>Networks</source>
+            <translation>الشبكات</translation>
+        </message>
+        <message id="genycaster.apps.screenshots">
+            <source>Screenshots</source>
+            <translation>لقطات الشاشة</translation>
+        </message>
+        <message id="genycaster.apps.discovery_source">
+            <source>Discovery source</source>
+            <translation>مصدر الاكتشاف</translation>
+        </message>
+        <message id="genycaster.apps.recently_used">
+            <source>Recently used</source>
+            <translation>المستخدمة مؤخرًا</translation>
+        </message>
+        <message id="genycaster.apps.previous">
+            <source>Previous app</source>
+            <translation>التطبيق السابق</translation>
+        </message>
+        <message id="genycaster.apps.next">
+            <source>Next app</source>
+            <translation>التطبيق التالي</translation>
+        </message>
+        <message id="genycaster.cast.source_client_accessible">
+            <source>Posted via %1</source>
+            <translation>نُشر عبر %1</translation>
+        </message>
+        <message id="genycaster.update.available">
+            <source>Genycaster update available</source>
+            <translation>يتوفر تحديث لجنيكاستر</translation>
+        </message>
+        <message id="genycaster.update.ready">
+            <source>A newer release is ready to review.</source>
+            <translation>إصدار جديد جاهز للمراجعة.</translation>
+        </message>
+        <message id="genycaster.update.not_now">
+            <source>Not now</source>
+            <translation>ليس الآن</translation>
+        </message>
+        <message id="genycaster.update.current">
+            <source>Current version</source>
+            <translation>الإصدار الحالي</translation>
+        </message>
+        <message id="genycaster.update.new">
+            <source>New version</source>
+            <translation>الإصدار الجديد</translation>
+        </message>
+        <message id="genycaster.update.whats_new">
+            <source>What’s new</source>
+            <translation>ما الجديد</translation>
+        </message>
+        <message id="genycaster.update.no_notes">
+            <source>This release has no published change notes. View the official release for details.</source>
+            <translation>لم تُنشر ملاحظات لهذا الإصدار. راجع صفحة الإصدار الرسمية للتفاصيل.</translation>
+        </message>
+        <message id="genycaster.update.notes">
+            <source>Release notes</source>
+            <translation>ملاحظات الإصدار</translation>
+        </message>
+        <message id="genycaster.update.refresh">
+            <source>Refresh to update</source>
+            <translation>تحديث الصفحة</translation>
+        </message>
+        <message id="genycaster.update.installer">
+            <source>Open installer</source>
+            <translation>فتح المثبّت</translation>
+        </message>
+        <message id="genycaster.update.download">
+            <source>Download</source>
+            <translation>تنزيل</translation>
+        </message>
+        <message id="genycaster.update.view">
+            <source>View release</source>
+            <translation>عرض الإصدار</translation>
+        </message>
     </context>
 </TS>

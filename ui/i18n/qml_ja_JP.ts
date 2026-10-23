@@ -4286,5 +4286,201 @@
             <source>Saved</source>
             <translation>保存済み</translation>
         </message>
+        <message id="genycaster.apps.category.social">
+            <source>Social</source>
+            <translation>ソーシャル</translation>
+        </message>
+        <message id="genycaster.apps.category.games">
+            <source>Games</source>
+            <translation>ゲーム</translation>
+        </message>
+        <message id="genycaster.apps.category.finance">
+            <source>Finance</source>
+            <translation>金融</translation>
+        </message>
+        <message id="genycaster.apps.category.defi">
+            <source>DeFi</source>
+            <translation>分散型金融</translation>
+        </message>
+        <message id="genycaster.apps.category.crypto">
+            <source>Crypto</source>
+            <translation>暗号資産</translation>
+        </message>
+        <message id="genycaster.apps.category.trading">
+            <source>Trading</source>
+            <translation>取引</translation>
+        </message>
+        <message id="genycaster.apps.category.education">
+            <source>Education</source>
+            <translation>教育</translation>
+        </message>
+        <message id="genycaster.apps.category.entertainment">
+            <source>Entertainment</source>
+            <translation>エンターテインメント</translation>
+        </message>
+        <message id="genycaster.apps.category.productivity">
+            <source>Productivity</source>
+            <translation>仕事効率化</translation>
+        </message>
+        <message id="genycaster.apps.category.utilities">
+            <source>Utilities</source>
+            <translation>ユーティリティ</translation>
+        </message>
+        <message id="genycaster.apps.category.tools">
+            <source>Tools</source>
+            <translation>ツール</translation>
+        </message>
+        <message id="genycaster.apps.category.music">
+            <source>Music</source>
+            <translation>音楽</translation>
+        </message>
+        <message id="genycaster.apps.category.art">
+            <source>Art</source>
+            <translation>アート</translation>
+        </message>
+        <message id="genycaster.apps.category.collectibles">
+            <source>Collectibles</source>
+            <translation>コレクション</translation>
+        </message>
+        <message id="genycaster.apps.category.sports">
+            <source>Sports</source>
+            <translation>スポーツ</translation>
+        </message>
+        <message id="genycaster.apps.category.news">
+            <source>News</source>
+            <translation>ニュース</translation>
+        </message>
+        <message id="genycaster.apps.category.shopping">
+            <source>Shopping</source>
+            <translation>ショッピング</translation>
+        </message>
+        <message id="genycaster.apps.category.health">
+            <source>Health &amp; Fitness</source>
+            <translation>健康とフィットネス</translation>
+        </message>
+        <message id="genycaster.apps.category.community">
+            <source>Community</source>
+            <translation>コミュニティ</translation>
+        </message>
+        <message id="genycaster.apps.category.development">
+            <source>Development</source>
+            <translation>開発</translation>
+        </message>
+        <message id="genycaster.apps.category.other">
+            <source>Other</source>
+            <translation>その他</translation>
+        </message>
+        <message id="genycaster.apps.all_topics">
+            <source>All topics</source>
+            <translation>すべてのカテゴリ</translation>
+        </message>
+        <message id="genycaster.apps.discover">
+            <source>Discover</source>
+            <translation>見つける</translation>
+        </message>
+        <message id="genycaster.apps.opening">
+            <source>Opening…</source>
+            <translation>開いています…</translation>
+        </message>
+        <message id="genycaster.apps.resume">
+            <source>Resume</source>
+            <translation>再開</translation>
+        </message>
+        <message id="genycaster.apps.open">
+            <source>Open</source>
+            <translation>開く</translation>
+        </message>
+        <message id="genycaster.apps.load_more">
+            <source>Load more apps</source>
+            <translation>さらにアプリを読み込む</translation>
+        </message>
+        <message id="genycaster.apps.details">
+            <source>App details</source>
+            <translation>アプリの詳細</translation>
+        </message>
+        <message id="genycaster.apps.developer">
+            <source>Developer</source>
+            <translation>開発者</translation>
+        </message>
+        <message id="genycaster.apps.category_label">
+            <source>Category</source>
+            <translation>カテゴリ</translation>
+        </message>
+        <message id="genycaster.apps.networks">
+            <source>Networks</source>
+            <translation>ネットワーク</translation>
+        </message>
+        <message id="genycaster.apps.screenshots">
+            <source>Screenshots</source>
+            <translation>スクリーンショット</translation>
+        </message>
+        <message id="genycaster.apps.discovery_source">
+            <source>Discovery source</source>
+            <translation>掲載元</translation>
+        </message>
+        <message id="genycaster.apps.recently_used">
+            <source>Recently used</source>
+            <translation>最近使った項目</translation>
+        </message>
+        <message id="genycaster.apps.previous">
+            <source>Previous app</source>
+            <translation>前のアプリ</translation>
+        </message>
+        <message id="genycaster.apps.next">
+            <source>Next app</source>
+            <translation>次のアプリ</translation>
+        </message>
+        <message id="genycaster.cast.source_client_accessible">
+            <source>Posted via %1</source>
+            <translation>%1 から投稿</translation>
+        </message>
+        <message id="genycaster.update.available">
+            <source>Genycaster update available</source>
+            <translation>Genycaster の更新があります</translation>
+        </message>
+        <message id="genycaster.update.ready">
+            <source>A newer release is ready to review.</source>
+            <translation>新しいバージョンを確認できます。</translation>
+        </message>
+        <message id="genycaster.update.not_now">
+            <source>Not now</source>
+            <translation>後で</translation>
+        </message>
+        <message id="genycaster.update.current">
+            <source>Current version</source>
+            <translation>現在のバージョン</translation>
+        </message>
+        <message id="genycaster.update.new">
+            <source>New version</source>
+            <translation>新しいバージョン</translation>
+        </message>
+        <message id="genycaster.update.whats_new">
+            <source>What’s new</source>
+            <translation>新機能</translation>
+        </message>
+        <message id="genycaster.update.no_notes">
+            <source>This release has no published change notes. View the official release for details.</source>
+            <translation>このリリースの更新履歴は公開されていません。詳細は公式リリースページをご覧ください。</translation>
+        </message>
+        <message id="genycaster.update.notes">
+            <source>Release notes</source>
+            <translation>リリースノート</translation>
+        </message>
+        <message id="genycaster.update.refresh">
+            <source>Refresh to update</source>
+            <translation>再読み込みして更新</translation>
+        </message>
+        <message id="genycaster.update.installer">
+            <source>Open installer</source>
+            <translation>インストーラーを開く</translation>
+        </message>
+        <message id="genycaster.update.download">
+            <source>Download</source>
+            <translation>ダウンロード</translation>
+        </message>
+        <message id="genycaster.update.view">
+            <source>View release</source>
+            <translation>リリースを見る</translation>
+        </message>
     </context>
 </TS>

@@ -75,7 +75,7 @@ Item {
             quiet: true
             iconOnly: true
             iconGlyph: Theme.iconArrowLeft
-            text: qsTr("Previous app")
+            text: qsTrId("genycaster.apps.previous")
             enabled: root.shownIndex > 0
             onClicked: root.navigateTo(root.shownIndex - 1)
         }
@@ -84,7 +84,7 @@ Item {
             quiet: true
             iconOnly: true
             iconGlyph: Theme.iconArrowRight
-            text: qsTr("Next app")
+            text: qsTrId("genycaster.apps.next")
             enabled: root.shownIndex < root.cardCount - 1
             onClicked: root.navigateTo(root.shownIndex + 1)
         }

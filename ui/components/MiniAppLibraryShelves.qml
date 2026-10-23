@@ -27,7 +27,7 @@ Item {
             spacing: Theme.space2
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTr("Recently used")
+                text: qsTrId("genycaster.apps.recently_used")
                 font.pixelSize: Theme.typeTitle3Size
                 font.weight: Theme.weightBold
                 color: Theme.ink
@@ -184,7 +184,8 @@ Item {
                                 }
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
-                                    text: String(savedCell.app.category || savedCell.app.domain || "")
+                                    text: LocaleFormat.formatMiniAppCategory(savedCell.app.category)
+                                         || String(savedCell.app.domain || "")
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
                                     maximumLineCount: 1
@@ -206,7 +207,7 @@ Item {
                                 compact: true
                                 pill: true
                                 elevated: false
-                                text: qsTr("Open")
+                                text: qsTrId("genycaster.apps.open")
                                 onClicked: root.launchRequested(savedCell.app)
                             }
                         }

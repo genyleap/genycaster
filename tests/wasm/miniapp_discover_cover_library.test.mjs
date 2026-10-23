@@ -23,7 +23,7 @@ test("Discover cards use true covers without stretching icons as hero art",()=>{
     const hero=read("ui/components/MiniAppFeaturedCarousel.qml");
     assert.match(view,/const illustrated = \[\]/);
     assert.match(view,/String\(app\.coverSource \|\| ""\)/);
-    assert.match(view,/heading: qsTr\("Discover"\)/);
+    assert.match(view,/heading: qsTrId\("genycaster.apps.discover"\)/);
     assert.match(view,/objectName: "miniAppLibraryShelves"/);
     assert.match(view,/miniAppCatalog\.recordRecentUse\(app\)/);
     assert.match(hero,/source: String\(featuredCell\.app\.coverSource \|\| ""\)/);
@@ -60,7 +60,7 @@ test("mobile App library uses horizontal Recents and borderless saved rows",()=>
     assert.match(view,/visible: !root\.compact \|\| root\.farcasterSection !== "my"/);
     assert.match(view,/visible: root\.compact && root\.section === "farcaster"/);
     assert.match(view,/Layout\.preferredHeight: root\.compact \? 48 : 48/);
-    assert.match(library,/text: qsTr\("Recently used"\)/);
+    assert.match(library,/text: qsTrId\("genycaster.apps.recently_used"\)/);
     assert.match(library,/orientation: ListView\.Horizontal/);
     assert.match(library,/root\.recentApps && root\.recentApps\.length > 0/);
     assert.match(library,/text: qsTrId\("genycaster\.apps\.saved"\)/);
@@ -131,8 +131,8 @@ test('provider-neutral Mini App paging preserves existing results and rich autho
  for(const item of ['authorUsername','authorAvatar','category','tags','screenshots']){
    assert.ok(cpp.includes('{QStringLiteral("'+item+'")'),item);
  }
- assert.match(view,/text: qsTr\("Developer"\)/);
- assert.match(view,/text: qsTr\("Screenshots"\)/);
+ assert.match(view,/text: qsTrId\("genycaster.apps.developer"\)/);
+ assert.match(view,/text: qsTrId\("genycaster.apps.screenshots"\)/);
  assert.match(view,/model: root\.selectedMiniApp\.screenshots \|\| \[\]/);
  assert.match(view,/id: detailScroll/);
 });

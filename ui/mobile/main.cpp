@@ -1179,7 +1179,10 @@ int main(int argc, char* argv[])
     const auto updateBrowserRecoveryLocale = [&localizationController] {
         const QByteArray language = localizationController.effectiveLanguageTag().toUtf8();
         EM_ASM({
-            window.__genycasterPreferredLanguage = UTF8ToString($0, $1);
+            const tag = UTF8ToString($0, $1);
+            window.__genycasterPreferredLanguage = tag;
+            if (typeof window.__genycasterSetUpdateLanguage === "function")
+                window.__genycasterSetUpdateLanguage(tag);
         }, language.constData(), language.size());
     };
     updateBrowserRecoveryLocale();

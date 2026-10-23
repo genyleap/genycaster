@@ -115,6 +115,34 @@ void testCanonicalCodec()
     withClient.insert(hashAt, R"json("app":{"name":"Quorum"},)json");
     const auto attributed = provider::hypersnap::codec::decodeCast(withClient);
     assert(attributed && attributed->sourceClient && *attributed->sourceClient == "Quorum");
+    // The display name takes precedence only when explicitly returned by the
+    // selected provider. Both the regular feed and reply projections preserve it.
+    auto withDisplayName = withClient;
+    const std::string appName{R"json("app":{"name":"Quorum"})json"};
+    const auto appOffset = withDisplayName.find(appName);
+    assert(appOffset != std::string::npos);
+    withDisplayName.replace(appOffset, appName.size(),
+        R"json("app":{"name":"Quorum","display_name":"Genycaster"})json");
+    const auto namedClient = provider::hypersnap::codec::decodeCast(withDisplayName);
+    assert(namedClient && namedClient->sourceClient
+           && *namedClient->sourceClient == "Genycaster");
+
+    // Empty and unreasonable attribution data cannot create client badges.
+    auto emptyClient = withClient;
+    const auto emptyAt = emptyClient.find(appName);
+    assert(emptyAt != std::string::npos);
+    emptyClient.replace(emptyAt, appName.size(), R"json("app":{})json");
+    const auto unknownClient = provider::hypersnap::codec::decodeCast(emptyClient);
+    assert(unknownClient && !unknownClient->sourceClient);
+
+    auto excessiveClient = withClient;
+    const auto excessiveAt = excessiveClient.find(appName);
+    assert(excessiveAt != std::string::npos);
+    excessiveClient.replace(excessiveAt, appName.size(),
+        std::string{R"json("app":{"name":")json"} + std::string(60, 'X')
+            + R"json("})json");
+    const auto untrustedClient = provider::hypersnap::codec::decodeCast(excessiveClient);
+    assert(untrustedClient && !untrustedClient->sourceClient);
 
     // Protocol text has no human-visible @handle. Farcaster positions count
     // UTF-8 bytes (the 💯 symbol consumes four bytes), not UTF-16 indexes.

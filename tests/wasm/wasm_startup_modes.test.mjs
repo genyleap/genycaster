@@ -10,6 +10,8 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
         "boot-fill","boot-percent","boot-retry","boot-build-credit","qt-screen",
         "genycaster-update-banner","genycaster-update-backdrop","genycaster-update-title",
         "genycaster-update-hint","genycaster-update-now","genycaster-update-later",
+        "genycaster-update-current-label","genycaster-update-next-label",
+        "genycaster-update-details-title",
         "genycaster-update-current","genycaster-update-next",
         "genycaster-update-current-channel","genycaster-update-next-channel",
         "genycaster-update-details"]) {
@@ -80,6 +82,7 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
         fireFocus(){return listeners.focus?.();},
         clickUpdate(){nodes.get("genycaster-update-now").handlers.click?.();},
         clickLater(){nodes.get("genycaster-update-later").handlers.click?.();},
+        setAppLanguage:tag=>scope.window.__genycasterSetUpdateLanguage(tag),
         get reloadedTo(){return reloadedTo;},
         setBrowserTheme:dark=>scope.window.__genycasterSetBrowserChromeTheme(dark),
         qmlReady:()=>scope.window.__genycasterQmlStartup(true, ""),
@@ -297,4 +300,27 @@ test("WASM release notifier is a top-down, non-destructive, accessible drawer",(
     assert.match(shell,/id="genycaster-update-next"/);
     assert.match(shell,/id="genycaster-update-details"/);
     assert.doesNotMatch(shell,/#genycaster-update-banner\{[^}]*bottom:calc/);
+});
+
+
+test("WASM release drawer tracks in-app language changes independently of browser locale",async()=>{
+    const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa"});
+    h.config.qt.onLoaded();
+    h.qmlReady();
+    h.setLatestVersion("bbbbbbbbbbbbbbbbbbbb");
+    h.fireFocus();
+    await new Promise(resolve=>setImmediate(resolve));
+    h.setAppLanguage("fa-IR");
+    assert.equal(h.nodes.get("genycaster-update-title").textContent,"به‌روزرسانی جنی‌کستر آماده است");
+    assert.equal(h.nodes.get("genycaster-update-now").textContent,"بازبارگذاری و به‌روزرسانی");
+    assert.equal(h.nodes.get("genycaster-update-current-label").textContent,"نسخهٔ فعلی");
+    assert.match(h.nodes.get("genycaster-update-details").textContent,/برای این نسخه یادداشت تغییراتی/);
+    assert.match(h.nodes.get("genycaster-update-details").textContent,/75\.0 MiB/);
+    h.setAppLanguage("de-DE");
+    assert.equal(h.nodes.get("genycaster-update-title").textContent,"Genycaster-Update verfügbar");
+    assert.equal(h.nodes.get("genycaster-update-now").textContent,"Zum Aktualisieren neu laden");
+    h.setAppLanguage("en-US");
+    assert.equal(h.nodes.get("genycaster-update-title").textContent,"Genycaster update available");
+    assert.equal(h.nodes.get("genycaster-update-banner").hidden,false);
+    assert.equal(h.reloadedTo,"");
 });

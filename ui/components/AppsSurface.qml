@@ -24,6 +24,7 @@ Item {
     onVisibleChanged: if (visible) root.ensureDiscovery()
     property string topicFilter: "all"
     readonly property var availableCategories: {
+        LocaleFormat.observeRevision()
         const source = root.farcasterSection === "my"
                        ? (miniAppCatalog.myApps || []) : (miniAppCatalog.explorerApps || [])
         const categories = new Set()
@@ -32,9 +33,9 @@ Item {
             if (category.length > 0)
                 categories.add(category)
         }
-        return [{id: "all", title: qsTr("All topics")}].concat(
+        return [{id: "all", title: qsTrId("genycaster.apps.all_topics")}].concat(
             Array.from(categories).sort((a, b) => a.localeCompare(b))
-                .map(category => ({id: category, title: category})))
+                .map(category => ({id: category, title: LocaleFormat.formatMiniAppCategory(category)})))
     }
     readonly property var visibleApps: {
         const source = root.farcasterSection === "my"
@@ -208,7 +209,7 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: visible ? implicitHeight : 0
             compact: true
-            heading: qsTr("Discover")
+            heading: qsTrId("genycaster.apps.discover")
             apps: root.discoveryShelfApps
             visible: root.compact && root.section === "farcaster"
                      && miniAppCatalog.query.length === 0 && root.discoveryShelfApps.length > 0
@@ -831,7 +832,8 @@ Item {
                                                 }
                                                 DirectionAwareLabel {
                                                     Layout.fillWidth: true
-                                                    text: String(cardCell.modelData.category || cardCell.modelData.domain || "")
+                                                    text: LocaleFormat.formatMiniAppCategory(cardCell.modelData.category)
+                                                         || String(cardCell.modelData.domain || "")
                                                     color: Theme.inkMuted
                                                     font.pixelSize: Theme.typeCaptionSize
                                                     elide: Text.ElideRight
@@ -857,8 +859,8 @@ Item {
                                                     elevated: false
                                                     busy: cardCell.launchBusy
                                                     enabled: !cardCell.launchBusy
-                                                    text: cardCell.launchBusy ? qsTr("Opening…")
-                                                        : cardCell.running ? qsTr("Resume") : qsTr("Open")
+                                                    text: cardCell.launchBusy ? qsTrId("genycaster.apps.opening")
+                                                        : cardCell.running ? qsTrId("genycaster.apps.resume") : qsTrId("genycaster.apps.open")
                                                     onClicked: root.openApp(cardCell.modelData)
                                                 }
                                                 RowLayout {
@@ -882,7 +884,7 @@ Item {
                                                         iconGlyph: saved ? Theme.iconCheck : Theme.iconPlus
                                                         selected: saved
                                                         enabled: !saved
-                                                        text: saved ? qsTr("Saved") : qsTr("Save")
+                                                        text: saved ? qsTrId("genycaster.apps.saved") : qsTrId("genycaster.apps.save")
                                                         onClicked: miniAppCatalog.addToMyMiniApps(cardCell.modelData)
                                                     }
                                                 }
@@ -971,8 +973,8 @@ Item {
 
                                                 DirectionAwareLabel {
                                                     Layout.fillWidth: true
-                                                    text: String(cardCell.modelData.category
-                                                                 || cardCell.modelData.domain || "")
+                                                    text: LocaleFormat.formatMiniAppCategory(cardCell.modelData.category)
+                                                                 || String(cardCell.modelData.domain || "")
                                                     color: Theme.inkMuted
                                                     font.pixelSize: Theme.typeCaptionSize
                                                     elide: Text.ElideRight
@@ -999,8 +1001,8 @@ Item {
                                                 elevated: false
                                                 busy: cardCell.launchBusy
                                                 enabled: !cardCell.launchBusy
-                                                text: cardCell.launchBusy ? qsTr("Opening…")
-                                                      : cardCell.running ? qsTr("Resume") : qsTr("Open")
+                                                text: cardCell.launchBusy ? qsTrId("genycaster.apps.opening")
+                                                      : cardCell.running ? qsTrId("genycaster.apps.resume") : qsTrId("genycaster.apps.open")
                                                 onClicked: root.openApp(cardCell.modelData)
                                             }
 
@@ -1027,8 +1029,8 @@ Item {
                                                                  : Theme.iconPlus
                                                 selected: saved
                                                 enabled: !saved || inLibrary
-                                                text: saved ? (inLibrary ? qsTr("Remove") : qsTr("Saved"))
-                                                            : qsTr("Save")
+                                                text: saved ? (inLibrary ? qsTrId("genycaster.apps.remove") : qsTrId("genycaster.apps.saved"))
+                                                            : qsTrId("genycaster.apps.save")
                                                 onClicked: {
                                                     if (saved && inLibrary)
                                                         miniAppCatalog.removeFromMyMiniApps(
@@ -1054,7 +1056,7 @@ Item {
             compact: true
             quiet: true
             busy: miniAppCatalog.busy
-            text: qsTr("Load more apps")
+            text: qsTrId("genycaster.apps.load_more")
             onClicked: miniAppCatalog.loadMore()
         }
     }
@@ -1084,7 +1086,7 @@ Item {
                 layoutDirection: Theme.uiDirection
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    text: qsTr("App details")
+                    text: qsTrId("genycaster.apps.details")
                     color: Theme.ink
                     font.weight: Theme.weightBold
                     font.pixelSize: Theme.typeTitle3Size
@@ -1214,7 +1216,7 @@ Item {
                             spacing: 0
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: qsTr("Developer") + " · " + String(root.selectedMiniApp.authorName || "")
+                                text: qsTrId("genycaster.apps.developer") + " · " + String(root.selectedMiniApp.authorName || "")
                                 color: Theme.ink
                                 font.pixelSize: Theme.typeMetaSize
                                 font.weight: Theme.weightDemiBold
@@ -1235,7 +1237,8 @@ Item {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         visible: String(root.selectedMiniApp.category || "").length > 0
-                        text: qsTr("Category") + ": " + String(root.selectedMiniApp.category || "")
+                        text: qsTrId("genycaster.apps.category_label") + ": "
+                              + LocaleFormat.formatMiniAppCategory(root.selectedMiniApp.category)
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeMetaSize
                     }
@@ -1252,7 +1255,7 @@ Item {
                         Layout.fillWidth: true
                         visible: Boolean(root.selectedMiniApp.requiredChains
                                          && root.selectedMiniApp.requiredChains.length > 0)
-                        text: qsTr("Networks") + ": " + (root.selectedMiniApp.requiredChains || []).join(" · ")
+                        text: qsTrId("genycaster.apps.networks") + ": " + (root.selectedMiniApp.requiredChains || []).join(" · ")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
@@ -1265,7 +1268,7 @@ Item {
                         spacing: Theme.space2
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: qsTr("Screenshots")
+                            text: qsTrId("genycaster.apps.screenshots")
                             font.pixelSize: Theme.typeBodySize
                             font.weight: Theme.weightDemiBold
                             color: Theme.ink
@@ -1309,7 +1312,7 @@ Item {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         visible: String(root.selectedMiniApp.source || "").length > 0
-                        text: qsTr("Discovery source") + ": " + String(root.selectedMiniApp.source || "")
+                        text: qsTrId("genycaster.apps.discovery_source") + ": " + String(root.selectedMiniApp.source || "")
                         font.pixelSize: Theme.typeCaptionSize
                         color: Theme.inkSubtle
                         wrapMode: Text.Wrap

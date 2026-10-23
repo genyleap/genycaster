@@ -41,8 +41,8 @@ test('desktop store uses borderless app rows and compact Open buttons', () => {
     assert.match(apps, /id: storeRow/);
     assert.match(apps, /objectName: "miniAppDesktopStoreRow"/);
     assert.match(apps, /objectName: "miniAppStoreOpenButton"/);
-    assert.match(apps, /text: cardCell\.launchBusy \? qsTr\("Opening…\"\)/);
-    assert.match(apps, /: cardCell\.running \? qsTr\("Resume"\) : qsTr\("Open"\)/);
+    assert.ok(apps.includes('text: cardCell.launchBusy ? qsTrId("genycaster.apps.opening")'));
+    assert.match(apps, /: cardCell\.running \? qsTrId\("genycaster.apps.resume"\) : qsTrId\("genycaster.apps.open"\)/);
     assert.match(apps, /cardCell\.modelData\.category/);
     assert.doesNotMatch(apps, /id: card\n/);
     assert.match(apps, /id: miniAppStoreTile/);

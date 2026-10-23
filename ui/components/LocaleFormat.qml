@@ -18,6 +18,39 @@ QtObject {
         return root.revision
     }
 
+    // Keep the provider's canonical category in model/filter keys. Translate
+    // only UI presentation for known public catalogue taxonomy values.
+    // Arbitrary third-party categories remain exactly as supplied by the app.
+    function formatMiniAppCategory(value) {
+        root.observeRevision()
+        const raw = String(value || "").trim()
+        const key = raw.toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim()
+        switch (key) {
+        case "social": case "social networking": return qsTrId("genycaster.apps.category.social")
+        case "games": case "gaming": case "game": return qsTrId("genycaster.apps.category.games")
+        case "finance": case "financial": return qsTrId("genycaster.apps.category.finance")
+        case "defi": case "decentralized finance": return qsTrId("genycaster.apps.category.defi")
+        case "crypto": case "cryptocurrency": return qsTrId("genycaster.apps.category.crypto")
+        case "trading": case "trade": return qsTrId("genycaster.apps.category.trading")
+        case "education": case "learning": return qsTrId("genycaster.apps.category.education")
+        case "entertainment": return qsTrId("genycaster.apps.category.entertainment")
+        case "productivity": return qsTrId("genycaster.apps.category.productivity")
+        case "utilities": case "utility": return qsTrId("genycaster.apps.category.utilities")
+        case "tools": case "tool": return qsTrId("genycaster.apps.category.tools")
+        case "music": return qsTrId("genycaster.apps.category.music")
+        case "art": case "art & collectibles": return qsTrId("genycaster.apps.category.art")
+        case "nft": case "nfts": case "collectibles": return qsTrId("genycaster.apps.category.collectibles")
+        case "sports": return qsTrId("genycaster.apps.category.sports")
+        case "news": return qsTrId("genycaster.apps.category.news")
+        case "shopping": return qsTrId("genycaster.apps.category.shopping")
+        case "health": case "health & fitness": case "fitness": return qsTrId("genycaster.apps.category.health")
+        case "community": case "communities": return qsTrId("genycaster.apps.category.community")
+        case "development": case "developer": case "developers": return qsTrId("genycaster.apps.category.development")
+        case "other": case "others": return qsTrId("genycaster.apps.category.other")
+        default: return raw
+        }
+    }
+
     function formatIdentifier(value) {
         root.observeRevision()
         return localizationController.formatIdentifier(value)
