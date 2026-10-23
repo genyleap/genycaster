@@ -108,3 +108,13 @@ The farcaster.xyz destination and Quorum app URI are external-client links,
 not Genycaster public origins. Other first-party backend, authentication,
 media and image-proxy URLs must be audited separately for a complete
 infrastructure migration.
+
+## App-first client navigation
+
+The same actions are displayed in native and WebAssembly clients.
+
+- Open in Farcaster uses HTTPS universal/app links. On supported phones an installed Farcaster app may handle the cast/profile, otherwise the same URL opens that item in the browser. Mobile WASM uses same-window navigation so that app-link dispatch is not bypassed by creating a new tab.
+- Open in Quorum first attempts the verified quorummobile://feed?castHashPrefix route. Native Qt falls back to https://app.quorummessenger.com/ when OS URL dispatch immediately fails. Mobile WASM attempts the URI on the click, watches page visibility/pagehide and falls back to Quorum web after 1.8 seconds if the page remained visible. Desktop WASM opens the web destination.
+- Quorum has no confirmed cast-specific web fallback URL. Its web destination is only the app entry point; never invent a cast permalink.
+- App-install detection is not available reliably to WebAssembly or Qt. The fallback is best-effort and must be device-tested on iOS and Android, with and without Quorum installed. A browser security prompt may influence focus and routing.
+- Ordinary share/copy links remain HTTPS (Genycaster or Farcaster). Raw experimental app URI copy menu actions have been removed; user-facing labels are platform-independent.

@@ -2102,17 +2102,104 @@ QString PresentationBridge::quorumCastUri(const QString& castId) const
     return QStringLiteral("quorummobile://feed?castHashPrefix=") + hash;
 }
 
+#if defined(__EMSCRIPTEN__)
+// Use a top-level, user-gesture-initiated navigation on mobile browsers:
+// QDesktopServices may use a new tab, which often bypasses mobile Universal
+// Link / Android App Link dispatch. Desktop browsers keep their existing tab.
+static void openBrowserUniversalClientLink(const QString& url)
+{
+    const QByteArray encoded = url.toUtf8();
+    EM_ASM({
+        const href = UTF8ToString($0);
+        const ua = navigator.userAgent || '';
+        const mobile = /Android|iPhone|iPad|iPod/i.test(ua)
+            || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+        if (mobile)
+            window.location.assign(href);
+        else
+            window.open(href, '_blank', 'noopener');
+    }, encoded.constData());
+}
+#endif
+
+void PresentationBridge::openFarcasterCast(const QString& castId, const QString& username)
+{
+    // Farcaster HTTPS cast URLs serve as universal/app links on supported
+    // phones and exact-cast browser fallbacks without client-specific schemes.
+    const QString url = farcasterWebCastUrl(castId, username);
+    if (url.isEmpty()) return;
+#if defined(__EMSCRIPTEN__)
+    openBrowserUniversalClientLink(url);
+#else
+    openExternalUrl(url);
+#endif
+}
+
+void PresentationBridge::openFarcasterProfile(const QString& username)
+{
+    const QString url = farcasterWebProfileUrl(username);
+    if (url.isEmpty()) return;
+#if defined(__EMSCRIPTEN__)
+    openBrowserUniversalClientLink(url);
+#else
+    openExternalUrl(url);
+#endif
+}
+
 void PresentationBridge::openQuorumCast(const QString& castId)
 {
-    const QString target = quorumCastUri(castId);
-    if (target.isEmpty()) return;
+    const QString appUri = quorumCastUri(castId);
+    if (appUri.isEmpty()) return;
+    // Quorum has a verified quorummobile://feed route, but no verified web
+    // permalink that preserves this cast hash. The fallback is its web app
+    // landing page, not a fabricated conversation deep link.
+    const QString webUrl = QStringLiteral("https://app.quorummessenger.com/");
 #if defined(__EMSCRIPTEN__)
-    const QByteArray utf8 = target.toUtf8();
-    EM_ASM({window.location.href = UTF8ToString($0)}, utf8.constData());
+    const QByteArray appUtf8 = appUri.toUtf8();
+    const QByteArray webUtf8 = webUrl.toUtf8();
+    EM_ASM({
+        const appUrl = UTF8ToString($0);
+        const fallback = UTF8ToString($1);
+        const ua = navigator.userAgent || '';
+        const onPhone = /Android|iPhone|iPad|iPod/i.test(ua)
+            || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+        if (!onPhone) {
+            window.location.assign(fallback);
+            return;
+        }
+
+        // Browsers cannot query whether another app is installed. Try the
+        // registered scheme from this user gesture, then fall back only if
+        // the Genycaster page never became hidden. Never open two tabs.
+        let appOpened = false;
+        const markHidden = () => {
+            if (document.hidden) appOpened = true;
+        };
+        const markPageLeft = () => { appOpened = true; };
+        document.addEventListener('visibilitychange', markHidden);
+        window.addEventListener('pagehide', markPageLeft, {once: true});
+        const cleanup = () => {
+            document.removeEventListener('visibilitychange', markHidden);
+            window.removeEventListener('pagehide', markPageLeft);
+        };
+        window.setTimeout(() => {
+            cleanup();
+            if (!appOpened && !document.hidden)
+                window.location.assign(fallback);
+        }, 1800);
+        try {
+            window.location.assign(appUrl);
+        } catch (_) {
+            cleanup();
+            window.location.assign(fallback);
+        }
+    }, appUtf8.constData(), webUtf8.constData());
 #else
-    if (!QDesktopServices::openUrl(QUrl{target})) {
-        m_errorText = qtTrId("genycaster.bridge.the_system_could_not_open_that_link");
-        emit stateChanged();
+    // Qt only reports whether opening the URI was dispatched, not whether a
+    // target app is installed. If the OS reports failure use the known web
+    // fallback, never show a dead-end error as the sole outcome.
+    if (!QDesktopServices::openUrl(QUrl{appUri})) {
+        openExternalUrl(webUrl);
     }
 #endif
 }

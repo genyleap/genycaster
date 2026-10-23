@@ -9,10 +9,10 @@ test('share menus show concise, untruncated action labels', () => {
     const profile = read('ui/components/ProfileSurface.qml');
     assert.match(cast, /text: qsTr\("Share…".*\)/);
     assert.match(cast, /text: qsTr\("Copy link"\)/);
-    assert.match(cast, /text: qsTr\("Copy Farcaster URI"\)/);
+    assert.doesNotMatch(cast, /text: qsTr\("Copy Farcaster URI"\)/);
     assert.match(profile, /text: qsTr\("Share profile"\)/);
     assert.match(profile, /text: qsTr\("Copy profile link"\)/);
-    assert.match(profile, /text: qsTr\("Copy Farcaster URI"\)/);
+    assert.doesNotMatch(profile, /text: qsTr\("Copy Farcaster URI"\)/);
     assert.doesNotMatch(cast + profile, /Copy Farcaster URI \(experimental\)|Copy Genycaster profile link/);
 });
 
@@ -71,14 +71,34 @@ test('profile lifecycle and cast identity avoid undefined access and layout feed
 });
 
 
-test('WASM offers verified web clients and never launches mobile app URIs', () => {
+test('all platforms share consistent app-first client actions', () => {
     const cast = read('ui/components/EngagementBar.qml');
-    assert.match(cast, /text: Qt\.platform\.os === "wasm" \? qsTr\("Quorum Web"\)/);
-    assert.match(cast, /presentationBridge\.openExternalUrl\("https:\/\/app\.quorummessenger\.com\/"\)/);
-    assert.match(cast, /text: Qt\.platform\.os === "wasm" \? qsTr\("Copy Quorum Web"\)/);
-    assert.match(cast, /presentationBridge\.farcasterWebCastUrl/);
-    assert.match(cast, /visible: Qt\.platform\.os !== "wasm"\s*&& presentationBridge\.farcasterCastUri/);
-    assert.match(cast, /presentationBridge\.castShareUrl\(root\.normalizedCastId\)/);
+    const profile = read('ui/components/ProfileSurface.qml');
+    const bridge = read('src/presentation/qt/presentation_bridge.cpp');
+    const header = read('src/presentation/qt/presentation_bridge.hpp');
+
+    assert.ok(cast.includes('text: qsTr("Open in Quorum")'));
+    assert.ok(cast.includes('text: qsTr("Open in Farcaster")'));
+    assert.ok(cast.includes('presentationBridge.openQuorumCast(root.normalizedCastId)'));
+    assert.ok(cast.includes('presentationBridge.openFarcasterCast('));
+    assert.ok(profile.includes('presentationBridge.openFarcasterProfile('));
+    assert.ok(!cast.includes('Quorum Web'));
+    assert.ok(!cast.includes('Copy Quorum URI'));
+    assert.ok(!cast.includes('Copy Farcaster URI'));
+    assert.ok(!profile.includes('Copy Farcaster URI'));
+    assert.ok(!cast.includes('visible: Qt.platform.os !== "wasm"'));
+    assert.ok(header.includes('Q_INVOKABLE void openFarcasterCast'));
+    assert.ok(header.includes('Q_INVOKABLE void openFarcasterProfile'));
+    assert.ok(bridge.includes('openBrowserUniversalClientLink(url)'));
+    assert.ok(bridge.includes('window.location.assign(href)'));
+    assert.ok(bridge.includes('window.open(href,'));
+    assert.ok(bridge.includes('const QString appUri = quorumCastUri(castId)'));
+    assert.ok(bridge.includes('https://app.quorummessenger.com/'));
+    assert.ok(bridge.includes("document.addEventListener('visibilitychange', markHidden)"));
+    assert.ok(bridge.includes('if (!appOpened && !document.hidden)'));
+    assert.ok(bridge.includes('window.location.assign(fallback)'));
+    assert.ok(bridge.includes('if (!QDesktopServices::openUrl(QUrl{appUri}))'));
+    assert.ok(bridge.includes('openExternalUrl(webUrl)'));
 });
 
 test('Apps search has constrained width and data-driven topic filter', () => {

@@ -724,26 +724,10 @@ Item {
                                         text: qsTr("Open in Farcaster")
                                         onClicked: {
                                             sharePopup.close()
-                                            presentationBridge.openExternalUrl(
-                                                presentationBridge.farcasterWebProfileUrl(
-                                                    String(root.activeDetail.username || "")))
+                                            presentationBridge.openFarcasterProfile(
+                                                String(root.activeDetail.username || ""))
                                         }
                                     }
-                                    ActionButton {
-                                        Layout.fillWidth: true
-                                        quiet: true
-                                        alignStart: true
-                                        visible: Qt.platform.os !== "wasm"
-                                        iconGlyph: Theme.iconLink
-                                        text: qsTr("Copy Farcaster URI")
-                                        onClicked: {
-                                            presentationBridge.copyText(
-                                                presentationBridge.farcasterProfileUri(
-                                                    Number(root.activeDetail.fid || 0)))
-                                            sharePopup.close()
-                                        }
-                                    }
-
                                 }
                             }
                         }

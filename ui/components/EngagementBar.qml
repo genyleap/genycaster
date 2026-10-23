@@ -415,33 +415,16 @@ RowLayout {
                             }
                         }
                         ActionButton {
-                            // Native Quorum accepts its verified app URI;
-                            // WASM opens Quorum's official browser application.
-                            visible: true
+                            // Always offer the same action. Platform-aware
+                            // app-first/fallback logic belongs in the bridge.
                             Layout.fillWidth: true
                             quiet: true
                             alignStart: true
                             iconGlyph: Theme.iconArrowUpRight
-                            text: Qt.platform.os === "wasm" ? qsTr("Quorum Web") : qsTr("Open in Quorum")
+                            text: qsTr("Open in Quorum")
                             onClicked: {
                                 sharePopup.close()
-                                if (Qt.platform.os === "wasm")
-                                    presentationBridge.openExternalUrl("https://app.quorummessenger.com/")
-                                else
-                                    presentationBridge.openQuorumCast(root.normalizedCastId)
-                            }
-                        }
-                        ActionButton {
-                            Layout.fillWidth: true
-                            quiet: true
-                            alignStart: true
-                            iconGlyph: Theme.iconCopy
-                            text: Qt.platform.os === "wasm" ? qsTr("Copy Quorum Web") : qsTr("Copy Quorum URI")
-                            onClicked: {
-                                presentationBridge.copyText(Qt.platform.os === "wasm"
-                                    ? "https://app.quorummessenger.com/"
-                                    : presentationBridge.quorumCastUri(root.normalizedCastId))
-                                sharePopup.close()
+                                presentationBridge.openQuorumCast(root.normalizedCastId)
                             }
                         }
                         ActionButton {
@@ -453,22 +436,8 @@ RowLayout {
                             text: qsTr("Open in Farcaster")
                             onClicked: {
                                 sharePopup.close()
-                                presentationBridge.openExternalUrl(presentationBridge.farcasterWebCastUrl(
-                                    root.normalizedCastId, String(root.castData.author || "")))
-                            }
-                        }
-                        ActionButton {
-                            visible: Qt.platform.os !== "wasm"
-                                     && presentationBridge.farcasterCastUri(root.normalizedCastId, root.authorFid).length > 0
-                            Layout.fillWidth: true
-                            quiet: true
-                            alignStart: true
-                            iconGlyph: Theme.iconLink
-                            text: qsTr("Copy Farcaster URI")
-                            onClicked: {
-                                presentationBridge.copyText(presentationBridge.farcasterCastUri(
-                                    root.normalizedCastId, root.authorFid))
-                                sharePopup.close()
+                                presentationBridge.openFarcasterCast(
+                                    root.normalizedCastId, String(root.castData.author || ""))
                             }
                         }
                     }

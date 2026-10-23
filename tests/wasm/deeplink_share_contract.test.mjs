@@ -9,9 +9,9 @@ test('cast share is the right-most footer action and has native and web targets'
   assert.ok(bar.indexOf('id: castShareButton') > bar.indexOf('id: bookmarkButton'));
   assert.match(bar, /presentationBridge\.shareUrl\(presentationBridge\.castShareUrl/);
   assert.match(bar, /presentationBridge\.farcasterWebCastUrl/);
-  assert.match(bar, /presentationBridge\.farcasterCastUri/);
+  assert.match(bar, /presentationBridge\.openFarcasterCast/);
   assert.match(bar, /presentationBridge\.openQuorumCast/);
-  assert.match(bar, /presentationBridge\.quorumCastUri/);
+  assert.doesNotMatch(bar, /presentationBridge\.quorumCastUri/);
   assert.match(bar, /id: castShareMenu[\s\S]*?active: false/);
 });
 
@@ -20,7 +20,7 @@ test('profile sharing appears on the shared profile surface', () => {
   assert.match(profile, /id: profileShareButton/);
   assert.match(profile, /profileShareUrl/);
   assert.match(profile, /farcasterWebProfileUrl/);
-  assert.match(profile, /farcasterProfileUri/);
+  assert.match(profile, /openFarcasterProfile/);
 });
 
 test('unfinished moderation stays out of cast/profile menus and does not filter feed rows', () => {
