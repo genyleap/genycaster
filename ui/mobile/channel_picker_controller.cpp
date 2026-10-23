@@ -178,6 +178,63 @@ bool ChannelPickerController::membershipReady() const noexcept { return m_member
 QString ChannelPickerController::errorText() const { return m_error; }
 QString ChannelPickerController::query() const { return m_query; }
 
+QString ChannelPickerController::imageUrlForChannel(const QString& id) const
+{
+    const auto meta = m_directoryMetadata.constFind(id);
+    if (meta != m_directoryMetadata.cend()) {
+        const auto url = meta->value(QStringLiteral("imageUrl")).toString();
+        if (url.startsWith(QStringLiteral("https://"))) return url;
+    }
+    for (const auto& group : {m_rows, m_trendingResults, m_searchResults}) {
+        for (const QVariant& item : group) {
+            const QVariantMap row = item.toMap();
+            if (row.value(QStringLiteral("id")).toString() != id) continue;
+            const QString image = row.value(QStringLiteral("imageUrl")).toString();
+            if (image.startsWith(QStringLiteral("https://"))) return image;
+        }
+    }
+    return {};
+}
+
+QString ChannelPickerController::nameForChannel(const QString& id) const
+{
+    const auto meta = m_directoryMetadata.constFind(id);
+    return meta != m_directoryMetadata.cend()
+        ? meta->value(QStringLiteral("name")).toString() : QString{};
+}
+
+void ChannelPickerController::ensureChannelImage(const QString& id)
+{
+    if (!m_networkEnabled || m_directoryBaseUrl.isEmpty() || !isSocialChannel(id)
+        || !imageUrlForChannel(id).isEmpty() || m_castImageLookups.contains(id)
+        || m_castImagePending.size() >= 4 || m_castImageLookups.size() >= 96)
+        return;
+    m_castImageLookups.insert(id);  // Once per session, no image-request loop.
+    m_castImagePending.insert(id);
+    const quint64 generation = m_generation;
+    // Configured Farcaster directory is a provider-boundary dependency, not
+    // an icon guessed from channel name or an embedded Warpcast URL.
+    requestDirectory(QStringLiteral("channel"), {{QStringLiteral("key"), id}},
+        [this, id, generation](const QJsonObject& body, const QString& error) {
+            if (generation != m_generation) return;
+            m_castImagePending.remove(id);
+            if (!error.isEmpty()) return;
+            const auto channel = body.value(QStringLiteral("result"))
+                                    .toObject().value(QStringLiteral("channel")).toObject();
+            if (firstString(channel, {"key", "id"}) != id) return;
+            const QString url = firstString(channel, {"imageUrl", "fastImageUrl"});
+            if (!url.startsWith(QStringLiteral("https://"))) return;
+            QVariantMap metadata = m_directoryMetadata.value(id);
+            metadata.insert(QStringLiteral("name"),
+                            firstString(channel, {"name", "key", "id"}));
+            metadata.insert(QStringLiteral("imageUrl"), url);
+            m_directoryMetadata.insert(id, metadata);
+            ++m_imageRevision;
+            emit imageRevisionChanged();
+        });
+}
+
+
 void ChannelPickerController::setBusy(bool value)
 {
     const bool previous = busy();
@@ -501,6 +558,10 @@ void ChannelPickerController::openForViewer(qulonglong fid)
         m_searchResults.clear();
         m_directoryResults.clear();
         m_directoryMetadata.clear();
+        m_castImageLookups.clear();
+        m_castImagePending.clear();
+        ++m_imageRevision;
+        emit imageRevisionChanged();
         m_pendingImageLookups.clear();
         m_triedImageLookups.clear();
         m_trendingResults.clear();

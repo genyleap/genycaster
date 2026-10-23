@@ -132,6 +132,24 @@ void testCanonicalCodec()
     auto invalidMention = provider::hypersnap::codec::decodeCast(withMention);
     assert(invalidMention && !invalidMention->displayText);
 
+    // Hydrated ranges use character boundaries after the multi-byte 💯.
+    auto ranged = withMention;
+    const auto rangeAt = ranged.find(R"json("mentions_positions": [12])json");
+    assert(rangeAt != std::string::npos);
+    ranged.replace(rangeAt, std::string{R"json("mentions_positions": [12])json"}.size(),
+                   R"json("mentioned_profiles_ranges": [{"start": 9, "end": 9}])json");
+    const auto byCharacters = provider::hypersnap::codec::decodeCast(ranged);
+    assert(byCharacters && byCharacters->displayText);
+    assert(*byCharacters->displayText == "Right! 💯 @vrypan.eth");
+
+    std::string withoutPositions = withMention;
+    const auto omittedAt = withoutPositions.find(R"json(,"mentions_positions": [12])json");
+    assert(omittedAt != std::string::npos);
+    withoutPositions.erase(omittedAt, std::string{R"json(,"mentions_positions": [12])json"}.size());
+    const auto recovered = provider::hypersnap::codec::decodeCast(withoutPositions);
+    assert(recovered && recovered->displayText);
+    assert(*recovered->displayText == "Right! 💯 @vrypan.eth");
+
     std::string hydratedChannel = test::hypersnap::fixtures::castResponse();
     const std::string targetText{R"json("text": "hello native")json"};
     const auto channelAt = hydratedChannel.find(targetText);

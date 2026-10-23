@@ -15,6 +15,9 @@ Item {
     property real curveDepth: Theme.shapeMedia
     property bool interactive: true
     property bool showBorder: true
+    // Composing a post must show the entire submitted image, not a cropped
+    // square that conceals the actual content.
+    property bool fitImage: false
     property color fillColor: Theme.surfaceMuted
     property bool primeVideoFrame: false
     property bool showFailureText: width >= 180
@@ -61,7 +64,7 @@ Item {
         visible: root.isImage && root.hasSource
         source: root.isImage ? root.source : ""
         mediaCategory: "photos"
-        fillMode: Image.PreserveAspectCrop
+        fillMode: root.fitImage ? Image.PreserveAspectFit : Image.PreserveAspectCrop
         curveDepth: root.curveDepth
         borderWidth: 0
     }

@@ -54,6 +54,9 @@ Item {
     Component.onCompleted: {
         root.resolveScrollHost()
         root.synchronizeSupportingAdmission()
+        if (root.enrichmentActive && root.castChannel.length > 0
+                && root.channelImageUrl.length === 0)
+            channelDirectory.ensureChannelImage(root.castChannel)
     }
     onParentChanged: root.resolveScrollHost()
     onScrollMovingChanged: root.synchronizeSupportingAdmission()
@@ -104,8 +107,23 @@ Item {
         const candidate = supplied || (match ? match[1] : "")
         return /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(candidate) ? candidate : ""
     }
-    readonly property string channelDisplayName: String(root.modelData.channelName || root.castChannel)
-    readonly property string channelImageUrl: String(root.modelData.channelImageUrl || "")
+    readonly property string channelDisplayName: {
+        const version = channelDirectory.imageRevision
+        return String(root.modelData.channelName
+                      || channelDirectory.nameForChannel(root.castChannel) || root.castChannel)
+    }
+    readonly property string channelImageUrl: {
+        const version = channelDirectory.imageRevision
+        return String(root.modelData.channelImageUrl
+                      || channelDirectory.imageUrlForChannel(root.castChannel) || "")
+    }
+    // Bound the on-demand lookup to visible/hydrated casts; a long feed must
+    // not launch a request for every off-screen channel.
+    onEnrichmentActiveChanged: {
+        if (root.enrichmentActive && root.castChannel.length > 0
+                && root.channelImageUrl.length === 0)
+            channelDirectory.ensureChannelImage(root.castChannel)
+    }
     readonly property string authorName: root.modelData.displayName || root.modelData.author || qsTrId("genycaster.cast.unknown")
     readonly property string directionSeed: String(root.modelData.text || root.authorName || "")
     readonly property bool contentRtl: localizationController.isRightToLeftText(root.directionSeed)

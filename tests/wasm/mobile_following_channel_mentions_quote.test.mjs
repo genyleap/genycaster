@@ -74,7 +74,7 @@ test('Hydrated mention display preserves protocol text and crosses feed, detail 
  assert.match(codec,/resolvedMentionText\(/);
  assert.match(codec,/mentioned_profiles/);
  assert.match(codec,/mentions_positions/);
- assert.match(codec,/original\[pos\]/);
+ assert.match(codec,/isBoundary\(pos\)/);
  assert.match(codec,/cast\.displayText = resolvedMentionText/);
  assert.match(ui,/QString::fromStdString\(cast\.displayText\.value_or\(cast\.text\)\)/);
  assert.match(ui,/castText"\), readableCastText\(\*item\.cast\)/);
@@ -100,7 +100,7 @@ test('Feed and details display actual channel metadata including an image from p
  assert.match(presentation,/attachChannelPresentation\(row, \*cast\)/);
  assert.match(presentation,/attachChannelPresentation\(detail, \*state\.cast\)/);
  assert.match(read('ui/components/CastItem.qml'),/sourceUrl: root\.channelImageUrl/);
- assert.match(read('ui/components/DetailSurface.qml'),/sourceUrl: String\(root\.detail\.channelImageUrl \|\| ""\)/);
+ assert.match(read('ui/components/DetailSurface.qml'),/sourceUrl: root\.resolvedChannelImage/);
 });
 
 test('Following selection uses authenticated account FID for initial and next pages',()=>{
@@ -151,4 +151,43 @@ test('New Cast cannot inherit a quoted reference from a previously composed cast
  assert.match(composer,/root\.publishRequested\(richComposer\.safeText[\s\S]*?root\.publicationEmbeds\(\)/);
  assert.match(composer,/!root\.parentCast && !root\.quotedCast\s+&& richComposer\.dirty/);
  assert.match(composer,/visible: !root\.replyMode && !root\.quoteMode && !root\.transientDraft/);
+});
+
+
+test('Provider channel imagery is resolved from the configured directory, not synthetic glyphs',()=>{
+ const controller=read('ui/mobile/channel_picker_controller.cpp');
+ const header=read('ui/mobile/channel_picker_controller.hpp');
+ const item=read('ui/components/CastItem.qml');
+ const detail=read('ui/components/DetailSurface.qml');
+ assert.match(header,/Q_INVOKABLE void ensureChannelImage\(const QString& id\)/);
+ assert.match(controller,/requestDirectory\(QStringLiteral\("channel"\), \{\{QStringLiteral\("key"\), id\}\}/);
+ assert.match(controller,/m_castImagePending\.size\(\) >= 4/);
+ assert.match(controller,/imageRevisionChanged\(\)/);
+ assert.match(item,/channelDirectory\.imageUrlForChannel\(root\.castChannel\)/);
+ assert.match(item,/channelDirectory\.ensureChannelImage\(root\.castChannel\)/);
+ assert.match(detail,/sourceUrl: root\.resolvedChannelImage/);
+});
+
+test('Hydrated mention offsets after multibyte emoji preserve raw Farcaster text',()=>{
+ const codec=read('src/providers/hypersnap/codec.cpp');
+ const tests=read('tests/providers/hypersnap/contract_tests.cpp');
+ assert.match(codec,/const auto characterToByte/);
+ assert.match(codec,/if \(canonical\) return std::nullopt/);
+ assert.match(codec,/const auto decoded = characterToByte\(pos, false\)/);
+ assert.match(tests,/mentioned_profiles_ranges.*start.*9.*end.*9/);
+ assert.match(tests,/Right! 💯 @vrypan\.eth/);
+});
+
+test('Image composer uploads appear below text, large, uncropped and with bounded uploads',()=>{
+ const editor=read('ui/components/ComposerDrawer.qml');
+ const media=read('ui/components/MediaUploadPanel.qml');
+ const preview=read('ui/components/MediaPreview.qml');
+ assert.ok(editor.indexOf('id: mediaPanel') > editor.indexOf('id: mobilePlainEditor'));
+ assert.match(media,/fitImage: true/);
+ assert.match(media,/Layout\.preferredHeight: root\.width < 620 \? 238 : 174/);
+ assert.match(media,/visible: !root\.hasAttachedMedia && !root\.hasTransientUpload/);
+ assert.match(preview,/root\.fitImage \? Image\.PreserveAspectFit/);
+ const gateway=read('services/media-gateway/gateway.mjs');
+ assert.match(gateway,/const uploadLimiter = dependencies\.uploadLimiter/);
+ assert.match(gateway,/partRoute \? partLimiter : uploadLimiter/);
 });

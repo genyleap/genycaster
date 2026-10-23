@@ -1217,36 +1217,6 @@ GenyDrawer {
                 }
             }
 
-            MediaUploadPanel {
-                id: mediaPanel
-                visible: root.editorMode === "visual"
-                         && (root.insertKind === "media" || hasAttachedMedia || hasTransientUpload)
-                Layout.fillWidth: true
-                blockIndex: root.insertBlockIndex
-                insertFailed: root.mediaInsertFailed
-                queuedFiles: root.pendingMediaFiles
-                attachmentMetadata: root.mediaMetadata
-                onBrowseRequested: blockIndex => {
-                    root.pendingMediaBlockIndex = blockIndex
-                    root.mediaInsertFailed = false
-                    root.openMediaPicker()
-                }
-                onFilesDropped: (urls, blockIndex) => {
-                    root.mediaInsertFailed = false
-                    root.enqueueMediaFiles(urls, blockIndex)
-                }
-                onResetFailureRequested: root.mediaInsertFailed = false
-                onFinished: {
-                    root.insertKind = ""
-                    root.clearPendingMediaQueue()
-                    if (!mediaUpload.busy) {
-                        root.mediaInsertFailed = false
-                        if (mediaUpload.canRetry || mediaUpload.errorText.length > 0)
-                            mediaUpload.clear()
-                    }
-                }
-            }
-
             RowLayout {
                 Layout.fillWidth: true
                 Layout.preferredHeight: root.editorMode === "preview"
@@ -1264,8 +1234,10 @@ GenyDrawer {
                                                  ? Math.max(138, Math.min(232, composerScroll.height * 0.43))
                                                  : 280)
                                               : (root.compact
-                                                 ? Math.max(135, composerScroll.height
-                                                    - (root.keyboardVisible ? 84 : 126))
+                                                 ? (mediaPanel.visible
+                                                    ? Math.max(135, Math.min(192, composerScroll.height * 0.30))
+                                                    : Math.max(135, composerScroll.height
+                                                        - (root.keyboardVisible ? 84 : 126)))
                                                  : 320)
                 Layout.minimumHeight: root.editorMode === "preview"
                                       ? Math.min(farcasterPreview.implicitHeight, root.compact ? 210 : 230)
@@ -1372,6 +1344,38 @@ GenyDrawer {
                     Layout.fillHeight: true
                     compact: root.compact
                     attachmentMetadata: root.mediaMetadata
+                }
+            }
+
+            // Attachments belong after the cast text, as the Farcaster composer
+            // publishes text followed by embeds. Keep the same upload lifecycle.
+            MediaUploadPanel {
+                id: mediaPanel
+                visible: root.editorMode === "visual"
+                         && (root.insertKind === "media" || hasAttachedMedia || hasTransientUpload)
+                Layout.fillWidth: true
+                blockIndex: root.insertBlockIndex
+                insertFailed: root.mediaInsertFailed
+                queuedFiles: root.pendingMediaFiles
+                attachmentMetadata: root.mediaMetadata
+                onBrowseRequested: blockIndex => {
+                    root.pendingMediaBlockIndex = blockIndex
+                    root.mediaInsertFailed = false
+                    root.openMediaPicker()
+                }
+                onFilesDropped: (urls, blockIndex) => {
+                    root.mediaInsertFailed = false
+                    root.enqueueMediaFiles(urls, blockIndex)
+                }
+                onResetFailureRequested: root.mediaInsertFailed = false
+                onFinished: {
+                    root.insertKind = ""
+                    root.clearPendingMediaQueue()
+                    if (!mediaUpload.busy) {
+                        root.mediaInsertFailed = false
+                        if (mediaUpload.canRetry || mediaUpload.errorText.length > 0)
+                            mediaUpload.clear()
+                    }
                 }
             }
 

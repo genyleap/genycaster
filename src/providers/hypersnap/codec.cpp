@@ -433,7 +433,52 @@ struct MappedCast final {
         && positionsValue->as_array().size() == profiles.size();
     const bool ranges = !canonical && rangesValue && rangesValue->is_array()
         && rangesValue->as_array().size() == profiles.size();
-    if (!canonical && !ranges) return std::nullopt;
+    const auto visibleFallback = [&]() -> std::optional<std::string> {
+        std::string display{original};
+        bool changed = false;
+        for (const auto& profile : profiles) {
+            if (!profile.is_object()) continue;
+            const auto username = optionalString(profile.as_object(), "username");
+            if (!username || username->empty() || username->size() > 80
+                || !std::all_of(username->begin(), username->end(), [](unsigned char c) {
+                    return std::isalnum(c) || c == '_' || c == '.' || c == '-';
+                })) continue;
+            const std::string handle = "@" + *username;
+            if (display.find(handle) != std::string::npos) continue;
+            if (!display.empty() && !std::isspace(static_cast<unsigned char>(display.back())))
+                display.push_back(' ');
+            display += handle;
+            changed = true;
+        }
+        return changed ? std::optional{std::move(display)} : std::nullopt;
+    };
+    if (!canonical && !ranges) return visibleFallback();
+    // Neynar's hydrated text ranges can be character offsets rather than the
+    // canonical Farcaster byte offsets. A byte index falling in a multi-byte
+    // code point must be converted, never used to split an emoji. Keep the
+    // protocol positions strictly byte-addressed.
+    const auto isBoundary = [original](const std::size_t index) {
+        return index <= original.size() && (index == original.size()
+            || (static_cast<unsigned char>(original[index]) & 0xc0U) != 0x80U);
+    };
+    const auto characterToByte = [original](std::size_t count, bool utf16)
+        -> std::optional<std::size_t> {
+        std::size_t index = 0;
+        while (count > 0 && index < original.size()) {
+            const auto lead = static_cast<unsigned char>(original[index]);
+            const std::size_t width = lead < 0x80U ? 1U
+                : (lead & 0xe0U) == 0xc0U ? 2U
+                : (lead & 0xf0U) == 0xe0U ? 3U
+                : (lead & 0xf8U) == 0xf0U ? 4U : 0U;
+            if (width == 0 || index + width > original.size()) return std::nullopt;
+            const std::size_t units = utf16 && width == 4U ? 2U : 1U;
+            if (count < units) return std::nullopt;
+            count -= units;
+            index += width;
+        }
+        if (count != 0) return std::nullopt;
+        return index;
+    };
     struct Insert {std::size_t position; std::string handle;};
     std::vector<Insert> inserts{};
     for (std::size_t i = 0; i < profiles.size(); ++i) {
@@ -459,16 +504,23 @@ struct MappedCast final {
                 const auto begin = static_cast<std::size_t>(*start);
                 const auto finish = static_cast<std::size_t>(*end);
                 const std::string_view span = original.substr(begin,finish-begin);
-                if (!span.starts_with("@")) return std::nullopt;
+                if (!span.starts_with("@")) return visibleFallback();
                 continue;
             }
             offset = start;
         }
-        if (!offset || *offset > original.size()) return std::nullopt;
-        const auto pos = static_cast<std::size_t>(*offset);
-        if (pos < original.size()
-            && (static_cast<unsigned char>(original[pos]) & 0xc0U) == 0x80U)
-            return std::nullopt;
+        if (!offset) return std::nullopt;
+        std::size_t pos = static_cast<std::size_t>(*offset);
+        if (!isBoundary(pos)) {
+            if (canonical) return std::nullopt;
+            // Prefer character indices for hydrated ranges (code points),
+            // then UTF-16 offsets used by some Web clients.
+            const auto decoded = characterToByte(pos, false);
+            const auto utf16 = characterToByte(pos, true);
+            if (decoded && isBoundary(*decoded)) pos = *decoded;
+            else if (utf16 && isBoundary(*utf16)) pos = *utf16;
+            else return std::nullopt;
+        }
         inserts.push_back({pos, "@" + *username});
     }
     if (inserts.empty() || !std::is_sorted(inserts.begin(),inserts.end(),

@@ -139,6 +139,8 @@ async function withGateway(run, overrides = {}) {
     farcasterBroker: overrides.farcasterBroker,
     castViewService: overrides.castViewService,
     browserReactionService: overrides.browserReactionService,
+    limiter: overrides.limiter,
+    uploadLimiter: overrides.uploadLimiter,
     now: () => nowMs,
   });
   await new Promise((resolve, reject) => {
@@ -169,6 +171,32 @@ test('gateway configuration rejects malformed integer values and unsafe multipar
     }),
     /between 5 MiB and 64 MiB/,
   );
+});
+
+test('authenticated uploads do not spend public image browsing quota and remain individually rate limited', async () => {
+  const body = Buffer.from(JSON.stringify({
+    fileName:'photo.jpg', contentType:'image/jpeg', sizeBytes:512,
+  }));
+  const request = async origin => fetch(origin + '/v1/uploads', {
+    method:'POST',
+    headers:proofHeaders('POST','/v1/uploads',body,'independent_upload_nonce'),
+    body,
+  });
+  await withGateway(async ({origin}) => {
+    const reply = await request(origin);
+    assert.equal(reply.status,201);
+  }, {
+    limiter:{check(){return {allowed:false,remaining:0};}},
+    uploadLimiter:{check(){return {allowed:true,remaining:12};}},
+  });
+  await withGateway(async ({origin}) => {
+    const reply = await request(origin);
+    assert.equal(reply.status,429);
+    assert.equal(reply.headers.get('retry-after'),'60');
+  }, {
+    limiter:{check(){return {allowed:true,remaining:12};}},
+    uploadLimiter:{check(){return {allowed:false,remaining:0};}},
+  });
 });
 
 test('authorized Farcaster signer uploads a gateway-relayed multipart object and receives stable asset URL', async () => {

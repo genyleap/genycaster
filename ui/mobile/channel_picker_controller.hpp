@@ -53,6 +53,7 @@ class ChannelPickerController final : public QObject {
     Q_PROPERTY(bool membershipReady READ membershipReady NOTIFY membershipStateChanged FINAL)
     Q_PROPERTY(QString errorText READ errorText NOTIFY errorTextChanged FINAL)
     Q_PROPERTY(QString query READ query NOTIFY queryChanged FINAL)
+    Q_PROPERTY(int imageRevision READ imageRevision NOTIFY imageRevisionChanged FINAL)
 
 public:
     ChannelPickerController(QSettings& settings, QString readNodeBaseUrl,
@@ -65,6 +66,10 @@ public:
     [[nodiscard]] bool membershipReady() const noexcept;
     [[nodiscard]] QString errorText() const;
     [[nodiscard]] QString query() const;
+    [[nodiscard]] int imageRevision() const noexcept { return m_imageRevision; }
+    Q_INVOKABLE QString imageUrlForChannel(const QString& id) const;
+    Q_INVOKABLE QString nameForChannel(const QString& id) const;
+    Q_INVOKABLE void ensureChannelImage(const QString& id);
 
     Q_INVOKABLE void openForViewer(qulonglong fid);
     Q_INVOKABLE void search(const QString& query);
@@ -79,6 +84,7 @@ signals:
     void membershipStateChanged();
     void errorTextChanged();
     void queryChanged();
+    void imageRevisionChanged();
     // Delivered after a successful choice, outside the ListView delegate's tap
     // handler; rebuilding the model during the tap used to invalidate its QML.
     void channelChosen(const QVariantMap& selection);
@@ -117,6 +123,9 @@ private:
     QString m_baseUrl;
     QString m_directoryBaseUrl;
     QHash<QString, QVariantMap> m_directoryMetadata{};
+    int m_imageRevision{0};
+    QSet<QString> m_castImageLookups{};
+    QSet<QString> m_castImagePending{};
     QSet<QString> m_pendingImageLookups{};
     QSet<QString> m_triedImageLookups{};
     bool m_networkEnabled{false};

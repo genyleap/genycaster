@@ -137,10 +137,9 @@ Superellipse {
 
         Item {
             id: dropTarget
+            visible: !root.hasAttachedMedia && !root.hasTransientUpload
             Layout.fillWidth: true
-            Layout.preferredHeight: root.hasAttachedMedia
-                                    ? (root.width < 620 ? 68 : 96)
-                                    : (root.width < 620 ? 112 : 168)
+            Layout.preferredHeight: visible ? (root.width < 620 ? 100 : 136) : 0
 
             Superellipse {
                 anchors.fill: parent
@@ -239,8 +238,9 @@ Superellipse {
 
                 MediaPreview {
                     visible: mediaUpload.localPreviewUrl.toString().length > 0
-                    Layout.preferredWidth: 64
-                    Layout.preferredHeight: 56
+                    Layout.preferredWidth: root.width < 620 ? 126 : 92
+                    Layout.preferredHeight: root.width < 620 ? 112 : 86
+                    fitImage: true
                     source: mediaUpload.localPreviewUrl
                     mediaType: mediaUpload.selectedContentType
                     curveDepth: Theme.curveControl
@@ -439,7 +439,7 @@ Superellipse {
 
             Flickable {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.width < 620 ? 116 : 96
+                Layout.preferredHeight: root.width < 620 ? 238 : 174
                 clip: true
                 contentWidth: thumbnailRow.width
                 contentHeight: height
@@ -456,14 +456,15 @@ Superellipse {
 
                         delegate: Item {
                             required property var modelData
-                            width: root.width < 620 ? 148 : 124
-                            height: root.width < 620 ? 108 : 88
+                            width: root.width < 620 ? Math.max(205, Math.min(root.width - 42, 410)) : 244
+                            height: root.width < 620 ? 224 : 162
 
                             MediaPreview {
                                 anchors.fill: parent
                                 anchors.topMargin: Theme.space1
                                 source: modelData.previewUrl
                                 mediaType: modelData.mediaType
+                                fitImage: true
                                 curveDepth: Theme.curveControl
                                 interactive: String(modelData.mediaType || "").startsWith("video/")
                                 primeVideoFrame: false

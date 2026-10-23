@@ -58,6 +58,20 @@ ListView {
         const candidate = String(root.detail.channelId || root.detail.castChannel || (match ? match[1] : ""))
         return /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(candidate) ? candidate : ""
     }
+    readonly property string resolvedChannelImage: {
+        const revision = channelDirectory.imageRevision
+        return String(root.detail.channelImageUrl
+            || channelDirectory.imageUrlForChannel(root.castChannel) || "")
+    }
+    readonly property string resolvedChannelName: {
+        const revision = channelDirectory.imageRevision
+        return String(root.detail.channelName
+            || channelDirectory.nameForChannel(root.castChannel) || root.castChannel)
+    }
+    onCastChannelChanged: {
+        if (root.castChannel.length > 0 && root.resolvedChannelImage.length === 0)
+            channelDirectory.ensureChannelImage(root.castChannel)
+    }
     readonly property string parentTokenLocator: TokenSemantic.canonicalLocator(String(root.detail.parentUrl || ""))
     readonly property bool hasProtocolTokenParent: root.parentTokenLocator.length > 0
     readonly property var effectiveEmbeds: root.activeView === "cast" ? root.buildEffectiveEmbeds() : []
@@ -351,12 +365,12 @@ ListView {
                                 avatarSize: 20
                                 Layout.preferredHeight: 20
                                 Layout.preferredWidth: 20
-                                sourceUrl: String(root.detail.channelImageUrl || "")
-                                displayName: String(root.detail.channelName || root.castChannel)
+                                sourceUrl: root.resolvedChannelImage
+                                displayName: root.resolvedChannelName
                             }
                             DirectionAwareLabel {
                                 visible: root.activeView === "cast" && root.castChannel.length > 0
-                                text: String(root.detail.channelName || root.castChannel)
+                                text: root.resolvedChannelName
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 font.weight: Theme.weightDemiBold

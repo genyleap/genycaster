@@ -443,6 +443,11 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   };
   const replayCache = dependencies.replayCache ?? new ReplayCache(config.proofLifetimeSeconds);
   const limiter = dependencies.limiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.rateLimit);
+  // Uploads carry verified signer proofs and must not compete with public
+  // artwork/feed browsing for one IP's fixed-window budget. Keep a separate,
+  // equally bounded window; do not bypass proof verification or replay checks.
+  const uploadLimiter = dependencies.uploadLimiter
+    ?? new FixedWindowRateLimiter(config.rateWindowMs, config.rateLimit);
   // Verified Mini App artwork is shown in a 3-column scrolling gallery.
   // It needs a separate *bounded* allowance so a fast fling cannot exhaust
   // the generic API budget. Only exact URLs from trusted catalogues qualify.
@@ -1431,7 +1436,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
     }
 
     const clientKey = clientAddress(request, config.trustCloudflare);
-    const rate = (partRoute ? partLimiter : limiter).check(clientKey, runtime.now());
+    const rate = (partRoute ? partLimiter : uploadLimiter).check(clientKey, runtime.now());
     response.setHeader('ratelimit-limit', String(partRoute ? config.partRateLimit : config.rateLimit));
     response.setHeader('ratelimit-remaining', String(rate.remaining));
     if (!rate.allowed) {
