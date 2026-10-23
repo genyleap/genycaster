@@ -107,16 +107,12 @@ Item {
         const candidate = supplied || (match ? match[1] : "")
         return /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(candidate) ? candidate : ""
     }
-    readonly property string channelDisplayName: {
-        const version = channelDirectory.imageRevision
-        return String(root.modelData.channelName
-                      || channelDirectory.nameForChannel(root.castChannel) || root.castChannel)
-    }
-    readonly property string channelImageUrl: {
-        const version = channelDirectory.imageRevision
-        return String(root.modelData.channelImageUrl
-                      || channelDirectory.imageUrlForChannel(root.castChannel) || "")
-    }
+    readonly property string channelDisplayName: channelDirectory.imageRevision >= 0
+        ? String(root.modelData.channelName
+                 || channelDirectory.nameForChannel(root.castChannel) || root.castChannel) : ""
+    readonly property string channelImageUrl: channelDirectory.imageRevision >= 0
+        ? String(root.modelData.channelImageUrl
+                 || channelDirectory.imageUrlForChannel(root.castChannel) || "") : ""
     // Bound the on-demand lookup to visible/hydrated casts; a long feed must
     // not launch a request for every off-screen channel.
     onEnrichmentActiveChanged: {

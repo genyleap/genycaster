@@ -58,16 +58,12 @@ ListView {
         const candidate = String(root.detail.channelId || root.detail.castChannel || (match ? match[1] : ""))
         return /^[a-z0-9][a-z0-9_-]{0,63}$/i.test(candidate) ? candidate : ""
     }
-    readonly property string resolvedChannelImage: {
-        const revision = channelDirectory.imageRevision
-        return String(root.detail.channelImageUrl
-            || channelDirectory.imageUrlForChannel(root.castChannel) || "")
-    }
-    readonly property string resolvedChannelName: {
-        const revision = channelDirectory.imageRevision
-        return String(root.detail.channelName
-            || channelDirectory.nameForChannel(root.castChannel) || root.castChannel)
-    }
+    readonly property string resolvedChannelImage: channelDirectory.imageRevision >= 0
+        ? String(root.detail.channelImageUrl
+            || channelDirectory.imageUrlForChannel(root.castChannel) || "") : ""
+    readonly property string resolvedChannelName: channelDirectory.imageRevision >= 0
+        ? String(root.detail.channelName
+            || channelDirectory.nameForChannel(root.castChannel) || root.castChannel) : ""
     onCastChannelChanged: {
         if (root.castChannel.length > 0 && root.resolvedChannelImage.length === 0)
             channelDirectory.ensureChannelImage(root.castChannel)
