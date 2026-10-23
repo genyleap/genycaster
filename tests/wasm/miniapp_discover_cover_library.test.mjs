@@ -52,34 +52,36 @@ test("recent apps only represent real launch history and remain bounded",()=>{
     assert.match(view,/savedApps: miniAppCatalog\.myApps/);
 });
 
-test("mobile App library uses thumbnail shelf and Saved grid; desktop remains intact",()=>{
+test("mobile App library uses horizontal Recents and borderless saved rows",()=>{
     const view=read("ui/components/AppsSurface.qml");
     const library=read("ui/components/MiniAppLibraryShelves.qml");
     const cmake=read("ui/CMakeLists.txt");
     assert.match(view,/visible: root\.compact && root\.farcasterSection === "my"/);
     assert.match(view,/visible: !root\.compact \|\| root\.farcasterSection !== "my"/);
     assert.match(view,/visible: root\.compact && root\.section === "farcaster"/);
-    assert.match(view,/Layout\.preferredHeight: root\.compact \? 48 : 64/);
+    assert.match(view,/Layout\.preferredHeight: root\.compact \? 48 : 48/);
     assert.match(library,/text: qsTr\("Recently used"\)/);
     assert.match(library,/orientation: ListView\.Horizontal/);
     assert.match(library,/root\.recentApps && root\.recentApps\.length > 0/);
     assert.match(library,/text: qsTrId\("genycaster\.apps\.saved"\)/);
     assert.match(library,/columns: root\.savedColumns/);
+    assert.match(library,/readonly property int savedColumns: 1/);
+    assert.match(library,/objectName: "savedMiniAppOpenButton"/);
     assert.match(library,/model: root\.savedApps \|\| \[\]/);
     assert.match(library,/forceAutomaticDownload: true/);
     for(const component of ["MiniAppLibraryShelves","MiniAppFeaturedCarousel"])
         assert.ok(cmake.includes("components/"+component+".qml"));
 });
 
-test("Explorer and saved grids show compact icons; details are opened before launch",()=>{
+test("mobile Explorer shows dense rows and explicit Open",()=>{
  const apps=read("ui/components/AppsSurface.qml");
  const library=read("ui/components/MiniAppLibraryShelves.qml");
  assert.match(apps,/function showAppDetails\(app\)/);
  assert.match(apps,/miniAppDetailDrawer\.open\(\)/);
  assert.match(apps,/id: miniAppStoreTile[\s\S]*?id: storeIcon/);
- assert.match(apps,/targetColumns: root\.compact\s*\? \(width < 325 \? 2 : 3\)/);
- assert.match(apps,/cellHeight: root\.compact \? 126/);
- assert.match(apps,/id: card\s+visible: !root\.compact/);
+ assert.match(apps,/targetColumns: root\.compact\s*\? 1/);
+ assert.match(apps,/cellHeight: root\.compact \? 116/);
+ assert.match(apps,/id: storeRow[\s\S]*?visible: !root\.compact/);
  assert.match(apps,/objectName: "miniAppDetailDrawer"/);
  assert.match(apps,/root\.showAppDetails\(cardCell\.modelData\)/);
  assert.match(apps,/onOpenRequested: function\(app\) \{ root\.showAppDetails\(app\) \}/);

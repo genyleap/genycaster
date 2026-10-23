@@ -119,6 +119,9 @@ bool UpdateController::checking() const { return m_checking; }
 bool UpdateController::downloading() const { return m_downloading; }
 bool UpdateController::updateAvailable() const { return m_updateAvailable; }
 QString UpdateController::latestVersion() const { return m_latestVersion; }
+QString UpdateController::releaseTitle() const { return m_releaseTitle; }
+QString UpdateController::releaseNotes() const { return m_releaseNotes; }
+QString UpdateController::releasePublishedAt() const { return m_releasePublishedAt; }
 QString UpdateController::status() const { return m_status; }
 QString UpdateController::error() const { return m_error; }
 QString UpdateController::downloadedFilePath() const { return m_downloadedFilePath; }
@@ -276,6 +279,11 @@ void UpdateController::handleRelease(QNetworkReply* reply, const bool manual)
         return;
     }
     m_latestVersion = version;
+    // Display only the selected GitHub release's actual title, date and
+    // body. Do not invent a changelog based on a version-number comparison.
+    m_releaseTitle = obj.value(QStringLiteral("name")).toString().trimmed().left(120);
+    m_releaseNotes = obj.value(QStringLiteral("body")).toString().trimmed().left(1600);
+    m_releasePublishedAt = obj.value(QStringLiteral("published_at")).toString().left(10);
     m_updateAvailable = QVersionNumber::compare(parsed, current) > 0;
     m_assetUrl.clear();
     m_assetName.clear();

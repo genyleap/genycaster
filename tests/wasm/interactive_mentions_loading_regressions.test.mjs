@@ -45,7 +45,7 @@ test('miniapp loading tiles do not pretend a successful image failed while reque
     assert.equal((library.match(/MiniAppArtPlaceholder \{/g)||[]).length,2);
     assert.match(apps,/id: storeIcon[\s\S]*?MiniAppArtPlaceholder/);
     assert.match(apps,/model: root.compact \? 6 : parent.columns/);
-    assert.match(apps,/Layout.preferredHeight: root.compact \? 126 : 190/);
+    assert.match(apps,/Layout.preferredHeight: root.compact \? 116 : 190/);
 });
 
 test('shared nonblocking refresh indicator is consistent across reading and discovery surfaces',()=>{

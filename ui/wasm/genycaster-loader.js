@@ -287,16 +287,67 @@ const cacheStartup=enableOfflineCache();
 // is served. Only notify on a confirmed, public manifest mismatch; never
 // reload a composing user without their explicit tap.
 const updateBanner=$("genycaster-update-banner");
+const updateBackdrop=$("genycaster-update-backdrop");
 const updateNow=$("genycaster-update-now");
 const updateLater=$("genycaster-update-later");
+const updateIsPersian=window.navigator?.language?.toLowerCase().startsWith("fa");
 let availableRelease="", updateCheckRunning=false, lastCheck=0, dismissedUntil=0;
-if(updateBanner && window.navigator?.language?.toLowerCase().startsWith("fa")){
+function fillReleaseDetails(fresh){
+    // Only server-verified manifest fields are displayed. Do not fabricate
+    // changelog entries when this release has no published notes.
+    const nextVersion=String(fresh.version||"");
+    const nextLabel=typeof fresh.releaseLabel==="string"
+        && /^Beta \d+(?:\.\d+){1,2}$/.test(fresh.releaseLabel)
+        ? fresh.releaseLabel : (releaseLabel||"Genycaster");
+    const current=$("genycaster-update-current");
+    const latest=$("genycaster-update-next");
+    if(current)current.textContent=currentVersion.slice(0,8);
+    if(latest)latest.textContent=nextVersion.slice(0,8);
+    const oldChannel=$("genycaster-update-current-channel");
+    const newChannel=$("genycaster-update-next-channel");
+    if(oldChannel)oldChannel.textContent=releaseLabel||(applicationVersion?"v"+applicationVersion:"");
+    if(newChannel)newChannel.textContent=nextLabel;
+    const releaseNotes=typeof fresh.releaseNotes==="string"
+        ? fresh.releaseNotes.trim().slice(0,640) : "";
+    const bytes=Number(fresh.wasmBytes);
+    const size=Number.isSafeInteger(bytes)&&bytes>0
+        ? (bytes/1048576).toFixed(1)+" MiB" : "";
+    const details=$("genycaster-update-details");
+    if(details)details.textContent=releaseNotes
+        || (updateIsPersian
+            ? "بیلد تازهٔ WebAssembly منتشر شده است."+(size?" اندازهٔ فایل اجرایی: "+size+".":"")+" پیش از به‌روزرسانی، پیش‌نویس خود را ذخیره کنید."
+            : "A new WebAssembly build is available."+(size?" Engine size: "+size+".":"")+" Save your draft before updating.");
+}
+function hideReleaseDrawer(){
+    if(updateBanner)updateBanner.hidden=true;
+    if(updateBackdrop)updateBackdrop.hidden=true;
+}
+function showReleaseDrawer(fresh){
+    fillReleaseDetails(fresh);
+    if(updateBackdrop)updateBackdrop.hidden=false;
+    if(updateBanner)updateBanner.hidden=false;
+    updateNow?.focus?.();
+}
+if(updateBanner&&updateIsPersian){
     updateBanner.dir="rtl";
-    $("genycaster-update-title").textContent="نسخهٔ جدید آماده است";
-    $("genycaster-update-hint").textContent="پیش از به‌روزرسانی، پیش‌نویس خود را ذخیره کنید.";
+    $("genycaster-update-title").textContent="به‌روزرسانی جنی‌کستر";
+    $("genycaster-update-hint").textContent="نسخهٔ جدید آمادهٔ دریافت است.";
+    if($("genycaster-update-current-label"))$("genycaster-update-current-label").textContent="بیلد فعلی";
+    if($("genycaster-update-next-label"))$("genycaster-update-next-label").textContent="بیلد جدید";
+    if($("genycaster-update-details-title"))$("genycaster-update-details-title").textContent="جزئیات نسخه";
     updateNow.textContent="به‌روزرسانی";
     updateLater.textContent="بعداً";
 }
+updateBackdrop?.addEventListener("click",()=>{
+    hideReleaseDrawer();
+    dismissedUntil=Date.now()+10*60*1000;
+});
+document.addEventListener?.("keydown",event=>{
+    if(event.key==="Escape" && updateBanner && !updateBanner.hidden){
+        hideReleaseDrawer();
+        dismissedUntil=Date.now()+10*60*1000;
+    }
+});
 async function checkForNewRelease(){
     if(!finished || failed || updateCheckRunning ||
        !/^[0-9a-f]{20}$/.test(currentVersion) ||
@@ -314,13 +365,13 @@ async function checkForNewRelease(){
         const version=String(fresh?.version||"");
         if(!/^[0-9a-f]{20}$/.test(version) || version===currentVersion)return;
         availableRelease=version;
-        if(updateBanner && now>=dismissedUntil)updateBanner.hidden=false;
+        if(updateBanner && now>=dismissedUntil)showReleaseDrawer(fresh);
     }catch{
         // Offline installs continue normally, using their cached engine.
     }finally{updateCheckRunning=false;}
 }
 updateLater?.addEventListener("click",()=>{
-    if(updateBanner)updateBanner.hidden=true;
+    hideReleaseDrawer();
     dismissedUntil=Date.now()+10*60*1000;
 });
 updateNow?.addEventListener("click",()=>{

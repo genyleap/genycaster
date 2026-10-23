@@ -357,6 +357,7 @@ Item {
                     recentApps: miniAppCatalog.recentApps
                     savedApps: miniAppCatalog.myApps
                     onOpenRequested: function(app) { root.showAppDetails(app) }
+                    onLaunchRequested: function(app) { root.openApp(app) }
                     onExploreRequested: root.farcasterSection = "explorer"
                 }
 
@@ -451,6 +452,26 @@ Item {
                             enabled: !miniAppCatalog.busy
                             onClicked: miniAppCatalog.searchByFid(Number(presentationBridge.accountFid || 0))
                         }
+                    }
+
+                    RowLayout {
+                        objectName: "miniAppMobileTopicFilters"
+                        Layout.fillWidth: true
+                        layoutDirection: Theme.uiDirection
+                        GenyComboBox {
+                            objectName: "miniAppMobileTopicFilter"
+                            Layout.preferredWidth: Math.min(175, parent.width * 0.56)
+                            model: root.availableCategories
+                            textRole: "title"
+                            valueRole: "id"
+                            currentIndex: {
+                                const index = root.availableCategories.findIndex(
+                                    item => item.id === root.topicFilter)
+                                return Math.max(0, index)
+                            }
+                            onActivated: root.topicFilter = String(currentValue)
+                        }
+                        Item { Layout.fillWidth: true }
                     }
                 }
 
@@ -601,7 +622,7 @@ Item {
                         anchors.top: parent.top
                         visible: miniAppCatalog.busy && root.visibleApps.length === 0
                         layoutDirection: Theme.uiDirection
-                        columns: root.compact ? (width < 325 ? 2 : 3)
+                        columns: root.compact ? 1
                                               : (width < 360 ? 1 : (width < 1040 ? 2 : 3))
                         columnSpacing: Theme.space2
                         rowSpacing: Theme.space2
@@ -611,7 +632,7 @@ Item {
                             delegate: Superellipse {
                                 required property int index
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: root.compact ? 126 : 190
+                                Layout.preferredHeight: root.compact ? 116 : 190
                                 fillColor: Theme.surfaceMuted
                                 borderWidth: 1
                                 borderColor: Theme.borderMuted
@@ -621,25 +642,19 @@ Item {
                                 // On mobile a loading shelf must share the exact
                                 // store grid footprint, not jump from a tall card
                                 // layout to 3 columns when the response arrives.
-                                ColumnLayout {
+                                RowLayout {
                                     visible: root.compact
                                     anchors.fill: parent
-                                    anchors.margins: Theme.space1
-                                    spacing: Theme.space2
-                                    Superellipse {
-                                        Layout.alignment: Qt.AlignHCenter
-                                        Layout.preferredWidth: 78
-                                        Layout.preferredHeight: 78
-                                        fillColor: Theme.borderMuted
-                                        curveDepth: Theme.curveControl
+                                    anchors.margins: Theme.space2
+                                    spacing: Theme.space3
+                                    Superellipse { Layout.preferredWidth: 56; Layout.preferredHeight: 56; fillColor: Theme.borderMuted; curveDepth: Theme.curveControl }
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: Theme.space2
+                                        Superellipse { Layout.fillWidth: true; Layout.preferredHeight: 10; fillColor: Theme.borderMuted; curveDepth: 5 }
+                                        Superellipse { Layout.fillWidth: true; Layout.preferredHeight: 8; fillColor: Theme.borderSubtle; curveDepth: 4 }
                                     }
-                                    Superellipse {
-                                        Layout.alignment: Qt.AlignHCenter
-                                        Layout.preferredWidth: Math.min(75, parent.width * 0.74)
-                                        Layout.preferredHeight: 8
-                                        fillColor: Theme.borderSubtle
-                                        curveDepth: 4
-                                    }
+                                    Superellipse { Layout.preferredWidth: 68; Layout.preferredHeight: 32; fillColor: Theme.primarySurface; curveDepth: 16 }
                                 }
 
                                 ColumnLayout {
@@ -726,12 +741,12 @@ Item {
                                 // row-level controls; the phone icon grid stays
                                 // identical to its existing contract.
                                 readonly property int targetColumns: root.compact
-                                                                    ? (width < 325 ? 2 : 3)
+                                                                    ? 1
                                                                     : (width < 900 ? 1 : 2)
                                 cellWidth: Math.max(1, width / Math.max(1, targetColumns))
                                 // Desktop rows are dense and borderless;
                                 // phone icon-grid geometry is unchanged.
-                                cellHeight: root.compact ? 126 : 112
+                                cellHeight: root.compact ? 116 : 112
 
                                 ScrollBar.vertical: GenyScrollBar {
                                     policy: root.compact ? ScrollBar.AlwaysOff : ScrollBar.AsNeeded
@@ -758,54 +773,121 @@ Item {
 
                                     Item {
                                         id: miniAppStoreTile
+                                        objectName: "miniAppMobileStoreRow"
                                         visible: root.compact
                                         anchors.fill: parent
-                                        anchors.margins: Theme.space1
-
-                                        SuperellipseImage {
-                                            id: storeIcon
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            anchors.top: parent.top
-                                            width: Math.min(78, parent.width - 14)
-                                            height: width
-                                            source: String(cardCell.modelData.iconSource || "")
-                                            mediaCategory: "miniapps"
-                                            forceAutomaticDownload: true
-                                            // Store icons should finish loading while the
-                                            // parent page moves, unlike full feed media.
-                                            deferNewLoadsWhileScrolling: false
-                                            framePacedPresentation: false
-                                            showLoadingIndicator: false
-                                            showFailureIndicator: false
-                                            showManualLoadIndicator: false
-                                            fillMode: Image.PreserveAspectFit
-                                            requestedSourceWidth: 120
-                                            requestedSourceHeight: 120
-                                            curveDepth: Theme.curveControl
-                                            fillColor: Theme.surfaceRaised
-
-                                            MiniAppArtPlaceholder {
-                                                anchors.fill: parent
-                                                imageReady: storeIcon.ready
-                                                loadFailed: storeIcon.loadFailed
-                                                hasSource: String(cardCell.modelData.iconSource || "").length > 0
+                                        Rectangle {
+                                            anchors.bottom: parent.bottom
+                                            width: parent.width
+                                            height: Theme.strokeHairline
+                                            color: Theme.divider
+                                        }
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: Theme.space1
+                                            spacing: Theme.space2
+                                            layoutDirection: Theme.uiDirection
+                                            Item {
+                                                Layout.preferredWidth: 56
+                                                Layout.preferredHeight: 56
+                                                SuperellipseImage {
+                                                    id: storeIcon
+                                                    anchors.fill: parent
+                                                    source: String(cardCell.modelData.iconSource || "")
+                                                    mediaCategory: "miniapps"
+                                                    forceAutomaticDownload: true
+                                                    deferNewLoadsWhileScrolling: false
+                                                    framePacedPresentation: false
+                                                    showLoadingIndicator: false
+                                                    showFailureIndicator: false
+                                                    showManualLoadIndicator: false
+                                                    fillMode: Image.PreserveAspectFit
+                                                    requestedSourceWidth: 112
+                                                    requestedSourceHeight: 112
+                                                    curveDepth: Theme.curveControl
+                                                    fillColor: Theme.surfaceRaised
+                                                }
+                                                MiniAppArtPlaceholder {
+                                                    anchors.fill: parent
+                                                    imageReady: storeIcon.ready
+                                                    loadFailed: storeIcon.loadFailed
+                                                    hasSource: String(cardCell.modelData.iconSource || "").length > 0
+                                                }
+                                                TapHandler { onTapped: root.showAppDetails(cardCell.modelData) }
+                                            }
+                                            ColumnLayout {
+                                                Layout.fillWidth: true
+                                                Layout.minimumWidth: 0
+                                                spacing: 2
+                                                DirectionAwareLabel {
+                                                    Layout.fillWidth: true
+                                                    text: String(cardCell.modelData.name || cardCell.modelData.domain || "")
+                                                    color: Theme.ink
+                                                    font.pixelSize: Theme.typeBodySize
+                                                    font.weight: Theme.weightDemiBold
+                                                    maximumLineCount: 1
+                                                    elide: Text.ElideRight
+                                                    TapHandler { onTapped: root.showAppDetails(cardCell.modelData) }
+                                                }
+                                                DirectionAwareLabel {
+                                                    Layout.fillWidth: true
+                                                    text: String(cardCell.modelData.category || cardCell.modelData.domain || "")
+                                                    color: Theme.inkMuted
+                                                    font.pixelSize: Theme.typeCaptionSize
+                                                    elide: Text.ElideRight
+                                                }
+                                                DirectionAwareLabel {
+                                                    Layout.fillWidth: true
+                                                    text: String(cardCell.modelData.description || "")
+                                                    color: Theme.inkSubtle
+                                                    font.pixelSize: Theme.typeMetaSize
+                                                    maximumLineCount: 2
+                                                    wrapMode: Text.Wrap
+                                                    elide: Text.ElideRight
+                                                }
+                                            }
+                                            ColumnLayout {
+                                                Layout.alignment: Qt.AlignVCenter
+                                                spacing: Theme.space1
+                                                ActionButton {
+                                                    objectName: "miniAppMobileOpenButton"
+                                                    Layout.preferredWidth: 72
+                                                    compact: true
+                                                    pill: true
+                                                    elevated: false
+                                                    busy: cardCell.launchBusy
+                                                    enabled: !cardCell.launchBusy
+                                                    text: cardCell.launchBusy ? qsTr("Opening…")
+                                                        : cardCell.running ? qsTr("Resume") : qsTr("Open")
+                                                    onClicked: root.openApp(cardCell.modelData)
+                                                }
+                                                RowLayout {
+                                                    Layout.alignment: Qt.AlignHCenter
+                                                    spacing: 0
+                                                    ActionButton {
+                                                        compact: true
+                                                        quiet: true
+                                                        iconOnly: true
+                                                        iconGlyph: Theme.iconShare
+                                                        text: qsTrId("genycaster.apps.share")
+                                                        onClicked: miniAppHost.requestShare(
+                                                            String(cardCell.modelData.homeUrl || ""),
+                                                            String(cardCell.modelData.name || cardCell.modelData.domain || ""))
+                                                    }
+                                                    ActionButton {
+                                                        compact: true
+                                                        quiet: true
+                                                        iconOnly: true
+                                                        readonly property bool saved: Boolean(cardCell.modelData.saved)
+                                                        iconGlyph: saved ? Theme.iconCheck : Theme.iconPlus
+                                                        selected: saved
+                                                        enabled: !saved
+                                                        text: saved ? qsTr("Saved") : qsTr("Save")
+                                                        onClicked: miniAppCatalog.addToMyMiniApps(cardCell.modelData)
+                                                    }
+                                                }
                                             }
                                         }
-                                        DirectionAwareLabel {
-                                            anchors.top: storeIcon.bottom
-                                            anchors.topMargin: Theme.space2
-                                            anchors.left: parent.left
-                                            anchors.right: parent.right
-                                            text: String(cardCell.modelData.name || cardCell.modelData.domain || "")
-                                            color: Theme.ink
-                                            font.pixelSize: Theme.typeCaptionSize
-                                            horizontalAlignment: Text.AlignHCenter
-                                            maximumLineCount: 1
-                                            elide: Text.ElideRight
-                                        }
-                                        TapHandler { onTapped: root.showAppDetails(cardCell.modelData) }
-                                        Accessible.role: Accessible.Button
-                                        Accessible.name: String(cardCell.modelData.name || "")
                                     }
 
                                     // Desktop Store shelf: flat app rows, not

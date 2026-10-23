@@ -16,10 +16,29 @@ Drawer {
     interactive: false
     edge: Qt.TopEdge
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    width: parent ? Math.min(560, Math.max(290, parent.width - Theme.space5 * 2)) : 520
-    height: 234
+    width: parent ? Math.min(580, parent.width) : 520
+    height: parent ? Math.min(440, Math.max(260, parent.height - Theme.space4)) : 420
     x: parent ? Math.max(0, (parent.width - width) / 2) : 0
     padding: Theme.space4
+
+    // Animate Drawer.position, never its x/y: Qt owns edge anchoring.
+    enter: Transition {
+        NumberAnimation {
+            property: "position"
+            from: 0
+            to: 1
+            duration: Theme.reduceMotion ? 0 : Theme.motionStandard
+            easing.type: Easing.OutCubic
+        }
+    }
+    exit: Transition {
+        NumberAnimation {
+            property: "position"
+            to: 0
+            duration: Theme.reduceMotion ? 0 : Theme.motionStandard
+            easing.type: Easing.InOutCubic
+        }
+    }
 
     function presentAvailableUpdate() {
         const version = String(updateController.latestVersion || "")
@@ -41,6 +60,15 @@ Drawer {
     }
     contentItem: ColumnLayout {
         spacing: Theme.space3
+        // Subtle grabber communicates top-sheet direction on touch screens.
+        Rectangle {
+            Layout.alignment: Qt.AlignHCenter
+            Layout.preferredWidth: 40
+            Layout.preferredHeight: 4
+            radius: 2
+            color: Theme.inkMuted
+            opacity: 0.48
+        }
         RowLayout {
             Layout.fillWidth: true
             spacing: Theme.space3
@@ -69,9 +97,12 @@ Drawer {
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    text: qsTr("A newer release is ready to review.")
+                    text: updateController.releaseTitle.length > 0
+                          ? updateController.releaseTitle
+                          : qsTr("A newer release is ready to review.")
                     font.pixelSize: Theme.typeCaptionSize
                     color: Theme.inkMuted
+                    elide: Text.ElideRight
                 }
             }
             ActionButton {
@@ -120,7 +151,47 @@ Drawer {
                 }
             }
         }
-        Item { Layout.fillHeight: true }
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: Theme.space2
+
+            RowLayout {
+                Layout.fillWidth: true
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTr("What’s new")
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeLabelSize
+                    font.weight: Theme.weightDemiBold
+                }
+                DirectionAwareLabel {
+                    visible: updateController.releasePublishedAt.length > 0
+                    text: updateController.releasePublishedAt
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                }
+            }
+            Flickable {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                contentWidth: width
+                contentHeight: Math.max(height, releaseNotesText.implicitHeight + Theme.space3)
+                boundsBehavior: Flickable.StopAtBounds
+                DirectionAwareLabel {
+                    id: releaseNotesText
+                    width: parent.width
+                    text: updateController.releaseNotes.length > 0
+                          ? updateController.releaseNotes
+                          : qsTr("This release has no published change notes. View the official release for details.")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeMetaSize
+                    textFormat: Text.PlainText
+                    wrapMode: Text.Wrap
+                }
+            }
+        }
         RowLayout {
             Layout.fillWidth: true
             spacing: Theme.space2

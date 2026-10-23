@@ -8,11 +8,14 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     const nodes=new Map();
     for(const id of ["genycaster-boot","boot-heading","boot-status","boot-stage",
         "boot-fill","boot-percent","boot-retry","boot-build-credit","qt-screen",
-        "genycaster-update-banner","genycaster-update-title",
-        "genycaster-update-hint","genycaster-update-now","genycaster-update-later"]) {
+        "genycaster-update-banner","genycaster-update-backdrop","genycaster-update-title",
+        "genycaster-update-hint","genycaster-update-now","genycaster-update-later",
+        "genycaster-update-current","genycaster-update-next",
+        "genycaster-update-current-channel","genycaster-update-next-channel",
+        "genycaster-update-details"]) {
         const classes=new Set();
         nodes.set(id,{
-            hidden:id==="genycaster-update-banner",textContent:"",style:{},dataset:{},
+            hidden:id==="genycaster-update-banner"||id==="genycaster-update-backdrop",textContent:"",style:{},dataset:{},
             classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x)},
             handlers:{},addEventListener(type,handler){this.handlers[type]=handler;}
         });
@@ -32,7 +35,7 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
                 releaseLabel:"Beta 1.0",wasmBytes:8},
             farcaster_client_entry(){},
             fetch:async(input)=>String(input).includes("genycaster-assets.json")
-                ? new Response(JSON.stringify({version:latestVersion}),
+                ? new Response(JSON.stringify({version:latestVersion,releaseLabel:"Beta 1.1",wasmBytes:78643200}),
                     {headers:{"Content-Type":"application/json"}})
                 : measured
                     ? new Response(new ReadableStream({
@@ -262,6 +265,11 @@ test("installed PWA notices a new live release without discarding draft or ident
     h.fireFocus();
     await new Promise(resolve=>setImmediate(resolve));
     assert.equal(h.nodes.get("genycaster-update-banner").hidden,false);
+    assert.equal(h.nodes.get("genycaster-update-backdrop").hidden,false);
+    assert.equal(h.nodes.get("genycaster-update-current").textContent,"aaaaaaaa");
+    assert.equal(h.nodes.get("genycaster-update-next").textContent,"bbbbbbbb");
+    assert.equal(h.nodes.get("genycaster-update-next-channel").textContent,"Beta 1.1");
+    assert.match(h.nodes.get("genycaster-update-details").textContent,/75\.0 MiB/);
     assert.equal(h.reloadedTo,"","update prompt cannot navigate without a user tap");
     assert.equal(h.storage.get("genycaster.boot.loaded.v1"),"1");
     h.clickUpdate();
@@ -275,5 +283,18 @@ test("no update prompt is shown when remote and running builds match",async()=>{
     h.fireFocus();
     await new Promise(resolve=>setImmediate(resolve));
     assert.equal(h.nodes.get("genycaster-update-banner").hidden,true);
+    assert.equal(h.nodes.get("genycaster-update-backdrop").hidden,true);
     assert.equal(h.reloadedTo,"");
+});
+
+test("WASM release notifier is a top-down, non-destructive, accessible drawer",()=>{
+    const shell=readFileSync(new URL("../../ui/wasm/genycaster-shell.html",import.meta.url),"utf8");
+    assert.match(shell,/#genycaster-update-banner\{position:fixed;z-index:130;top:0/);
+    assert.match(shell,/@keyframes genycasterDrawerIn/);
+    assert.match(shell,/id="genycaster-update-backdrop"/);
+    assert.match(shell,/role="dialog" aria-modal="true"/);
+    assert.match(shell,/id="genycaster-update-current"/);
+    assert.match(shell,/id="genycaster-update-next"/);
+    assert.match(shell,/id="genycaster-update-details"/);
+    assert.doesNotMatch(shell,/#genycaster-update-banner\{[^}]*bottom:calc/);
 });

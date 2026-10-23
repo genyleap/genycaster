@@ -37,7 +37,7 @@ test('desktop Home presents one bounded content column', () => {
 test('desktop store uses borderless app rows and compact Open buttons', () => {
     const apps = read('ui/components/AppsSurface.qml');
     const feature = read('ui/components/MiniAppFeaturedCarousel.qml');
-    assert.match(apps, /cellHeight: root\.compact \? 126 : 112/);
+    assert.match(apps, /cellHeight: root\.compact \? 116 : 112/);
     assert.match(apps, /id: storeRow/);
     assert.match(apps, /objectName: "miniAppDesktopStoreRow"/);
     assert.match(apps, /objectName: "miniAppStoreOpenButton"/);
@@ -140,4 +140,33 @@ test('client badge only uses provider-returned metadata in feed and replies', ()
     assert.match(reply, /objectName: "replySourceClientBadge"/);
     assert.match(feed, /clientName: String\(root\.modelData\.sourceClient/);
     assert.match(reply, /clientName: String\(root\.reply\.sourceClient/);
+});
+
+test('mobile Apps show the same compact store rows as desktop with topic filters', () => {
+    const apps=read('ui/components/AppsSurface.qml');
+    const library=read('ui/components/MiniAppLibraryShelves.qml');
+    assert.match(apps,/targetColumns: root\.compact\s*\? 1/);
+    assert.match(apps,/cellHeight: root\.compact \? 116 : 112/);
+    assert.match(apps,/objectName: "miniAppMobileStoreRow"/);
+    assert.match(apps,/objectName: "miniAppMobileOpenButton"/);
+    assert.match(apps,/objectName: "miniAppMobileTopicFilter"/);
+    assert.match(apps,/onLaunchRequested: function\(app\) \{ root\.openApp\(app\) \}/);
+    assert.match(library,/readonly property int savedColumns: 1/);
+    assert.match(library,/objectName: "savedMiniAppOpenButton"/);
+    assert.match(library,/signal launchRequested\(var app\)/);
+    assert.match(library,/orientation: ListView\.Horizontal/);
+});
+
+test('native update sheet shows published release metadata with vertical drawer motion', () => {
+    const drawer=read('ui/components/UpdateNoticeDrawer.qml');
+    const header=read('ui/mobile/update_controller.hpp');
+    const cpp=read('ui/mobile/update_controller.cpp');
+    assert.match(drawer,/edge: Qt\.TopEdge/);
+    assert.match(drawer,/property: "position"/);
+    assert.match(drawer,/updateController\.releaseTitle/);
+    assert.match(drawer,/updateController\.releaseNotes/);
+    assert.match(drawer,/updateController\.releasePublishedAt/);
+    assert.match(header,/Q_PROPERTY\(QString releaseNotes READ releaseNotes/);
+    assert.match(cpp,/obj\.value\(QStringLiteral\("body"\)\)/);
+    assert.match(cpp,/obj\.value\(QStringLiteral\("published_at"\)\)/);
 });

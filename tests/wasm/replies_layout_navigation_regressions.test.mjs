@@ -48,11 +48,14 @@ test('settings scrolling does not dismiss the drawer; header identity opens prof
   assert.match(settings,/objectName: "settingsRecoveryRevoke"/);
   assert.match(settings,/objectName: "settingsRecoverySignOut"/);
 });
-test('compact Mini Apps use equal tab widths, saved mark and a separate remove action',()=>{
+test('compact Mini Apps use equal tabs and explicit launch/save actions',()=>{
   const app=read('ui/components/AppsSurface.qml');
+  const library=read('ui/components/MiniAppLibraryShelves.qml');
   assert.match(app,/id: destinationCard[\s\S]{0,900}Layout\.preferredWidth: 0/);
-  assert.match(app,/visible: Boolean\(cardCell\.modelData\.saved\)[\s\S]{0,350}fillColor: Theme\.positive/);
-  assert.match(app,/saved \? \(inLibrary \? Theme\.iconTrash : Theme\.iconCheck\)/);
+  assert.match(app,/objectName: "miniAppMobileOpenButton"/);
+  assert.match(app,/iconGlyph: saved \? Theme\.iconCheck : Theme\.iconPlus/);
+  assert.match(library,/objectName: "savedMiniAppOpenButton"/);
+  assert.match(library,/onClicked: root\.launchRequested\(savedCell\.app\)/);
 });
 test('image overlay controls are pinned to opposite safe viewport edges',()=>{
   const gallery=read('ui/components/MediaGallery.qml');

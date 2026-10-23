@@ -28,6 +28,9 @@ class UpdateController final : public QObject {
     Q_PROPERTY(bool downloading READ downloading NOTIFY changed)
     Q_PROPERTY(bool updateAvailable READ updateAvailable NOTIFY changed)
     Q_PROPERTY(QString latestVersion READ latestVersion NOTIFY changed)
+    Q_PROPERTY(QString releaseTitle READ releaseTitle NOTIFY changed)
+    Q_PROPERTY(QString releaseNotes READ releaseNotes NOTIFY changed)
+    Q_PROPERTY(QString releasePublishedAt READ releasePublishedAt NOTIFY changed)
     Q_PROPERTY(QString status READ status NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(double downloadProgress READ downloadProgress NOTIFY changed)
@@ -46,6 +49,9 @@ public:
     [[nodiscard]] bool downloading() const;
     [[nodiscard]] bool updateAvailable() const;
     [[nodiscard]] QString latestVersion() const;
+    [[nodiscard]] QString releaseTitle() const;
+    [[nodiscard]] QString releaseNotes() const;
+    [[nodiscard]] QString releasePublishedAt() const;
     [[nodiscard]] QString status() const;
     [[nodiscard]] QString error() const;
     [[nodiscard]] double downloadProgress() const;
@@ -78,6 +84,9 @@ private:
     QCryptographicHash m_hash{QCryptographicHash::Sha256};
     QString m_appVersion;
     QString m_latestVersion;
+    QString m_releaseTitle;
+    QString m_releaseNotes;
+    QString m_releasePublishedAt;
     QString m_status;
     QString m_error;
     QString m_assetUrl;

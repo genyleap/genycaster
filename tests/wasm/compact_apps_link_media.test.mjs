@@ -4,15 +4,15 @@ import {readFileSync} from 'node:fs';
 const base=new URL('../../',import.meta.url);
 const read=path=>readFileSync(new URL(path,base),'utf8');
 
-test('mobile Explorer uses App Store icons; desktop keeps descriptive cards',()=>{
+test('mobile and desktop Explorer use compact store rows and real launch actions',()=>{
  const apps=read('ui/components/AppsSurface.qml');
- assert.match(apps,/columns: 3[\s\S]*?Layout\.preferredHeight: root\.compact \? 48 : 64/);
- assert.match(apps,/targetColumns: root\.compact\s*\? \(width < 325 \? 2 : 3\)/);
- assert.match(apps,/cellHeight: root\.compact \? 126/);
- assert.match(apps,/Layout\.minimumHeight: root\.compact \? 28 : 40/);
- assert.match(apps,/wrapMode: root\.compact \? Text\.WrapAtWordBoundaryOrAnywhere/);
+ assert.match(apps,/columns: 3[\s\S]*?Layout\.preferredHeight: root\.compact \? 48 : 48/);
+ assert.match(apps,/targetColumns: root\.compact\s*\? 1/);
+ assert.match(apps,/cellHeight: root\.compact \? 116/);
  assert.match(apps,/id: miniAppStoreTile[\s\S]*?visible: root\.compact/);
- assert.match(apps,/id: card\s+visible: !root\.compact/);
+ assert.match(apps,/objectName: "miniAppMobileOpenButton"/);
+ assert.match(apps,/objectName: "miniAppMobileTopicFilter"/);
+ assert.match(apps,/objectName: "miniAppDesktopStoreRow"/);
  assert.match(apps,/TapHandler \{ onTapped: root\.showAppDetails\(cardCell\.modelData\) \}/);
 });
 test('WASM gallery corners use one shared image mask, not vector inverse covers',()=>{

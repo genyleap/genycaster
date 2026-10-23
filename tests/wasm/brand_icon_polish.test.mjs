@@ -33,10 +33,12 @@ test("Mini App artwork supports manifest aliases and a visible offline fallback"
     assert.match(catalog,/parsedHome\.resolved\(candidate\)/);
     assert.match(catalog,/publicMiniAppImageSource\(iconUrl, homeUrl\)/);
     const apps=read("ui/components/AppsSurface.qml");
-    assert.match(apps,/id: miniAppArtwork/);
+    assert.match(apps,/id: storeIcon/);
     assert.match(apps,/forceAutomaticDownload: true/);
-    assert.match(apps,/visible: !miniAppArtwork\.ready/);
-    assert.match(apps,/text: Theme\.iconApps/);
+    assert.match(apps,/MiniAppArtPlaceholder \{/);
+    const placeholder=read("ui/components/MiniAppArtPlaceholder.qml");
+    assert.match(placeholder,/visible: !root\.hasSource \|\| root\.loadFailed/);
+    assert.match(placeholder,/text: Theme\.iconApps/);
 });
 
 test("Welcome has no orbital animation, previews official mentions, and localizes step count",()=>{
