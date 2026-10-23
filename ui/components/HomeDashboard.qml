@@ -289,16 +289,19 @@ Item {
             Layout.minimumWidth: 560
 
             ColumnLayout {
-                anchors.fill: parent
-                anchors.leftMargin: Theme.space4
-                anchors.rightMargin: Theme.space4
+                // A single measured desktop width keeps Home, token banner,
+                // composer, and shortcuts aligned instead of stretching.
+                width: Math.max(1, Math.min(792, parent.width - Theme.space4 * 2))
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
                 anchors.topMargin: Theme.space3
                 anchors.bottomMargin: Theme.space3
-                spacing: Theme.space2
+                spacing: Theme.space3
 
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Math.max(24, Math.min(54, root.height * 0.055))
+                    Layout.preferredHeight: Math.max(12, Math.min(32, root.height * 0.035))
                 }
 
                 ColumnLayout {
@@ -368,7 +371,7 @@ Item {
                             id: desktopDraftEditor
                             ContextMenu.menu: EditorContextMenu { editor: desktopDraftEditor }
                             Layout.fillWidth: true
-                            implicitHeight: 80
+                            implicitHeight: activeFocus || text.length > 0 ? 80 : 56
                             text: root.draftText
                             placeholderText: qsTrId("genycaster.home.composer_placeholder")
                             wrapMode: TextEdit.Wrap

@@ -10,8 +10,11 @@ Item {
     // Metadata refreshes can briefly publish an empty profile. Keep the
     // visible header and its height until a resolved identity arrives.
     property var retainedDetail: ({})
-    readonly property var activeDetail: Number((root.detail || ({})).fid || 0) > 0
-                                          ? root.detail : root.retainedDetail
+    readonly property var activeDetail: {
+        const current = root.detail || ({})
+        const retained = root.retainedDetail || ({})
+        return Number(current.fid || 0) > 0 ? current : retained
+    }
     property var rows
     property string profileFeed: "user-posts"
     property string profileSortMode: "newest"
@@ -692,7 +695,7 @@ Item {
                                         quiet: true
                                         alignStart: true
                                         iconGlyph: Theme.iconShare
-                                        text: qsTr("Share profile link")
+                                        text: qsTr("Share profile")
                                         onClicked: {
                                             sharePopup.close()
                                             presentationBridge.shareUrl(presentationBridge.profileShareUrl(
@@ -704,7 +707,7 @@ Item {
                                         quiet: true
                                         alignStart: true
                                         iconGlyph: Theme.iconCopy
-                                        text: qsTr("Copy Genycaster profile link")
+                                        text: qsTr("Copy profile link")
                                         onClicked: {
                                             presentationBridge.copyText(presentationBridge.profileShareUrl(
                                                 Number(root.activeDetail.fid || 0)))
@@ -731,7 +734,7 @@ Item {
                                         quiet: true
                                         alignStart: true
                                         iconGlyph: Theme.iconLink
-                                        text: qsTr("Copy Farcaster URI (experimental)")
+                                        text: qsTr("Copy Farcaster URI")
                                         onClicked: {
                                             presentationBridge.copyText(
                                                 presentationBridge.farcasterProfileUri(

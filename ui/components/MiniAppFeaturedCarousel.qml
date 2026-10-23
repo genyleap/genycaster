@@ -46,7 +46,7 @@ Item {
     }
 
     visible: cardCount > 0
-    implicitHeight: visible ? (compact ? 272 : 303) : 0
+    implicitHeight: visible ? (compact ? 272 : 260) : 0
 
     RowLayout {
         id: shelfHeader

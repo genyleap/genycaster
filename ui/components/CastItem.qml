@@ -508,11 +508,12 @@ Item {
                             DirectionAwareLabel {
                                 id: castAuthorName
                                 Layout.minimumWidth: 0
+                                // Never bind a child width to the arranging RowLayout width.
+                                // This caused Qt 6 recursive rearrange warnings.
                                 Layout.preferredWidth: Math.min(implicitWidth,
                                     root.castChannel.length > 0
-                                        ? Math.max(78, castNameAndChannel.width * 0.62)
-                                        : castNameAndChannel.width)
-                                Layout.maximumWidth: Layout.preferredWidth
+                                        ? Math.max(78, root.width * 0.52)
+                                        : Math.max(78, root.width * 0.76))
                                 text: root.authorName
                                 color: Theme.ink
                                 font.pixelSize: Theme.typeLabelSize

@@ -201,7 +201,7 @@ Item {
 
         GridLayout {
             Layout.fillWidth: true
-            Layout.preferredHeight: root.compact ? 52 : 64
+            Layout.preferredHeight: root.compact ? 52 : 48
             columns: 3
             rowSpacing: Theme.space2
             columnSpacing: Theme.space2
@@ -225,12 +225,13 @@ Item {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
                     Layout.preferredWidth: 0
-                    Layout.preferredHeight: root.compact ? 48 : 64
+                    Layout.preferredHeight: root.compact ? 48 : 48
+                    // Desktop behaves like a Store category selector, not
+                    // three oversized filled dashboard buttons.
                     fillColor: root.compact ? Qt.rgba(0, 0, 0, 0)
-                                            : selected ? Theme.primarySurface : Theme.surfaceMuted
-                    borderWidth: root.compact ? 0
-                                              : selected ? Theme.strokeEmphasis : Theme.strokeHairline
-                    borderColor: selected ? Theme.accent : Theme.borderSubtle
+                                            : selected ? Theme.primarySurface : Theme.surface
+                    borderWidth: root.compact ? 0 : Theme.strokeHairline
+                    borderColor: selected ? Theme.accent : Theme.borderMuted
                     curveDepth: Theme.curveContainer
 
                     RowLayout {
@@ -241,8 +242,8 @@ Item {
 
                         Superellipse {
                             visible: !root.compact
-                            Layout.preferredWidth: 34
-                            Layout.preferredHeight: 34
+                            Layout.preferredWidth: 28
+                            Layout.preferredHeight: 28
                             fillColor: destinationCard.selected ? Theme.accent : Theme.surfaceRaised
                             curveDepth: Theme.curveControl
                             Icon {
@@ -693,7 +694,8 @@ Item {
                                 cellWidth: Math.max(1, width / Math.max(1, targetColumns))
                                 // Store-like icon grid on phones; desktop still
                                 // uses descriptive cards with launch controls.
-                                cellHeight: root.compact ? 126 : 236 + Theme.space3
+                                // Compact editorial app cards, no blank half-height body.
+                                cellHeight: root.compact ? 126 : 184 + Theme.space2
 
                                 ScrollBar.vertical: GenyScrollBar {
                                     policy: root.compact ? ScrollBar.AlwaysOff : ScrollBar.AsNeeded
@@ -777,12 +779,12 @@ Item {
                                         anchors.leftMargin: root.compact ? Theme.space1 : Theme.space2
                                         anchors.rightMargin: root.compact ? Theme.space1 : Theme.space2
                                         anchors.bottomMargin: root.compact ? Theme.space1 : Theme.space3
-                                        fillColor: Theme.surfaceRaised
+                                        fillColor: Theme.surface
                                         borderWidth: cardCell.running ? Theme.strokeEmphasis : 1
                                         borderColor: cardCell.running ? Theme.accent : Theme.borderMuted
                                         curveDepth: Theme.curveContainer
-                                        elevation: root.compact ? Theme.elevationNone : Theme.elevationControl
-                                        shadowOpacityScale: root.compact ? 0 : 0.34
+                                        elevation: Theme.elevationNone
+                                        shadowOpacityScale: 0
 
                                         ColumnLayout {
                                             anchors.fill: parent
@@ -888,7 +890,7 @@ Item {
 
                                             DirectionAwareLabel {
                                                 Layout.fillWidth: true
-                                                Layout.minimumHeight: root.compact ? 28 : 40
+                                                Layout.minimumHeight: root.compact ? 28 : 30
                                                 text: String(cardCell.modelData.description || "")
                                                 color: Theme.inkMuted
                                                 font.pixelSize: Theme.typeMetaSize

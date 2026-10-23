@@ -286,46 +286,42 @@ RowLayout {
         }
     }
 
+        RowLayout {
+            id: castViewsLabel
+            objectName: "castViewCount"
+            visible: root.showViews && root.resolvedViewCount !== null && root.resolvedViewCount !== undefined
+                     && Number(root.resolvedViewCount) >= 0 && isFinite(Number(root.resolvedViewCount))
+            Layout.minimumWidth: Theme.iconSizeSmall + Theme.space2
+            Layout.alignment: Qt.AlignVCenter
+            spacing: root.compact ? 2 : Theme.space1
+            Accessible.role: Accessible.StaticText
+
+            Accessible.name: "Views: " + viewMetric.text
+
+            Icon {
+                text: Theme.iconPreview
+                preferredSize: Theme.iconSizeSmall
+                color: Theme.inkMuted
+                Layout.preferredWidth: Theme.iconSizeSmall
+                Layout.preferredHeight: Theme.iconSizeSmall
+            }
+
+            Label {
+                id: viewMetric
+                text: castViewsLabel.visible
+                      ? LocaleFormat.formatCompactNumber(Number(root.resolvedViewCount)) : ""
+                color: Theme.inkMuted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.typeCaptionSize
+                font.weight: Theme.weightMedium
+            }
+
+        }
+
     }
 
     // Flexible space keeps utility actions at the physical trailing edge.
     Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
-
-    // Views remain inside the same footer as actions for every cast,
-    // including threaded replies. The metric itself is not clickable.
-    RowLayout {
-        id: castViewsLabel
-        objectName: "castViewCount"
-        visible: root.showViews && root.resolvedViewCount !== null && root.resolvedViewCount !== undefined
-                 && Number(root.resolvedViewCount) >= 0 && isFinite(Number(root.resolvedViewCount))
-        Layout.minimumWidth: Theme.iconSizeSmall + Theme.space2
-        spacing: root.compact ? 2 : Theme.space1
-        Layout.alignment: Qt.AlignVCenter
-        Accessible.role: Accessible.StaticText
-
-        Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
-        Accessible.name: "Views: " + viewMetric.text
-
-        Icon {
-            text: Theme.iconPreview
-            preferredSize: Theme.iconSizeSmall
-            color: Theme.inkMuted
-            Layout.preferredWidth: Theme.iconSizeSmall
-            Layout.preferredHeight: Theme.iconSizeSmall
-        }
-
-        Label {
-            id: viewMetric
-            text: castViewsLabel.visible
-                  ? LocaleFormat.formatCompactNumber(Number(root.resolvedViewCount)) : ""
-            color: Theme.inkMuted
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.typeCaptionSize
-            font.weight: Theme.weightMedium
-        }
-
-        Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
-    }
 
     RowLayout {
         id: utilityActions
@@ -389,7 +385,7 @@ RowLayout {
                             quiet: true
                             alignStart: true
                             iconGlyph: Theme.iconShare
-                            text: qsTr("Share link")
+                            text: qsTr("Share…")
                             onClicked: {
                                 sharePopup.close()
                                 presentationBridge.shareUrl(presentationBridge.castShareUrl(root.normalizedCastId))
@@ -400,7 +396,7 @@ RowLayout {
                             quiet: true
                             alignStart: true
                             iconGlyph: Theme.iconCopy
-                            text: qsTr("Copy Genycaster link")
+                            text: qsTr("Copy link")
                             onClicked: {
                                 presentationBridge.copyText(presentationBridge.castShareUrl(root.normalizedCastId))
                                 sharePopup.close()
@@ -459,7 +455,7 @@ RowLayout {
                             quiet: true
                             alignStart: true
                             iconGlyph: Theme.iconLink
-                            text: qsTr("Copy Farcaster URI (experimental)")
+                            text: qsTr("Copy Farcaster URI")
                             onClicked: {
                                 presentationBridge.copyText(presentationBridge.farcasterCastUri(
                                     root.normalizedCastId, root.authorFid))
