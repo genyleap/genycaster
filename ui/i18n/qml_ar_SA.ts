@@ -4482,5 +4482,61 @@
             <source>View release</source>
             <translation>عرض الإصدار</translation>
         </message>
+        <message id="genycaster.apps.category.art_creativity">
+            <source>Art &amp; Creativity</source>
+            <translation>الفن والإبداع</translation>
+        </message>
+        <message id="genycaster.apps.category.developer_tools">
+            <source>Developer Tools</source>
+            <translation>أدوات المطورين</translation>
+        </message>
+        <message id="genycaster.apps.category.food_drink">
+            <source>Food &amp; Drink</source>
+            <translation>الطعام والشراب</translation>
+        </message>
+        <message id="genycaster.apps.category.lifestyle">
+            <source>Lifestyle</source>
+            <translation>أسلوب الحياة</translation>
+        </message>
+        <message id="genycaster.apps.category.photography">
+            <source>Photography</source>
+            <translation>التصوير الفوتوغرافي</translation>
+        </message>
+        <message id="genycaster.apps.category.travel">
+            <source>Travel</source>
+            <translation>السفر</translation>
+        </message>
+        <message id="genycaster.apps.category.onchain">
+            <source>Onchain</source>
+            <translation>على السلسلة</translation>
+        </message>
+        <message id="genycaster.apps.category.ai">
+            <source>Artificial Intelligence</source>
+            <translation>الذكاء الاصطناعي</translation>
+        </message>
+        <message id="genycaster.apps.category.memes">
+            <source>Memes</source>
+            <translation>الميمات</translation>
+        </message>
+        <message id="genycaster.apps.category.video">
+            <source>Video</source>
+            <translation>الفيديو</translation>
+        </message>
+        <message id="genycaster.apps.category.business">
+            <source>Business</source>
+            <translation>الأعمال</translation>
+        </message>
+        <message id="genycaster.apps.catalogue_public">
+            <source>Genycaster public Mini Apps catalogue</source>
+            <translation>دليل تطبيقات جنيكاستر المصغّرة العام</translation>
+        </message>
+        <message id="genycaster.apps.catalogue_farcaster">
+            <source>Farcaster public developer index</source>
+            <translation>فهرس مطوّري فاركاستر العام</translation>
+        </message>
+        <message id="genycaster.apps.catalogue_neynar_docs">
+            <source>Neynar Mini Apps · docs access</source>
+            <translation>تطبيقات نينار المصغّرة · وصول التوثيق</translation>
+        </message>
     </context>
 </TS>

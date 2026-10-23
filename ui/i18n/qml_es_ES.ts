@@ -4482,5 +4482,61 @@
             <source>View release</source>
             <translation>Ver versión</translation>
         </message>
+        <message id="genycaster.apps.category.art_creativity">
+            <source>Art &amp; Creativity</source>
+            <translation>Arte y creatividad</translation>
+        </message>
+        <message id="genycaster.apps.category.developer_tools">
+            <source>Developer Tools</source>
+            <translation>Herramientas de desarrollo</translation>
+        </message>
+        <message id="genycaster.apps.category.food_drink">
+            <source>Food &amp; Drink</source>
+            <translation>Comida y bebida</translation>
+        </message>
+        <message id="genycaster.apps.category.lifestyle">
+            <source>Lifestyle</source>
+            <translation>Estilo de vida</translation>
+        </message>
+        <message id="genycaster.apps.category.photography">
+            <source>Photography</source>
+            <translation>Fotografía</translation>
+        </message>
+        <message id="genycaster.apps.category.travel">
+            <source>Travel</source>
+            <translation>Viajes</translation>
+        </message>
+        <message id="genycaster.apps.category.onchain">
+            <source>Onchain</source>
+            <translation>En cadena</translation>
+        </message>
+        <message id="genycaster.apps.category.ai">
+            <source>Artificial Intelligence</source>
+            <translation>Inteligencia artificial</translation>
+        </message>
+        <message id="genycaster.apps.category.memes">
+            <source>Memes</source>
+            <translation>Memes</translation>
+        </message>
+        <message id="genycaster.apps.category.video">
+            <source>Video</source>
+            <translation>Vídeo</translation>
+        </message>
+        <message id="genycaster.apps.category.business">
+            <source>Business</source>
+            <translation>Negocios</translation>
+        </message>
+        <message id="genycaster.apps.catalogue_public">
+            <source>Genycaster public Mini Apps catalogue</source>
+            <translation>Catálogo público de Mini Apps de Genycaster</translation>
+        </message>
+        <message id="genycaster.apps.catalogue_farcaster">
+            <source>Farcaster public developer index</source>
+            <translation>Índice público de desarrolladores Farcaster</translation>
+        </message>
+        <message id="genycaster.apps.catalogue_neynar_docs">
+            <source>Neynar Mini Apps · docs access</source>
+            <translation>Neynar Mini Apps · acceso a documentación</translation>
+        </message>
     </context>
 </TS>

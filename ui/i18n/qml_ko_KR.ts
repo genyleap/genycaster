@@ -4482,5 +4482,61 @@
             <source>View release</source>
             <translation>릴리스 보기</translation>
         </message>
+        <message id="genycaster.apps.category.art_creativity">
+            <source>Art &amp; Creativity</source>
+            <translation>예술 및 창작</translation>
+        </message>
+        <message id="genycaster.apps.category.developer_tools">
+            <source>Developer Tools</source>
+            <translation>개발 도구</translation>
+        </message>
+        <message id="genycaster.apps.category.food_drink">
+            <source>Food &amp; Drink</source>
+            <translation>음식 및 음료</translation>
+        </message>
+        <message id="genycaster.apps.category.lifestyle">
+            <source>Lifestyle</source>
+            <translation>라이프스타일</translation>
+        </message>
+        <message id="genycaster.apps.category.photography">
+            <source>Photography</source>
+            <translation>사진</translation>
+        </message>
+        <message id="genycaster.apps.category.travel">
+            <source>Travel</source>
+            <translation>여행</translation>
+        </message>
+        <message id="genycaster.apps.category.onchain">
+            <source>Onchain</source>
+            <translation>온체인</translation>
+        </message>
+        <message id="genycaster.apps.category.ai">
+            <source>Artificial Intelligence</source>
+            <translation>인공지능</translation>
+        </message>
+        <message id="genycaster.apps.category.memes">
+            <source>Memes</source>
+            <translation>밈</translation>
+        </message>
+        <message id="genycaster.apps.category.video">
+            <source>Video</source>
+            <translation>동영상</translation>
+        </message>
+        <message id="genycaster.apps.category.business">
+            <source>Business</source>
+            <translation>비즈니스</translation>
+        </message>
+        <message id="genycaster.apps.catalogue_public">
+            <source>Genycaster public Mini Apps catalogue</source>
+            <translation>Genycaster 공개 미니 앱 카탈로그</translation>
+        </message>
+        <message id="genycaster.apps.catalogue_farcaster">
+            <source>Farcaster public developer index</source>
+            <translation>Farcaster 공개 개발자 목록</translation>
+        </message>
+        <message id="genycaster.apps.catalogue_neynar_docs">
+            <source>Neynar Mini Apps · docs access</source>
+            <translation>Neynar Mini Apps · 문서 접근</translation>
+        </message>
     </context>
 </TS>

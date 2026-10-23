@@ -78,13 +78,13 @@ Drawer {
             Superellipse {
                 Layout.preferredWidth: 48
                 Layout.preferredHeight: 48
-                fillColor: Theme.primarySurface
+                fillColor: Theme.successSurface
                 curveDepth: Theme.curveControl
                 Icon {
                     anchors.centerIn: parent
                     text: Theme.iconRefresh
                     preferredSize: 24
-                    color: Theme.accent
+                    color: Theme.success
                 }
             }
             ColumnLayout {
@@ -212,7 +212,7 @@ Drawer {
             ActionButton {
                 Layout.fillWidth: true
                 compact: true
-                prominent: true
+                positive: true
                 busy: updateController.downloading || updateController.webRefreshing
                 iconGlyph: Theme.iconRefresh
                 text: Qt.platform.os === "wasm" ? qsTrId("genycaster.update.refresh")

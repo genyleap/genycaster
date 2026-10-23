@@ -75,3 +75,59 @@ test("Qt live language selection updates the release drawer language across WASM
     assert.ok(native.includes('qsTrId("genycaster.update.no_notes")'));
     assert.ok(native.includes('if (Qt.platform.os === "wasm") return'));
 });
+
+test("update drawer reuses the repository icon and success tokens across WASM and native",()=>{
+    const shell=read("ui/wasm/genycaster-shell.html");
+    const cmake=read("ui/CMakeLists.txt");
+    const pack=read("tools/package_wasm_assets.py");
+    const serviceWorker=read("ui/wasm/genycaster-sw.js");
+    const native=read("ui/components/UpdateNoticeDrawer.qml");
+    assert.match(shell,/class="update-glyph"[^>]*><span class="update-symbol"/);
+    assert.doesNotMatch(shell,/class="update-glyph"[^>]*><svg/);
+    assert.match(shell,/mask:url\("\.\/genycaster-update-icon\.svg"\)/);
+    assert.match(shell,/--update-success:#5DD9A0/);
+    assert.match(shell,/--update-success:#23885C/);
+    assert.match(shell,/#genycaster-update-now\{background:var\(--update-success\)/);
+    assert.match(cmake,/assets\/icons\/genyleap\/icons\/actions\/repost\.svg/);
+    assert.match(pack,/genycaster-update-icon\.svg/);
+    assert.match(serviceWorker,/genycaster-update-icon\.svg/);
+    assert.match(native,/fillColor: Theme\.successSurface/);
+    assert.match(native,/color: Theme\.success/);
+    assert.match(native,/positive: true/);
+});
+
+test("all 12 language packs translate current miniapp taxonomy and provider caption",()=>{
+    const localeFiles=readdirSync(new URL("../../ui/i18n/",import.meta.url))
+        .filter(name=>name.startsWith("qml_") && name.endsWith(".ts"));
+    const terms=["art_creativity","developer_tools","food_drink","lifestyle","photography",
+        "travel","onchain","ai","memes","video","business"];
+    for(const lang of localeFiles){
+        const ts=read("ui/i18n/"+lang);
+        for(const cat of terms)
+            assert.ok(ts.includes('<message id="genycaster.apps.category.'+cat+'">'),lang+" "+cat);
+        for(const caption of ["catalogue_public","catalogue_farcaster","catalogue_neynar_docs"])
+            assert.ok(ts.includes('<message id="genycaster.apps.'+caption+'">'),lang+" "+caption);
+    }
+    const fa=read("ui/i18n/qml_fa_IR.ts");
+    assert.match(fa,/<translation>هنر و خلاقیت<\/translation>/);
+    assert.match(fa,/<translation>فهرست عمومی مینی‌اپ‌های جنی‌کستر<\/translation>/);
+    const categories=read("ui/components/LocaleFormat.qml");
+    assert.ok(categories.includes('case "art creativity"'));
+    assert.ok(categories.includes('qsTrId("genycaster.apps.category.art_creativity")'));
+    const apps=read("ui/components/AppsSurface.qml");
+    assert.match(apps,/miniAppCatalog\.providerLabel === "Genycaster public Mini Apps catalogue"/);
+    assert.match(apps,/qsTrId\("genycaster.apps.catalogue_public"\)/);
+    assert.match(apps,/String\(app.category \|\| ""\)\.trim\(\) === root.topicFilter/);
+});
+
+test("foreign Mini App titles and descriptions align to the locale without reordering the text",()=>{
+    for(const name of ["AppsSurface","MiniAppLibraryShelves","MiniAppFeaturedCarousel"]){
+        const qml=read("ui/components/"+name+".qml");
+        const alignment="horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft";
+        const minCount=name==="AppsSurface"?9:name==="MiniAppLibraryShelves"?3:2;
+        assert.ok(qml.split(alignment).length-1>=minCount,name+" edge alignment");
+        assert.ok(qml.includes("textFormat: Text.PlainText"),name+" plain text safety");
+        assert.ok(qml.includes("String("),name+" preserves developer-provided wording");
+        assert.doesNotMatch(qml,/text:\s*qsTr\(String\(/,"never machine-translate metadata");
+    }
+});

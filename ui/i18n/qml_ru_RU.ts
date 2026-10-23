@@ -4482,5 +4482,61 @@
             <source>View release</source>
             <translation>Посмотреть выпуск</translation>
         </message>
+        <message id="genycaster.apps.category.art_creativity">
+            <source>Art &amp; Creativity</source>
+            <translation>Искусство и творчество</translation>
+        </message>
+        <message id="genycaster.apps.category.developer_tools">
+            <source>Developer Tools</source>
+            <translation>Инструменты разработчика</translation>
+        </message>
+        <message id="genycaster.apps.category.food_drink">
+            <source>Food &amp; Drink</source>
+            <translation>Еда и напитки</translation>
+        </message>
+        <message id="genycaster.apps.category.lifestyle">
+            <source>Lifestyle</source>
+            <translation>Стиль жизни</translation>
+        </message>
+        <message id="genycaster.apps.category.photography">
+            <source>Photography</source>
+            <translation>Фотография</translation>
+        </message>
+        <message id="genycaster.apps.category.travel">
+            <source>Travel</source>
+            <translation>Путешествия</translation>
+        </message>
+        <message id="genycaster.apps.category.onchain">
+            <source>Onchain</source>
+            <translation>Ончейн</translation>
+        </message>
+        <message id="genycaster.apps.category.ai">
+            <source>Artificial Intelligence</source>
+            <translation>Искусственный интеллект</translation>
+        </message>
+        <message id="genycaster.apps.category.memes">
+            <source>Memes</source>
+            <translation>Мемы</translation>
+        </message>
+        <message id="genycaster.apps.category.video">
+            <source>Video</source>
+            <translation>Видео</translation>
+        </message>
+        <message id="genycaster.apps.category.business">
+            <source>Business</source>
+            <translation>Бизнес</translation>
+        </message>
+        <message id="genycaster.apps.catalogue_public">
+            <source>Genycaster public Mini Apps catalogue</source>
+            <translation>Публичный каталог мини-приложений Genycaster</translation>
+        </message>
+        <message id="genycaster.apps.catalogue_farcaster">
+            <source>Farcaster public developer index</source>
+            <translation>Публичный каталог разработчиков Farcaster</translation>
+        </message>
+        <message id="genycaster.apps.catalogue_neynar_docs">
+            <source>Neynar Mini Apps · docs access</source>
+            <translation>Neynar Mini Apps · доступ к документации</translation>
+        </message>
     </context>
 </TS>

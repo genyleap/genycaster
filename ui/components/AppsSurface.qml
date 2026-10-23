@@ -575,7 +575,13 @@ Item {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: miniAppCatalog.busy ? qsTrId("genycaster.apps.discovering")
-                                                  : miniAppCatalog.providerLabel
+                              : miniAppCatalog.providerLabel === "Genycaster public Mini Apps catalogue"
+                                ? qsTrId("genycaster.apps.catalogue_public")
+                              : miniAppCatalog.providerLabel === "Farcaster public developer index"
+                                ? qsTrId("genycaster.apps.catalogue_farcaster")
+                              : miniAppCatalog.providerLabel === "Neynar Mini Apps · docs access"
+                                ? qsTrId("genycaster.apps.catalogue_neynar_docs")
+                              : miniAppCatalog.providerLabel
                         color: Theme.inkSubtle
                         font.pixelSize: Theme.typeCaptionSize
                         elide: Text.ElideRight
@@ -822,6 +828,9 @@ Item {
                                                 spacing: 2
                                                 DirectionAwareLabel {
                                                     Layout.fillWidth: true
+                                                    // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                                                    horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                                                    textFormat: Text.PlainText
                                                     text: String(cardCell.modelData.name || cardCell.modelData.domain || "")
                                                     color: Theme.ink
                                                     font.pixelSize: Theme.typeBodySize
@@ -832,6 +841,9 @@ Item {
                                                 }
                                                 DirectionAwareLabel {
                                                     Layout.fillWidth: true
+                                                    // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                                                    horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                                                    textFormat: Text.PlainText
                                                     text: LocaleFormat.formatMiniAppCategory(cardCell.modelData.category)
                                                          || String(cardCell.modelData.domain || "")
                                                     color: Theme.inkMuted
@@ -840,6 +852,9 @@ Item {
                                                 }
                                                 DirectionAwareLabel {
                                                     Layout.fillWidth: true
+                                                    // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                                                    horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                                                    textFormat: Text.PlainText
                                                     text: String(cardCell.modelData.description || "")
                                                     color: Theme.inkSubtle
                                                     font.pixelSize: Theme.typeMetaSize
@@ -960,6 +975,9 @@ Item {
 
                                                 DirectionAwareLabel {
                                                     Layout.fillWidth: true
+                                                    // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                                                    horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                                                    textFormat: Text.PlainText
                                                     text: String(cardCell.modelData.name || cardCell.modelData.domain || "")
                                                     color: Theme.ink
                                                     font.pixelSize: Theme.typeBodySize
@@ -973,6 +991,9 @@ Item {
 
                                                 DirectionAwareLabel {
                                                     Layout.fillWidth: true
+                                                    // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                                                    horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                                                    textFormat: Text.PlainText
                                                     text: LocaleFormat.formatMiniAppCategory(cardCell.modelData.category)
                                                                  || String(cardCell.modelData.domain || "")
                                                     color: Theme.inkMuted
@@ -983,6 +1004,9 @@ Item {
 
                                                 DirectionAwareLabel {
                                                     Layout.fillWidth: true
+                                                    // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                                                    horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                                                    textFormat: Text.PlainText
                                                     text: String(cardCell.modelData.description || "")
                                                     color: Theme.inkSubtle
                                                     font.pixelSize: Theme.typeMetaSize
@@ -1164,6 +1188,9 @@ Item {
                             spacing: Theme.space1
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
+                                // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                                horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                                textFormat: Text.PlainText
                                 text: String(root.selectedMiniApp.name || "")
                                 font.pixelSize: Theme.typeTitle3Size
                                 font.weight: Theme.weightBold
@@ -1172,6 +1199,9 @@ Item {
                             }
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
+                                // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                                horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                                textFormat: Text.PlainText
                                 text: String(root.selectedMiniApp.domain || "")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
@@ -1183,6 +1213,9 @@ Item {
 
                     DirectionAwareLabel {
                         Layout.fillWidth: true
+                        // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                        horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                        textFormat: Text.PlainText
                         text: String(root.selectedMiniApp.description || "")
                         color: Theme.ink
                         font.pixelSize: Theme.typeMetaSize
@@ -1216,6 +1249,9 @@ Item {
                             spacing: 0
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
+                                // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                                horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                                textFormat: Text.PlainText
                                 text: qsTrId("genycaster.apps.developer") + " · " + String(root.selectedMiniApp.authorName || "")
                                 color: Theme.ink
                                 font.pixelSize: Theme.typeMetaSize
@@ -1224,6 +1260,9 @@ Item {
                             }
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
+                                // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                                horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                                textFormat: Text.PlainText
                                 text: String(root.selectedMiniApp.authorUsername || "")
                                       + (Number(root.selectedMiniApp.authorFid || 0) > 0
                                          ? " · FID " + String(root.selectedMiniApp.authorFid) : "")
@@ -1245,6 +1284,9 @@ Item {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         visible: Boolean(root.selectedMiniApp.tags && root.selectedMiniApp.tags.length > 0)
+                        // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                        horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                        textFormat: Text.PlainText
                         text: (root.selectedMiniApp.tags || []).join(" · ")
                         color: Theme.inkSubtle
                         font.pixelSize: Theme.typeCaptionSize
@@ -1312,6 +1354,8 @@ Item {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         visible: String(root.selectedMiniApp.source || "").length > 0
+                        horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                        textFormat: Text.PlainText
                         text: qsTrId("genycaster.apps.discovery_source") + ": " + String(root.selectedMiniApp.source || "")
                         font.pixelSize: Theme.typeCaptionSize
                         color: Theme.inkSubtle

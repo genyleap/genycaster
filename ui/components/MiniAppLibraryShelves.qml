@@ -80,6 +80,7 @@ Item {
                         anchors.topMargin: Theme.space2
                         anchors.left: parent.left
                         anchors.right: parent.right
+                        textFormat: Text.PlainText
                         text: String(recentCell.app.name || recentCell.app.domain || "")
                         color: Theme.ink
                         font.pixelSize: Theme.typeCaptionSize
@@ -174,6 +175,9 @@ Item {
                                 spacing: 2
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
+                                    // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                                    horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                                    textFormat: Text.PlainText
                                     text: String(savedCell.app.name || savedCell.app.domain || "")
                                     color: Theme.ink
                                     font.pixelSize: Theme.typeBodySize
@@ -184,6 +188,9 @@ Item {
                                 }
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
+                                    // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                                    horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                                    textFormat: Text.PlainText
                                     text: LocaleFormat.formatMiniAppCategory(savedCell.app.category)
                                          || String(savedCell.app.domain || "")
                                     color: Theme.inkMuted
@@ -193,6 +200,9 @@ Item {
                                 }
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
+                                    // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                                    horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                                    textFormat: Text.PlainText
                                     text: String(savedCell.app.description || "")
                                     color: Theme.inkSubtle
                                     font.pixelSize: Theme.typeMetaSize

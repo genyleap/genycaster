@@ -24,7 +24,7 @@ QtObject {
     function formatMiniAppCategory(value) {
         root.observeRevision()
         const raw = String(value || "").trim()
-        const key = raw.toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim()
+        const key = raw.toLowerCase().replace(/[_&-]+/g, " ").replace(/\s+/g, " ").trim()
         switch (key) {
         case "social": case "social networking": return qsTrId("genycaster.apps.category.social")
         case "games": case "gaming": case "game": return qsTrId("genycaster.apps.category.games")
@@ -46,6 +46,17 @@ QtObject {
         case "health": case "health & fitness": case "fitness": return qsTrId("genycaster.apps.category.health")
         case "community": case "communities": return qsTrId("genycaster.apps.category.community")
         case "development": case "developer": case "developers": return qsTrId("genycaster.apps.category.development")
+        case "art creativity": case "arts creativity": return qsTrId("genycaster.apps.category.art_creativity")
+        case "developer tools": case "development tools": return qsTrId("genycaster.apps.category.developer_tools")
+        case "food drink": case "food drinks": return qsTrId("genycaster.apps.category.food_drink")
+        case "lifestyle": return qsTrId("genycaster.apps.category.lifestyle")
+        case "photography": return qsTrId("genycaster.apps.category.photography")
+        case "travel": return qsTrId("genycaster.apps.category.travel")
+        case "onchain": case "on chain": return qsTrId("genycaster.apps.category.onchain")
+        case "ai": case "artificial intelligence": return qsTrId("genycaster.apps.category.ai")
+        case "memes": case "meme": return qsTrId("genycaster.apps.category.memes")
+        case "video": case "videos": return qsTrId("genycaster.apps.category.video")
+        case "business": return qsTrId("genycaster.apps.category.business")
         case "other": case "others": return qsTrId("genycaster.apps.category.other")
         default: return raw
         }

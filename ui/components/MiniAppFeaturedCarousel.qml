@@ -251,6 +251,9 @@ Item {
                         spacing: 0
                         DirectionAwareLabel {
                             Layout.fillWidth: true
+                            // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                            horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                            textFormat: Text.PlainText
                             text: String(featuredCell.app.name || featuredCell.app.domain || "")
                             color: "#ffffff"
                             font.pixelSize: Theme.typeBodySize
@@ -259,6 +262,9 @@ Item {
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
+                            // Foreign content keeps its own BiDi order while aligning to the UI edge.
+                            horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+                            textFormat: Text.PlainText
                             text: String(featuredCell.app.description || featuredCell.app.domain || "")
                             color: "#e4e5eb"
                             font.pixelSize: Theme.typeCaptionSize

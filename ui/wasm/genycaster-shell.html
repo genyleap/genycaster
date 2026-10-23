@@ -32,6 +32,8 @@
 :root{color-scheme:dark light;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;--app-chrome:#0b0c0f}
 :root[data-chrome-theme="light"]{color-scheme:light;--app-chrome:#f1f1f3;--boot-ink:#142039}
 :root[data-chrome-theme="dark"]{color-scheme:dark;--app-chrome:#0b0c0f;--boot-ink:#f1f1f3}
+:root[data-chrome-theme="dark"]{--update-success:#5DD9A0;--update-success-ink:#08291C;--update-success-surface:#173128;--update-success-border:#3D98684F;--update-success-tint:#12261F}
+:root[data-chrome-theme="light"]{--update-success:#23885C;--update-success-ink:#FFFFFF;--update-success-surface:#E7F8EE;--update-success-border:#26865B40;--update-success-tint:#EFF9F3}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:var(--app-chrome)}
 /* WebKit samples real fixed DOM elements when painting the installed PWA
    status bar. Pseudo-elements and a body gradient are not reliable samplers. */
@@ -51,24 +53,24 @@
 @keyframes genycasterDrawerIn{from{opacity:.65;transform:translate(-50%,-110%)}to{opacity:1;transform:translate(-50%,0)}}
 .update-grabber{width:40px;height:4px;margin:0 auto 18px;border-radius:5px;background:#8491a36e}
 .update-head{display:flex;gap:14px;align-items:center}
-.update-glyph{display:grid;place-items:center;flex:0 0 48px;height:48px;border-radius:15px;background:#667df226;color:white}
-.update-glyph svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.update-glyph{display:grid;place-items:center;flex:0 0 48px;height:48px;border-radius:15px;background:var(--update-success-surface);color:var(--update-success);border:1px solid var(--update-success-border)}
+.update-symbol{display:block;width:28px;height:28px;background:currentColor;-webkit-mask:url("./genycaster-update-icon.svg") center / contain no-repeat;mask:url("./genycaster-update-icon.svg") center / contain no-repeat}
 .update-copy{flex:1;min-width:0}
 #genycaster-update-title{font-size:18px;font-weight:750;display:block;line-height:1.35}
 #genycaster-update-hint{display:block;opacity:.68;margin-top:4px;font-size:13px}
 .update-version-grid{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px;align-items:center;margin:22px 0 16px}
-.update-version{border:1px solid #8292b540;border-radius:14px;padding:12px;min-width:0}
+.update-version{border:1px solid var(--update-success-border);border-radius:14px;padding:12px;min-width:0}
 .update-version span{display:block;font-size:12px;opacity:.65}
 .update-version strong{display:block;margin-top:7px;font-size:17px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .update-version small{display:block;margin-top:4px;opacity:.66;font-size:11px}
 .update-version-arrow{font-size:20px;opacity:.65}
-.update-details{padding:14px 16px;background:#8396c110;border:1px solid #8292b52a;border-radius:14px}
+.update-details{padding:14px 16px;background:var(--update-success-tint);border:1px solid var(--update-success-border);border-radius:14px}
 .update-details strong{display:block;font-size:13px}
 .update-details p{margin:6px 0 0;font-size:13px;opacity:.78;line-height:1.55;overflow-wrap:anywhere;white-space:pre-wrap}
 .update-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
 #genycaster-update-banner button{font:600 14px system-ui,-apple-system,sans-serif;min-height:44px;padding:9px 18px;border-radius:12px;border:1px solid #8796b966;background:transparent;color:inherit;cursor:pointer}
-#genycaster-update-now{background:#536ff0!important;border-color:#536ff0!important;color:#fff!important}
-#genycaster-update-banner button:focus-visible{outline:2px solid #536ff0;outline-offset:3px}
+#genycaster-update-now{background:var(--update-success)!important;border-color:var(--update-success)!important;color:var(--update-success-ink)!important}
+#genycaster-update-banner button:focus-visible{outline:2px solid var(--update-success);outline-offset:3px}
 @media(max-width:560px){#genycaster-update-banner{padding:calc(env(safe-area-inset-top,0px) + 16px) 18px 20px;border-radius:0 0 22px 22px;max-height:82dvh}.update-version-grid{gap:7px}.update-version{padding:10px}.update-version strong{font-size:15px}}
 @media(prefers-reduced-motion:reduce){#genycaster-update-banner{animation:none}}
 .boot-content{width:min(380px,100%);padding:24px 8px;text-align:center}
@@ -106,7 +108,7 @@ h1{font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.01em;margin:
 <section id="genycaster-update-banner" role="dialog" aria-modal="true" aria-labelledby="genycaster-update-title" hidden>
   <div class="update-grabber" aria-hidden="true"></div>
   <div class="update-head">
-    <div class="update-glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9A7 7 0 0 1 18 7l2 5M4 12l2 5a7 7 0 0 0 12.5-2"/></svg></div>
+    <div class="update-glyph" aria-hidden="true"><span class="update-symbol"></span></div>
     <div class="update-copy"><strong id="genycaster-update-title">Genycaster update</strong><span id="genycaster-update-hint">A newer release is available.</span></div>
   </div>
   <div class="update-version-grid">
