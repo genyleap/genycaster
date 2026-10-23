@@ -43,7 +43,11 @@ async function pinnedJson(url, {lookupHost = lookup, requester = https.request, 
       method:'GET',timeout:7000,
       headers:{accept:'application/json',
         'user-agent':'Mozilla/5.0 (compatible; GenycasterPreview/1.0; +https://caster.genyleap.com)'},
-      lookup:(_host, options, cb)=>options.all ? cb(null,[selected])
+      // All DNS answers were checked as public; let Node race only this
+      // pinned set so one unreachable CDN address does not consume 7 seconds.
+      autoSelectFamily:true,
+      autoSelectFamilyAttemptTimeout:250,
+      lookup:(_host, options, cb)=>options.all ? cb(null,addresses)
         : cb(null,selected.address,selected.family),
     }, async response => {
       const status = Number(response.statusCode || 502);
@@ -130,8 +134,11 @@ async function pinnedEmbedHtml(url, {
     const done=value=>{if(!settled){settled=true;resolve(value);}};
     const req=requester(valid,{
       method:'GET',timeout:7000,
-      headers:{accept:'text/html','user-agent':'Genycaster/1.0 MiniAppEmbed'},
-      lookup:(_host,opts,cb)=>opts.all?cb(null,[selected])
+      headers:{accept:'text/html',
+        'user-agent':'Mozilla/5.0 (compatible; GenycasterPreview/1.0; +https://caster.genyleap.com)'},
+      autoSelectFamily:true,
+      autoSelectFamilyAttemptTimeout:250,
+      lookup:(_host,opts,cb)=>opts.all?cb(null,addresses)
         : cb(null,selected.address,selected.family),
     },async res=>{
       const status=Number(res.statusCode||502);
@@ -251,6 +258,9 @@ export async function publicMiniAppPreview(rawUrl, dependencies = {}) {
     .filter(Boolean).map(value=>value.href))];
   const data = {
     resolved:true,providerKind:'miniapp',
+    // The manifest is valid, but a transient failure reading this cast's
+    // HTML must not freeze its generic art in caches for several minutes.
+    castMetadataPending:castHead===null,
     miniAppLaunchUrl:frame?.launchUrl || rawUrl,
     title:String(app.name || frame?.appName || target.hostname).slice(0,100),
     siteName:String(app.name || target.hostname).slice(0,100),

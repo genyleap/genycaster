@@ -273,7 +273,8 @@ Superellipse {
     function requestBrowserMiniAppManifest() {
         if (Qt.platform.os !== "wasm" || root.targetUrl.length === 0
                 || root.scrollMoving
-                || Boolean(root.browserMiniAppPreview.resolved)
+                || (Boolean(root.browserMiniAppPreview.resolved)
+                    && !Boolean(root.browserMiniAppPreview.castMetadataPending))
                 || root.browserPreviewRequestUrl === root.targetUrl
                 || !/^https:\/\//i.test(root.targetUrl)) return
         const target = root.targetUrl
@@ -295,6 +296,10 @@ Superellipse {
                     // It can carry a different query than the cast share URL.
                     if (root.scrollMoving) root.pendingBrowserMiniAppPreview = metadata
                     else root.browserMiniAppPreview = metadata
+                    if (metadata.castMetadataPending && root.miniAppRetryCount < 2) {
+                        ++root.miniAppRetryCount
+                        miniAppManifestRetryTimer.restart()
+                    }
                 } else {
                     root.requestBrowserLinkPreview()
                     if (root.miniAppRetryCount < 2) {
@@ -322,7 +327,9 @@ Superellipse {
         interval: 17500
         repeat: false
         onTriggered: {
-            if (root.browserMiniAppPreview.resolved || root.targetUrl.length === 0)
+            if ((root.browserMiniAppPreview.resolved
+                    && !root.browserMiniAppPreview.castMetadataPending)
+                    || root.targetUrl.length === 0)
                 return
             if (root.scrollMoving) {
                 miniAppManifestRetryTimer.restart()

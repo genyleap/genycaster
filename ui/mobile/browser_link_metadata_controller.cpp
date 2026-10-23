@@ -216,7 +216,12 @@ void BrowserLinkMetadataController::complete(QNetworkReply* reply, Request reque
         }
     }
     reply->deleteLater();
-    store(request.key, value, value.isEmpty() ? unavailableRetryMs : verifiedFreshMs);
+    // A valid app manifest with an unreachable per-cast page is provisional.
+    // The QML card can render its fallback, but retry after the short
+    // negative cooldown instead of caching incomplete art for three minutes.
+    store(request.key, value, value.isEmpty()
+        || value.value(QStringLiteral("castMetadataPending")).toBool()
+        ? unavailableRetryMs : verifiedFreshMs);
     emit previewReady(request.url, request.kind, value);
     dispatch();
 }

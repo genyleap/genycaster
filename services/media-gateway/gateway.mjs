@@ -773,7 +773,8 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       // Mini App card for two minutes; let the browser retry soon.
       if (resolved.status !== 400)
         miniAppPreviews.set(rawUrl,{status:resolved.status,body,
-          expires:runtime.now()+(resolved.status===200?120000:5000)});
+          expires:runtime.now()+(resolved.status===200
+            && !resolved.data?.castMetadataPending ? 120000 : 5000)});
       writeJson(response,resolved.status,body,{'cache-control':'public, max-age=60'});
       return;
     }

@@ -50,3 +50,12 @@ test('Mini App metadata retries are bounded, delayed beyond negative cache and c
   assert.match(qml,/root\.browserPreviewRequestUrl = ""\s*root\.requestBrowserMiniAppManifest\(\)/);
   assert.match(qml,/root\.miniAppRetryCount = 0\s*miniAppManifestRetryTimer\.stop\(\)/);
 });
+
+test('provisional Mini App cards use short metadata cache and admit bounded retry',()=>{
+ const native=read('ui/mobile/browser_link_metadata_controller.cpp');
+ const qml=read('ui/components/LinkPreview.qml');
+ assert.ok(native.includes('castMetadataPending'));
+ assert.ok(qml.includes('metadata.castMetadataPending && root.miniAppRetryCount < 2'));
+ assert.ok(qml.includes('!Boolean(root.browserMiniAppPreview.castMetadataPending)'));
+ assert.ok(qml.includes('!root.browserMiniAppPreview.castMetadataPending'));
+});

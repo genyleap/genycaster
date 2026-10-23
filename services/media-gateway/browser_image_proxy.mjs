@@ -121,9 +121,12 @@ export async function retrieveBrowserImage(rawUrl, {
       method: 'GET',
       timeout: 8_000,
       headers: { accept: 'image/jpeg,image/png,image/webp,image/gif' },
-      autoSelectFamily: false,
+      // Never use a fresh DNS lookup after validation. Race only the
+      // validated public answers to survive intermittent CDN edge failures.
+      autoSelectFamily: true,
+      autoSelectFamilyAttemptTimeout: 250,
       lookup: (_hostname, options, callback) => options.all
-        ? callback(null, [selected])
+        ? callback(null, addresses)
         : callback(null, selected.address, selected.family),
     }, async response => {
       const status = response.statusCode || 502;

@@ -364,3 +364,28 @@ test('transient missing Mini App manifest is cached for seconds, never a full tw
     assert.equal(calls,2,'a fresh valid app is not hidden behind a stale 404');
   }finally{await new Promise(resolve=>gateway.close(resolve));}
 });
+
+test('temporary cast-head failure does not cache a generic Mini App preview for two minutes',async()=>{
+ let clock=10_000;
+ let calls=0;
+ const gateway=createMediaGateway(config,{},{
+  now:()=>clock,farcasterBroker:{},
+  resolveMiniAppPreview:async()=>{
+   ++calls;
+   return {status:200,data:{resolved:true,providerKind:'miniapp',
+     domain:'gift.example.org',title:'Gift',
+     castMetadataPending:calls===1,verifiedImageUrls:[]}};
+  },
+ });
+ await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve));
+ const endpoint='http://127.0.0.1:'+gateway.address().port+
+   '/v1/browser/miniapp-preview?url='+encodeURIComponent('https://gift.example.org/g/123');
+ try {
+  assert.equal((await (await fetch(endpoint)).json()).castMetadataPending,true);
+  assert.equal((await (await fetch(endpoint)).json()).castMetadataPending,true);
+  assert.equal(calls,1);
+  clock+=5_001;
+  assert.equal((await (await fetch(endpoint)).json()).castMetadataPending,false);
+  assert.equal(calls,2);
+ }finally{await new Promise(resolve=>gateway.close(resolve));}
+});

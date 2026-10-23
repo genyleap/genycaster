@@ -47,6 +47,7 @@ test('verified Farcaster frame manifest creates a playable Mini App preview',asy
   });
   assert.equal(result.status,200);
   assert.equal(result.data.providerKind,'miniapp');
+  assert.equal(result.data.castMetadataPending,true);
   assert.equal(result.data.title,'Farmverse');
   assert.equal(result.data.miniAppLaunchUrl,goodHost);
   assert.ok(result.data.previewImage.startsWith('image://remote/'));
@@ -57,6 +58,7 @@ test('verified Farcaster frame manifest creates a playable Mini App preview',asy
   assert.equal(calls.length,2);
   assert.equal(calls[0].url,'https://farmverse.farverse.games/.well-known/farcaster.json');
   assert.equal(calls[1].url,goodHost);
+  assert.ok(calls[1].agent.includes('GenycasterPreview/1.0'));
   assert.equal(calls[0].lookup,'function');
   assert.ok(calls[0].agent.includes('GenycasterPreview/1.0'));
 });
@@ -153,6 +155,7 @@ test('Framedl per-result fc:miniapp metadata overrides generic manifest poster a
   assert.equal(resolved.data.providerKind,'miniapp');
   assert.equal(resolved.data.miniAppLaunchUrl,launch);
   assert.equal(resolved.data.miniAppButtonTitle,'Play');
+  assert.equal(resolved.data.castMetadataPending,false);
   assert.equal(resolved.data.previewImage,
     'image://remote/'+Buffer.from(resultImage).toString('base64url'));
   assert.ok(resolved.data.verifiedImageUrls.includes(resultImage));
