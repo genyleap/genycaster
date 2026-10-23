@@ -2068,6 +2068,30 @@ QString PresentationBridge::farcasterWebProfileUrl(const QString& username) cons
     return handle.isEmpty() ? QString{} : QStringLiteral("https://farcaster.xyz/") + handle;
 }
 
+QString PresentationBridge::quorumCastUri(const QString& castId) const
+{
+    const QString hash = shareHash(castId);
+    if (hash.isEmpty()) return {};
+    // Source-verified route: Quorum Expo app.json declares "quorummobile",
+    // app/feed.tsx forwards castHashPrefix to the Farcaster feed thread view.
+    return QStringLiteral("quorummobile://feed?castHashPrefix=") + hash;
+}
+
+void PresentationBridge::openQuorumCast(const QString& castId)
+{
+    const QString target = quorumCastUri(castId);
+    if (target.isEmpty()) return;
+#if defined(__EMSCRIPTEN__)
+    const QByteArray utf8 = target.toUtf8();
+    EM_ASM({window.location.href = UTF8ToString($0)}, utf8.constData());
+#else
+    if (!QDesktopServices::openUrl(QUrl{target})) {
+        m_errorText = qtTrId("genycaster.bridge.the_system_could_not_open_that_link");
+        emit stateChanged();
+    }
+#endif
+}
+
 void PresentationBridge::shareUrl(const QString& url)
 {
     const QUrl parsed{url, QUrl::StrictMode};

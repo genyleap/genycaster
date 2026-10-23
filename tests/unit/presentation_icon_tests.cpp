@@ -990,6 +990,9 @@ void testPortableCastProfileLinksAndLocalModeration()
            == QStringLiteral("https://farcaster.xyz/~/conversations/") + castHash);
     assert(bridge.farcasterWebProfileUrl(QStringLiteral("alice"))
            == QStringLiteral("https://farcaster.xyz/alice"));
+    assert(bridge.quorumCastUri(castHash)
+           == QStringLiteral("quorummobile://feed?castHashPrefix=") + castHash);
+    assert(bridge.quorumCastUri(QStringLiteral("not-a-hash")).isEmpty());
     QString receivedCast;
     qulonglong receivedProfile = 0;
     QObject::connect(&bridge, &PresentationBridge::castRequested, &bridge,

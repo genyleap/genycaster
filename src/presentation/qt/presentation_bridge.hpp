@@ -263,6 +263,10 @@ public:
     [[nodiscard]] Q_INVOKABLE QString farcasterWebCastUrl(const QString& castId, const QString& username) const;
     /** @brief Returns a Farcaster web client profile URL when the username is valid. */
     [[nodiscard]] Q_INVOKABLE QString farcasterWebProfileUrl(const QString& username) const;
+    /** @brief Quorum Expo /feed cast route; usable only when Quorum is installed. */
+    [[nodiscard]] Q_INVOKABLE QString quorumCastUri(const QString& castId) const;
+    /** @brief Open a strictly constructed Quorum cast URI via the OS/browser. */
+    Q_INVOKABLE void openQuorumCast(const QString& castId);
     /** @brief Shares an HTTPS URL with the browser's OS share sheet, falling back to copy. */
     Q_INVOKABLE void shareUrl(const QString& url);
     /** @brief Validates and routes an incoming Genycaster/Farcaster cast/profile link. */

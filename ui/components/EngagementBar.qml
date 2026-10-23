@@ -405,6 +405,28 @@ RowLayout {
                             }
                         }
                         ActionButton {
+                            Layout.fillWidth: true
+                            quiet: true
+                            alignStart: true
+                            iconGlyph: Theme.iconArrowUpRight
+                            text: qsTr("Open in Quorum")
+                            onClicked: {
+                                sharePopup.close()
+                                presentationBridge.openQuorumCast(root.castId)
+                            }
+                        }
+                        ActionButton {
+                            Layout.fillWidth: true
+                            quiet: true
+                            alignStart: true
+                            iconGlyph: Theme.iconCopy
+                            text: qsTr("Copy Quorum link")
+                            onClicked: {
+                                presentationBridge.copyText(presentationBridge.quorumCastUri(root.castId))
+                                sharePopup.close()
+                            }
+                        }
+                        ActionButton {
                             visible: presentationBridge.farcasterWebCastUrl(root.castId, String(root.castData.author || "")).length > 0
                             Layout.fillWidth: true
                             quiet: true

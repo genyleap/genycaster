@@ -10,6 +10,8 @@ test('cast share is the right-most footer action and has native and web targets'
   assert.match(bar, /presentationBridge\.shareUrl\(presentationBridge\.castShareUrl/);
   assert.match(bar, /presentationBridge\.farcasterWebCastUrl/);
   assert.match(bar, /presentationBridge\.farcasterCastUri/);
+  assert.match(bar, /presentationBridge\.openQuorumCast/);
+  assert.match(bar, /presentationBridge\.quorumCastUri/);
   assert.match(bar, /id: castShareMenu[\s\S]*?active: false/);
 });
 
