@@ -956,22 +956,7 @@ bool PresentationBridge::hasMore() const noexcept { return m_cachedFeedHasMore |
 bool PresentationBridge::cachedFeedHasMore() const noexcept { return m_cachedFeedHasMore; }
 bool PresentationBridge::hasReadActivity() const noexcept { return m_hasReadActivity; }
 bool PresentationBridge::feedStarted() const noexcept { return m_feedStarted; }
-QVariantList PresentationBridge::rows() const
-{
-    if (m_settings == nullptr || m_accountFid == 0) return m_rows;
-    const QString prefix = QStringLiteral("moderation/%1/").arg(m_accountFid);
-    const QStringList muted = m_settings->value(prefix + QStringLiteral("mute")).toStringList();
-    const QStringList blocked = m_settings->value(prefix + QStringLiteral("block")).toStringList();
-    if (muted.isEmpty() && blocked.isEmpty()) return m_rows;
-    QVariantList visible{};
-    visible.reserve(m_rows.size());
-    for (const QVariant& item : m_rows) {
-        const QVariantMap row = item.toMap();
-        const QString author = QString::number(row.value(QStringLiteral("authorFid")).toULongLong());
-        if (!muted.contains(author) && !blocked.contains(author)) visible.push_back(item);
-    }
-    return visible;
-}
+QVariantList PresentationBridge::rows() const { return m_rows; }
 QVariantList PresentationBridge::explorerArtRows() const { return m_explorerArtRows; }
 QVariantList PresentationBridge::followingStoryProfiles() const
 {
@@ -2015,8 +2000,11 @@ namespace {
 [[nodiscard]] QString shareHash(const QString& candidate)
 {
     static const QRegularExpression pattern{QStringLiteral("^0x[0-9a-fA-F]{40}$")};
-    const QString normalized = candidate.trimmed();
-    return pattern.match(normalized).hasMatch() ? normalized.toLower() : QString{};
+    QString normalized = candidate.trimmed().toLower();
+    if (!normalized.startsWith(QStringLiteral("0x"))) {
+        normalized.prepend(QStringLiteral("0x"));
+    }
+    return pattern.match(normalized).hasMatch() ? normalized : QString{};
 }
 
 [[nodiscard]] QString shareUsername(const QString& candidate)
@@ -2169,44 +2157,6 @@ bool PresentationBridge::openSharedLink(const QString& input)
         }
     }
     return false;
-}
-
-bool PresentationBridge::authorMuted(const qulonglong fid) const
-{
-    return fid != 0 && m_accountFid != 0 && m_settings != nullptr
-        && m_settings->value(QStringLiteral("moderation/%1/mute").arg(m_accountFid))
-               .toStringList().contains(QString::number(fid));
-}
-
-bool PresentationBridge::authorBlocked(const qulonglong fid) const
-{
-    return fid != 0 && m_accountFid != 0 && m_settings != nullptr
-        && m_settings->value(QStringLiteral("moderation/%1/block").arg(m_accountFid))
-               .toStringList().contains(QString::number(fid));
-}
-
-void PresentationBridge::setAuthorMuted(const qulonglong fid, const bool muted)
-{
-    if (fid == 0 || m_accountFid == 0 || fid == m_accountFid || m_settings == nullptr) return;
-    const QString key = QStringLiteral("moderation/%1/mute").arg(m_accountFid);
-    QStringList authors = m_settings->value(key).toStringList();
-    authors.removeAll(QString::number(fid));
-    if (muted) authors.append(QString::number(fid));
-    m_settings->setValue(key, authors);
-    m_settings->sync();
-    emit rowsChanged();
-}
-
-void PresentationBridge::setAuthorBlocked(const qulonglong fid, const bool blocked)
-{
-    if (fid == 0 || m_accountFid == 0 || fid == m_accountFid || m_settings == nullptr) return;
-    const QString key = QStringLiteral("moderation/%1/block").arg(m_accountFid);
-    QStringList authors = m_settings->value(key).toStringList();
-    authors.removeAll(QString::number(fid));
-    if (blocked) authors.append(QString::number(fid));
-    m_settings->setValue(key, authors);
-    m_settings->sync();
-    emit rowsChanged();
 }
 
 QString PresentationBridge::contextualReactionIcon(const QString& text) const

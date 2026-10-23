@@ -271,12 +271,6 @@ public:
     Q_INVOKABLE void shareUrl(const QString& url);
     /** @brief Validates and routes an incoming Genycaster/Farcaster cast/profile link. */
     [[nodiscard]] Q_INVOKABLE bool openSharedLink(const QString& url);
-    /** @brief Checks viewer-scoped local moderation settings; no protocol write is implied. */
-    [[nodiscard]] Q_INVOKABLE bool authorMuted(qulonglong fid) const;
-    [[nodiscard]] Q_INVOKABLE bool authorBlocked(qulonglong fid) const;
-    /** @brief Updates the current viewer's local-only moderation policy. */
-    Q_INVOKABLE void setAuthorMuted(qulonglong fid, bool muted);
-    Q_INVOKABLE void setAuthorBlocked(qulonglong fid, bool blocked);
     /** @brief Selects the approved contextual glyph for the existing Like action without changing reaction semantics. */
     [[nodiscard]] Q_INVOKABLE QString contextualReactionIcon(const QString& text) const;
     /** @brief Records explicit acceptance of the current legal bundle after the review gate. */

@@ -199,7 +199,7 @@ RowLayout {
     // primary Like action always uses one recognisable heart across all feeds.
     property string contextText: ""
     readonly property string displayedLikeIcon: Theme.iconHeart
-    readonly property string normalizedCastId: CastViews.normalizeHash(root.castId)
+    readonly property string normalizedCastId: CastViews.normalizeHash(root.viewDescriptor.castId || root.castId)
     readonly property bool isBookmarked: presentationBridge.bookmarkedCastIds.indexOf(root.normalizedCastId) >= 0
 
     signal replyRequested()
@@ -208,14 +208,20 @@ RowLayout {
     signal likeRequested(bool active)
     signal authenticationRequested()
 
-    // Six equally flexible slots prevent the large dead zone formerly left
-    // between Like and Views, while preserving full touch hit targets.
+    // Four tight reaction actions on the left, with Bookmark and Share pinned
+    // to the right. Every tappable target remains at least 44px.
     spacing: root.compact ? 0 : Theme.space1
     Accessible.description: qsTrId("genycaster.engagement.value_replies").arg(LocaleFormat.formatInteger(root.replyCount))
 
+    RowLayout {
+        id: reactionActions
+        objectName: "castReactionActions"
+        Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+        spacing: root.compact ? 0 : Theme.space1
+
     EngagementButton {
         objectName: "castReplyButton"
-        Layout.fillWidth: true
+        Layout.minimumWidth: Theme.touchTarget
         iconGlyph: Theme.iconReply
         metricText: root.replyCount > 0 ? LocaleFormat.formatCompactNumber(root.replyCount) : ""
         enabled: true
@@ -228,7 +234,7 @@ RowLayout {
 
     EngagementButton {
         objectName: "castQuoteButton"
-        Layout.fillWidth: true
+        Layout.minimumWidth: Theme.touchTarget
         iconGlyph: Theme.iconQuote
         enabled: true
         Accessible.name: qsTrId("genycaster.composer.quote")
@@ -236,7 +242,7 @@ RowLayout {
     }
 
     EngagementButton {
-        Layout.fillWidth: true
+        Layout.minimumWidth: Theme.touchTarget
         iconGlyph: Theme.iconRepost
         metricText: root.recastCount > 0 ? LocaleFormat.formatCompactNumber(root.recastCount) : ""
         active: root.effectiveRecastedByMe
@@ -258,7 +264,7 @@ RowLayout {
     }
 
     EngagementButton {
-        Layout.fillWidth: true
+        Layout.minimumWidth: Theme.touchTarget
         iconGlyph: root.displayedLikeIcon
         iconFilled: root.effectiveLikedByMe
         activeColor: Theme.negative
@@ -280,6 +286,11 @@ RowLayout {
         }
     }
 
+    }
+
+    // Flexible space keeps utility actions at the physical trailing edge.
+    Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
+
     // Views remain inside the same footer as actions for every cast,
     // including threaded replies. The metric itself is not clickable.
     RowLayout {
@@ -287,7 +298,6 @@ RowLayout {
         objectName: "castViewCount"
         visible: root.showViews && root.resolvedViewCount !== null && root.resolvedViewCount !== undefined
                  && Number(root.resolvedViewCount) >= 0 && isFinite(Number(root.resolvedViewCount))
-        Layout.fillWidth: true
         Layout.minimumWidth: Theme.iconSizeSmall + Theme.space2
         spacing: root.compact ? 2 : Theme.space1
         Layout.alignment: Qt.AlignVCenter
@@ -317,13 +327,17 @@ RowLayout {
         Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
     }
 
+    RowLayout {
+        id: utilityActions
+        objectName: "castUtilityActions"
+        Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+        spacing: root.compact ? 0 : Theme.space1
+
     EngagementButton {
         id: bookmarkButton
         objectName: "castBookmarkButton"
-        // Compact phone footers retain six 44px targets. Bookmarks are also
-        // available in the per-cast three-dot menu.
-        visible: !root.compact
-        Layout.fillWidth: true
+        // Keep the old inline bookmark even on compact/mobile layouts.
+        Layout.minimumWidth: Theme.touchTarget
         iconGlyph: Theme.iconBookmark
         iconFilled: root.isBookmarked
         active: root.isBookmarked
@@ -337,9 +351,9 @@ RowLayout {
     EngagementButton {
         id: castShareButton
         objectName: "castShareButton"
-        Layout.fillWidth: true
+        Layout.minimumWidth: Theme.touchTarget
         iconGlyph: Theme.iconShare
-        enabled: presentationBridge.castShareUrl(root.castId).length > 0
+        enabled: root.normalizedCastId.length > 0
         Accessible.name: qsTr("Share cast")
         onClicked: {
             castShareMenu.active = true
@@ -378,7 +392,7 @@ RowLayout {
                             text: qsTr("Share link")
                             onClicked: {
                                 sharePopup.close()
-                                presentationBridge.shareUrl(presentationBridge.castShareUrl(root.castId))
+                                presentationBridge.shareUrl(presentationBridge.castShareUrl(root.normalizedCastId))
                             }
                         }
                         ActionButton {
@@ -388,7 +402,7 @@ RowLayout {
                             iconGlyph: Theme.iconCopy
                             text: qsTr("Copy Genycaster link")
                             onClicked: {
-                                presentationBridge.copyText(presentationBridge.castShareUrl(root.castId))
+                                presentationBridge.copyText(presentationBridge.castShareUrl(root.normalizedCastId))
                                 sharePopup.close()
                             }
                         }
@@ -400,7 +414,7 @@ RowLayout {
                             text: qsTr("Copy Farcaster link")
                             onClicked: {
                                 presentationBridge.copyText(presentationBridge.farcasterWebCastUrl(
-                                    root.castId, String(root.castData.author || "")))
+                                    root.normalizedCastId, String(root.castData.author || "")))
                                 sharePopup.close()
                             }
                         }
@@ -412,7 +426,7 @@ RowLayout {
                             text: qsTr("Open in Quorum")
                             onClicked: {
                                 sharePopup.close()
-                                presentationBridge.openQuorumCast(root.castId)
+                                presentationBridge.openQuorumCast(root.normalizedCastId)
                             }
                         }
                         ActionButton {
@@ -422,12 +436,12 @@ RowLayout {
                             iconGlyph: Theme.iconCopy
                             text: qsTr("Copy Quorum link")
                             onClicked: {
-                                presentationBridge.copyText(presentationBridge.quorumCastUri(root.castId))
+                                presentationBridge.copyText(presentationBridge.quorumCastUri(root.normalizedCastId))
                                 sharePopup.close()
                             }
                         }
                         ActionButton {
-                            visible: presentationBridge.farcasterWebCastUrl(root.castId, String(root.castData.author || "")).length > 0
+                            visible: presentationBridge.farcasterWebCastUrl(root.normalizedCastId, String(root.castData.author || "")).length > 0
                             Layout.fillWidth: true
                             quiet: true
                             alignStart: true
@@ -436,11 +450,11 @@ RowLayout {
                             onClicked: {
                                 sharePopup.close()
                                 presentationBridge.openExternalUrl(presentationBridge.farcasterWebCastUrl(
-                                    root.castId, String(root.castData.author || "")))
+                                    root.normalizedCastId, String(root.castData.author || "")))
                             }
                         }
                         ActionButton {
-                            visible: presentationBridge.farcasterCastUri(root.castId, root.authorFid).length > 0
+                            visible: presentationBridge.farcasterCastUri(root.normalizedCastId, root.authorFid).length > 0
                             Layout.fillWidth: true
                             quiet: true
                             alignStart: true
@@ -448,7 +462,7 @@ RowLayout {
                             text: qsTr("Copy Farcaster URI (experimental)")
                             onClicked: {
                                 presentationBridge.copyText(presentationBridge.farcasterCastUri(
-                                    root.castId, root.authorFid))
+                                    root.normalizedCastId, root.authorFid))
                                 sharePopup.close()
                             }
                         }
@@ -456,6 +470,7 @@ RowLayout {
                 }
             }
         }
+    }
     }
 
 }

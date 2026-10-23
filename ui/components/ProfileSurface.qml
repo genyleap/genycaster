@@ -739,48 +739,7 @@ Item {
                                             sharePopup.close()
                                         }
                                     }
-                                    ActionButton {
-                                        visible: !root.isOwnProfile && root.accountFid > 0
-                                        Layout.fillWidth: true
-                                        quiet: true
-                                        alignStart: true
-                                        iconGlyph: Theme.iconVolumeMuted
-                                        text: presentationBridge.authorMuted(Number(root.activeDetail.fid || 0))
-                                              ? qsTr("Unmute locally") : qsTr("Mute locally")
-                                        onClicked: {
-                                            const fid = Number(root.activeDetail.fid || 0)
-                                            const next = !presentationBridge.authorMuted(fid)
-                                            sharePopup.close()
-                                            presentationBridge.setAuthorMuted(fid, next)
-                                        }
-                                    }
-                                    ActionButton {
-                                        visible: !root.isOwnProfile && root.accountFid > 0
-                                        Layout.fillWidth: true
-                                        quiet: true
-                                        alignStart: true
-                                        iconGlyph: Theme.iconClose
-                                        text: presentationBridge.authorBlocked(Number(root.activeDetail.fid || 0))
-                                              ? qsTr("Unblock locally") : qsTr("Block locally")
-                                        onClicked: {
-                                            const fid = Number(root.activeDetail.fid || 0)
-                                            const next = !presentationBridge.authorBlocked(fid)
-                                            sharePopup.close()
-                                            presentationBridge.setAuthorBlocked(fid, next)
-                                        }
-                                    }
-                                    ActionButton {
-                                        Layout.fillWidth: true
-                                        quiet: true
-                                        alignStart: true
-                                        iconGlyph: Theme.iconFeedback
-                                        text: qsTr("Copy report reference")
-                                        onClicked: {
-                                            presentationBridge.copyText("Profile FID: "
-                                                + String(root.activeDetail.fid || ""))
-                                            sharePopup.close()
-                                        }
-                                    }
+
                                 }
                             }
                         }

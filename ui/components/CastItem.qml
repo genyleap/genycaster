@@ -1151,56 +1151,6 @@ Item {
                         }
                     }
 
-                    ActionButton {
-                        visible: Number(root.modelData.authorFid || 0) > 0
-                                 && !root.isOwnCast && root.accountFid > 0
-                        Layout.fillWidth: true
-                        quiet: true
-                        alignStart: true
-                        iconGlyph: Theme.iconVolumeMuted
-                        text: presentationBridge.authorMuted(Number(root.modelData.authorFid || 0))
-                              ? qsTr("Unmute author locally") : qsTr("Mute author locally")
-                        onClicked: {
-                            const fid = Number(root.modelData.authorFid || 0)
-                            const next = !presentationBridge.authorMuted(fid)
-                            castMenu.close()
-                            presentationBridge.setAuthorMuted(fid, next)
-                        }
-                    }
-
-                    ActionButton {
-                        visible: Number(root.modelData.authorFid || 0) > 0
-                                 && !root.isOwnCast && root.accountFid > 0
-                        Layout.fillWidth: true
-                        quiet: true
-                        alignStart: true
-                        iconGlyph: Theme.iconClose
-                        text: presentationBridge.authorBlocked(Number(root.modelData.authorFid || 0))
-                              ? qsTr("Unblock author locally") : qsTr("Block author locally")
-                        onClicked: {
-                            const fid = Number(root.modelData.authorFid || 0)
-                            const next = !presentationBridge.authorBlocked(fid)
-                            castMenu.close()
-                            presentationBridge.setAuthorBlocked(fid, next)
-                        }
-                    }
-
-                    ActionButton {
-                        visible: Number(root.modelData.authorFid || 0) > 0
-                        Layout.fillWidth: true
-                        quiet: true
-                        alignStart: true
-                        iconGlyph: Theme.iconFeedback
-                        text: qsTr("Copy report reference")
-                        onClicked: {
-                            // Report transport is not part of the Farcaster Cast protocol.
-                            // Copy factual identifiers; do not claim a report was submitted.
-                            presentationBridge.copyText("Cast: " + String(root.modelData.castId || "")
-                                + "\nAuthor FID: " + String(root.modelData.authorFid || ""))
-                            castMenu.close()
-                        }
-                    }
-
                     Rectangle {
                         visible: root.canDelete
                         Layout.fillWidth: true

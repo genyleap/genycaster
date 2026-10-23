@@ -968,7 +968,7 @@ void testSourceSwitchAdmitsCachedTimeline()
 }
 
 
-void testPortableCastProfileLinksAndLocalModeration()
+void testPortableCastProfileLinksWithoutLocalModeration()
 {
     QTemporaryDir directory{};
     assert(directory.isValid());
@@ -978,6 +978,10 @@ void testPortableCastProfileLinksAndLocalModeration()
     const QString castUrl = QStringLiteral("https://caster.genyleap.com/?cast=") + castHash;
     const QString profileUrl = QStringLiteral("https://caster.genyleap.com/?profile=77");
     assert(bridge.castShareUrl(castHash) == castUrl);
+    // Providers may return 40 hex characters without the optional 0x prefix.
+    assert(bridge.castShareUrl(castHash.mid(2)) == castUrl);
+    assert(bridge.quorumCastUri(castHash.mid(2))
+           == QStringLiteral("quorummobile://feed?castHashPrefix=") + castHash);
     assert(bridge.castShareUrl(QStringLiteral("0x1234")).isEmpty());
     assert(bridge.profileShareUrl(0).isEmpty());
     assert(bridge.profileShareUrl(77) == profileUrl);
@@ -1014,6 +1018,9 @@ void testPortableCastProfileLinksAndLocalModeration()
 
     bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), 42,
         QStringLiteral("viewer"), {}, {}, {}, {}, {});
+    // Historic local-only moderation settings must no longer hide feed authors.
+    settings.setValue(QStringLiteral("moderation/42/mute"), QStringList{QStringLiteral("77")});
+    settings.setValue(QStringLiteral("moderation/42/block"), QStringList{QStringLiteral("88")});
     bridge.applyList(QStringLiteral("feed"), QStringLiteral("trending"),
         {QVariantMap{{QStringLiteral("castId"), castHash},
                      {QStringLiteral("authorFid"), 77ULL}},
@@ -1021,26 +1028,6 @@ void testPortableCastProfileLinksAndLocalModeration()
                      {QStringLiteral("authorFid"), 88ULL}}},
         {}, {}, {}, {}, false, false, false, false);
     assert(bridge.rows().size() == 2);
-    bridge.setAuthorMuted(77, true);
-    assert(bridge.authorMuted(77));
-    assert(bridge.rows().size() == 1);
-    bridge.setAuthorMuted(77, false);
-    assert(!bridge.authorMuted(77));
-    assert(bridge.rows().size() == 2);
-    bridge.setAuthorBlocked(88, true);
-    assert(bridge.authorBlocked(88));
-    assert(bridge.rows().size() == 1);
-    bridge.setAuthorBlocked(88, false);
-    assert(bridge.rows().size() == 2);
-    bridge.setAuthorMuted(42, true);
-    assert(!bridge.authorMuted(42)); // Never mute own account.
-    bridge.setAuthorMuted(77, true);
-    bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), 99,
-        QStringLiteral("another"), {}, {}, {}, {}, {});
-    assert(!bridge.authorMuted(77)); // Viewer-scoped local policy.
-    bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), 42,
-        QStringLiteral("viewer"), {}, {}, {}, {}, {});
-    assert(bridge.authorMuted(77)); // Restored for original viewer.
 }
 
 } // namespace
@@ -1048,7 +1035,7 @@ void testPortableCastProfileLinksAndLocalModeration()
 int main(int argc, char* argv[])
 {
     QCoreApplication application{argc, argv};
-    testPortableCastProfileLinksAndLocalModeration();
+    testPortableCastProfileLinksWithoutLocalModeration();
     testFollowingStoriesKeepOwnFirstAndOlderFollowees();
     testContextualReactionPriorityAndBoundaries();
     testReplyCanonicalizationForPublicFeedHashes();

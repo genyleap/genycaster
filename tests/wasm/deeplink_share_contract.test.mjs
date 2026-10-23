@@ -23,15 +23,31 @@ test('profile sharing appears on the shared profile surface', () => {
   assert.match(profile, /farcasterProfileUri/);
 });
 
-test('profile and cast moderation are explicitly local and report is not falsely submitted', () => {
+test('unfinished moderation stays out of cast/profile menus and does not filter feed rows', () => {
   const cast = read('ui/components/CastItem.qml');
-  assert.match(cast, /Mute author locally/);
-  assert.match(cast, /Block author locally/);
-  assert.match(cast, /Copy report reference/);
-  assert.doesNotMatch(cast, /submitReport\(/);
+  const profile = read('ui/components/ProfileSurface.qml');
+  for (const view of [cast, profile]) {
+    assert.doesNotMatch(view, /authorMuted|authorBlocked|setAuthorMuted|setAuthorBlocked/);
+    assert.doesNotMatch(view, /Copy report reference|Mute locally|Block locally|Mute author locally|Block author locally/);
+  }
+  assert.match(cast, /objectName: "castMenu"[\s\S]*?Bookmark cast/);
   const bridge = read('src/presentation/qt/presentation_bridge.cpp');
-  assert.match(bridge, /moderation\/%1\/mute/);
-  assert.match(bridge, /moderation\/%1\/block/);
+  assert.match(bridge, /QVariantList PresentationBridge::rows\(\) const \{ return m_rows; \}/);
+  assert.doesNotMatch(bridge, /moderation\/%1\/mute|moderation\/%1\/block/);
+});
+
+test('mobile footer has tightly grouped reactions and always-visible trailing bookmark/share', () => {
+  const bar = read('ui/components/EngagementBar.qml');
+  assert.match(bar, /id: reactionActions/);
+  assert.match(bar, /id: utilityActions/);
+  assert.match(bar, /id: bookmarkButton[\s\S]*?Layout\.minimumWidth: Theme\.touchTarget/);
+  assert.doesNotMatch(bar, /visible: !root\.compact/);
+  assert.match(bar, /enabled: root\.normalizedCastId\.length > 0/);
+  assert.match(bar, /normalizedCastId: CastViews\.normalizeHash\(root\.viewDescriptor\.castId \|\| root\.castId\)/);
+  assert.doesNotMatch(bar, /castShareUrl\(root\.castId\)/);
+  assert.match(bar, /castShareUrl\(root\.normalizedCastId\)/);
+  assert.match(bar, /openQuorumCast\(root\.normalizedCastId\)/);
+  assert.match(bar, /Item \{ Layout\.fillWidth: true; Layout\.minimumWidth: 0 \}/);
 });
 
 test('incoming browser and command-line URLs route after runtime is ready', () => {
