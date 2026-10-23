@@ -12,6 +12,8 @@
 #include <QString>
 #include <QStringList>
 #include <QUrl>
+#include <QUrlQuery>
+#include <QRegularExpression>
 #include <QtTranslation>
 #include <QVariantList>
 #include <QVariantMap>
@@ -954,7 +956,22 @@ bool PresentationBridge::hasMore() const noexcept { return m_cachedFeedHasMore |
 bool PresentationBridge::cachedFeedHasMore() const noexcept { return m_cachedFeedHasMore; }
 bool PresentationBridge::hasReadActivity() const noexcept { return m_hasReadActivity; }
 bool PresentationBridge::feedStarted() const noexcept { return m_feedStarted; }
-QVariantList PresentationBridge::rows() const { return m_rows; }
+QVariantList PresentationBridge::rows() const
+{
+    if (m_settings == nullptr || m_accountFid == 0) return m_rows;
+    const QString prefix = QStringLiteral("moderation/%1/").arg(m_accountFid);
+    const QStringList muted = m_settings->value(prefix + QStringLiteral("mute")).toStringList();
+    const QStringList blocked = m_settings->value(prefix + QStringLiteral("block")).toStringList();
+    if (muted.isEmpty() && blocked.isEmpty()) return m_rows;
+    QVariantList visible{};
+    visible.reserve(m_rows.size());
+    for (const QVariant& item : m_rows) {
+        const QVariantMap row = item.toMap();
+        const QString author = QString::number(row.value(QStringLiteral("authorFid")).toULongLong());
+        if (!muted.contains(author) && !blocked.contains(author)) visible.push_back(item);
+    }
+    return visible;
+}
 QVariantList PresentationBridge::explorerArtRows() const { return m_explorerArtRows; }
 QVariantList PresentationBridge::followingStoryProfiles() const
 {
@@ -1994,6 +2011,180 @@ void PresentationBridge::copyText(const QString& text)
     }
 }
 
+namespace {
+[[nodiscard]] QString shareHash(const QString& candidate)
+{
+    static const QRegularExpression pattern{QStringLiteral("^0x[0-9a-fA-F]{40}$")};
+    const QString normalized = candidate.trimmed();
+    return pattern.match(normalized).hasMatch() ? normalized.toLower() : QString{};
+}
+
+[[nodiscard]] QString shareUsername(const QString& candidate)
+{
+    static const QRegularExpression pattern{QStringLiteral("^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")};
+    const QString normalized = candidate.trimmed();
+    return pattern.match(normalized).hasMatch() ? normalized : QString{};
+}
+}
+
+QString PresentationBridge::castShareUrl(const QString& castId) const
+{
+    const QString hash = shareHash(castId);
+    if (hash.isEmpty()) return {};
+    return QStringLiteral("https://caster.genyleap.com/?cast=") + hash;
+}
+
+QString PresentationBridge::profileShareUrl(const qulonglong fid) const
+{
+    if (fid == 0) return {};
+    return QStringLiteral("https://caster.genyleap.com/?profile=") + QString::number(fid);
+}
+
+QString PresentationBridge::farcasterCastUri(const QString& castId, const qulonglong fid) const
+{
+    const QString hash = shareHash(castId);
+    if (hash.isEmpty() || fid == 0) return {};
+    return QStringLiteral("farcaster://") + QString::number(fid) + QStringLiteral("/") + hash;
+}
+
+QString PresentationBridge::farcasterProfileUri(const qulonglong fid) const
+{
+    return fid == 0 ? QString{} : QStringLiteral("farcaster://") + QString::number(fid);
+}
+
+QString PresentationBridge::farcasterWebCastUrl(const QString& castId, const QString& username) const
+{
+    const QString hash = shareHash(castId);
+    const QString handle = shareUsername(username);
+    if (hash.isEmpty()) return {};
+    if (handle.isEmpty())
+        return QStringLiteral("https://farcaster.xyz/~/conversations/") + hash;
+    return QStringLiteral("https://farcaster.xyz/") + handle + QStringLiteral("/") + hash;
+}
+
+QString PresentationBridge::farcasterWebProfileUrl(const QString& username) const
+{
+    const QString handle = shareUsername(username);
+    return handle.isEmpty() ? QString{} : QStringLiteral("https://farcaster.xyz/") + handle;
+}
+
+void PresentationBridge::shareUrl(const QString& url)
+{
+    const QUrl parsed{url, QUrl::StrictMode};
+    if (!parsed.isValid() || parsed.scheme() != QStringLiteral("https")
+        || parsed.host().isEmpty() || !parsed.userInfo().isEmpty()) return;
+#if defined(__EMSCRIPTEN__)
+    const QByteArray utf8 = url.toUtf8();
+    EM_ASM({
+        const shared = UTF8ToString($0);
+        if (navigator.share) {
+            navigator.share({url: shared}).catch(error => {
+                if (error?.name !== "AbortError" && navigator.clipboard)
+                    navigator.clipboard.writeText(shared).catch(() => {});
+            });
+        } else if (navigator.clipboard) {
+            navigator.clipboard.writeText(shared).catch(() => {});
+        }
+    }, utf8.constData());
+#else
+    // Desktop and native Qt platforms without a share-sheet adapter remain
+    // functional via the clipboard. Never claim that a native sheet appeared.
+    copyText(url);
+#endif
+}
+
+bool PresentationBridge::openSharedLink(const QString& input)
+{
+    const QUrl url{input.trimmed(), QUrl::StrictMode};
+    if (!url.isValid() || !url.userInfo().isEmpty() || url.hasFragment()) return false;
+    if (url.scheme() == QStringLiteral("https")
+        && url.host() == QStringLiteral("caster.genyleap.com")
+        && (url.path().isEmpty() || url.path() == QStringLiteral("/")
+            || url.path() == QStringLiteral("/farcaster_client.html"))) {
+        const QUrlQuery query{url};
+        if (query.hasQueryItem(QStringLiteral("cast"))) {
+            const QString hash = shareHash(query.queryItemValue(QStringLiteral("cast")));
+            if (hash.isEmpty()) return false;
+            openCast(hash);
+            return true;
+        }
+        if (query.hasQueryItem(QStringLiteral("profile"))) {
+            bool ok = false;
+            const qulonglong fid = query.queryItemValue(QStringLiteral("profile")).toULongLong(&ok);
+            if (!ok || fid == 0) return false;
+            openProfileFid(fid);
+            return true;
+        }
+        return false;
+    }
+    if (url.scheme() == QStringLiteral("farcaster")) {
+        bool ok = false;
+        const qulonglong fid = url.host().toULongLong(&ok);
+        if (!ok || fid == 0) return false;
+        if (url.path().isEmpty()) {
+            openProfileFid(fid);
+            return true;
+        }
+        const QString hash = shareHash(url.path().mid(1));
+        if (hash.isEmpty()) return false;
+        openCast(hash);
+        return true;
+    }
+    if (url.scheme() == QStringLiteral("https")
+        && url.host() == QStringLiteral("farcaster.xyz")) {
+        const QStringList parts = url.path().split(QLatin1Char('/'), Qt::SkipEmptyParts);
+        if (parts.size() == 1 && !shareUsername(parts.first()).isEmpty()) {
+            openProfileUsername(parts.first());
+            return true;
+        }
+        if (parts.size() == 2 && !shareUsername(parts.first()).isEmpty()) {
+            const QString hash = shareHash(parts.last());
+            if (hash.isEmpty()) return false;
+            openCast(hash);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool PresentationBridge::authorMuted(const qulonglong fid) const
+{
+    return fid != 0 && m_accountFid != 0 && m_settings != nullptr
+        && m_settings->value(QStringLiteral("moderation/%1/mute").arg(m_accountFid))
+               .toStringList().contains(QString::number(fid));
+}
+
+bool PresentationBridge::authorBlocked(const qulonglong fid) const
+{
+    return fid != 0 && m_accountFid != 0 && m_settings != nullptr
+        && m_settings->value(QStringLiteral("moderation/%1/block").arg(m_accountFid))
+               .toStringList().contains(QString::number(fid));
+}
+
+void PresentationBridge::setAuthorMuted(const qulonglong fid, const bool muted)
+{
+    if (fid == 0 || m_accountFid == 0 || fid == m_accountFid || m_settings == nullptr) return;
+    const QString key = QStringLiteral("moderation/%1/mute").arg(m_accountFid);
+    QStringList authors = m_settings->value(key).toStringList();
+    authors.removeAll(QString::number(fid));
+    if (muted) authors.append(QString::number(fid));
+    m_settings->setValue(key, authors);
+    m_settings->sync();
+    emit rowsChanged();
+}
+
+void PresentationBridge::setAuthorBlocked(const qulonglong fid, const bool blocked)
+{
+    if (fid == 0 || m_accountFid == 0 || fid == m_accountFid || m_settings == nullptr) return;
+    const QString key = QStringLiteral("moderation/%1/block").arg(m_accountFid);
+    QStringList authors = m_settings->value(key).toStringList();
+    authors.removeAll(QString::number(fid));
+    if (blocked) authors.append(QString::number(fid));
+    m_settings->setValue(key, authors);
+    m_settings->sync();
+    emit rowsChanged();
+}
+
 QString PresentationBridge::contextualReactionIcon(const QString& text) const
 {
     return resolveContextualReaction(text);
@@ -2574,7 +2765,9 @@ void PresentationBridge::applyAuthenticationState(
         m_signOutRequestedByUser = false;
     }
     m_accountFid = m_isAuthenticated ? fid : 0;
-    bool accountRowsChanged = false;
+    // The read-only visible-rows projection is account-scoped even when
+    // no reaction overlay changed; force rebinding after any viewer switch.
+    bool accountRowsChanged = previousAccountFid != m_accountFid;
     if (previousAccountFid != m_accountFid) {
         m_bookmarkedCasts = (m_accountFid != 0 && m_settings)
             ? m_settings->value(QStringLiteral("bookmarks/account_%1").arg(m_accountFid))

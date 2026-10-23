@@ -588,6 +588,22 @@ Item {
                                 }
                             }
 
+                            Label {
+                                objectName: "castSourceClientBadge"
+                                visible: String(root.modelData.sourceClient || "").length > 0
+                                text: String(root.modelData.sourceClient || "")
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Math.max(9, Theme.typeCaptionSize - 2)
+                                color: Theme.inkSubtle
+                                elide: Text.ElideRight
+                                Layout.maximumWidth: 84
+                                padding: 2
+                                background: Rectangle {
+                                    radius: 5
+                                    color: Theme.surfaceMuted
+                                }
+                            }
+
                             DirectionAwareLabel {
                                 objectName: "compactCastAuthorMetadata"
                                 visible: root.compact
@@ -1081,6 +1097,22 @@ Item {
                     }
 
                     ActionButton {
+                        visible: String(root.modelData.castId || "").length > 0
+                        enabled: presentationBridge.isAuthenticated
+                        Layout.fillWidth: true
+                        quiet: true
+                        alignStart: true
+                        iconGlyph: Theme.iconBookmark
+                        text: presentationBridge.bookmarkedCastIds.indexOf(
+                                  CastViews.normalizeHash(String(root.modelData.castId || ""))) >= 0
+                              ? qsTr("Remove bookmark") : qsTr("Bookmark cast")
+                        onClicked: {
+                            presentationBridge.toggleBookmark(root.modelData)
+                            castMenu.close()
+                        }
+                    }
+
+                    ActionButton {
                         visible: String(root.modelData.text || "").length > 0
                         Layout.fillWidth: true
                         quiet: true
@@ -1115,6 +1147,56 @@ Item {
                         text: qsTrId("genycaster.cast.copy_cast_id")
                         onClicked: {
                             presentationBridge.copyText(String(root.modelData.castId || ""))
+                            castMenu.close()
+                        }
+                    }
+
+                    ActionButton {
+                        visible: Number(root.modelData.authorFid || 0) > 0
+                                 && !root.isOwnCast && root.accountFid > 0
+                        Layout.fillWidth: true
+                        quiet: true
+                        alignStart: true
+                        iconGlyph: Theme.iconVolumeMuted
+                        text: presentationBridge.authorMuted(Number(root.modelData.authorFid || 0))
+                              ? qsTr("Unmute author locally") : qsTr("Mute author locally")
+                        onClicked: {
+                            const fid = Number(root.modelData.authorFid || 0)
+                            const next = !presentationBridge.authorMuted(fid)
+                            castMenu.close()
+                            presentationBridge.setAuthorMuted(fid, next)
+                        }
+                    }
+
+                    ActionButton {
+                        visible: Number(root.modelData.authorFid || 0) > 0
+                                 && !root.isOwnCast && root.accountFid > 0
+                        Layout.fillWidth: true
+                        quiet: true
+                        alignStart: true
+                        iconGlyph: Theme.iconClose
+                        text: presentationBridge.authorBlocked(Number(root.modelData.authorFid || 0))
+                              ? qsTr("Unblock author locally") : qsTr("Block author locally")
+                        onClicked: {
+                            const fid = Number(root.modelData.authorFid || 0)
+                            const next = !presentationBridge.authorBlocked(fid)
+                            castMenu.close()
+                            presentationBridge.setAuthorBlocked(fid, next)
+                        }
+                    }
+
+                    ActionButton {
+                        visible: Number(root.modelData.authorFid || 0) > 0
+                        Layout.fillWidth: true
+                        quiet: true
+                        alignStart: true
+                        iconGlyph: Theme.iconFeedback
+                        text: qsTr("Copy report reference")
+                        onClicked: {
+                            // Report transport is not part of the Farcaster Cast protocol.
+                            // Copy factual identifiers; do not claim a report was submitted.
+                            presentationBridge.copyText("Cast: " + String(root.modelData.castId || "")
+                                + "\nAuthor FID: " + String(root.modelData.authorFid || ""))
                             castMenu.close()
                         }
                     }

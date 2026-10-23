@@ -650,6 +650,144 @@ Item {
                 Item { Layout.fillWidth: true }
 
                 ActionButton {
+                    id: profileShareButton
+                    objectName: "profileShareButton"
+                    compact: true
+                    quiet: true
+                    iconGlyph: Theme.iconShare
+                    iconOnly: true
+                    text: qsTr("Share profile")
+                    enabled: Number(root.activeDetail.fid || 0) > 0
+                    onClicked: {
+                        profileShareMenu.active = true
+                        const menu = profileShareMenu.item
+                        if (!menu) return
+                        const point = profileShareButton.mapToItem(Overlay.overlay, 0, profileShareButton.height + Theme.space1)
+                        menu.x = Math.max(Theme.space2, Math.min(Overlay.overlay.width - menu.width - Theme.space2, point.x))
+                        menu.y = Math.max(Theme.space2, Math.min(Overlay.overlay.height - menu.height - Theme.space2, point.y))
+                        menu.open()
+                    }
+
+                    Loader {
+                        id: profileShareMenu
+                        active: false
+                        sourceComponent: Component {
+                            Popup {
+                                id: sharePopup
+                                objectName: "profileShareMenu"
+                                parent: Overlay.overlay
+                                width: 250
+                                implicitHeight: shareActions.implicitHeight + Theme.space2
+                                padding: Theme.space1
+                                modal: true
+                                dim: false
+                                focus: true
+                                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                                background: PopupSurface { curveDepth: Theme.curveContainer }
+                                contentItem: ColumnLayout {
+                                    id: shareActions
+                                    spacing: 0
+                                    ActionButton {
+                                        Layout.fillWidth: true
+                                        quiet: true
+                                        alignStart: true
+                                        iconGlyph: Theme.iconShare
+                                        text: qsTr("Share profile link")
+                                        onClicked: {
+                                            sharePopup.close()
+                                            presentationBridge.shareUrl(presentationBridge.profileShareUrl(
+                                                Number(root.activeDetail.fid || 0)))
+                                        }
+                                    }
+                                    ActionButton {
+                                        Layout.fillWidth: true
+                                        quiet: true
+                                        alignStart: true
+                                        iconGlyph: Theme.iconCopy
+                                        text: qsTr("Copy Genycaster profile link")
+                                        onClicked: {
+                                            presentationBridge.copyText(presentationBridge.profileShareUrl(
+                                                Number(root.activeDetail.fid || 0)))
+                                            sharePopup.close()
+                                        }
+                                    }
+                                    ActionButton {
+                                        visible: presentationBridge.farcasterWebProfileUrl(
+                                            String(root.activeDetail.username || "")).length > 0
+                                        Layout.fillWidth: true
+                                        quiet: true
+                                        alignStart: true
+                                        iconGlyph: Theme.iconArrowUpRight
+                                        text: qsTr("Open in Farcaster")
+                                        onClicked: {
+                                            sharePopup.close()
+                                            presentationBridge.openExternalUrl(
+                                                presentationBridge.farcasterWebProfileUrl(
+                                                    String(root.activeDetail.username || "")))
+                                        }
+                                    }
+                                    ActionButton {
+                                        Layout.fillWidth: true
+                                        quiet: true
+                                        alignStart: true
+                                        iconGlyph: Theme.iconLink
+                                        text: qsTr("Copy Farcaster URI (experimental)")
+                                        onClicked: {
+                                            presentationBridge.copyText(
+                                                presentationBridge.farcasterProfileUri(
+                                                    Number(root.activeDetail.fid || 0)))
+                                            sharePopup.close()
+                                        }
+                                    }
+                                    ActionButton {
+                                        visible: !root.isOwnProfile && root.accountFid > 0
+                                        Layout.fillWidth: true
+                                        quiet: true
+                                        alignStart: true
+                                        iconGlyph: Theme.iconVolumeMuted
+                                        text: presentationBridge.authorMuted(Number(root.activeDetail.fid || 0))
+                                              ? qsTr("Unmute locally") : qsTr("Mute locally")
+                                        onClicked: {
+                                            const fid = Number(root.activeDetail.fid || 0)
+                                            const next = !presentationBridge.authorMuted(fid)
+                                            sharePopup.close()
+                                            presentationBridge.setAuthorMuted(fid, next)
+                                        }
+                                    }
+                                    ActionButton {
+                                        visible: !root.isOwnProfile && root.accountFid > 0
+                                        Layout.fillWidth: true
+                                        quiet: true
+                                        alignStart: true
+                                        iconGlyph: Theme.iconClose
+                                        text: presentationBridge.authorBlocked(Number(root.activeDetail.fid || 0))
+                                              ? qsTr("Unblock locally") : qsTr("Block locally")
+                                        onClicked: {
+                                            const fid = Number(root.activeDetail.fid || 0)
+                                            const next = !presentationBridge.authorBlocked(fid)
+                                            sharePopup.close()
+                                            presentationBridge.setAuthorBlocked(fid, next)
+                                        }
+                                    }
+                                    ActionButton {
+                                        Layout.fillWidth: true
+                                        quiet: true
+                                        alignStart: true
+                                        iconGlyph: Theme.iconFeedback
+                                        text: qsTr("Copy report reference")
+                                        onClicked: {
+                                            presentationBridge.copyText("Profile FID: "
+                                                + String(root.activeDetail.fid || ""))
+                                            sharePopup.close()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                ActionButton {
                     compact: true
                     quiet: true
                     iconOnly: true

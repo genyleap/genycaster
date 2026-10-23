@@ -5,7 +5,9 @@ import QtQuick.Layouts
 RowLayout {
     id: root
     objectName: "engagementBar"
-    layoutDirection: Theme.uiDirection
+    // Stable action order: the trailing share action stays at the physical
+    // bottom-right in both LTR and RTL languages.
+    layoutDirection: Qt.LeftToRight
 
     property bool compact: false
     property bool showViews: true
@@ -318,6 +320,9 @@ RowLayout {
     EngagementButton {
         id: bookmarkButton
         objectName: "castBookmarkButton"
+        // Compact phone footers retain six 44px targets. Bookmarks are also
+        // available in the per-cast three-dot menu.
+        visible: !root.compact
         Layout.fillWidth: true
         iconGlyph: Theme.iconBookmark
         iconFilled: root.isBookmarked
@@ -327,4 +332,108 @@ RowLayout {
         Accessible.name: root.isBookmarked ? "Remove bookmark" : "Bookmark cast"
         onClicked: presentationBridge.toggleBookmark(root.castData)
     }
+    // Lazy share menu: constructing a Popup for every virtualized feed row
+    // would regress scroll performance on mobile WebAssembly.
+    EngagementButton {
+        id: castShareButton
+        objectName: "castShareButton"
+        Layout.fillWidth: true
+        iconGlyph: Theme.iconShare
+        enabled: presentationBridge.castShareUrl(root.castId).length > 0
+        Accessible.name: qsTr("Share cast")
+        onClicked: {
+            castShareMenu.active = true
+            const menu = castShareMenu.item
+            if (!menu) return
+            const point = castShareButton.mapToItem(Overlay.overlay, 0, castShareButton.height + Theme.space1)
+            menu.x = Math.max(Theme.space2, Math.min(Overlay.overlay.width - menu.width - Theme.space2, point.x + castShareButton.width - menu.width))
+            menu.y = Math.max(Theme.space2, Math.min(Overlay.overlay.height - menu.height - Theme.space2, point.y))
+            menu.open()
+        }
+
+        Loader {
+            id: castShareMenu
+            active: false
+            sourceComponent: Component {
+                Popup {
+                    id: sharePopup
+                    objectName: "castShareMenu"
+                    parent: Overlay.overlay
+                    width: 240
+                    implicitHeight: castShareActions.implicitHeight + Theme.space2
+                    padding: Theme.space1
+                    modal: true
+                    focus: true
+                    dim: false
+                    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                    background: PopupSurface { curveDepth: Theme.curveContainer }
+                    contentItem: ColumnLayout {
+                        id: castShareActions
+                        spacing: 0
+                        ActionButton {
+                            Layout.fillWidth: true
+                            quiet: true
+                            alignStart: true
+                            iconGlyph: Theme.iconShare
+                            text: qsTr("Share link")
+                            onClicked: {
+                                sharePopup.close()
+                                presentationBridge.shareUrl(presentationBridge.castShareUrl(root.castId))
+                            }
+                        }
+                        ActionButton {
+                            Layout.fillWidth: true
+                            quiet: true
+                            alignStart: true
+                            iconGlyph: Theme.iconCopy
+                            text: qsTr("Copy Genycaster link")
+                            onClicked: {
+                                presentationBridge.copyText(presentationBridge.castShareUrl(root.castId))
+                                sharePopup.close()
+                            }
+                        }
+                        ActionButton {
+                            Layout.fillWidth: true
+                            quiet: true
+                            alignStart: true
+                            iconGlyph: Theme.iconCopy
+                            text: qsTr("Copy Farcaster link")
+                            onClicked: {
+                                presentationBridge.copyText(presentationBridge.farcasterWebCastUrl(
+                                    root.castId, String(root.castData.author || "")))
+                                sharePopup.close()
+                            }
+                        }
+                        ActionButton {
+                            visible: presentationBridge.farcasterWebCastUrl(root.castId, String(root.castData.author || "")).length > 0
+                            Layout.fillWidth: true
+                            quiet: true
+                            alignStart: true
+                            iconGlyph: Theme.iconArrowUpRight
+                            text: qsTr("Open in Farcaster")
+                            onClicked: {
+                                sharePopup.close()
+                                presentationBridge.openExternalUrl(presentationBridge.farcasterWebCastUrl(
+                                    root.castId, String(root.castData.author || "")))
+                            }
+                        }
+                        ActionButton {
+                            visible: presentationBridge.farcasterCastUri(root.castId, root.authorFid).length > 0
+                            Layout.fillWidth: true
+                            quiet: true
+                            alignStart: true
+                            iconGlyph: Theme.iconLink
+                            text: qsTr("Copy Farcaster URI (experimental)")
+                            onClicked: {
+                                presentationBridge.copyText(presentationBridge.farcasterCastUri(
+                                    root.castId, root.authorFid))
+                                sharePopup.close()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 }

@@ -609,6 +609,16 @@ struct MappedCast final {
     cast.author = author->fid;
     cast.text = std::move(*text);
     cast.displayText = resolvedMentionText(castObject,cast.text);
+    // App identity is optional and may be deliberately withheld by privacy
+    // clients. Attribute only explicitly named application metadata.
+    if (const JsonValue* app = findValue(castObject, "app");
+        app != nullptr && app->is_object()) {
+        auto name = optionalString(app->as_object(), "display_name");
+        if (!name || name->empty()) name = optionalString(app->as_object(), "name");
+        if (name && !name->empty() && name->size() <= 48U) {
+            cast.sourceClient = std::move(*name);
+        }
+    }
     cast.createdAt = *timestamp;
     if (auto parentHash = optionalString(castObject, "parent_hash"); parentHash && !parentHash->empty()) {
         cast.parent = domain::cast::CastId{std::move(*parentHash)};

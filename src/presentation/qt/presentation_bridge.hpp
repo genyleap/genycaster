@@ -251,6 +251,28 @@ public:
     /** @brief Opens an approved rich-media URL in Genycaster's isolated native web-media host. */
     Q_INVOKABLE void openEmbeddedMedia(const QString& url, const QString& title = {});
     Q_INVOKABLE void copyText(const QString& text);
+    /** @brief Returns an HTTPS permalink to the canonical cast hash, or empty on invalid input. */
+    [[nodiscard]] Q_INVOKABLE QString castShareUrl(const QString& castId) const;
+    /** @brief Returns an HTTPS permalink to a profile FID, or empty for FID zero. */
+    [[nodiscard]] Q_INVOKABLE QString profileShareUrl(qulonglong fid) const;
+    /** @brief Returns a client-independent experimental Farcaster URI for a cast. */
+    [[nodiscard]] Q_INVOKABLE QString farcasterCastUri(const QString& castId, qulonglong fid) const;
+    /** @brief Returns a client-independent experimental Farcaster URI for a profile. */
+    [[nodiscard]] Q_INVOKABLE QString farcasterProfileUri(qulonglong fid) const;
+    /** @brief Returns a Farcaster web client URL when the username and hash are valid. */
+    [[nodiscard]] Q_INVOKABLE QString farcasterWebCastUrl(const QString& castId, const QString& username) const;
+    /** @brief Returns a Farcaster web client profile URL when the username is valid. */
+    [[nodiscard]] Q_INVOKABLE QString farcasterWebProfileUrl(const QString& username) const;
+    /** @brief Shares an HTTPS URL with the browser's OS share sheet, falling back to copy. */
+    Q_INVOKABLE void shareUrl(const QString& url);
+    /** @brief Validates and routes an incoming Genycaster/Farcaster cast/profile link. */
+    [[nodiscard]] Q_INVOKABLE bool openSharedLink(const QString& url);
+    /** @brief Checks viewer-scoped local moderation settings; no protocol write is implied. */
+    [[nodiscard]] Q_INVOKABLE bool authorMuted(qulonglong fid) const;
+    [[nodiscard]] Q_INVOKABLE bool authorBlocked(qulonglong fid) const;
+    /** @brief Updates the current viewer's local-only moderation policy. */
+    Q_INVOKABLE void setAuthorMuted(qulonglong fid, bool muted);
+    Q_INVOKABLE void setAuthorBlocked(qulonglong fid, bool blocked);
     /** @brief Selects the approved contextual glyph for the existing Like action without changing reaction semantics. */
     [[nodiscard]] Q_INVOKABLE QString contextualReactionIcon(const QString& text) const;
     /** @brief Records explicit acceptance of the current legal bundle after the review gate. */

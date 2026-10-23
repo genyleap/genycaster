@@ -69,6 +69,8 @@ struct Cast final {
     std::string text{};
     /** @brief Provider-resolved mention display; raw protocol text remains immutable. */
     std::optional<std::string> displayText{};
+    /** @brief Optional explicitly supplied signing-client label; never inferred from author. */
+    std::optional<std::string> sourceClient{};
     std::optional<CastId> parent{};
     /** @brief Protocol-native parent URL used by channel/root casts when no parent cast is present. */
     std::optional<std::string> parentUrl{};

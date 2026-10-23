@@ -1629,6 +1629,34 @@ int main(int argc, char* argv[])
     EM_ASM({ window.__genycasterQmlStartup?.(true, ""); });
 #endif
 
+    // Incoming links are resolved only once the cache-first runtime can serve
+    // cast/profile navigation. Browser history changes are accepted without
+    // reloading WASM; desktop installers may forward --open-url=<https URL>.
+    QString lastIncomingLink{};
+    const QString nativeIncomingLink = optionValue(arguments, QStringLiteral("--open-url="));
+    auto dispatchIncomingLink = [&presentationBridge, &lastIncomingLink, &nativeIncomingLink] {
+        if (!presentationBridge.runtimeReady()
+            || presentationBridge.initialSetupRequired()) return;
+        QString incoming = nativeIncomingLink;
+#if defined(__EMSCRIPTEN__)
+        const char* const href = emscripten_run_script_string("window.location.href");
+        incoming = href != nullptr ? QString::fromUtf8(href) : QString{};
+#endif
+        if (incoming.isEmpty() || incoming == lastIncomingLink) return;
+        lastIncomingLink = incoming;
+        static_cast<void>(presentationBridge.openSharedLink(incoming));
+    };
+    QObject::connect(&presentationBridge, &PresentationBridge::runtimeStateChanged,
+                     &application, dispatchIncomingLink);
+    QObject::connect(&presentationBridge, &PresentationBridge::setupStateChanged,
+                     &application, dispatchIncomingLink);
+#if defined(__EMSCRIPTEN__)
+    QTimer incomingLinkPoll{&application};
+    incomingLinkPoll.setInterval(750);
+    QObject::connect(&incomingLinkPoll, &QTimer::timeout, &application, dispatchIncomingLink);
+    incomingLinkPoll.start();
+#endif
+
     std::shared_ptr<Runtime> runtime{};
     std::jthread bootstrap{};
     if (!isSmokeTest && !isVisualTest) {

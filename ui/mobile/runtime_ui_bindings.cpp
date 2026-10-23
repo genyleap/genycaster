@@ -500,6 +500,8 @@ void attachChannelPresentation(QVariantMap& row, const domain::cast::Cast& cast)
     }
     QVariantMap result{
         {QStringLiteral("castId"), QString::fromStdString(cast.id.value)},
+        {QStringLiteral("sourceClient"), cast.sourceClient
+            ? QString::fromStdString(*cast.sourceClient) : QString{}},
         {QStringLiteral("authorFid"), authorFid},
         {QStringLiteral("author"), username(authorProfile)},
         {QStringLiteral("displayName"), resolvedName},
@@ -819,10 +821,14 @@ void attachChannelPresentation(QVariantMap& row, const domain::cast::Cast& cast)
             revisionParts.push_back(QString::number(embed.value(QStringLiteral("likeCount")).toULongLong()));
             revisionParts.push_back(QString::number(embed.value(QStringLiteral("embeds")).toList().size()));
         }
+        revisionParts.push_back(cast->sourceClient
+            ? QString::fromStdString(*cast->sourceClient) : QString{});
         const QString structuralRevision = revisionParts.join(QChar{0x1f});
         QVariantMap row{
             {QStringLiteral("_revision"), structuralRevision},
             {QStringLiteral("castId"), QString::fromStdString(cast->id.value)},
+            {QStringLiteral("sourceClient"), cast->sourceClient
+                ? QString::fromStdString(*cast->sourceClient) : QString{}},
             {QStringLiteral("authorFid"), static_cast<qulonglong>(cast->author.value)},
             {QStringLiteral("author"), username(profile)},
             {QStringLiteral("displayName"), displayName(profile)},
@@ -1468,6 +1474,7 @@ void applySignerState(PresentationBridge& bridge, application::signer::SignerSta
         }
         attachChannelPresentation(presentation, cast);
         presentation.insert(QStringLiteral("castId"), QString::fromStdString(cast.id.value));
+        presentation.insert(QStringLiteral("sourceClient"), QStringLiteral("Genycaster"));
         presentation.insert(QStringLiteral("authorFid"), static_cast<qulonglong>(cast.author.value));
         presentation.insert(QStringLiteral("author"), author);
         presentation.insert(QStringLiteral("displayName"), display);

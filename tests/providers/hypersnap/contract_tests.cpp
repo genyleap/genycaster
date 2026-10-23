@@ -108,6 +108,13 @@ void testCanonicalCodec()
     assert(cast->engagement.likes == 2);
     assert(cast->engagement.recasts == 1);
     assert(cast->engagement.replies == 3);
+    assert(!cast->sourceClient); // Never infer an app from the author or node.
+    std::string withClient = test::hypersnap::fixtures::castResponse();
+    const auto hashAt = withClient.find("\"hash\"");
+    assert(hashAt != std::string::npos);
+    withClient.insert(hashAt, R"json("app":{"name":"Quorum"},)json");
+    const auto attributed = provider::hypersnap::codec::decodeCast(withClient);
+    assert(attributed && attributed->sourceClient && *attributed->sourceClient == "Quorum");
 
     // Protocol text has no human-visible @handle. Farcaster positions count
     // UTF-8 bytes (the 💯 symbol consumes four bytes), not UTF-16 indexes.

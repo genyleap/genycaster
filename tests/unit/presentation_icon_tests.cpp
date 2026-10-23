@@ -967,11 +967,85 @@ void testSourceSwitchAdmitsCachedTimeline()
         == QStringLiteral("0xlive-trending"));
 }
 
+
+void testPortableCastProfileLinksAndLocalModeration()
+{
+    QTemporaryDir directory{};
+    assert(directory.isValid());
+    QSettings settings{directory.filePath(QStringLiteral("share.ini")), QSettings::IniFormat};
+    PresentationBridge bridge{nullptr, &settings};
+    const QString castHash = QStringLiteral("0x") + QString(40, QLatin1Char('a'));
+    const QString castUrl = QStringLiteral("https://caster.genyleap.com/?cast=") + castHash;
+    const QString profileUrl = QStringLiteral("https://caster.genyleap.com/?profile=77");
+    assert(bridge.castShareUrl(castHash) == castUrl);
+    assert(bridge.castShareUrl(QStringLiteral("0x1234")).isEmpty());
+    assert(bridge.profileShareUrl(0).isEmpty());
+    assert(bridge.profileShareUrl(77) == profileUrl);
+    assert(bridge.farcasterCastUri(castHash, 77)
+           == QStringLiteral("farcaster://77/") + castHash);
+    assert(bridge.farcasterProfileUri(77) == QStringLiteral("farcaster://77"));
+    assert(bridge.farcasterWebCastUrl(castHash, QStringLiteral("alice"))
+           == QStringLiteral("https://farcaster.xyz/alice/") + castHash);
+    assert(bridge.farcasterWebCastUrl(castHash, QStringLiteral("../evil"))
+           == QStringLiteral("https://farcaster.xyz/~/conversations/") + castHash);
+    assert(bridge.farcasterWebProfileUrl(QStringLiteral("alice"))
+           == QStringLiteral("https://farcaster.xyz/alice"));
+    QString receivedCast;
+    qulonglong receivedProfile = 0;
+    QObject::connect(&bridge, &PresentationBridge::castRequested, &bridge,
+                     [&](const QString& hash, bool) { receivedCast = hash; });
+    QObject::connect(&bridge, &PresentationBridge::profileRequested, &bridge,
+                     [&](qulonglong fid, bool) { receivedProfile = fid; });
+    assert(bridge.openSharedLink(castUrl));
+    assert(receivedCast == castHash);
+    assert(bridge.openSharedLink(profileUrl));
+    assert(receivedProfile == 77);
+    assert(bridge.openSharedLink(bridge.farcasterCastUri(castHash, 77)));
+    assert(receivedCast == castHash);
+    assert(bridge.openSharedLink(bridge.farcasterProfileUri(77)));
+    assert(receivedProfile == 77);
+    assert(!bridge.openSharedLink(QStringLiteral("https://caster.genyleap.com.attacker.test/?profile=77")));
+    assert(!bridge.openSharedLink(QStringLiteral("https://caster.genyleap.com/?cast=javascript:alert(1)")));
+    assert(!bridge.openSharedLink(QStringLiteral("https://caster.genyleap.com/?profile=0")));
+    assert(!bridge.openSharedLink(QStringLiteral("farcaster://77/not-a-hash")));
+
+    bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), 42,
+        QStringLiteral("viewer"), {}, {}, {}, {}, {});
+    bridge.applyList(QStringLiteral("feed"), QStringLiteral("trending"),
+        {QVariantMap{{QStringLiteral("castId"), castHash},
+                     {QStringLiteral("authorFid"), 77ULL}},
+         QVariantMap{{QStringLiteral("castId"), QStringLiteral("0xother")},
+                     {QStringLiteral("authorFid"), 88ULL}}},
+        {}, {}, {}, {}, false, false, false, false);
+    assert(bridge.rows().size() == 2);
+    bridge.setAuthorMuted(77, true);
+    assert(bridge.authorMuted(77));
+    assert(bridge.rows().size() == 1);
+    bridge.setAuthorMuted(77, false);
+    assert(!bridge.authorMuted(77));
+    assert(bridge.rows().size() == 2);
+    bridge.setAuthorBlocked(88, true);
+    assert(bridge.authorBlocked(88));
+    assert(bridge.rows().size() == 1);
+    bridge.setAuthorBlocked(88, false);
+    assert(bridge.rows().size() == 2);
+    bridge.setAuthorMuted(42, true);
+    assert(!bridge.authorMuted(42)); // Never mute own account.
+    bridge.setAuthorMuted(77, true);
+    bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), 99,
+        QStringLiteral("another"), {}, {}, {}, {}, {});
+    assert(!bridge.authorMuted(77)); // Viewer-scoped local policy.
+    bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), 42,
+        QStringLiteral("viewer"), {}, {}, {}, {}, {});
+    assert(bridge.authorMuted(77)); // Restored for original viewer.
+}
+
 } // namespace
 
 int main(int argc, char* argv[])
 {
     QCoreApplication application{argc, argv};
+    testPortableCastProfileLinksAndLocalModeration();
     testFollowingStoriesKeepOwnFirstAndOlderFollowees();
     testContextualReactionPriorityAndBoundaries();
     testReplyCanonicalizationForPublicFeedHashes();
