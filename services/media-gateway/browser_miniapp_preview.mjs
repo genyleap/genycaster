@@ -41,7 +41,8 @@ async function pinnedJson(url, {lookupHost = lookup, requester = https.request, 
     const done = result => { if (!settled) {settled=true; resolve(result);} };
     const request = requester(valid, {
       method:'GET',timeout:7000,
-      headers:{accept:'application/json'},
+      headers:{accept:'application/json',
+        'user-agent':'Mozilla/5.0 (compatible; GenycasterPreview/1.0; +https://caster.genyleap.com)'},
       lookup:(_host, options, cb)=>options.all ? cb(null,[selected])
         : cb(null,selected.address,selected.family),
     }, async response => {

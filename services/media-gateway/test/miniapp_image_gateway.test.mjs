@@ -339,3 +339,28 @@ test('unsafe and invalid Mini App poster results are never retried or cached',as
     assert.equal(calls,2,'invalid image bytes are not stored in cache or retried');
   }finally{await new Promise(resolve=>gateway.close(resolve));}
 });
+
+test('transient missing Mini App manifest is cached for seconds, never a full two minutes',async()=>{
+  let clock=100_000;
+  let calls=0;
+  const gateway=createMediaGateway(config,{},{
+    now:()=>clock,farCastBroker:{},farcasterBroker:{},
+    resolveMiniAppPreview:async()=>{
+      ++calls;
+      return calls===1?{status:404,error:'miniapp_manifest_unavailable'}
+        :{status:200,data:{resolved:true,providerKind:'miniapp',
+          domain:'gift.example.org',title:'Gift',verifiedImageUrls:[]}};
+    },
+  });
+  await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve));
+  const endpoint='http://127.0.0.1:'+gateway.address().port+
+    '/v1/browser/miniapp-preview?url='+encodeURIComponent('https://gift.example.org/one');
+  try {
+    assert.equal((await fetch(endpoint)).status,404);
+    assert.equal((await fetch(endpoint)).status,404);
+    assert.equal(calls,1);
+    clock+=5_001;
+    assert.equal((await fetch(endpoint)).status,200);
+    assert.equal(calls,2,'a fresh valid app is not hidden behind a stale 404');
+  }finally{await new Promise(resolve=>gateway.close(resolve));}
+});

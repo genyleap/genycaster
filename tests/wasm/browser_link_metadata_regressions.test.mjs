@@ -40,3 +40,13 @@ test('no browser-side metadata result is permitted to redefine a recycled cast',
   assert.match(link,/if \(root\.scrollMoving\) root\.pendingBrowserLinkPreview = preview/);
   assert.match(embed,/root\.acceptLinkMetadata\(preview\)/);
 });
+
+test('Mini App metadata retries are bounded, delayed beyond negative cache and cancelled on URL reuse',()=>{
+  const qml=read('ui/components/LinkPreview.qml');
+  assert.match(qml,/property int miniAppRetryCount: 0/);
+  assert.match(qml,/root\.miniAppRetryCount < 2/);
+  assert.match(qml,/id: miniAppManifestRetryTimer/);
+  assert.match(qml,/interval: 17500/);
+  assert.match(qml,/root\.browserPreviewRequestUrl = ""\s*root\.requestBrowserMiniAppManifest\(\)/);
+  assert.match(qml,/root\.miniAppRetryCount = 0\s*miniAppManifestRetryTimer\.stop\(\)/);
+});

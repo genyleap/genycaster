@@ -40,7 +40,8 @@ test('verified Farcaster frame manifest creates a playable Mini App preview',asy
   const result=await publicMiniAppPreview(goodHost,{
     lookupHost:publicDns,
     requester:(url,opts,callback)=>{
-      calls.push({url:url.href,lookup:typeof opts.lookup});
+      calls.push({url:url.href,lookup:typeof opts.lookup,
+        agent:opts.headers?.['user-agent']});
       return responder(manifest)(url,opts,callback);
     },
   });
@@ -57,6 +58,7 @@ test('verified Farcaster frame manifest creates a playable Mini App preview',asy
   assert.equal(calls[0].url,'https://farmverse.farverse.games/.well-known/farcaster.json');
   assert.equal(calls[1].url,goodHost);
   assert.equal(calls[0].lookup,'function');
+  assert.ok(calls[0].agent.includes('GenycasterPreview/1.0'));
 });
 test('legacy frame splash artwork and animated GIF posters are recognized',async()=>{
   const gif=await publicMiniAppPreview('https://atgif.com/', {

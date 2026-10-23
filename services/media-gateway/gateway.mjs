@@ -768,8 +768,12 @@ export function createMediaGateway(config, storage, dependencies = {}) {
         delete body.verifiedImageUrls;
       }
       if (miniAppPreviews.size > 180) miniAppPreviews.clear();
+      // A missing/blocked upstream manifest can be transient (403 from a
+      // publisher's bot filter, DNS or an origin timeout). Do not pin a failed
+      // Mini App card for two minutes; let the browser retry soon.
       if (resolved.status !== 400)
-        miniAppPreviews.set(rawUrl,{status:resolved.status,body,expires:runtime.now()+120000});
+        miniAppPreviews.set(rawUrl,{status:resolved.status,body,
+          expires:runtime.now()+(resolved.status===200?120000:5000)});
       writeJson(response,resolved.status,body,{'cache-control':'public, max-age=60'});
       return;
     }

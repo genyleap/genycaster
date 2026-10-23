@@ -21,6 +21,9 @@ Superellipse {
     property var pendingBrowserMiniAppPreview: ({})
     property string browserLinkRequestedUrl: ""
     property string browserPreviewRequestUrl: ""
+    // A gateway-origin 403 or timeout is transient; retry twice after its
+    // bounded negative cache expires, never on every animation frame.
+    property int miniAppRetryCount: 0
     property bool metadataManagedExternally: false
     property var resolvedPreview: ({})
     property var pendingResolvedPreview: ({})
@@ -294,6 +297,10 @@ Superellipse {
                     else root.browserMiniAppPreview = metadata
                 } else {
                     root.requestBrowserLinkPreview()
+                    if (root.miniAppRetryCount < 2) {
+                        ++root.miniAppRetryCount
+                        miniAppManifestRetryTimer.restart()
+                    }
                 }
             } else if (kind === "link" && preview && preview.resolved
                        && preview.providerKind === "web" && String(preview.domain || "").length > 0) {
@@ -308,6 +315,24 @@ Superellipse {
         interval: 520
         repeat: false
         onTriggered: root.requestBrowserMiniAppManifest()
+    }
+
+    Timer {
+        id: miniAppManifestRetryTimer
+        interval: 17500
+        repeat: false
+        onTriggered: {
+            if (root.browserMiniAppPreview.resolved || root.targetUrl.length === 0)
+                return
+            if (root.scrollMoving) {
+                miniAppManifestRetryTimer.restart()
+                return
+            }
+            // Release only the request latch. The controller's 15s negative
+            // result cache has expired; one new bounded attempt is now allowed.
+            root.browserPreviewRequestUrl = ""
+            root.requestBrowserMiniAppManifest()
+        }
     }
 
     function requestRemoteMetadataIfNeeded() {
@@ -370,6 +395,8 @@ Superellipse {
         root.browserLinkRequestedUrl = ""
         root.browserMiniAppPreview = ({})
         root.browserPreviewRequestUrl = ""
+        root.miniAppRetryCount = 0
+        miniAppManifestRetryTimer.stop()
         miniAppManifestTimer.stop()
         miniAppManifestTimer.restart()
         root.layoutReservation = null
