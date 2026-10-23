@@ -4,7 +4,7 @@
 
 Cast identity is the protocol hash (0x + 40 hexadecimal digits); profile
 identity is the positive, unsigned Farcaster FID. Neither is a Hypersnap HTTP
-resource identifier. The **current public Genycaster application** is at
+resource identifier. The current deployment is at
 `https://caster.genyleap.com/`.
 
 | Target | Example/shape | Status |
@@ -56,30 +56,19 @@ reliable signer-to-app attribution, particularly for privacy-oriented clients.
 
 ## Moderation semantics
 
-- `mute` and `block` are **viewer-scoped local display filters** stored in
-  the current account's Qt settings. They do not publish Farcaster protocol
-  messages and do not revoke any keys or prevent a blocked author from
-  reading public casts. Switching accounts changes the filter projection.
-- A Farcaster hub has no universal `Mute` or `Report` message type. Generic
-  link messages do not make a portable, network-wide block guarantee.
-- Quorum has an independent signed moderation report service using its own
-  identity and server. Genycaster cannot submit to that backend using only a
-  Farcaster signer. Consequently its current report action **copies cast/profile
-  evidence** rather than falsely asserting submission. A provider-specific
-  report API must implement an explicit authenticated transport and acknowledgments
-  before offering "Report submitted".
-- Muted or blocked authors are filtered from the primary read list, not deleted
-  from cached data. Direct protocol-hash links are still resolvable.
+Mute, Block and Report are hidden until network-backed operations are
+implemented and tested. Historical local-only mute/block settings no longer
+filter the feed. Farcaster has no universal protocol report or mute messages.
 
 ## Verification
 
 - `node --test tests/wasm/deeplink_share_contract.test.mjs`
 - `node --test tests/wasm/qml_attached_imports.test.mjs`
 - `farcaster_presentation_icon_tests` exercises valid/invalid URL routing,
-  FID-scoped moderation, restoration and copy-link formatting.
+  domain migration, URL security and copy-link formatting.
 - `farcaster_hypersnap_contract_tests` checks explicit app attribution versus
   missing metadata.
-- Native Qt and release WASM builds must both complete before shipping; publish
+- Validate target-platform builds before shipping; publish
   the verified `genycaster-assets.json` bundle atomically and smoke-test the
   HTTPS origin/CDN. Do not switch the live symlink on build failure.
 
@@ -91,3 +80,31 @@ References:
   https://github.com/QuilibriumNetwork/quorum-mobile/blob/master/services/reporting/reportService.ts
 
 - Quorum cast route: https://github.com/QuilibriumNetwork/quorum-mobile/blob/master/app/feed.tsx
+
+
+## Deployment-neutral Genycaster links
+
+The current deployment host shown above is only an example, not a constant
+inside the share-link implementation. Cast and profile permalinks use
+the active public HTTPS origin independently of Hypersnap, Snapchain, Farcaster
+account signing, and network selection.
+
+WebAssembly resolves window.location.origin when sharing. Moving the same
+WASM build to another HTTPS domain therefore generates URLs at that domain
+without a client code change.
+
+Native builds use the following independent configuration, in precedence order:
+environment variable GENYCASTER_PUBLIC_BASE_URL, QSettings key
+sharing/publicBaseUrl, or the optional build-time CMake cache option
+GENYCASTER_DEFAULT_PUBLIC_BASE_URL. No domain is assumed if native builds
+have not been configured. All URLs must be HTTPS, without credentials,
+query parameters or fragments. A deployment subpath is supported.
+
+Already shared links to retired domains require an HTTPS redirect at the
+old domain preserving the query string; changing the in-app base alone cannot
+magically keep expired DNS names working.
+
+The farcaster.xyz destination and Quorum app URI are external-client links,
+not Genycaster public origins. Other first-party backend, authentication,
+media and image-proxy URLs must be audited separately for a complete
+infrastructure migration.

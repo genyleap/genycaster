@@ -973,10 +973,13 @@ void testPortableCastProfileLinksWithoutLocalModeration()
     QTemporaryDir directory{};
     assert(directory.isValid());
     QSettings settings{directory.filePath(QStringLiteral("share.ini")), QSettings::IniFormat};
+    settings.setValue(QStringLiteral("sharing/publicBaseUrl"),
+                      QStringLiteral("https://social.example.test"));
     PresentationBridge bridge{nullptr, &settings};
     const QString castHash = QStringLiteral("0x") + QString(40, QLatin1Char('a'));
-    const QString castUrl = QStringLiteral("https://caster.genyleap.com/?cast=") + castHash;
-    const QString profileUrl = QStringLiteral("https://caster.genyleap.com/?profile=77");
+    const QString castUrl = QStringLiteral("https://social.example.test/?cast=") + castHash;
+    const QString profileUrl = QStringLiteral("https://social.example.test/?profile=77");
+    assert(bridge.publicShareBaseUrl() == QStringLiteral("https://social.example.test/"));
     assert(bridge.castShareUrl(castHash) == castUrl);
     // Providers may return 40 hex characters without the optional 0x prefix.
     assert(bridge.castShareUrl(castHash.mid(2)) == castUrl);
@@ -1011,10 +1014,40 @@ void testPortableCastProfileLinksWithoutLocalModeration()
     assert(receivedCast == castHash);
     assert(bridge.openSharedLink(bridge.farcasterProfileUri(77)));
     assert(receivedProfile == 77);
-    assert(!bridge.openSharedLink(QStringLiteral("https://caster.genyleap.com.attacker.test/?profile=77")));
-    assert(!bridge.openSharedLink(QStringLiteral("https://caster.genyleap.com/?cast=javascript:alert(1)")));
-    assert(!bridge.openSharedLink(QStringLiteral("https://caster.genyleap.com/?profile=0")));
+    assert(!bridge.openSharedLink(QStringLiteral("https://social.example.test.attacker.test/?profile=77")));
+    assert(!bridge.openSharedLink(QStringLiteral("https://social.example.test/?cast=javascript:alert(1)")));
+    assert(!bridge.openSharedLink(QStringLiteral("https://social.example.test/?profile=0")));
     assert(!bridge.openSharedLink(QStringLiteral("farcaster://77/not-a-hash")));
+
+    // A migration changes the share and incoming link authority immediately.
+    settings.setValue(QStringLiteral("sharing/publicBaseUrl"),
+                      QStringLiteral("https://caster.future.test/app"));
+    assert(bridge.publicShareBaseUrl() == QStringLiteral("https://caster.future.test/app/"));
+    const QString migratedCastUrl = QStringLiteral("https://caster.future.test/app/?cast=") + castHash;
+    assert(bridge.castShareUrl(castHash) == migratedCastUrl);
+    assert(bridge.profileShareUrl(77)
+           == QStringLiteral("https://caster.future.test/app/?profile=77"));
+    assert(bridge.openSharedLink(migratedCastUrl));
+    assert(receivedCast == castHash);
+    assert(!bridge.openSharedLink(castUrl));
+    assert(!bridge.openSharedLink(QStringLiteral("https://caster.future.test.attacker.test/app/?profile=77")));
+    assert(!bridge.openSharedLink(QStringLiteral("https://caster.future.test/other/?profile=77")));
+    assert(!bridge.openSharedLink(QStringLiteral("https://caster.future.test/app/?profile=0")));
+
+    // Untrusted/invalid native configuration must not emit a malformed link.
+    for (const QString& unsafeBase : {
+             QStringLiteral("http://caster.future.test"),
+             QStringLiteral("https://user:password@caster.future.test"),
+             QStringLiteral("https://caster.future.test/?token=secret"),
+             QStringLiteral("https://caster.future.test/#fragment"),
+         }) {
+        settings.setValue(QStringLiteral("sharing/publicBaseUrl"), unsafeBase);
+        assert(bridge.publicShareBaseUrl().isEmpty());
+        assert(bridge.castShareUrl(castHash).isEmpty());
+        assert(!bridge.openSharedLink(migratedCastUrl));
+    }
+    settings.setValue(QStringLiteral("sharing/publicBaseUrl"),
+                      QStringLiteral("https://caster.future.test/app"));
 
     bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), 42,
         QStringLiteral("viewer"), {}, {}, {}, {}, {});

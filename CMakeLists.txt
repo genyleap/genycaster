@@ -134,6 +134,11 @@ if(NOT FARCASTER_DEFAULT_APP_FID MATCHES "^[0-9]+$")
         "FARCASTER_DEFAULT_APP_FID must be an unsigned decimal FID.")
 endif()
 
+# Optional native permalink destination, independent of Farcaster provider/auth.
+# WASM always uses the HTTPS origin hosting the current application.
+set(GENYCASTER_DEFAULT_PUBLIC_BASE_URL "" CACHE STRING
+    "Default public Genycaster HTTPS base URL for packaged native builds")
+
 # These options describe product composition. Feature implementation targets are
 # created only when real behavior exists; empty ceremonial feature libraries are forbidden.
 option(FARCASTER_ENABLE_SOCIAL "Enable social product composition" ON)

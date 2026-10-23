@@ -45,6 +45,11 @@ target_link_libraries(farcaster_presentation
         Qt6::Multimedia
 )
 
+if(GENYCASTER_DEFAULT_PUBLIC_BASE_URL)
+    target_compile_definitions(farcaster_presentation PRIVATE
+        GENYCASTER_DEFAULT_PUBLIC_BASE_URL=\"${GENYCASTER_DEFAULT_PUBLIC_BASE_URL}\")
+endif()
+
 target_compile_features(farcaster_presentation PUBLIC cxx_std_26)
 set_property(TARGET farcaster_presentation PROPERTY CXX_SCAN_FOR_MODULES ON)
 set_target_properties(farcaster_presentation PROPERTIES AUTOMOC ON)

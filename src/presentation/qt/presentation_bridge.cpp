@@ -2015,17 +2015,54 @@ namespace {
 }
 }
 
+QString PresentationBridge::publicShareBaseUrl() const
+{
+    // The current HTTPS browser origin is the permalink authority in WASM.
+    QString configured{};
+#if defined(__EMSCRIPTEN__)
+    if (const char* const origin = emscripten_run_script_string("window.location.origin");
+        origin != nullptr) {
+        configured = QString::fromUtf8(origin);
+    }
+#else
+    // Native deployment configuration is independent of read providers.
+    configured = qEnvironmentVariable("GENYCASTER_PUBLIC_BASE_URL").trimmed();
+    if (configured.isEmpty() && m_settings != nullptr) {
+        configured = m_settings->value(QStringLiteral("sharing/publicBaseUrl")).toString().trimmed();
+    }
+#if defined(GENYCASTER_DEFAULT_PUBLIC_BASE_URL)
+    if (configured.isEmpty()) {
+        configured = QString::fromUtf8(GENYCASTER_DEFAULT_PUBLIC_BASE_URL);
+    }
+#endif
+#endif
+    QUrl base{configured, QUrl::StrictMode};
+    if (!base.isValid() || base.scheme() != QStringLiteral("https")
+        || base.host().isEmpty() || !base.userInfo().isEmpty()
+        || base.hasQuery() || base.hasFragment()) {
+        return {};
+    }
+    QString path = base.path();
+    if (path.isEmpty()) path = QStringLiteral("/");
+    if (!path.startsWith(QLatin1Char('/'))) return {};
+    if (!path.endsWith(QLatin1Char('/'))) path += QLatin1Char('/');
+    base.setPath(path);
+    return base.toString(QUrl::FullyEncoded);
+}
+
 QString PresentationBridge::castShareUrl(const QString& castId) const
 {
     const QString hash = shareHash(castId);
     if (hash.isEmpty()) return {};
-    return QStringLiteral("https://caster.genyleap.com/?cast=") + hash;
+    const QString base = publicShareBaseUrl();
+    return base.isEmpty() ? QString{} : base + QStringLiteral("?cast=") + hash;
 }
 
 QString PresentationBridge::profileShareUrl(const qulonglong fid) const
 {
     if (fid == 0) return {};
-    return QStringLiteral("https://caster.genyleap.com/?profile=") + QString::number(fid);
+    const QString base = publicShareBaseUrl();
+    return base.isEmpty() ? QString{} : base + QStringLiteral("?profile=") + QString::number(fid);
 }
 
 QString PresentationBridge::farcasterCastUri(const QString& castId, const qulonglong fid) const
@@ -2109,10 +2146,18 @@ bool PresentationBridge::openSharedLink(const QString& input)
 {
     const QUrl url{input.trimmed(), QUrl::StrictMode};
     if (!url.isValid() || !url.userInfo().isEmpty() || url.hasFragment()) return false;
-    if (url.scheme() == QStringLiteral("https")
-        && url.host() == QStringLiteral("caster.genyleap.com")
-        && (url.path().isEmpty() || url.path() == QStringLiteral("/")
-            || url.path() == QStringLiteral("/farcaster_client.html"))) {
+    // Require the active deployment origin, not a similar-looking hostname.
+    const QUrl base{publicShareBaseUrl(), QUrl::StrictMode};
+    const QString rootPath = base.path();
+    const QString canonicalPath = rootPath.isEmpty() ? QStringLiteral("/") : rootPath;
+    const QString htmlPath = canonicalPath + QStringLiteral("farcaster_client.html");
+    const bool basePathMatches = url.path() == canonicalPath
+        || (canonicalPath.endsWith(QLatin1Char('/'))
+            && url.path() == canonicalPath.left(canonicalPath.size() - 1));
+    if (base.isValid() && !base.host().isEmpty()
+        && url.scheme() == base.scheme() && url.host() == base.host()
+        && url.port(443) == base.port(443)
+        && (basePathMatches || url.path() == htmlPath)) {
         const QUrlQuery query{url};
         if (query.hasQueryItem(QStringLiteral("cast"))) {
             const QString hash = shareHash(query.queryItemValue(QStringLiteral("cast")));
@@ -2130,14 +2175,21 @@ bool PresentationBridge::openSharedLink(const QString& input)
         return false;
     }
     if (url.scheme() == QStringLiteral("farcaster")) {
+        // QUrl can canonicalize a numeric URI authority as an IPv4 address.
+        // Parse the validated protocol FID from the original exact URI.
+        static const QRegularExpression route{
+            QStringLiteral("^farcaster://([1-9][0-9]*)(?:/(0x[0-9a-fA-F]{40}))?$"),
+            QRegularExpression::CaseInsensitiveOption};
+        const QRegularExpressionMatch match = route.match(input.trimmed());
+        if (!match.hasMatch()) return false;
         bool ok = false;
-        const qulonglong fid = url.host().toULongLong(&ok);
+        const qulonglong fid = match.captured(1).toULongLong(&ok);
         if (!ok || fid == 0) return false;
-        if (url.path().isEmpty()) {
+        if (match.captured(2).isEmpty()) {
             openProfileFid(fid);
             return true;
         }
-        const QString hash = shareHash(url.path().mid(1));
+        const QString hash = shareHash(match.captured(2));
         if (hash.isEmpty()) return false;
         openCast(hash);
         return true;

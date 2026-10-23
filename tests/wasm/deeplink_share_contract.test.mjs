@@ -50,6 +50,20 @@ test('mobile footer has tightly grouped reactions and always-visible trailing bo
   assert.match(bar, /Item \{ Layout\.fillWidth: true; Layout\.minimumWidth: 0 \}/);
 });
 
+test('public Genycaster links use runtime hosting origin or native configuration', () => {
+  const bridge = read('src/presentation/qt/presentation_bridge.cpp');
+  const qml = read('ui/components/EngagementBar.qml');
+  const cmake = read('CMakeLists.txt');
+  assert.ok(bridge.includes('window.location.origin'));
+  assert.ok(bridge.includes('GENYCASTER_PUBLIC_BASE_URL'));
+  assert.ok(bridge.includes('sharing/publicBaseUrl'));
+  assert.ok(cmake.includes('GENYCASTER_DEFAULT_PUBLIC_BASE_URL'));
+  assert.ok(bridge.includes('publicShareBaseUrl()'));
+  assert.ok(bridge.includes('base.host()'));
+  assert.ok(!bridge.includes('caster.genyleap.com'));
+  assert.ok(qml.includes('castShareUrl(root.normalizedCastId)'));
+});
+
 test('incoming browser and command-line URLs route after runtime is ready', () => {
   const main = read('ui/mobile/main.cpp');
   assert.match(main, /--open-url=/);

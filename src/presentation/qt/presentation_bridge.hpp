@@ -251,6 +251,8 @@ public:
     /** @brief Opens an approved rich-media URL in Genycaster's isolated native web-media host. */
     Q_INVOKABLE void openEmbeddedMedia(const QString& url, const QString& title = {});
     Q_INVOKABLE void copyText(const QString& text);
+    /** @brief Active HTTPS base for deployment-independent public permalinks. */
+    [[nodiscard]] Q_INVOKABLE QString publicShareBaseUrl() const;
     /** @brief Returns an HTTPS permalink to the canonical cast hash, or empty on invalid input. */
     [[nodiscard]] Q_INVOKABLE QString castShareUrl(const QString& castId) const;
     /** @brief Returns an HTTPS permalink to a profile FID, or empty for FID zero. */
