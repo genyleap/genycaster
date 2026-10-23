@@ -301,19 +301,75 @@ void supplementProfile(
     return hashes;
 }
 
-[[nodiscard]] std::string joinedCastHashes(const std::vector<domain::cast::Cast>& casts)
+[[nodiscard]] std::string joinedCastHashes(
+    const std::vector<domain::cast::Cast>& casts,
+    const std::size_t limit = 100U)
 {
     std::string hashes{};
+    std::size_t count = 0U;
     for (const auto& cast : casts) {
-        if (cast.id.value.empty()) {
-            continue;
-        }
-        if (!hashes.empty()) {
-            hashes.push_back(',');
-        }
+        if (cast.id.value.empty()) continue;
+        if (count == limit) break;
+        if (!hashes.empty()) hashes.push_back(',');
         hashes.append(cast.id.value);
+        ++count;
     }
     return hashes;
+}
+
+[[nodiscard]] bool mayContainSparseXMention(const domain::cast::Cast& cast)
+{
+    if (cast.displayText) return false;
+    return std::ranges::any_of(cast.embeds, [](const auto& embed) {
+        if (embed.kind != domain::cast::EmbedKind::Url) return false;
+        return (embed.value.find("x.com/") != std::string::npos
+             || embed.value.find("twitter.com/") != std::string::npos)
+            && embed.value.find("/status/") != std::string::npos;
+    });
+}
+
+[[nodiscard]] std::string joinedMissingMentionHashes(
+    const std::vector<domain::cast::Cast>& casts)
+{
+    std::string hashes{};
+    std::size_t count = 0U;
+    for (const auto& cast : casts) {
+        if (count >= 25U) break;
+        if (!mayContainSparseXMention(cast) || cast.id.value.empty()) continue;
+        if (!hashes.empty()) hashes.push_back(',');
+        hashes.append(cast.id.value);
+        ++count;
+    }
+    return hashes;
+}
+
+// Search-index casts are sparse. The same selected node's cast/bulk endpoint
+// exposes mention profiles and zero-width ranges. Enrich presentation without
+// replacing protocol text, source ordering, ranking or engagement.
+void mergeHydratedCastPresentation(
+    capability::feed::FeedPage& page, const codec::FeedPayload& hydrated)
+{
+    const auto canonicalId = [](std::string_view value) {
+        return value.starts_with("0x") ? std::string{value.substr(2U)}
+                                       : std::string{value};
+    };
+    std::unordered_map<std::string, const domain::cast::Cast*> byId{};
+    byId.reserve(hydrated.casts.size());
+    for (const auto& cast : hydrated.casts)
+        byId.insert_or_assign(canonicalId(cast.id.value), &cast);
+    for (auto& cast : page.casts) {
+        const auto found = byId.find(canonicalId(cast.id.value));
+        if (found == byId.end() || found->second == nullptr) continue;
+        const auto& full = *found->second;
+        if (cast.text == full.text && full.displayText)
+            cast.displayText = full.displayText;
+        if ((!cast.channelId || cast.channelId->empty()) && full.channelId)
+            cast.channelId = full.channelId;
+        if ((!cast.channelName || cast.channelName->empty()) && full.channelName)
+            cast.channelName = full.channelName;
+        if ((!cast.channelImageUrl || cast.channelImageUrl->empty()) && full.channelImageUrl)
+            cast.channelImageUrl = full.channelImageUrl;
+    }
 }
 
 void mergeHydratedReplyMetrics(
@@ -1496,13 +1552,25 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                             }
                         };
 
-                        if (spec.filter == FeedSpec::Filter::Replies && !page.casts.empty()) {
-                            const std::string hashes = joinedCastHashes(page.casts);
+                        const bool searchNeedsMentions =
+                            spec.path == "/v2/farcaster/cast/search" && !page.casts.empty();
+                        const bool sparseXMentions = !searchNeedsMentions
+                            && std::ranges::any_of(page.casts, mayContainSparseXMention);
+                        const bool repliesNeedMetrics =
+                            spec.filter == FeedSpec::Filter::Replies && !page.casts.empty();
+                        if (searchNeedsMentions || sparseXMentions || repliesNeedMetrics) {
+                            // Batch once per page, never N+1 profile lookups.
+                            // Even non-search feeds may omit mentions on an X
+                            // status link. Hydrate only those candidates.
+                            const std::string hashes = repliesNeedMetrics
+                                ? joinedCastHashes(page.casts)
+                                : searchNeedsMentions ? joinedCastHashes(page.casts, 25U)
+                                : joinedMissingMentionHashes(page.casts);
                             if (!hashes.empty()) {
                                 auto hydration = m_client.getJson(
                                     "/v2/farcaster/cast/bulk",
                                     {{"hashes", hashes}},
-                                    [group, page, finishPage](
+                                    [group, page, finishPage, searchNeedsMentions, sparseXMentions, repliesNeedMetrics](
                                         foundation::result::Result<std::string> body) mutable {
                                         if (group->cancelled.load(std::memory_order_acquire)) {
                                             return;
@@ -1510,12 +1578,17 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                                         if (body) {
                                             auto hydrated = codec::decodeFeed(*body);
                                             if (hydrated) {
-                                                mergeHydratedReplyMetrics(page, *hydrated);
+                                                if (searchNeedsMentions || sparseXMentions)
+                                                    mergeHydratedCastPresentation(page, *hydrated);
+                                                if (repliesNeedMetrics)
+                                                    mergeHydratedReplyMetrics(page, *hydrated);
                                             }
                                         }
                                         finishPage(std::move(page));
                                     },
-                                    request::GetOptions{.timeout = profileFeedRequestTimeout},
+                                    request::GetOptions{.timeout = searchNeedsMentions || sparseXMentions
+                                        ? std::chrono::milliseconds{1'800}
+                                        : profileFeedRequestTimeout},
                                     requestPriority);
                                 if (hydration) {
                                     group->add(std::move(*hydration));

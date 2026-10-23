@@ -144,6 +144,46 @@ void testCanonicalCodec()
     const auto badFidOffset = provider::hypersnap::codec::decodeCast(splitUtf8);
     assert(badFidOffset && !badFidOffset->displayText);
 
+    // Real v2 cast/bulk payload shape: the search index drops the mention
+    // projection, but canonical UTF-8 range 12 belongs after Right! + emoji
+    // while the original signed text also contains an X URL embed.
+    std::string exactXCast = test::hypersnap::fixtures::castResponse();
+    const std::string originalJsonText{R"json("text": "hello native")json"};
+    const auto exactTextAt = exactXCast.find(originalJsonText);
+    assert(exactTextAt != std::string::npos);
+    exactXCast.replace(exactTextAt, originalJsonText.size(),
+        R"json("text": "Right! 💯  \n\nhttps://x.com/vrypan/status/2113262913767317648?s=46")json");
+    const std::string emptyMentionList{R"json("mentioned_profiles": [])json"};
+    const auto exactProfilesAt = exactXCast.find(emptyMentionList);
+    assert(exactProfilesAt != std::string::npos);
+    exactXCast.replace(exactProfilesAt, emptyMentionList.size(),
+        R"json("mentioned_profiles": [{"fid":280,"username":"vrypan.eth"}])json");
+    const std::string emptyRanges{R"json("mentioned_profiles_ranges": [])json"};
+    const auto exactRangesAt = exactXCast.find(emptyRanges);
+    assert(exactRangesAt != std::string::npos);
+    exactXCast.replace(exactRangesAt,emptyRanges.size(),
+        R"json("mentioned_profiles_ranges": [{"start":12,"end":12}])json");
+    const auto precise = provider::hypersnap::codec::decodeCast(exactXCast);
+    assert(precise && precise->text == "Right! 💯  \n\nhttps://x.com/vrypan/status/2113262913767317648?s=46");
+    assert(precise->displayText);
+    assert(precise->displayText->find("Right! 💯 @vrypan.eth") == 0U);
+    assert(precise->displayText->find("https://x.com/vrypan/status/") != std::string::npos);
+
+    // The same cast in the public search index is deliberately sparse.
+    // It must not claim to contain a mention until cast/bulk hydrates it.
+    auto sparseExact = exactXCast;
+    const std::string hydratedProfiles{R"json("mentioned_profiles": [{"fid":280,"username":"vrypan.eth"}])json"};
+    const auto sparseProfilesAt = sparseExact.find(hydratedProfiles);
+    assert(sparseProfilesAt != std::string::npos);
+    sparseExact.replace(sparseProfilesAt, hydratedProfiles.size(), emptyMentionList);
+    const std::string hydratedRanges{R"json("mentioned_profiles_ranges": [{"start":12,"end":12}])json"};
+    const auto sparseRangesAt = sparseExact.find(hydratedRanges);
+    assert(sparseRangesAt != std::string::npos);
+    sparseExact.replace(sparseRangesAt, hydratedRanges.size(), emptyRanges);
+    const auto sparseRead = provider::hypersnap::codec::decodeCast(sparseExact);
+    assert(sparseRead && sparseRead->text == precise->text);
+    assert(!sparseRead->displayText);
+
     // Invalid positions within a UTF-8 code point must never split an emoji.
     const auto badAt = withMention.find("\"mentions_positions\": [12]");
     assert(badAt != std::string::npos);

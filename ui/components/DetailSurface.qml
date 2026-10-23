@@ -327,19 +327,67 @@ ListView {
                         Layout.fillWidth: true
                         spacing: 1
 
-                        DirectionAwareLabel {
+                        RowLayout {
+                            id: detailNameAndChannel
                             Layout.fillWidth: true
-                            text: root.detail.displayName || root.detail.author || qsTrId("genycaster.detail.canonical_detail")
-                            color: authorNameHover.hovered ? Theme.accent : Theme.ink
-                            font.pixelSize: root.activeView === "profile" ? Theme.typeTitle2Size : Theme.typeTitle3Size
-                            font.weight: Theme.weightDemiBold
-                            wrapMode: Text.Wrap
+                            Layout.minimumWidth: 0
+                            spacing: Theme.space1
+                            layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
 
-                            HoverHandler { id: authorNameHover }
-                            TapHandler {
-                                enabled: root.activeView === "cast" && Number(root.detail.authorFid || 0) > 0
-                                gesturePolicy: TapHandler.ReleaseWithinBounds
-                                onTapped: root.profileRequested(Number(root.detail.authorFid))
+                            DirectionAwareLabel {
+                                Layout.minimumWidth: 0
+                                Layout.preferredWidth: Math.min(implicitWidth,
+                                    root.activeView === "cast" && root.castChannel.length > 0
+                                        ? Math.max(84, detailNameAndChannel.width * 0.62)
+                                        : detailNameAndChannel.width)
+                                Layout.maximumWidth: Layout.preferredWidth
+                                text: root.detail.displayName || root.detail.author || qsTrId("genycaster.detail.canonical_detail")
+                                color: authorNameHover.hovered ? Theme.accent : Theme.ink
+                                font.pixelSize: root.activeView === "profile" ? Theme.typeTitle2Size : Theme.typeTitle3Size
+                                font.weight: Theme.weightDemiBold
+                                wrapMode: root.activeView === "profile" ? Text.Wrap : Text.NoWrap
+                                elide: root.activeView === "cast" ? Text.ElideRight : Text.ElideNone
+
+                                HoverHandler { id: authorNameHover }
+                                TapHandler {
+                                    enabled: root.activeView === "cast" && Number(root.detail.authorFid || 0) > 0
+                                    gesturePolicy: TapHandler.ReleaseWithinBounds
+                                    onTapped: root.profileRequested(Number(root.detail.authorFid))
+                                }
+                            }
+
+                            RowLayout {
+                                visible: root.activeView === "cast" && root.castChannel.length > 0
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                spacing: Theme.space1
+                                layoutDirection: Qt.LeftToRight
+                                DirectionAwareLabel {
+                                    text: qsTr("in")
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                }
+                                Avatar {
+                                    Layout.preferredWidth: 20
+                                    Layout.preferredHeight: 20
+                                    avatarSize: 20
+                                    sourceUrl: root.resolvedChannelImage
+                                    displayName: root.resolvedChannelName
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
+                                    text: root.resolvedChannelName
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: Theme.weightDemiBold
+                                    elide: Text.ElideRight
+                                }
+                            }
+                            Item {
+                                visible: root.activeView !== "cast" || root.castChannel.length === 0
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 1
                             }
                         }
 
@@ -347,32 +395,6 @@ ListView {
                             Layout.fillWidth: true
                             spacing: Theme.space1
                             layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
-
-                            DirectionAwareLabel {
-                                visible: root.activeView === "cast" && root.castChannel.length > 0
-                                text: qsTr("in")
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                                font.weight: Theme.weightDemiBold
-                                elide: Text.ElideRight
-                            }
-                            Avatar {
-                                visible: root.activeView === "cast" && root.castChannel.length > 0
-                                avatarSize: 20
-                                Layout.preferredHeight: 20
-                                Layout.preferredWidth: 20
-                                sourceUrl: root.resolvedChannelImage
-                                displayName: root.resolvedChannelName
-                            }
-                            DirectionAwareLabel {
-                                visible: root.activeView === "cast" && root.castChannel.length > 0
-                                text: root.resolvedChannelName
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                                font.weight: Theme.weightDemiBold
-                                elide: Text.ElideRight
-                                Layout.maximumWidth: 130
-                            }
 
                             Label {
                                 visible: Boolean(root.detail.username)
