@@ -144,8 +144,10 @@ Item {
         property alias audience: root.explorerAudience
     }
     function chooseExplorerAudience(audience) {
-        const chosen = audience === "following" && presentationBridge.isAuthenticated
-                       && root.identityAvailable ? "following" : "all"
+        const chosen = audience === "following"
+                       && presentationBridge.isAuthenticated
+                       && Number(presentationBridge.accountFid || 0) > 0
+                       ? "following" : "all"
         if (root.explorerAudience === chosen) return
         root.explorerAudience = chosen
         root.selectExplorerPresentationMode(root.explorerPresentationMode, true)
@@ -354,7 +356,8 @@ Item {
                            : nextMode === "devs" ? "developers"
                            : nextMode === "conversations" ? "conversations" : "recent"
         const source = root.explorerAudience === "following"
-                       && presentationBridge.isAuthenticated && root.identityAvailable
+                       && presentationBridge.isAuthenticated
+                       && Number(presentationBridge.accountFid || 0) > 0
                        ? "following" : globalSource
         const emptySettledSource = presentationBridge.feedStarted
                                    && !presentationBridge.isBusy
@@ -593,7 +596,9 @@ Item {
                 width: parent.width
                 presentationMode: root.explorerPresentationMode
                 visualFilter: root.explorerVisualFilter
-                audience: presentationBridge.isAuthenticated ? root.explorerAudience : "all"
+                audience: presentationBridge.isAuthenticated
+                          && Number(presentationBridge.accountFid || 0) > 0
+                          ? root.explorerAudience : "all"
                 onAudienceRequested: audience => root.chooseExplorerAudience(audience)
                 displayName: presentationBridge.accountName.length > 0 ? presentationBridge.accountName : presentationBridge.identityName
                 avatarUrl: presentationBridge.accountAvatarUrl

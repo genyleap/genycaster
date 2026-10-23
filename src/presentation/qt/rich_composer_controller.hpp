@@ -72,6 +72,8 @@ public:
 
     /** @brief Starts a fresh rich draft; an existing autosaved draft may be restored separately. */
     Q_INVOKABLE void newDocument();
+    /** @brief Opens an isolated, non-persistent reply/quote/Mini App document. */
+    Q_INVOKABLE void beginContextDocument();
     /** @brief Restores the latest versioned rich draft, if one exists. */
     Q_INVOKABLE bool restoreDraft();
     /** @brief Persists the complete AST plus editor source without publishing anything. */

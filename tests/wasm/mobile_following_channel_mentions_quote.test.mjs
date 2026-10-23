@@ -16,8 +16,10 @@ test('Explorer audience filter persists and applies to each semantic tab',()=>{
  assert.match(shell,/\? "following" : globalSource/);
  assert.match(shell,/presentationBridge\.selectFeed\(source\)/);
  assert.match(header,/objectName: "explorerAudienceSelector"/);
- assert.match(header,/onTriggered: root\.audienceRequested\("following"\)/);
- assert.match(header,/onTriggered: root\.audienceRequested\("all"\)/);
+ assert.match(header,/onClicked: root\.audienceRequested\(String\(modelData\.id\)\)/);
+ assert.match(header,/readonly property bool selected: root\.audience === String\(modelData\.id\)/);
+ assert.match(header,/Behavior on color/);
+ assert.doesNotMatch(header,/audienceMenu\.open\(\)/);
  assert.match(read('ui/mobile/runtime_ui_bindings.cpp'),/feed == QStringLiteral\("following"\)\) query\.kind = Kind::Following/);
 });
 test('Stories use only verified following graph and never feed author suggestions',()=>{
@@ -99,4 +101,54 @@ test('Feed and details display actual channel metadata including an image from p
  assert.match(presentation,/attachChannelPresentation\(detail, \*state\.cast\)/);
  assert.match(read('ui/components/CastItem.qml'),/sourceUrl: root\.channelImageUrl/);
  assert.match(read('ui/components/DetailSurface.qml'),/sourceUrl: String\(root\.detail\.channelImageUrl \|\| ""\)/);
+});
+
+test('Following selection uses authenticated account FID for initial and next pages',()=>{
+ const bridge=read('src/presentation/qt/presentation_bridge.cpp');
+ const app=read('ui/components/AppShell.qml');
+ assert.match(bridge,/feed == QStringLiteral\("following"\) && \(!m_isAuthenticated \|\| m_accountFid == 0\)/);
+ assert.match(bridge,/nextFeed == QStringLiteral\("following"\) \? m_accountFid : m_identityFid/);
+ assert.match(bridge,/m_activeFeed == QStringLiteral\("following"\) \? m_accountFid : m_identityFid/);
+ assert.match(app,/Number\(presentationBridge\.accountFid \|\| 0\) > 0/);
+ assert.doesNotMatch(app.slice(app.indexOf('function chooseExplorerAudience('),
+    app.indexOf('property string explorerPresentationMode:')),/root\.identityAvailable/);
+});
+
+test('Following audience action updates state and requests new feed instead of silently restoring Everyone',()=>{
+ const src=read('ui/components/AppShell.qml');
+ const method=src.slice(src.indexOf('function chooseExplorerAudience('),
+                        src.indexOf('property string explorerPresentationMode:')).trim();
+ const bridge={isAuthenticated:true,accountFid:1234};
+ const calls=[];
+ const root={
+   explorerAudience:'all',explorerPresentationMode:'visuals',
+   selectExplorerPresentationMode(mode,forceRefresh){calls.push({mode,forceRefresh});}
+ };
+ const choose=new Function('root','presentationBridge',method+
+     '; return chooseExplorerAudience;')(root,bridge);
+ choose('following');
+ assert.equal(root.explorerAudience,'following');
+ assert.deepEqual(calls,[{mode:'visuals',forceRefresh:true}]);
+ choose('all');
+ assert.equal(root.explorerAudience,'all');
+ assert.equal(calls.length,2);
+});
+
+test('New Cast cannot inherit a quoted reference from a previously composed cast',()=>{
+ const cpp=read('src/presentation/qt/rich_composer_controller.cpp');
+ const header=read('src/presentation/qt/rich_composer_controller.hpp');
+ const composer=read('ui/components/ComposerDrawer.qml');
+ assert.match(header,/Q_INVOKABLE void beginContextDocument\(\)/);
+ assert.match(cpp,/void RichComposerController::beginContextDocument\(\)/);
+ assert.match(cpp,/if \(contextDocument\) return/);
+ assert.match(cpp,/if \(!contextDocument\) autosave\.start\(\)/);
+ assert.match(cpp,/std::holds_alternative<farcaster::domain::rich::CastReferenceBlock>/);
+ assert.match(cpp,/if \(!m_impl->contextDocument\) \{[\s\S]*?settings\.remove\(QString::fromLatin1\(DraftKey\)\)/);
+ assert.match(composer,/richComposer\.beginContextDocument\(\)/);
+ assert.match(composer,/function publicationEmbeds\(\)/);
+ assert.match(composer,/return root\.quoteMode \? embeds : embeds\.filter/);
+ assert.match(composer,/String\(embed && embed\.kind \|\| ""\) !== "cast-reference"/);
+ assert.match(composer,/root\.publishRequested\(richComposer\.safeText[\s\S]*?root\.publicationEmbeds\(\)/);
+ assert.match(composer,/!root\.parentCast && !root\.quotedCast\s+&& richComposer\.dirty/);
+ assert.match(composer,/visible: !root\.replyMode && !root\.quoteMode && !root\.transientDraft/);
 });

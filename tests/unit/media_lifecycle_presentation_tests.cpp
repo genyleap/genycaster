@@ -201,6 +201,57 @@ void testManagedAssetTokenSurvivesImmediateRestart()
         QStringList{token});
 }
 
+// A quote/reply is a contextual document, never the ordinary draft slot.
+// Reopening "New Cast" must not resurrect a CastReference after a quote.
+void testContextualQuoteCannotContaminateOrdinaryCastDraft()
+{
+    QTemporaryDir directory{};
+    assert(directory.isValid());
+    QSettings settings{directory.filePath(QStringLiteral("settings.ini")), QSettings::IniFormat};
+    RichComposerController composer{settings};
+
+    assert(composer.setBlockText(0, QStringLiteral("My normal draft")));
+    composer.saveDraft();
+
+    composer.beginContextDocument();
+    assert(composer.setBlockText(0, QStringLiteral("Quoted response")));
+    assert(composer.insertCastReference(
+        QStringLiteral("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"), 42U));
+    assert(composer.protocolEmbeds().size() == 1);
+    composer.saveDraft(); // Quote autosave must not write the ordinary draft.
+    composer.commitPublishedCast(QStringLiteral("contextual-publication"));
+
+    assert(composer.restoreDraft());
+    assert(composer.safeText() == QStringLiteral("My normal draft"));
+    assert(composer.protocolEmbeds().isEmpty());
+}
+
+void testLegacyQuoteDraftIsScrubbedBeforeNewCastPublication()
+{
+    QTemporaryDir directory{};
+    assert(directory.isValid());
+    QSettings settings{directory.filePath(QStringLiteral("settings.ini")), QSettings::IniFormat};
+
+    {
+        RichComposerController oldComposer{settings};
+        assert(oldComposer.setBlockText(0, QStringLiteral("Original cast text")));
+        assert(oldComposer.insertCastReference(
+            QStringLiteral("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"), 84U));
+        oldComposer.saveDraft(); // Represents a prior release's polluted draft.
+    }
+
+    RichComposerController restored{settings};
+    assert(restored.restoreDraft());
+    assert(restored.safeText() == QStringLiteral("Original cast text"));
+    assert(restored.protocolEmbeds().isEmpty());
+
+    // Sanitization itself is persisted so a browser reload cannot revive it.
+    RichComposerController subsequent{settings};
+    assert(subsequent.restoreDraft());
+    assert(subsequent.protocolEmbeds().isEmpty());
+    assert(subsequent.safeText() == QStringLiteral("Original cast text"));
+}
+
 void testMediaUploadControllerClassifiesPreviewBeforeNativeUpload()
 {
     QTemporaryDir directory{};
@@ -275,6 +326,8 @@ int main(int argc, char* argv[])
     testRemovingOneOfMultipleManagedMediaReferencesRetainsObject();
     testDraftRemovalDoesNotDeleteAssetReferencedByPublishedCast();
     testManagedAssetTokenSurvivesImmediateRestart();
+    testContextualQuoteCannotContaminateOrdinaryCastDraft();
+    testLegacyQuoteDraftIsScrubbedBeforeNewCastPublication();
     testMediaUploadControllerClassifiesPreviewBeforeNativeUpload();
     testMediaUploadControllerRejectsUnsupportedFilesBeforePreviewOrTransport();
     return 0;

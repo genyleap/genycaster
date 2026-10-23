@@ -1112,7 +1112,7 @@ void PresentationBridge::selectFeed(const QString& feed)
         emit stateChanged();
         return;
     }
-    if (feed == QStringLiteral("following") && m_identityFid == 0) {
+    if (feed == QStringLiteral("following") && (!m_isAuthenticated || m_accountFid == 0)) {
         m_errorText = qtTrId("genycaster.bridge.open_an_identity_before_reading_following");
         emit stateChanged();
         return;
@@ -1138,7 +1138,9 @@ void PresentationBridge::selectFeed(const QString& feed)
     m_localNextOffset = 0;
     m_localWindowPending = false;
     beginIntent(qtTrId("genycaster.bridge.reading_cached_feed"));
-    emit feedRequested(m_activeFeed, m_identityFid, {}, {}, consumeRecoveryProbe());
+    emit feedRequested(m_activeFeed,
+        nextFeed == QStringLiteral("following") ? m_accountFid : m_identityFid,
+        {}, {}, consumeRecoveryProbe());
 }
 
 void PresentationBridge::openChannel(const QString& channelId)
@@ -1537,7 +1539,9 @@ void PresentationBridge::loadMore()
         emit stateChanged();
         emit localFeedWindowRequested(
             m_activeView == QStringLiteral("feed") ? m_activeFeed : m_profileFeed,
-            m_activeView == QStringLiteral("feed") ? m_identityFid : m_profileFid,
+            m_activeView == QStringLiteral("feed")
+                ? (m_activeFeed == QStringLiteral("following") ? m_accountFid : m_identityFid)
+                : m_profileFid,
             m_activeView == QStringLiteral("feed") ? m_channelId : QString{},
             m_localNextOffset, 64);
         return;
@@ -1546,7 +1550,9 @@ void PresentationBridge::loadMore()
         return;
     beginIntent(qtTrId("genycaster.bridge.loading_the_next_page"));
     if (m_activeView == QStringLiteral("feed")) {
-        emit feedRequested(m_activeFeed, m_identityFid, m_channelId, m_next, false);
+        emit feedRequested(m_activeFeed,
+            m_activeFeed == QStringLiteral("following") ? m_accountFid : m_identityFid,
+            m_channelId, m_next, false);
     } else if (m_activeView == QStringLiteral("profile")) {
         emit feedRequested(m_profileFeed, m_profileFid, {}, m_next, false);
     } else {

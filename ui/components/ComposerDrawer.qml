@@ -193,7 +193,10 @@ GenyDrawer {
             mediaUpload.cancel()
         else
             mediaUpload.clear()
-        richComposer.newDocument()
+        if (root.replyMode || root.quoteMode || root.transientDraft)
+            richComposer.beginContextDocument()
+        else
+            richComposer.newDocument()
         threadTailModel.clear()
         root.mediaMetadata = ({})
         root.mediaInsertFailed = false
@@ -352,12 +355,22 @@ GenyDrawer {
                && root.threadTailWithinLimit()
     }
 
+    function publicationEmbeds() {
+        // Context associations are intentional only after tapping Quote.
+        // Old persisted drafts might still hold CastReference nodes; those
+        // must never attach to a new Cast or ordinary reply.
+        const embeds = richComposer.protocolEmbeds || []
+        return root.quoteMode ? embeds : embeds.filter(function(embed) {
+            return String(embed && embed.kind || "") !== "cast-reference"
+        })
+    }
+
     function threadPayload() {
         const casts = [{
             "text": richComposer.safeText,
             "mentionFids": richComposer.mentionFids,
             "mentionPositions": richComposer.mentionPositions,
-            "embeds": richComposer.protocolEmbeds
+            "embeds": root.publicationEmbeds()
         }]
         for (let index = 0; index < threadTailModel.count; ++index) {
             casts.push({
@@ -379,10 +392,10 @@ GenyDrawer {
         if (root.threadMode)
             root.threadRequested(root.threadPayload())
         else if (root.replyMode)
-            root.replyRequested(richComposer.safeText, richComposer.mentionFids, richComposer.mentionPositions, richComposer.protocolEmbeds)
+            root.replyRequested(richComposer.safeText, richComposer.mentionFids, richComposer.mentionPositions, root.publicationEmbeds())
         else
             root.publishRequested(richComposer.safeText, richComposer.mentionFids, richComposer.mentionPositions,
-                                  richComposer.protocolEmbeds,
+                                  root.publicationEmbeds(),
                                   root.showTaxonomyControls ? root.selectedParentUrl : "")
     }
 
@@ -429,7 +442,7 @@ GenyDrawer {
         root.clearPendingMediaQueue()
         if (!mediaUpload.busy) mediaUpload.clear()
         if (root.transientDraft || root.parentCast || root.quotedCast) {
-            richComposer.newDocument()
+            richComposer.beginContextDocument()
             restoredDraft = false
         } else {
             restoredDraft = richComposer.restoreDraft()
@@ -491,7 +504,8 @@ GenyDrawer {
         // in flight. A queued write may still publish, so it retains media.
         if (!presentationBridge.writeBusy && presentationBridge.writePhase !== "queued")
             richComposer.discardUnpublishedManagedMedia()
-        if (!root.transientDraft && richComposer.dirty && !presentationBridge.writeBusy)
+        if (!root.transientDraft && !root.parentCast && !root.quotedCast
+                && richComposer.dirty && !presentationBridge.writeBusy)
             richComposer.saveDraft()
         presentationBridge.clearReplyTarget()
         root.abandoned()
@@ -913,6 +927,9 @@ GenyDrawer {
                 }
                 Item { Layout.fillWidth: true }
                 ActionButton {
+                    // The only persistent draft slot belongs to a new Cast.
+                    // Contextual quote/reply drafts use isolated documents.
+                    visible: !root.replyMode && !root.quoteMode && !root.transientDraft
                     quiet: true
                     compact: true
                     text: qsTrId("genycaster.composer.save_draft")

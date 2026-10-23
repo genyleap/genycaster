@@ -164,47 +164,76 @@ Item {
 
         RowLayout {
             Layout.fillWidth: true
-            layoutDirection: Theme.uiDirection
+            Layout.topMargin: Theme.space1
             spacing: Theme.space2
+            layoutDirection: Theme.uiDirection
 
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTr("Show posts from")
+                text: qsTr("Feed")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
                 elide: Text.ElideRight
             }
 
-            Button {
+            Rectangle {
                 id: audienceSelector
                 objectName: "explorerAudienceSelector"
-                implicitHeight: 32
-                implicitWidth: 146
-                text: root.audience === "following" ? qsTr("Following") : qsTr("Everyone")
-                background: Rectangle {
-                    color: Theme.surfaceRaised
-                    radius: 11
-                    border.width: Theme.strokeHairline
-                    border.color: Theme.borderSubtle
-                }
-                onClicked: audienceMenu.open()
-                Accessible.role: Accessible.Button
+                Layout.preferredWidth: root.compact ? 205 : 228
+                Layout.preferredHeight: 38
+                radius: 13
+                color: Theme.surfaceRaised
+                border.width: Theme.strokeHairline
+                border.color: Theme.borderSubtle
 
-                Menu {
-                    id: audienceMenu
-                    y: audienceSelector.height
-                    MenuItem {
-                        text: qsTr("Everyone")
-                        checkable: true
-                        checked: root.audience === "all"
-                        onTriggered: root.audienceRequested("all")
-                    }
-                    MenuItem {
-                        text: qsTr("Following")
-                        enabled: root.authenticated
-                        checkable: true
-                        checked: root.audience === "following"
-                        onTriggered: root.audienceRequested("following")
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 3
+                    spacing: 2
+                    layoutDirection: Theme.uiDirection
+
+                    Repeater {
+                        model: [
+                            { id: "all", title: qsTr("Everyone") },
+                            { id: "following", title: qsTr("Following") }
+                        ]
+
+                        delegate: Button {
+                            id: scopeOption
+                            required property var modelData
+                            readonly property bool selected: root.audience === String(modelData.id)
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            padding: 0
+                            hoverEnabled: true
+                            enabled: String(modelData.id) !== "following"
+                                     || root.authenticated
+                            background: Rectangle {
+                                radius: 10
+                                color: scopeOption.selected ? Theme.backgroundPrimary
+                                     : scopeOption.hovered ? Theme.surfaceHover : "transparent"
+                                border.width: scopeOption.selected ? Theme.strokeHairline : 0
+                                border.color: Theme.borderSubtle
+                                Behavior on color {
+                                    ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                                }
+                            }
+                            contentItem: DirectionAwareLabel {
+                                text: String(scopeOption.modelData.title)
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: scopeOption.selected ? Theme.weightDemiBold : Theme.weightMedium
+                                color: scopeOption.enabled
+                                    ? (scopeOption.selected ? Theme.ink : Theme.inkMuted)
+                                    : Theme.inkMuted
+                                opacity: scopeOption.enabled ? 1 : 0.5
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                            }
+                            onClicked: root.audienceRequested(String(modelData.id))
+                            Accessible.role: Accessible.Button
+                            Accessible.name: String(modelData.title)
+                        }
                     }
                 }
             }

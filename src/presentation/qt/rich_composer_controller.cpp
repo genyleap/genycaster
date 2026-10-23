@@ -643,6 +643,8 @@ public:
     std::deque<RichCastDocument> redoStack{};
     QTimer autosave{};
     bool dirty{};
+    // Contextual replies/quotes never autosave into the ordinary Cast draft.
+    bool contextDocument{};
     QString saveStatusText{};
     qulonglong revision{};
 
@@ -659,7 +661,7 @@ public:
         dirty = true;
         saveStatusText = qtTrId("genycaster.composer.unsaved");
         emit owner.saveStateChanged();
-        autosave.start();
+        if (!contextDocument) autosave.start();
     }
 
     void pushHistory()
@@ -707,6 +709,7 @@ public:
     void saveDraft(bool explicitSave)
     {
         autosave.stop();
+        if (contextDocument) return;
         settings.setValue(QString::fromLatin1(DraftKey), documentToJson(document, markdown));
         settings.setValue(QString::fromLatin1(DraftManagedAssetsKey), managedAssetsToJson(managedAssets));
         settings.sync();
@@ -834,20 +837,52 @@ void RichComposerController::setMarkdownSource(const QString& source)
 
 void RichComposerController::newDocument()
 {
+    m_impl->contextDocument = false;
+    m_impl->autosave.stop();
     clearDraft();
     m_impl->newEmpty(false);
 }
+
+void RichComposerController::beginContextDocument()
+{
+    m_impl->autosave.stop();
+    m_impl->contextDocument = true;
+    // Never touch DraftKey or DraftManagedAssetsKey. This is an isolated
+    // editor session for an explicit reply, quote or Mini App request.
+    m_impl->newEmpty(false);
+}
+
 bool RichComposerController::restoreDraft()
 {
+    m_impl->autosave.stop();
+    m_impl->contextDocument = false;
     const auto bytes = m_impl->settings.value(QString::fromLatin1(DraftKey)).toByteArray();
     if (bytes.isEmpty()) return false;
     auto restored = documentFromJson(bytes);
     if (!restored) return false;
     m_impl->document = std::move(restored->first);
+    // Upgrade drafts written by older clients, where closing a quote could
+    // persist its CastReference into the ordinary "new Cast" draft.
+    // Only explicit Quote creates a reference. Keep the user's text/media.
+    const auto previousSize = m_impl->document.blocks.size();
+    std::erase_if(m_impl->document.blocks, [](const auto& block) {
+        return std::holds_alternative<farcaster::domain::rich::CastReferenceBlock>(block.payload);
+    });
+    if (m_impl->document.blocks.empty()) {
+        m_impl->newEmpty(false);
+        return false;
+    }
+    const bool strippedStaleQuote = m_impl->document.blocks.size() != previousSize;
     m_impl->managedAssets = managedAssetsFromJson(
         m_impl->settings.value(QString::fromLatin1(DraftManagedAssetsKey)).toByteArray());
     m_impl->markdown = std::move(restored->second);
-    if (m_impl->markdown.isEmpty()) m_impl->syncMarkdownFromDocument();
+    if (strippedStaleQuote || m_impl->markdown.isEmpty())
+        m_impl->syncMarkdownFromDocument();
+    if (strippedStaleQuote) {
+        m_impl->settings.setValue(QString::fromLatin1(DraftKey),
+                                  documentToJson(m_impl->document, m_impl->markdown));
+        m_impl->settings.sync();
+    }
     m_impl->dirty = false;
     m_impl->saveStatusText = qtTrId("genycaster.composer.draft_restored");
     m_impl->undoStack.clear();
@@ -1489,8 +1524,10 @@ void RichComposerController::commitPublishedCast(const QString& castId)
     } else {
         m_impl->settings.setValue(managedSidecarKey, managedAssetsToJson(publishedAssets));
     }
-    m_impl->settings.remove(QString::fromLatin1(DraftKey));
-    m_impl->settings.remove(QString::fromLatin1(DraftManagedAssetsKey));
+    if (!m_impl->contextDocument) {
+        m_impl->settings.remove(QString::fromLatin1(DraftKey));
+        m_impl->settings.remove(QString::fromLatin1(DraftManagedAssetsKey));
+    }
     m_impl->settings.sync();
     m_impl->managedAssets.clear();
     m_impl->dirty = false;
