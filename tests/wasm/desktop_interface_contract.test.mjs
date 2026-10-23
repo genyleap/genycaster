@@ -34,12 +34,18 @@ test('desktop Home presents one bounded content column', () => {
     assert.match(home, /GenyTokenBanner \{\}/);
 });
 
-test('desktop store uses compact editorial cards with mobile cells intact', () => {
+test('desktop store uses borderless app rows and compact Open buttons', () => {
     const apps = read('ui/components/AppsSurface.qml');
     const feature = read('ui/components/MiniAppFeaturedCarousel.qml');
-    assert.match(apps, /cellHeight: root\.compact \? 126 : 184 \+ Theme\.space2/);
-    assert.match(apps, /Layout\.minimumHeight: root\.compact \? 28 : 30/);
-    assert.match(apps, /root\.compact \? 52 : 48/);
+    assert.match(apps, /cellHeight: root\.compact \? 126 : 112/);
+    assert.match(apps, /id: storeRow/);
+    assert.match(apps, /objectName: "miniAppDesktopStoreRow"/);
+    assert.match(apps, /objectName: "miniAppStoreOpenButton"/);
+    assert.match(apps, /text: cardCell\.launchBusy \? qsTr\("Opening…\"\)/);
+    assert.match(apps, /: cardCell\.running \? qsTr\("Resume"\) : qsTr\("Open"\)/);
+    assert.match(apps, /cardCell\.modelData\.category/);
+    assert.doesNotMatch(apps, /id: card\n/);
+    assert.match(apps, /id: miniAppStoreTile/);
     assert.match(feature, /compact \? 272 : 260/);
 });
 
@@ -47,7 +53,10 @@ test('desktop outside click closes drawers without changing mobile input handlin
     const drawer = read('ui/components/GenyDrawer.qml');
     assert.match(drawer, /onBackgroundTapped: control\.close\(\)/);
     assert.match(drawer, /visible: !control\.bottomSheet/);
-    assert.match(drawer, /Qt\.platform\.os === "osx"/);
+    assert.doesNotMatch(drawer, /visible: !control\.bottomSheet\s*&&\s*\(Qt\.platform\.os/);
+    const settings = read('ui/components/LocaleSettingsPopup.qml');
+    assert.match(settings, /viewportWidth: Overlay\.overlay/);
+    assert.match(settings, /viewportWidth < Theme\.breakpointMobile/);
     assert.match(drawer, /onPressed: mouse => \{[\s\S]*?control\.close\(\)/);
     assert.match(drawer, /blockInput: true/);
 });
@@ -59,4 +68,15 @@ test('profile lifecycle and cast identity avoid undefined access and layout feed
     assert.doesNotMatch(cast, /Layout\.maximumWidth: Layout\.preferredWidth/);
     assert.match(profile, /const current = root\.detail \|\| \(\{\}\)/);
     assert.match(profile, /const retained = root\.retainedDetail \|\| \(\{\}\)/);
+});
+
+
+test('WASM only shows HTTP(S) share destinations, never mobile app schemes', () => {
+    const cast = read('ui/components/EngagementBar.qml');
+    const profile = read('ui/components/ProfileSurface.qml');
+    assert.match(cast, /visible: Qt\.platform\.os !== "wasm"[\s\S]*?text: qsTr\("Open in Quorum"\)/);
+    assert.match(cast, /visible: Qt\.platform\.os !== "wasm"[\s\S]*?text: qsTr\("Copy Quorum URI"\)/);
+    assert.match(cast, /visible: Qt\.platform\.os !== "wasm"\s*&& presentationBridge\.farcasterCastUri/);
+    assert.match(profile, /visible: Qt\.platform\.os !== "wasm"[\s\S]*?text: qsTr\("Copy Farcaster URI"\)/);
+    assert.match(cast, /presentationBridge\.castShareUrl\(root\.normalizedCastId\)/);
 });

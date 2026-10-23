@@ -81,9 +81,9 @@ Drawer {
         MouseArea {
             anchors.fill: parent
             z: 200
+            // Desktop browsers have platform.os === wasm. The viewport
+            // presentation (not the runtime OS) determines outside dismissal.
             visible: !control.bottomSheet
-                     && (Qt.platform.os === "osx" || Qt.platform.os === "windows"
-                         || Qt.platform.os === "linux")
             enabled: visible
             acceptedButtons: Qt.AllButtons
             onPressed: mouse => {

@@ -1098,22 +1098,6 @@ Item {
                     }
 
                     ActionButton {
-                        visible: String(root.modelData.castId || "").length > 0
-                        enabled: presentationBridge.isAuthenticated
-                        Layout.fillWidth: true
-                        quiet: true
-                        alignStart: true
-                        iconGlyph: Theme.iconBookmark
-                        text: presentationBridge.bookmarkedCastIds.indexOf(
-                                  CastViews.normalizeHash(String(root.modelData.castId || ""))) >= 0
-                              ? qsTr("Remove bookmark") : qsTr("Bookmark cast")
-                        onClicked: {
-                            presentationBridge.toggleBookmark(root.modelData)
-                            castMenu.close()
-                        }
-                    }
-
-                    ActionButton {
                         visible: String(root.modelData.text || "").length > 0
                         Layout.fillWidth: true
                         quiet: true

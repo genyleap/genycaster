@@ -415,6 +415,10 @@ RowLayout {
                             }
                         }
                         ActionButton {
+                            // Quorum's quorummobile:// route is an app URI, not
+                            // an HTTPS link. Browser share menus expose web
+                            // destinations only.
+                            visible: Qt.platform.os !== "wasm"
                             Layout.fillWidth: true
                             quiet: true
                             alignStart: true
@@ -426,11 +430,12 @@ RowLayout {
                             }
                         }
                         ActionButton {
+                            visible: Qt.platform.os !== "wasm"
                             Layout.fillWidth: true
                             quiet: true
                             alignStart: true
                             iconGlyph: Theme.iconCopy
-                            text: qsTr("Copy Quorum link")
+                            text: qsTr("Copy Quorum URI")
                             onClicked: {
                                 presentationBridge.copyText(presentationBridge.quorumCastUri(root.normalizedCastId))
                                 sharePopup.close()
@@ -450,7 +455,8 @@ RowLayout {
                             }
                         }
                         ActionButton {
-                            visible: presentationBridge.farcasterCastUri(root.normalizedCastId, root.authorFid).length > 0
+                            visible: Qt.platform.os !== "wasm"
+                                     && presentationBridge.farcasterCastUri(root.normalizedCastId, root.authorFid).length > 0
                             Layout.fillWidth: true
                             quiet: true
                             alignStart: true

@@ -733,6 +733,7 @@ Item {
                                         Layout.fillWidth: true
                                         quiet: true
                                         alignStart: true
+                                        visible: Qt.platform.os !== "wasm"
                                         iconGlyph: Theme.iconLink
                                         text: qsTr("Copy Farcaster URI")
                                         onClicked: {

@@ -10,7 +10,14 @@ GenyDrawer {
     property bool mobileIndexOpen: true
     property bool showRecoveryExplanation: false
     readonly property bool webAssembly: Qt.platform.os === "wasm"
-    readonly property bool mobilePresentation: parent ? parent.width < Theme.breakpointMobile : true
+    // Overlay.overlay measures the actual Qt window on both native desktop
+    // and desktop WebAssembly. Popup parent widths may be transient during
+    // incubation, incorrectly selecting the phone settings hierarchy.
+    readonly property real viewportWidth: Overlay.overlay && Overlay.overlay.width > 0
+                                          ? Overlay.overlay.width
+                                          : (root.parent ? root.parent.width : 0)
+    readonly property bool mobilePresentation: viewportWidth > 0
+                                              && viewportWidth < Theme.breakpointMobile
     function scrollToBeginning() {
         // Only explicit Settings entry resets state. Switching controls or
         // returning from a nested detail does not discard unsaved values.

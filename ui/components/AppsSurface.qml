@@ -688,14 +688,16 @@ Item {
                                 model: root.visibleApps
                                 cacheBuffer: Math.min(height, 480)
 
+                                // Two scannable desktop columns with real
+                                // row-level controls; the phone icon grid stays
+                                // identical to its existing contract.
                                 readonly property int targetColumns: root.compact
                                                                     ? (width < 325 ? 2 : 3)
-                                                                    : width < 660 ? 1 : (width < 1040 ? 2 : 3)
+                                                                    : (width < 900 ? 1 : 2)
                                 cellWidth: Math.max(1, width / Math.max(1, targetColumns))
-                                // Store-like icon grid on phones; desktop still
-                                // uses descriptive cards with launch controls.
-                                // Compact editorial app cards, no blank half-height body.
-                                cellHeight: root.compact ? 126 : 184 + Theme.space2
+                                // Desktop rows are dense and borderless;
+                                // phone icon-grid geometry is unchanged.
+                                cellHeight: root.compact ? 126 : 112
 
                                 ScrollBar.vertical: GenyScrollBar {
                                     policy: root.compact ? ScrollBar.AlwaysOff : ScrollBar.AsNeeded
@@ -772,198 +774,151 @@ Item {
                                         Accessible.name: String(cardCell.modelData.name || "")
                                     }
 
-                                    Superellipse {
-                                        id: card
+                                    // Desktop Store shelf: flat app rows, not
+                                    // oversized nested promotional cards. The
+                                    // featured carousel above retains its covers.
+                                    Item {
+                                        id: storeRow
+                                        objectName: "miniAppDesktopStoreRow"
                                         visible: !root.compact
                                         anchors.fill: parent
-                                        anchors.leftMargin: root.compact ? Theme.space1 : Theme.space2
-                                        anchors.rightMargin: root.compact ? Theme.space1 : Theme.space2
-                                        anchors.bottomMargin: root.compact ? Theme.space1 : Theme.space3
-                                        fillColor: Theme.surface
-                                        borderWidth: cardCell.running ? Theme.strokeEmphasis : 1
-                                        borderColor: cardCell.running ? Theme.accent : Theme.borderMuted
-                                        curveDepth: Theme.curveContainer
-                                        elevation: Theme.elevationNone
-                                        shadowOpacityScale: 0
+                                        anchors.leftMargin: Theme.space3
+                                        anchors.rightMargin: Theme.space3
 
-                                        ColumnLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: root.compact ? Theme.space2 : Theme.space3
-                                            spacing: root.compact ? Theme.space1 : Theme.space2
+                                        Rectangle {
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            anchors.bottom: parent.bottom
+                                            height: Theme.strokeHairline
+                                            color: Theme.divider
+                                        }
 
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: Theme.space2
-                                                layoutDirection: Theme.uiDirection
+                                        RowLayout {
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            spacing: Theme.space3
+                                            layoutDirection: Theme.uiDirection
 
-                                                Item {
-                                                    Layout.preferredWidth: root.compact ? 36 : 44
-                                                    Layout.preferredHeight: Layout.preferredWidth
+                                            Item {
+                                                Layout.preferredWidth: 60
+                                                Layout.preferredHeight: 60
+                                                Layout.alignment: Qt.AlignVCenter
 
-                                                    SuperellipseImage {
-                                                        id: miniAppArtwork
-                                                        anchors.fill: parent
-                                                        source: String(cardCell.modelData.iconSource || "")
-                                                        fillMode: Image.PreserveAspectFit
-                                                        mediaCategory: "miniapps"
-                                                        forceAutomaticDownload: true
-                                                        showManualLoadIndicator: false
-                                                        showFailureIndicator: false
-                                                        showLoadingIndicator: false
-                                                        requestedSourceWidth: root.compact ? 36 : 44
-                                                        requestedSourceHeight: root.compact ? 36 : 44
-                                                        curveDepth: Theme.curveControl
-                                                        fillColor: Theme.primarySurface
-                                                        borderWidth: 0
-                                                    }
-
-                                                    // The catalogue can omit artwork or return an
-                                                    // unavailable URL. Always leave a recognizable
-                                                    // app symbol rather than an empty pastel tile.
-                                                    Icon {
-                                                        anchors.centerIn: parent
-                                                        visible: !miniAppArtwork.ready
-                                                        text: Theme.iconApps
-                                                        color: Theme.accent
-                                                        preferredSize: 22
-                                                    }
+                                                SuperellipseImage {
+                                                    id: desktopAppIcon
+                                                    anchors.fill: parent
+                                                    source: String(cardCell.modelData.iconSource || "")
+                                                    mediaCategory: "miniapps"
+                                                    fillMode: Image.PreserveAspectFit
+                                                    forceAutomaticDownload: true
+                                                    deferNewLoadsWhileScrolling: false
+                                                    framePacedPresentation: false
+                                                    showManualLoadIndicator: false
+                                                    showFailureIndicator: false
+                                                    showLoadingIndicator: false
+                                                    requestedSourceWidth: 112
+                                                    requestedSourceHeight: 112
+                                                    curveDepth: Theme.curveControl
+                                                    fillColor: Theme.surfaceRaised
                                                 }
-                                                ColumnLayout {
+
+                                                MiniAppArtPlaceholder {
+                                                    anchors.fill: parent
+                                                    imageReady: desktopAppIcon.ready
+                                                    loadFailed: desktopAppIcon.loadFailed
+                                                    hasSource: String(cardCell.modelData.iconSource || "").length > 0
+                                                }
+
+                                                TapHandler {
+                                                    onTapped: root.showAppDetails(cardCell.modelData)
+                                                }
+                                            }
+
+                                            ColumnLayout {
+                                                Layout.fillWidth: true
+                                                Layout.minimumWidth: 0
+                                                spacing: 2
+
+                                                DirectionAwareLabel {
                                                     Layout.fillWidth: true
-                                                    spacing: 1
-                                                    DirectionAwareLabel {
-                                                        Layout.fillWidth: true
-                                                        text: String(cardCell.modelData.name || cardCell.modelData.domain || "")
-                                                        color: Theme.ink
-                                                        font.pixelSize: Theme.typeBodySize
-                                                        font.weight: Theme.weightDemiBold
-                                                        wrapMode: root.compact ? Text.WrapAtWordBoundaryOrAnywhere : Text.NoWrap
-                                                        maximumLineCount: root.compact ? 2 : 1
-                                                        elide: Text.ElideRight
-                                                    }
-                                                    DirectionAwareLabel {
-                                                        Layout.fillWidth: true
-                                                        text: String(cardCell.modelData.domain || "")
-                                                        color: Theme.inkMuted
-                                                        font.pixelSize: Theme.typeCaptionSize
-                                                        forceLeftToRight: true
-                                                        elide: Text.ElideMiddle
+                                                    text: String(cardCell.modelData.name || cardCell.modelData.domain || "")
+                                                    color: Theme.ink
+                                                    font.pixelSize: Theme.typeBodySize
+                                                    font.weight: Theme.weightDemiBold
+                                                    elide: Text.ElideRight
+                                                    maximumLineCount: 1
+                                                    TapHandler {
+                                                        onTapped: root.showAppDetails(cardCell.modelData)
                                                     }
                                                 }
 
-                                                // A saved Mini App uses a persistent filled
-                                                // success mark, not the same outline as Save.
-                                                Superellipse {
-                                                    visible: Boolean(cardCell.modelData.saved)
-                                                    Layout.preferredWidth: 26
-                                                    Layout.preferredHeight: 26
-                                                    fillColor: Theme.positive
-                                                    curveDepth: 13
-                                                    Icon {
-                                                        anchors.centerIn: parent
-                                                        text: Theme.iconCheck
-                                                        color: Theme.inkInverse
-                                                        preferredSize: 16
-                                                    }
-                                                }
-
-                                                Superellipse {
-                                                    visible: cardCell.running
-                                                    Layout.preferredWidth: stateLabel.implicitWidth + Theme.space3
-                                                    Layout.preferredHeight: 24
-                                                    fillColor: Theme.primarySurface
-                                                    curveDepth: 12
-                                                    DirectionAwareLabel {
-                                                        id: stateLabel
-                                                        anchors.centerIn: parent
-                                                        text: cardCell.runtimeState === "foreground"
-                                                              ? qsTrId("genycaster.task_manager.foreground")
-                                                              : cardCell.runtimeState === "background"
-                                                                ? qsTrId("genycaster.feed_header.open")
-                                                                : qsTrId("genycaster.task_manager.minimized")
-                                                        color: Theme.accent
-                                                        font.pixelSize: Theme.typeCaptionSize
-                                                        font.weight: Theme.weightDemiBold
-                                                    }
-                                                }
-                                            }
-
-                                            DirectionAwareLabel {
-                                                Layout.fillWidth: true
-                                                Layout.minimumHeight: root.compact ? 28 : 30
-                                                text: String(cardCell.modelData.description || "")
-                                                color: Theme.inkMuted
-                                                font.pixelSize: Theme.typeMetaSize
-                                                wrapMode: Text.Wrap
-                                                maximumLineCount: 2
-                                                elide: Text.ElideRight
-                                            }
-
-                                            DirectionAwareLabel {
-                                                visible: !root.compact && cardCell.modelData.requiredChains
-                                                         && cardCell.modelData.requiredChains.length > 0
-                                                Layout.fillWidth: true
-                                                text: cardCell.modelData.requiredChains.join(" · ")
-                                                color: Theme.inkSubtle
-                                                font.pixelSize: Theme.typeCaptionSize
-                                                forceLeftToRight: true
-                                                elide: Text.ElideRight
-                                            }
-
-                                            Item { Layout.fillHeight: true }
-
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: Theme.space2
-                                                layoutDirection: Theme.uiDirection
-
-                                                ActionButton {
+                                                DirectionAwareLabel {
                                                     Layout.fillWidth: true
-                                                    compact: true
-                                                    iconOnly: false
-                                                    prominent: true
-                                                    positive: cardCell.runtimeState === "foreground"
-                                                    busy: cardCell.launchBusy
-                                                    enabled: !cardCell.launchBusy
-                                                    iconGlyph: cardCell.runtimeState === "foreground"
-                                                               ? Theme.iconCheck
-                                                               : cardCell.running ? Theme.iconApps : Theme.iconPlay
-                                                    text: cardCell.launchBusy
-                                                          ? qsTrId("genycaster.miniapp.loading")
-                                                          : cardCell.running
-                                                            ? qsTrId("genycaster.task_manager.focus")
-                                                            : qsTrId("genycaster.miniapp.open_internal")
-                                                    onClicked: root.openApp(cardCell.modelData)
+                                                    text: String(cardCell.modelData.category
+                                                                 || cardCell.modelData.domain || "")
+                                                    color: Theme.inkMuted
+                                                    font.pixelSize: Theme.typeCaptionSize
+                                                    elide: Text.ElideRight
+                                                    maximumLineCount: 1
                                                 }
-                                                ActionButton {
-                                                    visible: !root.compact
-                                                    compact: true
-                                                    quiet: true
-                                                    iconOnly: true
-                                                    iconGlyph: Theme.iconShare
-                                                    text: qsTrId("genycaster.apps.share")
-                                                    onClicked: miniAppHost.requestShare(
-                                                        String(cardCell.modelData.homeUrl || ""),
-                                                        String(cardCell.modelData.name || cardCell.modelData.domain || ""))
+
+                                                DirectionAwareLabel {
+                                                    Layout.fillWidth: true
+                                                    text: String(cardCell.modelData.description || "")
+                                                    color: Theme.inkSubtle
+                                                    font.pixelSize: Theme.typeMetaSize
+                                                    wrapMode: Text.Wrap
+                                                    maximumLineCount: 2
+                                                    elide: Text.ElideRight
                                                 }
-                                                ActionButton {
-                                                    compact: true
-                                                    quiet: true
-                                                    iconOnly: root.compact
-                                                    readonly property bool saved: Boolean(cardCell.modelData.saved)
-                                                    readonly property bool inLibrary: root.farcasterSection === "my"
-                                                    iconGlyph: saved ? (inLibrary ? Theme.iconTrash : Theme.iconCheck) : Theme.iconPlus
-                                                    positive: saved && !inLibrary
-                                                    enabled: !saved || inLibrary
-                                                    text: saved ? (inLibrary ? qsTrId("genycaster.apps.remove")
-                                                                               : qsTrId("genycaster.apps.saved"))
-                                                                : qsTrId("genycaster.apps.save")
-                                                    onClicked: {
-                                                        if (saved && inLibrary)
-                                                            miniAppCatalog.removeFromMyMiniApps(String(cardCell.modelData.homeUrl || ""))
-                                                        else if (!saved)
-                                                            miniAppCatalog.addToMyMiniApps(cardCell.modelData)
-                                                    }
+                                            }
+
+                                            ActionButton {
+                                                objectName: "miniAppStoreOpenButton"
+                                                Layout.alignment: Qt.AlignVCenter
+                                                Layout.preferredWidth: 76
+                                                compact: true
+                                                pill: true
+                                                elevated: false
+                                                busy: cardCell.launchBusy
+                                                enabled: !cardCell.launchBusy
+                                                text: cardCell.launchBusy ? qsTr("Opening…")
+                                                      : cardCell.running ? qsTr("Resume") : qsTr("Open")
+                                                onClicked: root.openApp(cardCell.modelData)
+                                            }
+
+                                            ActionButton {
+                                                Layout.alignment: Qt.AlignVCenter
+                                                compact: true
+                                                quiet: true
+                                                iconOnly: true
+                                                iconGlyph: Theme.iconShare
+                                                text: qsTrId("genycaster.apps.share")
+                                                onClicked: miniAppHost.requestShare(
+                                                    String(cardCell.modelData.homeUrl || ""),
+                                                    String(cardCell.modelData.name || cardCell.modelData.domain || ""))
+                                            }
+
+                                            ActionButton {
+                                                Layout.alignment: Qt.AlignVCenter
+                                                compact: true
+                                                quiet: true
+                                                iconOnly: true
+                                                readonly property bool saved: Boolean(cardCell.modelData.saved)
+                                                readonly property bool inLibrary: root.farcasterSection === "my"
+                                                iconGlyph: saved ? (inLibrary ? Theme.iconTrash : Theme.iconCheck)
+                                                                 : Theme.iconPlus
+                                                selected: saved
+                                                enabled: !saved || inLibrary
+                                                text: saved ? (inLibrary ? qsTr("Remove") : qsTr("Saved"))
+                                                            : qsTr("Save")
+                                                onClicked: {
+                                                    if (saved && inLibrary)
+                                                        miniAppCatalog.removeFromMyMiniApps(
+                                                            String(cardCell.modelData.homeUrl || ""))
+                                                    else if (!saved)
+                                                        miniAppCatalog.addToMyMiniApps(cardCell.modelData)
                                                 }
                                             }
                                         }

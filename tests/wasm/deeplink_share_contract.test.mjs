@@ -30,7 +30,8 @@ test('unfinished moderation stays out of cast/profile menus and does not filter 
     assert.doesNotMatch(view, /authorMuted|authorBlocked|setAuthorMuted|setAuthorBlocked/);
     assert.doesNotMatch(view, /Copy report reference|Mute locally|Block locally|Mute author locally|Block author locally/);
   }
-  assert.match(cast, /objectName: "castMenu"[\s\S]*?Bookmark cast/);
+  assert.doesNotMatch(cast, /text: qsTr\("Bookmark cast"\)|qsTr\("Remove bookmark"\)/);
+  assert.match(read('ui/components/EngagementBar.qml'), /id: bookmarkButton/);
   const bridge = read('src/presentation/qt/presentation_bridge.cpp');
   assert.match(bridge, /QVariantList PresentationBridge::rows\(\) const \{ return m_rows; \}/);
   assert.doesNotMatch(bridge, /moderation\/%1\/mute|moderation\/%1\/block/);
