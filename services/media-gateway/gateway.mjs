@@ -479,6 +479,35 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   const browserReactionService = dependencies.browserReactionService ?? createBrowserReactionService(runtime);
   const verifiedLinkImages = new Map();
   const verifiedMiniAppImages = new Map();
+  // Cache only successfully verified Mini App raster bytes. Per-cast images
+  // can be slow/intermittent on third-party CDN origins, and multiple visible
+  // delegates may request the same artwork together. Bound both count and
+  // total memory; authorization always precedes this cache lookup.
+  const verifiedArtworkCache = new Map();
+  const verifiedArtworkPending = new Map();
+  let verifiedArtworkCacheBytes = 0;
+  const artworkCacheBudgetBytes = 12 * 1024 * 1024;
+  const artworkCacheEntryMaxBytes = 768 * 1024;
+
+  function rememberVerifiedArtwork(key, result) {
+    const size = result.body?.length || 0;
+    if (!size || size > artworkCacheEntryMaxBytes) return;
+    const previous = verifiedArtworkCache.get(key);
+    if (previous) verifiedArtworkCacheBytes -= previous.body.length;
+    verifiedArtworkCache.delete(key);
+    while (verifiedArtworkCache.size >= 64
+        || verifiedArtworkCacheBytes + size > artworkCacheBudgetBytes) {
+      const oldestKey = verifiedArtworkCache.keys().next().value;
+      if (oldestKey === undefined) break;
+      verifiedArtworkCacheBytes -= verifiedArtworkCache.get(oldestKey).body.length;
+      verifiedArtworkCache.delete(oldestKey);
+    }
+    verifiedArtworkCache.set(key,{
+      body: result.body, contentType: result.contentType,
+      expires: runtime.now() + 180000,
+    });
+    verifiedArtworkCacheBytes += size;
+  }
   let refreshIconsPromise = null;
   let lastIconRefreshAttempt = -Infinity;
 
@@ -1304,7 +1333,45 @@ export function createMediaGateway(config, storage, dependencies = {}) {
           return;
         }
       }
-      const result = await retrieveImage(requested, allowedHosts ? { allowedHosts } : {});
+      const verifiedMiniAppArtwork = typeof requested === 'string'
+        && ((verifiedMiniAppIcons.get(requested) || 0) > runtime.now()
+            || (verifiedMiniAppImages.get(requested) || 0) > runtime.now());
+      const options = allowedHosts ? { allowedHosts } : {};
+      let result;
+      const cachedArtwork = verifiedMiniAppArtwork
+        ? verifiedArtworkCache.get(requested) : null;
+      if (cachedArtwork && cachedArtwork.expires > runtime.now()) {
+        result = {status:200,body:cachedArtwork.body,contentType:cachedArtwork.contentType};
+      } else if (verifiedMiniAppArtwork) {
+        if (cachedArtwork) {
+          verifiedArtworkCacheBytes -= cachedArtwork.body.length;
+          verifiedArtworkCache.delete(requested);
+        }
+        let pending = verifiedArtworkPending.get(requested);
+        if (!pending) {
+          pending = (async()=>{
+            try {
+              let fetched = await retrieveImage(requested, options);
+              // A verified, exact URL can have a transient origin/CDN error.
+              // Retry only one time and only for upstream failures, never for
+              // denied URLs, invalid raster types or oversized payloads.
+              if (fetched.status === 502)
+                fetched = await retrieveImage(requested, options);
+              if (fetched.status === 200)
+                rememberVerifiedArtwork(requested, fetched);
+              return fetched;
+            } catch {
+              return {status:502,error:'image_network_failed'};
+            } finally {
+              verifiedArtworkPending.delete(requested);
+            }
+          })();
+          verifiedArtworkPending.set(requested,pending);
+        }
+        result = await pending;
+      } else {
+        result = await retrieveImage(requested, options);
+      }
       if (result.status !== 200) {
         writeJson(response, result.status, { error: result.error });
         return;

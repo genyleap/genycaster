@@ -274,3 +274,68 @@ test('saved Mini App artwork is validated against its pinned manifest, not the f
   assert.equal(preview.status,200,'artwork verification must not corrupt the preview response cache');
  }finally{await new Promise(resolve=>gateway.close(resolve));}
 });
+
+test('verified per-cast Mini App image retries one transient 502, deduplicates concurrent readers and caches success',async()=>{
+  const appUrl='https://gift.example.org/share/123';
+  const poster='https://image-cdn.example.org/gift/123.png';
+  let upstreamCalls=0;
+  const png=Buffer.from([137,80,78,71,13,10,26,10,0,0,0,13]);
+  const gateway=createMediaGateway(config,{},{
+    farcasterBroker:{},
+    resolveMiniAppPreview:async()=>({status:200,data:{
+      resolved:true,providerKind:'miniapp',domain:'gift.example.org',
+      title:'Example Gift',previewImage:'image://remote/'+poster,
+      verifiedImageUrls:[poster],
+    }}),
+    retrieveImage:async()=>{
+      ++upstreamCalls;
+      await new Promise(resolve=>setTimeout(resolve,18));
+      return upstreamCalls===1 ? {status:502,error:'image_network_failed'}
+        : {status:200,body:png,contentType:'image/png'};
+    },
+  });
+  await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+gateway.address().port;
+  try {
+    const endpoint=base+'/v1/browser/images?url='+encodeURIComponent(poster);
+    const denied=await fetch(endpoint);
+    assert.equal(denied.status,400,'a successful cache must not bypass initial URL verification');
+    const granted=await fetch(base+'/v1/browser/miniapp-preview?url='+encodeURIComponent(appUrl));
+    assert.equal(granted.status,200);
+    const responses=await Promise.all(Array.from({length:3},()=>fetch(endpoint)));
+    for (const response of responses){
+      assert.equal(response.status,200);
+      assert.equal(response.headers.get('content-type'),'image/png');
+      assert.deepEqual(Buffer.from(await response.arrayBuffer()),png);
+    }
+    assert.equal(upstreamCalls,2,'one failed upstream request and exactly one bounded retry');
+    const warm=await fetch(endpoint);
+    assert.equal(warm.status,200);
+    assert.equal(upstreamCalls,2,'warm Mini App card must not redownload its poster');
+    const unrelated=await fetch(base+'/v1/browser/images?url='+
+      encodeURIComponent('https://image-cdn.example.org/private.png'));
+    assert.equal(unrelated.status,400,'the lease is URL-exact, not host-wide');
+  } finally { await new Promise(resolve=>gateway.close(resolve)); }
+});
+
+test('unsafe and invalid Mini App poster results are never retried or cached',async()=>{
+  const poster='https://assets.example.org/poster.png';
+  let calls=0;
+  const gateway=createMediaGateway(config,{},{
+    farcasterBroker:{},
+    resolveMiniAppPreview:async()=>({status:200,data:{
+      resolved:true,verifiedImageUrls:[poster],providerKind:'miniapp',
+    }}),
+    retrieveImage:async()=>{++calls;return {status:415,error:'image_invalid_payload'};},
+  });
+  await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+gateway.address().port;
+  try {
+    assert.equal((await fetch(base+'/v1/browser/miniapp-preview?url='+
+      encodeURIComponent('https://gift.example.org/'))).status,200);
+    const endpoint=base+'/v1/browser/images?url='+encodeURIComponent(poster);
+    assert.equal((await fetch(endpoint)).status,415);
+    assert.equal((await fetch(endpoint)).status,415);
+    assert.equal(calls,2,'invalid image bytes are not stored in cache or retried');
+  }finally{await new Promise(resolve=>gateway.close(resolve));}
+});
