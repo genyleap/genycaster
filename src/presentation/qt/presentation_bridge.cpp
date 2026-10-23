@@ -907,12 +907,15 @@ bool PresentationBridge::setPreferredNetwork(const QString& network)
     if (network != m_independentNetworkKey && network != m_hostedNetworkKey) {
         return false;
     }
-    if (m_preferredNetwork == network) {
-        return true;
-    }
+    const bool hadExplicitProvider = m_settings != nullptr
+        && m_settings->contains(QStringLiteral("network/preferredReadProviderId"));
+    if (m_preferredNetwork == network && !hadExplicitProvider) return true;
     m_preferredNetwork = network;
     if (m_settings != nullptr) {
         m_settings->setValue(QStringLiteral("connection/preferredNetwork"), network);
+        // An explicit provider selection must not silently return after the
+        // user switches back to the legacy network preference controls.
+        m_settings->remove(QStringLiteral("network/preferredReadProviderId"));
     }
     emit preferredNetworkChanged(network);
     return true;

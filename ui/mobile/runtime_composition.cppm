@@ -57,6 +57,21 @@ import farcaster.capability.media;
 export namespace genycaster::ui::runtime {
 
 /**
+ * @brief User-configured provider instance for a declared adapter contract.
+ *
+ * Metadata contains only public configuration; secrets never enter the profile.
+ * A registered adapter is still required for the protocol contract. Unknown
+ * contracts are rejected rather than guessed from hostname or URL shape.
+ */
+struct ReadProviderProfile final {
+    std::string id{};
+    std::string displayName{};
+    std::string endpoint{};
+    std::string adapterContract{};
+    bool selfHosted{false};
+};
+
+/**
  * @brief Owns the outer runtime composition used by the Qt application shell.
  *
  * The type centralizes executor, storage, provider, routing, signer, write and
@@ -138,10 +153,18 @@ struct Runtime final {
     farcaster::routing::registry::CapabilityRegistry registry{};
     farcaster::routing::health::HealthRegistry health{};
     std::unique_ptr<farcaster::routing::router::CapabilityRouter> router{};
+    // Provider instance identifiers are supplied by adapter registration.
+    // Presentation may select them without knowing adapter/vendor names.
+    std::string independentReadProviderId{};
+    std::string hostedReadProviderId{};
+    std::string requestedReadProviderId{};
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
     std::optional<farcaster::storage::continuation::ContinuationStore> continuations{};
     std::unique_ptr<farcaster::provider::hypersnap::async_gateway::AsyncGateway> asyncGateway{};
     std::unique_ptr<farcaster::provider::hypersnap::async_gateway::AsyncGateway> farcasterReadGateway{};
+    std::vector<std::unique_ptr<farcaster::provider::hypersnap::async_gateway::AsyncGateway>>
+        additionalReadGateways{};
+    std::vector<std::string> additionalReadProviderIds{};
     std::unique_ptr<farcaster::routing::read::async_gateway::RoutedReadGateway> routedAsyncGateway{};
 #endif
     std::unique_ptr<farcaster::application::read::async_service::ReadService> service{};
@@ -223,6 +246,8 @@ struct Runtime final {
     const std::optional<std::string>& providerBaseUrl,
     const std::optional<std::string>& farcasterReadBaseUrl,
     const std::optional<std::string>& farcasterReadApiKey,
+    const std::vector<ReadProviderProfile>& additionalReadProviders,
+    const std::optional<std::string>& preferredReadProviderId,
     const std::optional<std::string>& authRelayUrl,
     const std::optional<std::string>& optimismRpcUrl,
     const std::optional<std::string>& snapchainBaseUrl,

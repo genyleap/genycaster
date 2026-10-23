@@ -6,6 +6,8 @@ module;
 #include <expected>
 #include <limits>
 #include <optional>
+#include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -20,6 +22,21 @@ import farcaster.provider.model;
 import farcaster.routing.registry;
 
 namespace farcaster::routing::router {
+namespace {
+
+[[nodiscard]] std::string accessKey(const capability::model::CapabilityAccess access)
+{
+    return std::to_string(static_cast<int>(access));
+}
+
+[[nodiscard]] std::string capabilityKey(
+    const capability::model::CapabilityId& capabilityId,
+    const capability::model::CapabilityAccess access)
+{
+    return accessKey(access) + ":" + capabilityId.value;
+}
+
+} // namespace
 
 CapabilityRouter::CapabilityRouter(
     const registry::CapabilityRegistry& registry,
@@ -38,10 +55,71 @@ void CapabilityRouter::setPreferredNetwork(const policy::PreferredNetwork networ
     m_preferredNetwork.store(network, std::memory_order_relaxed);
 }
 
+void CapabilityRouter::setPreferredProviderForAccess(
+    const capability::model::CapabilityAccess access, ProviderPreference preference)
+{
+    std::unique_lock lock{m_preferencesMutex};
+    const auto key = accessKey(access);
+    if (preference.provider.value.empty()) {
+        m_accessPreferences.erase(key);
+    } else {
+        m_accessPreferences.insert_or_assign(key, std::move(preference));
+    }
+}
+
+void CapabilityRouter::clearPreferredProviderForAccess(
+    const capability::model::CapabilityAccess access)
+{
+    std::unique_lock lock{m_preferencesMutex};
+    m_accessPreferences.erase(accessKey(access));
+}
+
+void CapabilityRouter::setPreferredProviderForCapability(
+    const capability::model::CapabilityId& capabilityId,
+    const capability::model::CapabilityAccess access,
+    ProviderPreference preference)
+{
+    std::unique_lock lock{m_preferencesMutex};
+    const auto key = capabilityKey(capabilityId, access);
+    if (preference.provider.value.empty()) {
+        m_capabilityPreferences.erase(key);
+    } else {
+        m_capabilityPreferences.insert_or_assign(key, std::move(preference));
+    }
+}
+
+void CapabilityRouter::clearPreferredProviderForCapability(
+    const capability::model::CapabilityId& capabilityId,
+    const capability::model::CapabilityAccess access)
+{
+    std::unique_lock lock{m_preferencesMutex};
+    m_capabilityPreferences.erase(capabilityKey(capabilityId, access));
+}
+
 foundation::result::Result<ProviderRoute>
 CapabilityRouter::resolve(const policy::CapabilityRequest& request) const
 {
     const auto candidates = m_registry.candidatesFor(request.capabilityId);
+    std::optional<ProviderPreference> explicitPreference{};
+    {
+        std::shared_lock lock{m_preferencesMutex};
+        const auto specific = m_capabilityPreferences.find(
+            capabilityKey(request.capabilityId, request.requiredAccess));
+        if (specific != m_capabilityPreferences.end()) {
+            explicitPreference = specific->second;
+        } else {
+            const auto general = m_accessPreferences.find(accessKey(request.requiredAccess));
+            if (general != m_accessPreferences.end()) {
+                explicitPreference = general->second;
+            }
+        }
+    }
+    const auto network = m_preferredNetwork.load(std::memory_order_relaxed);
+    const std::string preferredId = explicitPreference
+        ? explicitPreference->provider.value
+        : network == policy::PreferredNetwork::Independent
+            ? m_preferredProviders.independent.value
+            : m_preferredProviders.hosted.value;
     std::optional<ProviderRoute> best{};
     std::uint64_t bestScore{std::numeric_limits<std::uint64_t>::max()};
     bool bestMatchesPreference{false};
@@ -49,6 +127,10 @@ CapabilityRouter::resolve(const policy::CapabilityRequest& request) const
     std::chrono::milliseconds shortestCooldown{std::chrono::milliseconds::max()};
 
     for (const registry::RouteCandidate& candidate : candidates) {
+        if (explicitPreference && explicitPreference->require
+            && candidate.provider.id.value != preferredId) {
+            continue;
+        }
         const auto health = m_health.find(candidate.provider.id, request.capabilityId);
         const health::CapabilityHealth* const healthPointer = health ? &*health : nullptr;
 
@@ -69,9 +151,6 @@ CapabilityRouter::resolve(const policy::CapabilityRequest& request) const
         // Affinity is a lexicographic preference *after* capability, deployment,
         // and health eligibility. It never defeats a hard constraint or excludes
         // a compatible fallback when the preferred adapter is absent.
-        const auto preferred = m_preferredNetwork.load(std::memory_order_relaxed);
-        const auto& preferredId = preferred == policy::PreferredNetwork::Independent
-            ? m_preferredProviders.independent.value : m_preferredProviders.hosted.value;
         const bool matchesPreference = !preferredId.empty()
             && candidate.provider.id.value == preferredId;
         const auto routeScore = m_policyEngine.score(candidate, healthPointer);
@@ -84,6 +163,14 @@ CapabilityRouter::resolve(const policy::CapabilityRequest& request) const
     }
 
     if (!best) {
+        if (explicitPreference && explicitPreference->require) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::Unavailable,
+                "Selected provider '" + preferredId + "' cannot satisfy capability '"
+                    + request.capabilityId.value
+                    + "' under the current access, health, or deployment policy."
+                      " Strict routing forbids implicit fallback."));
+        }
         if (candidates.empty()) {
             return std::unexpected(foundation::error::Error::make(
                 foundation::error::ErrorCode::Unavailable,

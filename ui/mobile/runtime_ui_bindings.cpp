@@ -119,6 +119,9 @@ import farcaster.foundation.time;
 import farcaster.local.write;
 import farcaster.presentation.media;
 import farcaster.routing.policy;
+import farcaster.provider.model;
+import farcaster.routing.router;
+import farcaster.capability.model;
 import farcaster.transport.async_http;
 import farcaster.transport.http;
 #if FARCASTER_HAS_MEDIA_UPLOAD
@@ -2286,16 +2289,42 @@ void connectRuntime(
     Q_UNUSED(browserSnapchainOrigin);
 #endif
     const auto applyNetworkAffinity = [runtime, &bridge](const QString& network) {
-        if (runtime->router) {
-            runtime->router->setPreferredNetwork(
-                network == bridge.hostedNetworkKey()
-                    ? routing::policy::PreferredNetwork::Hosted
-                    : routing::policy::PreferredNetwork::Independent);
+        if (!runtime->router) return;
+        const bool hosted = network == bridge.hostedNetworkKey();
+        // Existing two-way setting remains compatible, but route selection is
+        // now by registered provider instance id, not hardcoded vendor logic.
+        runtime->router->setPreferredNetwork(
+            hosted ? routing::policy::PreferredNetwork::Hosted
+                   : routing::policy::PreferredNetwork::Independent);
+        const std::string& providerId = hosted
+            ? runtime->hostedReadProviderId : runtime->independentReadProviderId;
+        if (providerId.empty()) {
+            runtime->router->clearPreferredProviderForAccess(
+                farcaster::capability::model::CapabilityAccess::Read);
+        } else {
+            runtime->router->setPreferredProviderForAccess(
+                farcaster::capability::model::CapabilityAccess::Read,
+                routing::router::ProviderPreference{
+                    .provider = farcaster::provider::model::ProviderId{providerId},
+                    .require = false,
+                });
         }
     };
     applyNetworkAffinity(bridge.preferredNetwork());
+    // An explicitly selected registered provider overrides the legacy two-way
+    // selection on startup. The next user selection supersedes this pin.
+    if (runtime->router && !runtime->requestedReadProviderId.empty()) {
+        runtime->router->setPreferredProviderForAccess(
+            farcaster::capability::model::CapabilityAccess::Read,
+            routing::router::ProviderPreference{
+                .provider = farcaster::provider::model::ProviderId{
+                    runtime->requestedReadProviderId},
+                .require = true,
+            });
+    }
     QObject::connect(&bridge, &PresentationBridge::preferredNetworkChanged, &bridge,
-        [&bridge, applyNetworkAffinity](const QString& network) {
+        [&bridge, runtime, applyNetworkAffinity](const QString& network) {
+            runtime->requestedReadProviderId.clear();
             applyNetworkAffinity(network);
             if (bridge.runtimeReady() && !bridge.isBusy()) {
                 bridge.retryAutomatically();

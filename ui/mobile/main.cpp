@@ -10,6 +10,7 @@
 #include <QFileInfo>
 #include <QMetaObject>
 #include <QJsonDocument>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QNetworkInformation>
 #include <QObject>
@@ -795,6 +796,83 @@ int main(int argc, char* argv[])
         ? std::nullopt : std::optional<std::string>{farcasterReadBaseUrlText.toStdString()};
     const std::optional<std::string> farcasterReadApiKey = farcasterReadApiKeyText.isEmpty()
         ? std::nullopt : std::optional<std::string>{farcasterReadApiKeyText.toStdString()};
+
+    // Profiles are adapter-instance registrations, not a global provider URL.
+    // A profile declares the protocol contract explicitly; unknown contracts
+    // fail closed rather than being bound to whichever API happens to respond.
+    QString providerProfilesJson = optionValue(
+        arguments, QStringLiteral("--read-provider-profiles-json="));
+    if (providerProfilesJson.isEmpty()) {
+        providerProfilesJson = qEnvironmentVariable(
+            "GENYCASTER_READ_PROVIDER_PROFILES_JSON").trimmed();
+    }
+    if (providerProfilesJson.isEmpty()) {
+        providerProfilesJson = settings.value(
+            QStringLiteral("network/readProviderProfilesJson")).toString().trimmed();
+    }
+    const auto validProviderId = [](const QString& id) {
+        if (id.isEmpty() || id.size() > 64) return false;
+        for (const QChar ch : id) {
+            const ushort code = ch.unicode();
+            if (!((code >= 'a' && code <= 'z') || (code >= 'A' && code <= 'Z')
+                  || (code >= '0' && code <= '9') || code == '-' || code == '_'
+                  || code == '.')) return false;
+        }
+        return true;
+    };
+    std::vector<genycaster::ui::runtime::ReadProviderProfile> additionalReadProviders{};
+    if (!providerProfilesJson.isEmpty()) {
+        QJsonParseError parseError{};
+        const auto document = QJsonDocument::fromJson(providerProfilesJson.toUtf8(), &parseError);
+        if (parseError.error != QJsonParseError::NoError || !document.isArray()
+            || document.array().size() > 16) {
+            qCritical().noquote() << "Read provider profiles must be a JSON array of at most 16 entries.";
+            return 2;
+        }
+        std::unordered_set<std::string> seenIds{"hypersnap-v2", "farcaster-snapchain"};
+        for (const QJsonValue& entry : document.array()) {
+            if (!entry.isObject()) {
+                qCritical().noquote() << "Every read provider profile must be a JSON object.";
+                return 2;
+            }
+            const QJsonObject profile = entry.toObject();
+            const QString id = profile.value(QStringLiteral("id")).toString().trimmed();
+            const QString contract = profile.value(QStringLiteral("contract")).toString().trimmed();
+            const QString endpoint = profile.value(QStringLiteral("endpoint")).toString().trimmed();
+            const QString label = profile.value(QStringLiteral("label")).toString().trimmed();
+            const auto hostClass = profile.value(QStringLiteral("selfHosted"));
+            if (!validProviderId(id) || !isValidHttpServiceUrl(endpoint)
+                || contract.isEmpty() || !hostClass.isBool()
+                || !seenIds.insert(id.toStdString()).second) {
+                qCritical().noquote() << "Invalid, duplicate, or credential-bearing read provider profile.";
+                return 2;
+            }
+            additionalReadProviders.push_back({
+                .id = id.toStdString(),
+                .displayName = label.isEmpty() ? id.toStdString() : label.toStdString(),
+                .endpoint = endpoint.toStdString(),
+                .adapterContract = contract.toStdString(),
+                .selfHosted = hostClass.toBool(),
+            });
+        }
+    }
+    QString preferredReadProviderText = optionValue(
+        arguments, QStringLiteral("--preferred-read-provider-id="));
+    if (preferredReadProviderText.isEmpty()) {
+        preferredReadProviderText = qEnvironmentVariable(
+            "GENYCASTER_PREFERRED_READ_PROVIDER_ID").trimmed();
+    }
+    if (preferredReadProviderText.isEmpty()) {
+        preferredReadProviderText = settings.value(
+            QStringLiteral("network/preferredReadProviderId")).toString().trimmed();
+    }
+    if (!preferredReadProviderText.isEmpty() && !validProviderId(preferredReadProviderText)) {
+        qCritical().noquote() << "Preferred read provider id is invalid.";
+        return 2;
+    }
+    const std::optional<std::string> preferredReadProviderId =
+        preferredReadProviderText.isEmpty() ? std::nullopt
+            : std::optional<std::string>{preferredReadProviderText.toStdString()};
 
     QStringList nodeCandidateEndpoints{};
     const QString nodeCandidatesText =
@@ -1736,7 +1814,8 @@ int main(int argc, char* argv[])
                                  &mediaUploadController,
                                   &mediaPlayback, &runtime,
                                   databasePath, networkProxyPolicy, providerBaseUrl,
-                                  farcasterReadBaseUrl, farcasterReadApiKey, authRelayUrl,
+                                  farcasterReadBaseUrl, farcasterReadApiKey,
+                                  additionalReadProviders, preferredReadProviderId, authRelayUrl,
                                   optimismRpcUrl, snapchainBaseUrl, snapchainWriteBaseUrl,
                                   mediaGatewayBaseUrl, snapchainAuthorizationHeader,
                                   snapchainAuthorizationValue,
@@ -1751,6 +1830,8 @@ int main(int argc, char* argv[])
                 providerBaseUrl,
                 farcasterReadBaseUrl,
                 farcasterReadApiKey,
+                additionalReadProviders,
+                preferredReadProviderId,
                 authRelayUrl,
                 optimismRpcUrl,
                 snapchainBaseUrl,

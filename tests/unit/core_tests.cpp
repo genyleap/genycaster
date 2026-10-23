@@ -310,6 +310,139 @@ void testCapabilityRouting()
     assert(constrainedRoute->provider.id.value == "test-independent");
 }
 
+void testProviderNeutralCapabilityPreferences()
+{
+    using namespace farcaster;
+    using capability::model::CapabilityAccess;
+    using capability::model::CapabilityId;
+    using provider::model::ProviderId;
+    using routing::router::ProviderPreference;
+
+    const CapabilityId feedId{"social.feed.read"};
+    const CapabilityId profileId{"social.profile.read"};
+    const CapabilityId castWriteId{"social.cast.publish"};
+    const auto descriptor = [](const CapabilityId& id, const CapabilityAccess access) {
+        return capability::model::CapabilityDescriptor{
+            .id = id,
+            .version = {1, 0},
+            .origin = capability::model::CapabilityOrigin::Protocol,
+            .quality = capability::model::CapabilityQuality::Native,
+            .access = {access},
+            .isSelfHostable = true,
+        };
+    };
+    routing::registry::CapabilityRegistry registry{};
+    assert(registry.registerProvider({
+        .provider = {
+            .id = ProviderId{"local-alpha"}, .displayName = "Local A",
+            .deployment = provider::model::ProviderDeployment::SelfHosted,
+            .privacy = provider::model::ProviderPrivacy::Private, .priority = 1,
+        },
+        .capabilities = {
+            descriptor(feedId, CapabilityAccess::Read),
+            descriptor(profileId, CapabilityAccess::Read),
+        },
+    }));
+    assert(registry.registerProvider({
+        .provider = {
+            .id = ProviderId{"remote-beta"}, .displayName = "Remote B",
+            .deployment = provider::model::ProviderDeployment::PublicManaged,
+            .privacy = provider::model::ProviderPrivacy::Standard, .priority = 5,
+        },
+        .capabilities = {
+            descriptor(feedId, CapabilityAccess::Read),
+            descriptor(profileId, CapabilityAccess::Read),
+            descriptor(castWriteId, CapabilityAccess::Write),
+        },
+    }));
+    assert(registry.registerProvider({
+        .provider = {
+            .id = ProviderId{"validator-gamma"}, .displayName = "Writer C",
+            .deployment = provider::model::ProviderDeployment::SelfHosted,
+            .privacy = provider::model::ProviderPrivacy::Private, .priority = 9,
+        },
+        .capabilities = {descriptor(castWriteId, CapabilityAccess::Write)},
+    }));
+    routing::health::HealthRegistry health{};
+    routing::router::CapabilityRouter router{registry, health, routing::policy::RoutingPolicy{}};
+    const auto readRequest = [&feedId] {
+        return routing::policy::CapabilityRequest{
+            .capabilityId = feedId, .requiredAccess = CapabilityAccess::Read,
+        };
+    };
+    const routing::policy::CapabilityRequest writeRequest{
+        .capabilityId = castWriteId, .requiredAccess = CapabilityAccess::Write,
+    };
+    assert(router.resolve(readRequest())->provider.id.value == "local-alpha");
+    assert(router.resolve(writeRequest)->provider.id.value == "remote-beta");
+
+    router.setPreferredProviderForAccess(
+        CapabilityAccess::Read, ProviderPreference{.provider = ProviderId{"remote-beta"}});
+    assert(router.resolve(readRequest())->provider.id.value == "remote-beta");
+
+    // A per-capability selection overrides the access-class default.
+    router.setPreferredProviderForCapability(
+        profileId, CapabilityAccess::Read,
+        ProviderPreference{.provider = ProviderId{"local-alpha"}, .require = true});
+    assert(router.resolve({
+        .capabilityId = profileId, .requiredAccess = CapabilityAccess::Read,
+    })->provider.id.value == "local-alpha");
+    router.clearPreferredProviderForCapability(profileId, CapabilityAccess::Read);
+    assert(router.resolve({
+        .capabilityId = profileId, .requiredAccess = CapabilityAccess::Read,
+    })->provider.id.value == "remote-beta");
+
+    // Soft read affinity permits fallback to an eligible, healthy provider.
+    health.update({
+        .providerId = ProviderId{"remote-beta"}, .capabilityId = feedId,
+        .state = routing::health::HealthState::Unavailable,
+    });
+    assert(router.resolve(readRequest())->provider.id.value == "local-alpha");
+
+    // A pinned write never falls back to another writer without an explicit choice.
+    router.setPreferredProviderForAccess(
+        CapabilityAccess::Write,
+        ProviderPreference{.provider = ProviderId{"validator-gamma"}, .require = true});
+    assert(router.resolve(writeRequest)->provider.id.value == "validator-gamma");
+    health.update({
+        .providerId = ProviderId{"validator-gamma"}, .capabilityId = castWriteId,
+        .state = routing::health::HealthState::Unavailable,
+    });
+    const auto unavailableWriter = router.resolve(writeRequest);
+    assert(!unavailableWriter);
+    assert(unavailableWriter.error().message.find("forbids implicit fallback")
+        != std::string::npos);
+
+    // A non-writable node cannot be selected for a write just because it reads well.
+    router.setPreferredProviderForAccess(
+        CapabilityAccess::Write,
+        ProviderPreference{.provider = ProviderId{"local-alpha"}, .require = true});
+    assert(!router.resolve(writeRequest));
+
+    // Unknown provider ids do not invent adapters or bypass capability registration.
+    router.setPreferredProviderForAccess(
+        CapabilityAccess::Read,
+        ProviderPreference{.provider = ProviderId{"not-registered"}, .require = true});
+    assert(!router.resolve(readRequest()));
+    router.clearPreferredProviderForAccess(CapabilityAccess::Read);
+    assert(router.resolve(readRequest())->provider.id.value == "local-alpha");
+
+    // Strict self-hosting remains a hard boundary even for a preferred managed node.
+    routing::router::CapabilityRouter strict{
+        registry, health,
+        routing::policy::RoutingPolicy{
+            .mode = routing::policy::RoutingMode::StrictSelfHosted,
+            .allowManagedProviders = false,
+        },
+    };
+    strict.setPreferredProviderForAccess(
+        CapabilityAccess::Read,
+        ProviderPreference{.provider = ProviderId{"remote-beta"}, .require = true});
+    assert(!strict.resolve(readRequest()));
+    strict.clearPreferredProviderForAccess(CapabilityAccess::Read);
+    assert(strict.resolve(readRequest())->provider.id.value == "local-alpha");
+}
+
 void testRoutingFailureDiagnostics()
 {
     using namespace farcaster;
@@ -1006,6 +1139,7 @@ int main()
     testValuationContract();
     testConfiguredFeatureSet();
     testCapabilityRouting();
+    testProviderNeutralCapabilityPreferences();
     testRoutingFailureDiagnostics();
     testSyncCoordinator();
     testRoutedReadGatewayDispatchesByCapability();
