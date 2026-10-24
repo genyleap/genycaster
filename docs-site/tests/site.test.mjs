@@ -36,6 +36,15 @@ test('architecture contains honest routing and write flow diagrams',()=>{
  assert.match(read('/status/'),/Not yet verified/);
  assert.match(read('/client-switching/'),/Client.*protocol|protocol.*identit/i);
 });
+test('prize requirements remain explicit and license claims accurate',()=>{
+ const guide=read('/quickstart/');
+ const status=read('/status/');
+ for(const term of ['MIT','GPL-3.0','three URLs','October 24'])
+   assert.ok(guide.includes(term),term);
+ for(const term of ['GPL-3.0','endorsement'])
+   assert.ok(status.includes(term),term);
+});
+
 test('static docs do not rely on remote assets or expose server secrets',()=>{
  const script=readFileSync(resolve(root,'assets/site.js'),'utf8');
  const css=readFileSync(resolve(root,'assets/site.css'),'utf8');
