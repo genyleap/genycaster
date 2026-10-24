@@ -410,8 +410,11 @@ public:
             if (!signerFixture) {
                 complete(transport::http::HttpResponse{.statusCode = 404U});
             } else {
-                const auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                const auto unixNow = std::chrono::duration_cast<std::chrono::seconds>(
                     std::chrono::system_clock::now().time_since_epoch()).count();
+                constexpr std::int64_t farcasterEpochUnixSeconds = 1'609'459'200LL;
+                assert(unixNow > farcasterEpochUnixSeconds);
+                const auto now = unixNow - farcasterEpochUnixSeconds;
                 const unsigned fid = signerRecordInvalid ? 43U : 42U;
                 const std::string body = R"({"signer":{"source":"SIGNER_SOURCE_OFFCHAIN","key":")"
                     + std::string{signerKey} + R"(","keyType":1,"fid":)"

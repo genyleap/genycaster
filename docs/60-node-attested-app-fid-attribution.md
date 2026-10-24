@@ -20,6 +20,8 @@ Official proposal: https://github.com/farcasterxyz/protocol/discussions/266
   public key**, **cast author FID**, `keyType=1`, source
   `SIGNER_SOURCE_OFFCHAIN`, positive `requestFid`, positive bounded TTL,
   consistent `lastUsedAt+ttl=expiresAt`, current unexpired registration and
+  (critically) **Farcaster-epoch seconds** for both network expiry and
+  comparison clock; using Unix seconds marks valid registrations expired.
   `MESSAGE_TYPE_CAST_ADD` scope. Missing/legacy/expired/unauthorized records
   produce no App FID; mismatched data fails verification. No app FID is
   synthesized from the author, text, indexed `app.name` or read endpoint.

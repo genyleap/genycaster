@@ -80,7 +80,7 @@ struct Config final {
 [[nodiscard]] foundation::result::Result<std::optional<domain::identity::Fid>>
 decodeSignerAppFid(std::string_view jsonBody,
     domain::identity::Fid author, std::string_view signerKeyHex,
-    std::uint64_t currentUnixSeconds);
+    std::uint64_t currentFarcasterSeconds);
 
 /** @brief Decode effective Follow links from an authenticated raw-node response. */
 [[nodiscard]] foundation::result::Result<capability::social::SocialGraphPage> decodeFollowLinks(

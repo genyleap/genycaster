@@ -387,16 +387,23 @@ struct AppAttributionWork final : std::enable_shared_from_this<AppAttributionWor
                 foundation::result::Result<std::string> response) mutable {
                 if (self->cancelled.load(std::memory_order_acquire)) return;
                 if (response) {
-                    const auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                    // Snapchain lastUsedAt/expiresAt are in the 2021 Farcaster
+                    // epoch, NOT Unix epoch seconds. Comparing with Unix
+                    // seconds silently declares every active signer expired.
+                    constexpr std::int64_t farcasterEpochUnixSeconds = 1'609'459'200LL;
+                    const auto unixNow = std::chrono::duration_cast<std::chrono::seconds>(
                         std::chrono::system_clock::now().time_since_epoch()).count();
-                    auto app = decodeSignerAppFid(*response,
-                        domain::identity::Fid{fid}, key,
-                        static_cast<std::uint64_t>(now));
-                    if (app && *app) {
-                        for (auto& cast : self->page.casts) {
-                            if (cast.author.value == fid && cast.signerPublicKeyHex
-                                && *cast.signerPublicKeyHex == key)
-                                cast.sourceAppFid = **app;
+                    if (unixNow > farcasterEpochUnixSeconds) {
+                        const auto farcasterNow = static_cast<std::uint64_t>(
+                            unixNow - farcasterEpochUnixSeconds);
+                        auto app = decodeSignerAppFid(*response,
+                            domain::identity::Fid{fid}, key, farcasterNow);
+                        if (app && *app) {
+                            for (auto& cast : self->page.casts) {
+                                if (cast.author.value == fid && cast.signerPublicKeyHex
+                                    && *cast.signerPublicKeyHex == key)
+                                    cast.sourceAppFid = **app;
+                            }
                         }
                     }
                 }
@@ -1074,7 +1081,7 @@ foundation::result::Result<std::optional<domain::identity::Fid>> decodeSignerApp
     const std::string_view jsonBody,
     const domain::identity::Fid author,
     const std::string_view signerKeyHex,
-    const std::uint64_t currentUnixSeconds)
+    const std::uint64_t currentFarcasterSeconds)
 {
     // The selected Snapchain node has already validated the signed custody
     // request bound to requestFid. We independently check this read response
@@ -1107,7 +1114,7 @@ foundation::result::Result<std::optional<domain::identity::Fid>> decodeSignerApp
         || !used || !expiration || !scopes || scopes->empty())
         return std::optional<domain::identity::Fid>{};
     if (*used > std::numeric_limits<std::uint64_t>::max() - *ttl
-        || *expiration != *used + *ttl || *expiration <= currentUnixSeconds)
+        || *expiration != *used + *ttl || *expiration <= currentFarcasterSeconds)
         return std::optional<domain::identity::Fid>{};
     bool castsAllowed = false;
     for (const auto& scope : *scopes)

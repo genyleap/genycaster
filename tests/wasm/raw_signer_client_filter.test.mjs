@@ -129,3 +129,12 @@ test('App FID registry route and canonical cache and locale controls are wired',
       /<message id="genycaster\.feed\.app_fid_filter_explanation">[\s\S]*?<translation>[^<]+<\/translation>/);
   }
 });
+
+test('live gasless signer TTL uses Farcaster epoch, not Unix seconds', () => {
+  const source = read('src/providers/snapchain/read.cpp');
+  const fixture = read('tests/providers/snapchain/read_contract_tests.cpp');
+  assert.match(source, /farcasterEpochUnixSeconds = 1'609'459'200LL/);
+  assert.match(source, /unixNow - farcasterEpochUnixSeconds/);
+  assert.match(source, /currentFarcasterSeconds/);
+  assert.match(fixture, /unixNow - farcasterEpochUnixSeconds/);
+});
