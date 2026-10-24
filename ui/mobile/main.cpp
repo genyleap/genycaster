@@ -40,6 +40,7 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <cstdint>
 #include <expected>
 #include <exception>
@@ -869,10 +870,19 @@ int main(int argc, char* argv[])
     if (providerSecretsJson.isEmpty()) {
         // Explicitly supplied per-tab browser credentials. Never persist
         // these keys in QSettings/IDBFS or bundle them into WASM assets.
-        const char* sessionJson = emscripten_run_script_string(
-            "(function(){try{return sessionStorage.getItem("
-            "'genycaster:read-session-keys')||'{}'}catch(e){return '{}'}})()");
-        if (sessionJson) providerSecretsJson = QByteArray{sessionJson};
+        const char* sessionJson = reinterpret_cast<const char*>(EM_ASM_PTR({
+            try {
+                const value = sessionStorage.getItem("genycaster:read-session-keys") || "{}";
+                const bytes = lengthBytesUTF8(value) + 1;
+                const ptr = _malloc(bytes);
+                stringToUTF8(value, ptr, bytes);
+                return ptr;
+            } catch (_) { return 0; }
+        }));
+        if (sessionJson) {
+            providerSecretsJson = QByteArray{sessionJson};
+            std::free(const_cast<char*>(sessionJson));
+        }
     }
 #endif
     if (!providerSecretsJson.isEmpty()) {

@@ -56,6 +56,7 @@ test('opt-in indexed API keys are session-scoped, never stored in QSettings', ()
   assert.match(controller, /setSessionReadApiKey/);
   assert.match(controller, /sessionStorage\.setItem\(key, JSON\.stringify\(saved\)\)/);
   assert.match(bootstrap, /sessionStorage\.getItem\(/);
+  assert.match(bootstrap, /EM_ASM_PTR/);
   assert.match(bootstrap, /GENYCASTER_READ_PROVIDER_API_KEYS_JSON/);
   assert.match(bootstrap, /Indexed read credentials must be a JSON object/);
   assert.doesNotMatch(controller, /m_settings\.setValue\([^\n]*[aA]pi[Kk]ey/);
