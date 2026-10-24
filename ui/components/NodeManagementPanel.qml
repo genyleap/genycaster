@@ -97,7 +97,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 width: parent.width
                 spacing: Theme.space2
-                implicitHeight: childrenRect.height
+                Layout.preferredHeight: childrenRect.height
                 ActionButton {
                     compact: true
                     iconGlyph: Theme.iconRefresh
@@ -179,7 +179,7 @@ ColumnLayout {
                     Flow {
                         Layout.fillWidth: true
                         spacing: Theme.space2
-                        implicitHeight: childrenRect.height
+                        Layout.preferredHeight: childrenRect.height
                         ActionButton {
                             compact: true
                             text: qsTrId("genycaster.nodes.test")
@@ -216,7 +216,7 @@ ColumnLayout {
                         Flow {
                             Layout.fillWidth: true
                             spacing: Theme.space2
-                            implicitHeight: childrenRect.height
+                            Layout.preferredHeight: childrenRect.height
                             ActionButton {
                                 compact: true
                                 text: qsTrId("genycaster.nodes.paste")
@@ -452,7 +452,7 @@ ColumnLayout {
         Flow {
             Layout.fillWidth: true
             spacing: Theme.space2
-            implicitHeight: childrenRect.height
+            Layout.preferredHeight: childrenRect.height
             ActionButton {
                 compact: true
                 text: qsTrId("genycaster.nodes.test")
@@ -570,7 +570,7 @@ ColumnLayout {
             Flow {
                 Layout.fillWidth: true
                 spacing: Theme.space2
-                implicitHeight: childrenRect.height
+                Layout.preferredHeight: childrenRect.height
                 ActionButton {
                     compact: true
                     enabled: providerProfiles.writeSupported

@@ -97,3 +97,10 @@ test('a custom raw node can receive only its own explicit HTTPS x-api-key', () =
   assert.match(controller, /QStringLiteral\("snapchain-v1"\)\)/);
   assert.match(manager, /readKey\.text\)/);
 });
+
+test('all Node Management Flow positioners use writable Layout.preferredHeight', () => {
+  // QQuickPositioner::implicitHeight is read-only: qmllint may pass, but
+  // QQmlApplicationEngine aborts the entire Main interface at runtime.
+  assert.doesNotMatch(manager, /implicitHeight:\s*childrenRect\.height/);
+  assert.equal([...manager.matchAll(/Layout\.preferredHeight:\s*childrenRect\.height/g)].length, 5);
+});
