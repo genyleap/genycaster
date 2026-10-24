@@ -211,6 +211,8 @@ private:
     [[nodiscard]] foundation::result::Result<local::read::FeedWindow>
     readDerivedRecentWindow(std::size_t offset, std::size_t limit);
     [[nodiscard]] foundation::result::Result<bool> hasMaterializedRecentSnapshot();
+    /** Best-effort local channel discovery from already persisted canonical casts. */
+    void rememberChannelsFromCasts(std::span<const domain::cast::Cast> casts);
     [[nodiscard]] foundation::result::Result<std::optional<capability::pagination::ContinuationToken>>
     readContinuation(std::string_view key);
     [[nodiscard]] foundation::result::Status writeContinuationLocked(
@@ -449,7 +451,9 @@ INSERT INTO cached_channel_suggestions
 (id, name, parent_url, image_url, description, follower_count)
 VALUES(?, ?, ?, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE SET
-    name = excluded.name,
+    name = CASE WHEN excluded.name = excluded.id
+                 AND cached_channel_suggestions.name != cached_channel_suggestions.id
+                THEN cached_channel_suggestions.name ELSE excluded.name END,
     parent_url = COALESCE(excluded.parent_url, cached_channel_suggestions.parent_url),
     image_url = COALESCE(excluded.image_url, cached_channel_suggestions.image_url),
     description = COALESCE(excluded.description, cached_channel_suggestions.description),
@@ -489,6 +493,53 @@ ON CONFLICT(id) DO UPDATE SET
     if (auto status = transaction.commit(); !status)
         return std::unexpected(toFoundationError(std::move(status.error())));
     return {};
+}
+
+void SqliteReadStore::rememberChannelsFromCasts(
+    const std::span<const domain::cast::Cast> casts)
+{
+    // A raw/canonical Cast may already contain channel identity without an
+    // indexed search response. Learn only explicitly resolved channel IDs;
+    // never invent an ID from an arbitrary parent URL or a provider hostname.
+    std::vector<const domain::cast::Cast*> pending{};
+    pending.reserve(casts.size());
+    for (const auto& cast : casts) pending.push_back(&cast);
+    std::vector<capability::search::ChannelSuggestion> batch{};
+    batch.reserve(30U);
+    const auto valid = [](const std::string& text, const std::size_t maximum) {
+        return !text.empty() && text.size() <= maximum
+            && text.find('\0') == std::string::npos;
+    };
+    const auto safeOptional = [&](const std::optional<std::string>& value)
+        -> std::optional<std::string> {
+        return value && valid(*value, 4096U) ? value : std::nullopt;
+    };
+    const auto flush = [&] {
+        if (!batch.empty()) {
+            // Discovery is strictly secondary to a successfully persisted
+            // Cast/feed. SQLite errors cannot make canonical reads fail.
+            (void)putChannelSuggestions(batch);
+            batch.clear();
+        }
+    };
+    while (!pending.empty()) {
+        const auto* cast = pending.back();
+        pending.pop_back();
+        for (const auto& reply : cast->directReplies)
+            pending.push_back(&reply);
+        if (!cast->channelId || !valid(*cast->channelId, 256U))
+            continue;
+        capability::search::ChannelSuggestion suggestion{
+            .id = domain::channel::ChannelId{*cast->channelId},
+            .name = cast->channelName && valid(*cast->channelName, 512U)
+                ? *cast->channelName : *cast->channelId,
+            .parentUrl = !cast->parent ? safeOptional(cast->parentUrl) : std::nullopt,
+            .imageUrl = safeOptional(cast->channelImageUrl),
+        };
+        batch.push_back(std::move(suggestion));
+        if (batch.size() == 30U) flush();
+    }
+    flush();
 }
 
 foundation::result::Result<std::optional<domain::profile::Profile>>
@@ -562,7 +613,10 @@ foundation::result::Status SqliteReadStore::putCast(const domain::cast::Cast& ca
             pending.push_back(&reply);
         }
     }
-    return m_entities->putCast(cast);
+    if (auto status = m_entities->putCast(cast); !status)
+        return status;
+    rememberChannelsFromCasts(std::span{&cast, 1U});
+    return {};
 }
 
 foundation::result::Result<std::optional<capability::pagination::ContinuationToken>>
@@ -813,7 +867,7 @@ foundation::result::Status SqliteReadStore::writeFeed(
     }
 
     const std::string id = feedKey(key);
-    std::scoped_lock lock{m_mutex};
+    std::unique_lock lock{m_mutex};
     sqlite::Transaction transaction{m_metadata};
     if (auto status = transaction.begin(); !status) {
         return std::unexpected(toFoundationError(std::move(status.error())));
@@ -891,6 +945,8 @@ VALUES(?, ?, ?, ?);
     if (auto status = transaction.commit(); !status) {
         return std::unexpected(toFoundationError(std::move(status.error())));
     }
+    lock.unlock(); // Release metadata mutex before the secondary channel-cache transaction.
+    rememberChannelsFromCasts(std::span<const domain::cast::Cast>{page.casts});
     return {};
 }
 

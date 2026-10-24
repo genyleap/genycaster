@@ -1169,6 +1169,84 @@ void cachedChannelSearchPersistsLiteralNamesAndSparseUpdates()
     assert(persisted->front().parentUrl == "https://channels.test/dev");
 }
 
+void observedCastChannelsRemainDiscoverableOffline()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    {
+        auto store = storage::read::openReadStore(database.path);
+        assert(store);
+        const capability::search::ChannelSuggestion indexed{
+            .id = domain::channel::ChannelId{"dev"},
+            .name = "Developer Community",
+            .imageUrl = "https://images.test/dev.png",
+            .followerCount = 400,
+        };
+        assert((*store)->putChannelSuggestions({indexed}));
+
+        // A sparse protocol cast cannot degrade richer indexed metadata.
+        auto sparse = makeCast("0x-channel-existing", 7, "hello", 1000);
+        sparse.channelId = "dev";
+        assert((*store)->putCast(sparse));
+        auto full = (*store)->searchCachedChannels("dev", 10);
+        assert(full && full->size() == 1U);
+        assert(full->front().name == indexed.name);
+        assert(full->front().imageUrl == indexed.imageUrl);
+        assert(full->front().followerCount == indexed.followerCount);
+
+        // Direct cast reads include nested conversation discoveries.
+        auto root = makeCast("0x-channel-root", 7, "root", 2000);
+        root.channelId = "local";
+        root.channelName = "Local Builders";
+        root.channelImageUrl = "https://images.test/local.png";
+        root.parentUrl = "https://channels.test/local";
+        auto reply = makeCast("0x-channel-reply", 8, "reply", 2100);
+        reply.channelId = "replytools";
+        reply.channelName = "Reply Tools";
+        root.directReplies.push_back(reply);
+        assert((*store)->putCast(root));
+        const auto byName = (*store)->searchCachedChannels("Local Build", 10);
+        assert(byName && byName->size() == 1U);
+        assert(byName->front().id.value == "local");
+        assert(byName->front().parentUrl == root.parentUrl);
+        assert(byName->front().imageUrl == root.channelImageUrl);
+        const auto byReply = (*store)->searchCachedChannels("reply", 10);
+        assert(byReply && byReply->size() == 1U);
+        assert(byReply->front().name == "Reply Tools");
+
+        // All casts in a feed teach the local index, even when >30 channels
+        // are present. The batching limit is per SQLite upsert transaction.
+        capability::feed::FeedPage page{};
+        for (int i = 0; i < 35; ++i) {
+            auto cast = makeCast("0x-channel-feed-" + std::to_string(i),
+                7, "from feed", 3000 + i);
+            cast.channelId = "batch_" + std::to_string(i);
+            page.entries.push_back(domain::feed::FeedEntry{
+                .castId = cast.id, .sortTime = cast.createdAt});
+            page.casts.push_back(std::move(cast));
+        }
+        const local::read::FeedKey key{.kind = local::read::FeedKey::Kind::Recent};
+        assert((*store)->writeFeed(key, page, false));
+        const auto lastBatch = (*store)->searchCachedChannels("batch_34", 10);
+        assert(lastBatch && lastBatch->size() == 1U);
+        assert(lastBatch->front().name == "batch_34");
+
+        // Oversized/invalid derived metadata never rejects a canonical Cast.
+        auto malformed = makeCast("0x-channel-malformed", 9, "kept", 9000);
+        malformed.channelId = std::string(257, 'x');
+        assert((*store)->putCast(malformed));
+        const auto stillStored = (*store)->findCast(malformed.id);
+        assert(stillStored && stillStored->has_value());
+    }
+    auto reopened = storage::read::openReadStore(database.path);
+    assert(reopened);
+    const auto offline = (*reopened)->searchCachedChannels("local", 10);
+    assert(offline && offline->size() == 1U);
+    assert(offline->front().name == "Local Builders");
+    const auto finalBatch = (*reopened)->searchCachedChannels("batch_34", 10);
+    assert(finalBatch && finalBatch->size() == 1U);
+}
+
 void asyncSearchRetainsOfflineChannelsAndCachesOnlineDiscovery()
 {
     using namespace farcaster;
@@ -2075,6 +2153,7 @@ int main()
     refreshFailureWithoutCacheIsNotMarkedStale();
     refreshFailurePreservesCacheAcrossRestart();
     cachedChannelSearchPersistsLiteralNamesAndSparseUpdates();
+    observedCastChannelsRemainDiscoverableOffline();
     asyncSearchRetainsOfflineChannelsAndCachesOnlineDiscovery();
     cachedProfileIndexSurvivesRestartAndKeepsLiteralQueries();
     asyncSearchKeepsCachedIdentitiesWhenIndexIsUnavailable();
