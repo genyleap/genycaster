@@ -42,6 +42,74 @@
             <source>This source doesn't provide follower totals. You can still browse its follow lists when supported.</source>
             <translation>此数据源不提供粉丝总数。若支持，你仍可浏览关注列表。</translation>
         </message>
+        <message id="genycaster.nodes.raw_brief">
+            <source>Raw Snapchain · posts, profile and follows; no aggregate counts or global Explorer.</source>
+            <translation>原始 Snapchain · 支持帖子、资料和关注，不提供汇总计数或全局探索。</translation>
+        </message>
+        <message id="genycaster.nodes.indexed_brief">
+            <source>Indexed API · extra features depend on the service.</source>
+            <translation>索引 API · 附加功能取决于服务商。</translation>
+        </message>
+        <message id="genycaster.nodes.extra_data">
+            <source>Fill missing data from compatible services</source>
+            <translation>从兼容服务补充缺失数据</translation>
+        </message>
+        <message id="genycaster.nodes.extra_data_desc">
+            <source>When enabled, missing information may come from another allowed provider. Changes apply after refresh.</source>
+            <translation>启用后，可由其他获准服务补充缺失信息。刷新后生效。</translation>
+        </message>
+        <message id="genycaster.nodes.counts_external">
+            <source>Follower totals shown here come from an indexed provider (such as HyperSnap) or saved data, not the raw Neynar API.</source>
+            <translation>这里的粉丝总数来自索引服务（如 HyperSnap）或已保存缓存，而非 Neynar 原始 API。</translation>
+        </message>
+        <message id="genycaster.nodes.counts_raw">
+            <source>Strict reading: unsupported counts and screens stay unavailable. No extra service is contacted.</source>
+            <translation>严格模式：不支持的数据保持不可用，不向其他服务请求。</translation>
+        </message>
+        <message id="genycaster.nodes.health_title">
+            <source>Node connection checks</source>
+            <translation>节点连接检查</translation>
+        </message>
+        <message id="genycaster.nodes.health_explain">
+            <source>Manual API tests, not continuous ICMP ping. Check real read endpoints and response time from this device.</source>
+            <translation>手动 API 检测，而非持续 ping。测试真实读取接口和本设备的响应延迟。</translation>
+        </message>
+        <message id="genycaster.nodes.health_test_all">
+            <source>Check all</source>
+            <translation>全部检测</translation>
+        </message>
+        <message id="genycaster.nodes.health_checking">
+            <source>Checking…</source>
+            <translation>检测中…</translation>
+        </message>
+        <message id="genycaster.nodes.health_ok">
+            <source>Working</source>
+            <translation>正常</translation>
+        </message>
+        <message id="genycaster.nodes.health_auth">
+            <source>API key needed</source>
+            <translation>需要 API 密钥</translation>
+        </message>
+        <message id="genycaster.nodes.health_mismatch">
+            <source>Wrong API type</source>
+            <translation>API 类型错误</translation>
+        </message>
+        <message id="genycaster.nodes.health_incompatible">
+            <source>Unexpected response</source>
+            <translation>响应异常</translation>
+        </message>
+        <message id="genycaster.nodes.health_invalid">
+            <source>Invalid address</source>
+            <translation>地址无效</translation>
+        </message>
+        <message id="genycaster.nodes.health_failed">
+            <source>Connection failed</source>
+            <translation>连接失败</translation>
+        </message>
+        <message id="genycaster.nodes.health_untested">
+            <source>Not checked</source>
+            <translation>连接未检测</translation>
+        </message>
         <message id="genycaster.nodes.title">
             <source>Node management</source>
             <translation>节点管理</translation>

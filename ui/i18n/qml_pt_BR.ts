@@ -42,6 +42,74 @@
             <source>This source doesn't provide follower totals. You can still browse its follow lists when supported.</source>
             <translation>Esta fonte não fornece a contagem total de seguidores. Você ainda pode consultar listas de conexões, quando compatíveis.</translation>
         </message>
+        <message id="genycaster.nodes.raw_brief">
+            <source>Raw Snapchain · posts, profile and follows; no aggregate counts or global Explorer.</source>
+            <translation>Snapchain bruto · posts, perfil e seguidores; sem totais ou Explorer global.</translation>
+        </message>
+        <message id="genycaster.nodes.indexed_brief">
+            <source>Indexed API · extra features depend on the service.</source>
+            <translation>API indexada · recursos extras variam conforme o provedor.</translation>
+        </message>
+        <message id="genycaster.nodes.extra_data">
+            <source>Fill missing data from compatible services</source>
+            <translation>Completar dados ausentes com serviços compatíveis</translation>
+        </message>
+        <message id="genycaster.nodes.extra_data_desc">
+            <source>When enabled, missing information may come from another allowed provider. Changes apply after refresh.</source>
+            <translation>Dados ausentes podem vir de outro provedor permitido. Recarregue para aplicar.</translation>
+        </message>
+        <message id="genycaster.nodes.counts_external">
+            <source>Follower totals shown here come from an indexed provider (such as HyperSnap) or saved data, not the raw Neynar API.</source>
+            <translation>Os totais vêm de um provedor indexado (como HyperSnap) ou cache, não da API bruta da Neynar.</translation>
+        </message>
+        <message id="genycaster.nodes.counts_raw">
+            <source>Strict reading: unsupported counts and screens stay unavailable. No extra service is contacted.</source>
+            <translation>Modo estrito: dados não suportados permanecem indisponíveis, sem consultar outro serviço.</translation>
+        </message>
+        <message id="genycaster.nodes.health_title">
+            <source>Node connection checks</source>
+            <translation>Verificação de conexão dos nós</translation>
+        </message>
+        <message id="genycaster.nodes.health_explain">
+            <source>Manual API tests, not continuous ICMP ping. Check real read endpoints and response time from this device.</source>
+            <translation>Testes manuais de API, não ping contínuo. Verifica endpoints reais e latência deste dispositivo.</translation>
+        </message>
+        <message id="genycaster.nodes.health_test_all">
+            <source>Check all</source>
+            <translation>Verificar todos</translation>
+        </message>
+        <message id="genycaster.nodes.health_checking">
+            <source>Checking…</source>
+            <translation>Verificando…</translation>
+        </message>
+        <message id="genycaster.nodes.health_ok">
+            <source>Working</source>
+            <translation>Funciona</translation>
+        </message>
+        <message id="genycaster.nodes.health_auth">
+            <source>API key needed</source>
+            <translation>Chave API necessária</translation>
+        </message>
+        <message id="genycaster.nodes.health_mismatch">
+            <source>Wrong API type</source>
+            <translation>Tipo de API incorreto</translation>
+        </message>
+        <message id="genycaster.nodes.health_incompatible">
+            <source>Unexpected response</source>
+            <translation>Resposta inesperada</translation>
+        </message>
+        <message id="genycaster.nodes.health_invalid">
+            <source>Invalid address</source>
+            <translation>Endereço inválido</translation>
+        </message>
+        <message id="genycaster.nodes.health_failed">
+            <source>Connection failed</source>
+            <translation>Falha na conexão</translation>
+        </message>
+        <message id="genycaster.nodes.health_untested">
+            <source>Not checked</source>
+            <translation>Não testado</translation>
+        </message>
         <message id="genycaster.nodes.title">
             <source>Node management</source>
             <translation>Gerenciamento de nós</translation>

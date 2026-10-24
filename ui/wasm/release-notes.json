@@ -1,10 +1,11 @@
 {
-  "type": "fix",
-  "title": "Profile accuracy and release details",
+  "type": "improvement",
+  "title": "Clearer Settings and node connection checks",
   "changes": [
-    "Preserve verified cached follower and following totals when a raw node cannot supply counts.",
-    "Explain unavailable social totals without displaying a false zero.",
-    "Describe the type of WebAssembly update and show the published release changes before refreshing.",
-    "Keep the selected read node independent from any optional profile-metadata fallback."
+    "Replace crowded Settings tabs with categorized desktop navigation while retaining the grouped mobile settings index.",
+    "Show how missing follower totals are supplemented by an indexed provider or saved cache; raw Snapchain does not supply aggregate follower counts.",
+    "Move compatible read fallback to a visible, clearly explained control without silently changing the primary read node.",
+    "Add on-demand API checks for all configured read nodes with per-node status, HTTP failures and response time.",
+    "Hide provider API-key entry until needed and distinguish live reader, pending selection and unsupported capabilities."
   ]
 }

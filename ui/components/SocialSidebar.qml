@@ -217,6 +217,17 @@ Item {
                             font.pixelSize: Theme.typeCaptionSize
                         }
                     }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: root.mode === "profile"
+                                 && Number(root.shownProfile.fid || 0) > 0
+                                 && root.shownProfile.socialCountsKnown === true
+                                 && providerProfiles.activeReadContract === "snapchain-v1"
+                        text: qsTrId("genycaster.nodes.counts_external")
+                        color: Theme.textTertiary
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                    }
 
                     ActionButton {
                         Layout.fillWidth: true

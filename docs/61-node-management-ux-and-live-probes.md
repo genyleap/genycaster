@@ -28,6 +28,14 @@ Raw `/v1/userDataByFid` contains display metadata but **not** aggregate follower
 
 **Provider-specific operational evidence (2026-10-24):** Neynar's `hub-api.neynar.com` and `snapchain-api.neynar.com` return HTTP 402 without an API key or X-PAYMENT; their preflight OPTIONS accepts `x-api-key` from `https://caster.genyleap.com`. A Key saved in this tab is not shown in plaintext again. A green Cast/Profile test does NOT assert notifications support.
 
+## October 24 settings and diagnostics usability update
+
+- Desktop Settings uses a vertical, categorized navigation sidebar instead of the cramped two-row tab grid. The phone Settings index remains full-height and grouped. Both share the same underlying views and bindings.
+- The on-demand **Check all** action probes each configured read node (including the built-in indexed reader) sequentially through typed read endpoints, recording a per-node status and elapsed time. This is **not** continuous ICMP ping, guaranteed uptime, a full capability audit, or proof that a node is synchronized. Browser CORS and per-node credentials apply.
+- API keys for already-added nodes are collapsed until requested. Fallback consent is a first-class read choice rather than buried under Advanced. The active reader and pending selections remain distinct.
+- Raw Snapchain profile UserData does not include follower totals. When numbers appear with a raw primary reader, the interface now explains that these are from an indexed provider (usually HyperSnap if it is the compatible reader) **or saved data**, not the raw response. Disabling fallback and restarting prevents supplementary network reads, but previously cached totals can remain visible.
+- Connection statuses live only in memory and never contain, export or persist API credentials. No vendor-specific addresses are hardcoded in the health UI.
+
 ## API keys and privacy
 
 - A public or locally run raw Snapchain node normally requires no API key only when its operator allows unauthenticated access.

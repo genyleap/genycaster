@@ -42,6 +42,74 @@
             <source>This source doesn't provide follower totals. You can still browse its follow lists when supported.</source>
             <translation>لا يوفّر هذا المصدر إجمالي المتابعين. يمكنك تصفّح قوائم المتابعة إذا كانت مدعومة.</translation>
         </message>
+        <message id="genycaster.nodes.raw_brief">
+            <source>Raw Snapchain · posts, profile and follows; no aggregate counts or global Explorer.</source>
+            <translation>Snapchain خام · المنشورات والملفات والمتابعات، دون إجماليات أو مستكشف عام.</translation>
+        </message>
+        <message id="genycaster.nodes.indexed_brief">
+            <source>Indexed API · extra features depend on the service.</source>
+            <translation>واجهة مفهرسة · الميزات الإضافية حسب المزوّد.</translation>
+        </message>
+        <message id="genycaster.nodes.extra_data">
+            <source>Fill missing data from compatible services</source>
+            <translation>استكمال البيانات الناقصة من خدمات متوافقة</translation>
+        </message>
+        <message id="genycaster.nodes.extra_data_desc">
+            <source>When enabled, missing information may come from another allowed provider. Changes apply after refresh.</source>
+            <translation>عند التفعيل قد تُقرأ البيانات الناقصة من مزوّد آخر مسموح. تُطبق التغييرات بعد التحديث.</translation>
+        </message>
+        <message id="genycaster.nodes.counts_external">
+            <source>Follower totals shown here come from an indexed provider (such as HyperSnap) or saved data, not the raw Neynar API.</source>
+            <translation>أعداد المتابعين هنا من مزوّد مفهرس مثل HyperSnap أو من ذاكرة محفوظة، لا من API Neynar الخام.</translation>
+        </message>
+        <message id="genycaster.nodes.counts_raw">
+            <source>Strict reading: unsupported counts and screens stay unavailable. No extra service is contacted.</source>
+            <translation>وضع صارم: تظل الأعداد والواجهات غير المدعومة غير متاحة دون الاتصال بخدمة أخرى.</translation>
+        </message>
+        <message id="genycaster.nodes.health_title">
+            <source>Node connection checks</source>
+            <translation>فحص اتصال العقد</translation>
+        </message>
+        <message id="genycaster.nodes.health_explain">
+            <source>Manual API tests, not continuous ICMP ping. Check real read endpoints and response time from this device.</source>
+            <translation>اختبارات API يدوية وليست ping متواصلة؛ تفحص مسارات القراءة وزمن الاستجابة من جهازك.</translation>
+        </message>
+        <message id="genycaster.nodes.health_test_all">
+            <source>Check all</source>
+            <translation>فحص الكل</translation>
+        </message>
+        <message id="genycaster.nodes.health_checking">
+            <source>Checking…</source>
+            <translation>جارٍ الفحص…</translation>
+        </message>
+        <message id="genycaster.nodes.health_ok">
+            <source>Working</source>
+            <translation>يعمل</translation>
+        </message>
+        <message id="genycaster.nodes.health_auth">
+            <source>API key needed</source>
+            <translation>يلزم مفتاح API</translation>
+        </message>
+        <message id="genycaster.nodes.health_mismatch">
+            <source>Wrong API type</source>
+            <translation>نوع API خاطئ</translation>
+        </message>
+        <message id="genycaster.nodes.health_incompatible">
+            <source>Unexpected response</source>
+            <translation>استجابة غير متوقعة</translation>
+        </message>
+        <message id="genycaster.nodes.health_invalid">
+            <source>Invalid address</source>
+            <translation>عنوان غير صالح</translation>
+        </message>
+        <message id="genycaster.nodes.health_failed">
+            <source>Connection failed</source>
+            <translation>فشل الاتصال</translation>
+        </message>
+        <message id="genycaster.nodes.health_untested">
+            <source>Not checked</source>
+            <translation>لم يُفحص</translation>
+        </message>
         <message id="genycaster.nodes.title">
             <source>Node management</source>
             <translation>إدارة العقد</translation>

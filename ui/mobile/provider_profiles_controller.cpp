@@ -297,6 +297,7 @@ bool ProviderProfilesController::addProfile(
         return false;
     clearError();
     emit profilesChanged();
+    if (!writer) emit probeChanged();
     emit selectionChanged();
     return true;
 }
@@ -369,6 +370,10 @@ bool ProviderProfilesController::removeProfile(
     }
 #endif
     clearError();
+    if (!writer) {
+        m_probeResults.remove(id);
+        emit probeChanged();
+    }
     emit profilesChanged();
     emit selectionChanged();
     return true;
@@ -452,8 +457,93 @@ bool ProviderProfilesController::selectWriteProvider(const QString& id)
 }
 
 
+QVariantList ProviderProfilesController::connectionRows() const
+{
+    QVariantList rows{};
+    const auto append = [this, &rows](const QString& id, const QString& label,
+                                      const QString& endpoint, const QString& contract) {
+        QVariantMap row{
+            {QStringLiteral("id"), id},
+            {QStringLiteral("label"), label},
+            {QStringLiteral("endpoint"), endpoint},
+            {QStringLiteral("contract"), contract},
+            {QStringLiteral("status"), QStringLiteral("idle")},
+            {QStringLiteral("latencyMs"), -1},
+        };
+        if (auto it = m_probeResults.constFind(id); it != m_probeResults.cend()) {
+            row.insert(QStringLiteral("status"),
+                       it->value(QStringLiteral("status")).toString());
+            row.insert(QStringLiteral("latencyMs"),
+                       it->value(QStringLiteral("latencyMs")).toInt());
+            row.insert(QStringLiteral("httpStatus"),
+                       it->value(QStringLiteral("httpStatus")).toInt());
+        }
+        rows.push_back(row);
+    };
+    if (indexedReadSupported())
+        append(QStringLiteral("hypersnap-v2"), QStringLiteral("HyperSnap v2"),
+               m_defaultIndexedEndpoint, QStringLiteral("hypersnap-v2"));
+    for (const auto& entry : parseProfiles(
+             m_settings.value(settingKey(kReadProfiles)).toString())) {
+        const auto profile = entry.toObject();
+        append(profile.value(QStringLiteral("id")).toString(),
+               profile.value(QStringLiteral("label")).toString(),
+               profile.value(QStringLiteral("endpoint")).toString(),
+               profile.value(QStringLiteral("contract")).toString());
+    }
+    return rows;
+}
+
+void ProviderProfilesController::recordProbeResult()
+{
+    if (m_probeProviderId == QStringLiteral("draft")) return;
+    m_probeResults.insert(m_probeProviderId, QVariantMap{
+        {QStringLiteral("status"), m_probeState},
+        {QStringLiteral("latencyMs"), m_probeLatencyMs},
+        {QStringLiteral("httpStatus"), m_probeHttpStatus},
+    });
+    if (m_batchProbing && !m_batchStarting) {
+        QTimer::singleShot(0, this, [this] { probeNextInBatch(); });
+    }
+}
+
+void ProviderProfilesController::probeNextInBatch()
+{
+    if (!m_batchProbing) return;
+    if (m_pendingBatch.isEmpty()) {
+        m_batchProbing = false;
+        emit probeChanged();
+        return;
+    }
+    const QString next = m_pendingBatch.takeFirst();
+    m_batchStarting = true;
+    const bool started = probeReadProvider(next);
+    m_batchStarting = false;
+    if (!started) {
+        recordProbeResult();
+    }
+}
+
+bool ProviderProfilesController::probeAllReadProviders()
+{
+    if (m_batchProbing) return false;
+    m_pendingBatch.clear();
+    for (const auto& row : connectionRows())
+        m_pendingBatch.push_back(row.toMap().value(QStringLiteral("id")).toString());
+    if (m_pendingBatch.isEmpty()) return false;
+    m_batchProbing = true;
+    m_probeResults.clear();
+    emit probeChanged();
+    probeNextInBatch();
+    return true;
+}
+
 bool ProviderProfilesController::probeReadProvider(const QString& id)
 {
+    if (m_batchProbing && !m_batchStarting) {
+        m_batchProbing = false;
+        m_pendingBatch.clear();
+    }
     if (id.isEmpty() || id == QStringLiteral("hypersnap-v2"))
         return startProbe(QStringLiteral("hypersnap-v2"), QStringLiteral("hypersnap-v2"),
                           m_defaultIndexedEndpoint);
@@ -494,6 +584,7 @@ bool ProviderProfilesController::startProbe(
         m_probeMessage = QStringLiteral("invalid_address");
         m_probeSuggestedContract.clear();
         m_probeLatencyMs = -1;
+        recordProbeResult();
         emit probeChanged();
         return false;
     }
@@ -508,6 +599,11 @@ bool ProviderProfilesController::startProbe(
     m_probeSuggestedContract.clear();
     m_probeLatencyMs = -1;
     m_probeHttpStatus = 0;
+    if (id != QStringLiteral("draft"))
+        m_probeResults.insert(id, QVariantMap{
+            {QStringLiteral("status"), QStringLiteral("checking")},
+            {QStringLiteral("latencyMs"), -1},
+        });
     emit probeChanged();
 
     m_probeTimer.start();
@@ -662,6 +758,7 @@ void ProviderProfilesController::runProbeStep(
                 m_probeState = QStringLiteral("healthy");
                 m_probeMessage = QStringLiteral("compatible");
             }
+            recordProbeResult();
             emit probeChanged();
             reply->deleteLater();
         });

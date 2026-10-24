@@ -1,11 +1,14 @@
 #pragma once
 
 #include <QElapsedTimer>
+#include <QHash>
 #include <QNetworkAccessManager>
 #include <QPointer>
 #include <QObject>
 #include <QString>
 #include <QVariantList>
+#include <QVariantMap>
+#include <QStringList>
 
 class QSettings;
 class QNetworkReply;
@@ -39,6 +42,8 @@ class ProviderProfilesController final : public QObject {
     Q_PROPERTY(QString activeReadEndpoint READ activeReadEndpoint CONSTANT)
     Q_PROPERTY(QString activeReadContract READ activeReadContract CONSTANT)
     Q_PROPERTY(QString activeReadProviderLabel READ activeReadProviderLabel CONSTANT)
+    Q_PROPERTY(QVariantList connectionRows READ connectionRows NOTIFY probeChanged)
+    Q_PROPERTY(bool probingAll READ probingAll NOTIFY probeChanged)
     Q_PROPERTY(QString probeState READ probeState NOTIFY probeChanged)
     Q_PROPERTY(QString probeMessage READ probeMessage NOTIFY probeChanged)
     Q_PROPERTY(QString probeSuggestedContract READ probeSuggestedContract NOTIFY probeChanged)
@@ -77,6 +82,8 @@ public:
     [[nodiscard]] QString activeReadContract() const;
     [[nodiscard]] QString activeReadProviderLabel() const;
     [[nodiscard]] QString probeState() const { return m_probeState; }
+    [[nodiscard]] QVariantList connectionRows() const;
+    [[nodiscard]] bool probingAll() const noexcept { return m_batchProbing; }
     [[nodiscard]] QString probeMessage() const { return m_probeMessage; }
     [[nodiscard]] QString probeSuggestedContract() const { return m_probeSuggestedContract; }
     [[nodiscard]] QString probeProviderId() const { return m_probeProviderId; }
@@ -84,6 +91,7 @@ public:
     [[nodiscard]] int probeHttpStatus() const { return m_probeHttpStatus; }
     [[nodiscard]] QString clipboardText() const { return m_clipboardText; }
     Q_INVOKABLE bool probeReadProvider(const QString& id);
+    Q_INVOKABLE bool probeAllReadProviders();
     Q_INVOKABLE bool probeDraftNode(const QString& contract, const QString& endpoint,
                                     const QString& apiKey = {});
     Q_INVOKABLE bool setSessionReadApiKey(const QString& id, const QString& key);
@@ -142,6 +150,12 @@ private:
     QNetworkAccessManager m_network{this};
     QPointer<QNetworkReply> m_probeReply{};
     QElapsedTimer m_probeTimer{};
+    QHash<QString, QVariantMap> m_probeResults{};
+    QStringList m_pendingBatch{};
+    bool m_batchProbing{false};
+    bool m_batchStarting{false};
+    void probeNextInBatch();
+    void recordProbeResult();
     QString m_probeState{"idle"};
     QString m_probeMessage{};
     QString m_probeSuggestedContract{};

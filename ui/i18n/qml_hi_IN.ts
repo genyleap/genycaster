@@ -42,6 +42,74 @@
             <source>This source doesn't provide follower totals. You can still browse its follow lists when supported.</source>
             <translation>यह स्रोत फ़ॉलोअर की कुल संख्या नहीं देता। समर्थित होने पर आप फ़ॉलो सूची फिर भी देख सकते हैं।</translation>
         </message>
+        <message id="genycaster.nodes.raw_brief">
+            <source>Raw Snapchain · posts, profile and follows; no aggregate counts or global Explorer.</source>
+            <translation>रॉ Snapchain · पोस्ट, प्रोफ़ाइल और फ़ॉलो; कुल संख्या या वैश्विक एक्सप्लोरर नहीं।</translation>
+        </message>
+        <message id="genycaster.nodes.indexed_brief">
+            <source>Indexed API · extra features depend on the service.</source>
+            <translation>इंडेक्स्ड API · अतिरिक्त सुविधाएँ प्रदाता पर निर्भर।</translation>
+        </message>
+        <message id="genycaster.nodes.extra_data">
+            <source>Fill missing data from compatible services</source>
+            <translation>अनुकूल सेवाओं से छूटा डेटा पूरा करें</translation>
+        </message>
+        <message id="genycaster.nodes.extra_data_desc">
+            <source>When enabled, missing information may come from another allowed provider. Changes apply after refresh.</source>
+            <translation>सक्रिय करने पर छूटा डेटा किसी अन्य अनुमत प्रदाता से आ सकता है। रीफ़्रेश आवश्यक है।</translation>
+        </message>
+        <message id="genycaster.nodes.counts_external">
+            <source>Follower totals shown here come from an indexed provider (such as HyperSnap) or saved data, not the raw Neynar API.</source>
+            <translation>फ़ॉलोअर संख्या इंडेक्स्ड प्रदाता (जैसे HyperSnap) या कैश से है, रॉ Neynar API से नहीं।</translation>
+        </message>
+        <message id="genycaster.nodes.counts_raw">
+            <source>Strict reading: unsupported counts and screens stay unavailable. No extra service is contacted.</source>
+            <translation>सख़्त मोड: असमर्थित डेटा उपलब्ध नहीं होता; अन्य सेवा से अनुरोध नहीं।</translation>
+        </message>
+        <message id="genycaster.nodes.health_title">
+            <source>Node connection checks</source>
+            <translation>नोड कनेक्शन जाँच</translation>
+        </message>
+        <message id="genycaster.nodes.health_explain">
+            <source>Manual API tests, not continuous ICMP ping. Check real read endpoints and response time from this device.</source>
+            <translation>मैनुअल API जाँच, लगातार पिंग नहीं। वास्तविक एंडपॉइंट और जवाब समय जाँचें।</translation>
+        </message>
+        <message id="genycaster.nodes.health_test_all">
+            <source>Check all</source>
+            <translation>सभी जाँचें</translation>
+        </message>
+        <message id="genycaster.nodes.health_checking">
+            <source>Checking…</source>
+            <translation>जाँच जारी…</translation>
+        </message>
+        <message id="genycaster.nodes.health_ok">
+            <source>Working</source>
+            <translation>सही काम कर रहा है</translation>
+        </message>
+        <message id="genycaster.nodes.health_auth">
+            <source>API key needed</source>
+            <translation>API कुंजी चाहिए</translation>
+        </message>
+        <message id="genycaster.nodes.health_mismatch">
+            <source>Wrong API type</source>
+            <translation>गलत API प्रकार</translation>
+        </message>
+        <message id="genycaster.nodes.health_incompatible">
+            <source>Unexpected response</source>
+            <translation>अप्रत्याशित जवाब</translation>
+        </message>
+        <message id="genycaster.nodes.health_invalid">
+            <source>Invalid address</source>
+            <translation>अमान्य पता</translation>
+        </message>
+        <message id="genycaster.nodes.health_failed">
+            <source>Connection failed</source>
+            <translation>कनेक्शन विफल</translation>
+        </message>
+        <message id="genycaster.nodes.health_untested">
+            <source>Not checked</source>
+            <translation>अभी नहीं जाँचा</translation>
+        </message>
         <message id="genycaster.nodes.title">
             <source>Node management</source>
             <translation>नोड प्रबंधन</translation>

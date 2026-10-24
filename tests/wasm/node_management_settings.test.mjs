@@ -11,7 +11,9 @@ const header = read('ui/mobile/provider_profiles_controller.hpp');
 const bootstrap = read('ui/mobile/main.cpp');
 
 test('Node Management is its own settings destination on desktop and mobile', () => {
-  assert.match(settings, /currentSection === 6/);
+  assert.match(settings, /root\.currentSection = Number\(modelData\.section\)/);
+  assert.match(settings, /id: settingsNavigation/);
+  assert.match(settings, /Layout\.preferredWidth: 212/);
   assert.match(settings, /section: 6/);
   assert.match(settings, /id: nodeSettingsScroll/);
   assert.match(settings, /NodeManagementPanel\s*\{/);
@@ -76,7 +78,8 @@ test('localhost is a browser-side example, not a managed fallback', () => {
   assert.match(manager, /http:\/\/127\.0\.0\.1:3381/);
   assert.match(manager, /genycaster\.nodes\.local_warning/);
   assert.match(manager, /setCompatibleReadFallback/);
-  assert.match(manager, /root\.showAdvanced/);
+  assert.match(manager, /genycaster\.nodes\.extra_data/);
+  assert.match(manager, /checked: providerProfiles\.compatibleReadFallback/);
 });
 
 test('Node Management labels including contract correction are translated in every supported locale', () => {
@@ -112,7 +115,7 @@ test('all Node Management Flow positioners use writable Layout.preferredHeight',
   // QQuickPositioner::implicitHeight is read-only: qmllint may pass, but
   // QQmlApplicationEngine aborts the entire Main interface at runtime.
   assert.doesNotMatch(manager, /implicitHeight:\s*childrenRect\.height/);
-  assert.equal([...manager.matchAll(/Layout\.preferredHeight:\s*childrenRect\.height/g)].length, 5);
+  assert.equal([...manager.matchAll(/Layout\.preferredHeight:\s*childrenRect\.height/g)].length, 4);
 });
 
 test('probing a real raw node requires both Cast and profile endpoints, not just info', () => {
@@ -127,7 +130,8 @@ test('probing a real raw node requires both Cast and profile endpoints, not just
 });
 
 test('raw node limitations are explicit, and saving does not automatically switch provider', () => {
-  assert.match(manager, /genycaster\.nodes\.raw_limitations/);
+  assert.match(manager, /genycaster\.nodes\.raw_brief/);
+  assert.match(manager, /genycaster\.nodes\.counts_external/);
   assert.match(manager, /providerProfiles\.activeReadContract/);
   assert.doesNotMatch(manager, /providerProfiles\.selectReadProvider\(nodeId\)/);
   assert.match(bootstrap, /activeReadProviderLabel\(\)/);

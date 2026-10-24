@@ -259,6 +259,55 @@ void testLiveReadProbeDistinguishesValidProtocolFromAnyHttp200()
     assert(!settings.contains(QStringLiteral("network/readProviderApiKeysJson")));
 }
 
+void testBatchReadNodeChecksKeepPerNodeResults()
+{
+    QTemporaryDir temp{};
+    assert(temp.isValid());
+    QSettings settings{temp.filePath(QStringLiteral("batch-health.ini")), QSettings::IniFormat};
+    QTcpServer server{};
+    assert(server.listen(QHostAddress::LocalHost));
+    QObject::connect(&server, &QTcpServer::newConnection, &server, [&] {
+        auto* socket = server.nextPendingConnection();
+        QObject::connect(socket, &QTcpSocket::readyRead, socket, [socket] {
+            const auto request = socket->readAll();
+            assert(request.startsWith("GET /v2/farcaster/user?fid=3 "));
+            const QByteArray body{R"({"user":{"fid":3}})"};
+            socket->write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n"
+                          "Connection: close\r\nContent-Length: "
+                          + QByteArray::number(body.size()) + "\r\n\r\n" + body);
+            socket->flush();
+            socket->disconnectFromHost();
+        });
+    });
+    const QString endpoint = QStringLiteral("http://127.0.0.1:%1").arg(server.serverPort());
+    ProviderProfilesController controller{
+        settings, {}, {}, {}, {}, false, nullptr, endpoint};
+    assert(controller.addReadProfile(
+        QStringLiteral("local-index"), QStringLiteral("Local index"),
+        QStringLiteral("hypersnap-v2"), endpoint, true));
+    assert(controller.connectionRows().size() == 2);
+    assert(!controller.probingAll());
+    QEventLoop loop{};
+    QObject::connect(&controller, &ProviderProfilesController::probeChanged,
+                     &loop, [&] { if (!controller.probingAll()) loop.quit(); });
+    assert(controller.probeAllReadProviders());
+    assert(controller.probingAll());
+    assert(!controller.probeAllReadProviders());
+    QTimer::singleShot(5000, &loop, &QEventLoop::quit);
+    loop.exec();
+    assert(!controller.probingAll());
+    const auto rows = controller.connectionRows();
+    assert(rows.size() == 2);
+    for (const auto& item : rows) {
+        const auto row = item.toMap();
+        assert(row.value(QStringLiteral("status")).toString()
+               == QStringLiteral("healthy"));
+        assert(row.value(QStringLiteral("latencyMs")).toInt() >= 0);
+        assert(row.value(QStringLiteral("endpoint")).toString() == endpoint);
+        assert(!row.contains(QStringLiteral("apiKey"))); // No credentials in status.
+    }
+}
+
 } // namespace
 
 int main(int argc, char* argv[])
@@ -267,5 +316,6 @@ int main(int argc, char* argv[])
     testTypedReadWriteProfilesAndPersistentPreferences();
     testNoCredentialOrProtocolSpoofing();
     testLiveReadProbeDistinguishesValidProtocolFromAnyHttp200();
+    testBatchReadNodeChecksKeepPerNodeResults();
     return 0;
 }

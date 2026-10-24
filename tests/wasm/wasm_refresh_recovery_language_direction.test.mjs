@@ -8,7 +8,8 @@ test('Recovery in Settings is exclusively visible to authenticated accounts', ()
   const settings = file('ui/components/LocaleSettingsPopup.qml');
   const mobile = settings.slice(settings.indexOf('id: mobileSettingsIndex'));
   assert.match(mobile, /MobileSettingsGroup \{\s+visible: presentationBridge\.isAuthenticated\s+heading: ""/);
-  assert.match(settings, /objectName: "settingsRecoveryTab"\s+visible: presentationBridge\.isAuthenticated/);
+  assert.match(settings, /objectName: Number\(modelData\.section\) === 5 \? "settingsRecoveryTab"/);
+  assert.match(settings, /visible: Number\(modelData\.section\) !== 5 \|\| presentationBridge\.isAuthenticated/);
   assert.match(settings, /section === 5 && !presentationBridge\.isAuthenticated/);
   assert.match(settings, /onAuthenticationStateChanged\(\) \{\s+if \(!presentationBridge\.isAuthenticated && root\.currentSection === 5\)/);
 });

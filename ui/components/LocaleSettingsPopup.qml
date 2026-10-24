@@ -84,7 +84,7 @@ GenyDrawer {
     showHandle: false
     dimBackground: true
     contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space4
-    width: parent ? (mobilePresentation ? parent.width : Math.min(760, parent.width * 0.92)) : 760
+    width: parent ? (mobilePresentation ? parent.width : Math.min(980, parent.width * 0.94)) : 980
     // Settings is a full-screen navigable destination on phones: never leave
     // a distracting exposed strip above it. Outside-click dismissal still
     // applies whenever the surface has an uncovered backdrop (e.g. desktop).
@@ -525,108 +525,114 @@ GenyDrawer {
             }
         }
 
-        Superellipse {
-            visible: !root.mobilePresentation
+        // Desktop: quiet, single-column navigation. No multi-row, cropped tabs.
+        // Phones retain their dedicated full-height grouped settings index.
+        RowLayout {
+            visible: !root.mobilePresentation || !root.mobileIndexOpen
             Layout.fillWidth: true
-            implicitHeight: settingsTabs.implicitHeight + Theme.space1 * 2
-            fillColor: Theme.surfaceMuted
-            curveDepth: Theme.curveControl
+            Layout.fillHeight: true
+            spacing: Theme.space3
+            layoutDirection: Theme.uiDirection
 
-            GridLayout {
-                id: settingsTabs
-                // Seven destinations: four columns on wide desktop keeps
-                // two readable rows; mobile navigates through the index.
-                columns: root.compactLayout ? 3 : root.width >= 720 ? 4 : 2
-                rowSpacing: Theme.space1
-                columnSpacing: Theme.space1
-                // Desktop labels get their natural line width across two rows;
-                // only truly compact mobile layouts use icon-only navigation.
-                uniformCellWidths: !root.compactLayout
-                anchors.fill: parent
-                anchors.margins: Theme.space1
-                layoutDirection: Theme.uiDirection
+            Superellipse {
+                visible: !root.mobilePresentation
+                Layout.preferredWidth: 212
+                Layout.fillHeight: true
+                fillColor: Theme.surfaceMuted
+                curveDepth: Theme.curveContainer
+                borderWidth: Theme.strokeHairline
+                borderColor: Theme.borderSubtle
+                ScrollView {
+                    anchors.fill: parent
+                    anchors.margins: Theme.space2
+                    clip: true
+                    contentWidth: availableWidth
+                    ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
+                    ScrollBar.vertical: GenyScrollBar {}
+                    ColumnLayout {
+                        id: settingsNavigation
+                        width: parent.width
+                        spacing: Theme.space1
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.settings.mobile_personalization")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        Layout.topMargin: Theme.space2
+                    }
+                    Repeater {
+                        model: [{ section: 0, label: qsTrId("genycaster.settings.appearance"), glyph: Theme.iconPalette },
+                                { section: 1, label: qsTrId("genycaster.settings.language_region"), glyph: Theme.iconLanguage }]
+                        delegate: ActionButton {
+                            required property var modelData
+                            visible: Number(modelData.section) !== 5 || presentationBridge.isAuthenticated
+                            objectName: Number(modelData.section) === 5 ? "settingsRecoveryTab" : "settingsNavigationItem"
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            compact: false
+                            quiet: true
+                            alignStart: true
+                            iconGlyph: String(modelData.glyph)
+                            selected: root.currentSection === Number(modelData.section)
+                            text: String(modelData.label)
+                            onClicked: root.currentSection = Number(modelData.section)
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.settings.mobile_feeds_content")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        Layout.topMargin: Theme.space2
+                    }
+                    Repeater {
+                        model: [{ section: 2, label: qsTrId("genycaster.settings.market_pulse"), glyph: Theme.iconChart },
+                                { section: 3, label: qsTrId("genycaster.settings.content_loading"), glyph: Theme.iconDownload },
+                                { section: 6, label: qsTrId("genycaster.nodes.title"), glyph: Theme.iconCloud }]
+                        delegate: ActionButton {
+                            required property var modelData
+                            visible: Number(modelData.section) !== 5 || presentationBridge.isAuthenticated
+                            objectName: Number(modelData.section) === 5 ? "settingsRecoveryTab" : "settingsNavigationItem"
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            compact: false
+                            quiet: true
+                            alignStart: true
+                            iconGlyph: String(modelData.glyph)
+                            selected: root.currentSection === Number(modelData.section)
+                            text: String(modelData.label)
+                            onClicked: root.currentSection = Number(modelData.section)
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.settings.mobile_app_storage")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        Layout.topMargin: Theme.space2
+                    }
+                    Repeater {
+                        model: [{ section: 4, label: qsTrId("genycaster.settings.updates"), glyph: Theme.iconRefresh },
+                                { section: 5, label: qsTrId("genycaster.setup.recovery_title"), glyph: "system/lock" }]
+                        delegate: ActionButton {
+                            required property var modelData
+                            visible: Number(modelData.section) !== 5 || presentationBridge.isAuthenticated
+                            objectName: Number(modelData.section) === 5 ? "settingsRecoveryTab" : "settingsNavigationItem"
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            compact: false
+                            quiet: true
+                            alignStart: true
+                            iconGlyph: String(modelData.glyph)
+                            selected: root.currentSection === Number(modelData.section)
+                            text: String(modelData.label)
+                            onClicked: root.currentSection = Number(modelData.section)
+                        }
+                    }
 
-                ActionButton {
-                    Layout.fillWidth: true
-                    compact: true
-                    quiet: true
-                    selected: root.currentSection === 0
-                    iconOnly: root.compactLayout
-                    Layout.minimumWidth: 0
-                    iconGlyph: Theme.iconPalette
-                    text: qsTrId("genycaster.settings.appearance")
-                    onClicked: root.currentSection = 0
-                }
-                ActionButton {
-                    Layout.fillWidth: true
-                    compact: true
-                    quiet: true
-                    selected: root.currentSection === 1
-                    iconOnly: root.compactLayout
-                    Layout.minimumWidth: 0
-                    iconGlyph: Theme.iconLanguage
-                    text: qsTrId("genycaster.settings.language_region")
-                    onClicked: root.currentSection = 1
-                }
-                ActionButton {
-                    Layout.fillWidth: true
-                    compact: true
-                    quiet: true
-                    selected: root.currentSection === 2
-                    iconOnly: root.compactLayout
-                    Layout.minimumWidth: 0
-                    iconGlyph: Theme.iconChart
-                    text: qsTrId("genycaster.settings.market_pulse")
-                    onClicked: root.currentSection = 2
-                }
-                ActionButton {
-                    Layout.fillWidth: true
-                    compact: true
-                    quiet: true
-                    selected: root.currentSection === 3
-                    iconOnly: root.compactLayout
-                    Layout.minimumWidth: 0
-                    iconGlyph: Theme.iconDownload
-                    text: qsTrId("genycaster.settings.content_loading")
-                    onClicked: root.currentSection = 3
-                }
-                ActionButton {
-                    Layout.fillWidth: true
-                    compact: true
-                    quiet: true
-                    selected: root.currentSection === 4
-                    iconOnly: root.compactLayout
-                    Layout.minimumWidth: 0
-                    iconGlyph: Theme.iconRefresh
-                    text: qsTrId("genycaster.settings.updates")
-                    onClicked: root.currentSection = 4
-                }
-                ActionButton {
-                    Layout.fillWidth: true
-                    compact: true
-                    quiet: true
-                    selected: root.currentSection === 6
-                    iconOnly: root.compactLayout
-                    Layout.minimumWidth: 0
-                    iconGlyph: Theme.iconCloud
-                    text: qsTrId("genycaster.nodes.title")
-                    onClicked: root.currentSection = 6
-                }
-                ActionButton {
-                    objectName: "settingsRecoveryTab"
-                    visible: presentationBridge.isAuthenticated
-                    Layout.fillWidth: true
-                    compact: true
-                    quiet: true
-                    selected: root.currentSection === 5
-                    iconOnly: root.compactLayout
-                    Layout.minimumWidth: 0
-                    iconGlyph: "system/lock"
-                    text: qsTrId("genycaster.setup.recovery_title")
-                    onClicked: root.currentSection = 5
+                    }
                 }
             }
-        }
 
         StackLayout {
             visible: !root.mobilePresentation || !root.mobileIndexOpen
@@ -2444,6 +2450,7 @@ GenyDrawer {
                     width: nodeSettingsScroll.availableWidth
                 }
             }
+        }
         }
 
         Superellipse {

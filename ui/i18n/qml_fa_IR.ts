@@ -42,6 +42,74 @@
             <source>This source doesn't provide follower totals. You can still browse its follow lists when supported.</source>
             <translation>این منبع تعداد کل دنبال‌کنندگان را ارائه نمی‌کند. در صورت پشتیبانی، همچنان می‌توانی فهرست دنبال‌کردن‌ها را ببینی.</translation>
         </message>
+        <message id="genycaster.nodes.raw_brief">
+            <source>Raw Snapchain · posts, profile and follows; no aggregate counts or global Explorer.</source>
+            <translation>اسنپ‌چین خام · کست‌ها، پروفایل و دنبال‌کردن‌ها؛ بدون آمار تجمیعی یا اکسپلورر سراسری.</translation>
+        </message>
+        <message id="genycaster.nodes.indexed_brief">
+            <source>Indexed API · extra features depend on the service.</source>
+            <translation>API ایندکس‌شده · امکانات تکمیلی به سرویس بستگی دارد.</translation>
+        </message>
+        <message id="genycaster.nodes.extra_data">
+            <source>Fill missing data from compatible services</source>
+            <translation>تکمیل داده‌های ناقص از سرویس‌های سازگار</translation>
+        </message>
+        <message id="genycaster.nodes.extra_data_desc">
+            <source>When enabled, missing information may come from another allowed provider. Changes apply after refresh.</source>
+            <translation>با فعال‌سازی، اطلاعاتی که این نود ندارد می‌تواند از ارائه‌دهندهٔ مجاز دیگری دریافت شود. پس از رفرش اعمال می‌شود.</translation>
+        </message>
+        <message id="genycaster.nodes.counts_external">
+            <source>Follower totals shown here come from an indexed provider (such as HyperSnap) or saved data, not the raw Neynar API.</source>
+            <translation>آمار دنبال‌کنندگان نمایش‌داده‌شده از یک سرویس ایندکس‌شده (مانند هایپراسنپ) یا کش قبلی است، نه API خام نینار.</translation>
+        </message>
+        <message id="genycaster.nodes.counts_raw">
+            <source>Strict reading: unsupported counts and screens stay unavailable. No extra service is contacted.</source>
+            <translation>حالت مستقل: دادهٔ پشتیبانی‌نشده نمایش داده نمی‌شود و از سرویس دیگری درخواست نمی‌فرستیم.</translation>
+        </message>
+        <message id="genycaster.nodes.health_title">
+            <source>Node connection checks</source>
+            <translation>بررسی اتصال نودها</translation>
+        </message>
+        <message id="genycaster.nodes.health_explain">
+            <source>Manual API tests, not continuous ICMP ping. Check real read endpoints and response time from this device.</source>
+            <translation>آزمایش دستی API است، نه پینگ دائمی. مسیرهای واقعی خواندن و زمان پاسخ از همین دستگاه بررسی می‌شوند.</translation>
+        </message>
+        <message id="genycaster.nodes.health_test_all">
+            <source>Check all</source>
+            <translation>بررسی همه</translation>
+        </message>
+        <message id="genycaster.nodes.health_checking">
+            <source>Checking…</source>
+            <translation>در حال بررسی…</translation>
+        </message>
+        <message id="genycaster.nodes.health_ok">
+            <source>Working</source>
+            <translation>سالم</translation>
+        </message>
+        <message id="genycaster.nodes.health_auth">
+            <source>API key needed</source>
+            <translation>کلید API لازم است</translation>
+        </message>
+        <message id="genycaster.nodes.health_mismatch">
+            <source>Wrong API type</source>
+            <translation>نوع API نادرست</translation>
+        </message>
+        <message id="genycaster.nodes.health_incompatible">
+            <source>Unexpected response</source>
+            <translation>پاسخ ناسازگار</translation>
+        </message>
+        <message id="genycaster.nodes.health_invalid">
+            <source>Invalid address</source>
+            <translation>آدرس نامعتبر</translation>
+        </message>
+        <message id="genycaster.nodes.health_failed">
+            <source>Connection failed</source>
+            <translation>اتصال ناموفق</translation>
+        </message>
+        <message id="genycaster.nodes.health_untested">
+            <source>Not checked</source>
+            <translation>هنوز بررسی نشده</translation>
+        </message>
         <message id="genycaster.nodes.title">
             <source>Node management</source>
             <translation>مدیریت نودها</translation>

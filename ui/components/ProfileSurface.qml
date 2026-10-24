@@ -1167,6 +1167,16 @@ Item {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         visible: Number(root.activeDetail.fid || 0) > 0
+                                 && root.activeDetail.socialCountsKnown === true
+                                 && providerProfiles.activeReadContract === "snapchain-v1"
+                        text: qsTrId("genycaster.nodes.counts_external")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: Number(root.activeDetail.fid || 0) > 0
                                  && root.activeDetail.socialCountsKnown === false
                         text: qsTrId("genycaster.profile.social_totals_unavailable")
                         color: Theme.inkMuted
