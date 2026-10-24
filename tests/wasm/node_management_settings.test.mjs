@@ -40,6 +40,12 @@ test('read health checks validate real typed API results with timeout and no red
   assert.match(controller, /QStringLiteral\("userDataBody"\)/);
   assert.match(controller, /"incompatible"/);
   assert.match(controller, /"auth_required"/);
+  assert.match(controller, /"contract_mismatch"/);
+  assert.match(controller, /checkingAlternative/);
+  assert.match(controller, /m_probeSuggestedContract = contract/);
+  assert.match(manager, /genycaster\.nodes\.contract_mismatch/);
+  assert.match(manager, /genycaster\.nodes\.use_detected/);
+  assert.match(manager, /root\.readContract = providerProfiles\.probeSuggestedContract/);
   assert.match(manager, /probeReadProvider/);
   assert.match(manager, /probeDraftNode/);
   assert.match(read('ui/tests/provider_profiles_controller_tests.cpp'),
@@ -73,7 +79,7 @@ test('localhost is a browser-side example, not a managed fallback', () => {
   assert.match(manager, /root\.showAdvanced/);
 });
 
-test('32 new UI labels are translated in every supported locale', () => {
+test('Node Management labels including contract correction are translated in every supported locale', () => {
   const locales=['en_US','fa_IR','ar_SA','de_DE','es_ES','fr_FR',
                  'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN'];
   for (const locale of locales) {
@@ -81,7 +87,7 @@ test('32 new UI labels are translated in every supported locale', () => {
     for (const id of ['title','description','active','test','checking','connected',
                       'auth_required','incompatible','unreachable','not_tested',
                       'raw_description','raw_limitations','indexed_description','paste','local_warning',
-                      'api_warning','save_key','reload','test_note']) {
+                      'api_warning','save_key','reload','test_note','contract_mismatch','use_detected']) {
       assert.match(content,
         new RegExp('<message id="genycaster\\.nodes\\.' + id +
           '">[\\s\\S]*?<translation>[^<]+</translation>'));
@@ -114,6 +120,8 @@ test('probing a real raw node requires both Cast and profile endpoints, not just
   assert.match(controller, /m_probeTimer\.start\(\)/);
   assert.doesNotMatch(controller, /QStringLiteral\("\/v1\/info"\)/);
   assert.match(read('ui/tests/provider_profiles_controller_tests.cpp'), /assert\(castRequests == 2 && profileRequests == 2\)/);
+  assert.match(read('ui/tests/provider_profiles_controller_tests.cpp'),
+               /probeSuggestedContract\(\) == QStringLiteral\("snapchain-v1"\)/);
   assert.match(read('ui/tests/provider_profiles_controller_tests.cpp'), /probeHttpStatus\(\) == 402/);
 });
 

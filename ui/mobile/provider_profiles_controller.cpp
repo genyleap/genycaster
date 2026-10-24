@@ -492,6 +492,7 @@ bool ProviderProfilesController::startProbe(
         m_probeProviderId = id;
         m_probeState = QStringLiteral("invalid");
         m_probeMessage = QStringLiteral("invalid_address");
+        m_probeSuggestedContract.clear();
         m_probeLatencyMs = -1;
         emit probeChanged();
         return false;
@@ -504,6 +505,7 @@ bool ProviderProfilesController::startProbe(
     m_probeProviderId = id;
     m_probeState = QStringLiteral("checking");
     m_probeMessage.clear();
+    m_probeSuggestedContract.clear();
     m_probeLatencyMs = -1;
     m_probeHttpStatus = 0;
     emit probeChanged();
@@ -515,7 +517,7 @@ bool ProviderProfilesController::startProbe(
 
 void ProviderProfilesController::runProbeStep(
     const QString& id, const QString& contract, const QString& origin,
-    const QString& draftApiKey, const int step)
+    const QString& draftApiKey, const int step, const bool checkingAlternative)
 {
     const bool raw = contract == QStringLiteral("snapchain-v1");
     // Check the *actual* cast/profile endpoints the adapter uses. /v1/info
@@ -576,7 +578,7 @@ void ProviderProfilesController::runProbeStep(
         if (!reply->isFinished()) reply->abort();
     });
     connect(reply, &QNetworkReply::finished, this,
-        [this, reply, id, contract, origin, draftApiKey, raw, step] {
+        [this, reply, id, contract, origin, draftApiKey, raw, step, checkingAlternative] {
             if (m_probeReply != reply) {
                 reply->deleteLater();
                 return;
@@ -608,7 +610,37 @@ void ProviderProfilesController::runProbeStep(
                     }
                 }
             }
-            if (http == 401 || http == 402 || http == 403) {
+            if (!checkingAlternative && step == 0 && http == 404) {
+                // Confirm a potential contract mismatch using the *same* origin
+                // and credentials. Never infer an API contract from a brand or
+                // host name, and never silently switch the saved provider.
+                reply->deleteLater();
+                const QString otherContract = raw
+                    ? QStringLiteral("hypersnap-v2")
+                    : QStringLiteral("snapchain-v1");
+                runProbeStep(id, otherContract, origin, draftApiKey, 0, true);
+                return;
+            }
+            if (checkingAlternative) {
+                if (http >= 200 && http < 300
+                    && reply->error() == QNetworkReply::NoError && validShape) {
+                    if (raw && step == 0) {
+                        // Raw compatibility requires both casts and profiles.
+                        reply->deleteLater();
+                        runProbeStep(id, contract, origin, draftApiKey, 1, true);
+                        return;
+                    }
+                    m_probeState = QStringLiteral("contract_mismatch");
+                    m_probeMessage = QStringLiteral("wrong_contract");
+                    m_probeSuggestedContract = contract;
+                } else {
+                    // The original endpoint returned 404. Another failing
+                    // contract probe does not prove what API the server has.
+                    m_probeState = QStringLiteral("failed");
+                    m_probeMessage = QStringLiteral("http_error");
+                }
+                m_probeHttpStatus = 404;
+            } else if (http == 401 || http == 402 || http == 403) {
                 m_probeState = QStringLiteral("auth_required");
                 m_probeMessage = QStringLiteral("api_key_required");
             } else if (reply->error() != QNetworkReply::NoError) {
@@ -752,6 +784,7 @@ void ProviderProfilesController::clearDraftProbe()
     m_probeProviderId.clear();
     m_probeState = QStringLiteral("idle");
     m_probeMessage.clear();
+    m_probeSuggestedContract.clear();
     m_probeLatencyMs = -1;
     m_probeHttpStatus = 0;
     emit probeChanged();

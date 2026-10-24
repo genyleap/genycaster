@@ -41,6 +41,7 @@ class ProviderProfilesController final : public QObject {
     Q_PROPERTY(QString activeReadProviderLabel READ activeReadProviderLabel CONSTANT)
     Q_PROPERTY(QString probeState READ probeState NOTIFY probeChanged)
     Q_PROPERTY(QString probeMessage READ probeMessage NOTIFY probeChanged)
+    Q_PROPERTY(QString probeSuggestedContract READ probeSuggestedContract NOTIFY probeChanged)
     Q_PROPERTY(QString probeProviderId READ probeProviderId NOTIFY probeChanged)
     Q_PROPERTY(int probeLatencyMs READ probeLatencyMs NOTIFY probeChanged)
     Q_PROPERTY(int probeHttpStatus READ probeHttpStatus NOTIFY probeChanged)
@@ -77,6 +78,7 @@ public:
     [[nodiscard]] QString activeReadProviderLabel() const;
     [[nodiscard]] QString probeState() const { return m_probeState; }
     [[nodiscard]] QString probeMessage() const { return m_probeMessage; }
+    [[nodiscard]] QString probeSuggestedContract() const { return m_probeSuggestedContract; }
     [[nodiscard]] QString probeProviderId() const { return m_probeProviderId; }
     [[nodiscard]] int probeLatencyMs() const { return m_probeLatencyMs; }
     [[nodiscard]] int probeHttpStatus() const { return m_probeHttpStatus; }
@@ -142,6 +144,7 @@ private:
     QElapsedTimer m_probeTimer{};
     QString m_probeState{"idle"};
     QString m_probeMessage{};
+    QString m_probeSuggestedContract{};
     QString m_probeProviderId{};
     int m_probeLatencyMs{-1};
     int m_probeHttpStatus{0};
@@ -150,5 +153,5 @@ private:
                     const QString& draftApiKey = {});
     void runProbeStep(const QString& id, const QString& contract,
                       const QString& origin, const QString& draftApiKey,
-                      int step);
+                      int step, bool checkingAlternative = false);
 };

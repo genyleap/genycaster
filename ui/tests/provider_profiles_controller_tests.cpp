@@ -168,8 +168,11 @@ void testLiveReadProbeDistinguishesValidProtocolFromAnyHttp200()
     assert(server.listen(QHostAddress::LocalHost));
     bool compatible = true;
     bool profileAuthorized = true;
+    bool rawMissing = false;
+    bool indexedMissing = true;
     int castRequests = 0;
     int profileRequests = 0;
+    int indexedRequests = 0;
     QObject::connect(&server, &QTcpServer::newConnection, &server, [&] {
         auto* socket = server.nextPendingConnection();
         QObject::connect(socket, &QTcpSocket::readyRead, socket, [&, socket] {
@@ -178,18 +181,25 @@ void testLiveReadProbeDistinguishesValidProtocolFromAnyHttp200()
                 "GET /v1/castsByFid?fid=3&pageSize=1&reverse=true ");
             const bool profile = request.startsWith(
                 "GET /v1/userDataByFid?fid=3&pageSize=100 ");
-            assert(casts || profile);
+            const bool indexed = request.startsWith("GET /v2/farcaster/user?fid=3 ");
+            assert(casts || profile || indexed);
             if (casts) ++castRequests;
-            else ++profileRequests;
-            const int status = profile && !profileAuthorized ? 402 : 200;
-            const QByteArray body = status == 402
-                ? QByteArray{"{\"error\":\"X-PAYMENT header or API key required\"}"}
+            else if (profile) ++profileRequests;
+            else ++indexedRequests;
+            const int status = (indexed && indexedMissing) || (!indexed && rawMissing)
+                ? 404 : profile && !profileAuthorized ? 402 : 200;
+            const QByteArray body = status == 404
+                ? QByteArray{R"({"error":"not found"})"}
+                : status == 402
+                    ? QByteArray{"{\"error\":\"X-PAYMENT header or API key required\"}"}
+                : indexed ? QByteArray{R"({"user":{"fid":3}})"}
                 : !compatible ? QByteArray{"{\"greeting\":\"not a raw API\"}"}
                 : casts ? QByteArray{R"({"messages":[{"hash":"0x123","data":{"fid":3,"castAddBody":{"text":"ok"}}}]})"}
                 : QByteArray{R"({"messages":[{"data":{"fid":3,"userDataBody":{"type":"USER_DATA_TYPE_USERNAME","value":"dwr"}}}]})"};
             const auto response = QByteArray{"HTTP/1.1 "}
                 + QByteArray::number(status) + (status == 200
                     ? " OK\r\nConnection: close\r\n"
+                    : status == 404 ? " Not Found\r\nConnection: close\r\n"
                     : " Payment Required\r\nConnection: close\r\n")
                 + "Content-Type: application/json\r\nContent-Length: "
                 + QByteArray::number(body.size()) + "\r\n\r\n" + body;
@@ -199,14 +209,14 @@ void testLiveReadProbeDistinguishesValidProtocolFromAnyHttp200()
         });
     });
     const QString endpoint = QStringLiteral("http://127.0.0.1:%1").arg(server.serverPort());
-    auto check = [&] {
+    auto check = [&](const QString& contract = QStringLiteral("snapchain-v1")) {
         QEventLoop eventLoop{};
         QObject::connect(&controller, &ProviderProfilesController::probeChanged,
                          &eventLoop, [&] {
             if (controller.probeState() != QStringLiteral("checking"))
                 eventLoop.quit();
         });
-        assert(controller.probeDraftNode(QStringLiteral("snapchain-v1"), endpoint));
+        assert(controller.probeDraftNode(contract, endpoint));
         QTimer::singleShot(4500, &eventLoop, &QEventLoop::quit);
         if (controller.probeState() == QStringLiteral("checking")) eventLoop.exec();
         assert(controller.probeState() != QStringLiteral("checking"));
@@ -225,6 +235,24 @@ void testLiveReadProbeDistinguishesValidProtocolFromAnyHttp200()
     check();
     assert(controller.probeState() == QStringLiteral("incompatible"));
     assert(castRequests == 3 && profileRequests == 2);
+    compatible = true;
+    check(QStringLiteral("hypersnap-v2"));
+    assert(controller.probeState() == QStringLiteral("contract_mismatch"));
+    assert(controller.probeSuggestedContract() == QStringLiteral("snapchain-v1"));
+    assert(controller.probeHttpStatus() == 404);
+    assert(indexedRequests == 1 && castRequests == 4 && profileRequests == 3);
+    rawMissing = true;
+    indexedMissing = false;
+    check();
+    assert(controller.probeState() == QStringLiteral("contract_mismatch"));
+    assert(controller.probeSuggestedContract() == QStringLiteral("hypersnap-v2"));
+    assert(indexedRequests == 2 && castRequests == 5 && profileRequests == 3);
+    // A second incompatible response cannot establish the correct contract.
+    indexedMissing = true;
+    check();
+    assert(controller.probeState() == QStringLiteral("failed"));
+    assert(controller.probeSuggestedContract().isEmpty());
+    assert(controller.probeHttpStatus() == 404);
     assert(!controller.probeDraftNode(
         QStringLiteral("snapchain-v1"), QStringLiteral("file:///etc/shadow")));
     assert(controller.probeState() == QStringLiteral("invalid"));

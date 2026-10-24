@@ -66,6 +66,14 @@
             <source>API key or payment required</source>
             <translation>需要 API 密钥或付款</translation>
         </message>
+        <message id="genycaster.nodes.contract_mismatch">
+            <source>This address serves %1, not the selected API type. Switch the service type and test again.</source>
+            <translation>此地址提供的是 %1 API，而非所选类型。请切换服务类型后重新测试。</translation>
+        </message>
+        <message id="genycaster.nodes.use_detected">
+            <source>Use %1</source>
+            <translation>使用 %1</translation>
+        </message>
         <message id="genycaster.nodes.incompatible">
             <source>Server responded, but the API is incompatible</source>
             <translation>服务器有响应，但 API 不兼容</translation>

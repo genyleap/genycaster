@@ -23,6 +23,9 @@ ColumnLayout {
         case "healthy": return qsTrId("genycaster.nodes.connected")
         case "auth_required": return qsTrId("genycaster.nodes.auth_required")
         case "incompatible": return qsTrId("genycaster.nodes.incompatible")
+        case "contract_mismatch": return qsTrId("genycaster.nodes.contract_mismatch").arg(
+            providerProfiles.probeSuggestedContract === "snapchain-v1"
+            ? qsTrId("genycaster.nodes.raw") : qsTrId("genycaster.nodes.indexed"))
         case "invalid": return qsTrId("genycaster.providers.error_invalid_endpoint")
         case "failed": return qsTrId("genycaster.nodes.unreachable")
                               + (providerProfiles.probeHttpStatus > 0
@@ -358,6 +361,16 @@ ColumnLayout {
             font.pixelSize: Theme.typeCaptionSize
         }
         DirectionAwareLabel {
+            Layout.fillWidth: true
+            text: root.readContract === "snapchain-v1"
+                  ? "/v1/castsByFid · /v1/userDataByFid"
+                  : "/v2/farcaster/user"
+            forceLeftToRight: true
+            font.pixelSize: Theme.typeCaptionSize
+            color: Theme.inkSubtle
+            elide: Text.ElideRight
+        }
+        DirectionAwareLabel {
             text: qsTrId("genycaster.nodes.name")
             color: Theme.ink
         }
@@ -505,6 +518,19 @@ ColumnLayout {
                      ? " · " + providerProfiles.probeLatencyMs + " ms" : "")
             color: providerProfiles.probeState === "healthy" ? Theme.positive : Theme.warning
             wrapMode: Text.Wrap
+        }
+        ActionButton {
+            visible: providerProfiles.probeProviderId === "draft"
+                     && providerProfiles.probeState === "contract_mismatch"
+            compact: true
+            alignStart: true
+            text: qsTrId("genycaster.nodes.use_detected").arg(
+                providerProfiles.probeSuggestedContract === "snapchain-v1"
+                ? qsTrId("genycaster.nodes.raw") : qsTrId("genycaster.nodes.indexed"))
+            onClicked: {
+                root.readContract = providerProfiles.probeSuggestedContract
+                providerProfiles.clearDraftProbe()
+            }
         }
     }
 
