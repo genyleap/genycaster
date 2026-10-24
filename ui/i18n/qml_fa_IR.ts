@@ -59,12 +59,12 @@
             <translation>با فعال‌سازی، اطلاعاتی که این نود ندارد می‌تواند از ارائه‌دهندهٔ مجاز دیگری دریافت شود. پس از رفرش اعمال می‌شود.</translation>
         </message>
         <message id="genycaster.nodes.counts_external">
-            <source>Follower totals shown here come from an indexed provider (such as HyperSnap) or saved data, not the raw Neynar API.</source>
-            <translation>آمار دنبال‌کنندگان نمایش‌داده‌شده از یک سرویس ایندکس‌شده (مانند هایپراسنپ) یا کش قبلی است، نه API خام نینار.</translation>
+            <source>Follower totals shown here come from a compatible indexed provider (such as HyperSnap) or saved data, not a direct response from %1.</source>
+            <translation>آمار دنبال‌کنندگان از سرویس ایندکس‌شدهٔ سازگار (مانند هایپراسنپ) یا دادهٔ ذخیره‌شده می‌آید، نه پاسخ مستقیم %1.</translation>
         </message>
         <message id="genycaster.nodes.counts_raw">
-            <source>Strict reading: unsupported counts and screens stay unavailable. No extra service is contacted.</source>
-            <translation>حالت مستقل: دادهٔ پشتیبانی‌نشده نمایش داده نمی‌شود و از سرویس دیگری درخواست نمی‌فرستیم.</translation>
+            <source>Strict mode makes no requests to other providers. Previously cached indexed totals may still appear.</source>
+            <translation>در حالت مستقل، درخواستی به سرویس دیگر ارسال نمی‌شود؛ آمار ایندکس‌شدهٔ قبلی ممکن است همچنان از کش نمایش داده شود.</translation>
         </message>
         <message id="genycaster.nodes.health_title">
             <source>Node connection checks</source>

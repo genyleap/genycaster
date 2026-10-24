@@ -59,12 +59,12 @@
             <translation>启用后，可由其他获准服务补充缺失信息。刷新后生效。</translation>
         </message>
         <message id="genycaster.nodes.counts_external">
-            <source>Follower totals shown here come from an indexed provider (such as HyperSnap) or saved data, not the raw Neynar API.</source>
-            <translation>这里的粉丝总数来自索引服务（如 HyperSnap）或已保存缓存，而非 Neynar 原始 API。</translation>
+            <source>Follower totals shown here come from a compatible indexed provider (such as HyperSnap) or saved data, not a direct response from %1.</source>
+            <translation>粉丝总数来自兼容的索引提供商（如 HyperSnap）或保存的数据，而非 %1 的直接响应。</translation>
         </message>
         <message id="genycaster.nodes.counts_raw">
-            <source>Strict reading: unsupported counts and screens stay unavailable. No extra service is contacted.</source>
-            <translation>严格模式：不支持的数据保持不可用，不向其他服务请求。</translation>
+            <source>Strict mode makes no requests to other providers. Previously cached indexed totals may still appear.</source>
+            <translation>严格模式不会请求其他提供商，但之前缓存的索引统计仍可能显示。</translation>
         </message>
         <message id="genycaster.nodes.health_title">
             <source>Node connection checks</source>

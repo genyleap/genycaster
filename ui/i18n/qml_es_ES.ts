@@ -59,12 +59,12 @@
             <translation>Si se activa, los datos faltantes pueden venir de otro proveedor autorizado. Requiere actualizar.</translation>
         </message>
         <message id="genycaster.nodes.counts_external">
-            <source>Follower totals shown here come from an indexed provider (such as HyperSnap) or saved data, not the raw Neynar API.</source>
-            <translation>Los totales de seguidores vienen de un servicio indexado (como HyperSnap) o de la caché, no de Neynar sin indexar.</translation>
+            <source>Follower totals shown here come from a compatible indexed provider (such as HyperSnap) or saved data, not a direct response from %1.</source>
+            <translation>Los totales proceden de un proveedor indexado compatible (como HyperSnap) o de datos guardados, no de una respuesta directa de %1.</translation>
         </message>
         <message id="genycaster.nodes.counts_raw">
-            <source>Strict reading: unsupported counts and screens stay unavailable. No extra service is contacted.</source>
-            <translation>Modo estricto: los datos no admitidos quedan sin mostrar; no se consulta otro servicio.</translation>
+            <source>Strict mode makes no requests to other providers. Previously cached indexed totals may still appear.</source>
+            <translation>En modo estricto no se consulta a otros proveedores; pueden seguir apareciendo recuentos indexados guardados.</translation>
         </message>
         <message id="genycaster.nodes.health_title">
             <source>Node connection checks</source>

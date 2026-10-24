@@ -59,12 +59,12 @@
             <translation>Dados ausentes podem vir de outro provedor permitido. Recarregue para aplicar.</translation>
         </message>
         <message id="genycaster.nodes.counts_external">
-            <source>Follower totals shown here come from an indexed provider (such as HyperSnap) or saved data, not the raw Neynar API.</source>
-            <translation>Os totais vêm de um provedor indexado (como HyperSnap) ou cache, não da API bruta da Neynar.</translation>
+            <source>Follower totals shown here come from a compatible indexed provider (such as HyperSnap) or saved data, not a direct response from %1.</source>
+            <translation>Os totais vêm de um provedor indexado compatível (como HyperSnap) ou de dados salvos, não de uma resposta direta de %1.</translation>
         </message>
         <message id="genycaster.nodes.counts_raw">
-            <source>Strict reading: unsupported counts and screens stay unavailable. No extra service is contacted.</source>
-            <translation>Modo estrito: dados não suportados permanecem indisponíveis, sem consultar outro serviço.</translation>
+            <source>Strict mode makes no requests to other providers. Previously cached indexed totals may still appear.</source>
+            <translation>No modo estrito, outros provedores não são consultados; totais indexados em cache ainda podem aparecer.</translation>
         </message>
         <message id="genycaster.nodes.health_title">
             <source>Node connection checks</source>

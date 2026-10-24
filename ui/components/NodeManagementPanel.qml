@@ -437,7 +437,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     visible: providerProfiles.activeReadContract === "snapchain-v1"
                     text: providerProfiles.appliedCompatibleReadFallback
-                          ? qsTrId("genycaster.nodes.counts_external")
+                          ? qsTrId("genycaster.nodes.counts_external").arg(providerProfiles.activeReadProviderLabel)
                           : qsTrId("genycaster.nodes.counts_raw")
                     color: providerProfiles.appliedCompatibleReadFallback ? Theme.accent : Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize

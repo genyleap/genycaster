@@ -59,12 +59,12 @@
             <translation>有効にすると不足データを許可済みの別サービスから取得できます。再読み込み後に反映。</translation>
         </message>
         <message id="genycaster.nodes.counts_external">
-            <source>Follower totals shown here come from an indexed provider (such as HyperSnap) or saved data, not the raw Neynar API.</source>
-            <translation>フォロワー数はインデックスサービス（HyperSnapなど）またはキャッシュ由来で、Neynarの生APIの数値ではありません。</translation>
+            <source>Follower totals shown here come from a compatible indexed provider (such as HyperSnap) or saved data, not a direct response from %1.</source>
+            <translation>フォロワー総数は互換インデックスサービス（HyperSnapなど）または保存済みデータ由来で、%1 の直接応答ではありません。</translation>
         </message>
         <message id="genycaster.nodes.counts_raw">
-            <source>Strict reading: unsupported counts and screens stay unavailable. No extra service is contacted.</source>
-            <translation>厳格モード：非対応データは表示されず、他サービスへの問い合わせはしません。</translation>
+            <source>Strict mode makes no requests to other providers. Previously cached indexed totals may still appear.</source>
+            <translation>厳格モードでは他サービスに問い合わせません。ただし以前保存された集計値は引き続き表示される場合があります。</translation>
         </message>
         <message id="genycaster.nodes.health_title">
             <source>Node connection checks</source>

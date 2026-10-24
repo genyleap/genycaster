@@ -59,12 +59,12 @@
             <translation>सक्रिय करने पर छूटा डेटा किसी अन्य अनुमत प्रदाता से आ सकता है। रीफ़्रेश आवश्यक है।</translation>
         </message>
         <message id="genycaster.nodes.counts_external">
-            <source>Follower totals shown here come from an indexed provider (such as HyperSnap) or saved data, not the raw Neynar API.</source>
-            <translation>फ़ॉलोअर संख्या इंडेक्स्ड प्रदाता (जैसे HyperSnap) या कैश से है, रॉ Neynar API से नहीं।</translation>
+            <source>Follower totals shown here come from a compatible indexed provider (such as HyperSnap) or saved data, not a direct response from %1.</source>
+            <translation>फ़ॉलोअर संख्या किसी संगत इंडेक्स्ड प्रदाता (जैसे HyperSnap) या सहेजे गए डेटा से आती है, %1 के सीधे जवाब से नहीं।</translation>
         </message>
         <message id="genycaster.nodes.counts_raw">
-            <source>Strict reading: unsupported counts and screens stay unavailable. No extra service is contacted.</source>
-            <translation>सख़्त मोड: असमर्थित डेटा उपलब्ध नहीं होता; अन्य सेवा से अनुरोध नहीं।</translation>
+            <source>Strict mode makes no requests to other providers. Previously cached indexed totals may still appear.</source>
+            <translation>सख़्त मोड अन्य प्रदाताओं से अनुरोध नहीं भेजता; पहले से सहेजी इंडेक्स्ड संख्याएँ दिखाई दे सकती हैं।</translation>
         </message>
         <message id="genycaster.nodes.health_title">
             <source>Node connection checks</source>

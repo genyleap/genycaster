@@ -223,7 +223,7 @@ Item {
                                  && Number(root.shownProfile.fid || 0) > 0
                                  && root.shownProfile.socialCountsKnown === true
                                  && providerProfiles.activeReadContract === "snapchain-v1"
-                        text: qsTrId("genycaster.nodes.counts_external")
+                        text: qsTrId("genycaster.nodes.counts_external").arg(providerProfiles.activeReadProviderLabel)
                         color: Theme.textTertiary
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap

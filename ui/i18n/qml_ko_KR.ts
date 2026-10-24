@@ -59,12 +59,12 @@
             <translation>사용하면 부족한 데이터를 허용된 다른 공급자에서 가져올 수 있습니다. 새로고침 후 적용됩니다.</translation>
         </message>
         <message id="genycaster.nodes.counts_external">
-            <source>Follower totals shown here come from an indexed provider (such as HyperSnap) or saved data, not the raw Neynar API.</source>
-            <translation>팔로워 수는 인덱스 공급자(HyperSnap 등) 또는 캐시에서 왔으며 Neynar 원시 API 값이 아닙니다.</translation>
+            <source>Follower totals shown here come from a compatible indexed provider (such as HyperSnap) or saved data, not a direct response from %1.</source>
+            <translation>팔로워 수는 호환 인덱스 공급자(HyperSnap 등) 또는 저장된 데이터에서 왔으며 %1의 직접 응답이 아닙니다.</translation>
         </message>
         <message id="genycaster.nodes.counts_raw">
-            <source>Strict reading: unsupported counts and screens stay unavailable. No extra service is contacted.</source>
-            <translation>엄격 모드: 지원하지 않는 데이터는 비워 두며 다른 서비스에 요청하지 않습니다.</translation>
+            <source>Strict mode makes no requests to other providers. Previously cached indexed totals may still appear.</source>
+            <translation>엄격 모드에서는 다른 공급자에 요청하지 않지만 이전에 저장된 집계 수치는 표시될 수 있습니다.</translation>
         </message>
         <message id="genycaster.nodes.health_title">
             <source>Node connection checks</source>

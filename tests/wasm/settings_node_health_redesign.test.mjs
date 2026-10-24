@@ -39,8 +39,15 @@ test('social graph counts are attributed as supplementary data, not claimed from
  const profile=read('ui/components/ProfileSurface.qml');
  const sidebar=read('ui/components/SocialSidebar.qml');
  const node=read('ui/components/NodeManagementPanel.qml');
- for(const content of [profile,sidebar,node])
+ for(const content of [profile,sidebar,node]) {
     assert.match(content,/genycaster\.nodes\.counts_external/);
+    assert.match(content,/\.arg\(providerProfiles\.activeReadProviderLabel\)/);
+ }
+ for(const loc of ['en_US','fa_IR','ar_SA','de_DE','es_ES','fr_FR','hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
+    const cat=read('ui/i18n/qml_'+loc+'.ts');
+    assert.match(cat,/genycaster\.nodes\.counts_external/);
+    assert.ok(cat.includes('%1'),loc+' must support active provider label');
+ }
  assert.match(profile,/socialCountsKnown === true/);
  assert.match(node,/providerProfiles\.appliedCompatibleReadFallback/);
 });

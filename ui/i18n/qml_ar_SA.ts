@@ -59,12 +59,12 @@
             <translation>عند التفعيل قد تُقرأ البيانات الناقصة من مزوّد آخر مسموح. تُطبق التغييرات بعد التحديث.</translation>
         </message>
         <message id="genycaster.nodes.counts_external">
-            <source>Follower totals shown here come from an indexed provider (such as HyperSnap) or saved data, not the raw Neynar API.</source>
-            <translation>أعداد المتابعين هنا من مزوّد مفهرس مثل HyperSnap أو من ذاكرة محفوظة، لا من API Neynar الخام.</translation>
+            <source>Follower totals shown here come from a compatible indexed provider (such as HyperSnap) or saved data, not a direct response from %1.</source>
+            <translation>أعداد المتابعين من مزوّد مفهرس متوافق (مثل HyperSnap) أو من بيانات محفوظة، وليست استجابة مباشرة من %1.</translation>
         </message>
         <message id="genycaster.nodes.counts_raw">
-            <source>Strict reading: unsupported counts and screens stay unavailable. No extra service is contacted.</source>
-            <translation>وضع صارم: تظل الأعداد والواجهات غير المدعومة غير متاحة دون الاتصال بخدمة أخرى.</translation>
+            <source>Strict mode makes no requests to other providers. Previously cached indexed totals may still appear.</source>
+            <translation>في الوضع الصارم لا تُرسل طلبات إلى مزوّد آخر، لكن الأعداد المحفوظة سابقًا قد تظل ظاهرة.</translation>
         </message>
         <message id="genycaster.nodes.health_title">
             <source>Node connection checks</source>
