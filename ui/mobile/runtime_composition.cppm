@@ -40,13 +40,13 @@ import farcaster.routing.registry;
 import farcaster.routing.router;
 import farcaster.routing.signer.gateway;
 import farcaster.routing.read.async_gateway;
+import farcaster.storage.continuation;
 import farcaster.transport.async_http;
 import farcaster.transport.http;
 import farcaster.transport.qtnetwork;
 
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
 import farcaster.provider.hypersnap.async_gateway;
-import farcaster.storage.continuation;
 #endif
 
 #if FARCASTER_HAS_MEDIA_UPLOAD
@@ -173,15 +173,17 @@ struct Runtime final {
     std::string independentReadProviderId{};
     std::string hostedReadProviderId{};
     std::string requestedReadProviderId{};
-#if FARCASTER_HAS_HYPERSNAP_PROVIDER
     std::optional<farcaster::storage::continuation::ContinuationStore> continuations{};
+#if FARCASTER_HAS_HYPERSNAP_PROVIDER
     std::unique_ptr<farcaster::provider::hypersnap::async_gateway::AsyncGateway> asyncGateway{};
     std::unique_ptr<farcaster::provider::hypersnap::async_gateway::AsyncGateway> farcasterReadGateway{};
     std::vector<std::unique_ptr<farcaster::provider::hypersnap::async_gateway::AsyncGateway>>
         additionalReadGateways{};
     std::vector<std::string> additionalReadProviderIds{};
-    std::unique_ptr<farcaster::routing::read::async_gateway::RoutedReadGateway> routedAsyncGateway{};
 #endif
+    std::vector<std::unique_ptr<farcaster::application::read::async_gateway::IAsyncReadGateway>> rawReadGateways{};
+    std::vector<std::string> rawReadProviderIds{};
+    std::unique_ptr<farcaster::routing::read::async_gateway::RoutedReadGateway> routedAsyncGateway{};
     std::unique_ptr<farcaster::application::read::async_service::ReadService> service{};
     std::mutex requestMutex{};
     std::atomic<std::uint64_t> primaryRequestGeneration{0};

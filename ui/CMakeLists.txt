@@ -531,6 +531,13 @@ else()
     target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_PROTOCOL_SIGNING=0)
 endif()
 
+if(FARCASTER_ENABLE_SNAPCHAIN_READ_PROVIDER)
+    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_SNAPCHAIN_READ=1)
+    target_link_libraries(farcaster_client PRIVATE farcaster::provider_snapchain_read)
+else()
+    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_SNAPCHAIN_READ=0)
+endif()
+
 if(FARCASTER_ENABLE_SNAPCHAIN_SIGNER_PROVIDER)
     target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_SNAPCHAIN_SIGNER=1)
     target_link_libraries(farcaster_client PRIVATE farcaster::provider_snapchain_signer)

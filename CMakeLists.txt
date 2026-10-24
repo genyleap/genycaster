@@ -228,6 +228,15 @@ option(
     OFF
 )
 
+set(_farcasterSnapchainReadProviderDefault OFF)
+if(FARCASTER_BUILD_UI)
+    set(_farcasterSnapchainReadProviderDefault ON)
+endif()
+option(FARCASTER_ENABLE_SNAPCHAIN_READ_PROVIDER
+    "Compile direct raw Snapchain read-node adapter with exact capability declarations"
+    ${_farcasterSnapchainReadProviderDefault})
+unset(_farcasterSnapchainReadProviderDefault)
+
 set(_farcasterSnapchainSignerProviderDefault OFF)
 if(FARCASTER_BUILD_UI AND FARCASTER_ENABLE_PROTOCOL_SIGNING)
     # Runnable signed-write builds include canonical signer-registry inspection,
@@ -347,7 +356,8 @@ if(FARCASTER_ENABLE_PROTOCOL_SIGNING)
     add_subdirectory(src/platform)
 endif()
 
-if(FARCASTER_ENABLE_SNAPCHAIN_SIGNER_PROVIDER OR FARCASTER_ENABLE_SNAPCHAIN_WRITE_PROVIDER)
+if(FARCASTER_ENABLE_SNAPCHAIN_SIGNER_PROVIDER OR FARCASTER_ENABLE_SNAPCHAIN_WRITE_PROVIDER
+    OR FARCASTER_ENABLE_SNAPCHAIN_READ_PROVIDER)
     add_subdirectory(src/providers/snapchain)
 endif()
 

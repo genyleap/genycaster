@@ -1,0 +1,548 @@
+module;
+
+#include <algorithm>
+#include <atomic>
+#include <charconv>
+#include <chrono>
+#include <cctype>
+#include <cstddef>
+#include <cstdint>
+#include <expected>
+#include <functional>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+#include <boost/json.hpp>
+#include <boost/system/error_code.hpp>
+
+module farcaster.provider.snapchain.read;
+
+import farcaster.application.read.model;
+import farcaster.capability.catalog;
+import farcaster.capability.notification;
+import farcaster.capability.pagination;
+import farcaster.capability.search;
+import farcaster.capability.social;
+import farcaster.domain.cast;
+import farcaster.domain.feed;
+import farcaster.domain.identity;
+import farcaster.domain.profile;
+import farcaster.foundation.error;
+import farcaster.foundation.result;
+import farcaster.foundation.time;
+import farcaster.transport.http;
+
+namespace farcaster::provider::snapchain::read {
+namespace {
+namespace json = boost::json;
+namespace async = farcaster::application::read::async_gateway;
+namespace model = farcaster::application::read::model;
+namespace foundation = farcaster::foundation;
+using Error = foundation::error::Error;
+using ErrorCode = foundation::error::ErrorCode;
+
+[[nodiscard]] Error protocolError(std::string detail)
+{
+    return Error::make(ErrorCode::ProtocolFailure, std::move(detail));
+}
+
+[[nodiscard]] Error unsupported(std::string operation)
+{
+    return Error::make(ErrorCode::Unsupported,
+        "Raw Snapchain node does not provide indexed " + std::move(operation)
+        + "; a compatible derived index is required.");
+}
+
+[[nodiscard]] const json::value* field(const json::object& source, const std::string_view key)
+{
+    const auto entry = source.find(key);
+    return entry == source.end() ? nullptr : &entry->value();
+}
+
+[[nodiscard]] const json::object* object(const json::value* value)
+{
+    return value && value->is_object() ? &value->as_object() : nullptr;
+}
+
+[[nodiscard]] const json::array* array(const json::value* value)
+{
+    return value && value->is_array() ? &value->as_array() : nullptr;
+}
+
+[[nodiscard]] std::optional<std::string> string(const json::value* value)
+{
+    if (!value || !value->is_string()) return std::nullopt;
+    const auto& source = value->as_string();
+    return std::string{source.data(), source.size()};
+}
+
+[[nodiscard]] std::optional<std::uint64_t> unsignedValue(const json::value* value)
+{
+    if (!value) return std::nullopt;
+    if (value->is_uint64()) return value->as_uint64();
+    if (value->is_int64() && value->as_int64() >= 0)
+        return static_cast<std::uint64_t>(value->as_int64());
+    if (const auto text = string(value)) {
+        std::uint64_t result{};
+        const char* const start = text->data();
+        const auto [end, error] = std::from_chars(start, start + text->size(), result);
+        if (error == std::errc{} && end == start + text->size()) return result;
+    }
+    return std::nullopt;
+}
+
+[[nodiscard]] foundation::result::Result<json::value> parse(const std::string_view input)
+{
+    boost::system::error_code error{};
+    json::value parsed = json::parse(input, error);
+    if (error) return std::unexpected(protocolError("Raw Snapchain response is not valid JSON."));
+    if (!parsed.is_object())
+        return std::unexpected(protocolError("Raw Snapchain response must be an object."));
+    return parsed;
+}
+
+[[nodiscard]] std::optional<std::string> cursorFrom(const json::object& value)
+{
+    auto cursor = string(field(value, "nextPageToken"));
+    return cursor && !cursor->empty() ? cursor : std::nullopt;
+}
+
+[[nodiscard]] std::string escapeQuery(const std::string_view value)
+{
+    constexpr char digits[] = "0123456789ABCDEF";
+    std::string result{};
+    result.reserve(value.size() * 3U);
+    for (const char character : value) {
+        const auto byte = static_cast<unsigned char>(character);
+        if ((byte >= 'a' && byte <= 'z') || (byte >= 'A' && byte <= 'Z')
+            || (byte >= '0' && byte <= '9') || byte == '-' || byte == '_'
+            || byte == '.' || byte == '~') {
+            result.push_back(static_cast<char>(byte));
+        } else {
+            result.push_back('%');
+            result.push_back(digits[byte >> 4U]);
+            result.push_back(digits[byte & 15U]);
+        }
+    }
+    return result;
+}
+
+[[nodiscard]] bool validHash(const std::string_view hash)
+{
+    if (hash.size() != 42U || !hash.starts_with("0x")) return false;
+    for (std::size_t index{2}; index < hash.size(); ++index) {
+        if (!std::isxdigit(static_cast<unsigned char>(hash[index]))) return false;
+    }
+    return true;
+}
+
+[[nodiscard]] std::optional<int> userDataType(const json::value* value)
+{
+    if (const auto code = unsignedValue(value); code && *code <= 255U)
+        return static_cast<int>(*code);
+    if (const auto label = string(value)) {
+        if (*label == "USER_DATA_TYPE_PFP") return 1;
+        if (*label == "USER_DATA_TYPE_DISPLAY") return 2;
+        if (*label == "USER_DATA_TYPE_BIO") return 3;
+        if (*label == "USER_DATA_TYPE_URL") return 5;
+        if (*label == "USER_DATA_TYPE_USERNAME") return 6;
+        if (*label == "USER_DATA_TYPE_LOCATION") return 7;
+        if (*label == "USER_DATA_TYPE_BANNER") return 10;
+    }
+    return std::nullopt;
+}
+
+[[nodiscard]] foundation::result::Result<domain::cast::Cast> decodeCast(
+    const json::object& message, const domain::identity::Fid expectedFid)
+{
+    const auto hash = string(field(message, "hash"));
+    const auto* data = object(field(message, "data"));
+    if (!data || !hash || !validHash(*hash))
+        return std::unexpected(protocolError("Raw cast is missing canonical data/hash."));
+    const auto fid = unsignedValue(field(*data, "fid"));
+    if (!fid || *fid != expectedFid.value)
+        return std::unexpected(protocolError("Raw cast author FID mismatch."));
+    const auto timestamp = unsignedValue(field(*data, "timestamp"));
+    if (!timestamp || *timestamp > std::numeric_limits<std::uint32_t>::max())
+        return std::unexpected(protocolError("Invalid Farcaster epoch timestamp."));
+    const auto* body = object(field(*data, "castAddBody"));
+    if (!body)
+        return std::unexpected(protocolError("CastAdd body is missing."));
+    const auto text = string(field(*body, "text"));
+    if (!text) return std::unexpected(protocolError("CastAdd text must be a string."));
+    // The Farcaster epoch starts at 2021-01-01T00:00:00Z.
+    constexpr std::uint64_t farcasterEpochUnixSeconds = 1'609'459'200ULL;
+    domain::cast::Cast result{
+        .id = domain::cast::CastId{*hash},
+        .author = expectedFid,
+        .text = *text,
+        .createdAt = foundation::time::Timestamp{
+            std::chrono::milliseconds{
+                static_cast<std::int64_t>((farcasterEpochUnixSeconds + *timestamp) * 1000ULL)}},
+    };
+    if (const auto* parent = object(field(*body, "parentCastId"))) {
+        const auto parentHash = string(field(*parent, "hash"));
+        if (parentHash && validHash(*parentHash))
+            result.parent = domain::cast::CastId{*parentHash};
+    } else if (const auto parentUrl = string(field(*body, "parentUrl"))) {
+        if (!parentUrl->empty()) result.parentUrl = *parentUrl;
+    }
+    const auto appendUrl = [&result](const std::string& url) {
+        if (!url.empty())
+            result.embeds.push_back(domain::cast::Embed{
+                .kind = domain::cast::EmbedKind::Url, .value = url});
+    };
+    if (const auto* embeds = array(field(*body, "embeds"))) {
+        for (const auto& embed : *embeds) {
+            const auto* value = object(&embed);
+            if (!value) continue;
+            if (const auto url = string(field(*value, "url"))) {
+                appendUrl(*url);
+            } else if (const auto* cast = object(field(*value, "castId"))) {
+                const auto embeddedHash = string(field(*cast, "hash"));
+                const auto author = unsignedValue(field(*cast, "fid"));
+                if (embeddedHash && validHash(*embeddedHash) && author && *author != 0U)
+                    result.embeds.push_back(domain::cast::Embed{
+                        .kind = domain::cast::EmbedKind::CastReference,
+                        .value = *embeddedHash,
+                        .referencedAuthor = domain::identity::Fid{*author},
+                    });
+            }
+        }
+    }
+    if (const auto* legacy = array(field(*body, "embedsDeprecated"))) {
+        for (const auto& embed : *legacy) {
+            if (const auto url = string(&embed)) appendUrl(*url);
+        }
+    }
+    return result;
+}
+
+[[nodiscard]] bool matchesFeed(const domain::cast::Cast& cast, const model::FeedQuery::Kind kind)
+{
+    if (kind == model::FeedQuery::Kind::UserReplies)
+        return cast.parent.has_value();
+    if (cast.parent) return false;
+    const bool quoted = std::any_of(cast.embeds.begin(), cast.embeds.end(),
+        [](const domain::cast::Embed& embed) {
+            return embed.kind == domain::cast::EmbedKind::CastReference;
+        });
+    if (kind == model::FeedQuery::Kind::UserQuotes) return quoted;
+    return kind == model::FeedQuery::Kind::UserPosts && !quoted;
+}
+
+[[nodiscard]] capability::model::CapabilityDescriptor supported(
+    capability::model::CapabilityId id)
+{
+    return {
+        .id = std::move(id),
+        .version = {1, 0},
+        .origin = capability::model::CapabilityOrigin::Protocol,
+        .quality = capability::model::CapabilityQuality::Native,
+        .access = {capability::model::CapabilityAccess::Read},
+        .isSelfHostable = true,
+    };
+}
+
+struct InFlight final {
+    std::atomic_bool cancelled{false};
+};
+
+using BodyCompletion = std::function<void(foundation::result::Result<std::string>)>;
+
+class Gateway final : public async::IAsyncReadGateway {
+public:
+    Gateway(
+        transport::async_http::IAsyncHttpTransport& transport,
+        execution::weighted_thread_pool::WeightedThreadPoolExecutor& decoder,
+        storage::continuation::ContinuationStore& continuations,
+        Config config)
+        : m_transport(transport), m_decoder(decoder),
+          m_continuations(continuations), m_config(std::move(config))
+    {
+        while (!m_config.baseUrl.empty() && m_config.baseUrl.back() == '/')
+            m_config.baseUrl.pop_back();
+    }
+
+    [[nodiscard]] foundation::result::Result<async::Request> resolveIdentity(
+        const std::string_view username, async::IdentityCompletion completion,
+        model::ReadOptions options) override
+    {
+        if (username.empty() || username.size() > 256U)
+            return std::unexpected(Error::make(
+                ErrorCode::InvalidArgument, "Username must be nonempty and bounded."));
+        return request("/v1/userNameProofByName?name=" + escapeQuery(username),
+            [complete = std::move(completion)](foundation::result::Result<std::string> body) mutable {
+                if (!body) return complete(std::unexpected(std::move(body.error())));
+                auto parsed = parse(*body);
+                if (!parsed) return complete(std::unexpected(std::move(parsed.error())));
+                const auto* outer = &parsed->as_object();
+                const auto* proof = object(field(*outer, "proof"));
+                const auto fid = unsignedValue(field(proof ? *proof : *outer, "fid"));
+                if (!fid || *fid == 0U) return complete(std::unexpected(protocolError(
+                    "Username proof does not contain a valid FID.")));
+                complete(domain::identity::Fid{*fid});
+            }, options);
+    }
+
+    [[nodiscard]] foundation::result::Result<async::Request> profile(
+        const domain::identity::Fid fid,
+        async::ProfileCompletion completion, model::ReadOptions options) override
+    {
+        if (fid.value == 0U) return std::unexpected(Error::make(
+            ErrorCode::InvalidArgument, "Profile FID cannot be zero."));
+        return request("/v1/userDataByFid?fid=" + std::to_string(fid.value) + "&pageSize=100",
+            [fid, complete = std::move(completion)](
+                foundation::result::Result<std::string> body) mutable {
+                if (!body) return complete(std::unexpected(std::move(body.error())));
+                complete(decodeUserData(*body, fid));
+            }, options);
+    }
+
+    [[nodiscard]] foundation::result::Result<async::Request> cast(
+        domain::cast::CastId, async::CastCompletion, model::ReadOptions) override
+    {
+        return std::unexpected(unsupported("cast lookup by hash alone"));
+    }
+
+    [[nodiscard]] foundation::result::Result<async::Request> feed(
+        model::FeedQuery query, async::FeedCompletion completion,
+        model::ReadOptions options) override
+    {
+        if (query.kind != model::FeedQuery::Kind::UserPosts
+            && query.kind != model::FeedQuery::Kind::UserQuotes
+            && query.kind != model::FeedQuery::Kind::UserReplies)
+            return std::unexpected(unsupported("aggregated feeds"));
+        if (!query.fid || query.fid->value == 0U)
+            return std::unexpected(Error::make(
+                ErrorCode::InvalidArgument, "User feed must contain a valid FID."));
+        const auto capabilityId = query.kind == model::FeedQuery::Kind::UserPosts
+            ? capability::catalog::feedUserPostsRead()
+            : query.kind == model::FeedQuery::Kind::UserQuotes
+                ? capability::catalog::feedUserQuotesRead()
+                : capability::catalog::feedUserRepliesRead();
+        std::string url{"/v1/castsByFid?fid="};
+        url += std::to_string(query.fid->value);
+        url += "&pageSize=" + std::to_string(std::clamp(query.limit, std::size_t{1}, std::size_t{100}));
+        url += "&reverse=true";
+        if (query.continuation) {
+            auto record = m_continuations.resolve(*query.continuation);
+            if (!record) return std::unexpected(std::move(record.error()));
+            if (record->capabilityId.value != capabilityId.value
+                || record->providerId.value != m_config.providerId.value)
+                return std::unexpected(Error::make(
+                    ErrorCode::Conflict, "Read continuation does not match its capability/provider."));
+            const std::string prefix = std::to_string(query.fid->value) + ":";
+            if (!record->providerCursor.starts_with(prefix))
+                return std::unexpected(Error::make(
+                    ErrorCode::Conflict,
+                    "Raw-node continuation belongs to a different user FID."));
+            url += "&pageToken=" + escapeQuery(
+                std::string_view{record->providerCursor}.substr(prefix.size()));
+        }
+        return request(std::move(url),
+            [this, fid = *query.fid, kind = query.kind, capabilityId,
+             complete = std::move(completion)](
+                foundation::result::Result<std::string> body) mutable {
+                if (!body) return complete(std::unexpected(std::move(body.error())));
+                auto page = decodeUserCasts(*body, fid, kind);
+                if (!page) return complete(std::unexpected(std::move(page.error())));
+                auto parsed = parse(*body);
+                if (!parsed) return complete(std::unexpected(std::move(parsed.error())));
+                if (const auto cursor = cursorFrom(parsed->as_object())) {
+                    auto next = m_continuations.bind(
+                        capabilityId, m_config.providerId,
+                        std::to_string(fid.value) + ":" + *cursor);
+                    if (!next) return complete(std::unexpected(std::move(next.error())));
+                    page->next = std::move(*next);
+                }
+                complete(std::move(page));
+            }, options);
+    }
+
+    [[nodiscard]] foundation::result::Result<async::Request> search(
+        model::SearchQuery, async::SearchCompletion, model::ReadOptions) override
+    {
+        return std::unexpected(unsupported("full-text search"));
+    }
+
+    [[nodiscard]] foundation::result::Result<async::Request> notifications(
+        model::NotificationQuery, async::NotificationCompletion, model::ReadOptions) override
+    {
+        return std::unexpected(unsupported("notifications"));
+    }
+
+    [[nodiscard]] foundation::result::Result<async::Request> social(
+        model::SocialQuery, async::SocialCompletion, model::ReadOptions) override
+    {
+        return std::unexpected(unsupported("social graph hydration"));
+    }
+
+private:
+    [[nodiscard]] foundation::result::Result<async::Request> request(
+        std::string path,
+        BodyCompletion complete,
+        const model::ReadOptions options)
+    {
+        transport::async_http::Request outbound{
+            .method = transport::async_http::Method::Get,
+            .url = m_config.baseUrl + std::move(path),
+            .headers = {"Accept: application/json"},
+            .timeout = m_config.timeout,
+            .maxBodyBytes = m_config.maximumResponseBytes,
+            .priority = options.intent == model::ReadIntent::Prefetch
+                ? transport::async_http::Priority::Prefetch
+                : transport::async_http::Priority::Visible,
+            .retryPolicy = transport::async_http::RetryPolicy::TransientRead,
+            .maximumAttempts = 2U,
+        };
+        if (!m_config.authorizationHeaderName.empty()) {
+            outbound.headers.push_back(
+                m_config.authorizationHeaderName + ": " + m_config.authorizationHeaderValue);
+        }
+        auto inflight = std::make_shared<InFlight>();
+        auto started = m_transport.start(std::move(outbound),
+            [inflight, &decoder = m_decoder,
+             complete = std::move(complete)](
+                foundation::result::Result<transport::http::HttpResponse> response) mutable {
+                if (inflight->cancelled.load(std::memory_order_acquire)) return;
+                if (!response) {
+                    complete(std::unexpected(std::move(response.error())));
+                    return;
+                }
+                if (response->statusCode != 200U) {
+                    const auto status = response->statusCode;
+                    const ErrorCode code = status == 404U ? ErrorCode::NotFound
+                        : status == 401U || status == 403U ? ErrorCode::Unauthorized
+                        : status == 429U ? ErrorCode::RateLimited
+                        : status >= 500U ? ErrorCode::Unavailable
+                        : ErrorCode::ProtocolFailure;
+                    complete(std::unexpected(Error::make(code,
+                        "Raw-node HTTP read returned status " + std::to_string(status))));
+                    return;
+                }
+                const auto bytes = response->body.size();
+                auto body = std::make_shared<std::string>(std::move(response->body));
+                auto completion = std::make_shared<BodyCompletion>(std::move(complete));
+                auto posted = decoder.post(bytes,
+                    [inflight, body = std::move(body), completion]() mutable {
+                        if (!inflight->cancelled.load(std::memory_order_acquire))
+                            (*completion)(std::move(*body));
+                    });
+                if (!posted && !inflight->cancelled.load(std::memory_order_acquire))
+                    (*completion)(std::unexpected(std::move(posted.error())));
+            });
+        if (!started) return std::unexpected(std::move(started.error()));
+        return async::Request{[inflight, operation = std::move(*started)]() mutable {
+            inflight->cancelled.store(true, std::memory_order_release);
+            operation.cancel();
+        }};
+    }
+
+    transport::async_http::IAsyncHttpTransport& m_transport;
+    execution::weighted_thread_pool::WeightedThreadPoolExecutor& m_decoder;
+    storage::continuation::ContinuationStore& m_continuations;
+    Config m_config{};
+};
+
+} // namespace
+
+std::vector<capability::model::CapabilityDescriptor> capabilities()
+{
+    return {
+        supported(capability::catalog::identityFidResolve()),
+        supported(capability::catalog::profileRead()),
+        supported(capability::catalog::feedUserPostsRead()),
+        supported(capability::catalog::feedUserQuotesRead()),
+        supported(capability::catalog::feedUserRepliesRead()),
+    };
+}
+
+foundation::result::Result<domain::profile::Profile> decodeUserData(
+    const std::string_view jsonBody, const domain::identity::Fid expectedFid)
+{
+    if (expectedFid.value == 0U)
+        return std::unexpected(protocolError("Profile FID must be positive."));
+    auto parsed = parse(jsonBody);
+    if (!parsed) return std::unexpected(std::move(parsed.error()));
+    const auto* messages = array(field(parsed->as_object(), "messages"));
+    if (!messages)
+        return std::unexpected(protocolError("UserData response has no messages array."));
+    domain::profile::Profile profile{.fid = expectedFid};
+    for (const auto& item : *messages) {
+        const auto* message = object(&item);
+        if (!message) return std::unexpected(protocolError("Malformed UserData message."));
+        const auto* data = object(field(*message, "data"));
+        if (!data) return std::unexpected(protocolError("UserData message missing data."));
+        const auto fid = unsignedValue(field(*data, "fid"));
+        if (!fid || *fid != expectedFid.value)
+            return std::unexpected(protocolError("UserData response contains a different FID."));
+        const auto* body = object(field(*data, "userDataBody"));
+        if (!body) continue;
+        const auto type = userDataType(field(*body, "type"));
+        const auto value = string(field(*body, "value"));
+        if (!type || !value) continue;
+        switch (*type) {
+        case 1: profile.avatarUrl = *value; break;
+        case 2: profile.displayName = domain::identity::DisplayName{*value}; break;
+        case 3: profile.bio = *value; break;
+        case 5: profile.profileUrl = *value; break;
+        case 6: profile.username = domain::identity::Username{*value}; break;
+        case 7: profile.location = *value; break;
+        case 10: profile.bannerUrl = *value; break;
+        default: break;
+        }
+    }
+    return profile;
+}
+
+foundation::result::Result<capability::feed::FeedPage> decodeUserCasts(
+    const std::string_view jsonBody, const domain::identity::Fid expectedFid,
+    const model::FeedQuery::Kind kind)
+{
+    if (kind != model::FeedQuery::Kind::UserPosts
+        && kind != model::FeedQuery::Kind::UserQuotes
+        && kind != model::FeedQuery::Kind::UserReplies)
+        return std::unexpected(unsupported("aggregated feeds"));
+    auto parsed = parse(jsonBody);
+    if (!parsed) return std::unexpected(std::move(parsed.error()));
+    const auto* messages = array(field(parsed->as_object(), "messages"));
+    if (!messages)
+        return std::unexpected(protocolError("Casts response has no messages array."));
+    capability::feed::FeedPage page{};
+    for (const auto& item : *messages) {
+        const auto* message = object(&item);
+        if (!message) return std::unexpected(protocolError("Malformed CastAdd message."));
+        const auto* data = object(field(*message, "data"));
+        if (!data) return std::unexpected(protocolError("Cast message missing data."));
+        // /v1/castsByFid returns effective CastAdd messages, not tombstones,
+        // but don't interpret other message kinds as casts if an endpoint
+        // includes historical entries.
+        if (!object(field(*data, "castAddBody"))) continue;
+        auto cast = decodeCast(*message, expectedFid);
+        if (!cast) return std::unexpected(std::move(cast.error()));
+        if (!matchesFeed(*cast, kind)) continue;
+        page.entries.push_back(domain::feed::FeedEntry{
+            .castId = cast->id,
+            .sortTime = cast->createdAt,
+        });
+        page.casts.push_back(std::move(*cast));
+    }
+    return page;
+}
+
+std::unique_ptr<async::IAsyncReadGateway> makeGateway(
+    transport::async_http::IAsyncHttpTransport& transport,
+    execution::weighted_thread_pool::WeightedThreadPoolExecutor& decodeExecutor,
+    storage::continuation::ContinuationStore& continuations,
+    Config config)
+{
+    return std::make_unique<Gateway>(transport, decodeExecutor, continuations, std::move(config));
+}
+
+} // namespace farcaster::provider::snapchain::read

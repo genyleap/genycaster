@@ -1,4 +1,9 @@
-find_package(Boost 1.75 REQUIRED)
+if(EMSCRIPTEN)
+    # Browser builds have portable Boost headers but no native BoostConfig package.
+    include(WasmBoostHeaders)
+else()
+    find_package(Boost 1.75 REQUIRED)
+endif()
 
 # Boost.JSON's compiled implementation is shared by the independent Snapchain
 # signer-registry and canonical-write adapters. Keeping one archive prevents
@@ -8,6 +13,30 @@ target_link_libraries(farcaster_snapchain_boost_json PRIVATE Boost::headers)
 target_compile_definitions(farcaster_snapchain_boost_json PRIVATE BOOST_JSON_NO_LIB)
 target_compile_features(farcaster_snapchain_boost_json PRIVATE cxx_std_26)
 farcaster_enable_warnings(farcaster_snapchain_boost_json)
+
+if(FARCASTER_ENABLE_SNAPCHAIN_READ_PROVIDER)
+    add_library(farcaster_provider_snapchain_read)
+    add_library(farcaster::provider_snapchain_read ALIAS farcaster_provider_snapchain_read)
+    target_sources(farcaster_provider_snapchain_read
+        PUBLIC FILE_SET CXX_MODULES FILES read.cppm
+        PRIVATE read.cpp
+    )
+    target_link_libraries(farcaster_provider_snapchain_read
+        PUBLIC
+            farcaster::application
+            farcaster::capabilities
+            farcaster::domain
+            farcaster::provider
+            farcaster::storage
+            farcaster::transport
+            farcaster::execution
+        PRIVATE farcaster_snapchain_boost_json Boost::headers
+    )
+    target_compile_definitions(farcaster_provider_snapchain_read PRIVATE BOOST_JSON_NO_LIB)
+    target_compile_features(farcaster_provider_snapchain_read PUBLIC cxx_std_26)
+    set_property(TARGET farcaster_provider_snapchain_read PROPERTY CXX_SCAN_FOR_MODULES ON)
+    farcaster_enable_warnings(farcaster_provider_snapchain_read)
+endif()
 
 if(FARCASTER_ENABLE_SNAPCHAIN_SIGNER_PROVIDER)
     add_library(farcaster_provider_snapchain_signer)

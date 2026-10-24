@@ -80,6 +80,10 @@ import farcaster.application.media.lifecycle;
 import farcaster.transport.qtnetwork.media;
 #endif
 
+#if FARCASTER_HAS_SNAPCHAIN_READ
+import farcaster.provider.snapchain.read;
+#endif
+
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
 import farcaster.provider.hypersnap.config;
 import farcaster.provider.hypersnap.registration;
@@ -125,8 +129,9 @@ Runtime::~Runtime()
     writeService.reset();
     signerService.reset();
     service.reset();
-#if FARCASTER_HAS_HYPERSNAP_PROVIDER
     routedAsyncGateway.reset();
+    rawReadGateways.clear();
+#if FARCASTER_HAS_HYPERSNAP_PROVIDER
     farcasterReadGateway.reset();
     asyncGateway.reset();
 #endif
@@ -923,6 +928,14 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     }
 #endif
 
+#if FARCASTER_HAS_HYPERSNAP_PROVIDER || FARCASTER_HAS_SNAPCHAIN_READ
+    auto continuationStore = farcaster::storage::continuation::openContinuationStore(databasePath);
+    if (!continuationStore) {
+        return std::unexpected(std::move(continuationStore.error()));
+    }
+    runtime->continuations.emplace(std::move(*continuationStore));
+#endif
+
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
     const farcaster::provider::model::ProviderDescriptor descriptor{
         .id = farcaster::provider::model::ProviderId{"hypersnap-v2"},
@@ -940,11 +953,6 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         return std::unexpected(std::move(registration.error()));
     }
     runtime->independentReadProviderId = descriptor.id.value;
-    auto continuationStore = farcaster::storage::continuation::openContinuationStore(databasePath);
-    if (!continuationStore) {
-        return std::unexpected(std::move(continuationStore.error()));
-    }
-    runtime->continuations.emplace(std::move(*continuationStore));
     farcaster::provider::hypersnap::config::Config providerConfig{
         .provider = descriptor,
     };
@@ -996,6 +1004,7 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     // endpoints can use a compatible adapter, with per-instance health/cursors.
     // Unknown contracts are NEVER bound to a superficially similar API.
     for (const ReadProviderProfile& profile : additionalReadProviders) {
+        if (profile.adapterContract == "snapchain-v1") continue;
         if (profile.adapterContract != "hypersnap-v2") {
             return std::unexpected(foundation::error::Error::make(
                 foundation::error::ErrorCode::Unsupported,
@@ -1035,10 +1044,60 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     }
 #endif
 
+#if FARCASTER_HAS_SNAPCHAIN_READ
+    for (const ReadProviderProfile& profile : additionalReadProviders) {
+        if (profile.adapterContract != "snapchain-v1") continue;
+        if (profile.id.empty() || profile.endpoint.empty()
+            || runtime->registry.provider(farcaster::provider::model::ProviderId{profile.id})) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Raw-node provider ID/endpoint is empty or already registered."));
+        }
+        const farcaster::provider::model::ProviderDescriptor instance{
+            .id = farcaster::provider::model::ProviderId{profile.id},
+            .displayName = profile.displayName.empty() ? profile.id : profile.displayName,
+            .deployment = profile.selfHosted
+                ? farcaster::provider::model::ProviderDeployment::SelfHosted
+                : farcaster::provider::model::ProviderDeployment::PublicManaged,
+            .privacy = profile.selfHosted
+                ? farcaster::provider::model::ProviderPrivacy::Private
+                : farcaster::provider::model::ProviderPrivacy::Standard,
+            .priority = 30,
+        };
+        auto registered = runtime->registry.registerProvider({
+            .provider = instance,
+            .capabilities = farcaster::provider::snapchain::read::capabilities(),
+        });
+        if (!registered) return std::unexpected(std::move(registered.error()));
+        runtime->rawReadGateways.push_back(
+            farcaster::provider::snapchain::read::makeGateway(
+                *runtime->asyncTransport,
+                *runtime->decodeExecutor,
+                *runtime->continuations,
+                farcaster::provider::snapchain::read::Config{
+                    .baseUrl = profile.endpoint, .providerId = instance.id,
+                }));
+        runtime->rawReadProviderIds.push_back(profile.id);
+    }
+#else
+    for (const ReadProviderProfile& profile : additionalReadProviders) {
+        if (profile.adapterContract == "snapchain-v1") {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::Unsupported,
+                "Raw Snapchain reader adapter is not compiled into this build."));
+        }
+    }
+#endif
+
     const bool strict = application::configuration::configuredDeploymentProfile()
         == application::configuration::DeploymentProfile::StrictSelfHosted;
 #if !FARCASTER_HAS_HYPERSNAP_PROVIDER
-    if (!additionalReadProviders.empty()) {
+    const bool missingIndexedAdapter = std::any_of(
+        additionalReadProviders.begin(), additionalReadProviders.end(),
+        [](const ReadProviderProfile& profile) {
+            return profile.adapterContract != "snapchain-v1";
+        });
+    if (missingIndexedAdapter) {
         return std::unexpected(foundation::error::Error::make(
             foundation::error::ErrorCode::Unsupported,
             "Indexed read provider profiles require a compatible installed adapter."));
@@ -1135,32 +1194,35 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
             "Live-read runtime composition is incomplete. " + identityRoute.error().message));
     }
 
+#if FARCASTER_HAS_HYPERSNAP_PROVIDER || FARCASTER_HAS_SNAPCHAIN_READ
+    std::vector<routing::read::async_gateway::SourceBinding> bindings{};
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
+    bindings.push_back({
+        .providerId = descriptor.id,
+        .gateway = runtime->asyncGateway.get(),
+    });
+    if (runtime->farcasterReadGateway) {
+        bindings.push_back({
+            .providerId = farcaster::provider::model::ProviderId{"farcaster-snapchain"},
+            .gateway = runtime->farcasterReadGateway.get(),
+        });
+    }
+    for (std::size_t index = 0; index < runtime->additionalReadGateways.size(); ++index) {
+        bindings.push_back({
+            .providerId = farcaster::provider::model::ProviderId{
+                runtime->additionalReadProviderIds[index]},
+            .gateway = runtime->additionalReadGateways[index].get(),
+        });
+    }
+#endif
+    for (std::size_t index = 0; index < runtime->rawReadGateways.size(); ++index) {
+        bindings.push_back({
+            .providerId = farcaster::provider::model::ProviderId{runtime->rawReadProviderIds[index]},
+            .gateway = runtime->rawReadGateways[index].get(),
+        });
+    }
     runtime->routedAsyncGateway = std::make_unique<routing::read::async_gateway::RoutedReadGateway>(
-        *runtime->router,
-        runtime->health,
-        [&] {
-            std::vector<routing::read::async_gateway::SourceBinding> bindings{
-                routing::read::async_gateway::SourceBinding{
-                    .providerId = descriptor.id,
-                    .gateway = runtime->asyncGateway.get(),
-                },
-            };
-            if (runtime->farcasterReadGateway) {
-                bindings.push_back(routing::read::async_gateway::SourceBinding{
-                    .providerId = farcaster::provider::model::ProviderId{"farcaster-snapchain"},
-                    .gateway = runtime->farcasterReadGateway.get(),
-                });
-            }
-            for (std::size_t index = 0; index < runtime->additionalReadGateways.size(); ++index) {
-                bindings.push_back(routing::read::async_gateway::SourceBinding{
-                    .providerId = farcaster::provider::model::ProviderId{
-                        runtime->additionalReadProviderIds[index]},
-                    .gateway = runtime->additionalReadGateways[index].get(),
-                });
-            }
-            return bindings;
-        }());
+        *runtime->router, runtime->health, std::move(bindings));
     runtime->service = std::make_unique<application::read::async_service::ReadService>(
         *runtime->cacheExecutor, *runtime->store, *runtime->routedAsyncGateway);
 #else
