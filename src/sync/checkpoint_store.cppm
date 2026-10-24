@@ -18,10 +18,12 @@ public:
     virtual ~ICheckpointStore() = default;
 
     /**
-     * @brief Saves the latest checkpoint for a sync key.
+     * @brief Advances a durable sync waterline monotonically across writers.
      * @param key Stable semantic sync key.
      * @param checkpoint Checkpoint copied by the implementation before return.
-     * @return Success or a structured storage failure.
+     * @return Success on advance or identical replay; Conflict on rewind;
+     * InvalidArgument on invalid input, or storage failure.
+     * Save entities before advancing this independently durable watermark.
      */
     [[nodiscard]] virtual foundation::result::Status saveCheckpoint(
         const model::SyncKey& key,

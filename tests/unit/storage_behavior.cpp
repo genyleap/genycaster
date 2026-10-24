@@ -1,6 +1,12 @@
 module;
 
 #include <cassert>
+#include <atomic>
+#include <barrier>
+#include <chrono>
+#include <cstdint>
+#include <limits>
+#include <thread>
 #include <optional>
 #include <string>
 #include <vector>
@@ -14,6 +20,7 @@ import farcaster.domain.feed;
 import farcaster.domain.identity;
 import farcaster.domain.profile;
 import farcaster.foundation.time;
+import farcaster.foundation.error;
 import farcaster.provider.model;
 import farcaster.storage.checkpoint;
 import farcaster.storage.continuation;
@@ -157,6 +164,86 @@ void runLocalStoreRoundTrip()
     assert(loadedCheckpoint);
     assert(loadedCheckpoint->has_value());
     assert((*loadedCheckpoint)->sequence == 77);
+
+    // Multiple workers/nodes can ingest independently, but a stale completion
+    // must not roll back a previously committed checkpoint.
+    auto secondStore = farcaster::storage::checkpoint::openCheckpointStore(databasePath).value();
+    const auto laterTimestamp = checkpoint.updatedAt + std::chrono::seconds{60};
+    const sync::model::SyncCheckpoint sameSequence{
+        .sequence = 77, .updatedAt = laterTimestamp};
+    assert(secondStore->saveCheckpoint(syncKey, sameSequence));
+    auto replay = checkpointStore->loadCheckpoint(syncKey);
+    assert(replay && replay->has_value());
+    assert((*replay)->updatedAt == checkpoint.updatedAt);
+
+    const sync::model::SyncCheckpoint rewind{
+        .sequence = 76, .updatedAt = laterTimestamp};
+    auto stale = secondStore->saveCheckpoint(syncKey, rewind);
+    assert(!stale && stale.error().code == foundation::error::ErrorCode::Conflict);
+    replay = checkpointStore->loadCheckpoint(syncKey);
+    assert(replay && (*replay)->sequence == 77);
+    assert((*replay)->updatedAt == checkpoint.updatedAt);
+
+    // Two independent SQLite connections race at the same waterline.
+    // The lower sequence either commits first or fails with Conflict.
+    std::barrier gate{2};
+    std::atomic<int> refused{0};
+    std::thread lower{[&] {
+        gate.arrive_and_wait();
+        const auto status = checkpointStore->saveCheckpoint(syncKey,
+            sync::model::SyncCheckpoint{.sequence = 101, .updatedAt = laterTimestamp});
+        if (!status) {
+            assert(status.error().code == foundation::error::ErrorCode::Conflict);
+            ++refused;
+        }
+    }};
+    std::thread higher{[&] {
+        gate.arrive_and_wait();
+        const auto status = secondStore->saveCheckpoint(syncKey,
+            sync::model::SyncCheckpoint{.sequence = 103, .updatedAt = laterTimestamp});
+        assert(status);
+    }};
+    lower.join();
+    higher.join();
+    assert(refused.load() <= 1);
+    auto latest = checkpointStore->loadCheckpoint(syncKey);
+    assert(latest && (*latest)->sequence == 103);
+    assert((*latest)->updatedAt == laterTimestamp);
+    assert(!checkpointStore->saveCheckpoint(syncKey, rewind));
+    latest = secondStore->loadCheckpoint(syncKey);
+    assert(latest && (*latest)->sequence == 103);
+
+    // Source-specific keys remain separate: one raw-node reader must not
+    // overwrite a different node's traversal waterline.
+    const sync::model::SyncKey otherSource{"index:other-node:recent"};
+    assert(secondStore->saveCheckpoint(otherSource,
+        sync::model::SyncCheckpoint{.sequence = 4, .updatedAt = checkpoint.updatedAt}));
+    auto other = checkpointStore->loadCheckpoint(otherSource);
+    assert(other && (*other)->sequence == 4);
+    assert((checkpointStore->loadCheckpoint(syncKey))->value().sequence == 103);
+
+    // SQLite INTEGER is signed. Overflowing a u64 must never persist a
+    // negative sequence and be mistaken for enormous forward progress.
+    constexpr auto sqliteMaximum = static_cast<std::uint64_t>(
+        std::numeric_limits<std::int64_t>::max());
+    const sync::model::SyncCheckpoint oversized{
+        .sequence = sqliteMaximum + 1U, .updatedAt = laterTimestamp};
+    auto invalid = checkpointStore->saveCheckpoint(syncKey, oversized);
+    assert(!invalid && invalid.error().code
+        == foundation::error::ErrorCode::InvalidArgument);
+    assert(!checkpointStore->saveCheckpoint(
+        sync::model::SyncKey{}, checkpoint));
+    assert(!checkpointStore->loadCheckpoint(sync::model::SyncKey{}));
+    assert(!checkpointStore->saveCheckpoint(
+        sync::model::SyncKey{std::string("a\0b", 3)}, checkpoint));
+
+    // Closing/reopening SQLite must preserve the strictly increasing
+    // persisted sequence; older late responses cannot resurrect an old state.
+    secondStore.reset();
+    auto restarted = farcaster::storage::checkpoint::openCheckpointStore(databasePath).value();
+    auto recovered = restarted->loadCheckpoint(syncKey);
+    assert(recovered && (*recovered)->sequence == 103);
+    assert(!restarted->saveCheckpoint(syncKey, rewind));
 }
 
 }
