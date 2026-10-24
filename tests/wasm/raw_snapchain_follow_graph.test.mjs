@@ -12,12 +12,12 @@ test('raw Snapchain Follow graph has typed native provider-neutral capability ro
   assert.match(source, /supported\(capability::catalog::graphFollowingRead\(\)\)/);
   assert.match(source, /supported\(capability::catalog::graphFollowersRead\(\)\)/);
   assert.match(source, /\/v1\/linksByFid\?fid=/);
-  assert.match(source, /\/v1\/linksByTargetFid\?targetFid=/);
+  assert.match(source, /\/v1\/linksByTargetFid\?target_fid=/);
   assert.match(source, /linkBody/);
   assert.match(source, /targetFid/);
   assert.match(source, /raw-social-v1:/);
   assert.match(source, /record->providerCursor\.starts_with\(scope\)/);
-  assert.match(source, /return std::unexpected\(unsupported\("aggregated feeds"\)\)/);
+  assert.match(source, /boundedDerived\(capability::catalog::feedFollowingRead\(\)\)/);
   assert.doesNotMatch(mod, /Hypersnap|Neynar|apiKey/);
 });
 

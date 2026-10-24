@@ -11,6 +11,7 @@ module;
 #include <functional>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -56,8 +57,8 @@ using ErrorCode = foundation::error::ErrorCode;
 [[nodiscard]] Error unsupported(std::string operation)
 {
     return Error::make(ErrorCode::Unsupported,
-        "Raw Snapchain node does not provide indexed " + std::move(operation)
-        + "; a compatible derived index is required.");
+        "Raw Snapchain cannot satisfy " + std::move(operation)
+        + " with its available bounded read capabilities.");
 }
 
 [[nodiscard]] const json::value* field(const json::object& source, const std::string_view key)
@@ -251,11 +252,204 @@ using ErrorCode = foundation::error::ErrorCode;
     };
 }
 
+[[nodiscard]] capability::model::CapabilityDescriptor boundedDerived(
+    capability::model::CapabilityId id)
+{
+    auto descriptor = supported(std::move(id));
+    descriptor.origin = capability::model::CapabilityOrigin::Derived;
+    descriptor.quality = capability::model::CapabilityQuality::Derived;
+    return descriptor;
+}
+
 struct InFlight final {
     std::atomic_bool cancelled{false};
 };
 
 using BodyCompletion = std::function<void(foundation::result::Result<std::string>)>;
+
+
+/** One bounded, fully checked raw Following snapshot. The native projection
+ * refuses oversized graphs or insufficient per-author scanning rather than
+ * displaying a silently truncated "complete" live feed.
+ */
+struct FollowingWork final : std::enable_shared_from_this<FollowingWork> {
+    using Starter = std::function<foundation::result::Result<async::Request>(
+        std::string, BodyCompletion)>;
+    Starter startRead{};
+    storage::continuation::ContinuationStore& continuations;
+    provider::model::ProviderId providerId{};
+    std::string scope{};
+    domain::identity::Fid viewer{};
+    std::size_t limit{20U};
+    async::FeedCompletion completion{};
+    std::vector<std::uint64_t> authors{};
+    std::vector<domain::cast::Cast> candidates{};
+    std::optional<std::pair<std::int64_t, std::string>> before{};
+    std::size_t authorIndex{0U};
+    std::mutex mutex{};
+    std::vector<async::Request> operations{};
+    std::atomic_bool cancelled{false};
+    std::atomic_bool finished{false};
+
+    FollowingWork(Starter starter,
+                  storage::continuation::ContinuationStore& cursorStore,
+                  provider::model::ProviderId provider,
+                  std::string cursorScope, domain::identity::Fid fid,
+                  std::size_t requested, async::FeedCompletion observer)
+        : startRead(std::move(starter)), continuations(cursorStore),
+          providerId(std::move(provider)), scope(std::move(cursorScope)),
+          viewer(fid), limit(requested), completion(std::move(observer))
+    {
+    }
+
+    void cancel() {
+        cancelled.store(true, std::memory_order_release);
+        std::scoped_lock lock{mutex};
+        for (const auto& operation : operations) operation.cancel();
+    }
+    void remember(async::Request operation) {
+        std::scoped_lock lock{mutex};
+        if (cancelled.load(std::memory_order_acquire)) operation.cancel();
+        else operations.push_back(std::move(operation));
+    }
+    void finish(foundation::result::Result<capability::feed::FeedPage> result) {
+        if (cancelled.load(std::memory_order_acquire)
+            || finished.exchange(true, std::memory_order_acq_rel)) return;
+        completion(std::move(result));
+    }
+    void fail(Error error) {
+        finish(std::unexpected(std::move(error)));
+    }
+    [[nodiscard]] foundation::result::Status issue(
+        std::string url, BodyCompletion callback) {
+        if (cancelled.load(std::memory_order_acquire))
+            return std::unexpected(Error::make(ErrorCode::Unavailable, "Following cancelled."));
+        auto started = startRead(std::move(url), std::move(callback));
+        if (!started) return std::unexpected(std::move(started.error()));
+        remember(std::move(*started));
+        return {};
+    }
+    [[nodiscard]] foundation::result::Status begin() {
+        if (!authors.empty()) {
+            nextAuthor();
+            return {};
+        }
+        return issue(
+            "/v1/linksByFid?fid=" + std::to_string(viewer.value)
+                + "&link_type=follow&pageSize=33",
+            [self = shared_from_this()](
+                foundation::result::Result<std::string> response) mutable {
+                if (self->cancelled.load(std::memory_order_acquire)) return;
+                if (!response) return self->fail(std::move(response.error()));
+                auto graph = decodeFollowLinks(*response, self->viewer,
+                    model::SocialQuery::Kind::Following);
+                if (!graph) return self->fail(std::move(graph.error()));
+                auto parsed = parse(*response);
+                if (!parsed) return self->fail(std::move(parsed.error()));
+                if (cursorFrom(parsed->as_object()) || graph->relations.size() > 32U)
+                    return self->fail(unsupported("Following graphs over 32 accounts"));
+                self->authors.push_back(self->viewer.value);
+                for (const auto& relation : graph->relations)
+                    self->authors.push_back(relation.target.value);
+                std::sort(self->authors.begin(), self->authors.end());
+                self->authors.erase(std::unique(self->authors.begin(), self->authors.end()),
+                                    self->authors.end());
+                if (self->authors.size() > 33U)
+                    return self->fail(unsupported("Following graphs over 32 accounts"));
+                self->nextAuthor();
+            });
+    }
+    void nextAuthor() {
+        if (cancelled.load(std::memory_order_acquire)) return;
+        if (authorIndex == authors.size()) {
+            finishMerged();
+            return;
+        }
+        const auto fid = domain::identity::Fid{authors[authorIndex]};
+        auto issued = issue(
+            "/v1/castsByFid?fid=" + std::to_string(fid.value)
+                + "&pageSize=100&reverse=1",
+            [self = shared_from_this(), fid](
+                foundation::result::Result<std::string> response) mutable {
+                if (self->cancelled.load(std::memory_order_acquire)) return;
+                if (!response) return self->fail(std::move(response.error()));
+                auto parsed = parse(*response);
+                if (!parsed) return self->fail(std::move(parsed.error()));
+                const auto* messages = array(field(parsed->as_object(), "messages"));
+                if (!messages || messages->size() > 100U)
+                    return self->fail(protocolError("Raw Following page must contain <=100 messages."));
+                std::size_t eligible{0U};
+                std::optional<foundation::time::Timestamp> previous{};
+                for (const auto& item : *messages) {
+                    const auto* message = object(&item);
+                    const auto* data = message ? object(field(*message, "data")) : nullptr;
+                    if (!data)
+                        return self->fail(protocolError("Malformed Following Cast entry."));
+                    if (!object(field(*data, "castAddBody"))) continue;
+                    auto cast = decodeCast(*message, fid);
+                    if (!cast) return self->fail(std::move(cast.error()));
+                    // The cursor boundary is valid only if the raw node honors
+                    // the requested reverse chronological ordering.
+                    if (previous && cast->createdAt > *previous)
+                        return self->fail(protocolError("Following author Cast page is unordered."));
+                    previous = cast->createdAt;
+                    if (cast->parent) continue;
+                    const auto ms = cast->createdAt.time_since_epoch().count();
+                    if (self->before
+                        && (ms > self->before->first
+                            || (ms == self->before->first
+                                && cast->id.value >= self->before->second)))
+                        continue;
+                    ++eligible;
+                    self->candidates.push_back(std::move(*cast));
+                }
+                // When the page has more raw messages and did not produce
+                // limit+1 eligible casts, older unseen roots may outrank casts
+                // from other authors. Refuse partial or misordered output.
+                if (cursorFrom(parsed->as_object()) && eligible <= self->limit)
+                    return self->fail(unsupported(
+                        "Following author history beyond the bounded 100-message window"));
+                ++self->authorIndex;
+                self->nextAuthor();
+            });
+        if (!issued) fail(std::move(issued.error()));
+    }
+    void finishMerged() {
+        std::sort(candidates.begin(), candidates.end(),
+            [](const domain::cast::Cast& a, const domain::cast::Cast& b) {
+                if (a.createdAt != b.createdAt) return a.createdAt > b.createdAt;
+                return a.id.value > b.id.value;
+            });
+        candidates.erase(std::unique(candidates.begin(), candidates.end(),
+            [](const domain::cast::Cast& a, const domain::cast::Cast& b) {
+                return a.id.value == b.id.value;
+            }), candidates.end());
+        capability::feed::FeedPage page{};
+        const bool hasMore = candidates.size() > limit;
+        if (candidates.size() > limit) candidates.resize(limit);
+        for (auto& cast : candidates) {
+            page.entries.push_back(domain::feed::FeedEntry{
+                .castId = cast.id, .sortTime = cast.createdAt});
+            page.casts.push_back(std::move(cast));
+        }
+        if (hasMore) {
+            const auto& last = page.casts.back();
+            json::array values{};
+            for (const auto fid : authors) values.emplace_back(fid);
+            json::object metadata{};
+            metadata["ms"] = last.createdAt.time_since_epoch().count();
+            metadata["id"] = last.id.value;
+            metadata["authors"] = std::move(values);
+            metadata["limit"] = limit;
+            auto next = continuations.bind(
+                capability::catalog::feedFollowingRead(),
+                providerId, scope + json::serialize(metadata));
+            if (!next) return fail(std::move(next.error()));
+            page.next = std::move(*next);
+        }
+        finish(std::move(page));
+    }
+};
 
 class Gateway final : public async::IAsyncReadGateway {
 public:
@@ -316,6 +510,8 @@ public:
         model::FeedQuery query, async::FeedCompletion completion,
         model::ReadOptions options) override
     {
+        if (query.kind == model::FeedQuery::Kind::Following)
+            return followingFeed(std::move(query), std::move(completion), options);
         if (query.kind != model::FeedQuery::Kind::UserPosts
             && query.kind != model::FeedQuery::Kind::UserQuotes
             && query.kind != model::FeedQuery::Kind::UserReplies)
@@ -401,8 +597,8 @@ public:
             + std::to_string(query.fid.value) + "\n";
         std::string url = following
             ? "/v1/linksByFid?fid=" + std::to_string(query.fid.value)
-            : "/v1/linksByTargetFid?targetFid=" + std::to_string(query.fid.value);
-        url += "&type=follow&pageSize=" + std::to_string(query.limit);
+            : "/v1/linksByTargetFid?target_fid=" + std::to_string(query.fid.value);
+        url += "&link_type=follow&pageSize=" + std::to_string(query.limit);
         if (query.continuation) {
             auto record = m_continuations.resolve(*query.continuation);
             if (!record) return std::unexpected(std::move(record.error()));
@@ -434,6 +630,69 @@ public:
     }
 
 private:
+
+    [[nodiscard]] foundation::result::Result<async::Request> followingFeed(
+        model::FeedQuery query, async::FeedCompletion completion,
+        model::ReadOptions options)
+    {
+        if (!query.fid || query.fid->value == 0U
+            || query.limit == 0U || query.limit > 30U)
+            return std::unexpected(Error::make(ErrorCode::InvalidArgument,
+                "Raw Following requires viewer FID and page size 1..30."));
+        const std::string scope = "raw-follow-v1:" + m_config.baseUrl + "\n"
+            + std::to_string(query.fid->value) + "\n";
+        auto work = std::make_shared<FollowingWork>(
+            [this, options](std::string path, BodyCompletion onRead) {
+                return request(std::move(path), std::move(onRead), options);
+            }, m_continuations, m_config.providerId, scope, *query.fid,
+            query.limit, std::move(completion));
+        if (query.continuation) {
+            auto record = m_continuations.resolve(*query.continuation);
+            if (!record) return std::unexpected(std::move(record.error()));
+            if (record->providerId.value != m_config.providerId.value
+                || record->capabilityId.value !=
+                    capability::catalog::feedFollowingRead().value
+                || !record->providerCursor.starts_with(scope))
+                return std::unexpected(Error::make(ErrorCode::Conflict,
+                    "Following cursor has another provider, source, or viewer."));
+            const auto serialized = std::string_view{record->providerCursor}
+                .substr(scope.size());
+            auto decoded = parse(serialized);
+            if (!decoded) return std::unexpected(Error::make(ErrorCode::Conflict,
+                "Following cursor metadata is invalid."));
+            const auto& meta = decoded->as_object();
+            const auto cursorTime = unsignedValue(field(meta, "ms"));
+            const auto id = string(field(meta, "id"));
+            const auto pageLimit = unsignedValue(field(meta, "limit"));
+            const auto* ids = array(field(meta, "authors"));
+            if (!cursorTime || *cursorTime > static_cast<std::uint64_t>(
+                    std::numeric_limits<std::int64_t>::max())
+                || !id || !validHash(*id) || !pageLimit
+                || *pageLimit != query.limit || !ids || ids->empty()
+                || ids->size() > 33U)
+                return std::unexpected(Error::make(ErrorCode::Conflict,
+                    "Following cursor lacks a valid bounded author snapshot."));
+            work->before = std::pair{static_cast<std::int64_t>(*cursorTime), *id};
+            for (const auto& author : *ids) {
+                const auto fid = unsignedValue(&author);
+                if (!fid || *fid == 0U)
+                    return std::unexpected(Error::make(ErrorCode::Conflict,
+                        "Following cursor has invalid author FID."));
+                work->authors.push_back(*fid);
+            }
+            if (!std::is_sorted(work->authors.begin(), work->authors.end())
+                || std::adjacent_find(work->authors.begin(), work->authors.end())
+                    != work->authors.end()
+                || !std::binary_search(work->authors.begin(),
+                                       work->authors.end(), query.fid->value))
+                return std::unexpected(Error::make(ErrorCode::Conflict,
+                    "Following cursor author snapshot failed validation."));
+        }
+        auto started = work->begin();
+        if (!started) return std::unexpected(std::move(started.error()));
+        return async::Request{[work] { work->cancel(); }};
+    }
+
     [[nodiscard]] foundation::result::Result<async::Request> request(
         std::string path,
         BodyCompletion complete,
@@ -512,6 +771,7 @@ std::vector<capability::model::CapabilityDescriptor> capabilities()
         supported(capability::catalog::feedUserRepliesRead()),
         supported(capability::catalog::graphFollowersRead()),
         supported(capability::catalog::graphFollowingRead()),
+        boundedDerived(capability::catalog::feedFollowingRead()),
     };
 }
 

@@ -106,7 +106,7 @@ to an already running Qt instance.
 | FID/profile metadata | Implemented, contract-tested | Full rich profile enrichment not guaranteed |
 | Personal Casts/Quotes/Replies | Implemented, contract-tested | Per-FID pagination |
 | Following/Followers graph | Implemented, contract-tested | Canonical link FIDs; no fabricated profile labels |
-| Following home feed aggregated across followed authors | **NOT IMPLEMENTED LIVE** | Partial cached Following preview from observed posts is available after a graph snapshot; complete bounded fanout/index and sync remain required |
+| Following home feed aggregated across followed authors | **BOUNDED LIVE IMPLEMENTATION** | Up to 32 followed FIDs and first 100 messages per author with validated keyset cursor; rejects wider/deeper graphs. Partial offline preview is separate; full-scale E2E remains missing |
 | Network-wide Recent/Trending and search | **NOT IMPLEMENTED** | Local previously observed items are only partial and labeled as such |
 | Signed casts, reactions, follows | Implemented in routed Write source | Requires real signer, separate validator, E2E |
 | Existing custody seed import | **NOT IMPLEMENTED** | Must use audited BIP39/32 and platform vault |

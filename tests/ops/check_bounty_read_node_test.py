@@ -36,9 +36,9 @@ class MockSnapchain(BaseHTTPRequestHandler):
             response = type(self).info
         elif self.path == "/v1/castsByFid?fid=123&pageSize=10":
             response = type(self).casts
-        elif self.path == "/v1/linksByFid?fid=123&type=follow&pageSize=10":
+        elif self.path == "/v1/linksByFid?fid=123&link_type=follow&pageSize=10":
             response = type(self).following
-        elif self.path == "/v1/linksByTargetFid?targetFid=123&type=follow&pageSize=10":
+        elif self.path == "/v1/linksByTargetFid?target_fid=123&link_type=follow&pageSize=10":
             response = type(self).followers
         else:
             self.send_error(404)

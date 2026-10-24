@@ -43,8 +43,11 @@ struct Config final {
 /**
  * @brief Advertises only directly supported raw-node operations.
  *
- * Trending/search/notifications/following aggregated feeds/cast hash lookups
- * require derived indexes or other compatible providers and are not claimed.
+ * Trending/search/notifications/cast hash lookups are not claimed.
+ * The Following feed is a bounded derived aggregation: it checks the entire
+ * Follow graph (at most 32 followed accounts) and one reverse-ordered
+ * 100-message window per author. When coverage cannot be established,
+ * it rejects the request instead of publishing an incomplete live feed.
  */
 [[nodiscard]] std::vector<capability::model::CapabilityDescriptor> capabilities();
 

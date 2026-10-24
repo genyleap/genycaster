@@ -122,10 +122,10 @@ def run(origin: str, fid: int, max_delay: int, timeout: float,
     checks = ["sync", "raw_cast_read_without_api_key"]
     if check_graph:
         followed = verify_follow_links(request_json(base,
-            "/v1/linksByFid?" + urlencode({"fid": fid, "type": "follow", "pageSize": 10}),
+            "/v1/linksByFid?" + urlencode({"fid": fid, "link_type": "follow", "pageSize": 10}),
             timeout), fid, "following")
         followers = verify_follow_links(request_json(base,
-            "/v1/linksByTargetFid?" + urlencode({"targetFid": fid, "type": "follow",
+            "/v1/linksByTargetFid?" + urlencode({"target_fid": fid, "link_type": "follow",
                                                  "pageSize": 10}), timeout),
             fid, "followers")
         checks.append("raw_follow_graph_without_api_key")

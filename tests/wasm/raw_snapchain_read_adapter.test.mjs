@@ -13,8 +13,9 @@ test('raw-node adapter declares only its directly implemented read capabilities'
     assert.match(declarations, /feedUserPostsRead\(\)/);
     assert.match(declarations, /feedUserQuotesRead\(\)/);
     assert.match(declarations, /feedUserRepliesRead\(\)/);
-    assert.doesNotMatch(declarations, /feedTrendingRead\(\)|feedFollowingRead\(\)|searchRead\(\)|notificationsRead\(\)|castRead\(\)/);
-    assert.match(adapter, /Raw Snapchain node does not provide indexed/);
+    assert.match(declarations, /boundedDerived\(capability::catalog::feedFollowingRead\(\)\)/);
+    assert.doesNotMatch(declarations, /feedTrendingRead\(\)|searchRead\(\)|notificationsRead\(\)|castRead\(\)/);
+    assert.match(adapter, /Raw Snapchain cannot satisfy/);
 });
 
 test('raw-node reads never guess that indexed-v2 API implements raw protocol', () => {
