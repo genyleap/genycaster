@@ -2232,7 +2232,7 @@ int main(int argc, char* argv[])
     // IndexedDB. The preRun hook restores the directory before main().
     QTimer wasmPersistenceFlush{&application};
     wasmPersistenceFlush.setInterval(8'000);
-    const flushBrowserData = [] {
+    const auto flushBrowserData = [] {
         EM_ASM({
             Module.genycasterSyncBrowserData().catch(function(error) {
                 console.error('[Genycaster] IndexedDB sync failed', error);
