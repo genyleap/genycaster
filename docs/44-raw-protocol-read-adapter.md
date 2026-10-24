@@ -26,7 +26,7 @@
 - `feed.user.replies.read`: filtered parent-cast replies
 - `graph.following.read`: effective Follow links via `/v1/linksByFid`, normalized to canonical source/target FIDs
 - `graph.followers.read`: effective incoming Follow links via `/v1/linksByTargetFid`, normalized and checked against the requested target FID
-- `feed.following.read`: **bounded live derived feed** from a complete <=32-account Follow graph and one reverse-ordered 100-message Cast window per author. Includes own root/quote posts; canonical newest-first merge, ID tie-breaks, deduplication and opaque viewer/provider/endpoint-bound keyset cursors. Refuses deeper author history or oversized Follow graphs rather than claiming completeness.
+- `feed.following.read`: **bounded live derived feed** from up to 256 followed accounts across four graph pages and up to eight reverse-ordered 100-message Cast pages per author. Includes own root/quote posts; canonical newest-first merge, ID tie-breaks, deduplication and opaque viewer/provider/endpoint-bound keyset cursors. Refuses deeper author history or oversized Follow graphs rather than claiming completeness.
 
 Raw graph results only contain canonical FIDs; the UI can show basic identities and any profiles already cached locally, but names/avatars from unknown FIDs require separate profile reads. Both graph directions use opaque, direction-specific, FID/provider/endpoint-affine continuation tokens. A raw node must actually expose the documented link endpoints for these capabilities to work.
 
@@ -94,7 +94,7 @@ per-capability preferences.
   runtime health/selection and user-friendly route fallback controls.
 - Native and WebAssembly end-to-end integration against independently operated
   raw nodes; production Qt/WASM build and browser smoke tests.
-- Extend bounded Following aggregation to arbitrarily large Follow graphs and deep author histories with persisted multi-FID checkpoints, rate-aware bounded parallelism and independent E2E verification. The current implementation stops rather than truncates when its limits are reached.
+- Extend bounded Following aggregation beyond 256 followed FIDs and eight 100-message pages per author with persisted multi-FID checkpoints, rate-aware bounded parallelism and independent E2E verification. The current implementation stops rather than truncates when its limits are reached.
 - Integration of exact full-reply/quote metadata and engagement counts with
   local projections and provider-enrichment routes.
 

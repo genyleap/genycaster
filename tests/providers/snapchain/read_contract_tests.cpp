@@ -172,7 +172,11 @@ public:
     bool defer{false};
     bool followingFixture{false};
     bool graphTooLarge{false};
+    bool graphTwoPages{false};
+    bool graphRepeatsCursor{false};
+    bool authorDensePages{false};
     bool authorHistoryIncomplete{false};
+    bool authorTwoPages{false};
     std::vector<std::string> urls{};
     transport::async_http::Completion pending{};
     foundation::result::Result<transport::async_http::Operation> start(
@@ -189,16 +193,52 @@ public:
         urls.push_back(last.url);
         if (followingFixture) {
             if (last.url.find("linksByFid") != std::string::npos) {
-                complete(transport::http::HttpResponse{.statusCode = 200U,
-                    .body = graphTooLarge
-                        ? R"({"messages":[],"nextPageToken":"graph-more"})"
-                        : R"({"messages":[
+                if (graphRepeatsCursor) {
+                    complete(transport::http::HttpResponse{.statusCode = 200U,
+                        .body = R"({"messages":[],"nextPageToken":"repeat"})"});
+                    return transport::async_http::Operation{[] {}};
+                }
+                if (graphTooLarge || graphTwoPages) {
+                    const bool second = last.url.find("pageToken=") != std::string::npos;
+                    const bool third = last.url.find("pageToken=next2") != std::string::npos;
+                    const unsigned first = graphTooLarge
+                        ? (third ? 300U : second ? 200U : 100U)
+                        : (second ? 140U : 100U);
+                    const unsigned count = graphTooLarge ? (third ? 57U : 100U)
+                        : (second ? 5U : 40U);
+                    std::string json = "{\"messages\":[";
+                    if (!graphTooLarge && !second)
+                        json += R"({"data":{"fid":42,"linkBody":{"type":"follow","targetFid":7}}},{"data":{"fid":42,"linkBody":{"type":"follow","targetFid":9}}},)";
+                    for (unsigned n = 0; n < count; ++n) {
+                        if (n) json += ",";
+                        json += "{\"data\":{\"fid\":42,\"linkBody\":{\"type\":\"follow\",\"targetFid\":"
+                            + std::to_string(first + n) + "}}}";
+                    }
+                    json += "]";
+                    if (graphTooLarge && !third)
+                        json += second ? R"(,"nextPageToken":"next2")"
+                                       : R"(,"nextPageToken":"next1")";
+                    else if (graphTwoPages && !second)
+                        json += R"(,"nextPageToken":"graph+/=")";
+                    json += "}";
+                    complete(transport::http::HttpResponse{
+                        .statusCode = 200U, .body = std::move(json)});
+                } else {
+                    complete(transport::http::HttpResponse{.statusCode = 200U,
+                        .body = R"({"messages":[
                           {"data":{"fid":42,"linkBody":{"type":"follow","targetFid":7}}},
                           {"data":{"fid":42,"linkBody":{"type":"follow","targetFid":9}}}
                         ]})"});
+                }
             } else if (last.url.find("castsByFid") != std::string::npos) {
-                const auto fid = last.url.find("fid=7") != std::string::npos ? 7U
-                    : last.url.find("fid=9") != std::string::npos ? 9U : 42U;
+                const auto fid = last.url.find("?fid=7&") != std::string::npos ? 7U
+                    : last.url.find("?fid=9&") != std::string::npos ? 9U
+                    : last.url.find("?fid=42&") != std::string::npos ? 42U : 0U;
+                if (fid == 0U) {
+                    complete(transport::http::HttpResponse{
+                        .statusCode = 200U, .body = R"({"messages":[]})"});
+                    return transport::async_http::Operation{[] {}};
+                }
                 const auto entry = [](const unsigned author, const unsigned time,
                                       const std::string_view hash) {
                     return "{\"hash\":\"" + std::string{hash}
@@ -207,6 +247,48 @@ public:
                         + ",\"castAddBody\":{\"text\":\"observed\"}}}";
                 };
                 std::string messages{};
+                if (fid == 7U && authorDensePages) {
+                    // Eight complete pages of replies hide every root post.
+                    // The aggregator must stop after its bounded work budget.
+                    unsigned page = 0U;
+                    if (const auto pos = last.url.find("pageToken=dense");
+                        pos != std::string::npos) {
+                        const auto suffix = last.url.substr(pos + 15U);
+                        page = static_cast<unsigned>(std::stoul(suffix));
+                    }
+                    const auto time = 300U - page;
+                    const std::string reply = "{\"hash\":\""
+                        + std::string{rootHash}
+                        + "\",\"data\":{\"fid\":7,\"timestamp\":"
+                        + std::to_string(time)
+                        + ",\"castAddBody\":{\"text\":\"reply\",\"parentCastId\":"
+                        "{\"fid\":99,\"hash\":\"" + std::string{quoteHash} + "\"}}}}";
+                    for (unsigned i = 0U; i < 100U; ++i) {
+                        if (i) messages += ",";
+                        messages += reply;
+                    }
+                    complete(transport::http::HttpResponse{.statusCode = 200U,
+                        .body = "{\"messages\":[" + messages
+                            + "],\"nextPageToken\":\"dense"
+                            + std::to_string(page + 1U) + "\"}"});
+                    return transport::async_http::Operation{[] {}};
+                }
+                if (fid == 7U && authorTwoPages
+                    && last.url.find("pageToken=") == std::string::npos) {
+                    const std::string reply = "{\"hash\":\""
+                        + std::string{rootHash}
+                        + "\",\"data\":{\"fid\":7,\"timestamp\":300,\"castAddBody\":"
+                        "{\"text\":\"reply\",\"parentCastId\":{\"fid\":99,\"hash\":\""
+                        + std::string{quoteHash} + "\"}}}}";
+                    for (int n = 0; n < 100; ++n) {
+                        if (n) messages += ",";
+                        messages += reply;
+                    }
+                    complete(transport::http::HttpResponse{.statusCode = 200U,
+                        .body = "{\"messages\":[" + messages
+                            + "],\"nextPageToken\":\"older+/=\"}"});
+                    return transport::async_http::Operation{[] {}};
+                }
                 if (fid == 7U) {
                     messages = entry(fid, 200U, rootHash) + ","
                         + entry(fid, 100U, embeddedHash);
@@ -343,7 +425,7 @@ void testBoundedLiveFollowingFromRawNode()
     assert(first->casts[1].id.value == replyHash);
     assert(first->entries[0].sortTime > first->entries[1].sortTime);
     assert(transport.urls.size() == 4U); // graph + own and 2 followed FIDs
-    assert(transport.urls[0].find("link_type=follow&pageSize=33")
+    assert(transport.urls[0].find("link_type=follow&pageSize=100")
         != std::string::npos);
     assert(transport.urls[0].starts_with(
         "https://read.operator.example/v1/linksByFid"));
@@ -387,17 +469,64 @@ void testBoundedLiveFollowingFromRawNode()
     assert(!wrongNode);
     assert(transport.requests == requestCount && elsewhere.requests == 0U);
 
-    // A >32-Follow graph must not be misrepresented as a complete feed.
+    // Two complete graph pages expand a large, independent following list.
+    // Cursor metadata freezes this full membership without reloading links.
+    transport.graphTwoPages = true;
+    transport.urls.clear();
+    auto expanded = fetch(query);
+    assert(expanded && expanded->casts.size() == 2U && expanded->next);
+    assert(transport.urls.size() == 50U); // 2 graph + 48 author requests
+    assert(transport.urls[1].find("pageToken=graph%2B%2F%3D")
+        != std::string::npos);
+    transport.urls.clear();
+    auto expandedSecond = fetch(model::FeedQuery{
+        .kind = model::FeedQuery::Kind::Following,
+        .fid = domain::identity::Fid{42}, .limit = 2U,
+        .continuation = expanded->next,
+    });
+    assert(expandedSecond && expandedSecond->casts.size() == 2U);
+    assert(transport.urls.size() == 48U);
+    for (const auto& url : transport.urls)
+        assert(url.find("linksByFid") == std::string::npos);
+    transport.graphTwoPages = false;
+
+    // 100 dense replies cannot hide older root posts: traverse the author's
+    // next raw page before returning the global newest-first merge.
+    transport.authorTwoPages = true;
+    transport.urls.clear();
+    auto deep = fetch(query);
+    assert(deep && deep->casts.size() == 2U);
+    assert(deep->casts.front().id.value == rootHash);
+    assert(transport.urls.size() == 5U); // graph + 2 author pages + 2 others
+    assert(std::any_of(transport.urls.begin(), transport.urls.end(),
+        [](const std::string& url) {
+            return url.find("pageToken=older%2B%2F%3D") != std::string::npos;
+        }));
+    transport.authorTwoPages = false;
+
+    // A >256-Follow graph must not be represented as a complete live feed.
     transport.graphTooLarge = true;
     auto oversized = fetch(query);
     assert(!oversized
         && oversized.error().code == foundation::error::ErrorCode::Unsupported);
     transport.graphTooLarge = false;
-    // One incomplete 100-message window is not enough to merge safely.
+    transport.graphRepeatsCursor = true;
+    auto cycledGraph = fetch(query);
+    assert(!cycledGraph
+        && cycledGraph.error().code == foundation::error::ErrorCode::ProtocolFailure);
+    transport.graphRepeatsCursor = false;
+    transport.authorDensePages = true;
+    auto excessiveHistory = fetch(query);
+    assert(!excessiveHistory
+        && excessiveHistory.error().code == foundation::error::ErrorCode::Unsupported);
+    transport.authorDensePages = false;
+    // Repeating older messages in a later page violates chronological order
+    // and must never be published as a trustworthy feed.
     transport.authorHistoryIncomplete = true;
     auto unsafe = fetch(query);
     assert(!unsafe
-        && unsafe.error().code == foundation::error::ErrorCode::Unsupported);
+        && unsafe.error().code == foundation::error::ErrorCode::ProtocolFailure);
+    transport.authorHistoryIncomplete = false;
 
     assert(!gateway->feed(model::FeedQuery{
         .kind = model::FeedQuery::Kind::Following,

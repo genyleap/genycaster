@@ -285,7 +285,16 @@ struct FollowingWork final : std::enable_shared_from_this<FollowingWork> {
     std::vector<std::uint64_t> authors{};
     std::vector<domain::cast::Cast> candidates{};
     std::optional<std::pair<std::int64_t, std::string>> before{};
+    static constexpr std::size_t maximumFollowees = 256U;
+    static constexpr std::size_t graphPageSize = 100U;
+    static constexpr std::size_t maximumGraphPages = 4U;
+    static constexpr std::size_t maximumAuthorPages = 8U;
     std::size_t authorIndex{0U};
+    std::size_t graphPages{0U};
+    std::size_t authorPages{0U};
+    std::optional<foundation::time::Timestamp> lastAuthorTimestamp{};
+    std::unordered_set<std::string> graphTokens{};
+    std::unordered_set<std::string> authorTokens{};
     std::mutex mutex{};
     std::vector<async::Request> operations{};
     std::atomic_bool cancelled{false};
@@ -334,28 +343,48 @@ struct FollowingWork final : std::enable_shared_from_this<FollowingWork> {
             nextAuthor();
             return {};
         }
-        return issue(
-            "/v1/linksByFid?fid=" + std::to_string(viewer.value)
-                + "&link_type=follow&pageSize=33",
+        authors.push_back(viewer.value);
+        return nextGraphPage(std::nullopt);
+    }
+    [[nodiscard]] foundation::result::Status nextGraphPage(
+        std::optional<std::string> token) {
+        if (graphPages >= maximumGraphPages)
+            return std::unexpected(unsupported("Following graph exceeds bounded page count"));
+        std::string path = "/v1/linksByFid?fid=" + std::to_string(viewer.value)
+            + "&link_type=follow&pageSize=" + std::to_string(graphPageSize);
+        if (token) {
+            if (token->empty() || token->size() > 2048U
+                || !graphTokens.insert(*token).second)
+                return std::unexpected(protocolError("Repeated or invalid Following graph cursor."));
+            path += "&pageToken=" + escapeQuery(*token);
+        }
+        ++graphPages;
+        return issue(std::move(path),
             [self = shared_from_this()](
                 foundation::result::Result<std::string> response) mutable {
                 if (self->cancelled.load(std::memory_order_acquire)) return;
                 if (!response) return self->fail(std::move(response.error()));
+                auto parsed = parse(*response);
+                if (!parsed) return self->fail(std::move(parsed.error()));
+                const auto* rawMessages = array(field(parsed->as_object(), "messages"));
+                if (!rawMessages || rawMessages->size() > graphPageSize)
+                    return self->fail(protocolError(
+                        "Raw Following graph page must contain <=100 messages."));
                 auto graph = decodeFollowLinks(*response, self->viewer,
                     model::SocialQuery::Kind::Following);
                 if (!graph) return self->fail(std::move(graph.error()));
-                auto parsed = parse(*response);
-                if (!parsed) return self->fail(std::move(parsed.error()));
-                if (cursorFrom(parsed->as_object()) || graph->relations.size() > 32U)
-                    return self->fail(unsupported("Following graphs over 32 accounts"));
-                self->authors.push_back(self->viewer.value);
                 for (const auto& relation : graph->relations)
                     self->authors.push_back(relation.target.value);
                 std::sort(self->authors.begin(), self->authors.end());
                 self->authors.erase(std::unique(self->authors.begin(), self->authors.end()),
                                     self->authors.end());
-                if (self->authors.size() > 33U)
-                    return self->fail(unsupported("Following graphs over 32 accounts"));
+                if (self->authors.size() > maximumFollowees + 1U)
+                    return self->fail(unsupported("Following graph exceeds 256 followees"));
+                if (const auto next = cursorFrom(parsed->as_object())) {
+                    auto status = self->nextGraphPage(next);
+                    if (!status) self->fail(std::move(status.error()));
+                    return;
+                }
                 self->nextAuthor();
             });
     }
@@ -365,10 +394,27 @@ struct FollowingWork final : std::enable_shared_from_this<FollowingWork> {
             finishMerged();
             return;
         }
+        authorPages = 0U;
+        lastAuthorTimestamp.reset();
+        authorTokens.clear();
+        auto started = nextAuthorPage(std::nullopt);
+        if (!started) fail(std::move(started.error()));
+    }
+    [[nodiscard]] foundation::result::Status nextAuthorPage(
+        std::optional<std::string> token) {
+        if (authorPages >= maximumAuthorPages)
+            return std::unexpected(unsupported("Following author history exceeds 8 pages"));
         const auto fid = domain::identity::Fid{authors[authorIndex]};
-        auto issued = issue(
-            "/v1/castsByFid?fid=" + std::to_string(fid.value)
-                + "&pageSize=100&reverse=1",
+        std::string path = "/v1/castsByFid?fid=" + std::to_string(fid.value)
+            + "&pageSize=100&reverse=1";
+        if (token) {
+            if (token->empty() || token->size() > 2048U
+                || !authorTokens.insert(*token).second)
+                return std::unexpected(protocolError("Repeated or invalid author Cast cursor."));
+            path += "&pageToken=" + escapeQuery(*token);
+        }
+        ++authorPages;
+        return issue(std::move(path),
             [self = shared_from_this(), fid](
                 foundation::result::Result<std::string> response) mutable {
                 if (self->cancelled.load(std::memory_order_acquire)) return;
@@ -378,8 +424,6 @@ struct FollowingWork final : std::enable_shared_from_this<FollowingWork> {
                 const auto* messages = array(field(parsed->as_object(), "messages"));
                 if (!messages || messages->size() > 100U)
                     return self->fail(protocolError("Raw Following page must contain <=100 messages."));
-                std::size_t eligible{0U};
-                std::optional<foundation::time::Timestamp> previous{};
                 for (const auto& item : *messages) {
                     const auto* message = object(&item);
                     const auto* data = message ? object(field(*message, "data")) : nullptr;
@@ -388,11 +432,12 @@ struct FollowingWork final : std::enable_shared_from_this<FollowingWork> {
                     if (!object(field(*data, "castAddBody"))) continue;
                     auto cast = decodeCast(*message, fid);
                     if (!cast) return self->fail(std::move(cast.error()));
-                    // The cursor boundary is valid only if the raw node honors
-                    // the requested reverse chronological ordering.
-                    if (previous && cast->createdAt > *previous)
-                        return self->fail(protocolError("Following author Cast page is unordered."));
-                    previous = cast->createdAt;
+                    // Check chronological order across *all* pages of an author,
+                    // not only inside each HTTP response.
+                    if (self->lastAuthorTimestamp
+                        && cast->createdAt > *self->lastAuthorTimestamp)
+                        return self->fail(protocolError("Following author Cast pages are unordered."));
+                    self->lastAuthorTimestamp = cast->createdAt;
                     if (cast->parent) continue;
                     const auto ms = cast->createdAt.time_since_epoch().count();
                     if (self->before
@@ -400,19 +445,37 @@ struct FollowingWork final : std::enable_shared_from_this<FollowingWork> {
                             || (ms == self->before->first
                                 && cast->id.value >= self->before->second)))
                         continue;
-                    ++eligible;
                     self->candidates.push_back(std::move(*cast));
                 }
-                // When the page has more raw messages and did not produce
-                // limit+1 eligible casts, older unseen roots may outrank casts
-                // from other authors. Refuse partial or misordered output.
-                if (cursorFrom(parsed->as_object()) && eligible <= self->limit)
-                    return self->fail(unsupported(
-                        "Following author history beyond the bounded 100-message window"));
+                // Global top-K+1 is sufficient to rank every processed author
+                // and bounds memory even after thousands of raw Casts.
+                std::sort(self->candidates.begin(), self->candidates.end(),
+                    [](const domain::cast::Cast& a, const domain::cast::Cast& b) {
+                        if (a.createdAt != b.createdAt) return a.createdAt > b.createdAt;
+                        return a.id.value > b.id.value;
+                    });
+                self->candidates.erase(std::unique(
+                    self->candidates.begin(), self->candidates.end(),
+                    [](const domain::cast::Cast& a, const domain::cast::Cast& b) {
+                        return a.id.value == b.id.value;
+                    }), self->candidates.end());
+                if (self->candidates.size() > self->limit + 1U)
+                    self->candidates.resize(self->limit + 1U);
+                if (const auto next = cursorFrom(parsed->as_object())) {
+                    // Additional pages can be skipped only when their newest
+                    // possible timestamp is *strictly* below global rank K+1;
+                    // equal-second hashes still need investigation.
+                    if (self->candidates.size() <= self->limit
+                        || !self->lastAuthorTimestamp
+                        || *self->lastAuthorTimestamp >= self->candidates.back().createdAt) {
+                        auto status = self->nextAuthorPage(next);
+                        if (!status) self->fail(std::move(status.error()));
+                        return;
+                    }
+                }
                 ++self->authorIndex;
                 self->nextAuthor();
             });
-        if (!issued) fail(std::move(issued.error()));
     }
     void finishMerged() {
         std::sort(candidates.begin(), candidates.end(),
@@ -669,7 +732,7 @@ private:
                     std::numeric_limits<std::int64_t>::max())
                 || !id || !validHash(*id) || !pageLimit
                 || *pageLimit != query.limit || !ids || ids->empty()
-                || ids->size() > 33U)
+                || ids->size() > FollowingWork::maximumFollowees + 1U)
                 return std::unexpected(Error::make(ErrorCode::Conflict,
                     "Following cursor lacks a valid bounded author snapshot."));
             work->before = std::pair{static_cast<std::int64_t>(*cursorTime), *id};

@@ -11,11 +11,14 @@ test('raw Following derives bounded protocol graph and merges casts without a ho
   assert.match(source, /CapabilityOrigin::Derived/);
   assert.match(source, /CapabilityQuality::Derived/);
   assert.match(source, /\/v1\/linksByFid\?fid=/);
-  assert.match(source, /&link_type=follow&pageSize=33/);
+  assert.match(source, /graphPageSize = 100U/);
+  assert.match(source, /maximumFollowees = 256U/);
+  assert.match(source, /maximumAuthorPages = 8U/);
   assert.match(source, /\/v1\/castsByFid\?fid=/);
   assert.match(source, /&pageSize=100&reverse=1/);
-  assert.match(source, /graph->relations\.size\(\) > 32U/);
-  assert.match(source, /eligible <= self->limit/);
+  assert.match(source, /self->authors\.size\(\) > maximumFollowees \+ 1U/);
+  assert.match(source, /self->candidates\.size\(\) <= self->limit/);
+  assert.match(source, /self->lastAuthorTimestamp >= self->candidates\.back\(\)\.createdAt/);
   assert.match(source, /cast->parent/);
   assert.match(source, /raw-follow-v1:/);
   assert.match(source, /capability::catalog::feedFollowingRead\(\),\s*providerId/);
@@ -27,7 +30,8 @@ test('raw Following derives bounded protocol graph and merges casts without a ho
 test('native regression proves keyset paging, source affinity, graph breadth and cancellation', () => {
   const native = load('tests/providers/snapchain/read_contract_tests.cpp');
   assert.match(native, /testBoundedLiveFollowingFromRawNode\(\)/);
-  for (const part of ['graphTooLarge','authorHistoryIncomplete','wrongFid',
+  for (const part of ['graphTooLarge','graphTwoPages','authorTwoPages',
+                       'authorHistoryIncomplete','wrongFid',
                        'wrongLimit','wrongNode','pending->cancel\(\)']) {
     assert.match(native, new RegExp(part));
   }
