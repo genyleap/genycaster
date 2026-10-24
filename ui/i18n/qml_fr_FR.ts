@@ -42,6 +42,106 @@
             <source>This source doesn't provide follower totals. You can still browse its follow lists when supported.</source>
             <translation>Cette source ne fournit pas les totaux d’abonnés. Vous pouvez parcourir les listes d’abonnements si elles sont prises en charge.</translation>
         </message>
+        <message id="genycaster.nodes.health_progress">
+            <source>%1 of %2 checked</source>
+            <translation>%1 sur %2 vérifiés</translation>
+        </message>
+        <message id="genycaster.nodes.health_passed">
+            <source>%1 read APIs working</source>
+            <translation>%1 API de lecture opérationnelles</translation>
+        </message>
+        <message id="genycaster.nodes.selected_now">
+            <source>Active reader</source>
+            <translation>Nœud de lecture actif</translation>
+        </message>
+        <message id="genycaster.nodes.default_choice">
+            <source>Default choice</source>
+            <translation>Choix par défaut</translation>
+        </message>
+        <message id="genycaster.nodes.raw_small">
+            <source>Raw Snapchain · some features unavailable</source>
+            <translation>Snapchain brut · certaines fonctions absentes</translation>
+        </message>
+        <message id="genycaster.nodes.health_short">
+            <source>Read API check · response time is not an uptime guarantee</source>
+            <translation>Test API de lecture · la latence ne garantit pas la disponibilité</translation>
+        </message>
+        <message id="genycaster.nodes.directory_title">
+            <source>Public provider directory</source>
+            <translation>Répertoire public des fournisseurs</translation>
+        </message>
+        <message id="genycaster.nodes.directory_expand">
+            <source>Show nodes</source>
+            <translation>Afficher les nœuds</translation>
+        </message>
+        <message id="genycaster.nodes.directory_collapse">
+            <source>Hide nodes</source>
+            <translation>Masquer les nœuds</translation>
+        </message>
+        <message id="genycaster.nodes.directory_info">
+            <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
+            <translation>Exemples du répertoire HyperSnap. Statut non vérifié ici ; ajoutez une API compatible pour vous connecter.</translation>
+        </message>
+        <message id="genycaster.nodes.directory_unverified">
+            <source>Not checked</source>
+            <translation>Non vérifié</translation>
+        </message>
+        <message id="genycaster.nodes.directory_source">
+            <source>View source directory</source>
+            <translation>Voir le répertoire source</translation>
+        </message>
+        <message id="genycaster.nodes.counts_short">
+            <source>Counts · indexed / saved</source>
+            <translation>Totaux · index / cache</translation>
+        </message>
+        <message id="genycaster.nodes.provision_title">
+            <source>Run a node on your server</source>
+            <translation>Exploiter un nœud sur votre serveur</translation>
+        </message>
+        <message id="genycaster.nodes.provision_soon">
+            <source>In development</source>
+            <translation>En développement</translation>
+        </message>
+        <message id="genycaster.nodes.provision_desc">
+            <source>In the future: securely configure a server, install a compatible node, synchronize it and connect Genycaster. No server access is collected yet.</source>
+            <translation>À venir : configurer le serveur de manière sûre, installer et synchroniser un nœud compatible puis connecter Genycaster. Aucun accès serveur demandé.</translation>
+        </message>
+        <message id="genycaster.nodes.provision_personal">
+            <source>Personal · your own independent node</source>
+            <translation>Personnel · nœud indépendant</translation>
+        </message>
+        <message id="genycaster.nodes.provision_private">
+            <source>Private · restricted access for your team</source>
+            <translation>Privé · accès limité à l’équipe</translation>
+        </message>
+        <message id="genycaster.nodes.provision_business">
+            <source>Business · managed deployment and monitoring</source>
+            <translation>Entreprise · déploiement supervisé</translation>
+        </message>
+        <message id="genycaster.nodes.provision_pipeline">
+            <source>Server → Install → Sync → Connect</source>
+            <translation>Serveur → Installation → Sync → Connexion</translation>
+        </message>
+        <message id="genycaster.nodes.provision_guide">
+            <source>Server requirements and guide</source>
+            <translation>Guide et exigences serveur</translation>
+        </message>
+        <message id="genycaster.nodes.provision_hardware">
+            <source>Example for a Snapchain read node</source>
+            <translation>Exemple de nœud de lecture Snapchain</translation>
+        </message>
+        <message id="genycaster.nodes.provision_requirements">
+            <source>Reference: at least 4 vCPUs, 16 GB RAM, 1.5 TB free SSD, a public IP and ports 3381–3383 (TCP/UDP). Actual requirements depend on the node type.</source>
+            <translation>Référence : 4 vCPU, 16 Go RAM, 1,5 To SSD libres, IP publique et ports 3381–3383 TCP/UDP. Dépend du type de nœud.</translation>
+        </message>
+        <message id="genycaster.nodes.provision_security">
+            <source>No SSH passwords or private keys are requested in this preview. Use secured infrastructure and verify permissions before deployment.</source>
+            <translation>Aucun mot de passe SSH ni clé privée n’est demandé ici. Vérifiez la sécurité et les autorisations.</translation>
+        </message>
+        <message id="genycaster.nodes.provision_docs">
+            <source>Official Snapchain installation guide</source>
+            <translation>Guide officiel Snapchain</translation>
+        </message>
         <message id="genycaster.nodes.raw_brief">
             <source>Raw Snapchain · posts, profile and follows; no aggregate counts or global Explorer.</source>
             <translation>Snapchain brut · posts, profils et abonnements, sans totaux ni Explorer global.</translation>

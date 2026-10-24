@@ -13,7 +13,7 @@ const bootstrap = read('ui/mobile/main.cpp');
 test('Node Management is its own settings destination on desktop and mobile', () => {
   assert.match(settings, /root\.currentSection = Number\(modelData\.section\)/);
   assert.match(settings, /id: settingsNavigation/);
-  assert.match(settings, /Layout\.preferredWidth: 212/);
+  assert.match(settings, /Layout\.preferredWidth: Math\.min\(278/);
   assert.match(settings, /section: 6/);
   assert.match(settings, /id: nodeSettingsScroll/);
   assert.match(settings, /NodeManagementPanel\s*\{/);
@@ -131,7 +131,7 @@ test('probing a real raw node requires both Cast and profile endpoints, not just
 
 test('raw node limitations are explicit, and saving does not automatically switch provider', () => {
   assert.match(manager, /genycaster\.nodes\.raw_brief/);
-  assert.match(manager, /genycaster\.nodes\.counts_external/);
+  assert.match(manager, /genycaster\.nodes\.counts_short/);
   assert.match(manager, /providerProfiles\.activeReadContract/);
   assert.doesNotMatch(manager, /providerProfiles\.selectReadProvider\(nodeId\)/);
   assert.match(bootstrap, /activeReadProviderLabel\(\)/);

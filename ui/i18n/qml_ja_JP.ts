@@ -42,6 +42,106 @@
             <source>This source doesn't provide follower totals. You can still browse its follow lists when supported.</source>
             <translation>このデータソースはフォロワー総数を提供しません。対応していればフォロー一覧は閲覧できます。</translation>
         </message>
+        <message id="genycaster.nodes.health_progress">
+            <source>%1 of %2 checked</source>
+            <translation>%2 件中 %1 件確認</translation>
+        </message>
+        <message id="genycaster.nodes.health_passed">
+            <source>%1 read APIs working</source>
+            <translation>動作する読み取りAPI：%1</translation>
+        </message>
+        <message id="genycaster.nodes.selected_now">
+            <source>Active reader</source>
+            <translation>現在の読み取りノード</translation>
+        </message>
+        <message id="genycaster.nodes.default_choice">
+            <source>Default choice</source>
+            <translation>デフォルトの選択</translation>
+        </message>
+        <message id="genycaster.nodes.raw_small">
+            <source>Raw Snapchain · some features unavailable</source>
+            <translation>Raw Snapchain · 一部機能は利用不可</translation>
+        </message>
+        <message id="genycaster.nodes.health_short">
+            <source>Read API check · response time is not an uptime guarantee</source>
+            <translation>読み取りAPIテスト · 応答時間は稼働率の保証ではありません</translation>
+        </message>
+        <message id="genycaster.nodes.directory_title">
+            <source>Public provider directory</source>
+            <translation>公開プロバイダ一覧</translation>
+        </message>
+        <message id="genycaster.nodes.directory_expand">
+            <source>Show nodes</source>
+            <translation>ノードを表示</translation>
+        </message>
+        <message id="genycaster.nodes.directory_collapse">
+            <source>Hide nodes</source>
+            <translation>ノードを非表示</translation>
+        </message>
+        <message id="genycaster.nodes.directory_info">
+            <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
+            <translation>HyperSnapネットワーク一覧の参考例です。ここでは状態未確認です。接続には互換APIの登録が必要です。</translation>
+        </message>
+        <message id="genycaster.nodes.directory_unverified">
+            <source>Not checked</source>
+            <translation>未確認</translation>
+        </message>
+        <message id="genycaster.nodes.directory_source">
+            <source>View source directory</source>
+            <translation>元の一覧を見る</translation>
+        </message>
+        <message id="genycaster.nodes.counts_short">
+            <source>Counts · indexed / saved</source>
+            <translation>数値 · インデックス / キャッシュ</translation>
+        </message>
+        <message id="genycaster.nodes.provision_title">
+            <source>Run a node on your server</source>
+            <translation>自分のサーバーでノードを運用</translation>
+        </message>
+        <message id="genycaster.nodes.provision_soon">
+            <source>In development</source>
+            <translation>開発中</translation>
+        </message>
+        <message id="genycaster.nodes.provision_desc">
+            <source>In the future: securely configure a server, install a compatible node, synchronize it and connect Genycaster. No server access is collected yet.</source>
+            <translation>将来、サーバー設定、互換ノードの設置、同期とGenycaster接続を安全に行えます。現時点ではサーバーアクセスは取得しません。</translation>
+        </message>
+        <message id="genycaster.nodes.provision_personal">
+            <source>Personal · your own independent node</source>
+            <translation>個人 · 独立したノード</translation>
+        </message>
+        <message id="genycaster.nodes.provision_private">
+            <source>Private · restricted access for your team</source>
+            <translation>非公開 · チーム限定アクセス</translation>
+        </message>
+        <message id="genycaster.nodes.provision_business">
+            <source>Business · managed deployment and monitoring</source>
+            <translation>商用 · 管理された運用と監視</translation>
+        </message>
+        <message id="genycaster.nodes.provision_pipeline">
+            <source>Server → Install → Sync → Connect</source>
+            <translation>サーバー → 導入 → 同期 → 接続</translation>
+        </message>
+        <message id="genycaster.nodes.provision_guide">
+            <source>Server requirements and guide</source>
+            <translation>サーバー要件とガイド</translation>
+        </message>
+        <message id="genycaster.nodes.provision_hardware">
+            <source>Example for a Snapchain read node</source>
+            <translation>Snapchain読み取りノードの例</translation>
+        </message>
+        <message id="genycaster.nodes.provision_requirements">
+            <source>Reference: at least 4 vCPUs, 16 GB RAM, 1.5 TB free SSD, a public IP and ports 3381–3383 (TCP/UDP). Actual requirements depend on the node type.</source>
+            <translation>目安：4 vCPU以上、16 GB RAM、空きSSD 1.5 TB、公開IP、TCP/UDP 3381〜3383番ポート。要件はノード種類によって異なります。</translation>
+        </message>
+        <message id="genycaster.nodes.provision_security">
+            <source>No SSH passwords or private keys are requested in this preview. Use secured infrastructure and verify permissions before deployment.</source>
+            <translation>この画面ではSSHパスワードや秘密鍵を要求しません。権限と安全性を確認してください。</translation>
+        </message>
+        <message id="genycaster.nodes.provision_docs">
+            <source>Official Snapchain installation guide</source>
+            <translation>Snapchain公式セットアップガイド</translation>
+        </message>
         <message id="genycaster.nodes.raw_brief">
             <source>Raw Snapchain · posts, profile and follows; no aggregate counts or global Explorer.</source>
             <translation>Raw Snapchain · 投稿、プロフィール、フォローに対応。合計数と全体Explorerは非対応。</translation>

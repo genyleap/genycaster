@@ -42,6 +42,106 @@
             <source>This source doesn't provide follower totals. You can still browse its follow lists when supported.</source>
             <translation>این منبع تعداد کل دنبال‌کنندگان را ارائه نمی‌کند. در صورت پشتیبانی، همچنان می‌توانی فهرست دنبال‌کردن‌ها را ببینی.</translation>
         </message>
+        <message id="genycaster.nodes.health_progress">
+            <source>%1 of %2 checked</source>
+            <translation>بررسی‌شده: %1 از %2</translation>
+        </message>
+        <message id="genycaster.nodes.health_passed">
+            <source>%1 read APIs working</source>
+            <translation>%1 API خواندن سالم</translation>
+        </message>
+        <message id="genycaster.nodes.selected_now">
+            <source>Active reader</source>
+            <translation>نود فعال</translation>
+        </message>
+        <message id="genycaster.nodes.default_choice">
+            <source>Default choice</source>
+            <translation>انتخاب پیش‌فرض</translation>
+        </message>
+        <message id="genycaster.nodes.raw_small">
+            <source>Raw Snapchain · some features unavailable</source>
+            <translation>اسنپ‌چین خام · برخی امکانات در دسترس نیست</translation>
+        </message>
+        <message id="genycaster.nodes.health_short">
+            <source>Read API check · response time is not an uptime guarantee</source>
+            <translation>آزمون API خواندن · زمان پاسخ تضمین پایداری نیست</translation>
+        </message>
+        <message id="genycaster.nodes.directory_title">
+            <source>Public provider directory</source>
+            <translation>فهرست نودهای عمومی</translation>
+        </message>
+        <message id="genycaster.nodes.directory_expand">
+            <source>Show nodes</source>
+            <translation>نمایش نودها</translation>
+        </message>
+        <message id="genycaster.nodes.directory_collapse">
+            <source>Hide nodes</source>
+            <translation>بستن فهرست</translation>
+        </message>
+        <message id="genycaster.nodes.directory_info">
+            <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
+            <translation>نمونه‌هایی از فهرست شبکهٔ HyperSnap؛ وضعیت فعلی اینجا تأیید نشده است. برای اتصال، آدرس API سازگار را اضافه کنید.</translation>
+        </message>
+        <message id="genycaster.nodes.directory_unverified">
+            <source>Not checked</source>
+            <translation>بررسی نشده</translation>
+        </message>
+        <message id="genycaster.nodes.directory_source">
+            <source>View source directory</source>
+            <translation>مشاهدهٔ فهرست مرجع</translation>
+        </message>
+        <message id="genycaster.nodes.counts_short">
+            <source>Counts · indexed / saved</source>
+            <translation>آمار · ایندکس / کش</translation>
+        </message>
+        <message id="genycaster.nodes.provision_title">
+            <source>Run a node on your server</source>
+            <translation>راه‌اندازی نود روی سرور خودتان</translation>
+        </message>
+        <message id="genycaster.nodes.provision_soon">
+            <source>In development</source>
+            <translation>در دست توسعه</translation>
+        </message>
+        <message id="genycaster.nodes.provision_desc">
+            <source>In the future: securely configure a server, install a compatible node, synchronize it and connect Genycaster. No server access is collected yet.</source>
+            <translation>در آینده: پیکربندی امن سرور، نصب نود سازگار، همگام‌سازی و اتصال خودکار جنی‌کستر. فعلاً هیچ دسترسی سروری دریافت نمی‌شود.</translation>
+        </message>
+        <message id="genycaster.nodes.provision_personal">
+            <source>Personal · your own independent node</source>
+            <translation>شخصی · نود مستقل خودتان</translation>
+        </message>
+        <message id="genycaster.nodes.provision_private">
+            <source>Private · restricted access for your team</source>
+            <translation>خصوصی · دسترسی محدود برای تیم</translation>
+        </message>
+        <message id="genycaster.nodes.provision_business">
+            <source>Business · managed deployment and monitoring</source>
+            <translation>تجاری · راه‌اندازی و پایش مدیریت‌شده</translation>
+        </message>
+        <message id="genycaster.nodes.provision_pipeline">
+            <source>Server → Install → Sync → Connect</source>
+            <translation>سرور ← نصب ← همگام‌سازی ← اتصال</translation>
+        </message>
+        <message id="genycaster.nodes.provision_guide">
+            <source>Server requirements and guide</source>
+            <translation>راهنما و مشخصات سرور</translation>
+        </message>
+        <message id="genycaster.nodes.provision_hardware">
+            <source>Example for a Snapchain read node</source>
+            <translation>نمونهٔ منابع برای نود خواندن Snapchain</translation>
+        </message>
+        <message id="genycaster.nodes.provision_requirements">
+            <source>Reference: at least 4 vCPUs, 16 GB RAM, 1.5 TB free SSD, a public IP and ports 3381–3383 (TCP/UDP). Actual requirements depend on the node type.</source>
+            <translation>مرجع: دست‌کم ۴ vCPU، رم ۱۶ گیگابایت، SSD با ۱٫۵ ترابایت فضای خالی، IP عمومی و درگاه‌های ۳۳۸۱ تا ۳۳۸۳ (TCP/UDP). نیاز واقعی به نوع نود بستگی دارد.</translation>
+        </message>
+        <message id="genycaster.nodes.provision_security">
+            <source>No SSH passwords or private keys are requested in this preview. Use secured infrastructure and verify permissions before deployment.</source>
+            <translation>در این پیش‌نمایش رمز SSH یا کلید خصوصی دریافت نمی‌شود. پیش از راه‌اندازی، دسترسی‌ها و امنیت سرور باید بررسی شوند.</translation>
+        </message>
+        <message id="genycaster.nodes.provision_docs">
+            <source>Official Snapchain installation guide</source>
+            <translation>راهنمای رسمی نصب Snapchain</translation>
+        </message>
         <message id="genycaster.nodes.raw_brief">
             <source>Raw Snapchain · posts, profile and follows; no aggregate counts or global Explorer.</source>
             <translation>اسنپ‌چین خام · کست‌ها، پروفایل و دنبال‌کردن‌ها؛ بدون آمار تجمیعی یا اکسپلورر سراسری.</translation>

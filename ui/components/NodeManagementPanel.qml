@@ -12,6 +12,8 @@ ColumnLayout {
 
     property bool addingReader: false
     property bool addingWriter: false
+    property bool showOperatorDirectory: true
+    property bool showServerGuide: false
     property bool selfHosted: false
     property string readContract: "snapchain-v1"
     property string pasteTarget: ""
@@ -27,6 +29,20 @@ ColumnLayout {
                 return String(profiles[i].label || profiles[i].id)
         }
         return root.resolvedSelectedReadId
+    }
+
+    readonly property var liveHealthRows: providerProfiles.connectionRows
+    readonly property int checkedNodes: liveHealthRows.filter(
+        item => String(item.status) !== "idle" && String(item.status) !== "checking").length
+    readonly property int healthyNodes: liveHealthRows.filter(
+        item => String(item.status) === "healthy").length
+
+    function responseBars(ms) {
+        if (ms < 0) return 0
+        if (ms <= 250) return 4
+        if (ms <= 650) return 3
+        if (ms <= 1500) return 2
+        return 1
     }
 
     function healthLabel(state) {
@@ -105,13 +121,28 @@ ColumnLayout {
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
             }
-            DirectionAwareLabel {
+            RowLayout {
                 Layout.fillWidth: true
-                text: providerProfiles.activeReadProviderId === "hypersnap-v2"
-                      ? "HyperSnap v2" : providerProfiles.activeReadProviderLabel
-                color: Theme.ink
-                font.pixelSize: Theme.typeTitle3Size
-                font.weight: Theme.weightDemiBold
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space2
+                Icon {
+                    text: Theme.iconCheck
+                    color: Theme.positive
+                    preferredSize: Theme.iconSizeSmall
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: providerProfiles.activeReadProviderLabel
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightDemiBold
+                }
+                DirectionAwareLabel {
+                    text: qsTrId("genycaster.nodes.selected_now")
+                    color: Theme.positive
+                    font.pixelSize: Theme.typeCaptionSize
+                    font.weight: Theme.weightDemiBold
+                }
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
@@ -124,9 +155,9 @@ ColumnLayout {
             DirectionAwareLabel {
                 visible: providerProfiles.activeReadContract === "snapchain-v1"
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.nodes.raw_brief")
+                text: qsTrId("genycaster.nodes.raw_small")
                 font.pixelSize: Theme.typeCaptionSize
-                color: Theme.warning
+                color: Theme.inkMuted
                 wrapMode: Text.Wrap
             }
             DirectionAwareLabel {
@@ -177,10 +208,48 @@ ColumnLayout {
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.nodes.health_explain")
+                text: qsTrId("genycaster.nodes.health_short")
                 font.pixelSize: Theme.typeCaptionSize
                 color: Theme.inkMuted
                 wrapMode: Text.Wrap
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space2
+                DirectionAwareLabel {
+                    text: qsTrId("genycaster.nodes.health_progress")
+                          .arg(root.checkedNodes).arg(root.liveHealthRows.length)
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                }
+                DirectionAwareLabel {
+                    visible: root.checkedNodes > 0
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignRight
+                    text: qsTrId("genycaster.nodes.health_passed").arg(root.healthyNodes)
+                    color: Theme.positive
+                    font.pixelSize: Theme.typeCaptionSize
+                }
+            }
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 4
+                radius: 2
+                color: Theme.borderMuted
+                Rectangle {
+                    width: parent.width * (root.liveHealthRows.length > 0
+                            ? root.checkedNodes / root.liveHealthRows.length : 0)
+                    height: parent.height
+                    radius: parent.radius
+                    color: Theme.positive
+                    Behavior on width {
+                        NumberAnimation {
+                            duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                }
             }
             Repeater {
                 model: providerProfiles.connectionRows
@@ -192,6 +261,13 @@ ColumnLayout {
                         Layout.fillWidth: true
                         layoutDirection: Theme.uiDirection
                         spacing: Theme.space2
+                        Icon {
+                            text: String(modelData.id) === providerProfiles.activeReadProviderId
+                                  ? Theme.iconCheck : Theme.iconCloud
+                            color: String(modelData.id) === providerProfiles.activeReadProviderId
+                                   ? Theme.positive : Theme.inkMuted
+                            preferredSize: Theme.iconSizeSmall
+                        }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
@@ -199,6 +275,26 @@ ColumnLayout {
                             color: Theme.ink
                             font.weight: Theme.weightMedium
                             elide: Text.ElideMiddle
+                        }
+                        RowLayout {
+                            spacing: 3
+                            layoutDirection: Qt.LeftToRight
+                            visible: String(modelData.status) === "healthy"
+                            Repeater {
+                                model: 4
+                                delegate: Rectangle {
+                                    required property int index
+                                    width: 5
+                                    height: 5 + (index + 1) * 3
+                                    radius: 2
+                                    Layout.alignment: Qt.AlignBottom
+                                    color: index < root.responseBars(Number(modelData.latencyMs))
+                                           ? Theme.positive : Theme.borderMuted
+                                    Behavior on color {
+                                        ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionStandard }
+                                    }
+                                }
+                            }
                         }
                         DirectionAwareLabel {
                             text: root.healthLabel(String(modelData.status))
@@ -237,6 +333,111 @@ ColumnLayout {
         }
     }
 
+    // Informational directory, separate from configured connections.
+    // Live status and API compatibility are NOT inferred from this list.
+    Superellipse {
+        objectName: "publicProviderDirectory"
+        Layout.fillWidth: true
+        implicitHeight: directoryBody.implicitHeight + Theme.space3 * 2
+        fillColor: Theme.surfaceRaised
+        borderWidth: Theme.strokeHairline
+        borderColor: Theme.borderSubtle
+        curveDepth: Theme.curveContainer
+        ColumnLayout {
+            id: directoryBody
+            anchors.fill: parent
+            anchors.margins: Theme.space3
+            spacing: Theme.space2
+            RowLayout {
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space2
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.nodes.directory_title")
+                    color: Theme.ink
+                    font.weight: Theme.weightDemiBold
+                    font.pixelSize: Theme.typeTitle3Size
+                }
+                ActionButton {
+                    quiet: true
+                    compact: true
+                    iconGlyph: root.showOperatorDirectory ? Theme.iconChevronDown : Theme.iconArrowUpRight
+                    text: root.showOperatorDirectory
+                          ? qsTrId("genycaster.nodes.directory_collapse")
+                          : qsTrId("genycaster.nodes.directory_expand")
+                    onClicked: root.showOperatorDirectory = !root.showOperatorDirectory
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.nodes.directory_info")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.Wrap
+            }
+            ColumnLayout {
+                visible: root.showOperatorDirectory
+                Layout.fillWidth: true
+                spacing: Theme.space1
+                Repeater {
+                    model: [
+                        { name: "Hypersnap Public", provider: "Hypersnap", host: "haatz.quilibrium.com" },
+                        { name: "Ardea / Arca", provider: "Arca", host: "ardea.arcabot.ai" },
+                        { name: "Neynar Hub API", provider: "Neynar", host: "neynar.com" },
+                        { name: "Pinata Hub", provider: "Pinata", host: "hub.pinata.cloud" },
+                        { name: "Standard Crypto Hub", provider: "Standard Crypto", host: "hub.farcaster.standardcrypto.vc" }
+                    ]
+                    delegate: RowLayout {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        layoutDirection: Theme.uiDirection
+                        spacing: Theme.space2
+                        Icon {
+                            text: Theme.iconCloud
+                            color: Theme.inkMuted
+                            preferredSize: Theme.iconSizeSmall
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            spacing: 0
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: String(modelData.name)
+                                color: Theme.ink
+                                font.pixelSize: Theme.typeLabelSize
+                                elide: Text.ElideRight
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: String(modelData.host)
+                                forceLeftToRight: true
+                                font.pixelSize: Theme.typeCaptionSize
+                                color: Theme.inkSubtle
+                                elide: Text.ElideMiddle
+                            }
+                        }
+                        DirectionAwareLabel {
+                            text: qsTrId("genycaster.nodes.directory_unverified")
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.inkMuted
+                        }
+                    }
+                }
+                ActionButton {
+                    Layout.fillWidth: true
+                    compact: true
+                    quiet: true
+                    alignStart: true
+                    iconGlyph: Theme.iconArrowUpRight
+                    text: qsTrId("genycaster.nodes.directory_source")
+                    onClicked: Qt.openUrlExternally("https://hypersnap.org/network")
+                }
+            }
+        }
+    }
+
     ColumnLayout {
         Layout.fillWidth: true
         spacing: Theme.space2
@@ -247,12 +448,23 @@ ColumnLayout {
             font.pixelSize: Theme.typeTitle3Size
             font.weight: Theme.weightDemiBold
         }
-        ActionButton {
+        RowLayout {
             Layout.fillWidth: true
-            text: qsTrId("genycaster.providers.default_read") + " · HyperSnap"
-            alignStart: true
-            selected: providerProfiles.selectedReadProviderId.length === 0
-            onClicked: providerProfiles.selectReadProvider("")
+            layoutDirection: Theme.uiDirection
+            spacing: Theme.space2
+            Icon {
+                visible: providerProfiles.activeReadProviderId === "hypersnap-v2"
+                text: Theme.iconCheck
+                color: Theme.positive
+                preferredSize: Theme.iconSizeSmall
+            }
+            ActionButton {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.nodes.default_choice") + " · HyperSnap v2"
+                alignStart: true
+                selected: providerProfiles.selectedReadProviderId.length === 0
+                onClicked: providerProfiles.selectReadProvider("")
+            }
         }
         Repeater {
             model: providerProfiles.readProfiles
@@ -278,12 +490,32 @@ ColumnLayout {
                         color: Theme.ink
                         font.weight: Theme.weightDemiBold
                     }
-                    DirectionAwareLabel {
+                    RowLayout {
                         Layout.fillWidth: true
-                        visible: String(modelData.id) === providerProfiles.activeReadProviderId
-                        text: qsTrId("genycaster.nodes.active_tag")
-                        color: Theme.positive
-                        font.pixelSize: Theme.typeCaptionSize
+                        layoutDirection: Theme.uiDirection
+                        spacing: Theme.space2
+                        Icon {
+                            visible: String(modelData.id) === providerProfiles.activeReadProviderId
+                            text: Theme.iconCheck
+                            color: Theme.positive
+                            preferredSize: Theme.iconSizeSmall
+                        }
+                        DirectionAwareLabel {
+                            visible: String(modelData.id) === providerProfiles.activeReadProviderId
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.nodes.selected_now")
+                            color: Theme.positive
+                            font.weight: Theme.weightDemiBold
+                            font.pixelSize: Theme.typeCaptionSize
+                        }
+                        DirectionAwareLabel {
+                            visible: providerProfiles.selectedReadProviderId === String(modelData.id)
+                                     && String(modelData.id) !== providerProfiles.activeReadProviderId
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.nodes.pending_tag")
+                            color: Theme.warning
+                            font.pixelSize: Theme.typeCaptionSize
+                        }
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
@@ -437,7 +669,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     visible: providerProfiles.activeReadContract === "snapchain-v1"
                     text: providerProfiles.appliedCompatibleReadFallback
-                          ? qsTrId("genycaster.nodes.counts_external").arg(providerProfiles.activeReadProviderLabel)
+                          ? qsTrId("genycaster.nodes.counts_short")
                           : qsTrId("genycaster.nodes.counts_raw")
                     color: providerProfiles.appliedCompatibleReadFallback ? Theme.accent : Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
@@ -668,6 +900,140 @@ ColumnLayout {
             onClicked: {
                 root.readContract = providerProfiles.probeSuggestedContract
                 providerProfiles.clearDraftProbe()
+            }
+        }
+    }
+
+    // Future node-provisioning surface. No server credentials are entered or
+    // handled until audited provisioning and SSH permission flows are implemented.
+    Superellipse {
+        objectName: "serverProvisioningPreview"
+        Layout.fillWidth: true
+        implicitHeight: serverSetupBody.implicitHeight + Theme.space4 * 2
+        fillColor: Theme.surfaceMuted
+        borderWidth: Theme.strokeHairline
+        borderColor: Theme.borderMuted
+        curveDepth: Theme.curveContainer
+        ColumnLayout {
+            id: serverSetupBody
+            anchors.fill: parent
+            anchors.margins: Theme.space4
+            spacing: Theme.space3
+            RowLayout {
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space2
+                Icon {
+                    text: Theme.iconCloud
+                    preferredSize: Theme.iconSize
+                    color: Theme.accent
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.nodes.provision_title")
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightBold
+                }
+                Superellipse {
+                    Layout.preferredWidth: previewPill.implicitWidth + Theme.space3
+                    Layout.preferredHeight: 28
+                    fillColor: Theme.primarySurface
+                    curveDepth: Theme.curveCompact
+                    DirectionAwareLabel {
+                        id: previewPill
+                        anchors.centerIn: parent
+                        text: qsTrId("genycaster.nodes.provision_soon")
+                        color: Theme.accent
+                        font.pixelSize: Theme.typeCaptionSize
+                        font.weight: Theme.weightDemiBold
+                    }
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.nodes.provision_desc")
+                font.pixelSize: Theme.typeMetaSize
+                color: Theme.inkMuted
+                wrapMode: Text.Wrap
+            }
+            Repeater {
+                model: [
+                    qsTrId("genycaster.nodes.provision_personal"),
+                    qsTrId("genycaster.nodes.provision_private"),
+                    qsTrId("genycaster.nodes.provision_business")
+                ]
+                delegate: RowLayout {
+                    required property string modelData
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space2
+                    Icon {
+                        text: Theme.iconCheck
+                        color: Theme.positive
+                        preferredSize: Theme.iconSizeSmall
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: modelData
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                    }
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.nodes.provision_pipeline")
+                color: Theme.accent
+                font.pixelSize: Theme.typeLabelSize
+                font.weight: Theme.weightDemiBold
+                wrapMode: Text.Wrap
+            }
+            ActionButton {
+                Layout.fillWidth: true
+                quiet: true
+                alignStart: true
+                selected: root.showServerGuide
+                iconGlyph: Theme.iconInfo
+                text: qsTrId("genycaster.nodes.provision_guide")
+                onClicked: root.showServerGuide = !root.showServerGuide
+            }
+            ColumnLayout {
+                visible: root.showServerGuide
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.nodes.provision_hardware")
+                    color: Theme.ink
+                    font.weight: Theme.weightDemiBold
+                    font.pixelSize: Theme.typeLabelSize
+                    wrapMode: Text.Wrap
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.nodes.provision_requirements")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.Wrap
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.nodes.provision_security")
+                    color: Theme.warning
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.Wrap
+                }
+                ActionButton {
+                    Layout.fillWidth: true
+                    compact: true
+                    quiet: true
+                    iconGlyph: Theme.iconArrowUpRight
+                    alignStart: true
+                    text: qsTrId("genycaster.nodes.provision_docs")
+                    onClicked: Qt.openUrlExternally("https://github.com/farcasterxyz/snapchain")
+                }
             }
         }
     }

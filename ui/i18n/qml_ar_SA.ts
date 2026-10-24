@@ -42,6 +42,106 @@
             <source>This source doesn't provide follower totals. You can still browse its follow lists when supported.</source>
             <translation>لا يوفّر هذا المصدر إجمالي المتابعين. يمكنك تصفّح قوائم المتابعة إذا كانت مدعومة.</translation>
         </message>
+        <message id="genycaster.nodes.health_progress">
+            <source>%1 of %2 checked</source>
+            <translation>تم فحص %1 من %2</translation>
+        </message>
+        <message id="genycaster.nodes.health_passed">
+            <source>%1 read APIs working</source>
+            <translation>واجهات قراءة تعمل: %1</translation>
+        </message>
+        <message id="genycaster.nodes.selected_now">
+            <source>Active reader</source>
+            <translation>عقدة القراءة النشطة</translation>
+        </message>
+        <message id="genycaster.nodes.default_choice">
+            <source>Default choice</source>
+            <translation>الخيار الافتراضي</translation>
+        </message>
+        <message id="genycaster.nodes.raw_small">
+            <source>Raw Snapchain · some features unavailable</source>
+            <translation>Snapchain خام · بعض الميزات غير متاحة</translation>
+        </message>
+        <message id="genycaster.nodes.health_short">
+            <source>Read API check · response time is not an uptime guarantee</source>
+            <translation>اختبار قراءة API · زمن الاستجابة لا يضمن التوافر</translation>
+        </message>
+        <message id="genycaster.nodes.directory_title">
+            <source>Public provider directory</source>
+            <translation>دليل المزوّدين العموميين</translation>
+        </message>
+        <message id="genycaster.nodes.directory_expand">
+            <source>Show nodes</source>
+            <translation>عرض العقد</translation>
+        </message>
+        <message id="genycaster.nodes.directory_collapse">
+            <source>Hide nodes</source>
+            <translation>إخفاء العقد</translation>
+        </message>
+        <message id="genycaster.nodes.directory_info">
+            <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
+            <translation>أمثلة من دليل شبكة HyperSnap. الحالة غير مؤكدة هنا؛ أضف نقطة API متوافقة للاتصال.</translation>
+        </message>
+        <message id="genycaster.nodes.directory_unverified">
+            <source>Not checked</source>
+            <translation>لم تُفحص</translation>
+        </message>
+        <message id="genycaster.nodes.directory_source">
+            <source>View source directory</source>
+            <translation>فتح الدليل المرجعي</translation>
+        </message>
+        <message id="genycaster.nodes.counts_short">
+            <source>Counts · indexed / saved</source>
+            <translation>الأعداد · مفهرسة / محفوظة</translation>
+        </message>
+        <message id="genycaster.nodes.provision_title">
+            <source>Run a node on your server</source>
+            <translation>تشغيل عقدة على خادمك</translation>
+        </message>
+        <message id="genycaster.nodes.provision_soon">
+            <source>In development</source>
+            <translation>قيد التطوير</translation>
+        </message>
+        <message id="genycaster.nodes.provision_desc">
+            <source>In the future: securely configure a server, install a compatible node, synchronize it and connect Genycaster. No server access is collected yet.</source>
+            <translation>لاحقًا: إعداد الخادم بأمان، وتثبيت عقدة متوافقة ومزامنتها وربطها بجني‌كاستر. لا نطلب وصولًا للخادم الآن.</translation>
+        </message>
+        <message id="genycaster.nodes.provision_personal">
+            <source>Personal · your own independent node</source>
+            <translation>شخصية · عقدتك المستقلة</translation>
+        </message>
+        <message id="genycaster.nodes.provision_private">
+            <source>Private · restricted access for your team</source>
+            <translation>خاصة · وصول محدود لفريقك</translation>
+        </message>
+        <message id="genycaster.nodes.provision_business">
+            <source>Business · managed deployment and monitoring</source>
+            <translation>تجارية · نشر ومراقبة مُداران</translation>
+        </message>
+        <message id="genycaster.nodes.provision_pipeline">
+            <source>Server → Install → Sync → Connect</source>
+            <translation>الخادم ← تثبيت ← مزامنة ← اتصال</translation>
+        </message>
+        <message id="genycaster.nodes.provision_guide">
+            <source>Server requirements and guide</source>
+            <translation>الدليل ومتطلبات الخادم</translation>
+        </message>
+        <message id="genycaster.nodes.provision_hardware">
+            <source>Example for a Snapchain read node</source>
+            <translation>مثال لعقدة قراءة Snapchain</translation>
+        </message>
+        <message id="genycaster.nodes.provision_requirements">
+            <source>Reference: at least 4 vCPUs, 16 GB RAM, 1.5 TB free SSD, a public IP and ports 3381–3383 (TCP/UDP). Actual requirements depend on the node type.</source>
+            <translation>مرجع: 4 vCPU و16 GB RAM و1.5 TB مساحة SSD خالية وعنوان IP عام ومنافذ 3381–3383 ‏TCP/UDP. تختلف المتطلبات حسب نوع العقدة.</translation>
+        </message>
+        <message id="genycaster.nodes.provision_security">
+            <source>No SSH passwords or private keys are requested in this preview. Use secured infrastructure and verify permissions before deployment.</source>
+            <translation>لا تُطلب كلمات مرور SSH أو المفاتيح الخاصة في هذه المعاينة. تحقق من أمان الخادم والصلاحيات.</translation>
+        </message>
+        <message id="genycaster.nodes.provision_docs">
+            <source>Official Snapchain installation guide</source>
+            <translation>دليل Snapchain الرسمي</translation>
+        </message>
         <message id="genycaster.nodes.raw_brief">
             <source>Raw Snapchain · posts, profile and follows; no aggregate counts or global Explorer.</source>
             <translation>Snapchain خام · المنشورات والملفات والمتابعات، دون إجماليات أو مستكشف عام.</translation>

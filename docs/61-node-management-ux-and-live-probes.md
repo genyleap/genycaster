@@ -36,6 +36,15 @@ Raw `/v1/userDataByFid` contains display metadata but **not** aggregate follower
 - Raw Snapchain profile UserData does not include follower totals. When numbers appear with a raw primary reader, the interface now explains that these are from an indexed provider (usually HyperSnap if it is the compatible reader) **or saved data**, not the raw response. Disabling fallback and restarting prevents supplementary network reads, but previously cached totals can remain visible.
 - Connection statuses live only in memory and never contain, export or persist API credentials. No vendor-specific addresses are hardcoded in the health UI.
 
+## Clear status, public examples and future remote provisioning
+
+- The Settings destination provides a wider, wrapped-text desktop sidebar so long translated titles are not ellipsized. The active read node is marked independently from the latest sampled API health: a green active check means selected at startup, **not** guaranteed healthy.
+- A measured API latency is summarized with four response bars, and a separate animated count/progress strip records checked versus successful read API probes. These are **not** a network-wide reliability percentage or an ICMP health score. Reduced-motion users get immediate transitions.
+- Short indexed/cache labels replace explanatory paragraphs beneath profile follower counts. The longer technical rationale remains in this developer guide.
+- A read-only directory surfaces Hypersnap Public, Ardea/Arca, Neynar Hub API, Pinata Hub and Standard Crypto Hub as **examples only**. It links to https://hypersnap.org/network; it does not copy remote live status, fabricate connectivity, persist endpoints, or treat catalog entries as active/probed nodes. Other arbitrary compatible nodes remain supported.
+- The managed personal/private/business server setup card is explicitly **in development**. It illustrates Server → Install → Sync → Connect without enabling SSH or collecting secrets. Its guidance quotes the current Farcaster Snapchain node README baseline: **4 vCPU, 16 GB RAM, 1.5 TB free storage, public IP and ports 3381–3383 TCP/UDP**; this is not a universal minimum for every future adapter, nor an installation feature. Up-to-date upstream requirements should be checked at https://github.com/farcasterxyz/snapchain before any deployment.
+- The existing manual local HTTP example still refers only to the user's own machine, not a remotely installed node. No automated installation, snapshots, sync supervision, admin credentials, backup/restore, or commercial orchestration are implemented yet.
+
 ## API keys and privacy
 
 - A public or locally run raw Snapchain node normally requires no API key only when its operator allows unauthenticated access.

@@ -16,6 +16,7 @@ Button {
     property string iconGlyph: ""
     property bool iconOnly: false
     property bool compact: false
+    property bool wrapText: false
     property bool alignStart: false
     property bool pill: false
     property bool elevated: true
@@ -28,7 +29,10 @@ Button {
     LayoutMirroring.childrenInherit: true
 
     implicitWidth: iconOnly ? implicitHeight : Math.max(68, contentRow.implicitWidth + leftPadding + rightPadding)
-    implicitHeight: compact ? Theme.compactControlHeight : Theme.controlHeight
+    implicitHeight: wrapText
+                    ? Math.max(compact ? Theme.compactControlHeight : Theme.controlHeight,
+                               contentRow.implicitHeight + Theme.space2 * 2)
+                    : compact ? Theme.compactControlHeight : Theme.controlHeight
     leftPadding: iconOnly ? 0 : (compact ? Theme.space3 : Theme.space4)
     rightPadding: leftPadding
     topPadding: 0
@@ -170,7 +174,8 @@ Button {
             font.weight: control.prominent || control.positive || control.selected ? Theme.weightDemiBold : Theme.weightMedium
             horizontalAlignment: control.alignStart ? Theme.textStartAlignment : Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
+            wrapMode: control.wrapText ? Text.Wrap : Text.NoWrap
+            elide: control.wrapText ? Text.ElideNone : Text.ElideRight
         }
     }
 

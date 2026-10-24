@@ -35,7 +35,7 @@ test('wasm manifest carries curated real update type and bounded changes',()=>{
     const metadata=JSON.parse(readFileSync(join(dir,'genycaster-assets.json'),'utf8'));
     assert.equal(metadata.releaseNotes.type,'improvement');
     assert.ok(metadata.releaseNotes.changes.length>=2);
-    assert.equal(metadata.releaseNotes.title,'Clearer Settings and node connection checks');
+    assert.equal(metadata.releaseNotes.title,'Readable Settings, clearer node status and server setup preview');
     assert.match(metadata.version,/^[a-f0-9]{20}$/);
   }finally{rmSync(dir,{recursive:true,force:true});}
 });

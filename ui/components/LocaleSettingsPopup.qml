@@ -84,7 +84,7 @@ GenyDrawer {
     showHandle: false
     dimBackground: true
     contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space4
-    width: parent ? (mobilePresentation ? parent.width : Math.min(980, parent.width * 0.94)) : 980
+    width: parent ? (mobilePresentation ? parent.width : Math.min(1100, parent.width * 0.96)) : 1100
     // Settings is a full-screen navigable destination on phones: never leave
     // a distracting exposed strip above it. Outside-click dismissal still
     // applies whenever the surface has an uncovered backdrop (e.g. desktop).
@@ -536,7 +536,7 @@ GenyDrawer {
 
             Superellipse {
                 visible: !root.mobilePresentation
-                Layout.preferredWidth: 212
+                Layout.preferredWidth: Math.min(278, Math.max(242, root.width * 0.27))
                 Layout.fillHeight: true
                 fillColor: Theme.surfaceMuted
                 curveDepth: Theme.curveContainer
@@ -564,12 +564,13 @@ GenyDrawer {
                         model: [{ section: 0, label: qsTrId("genycaster.settings.appearance"), glyph: Theme.iconPalette },
                                 { section: 1, label: qsTrId("genycaster.settings.language_region"), glyph: Theme.iconLanguage }]
                         delegate: ActionButton {
+                            id: navigationEntry
                             required property var modelData
                             visible: Number(modelData.section) !== 5 || presentationBridge.isAuthenticated
                             objectName: Number(modelData.section) === 5 ? "settingsRecoveryTab" : "settingsNavigationItem"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
-                            compact: false
+                            wrapText: true
                             quiet: true
                             alignStart: true
                             iconGlyph: String(modelData.glyph)
@@ -590,12 +591,13 @@ GenyDrawer {
                                 { section: 3, label: qsTrId("genycaster.settings.content_loading"), glyph: Theme.iconDownload },
                                 { section: 6, label: qsTrId("genycaster.nodes.title"), glyph: Theme.iconCloud }]
                         delegate: ActionButton {
+                            id: navigationEntry
                             required property var modelData
                             visible: Number(modelData.section) !== 5 || presentationBridge.isAuthenticated
                             objectName: Number(modelData.section) === 5 ? "settingsRecoveryTab" : "settingsNavigationItem"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
-                            compact: false
+                            wrapText: true
                             quiet: true
                             alignStart: true
                             iconGlyph: String(modelData.glyph)
@@ -615,12 +617,13 @@ GenyDrawer {
                         model: [{ section: 4, label: qsTrId("genycaster.settings.updates"), glyph: Theme.iconRefresh },
                                 { section: 5, label: qsTrId("genycaster.setup.recovery_title"), glyph: "system/lock" }]
                         delegate: ActionButton {
+                            id: navigationEntry
                             required property var modelData
                             visible: Number(modelData.section) !== 5 || presentationBridge.isAuthenticated
                             objectName: Number(modelData.section) === 5 ? "settingsRecoveryTab" : "settingsNavigationItem"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
-                            compact: false
+                            wrapText: true
                             quiet: true
                             alignStart: true
                             iconGlyph: String(modelData.glyph)

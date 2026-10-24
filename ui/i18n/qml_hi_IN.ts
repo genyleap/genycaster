@@ -42,6 +42,106 @@
             <source>This source doesn't provide follower totals. You can still browse its follow lists when supported.</source>
             <translation>यह स्रोत फ़ॉलोअर की कुल संख्या नहीं देता। समर्थित होने पर आप फ़ॉलो सूची फिर भी देख सकते हैं।</translation>
         </message>
+        <message id="genycaster.nodes.health_progress">
+            <source>%1 of %2 checked</source>
+            <translation>%2 में से %1 जाँचे गए</translation>
+        </message>
+        <message id="genycaster.nodes.health_passed">
+            <source>%1 read APIs working</source>
+            <translation>%1 रीड API काम कर रहे हैं</translation>
+        </message>
+        <message id="genycaster.nodes.selected_now">
+            <source>Active reader</source>
+            <translation>सक्रिय रीड नोड</translation>
+        </message>
+        <message id="genycaster.nodes.default_choice">
+            <source>Default choice</source>
+            <translation>डिफ़ॉल्ट विकल्प</translation>
+        </message>
+        <message id="genycaster.nodes.raw_small">
+            <source>Raw Snapchain · some features unavailable</source>
+            <translation>रॉ Snapchain · कुछ सुविधाएँ उपलब्ध नहीं</translation>
+        </message>
+        <message id="genycaster.nodes.health_short">
+            <source>Read API check · response time is not an uptime guarantee</source>
+            <translation>रीड API जाँच · प्रतिक्रिया समय अपटाइम की गारंटी नहीं</translation>
+        </message>
+        <message id="genycaster.nodes.directory_title">
+            <source>Public provider directory</source>
+            <translation>सार्वजनिक प्रदाता सूची</translation>
+        </message>
+        <message id="genycaster.nodes.directory_expand">
+            <source>Show nodes</source>
+            <translation>नोड दिखाएँ</translation>
+        </message>
+        <message id="genycaster.nodes.directory_collapse">
+            <source>Hide nodes</source>
+            <translation>नोड छिपाएँ</translation>
+        </message>
+        <message id="genycaster.nodes.directory_info">
+            <source>Examples from the HyperSnap network directory. Status is not verified here; add a compatible API endpoint to connect.</source>
+            <translation>HyperSnap नेटवर्क सूची के उदाहरण। यहाँ स्थिति सत्यापित नहीं है; कनेक्ट करने के लिए संगत API पता जोड़ें।</translation>
+        </message>
+        <message id="genycaster.nodes.directory_unverified">
+            <source>Not checked</source>
+            <translation>जाँच नहीं हुई</translation>
+        </message>
+        <message id="genycaster.nodes.directory_source">
+            <source>View source directory</source>
+            <translation>मूल सूची देखें</translation>
+        </message>
+        <message id="genycaster.nodes.counts_short">
+            <source>Counts · indexed / saved</source>
+            <translation>संख्या · इंडेक्स / कैश</translation>
+        </message>
+        <message id="genycaster.nodes.provision_title">
+            <source>Run a node on your server</source>
+            <translation>अपने सर्वर पर नोड चलाएँ</translation>
+        </message>
+        <message id="genycaster.nodes.provision_soon">
+            <source>In development</source>
+            <translation>विकासाधीन</translation>
+        </message>
+        <message id="genycaster.nodes.provision_desc">
+            <source>In the future: securely configure a server, install a compatible node, synchronize it and connect Genycaster. No server access is collected yet.</source>
+            <translation>भविष्य में सुरक्षित सर्वर सेटअप, संगत नोड स्थापना, सिंक और Genycaster से कनेक्शन। अभी कोई सर्वर एक्सेस नहीं लिया जाता।</translation>
+        </message>
+        <message id="genycaster.nodes.provision_personal">
+            <source>Personal · your own independent node</source>
+            <translation>निजी · स्वतंत्र नोड</translation>
+        </message>
+        <message id="genycaster.nodes.provision_private">
+            <source>Private · restricted access for your team</source>
+            <translation>प्राइवेट · टीम को सीमित पहुँच</translation>
+        </message>
+        <message id="genycaster.nodes.provision_business">
+            <source>Business · managed deployment and monitoring</source>
+            <translation>व्यावसायिक · प्रबंधित तैनाती और निगरानी</translation>
+        </message>
+        <message id="genycaster.nodes.provision_pipeline">
+            <source>Server → Install → Sync → Connect</source>
+            <translation>सर्वर → इंस्टॉल → सिंक → कनेक्ट</translation>
+        </message>
+        <message id="genycaster.nodes.provision_guide">
+            <source>Server requirements and guide</source>
+            <translation>सर्वर आवश्यकताएँ और गाइड</translation>
+        </message>
+        <message id="genycaster.nodes.provision_hardware">
+            <source>Example for a Snapchain read node</source>
+            <translation>Snapchain रीड नोड का उदाहरण</translation>
+        </message>
+        <message id="genycaster.nodes.provision_requirements">
+            <source>Reference: at least 4 vCPUs, 16 GB RAM, 1.5 TB free SSD, a public IP and ports 3381–3383 (TCP/UDP). Actual requirements depend on the node type.</source>
+            <translation>संदर्भ: कम से कम 4 vCPU, 16 GB RAM, 1.5 TB खाली SSD, सार्वजनिक IP, और TCP/UDP पोर्ट 3381–3383। वास्तविक ज़रूरत नोड पर निर्भर है।</translation>
+        </message>
+        <message id="genycaster.nodes.provision_security">
+            <source>No SSH passwords or private keys are requested in this preview. Use secured infrastructure and verify permissions before deployment.</source>
+            <translation>इस पूर्वावलोकन में SSH पासवर्ड या निजी कुंजी नहीं माँगी जाती। सुरक्षा और अनुमति जाँचें।</translation>
+        </message>
+        <message id="genycaster.nodes.provision_docs">
+            <source>Official Snapchain installation guide</source>
+            <translation>आधिकारिक Snapchain इंस्टॉलेशन गाइड</translation>
+        </message>
         <message id="genycaster.nodes.raw_brief">
             <source>Raw Snapchain · posts, profile and follows; no aggregate counts or global Explorer.</source>
             <translation>रॉ Snapchain · पोस्ट, प्रोफ़ाइल और फ़ॉलो; कुल संख्या या वैश्विक एक्सप्लोरर नहीं।</translation>

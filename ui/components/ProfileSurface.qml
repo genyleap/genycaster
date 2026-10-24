@@ -1169,7 +1169,7 @@ Item {
                         visible: Number(root.activeDetail.fid || 0) > 0
                                  && root.activeDetail.socialCountsKnown === true
                                  && providerProfiles.activeReadContract === "snapchain-v1"
-                        text: qsTrId("genycaster.nodes.counts_external").arg(providerProfiles.activeReadProviderLabel)
+                        text: qsTrId("genycaster.nodes.counts_short")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap

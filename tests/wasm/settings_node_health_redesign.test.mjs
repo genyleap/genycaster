@@ -8,7 +8,7 @@ const read=p=>readFileSync(new URL(p,root),'utf8');
 test('desktop settings uses vertical categorized destinations instead of two-row tabs',()=>{
  const qml=read('ui/components/LocaleSettingsPopup.qml');
  assert.match(qml,/id: settingsNavigation/);
- assert.match(qml,/Layout\.preferredWidth: 212/);
+ assert.match(qml,/Layout\.preferredWidth: Math\.min\(278/);
  assert.match(qml,/visible: !root\.mobilePresentation \|\| !root\.mobileIndexOpen/);
  assert.match(qml,/root\.currentSection = Number\(modelData\.section\)/);
  assert.match(qml,/visible: Number\(modelData\.section\) !== 5 \|\| presentationBridge\.isAuthenticated/);
@@ -22,7 +22,7 @@ test('node dashboard lists real per-instance API results without claiming contin
  const cpp=read('ui/mobile/provider_profiles_controller.cpp');
  const hpp=read('ui/mobile/provider_profiles_controller.hpp');
  for(const pattern of [/providerProfiles\.connectionRows/,/providerProfiles\.probeAllReadProviders\(\)/,
-    /genycaster\.nodes\.health_explain/,/modelData\.latencyMs/,/modelData\.httpStatus/,
+    /genycaster\.nodes\.health_short/,/modelData\.latencyMs/,/modelData\.httpStatus/,
     /checked: providerProfiles\.compatibleReadFallback/,/readProfileCard\.showCredentials/])
    assert.match(qml,pattern);
  assert.match(hpp,/Q_PROPERTY\(QVariantList connectionRows READ connectionRows NOTIFY probeChanged\)/);
@@ -40,8 +40,7 @@ test('social graph counts are attributed as supplementary data, not claimed from
  const sidebar=read('ui/components/SocialSidebar.qml');
  const node=read('ui/components/NodeManagementPanel.qml');
  for(const content of [profile,sidebar,node]) {
-    assert.match(content,/genycaster\.nodes\.counts_external/);
-    assert.match(content,/\.arg\(providerProfiles\.activeReadProviderLabel\)/);
+    assert.match(content,/genycaster\.nodes\.counts_short/);
  }
  for(const loc of ['en_US','fa_IR','ar_SA','de_DE','es_ES','fr_FR','hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
     const cat=read('ui/i18n/qml_'+loc+'.ts');
@@ -60,5 +59,51 @@ test('new settings and health copy is available in all supported languages',()=>
  for(const loc of locales){
   const content=read('ui/i18n/qml_'+loc+'.ts');
   for(const key of keys)assert.match(content,new RegExp('id="genycaster\\.nodes\\.'+key+'"'));
+ }
+});
+
+test('settings navigation wraps translated titles instead of truncating them',()=>{
+ const nav=read('ui/components/LocaleSettingsPopup.qml');
+ const button=read('ui/components/ActionButton.qml');
+ assert.match(nav,/Layout\.preferredWidth: Math\.min\(278/);
+ assert.match(nav,/wrapText: true/);
+ assert.match(button,/property bool wrapText: false/);
+ assert.match(button,/wrapMode: control\.wrapText \? Text\.Wrap : Text\.NoWrap/);
+ assert.match(button,/elide: control\.wrapText \? Text\.ElideNone : Text\.ElideRight/);
+ assert.doesNotMatch(nav,/id: settingsTabs/);
+});
+test('selected reader and measured latency remain distinct from actual API health',()=>{
+ const qml=read('ui/components/NodeManagementPanel.qml');
+ assert.match(qml,/objectName: "publicProviderDirectory"/);
+ assert.match(qml,/providerProfiles\.activeReadProviderId/);
+ assert.match(qml,/text: Theme\.iconCheck/);
+ assert.match(qml,/color: Theme\.positive/);
+ assert.match(qml,/root\.responseBars\(Number\(modelData\.latencyMs\)\)/);
+ assert.match(qml,/root\.checkedNodes \/ root\.liveHealthRows\.length/);
+ assert.match(qml,/duration: Theme\.reduceMotion \? 0 : Theme\.motionEmphasis/);
+ assert.match(qml,/genycaster\.nodes\.default_choice/);
+ assert.match(qml,/https:\/\/hypersnap\.org\/network/);
+ for(const name of ['Hypersnap Public','Ardea / Arca','Neynar Hub API','Pinata Hub','Standard Crypto Hub'])
+   assert.ok(qml.includes(name),name);
+ assert.match(qml,/genycaster\.nodes\.directory_unverified/);
+});
+test('self-host provisioning is only an honest, credentials-free future preview',()=>{
+ const qml=read('ui/components/NodeManagementPanel.qml');
+ assert.match(qml,/objectName: "serverProvisioningPreview"/);
+ for(const key of ['provision_soon','provision_personal','provision_private','provision_business',
+   'provision_pipeline','provision_requirements','provision_security','provision_docs'])
+   assert.ok(qml.includes('genycaster.nodes.'+key),key);
+ assert.match(qml,/onClicked: Qt\.openUrlExternally\("https:\/\/github\.com\/farcasterxyz\/snapchain"\)/);
+ const preview=qml.slice(qml.indexOf('objectName: "serverProvisioningPreview"'),qml.indexOf('visible: providerProfiles.readRestartRequired'));
+ assert.doesNotMatch(preview,/DirectionAwareTextField|requestBrowserPaste|setSessionReadApiKey|startProcess|ssh_run/);
+});
+test('new status and self-host guide copy is translated for all built-in locales',()=>{
+ const ids=['counts_short','selected_now','default_choice','health_short','health_progress','health_passed',
+  'directory_title','directory_info','directory_expand','directory_collapse','directory_source','directory_unverified',
+  'provision_title','provision_soon','provision_desc','provision_personal','provision_private','provision_business',
+  'provision_pipeline','provision_guide','provision_hardware','provision_requirements','provision_security','provision_docs'];
+ for(const loc of ['en_US','fa_IR','ar_SA','de_DE','es_ES','fr_FR','hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']){
+  const cat=read('ui/i18n/qml_'+loc+'.ts');
+  for(const id of ids)assert.ok(cat.includes('id="genycaster.nodes.'+id+'"'),loc+' '+id);
  }
 });
