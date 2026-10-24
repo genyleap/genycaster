@@ -14,6 +14,10 @@
             <source>Showing posts saved on this device, not the live network-wide Recent feed.</source>
             <translation>پست‌های ذخیره‌شده روی این دستگاه نمایش داده می‌شوند، نه فید زندهٔ «تازه‌ترین‌های» کل شبکه.</translation>
         </message>
+        <message id="genycaster.feed.following_local_only_notice">
+            <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
+            <translation>پست‌های ذخیره‌شده از حساب‌هایی که دنبال می‌کنید نمایش داده می‌شوند؛ این فید کامل و زندهٔ دنبال‌شوندگان نیست.</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>افزودن نود</translation>

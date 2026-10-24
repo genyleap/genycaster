@@ -106,7 +106,7 @@ to an already running Qt instance.
 | FID/profile metadata | Implemented, contract-tested | Full rich profile enrichment not guaranteed |
 | Personal Casts/Quotes/Replies | Implemented, contract-tested | Per-FID pagination |
 | Following/Followers graph | Implemented, contract-tested | Canonical link FIDs; no fabricated profile labels |
-| Following home feed aggregated across followed authors | **NOT IMPLEMENTED** | Requires bounded fanout/index, dedupe, checkpoints, tombstones |
+| Following home feed aggregated across followed authors | **NOT IMPLEMENTED LIVE** | Partial cached Following preview from observed posts is available after a graph snapshot; complete bounded fanout/index and sync remain required |
 | Network-wide Recent/Trending and search | **NOT IMPLEMENTED** | Local previously observed items are only partial and labeled as such |
 | Signed casts, reactions, follows | Implemented in routed Write source | Requires real signer, separate validator, E2E |
 | Existing custody seed import | **NOT IMPLEMENTED** | Must use audited BIP39/32 and platform vault |
@@ -119,7 +119,7 @@ to an already running Qt instance.
 ```sh
 python3 -m unittest discover -s tests/ops -p '*self_hosted_test.py' -v
 python3 -m unittest discover -s tests/ops -p 'check_bounty_read_node_test.py' -v
-node --test tests/wasm/raw_snapchain_follow_graph.test.mjs
+node --test tests/wasm/raw_snapchain_follow_graph.test.mjs tests/wasm/local_derived_following_feed.test.mjs
 ctest --test-dir build/secure-signer -R provider.snapchain.raw_read.contract --output-on-failure
 ```
 

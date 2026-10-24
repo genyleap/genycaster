@@ -14,6 +14,10 @@
             <source>Showing posts saved on this device, not the live network-wide Recent feed.</source>
             <translation>Показаны публикации, сохранённые на этом устройстве, а не свежая лента всей сети.</translation>
         </message>
+        <message id="genycaster.feed.following_local_only_notice">
+            <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
+            <translation>Показаны сохранённые публикации аккаунтов, на которые вы подписаны, а не полная лента подписок в реальном времени.</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>Добавить узел</translation>

@@ -1102,6 +1102,7 @@ Item {
                                             activeFeed: presentationBridge.activeFeed
                                             communityFallback: presentationBridge.communityFallback
                                             localDerivedRecent: presentationBridge.localDerivedRecent
+                                            localDerivedFollowing: presentationBridge.localDerivedFollowing
                                             presentationMode: root.primaryDestination === "explorer"
                                                               ? root.explorerPresentationMode : root.homePresentationMode
                                             visualFilter: root.primaryDestination === "explorer"

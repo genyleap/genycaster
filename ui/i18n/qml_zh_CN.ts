@@ -14,6 +14,10 @@
             <source>Showing posts saved on this device, not the live network-wide Recent feed.</source>
             <translation>显示的是此设备上已保存的帖子，而非全网实时最新动态。</translation>
         </message>
+        <message id="genycaster.feed.following_local_only_notice">
+            <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
+            <translation>正在显示已关注账号中保存在本机的帖子，并非完整的实时关注动态。</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>添加节点</translation>

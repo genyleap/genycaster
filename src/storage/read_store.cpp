@@ -210,6 +210,11 @@ private:
     hydrateFeed(std::string_view id, std::vector<domain::feed::FeedEntry> entries);
     [[nodiscard]] foundation::result::Result<local::read::FeedWindow>
     readDerivedRecentWindow(std::size_t offset, std::size_t limit);
+    [[nodiscard]] foundation::result::Result<local::read::FeedWindow>
+    readDerivedFollowingWindow(domain::identity::Fid viewer,
+                               std::size_t offset, std::size_t limit);
+    [[nodiscard]] foundation::result::Result<bool>
+    canDeriveFollowing(domain::identity::Fid viewer);
     [[nodiscard]] foundation::result::Result<bool> hasMaterializedRecentSnapshot();
     /** Best-effort local channel discovery from already persisted canonical casts. */
     void rememberChannelsFromCasts(std::span<const domain::cast::Cast> casts);
@@ -687,6 +692,17 @@ foundation::result::Result<capability::feed::FeedPage> SqliteReadStore::readFeed
     if (!entries) {
         return std::unexpected(std::move(entries.error()));
     }
+    if (key.kind == local::read::FeedKey::Kind::Following && key.fid
+        && entries->empty()) {
+        auto eligible = canDeriveFollowing(*key.fid);
+        if (!eligible) return std::unexpected(std::move(eligible.error()));
+        if (*eligible) {
+            auto derived = readDerivedFollowingWindow(
+                *key.fid, 0U, std::clamp(key.limit, std::size_t{1}, std::size_t{256}));
+            if (!derived) return std::unexpected(std::move(derived.error()));
+            return std::move(derived->page);
+        }
+    }
     if (key.kind == local::read::FeedKey::Kind::Recent && entries->empty()) {
         auto materialized = hasMaterializedRecentSnapshot();
         if (!materialized) return std::unexpected(std::move(materialized.error()));
@@ -712,6 +728,19 @@ foundation::result::Result<local::read::FeedWindow> SqliteReadStore::readFeedWin
     if (!window) {
         return std::unexpected(std::move(window.error()));
     }
+    if (key.kind == local::read::FeedKey::Kind::Following && key.fid
+        && window->entries.empty()) {
+        // Never start local-derived pagination after a materialized provider
+        // feed has ended: the two datasets do not share a cursor or order.
+        auto first = m_timelines->readTimelineWindow(
+            local::timeline::TimelineId{id}, 0U, 1U);
+        if (!first) return std::unexpected(std::move(first.error()));
+        if (first->entries.empty()) {
+            auto eligible = canDeriveFollowing(*key.fid);
+            if (!eligible) return std::unexpected(std::move(eligible.error()));
+            if (*eligible) return readDerivedFollowingWindow(*key.fid, offset, limit);
+        }
+    }
     if (key.kind == local::read::FeedKey::Kind::Recent && window->entries.empty()) {
         // An offset beyond a populated provider timeline must stay empty:
         // do not switch into a different dataset during scrolling.
@@ -732,6 +761,112 @@ foundation::result::Result<local::read::FeedWindow> SqliteReadStore::readFeedWin
     return local::read::FeedWindow{
         .page = std::move(*hydrated),
         .hasMore = hasMore,
+    };
+}
+
+foundation::result::Result<bool> SqliteReadStore::canDeriveFollowing(
+    const domain::identity::Fid viewer)
+{
+    if (viewer.value == 0U) return false;
+    std::scoped_lock lock{m_mutex};
+    // A successfully fetched empty provider feed is authoritative.
+    // Equally, avoid pretending to know a user's Following graph when its
+    // own graph page has not yet been persisted locally.
+    auto prepared = sqlite::Statement::prepare(m_metadata, R"SQL(
+SELECT EXISTS(SELECT 1 FROM read_continuations WHERE read_key = ?),
+       EXISTS(SELECT 1 FROM read_continuations WHERE read_key = ?);
+)SQL");
+    if (!prepared)
+        return std::unexpected(toFoundationError(std::move(prepared.error())));
+    auto statement = std::move(*prepared);
+    const auto feed = "feed:following:" + std::to_string(viewer.value);
+    const auto graph = "social:following:" + std::to_string(viewer.value);
+    if (auto status = sqlite::bindText(statement.native(), 1, feed); !status)
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    if (auto status = sqlite::bindText(statement.native(), 2, graph); !status)
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    if (sqlite3_step(statement.native()) != SQLITE_ROW)
+        return std::unexpected(toFoundationError(sqlite::makeError(
+            m_metadata.native(), "Inspecting local Following coverage")));
+    return sqlite3_column_int(statement.native(), 0) == 0
+        && sqlite3_column_int(statement.native(), 1) == 1;
+}
+
+foundation::result::Result<local::read::FeedWindow>
+SqliteReadStore::readDerivedFollowingWindow(
+    const domain::identity::Fid viewer,
+    const std::size_t offset, const std::size_t limit)
+{
+    constexpr auto maximumSqliteInteger =
+        static_cast<std::uint64_t>(std::numeric_limits<sqlite3_int64>::max());
+    if (viewer.value == 0U || viewer.value > maximumSqliteInteger
+        || limit == 0U || limit > 256U
+        || static_cast<std::uint64_t>(offset) > maximumSqliteInteger) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Locally derived Following needs a viewer FID, limit 1..256 and safe offset."));
+    }
+    std::vector<domain::feed::FeedEntry> entries{};
+    {
+        std::scoped_lock lock{m_mutex};
+        // This inventory is intentionally limited to already-observed root
+        // and quote Casts from saved Follow edges. It is NOT a live network
+        // aggregate. Never read an unrelated account's cached graph.
+        auto prepared = sqlite::Statement::prepare(m_metadata, R"SQL(
+SELECT casts.id, casts.created_at_ms FROM casts
+WHERE casts.parent_id IS NULL
+  AND EXISTS (
+    SELECT 1 FROM social_list_entries AS links
+    WHERE links.list_id = ? AND links.source_fid = ?
+      AND links.target_fid = casts.author_fid
+      AND links.relation_kind = 'follows'
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM cast_local_tombstones AS tombstone
+    WHERE tombstone.cast_id = casts.id
+  )
+ORDER BY casts.created_at_ms DESC, casts.id DESC
+LIMIT ? OFFSET ?;
+)SQL");
+        if (!prepared)
+            return std::unexpected(toFoundationError(std::move(prepared.error())));
+        auto statement = std::move(*prepared);
+        const auto graph = "social:following:" + std::to_string(viewer.value);
+        if (auto status = sqlite::bindText(statement.native(), 1, graph); !status)
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        if (sqlite3_bind_int64(statement.native(), 2,
+                static_cast<sqlite3_int64>(viewer.value)) != SQLITE_OK
+            || sqlite3_bind_int64(statement.native(), 3,
+                static_cast<sqlite3_int64>(limit + 1U)) != SQLITE_OK
+            || sqlite3_bind_int64(statement.native(), 4,
+                static_cast<sqlite3_int64>(offset)) != SQLITE_OK) {
+            return std::unexpected(toFoundationError(sqlite::makeError(
+                m_metadata.native(), "Binding local Following window")));
+        }
+        entries.reserve(limit + 1U);
+        while (true) {
+            const int step = sqlite3_step(statement.native());
+            if (step == SQLITE_DONE) break;
+            if (step != SQLITE_ROW)
+                return std::unexpected(toFoundationError(sqlite::makeError(
+                    m_metadata.native(), "Reading local Following window")));
+            entries.push_back(domain::feed::FeedEntry{
+                .castId = domain::cast::CastId{sqlite::columnText(statement.native(), 0)},
+                .sortTime = foundation::time::Timestamp{
+                    std::chrono::milliseconds{sqlite3_column_int64(statement.native(), 1)}},
+            });
+        }
+    }
+    const bool hasMore = entries.size() > limit;
+    if (hasMore) entries.pop_back();
+    auto page = hydrateFeed(
+        "feed:following:" + std::to_string(viewer.value), std::move(entries));
+    if (!page) return std::unexpected(std::move(page.error()));
+    page->next.reset(); // Local-only ordering must never expose a provider cursor.
+    return local::read::FeedWindow{
+        .page = std::move(*page),
+        .hasMore = hasMore,
+        .isDerivedFollowing = true,
     };
 }
 

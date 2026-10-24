@@ -14,6 +14,10 @@
             <source>Showing posts saved on this device, not the live network-wide Recent feed.</source>
             <translation>इस डिवाइस पर सहेजी गई पोस्ट दिखाई जा रही हैं, पूरे नेटवर्क की लाइव हालिया फ़ीड नहीं।</translation>
         </message>
+        <message id="genycaster.feed.following_local_only_notice">
+            <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
+            <translation>आपके फ़ॉलो किए हुए खातों की सहेजी गई पोस्ट दिखाई जा रही हैं; यह पूरा लाइव फ़ॉलोइंग फ़ीड नहीं है।</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>नोड जोड़ें</translation>

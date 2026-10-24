@@ -83,6 +83,7 @@ void assignLocalFeedState(model::FeedState& state,
     state.next = std::move(window.page.next);
     state.localHasMore = window.hasMore;
     state.localDerivedRecent = window.isDerivedRecent;
+    state.localDerivedFollowing = window.isDerivedFollowing;
     state.localNextOffset = offset + state.entries.size();
 }
 

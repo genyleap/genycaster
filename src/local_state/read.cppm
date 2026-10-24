@@ -46,6 +46,8 @@ struct FeedWindow final {
     bool hasMore{false};
     /** @brief True only for locally observed Recent posts, never network-wide indexing. */
     bool isDerivedRecent{false};
+    /** Partial posts from locally observed authors in a saved Following graph. */
+    bool isDerivedFollowing{false};
 };
 
 /** @brief Stable persistence boundary for local-first read snapshots. */

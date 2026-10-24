@@ -14,6 +14,10 @@
             <source>Showing posts saved on this device, not the live network-wide Recent feed.</source>
             <translation>이 기기에 저장된 게시물을 표시합니다. 네트워크 전체의 실시간 최신 피드가 아닙니다.</translation>
         </message>
+        <message id="genycaster.feed.following_local_only_notice">
+            <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
+            <translation>팔로우한 계정에서 저장된 게시물을 표시합니다. 전체 실시간 팔로잉 피드는 아닙니다.</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>노드 추가</translation>

@@ -14,6 +14,10 @@
             <source>Showing posts saved on this device, not the live network-wide Recent feed.</source>
             <translation>Exibindo publicações salvas neste dispositivo, não o feed Recentes ao vivo de toda a rede.</translation>
         </message>
+        <message id="genycaster.feed.following_local_only_notice">
+            <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
+            <translation>Exibindo publicações salvas das contas que você segue, não o feed Seguindo completo em tempo real.</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>Adicionar nó</translation>

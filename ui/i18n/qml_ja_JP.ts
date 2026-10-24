@@ -14,6 +14,10 @@
             <source>Showing posts saved on this device, not the live network-wide Recent feed.</source>
             <translation>この端末に保存された投稿を表示しています。ネットワーク全体の最新フィードではありません。</translation>
         </message>
+        <message id="genycaster.feed.following_local_only_notice">
+            <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
+            <translation>フォロー中のアカウントから保存済みの投稿を表示しています。ライブのフォローフィード全体ではありません。</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>ノードを追加</translation>

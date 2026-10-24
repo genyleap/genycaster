@@ -83,6 +83,8 @@ struct FeedState final {
     bool localWindowAppend{false};
     /** @brief Partial on-device Recent inventory, not network-wide Recent. */
     bool localDerivedRecent{false};
+    /** Partial on-device Following preview, never a complete live network feed. */
+    bool localDerivedFollowing{false};
     ReadMetadata metadata{};
 };
 

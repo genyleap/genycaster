@@ -510,6 +510,142 @@ void locallyDerivedRecentIsBoundedAndNeverImpersonatesNetworkRecent()
     assert(unbounded && unbounded->entries.empty());
 }
 
+void locallyDerivedFollowingIsScopedBoundedAndNeverClaimsLiveFeed()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    const local::read::FeedKey key{
+        .kind = local::read::FeedKey::Kind::Following,
+        .fid = domain::identity::Fid{7}, .limit = 2U};
+    {
+        auto store = storage::read::openReadStore(database.path);
+        assert(store);
+        for (const auto fid : {11U, 12U, 99U})
+            assert((*store)->putProfile(makeProfile(
+                fid, "user" + std::to_string(fid), "Author")));
+        auto fromEleven = makeCast("0x-followed-eleven", 11U, "first", 1000);
+        auto fromTwelve = makeCast("0x-followed-twelve", 12U, "second", 3000);
+        auto fromOther = makeCast("0x-not-followed", 99U, "other", 5000);
+        auto reply = makeCast("0x-followed-reply", 11U, "reply", 6000);
+        reply.parent = domain::cast::CastId{"0x-followed-eleven"};
+        assert((*store)->putCast(fromEleven));
+        assert((*store)->putCast(fromTwelve));
+        assert((*store)->putCast(fromOther));
+        assert((*store)->putCast(reply));
+        // A user's stored Casts are not enough to deduce whom they follow:
+        // without an observed graph, no synthetic Following feed is shown.
+        auto before = (*store)->readFeedWindow(key, 0U, 2U);
+        assert(before && before->page.entries.empty()
+            && !before->isDerivedFollowing);
+        const local::read::SocialKey graphKey{
+            .kind = local::read::SocialKey::Kind::Following,
+            .fid = domain::identity::Fid{7}, .limit = 30U};
+        capability::social::SocialGraphPage graph{
+            .relations = {
+                domain::social::SocialRelation{
+                    .source = domain::identity::Fid{7},
+                    .target = domain::identity::Fid{11}},
+                domain::social::SocialRelation{
+                    .source = domain::identity::Fid{7},
+                    .target = domain::identity::Fid{12}},
+            },
+        };
+        assert((*store)->writeSocial(graphKey, graph, false));
+        auto derived = (*store)->readFeedWindow(key, 0U, 1U);
+        assert(derived && derived->isDerivedFollowing && derived->hasMore);
+        assert(derived->page.entries.size() == 1U);
+        assert(derived->page.entries.front().castId.value == "0x-followed-twelve");
+        assert(!derived->page.next);
+        auto tail = (*store)->readFeedWindow(key, 1U, 1U);
+        assert(tail && tail->isDerivedFollowing && !tail->hasMore);
+        assert(tail->page.entries.front().castId.value == "0x-followed-eleven");
+        auto otherViewer = (*store)->readFeedWindow(local::read::FeedKey{
+            .kind = local::read::FeedKey::Kind::Following,
+            .fid = domain::identity::Fid{8}, .limit = 2U}, 0U, 2U);
+        assert(otherViewer && !otherViewer->isDerivedFollowing
+            && otherViewer->page.entries.empty());
+    }
+    auto reopened = storage::read::openReadStore(database.path);
+    assert(reopened);
+    auto resumed = (*reopened)->readFeedWindow(key, 0U, 2U);
+    assert(resumed && resumed->isDerivedFollowing && resumed->page.entries.size() == 2U);
+    // Tombstones must be excluded before LIMIT/OFFSET, including offline.
+    sqlite3* handle{};
+    assert(sqlite3_open(database.path.string().c_str(), &handle) == SQLITE_OK);
+    assert(sqlite3_exec(handle,
+        "INSERT INTO cast_local_tombstones("
+        "cast_id, idempotency_key, author_fid, created_at_ms) "
+        "VALUES('0x-followed-twelve', 'removed-followed-twelve', 12, 3000);",
+        nullptr, nullptr, nullptr) == SQLITE_OK);
+    assert(sqlite3_close(handle) == SQLITE_OK);
+    auto afterDeletion = (*reopened)->readFeedWindow(key, 0U, 1U);
+    assert(afterDeletion && afterDeletion->isDerivedFollowing
+        && !afterDeletion->hasMore
+        && afterDeletion->page.entries.front().castId.value == "0x-followed-eleven");
+    assert(!(*reopened)->readFeedWindow(key, 0U, 0U));
+    assert(!(*reopened)->readFeedWindow(key, 0U, 257U));
+    // Real provider Following snapshots take precedence even when empty,
+    // and their cursor never migrates to the local-derived inventory.
+    const capability::feed::FeedPage emptyAuthoritative{};
+    assert((*reopened)->writeFeed(key, emptyAuthoritative, false));
+    auto afterNetwork = (*reopened)->readFeedWindow(key, 0U, 2U);
+    assert(afterNetwork && !afterNetwork->isDerivedFollowing
+        && afterNetwork->page.entries.empty());
+    auto full = (*reopened)->readFeed(key);
+    assert(full && full->entries.empty());
+}
+
+void offlineFollowingPreviewFlowsThroughAsyncReadWithoutManagedIndex()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    auto store = storage::read::openReadStore(database.path);
+    assert(store);
+    assert((*store)->putProfile(makeProfile(11, "observed", "Observed")));
+    assert((*store)->putCast(makeCast("0x-follow-observed", 11, "saved", 1000)));
+    assert((*store)->writeSocial(local::read::SocialKey{
+        .kind = local::read::SocialKey::Kind::Following,
+        .fid = domain::identity::Fid{7}},
+        capability::social::SocialGraphPage{
+            .relations = {domain::social::SocialRelation{
+                .source = domain::identity::Fid{7},
+                .target = domain::identity::Fid{11}}}}, false));
+    FakeAsyncCastGateway gateway{};
+    gateway.failFeedCompletion = true;
+    ImmediateExecutor executor{};
+    application::read::async_service::ReadService service{executor, **store, gateway};
+    const application::read::model::FeedQuery query{
+        .kind = application::read::model::FeedQuery::Kind::Following,
+        .fid = domain::identity::Fid{7},
+        .limit = 10U,
+    };
+    std::vector<application::read::model::FeedState> states{};
+    assert(service.openFeed(query,
+        [&states](auto state) { states.push_back(std::move(state)); },
+        application::read::model::ReadOptions{.localFeedWindowLimit = 1U}));
+    assert(states.size() == 2U);
+    assert(states.front().localDerivedFollowing);
+    assert(!states.front().localDerivedRecent);
+    assert(states.front().entries.size() == 1U);
+    assert(states.front().entries.front().castId.value == "0x-follow-observed");
+    assert(!states.front().next);
+    assert(states.back().metadata.phase == application::read::model::ReadPhase::Failed);
+    assert(states.back().localDerivedFollowing);
+    assert(states.back().metadata.isStale);
+
+    gateway.failFeedCompletion = false;
+    gateway.servedFeed = pageFor(makeProfile(12, "network", "Network"),
+        makeCast("0x-follow-network", 12, "live", 2000));
+    states.clear();
+    assert(service.openFeed(query,
+        [&states](auto state) { states.push_back(std::move(state)); },
+        application::read::model::ReadOptions{.localFeedWindowLimit = 1U}));
+    assert(states.size() == 2U);
+    assert(states.front().localDerivedFollowing);
+    assert(!states.back().localDerivedFollowing);
+    assert(states.back().entries.front().castId.value == "0x-follow-network");
+}
+
 void offlineExplorerRecentUsesDerivedRowsWithoutNetworkCursor()
 {
     using namespace farcaster;
@@ -2143,6 +2279,8 @@ void serializedExecutorKeepsBlockingReadOffCallerThread()
 
 int main()
 {
+    locallyDerivedFollowingIsScopedBoundedAndNeverClaimsLiveFeed();
+    offlineFollowingPreviewFlowsThroughAsyncReadWithoutManagedIndex();
     locallyDerivedRecentIsBoundedAndNeverImpersonatesNetworkRecent();
     offlineExplorerRecentUsesDerivedRowsWithoutNetworkCursor();
     windowedAsyncFeedRetainsOfflineTailAndProviderCursor();

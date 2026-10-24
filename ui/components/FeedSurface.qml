@@ -22,6 +22,7 @@ Item {
     property string activeFeed: "trending"
     property bool communityFallback: false
     property bool localDerivedRecent: false
+    property bool localDerivedFollowing: false
     property bool identityAvailable: false
     property bool feedStarted: false
     property bool interactionsAvailable: false
@@ -1301,8 +1302,12 @@ Item {
                 anchors.right: parent.right
                 anchors.top: communityNotice.bottom
                 height: visible ? implicitHeight + Theme.space2 : 0
-                visible: root.localDerivedRecent && root.activeFeed === "recent" && !root.socialMode
-                text: qsTrId("genycaster.feed.recent_local_only_notice")
+                visible: !root.socialMode && (
+                    (root.localDerivedRecent && root.activeFeed === "recent") ||
+                    (root.localDerivedFollowing && root.activeFeed === "following"))
+                text: root.localDerivedFollowing && root.activeFeed === "following"
+                    ? qsTrId("genycaster.feed.following_local_only_notice")
+                    : qsTrId("genycaster.feed.recent_local_only_notice")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
                 verticalAlignment: Text.AlignVCenter

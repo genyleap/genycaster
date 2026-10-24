@@ -67,6 +67,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool feedStarted READ feedStarted NOTIFY stateChanged)
     Q_PROPERTY(bool communityFallback READ communityFallback NOTIFY stateChanged)
     Q_PROPERTY(bool localDerivedRecent READ localDerivedRecent NOTIFY stateChanged)
+    Q_PROPERTY(bool localDerivedFollowing READ localDerivedFollowing NOTIFY stateChanged)
     Q_PROPERTY(QVariantList rows READ rows NOTIFY rowsChanged)
     Q_PROPERTY(QVariantList explorerArtRows READ explorerArtRows NOTIFY stateChanged)
     Q_PROPERTY(bool explorerArtBusy READ explorerArtBusy NOTIFY stateChanged)
@@ -387,6 +388,12 @@ public:
         m_localDerivedRecent = active;
         emit stateChanged();
     }
+    [[nodiscard]] bool localDerivedFollowing() const noexcept { return m_localDerivedFollowing; }
+    void setLocalDerivedFollowing(const bool active) {
+        if (m_localDerivedFollowing == active) return;
+        m_localDerivedFollowing = active;
+        emit stateChanged();
+    }
     [[nodiscard]] bool communityFallback() const noexcept { return m_communityFallback; }
     void setCommunityFallback(bool active) {
         if (m_communityFallback == active) return;
@@ -558,6 +565,7 @@ private:
     bool m_feedStarted{false};
     bool m_communityFallback{false};
     bool m_localDerivedRecent{false};
+    bool m_localDerivedFollowing{false};
     bool m_shouldOpenFollowingAfterIdentity{false};
     bool m_allowRecoveryProbeForNextIntent{false};
     QSettings* m_settings{nullptr};
