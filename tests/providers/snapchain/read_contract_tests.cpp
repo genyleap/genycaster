@@ -172,6 +172,7 @@ public:
     bool defer{false};
     bool followingFixture{false};
     bool graphTooLarge{false};
+    bool graphAtLimit{false};
     bool graphTwoPages{false};
     bool graphRepeatsCursor{false};
     bool authorDensePages{false};
@@ -198,16 +199,17 @@ public:
                         .body = R"({"messages":[],"nextPageToken":"repeat"})"});
                     return transport::async_http::Operation{[] {}};
                 }
-                if (graphTooLarge || graphTwoPages) {
+                if (graphTooLarge || graphAtLimit || graphTwoPages) {
                     const bool second = last.url.find("pageToken=") != std::string::npos;
                     const bool third = last.url.find("pageToken=next2") != std::string::npos;
-                    const unsigned first = graphTooLarge
+                    const unsigned first = (graphTooLarge || graphAtLimit)
                         ? (third ? 300U : second ? 200U : 100U)
                         : (second ? 140U : 100U);
-                    const unsigned count = graphTooLarge ? (third ? 57U : 100U)
+                    const unsigned count = (graphTooLarge || graphAtLimit)
+                        ? (third ? (graphAtLimit ? 56U : 57U) : 100U)
                         : (second ? 5U : 40U);
                     std::string json = "{\"messages\":[";
-                    if (!graphTooLarge && !second)
+                    if (graphTwoPages && !second)
                         json += R"({"data":{"fid":42,"linkBody":{"type":"follow","targetFid":7}}},{"data":{"fid":42,"linkBody":{"type":"follow","targetFid":9}}},)";
                     for (unsigned n = 0; n < count; ++n) {
                         if (n) json += ",";
@@ -215,7 +217,7 @@ public:
                             + std::to_string(first + n) + "}}}";
                     }
                     json += "]";
-                    if (graphTooLarge && !third)
+                    if ((graphTooLarge || graphAtLimit) && !third)
                         json += second ? R"(,"nextPageToken":"next2")"
                                        : R"(,"nextPageToken":"next1")";
                     else if (graphTwoPages && !second)
@@ -231,7 +233,9 @@ public:
                         ]})"});
                 }
             } else if (last.url.find("castsByFid") != std::string::npos) {
-                const auto fid = last.url.find("?fid=7&") != std::string::npos ? 7U
+                const auto fid = graphAtLimit && last.url.find("?fid=100&") != std::string::npos ? 100U
+                    : graphAtLimit && last.url.find("?fid=101&") != std::string::npos ? 101U
+                    : last.url.find("?fid=7&") != std::string::npos ? 7U
                     : last.url.find("?fid=9&") != std::string::npos ? 9U
                     : last.url.find("?fid=42&") != std::string::npos ? 42U : 0U;
                 if (fid == 0U) {
@@ -247,7 +251,13 @@ public:
                         + ",\"castAddBody\":{\"text\":\"observed\"}}}";
                 };
                 std::string messages{};
-                if (fid == 7U && authorDensePages) {
+                if (graphAtLimit && fid == 100U) {
+                    messages = entry(fid, 220U,
+                        "0x0000000000000000000000000000000000000005");
+                } else if (graphAtLimit && fid == 101U) {
+                    messages = entry(fid, 180U,
+                        "0x0000000000000000000000000000000000000006");
+                } else if (fid == 7U && authorDensePages) {
                     // Eight complete pages of replies hide every root post.
                     // The aggregator must stop after its bounded work budget.
                     unsigned page = 0U;
@@ -294,7 +304,7 @@ public:
                         + entry(fid, 100U, embeddedHash);
                 } else if (fid == 9U) {
                     messages = entry(fid, 150U, quoteHash);
-                } else {
+                } else if (fid == 42U) {
                     messages = entry(fid, 160U, replyHash);
                 }
                 complete(transport::http::HttpResponse{.statusCode = 200U,
@@ -489,6 +499,25 @@ void testBoundedLiveFollowingFromRawNode()
     for (const auto& url : transport.urls)
         assert(url.find("linksByFid") == std::string::npos);
     transport.graphTwoPages = false;
+
+    // Maximum supported Follow membership (256 followees + viewer) also
+    // survives opaque SQLite pagination; no 32-author cursor truncation.
+    transport.graphAtLimit = true;
+    transport.urls.clear();
+    auto maximumGraph = fetch(query);
+    assert(maximumGraph && maximumGraph->casts.size() == 2U
+        && maximumGraph->next);
+    assert(transport.urls.size() == 260U); // 3 graph + 257 authors
+    transport.urls.clear();
+    auto maximumGraphNext = fetch(model::FeedQuery{
+        .kind = model::FeedQuery::Kind::Following,
+        .fid = domain::identity::Fid{42}, .limit = 2U,
+        .continuation = maximumGraph->next,
+    });
+    assert(maximumGraphNext && maximumGraphNext->casts.size() == 1U);
+    assert(maximumGraphNext->casts.front().id.value == replyHash);
+    assert(transport.urls.size() == 257U); // saved membership, no graph refresh
+    transport.graphAtLimit = false;
 
     // 100 dense replies cannot hide older root posts: traverse the author's
     // next raw page before returning the global newest-first merge.

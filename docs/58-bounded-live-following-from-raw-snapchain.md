@@ -74,6 +74,6 @@ python3 -m unittest discover -s tests/ops -p check_bounty_read_node_test.py -v
 ```
 
 Native tests exercise merged page one/two, endpoint/viewer/limit affinity,
-multi-page Follow graphs, dense Reply pages before root Casts, graph width,
+multi-page Follow graphs, an exact 256-followee SQLite cursor, dense Reply pages before root Casts, graph width,
 cursor repetition, deep-history budget and cancellation. They are not
 substitutes for a live read-node E2E.

@@ -30,7 +30,7 @@ test('raw Following derives bounded protocol graph and merges casts without a ho
 test('native regression proves keyset paging, source affinity, graph breadth and cancellation', () => {
   const native = load('tests/providers/snapchain/read_contract_tests.cpp');
   assert.match(native, /testBoundedLiveFollowingFromRawNode\(\)/);
-  for (const part of ['graphTooLarge','graphTwoPages','authorTwoPages',
+  for (const part of ['graphTooLarge','graphAtLimit','graphTwoPages','authorTwoPages',
                        'authorHistoryIncomplete','wrongFid',
                        'wrongLimit','wrongNode','pending->cancel\(\)']) {
     assert.match(native, new RegExp(part));
