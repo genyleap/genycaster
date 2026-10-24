@@ -958,18 +958,41 @@ foundation::result::Result<ReadRequest> ReadService::openSearch(
     auto control = std::make_shared<ReadRequest::Control>();
     auto initialStatus = m_cacheExecutor.post(
         [this, query = std::move(query), observer = std::move(observer), options, control]() mutable {
+            // The local prefix index is owned by Genycaster and contains only
+            // profiles already seen by this client. Show it immediately while
+            // the independent remote derived search is still in flight.
+            std::vector<domain::profile::Profile> cached{};
+            if (auto local = m_store.searchCachedProfiles(query.text, query.limit); local)
+                cached = std::move(*local);
+            const bool hasCache = !cached.empty();
             publish(control, observer, model::SearchState{
                 .query = query,
-                .page = {},
-                .metadata = refreshingMetadata(false),
+                .page = capability::search::SearchPage{.profiles = cached},
+                .metadata = refreshingMetadata(hasCache),
             });
             auto request = m_gateway.search(
                 query,
-                [query, observer, control](foundation::result::Result<capability::search::SearchPage> fresh) mutable {
+                [this, query, observer, control, cached, hasCache](
+                    foundation::result::Result<capability::search::SearchPage> fresh) mutable {
                     model::SearchState state{.query = query};
                     if (!fresh) {
-                        state.metadata = failedMetadata(std::move(fresh.error()), false);
+                        // Offline and unavailable indexed services must not
+                        // erase known identities already persisted locally.
+                        state.page.profiles = std::move(cached);
+                        state.metadata = failedMetadata(std::move(fresh.error()), hasCache);
                     } else {
+                        // Remote search suggestions are partial identity
+                        // snapshots. Persist via the serial cache port without
+                        // regressing existing full profile details; never
+                        // block the provider decode thread on SQLite work.
+                        auto summaries = fresh->profiles;
+                        (void)m_cacheExecutor.post(
+                            [store = &m_store, summaries = std::move(summaries)]() mutable {
+                                for (const auto& profile : summaries) {
+                                    if (profile.fid.value != 0U)
+                                        (void)store->putProfileSummary(profile);
+                                }
+                            });
                         state.page = std::move(*fresh);
                         state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
                     }
@@ -978,7 +1001,8 @@ foundation::result::Result<ReadRequest> ReadService::openSearch(
                 options);
             if (!request) {
                 model::SearchState state{.query = query};
-                state.metadata = failedMetadata(std::move(request.error()), false);
+                state.page.profiles = std::move(cached);
+                state.metadata = failedMetadata(std::move(request.error()), hasCache);
                 publish(control, observer, std::move(state));
                 return;
             }

@@ -105,6 +105,12 @@ CREATE TABLE IF NOT EXISTS profiles (
     following_count INTEGER NOT NULL DEFAULT 0,
     quality_score REAL
 );
+-- Local-only suggestion lookup. Keep indices portable to the WASM SQLite
+-- amalgamation; full-text ranking across the network is a separate service.
+CREATE INDEX IF NOT EXISTS idx_profiles_username_prefix
+    ON profiles(username COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_profiles_display_name_prefix
+    ON profiles(display_name COLLATE NOCASE);
 CREATE TABLE IF NOT EXISTS casts (
     id TEXT PRIMARY KEY NOT NULL,
     author_fid INTEGER NOT NULL,

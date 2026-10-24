@@ -7,6 +7,7 @@ module;
 #include <cstdint>
 #include <expected>
 #include <filesystem>
+#include <initializer_list>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -107,6 +108,12 @@ namespace {
     // regressing a profile card to stale/partial metadata.
     incoming.followerCount = existing->followerCount;
     incoming.followingCount = existing->followingCount;
+    if (!incoming.username && existing->username)
+        incoming.username = existing->username;
+    if (!incoming.displayName && existing->displayName)
+        incoming.displayName = existing->displayName;
+    if (!incoming.qualityScore && existing->qualityScore)
+        incoming.qualityScore = existing->qualityScore;
     if (!existing->bio.empty()) {
         incoming.bio = existing->bio;
     }
@@ -156,10 +163,14 @@ public:
 
     [[nodiscard]] foundation::result::Result<std::optional<domain::profile::Profile>>
     findProfileByUsername(std::string_view username) override;
+    [[nodiscard]] foundation::result::Result<std::vector<domain::profile::Profile>>
+    searchCachedProfiles(std::string_view query, std::size_t limit) override;
     [[nodiscard]] foundation::result::Result<std::optional<domain::profile::Profile>>
     findProfile(domain::identity::Fid fid) override;
     [[nodiscard]] foundation::result::Result<std::optional<domain::cast::Cast>>
     findCast(const domain::cast::CastId& castId) override;
+    [[nodiscard]] foundation::result::Status
+    putProfileSummary(const domain::profile::Profile& profile) override;
     [[nodiscard]] foundation::result::Status
     putProfile(const domain::profile::Profile& profile) override;
     [[nodiscard]] foundation::result::Status
@@ -235,6 +246,83 @@ SqliteReadStore::findProfileByUsername(const std::string_view username)
     return m_entities->findProfileByUsername(username);
 }
 
+foundation::result::Result<std::vector<domain::profile::Profile>>
+SqliteReadStore::searchCachedProfiles(std::string_view query, const std::size_t limit)
+{
+    // This is an exact/prefix index over *cached* identity metadata, not a
+    // network-wide search service. Accept SQL wildcard characters literally.
+    while (!query.empty() && (query.front() == ' ' || query.front() == '\t'
+                               || query.front() == '\r' || query.front() == '\n'))
+        query.remove_prefix(1);
+    while (!query.empty() && (query.back() == ' ' || query.back() == '\t'
+                               || query.back() == '\r' || query.back() == '\n'))
+        query.remove_suffix(1);
+    if (query.starts_with("@")) query.remove_prefix(1);
+    if (query.empty() || query.size() > 128U || query.find('\0') != std::string_view::npos
+        || limit == 0U || limit > 30U) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Local profile search requires 1..128 literal bytes and a limit of 1..30."));
+    }
+
+    std::string pattern{};
+    pattern.reserve(query.size() * 2U + 1U);
+    for (const char character : query) {
+        if (character == '%' || character == '_' || character == '!')
+            pattern.push_back('!');
+        pattern.push_back(character);
+    }
+    pattern.push_back('%');
+
+    std::vector<domain::identity::Fid> matches{};
+    {
+        std::scoped_lock lock{m_mutex};
+        auto prepared = sqlite::Statement::prepare(m_metadata, R"SQL(
+SELECT fid FROM profiles
+WHERE username LIKE ? ESCAPE '!' COLLATE NOCASE
+   OR display_name LIKE ? ESCAPE '!' COLLATE NOCASE
+ORDER BY CASE
+    WHEN username = ? COLLATE NOCASE THEN 0
+    WHEN username LIKE ? ESCAPE '!' COLLATE NOCASE THEN 1
+    ELSE 2
+END, follower_count DESC, fid ASC
+LIMIT ?;
+)SQL");
+        if (!prepared)
+            return std::unexpected(toFoundationError(std::move(prepared.error())));
+        auto statement = std::move(*prepared);
+        for (const auto& [index, value] :
+             std::initializer_list<std::pair<int, std::string_view>>{
+                 {1, pattern}, {2, pattern}, {3, query}, {4, pattern}}) {
+            if (auto bound = sqlite::bindText(statement.native(), index, value); !bound)
+                return std::unexpected(toFoundationError(std::move(bound.error())));
+        }
+        if (sqlite3_bind_int64(statement.native(), 5, static_cast<std::int64_t>(limit))
+            != SQLITE_OK)
+            return std::unexpected(toFoundationError(
+                sqlite::makeError(m_metadata.native(), "Binding cached search limit")));
+        while (true) {
+            const int result = sqlite3_step(statement.native());
+            if (result == SQLITE_DONE) break;
+            if (result != SQLITE_ROW)
+                return std::unexpected(toFoundationError(
+                    sqlite::makeError(m_metadata.native(), "Reading cached profile index")));
+            const auto fid = sqlite3_column_int64(statement.native(), 0);
+            if (fid > 0)
+                matches.push_back(domain::identity::Fid{
+                    static_cast<std::uint64_t>(fid)});
+        }
+    }
+    std::vector<domain::profile::Profile> profiles{};
+    profiles.reserve(matches.size());
+    for (const auto fid : matches) {
+        auto profile = m_entities->findProfile(fid);
+        if (!profile) return std::unexpected(std::move(profile.error()));
+        if (*profile) profiles.push_back(std::move(**profile));
+    }
+    return profiles;
+}
+
 foundation::result::Result<std::optional<domain::profile::Profile>>
 SqliteReadStore::findProfile(const domain::identity::Fid fid)
 {
@@ -273,6 +361,12 @@ SqliteReadStore::findCast(const domain::cast::CastId& castId)
         }
     }
     return loaded;
+}
+
+foundation::result::Status SqliteReadStore::putProfileSummary(
+    const domain::profile::Profile& profile)
+{
+    return putEmbeddedProfileSummary(*m_entities, profile);
 }
 
 foundation::result::Status SqliteReadStore::putProfile(const domain::profile::Profile& profile)

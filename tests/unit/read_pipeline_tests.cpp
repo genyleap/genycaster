@@ -100,6 +100,8 @@ public:
     bool holdProfile{};
     bool includeReply{};
     bool failFeedCompletion{};
+    bool failSearchCompletion{};
+    std::optional<capability::search::SearchPage> servedSearch{};
     application::read::async_gateway::ProfileCompletion pendingProfile{};
     int profileCalls{};
     std::optional<capability::feed::FeedPage> servedFeed{};
@@ -168,9 +170,19 @@ public:
     }
     [[nodiscard]] foundation::result::Result<Request> search(
         application::read::model::SearchQuery,
-        application::read::async_gateway::SearchCompletion,
+        application::read::async_gateway::SearchCompletion completion,
         Options) override
     {
+        if (failSearchCompletion) {
+            completion(std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::Unavailable,
+                "Derived search index disconnected.")));
+            return Request{};
+        }
+        if (servedSearch) {
+            completion(*servedSearch);
+            return Request{};
+        }
         return unsupported();
     }
     [[nodiscard]] foundation::result::Result<Request> notifications(
@@ -216,6 +228,10 @@ public:
     findProfileByUsername(std::string_view value) override {
         return m_delegate->findProfileByUsername(value);
     }
+    [[nodiscard]] foundation::result::Result<std::vector<domain::profile::Profile>>
+    searchCachedProfiles(std::string_view query, std::size_t limit) override {
+        return m_delegate->searchCachedProfiles(query, limit);
+    }
     [[nodiscard]] foundation::result::Result<std::optional<domain::profile::Profile>>
     findProfile(domain::identity::Fid fid) override {
         return m_delegate->findProfile(fid);
@@ -223,6 +239,10 @@ public:
     [[nodiscard]] foundation::result::Result<std::optional<domain::cast::Cast>>
     findCast(const domain::cast::CastId& id) override {
         return m_delegate->findCast(id);
+    }
+    [[nodiscard]] foundation::result::Status
+    putProfileSummary(const domain::profile::Profile& value) override {
+        return m_delegate->putProfileSummary(value);
     }
     [[nodiscard]] foundation::result::Status
     putProfile(const domain::profile::Profile& value) override {
@@ -947,6 +967,121 @@ void refreshFailurePreservesCacheAcrossRestart()
     }
 }
 
+void cachedProfileIndexSurvivesRestartAndKeepsLiteralQueries()
+{
+    DatabaseFixture database{};
+    {
+        auto store = farcaster::storage::read::openReadStore(database.path);
+        assert(store);
+        auto dev = makeProfile(11, "dev", "Main Developer");
+        auto suffix = makeProfile(12, "dev_alpha", "Developer Alpha");
+        auto percent = makeProfile(13, "dev%literal", "Developer Percent");
+        auto byDisplay = makeProfile(14, "other", "Dev Community");
+        auto unrelated = makeProfile(15, "nobody", "Unrelated");
+        suffix.followerCount = 25U;
+        assert((*store)->putProfile(dev));
+        assert((*store)->putProfile(suffix));
+        assert((*store)->putProfile(percent));
+        assert((*store)->putProfile(byDisplay));
+        assert((*store)->putProfile(unrelated));
+
+        // Search results are partial and must not erase authoritative profile
+        // details or counts already materialized through a dedicated read.
+        auto authoritative = makeProfile(16, "identity", "Verified Name");
+        authoritative.bio = "Complete verified bio";
+        authoritative.followerCount = 8'000U;
+        assert((*store)->putProfile(authoritative));
+        auto sparseSuggestion = domain::profile::Profile{
+            .fid = domain::identity::Fid{16},
+            .bio = "",
+        };
+        assert((*store)->putProfileSummary(sparseSuggestion));
+        const auto retained = (*store)->findProfile(domain::identity::Fid{16});
+        assert(retained && retained->has_value());
+        assert(retained->value().username
+            && retained->value().username->value == "identity");
+        assert(retained->value().displayName
+            && retained->value().displayName->value == "Verified Name");
+        assert(retained->value().bio == "Complete verified bio");
+        assert(retained->value().followerCount == 8'000U);
+
+        const auto search = (*store)->searchCachedProfiles("@DeV", 3);
+        assert(search && search->size() == 3U);
+        assert(search->at(0).fid.value == 11U); // exact match wins
+        assert(search->at(1).fid.value == 12U);
+        assert(search->at(2).fid.value == 13U);
+        const auto underscore = (*store)->searchCachedProfiles("dev_", 8);
+        assert(underscore && underscore->size() == 1U);
+        assert(underscore->at(0).fid.value == 12U);
+        const auto percentQuery = (*store)->searchCachedProfiles("dev%", 8);
+        assert(percentQuery && percentQuery->size() == 1U);
+        assert(percentQuery->at(0).fid.value == 13U);
+        const auto display = (*store)->searchCachedProfiles("Community", 8);
+        assert(display && display->empty()); // prefix only, no unbounded text scan
+        const auto displayPrefix = (*store)->searchCachedProfiles("Dev C", 8);
+        assert(displayPrefix && displayPrefix->size() == 1U);
+        assert(displayPrefix->at(0).fid.value == 14U);
+        assert(!(*store)->searchCachedProfiles("%", 0));
+        assert(!(*store)->searchCachedProfiles("  ", 3));
+        assert(!(*store)->searchCachedProfiles(std::string(129U, 'a'), 3));
+    }
+    auto reopened = farcaster::storage::read::openReadStore(database.path);
+    assert(reopened);
+    const auto persisted = (*reopened)->searchCachedProfiles("dev", 8);
+    assert(persisted && persisted->size() == 4U);
+    assert(persisted->at(0).fid.value == 11U);
+}
+
+void asyncSearchKeepsCachedIdentitiesWhenIndexIsUnavailable()
+{
+    DatabaseFixture database{};
+    auto store = farcaster::storage::read::openReadStore(database.path);
+    assert(store);
+    assert((*store)->putProfile(makeProfile(23, "devon", "Devon")));
+    ImmediateExecutor executor{};
+    FakeAsyncCastGateway gateway{};
+    gateway.failSearchCompletion = true;
+    application::read::async_service::ReadService service{executor, **store, gateway};
+    const application::read::model::SearchQuery query{.text = "dev", .limit = 6U};
+    std::vector<application::read::model::SearchState> states{};
+    assert(service.openSearch(query,
+        [&states](auto state) { states.push_back(std::move(state)); }));
+    assert(states.size() == 2U);
+    assert(states.front().metadata.phase == application::read::model::ReadPhase::Refreshing);
+    assert(states.front().metadata.isStale);
+    assert(states.front().page.profiles.size() == 1U);
+    assert(states.front().page.profiles.front().fid.value == 23U);
+    assert(states.back().metadata.phase == application::read::model::ReadPhase::Failed);
+    assert(states.back().metadata.isStale);
+    assert(states.back().metadata.isSourceUnavailable);
+    assert(states.back().page.profiles.size() == 1U);
+
+    // Immediate routing rejection must preserve the same local suggestions.
+    gateway.failSearchCompletion = false;
+    states.clear();
+    assert(service.openSearch(query,
+        [&states](auto state) { states.push_back(std::move(state)); }));
+    assert(states.size() == 2U);
+    assert(states.back().metadata.phase == application::read::model::ReadPhase::Failed);
+    assert(states.back().page.profiles.size() == 1U);
+
+    // A successful indexed query replaces the partial local-only snapshot.
+    gateway.servedSearch = capability::search::SearchPage{
+        .profiles = {makeProfile(42, "developer", "Network Developer")},
+    };
+    states.clear();
+    assert(service.openSearch(query,
+        [&states](auto state) { states.push_back(std::move(state)); }));
+    assert(states.size() == 2U);
+    assert(states.front().page.profiles.front().fid.value == 23U);
+    assert(states.back().metadata.phase == application::read::model::ReadPhase::Ready);
+    assert(states.back().page.profiles.size() == 1U);
+    assert(states.back().page.profiles.front().fid.value == 42U);
+    const auto remembered = (*store)->searchCachedProfiles("developer", 6U);
+    assert(remembered && remembered->size() == 1U);
+    assert(remembered->front().fid.value == 42U);
+}
+
 void interactiveSearchPublishesRefreshingThenReady()
 {
     DatabaseFixture database{};
@@ -1658,6 +1793,8 @@ int main()
     prefetchContinuationFailurePreservesUsableFeed();
     refreshFailureWithoutCacheIsNotMarkedStale();
     refreshFailurePreservesCacheAcrossRestart();
+    cachedProfileIndexSurvivesRestartAndKeepsLiteralQueries();
+    asyncSearchKeepsCachedIdentitiesWhenIndexIsUnavailable();
     interactiveSearchPublishesRefreshingThenReady();
     identityCastProfileAndSocialFlowsPersistCanonicalData();
     profileFeedCachesRemainIsolated();

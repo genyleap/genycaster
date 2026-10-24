@@ -53,12 +53,31 @@ public:
     /** @brief Finds a cached profile using a canonical username comparison. */
     [[nodiscard]] virtual foundation::result::Result<std::optional<domain::profile::Profile>>
     findProfileByUsername(std::string_view username) = 0;
+    /**
+     * @brief Searches only previously persisted profiles without provider I/O.
+     *
+     * Exact username and username/display-name prefix matches are ranked
+     * deterministically. No network-wide coverage is claimed. The query is
+     * literal (SQL wildcard characters are not operators); limit is 1..30.
+     * Returns InvalidArgument for an unbounded/empty query and StorageFailure
+     * for a failed local index read.
+     */
+    [[nodiscard]] virtual foundation::result::Result<std::vector<domain::profile::Profile>>
+    searchCachedProfiles(std::string_view query, std::size_t limit) = 0;
     /** @brief Finds a cached profile by FID. */
     [[nodiscard]] virtual foundation::result::Result<std::optional<domain::profile::Profile>>
     findProfile(domain::identity::Fid fid) = 0;
     /** @brief Finds a cached cast by canonical identifier. */
     [[nodiscard]] virtual foundation::result::Result<std::optional<domain::cast::Cast>>
     findCast(const domain::cast::CastId& castId) = 0;
+    /**
+     * @brief Caches a derived search/feed profile summary non-destructively.
+     *
+     * Existing authoritative metadata and social counts must not regress when
+     * the provider only supplied an incomplete suggestion.
+     */
+    [[nodiscard]] virtual foundation::result::Status
+    putProfileSummary(const domain::profile::Profile& summary) = 0;
     /** @brief Atomically upserts one canonical profile. */
     [[nodiscard]] virtual foundation::result::Status
     putProfile(const domain::profile::Profile& profile) = 0;
