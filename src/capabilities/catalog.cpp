@@ -8,6 +8,7 @@ namespace farcaster::capability::catalog {
 
 model::CapabilityId identityFidResolve() { return model::CapabilityId{"identity.fid.resolve"}; }
 model::CapabilityId protocolMessageSubmit() { return model::CapabilityId{"protocol.message.submit"}; }
+model::CapabilityId protocolSignerManage() { return model::CapabilityId{"protocol.signer.manage"}; }
 model::CapabilityId castRead() { return model::CapabilityId{"cast.read"}; }
 model::CapabilityId profileRead() { return model::CapabilityId{"profile.read"}; }
 model::CapabilityId graphFollowersRead() { return model::CapabilityId{"graph.followers.read"}; }

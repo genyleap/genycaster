@@ -10,6 +10,7 @@ target_sources(farcaster_routing
             policy.cppm
             router.cppm
             write_gateway.cppm
+            signer_gateway.cppm
             read_gateway.cppm
             read_async_gateway.cppm
     PRIVATE
@@ -18,6 +19,7 @@ target_sources(farcaster_routing
         policy.cpp
         router.cpp
         write_gateway.cpp
+        signer_gateway.cpp
         read_gateway.cpp
         read_async_gateway.cpp
 )

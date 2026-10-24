@@ -38,6 +38,7 @@ import farcaster.local.write;
 import farcaster.routing.health;
 import farcaster.routing.registry;
 import farcaster.routing.router;
+import farcaster.routing.signer.gateway;
 import farcaster.routing.read.async_gateway;
 import farcaster.transport.async_http;
 import farcaster.transport.http;
@@ -106,7 +107,8 @@ struct Runtime final {
     std::unique_ptr<farcaster::execution::serial::SerialExecutor> signerExecutor{};
     std::unique_ptr<farcaster::local::signer::ISignerMetadataStore> signerMetadataStore{};
     std::unique_ptr<farcaster::capability::signer::ISignerVault> signerVault{};
-    std::unique_ptr<farcaster::capability::signer::ISignerRegistry> signerRegistry{};
+    std::unique_ptr<farcaster::routing::signer::RoutedSignerRegistry> signerRegistry{};
+    std::vector<std::unique_ptr<farcaster::capability::signer::ISignerRegistry>> signerRegistrySources{};
     std::unique_ptr<farcaster::capability::signer::ICustodyAuthorizer> custodyAuthorizer{};
     std::unique_ptr<farcaster::capability::signer_attestation::ISignedKeyRequestAttestor> signerAttestor{};
     std::unique_ptr<farcaster::application::signer::SignerService> signerService{};

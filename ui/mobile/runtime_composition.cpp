@@ -630,8 +630,38 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         signerRegistryConfig.submitAuthorizationHeaderName = *snapchainWriteAuthorizationHeader;
         signerRegistryConfig.submitAuthorizationHeaderValue = *snapchainWriteAuthorizationValue;
     }
-    runtime->signerRegistry = farcaster::provider::snapchain::signer::makeRegistry(
-        *runtime->transport, std::move(signerRegistryConfig));
+    runtime->signerRegistrySources.push_back(
+        farcaster::provider::snapchain::signer::makeRegistry(
+            *runtime->transport, std::move(signerRegistryConfig)));
+    runtime->signerRegistry = std::make_unique<routing::signer::RoutedSignerRegistry>();
+    runtime->signerRegistry->addSource(routing::signer::SourceBinding{
+        .providerId = farcaster::provider::model::ProviderId{"primary-protocol-writer"},
+        .registry = runtime->signerRegistrySources.back().get(),
+    });
+#if !FARCASTER_HAS_SNAPCHAIN_WRITE
+    // Signer-only deployment profiles still expose key management without
+    // falsely claiming the canonical Cast/Reaction/Link submit capability.
+    const auto signerOnlyRegistration = runtime->registry.registerProvider({
+        .provider = farcaster::provider::model::ProviderDescriptor{
+            .id = farcaster::provider::model::ProviderId{"primary-protocol-writer"},
+            .displayName = "Protocol signer node",
+            .deployment = farcaster::provider::model::ProviderDeployment::PublicManaged,
+            .privacy = farcaster::provider::model::ProviderPrivacy::Standard,
+            .priority = 10,
+        },
+        .capabilities = {capability::model::CapabilityDescriptor{
+            .id = capability::catalog::protocolSignerManage(),
+            .version = {1, 0},
+            .origin = capability::model::CapabilityOrigin::Protocol,
+            .quality = capability::model::CapabilityQuality::Native,
+            .access = {capability::model::CapabilityAccess::Write},
+            .isSelfHostable = true,
+        }},
+    });
+    if (!signerOnlyRegistration) {
+        return std::unexpected(std::move(signerOnlyRegistration.error()));
+    }
+#endif
 #endif
 
 #if FARCASTER_HAS_BROWSER_WALLET_AUTHORIZER
@@ -757,7 +787,18 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
             .quality = capability::model::CapabilityQuality::Native,
             .access = {capability::model::CapabilityAccess::Write},
             .isSelfHostable = true,
-        }},
+        },
+#if FARCASTER_HAS_SNAPCHAIN_SIGNER
+        capability::model::CapabilityDescriptor{
+            .id = capability::catalog::protocolSignerManage(),
+            .version = {1, 0},
+            .origin = capability::model::CapabilityOrigin::Protocol,
+            .quality = capability::model::CapabilityQuality::Native,
+            .access = {capability::model::CapabilityAccess::Write},
+            .isSelfHostable = true,
+        },
+#endif
+        },
     });
     if (!writerRegistration) return std::unexpected(std::move(writerRegistration.error()));
     const std::string primaryReadIdentity = writeSubmitterConfig.readBaseUrl.empty()
@@ -801,7 +842,18 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
                 .quality = capability::model::CapabilityQuality::Native,
                 .access = {capability::model::CapabilityAccess::Write},
                 .isSelfHostable = true,
-            }},
+            },
+#if FARCASTER_HAS_SNAPCHAIN_SIGNER
+            capability::model::CapabilityDescriptor{
+                .id = capability::catalog::protocolSignerManage(),
+                .version = {1, 0},
+                .origin = capability::model::CapabilityOrigin::Protocol,
+                .quality = capability::model::CapabilityQuality::Native,
+                .access = {capability::model::CapabilityAccess::Write},
+                .isSelfHostable = true,
+            },
+#endif
+            },
         });
         if (!registered) return std::unexpected(std::move(registered.error()));
         farcaster::provider::snapchain::write::Config config{};
@@ -814,6 +866,21 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
             farcaster::provider::snapchain::write::makeSubmitter(
                 *runtime->transport, std::move(config)));
         runtime->writeSourceIds.push_back(profile.id);
+#if FARCASTER_HAS_SNAPCHAIN_SIGNER
+        farcaster::provider::snapchain::signer::Config signerConfig{};
+        signerConfig.baseUrl = profile.readEndpoint.empty()
+            ? profile.endpoint : profile.readEndpoint;
+        signerConfig.submitBaseUrl = profile.endpoint;
+        runtime->signerRegistrySources.push_back(
+            farcaster::provider::snapchain::signer::makeRegistry(
+                *runtime->transport, std::move(signerConfig)));
+        if (runtime->signerRegistry) {
+            runtime->signerRegistry->addSource(routing::signer::SourceBinding{
+                .providerId = farcaster::provider::model::ProviderId{profile.id},
+                .registry = runtime->signerRegistrySources.back().get(),
+            });
+        }
+#endif
     }
 #else
     if (!additionalWriteProviders.empty() || preferredWriteProviderId) {
@@ -993,6 +1060,10 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
             .independent = farcaster::provider::model::ProviderId{"hypersnap-v2"},
             .hosted = farcaster::provider::model::ProviderId{"farcaster-snapchain"},
         });
+
+#if FARCASTER_HAS_SNAPCHAIN_SIGNER
+    if (runtime->signerRegistry) runtime->signerRegistry->bindRouter(*runtime->router);
+#endif
 
     if (preferredWriteProviderId && !preferredWriteProviderId->empty()) {
         const farcaster::provider::model::ProviderId selected{*preferredWriteProviderId};

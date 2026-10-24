@@ -78,12 +78,13 @@ operator declaration for routing policy, not an automated ownership attestation.
 
 ### Current boundaries
 
-The existing single Snapchain submitter and signer KEY_ADD/KEY_REMOVE routes
-remain available; signer registration is *not yet* dynamically selected through
-this new generic write router. The default writer is registered as
-`primary-protocol-writer` for backwards compatibility. Explicit multi-writer
-selection covers canonical Cast/Reaction/Link mutations, not custody key
-registration or uploads.
+The default protocol writer is registered as `primary-protocol-writer` for
+backwards compatibility. Signer KEY_ADD/KEY_REMOVE and signer-state inspection
+now have a separate provider-neutral capability router (`protocol.signer.manage`)
+with the same explicit Write affinity, as specified in
+`docs/43-provider-neutral-signer-routing.md`. Only providers advertising signer
+management may receive such requests. Media uploads remain outside this router,
+and custody wallet authorization is a separate trust boundary.
 
 The initial multi-writer release does not remap already-attempted legacy
 outbox items that lack provider bindings. They are retained but **cannot be

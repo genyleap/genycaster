@@ -8,6 +8,8 @@ export namespace farcaster::capability::catalog {
 [[nodiscard]] model::CapabilityId identityFidResolve();
 /** @brief Submit an already-signed canonical network message. */
 [[nodiscard]] model::CapabilityId protocolMessageSubmit();
+/** @brief Inspect, authorize, register and revoke Farcaster protocol signer keys. */
+[[nodiscard]] model::CapabilityId protocolSignerManage();
 /** @brief Cast read capability. */
 [[nodiscard]] model::CapabilityId castRead();
 /** @brief Profile read capability. */
