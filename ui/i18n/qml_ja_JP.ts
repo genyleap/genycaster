@@ -10,6 +10,10 @@
             <source>When enabled, Explorer, search and other reads may contact another compatible provider if the selected node cannot serve them. This can send read requests to managed services unless Strict Self-Hosted mode is active. Writes never fall back.</source>
             <translation>有効にすると、選択したノードが対応しない場合、Explorerや検索などの読み取りに別の互換プロバイダーを利用できます。厳格なセルフホストモード以外では管理サービスに読み取り要求が送られる場合があります。書き込みは切り替わりません。</translation>
         </message>
+        <message id="genycaster.feed.recent_local_only_notice">
+            <source>Showing posts saved on this device, not the live network-wide Recent feed.</source>
+            <translation>この端末に保存された投稿を表示しています。ネットワーク全体の最新フィードではありません。</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>ノードを追加</translation>

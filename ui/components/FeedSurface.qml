@@ -21,6 +21,7 @@ Item {
     property string errorText: ""
     property string activeFeed: "trending"
     property bool communityFallback: false
+    property bool localDerivedRecent: false
     property bool identityAvailable: false
     property bool feedStarted: false
     property bool interactionsAvailable: false
@@ -1294,11 +1295,26 @@ Item {
                 wrapMode: Text.WordWrap
             }
 
+            DirectionAwareLabel {
+                id: localRecentNotice
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: communityNotice.bottom
+                height: visible ? implicitHeight + Theme.space2 : 0
+                visible: root.localDerivedRecent && root.activeFeed === "recent" && !root.socialMode
+                text: qsTrId("genycaster.feed.recent_local_only_notice")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Theme.textStartAlignment
+                wrapMode: Text.WordWrap
+            }
+
             Item {
                 id: newPostsSlot
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.top: communityNotice.bottom
+                anchors.top: localRecentNotice.bottom
                 height: root.pendingNewPostCount > 0 && !root.socialMode ? 52 : 0
                 visible: height > 0
             }

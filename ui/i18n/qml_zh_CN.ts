@@ -10,6 +10,10 @@
             <source>When enabled, Explorer, search and other reads may contact another compatible provider if the selected node cannot serve them. This can send read requests to managed services unless Strict Self-Hosted mode is active. Writes never fall back.</source>
             <translation>启用后，如果所选节点不支持 Explorer、搜索或其他读取操作，可使用另一家兼容服务商。除严格自托管模式外，读取请求可能发送至托管服务。写入操作绝不会切换服务商。</translation>
         </message>
+        <message id="genycaster.feed.recent_local_only_notice">
+            <source>Showing posts saved on this device, not the live network-wide Recent feed.</source>
+            <translation>显示的是此设备上已保存的帖子，而非全网实时最新动态。</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>添加节点</translation>

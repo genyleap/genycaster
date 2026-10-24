@@ -10,6 +10,10 @@
             <source>When enabled, Explorer, search and other reads may contact another compatible provider if the selected node cannot serve them. This can send read requests to managed services unless Strict Self-Hosted mode is active. Writes never fall back.</source>
             <translation>सक्षम होने पर, चुना हुआ नोड समर्थन न करे तो Explorer, खोज और अन्य रीड अनुरोध किसी दूसरे संगत प्रदाता का उपयोग कर सकते हैं। Strict Self-Hosted मोड के बिना अनुरोध प्रबंधित सेवाओं तक जा सकते हैं। राइट अनुरोध कभी दूसरे प्रदाता पर नहीं जाते।</translation>
         </message>
+        <message id="genycaster.feed.recent_local_only_notice">
+            <source>Showing posts saved on this device, not the live network-wide Recent feed.</source>
+            <translation>इस डिवाइस पर सहेजी गई पोस्ट दिखाई जा रही हैं, पूरे नेटवर्क की लाइव हालिया फ़ीड नहीं।</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>नोड जोड़ें</translation>

@@ -1101,6 +1101,7 @@ Item {
                                             errorText: presentationBridge.errorText
                                             activeFeed: presentationBridge.activeFeed
                                             communityFallback: presentationBridge.communityFallback
+                                            localDerivedRecent: presentationBridge.localDerivedRecent
                                             presentationMode: root.primaryDestination === "explorer"
                                                               ? root.explorerPresentationMode : root.homePresentationMode
                                             visualFilter: root.primaryDestination === "explorer"

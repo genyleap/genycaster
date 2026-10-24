@@ -10,6 +10,10 @@
             <source>When enabled, Explorer, search and other reads may contact another compatible provider if the selected node cannot serve them. This can send read requests to managed services unless Strict Self-Hosted mode is active. Writes never fall back.</source>
             <translation>با فعال‌سازی این گزینه، Explorer، جست‌وجو و دیگر عملیات خواندن در صورت نبود قابلیت روی نود انتخابی می‌توانند از ارائه‌دهندهٔ سازگار دیگری استفاده کنند. مگر در حالت کاملاً خودمیزبان، درخواست‌ها ممکن است به سرویس‌های مدیریت‌شده ارسال شوند. نوشتن هرگز به نود دیگر منتقل نمی‌شود.</translation>
         </message>
+        <message id="genycaster.feed.recent_local_only_notice">
+            <source>Showing posts saved on this device, not the live network-wide Recent feed.</source>
+            <translation>پست‌های ذخیره‌شده روی این دستگاه نمایش داده می‌شوند، نه فید زندهٔ «تازه‌ترین‌های» کل شبکه.</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>افزودن نود</translation>

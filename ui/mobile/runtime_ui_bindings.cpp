@@ -909,6 +909,7 @@ void applyFeedState(PresentationBridge& bridge, application::read::model::FeedSt
         return;
     }
     bridge.setCommunityFallback(state.metadata.communityFallback);
+    bridge.setLocalDerivedRecent(state.localDerivedRecent);
     QVariantList rows = std::move(preparedRows);
     QString selector{};
     QString view{QStringLiteral("feed")};

@@ -123,6 +123,9 @@ CREATE TABLE IF NOT EXISTS casts (
     recast_count INTEGER NOT NULL DEFAULT 0,
     like_count INTEGER NOT NULL DEFAULT 0
 );
+-- Local Recent fallback uses canonical cast times without a duplicate index table.
+CREATE INDEX IF NOT EXISTS idx_casts_local_recent
+    ON casts(created_at_ms DESC, id DESC);
 CREATE TABLE IF NOT EXISTS cast_embeds (
     cast_id TEXT NOT NULL,
     position INTEGER NOT NULL,

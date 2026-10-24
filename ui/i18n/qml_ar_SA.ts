@@ -10,6 +10,10 @@
             <source>When enabled, Explorer, search and other reads may contact another compatible provider if the selected node cannot serve them. This can send read requests to managed services unless Strict Self-Hosted mode is active. Writes never fall back.</source>
             <translation>عند التفعيل، قد يستخدم Explorer والبحث وعمليات القراءة الأخرى موفّرًا متوافقًا آخر إذا كانت العقدة المختارة لا تدعمها. قد تُرسل طلبات القراءة إلى خدمات مُدارة ما لم يكن وضع الاستضافة الذاتية الصارمة مفعّلًا. لا تنتقل عمليات الكتابة مطلقًا.</translation>
         </message>
+        <message id="genycaster.feed.recent_local_only_notice">
+            <source>Showing posts saved on this device, not the live network-wide Recent feed.</source>
+            <translation>تُعرض المنشورات المحفوظة على هذا الجهاز، وليس موجز أحدث المنشورات المباشر للشبكة بأكملها.</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>إضافة عقدة</translation>

@@ -81,6 +81,8 @@ struct FeedState final {
     bool localHasMore{false};
     std::size_t localNextOffset{0};
     bool localWindowAppend{false};
+    /** @brief Partial on-device Recent inventory, not network-wide Recent. */
+    bool localDerivedRecent{false};
     ReadMetadata metadata{};
 };
 

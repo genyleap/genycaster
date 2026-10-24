@@ -426,6 +426,129 @@ private:
     }
 };
 
+void locallyDerivedRecentIsBoundedAndNeverImpersonatesNetworkRecent()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    const local::read::FeedKey key{
+        .kind = local::read::FeedKey::Kind::Recent, .limit = 2U,
+    };
+    {
+        auto store = storage::read::openReadStore(database.path);
+        assert(store);
+        assert((*store)->putProfile(makeProfile(97, "observed", "Observed")));
+        for (int index = 1; index <= 4; ++index) {
+            assert((*store)->putCast(makeCast(
+                "0xobserved-" + std::to_string(index), 97, "locally observed",
+                static_cast<std::int64_t>(index) * 1000)));
+        }
+        sqlite3* handle{};
+        assert(sqlite3_open(database.path.string().c_str(), &handle) == SQLITE_OK);
+        assert(sqlite3_exec(handle,
+            "INSERT INTO cast_local_tombstones("
+            "cast_id, idempotency_key, author_fid, created_at_ms)"
+            "VALUES('0xobserved-3', 'removed-recent-3', 97, 3000);",
+            nullptr, nullptr, nullptr) == SQLITE_OK);
+        assert(sqlite3_close(handle) == SQLITE_OK);
+
+        auto first = (*store)->readFeedWindow(key, 0U, 2U);
+        assert(first && first->isDerivedRecent && first->hasMore);
+        assert(first->page.entries.size() == 2U);
+        assert(first->page.casts.size() == 2U);
+        assert(first->page.profiles.size() == 1U);
+        assert(first->page.entries[0].castId.value == "0xobserved-4");
+        assert(first->page.entries[1].castId.value == "0xobserved-2");
+        assert(!first->page.next); // no fabricated/network continuation
+        auto tail = (*store)->readFeedWindow(key, 2U, 2U);
+        assert(tail && tail->isDerivedRecent && !tail->hasMore);
+        assert(tail->page.entries.size() == 1U);
+        assert(tail->page.entries[0].castId.value == "0xobserved-1");
+        assert(!(*store)->readFeedWindow(key, 0U, 0U));
+        assert(!(*store)->readFeedWindow(key, 0U, 257U));
+        auto legacy = (*store)->readFeed(key);
+        assert(legacy && legacy->entries.size() == 2U);
+        assert(!legacy->next);
+    }
+    auto reopened = storage::read::openReadStore(database.path);
+    assert(reopened);
+    auto restart = (*reopened)->readFeedWindow(key, 0U, 2U);
+    assert(restart && restart->isDerivedRecent
+        && restart->page.entries[0].castId.value == "0xobserved-4");
+
+    // Once the real Recent feed materializes, the local preview is superseded.
+    // No provider cursor may be borrowed by the fallback or vice versa.
+    auto network = pageFor(makeProfile(98, "network", "Network"),
+        makeCast("0xnetwork-only", 98, "indexed", 500),
+        capability::pagination::ContinuationToken{"index-next"});
+    assert((*reopened)->writeFeed(key, network, false));
+    auto indexed = (*reopened)->readFeedWindow(key, 0U, 2U);
+    assert(indexed && !indexed->isDerivedRecent && !indexed->hasMore);
+    assert(indexed->page.entries.size() == 1U);
+    assert(indexed->page.entries[0].castId.value == "0xnetwork-only");
+    assert(indexed->page.next && indexed->page.next->value == "index-next");
+    auto beyond = (*reopened)->readFeedWindow(key, 1U, 2U);
+    assert(beyond && !beyond->isDerivedRecent && beyond->page.entries.empty());
+    assert(beyond->page.next && beyond->page.next->value == "index-next");
+
+    // Empty authoritative network responses must not resurrect the local
+    // inventory; absence of rows is different from absence of a snapshot.
+    const capability::feed::FeedPage emptyNetwork{};
+    assert((*reopened)->writeFeed(key, emptyNetwork, false));
+    auto empty = (*reopened)->readFeedWindow(key, 0U, 2U);
+    assert(empty && !empty->isDerivedRecent && empty->page.entries.empty());
+    assert(!empty->hasMore && !empty->page.next);
+    auto unbounded = (*reopened)->readFeed(key);
+    assert(unbounded && unbounded->entries.empty());
+}
+
+void offlineExplorerRecentUsesDerivedRowsWithoutNetworkCursor()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    auto store = storage::read::openReadStore(database.path);
+    assert(store);
+    assert((*store)->putProfile(makeProfile(99, "recent", "Recent")));
+    assert((*store)->putCast(makeCast("0xrecent-local-1", 99, "seen", 1000)));
+    assert((*store)->putCast(makeCast("0xrecent-local-2", 99, "seen again", 2000)));
+    FakeAsyncCastGateway gateway{};
+    gateway.failFeedCompletion = true;
+    ImmediateExecutor executor{};
+    application::read::async_service::ReadService service{executor, **store, gateway};
+    const application::read::model::FeedQuery query{
+        .kind = application::read::model::FeedQuery::Kind::Recent,
+        .limit = 10U,
+    };
+    std::vector<application::read::model::FeedState> states{};
+    assert(service.openFeed(query, [&states](auto state) {
+        states.push_back(std::move(state));
+    }, application::read::model::ReadOptions{.localFeedWindowLimit = 1U}));
+    assert(states.size() == 2U);
+    assert(states.front().localDerivedRecent && states.front().localHasMore);
+    assert(states.front().entries.size() == 1U);
+    assert(!states.front().next);
+    assert(states.back().localDerivedRecent && states.back().metadata.isStale);
+    assert(states.back().metadata.phase == application::read::model::ReadPhase::Failed);
+    assert(states.back().entries.front().castId.value == "0xrecent-local-2");
+    states.clear();
+    assert(service.openLocalFeedWindow(query, 1U, 1U,
+        [&states](auto state) { states.push_back(std::move(state)); }));
+    assert(states.size() == 1U && states.front().localDerivedRecent);
+    assert(states.front().entries.front().castId.value == "0xrecent-local-1");
+    assert(!states.front().localHasMore && !states.front().next);
+
+    gateway.failFeedCompletion = false;
+    gateway.servedFeed = pageFor(makeProfile(100, "indexed", "Indexed"),
+        makeCast("0xindexed-recent", 100, "online recent", 9000));
+    states.clear();
+    assert(service.openFeed(query, [&states](auto state) {
+        states.push_back(std::move(state));
+    }, application::read::model::ReadOptions{.localFeedWindowLimit = 1U}));
+    assert(states.size() == 2U);
+    assert(states.front().localDerivedRecent);
+    assert(!states.back().localDerivedRecent);
+    assert(states.back().entries.front().castId.value == "0xindexed-recent");
+}
+
 void windowedAsyncFeedRetainsOfflineTailAndProviderCursor()
 {
     using namespace farcaster;
@@ -1786,6 +1909,8 @@ void serializedExecutorKeepsBlockingReadOffCallerThread()
 
 int main()
 {
+    locallyDerivedRecentIsBoundedAndNeverImpersonatesNetworkRecent();
+    offlineExplorerRecentUsesDerivedRowsWithoutNetworkCursor();
     windowedAsyncFeedRetainsOfflineTailAndProviderCursor();
     largeLocalFeedWindowPreservesOrderAndRemoteContinuation();
     initialFeedReadsBoundedCacheAndOfflinePages();

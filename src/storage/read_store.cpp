@@ -3,6 +3,8 @@ module;
 #include "sqlite_boundary.hpp"
 
 #include <chrono>
+#include <algorithm>
+#include <limits>
 #include <cstddef>
 #include <cstdint>
 #include <expected>
@@ -31,6 +33,7 @@ import farcaster.domain.profile;
 import farcaster.domain.social;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
+import farcaster.foundation.time;
 import farcaster.local.entity;
 import farcaster.local.read;
 import farcaster.local.timeline;
@@ -199,6 +202,9 @@ private:
 
     [[nodiscard]] foundation::result::Result<capability::feed::FeedPage>
     hydrateFeed(std::string_view id, std::vector<domain::feed::FeedEntry> entries);
+    [[nodiscard]] foundation::result::Result<local::read::FeedWindow>
+    readDerivedRecentWindow(std::size_t offset, std::size_t limit);
+    [[nodiscard]] foundation::result::Result<bool> hasMaterializedRecentSnapshot();
     [[nodiscard]] foundation::result::Result<std::optional<capability::pagination::ContinuationToken>>
     readContinuation(std::string_view key);
     [[nodiscard]] foundation::result::Status writeContinuationLocked(
@@ -465,6 +471,18 @@ foundation::result::Result<capability::feed::FeedPage> SqliteReadStore::readFeed
     if (!entries) {
         return std::unexpected(std::move(entries.error()));
     }
+    if (key.kind == local::read::FeedKey::Kind::Recent && entries->empty()) {
+        auto materialized = hasMaterializedRecentSnapshot();
+        if (!materialized) return std::unexpected(std::move(materialized.error()));
+        // An authoritative *empty* provider Recent snapshot wins too.
+        // Never reclassify a valid empty network result as a local fallback.
+        if (!*materialized) {
+            auto derived = readDerivedRecentWindow(
+                0U, std::clamp(key.limit, std::size_t{1}, std::size_t{256}));
+            if (!derived) return std::unexpected(std::move(derived.error()));
+            return std::move(derived->page);
+        }
+    }
     return hydrateFeed(id, std::move(*entries));
 }
 
@@ -478,6 +496,18 @@ foundation::result::Result<local::read::FeedWindow> SqliteReadStore::readFeedWin
     if (!window) {
         return std::unexpected(std::move(window.error()));
     }
+    if (key.kind == local::read::FeedKey::Kind::Recent && window->entries.empty()) {
+        // An offset beyond a populated provider timeline must stay empty:
+        // do not switch into a different dataset during scrolling.
+        auto first = m_timelines->readTimelineWindow(
+            local::timeline::TimelineId{id}, 0U, 1U);
+        if (!first) return std::unexpected(std::move(first.error()));
+        if (first->entries.empty()) {
+            auto materialized = hasMaterializedRecentSnapshot();
+            if (!materialized) return std::unexpected(std::move(materialized.error()));
+            if (!*materialized) return readDerivedRecentWindow(offset, limit);
+        }
+    }
     const bool hasMore = window->hasMore;
     auto hydrated = hydrateFeed(id, std::move(window->entries));
     if (!hydrated) {
@@ -486,6 +516,88 @@ foundation::result::Result<local::read::FeedWindow> SqliteReadStore::readFeedWin
     return local::read::FeedWindow{
         .page = std::move(*hydrated),
         .hasMore = hasMore,
+    };
+}
+
+foundation::result::Result<bool> SqliteReadStore::hasMaterializedRecentSnapshot()
+{
+    std::scoped_lock lock{m_mutex};
+    // writeFeed persists this row even when the authoritative provider page
+    // is empty or has no continuation. A missing row means never materialized.
+    auto prepared = sqlite::Statement::prepare(m_metadata,
+        "SELECT 1 FROM read_continuations WHERE read_key = 'feed:recent' LIMIT 1;");
+    if (!prepared)
+        return std::unexpected(toFoundationError(std::move(prepared.error())));
+    auto statement = std::move(*prepared);
+    const int step = sqlite3_step(statement.native());
+    if (step == SQLITE_ROW) return true;
+    if (step == SQLITE_DONE) return false;
+    return std::unexpected(toFoundationError(sqlite::makeError(
+        m_metadata.native(), "Inspecting authoritative Recent snapshot")));
+}
+
+foundation::result::Result<local::read::FeedWindow>
+SqliteReadStore::readDerivedRecentWindow(
+    const std::size_t offset, const std::size_t limit)
+{
+    constexpr std::size_t maximumWindow{256U};
+    constexpr auto largestSqliteInteger =
+        static_cast<std::uint64_t>(std::numeric_limits<sqlite3_int64>::max());
+    if (limit == 0U || limit > maximumWindow
+        || static_cast<std::uint64_t>(offset) > largestSqliteInteger) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Derived local Recent requires a limit 1..256 and valid offset."));
+    }
+    std::vector<domain::feed::FeedEntry> entries{};
+    {
+        std::scoped_lock lock{m_mutex};
+        // Locally observed casts are a *bounded, partial* dataset. This is
+        // not a network Recent API and never manufactures provider cursors.
+        // Tombstones are filtered before SQL pagination so offsets are stable.
+        auto prepared = sqlite::Statement::prepare(m_metadata, R"SQL(
+SELECT casts.id, casts.created_at_ms FROM casts
+WHERE NOT EXISTS (
+    SELECT 1 FROM cast_local_tombstones AS tombstone
+    WHERE tombstone.cast_id = casts.id
+)
+ORDER BY casts.created_at_ms DESC, casts.id DESC
+LIMIT ? OFFSET ?;
+)SQL");
+        if (!prepared)
+            return std::unexpected(toFoundationError(std::move(prepared.error())));
+        auto statement = std::move(*prepared);
+        if (sqlite3_bind_int64(statement.native(), 1, static_cast<sqlite3_int64>(limit + 1U))
+                != SQLITE_OK
+            || sqlite3_bind_int64(statement.native(), 2, static_cast<sqlite3_int64>(offset))
+                != SQLITE_OK) {
+            return std::unexpected(toFoundationError(sqlite::makeError(
+                m_metadata.native(), "Failed to bind derived Recent window")));
+        }
+        entries.reserve(limit + 1U);
+        while (true) {
+            const int step = sqlite3_step(statement.native());
+            if (step == SQLITE_DONE) break;
+            if (step != SQLITE_ROW)
+                return std::unexpected(toFoundationError(sqlite::makeError(
+                    m_metadata.native(), "Failed to read derived Recent")));
+            entries.push_back(domain::feed::FeedEntry{
+                .castId = domain::cast::CastId{sqlite::columnText(statement.native(), 0)},
+                .sortTime = foundation::time::Timestamp{
+                    std::chrono::milliseconds{sqlite3_column_int64(statement.native(), 1)}},
+            });
+        }
+    }
+    const bool hasMore = entries.size() > limit;
+    if (hasMore) entries.pop_back();
+    auto page = hydrateFeed("feed:recent", std::move(entries));
+    if (!page) return std::unexpected(std::move(page.error()));
+    // An unrelated provider token is never valid for this local-only view.
+    page->next.reset();
+    return local::read::FeedWindow{
+        .page = std::move(*page),
+        .hasMore = hasMore,
+        .isDerivedRecent = true,
     };
 }
 

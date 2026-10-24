@@ -43,6 +43,8 @@ struct SocialKey final {
 struct FeedWindow final {
     capability::feed::FeedPage page{};
     bool hasMore{false};
+    /** @brief True only for locally observed Recent posts, never network-wide indexing. */
+    bool isDerivedRecent{false};
 };
 
 /** @brief Stable persistence boundary for local-first read snapshots. */
