@@ -69,6 +69,15 @@ public:
     [[nodiscard]] foundation::result::Result<ProviderRoute>
     resolve(const policy::CapabilityRequest& request) const;
 
+    /**
+     * @brief Checks whether one explicitly bound provider is still eligible.
+     * Unlike resolve(), this cannot choose another provider or apply affinity.
+     * Used to enforce privacy/deployment/health constraints for durable writes.
+     */
+    [[nodiscard]] bool isEligibleProvider(
+        const provider::model::ProviderId& providerId,
+        const policy::CapabilityRequest& request) const;
+
     /** @brief Changes affinity for future routes atomically; does not alter active requests or signer authority. */
     void setPreferredNetwork(policy::PreferredNetwork network) noexcept;
 

@@ -3,6 +3,7 @@ module;
 #include <cstddef>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 export module farcaster.local.write;
@@ -14,6 +15,34 @@ import farcaster.domain.identity;
 import farcaster.domain.write;
 
 export namespace farcaster::local::write {
+
+/**
+ * @brief Infrastructure-only durable binding from a signed canonical message
+ * hash to a provider instance. Names are opaque instance IDs, never SDK types.
+ *
+ * A provider assignment must be durably committed before a network submit.
+ * Subsequent retries and reconciliation reuse this exact assignment.
+ */
+struct WriteRouteBinding final {
+    std::string providerId{};
+    std::string endpointIdentity{};
+};
+
+class IWriteRouteBindings {
+public:
+    virtual ~IWriteRouteBindings() = default;
+
+    /** @brief Returns the bound provider and immutable endpoint identity, or nullopt. */
+    [[nodiscard]] virtual foundation::result::Result<std::optional<WriteRouteBinding>> find(
+        const domain::write::IdempotencyKey& key) = 0;
+
+    /**
+     * @brief Atomically binds a message once, returning the persisted route identity.
+     * If a previous assignment differs, returns Conflict and never overwrites.
+     */
+    [[nodiscard]] virtual foundation::result::Result<WriteRouteBinding> bindOnce(
+        const domain::write::IdempotencyKey& key, WriteRouteBinding binding) = 0;
+};
 
 
 /**

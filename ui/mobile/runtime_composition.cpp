@@ -37,6 +37,7 @@ import farcaster.local.write;
 import farcaster.provider.model;
 import farcaster.routing.policy;
 import farcaster.routing.read.async_gateway;
+import farcaster.routing.write.gateway;
 import farcaster.storage.read;
 import farcaster.storage.session;
 import farcaster.storage.signer;
@@ -486,6 +487,8 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     [[maybe_unused]] const std::optional<std::string>& farcasterReadApiKey,
     [[maybe_unused]] const std::vector<ReadProviderProfile>& additionalReadProviders,
     [[maybe_unused]] const std::optional<std::string>& preferredReadProviderId,
+    [[maybe_unused]] const std::vector<WriteProviderProfile>& additionalWriteProviders,
+    [[maybe_unused]] const std::optional<std::string>& preferredWriteProviderId,
     [[maybe_unused]] const std::optional<std::string>& authRelayUrl,
     [[maybe_unused]] const std::optional<std::string>& optimismRpcUrl,
     [[maybe_unused]] const std::optional<std::string>& snapchainBaseUrl,
@@ -738,23 +741,87 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         writeSubmitterConfig.authorizationHeaderName = *snapchainAuthorizationHeader;
         writeSubmitterConfig.authorizationHeaderValue = *snapchainAuthorizationValue;
     }
-    runtime->writeSubmitter = farcaster::provider::snapchain::write::makeSubmitter(
-        *runtime->transport, std::move(writeSubmitterConfig));
-#endif
+    const farcaster::provider::model::ProviderDescriptor writerDescriptor{
+        .id = farcaster::provider::model::ProviderId{"primary-protocol-writer"},
+        .displayName = "Primary protocol writer",
+        .deployment = farcaster::provider::model::ProviderDeployment::PublicManaged,
+        .privacy = farcaster::provider::model::ProviderPrivacy::Standard,
+        .priority = 10,
+    };
+    const auto writerRegistration = runtime->registry.registerProvider({
+        .provider = writerDescriptor,
+        .capabilities = {capability::model::CapabilityDescriptor{
+            .id = capability::catalog::protocolMessageSubmit(),
+            .version = {1, 0},
+            .origin = capability::model::CapabilityOrigin::Protocol,
+            .quality = capability::model::CapabilityQuality::Native,
+            .access = {capability::model::CapabilityAccess::Write},
+            .isSelfHostable = true,
+        }},
+    });
+    if (!writerRegistration) return std::unexpected(std::move(writerRegistration.error()));
+    const std::string primaryReadIdentity = writeSubmitterConfig.readBaseUrl.empty()
+        ? writeSubmitterConfig.baseUrl : writeSubmitterConfig.readBaseUrl;
+    runtime->writeSourceEndpointIdentities.push_back(
+        "snapchain-v1|" + writeSubmitterConfig.baseUrl + "|" + primaryReadIdentity);
+    runtime->writeSources.push_back(
+        farcaster::provider::snapchain::write::makeSubmitter(
+            *runtime->transport, std::move(writeSubmitterConfig)));
+    runtime->writeSourceIds.push_back(writerDescriptor.id.value);
 
-    if (runtime->signerExecutor && runtime->signerService && runtime->writeOutbox && runtime->writeCodec) {
-        runtime->writeService = std::make_unique<application::write::WriteService>(
-            *runtime->signerExecutor,
-            *runtime->signerService,
-            *runtime->writeCodec,
-            *runtime->writeOutbox,
-            runtime->writeSubmitter.get(),
-            application::write::WritePolicy{});
-    } else if (!runtime->writeSetupError) {
-        runtime->writeSetupError = foundation::error::Error::make(
-            foundation::error::ErrorCode::Unsupported,
-            "Durable PublishCast composition is unavailable because secure signer or outbox setup failed.");
+    for (const WriteProviderProfile& profile : additionalWriteProviders) {
+        if (profile.adapterContract != "snapchain-v1") {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::Unsupported,
+                "No installed write adapter implements contract '" + profile.adapterContract + "'."));
+        }
+        if (profile.id.empty() || profile.endpoint.empty()
+            || runtime->registry.provider(farcaster::provider::model::ProviderId{profile.id})) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Write provider ID/endpoint is empty or collides with a registered provider."));
+        }
+        const farcaster::provider::model::ProviderDescriptor instance{
+            .id = farcaster::provider::model::ProviderId{profile.id},
+            .displayName = profile.displayName.empty() ? profile.id : profile.displayName,
+            .deployment = profile.selfHosted
+                ? farcaster::provider::model::ProviderDeployment::SelfHosted
+                : farcaster::provider::model::ProviderDeployment::PublicManaged,
+            .privacy = profile.selfHosted
+                ? farcaster::provider::model::ProviderPrivacy::Private
+                : farcaster::provider::model::ProviderPrivacy::Standard,
+            .priority = 30,
+        };
+        auto registered = runtime->registry.registerProvider({
+            .provider = instance,
+            .capabilities = {capability::model::CapabilityDescriptor{
+                .id = capability::catalog::protocolMessageSubmit(),
+                .version = {1, 0},
+                .origin = capability::model::CapabilityOrigin::Protocol,
+                .quality = capability::model::CapabilityQuality::Native,
+                .access = {capability::model::CapabilityAccess::Write},
+                .isSelfHostable = true,
+            }},
+        });
+        if (!registered) return std::unexpected(std::move(registered.error()));
+        farcaster::provider::snapchain::write::Config config{};
+        config.baseUrl = profile.endpoint;
+        config.readBaseUrl = profile.readEndpoint.empty()
+            ? profile.endpoint : profile.readEndpoint;
+        runtime->writeSourceEndpointIdentities.push_back(
+            "snapchain-v1|" + config.baseUrl + "|" + config.readBaseUrl);
+        runtime->writeSources.push_back(
+            farcaster::provider::snapchain::write::makeSubmitter(
+                *runtime->transport, std::move(config)));
+        runtime->writeSourceIds.push_back(profile.id);
     }
+#else
+    if (!additionalWriteProviders.empty() || preferredWriteProviderId) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::Unsupported,
+            "No compatible protocol writer adapter is compiled into this build."));
+    }
+#endif
 #endif
 
 #if FARCASTER_HAS_MEDIA_UPLOAD
@@ -927,6 +994,18 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
             .hosted = farcaster::provider::model::ProviderId{"farcaster-snapchain"},
         });
 
+    if (preferredWriteProviderId && !preferredWriteProviderId->empty()) {
+        const farcaster::provider::model::ProviderId selected{*preferredWriteProviderId};
+        if (!runtime->registry.provider(selected)) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::Unavailable,
+                "Selected writer has no registered compatible adapter: " + selected.value));
+        }
+        runtime->router->setPreferredProviderForAccess(
+            capability::model::CapabilityAccess::Write,
+            routing::router::ProviderPreference{.provider = selected, .require = true});
+    }
+
     if (!runtime->requestedReadProviderId.empty()) {
         const farcaster::provider::model::ProviderId selected{
             runtime->requestedReadProviderId};
@@ -940,6 +1019,39 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
             capability::model::CapabilityAccess::Read,
             routing::router::ProviderPreference{.provider = selected, .require = true});
     }
+
+#if FARCASTER_HAS_PROTOCOL_SIGNING
+    if (runtime->writeOutbox && runtime->writeCodec && runtime->signerService
+        && runtime->signerExecutor) {
+        // The binding table is in the same SQLite database as the canonical
+        // outbox. Never allow network submission when durable pinning fails.
+        auto bindings = farcaster::storage::write::openWriteRouteBindings(databasePath);
+        if (!bindings) {
+            runtime->writeSetupError = std::move(bindings.error());
+        } else {
+            runtime->writeRouteBindings = std::move(*bindings);
+            std::vector<routing::write::SourceBinding> sources{};
+            for (std::size_t index = 0; index < runtime->writeSources.size(); ++index) {
+                sources.push_back(routing::write::SourceBinding{
+                    .providerId = farcaster::provider::model::ProviderId{
+                        runtime->writeSourceIds[index]},
+                    .endpointIdentity = runtime->writeSourceEndpointIdentities[index],
+                    .submitter = runtime->writeSources[index].get(),
+                });
+            }
+            runtime->writeSubmitter = std::make_unique<routing::write::RoutedWriteSubmitter>(
+                *runtime->router, *runtime->writeRouteBindings, std::move(sources));
+            runtime->writeService = std::make_unique<application::write::WriteService>(
+                *runtime->signerExecutor, *runtime->signerService,
+                *runtime->writeCodec, *runtime->writeOutbox,
+                runtime->writeSubmitter.get(), application::write::WritePolicy{});
+        }
+    } else if (!runtime->writeSetupError) {
+        runtime->writeSetupError = foundation::error::Error::make(
+            foundation::error::ErrorCode::Unsupported,
+            "Durable writes require the signer and persistent outbox.");
+    }
+#endif
 
     const auto identityRoute = runtime->router->resolve(routing::policy::CapabilityRequest{
         .capabilityId = capability::catalog::identityFidResolve(),

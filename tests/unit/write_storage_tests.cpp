@@ -692,6 +692,47 @@ void invalidIdentityNeverEnqueues()
     assert(absent && !*absent);
 }
 
+void writeRouteBindingsSurviveRestartAndRejectReassignment()
+{
+    DatabaseFixture database{};
+    const auto signedMessage = operation();
+    auto outbox = storage::write::openOutboxStore(database.path);
+    assert(outbox);
+    assert((*outbox)->enqueue(signedMessage, timestamp(1'000)));
+
+    {
+        auto routes = storage::write::openWriteRouteBindings(database.path);
+        assert(routes);
+        auto empty = (*routes)->find(signedMessage.idempotencyKey);
+        assert(empty && !*empty);
+        auto assigned = (*routes)->bindOnce(signedMessage.idempotencyKey,
+            {.providerId = "operator-alpha", .endpointIdentity = "type|url-a"});
+        assert(assigned && assigned->providerId == "operator-alpha"
+            && assigned->endpointIdentity == "type|url-a");
+        auto repeated = (*routes)->bindOnce(signedMessage.idempotencyKey,
+            {.providerId = "operator-alpha", .endpointIdentity = "type|url-a"});
+        assert(repeated && repeated->providerId == "operator-alpha");
+        auto changed = (*routes)->bindOnce(signedMessage.idempotencyKey,
+            {.providerId = "operator-beta", .endpointIdentity = "type|url-b"});
+        auto movedUrl = (*routes)->bindOnce(signedMessage.idempotencyKey,
+            {.providerId = "operator-alpha", .endpointIdentity = "type|url-changed"});
+        assert(!movedUrl && movedUrl.error().code == foundation::error::ErrorCode::Conflict);
+        assert(!changed && changed.error().code == foundation::error::ErrorCode::Conflict);
+    }
+    {
+        auto routes = storage::write::openWriteRouteBindings(database.path);
+        assert(routes);
+        auto existing = (*routes)->find(signedMessage.idempotencyKey);
+        assert(existing && *existing && (**existing).providerId == "operator-alpha"
+            && (**existing).endpointIdentity == "type|url-a");
+        auto missing = (*routes)->bindOnce(
+            domain::write::IdempotencyKey{"0xffffffffffffffffffffffffffffffffffffffff"},
+            {.providerId = "operator-beta", .endpointIdentity = "type|url-b"});
+        assert(!missing);
+        assert(missing.error().code == foundation::error::ErrorCode::StorageFailure);
+    }
+}
+
 } // namespace
 
 int main()
@@ -710,5 +751,6 @@ int main()
     removeCastPersistsLocalTombstoneAcrossFailureAndReopen();
     confirmationClearsFailureAndPersists();
     invalidIdentityNeverEnqueues();
+    writeRouteBindingsSurviveRestartAndRejectReassignment();
     return 0;
 }

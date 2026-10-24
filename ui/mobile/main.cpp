@@ -874,6 +874,78 @@ int main(int argc, char* argv[])
         preferredReadProviderText.isEmpty() ? std::nullopt
             : std::optional<std::string>{preferredReadProviderText.toStdString()};
 
+    QString writeProfilesJson = optionValue(
+        arguments, QStringLiteral("--write-provider-profiles-json="));
+    if (writeProfilesJson.isEmpty()) {
+        writeProfilesJson = qEnvironmentVariable(
+            "GENYCASTER_WRITE_PROVIDER_PROFILES_JSON").trimmed();
+    }
+    if (writeProfilesJson.isEmpty()) {
+        writeProfilesJson = settings.value(
+            QStringLiteral("network/writeProviderProfilesJson")).toString().trimmed();
+    }
+    std::vector<genycaster::ui::runtime::WriteProviderProfile> additionalWriteProviders{};
+    if (!writeProfilesJson.isEmpty()) {
+        QJsonParseError parseError{};
+        const auto document = QJsonDocument::fromJson(writeProfilesJson.toUtf8(), &parseError);
+        if (parseError.error != QJsonParseError::NoError || !document.isArray()
+            || document.array().size() > 16) {
+            qCritical().noquote()
+                << "Write provider profiles must be a JSON array of at most 16 entries.";
+            return 2;
+        }
+        std::unordered_set<std::string> ids{"primary-protocol-writer",
+            "hypersnap-v2", "farcaster-snapchain"};
+        for (const auto& read : additionalReadProviders) ids.insert(read.id);
+        for (const QJsonValue& entry : document.array()) {
+            if (!entry.isObject()) {
+                qCritical().noquote() << "Write provider profile must be an object.";
+                return 2;
+            }
+            const auto profile = entry.toObject();
+            const QString id = profile.value(QStringLiteral("id")).toString().trimmed();
+            const QString contract = profile.value(QStringLiteral("contract")).toString().trimmed();
+            const QString endpoint = profile.value(QStringLiteral("endpoint")).toString().trimmed();
+            const QString readEndpoint = profile.value(
+                QStringLiteral("readEndpoint")).toString().trimmed();
+            const QString label = profile.value(QStringLiteral("label")).toString().trimmed();
+            const QJsonValue selfHosted = profile.value(QStringLiteral("selfHosted"));
+            if (!validProviderId(id) || !isValidHttpServiceUrl(endpoint)
+                || (!readEndpoint.isEmpty() && !isValidHttpServiceUrl(readEndpoint))
+                || contract.isEmpty() || !selfHosted.isBool()
+                || !ids.insert(id.toStdString()).second) {
+                qCritical().noquote()
+                    << "Invalid, duplicate, or credential-bearing write provider profile.";
+                return 2;
+            }
+            additionalWriteProviders.push_back({
+                .id = id.toStdString(),
+                .displayName = label.isEmpty() ? id.toStdString() : label.toStdString(),
+                .endpoint = endpoint.toStdString(),
+                .readEndpoint = readEndpoint.toStdString(),
+                .adapterContract = contract.toStdString(),
+                .selfHosted = selfHosted.toBool(),
+            });
+        }
+    }
+    QString preferredWriteProviderText = optionValue(
+        arguments, QStringLiteral("--preferred-write-provider-id="));
+    if (preferredWriteProviderText.isEmpty()) {
+        preferredWriteProviderText = qEnvironmentVariable(
+            "GENYCASTER_PREFERRED_WRITE_PROVIDER_ID").trimmed();
+    }
+    if (preferredWriteProviderText.isEmpty()) {
+        preferredWriteProviderText = settings.value(
+            QStringLiteral("network/preferredWriteProviderId")).toString().trimmed();
+    }
+    if (!preferredWriteProviderText.isEmpty() && !validProviderId(preferredWriteProviderText)) {
+        qCritical().noquote() << "Preferred write provider ID is invalid.";
+        return 2;
+    }
+    const std::optional<std::string> preferredWriteProviderId =
+        preferredWriteProviderText.isEmpty() ? std::nullopt
+            : std::optional<std::string>{preferredWriteProviderText.toStdString()};
+
     QStringList nodeCandidateEndpoints{};
     const QString nodeCandidatesText =
         qEnvironmentVariable("GENYCASTER_HYPERSNAP_NODE_CANDIDATES").trimmed();
@@ -1815,7 +1887,8 @@ int main(int argc, char* argv[])
                                   &mediaPlayback, &runtime,
                                   databasePath, networkProxyPolicy, providerBaseUrl,
                                   farcasterReadBaseUrl, farcasterReadApiKey,
-                                  additionalReadProviders, preferredReadProviderId, authRelayUrl,
+                                  additionalReadProviders, preferredReadProviderId,
+                                  additionalWriteProviders, preferredWriteProviderId, authRelayUrl,
                                   optimismRpcUrl, snapchainBaseUrl, snapchainWriteBaseUrl,
                                   mediaGatewayBaseUrl, snapchainAuthorizationHeader,
                                   snapchainAuthorizationValue,
@@ -1832,6 +1905,8 @@ int main(int argc, char* argv[])
                 farcasterReadApiKey,
                 additionalReadProviders,
                 preferredReadProviderId,
+                additionalWriteProviders,
+                preferredWriteProviderId,
                 authRelayUrl,
                 optimismRpcUrl,
                 snapchainBaseUrl,

@@ -96,6 +96,19 @@ void CapabilityRouter::clearPreferredProviderForCapability(
     m_capabilityPreferences.erase(capabilityKey(capabilityId, access));
 }
 
+bool CapabilityRouter::isEligibleProvider(
+    const provider::model::ProviderId& providerId,
+    const policy::CapabilityRequest& request) const
+{
+    for (const registry::RouteCandidate& candidate : m_registry.candidatesFor(request.capabilityId)) {
+        if (candidate.provider.id.value != providerId.value) continue;
+        const auto health = m_health.find(candidate.provider.id, request.capabilityId);
+        return m_policyEngine.isEligible(
+            candidate, request, m_policy, health ? &*health : nullptr);
+    }
+    return false;
+}
+
 foundation::result::Result<ProviderRoute>
 CapabilityRouter::resolve(const policy::CapabilityRequest& request) const
 {

@@ -63,6 +63,15 @@ export namespace genycaster::ui::runtime {
  * A registered adapter is still required for the protocol contract. Unknown
  * contracts are rejected rather than guessed from hostname or URL shape.
  */
+struct WriteProviderProfile final {
+    std::string id{};
+    std::string displayName{};
+    std::string endpoint{};
+    std::string readEndpoint{};
+    std::string adapterContract{};
+    bool selfHosted{false};
+};
+
 struct ReadProviderProfile final {
     std::string id{};
     std::string displayName{};
@@ -104,6 +113,10 @@ struct Runtime final {
     std::unique_ptr<farcaster::local::write::IOutboxStore> writeOutbox{};
     std::unique_ptr<farcaster::capability::write::ICanonicalWriteCodec> writeCodec{};
     std::unique_ptr<farcaster::capability::write::IWriteSubmitter> writeSubmitter{};
+    std::unique_ptr<farcaster::local::write::IWriteRouteBindings> writeRouteBindings{};
+    std::vector<std::unique_ptr<farcaster::capability::write::IWriteSubmitter>> writeSources{};
+    std::vector<std::string> writeSourceIds{};
+    std::vector<std::string> writeSourceEndpointIdentities{};
     std::unique_ptr<farcaster::application::write::WriteService> writeService{};
 #if FARCASTER_HAS_MEDIA_UPLOAD
     std::unique_ptr<farcaster::execution::serial::SerialExecutor> mediaExecutor{};
@@ -248,6 +261,8 @@ struct Runtime final {
     const std::optional<std::string>& farcasterReadApiKey,
     const std::vector<ReadProviderProfile>& additionalReadProviders,
     const std::optional<std::string>& preferredReadProviderId,
+    const std::vector<WriteProviderProfile>& additionalWriteProviders,
+    const std::optional<std::string>& preferredWriteProviderId,
     const std::optional<std::string>& authRelayUrl,
     const std::optional<std::string>& optimismRpcUrl,
     const std::optional<std::string>& snapchainBaseUrl,

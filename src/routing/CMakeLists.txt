@@ -9,6 +9,7 @@ target_sources(farcaster_routing
             health.cppm
             policy.cppm
             router.cppm
+            write_gateway.cppm
             read_gateway.cppm
             read_async_gateway.cppm
     PRIVATE
@@ -16,6 +17,7 @@ target_sources(farcaster_routing
         health.cpp
         policy.cpp
         router.cpp
+        write_gateway.cpp
         read_gateway.cpp
         read_async_gateway.cpp
 )

@@ -6,6 +6,8 @@ export namespace farcaster::capability::catalog {
 
 /** @brief Username-to-FID identity resolution capability. */
 [[nodiscard]] model::CapabilityId identityFidResolve();
+/** @brief Submit an already-signed canonical network message. */
+[[nodiscard]] model::CapabilityId protocolMessageSubmit();
 /** @brief Cast read capability. */
 [[nodiscard]] model::CapabilityId castRead();
 /** @brief Profile read capability. */

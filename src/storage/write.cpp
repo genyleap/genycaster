@@ -1315,6 +1315,83 @@ private:
     std::mutex m_mutex{};
 };
 
+class SqliteWriteRouteBindings final : public local::write::IWriteRouteBindings {
+public:
+    explicit SqliteWriteRouteBindings(sqlite::Connection connection)
+        : m_connection(std::move(connection)) {}
+
+    [[nodiscard]] foundation::result::Result<std::optional<local::write::WriteRouteBinding>> find(
+        const domain::write::IdempotencyKey& key) override
+    {
+        std::scoped_lock lock{m_mutex};
+        return findLocked(key.value);
+    }
+
+    [[nodiscard]] foundation::result::Result<local::write::WriteRouteBinding> bindOnce(
+        const domain::write::IdempotencyKey& key,
+        local::write::WriteRouteBinding binding) override
+    {
+        if (key.value.empty() || binding.providerId.empty() || binding.endpointIdentity.empty()) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Canonical message hash and selected provider ID must not be empty."));
+        }
+        std::scoped_lock lock{m_mutex};
+        sqlite::Transaction transaction{m_connection};
+        if (auto status = transaction.begin(); !status) {
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        }
+        auto prepared = sqlite::Statement::prepare(m_connection,
+            "INSERT OR IGNORE INTO write_route_bindings(idempotency_key, provider_id, endpoint_identity) VALUES(?, ?, ?);");
+        if (!prepared) return std::unexpected(toFoundationError(std::move(prepared.error())));
+        auto statement = std::move(*prepared);
+        if (auto status = sqlite::bindText(statement.native(), 1, key.value); !status)
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        if (auto status = sqlite::bindText(statement.native(), 2, binding.providerId); !status)
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        if (auto status = sqlite::bindText(statement.native(), 3, binding.endpointIdentity); !status)
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        if (auto status = sqlite::stepDone(m_connection, statement); !status)
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        auto persisted = findLocked(key.value);
+        if (!persisted) return std::unexpected(std::move(persisted.error()));
+        if (!*persisted) {
+            return std::unexpected(storageFailure("Write route binding was not persisted."));
+        }
+        if ((**persisted).providerId != binding.providerId
+            || (**persisted).endpointIdentity != binding.endpointIdentity) {
+            return std::unexpected(conflict(
+                "Canonical write already belongs to a different provider or endpoint; rerouting is forbidden."));
+        }
+        if (auto status = transaction.commit(); !status)
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        return **persisted;
+    }
+
+private:
+    [[nodiscard]] foundation::result::Result<std::optional<local::write::WriteRouteBinding>> findLocked(
+        const std::string_view key)
+    {
+        auto prepared = sqlite::Statement::prepare(m_connection,
+            "SELECT provider_id, endpoint_identity FROM write_route_bindings WHERE idempotency_key = ?;");
+        if (!prepared) return std::unexpected(toFoundationError(std::move(prepared.error())));
+        auto statement = std::move(*prepared);
+        if (auto status = sqlite::bindText(statement.native(), 1, key); !status)
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        const int result = sqlite3_step(statement.native());
+        if (result == SQLITE_DONE) return std::optional<local::write::WriteRouteBinding>{};
+        if (result != SQLITE_ROW) return std::unexpected(toFoundationError(sqlite::makeError(
+            m_connection.native(), "Failed to find durable write route")));
+        return std::optional<local::write::WriteRouteBinding>{local::write::WriteRouteBinding{
+            .providerId = sqlite::columnText(statement.native(), 0),
+            .endpointIdentity = sqlite::columnText(statement.native(), 1),
+        }};
+    }
+
+    sqlite::Connection m_connection;
+    std::mutex m_mutex{};
+};
+
 } // namespace
 
 foundation::result::Result<std::unique_ptr<local::write::IOutboxStore>> openOutboxStore(
@@ -1324,6 +1401,26 @@ foundation::result::Result<std::unique_ptr<local::write::IOutboxStore>> openOutb
     if (!opened) return std::unexpected(std::move(opened.error()));
     std::unique_ptr<local::write::IOutboxStore> result = std::move(*opened);
     return result;
+}
+
+foundation::result::Result<std::unique_ptr<local::write::IWriteRouteBindings>>
+openWriteRouteBindings(const std::filesystem::path& path)
+{
+    auto connection = sqlite::Connection::open(path);
+    if (!connection) return std::unexpected(toFoundationError(std::move(connection.error())));
+    // A dedicated infrastructure table: provider identities stay out of the
+    // protocol/domain outbox schema and canonical message serialization.
+    auto created = connection->execute(R"SQL(
+CREATE TABLE IF NOT EXISTS write_route_bindings (
+    idempotency_key TEXT PRIMARY KEY NOT NULL,
+    provider_id TEXT NOT NULL CHECK(length(provider_id) > 0),
+    endpoint_identity TEXT NOT NULL CHECK(length(endpoint_identity) > 0),
+    FOREIGN KEY (idempotency_key) REFERENCES write_outbox(idempotency_key) ON DELETE CASCADE
+);
+)SQL");
+    if (!created) return std::unexpected(toFoundationError(std::move(created.error())));
+    return std::unique_ptr<local::write::IWriteRouteBindings>{
+        std::make_unique<SqliteWriteRouteBindings>(std::move(*connection))};
 }
 
 } // namespace farcaster::storage::write

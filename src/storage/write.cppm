@@ -18,4 +18,11 @@ export namespace farcaster::storage::write {
 [[nodiscard]] foundation::result::Result<std::unique_ptr<local::write::IOutboxStore>>
 openOutboxStore(const std::filesystem::path& path);
 
+/**
+ * @brief Opens a dedicated SQLite route-binding store for canonical writes.
+ * The backing database must be the same file used by the durable outbox.
+ */
+[[nodiscard]] foundation::result::Result<std::unique_ptr<local::write::IWriteRouteBindings>>
+openWriteRouteBindings(const std::filesystem::path& path);
+
 } // namespace farcaster::storage::write
