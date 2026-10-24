@@ -5,7 +5,7 @@ Its white navigation layout follows the information architecture of `docs.genyle
 
 ## Contents
 - Overview and capabilities
-- Balaji's $2048 Farcaster client challenge: acceptance matrix and read-node blueprint
+- Getting started and node selection guidance
 - Architecture and read/write diagrams
 - Provider and client switching (distinct topics)
 - Build from source, operation/production reference, candid status report

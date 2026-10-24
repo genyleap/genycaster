@@ -13,7 +13,7 @@ https://docs.genycaster.xyz/operations/
 https://docs.genycaster.xyz/status/
 
 ## Important limitations
-The $2048 Farcaster client prize requires independent node provisioning, no-hosted-key reads, validator writes, app authorization, social actions, and originating-client filtering. Eligibility also requires an MIT-licensed GitHub repository, an independent successful human tutorial walkthrough with public Farcaster endorsement, and a three-link reply within seven days of the October 17, 2026 cast. Current Genycaster source uses GPL-3.0, not MIT. Not all are yet verified end to end in Genycaster.
+Current functionality varies by provider capability. A raw protocol reader is not a validator, and optional managed indexed services are not mandatory protocol dependencies. Some self-hosted installation workflows are still in development.
 The raw Snapchain protocol does not itself provide indexed global search, aggregated follower counts or product notifications.
 Configured read nodes and write providers are distinct.
 The app continues to be debugged at caster.genyleap.com and is not embedded on the documentation domain.
@@ -21,4 +21,3 @@ The app continues to be debugged at caster.genyleap.com and is not embedded on t
 ## Source
 https://github.com/genyleap/genycaster
 https://github.com/farcasterxyz/snapchain
-https://farcaster.xyz/balajis.eth/0x50184b62

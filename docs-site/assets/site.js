@@ -1,6 +1,6 @@
 "use strict";
 const groups=[
- ["Start", [["Overview","/"],["Balaji's $2048 challenge","/quickstart/"],["Current status","/status/"]]],
+ ["Start", [["Overview","/"],["Getting started","/quickstart/"],["Current status","/status/"]]],
  ["Architecture",[["Architecture map","/architecture/"],["Provider and node routing","/providers/"],["Switching clients","/client-switching/"]]],
  ["Developers",[["Build your own client","/build-your-own/"],["Operations and node setup","/operations/"]]]
 ];
