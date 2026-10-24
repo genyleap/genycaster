@@ -21,7 +21,7 @@
 
 Raw Snapchain adapter: `raw-v2:<HTTP origin>\\n<FID>\\n<opaque cursor>`.
 
-Indexed v2-compatible adapter: `indexed-v2:<HTTP origin>\\n<opaque cursor>`.
+Indexed v2-compatible adapter (historical endpoint-only scope): `indexed-v2:<HTTP origin>\\n<opaque cursor>`. This has been superseded by `indexed-v3:<HTTP origin>\\n<selector length>:<FID/channel selector>\\n<opaque cursor>`; see [per-query continuation affinity](50-selector-bound-indexed-continuations.md).
 
 In both cases the existing SQLite continuation layer additionally records
 the immutable provider instance ID and canonical capability ID. HTTP endpoint

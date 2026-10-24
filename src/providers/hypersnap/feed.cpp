@@ -63,7 +63,9 @@ constexpr std::chrono::milliseconds replyEnrichmentRequestTimeout{4'000};
         return std::unexpected(std::move(limit.error()));
     }
 
-    continuation::Store continuations{continuationStore, config.provider.id, config.baseUrl};
+    continuation::Store continuations{
+        continuationStore, config.provider.id, config.baseUrl,
+        continuation::selectorScope(query)};
     auto cursor = continuations.resolve(capabilityId, pageRequest);
     if (!cursor) {
         return std::unexpected(std::move(cursor.error()));
@@ -195,7 +197,9 @@ constexpr std::chrono::milliseconds replyEnrichmentRequestTimeout{4'000};
         return std::unexpected(std::move(limit.error()));
     }
     const auto capabilityId = capability::catalog::feedUserLikesRead();
-    continuation::Store continuations{continuationStore, config.provider.id, config.baseUrl};
+    continuation::Store continuations{
+        continuationStore, config.provider.id, config.baseUrl,
+        "fid:" + std::to_string(fid.value)};
     auto cursor = continuations.resolve(capabilityId, pageRequest);
     if (!cursor) {
         return std::unexpected(std::move(cursor.error()));

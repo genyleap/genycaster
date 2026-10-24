@@ -938,7 +938,7 @@ void testIndexedEndpointBoundContinuation()
     const auto capabilityId = capability::catalog::feedUserPostsRead();
 
     provider::hypersnap::continuation::Store first{
-        *backing, id, "https://first-operator.example"};
+        *backing, id, "https://first-operator.example", "fid:42"};
     auto token = first.bind(capabilityId, std::string{"opaque+/cursor"});
     assert(token && *token);
     auto page = first.resolve(capabilityId, {
@@ -950,7 +950,7 @@ void testIndexedEndpointBoundContinuation()
     // A reconfigured node with the same ID must reject the old cursor without
     // making a network request to a different operator.
     provider::hypersnap::continuation::Store differentEndpoint{
-        *backing, id, "https://second-operator.example"};
+        *backing, id, "https://second-operator.example", "fid:42"};
     auto retargeted = differentEndpoint.resolve(capabilityId, {
         .limit = 12,
         .continuation = *token,
@@ -961,12 +961,33 @@ void testIndexedEndpointBoundContinuation()
     // Another instance ID and another canonical capability are disjoint.
     provider::hypersnap::continuation::Store otherInstance{
         *backing, provider::model::ProviderId{"other-node"},
-        "https://first-operator.example"};
+        "https://first-operator.example", "fid:42"};
     assert(!otherInstance.resolve(capabilityId, {
         .limit = 12, .continuation = *token,
     }));
     assert(!first.resolve(capability::catalog::feedUserQuotesRead(), {
         .limit = 12, .continuation = *token,
+    }));
+
+    provider::hypersnap::continuation::Store differentFid{
+        *backing, id, "https://first-operator.example", "fid:43"};
+    auto crossUser = differentFid.resolve(capabilityId, {
+        .limit = 12, .continuation = *token,
+    });
+    assert(!crossUser && crossUser.error().code == foundation::error::ErrorCode::Conflict);
+    assert(provider::hypersnap::continuation::selectorScope({
+        {"fid", "42"}, {"limit", "12"}, {"cursor", "opaque"}}) == "fid:42");
+    assert(provider::hypersnap::continuation::selectorScope({
+        {"channel_ids", "science"}, {"limit", "12"}}) == "channel_ids:science");
+    provider::hypersnap::continuation::Store differentChannel{
+        *backing, id, "https://first-operator.example", "channel_ids:art"};
+    auto channelCursor = differentChannel.bind(capability::catalog::feedChannelRead(),
+        std::string{"channel-cursor"});
+    assert(channelCursor && *channelCursor);
+    provider::hypersnap::continuation::Store scienceChannel{
+        *backing, id, "https://first-operator.example", "channel_ids:science"};
+    assert(!scienceChannel.resolve(capability::catalog::feedChannelRead(), {
+        .limit = 12, .continuation = *channelCursor,
     }));
 
     // Pre-migration cursors without the endpoint prefix are not replayed.
@@ -1008,9 +1029,21 @@ void testFeedPaginationAffinity()
     auto binding = store.resolve(*first->next);
     assert(binding);
     assert(binding->providerCursor ==
-           "indexed-v2:https://node.test///\nraw-feed-cursor+/=");
+           "indexed-v3:https://node.test///\n6:fid:42\nraw-feed-cursor+/=");
     assert(binding->providerId.value == "hypersnap-test");
     assert(binding->capabilityId.value == capability::catalog::feedFollowingRead().value);
+
+    // Replaying the same token for another user on the *same* indexed node
+    // must fail before transport dispatch, not leak another user's page.
+    const auto requestsBeforeReplay = transport.urls().size();
+    auto foreignUser = feeds.following(
+        domain::identity::Fid{43},
+        capability::pagination::PageRequest{
+            .limit = 2, .continuation = first->next,
+        });
+    assert(!foreignUser && foreignUser.error().code
+        == foundation::error::ErrorCode::Conflict);
+    assert(transport.urls().size() == requestsBeforeReplay);
 
     // A provider that repeats the same raw cursor has made no pagination
     // progress. The adapter terminates the sequence instead of rebinding that

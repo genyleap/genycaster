@@ -4,6 +4,7 @@ module;
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 module farcaster.provider.hypersnap.continuation;
 
@@ -16,12 +17,28 @@ import farcaster.storage.continuation;
 
 namespace farcaster::provider::hypersnap::continuation {
 
+std::string selectorScope(
+    const std::vector<std::pair<std::string, std::string>>& selectors)
+{
+    // User FID and canonical channel identity define the query dataset;
+    // capability identity already distinguishes feed variants. Never bind a
+    // cursor to a page size or provider-native cursor/sort parameter.
+    for (const auto& [key, value] : selectors) {
+        if (key == "fid" || key == "channel_ids") {
+            return key + ":" + value;
+        }
+    }
+    return {};
+}
+
 Store::Store(
     storage::continuation::ContinuationStore& store,
     provider::model::ProviderId providerId,
-    std::string endpointIdentity)
+    std::string endpointIdentity,
+    std::string selectorIdentity)
     : m_store(store), m_providerId(std::move(providerId)),
-      m_endpointPrefix("indexed-v2:" + std::move(endpointIdentity) + "\n")
+      m_endpointPrefix("indexed-v3:" + std::move(endpointIdentity) + "\n"
+          + std::to_string(selectorIdentity.size()) + ":" + selectorIdentity + "\n")
 {
 }
 
@@ -44,7 +61,7 @@ foundation::result::Result<std::optional<std::string>> Store::resolve(
     if (!record->providerCursor.starts_with(m_endpointPrefix)) {
         return std::unexpected(foundation::error::Error::make(
             foundation::error::ErrorCode::Conflict,
-            "Indexed read continuation belongs to a different endpoint; "
+            "Indexed read continuation belongs to a different endpoint or query selector; "
             "restart this feed from its first page."));
     }
     return std::optional<std::string>{record->providerCursor.substr(m_endpointPrefix.size())};

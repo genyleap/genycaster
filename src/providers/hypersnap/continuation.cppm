@@ -2,6 +2,8 @@ module;
 
 #include <optional>
 #include <string>
+#include <utility>
+#include <vector>
 
 export module farcaster.provider.hypersnap.continuation;
 
@@ -12,6 +14,16 @@ import farcaster.provider.model;
 import farcaster.storage.continuation;
 
 export namespace farcaster::provider::hypersnap::continuation {
+
+/**
+ * @brief Canonical adapter-private selector scope (FID or channel id).
+ *
+ * Ignores transport pagination and sorting parameters. Never accepts or
+ * persists credentials or URLs. Empty means an aggregate, unscoped operation.
+ */
+[[nodiscard]] std::string selectorScope(
+    const std::vector<std::pair<std::string, std::string>>& selectors);
+
 
 /**
  * @brief Provider-private continuation service over a borrowed SQLite mapping store.
@@ -25,9 +37,10 @@ public:
     Store(
         storage::continuation::ContinuationStore& store,
         provider::model::ProviderId providerId,
-        std::string endpointIdentity);
+        std::string endpointIdentity,
+        std::string selectorIdentity = {});
 
-    /** @brief Resolves an application token and enforces capability/provider affinity. */
+    /** @brief Resolves an application token, enforcing capability/provider/endpoint/selector affinity. */
     [[nodiscard]] foundation::result::Result<std::optional<std::string>> resolve(
         const capability::model::CapabilityId& capabilityId,
         const capability::pagination::PageRequest& pageRequest);

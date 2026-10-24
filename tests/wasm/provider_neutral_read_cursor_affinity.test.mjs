@@ -12,7 +12,8 @@ test('raw protocol and indexed continuations bind endpoint, capability, and prov
     assert.match(raw, /record->providerId\.value != m_config\.providerId\.value/);
     assert.match(raw, /record->capabilityId\.value != capabilityId\.value/);
     assert.match(raw, /different endpoint or user FID/);
-    assert.match(indexed, /"indexed-v2:" \+ std::move\(endpointIdentity\)/);
+    assert.match(indexed, /"indexed-v3:" \+ std::move\(endpointIdentity\)/);
+    assert.match(indexed, /std::to_string\(selectorIdentity\.size\(\)\)/);
     assert.match(indexed, /record->providerId\.value != m_providerId\.value/);
     assert.match(indexed, /record->capabilityId\.value != capabilityId\.value/);
     assert.match(indexed, /providerCursor\.starts_with\(m_endpointPrefix\)/);
@@ -33,6 +34,15 @@ test('all asynchronous and blocking indexed reads supply endpoint identity', () 
     assert.match(contract, /testIndexedEndpointBoundContinuation\(\)/);
     assert.match(contract, /differentEndpoint\.resolve/);
     assert.match(contract, /legacy-cursor/);
+    assert.match(contract, /differentFid\.resolve/);
+    assert.match(contract, /differentChannel\.bind/);
+    assert.match(contract, /scienceChannel\.resolve/);
+    const syncFeed = read("src/providers/hypersnap/feed.cpp");
+    const asyncFeed = read("src/providers/hypersnap/async_gateway.cpp");
+    assert.match(syncFeed, /continuation::selectorScope\(query\)/);
+    assert.match(asyncFeed, /continuation::selectorScope\(spec\.query\)/);
+    assert.match(syncFeed, /"fid:" \+ std::to_string\(fid\.value\)/);
+    assert.match(asyncFeed, /query\.kind == application::read::model::FeedQuery::Kind::UserLikes/);
 });
 
 test('no provider cursor enters the canonical cast or profile structures', () => {

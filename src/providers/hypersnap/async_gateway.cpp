@@ -1305,7 +1305,12 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
             if (group->cancelled.load(std::memory_order_acquire)) {
                 return;
             }
-            continuation::Store continuations{m_continuations, m_config.provider.id, m_config.baseUrl};
+            const std::string selectorIdentity =
+                query.kind == application::read::model::FeedQuery::Kind::UserLikes
+                    ? "fid:" + std::to_string(query.fid->value)
+                    : continuation::selectorScope(spec.query);
+            continuation::Store continuations{
+                m_continuations, m_config.provider.id, m_config.baseUrl, selectorIdentity};
             auto cursor = continuations.resolve(capabilityId, pageRequest);
             if (!cursor) {
                 completion(std::unexpected(std::move(cursor.error())));
@@ -1324,7 +1329,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                 auto reactionsOperation = m_client.getJson(
                     "/v2/farcaster/reaction/user",
                     reactionQuery,
-                    [this, group, capabilityId, requestPriority, completion = std::move(completion)](
+                    [this, group, capabilityId, selectorIdentity, requestPriority, completion = std::move(completion)](
                         foundation::result::Result<std::string> body) mutable {
                         if (group->cancelled.load(std::memory_order_acquire)) {
                             return;
@@ -1344,7 +1349,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                             std::move(reactions->providerCursor));
 
                         auto finishEmptyOrHydrated =
-                            [this, group, capabilityId, targets, providerCursor,
+                            [this, group, capabilityId, selectorIdentity, targets, providerCursor,
                              completion = std::move(completion)](
                                 std::optional<codec::FeedPayload> payload,
                                 std::optional<Error> error) mutable {
@@ -1352,7 +1357,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                                     return;
                                 }
                                 auto status = m_continuationExecutor.post(
-                                    [this, group, capabilityId, targets, providerCursor,
+                                    [this, group, capabilityId, selectorIdentity, targets, providerCursor,
                                      payload = std::move(payload), error = std::move(error),
                                      completion = std::move(completion)]() mutable {
                                         if (group->cancelled.load(std::memory_order_acquire)) {
@@ -1385,7 +1390,8 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                                             }
                                         }
                                         continuation::Store continuations{
-                                            m_continuations, m_config.provider.id, m_config.baseUrl};
+                                            m_continuations, m_config.provider.id,
+                                            m_config.baseUrl, selectorIdentity};
                                         auto next = continuations.bind(
                                             capabilityId, std::move(*providerCursor));
                                         if (!next) {
@@ -1481,13 +1487,13 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
             auto preferred = m_client.getJson(
                 communityContinuation ? "/v2/farcaster/feed/following" : spec.path,
                 preferredQuery,
-                [this, group, spec, capabilityId, pageRequest, resolvedCursor, requestPriority,
+                [this, group, spec, capabilityId, selectorIdentity, pageRequest, resolvedCursor, requestPriority,
                  communityContinuation, collectibleState,
                  completion = std::move(completion)](
                     foundation::result::Result<std::string> body) mutable {
                     auto process = std::make_shared<std::function<void(
                         foundation::result::Result<std::string>, bool)>>(
-                        [this, group, spec, capabilityId, resolvedCursor, requestPriority,
+                        [this, group, spec, capabilityId, selectorIdentity, resolvedCursor, requestPriority,
                          collectibleState, completion = std::move(completion)](
                                        foundation::result::Result<std::string> selectedBody,
                                        const bool communityFallback) mutable {
@@ -1563,20 +1569,21 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                             filterReplies(page);
                             break;
                         }
-                        auto finishPage = [this, group, capabilityId,
+                        auto finishPage = [this, group, capabilityId, selectorIdentity,
                                            providerCursor = std::move(providerCursor),
                                            completion = std::move(completion)](
                                               capability::feed::FeedPage completedPage) mutable {
                             auto completionState = std::make_shared<
                                 application::read::async_gateway::FeedCompletion>(std::move(completion));
                             auto status = m_continuationExecutor.post(
-                                [this, group, capabilityId, providerCursor = std::move(providerCursor),
+                                [this, group, capabilityId, selectorIdentity, providerCursor = std::move(providerCursor),
                                  page = std::move(completedPage), completionState]() mutable {
                                     if (group->cancelled.load(std::memory_order_acquire) || !*completionState) {
                                         return;
                                     }
                                     continuation::Store continuations{
-                                        m_continuations, m_config.provider.id, m_config.baseUrl};
+                                        m_continuations, m_config.provider.id,
+                                        m_config.baseUrl, selectorIdentity};
                                     auto next = continuations.bind(
                                         capabilityId, std::move(providerCursor));
                                     auto finalCompletion = std::move(*completionState);
@@ -1827,7 +1834,9 @@ foundation::result::Result<AppRequest> AsyncGateway::notifications(
     auto group = std::make_shared<Group>();
     auto scheduled = m_continuationExecutor.post(
         [this, group, query = std::move(query), completion = std::move(completion)]() mutable {
-            continuation::Store continuations{m_continuations, m_config.provider.id, m_config.baseUrl};
+            const std::string selectorIdentity = "fid:" + std::to_string(query.viewer.value);
+            continuation::Store continuations{
+                m_continuations, m_config.provider.id, m_config.baseUrl, selectorIdentity};
             const auto capabilityId = capability::catalog::notificationsRead();
             const capability::pagination::PageRequest pageRequest{
                 .limit = query.limit,
@@ -1848,7 +1857,7 @@ foundation::result::Result<AppRequest> AsyncGateway::notifications(
             auto operation = m_client.getJson(
                 "/v2/farcaster/notifications",
                 parameters,
-                [this, group, capabilityId, completion = std::move(completion)](
+                [this, group, capabilityId, selectorIdentity, completion = std::move(completion)](
                     foundation::result::Result<std::string> body) mutable {
                     if (!body) {
                         completion(std::unexpected(std::move(body.error())));
@@ -1860,12 +1869,15 @@ foundation::result::Result<AppRequest> AsyncGateway::notifications(
                         return;
                     }
                     auto status = m_continuationExecutor.post(
-                        [this, group, capabilityId, payload = std::move(*payload),
+                        [this, group, capabilityId, selectorIdentity,
+                         payload = std::move(*payload),
                          completion = std::move(completion)]() mutable {
                             if (group->cancelled.load(std::memory_order_acquire)) {
                                 return;
                             }
-                            continuation::Store continuations{m_continuations, m_config.provider.id, m_config.baseUrl};
+                            continuation::Store continuations{
+                                m_continuations, m_config.provider.id, m_config.baseUrl,
+                                selectorIdentity};
                             auto next = continuations.bind(
                                 capabilityId, std::move(payload.providerCursor));
                             if (!next) {
@@ -1909,7 +1921,9 @@ foundation::result::Result<AppRequest> AsyncGateway::social(
             const auto capabilityId = query.kind == application::read::model::SocialQuery::Kind::Followers
                 ? capability::catalog::graphFollowersRead()
                 : capability::catalog::graphFollowingRead();
-            continuation::Store continuations{m_continuations, m_config.provider.id, m_config.baseUrl};
+            continuation::Store continuations{
+                m_continuations, m_config.provider.id, m_config.baseUrl,
+                "fid:" + std::to_string(query.fid.value)};
             const capability::pagination::PageRequest pageRequest{
                 .limit = query.limit,
                 .continuation = query.continuation,
@@ -1960,7 +1974,9 @@ foundation::result::Result<AppRequest> AsyncGateway::social(
                                     .kind = domain::social::SocialRelationKind::Follows,
                                 });
                             }
-                            continuation::Store continuations{m_continuations, m_config.provider.id, m_config.baseUrl};
+                            continuation::Store continuations{
+                                m_continuations, m_config.provider.id, m_config.baseUrl,
+                                "fid:" + std::to_string(query.fid.value)};
                             auto next = continuations.bind(
                                 capabilityId, std::move(payload.providerCursor));
                             if (!next) {
