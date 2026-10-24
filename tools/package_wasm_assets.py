@@ -17,6 +17,7 @@ parser.add_argument("--dir", required=True, type=Path)
 parser.add_argument("--app-version", default="", help="CMake PROJECT_VERSION; omit when packaging standalone fixtures")
 parser.add_argument("--release-label", default="", help="Public release designation, e.g. Beta 1.0")
 parser.add_argument("--source", type=Path, help="Refresh public source assets without relinking WASM")
+parser.add_argument("--release-notes", type=Path, help="Curated release metadata shipped with this build")
 args = parser.parse_args()
 directory = args.dir.resolve()
 if args.source:
@@ -89,11 +90,23 @@ for script in scripts:
         script, html)
 html_path.write_text(html, encoding="utf-8")
 checksums = {name: digest(directory / name) for name in public}
+release_notes = None
+if args.release_notes:
+    notes = json.loads(args.release_notes.read_text(encoding="utf-8"))
+    if (not isinstance(notes, dict)
+        or notes.get("type") not in {"fix", "improvement", "feature", "security", "maintenance"}
+        or not isinstance(notes.get("title"), str) or not notes["title"].strip()
+        or not isinstance(notes.get("changes"), list) or not 1 <= len(notes["changes"]) <= 12
+        or any(not isinstance(item, str) or not item.strip() or len(item) > 300 for item in notes["changes"])):
+        parser.error("Release notes must have a type, title and 1..12 bounded changes")
+    release_notes = {"type": notes["type"], "title": notes["title"][:120],
+                     "changes": [item.strip() for item in notes["changes"]]}
 # Include the semantic version in the release fingerprint as well as files:
 # a version-only update must be visible to the PWA cache update protocol.
 fingerprint = hashlib.sha256(json.dumps({
     "files": checksums, "wasmSha256": hash_full,
     "appVersion": args.app_version, "releaseLabel": args.release_label,
+    "releaseNotes": release_notes,
 }, sort_keys=True).encode()).hexdigest()[:20]
 for script in scripts:
     html = html.replace(f'src="{script}"',
@@ -111,6 +124,8 @@ if args.app_version:
     release["appVersion"] = args.app_version
 if args.release_label:
     release["releaseLabel"] = args.release_label
+if release_notes:
+    release["releaseNotes"] = release_notes
 manifest = directory / "genycaster-assets.json"
 manifest.write_text(json.dumps(release, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 # JS config is intentionally small and contains no user data or secrets.

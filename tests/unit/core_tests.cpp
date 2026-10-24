@@ -1,6 +1,7 @@
 #include <cassert>
 #include <charconv>
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <expected>
 #include <functional>
@@ -650,7 +651,9 @@ class PendingAsyncReadGateway final
 public:
     bool sourceCancelled{false};
     int feedCalls{0};
+    int profileCalls{0};
     farcaster::application::read::async_gateway::FeedCompletion pendingFeed{};
+    farcaster::application::read::async_gateway::ProfileCompletion pendingProfile{};
 
     [[nodiscard]] farcaster::foundation::result::Result<
         farcaster::application::read::async_gateway::Request>
@@ -666,10 +669,14 @@ public:
         farcaster::application::read::async_gateway::Request>
     profile(
         farcaster::domain::identity::Fid,
-        farcaster::application::read::async_gateway::ProfileCompletion,
+        farcaster::application::read::async_gateway::ProfileCompletion completion,
         farcaster::application::read::model::ReadOptions) override
     {
-        return unsupported();
+        ++profileCalls;
+        sourceCancelled = false;
+        pendingProfile = std::move(completion);
+        return farcaster::application::read::async_gateway::Request{
+            [this] { sourceCancelled = true; }};
     }
 
     [[nodiscard]] farcaster::foundation::result::Result<
@@ -724,6 +731,15 @@ public:
         farcaster::application::read::model::ReadOptions) override
     {
         return unsupported();
+    }
+
+    void completePendingProfile(
+        farcaster::foundation::result::Result<farcaster::domain::profile::Profile> result)
+    {
+        auto completion = std::move(pendingProfile);
+        pendingProfile = {};
+        assert(completion);
+        completion(std::move(result));
     }
 
     void completePending(
@@ -933,6 +949,125 @@ void testCapabilityCircuitBreakerAndIsolation()
     assert(trendingHealth->state == routing::health::HealthState::Healthy);
     assert(routing::health::isRetryableFailure(foundation::error::ErrorCode::RateLimited));
     assert(!routing::health::isRetryableFailure(foundation::error::ErrorCode::NotFound));
+}
+
+void testAsyncProfileEnrichmentNeedsConsentAndRetainsPrimaryIdentity()
+{
+    using namespace farcaster;
+    routing::registry::CapabilityRegistry registry{};
+    routing::health::HealthRegistry health{};
+    const auto registerProfile = [&registry](std::string id, std::uint16_t priority) {
+        return registry.registerProvider(routing::registry::ProviderRegistration{
+            .provider = provider::model::ProviderDescriptor{
+                .id = provider::model::ProviderId{std::move(id)},
+                .displayName = "Test profile provider",
+                .deployment = provider::model::ProviderDeployment::PublicManaged,
+                .privacy = provider::model::ProviderPrivacy::Standard,
+                .priority = priority,
+            },
+            .capabilities = {feedCapabilityFor(
+                capability::catalog::profileRead(),
+                capability::model::CapabilityOrigin::Protocol)},
+        });
+    };
+    assert(registerProfile("raw-profile", 5));
+    assert(registerProfile("indexed-counts", 10));
+    routing::router::CapabilityRouter router{
+        registry, health,
+        routing::policy::RoutingPolicy{
+            .mode = routing::policy::RoutingMode::Standard,
+            .allowManagedProviders = true,
+            .minimumQuality = capability::model::CapabilityQuality::Experimental,
+        },
+    };
+    router.setPreferredProviderForAccess(
+        capability::model::CapabilityAccess::Read,
+        routing::router::ProviderPreference{
+            .provider = provider::model::ProviderId{"raw-profile"}, .require = true});
+    PendingAsyncReadGateway raw{};
+    PendingAsyncReadGateway indexed{};
+    const std::vector<routing::read::async_gateway::SourceBinding> sources{
+        {.providerId = provider::model::ProviderId{"raw-profile"},
+         .gateway = &raw, .providesProfileCounts = false},
+        {.providerId = provider::model::ProviderId{"indexed-counts"},
+         .gateway = &indexed, .providesProfileCounts = true},
+    };
+    const auto rawProfile = [] {
+        return domain::profile::Profile{
+            .fid = domain::identity::Fid{42},
+            .username = domain::identity::Username{"raw-alice"},
+            .socialCountsKnown = false,
+        };
+    };
+    const auto indexedProfile = [] {
+        return domain::profile::Profile{
+            .fid = domain::identity::Fid{42},
+            .username = domain::identity::Username{"indexed-alice"},
+            .followerCount = 88'000,
+            .followingCount = 221,
+            .socialCountsKnown = true,
+        };
+    };
+    // Consent OFF: an eligible indexed provider must receive no query.
+    {
+        routing::read::async_gateway::RoutedReadGateway gateway{router, health, sources, false};
+        bool finished = false;
+        auto request = gateway.profile(domain::identity::Fid{42},
+            [&](foundation::result::Result<domain::profile::Profile> result) {
+                assert(result && !result->socialCountsKnown);
+                finished = true;
+            });
+        assert(request && raw.profileCalls == 1 && indexed.profileCalls == 0);
+        raw.completePendingProfile(rawProfile());
+        assert(finished);
+    }
+    // Consent ON: preserve selected raw identity and accept only matching-FID totals.
+    {
+        routing::read::async_gateway::RoutedReadGateway gateway{router, health, sources, true};
+        bool finished = false;
+        auto request = gateway.profile(domain::identity::Fid{42},
+            [&](foundation::result::Result<domain::profile::Profile> result) {
+                assert(result && result->socialCountsKnown);
+                assert(result->username && result->username->value == "raw-alice");
+                assert(result->followerCount == 88'000);
+                assert(result->followingCount == 221);
+                finished = true;
+            });
+        assert(request);
+        raw.completePendingProfile(rawProfile());
+        assert(indexed.profileCalls == 1 && !finished);
+        indexed.completePendingProfile(indexedProfile());
+        assert(finished);
+    }
+    // Mismatched FID never leaks another account's totals.
+    {
+        routing::read::async_gateway::RoutedReadGateway gateway{router, health, sources, true};
+        bool finished = false;
+        auto request = gateway.profile(domain::identity::Fid{42},
+            [&](foundation::result::Result<domain::profile::Profile> result) {
+                assert(result && !result->socialCountsKnown);
+                finished = true;
+            });
+        assert(request);
+        raw.completePendingProfile(rawProfile());
+        auto wrong = indexedProfile();
+        wrong.fid = domain::identity::Fid{99};
+        indexed.completePendingProfile(wrong);
+        assert(finished);
+    }
+    // A cancelled profile must not emit a delayed supplemental completion.
+    {
+        routing::read::async_gateway::RoutedReadGateway gateway{router, health, sources, true};
+        bool fired = false;
+        auto request = gateway.profile(domain::identity::Fid{42},
+            [&](foundation::result::Result<domain::profile::Profile>) { fired = true; });
+        assert(request);
+        raw.completePendingProfile(rawProfile());
+        request->cancel();
+        assert(raw.sourceCancelled && indexed.sourceCancelled);
+        indexed.completePendingProfile(indexedProfile());
+        assert(!fired);
+    }
 }
 
 void testAsyncPrefetchFailureDoesNotConsumeCircuitHealth()
@@ -1165,6 +1300,7 @@ int main()
     testSyncCoordinator();
     testRoutedReadGatewayDispatchesByCapability();
     testCapabilityCircuitBreakerAndIsolation();
+    testAsyncProfileEnrichmentNeedsConsentAndRetainsPrimaryIdentity();
     testAsyncPrefetchFailureDoesNotConsumeCircuitHealth();
     testAsyncRecoveryProbeTerminalization();
     return 0;

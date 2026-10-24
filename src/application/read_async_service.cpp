@@ -498,6 +498,17 @@ foundation::result::Result<ReadRequest> ReadService::openProfile(
                                 publish(control, observer, std::move(state));
                                 return;
                             }
+                            // The raw UserData API has no aggregate Follow counts.
+                            // Preserve a previously verified indexed snapshot rather
+                            // than overwriting it with an invented zero/unknown pair.
+                            if (!fresh->socialCountsKnown) {
+                                auto previous = m_store.findProfile(fid);
+                                if (previous && *previous && (*previous)->socialCountsKnown) {
+                                    fresh->followerCount = (*previous)->followerCount;
+                                    fresh->followingCount = (*previous)->followingCount;
+                                    fresh->socialCountsKnown = true;
+                                }
+                            }
                             auto saved = m_store.putProfile(*fresh);
                             if (!saved) {
                                 state.profile = std::move(*fresh);

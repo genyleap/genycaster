@@ -4758,6 +4758,26 @@
             <source>Posted via %1</source>
             <translation>通过 %1 发布</translation>
         </message>
+        <message id="genycaster.update.type_fix">
+            <source>Bug fixes</source>
+            <translation>错误修复</translation>
+        </message>
+        <message id="genycaster.update.type_improvement">
+            <source>Improvements</source>
+            <translation>改进</translation>
+        </message>
+        <message id="genycaster.update.type_feature">
+            <source>New features</source>
+            <translation>新功能</translation>
+        </message>
+        <message id="genycaster.update.type_security">
+            <source>Security update</source>
+            <translation>安全更新</translation>
+        </message>
+        <message id="genycaster.update.type_maintenance">
+            <source>Maintenance</source>
+            <translation>维护</translation>
+        </message>
         <message id="genycaster.update.available">
             <source>Genycaster update available</source>
             <translation>Genycaster 有可用更新</translation>

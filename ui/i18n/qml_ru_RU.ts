@@ -4758,6 +4758,26 @@
             <source>Posted via %1</source>
             <translation>Отправлено через %1</translation>
         </message>
+        <message id="genycaster.update.type_fix">
+            <source>Bug fixes</source>
+            <translation>Исправления ошибок</translation>
+        </message>
+        <message id="genycaster.update.type_improvement">
+            <source>Improvements</source>
+            <translation>Улучшения</translation>
+        </message>
+        <message id="genycaster.update.type_feature">
+            <source>New features</source>
+            <translation>Новые возможности</translation>
+        </message>
+        <message id="genycaster.update.type_security">
+            <source>Security update</source>
+            <translation>Обновление безопасности</translation>
+        </message>
+        <message id="genycaster.update.type_maintenance">
+            <source>Maintenance</source>
+            <translation>Обслуживание</translation>
+        </message>
         <message id="genycaster.update.available">
             <source>Genycaster update available</source>
             <translation>Доступно обновление Genycaster</translation>

@@ -4758,6 +4758,26 @@
             <source>Posted via %1</source>
             <translation>ارسال‌شده با %1</translation>
         </message>
+        <message id="genycaster.update.type_fix">
+            <source>Bug fixes</source>
+            <translation>رفع اشکال</translation>
+        </message>
+        <message id="genycaster.update.type_improvement">
+            <source>Improvements</source>
+            <translation>بهبودها</translation>
+        </message>
+        <message id="genycaster.update.type_feature">
+            <source>New features</source>
+            <translation>ویژگی‌های جدید</translation>
+        </message>
+        <message id="genycaster.update.type_security">
+            <source>Security update</source>
+            <translation>به‌روزرسانی امنیتی</translation>
+        </message>
+        <message id="genycaster.update.type_maintenance">
+            <source>Maintenance</source>
+            <translation>نگه‌داری</translation>
+        </message>
         <message id="genycaster.update.available">
             <source>Genycaster update available</source>
             <translation>به‌روزرسانی جنی‌کستر آماده است</translation>

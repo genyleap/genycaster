@@ -4758,6 +4758,26 @@
             <source>Posted via %1</source>
             <translation>Publicado desde %1</translation>
         </message>
+        <message id="genycaster.update.type_fix">
+            <source>Bug fixes</source>
+            <translation>Corrección de errores</translation>
+        </message>
+        <message id="genycaster.update.type_improvement">
+            <source>Improvements</source>
+            <translation>Mejoras</translation>
+        </message>
+        <message id="genycaster.update.type_feature">
+            <source>New features</source>
+            <translation>Nuevas funciones</translation>
+        </message>
+        <message id="genycaster.update.type_security">
+            <source>Security update</source>
+            <translation>Actualización de seguridad</translation>
+        </message>
+        <message id="genycaster.update.type_maintenance">
+            <source>Maintenance</source>
+            <translation>Mantenimiento</translation>
+        </message>
         <message id="genycaster.update.available">
             <source>Genycaster update available</source>
             <translation>Actualización de Genycaster disponible</translation>

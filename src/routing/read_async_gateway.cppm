@@ -30,6 +30,8 @@ export namespace farcaster::routing::read::async_gateway {
 struct SourceBinding final {
     provider::model::ProviderId providerId{};
     application::read::async_gateway::IAsyncReadGateway* gateway{};
+    /** Adapter contract supplies verified aggregate profile social counts. */
+    bool providesProfileCounts{false};
 };
 
 /**
@@ -44,7 +46,8 @@ public:
     RoutedReadGateway(
         const router::CapabilityRouter& router,
         health::HealthRegistry& health,
-        std::vector<SourceBinding> bindings) noexcept;
+        std::vector<SourceBinding> bindings,
+        bool allowCompatibleProfileEnrichment = false) noexcept;
 
     [[nodiscard]] foundation::result::Result<application::read::async_gateway::Request>
     resolveIdentity(
@@ -95,6 +98,7 @@ private:
     const router::CapabilityRouter& m_router;
     health::HealthRegistry& m_health;
     std::vector<SourceBinding> m_bindings{};
+    bool m_allowCompatibleProfileEnrichment{false};
 };
 
 }

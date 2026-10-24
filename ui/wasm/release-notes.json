@@ -1,0 +1,10 @@
+{
+  "type": "fix",
+  "title": "Profile accuracy and release details",
+  "changes": [
+    "Preserve verified cached follower and following totals when a raw node cannot supply counts.",
+    "Explain unavailable social totals without displaying a false zero.",
+    "Describe the type of WebAssembly update and show the published release changes before refreshing.",
+    "Keep the selected read node independent from any optional profile-metadata fallback."
+  ]
+}

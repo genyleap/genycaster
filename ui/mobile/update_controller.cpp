@@ -105,9 +105,13 @@ UpdateController::UpdateController(QSettings& settings, const bool startupCheck,
         if (m_autoCheckEnabled) check(false);
     });
 #if defined(__EMSCRIPTEN__)
-    // Browser deployments update through the public WASM asset manifest,
-    // not GitHub's native installer releases.
-    Q_UNUSED(startupCheck)
+    // Browser updates are discovered from the same-origin release manifest,
+    // never from desktop GitHub installer releases.
+    m_webCurrentBuild = QString::fromUtf8(emscripten_run_script_string(
+        "(window.__genycasterAssets && window.__genycasterAssets.version) || ''"));
+    if (startupCheck && m_autoCheckEnabled) {
+        QTimer::singleShot(12'000, this, [this] { check(false); });
+    }
 #else
     m_periodic->start();
     if (startupCheck) {
@@ -143,6 +147,8 @@ bool UpdateController::updateAvailable() const { return m_updateAvailable; }
 QString UpdateController::latestVersion() const { return m_latestVersion; }
 QString UpdateController::releaseTitle() const { return m_releaseTitle; }
 QString UpdateController::releaseNotes() const { return m_releaseNotes; }
+QString UpdateController::releaseType() const { return m_releaseType; }
+QString UpdateController::webCurrentBuild() const { return m_webCurrentBuild.left(8); }
 QString UpdateController::releasePublishedAt() const { return m_releasePublishedAt; }
 QString UpdateController::status() const { return m_status; }
 QString UpdateController::error() const { return m_error; }
@@ -254,8 +260,85 @@ void UpdateController::refreshWebApp()
 #endif
 }
 
+void UpdateController::checkWebManifest(const bool manual)
+{
+#if defined(__EMSCRIPTEN__)
+    if (m_checking || m_downloading || m_webRefreshing) return;
+    m_checking = true;
+    m_error.clear();
+    m_status = QStringLiteral("Checking the WebAssembly release…");
+    emit changed();
+
+    const QString location = QString::fromUtf8(emscripten_run_script_string(
+        "new URL('./genycaster-assets.json', window.location.href).href"));
+    QUrl url{location};
+    // Reject cross-origin manifests, even after redirects.
+    const QUrl page{QString::fromUtf8(emscripten_run_script_string(
+        "window.location.origin"))};
+    if (url.scheme() != QStringLiteral("https") || url.scheme() != page.scheme()
+        || url.host() != page.host() || url.port(443) != page.port(443)) {
+        m_checking = false;
+        fail(QStringLiteral("Invalid WebAssembly update origin"));
+        return;
+    }
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("check"), QString::number(QDateTime::currentMSecsSinceEpoch()));
+    url.setQuery(query);
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setRawHeader("Cache-Control", "no-cache, no-store");
+    request.setTransferTimeout(12'000);
+    auto* reply = m_network.get(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, manual] {
+        m_checking = false;
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray data = reply->readAll();
+        const auto error = reply->error();
+        reply->deleteLater();
+        const QJsonDocument manifest = QJsonDocument::fromJson(data);
+        const QJsonObject root = manifest.object();
+        const QString fingerprint = root.value(QStringLiteral("version")).toString();
+        const QString build = root.value(QStringLiteral("buildId")).toString();
+        if (error != QNetworkReply::NoError || status != 200
+            || data.size() > 100'000 || !manifest.isObject()
+            || fingerprint.size() != 20 || build != fingerprint.left(8)
+            || !root.value(QStringLiteral("files")).isArray()) {
+            if (manual) fail(QStringLiteral("Could not verify WebAssembly release metadata"));
+            else { m_status = QStringLiteral("Web update check unavailable"); emit changed(); }
+            return;
+        }
+        const QJsonObject notes = root.value(QStringLiteral("releaseNotes")).toObject();
+        m_releaseType = notes.value(QStringLiteral("type")).toString();
+        m_releaseTitle = notes.value(QStringLiteral("title")).toString().left(120);
+        const QJsonArray changes = notes.value(QStringLiteral("changes")).toArray();
+        QStringList lines;
+        for (const auto& change : changes) {
+            const QString entry = change.toString().trimmed();
+            if (!entry.isEmpty() && entry.size() <= 300 && lines.size() < 12)
+                lines.push_back(QStringLiteral("• ") + entry);
+        }
+        m_releaseNotes = lines.join(QLatin1Char('\n'));
+        m_releasePublishedAt.clear(); // A build hash does not prove a publication date.
+        m_latestVersion = build;
+        m_updateAvailable = !m_webCurrentBuild.isEmpty() && fingerprint != m_webCurrentBuild;
+        m_status = m_updateAvailable
+            ? QStringLiteral("New WebAssembly build available")
+            : QStringLiteral("WebAssembly build is up to date");
+        m_error.clear();
+        emit changed();
+    });
+#else
+    Q_UNUSED(manual);
+#endif
+}
+
 void UpdateController::check(const bool manual)
 {
+#if defined(__EMSCRIPTEN__)
+    checkWebManifest(manual);
+    return;
+#endif
     if (m_checking || m_downloading) return;
     m_checking = true;
     m_error.clear();

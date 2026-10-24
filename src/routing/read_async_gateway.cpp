@@ -4,6 +4,8 @@ module;
 #include <chrono>
 #include <expected>
 #include <memory>
+#include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -254,10 +256,12 @@ template <typename Completion, typename Starter>
 RoutedReadGateway::RoutedReadGateway(
     const router::CapabilityRouter& router,
     health::HealthRegistry& health,
-    std::vector<SourceBinding> bindings) noexcept
+    std::vector<SourceBinding> bindings,
+    const bool allowCompatibleProfileEnrichment) noexcept
     : m_router(router),
       m_health(health),
-      m_bindings(std::move(bindings))
+      m_bindings(std::move(bindings)),
+      m_allowCompatibleProfileEnrichment(allowCompatibleProfileEnrichment)
 {
 }
 
@@ -313,10 +317,83 @@ foundation::result::Result<AppRequest> RoutedReadGateway::profile(
     if (!binding) {
         return std::unexpected(std::move(binding.error()));
     }
-    return startObserved(m_health, *route, capabilityId, options, std::move(completion),
+    // Enrich *only* absent metadata, and only after explicit user consent.
+    // The selected provider remains authoritative for identity, biography
+    // and cast content. Never send a FID to another provider in strict mode.
+    application::read::async_gateway::IAsyncReadGateway* supplemental = nullptr;
+    if (m_allowCompatibleProfileEnrichment && !(*binding)->providesProfileCounts) {
+        for (const auto& candidate : m_bindings) {
+            if (candidate.providesProfileCounts && candidate.gateway
+                && candidate.providerId.value != route->provider.id.value
+                && m_router.isEligibleProvider(candidate.providerId,
+                                               requestFor(capabilityId, options))) {
+                supplemental = candidate.gateway;
+                break;
+            }
+        }
+    }
+    if (!supplemental) {
+        return startObserved(m_health, *route, capabilityId, options, std::move(completion),
+            [gateway = (*binding)->gateway, fid, options](auto observed) {
+                return gateway->profile(fid, std::move(observed), options);
+            });
+    }
+    struct Enrichment final {
+        std::mutex mutex{};
+        std::atomic_bool cancelled{false};
+        std::atomic_bool delivered{false};
+        std::optional<AppRequest> primary{};
+        std::optional<AppRequest> secondary{};
+        void cancel() {
+            cancelled.store(true, std::memory_order_release);
+            std::scoped_lock lock{mutex};
+            if (primary) primary->cancel();
+            if (secondary) secondary->cancel();
+        }
+    };
+    auto state = std::make_shared<Enrichment>();
+    auto finish = std::make_shared<application::read::async_gateway::ProfileCompletion>(
+        std::move(completion));
+    const auto deliver = [state, finish](
+        foundation::result::Result<domain::profile::Profile> result) {
+        if (!state->cancelled.load(std::memory_order_acquire)
+            && !state->delivered.exchange(true, std::memory_order_acq_rel))
+            (*finish)(std::move(result));
+    };
+    auto started = startObserved(m_health, *route, capabilityId, options,
+        [state, deliver, supplemental, fid, options](
+            foundation::result::Result<domain::profile::Profile> raw) mutable {
+            if (state->cancelled.load(std::memory_order_acquire)) return;
+            if (!raw || raw->socialCountsKnown)
+                return deliver(std::move(raw));
+            auto base = std::make_shared<domain::profile::Profile>(std::move(*raw));
+            auto fallback = supplemental->profile(fid,
+                [state, deliver, base, fid](
+                    foundation::result::Result<domain::profile::Profile> indexed) mutable {
+                    if (state->cancelled.load(std::memory_order_acquire)) return;
+                    if (indexed && indexed->fid.value == fid.value
+                        && indexed->socialCountsKnown) {
+                        base->followerCount = indexed->followerCount;
+                        base->followingCount = indexed->followingCount;
+                        base->socialCountsKnown = true;
+                    }
+                    deliver(std::move(*base));
+                }, options);
+            if (!fallback) return deliver(std::move(*base));
+            std::scoped_lock lock{state->mutex};
+            if (state->cancelled.load(std::memory_order_acquire))
+                fallback->cancel();
+            else state->secondary = std::move(*fallback);
+        },
         [gateway = (*binding)->gateway, fid, options](auto observed) {
             return gateway->profile(fid, std::move(observed), options);
         });
+    if (!started) return started;
+    {
+        std::scoped_lock lock{state->mutex};
+        state->primary = std::move(*started);
+    }
+    return AppRequest{[state] { state->cancel(); }};
 }
 
 foundation::result::Result<AppRequest> RoutedReadGateway::cast(

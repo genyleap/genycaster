@@ -41,9 +41,6 @@ Drawer {
     }
 
     function presentAvailableUpdate() {
-        // WASM uses the browser's live-build manifest drawer. Avoid a second
-        // GitHub-release popup layered on top of the same Qt canvas.
-        if (Qt.platform.os === "wasm") return
         const version = String(updateController.latestVersion || "")
         if (updateController.updateAvailable && version.length > 0
                 && version !== lastPresentedVersion) {
@@ -128,7 +125,9 @@ Drawer {
                     font.pixelSize: Theme.typeCaptionSize
                 }
                 DirectionAwareLabel {
-                    text: String(updateController.appVersion || "—")
+                    text: Qt.platform.os === "wasm"
+                          ? String(updateController.webCurrentBuild || "—")
+                          : String(updateController.appVersion || "—")
                     font.pixelSize: Theme.typeLabelSize
                     font.weight: Theme.weightDemiBold
                     color: Theme.ink
@@ -169,6 +168,12 @@ Drawer {
                     font.weight: Theme.weightDemiBold
                 }
                 DirectionAwareLabel {
+                    visible: updateController.releaseType.length > 0
+                    text: qsTrId("genycaster.update.type_" + updateController.releaseType)
+                    color: Theme.accent
+                    font.pixelSize: Theme.typeCaptionSize
+                }
+                DirectionAwareLabel {
                     visible: updateController.releasePublishedAt.length > 0
                     text: updateController.releasePublishedAt
                     color: Theme.inkMuted
@@ -202,6 +207,7 @@ Drawer {
                 Layout.fillWidth: true
                 compact: true
                 quiet: true
+                visible: Qt.platform.os !== "wasm"
                 text: qsTrId("genycaster.update.notes")
                 iconGlyph: Theme.iconArrowUpRight
                 onClicked: {

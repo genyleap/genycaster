@@ -19,6 +19,11 @@ Superellipse {
     readonly property bool loading: root.busy && root.sampleRows.length === 0
     readonly property int castCount: root.sampleRows.length
     readonly property int activeAuthors: root.uniqueAuthorCount()
+    // A raw protocol CastAdd does not include aggregate reactions. Missing
+    // counts must not appear as verified zero engagement in profile analytics.
+    readonly property bool engagementAvailable: typeof providerProfiles === "undefined"
+                                                || providerProfiles === null
+                                                || providerProfiles.activeReadContract !== "snapchain-v1"
     readonly property int engagementTotal: root.totalEngagement()
     readonly property double averageEngagement: root.castCount > 0 ? root.engagementTotal / root.castCount : 0
     readonly property var activityBuckets: root.buildActivityBuckets()
@@ -190,14 +195,14 @@ Superellipse {
                 labelText: root.scopeMode === "profile" ? qsTrId("genycaster.feed_pulse.posts_loaded") : qsTrId("genycaster.feed_pulse.authors_loaded")
             }
             PulseMetric {
-                valueText: root.loading ? "—"
+                valueText: root.loading || (root.scopeMode === "profile" && !root.engagementAvailable) ? "—"
                            : root.scopeMode === "profile"
                              ? LocaleFormat.formatCompactNumber(root.engagementTotal)
                              : LocaleFormat.formatCompactNumber(root.castCount)
                 labelText: root.scopeMode === "profile" ? qsTrId("genycaster.feed_pulse.interactions") : qsTrId("genycaster.context.community_casts_loaded")
             }
             PulseMetric {
-                valueText: root.loading ? "—"
+                valueText: root.loading || (root.scopeMode === "profile" && !root.engagementAvailable) ? "—"
                            : root.scopeMode === "profile"
                              ? LocaleFormat.formatNumber(root.averageEngagement, 1)
                              : LocaleFormat.formatCompactNumber(root.engagementTotal)

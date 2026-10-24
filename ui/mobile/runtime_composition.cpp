@@ -1237,11 +1237,13 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     bindings.push_back({
         .providerId = descriptor.id,
         .gateway = runtime->asyncGateway.get(),
+        .providesProfileCounts = true,
     });
     if (runtime->farcasterReadGateway) {
         bindings.push_back({
             .providerId = farcaster::provider::model::ProviderId{"farcaster-snapchain"},
             .gateway = runtime->farcasterReadGateway.get(),
+            .providesProfileCounts = true,
         });
     }
     for (std::size_t index = 0; index < runtime->additionalReadGateways.size(); ++index) {
@@ -1249,6 +1251,7 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
             .providerId = farcaster::provider::model::ProviderId{
                 runtime->additionalReadProviderIds[index]},
             .gateway = runtime->additionalReadGateways[index].get(),
+            .providesProfileCounts = true,
         });
     }
 #endif
@@ -1259,7 +1262,8 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         });
     }
     runtime->routedAsyncGateway = std::make_unique<routing::read::async_gateway::RoutedReadGateway>(
-        *runtime->router, runtime->health, std::move(bindings));
+        *runtime->router, runtime->health, std::move(bindings),
+        allowCompatibleReadFallback);
     runtime->service = std::make_unique<application::read::async_service::ReadService>(
         *runtime->cacheExecutor, *runtime->store, *runtime->routedAsyncGateway);
 #else

@@ -2173,6 +2173,45 @@ GenyDrawer {
                                 color: Theme.ink
                                 wrapMode: Text.WordWrap
                             }
+                            ActionButton {
+                                Layout.fillWidth: true
+                                quiet: true
+                                enabled: !updateController.checking && !updateController.webRefreshing
+                                text: updateController.checking
+                                      ? qsTrId("genycaster.settings.checking")
+                                      : qsTrId("genycaster.settings.check_now")
+                                onClicked: updateController.checkForUpdates()
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                visible: updateController.latestVersion.length > 0
+                                text: qsTrId("genycaster.update.current") + ": "
+                                      + String(updateController.webCurrentBuild || "—")
+                                      + "  →  " + qsTrId("genycaster.update.new") + ": "
+                                      + updateController.latestVersion
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.Wrap
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                visible: updateController.releaseType.length > 0
+                                text: qsTrId("genycaster.update.type_" + updateController.releaseType)
+                                      + (updateController.releaseTitle.length > 0
+                                         ? " · " + updateController.releaseTitle : "")
+                                color: Theme.accent
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.Wrap
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                visible: updateController.releaseNotes.length > 0
+                                text: updateController.releaseNotes
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.Wrap
+                                textFormat: Text.PlainText
+                            }
                             DirectionAwareLabel {
                                 visible: updateController.error.length > 0
                                 Layout.fillWidth: true
