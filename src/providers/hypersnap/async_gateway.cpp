@@ -892,7 +892,7 @@ foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
     auto start = m_continuationExecutor.post(
         [this, group, capabilityId, pageRequest, requestPriority, deliver, repliesOnly]() mutable {
             if (group->cancelled.load(std::memory_order_acquire)) { return; }
-            continuation::Store store{m_continuations, m_config.provider.id};
+            continuation::Store store{m_continuations, m_config.provider.id, m_config.baseUrl};
             auto raw = store.resolve(capabilityId, pageRequest);
             if (!raw) {
                 deliver(std::unexpected(std::move(raw.error())));
@@ -975,7 +975,7 @@ foundation::result::Result<AppRequest> AsyncGateway::recentFeed(
                                                 return;
                                             }
                                             continuation::Store completedStore{
-                                                m_continuations, m_config.provider.id};
+                                                m_continuations, m_config.provider.id, m_config.baseUrl};
                                             auto next = completedStore.bind(
                                                 capabilityId, std::move(nextCursor));
                                             if (!next) {
@@ -1305,7 +1305,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
             if (group->cancelled.load(std::memory_order_acquire)) {
                 return;
             }
-            continuation::Store continuations{m_continuations, m_config.provider.id};
+            continuation::Store continuations{m_continuations, m_config.provider.id, m_config.baseUrl};
             auto cursor = continuations.resolve(capabilityId, pageRequest);
             if (!cursor) {
                 completion(std::unexpected(std::move(cursor.error())));
@@ -1385,7 +1385,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                                             }
                                         }
                                         continuation::Store continuations{
-                                            m_continuations, m_config.provider.id};
+                                            m_continuations, m_config.provider.id, m_config.baseUrl};
                                         auto next = continuations.bind(
                                             capabilityId, std::move(*providerCursor));
                                         if (!next) {
@@ -1576,7 +1576,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                                         return;
                                     }
                                     continuation::Store continuations{
-                                        m_continuations, m_config.provider.id};
+                                        m_continuations, m_config.provider.id, m_config.baseUrl};
                                     auto next = continuations.bind(
                                         capabilityId, std::move(providerCursor));
                                     auto finalCompletion = std::move(*completionState);
@@ -1827,7 +1827,7 @@ foundation::result::Result<AppRequest> AsyncGateway::notifications(
     auto group = std::make_shared<Group>();
     auto scheduled = m_continuationExecutor.post(
         [this, group, query = std::move(query), completion = std::move(completion)]() mutable {
-            continuation::Store continuations{m_continuations, m_config.provider.id};
+            continuation::Store continuations{m_continuations, m_config.provider.id, m_config.baseUrl};
             const auto capabilityId = capability::catalog::notificationsRead();
             const capability::pagination::PageRequest pageRequest{
                 .limit = query.limit,
@@ -1865,7 +1865,7 @@ foundation::result::Result<AppRequest> AsyncGateway::notifications(
                             if (group->cancelled.load(std::memory_order_acquire)) {
                                 return;
                             }
-                            continuation::Store continuations{m_continuations, m_config.provider.id};
+                            continuation::Store continuations{m_continuations, m_config.provider.id, m_config.baseUrl};
                             auto next = continuations.bind(
                                 capabilityId, std::move(payload.providerCursor));
                             if (!next) {
@@ -1909,7 +1909,7 @@ foundation::result::Result<AppRequest> AsyncGateway::social(
             const auto capabilityId = query.kind == application::read::model::SocialQuery::Kind::Followers
                 ? capability::catalog::graphFollowersRead()
                 : capability::catalog::graphFollowingRead();
-            continuation::Store continuations{m_continuations, m_config.provider.id};
+            continuation::Store continuations{m_continuations, m_config.provider.id, m_config.baseUrl};
             const capability::pagination::PageRequest pageRequest{
                 .limit = query.limit,
                 .continuation = query.continuation,
@@ -1960,7 +1960,7 @@ foundation::result::Result<AppRequest> AsyncGateway::social(
                                     .kind = domain::social::SocialRelationKind::Follows,
                                 });
                             }
-                            continuation::Store continuations{m_continuations, m_config.provider.id};
+                            continuation::Store continuations{m_continuations, m_config.provider.id, m_config.baseUrl};
                             auto next = continuations.bind(
                                 capabilityId, std::move(payload.providerCursor));
                             if (!next) {

@@ -21,10 +21,11 @@ export namespace farcaster::provider::hypersnap::continuation {
  */
 class Store final {
 public:
-    /** @brief Creates a continuation service for one stable provider instance. */
+    /** @brief Creates a continuation service for one immutable provider/endpoint instance. */
     Store(
         storage::continuation::ContinuationStore& store,
-        provider::model::ProviderId providerId);
+        provider::model::ProviderId providerId,
+        std::string endpointIdentity);
 
     /** @brief Resolves an application token and enforces capability/provider affinity. */
     [[nodiscard]] foundation::result::Result<std::optional<std::string>> resolve(
@@ -39,6 +40,7 @@ public:
 private:
     storage::continuation::ContinuationStore& m_store;
     provider::model::ProviderId m_providerId{};
+    std::string m_endpointPrefix{};
 };
 
 }

@@ -18,8 +18,10 @@ namespace farcaster::provider::hypersnap::continuation {
 
 Store::Store(
     storage::continuation::ContinuationStore& store,
-    provider::model::ProviderId providerId)
-    : m_store(store), m_providerId(std::move(providerId))
+    provider::model::ProviderId providerId,
+    std::string endpointIdentity)
+    : m_store(store), m_providerId(std::move(providerId)),
+      m_endpointPrefix("indexed-v2:" + std::move(endpointIdentity) + "\n")
 {
 }
 
@@ -39,7 +41,13 @@ foundation::result::Result<std::optional<std::string>> Store::resolve(
             foundation::error::ErrorCode::Conflict,
             "Continuation token does not belong to the requested capability/provider route."));
     }
-    return std::optional<std::string>{record->providerCursor};
+    if (!record->providerCursor.starts_with(m_endpointPrefix)) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::Conflict,
+            "Indexed read continuation belongs to a different endpoint; "
+            "restart this feed from its first page."));
+    }
+    return std::optional<std::string>{record->providerCursor.substr(m_endpointPrefix.size())};
 }
 
 foundation::result::Result<std::optional<capability::pagination::ContinuationToken>> Store::bind(
@@ -49,7 +57,8 @@ foundation::result::Result<std::optional<capability::pagination::ContinuationTok
     if (!providerCursor || providerCursor->empty()) {
         return std::optional<capability::pagination::ContinuationToken>{};
     }
-    auto token = m_store.bind(capabilityId, m_providerId, std::move(*providerCursor));
+    auto token = m_store.bind(capabilityId, m_providerId,
+                              m_endpointPrefix + std::move(*providerCursor));
     if (!token) {
         return std::unexpected(std::move(token.error()));
     }

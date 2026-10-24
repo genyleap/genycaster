@@ -38,6 +38,7 @@ import farcaster.foundation.result;
 import farcaster.provider.hypersnap.cast;
 import farcaster.provider.hypersnap.codec;
 import farcaster.provider.hypersnap.config;
+import farcaster.provider.hypersnap.continuation;
 import farcaster.provider.hypersnap.feed;
 import farcaster.provider.hypersnap.identity;
 import farcaster.provider.hypersnap.notification;
@@ -928,6 +929,57 @@ void testHttpErrorMappingAndConfigValidation()
     assert(invalidResult.error().code == foundation::error::ErrorCode::InvalidArgument);
 }
 
+void testIndexedEndpointBoundContinuation()
+{
+    test::hypersnap::fixtures::TemporaryDatabase database{};
+    auto backing = storage::continuation::openContinuationStore(database.path());
+    assert(backing);
+    const auto id = provider::model::ProviderId{"stable-node-id"};
+    const auto capabilityId = capability::catalog::feedUserPostsRead();
+
+    provider::hypersnap::continuation::Store first{
+        *backing, id, "https://first-operator.example"};
+    auto token = first.bind(capabilityId, std::string{"opaque+/cursor"});
+    assert(token && *token);
+    auto page = first.resolve(capabilityId, {
+        .limit = 12,
+        .continuation = *token,
+    });
+    assert(page && *page && **page == "opaque+/cursor");
+
+    // A reconfigured node with the same ID must reject the old cursor without
+    // making a network request to a different operator.
+    provider::hypersnap::continuation::Store differentEndpoint{
+        *backing, id, "https://second-operator.example"};
+    auto retargeted = differentEndpoint.resolve(capabilityId, {
+        .limit = 12,
+        .continuation = *token,
+    });
+    assert(!retargeted);
+    assert(retargeted.error().code == foundation::error::ErrorCode::Conflict);
+
+    // Another instance ID and another canonical capability are disjoint.
+    provider::hypersnap::continuation::Store otherInstance{
+        *backing, provider::model::ProviderId{"other-node"},
+        "https://first-operator.example"};
+    assert(!otherInstance.resolve(capabilityId, {
+        .limit = 12, .continuation = *token,
+    }));
+    assert(!first.resolve(capability::catalog::feedUserQuotesRead(), {
+        .limit = 12, .continuation = *token,
+    }));
+
+    // Pre-migration cursors without the endpoint prefix are not replayed.
+    auto legacy = backing->bind(capabilityId, id, "legacy-cursor");
+    assert(legacy);
+    assert(!first.resolve(capabilityId, {
+        .limit = 12, .continuation = *legacy,
+    }));
+
+    auto empty = first.bind(capabilityId, std::nullopt);
+    assert(empty && !*empty);
+}
+
 void testFeedPaginationAffinity()
 {
     test::hypersnap::fixtures::TemporaryDatabase database{};
@@ -955,7 +1007,8 @@ void testFeedPaginationAffinity()
 
     auto binding = store.resolve(*first->next);
     assert(binding);
-    assert(binding->providerCursor == "raw-feed-cursor+/=");
+    assert(binding->providerCursor ==
+           "indexed-v2:https://node.test///\nraw-feed-cursor+/=");
     assert(binding->providerId.value == "hypersnap-test");
     assert(binding->capabilityId.value == capability::catalog::feedFollowingRead().value);
 
@@ -1327,6 +1380,7 @@ int main()
     testRecentAsyncFeedAndCursor();
     testProfileCastAndIdentityEndpoints();
     testHttpErrorMappingAndConfigValidation();
+    testIndexedEndpointBoundContinuation();
     testFeedPaginationAffinity();
     testSocialGraphSemantics();
     testSearchSemantics();

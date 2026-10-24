@@ -51,7 +51,7 @@ namespace {
         return std::unexpected(std::move(limit.error()));
     }
 
-    continuation::Store continuations{continuationStore, config.provider.id};
+    continuation::Store continuations{continuationStore, config.provider.id, config.baseUrl};
     auto cursor = continuations.resolve(capabilityId, pageRequest);
     if (!cursor) {
         return std::unexpected(std::move(cursor.error()));

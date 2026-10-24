@@ -39,7 +39,7 @@ NotificationSource::notifications(
     }
 
     const auto capabilityId = capability::catalog::notificationsRead();
-    continuation::Store continuations{m_continuations, m_config.provider.id};
+    continuation::Store continuations{m_continuations, m_config.provider.id, m_config.baseUrl};
     auto cursor = continuations.resolve(capabilityId, pageRequest);
     if (!cursor) {
         return std::unexpected(std::move(cursor.error()));

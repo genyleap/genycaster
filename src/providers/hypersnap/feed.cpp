@@ -63,7 +63,7 @@ constexpr std::chrono::milliseconds replyEnrichmentRequestTimeout{4'000};
         return std::unexpected(std::move(limit.error()));
     }
 
-    continuation::Store continuations{continuationStore, config.provider.id};
+    continuation::Store continuations{continuationStore, config.provider.id, config.baseUrl};
     auto cursor = continuations.resolve(capabilityId, pageRequest);
     if (!cursor) {
         return std::unexpected(std::move(cursor.error()));
@@ -195,7 +195,7 @@ constexpr std::chrono::milliseconds replyEnrichmentRequestTimeout{4'000};
         return std::unexpected(std::move(limit.error()));
     }
     const auto capabilityId = capability::catalog::feedUserLikesRead();
-    continuation::Store continuations{continuationStore, config.provider.id};
+    continuation::Store continuations{continuationStore, config.provider.id, config.baseUrl};
     auto cursor = continuations.resolve(capabilityId, pageRequest);
     if (!cursor) {
         return std::unexpected(std::move(cursor.error()));
