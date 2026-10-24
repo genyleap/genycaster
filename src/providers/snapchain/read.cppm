@@ -12,6 +12,7 @@ export module farcaster.provider.snapchain.read;
 import farcaster.application.read.async_gateway;
 import farcaster.application.read.model;
 import farcaster.capability.feed;
+import farcaster.capability.social;
 import farcaster.capability.model;
 import farcaster.domain.identity;
 import farcaster.domain.profile;
@@ -65,6 +66,11 @@ struct Config final {
     std::string_view jsonBody,
     domain::identity::Fid expectedFid,
     farcaster::application::read::model::FeedQuery::Kind kind);
+
+/** @brief Decode effective Follow links from an authenticated raw-node response. */
+[[nodiscard]] foundation::result::Result<capability::social::SocialGraphPage> decodeFollowLinks(
+    std::string_view jsonBody, domain::identity::Fid expectedFid,
+    farcaster::application::read::model::SocialQuery::Kind kind);
 
 /**
  * @brief Constructs an event-driven raw-node reader with provider-affine

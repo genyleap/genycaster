@@ -1,6 +1,6 @@
 # Balaji's October 2026 Farcaster client bounty — acceptance audit
 
-**Status on 2026-10-24 (commit 2abe1de before this audit): NOT QUALIFIED.**
+**Status as of 2026-10-24: NOT QUALIFIED (independent node and human sign-off still absent).**
 This is an evidence ledger, not an announcement of a prize submission.
 Do not remove the NOT QUALIFIED status until every hard requirement is
 demonstrated and a third-party human vouches publicly.
@@ -22,7 +22,7 @@ the same time of day (verify on the original cast before submitting).
 | --- | --- | --- |
 | Three-command (0) scripted compute provisioning, (1) independent Snapchain node, (2) runnable custom client | No integrated three-command user quickstart/provisioner in this repository | **MISSING**; real fresh-machine execution required |
 | Node syncs without third-party API keys | `docs/44-raw-protocol-read-adapter.md`; optional raw node profiles; `tools/check_bounty_read_node.py` | **PARTIAL**; script test uses a fake local server, not a separately provisioned synced real node |
-| Client exclusively reads from owned node for required tutorial flow | `src/providers/snapchain/`, `docs/44-raw-protocol-read-adapter.md` | **PARTIAL**; raw supports profile and FID-scoped casts but not following/Recent/Trending/search; disabling managed fallback exposes missing aggregate feeds |
+| Client exclusively reads from owned node for required tutorial flow | `src/providers/snapchain/`, `docs/44-raw-protocol-read-adapter.md` | **PARTIAL**; raw supports profiles, FID-scoped casts and direct Follow/Followers graph; aggregate Following feed, Recent/Trending/search still missing; disabling managed fallback exposes missing aggregate feeds |
 | Signed canonical Cast submits to compatible independent validator, not read-only node | `docs/42-durable-provider-neutral-write-routing.md`, `docs/43-provider-neutral-signer-routing.md` | **IMPLEMENTED IN SOURCE, LIVE UNVERIFIED**; endpoint-pinned outbox and reconciliation contract tests; run independent read/write operator test |
 | Import *existing seed phrase* for an account with storage | `docs/50-setup-network-quick-auth.md` | **MISSING**; external onboarding and FID linking are not audited in-app BIP39 custody-wallet import |
 | Use custody wallet to issue own app key with an Optimism transaction | `docs/34-phase5b-protocol-signer-readiness.md`, `docs/37-phase5e-social-writes-app-fid.md` | **ALTERNATIVE ONLY**; Ed25519 scoped gasless KEY_ADD and app-FID attestation exist; specific Optimism onchain signer flow not equivalent or E2E proven |
@@ -40,11 +40,10 @@ Run on the machine hosting a *personally provisioned* Snapchain read node
 with a public FID known to have casts:
 
 ```sh
-python3 tools/check_bounty_read_node.py --read-url http://127.0.0.1:3381 --fid 3
+python3 tools/check_bounty_read_node.py --read-url http://127.0.0.1:3381 --fid 3 --check-graph
 ```
 
-The script makes exactly two ordinary read requests, without an API key:
-`/v1/info` and `/v1/castsByFid?fid=...&pageSize=10`. It verifies
+The script makes two ordinary read requests by default (sync and canonical casts), or four with `--check-graph` (also effective Follow/Followers). No API key is provided. It requests `/v1/info` and `/v1/castsByFid?fid=...&pageSize=10`. It verifies
 every reported shard has nonzero height and block delay at most 9,
 and requires a canonical CastAdd object. It rejects redirects, userinfo,
 non-loopback HTTP, empty cast responses and malformed sync state.

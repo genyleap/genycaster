@@ -15,6 +15,7 @@ module;
 #include <string>
 #include <string_view>
 #include <utility>
+#include <unordered_set>
 #include <vector>
 
 #include <boost/json.hpp>
@@ -32,6 +33,7 @@ import farcaster.domain.cast;
 import farcaster.domain.feed;
 import farcaster.domain.identity;
 import farcaster.domain.profile;
+import farcaster.domain.social;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.foundation.time;
@@ -385,9 +387,50 @@ public:
     }
 
     [[nodiscard]] foundation::result::Result<async::Request> social(
-        model::SocialQuery, async::SocialCompletion, model::ReadOptions) override
+        model::SocialQuery query, async::SocialCompletion completion,
+        model::ReadOptions options) override
     {
-        return std::unexpected(unsupported("social graph hydration"));
+        if (query.fid.value == 0U || query.limit == 0U || query.limit > 100U)
+            return std::unexpected(Error::make(
+                ErrorCode::InvalidArgument, "Raw graph query needs a FID and 1..100 rows."));
+        const bool following = query.kind == model::SocialQuery::Kind::Following;
+        const auto capabilityId = following
+            ? capability::catalog::graphFollowingRead()
+            : capability::catalog::graphFollowersRead();
+        const std::string scope = "raw-social-v1:" + m_config.baseUrl + "\n"
+            + std::to_string(query.fid.value) + "\n";
+        std::string url = following
+            ? "/v1/linksByFid?fid=" + std::to_string(query.fid.value)
+            : "/v1/linksByTargetFid?targetFid=" + std::to_string(query.fid.value);
+        url += "&type=follow&pageSize=" + std::to_string(query.limit);
+        if (query.continuation) {
+            auto record = m_continuations.resolve(*query.continuation);
+            if (!record) return std::unexpected(std::move(record.error()));
+            if (record->capabilityId.value != capabilityId.value
+                || record->providerId.value != m_config.providerId.value
+                || !record->providerCursor.starts_with(scope))
+                return std::unexpected(Error::make(
+                    ErrorCode::Conflict, "Graph cursor has another source, FID, or direction."));
+            url += "&pageToken=" + escapeQuery(
+                std::string_view{record->providerCursor}.substr(scope.size()));
+        }
+        return request(std::move(url),
+            [this, fid = query.fid, kind = query.kind, capabilityId,
+             scope, complete = std::move(completion)](
+                foundation::result::Result<std::string> body) mutable {
+                if (!body) return complete(std::unexpected(std::move(body.error())));
+                auto result = decodeFollowLinks(*body, fid, kind);
+                if (!result) return complete(std::unexpected(std::move(result.error())));
+                auto parsed = parse(*body);
+                if (!parsed) return complete(std::unexpected(std::move(parsed.error())));
+                if (const auto cursor = cursorFrom(parsed->as_object())) {
+                    auto next = m_continuations.bind(
+                        capabilityId, m_config.providerId, scope + *cursor);
+                    if (!next) return complete(std::unexpected(std::move(next.error())));
+                    result->next = std::move(*next);
+                }
+                complete(std::move(result));
+            }, options);
     }
 
 private:
@@ -467,6 +510,8 @@ std::vector<capability::model::CapabilityDescriptor> capabilities()
         supported(capability::catalog::feedUserPostsRead()),
         supported(capability::catalog::feedUserQuotesRead()),
         supported(capability::catalog::feedUserRepliesRead()),
+        supported(capability::catalog::graphFollowersRead()),
+        supported(capability::catalog::graphFollowingRead()),
     };
 }
 
@@ -539,6 +584,54 @@ foundation::result::Result<capability::feed::FeedPage> decodeUserCasts(
             .sortTime = cast->createdAt,
         });
         page.casts.push_back(std::move(*cast));
+    }
+    return page;
+}
+
+
+foundation::result::Result<capability::social::SocialGraphPage> decodeFollowLinks(
+    const std::string_view jsonBody, const domain::identity::Fid expectedFid,
+    const model::SocialQuery::Kind kind)
+{
+    if (expectedFid.value == 0U)
+        return std::unexpected(protocolError("Follow query needs a positive FID."));
+    auto parsed = parse(jsonBody);
+    if (!parsed) return std::unexpected(std::move(parsed.error()));
+    const auto* messages = array(field(parsed->as_object(), "messages"));
+    if (!messages)
+        return std::unexpected(protocolError("Follow query has no messages array."));
+    capability::social::SocialGraphPage page{};
+    std::unordered_set<std::uint64_t> seen{};
+    for (const auto& item : *messages) {
+        const auto* message = object(&item);
+        if (!message)
+            return std::unexpected(protocolError("Invalid link entry."));
+        const auto* data = object(field(*message, "data"));
+        if (!data)
+            return std::unexpected(protocolError("Link entry missing data."));
+        const auto* link = object(field(*data, "linkBody"));
+        if (!link) continue; // Not an effective LinkAdd.
+        const auto type = string(field(*link, "type"));
+        if (!type || *type != "follow") continue;
+        const auto from = unsignedValue(field(*data, "fid"));
+        const auto to = unsignedValue(field(*link, "targetFid"));
+        if (!from || !to || *from == 0U || *to == 0U)
+            return std::unexpected(protocolError("Link message missing a canonical FID."));
+        if ((kind == model::SocialQuery::Kind::Following && *from != expectedFid.value)
+            || (kind == model::SocialQuery::Kind::Followers && *to != expectedFid.value))
+            return std::unexpected(protocolError("Link endpoint returned a mismatched FID."));
+        const auto other = kind == model::SocialQuery::Kind::Following ? *to : *from;
+        if (!seen.insert(other).second) continue;
+        page.relations.push_back(domain::social::SocialRelation{
+            .source = domain::identity::Fid{*from},
+            .target = domain::identity::Fid{*to},
+            .kind = domain::social::SocialRelationKind::Follows,
+        });
+        // The raw node does not return profile summaries with link pages.
+        // Present only canonical FIDs; no usernames/avatars are invented.
+        page.profiles.push_back(domain::profile::Profile{
+            .fid = domain::identity::Fid{other},
+        });
     }
     return page;
 }

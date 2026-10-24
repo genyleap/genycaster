@@ -87,14 +87,51 @@ def verify_casts(page: dict) -> int:
     return len(messages)
 
 
-def run(origin: str, fid: int, max_delay: int, timeout: float) -> dict:
+def verify_follow_links(page: dict, fid: int, direction: str) -> int:
+    messages = page.get("messages")
+    if not isinstance(messages, list):
+        raise ValueError("Raw links endpoint has no messages array")
+    for message in messages:
+        if not isinstance(message, dict) or not isinstance(message.get("data"), dict):
+            raise ValueError("Raw links endpoint has malformed message data")
+        data = message["data"]
+        body = data.get("linkBody")
+        if not isinstance(body, dict):
+            raise ValueError("Raw links endpoint returned a non-LinkAdd entry")
+        if body.get("type") != "follow":
+            raise ValueError("Raw follow query returned a non-follow link")
+        try:
+            source = int(data["fid"])
+            target = int(body["targetFid"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("Raw links endpoint has invalid FIDs") from exc
+        if source <= 0 or target <= 0 or (source if direction == "following"
+           else target) != fid:
+            raise ValueError("Raw links endpoint returned the wrong FID")
+    return len(messages)
+
+
+def run(origin: str, fid: int, max_delay: int, timeout: float,
+        check_graph: bool = False) -> dict:
     if fid <= 0 or max_delay < 0 or timeout <= 0:
         raise ValueError("FID and timeout must be positive; max delay must be nonnegative")
     base = validated_origin(origin)
     info = verify_info(request_json(base, "/v1/info", timeout), max_delay)
     query = urlencode({"fid": fid, "pageSize": 10})
     count = verify_casts(request_json(base, "/v1/castsByFid?" + query, timeout))
-    return {"result": "pass", "checked": ["sync", "raw_cast_read_without_api_key"],
+    checks = ["sync", "raw_cast_read_without_api_key"]
+    if check_graph:
+        followed = verify_follow_links(request_json(base,
+            "/v1/linksByFid?" + urlencode({"fid": fid, "type": "follow", "pageSize": 10}),
+            timeout), fid, "following")
+        followers = verify_follow_links(request_json(base,
+            "/v1/linksByTargetFid?" + urlencode({"targetFid": fid, "type": "follow",
+                                                 "pageSize": 10}), timeout),
+            fid, "followers")
+        checks.append("raw_follow_graph_without_api_key")
+        info["following_links"] = followed
+        info["follower_links"] = followers
+    return {"result": "pass", "checked": checks,
             "read_origin": base, "fid": fid, "cast_messages": count, **info}
 
 
@@ -105,9 +142,12 @@ def main() -> int:
                         help="FID known to have public CastAdd messages")
     parser.add_argument("--max-block-delay", type=int, default=9)
     parser.add_argument("--timeout", type=float, default=10.0)
+    parser.add_argument("--check-graph", action="store_true",
+                        help="Require raw followers/following endpoints to work without API keys")
     args = parser.parse_args()
     try:
-        result = run(args.read_url, args.fid, args.max_block_delay, args.timeout)
+        result = run(args.read_url, args.fid, args.max_block_delay, args.timeout,
+                     check_graph=args.check_graph)
     except (ValueError, HTTPError, URLError, TimeoutError, OSError,
             json.JSONDecodeError) as exc:
         # Do not print the origin or raw exception details: transport errors

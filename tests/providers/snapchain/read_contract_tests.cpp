@@ -14,6 +14,7 @@
 import farcaster.application.read.async_gateway;
 import farcaster.application.read.model;
 import farcaster.capability.feed;
+import farcaster.capability.social;
 import farcaster.capability.model;
 import farcaster.domain.identity;
 import farcaster.execution.weighted_thread_pool;
@@ -98,10 +99,47 @@ void testRawUserFeeds()
         model::FeedQuery::Kind::Trending));
 }
 
+
+void testRawFollowGraphCodec()
+{
+    constexpr std::string_view following = R"JSON({
+      "messages": [
+        {"data":{"fid":"42","linkBody":{"type":"follow","targetFid":"7"}}},
+        {"data":{"fid":42,"linkBody":{"type":"follow","targetFid":8}}},
+        {"data":{"fid":42,"linkBody":{"type":"follow","targetFid":7}}},
+        {"data":{"fid":42,"linkBody":{"type":"block","targetFid":9}}}
+      ], "nextPageToken":"page+/="})JSON";
+    auto graph = raw::decodeFollowLinks(
+        following, domain::identity::Fid{42}, model::SocialQuery::Kind::Following);
+    assert(graph && graph->relations.size() == 2U && graph->profiles.size() == 2U);
+    assert(graph->relations.front().source.value == 42U);
+    assert(graph->relations.front().target.value == 7U);
+    assert(graph->profiles.front().fid.value == 7U);
+    assert(!graph->profiles.front().username); // Raw graph cannot guess names.
+    constexpr std::string_view followers = R"JSON({"messages":[
+      {"data":{"fid":99,"linkBody":{"type":"follow","targetFid":42}}}
+    ]})JSON";
+    auto incoming = raw::decodeFollowLinks(
+        followers, domain::identity::Fid{42}, model::SocialQuery::Kind::Followers);
+    assert(incoming && incoming->profiles.size() == 1U);
+    assert(incoming->relations.front().source.value == 99U);
+    assert(incoming->profiles.front().fid.value == 99U);
+
+    assert(!raw::decodeFollowLinks(following, domain::identity::Fid{7},
+        model::SocialQuery::Kind::Following));
+    assert(!raw::decodeFollowLinks(followers, domain::identity::Fid{7},
+        model::SocialQuery::Kind::Followers));
+    assert(!raw::decodeFollowLinks(R"JSON({"messages":{}})JSON",
+        domain::identity::Fid{42}, model::SocialQuery::Kind::Following));
+    assert(!raw::decodeFollowLinks(R"JSON({"messages":[{"data":{
+        "fid":42,"linkBody":{"type":"follow","targetFid":0}}}]})JSON",
+        domain::identity::Fid{42}, model::SocialQuery::Kind::Following));
+}
+
 void testNoFalseCapabilities()
 {
     const auto declared = raw::capabilities();
-    assert(declared.size() == 5U);
+    assert(declared.size() == 7U);
     for (const auto& item : declared) {
         assert(item.id.value != "cast.read");
         assert(item.id.value != "feed.trending.read");
@@ -149,11 +187,86 @@ public:
         else if (last.url.find("userDataByFid") != std::string::npos)
             complete(transport::http::HttpResponse{
                 .statusCode = 200U, .body = R"({"messages":[]})"});
+        else if (last.url.find("linksByFid") != std::string::npos)
+            complete(transport::http::HttpResponse{.statusCode = 200U,
+                .body = R"({"messages":[{"data":{"fid":42,"linkBody":{"type":"follow","targetFid":7}}}],"nextPageToken":"link+/="})"});
+        else if (last.url.find("linksByTargetFid") != std::string::npos)
+            complete(transport::http::HttpResponse{.statusCode = 200U,
+                .body = R"({"messages":[{"data":{"fid":7,"linkBody":{"type":"follow","targetFid":42}}}],"nextPageToken":"followers+/="})"});
         else
             complete(transport::http::HttpResponse{.statusCode = 404U});
         return transport::async_http::Operation{[] {}};
     }
 };
+
+
+void testRawSocialRequestAndCursorAffinity()
+{
+    DatabaseFixture db{};
+    auto continuations = storage::continuation::openContinuationStore(db.path);
+    assert(continuations);
+    execution::weighted_thread_pool::WeightedThreadPoolExecutor decoder{
+        1U, 16U, 8U * 1024U * 1024U};
+    FakeAsyncTransport transport{};
+    auto gateway = raw::makeGateway(transport, decoder, *continuations,
+        raw::Config{.baseUrl = "https://raw.example",
+            .providerId = provider::model::ProviderId{"social-node"}});
+
+    const auto fetch = [&gateway](model::SocialQuery query) {
+        auto promise = std::make_shared<std::promise<
+            foundation::result::Result<capability::social::SocialGraphPage>>>();
+        auto future = promise->get_future();
+        auto started = gateway->social(query,
+            [promise](auto result) { promise->set_value(std::move(result)); });
+        assert(started);
+        assert(future.wait_for(std::chrono::seconds{3}) == std::future_status::ready);
+        auto result = future.get();
+        assert(result);
+        return *result;
+    };
+    auto following = fetch(model::SocialQuery{
+        .kind = model::SocialQuery::Kind::Following,
+        .fid = domain::identity::Fid{42}, .limit = 12U});
+    assert(following.profiles.size() == 1U);
+    assert(following.profiles.front().fid.value == 7U);
+    assert(following.next);
+    assert(transport.last.url.find("/v1/linksByFid?fid=42&type=follow&pageSize=12")
+           != std::string::npos);
+    auto next = fetch(model::SocialQuery{
+        .kind = model::SocialQuery::Kind::Following,
+        .fid = domain::identity::Fid{42}, .limit = 12U,
+        .continuation = following.next});
+    assert(next.relations.size() == 1U);
+    assert(transport.last.url.find("pageToken=link%2B%2F%3D") != std::string::npos);
+
+    auto wrongDirection = gateway->social(model::SocialQuery{
+        .kind = model::SocialQuery::Kind::Followers,
+        .fid = domain::identity::Fid{42}, .limit = 12U,
+        .continuation = following.next}, [](auto) {});
+    assert(!wrongDirection);
+    auto wrongFid = gateway->social(model::SocialQuery{
+        .kind = model::SocialQuery::Kind::Following,
+        .fid = domain::identity::Fid{7}, .limit = 12U,
+        .continuation = following.next}, [](auto) {});
+    assert(!wrongFid);
+    FakeAsyncTransport otherTransport{};
+    auto moved = raw::makeGateway(otherTransport, decoder, *continuations,
+        raw::Config{.baseUrl = "https://other-raw.example",
+            .providerId = provider::model::ProviderId{"social-node"}});
+    auto wrongEndpoint = moved->social(model::SocialQuery{
+        .kind = model::SocialQuery::Kind::Following,
+        .fid = domain::identity::Fid{42}, .limit = 12U,
+        .continuation = following.next}, [](auto) {});
+    assert(!wrongEndpoint && otherTransport.requests == 0U);
+
+    auto followers = fetch(model::SocialQuery{
+        .kind = model::SocialQuery::Kind::Followers,
+        .fid = domain::identity::Fid{42}, .limit = 10U});
+    assert(followers.relations.size() == 1U);
+    assert(followers.relations.front().source.value == 7U);
+    assert(transport.last.url.find("/v1/linksByTargetFid?targetFid=42&type=follow")
+           != std::string::npos);
+}
 
 void testCancellationAndCredentialIsolation()
 {
@@ -298,8 +411,10 @@ int main()
 {
     testRawProfileCodec();
     testRawUserFeeds();
+    testRawFollowGraphCodec();
     testNoFalseCapabilities();
     testAsyncReadAndOpaquePagination();
+    testRawSocialRequestAndCursorAffinity();
     testCancellationAndCredentialIsolation();
     return 0;
 }

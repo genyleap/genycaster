@@ -36,6 +36,10 @@ class MockSnapchain(BaseHTTPRequestHandler):
             response = type(self).info
         elif self.path == "/v1/castsByFid?fid=123&pageSize=10":
             response = type(self).casts
+        elif self.path == "/v1/linksByFid?fid=123&type=follow&pageSize=10":
+            response = type(self).following
+        elif self.path == "/v1/linksByTargetFid?targetFid=123&type=follow&pageSize=10":
+            response = type(self).followers
         else:
             self.send_error(404)
             return
@@ -56,6 +60,10 @@ class ProbeTests(unittest.TestCase):
             {"maxHeight": "1100", "blockDelay": "2"}]}
         MockSnapchain.casts = {"messages": [
             {"data": {"castAddBody": {"text": "hello"}}}]}
+        MockSnapchain.following = {"messages": [
+            {"data": {"fid": 123, "linkBody": {"type": "follow", "targetFid": 7}}}]}
+        MockSnapchain.followers = {"messages": [
+            {"data": {"fid": 7, "linkBody": {"type": "follow", "targetFid": 123}}}]}
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), MockSnapchain)
         self.thread = Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
@@ -73,6 +81,26 @@ class ProbeTests(unittest.TestCase):
         self.assertEqual(result["cast_messages"], 1)
         self.assertEqual(len(MockSnapchain.seen), 2)
         self.assertTrue(all(not any(row[1:]) for row in MockSnapchain.seen))
+
+    def test_graph_endpoints_without_api_key(self):
+        result = probe.run(self.url, fid=123, max_delay=9, timeout=3,
+                           check_graph=True)
+        self.assertIn("raw_follow_graph_without_api_key", result["checked"])
+        self.assertEqual(result["following_links"], 1)
+        self.assertEqual(result["follower_links"], 1)
+        self.assertEqual(len(MockSnapchain.seen), 4)
+        self.assertTrue(all(not any(row[1:]) for row in MockSnapchain.seen))
+
+    def test_wrong_link_fid_fails_closed(self):
+        MockSnapchain.following = {"messages": [
+            {"data": {"fid": 77, "linkBody": {"type": "follow", "targetFid": 7}}}]}
+        with self.assertRaisesRegex(ValueError, "wrong FID"):
+            probe.run(self.url, fid=123, max_delay=9, timeout=3, check_graph=True)
+
+    def test_graph_missing_data_fails_closed(self):
+        MockSnapchain.followers = {"error": "unimplemented"}
+        with self.assertRaisesRegex(ValueError, "no messages array"):
+            probe.run(self.url, fid=123, max_delay=9, timeout=3, check_graph=True)
 
     def test_stale_shard_fails_closed(self):
         MockSnapchain.info["shardInfos"][1]["blockDelay"] = "99"

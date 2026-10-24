@@ -24,8 +24,12 @@
 - `feed.user.posts.read`: filtered root `GET /v1/castsByFid`
 - `feed.user.quotes.read`: filtered cast-reference root posts from that same endpoint
 - `feed.user.replies.read`: filtered parent-cast replies
+- `graph.following.read`: effective Follow links via `/v1/linksByFid`, normalized to canonical source/target FIDs
+- `graph.followers.read`: effective incoming Follow links via `/v1/linksByTargetFid`, normalized and checked against the requested target FID
 
-**Not advertised:** network-wide Recent/Trending, personalized following feed, channel feed, search, notifications, reactions-by-user, view counts, author-profile hydration, or lookup of an arbitrary cast by hash when its author FID isn't provided. These require a separate indexing/projection system, a raw-node adapter that can prove the requested contract, or a compatible indexed provider. Never silently claim a feed is complete when it isn't.
+Raw graph results only contain canonical FIDs; the UI can show basic identities and any profiles already cached locally, but names/avatars from unknown FIDs require separate profile reads. Both graph directions use opaque, direction-specific, FID/provider/endpoint-affine continuation tokens. A raw node must actually expose the documented link endpoints for these capabilities to work.
+
+**Not advertised:** network-wide Recent/Trending, personalized following feed, channel feed, search, notifications, reactions-by-user, view counts, automatic author-profile hydration, or lookup of an arbitrary cast by hash when its author FID isn't provided. These require a separate indexing/projection system, a raw-node adapter that can prove the requested contract, or a compatible indexed provider. Never silently claim a feed is complete when it isn't.
 
 ## Build profiles
 
@@ -88,6 +92,7 @@ per-capability preferences.
   runtime health/selection and user-friendly route fallback controls.
 - Native and WebAssembly end-to-end integration against independently operated
   raw nodes; production Qt/WASM build and browser smoke tests.
+- Integration of a bounded, locally owned Following-feed assembler using the raw Follow graph and multiple FID-scoped Cast pages, with correct snapshot/cursor/retention semantics.
 - Integration of exact full-reply/quote metadata and engagement counts with
   local projections and provider-enrichment routes.
 
