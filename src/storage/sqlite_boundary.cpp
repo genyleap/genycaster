@@ -111,6 +111,18 @@ CREATE INDEX IF NOT EXISTS idx_profiles_username_prefix
     ON profiles(username COLLATE NOCASE);
 CREATE INDEX IF NOT EXISTS idx_profiles_display_name_prefix
     ON profiles(display_name COLLATE NOCASE);
+-- Locally discovered derived channel suggestions, distinct from protocol
+-- ChannelId and not claimed as a complete, authoritative network directory.
+CREATE TABLE IF NOT EXISTS cached_channel_suggestions (
+    id TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL,
+    parent_url TEXT,
+    image_url TEXT,
+    description TEXT,
+    follower_count INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_cached_channels_name_prefix
+    ON cached_channel_suggestions(name COLLATE NOCASE);
 CREATE TABLE IF NOT EXISTS casts (
     id TEXT PRIMARY KEY NOT NULL,
     author_fid INTEGER NOT NULL,

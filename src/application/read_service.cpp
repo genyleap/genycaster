@@ -492,24 +492,48 @@ foundation::result::Result<ReadRequest> ReadService::openSearch(
             ErrorCode::InvalidArgument, "Search query, bounded limit and observer are required."));
     }
     auto cancelled = std::make_shared<std::atomic_bool>(false);
-    return postRequest(m_refreshExecutor,
+    return postRequest(m_cacheExecutor,
         [this, query = std::move(query), observer = std::move(observer), options, cancelled]() mutable {
-            if (cancelled->load(std::memory_order_acquire)) { return; }
-            model::SearchState state{
-                .query = query,
-                .page = {},
-                .metadata = refreshingMetadata(false),
-            };
+            if (cancelled->load(std::memory_order_acquire)) return;
+            model::SearchState state{.query = query};
+            if (auto profiles = m_store.searchCachedProfiles(query.text, query.limit); profiles)
+                state.page.profiles = std::move(*profiles);
+            if (auto channels = m_store.searchCachedChannels(query.text, query.limit); channels)
+                state.page.channels = std::move(*channels);
+            const bool hasCache = !state.page.profiles.empty() || !state.page.channels.empty();
+            state.metadata = refreshingMetadata(hasCache);
             publish(cancelled, observer, state);
-            auto fresh = m_gateway.search(query, options);
-            if (!fresh) {
-                state.metadata = failedMetadata(std::move(fresh.error()), false);
+
+            auto refreshState = state;
+            auto refreshObserver = observer;
+            auto status = m_refreshExecutor.post(
+                [this, query, options, cancelled,
+                 observer = std::move(refreshObserver),
+                 state = std::move(refreshState)]() mutable {
+                    if (cancelled->load(std::memory_order_acquire)) return;
+                    auto fresh = m_gateway.search(query, options);
+                    if (!fresh) {
+                        const bool hasUsable = !state.page.profiles.empty()
+                            || !state.page.channels.empty();
+                        state.metadata = failedMetadata(std::move(fresh.error()), hasUsable);
+                        publish(cancelled, observer, std::move(state));
+                        return;
+                    }
+                    // These are optional, partial cache snapshots. A transient
+                    // SQLite failure must not erase the successful provider result.
+                    for (const auto& profile : fresh->profiles) {
+                        if (profile.fid.value != 0U)
+                            (void)m_store.putProfileSummary(profile);
+                    }
+                    (void)m_store.putChannelSuggestions(fresh->channels);
+                    state.page = std::move(*fresh);
+                    state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
+                    publish(cancelled, observer, std::move(state));
+                });
+            if (!status) {
+                state.metadata = failedMetadata(std::move(status.error()), hasCache);
                 publish(cancelled, observer, std::move(state));
-                return;
             }
-            state.page = std::move(*fresh);
-            state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
-            publish(cancelled, observer, std::move(state));
         }, cancelled);
 }
 

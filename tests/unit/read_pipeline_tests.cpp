@@ -7,6 +7,7 @@
 #include <expected>
 #include <filesystem>
 #include <functional>
+#include <limits>
 #include <optional>
 #include <mutex>
 #include <memory>
@@ -231,6 +232,14 @@ public:
     [[nodiscard]] foundation::result::Result<std::vector<domain::profile::Profile>>
     searchCachedProfiles(std::string_view query, std::size_t limit) override {
         return m_delegate->searchCachedProfiles(query, limit);
+    }
+    [[nodiscard]] foundation::result::Result<std::vector<capability::search::ChannelSuggestion>>
+    searchCachedChannels(std::string_view query, std::size_t limit) override {
+        return m_delegate->searchCachedChannels(query, limit);
+    }
+    [[nodiscard]] foundation::result::Status putChannelSuggestions(
+        const std::vector<capability::search::ChannelSuggestion>& channels) override {
+        return m_delegate->putChannelSuggestions(channels);
     }
     [[nodiscard]] foundation::result::Result<std::optional<domain::profile::Profile>>
     findProfile(domain::identity::Fid fid) override {
@@ -1090,6 +1099,135 @@ void refreshFailurePreservesCacheAcrossRestart()
     }
 }
 
+void cachedChannelSearchPersistsLiteralNamesAndSparseUpdates()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    const auto makeChannel = [](const std::string& id, const std::string& name,
+                                const std::uint64_t followers) {
+        return capability::search::ChannelSuggestion{
+            .id = domain::channel::ChannelId{id},
+            .name = name,
+            .followerCount = followers,
+        };
+    };
+    {
+        auto store = storage::read::openReadStore(database.path);
+        assert(store);
+        auto primary = makeChannel("dev", "Developer Community", 42);
+        primary.parentUrl = "https://channels.test/dev";
+        primary.imageUrl = "https://cdn.test/dev.png";
+        primary.description = "Real network metadata";
+        auto prefix = makeChannel("dev_tools", "Tools", 100);
+        auto literal = makeChannel("dev%literal", "Literal", 20);
+        auto byName = makeChannel("xyz", "Dev Design", 80);
+        auto absent = makeChannel("travel", "Travel", 8);
+        assert((*store)->putChannelSuggestions({primary, prefix, literal, byName, absent}));
+
+        const auto ranked = (*store)->searchCachedChannels("DEV", 3);
+        assert(ranked && ranked->size() == 3U);
+        assert(ranked->at(0).id.value == "dev");
+        assert(ranked->at(1).id.value == "dev_tools");
+        assert(ranked->at(2).id.value == "dev%literal");
+        const auto byDisplay = (*store)->searchCachedChannels("Dev D", 8);
+        assert(byDisplay && byDisplay->size() == 1U);
+        assert(byDisplay->front().id.value == "xyz");
+        const auto escapedPercent = (*store)->searchCachedChannels("dev%", 8);
+        assert(escapedPercent && escapedPercent->size() == 1U);
+        assert(escapedPercent->front().id.value == "dev%literal");
+        const auto escapedUnderscore = (*store)->searchCachedChannels("dev_", 8);
+        assert(escapedUnderscore && escapedUnderscore->size() == 1U);
+        assert(escapedUnderscore->front().id.value == "dev_tools");
+
+        // Incomplete provider suggestions must not erase richer previously
+        // observed identity/links; zero followers in a sparse suggestion
+        // cannot replace a known nonzero count.
+        auto sparse = makeChannel("dev", "Developer Community", 0);
+        assert((*store)->putChannelSuggestions({sparse}));
+        auto preserved = (*store)->searchCachedChannels("dev", 1);
+        assert(preserved && preserved->size() == 1U);
+        assert(preserved->front().parentUrl == primary.parentUrl);
+        assert(preserved->front().imageUrl == primary.imageUrl);
+        assert(preserved->front().description == primary.description);
+        assert(preserved->front().followerCount == 42U);
+
+        assert(!(*store)->searchCachedChannels(" ", 6));
+        assert(!(*store)->searchCachedChannels("dev", 31));
+        assert(!(*store)->searchCachedChannels(std::string(129, 'x'), 6));
+        assert(!(*store)->putChannelSuggestions({makeChannel("", "Blank", 3)}));
+        assert(!(*store)->putChannelSuggestions({makeChannel("malformed", "", 3)}));
+        assert(!(*store)->putChannelSuggestions({makeChannel("big", "Overflow",
+            std::numeric_limits<std::uint64_t>::max())}));
+        auto sameOld = (*store)->searchCachedChannels("dev", 30);
+        assert(sameOld && sameOld->size() == 4U);
+    }
+    auto reopened = storage::read::openReadStore(database.path);
+    assert(reopened);
+    const auto persisted = (*reopened)->searchCachedChannels("dev", 30);
+    assert(persisted && persisted->size() == 4U);
+    assert(persisted->front().id.value == "dev");
+    assert(persisted->front().parentUrl == "https://channels.test/dev");
+}
+
+void asyncSearchRetainsOfflineChannelsAndCachesOnlineDiscovery()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    auto store = storage::read::openReadStore(database.path);
+    assert(store);
+    const capability::search::ChannelSuggestion cached{
+        .id = domain::channel::ChannelId{"devtools"},
+        .name = "Devtools",
+        .followerCount = 10,
+    };
+    assert((*store)->putChannelSuggestions({cached}));
+    ImmediateExecutor executor{};
+    FakeAsyncCastGateway gateway{};
+    gateway.failSearchCompletion = true;
+    application::read::async_service::ReadService service{executor, **store, gateway};
+    const application::read::model::SearchQuery query{.text = "dev", .limit = 6U};
+    std::vector<application::read::model::SearchState> states{};
+    const auto capture = [&states](auto state) {
+        states.push_back(std::move(state));
+    };
+    assert(service.openSearch(query, capture));
+    assert(states.size() == 2U);
+    assert(states.front().metadata.isStale);
+    assert(states.front().page.profiles.empty());
+    assert(states.front().page.channels.size() == 1U);
+    assert(states.front().page.channels.front().id.value == "devtools");
+    assert(states.back().metadata.phase == application::read::model::ReadPhase::Failed);
+    assert(states.back().metadata.isSourceUnavailable);
+    assert(states.back().page.channels.size() == 1U);
+
+    // Synchronous capability-routing refusal preserves channel cache too.
+    gateway.failSearchCompletion = false;
+    states.clear();
+    assert(service.openSearch(query, capture));
+    assert(states.size() == 2U);
+    assert(states.back().page.channels.size() == 1U);
+
+    const capability::search::ChannelSuggestion newlyDiscovered{
+        .id = domain::channel::ChannelId{"developer"},
+        .name = "Developers",
+        .description = "A remote indexed channel",
+        .followerCount = 160,
+    };
+    gateway.servedSearch = capability::search::SearchPage{
+        .channels = {newlyDiscovered},
+    };
+    states.clear();
+    assert(service.openSearch(query, capture));
+    assert(states.size() == 2U);
+    assert(states.front().page.channels.size() == 1U);
+    assert(states.back().metadata.phase == application::read::model::ReadPhase::Ready);
+    assert(states.back().page.channels.size() == 1U);
+    assert(states.back().page.channels.front().id.value == "developer");
+    auto persisted = (*store)->searchCachedChannels("developer", 6);
+    assert(persisted && persisted->size() == 1U);
+    assert(persisted->front().description == newlyDiscovered.description);
+}
+
 void cachedProfileIndexSurvivesRestartAndKeepsLiteralQueries()
 {
     DatabaseFixture database{};
@@ -1238,6 +1376,24 @@ void interactiveSearchPublishesRefreshingThenReady()
     assert(states.back().page.profiles.front().fid.value == 100);
     assert(states.back().page.channels.size() == 1);
     assert(states.back().page.channels.front().id.value == "dev");
+
+    // The blocking read pipeline is used by native/integration paths too;
+    // an indexed discovery must remain accessible after provider loss.
+    auto stored = (*store)->searchCachedChannels("dev", 6U);
+    assert(stored && stored->size() == 1U);
+    assert(stored->front().description == "Developer discussion");
+    gateway.unavailable = true;
+    states.clear();
+    assert(service.openSearch(
+        application::read::model::SearchQuery{.text = "dev", .limit = 6},
+        [&states](auto state) { states.push_back(std::move(state)); }));
+    assert(states.size() == 2U);
+    assert(states.front().metadata.isStale);
+    assert(states.front().page.channels.size() == 1U);
+    assert(states.back().metadata.isSourceUnavailable);
+    assert(states.back().metadata.isStale);
+    assert(states.back().page.channels.front().id.value == "dev");
+    assert(states.back().page.profiles.empty());
 }
 
 void identityCastProfileAndSocialFlowsPersistCanonicalData()
@@ -1918,6 +2074,8 @@ int main()
     prefetchContinuationFailurePreservesUsableFeed();
     refreshFailureWithoutCacheIsNotMarkedStale();
     refreshFailurePreservesCacheAcrossRestart();
+    cachedChannelSearchPersistsLiteralNamesAndSparseUpdates();
+    asyncSearchRetainsOfflineChannelsAndCachesOnlineDiscovery();
     cachedProfileIndexSurvivesRestartAndKeepsLiteralQueries();
     asyncSearchKeepsCachedIdentitiesWhenIndexIsUnavailable();
     interactiveSearchPublishesRefreshingThenReady();

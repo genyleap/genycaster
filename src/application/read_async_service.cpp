@@ -965,21 +965,27 @@ foundation::result::Result<ReadRequest> ReadService::openSearch(
             std::vector<domain::profile::Profile> cached{};
             if (auto local = m_store.searchCachedProfiles(query.text, query.limit); local)
                 cached = std::move(*local);
-            const bool hasCache = !cached.empty();
+            std::vector<capability::search::ChannelSuggestion> cachedChannels{};
+            if (auto localChannels = m_store.searchCachedChannels(query.text, query.limit);
+                localChannels)
+                cachedChannels = std::move(*localChannels);
+            const bool hasCache = !cached.empty() || !cachedChannels.empty();
             publish(control, observer, model::SearchState{
                 .query = query,
-                .page = capability::search::SearchPage{.profiles = cached},
+                .page = capability::search::SearchPage{
+                    .profiles = cached, .channels = cachedChannels},
                 .metadata = refreshingMetadata(hasCache),
             });
             auto request = m_gateway.search(
                 query,
-                [this, query, observer, control, cached, hasCache](
+                [this, query, observer, control, cached, cachedChannels, hasCache](
                     foundation::result::Result<capability::search::SearchPage> fresh) mutable {
                     model::SearchState state{.query = query};
                     if (!fresh) {
                         // Offline and unavailable indexed services must not
                         // erase known identities already persisted locally.
                         state.page.profiles = std::move(cached);
+                        state.page.channels = std::move(cachedChannels);
                         state.metadata = failedMetadata(std::move(fresh.error()), hasCache);
                     } else {
                         // Remote search suggestions are partial identity
@@ -987,12 +993,15 @@ foundation::result::Result<ReadRequest> ReadService::openSearch(
                         // regressing existing full profile details; never
                         // block the provider decode thread on SQLite work.
                         auto summaries = fresh->profiles;
+                        auto channels = fresh->channels;
                         (void)m_cacheExecutor.post(
-                            [store = &m_store, summaries = std::move(summaries)]() mutable {
+                            [store = &m_store, summaries = std::move(summaries),
+                             channels = std::move(channels)]() mutable {
                                 for (const auto& profile : summaries) {
                                     if (profile.fid.value != 0U)
                                         (void)store->putProfileSummary(profile);
                                 }
+                                (void)store->putChannelSuggestions(channels);
                             });
                         state.page = std::move(*fresh);
                         state.metadata = model::ReadMetadata{.phase = model::ReadPhase::Ready};
@@ -1003,6 +1012,7 @@ foundation::result::Result<ReadRequest> ReadService::openSearch(
             if (!request) {
                 model::SearchState state{.query = query};
                 state.page.profiles = std::move(cached);
+                state.page.channels = std::move(cachedChannels);
                 state.metadata = failedMetadata(std::move(request.error()), hasCache);
                 publish(control, observer, std::move(state));
                 return;

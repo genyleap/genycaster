@@ -24,9 +24,11 @@ module;
 module farcaster.storage.read;
 
 import farcaster.capability.feed;
+import farcaster.capability.search;
 import farcaster.capability.pagination;
 import farcaster.capability.social;
 import farcaster.domain.cast;
+import farcaster.domain.channel;
 import farcaster.domain.feed;
 import farcaster.domain.identity;
 import farcaster.domain.profile;
@@ -168,6 +170,10 @@ public:
     findProfileByUsername(std::string_view username) override;
     [[nodiscard]] foundation::result::Result<std::vector<domain::profile::Profile>>
     searchCachedProfiles(std::string_view query, std::size_t limit) override;
+    [[nodiscard]] foundation::result::Result<std::vector<capability::search::ChannelSuggestion>>
+    searchCachedChannels(std::string_view query, std::size_t limit) override;
+    [[nodiscard]] foundation::result::Status putChannelSuggestions(
+        const std::vector<capability::search::ChannelSuggestion>& channels) override;
     [[nodiscard]] foundation::result::Result<std::optional<domain::profile::Profile>>
     findProfile(domain::identity::Fid fid) override;
     [[nodiscard]] foundation::result::Result<std::optional<domain::cast::Cast>>
@@ -327,6 +333,162 @@ LIMIT ?;
         if (*profile) profiles.push_back(std::move(**profile));
     }
     return profiles;
+}
+
+foundation::result::Result<std::vector<capability::search::ChannelSuggestion>>
+SqliteReadStore::searchCachedChannels(std::string_view query, const std::size_t limit)
+{
+    while (!query.empty() && (query.front() == ' ' || query.front() == '\t'
+        || query.front() == '\n' || query.front() == '\r'))
+        query.remove_prefix(1);
+    while (!query.empty() && (query.back() == ' ' || query.back() == '\t'
+        || query.back() == '\n' || query.back() == '\r'))
+        query.remove_suffix(1);
+    if (query.empty() || query.size() > 128U
+        || query.find('\0') != std::string_view::npos
+        || limit == 0U || limit > 30U) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Local channel search requires 1..128 literal bytes and a limit of 1..30."));
+    }
+    std::string prefix{};
+    prefix.reserve(query.size() * 2U + 1U);
+    for (const char character : query) {
+        if (character == '%' || character == '_' || character == '!')
+            prefix.push_back('!');
+        prefix.push_back(character);
+    }
+    prefix.push_back('%');
+
+    std::scoped_lock lock{m_mutex};
+    auto prepared = sqlite::Statement::prepare(m_metadata, R"SQL(
+SELECT id, name, parent_url, image_url, description, follower_count
+FROM cached_channel_suggestions
+WHERE id LIKE ? ESCAPE '!' COLLATE NOCASE
+   OR name LIKE ? ESCAPE '!' COLLATE NOCASE
+ORDER BY CASE WHEN id = ? COLLATE NOCASE THEN 0
+              WHEN id LIKE ? ESCAPE '!' COLLATE NOCASE THEN 1
+              ELSE 2 END,
+         follower_count DESC, id ASC
+LIMIT ?;
+)SQL");
+    if (!prepared)
+        return std::unexpected(toFoundationError(std::move(prepared.error())));
+    auto statement = std::move(*prepared);
+    for (const auto& [index, value] :
+         std::initializer_list<std::pair<int, std::string_view>>{
+             {1, prefix}, {2, prefix}, {3, query}, {4, prefix}}) {
+        if (auto status = sqlite::bindText(statement.native(), index, value); !status)
+            return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+    if (sqlite3_bind_int64(statement.native(), 5, static_cast<sqlite3_int64>(limit))
+        != SQLITE_OK)
+        return std::unexpected(toFoundationError(
+            sqlite::makeError(m_metadata.native(), "Binding local channel search limit")));
+
+    std::vector<capability::search::ChannelSuggestion> channels{};
+    channels.reserve(limit);
+    while (true) {
+        const int result = sqlite3_step(statement.native());
+        if (result == SQLITE_DONE) break;
+        if (result != SQLITE_ROW)
+            return std::unexpected(toFoundationError(
+                sqlite::makeError(m_metadata.native(), "Reading local channel suggestions")));
+        const auto optionalColumn = [&](const int index) -> std::optional<std::string> {
+            if (sqlite3_column_type(statement.native(), index) == SQLITE_NULL)
+                return std::nullopt;
+            return sqlite::columnText(statement.native(), index);
+        };
+        channels.push_back(capability::search::ChannelSuggestion{
+            .id = domain::channel::ChannelId{sqlite::columnText(statement.native(), 0)},
+            .name = sqlite::columnText(statement.native(), 1),
+            .parentUrl = optionalColumn(2),
+            .imageUrl = optionalColumn(3),
+            .description = optionalColumn(4),
+            .followerCount = static_cast<std::uint64_t>(
+                std::max<sqlite3_int64>(0, sqlite3_column_int64(statement.native(), 5))),
+        });
+    }
+    return channels;
+}
+
+foundation::result::Status SqliteReadStore::putChannelSuggestions(
+    const std::vector<capability::search::ChannelSuggestion>& channels)
+{
+    if (channels.size() > 30U)
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Channel search snapshot exceeds the bounded suggestion limit."));
+    for (const auto& channel : channels) {
+        if (channel.id.value.empty() || channel.id.value.size() > 256U
+            || channel.name.empty() || channel.name.size() > 512U
+            || channel.id.value.find('\0') != std::string::npos
+            || channel.name.find('\0') != std::string::npos
+            || channel.followerCount > static_cast<std::uint64_t>(
+                std::numeric_limits<sqlite3_int64>::max())) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Invalid local channel suggestion identity or follower count."));
+        }
+        for (const auto* field : {&channel.parentUrl, &channel.imageUrl,
+                                  &channel.description}) {
+            if (*field && ((*field)->size() > 4096U
+                || (*field)->find('\0') != std::string::npos)) {
+                return std::unexpected(foundation::error::Error::make(
+                    foundation::error::ErrorCode::InvalidArgument,
+                    "Invalid or oversized channel metadata."));
+            }
+        }
+    }
+    std::scoped_lock lock{m_mutex};
+    sqlite::Transaction transaction{m_metadata};
+    if (auto status = transaction.begin(); !status)
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    auto prepared = sqlite::Statement::prepare(m_metadata, R"SQL(
+INSERT INTO cached_channel_suggestions
+(id, name, parent_url, image_url, description, follower_count)
+VALUES(?, ?, ?, ?, ?, ?)
+ON CONFLICT(id) DO UPDATE SET
+    name = excluded.name,
+    parent_url = COALESCE(excluded.parent_url, cached_channel_suggestions.parent_url),
+    image_url = COALESCE(excluded.image_url, cached_channel_suggestions.image_url),
+    description = COALESCE(excluded.description, cached_channel_suggestions.description),
+    follower_count = CASE WHEN excluded.follower_count > 0
+                          THEN excluded.follower_count
+                          ELSE cached_channel_suggestions.follower_count END;
+)SQL");
+    if (!prepared)
+        return std::unexpected(toFoundationError(std::move(prepared.error())));
+    auto statement = std::move(*prepared);
+    for (const auto& channel : channels) {
+        sqlite3_reset(statement.native());
+        sqlite3_clear_bindings(statement.native());
+        if (auto status = sqlite::bindText(statement.native(), 1, channel.id.value); !status)
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        if (auto status = sqlite::bindText(statement.native(), 2, channel.name); !status)
+            return std::unexpected(toFoundationError(std::move(status.error())));
+        for (const auto& [index, field] :
+             std::initializer_list<std::pair<int, const std::optional<std::string>*>>{
+                 {3, &channel.parentUrl}, {4, &channel.imageUrl},
+                 {5, &channel.description}}) {
+            if (*field) {
+                if (auto status = sqlite::bindText(statement.native(), index, **field); !status)
+                    return std::unexpected(toFoundationError(std::move(status.error())));
+            } else if (sqlite3_bind_null(statement.native(), index) != SQLITE_OK) {
+                return std::unexpected(toFoundationError(sqlite::makeError(
+                    m_metadata.native(), "Binding optional local channel metadata")));
+            }
+        }
+        if (sqlite3_bind_int64(statement.native(), 6,
+            static_cast<sqlite3_int64>(channel.followerCount)) != SQLITE_OK)
+            return std::unexpected(toFoundationError(sqlite::makeError(
+                m_metadata.native(), "Binding local channel followers")));
+        if (auto status = sqlite::stepDone(m_metadata, statement); !status)
+            return std::unexpected(toFoundationError(std::move(status.error())));
+    }
+    if (auto status = transaction.commit(); !status)
+        return std::unexpected(toFoundationError(std::move(status.error())));
+    return {};
 }
 
 foundation::result::Result<std::optional<domain::profile::Profile>>

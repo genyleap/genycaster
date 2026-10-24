@@ -10,6 +10,7 @@ module;
 export module farcaster.local.read;
 
 import farcaster.capability.feed;
+import farcaster.capability.search;
 import farcaster.capability.social;
 import farcaster.domain.cast;
 import farcaster.domain.channel;
@@ -66,6 +67,21 @@ public:
      */
     [[nodiscard]] virtual foundation::result::Result<std::vector<domain::profile::Profile>>
     searchCachedProfiles(std::string_view query, std::size_t limit) = 0;
+    /**
+     * @brief Reads previously discovered channel suggestions, never network-wide.
+     * Literal ID/name prefix search, ranked by exact ID, prefix and follower
+     * count, bounded to 1..30. Storage failures are returned as errors.
+     */
+    [[nodiscard]] virtual foundation::result::Result<
+        std::vector<capability::search::ChannelSuggestion>>
+    searchCachedChannels(std::string_view query, std::size_t limit) = 0;
+    /**
+     * @brief Atomically caches sparse derived channel suggestions.
+     * Existing non-empty URL/description fields are retained if omitted.
+     * Invalid IDs, unbounded snapshots and SQLite failures are recoverable.
+     */
+    [[nodiscard]] virtual foundation::result::Status putChannelSuggestions(
+        const std::vector<capability::search::ChannelSuggestion>& channels) = 0;
     /** @brief Finds a cached profile by FID. */
     [[nodiscard]] virtual foundation::result::Result<std::optional<domain::profile::Profile>>
     findProfile(domain::identity::Fid fid) = 0;
