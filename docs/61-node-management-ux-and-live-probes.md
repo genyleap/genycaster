@@ -8,7 +8,8 @@ The Settings drawer includes a dedicated Node management tab on desktop and mobi
 - List automatic HyperSnap and custom compatible typed read profiles, each with Test, Use and Remove actions.
 - Guide users through a friendly display name, endpoint, raw-versus-indexed contract, local example and optional API key; generate provider IDs automatically. Saving a newly discovered node no longer silently selects it as the active reader: Use is an explicit separate action.
 - Provide a browser-native clipboard read action in addition to standard field context menus and keyboard editing.
-- Show a one-click WebAssembly reload when the chosen connection changes.
+- Show a one-click WebAssembly reload when the chosen connection changes. Clearly distinguish the **active startup reader** from the **selected next-start reader**; a successful connection probe is not evidence that the runtime route changed. If read fallback is permitted, other supported capabilities can use another source.
+- Queue IndexedDB writes when saved profiles or read preferences change. The WebAssembly refresh must explicitly sync QSettings to its mounted INI file, await the serialized IDBFS flush, and refuse navigation if persistence fails. A fast click on Use then Refresh must never silently revert to the previous provider.
 - Keep write providers in a clearly separate section. This web build does not compile the custom validator adapter; never imply that choosing a read URL changes signed write destinations.
 - Provide 32 translated UI strings across all 12 language catalogs.
 

@@ -16,6 +16,19 @@ ColumnLayout {
     property bool selfHosted: false
     property string readContract: "snapchain-v1"
     property string pasteTarget: ""
+    readonly property string resolvedSelectedReadId:
+        providerProfiles.selectedReadProviderId.length === 0
+        ? "hypersnap-v2" : providerProfiles.selectedReadProviderId
+
+    function selectedReadLabel() {
+        if (root.resolvedSelectedReadId === "hypersnap-v2") return "HyperSnap v2"
+        const profiles = providerProfiles.readProfiles
+        for (let i = 0; i < profiles.length; ++i) {
+            if (String(profiles[i].id) === root.resolvedSelectedReadId)
+                return String(profiles[i].label || profiles[i].id)
+        }
+        return root.resolvedSelectedReadId
+    }
 
     function probeLabel() {
         switch (providerProfiles.probeState) {
@@ -87,6 +100,14 @@ ColumnLayout {
                 color: Theme.ink
                 font.pixelSize: Theme.typeTitle3Size
                 font.weight: Theme.weightDemiBold
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                visible: root.resolvedSelectedReadId !== providerProfiles.activeReadProviderId
+                text: qsTrId("genycaster.nodes.pending_read").arg(root.selectedReadLabel())
+                font.pixelSize: Theme.typeMetaSize
+                color: Theme.warning
+                wrapMode: Text.Wrap
             }
             DirectionAwareLabel {
                 visible: providerProfiles.activeReadContract === "snapchain-v1"
@@ -173,6 +194,13 @@ ColumnLayout {
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
+                        visible: String(modelData.id) === providerProfiles.activeReadProviderId
+                        text: qsTrId("genycaster.nodes.active_tag")
+                        color: Theme.positive
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
                         text: String(modelData.endpoint || "")
                         color: Theme.inkMuted
                         forceLeftToRight: true
@@ -202,7 +230,11 @@ ColumnLayout {
                         }
                         ActionButton {
                             compact: true
-                            text: qsTrId("genycaster.providers.use")
+                            text: providerProfiles.selectedReadProviderId === String(modelData.id)
+                                  ? (providerProfiles.activeReadProviderId === String(modelData.id)
+                                     ? qsTrId("genycaster.nodes.active_tag")
+                                     : qsTrId("genycaster.nodes.pending_tag"))
+                                  : qsTrId("genycaster.providers.use")
                             selected: providerProfiles.selectedReadProviderId === String(modelData.id)
                             onClicked: providerProfiles.selectReadProvider(String(modelData.id))
                         }
@@ -560,7 +592,16 @@ ColumnLayout {
         prominent: true
         iconGlyph: Theme.iconRefresh
         text: qsTrId("genycaster.settings.wasm_refresh_now")
+        enabled: !updateController.webRefreshing
         onClicked: updateController.refreshWebApp()
+    }
+
+    DirectionAwareLabel {
+        visible: updateController.error.length > 0
+        Layout.fillWidth: true
+        text: updateController.error
+        color: Theme.danger
+        wrapMode: Text.Wrap
     }
 
     DirectionAwareLabel {

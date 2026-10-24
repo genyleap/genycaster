@@ -46,6 +46,18 @@
             <source>Choose where Genycaster reads data. Reading and publishing use separate connections.</source>
             <translation>Genycaster의 데이터 읽기 출처를 선택합니다. 읽기와 게시 연결은 별도입니다.</translation>
         </message>
+        <message id="genycaster.nodes.pending_read">
+            <source>Next startup: %1. Refresh to activate this selection.</source>
+            <translation>다음 시작 시: %1. 선택을 활성화하려면 새로고침하세요.</translation>
+        </message>
+        <message id="genycaster.nodes.active_tag">
+            <source>Active on this startup</source>
+            <translation>현재 활성화됨</translation>
+        </message>
+        <message id="genycaster.nodes.pending_tag">
+            <source>Pending refresh</source>
+            <translation>새로고침 대기</translation>
+        </message>
         <message id="genycaster.nodes.active">
             <source>Currently reading from</source>
             <translation>현재 읽기 출처</translation>

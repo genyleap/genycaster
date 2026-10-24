@@ -46,6 +46,18 @@
             <source>Choose where Genycaster reads data. Reading and publishing use separate connections.</source>
             <translation>Escolha de onde o Genycaster lê dados. Leitura e publicação usam conexões separadas.</translation>
         </message>
+        <message id="genycaster.nodes.pending_read">
+            <source>Next startup: %1. Refresh to activate this selection.</source>
+            <translation>Na próxima inicialização: %1. Atualize a página para ativar esta seleção.</translation>
+        </message>
+        <message id="genycaster.nodes.active_tag">
+            <source>Active on this startup</source>
+            <translation>Ativo agora</translation>
+        </message>
+        <message id="genycaster.nodes.pending_tag">
+            <source>Pending refresh</source>
+            <translation>Atualização pendente</translation>
+        </message>
         <message id="genycaster.nodes.active">
             <source>Currently reading from</source>
             <translation>Origem atual de leitura</translation>

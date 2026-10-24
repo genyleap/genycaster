@@ -46,6 +46,18 @@
             <source>Choose where Genycaster reads data. Reading and publishing use separate connections.</source>
             <translation>Genycaster のデータ取得先を選択します。読み取りと投稿は別接続です。</translation>
         </message>
+        <message id="genycaster.nodes.pending_read">
+            <source>Next startup: %1. Refresh to activate this selection.</source>
+            <translation>次回起動時: %1。この設定を有効にするにはページを再読み込みしてください。</translation>
+        </message>
+        <message id="genycaster.nodes.active_tag">
+            <source>Active on this startup</source>
+            <translation>現在有効</translation>
+        </message>
+        <message id="genycaster.nodes.pending_tag">
+            <source>Pending refresh</source>
+            <translation>再読み込み待ち</translation>
+        </message>
         <message id="genycaster.nodes.active">
             <source>Currently reading from</source>
             <translation>現在の読み取り元</translation>

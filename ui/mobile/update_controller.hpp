@@ -64,6 +64,8 @@ public:
     Q_INVOKABLE void setAutoCheckEnabled(bool enabled);
     Q_INVOKABLE void checkForUpdates();
     Q_INVOKABLE void refreshWebApp();
+    /** @brief Cancels a browser refresh if its durable local-state flush fails. */
+    void browserRefreshPersistenceFailed();
     Q_INVOKABLE void downloadUpdate();
     Q_INVOKABLE bool openDownloadedUpdate();
     Q_INVOKABLE bool openReleasePage();

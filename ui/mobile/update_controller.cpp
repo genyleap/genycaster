@@ -26,6 +26,10 @@
 namespace {
 const QUrl kReleaseApi{QStringLiteral("https://api.github.com/repos/genyleap/genycaster/releases/latest")};
 const QUrl kReleasePage{QStringLiteral("https://github.com/genyleap/genycaster/releases")};
+#if defined(__EMSCRIPTEN__)
+// At most one browser refresh is pending; do not retain a dangling QObject.
+QPointer<UpdateController> pendingBrowserRefresh{};
+#endif
 
 QString normalizeVersion(QString v)
 {
@@ -74,6 +78,21 @@ bool isOfficialAssetUrl(const QUrl& u)
 }
 } // namespace
 
+#if defined(__EMSCRIPTEN__)
+extern "C" EMSCRIPTEN_KEEPALIVE void genycasterWebRefreshSaveFailure()
+{
+    if (pendingBrowserRefresh)
+        pendingBrowserRefresh->browserRefreshPersistenceFailed();
+}
+#endif
+
+void UpdateController::browserRefreshPersistenceFailed()
+{
+    if (!m_webRefreshing) return;
+    m_webRefreshing = false;
+    fail(QStringLiteral("Could not save browser data. Refresh cancelled; please retry."));
+}
+
 UpdateController::UpdateController(QSettings& settings, const bool startupCheck, QObject* parent)
     : QObject{parent}, m_settings{settings},
       m_appVersion{QCoreApplication::applicationVersion()},
@@ -109,6 +128,9 @@ UpdateController::~UpdateController()
         disconnect(m_downloadReply, nullptr, this, nullptr);
         m_downloadReply->abort();
     }
+#if defined(__EMSCRIPTEN__)
+    if (pendingBrowserRefresh == this) pendingBrowserRefresh = nullptr;
+#endif
     if (m_file) m_file->close();
     if (!m_partialPath.isEmpty()) QFile::remove(m_partialPath);
 }
@@ -194,10 +216,19 @@ void UpdateController::refreshWebApp()
             fail(QStringLiteral("Could not verify the online WebAssembly release. Please retry."));
             return;
         }
+        // QSettings::sync updates the virtual INI file, not IndexedDB.
+        // A user may press Refresh immediately after Use: wait for the
+        // serialized durable flush before any service-worker/navigation work.
+        m_settings.sync();
+        if (m_settings.status() != QSettings::NoError) {
+            browserRefreshPersistenceFailed();
+            return;
+        }
+        pendingBrowserRefresh = this;
         // Only public browser assets are refreshed. Account credentials,
         // draft content and local signer state are not erased or re-keyed.
         EM_ASM({
-            (async () => {
+            Module.genycasterSyncBrowserData().then(async function() {
                 try {
                     const registration = await navigator.serviceWorker?.getRegistration('./');
                     if (registration) {
@@ -208,12 +239,14 @@ void UpdateController::refreshWebApp()
                     }
                 } catch (error) {
                     console.warn('[Genycaster] Service worker update unavailable', error);
-                } finally {
-                    const next = new URL(window.location.href);
-                    next.searchParams.set('genycaster_refresh', Date.now().toString());
-                    window.location.replace(next.href);
                 }
-            })();
+                const next = new URL(window.location.href);
+                next.searchParams.set('genycaster_refresh', Date.now().toString());
+                window.location.replace(next.href);
+            }).catch(function(error) {
+                console.error('[Genycaster] Browser data persistence prevented refresh', error);
+                Module._genycasterWebRefreshSaveFailure();
+            });
         });
     });
 #else

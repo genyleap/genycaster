@@ -15,6 +15,63 @@ const read=path=>readFileSync(new URL(path,root),'utf8');
 const html=read('ui/wasm/genycaster-shell.html');
 const loader=read('ui/wasm/genycaster-loader.js');
 
+test('serialized IDBFS writes finish before refresh and recover after storage failure', async () => {
+    const pre=read('ui/wasm/persistence-pre.js');
+    const callbacks=[];
+    const scope={
+        Module:{}, Promise, FS:{
+            syncfs(populate,done) {
+                assert.equal(populate,false);
+                callbacks.push(done);
+            }
+        }, console
+    };
+    vm.runInNewContext(pre,scope);
+    const flush=scope.Module.genycasterSyncBrowserData;
+    assert.equal(typeof flush,'function');
+
+    const first=flush();
+    const second=flush();
+    await Promise.resolve();
+    assert.equal(callbacks.length,1,'second sync must wait, IDBFS forbids overlap');
+    callbacks.shift()(null);
+    await first;
+    await Promise.resolve();
+    assert.equal(callbacks.length,1);
+    callbacks.shift()(null);
+    await second;
+
+    const failed=flush();
+    await Promise.resolve();
+    callbacks.shift()(new Error('quota exceeded'));
+    await assert.rejects(failed,/quota exceeded/);
+    const retry=flush();
+    await Promise.resolve();
+    assert.equal(callbacks.length,1);
+    callbacks.shift()(null);
+    await retry;
+});
+
+test('WASM refresh flushes selected node to IndexedDB before navigation',()=>{
+    const app=readGenycasterMain();
+    const update=read('ui/mobile/update_controller.cpp');
+    const panel=read('ui/components/NodeManagementPanel.qml');
+    assert.ok(app.includes('ProviderProfilesController::selectionChanged'));
+    assert.ok(app.includes('ProviderProfilesController::profilesChanged'));
+    assert.ok(app.includes('flushBrowserData'));
+    assert.ok(app.includes('Module.genycasterSyncBrowserData()'));
+    const refresh=update.split('void UpdateController::refreshWebApp()')[1]
+        .split('void UpdateController::check(')[0];
+    assert.ok(refresh.includes('m_settings.sync()'));
+    assert.ok(refresh.includes('Module.genycasterSyncBrowserData().then'));
+    assert.match(refresh,/genycasterWebRefreshSaveFailure/);
+    assert.ok(refresh.indexOf('genycasterSyncBrowserData().then')
+              < refresh.indexOf('window.location.replace'));
+    assert.match(panel,/genycaster.nodes.pending_read/);
+    assert.match(panel,/genycaster.nodes.pending_tag/);
+    assert.match(panel,/genycaster.nodes.active_tag/);
+});
+
 test('WASM packages branded shell instead of Qt logo; mobile uses visible viewport',()=>{
     const cmake=read('ui/CMakeLists.txt');
     assert.match(cmake,/genycaster-shell\.html/);
@@ -62,7 +119,7 @@ test('completed Setup is independent of a volatile session and signer revocation
     assert.match(app,/\/home\/web_user\/\.local\/share\/genycaster-settings\.ini/);
     assert.match(app,/QObject::connect\(&presentationBridge, &PresentationBridge::setupStateChanged/);
     assert.doesNotMatch(app,/QObject::connect\(&bridge, &PresentationBridge::setupStateChanged/);
-    assert.match(app,/FS\.syncfs\(false/);
+    assert.match(app,/Module\.genycasterSyncBrowserData\(\)/);
     assert.match(app,/browserSigner->restoreRememberedAccount\(\)/);
     assert.match(app,/browserSigner->forgetAccount\(\)/);
     assert.match(app,/genycaster:device-local/);

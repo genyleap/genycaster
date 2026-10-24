@@ -2232,25 +2232,28 @@ int main(int argc, char* argv[])
     // IndexedDB. The preRun hook restores the directory before main().
     QTimer wasmPersistenceFlush{&application};
     wasmPersistenceFlush.setInterval(8'000);
-    QObject::connect(&wasmPersistenceFlush, &QTimer::timeout, &application, [] {
+    const flushBrowserData = [] {
         EM_ASM({
-            FS.syncfs(false, function(err) {
-                if (err) console.error('[Genycaster] IndexedDB sync failed', err);
+            Module.genycasterSyncBrowserData().catch(function(error) {
+                console.error('[Genycaster] IndexedDB sync failed', error);
             });
         });
-    });
+    };
+    QObject::connect(&wasmPersistenceFlush, &QTimer::timeout,
+                     &application, flushBrowserData);
     wasmPersistenceFlush.start();
+    // A provider choice must be flushed before the user can reload the page.
+    // The reload operation queues one last flush and awaits its completion.
+    QObject::connect(&providerProfilesController, &ProviderProfilesController::selectionChanged,
+                     &application, flushBrowserData);
+    QObject::connect(&providerProfilesController, &ProviderProfilesController::profilesChanged,
+                     &application, flushBrowserData);
     // Persist onboarding/consent immediately instead of waiting for the
     // periodic SQLite flush. Never synchronize a private mnemonic here.
     QObject::connect(&presentationBridge, &PresentationBridge::setupStateChanged,
-                     &application, [&settings] {
+                     &application, [&settings, flushBrowserData] {
         settings.sync();
-        EM_ASM({
-            if (typeof FS !== 'undefined' && typeof FS.syncfs === 'function')
-                FS.syncfs(false, function(err) {
-                    if (err) console.error('[Genycaster] Settings save failed', err);
-                });
-        });
+        flushBrowserData();
     });
 #endif
     return application.exec();

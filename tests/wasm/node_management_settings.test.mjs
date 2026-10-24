@@ -87,7 +87,8 @@ test('Node Management labels including contract correction are translated in eve
     for (const id of ['title','description','active','test','checking','connected',
                       'auth_required','incompatible','unreachable','not_tested',
                       'raw_description','raw_limitations','indexed_description','paste','local_warning',
-                      'api_warning','save_key','reload','test_note','contract_mismatch','use_detected']) {
+                      'api_warning','save_key','reload','test_note','contract_mismatch','use_detected',
+                      'pending_read','active_tag','pending_tag']) {
       assert.match(content,
         new RegExp('<message id="genycaster\\.nodes\\.' + id +
           '">[\\s\\S]*?<translation>[^<]+</translation>'));

@@ -46,6 +46,18 @@
             <source>Choose where Genycaster reads data. Reading and publishing use separate connections.</source>
             <translation>مشخص کن جنی‌کستر اطلاعات را از کجا بخواند. مسیر خواندن و انتشار جدا هستند.</translation>
         </message>
+        <message id="genycaster.nodes.pending_read">
+            <source>Next startup: %1. Refresh to activate this selection.</source>
+            <translation>پس از راه‌اندازی مجدد: %1. برای فعال‌سازی انتخاب، صفحه را تازه‌سازی کن.</translation>
+        </message>
+        <message id="genycaster.nodes.active_tag">
+            <source>Active on this startup</source>
+            <translation>فعال در این اجرا</translation>
+        </message>
+        <message id="genycaster.nodes.pending_tag">
+            <source>Pending refresh</source>
+            <translation>در انتظار تازه‌سازی</translation>
+        </message>
         <message id="genycaster.nodes.active">
             <source>Currently reading from</source>
             <translation>منبع خواندن فعلی</translation>

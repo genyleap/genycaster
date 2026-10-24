@@ -46,6 +46,18 @@
             <source>Choose where Genycaster reads data. Reading and publishing use separate connections.</source>
             <translation>चुनें कि Genycaster डेटा कहाँ से पढ़े। पढ़ना और पोस्ट करना अलग कनेक्शन हैं।</translation>
         </message>
+        <message id="genycaster.nodes.pending_read">
+            <source>Next startup: %1. Refresh to activate this selection.</source>
+            <translation>अगली शुरुआत में: %1। इसे सक्रिय करने के लिए पेज रीफ़्रेश करें।</translation>
+        </message>
+        <message id="genycaster.nodes.active_tag">
+            <source>Active on this startup</source>
+            <translation>अभी सक्रिय</translation>
+        </message>
+        <message id="genycaster.nodes.pending_tag">
+            <source>Pending refresh</source>
+            <translation>रीफ़्रेश लंबित</translation>
+        </message>
         <message id="genycaster.nodes.active">
             <source>Currently reading from</source>
             <translation>वर्तमान डेटा स्रोत</translation>
