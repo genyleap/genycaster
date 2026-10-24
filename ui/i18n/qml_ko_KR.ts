@@ -18,6 +18,22 @@
             <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
             <translation>팔로우한 계정에서 저장된 게시물을 표시합니다. 전체 실시간 팔로잉 피드는 아닙니다.</translation>
         </message>
+        <message id="genycaster.feed.signer_filter_explanation">
+            <source>Signer key • app identity not verified</source>
+            <translation>서명 키 • 앱 신원 미확인</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_all">
+            <source>All keys</source>
+            <translation>모든 키</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_include">
+            <source>Only selected</source>
+            <translation>선택한 키만</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_exclude">
+            <source>Exclude selected</source>
+            <translation>선택한 키 제외</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>노드 추가</translation>

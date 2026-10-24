@@ -23,6 +23,12 @@ Item {
     property bool communityFallback: false
     property bool localDerivedRecent: false
     property bool localDerivedFollowing: false
+    // This is a protocol signer-key filter, NOT a verified application FID.
+    // Unattributed casts stay unknown; provider-supplied client badges are
+    // never treated as proof for include/exclude decisions.
+    property string signerFilterMode: "all"
+    property string selectedSignerKey: ""
+    readonly property var knownSignerKeys: root.collectSignerKeys()
     property bool identityAvailable: false
     property bool feedStarted: false
     property bool interactionsAvailable: false
@@ -433,6 +439,33 @@ Item {
         root.resetAutomaticPageBudget()
     }
 
+    function collectSignerKeys() {
+        const items = root.rows || []
+        const seen = ({})
+        const keys = []
+        for (let index = 0; index < items.length; ++index) {
+            const key = String((items[index] || ({})).signerPublicKeyHex || "").toLowerCase()
+            if (/^0x[0-9a-f]{64}$/.test(key) && !seen[key]) {
+                seen[key] = true
+                keys.push(key)
+            }
+        }
+        keys.sort()
+        return keys
+    }
+
+    function rowMatchesSignerFilter(row) {
+        if (root.signerFilterMode === "all")
+            return true
+        const signer = String((row || ({})).signerPublicKeyHex || "").toLowerCase()
+        if (!/^0x[0-9a-f]{64}$/.test(root.selectedSignerKey))
+            return root.signerFilterMode === "exclude"
+        // Unknown signers do NOT match an include filter. They remain
+        // visible in exclude mode because there is no proof of equality.
+        return root.signerFilterMode === "include"
+            ? signer === root.selectedSignerKey : signer !== root.selectedSignerKey
+    }
+
     function sourceRows() {
         const primary = root.rows || []
         if (root.socialMode) {
@@ -466,6 +499,8 @@ Item {
         const result = []
         for (let index = 0; index < source.length; ++index) {
             const row = source[index]
+            if (!root.rowMatchesSignerFilter(row))
+                continue
             if ((root.presentationMode === "for-you" || root.presentationMode === "following")) {
                 // The main Explorer timeline is a complete, provider-ordered
                 // stream of recent root casts, not a residual bucket after
@@ -998,6 +1033,8 @@ Item {
         // reconcile keys; clearing the whole model forced expensive remounts.
         root.deferFeedWork(true, root.presentationMode === "visuals", true)
     }
+    onSignerFilterModeChanged: root.deferFeedWork(true, false, true)
+    onSelectedSignerKeyChanged: root.deferFeedWork(true, false, true)
     onVisualFilterChanged: {
         if (root.presentationMode !== "visuals")
             return
@@ -1257,7 +1294,9 @@ Item {
             // first cast can never slide underneath it. The visible banner is a
             // viewport overlay that tracks this slot until it reaches the top,
             // then remains pinned while older posts continue scrolling.
-            implicitHeight: feedHeaderLoader.implicitHeight + communityNotice.height + newPostsSlot.height
+            implicitHeight: feedHeaderLoader.implicitHeight + communityNotice.height
+                            + localRecentNotice.height + signerFilterBar.height
+                            + newPostsSlot.height
             z: 20
 
             Rectangle {
@@ -1315,11 +1354,71 @@ Item {
                 wrapMode: Text.WordWrap
             }
 
+            Column {
+                id: signerFilterBar
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: localRecentNotice.bottom
+                height: visible ? implicitHeight + Theme.space2 : 0
+                visible: !root.socialMode && root.knownSignerKeys.length > 0
+                spacing: 3
+                anchors.leftMargin: Theme.space3
+                anchors.rightMargin: Theme.space3
+
+                DirectionAwareLabel {
+                    width: parent.width - Theme.space3 * 2
+                    text: qsTrId("genycaster.feed.signer_filter_explanation")
+                    font.pixelSize: Theme.typeCaptionSize
+                    color: Theme.inkMuted
+                    elide: Text.ElideRight
+                }
+                Row {
+                    width: parent.width - Theme.space3 * 2
+                    spacing: Theme.space2
+
+                    ComboBox {
+                        id: signerModePicker
+                        width: Math.max(110, (parent.width - parent.spacing) * 0.45)
+                        height: 34
+                        font.pixelSize: Theme.typeCaptionSize
+                        model: [
+                            qsTrId("genycaster.feed.signer_filter_all"),
+                            qsTrId("genycaster.feed.signer_filter_include"),
+                            qsTrId("genycaster.feed.signer_filter_exclude")
+                        ]
+                        onActivated: function(index) {
+                            root.signerFilterMode = index === 1 ? "include"
+                                                  : index === 2 ? "exclude" : "all"
+                            if (root.signerFilterMode !== "all"
+                                    && !root.selectedSignerKey
+                                    && root.knownSignerKeys.length > 0)
+                                root.selectedSignerKey = root.knownSignerKeys[0]
+                        }
+                    }
+                    ComboBox {
+                        id: signerKeyPicker
+                        width: parent.width - signerModePicker.width - parent.spacing
+                        height: 34
+                        enabled: root.signerFilterMode !== "all"
+                        font.pixelSize: Theme.typeCaptionSize
+                        model: root.knownSignerKeys.map(function(key) {
+                            return { label: key.slice(0, 12) + "…" + key.slice(-8), key: key }
+                        })
+                        textRole: "label"
+                        onActivated: function(index) {
+                            const option = model[index]
+                            if (option)
+                                root.selectedSignerKey = option.key
+                        }
+                    }
+                }
+            }
+
             Item {
                 id: newPostsSlot
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.top: localRecentNotice.bottom
+                anchors.top: signerFilterBar.bottom
                 height: root.pendingNewPostCount > 0 && !root.socialMode ? 52 : 0
                 visible: height > 0
             }

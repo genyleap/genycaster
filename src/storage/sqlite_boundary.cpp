@@ -128,6 +128,7 @@ CREATE TABLE IF NOT EXISTS casts (
     author_fid INTEGER NOT NULL,
     text TEXT NOT NULL,
     display_text TEXT,
+    signer_public_key_hex TEXT,
     parent_id TEXT,
     parent_url TEXT,
     created_at_ms INTEGER NOT NULL,
@@ -729,6 +730,23 @@ WHERE current.kind IN ('follow', 'unfollow')
         }
     }
     if (auto status = recordMigration(connection, 26, appliedAt); !status) {
+        return status;
+    }
+
+    // Raw-node signer provenance is canonical protocol evidence, distinct
+    // from optional upstream app display names. Keep old caches nullable and
+    // never backfill signer identity from sourceClient or the cast author.
+    {
+        auto exists = tableHasColumn(connection, "casts", "signer_public_key_hex");
+        if (!exists) { return std::unexpected(exists.error()); }
+        if (!*exists) {
+            if (auto status = connection.execute(
+                    "ALTER TABLE casts ADD COLUMN signer_public_key_hex TEXT;"); !status) {
+                return status;
+            }
+        }
+    }
+    if (auto status = recordMigration(connection, 27, appliedAt); !status) {
         return status;
     }
 

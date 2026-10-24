@@ -100,6 +100,47 @@ void testRawUserFeeds()
 }
 
 
+
+void testProtocolSignerKeyIsCanonicalButNeverGuessesAppIdentity()
+{
+    // Base64 protobuf bytes form: 32 bytes of 0x01, padded once.
+    const std::string keyBase64{"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="};
+    std::string expected{"0x"};
+    for (unsigned i = 0U; i < 32U; ++i) expected += "01";
+    auto raw = castJson();
+    const std::string insertion = "\"signer\":\"" + keyBase64 + "\",";
+    const auto at = raw.find("\"data\":");
+    assert(at != std::string::npos);
+    raw.insert(at, insertion);
+    auto parsed = raw::decodeUserCasts(raw, domain::identity::Fid{42},
+        model::FeedQuery::Kind::UserPosts);
+    assert(parsed && parsed->casts.size() == 1U);
+    assert(parsed->casts.front().signerPublicKeyHex
+        && *parsed->casts.front().signerPublicKeyHex == expected);
+    assert(!parsed->casts.front().sourceClient);
+
+    auto hexadecimal = castJson();
+    const auto pos = hexadecimal.find("\"data\":");
+    assert(pos != std::string::npos);
+    hexadecimal.insert(pos, "\"signer\":\"0x"
+        + std::string(64, 'A') + "\",");
+    auto hexResult = raw::decodeUserCasts(hexadecimal, domain::identity::Fid{42},
+        model::FeedQuery::Kind::UserPosts);
+    assert(hexResult && hexResult->casts.front().signerPublicKeyHex
+        && *hexResult->casts.front().signerPublicKeyHex
+            == "0x" + std::string(64, 'a'));
+
+    auto unknown = castJson();
+    auto absent = raw::decodeUserCasts(unknown, domain::identity::Fid{42},
+        model::FeedQuery::Kind::UserPosts);
+    assert(absent && !absent->casts.front().signerPublicKeyHex);
+    unknown.insert(unknown.find("\"data\":"),
+                   "\"signer\":\"unverified-app-name\",");
+    auto invalid = raw::decodeUserCasts(unknown, domain::identity::Fid{42},
+        model::FeedQuery::Kind::UserPosts);
+    assert(invalid && !invalid->casts.front().signerPublicKeyHex);
+}
+
 void testRawFollowGraphCodec()
 {
     constexpr std::string_view following = R"JSON({
@@ -720,6 +761,7 @@ int main()
 {
     testRawProfileCodec();
     testRawUserFeeds();
+    testProtocolSignerKeyIsCanonicalButNeverGuessesAppIdentity();
     testRawFollowGraphCodec();
     testNoFalseCapabilities();
     testAsyncReadAndOpaquePagination();

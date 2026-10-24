@@ -18,6 +18,22 @@
             <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
             <translation>تُعرض المنشورات المحفوظة من الحسابات التي تتابعها. هذه ليست خلاصة المتابَعين المباشرة والكاملة.</translation>
         </message>
+        <message id="genycaster.feed.signer_filter_explanation">
+            <source>Signer key • app identity not verified</source>
+            <translation>مفتاح التوقيع • هوية التطبيق غير مؤكدة</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_all">
+            <source>All keys</source>
+            <translation>جميع المفاتيح</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_include">
+            <source>Only selected</source>
+            <translation>المفتاح المحدد فقط</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_exclude">
+            <source>Exclude selected</source>
+            <translation>استبعاد المفتاح المحدد</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>إضافة عقدة</translation>

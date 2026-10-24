@@ -144,6 +144,51 @@ using ErrorCode = foundation::error::ErrorCode;
     return true;
 }
 
+[[nodiscard]] std::optional<std::string> canonicalSignerKey(const json::object& message)
+{
+    // Protobuf JSON serializes bytes as base64; a subset of compatible
+    // implementations also emits 0x-prefixed hex. Reject other lengths.
+    const auto value = string(field(message, "signer"));
+    if (!value || value->empty()) return std::nullopt;
+    std::string result{"0x"};
+    constexpr char hex[] = "0123456789abcdef";
+    if (value->size() == 66U && value->starts_with("0x")) {
+        for (std::size_t i = 2U; i < value->size(); ++i) {
+            const auto c = static_cast<unsigned char>((*value)[i]);
+            if (!std::isxdigit(c)) return std::nullopt;
+            result.push_back(static_cast<char>(std::tolower(c)));
+        }
+        return result;
+    }
+    if (value->size() != 44U || (*value)[43] != '=') return std::nullopt;
+    std::uint32_t bits = 0U;
+    int available = 0;
+    std::size_t decoded = 0U;
+    for (std::size_t i = 0U; i < 43U; ++i) {
+        const char ch = (*value)[i];
+        int digit = -1;
+        if (ch >= 'A' && ch <= 'Z') digit = ch - 'A';
+        else if (ch >= 'a' && ch <= 'z') digit = ch - 'a' + 26;
+        else if (ch >= '0' && ch <= '9') digit = ch - '0' + 52;
+        else if (ch == '+') digit = 62;
+        else if (ch == '/') digit = 63;
+        if (digit < 0) return std::nullopt;
+        bits = (bits << 6U) | static_cast<std::uint32_t>(digit);
+        available += 6;
+        if (available >= 8) {
+            available -= 8;
+            const auto byte = static_cast<unsigned>((bits >> available) & 0xffU);
+            result.push_back(hex[byte >> 4U]);
+            result.push_back(hex[byte & 15U]);
+            ++decoded;
+        }
+    }
+    // One '=' represents two original bytes in the final three-byte block.
+    if (decoded != 32U || available != 2 || (bits & 3U) != 0U)
+        return std::nullopt;
+    return result;
+}
+
 [[nodiscard]] std::optional<int> userDataType(const json::value* value)
 {
     if (const auto code = unsignedValue(value); code && *code <= 255U)
@@ -188,6 +233,9 @@ using ErrorCode = foundation::error::ErrorCode;
             std::chrono::milliseconds{
                 static_cast<std::int64_t>((farcasterEpochUnixSeconds + *timestamp) * 1000ULL)}},
     };
+    // Snapchain validates canonical message signatures before storing them;
+    // the reported key is observed signer identity, not app attribution.
+    result.signerPublicKeyHex = canonicalSignerKey(message);
     if (const auto* parent = object(field(*body, "parentCastId"))) {
         const auto parentHash = string(field(*parent, "hash"));
         if (parentHash && validHash(*parentHash))

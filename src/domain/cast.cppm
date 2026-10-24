@@ -71,6 +71,12 @@ struct Cast final {
     std::optional<std::string> displayText{};
     /** @brief Optional explicitly supplied signing-client label; never inferred from author. */
     std::optional<std::string> sourceClient{};
+    /** Protocol signer public key as lowercase 0x-prefixed Ed25519 hex.
+     * Present only when supplied by the selected canonical raw node.
+     * A signer key alone is NOT evidence of an app FID/name or a locally
+     * verified signature; missing provenance must remain unknown.
+     */
+    std::optional<std::string> signerPublicKeyHex{};
     std::optional<CastId> parent{};
     /** @brief Protocol-native parent URL used by channel/root casts when no parent cast is present. */
     std::optional<std::string> parentUrl{};

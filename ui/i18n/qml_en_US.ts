@@ -18,6 +18,22 @@
             <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
             <translation>Showing saved posts from accounts you follow. This is not the complete live Following feed.</translation>
         </message>
+        <message id="genycaster.feed.signer_filter_explanation">
+            <source>Signer key • app identity not verified</source>
+            <translation>Signer key • app identity not verified</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_all">
+            <source>All keys</source>
+            <translation>All keys</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_include">
+            <source>Only selected</source>
+            <translation>Only selected</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_exclude">
+            <source>Exclude selected</source>
+            <translation>Exclude selected</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>Add node</translation>

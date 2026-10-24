@@ -18,6 +18,22 @@
             <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
             <translation>आपके फ़ॉलो किए हुए खातों की सहेजी गई पोस्ट दिखाई जा रही हैं; यह पूरा लाइव फ़ॉलोइंग फ़ीड नहीं है।</translation>
         </message>
+        <message id="genycaster.feed.signer_filter_explanation">
+            <source>Signer key • app identity not verified</source>
+            <translation>हस्ताक्षर कुंजी • ऐप की पहचान सत्यापित नहीं</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_all">
+            <source>All keys</source>
+            <translation>सभी कुंजियाँ</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_include">
+            <source>Only selected</source>
+            <translation>केवल चयनित</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_exclude">
+            <source>Exclude selected</source>
+            <translation>चयनित को हटाएँ</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>नोड जोड़ें</translation>

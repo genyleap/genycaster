@@ -18,6 +18,22 @@
             <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
             <translation>フォロー中のアカウントから保存済みの投稿を表示しています。ライブのフォローフィード全体ではありません。</translation>
         </message>
+        <message id="genycaster.feed.signer_filter_explanation">
+            <source>Signer key • app identity not verified</source>
+            <translation>署名鍵 • アプリの識別情報は未確認</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_all">
+            <source>All keys</source>
+            <translation>すべての鍵</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_include">
+            <source>Only selected</source>
+            <translation>選択した鍵のみ</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_exclude">
+            <source>Exclude selected</source>
+            <translation>選択した鍵を除外</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>ノードを追加</translation>

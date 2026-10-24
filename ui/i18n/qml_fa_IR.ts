@@ -18,6 +18,22 @@
             <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
             <translation>پست‌های ذخیره‌شده از حساب‌هایی که دنبال می‌کنید نمایش داده می‌شوند؛ این فید کامل و زندهٔ دنبال‌شوندگان نیست.</translation>
         </message>
+        <message id="genycaster.feed.signer_filter_explanation">
+            <source>Signer key • app identity not verified</source>
+            <translation>کلید امضاکننده • هویت اپ هنوز تأیید نشده</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_all">
+            <source>All keys</source>
+            <translation>همهٔ کلیدها</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_include">
+            <source>Only selected</source>
+            <translation>فقط کلید انتخاب‌شده</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_exclude">
+            <source>Exclude selected</source>
+            <translation>حذف کلید انتخاب‌شده</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>افزودن نود</translation>

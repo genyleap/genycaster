@@ -18,6 +18,22 @@
             <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
             <translation>Se muestran publicaciones guardadas de las cuentas que sigues, no el feed completo y en directo de Siguiendo.</translation>
         </message>
+        <message id="genycaster.feed.signer_filter_explanation">
+            <source>Signer key • app identity not verified</source>
+            <translation>Clave firmante • identidad de app no verificada</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_all">
+            <source>All keys</source>
+            <translation>Todas las claves</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_include">
+            <source>Only selected</source>
+            <translation>Solo la seleccionada</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_exclude">
+            <source>Exclude selected</source>
+            <translation>Excluir la seleccionada</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>Añadir nodo</translation>

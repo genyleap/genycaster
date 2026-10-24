@@ -2201,6 +2201,58 @@ void schemaUpgradeFromPreMentionCacheIsNonDestructive()
     assert((*recovered)->displayText == refreshed.displayText);
 }
 
+
+void protocolSignerProvenanceSurvivesCacheAndSchemaUpgrade()
+{
+    DatabaseFixture database{};
+    const auto key = "0x" + std::string(64U, 'a');
+    auto cast = makeCast("0xsigner-cache", 42, "authored", 1'000);
+    cast.signerPublicKeyHex = key;
+    {
+        auto store = farcaster::storage::read::openReadStore(database.path);
+        assert(store);
+        assert((*store)->putCast(cast));
+        auto loaded = (*store)->findCast(cast.id);
+        assert(loaded && *loaded && (*loaded)->signerPublicKeyHex == key);
+        // A sparse compatible provider cannot overwrite canonical signer
+        // provenance with an omitted application label.
+        auto sparse = cast;
+        sparse.signerPublicKeyHex.reset();
+        sparse.sourceClient = "Unverified provider badge";
+        assert((*store)->putCast(sparse));
+        loaded = (*store)->findCast(cast.id);
+        assert(loaded && *loaded && (*loaded)->signerPublicKeyHex == key);
+        assert(!(*loaded)->sourceClient); // Display app label is not proof.
+    }
+    auto reopened = farcaster::storage::read::openReadStore(database.path);
+    assert(reopened);
+    auto offline = (*reopened)->findCast(cast.id);
+    assert(offline && *offline && (*offline)->signerPublicKeyHex == key);
+
+    DatabaseFixture legacy{};
+    {
+        auto empty = farcaster::storage::read::openReadStore(legacy.path);
+        assert(empty);
+    }
+    sqlite3* connection{};
+    assert(sqlite3_open(legacy.path.string().c_str(), &connection) == SQLITE_OK);
+    assert(sqlite3_exec(connection,
+        "ALTER TABLE casts DROP COLUMN signer_public_key_hex;"
+        "DELETE FROM schema_migrations WHERE version=27;",
+        nullptr, nullptr, nullptr) == SQLITE_OK);
+    assert(sqlite3_close(connection) == SQLITE_OK);
+    auto migrated = farcaster::storage::read::openReadStore(legacy.path);
+    assert(migrated);
+    auto without = cast;
+    without.signerPublicKeyHex.reset();
+    assert((*migrated)->putCast(without));
+    auto unknown = (*migrated)->findCast(cast.id);
+    assert(unknown && *unknown && !(*unknown)->signerPublicKeyHex);
+    assert((*migrated)->putCast(cast));
+    auto enriched = (*migrated)->findCast(cast.id);
+    assert(enriched && *enriched && (*enriched)->signerPublicKeyHex == key);
+}
+
 void hydratedMentionsSurviveMaterializationAndOfflineRestart()
 {
     DatabaseFixture database{};
@@ -2309,6 +2361,7 @@ int main()
     freshCastAndRepliesDoNotWaitForOptionalAuthor();
     schemaUpgradeFromPreMentionCacheIsNonDestructive();
     hydratedMentionsSurviveMaterializationAndOfflineRestart();
+    protocolSignerProvenanceSurvivesCacheAndSchemaUpgrade();
     serializedExecutorKeepsBlockingReadOffCallerThread();
     return 0;
 }

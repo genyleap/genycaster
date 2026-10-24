@@ -18,6 +18,22 @@
             <source>Showing saved posts from accounts you follow. This is not the complete live Following feed.</source>
             <translation>正在显示已关注账号中保存在本机的帖子，并非完整的实时关注动态。</translation>
         </message>
+        <message id="genycaster.feed.signer_filter_explanation">
+            <source>Signer key • app identity not verified</source>
+            <translation>签名密钥 • 应用身份尚未验证</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_all">
+            <source>All keys</source>
+            <translation>所有密钥</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_include">
+            <source>Only selected</source>
+            <translation>仅选中密钥</translation>
+        </message>
+        <message id="genycaster.feed.signer_filter_exclude">
+            <source>Exclude selected</source>
+            <translation>排除选中密钥</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>添加节点</translation>
