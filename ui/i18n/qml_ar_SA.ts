@@ -2,6 +2,118 @@
 <TS version="2.1" language="ar_SA" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.providers.add">
+            <source>Add node</source>
+            <translation>إضافة عقدة</translation>
+        </message>
+        <message id="genycaster.providers.add_read">
+            <source>Add read node</source>
+            <translation>إضافة عقدة قراءة</translation>
+        </message>
+        <message id="genycaster.providers.default_read">
+            <source>Automatic read provider</source>
+            <translation>موفّر القراءة التلقائي</translation>
+        </message>
+        <message id="genycaster.providers.default_write">
+            <source>Default write provider</source>
+            <translation>موفّر الكتابة الافتراضي</translation>
+        </message>
+        <message id="genycaster.providers.description">
+            <source>Manage compatible read and write nodes separately. Only installed adapter contracts are available.</source>
+            <translation>أدِر عقد القراءة والكتابة المتوافقة بشكل مستقل. تتوفر فقط عقود المحوّلات المثبّتة.</translation>
+        </message>
+        <message id="genycaster.providers.error_duplicate">
+            <source>This provider ID is already in use.</source>
+            <translation>معرّف الموفّر هذا مستخدم بالفعل.</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_endpoint">
+            <source>Enter a valid HTTP(S) endpoint without credentials, query, or fragment.</source>
+            <translation>أدخل عنوان HTTP(S) صالحًا من دون بيانات اعتماد أو استعلام أو جزء مرجعي.</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_id">
+            <source>Use a unique ID with letters, digits, hyphens, dots, or underscores.</source>
+            <translation>استخدم معرّفًا فريدًا يحتوي على أحرف أو أرقام أو شرطات أو نقاط أو شرطات سفلية.</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_label">
+            <source>Enter a display name (up to 96 characters).</source>
+            <translation>أدخل اسم عرض لا يتجاوز 96 حرفًا.</translation>
+        </message>
+        <message id="genycaster.providers.error_limit">
+            <source>You can save up to 16 nodes per connection type.</source>
+            <translation>يمكن حفظ ما يصل إلى 16 عقدة لكل نوع اتصال.</translation>
+        </message>
+        <message id="genycaster.providers.error_storage">
+            <source>Unable to save provider settings.</source>
+            <translation>تعذّر حفظ إعدادات الموفّر.</translation>
+        </message>
+        <message id="genycaster.providers.error_unknown">
+            <source>That provider is not registered.</source>
+            <translation>هذا الموفّر غير مسجّل.</translation>
+        </message>
+        <message id="genycaster.providers.error_unsupported">
+            <source>The selected adapter contract is unavailable in this build.</source>
+            <translation>عقد المحوّل المحدد غير متاح في هذا الإصدار.</translation>
+        </message>
+        <message id="genycaster.providers.id_placeholder">
+            <source>Node ID (e.g. home-reader)</source>
+            <translation>معرّف العقدة (مثل home-reader)</translation>
+        </message>
+        <message id="genycaster.providers.indexed_contract">
+            <source>Indexed read API</source>
+            <translation>واجهة قراءة مفهرسة</translation>
+        </message>
+        <message id="genycaster.providers.label_placeholder">
+            <source>Display name</source>
+            <translation>اسم العرض</translation>
+        </message>
+        <message id="genycaster.providers.optional_read_endpoint">
+            <source>Read endpoint for reconciliation (optional)</source>
+            <translation>نقطة قراءة للمطابقة (اختياري)</translation>
+        </message>
+        <message id="genycaster.providers.raw_contract">
+            <source>Raw read node</source>
+            <translation>عقدة قراءة خام</translation>
+        </message>
+        <message id="genycaster.providers.read_endpoint">
+            <source>Read endpoint</source>
+            <translation>نقطة القراءة</translation>
+        </message>
+        <message id="genycaster.providers.read_title">
+            <source>Read providers</source>
+            <translation>موفّرو القراءة</translation>
+        </message>
+        <message id="genycaster.providers.remove">
+            <source>Remove</source>
+            <translation>إزالة</translation>
+        </message>
+        <message id="genycaster.providers.safety_note">
+            <source>Changes apply after restart. Queued writes remain bound to their original provider and endpoint. Never put API keys in URLs.</source>
+            <translation>تُطبّق التغييرات بعد إعادة التشغيل. تبقى عمليات الكتابة المنتظرة مرتبطة بموفّرها ونقطتها الأصليين. لا تضع مفاتيح API في العناوين.</translation>
+        </message>
+        <message id="genycaster.providers.self_hosted">
+            <source>Self-hosted node</source>
+            <translation>عقدة مستضافة ذاتيًا</translation>
+        </message>
+        <message id="genycaster.providers.title">
+            <source>Connected nodes</source>
+            <translation>العقد المتصلة</translation>
+        </message>
+        <message id="genycaster.providers.use">
+            <source>Use</source>
+            <translation>استخدام</translation>
+        </message>
+        <message id="genycaster.providers.write_description">
+            <source>Choose a write-capable node for signed casts, reactions, links and signer operations. A read-only node cannot publish.</source>
+            <translation>اختر عقدة تدعم الكتابة لإرسال المنشورات والتفاعلات والروابط وعمليات الموقّع. لا يمكن لعقدة القراءة فقط النشر.</translation>
+        </message>
+        <message id="genycaster.providers.write_endpoint">
+            <source>Validator / write endpoint</source>
+            <translation>نقطة المُدقِّق / الكتابة</translation>
+        </message>
+        <message id="genycaster.providers.write_title">
+            <source>Write providers</source>
+            <translation>موفّرو الكتابة</translation>
+        </message>
         <message id="genycaster.settings.validator_write_endpoint">
             <source>Snapchain write endpoint (validator)</source>
             <translation>عنوان إرسال Snapchain (المدقّق)</translation>

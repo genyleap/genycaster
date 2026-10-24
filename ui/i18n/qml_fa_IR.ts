@@ -2,6 +2,118 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.providers.add">
+            <source>Add node</source>
+            <translation>افزودن نود</translation>
+        </message>
+        <message id="genycaster.providers.add_read">
+            <source>Add read node</source>
+            <translation>افزودن نود خواندن</translation>
+        </message>
+        <message id="genycaster.providers.default_read">
+            <source>Automatic read provider</source>
+            <translation>ارائه‌دهندهٔ خواندن خودکار</translation>
+        </message>
+        <message id="genycaster.providers.default_write">
+            <source>Default write provider</source>
+            <translation>ارائه‌دهندهٔ پیش‌فرض نوشتن</translation>
+        </message>
+        <message id="genycaster.providers.description">
+            <source>Manage compatible read and write nodes separately. Only installed adapter contracts are available.</source>
+            <translation>نودهای سازگار خواندن و نوشتن را جداگانه مدیریت کنید. فقط قراردادهای آداپتور نصب‌شده در دسترس‌اند.</translation>
+        </message>
+        <message id="genycaster.providers.error_duplicate">
+            <source>This provider ID is already in use.</source>
+            <translation>این شناسهٔ ارائه‌دهنده قبلاً استفاده شده است.</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_endpoint">
+            <source>Enter a valid HTTP(S) endpoint without credentials, query, or fragment.</source>
+            <translation>نشانی HTTP(S) معتبر و بدون اطلاعات ورود، پارامتر پرس‌وجو یا بخش انتهایی وارد کنید.</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_id">
+            <source>Use a unique ID with letters, digits, hyphens, dots, or underscores.</source>
+            <translation>شناسه‌ای یکتا با حروف، ارقام، خط تیره، نقطه یا زیرخط وارد کنید.</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_label">
+            <source>Enter a display name (up to 96 characters).</source>
+            <translation>نام نمایشی را وارد کنید (حداکثر ۹۶ نویسه).</translation>
+        </message>
+        <message id="genycaster.providers.error_limit">
+            <source>You can save up to 16 nodes per connection type.</source>
+            <translation>برای هر نوع اتصال حداکثر ۱۶ نود می‌توان ذخیره کرد.</translation>
+        </message>
+        <message id="genycaster.providers.error_storage">
+            <source>Unable to save provider settings.</source>
+            <translation>ذخیرهٔ تنظیمات ارائه‌دهنده ممکن نشد.</translation>
+        </message>
+        <message id="genycaster.providers.error_unknown">
+            <source>That provider is not registered.</source>
+            <translation>این ارائه‌دهنده ثبت نشده است.</translation>
+        </message>
+        <message id="genycaster.providers.error_unsupported">
+            <source>The selected adapter contract is unavailable in this build.</source>
+            <translation>قرارداد آداپتور انتخاب‌شده در این نسخه موجود نیست.</translation>
+        </message>
+        <message id="genycaster.providers.id_placeholder">
+            <source>Node ID (e.g. home-reader)</source>
+            <translation>شناسهٔ نود (مثلاً home-reader)</translation>
+        </message>
+        <message id="genycaster.providers.indexed_contract">
+            <source>Indexed read API</source>
+            <translation>API خواندن ایندکس‌شده</translation>
+        </message>
+        <message id="genycaster.providers.label_placeholder">
+            <source>Display name</source>
+            <translation>نام نمایشی</translation>
+        </message>
+        <message id="genycaster.providers.optional_read_endpoint">
+            <source>Read endpoint for reconciliation (optional)</source>
+            <translation>نشانی خواندن برای تطبیق وضعیت (اختیاری)</translation>
+        </message>
+        <message id="genycaster.providers.raw_contract">
+            <source>Raw read node</source>
+            <translation>نود خواندن خام</translation>
+        </message>
+        <message id="genycaster.providers.read_endpoint">
+            <source>Read endpoint</source>
+            <translation>نشانی خواندن</translation>
+        </message>
+        <message id="genycaster.providers.read_title">
+            <source>Read providers</source>
+            <translation>ارائه‌دهندگان خواندن</translation>
+        </message>
+        <message id="genycaster.providers.remove">
+            <source>Remove</source>
+            <translation>حذف</translation>
+        </message>
+        <message id="genycaster.providers.safety_note">
+            <source>Changes apply after restart. Queued writes remain bound to their original provider and endpoint. Never put API keys in URLs.</source>
+            <translation>تغییرات پس از راه‌اندازی دوباره اعمال می‌شوند. پیام‌های در صف به ارائه‌دهنده و نشانی اولیهٔ خود وابسته می‌مانند. کلید API را در نشانی قرار ندهید.</translation>
+        </message>
+        <message id="genycaster.providers.self_hosted">
+            <source>Self-hosted node</source>
+            <translation>نود خودمیزبان</translation>
+        </message>
+        <message id="genycaster.providers.title">
+            <source>Connected nodes</source>
+            <translation>نودهای متصل</translation>
+        </message>
+        <message id="genycaster.providers.use">
+            <source>Use</source>
+            <translation>انتخاب</translation>
+        </message>
+        <message id="genycaster.providers.write_description">
+            <source>Choose a write-capable node for signed casts, reactions, links and signer operations. A read-only node cannot publish.</source>
+            <translation>برای کست‌ها، واکنش‌ها، پیوندها و عملیات کلید امضاکننده، نودی با قابلیت نوشتن انتخاب کنید. نود فقط‌خواندنی نمی‌تواند منتشر کند.</translation>
+        </message>
+        <message id="genycaster.providers.write_endpoint">
+            <source>Validator / write endpoint</source>
+            <translation>نشانی اعتبارسنج / نوشتن</translation>
+        </message>
+        <message id="genycaster.providers.write_title">
+            <source>Write providers</source>
+            <translation>ارائه‌دهندگان نوشتن</translation>
+        </message>
         <message id="genycaster.settings.validator_write_endpoint">
             <source>Snapchain write endpoint (validator)</source>
             <translation>نشانی ارسال پیام اسنپ‌چین (اعتبارسنج)</translation>

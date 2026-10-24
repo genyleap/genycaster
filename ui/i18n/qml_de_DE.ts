@@ -2,6 +2,118 @@
 <TS version="2.1" language="de_DE" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.providers.add">
+            <source>Add node</source>
+            <translation>Knoten hinzufügen</translation>
+        </message>
+        <message id="genycaster.providers.add_read">
+            <source>Add read node</source>
+            <translation>Leseknoten hinzufügen</translation>
+        </message>
+        <message id="genycaster.providers.default_read">
+            <source>Automatic read provider</source>
+            <translation>Automatischer Leseanbieter</translation>
+        </message>
+        <message id="genycaster.providers.default_write">
+            <source>Default write provider</source>
+            <translation>Standard-Schreibanbieter</translation>
+        </message>
+        <message id="genycaster.providers.description">
+            <source>Manage compatible read and write nodes separately. Only installed adapter contracts are available.</source>
+            <translation>Kompatible Lese- und Schreibknoten getrennt verwalten. Nur installierte Adapterverträge sind verfügbar.</translation>
+        </message>
+        <message id="genycaster.providers.error_duplicate">
+            <source>This provider ID is already in use.</source>
+            <translation>Diese Anbieter-ID wird bereits verwendet.</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_endpoint">
+            <source>Enter a valid HTTP(S) endpoint without credentials, query, or fragment.</source>
+            <translation>Eine gültige HTTP(S)-Adresse ohne Zugangsdaten, Abfrage oder Fragment eingeben.</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_id">
+            <source>Use a unique ID with letters, digits, hyphens, dots, or underscores.</source>
+            <translation>Eine eindeutige ID aus Buchstaben, Zahlen, Bindestrichen, Punkten oder Unterstrichen verwenden.</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_label">
+            <source>Enter a display name (up to 96 characters).</source>
+            <translation>Anzeigenamen eingeben (maximal 96 Zeichen).</translation>
+        </message>
+        <message id="genycaster.providers.error_limit">
+            <source>You can save up to 16 nodes per connection type.</source>
+            <translation>Pro Verbindungstyp können bis zu 16 Knoten gespeichert werden.</translation>
+        </message>
+        <message id="genycaster.providers.error_storage">
+            <source>Unable to save provider settings.</source>
+            <translation>Anbietereinstellungen konnten nicht gespeichert werden.</translation>
+        </message>
+        <message id="genycaster.providers.error_unknown">
+            <source>That provider is not registered.</source>
+            <translation>Dieser Anbieter ist nicht registriert.</translation>
+        </message>
+        <message id="genycaster.providers.error_unsupported">
+            <source>The selected adapter contract is unavailable in this build.</source>
+            <translation>Der gewählte Adaptervertrag ist in diesem Build nicht verfügbar.</translation>
+        </message>
+        <message id="genycaster.providers.id_placeholder">
+            <source>Node ID (e.g. home-reader)</source>
+            <translation>Knoten-ID (z. B. home-reader)</translation>
+        </message>
+        <message id="genycaster.providers.indexed_contract">
+            <source>Indexed read API</source>
+            <translation>Indexierte Lese-API</translation>
+        </message>
+        <message id="genycaster.providers.label_placeholder">
+            <source>Display name</source>
+            <translation>Anzeigename</translation>
+        </message>
+        <message id="genycaster.providers.optional_read_endpoint">
+            <source>Read endpoint for reconciliation (optional)</source>
+            <translation>Lese-Endpunkt zum Abgleich (optional)</translation>
+        </message>
+        <message id="genycaster.providers.raw_contract">
+            <source>Raw read node</source>
+            <translation>Unformatierter Leseknoten</translation>
+        </message>
+        <message id="genycaster.providers.read_endpoint">
+            <source>Read endpoint</source>
+            <translation>Lese-Endpunkt</translation>
+        </message>
+        <message id="genycaster.providers.read_title">
+            <source>Read providers</source>
+            <translation>Leseanbieter</translation>
+        </message>
+        <message id="genycaster.providers.remove">
+            <source>Remove</source>
+            <translation>Entfernen</translation>
+        </message>
+        <message id="genycaster.providers.safety_note">
+            <source>Changes apply after restart. Queued writes remain bound to their original provider and endpoint. Never put API keys in URLs.</source>
+            <translation>Änderungen gelten nach einem Neustart. Ausstehende Schreibvorgänge bleiben an ihren ursprünglichen Anbieter und Endpunkt gebunden. API-Schlüssel gehören nicht in URLs.</translation>
+        </message>
+        <message id="genycaster.providers.self_hosted">
+            <source>Self-hosted node</source>
+            <translation>Selbst gehosteter Knoten</translation>
+        </message>
+        <message id="genycaster.providers.title">
+            <source>Connected nodes</source>
+            <translation>Verbundene Knoten</translation>
+        </message>
+        <message id="genycaster.providers.use">
+            <source>Use</source>
+            <translation>Verwenden</translation>
+        </message>
+        <message id="genycaster.providers.write_description">
+            <source>Choose a write-capable node for signed casts, reactions, links and signer operations. A read-only node cannot publish.</source>
+            <translation>Für signierte Casts, Reaktionen, Links und Signaturvorgänge einen schreibfähigen Knoten auswählen. Reine Leseknoten können nichts veröffentlichen.</translation>
+        </message>
+        <message id="genycaster.providers.write_endpoint">
+            <source>Validator / write endpoint</source>
+            <translation>Validator-/Schreib-Endpunkt</translation>
+        </message>
+        <message id="genycaster.providers.write_title">
+            <source>Write providers</source>
+            <translation>Schreibanbieter</translation>
+        </message>
         <message id="genycaster.settings.validator_write_endpoint">
             <source>Snapchain write endpoint (validator)</source>
             <translation>Snapchain-Schreibendpunkt (Validator)</translation>

@@ -1,0 +1,150 @@
+#include "../mobile/provider_profiles_controller.hpp"
+
+#include <QCoreApplication>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSettings>
+#include <QTemporaryDir>
+#include <QVariantMap>
+
+#include <cassert>
+
+namespace {
+
+[[nodiscard]] QJsonArray saved(QSettings& settings, const QString& name)
+{
+    const auto raw = settings.value(name).toString();
+    const auto parsed = QJsonDocument::fromJson(raw.toUtf8());
+    assert(parsed.isArray());
+    return parsed.array();
+}
+
+void testTypedReadWriteProfilesAndPersistentPreferences()
+{
+    QTemporaryDir temp{};
+    assert(temp.isValid());
+    const QString filename = temp.filePath(QStringLiteral("profile-test.ini"));
+    {
+        QSettings settings{filename, QSettings::IniFormat};
+        ProviderProfilesController controller{settings, {}, {}, {}, {}};
+        assert(controller.rawReadSupported());
+        assert(controller.indexedReadSupported());
+        assert(controller.writeSupported());
+        assert(controller.readProfiles().empty());
+        assert(controller.writeProfiles().empty());
+        assert(!controller.readRestartRequired() && !controller.writeRestartRequired());
+
+        assert(controller.addReadProfile(
+            QStringLiteral("reader-alpha"), QStringLiteral("My raw node"),
+            QStringLiteral("snapchain-v1"), QStringLiteral("https://read.example.test/"),
+            true));
+        assert(controller.addReadProfile(
+            QStringLiteral("reader-beta"), QStringLiteral("Managed index"),
+            QStringLiteral("hypersnap-v2"), QStringLiteral("https://index.example.test"),
+            false));
+        assert(controller.addWriteProfile(
+            QStringLiteral("writer-alpha"), QStringLiteral("My validator"),
+            QStringLiteral("snapchain-v1"),
+            QStringLiteral("https://validator.example.test/"),
+            QStringLiteral("https://reconciler.example.test/"), true));
+
+        assert(saved(settings, QStringLiteral("network/readProviderProfilesJson")).size() == 2);
+        const auto writers = saved(settings, QStringLiteral("network/writeProviderProfilesJson"));
+        assert(writers.size() == 1);
+        const auto writer = writers.first().toObject();
+        assert(writer.value(QStringLiteral("readEndpoint")).toString()
+               == QStringLiteral("https://reconciler.example.test"));
+        assert(writer.value(QStringLiteral("endpoint")).toString()
+               == QStringLiteral("https://validator.example.test"));
+        assert(writer.value(QStringLiteral("selfHosted")).toBool());
+
+        assert(controller.selectReadProvider(QStringLiteral("reader-alpha")));
+        assert(controller.selectWriteProvider(QStringLiteral("writer-alpha")));
+        assert(controller.selectedReadProviderId() == QStringLiteral("reader-alpha"));
+        assert(controller.selectedWriteProviderId() == QStringLiteral("writer-alpha"));
+        assert(controller.readRestartRequired() && controller.writeRestartRequired());
+        assert(settings.value(QStringLiteral("network/preferredReadProviderId"))
+               == QStringLiteral("reader-alpha"));
+        assert(settings.value(QStringLiteral("network/preferredWriteProviderId"))
+               == QStringLiteral("writer-alpha"));
+    }
+    {
+        QSettings settings{filename, QSettings::IniFormat};
+        ProviderProfilesController controller{
+            settings,
+            settings.value(QStringLiteral("network/readProviderProfilesJson")).toString(),
+            settings.value(QStringLiteral("network/writeProviderProfilesJson")).toString(),
+            QStringLiteral("reader-alpha"), QStringLiteral("writer-alpha")};
+        assert(!controller.readRestartRequired() && !controller.writeRestartRequired());
+        assert(controller.readProfiles().size() == 2);
+        assert(controller.writeProfiles().size() == 1);
+        assert(controller.removeReadProfile(QStringLiteral("reader-alpha")));
+        assert(controller.selectedReadProviderId().isEmpty());
+        assert(controller.writeProfiles().size() == 1);
+        assert(controller.readRestartRequired());
+        assert(!controller.writeRestartRequired());
+        assert(controller.removeWriteProfile(QStringLiteral("writer-alpha")));
+        assert(controller.selectedWriteProviderId().isEmpty());
+        assert(controller.writeRestartRequired());
+        assert(controller.selectReadProvider(QStringLiteral("hypersnap-v2")));
+        assert(controller.selectedReadProviderId() == QStringLiteral("hypersnap-v2"));
+        assert(controller.selectReadProvider({}));
+        settings.setValue(QStringLiteral("network/preferredReadProviderId"),
+                          QStringLiteral("reader-beta"));
+        settings.sync();
+        controller.refresh();
+        assert(controller.selectedReadProviderId() == QStringLiteral("reader-beta"));
+        assert(!controller.selectReadProvider(QStringLiteral("unknown-provider")));
+        assert(controller.lastError() == QStringLiteral("unknown_provider"));
+    }
+}
+
+void testNoCredentialOrProtocolSpoofing()
+{
+    QTemporaryDir temp{};
+    assert(temp.isValid());
+    QSettings settings{temp.filePath(QStringLiteral("invalid.ini")), QSettings::IniFormat};
+    ProviderProfilesController controller{settings, {}, {}, {}, {}};
+
+    const auto addRead = [&](const QString& id, const QString& endpoint,
+                             const QString& contract = QStringLiteral("snapchain-v1")) {
+        return controller.addReadProfile(id, QStringLiteral("node"), contract, endpoint, true);
+    };
+    assert(!addRead(QStringLiteral("bad id"), QStringLiteral("https://read.example")));
+    assert(controller.lastError() == QStringLiteral("invalid_id"));
+    assert(!addRead(QStringLiteral("hypersnap-v2"), QStringLiteral("https://read.example")));
+    assert(!addRead(QStringLiteral("node"), QStringLiteral("https://token@read.example")));
+    assert(!addRead(QStringLiteral("node"), QStringLiteral("https://read.example?key=secret")));
+    assert(!addRead(QStringLiteral("node"), QStringLiteral("http://read.example#fragment")));
+    assert(!addRead(QStringLiteral("node"), QStringLiteral("file:///etc/passwd")));
+    assert(!addRead(QStringLiteral("node"), QStringLiteral("https://read.example"),
+                    QStringLiteral("made-up-v5")));
+    assert(controller.lastError() == QStringLiteral("unsupported_contract"));
+    assert(addRead(QStringLiteral("node"), QStringLiteral("https://read.example")));
+    assert(!addRead(QStringLiteral("node"), QStringLiteral("https://read-two.example")));
+    assert(controller.lastError() == QStringLiteral("duplicate_id"));
+    assert(!controller.addWriteProfile(
+        QStringLiteral("node"), QStringLiteral("write"), QStringLiteral("snapchain-v1"),
+        QStringLiteral("https://writer.example"), {}, true));
+    assert(controller.lastError() == QStringLiteral("duplicate_id"));
+    assert(!controller.addWriteProfile(
+        QStringLiteral("writer"), QStringLiteral("write"), QStringLiteral("snapchain-v1"),
+        QStringLiteral("https://writer.example"),
+        QStringLiteral("https://name:token@reconciler.example"), false));
+    assert(controller.lastError() == QStringLiteral("invalid_endpoint"));
+    assert(!controller.selectWriteProvider(QStringLiteral("node")));
+    assert(!controller.removeWriteProfile(QStringLiteral("not-registered")));
+    assert(saved(settings, QStringLiteral("network/readProviderProfilesJson")).size() == 1);
+    assert(!settings.contains(QStringLiteral("network/writeProviderProfilesJson")));
+}
+
+} // namespace
+
+int main(int argc, char* argv[])
+{
+    QCoreApplication app{argc, argv};
+    testTypedReadWriteProfilesAndPersistentPreferences();
+    testNoCredentialOrProtocolSpoofing();
+    return 0;
+}

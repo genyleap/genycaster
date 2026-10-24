@@ -62,6 +62,7 @@ set(farcasterQmlFiles
     components/AccentColorStudio.qml
     components/AmbientMediaBackdrop.qml
     components/LocaleSettingsPopup.qml
+    components/ProviderProfilesPanel.qml
     components/UpdateNoticeDrawer.qml
     components/LocaleFormat.qml
     components/MiniAppPresentationPreview.qml
@@ -255,6 +256,8 @@ qt_add_executable(farcaster_client
     mobile/live_insights_controller.hpp
     ../src/providers/hypersnap/node_selection_controller.cpp
     mobile/node_selection_controller.hpp
+    mobile/provider_profiles_controller.cpp
+    mobile/provider_profiles_controller.hpp
     mobile/update_controller.cpp
     mobile/update_controller.hpp
     mobile/remote_image_provider.cpp
@@ -1199,6 +1202,21 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
     set_tests_properties(ui.provider_translation_contract PROPERTIES
         LABELS "ui;i18n;provider;qt"
         TIMEOUT 15)
+
+    qt_add_executable(farcaster_provider_profiles_tests
+        tests/provider_profiles_controller_tests.cpp
+        mobile/provider_profiles_controller.cpp
+        mobile/provider_profiles_controller.hpp)
+    target_compile_features(farcaster_provider_profiles_tests PRIVATE cxx_std_26)
+    target_link_libraries(farcaster_provider_profiles_tests PRIVATE Qt6::Core)
+    target_compile_definitions(farcaster_provider_profiles_tests PRIVATE
+        FARCASTER_HAS_SNAPCHAIN_READ=1
+        FARCASTER_HAS_HYPERSNAP_PROVIDER=1
+        FARCASTER_HAS_SNAPCHAIN_WRITE=1)
+    farcaster_enable_warnings(farcaster_provider_profiles_tests)
+    add_test(NAME ui.provider_profiles_contract COMMAND farcaster_provider_profiles_tests)
+    set_tests_properties(ui.provider_profiles_contract PROPERTIES
+        LABELS "ui;provider;qt;offline" TIMEOUT 15)
 
     qt_add_executable(farcaster_node_selection_tests
         tests/node_selection_controller_tests.cpp

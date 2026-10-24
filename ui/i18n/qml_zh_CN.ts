@@ -2,6 +2,118 @@
 <TS version="2.1" language="zh_CN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.providers.add">
+            <source>Add node</source>
+            <translation>添加节点</translation>
+        </message>
+        <message id="genycaster.providers.add_read">
+            <source>Add read node</source>
+            <translation>添加读取节点</translation>
+        </message>
+        <message id="genycaster.providers.default_read">
+            <source>Automatic read provider</source>
+            <translation>自动选择读取服务商</translation>
+        </message>
+        <message id="genycaster.providers.default_write">
+            <source>Default write provider</source>
+            <translation>默认写入服务商</translation>
+        </message>
+        <message id="genycaster.providers.description">
+            <source>Manage compatible read and write nodes separately. Only installed adapter contracts are available.</source>
+            <translation>分别管理兼容的读取与写入节点。仅支持已安装的适配器协议。</translation>
+        </message>
+        <message id="genycaster.providers.error_duplicate">
+            <source>This provider ID is already in use.</source>
+            <translation>此服务商 ID 已被使用。</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_endpoint">
+            <source>Enter a valid HTTP(S) endpoint without credentials, query, or fragment.</source>
+            <translation>请输入不含凭据、查询参数或片段的有效 HTTP(S) 地址。</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_id">
+            <source>Use a unique ID with letters, digits, hyphens, dots, or underscores.</source>
+            <translation>请使用由字母、数字、连字符、点或下划线组成的唯一 ID。</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_label">
+            <source>Enter a display name (up to 96 characters).</source>
+            <translation>请输入显示名称（最多 96 个字符）。</translation>
+        </message>
+        <message id="genycaster.providers.error_limit">
+            <source>You can save up to 16 nodes per connection type.</source>
+            <translation>每种连接类型最多可保存 16 个节点。</translation>
+        </message>
+        <message id="genycaster.providers.error_storage">
+            <source>Unable to save provider settings.</source>
+            <translation>无法保存服务商设置。</translation>
+        </message>
+        <message id="genycaster.providers.error_unknown">
+            <source>That provider is not registered.</source>
+            <translation>此服务商尚未注册。</translation>
+        </message>
+        <message id="genycaster.providers.error_unsupported">
+            <source>The selected adapter contract is unavailable in this build.</source>
+            <translation>当前版本不支持所选适配器协议。</translation>
+        </message>
+        <message id="genycaster.providers.id_placeholder">
+            <source>Node ID (e.g. home-reader)</source>
+            <translation>节点 ID（例如 home-reader）</translation>
+        </message>
+        <message id="genycaster.providers.indexed_contract">
+            <source>Indexed read API</source>
+            <translation>索引读取 API</translation>
+        </message>
+        <message id="genycaster.providers.label_placeholder">
+            <source>Display name</source>
+            <translation>显示名称</translation>
+        </message>
+        <message id="genycaster.providers.optional_read_endpoint">
+            <source>Read endpoint for reconciliation (optional)</source>
+            <translation>用于校验的读取端点（可选）</translation>
+        </message>
+        <message id="genycaster.providers.raw_contract">
+            <source>Raw read node</source>
+            <translation>原始读取节点</translation>
+        </message>
+        <message id="genycaster.providers.read_endpoint">
+            <source>Read endpoint</source>
+            <translation>读取端点</translation>
+        </message>
+        <message id="genycaster.providers.read_title">
+            <source>Read providers</source>
+            <translation>读取服务商</translation>
+        </message>
+        <message id="genycaster.providers.remove">
+            <source>Remove</source>
+            <translation>移除</translation>
+        </message>
+        <message id="genycaster.providers.safety_note">
+            <source>Changes apply after restart. Queued writes remain bound to their original provider and endpoint. Never put API keys in URLs.</source>
+            <translation>更改将在重启后生效。队列中的写入仍绑定原有服务商和端点。请勿在 URL 中放入 API 密钥。</translation>
+        </message>
+        <message id="genycaster.providers.self_hosted">
+            <source>Self-hosted node</source>
+            <translation>自托管节点</translation>
+        </message>
+        <message id="genycaster.providers.title">
+            <source>Connected nodes</source>
+            <translation>已连接的节点</translation>
+        </message>
+        <message id="genycaster.providers.use">
+            <source>Use</source>
+            <translation>使用</translation>
+        </message>
+        <message id="genycaster.providers.write_description">
+            <source>Choose a write-capable node for signed casts, reactions, links and signer operations. A read-only node cannot publish.</source>
+            <translation>请选择具有写入能力的节点，以发布已签名的 Cast、回应、链接和签名者操作。只读节点无法发布。</translation>
+        </message>
+        <message id="genycaster.providers.write_endpoint">
+            <source>Validator / write endpoint</source>
+            <translation>验证器／写入端点</translation>
+        </message>
+        <message id="genycaster.providers.write_title">
+            <source>Write providers</source>
+            <translation>写入服务商</translation>
+        </message>
         <message id="genycaster.settings.validator_write_endpoint">
             <source>Snapchain write endpoint (validator)</source>
             <translation>Snapchain 写入端点（验证节点）</translation>

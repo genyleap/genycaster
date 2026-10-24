@@ -81,6 +81,7 @@
 #include "miniapp_task_manager_controller.hpp"
 #include "live_insights_controller.hpp"
 #include "node_selection_controller.hpp"
+#include "provider_profiles_controller.hpp"
 #include "update_controller.hpp"
 
 #if defined(__EMSCRIPTEN__)
@@ -1287,6 +1288,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<MediaPlaybackCoordinator> mediaPlaybackCoordinatorOwner{};
     std::unique_ptr<LiveInsightsController> liveInsightsControllerOwner{};
     std::unique_ptr<NodeSelectionController> nodeSelectionControllerOwner{};
+    std::unique_ptr<ProviderProfilesController> providerProfilesControllerOwner{};
     std::unique_ptr<UpdateController> updateControllerOwner{};
     std::unique_ptr<MiniAppHostController> miniAppHostControllerOwner{};
     std::unique_ptr<MediaWebHostController> mediaWebHostControllerOwner{};
@@ -1352,6 +1354,10 @@ int main(int argc, char* argv[])
         networkProxyText,
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest);
     NodeSelectionController& nodeSelectionController = *nodeSelectionControllerOwner;
+    providerProfilesControllerOwner = std::make_unique<ProviderProfilesController>(
+        settings, providerProfilesJson, writeProfilesJson,
+        preferredReadProviderText, preferredWriteProviderText);
+    ProviderProfilesController& providerProfilesController = *providerProfilesControllerOwner;
     updateControllerOwner = std::make_unique<UpdateController>(
         settings, !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, &application);
     UpdateController& updateController = *updateControllerOwner;
@@ -1796,6 +1802,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("miniAppTaskManager"), &miniAppTaskManager);
     engine.rootContext()->setContextProperty(QStringLiteral("liveInsights"), &liveInsightsController);
     engine.rootContext()->setContextProperty(QStringLiteral("nodeSelectionController"), &nodeSelectionController);
+    engine.rootContext()->setContextProperty(QStringLiteral("providerProfiles"), &providerProfilesController);
     engine.rootContext()->setContextProperty(QStringLiteral("updateController"), &updateController);
 #if defined(__EMSCRIPTEN__)
     engine.rootContext()->setContextProperty(QStringLiteral("wasmReadOnly"), true);

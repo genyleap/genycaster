@@ -1326,151 +1326,6 @@ GenyDrawer {
                         }
                     }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.space2
-
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.setup.choose_network")
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeLabelSize
-                            font.weight: Theme.weightDemiBold
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            layoutDirection: Theme.uiDirection
-                            spacing: Theme.space2
-
-                            ActionButton {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.settings.hypersnap_label")
-                                selected: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
-                                elevated: false
-                                onClicked: presentationBridge.setPreferredNetwork(presentationBridge.independentNetworkKey)
-                            }
-
-                            ActionButton {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.settings.farcaster_label")
-                                selected: presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
-                                elevated: false
-                                onClicked: presentationBridge.setPreferredNetwork(presentationBridge.hostedNetworkKey)
-                            }
-                        }
-
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.setup.network_settings_explainer")
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.settings.validator_write_endpoint")
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeMetaSize
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.settings.validator_write_description")
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        RowLayout {
-                            Layout.fillWidth: true
-                            layoutDirection: Theme.uiDirection
-                            spacing: Theme.space2
-                            DirectionAwareTextField {
-                                id: validatorEndpointField
-                                Layout.fillWidth: true
-                                inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
-                                placeholderText: "https://validator.example"
-                                onTextChanged: root.validatorUrlError = false
-                                onAccepted: {
-                                    root.validatorUrlError = !nodeSelectionController.setSnapchainWriteEndpoint(text)
-                                }
-                            }
-                            ActionButton {
-                                compact: true
-                                text: qsTrId("genycaster.composer.apply")
-                                onClicked: {
-                                    root.validatorUrlError = !nodeSelectionController.setSnapchainWriteEndpoint(validatorEndpointField.text)
-                                }
-                            }
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            visible: root.validatorUrlError
-                            text: qsTrId("genycaster.settings.validator_write_invalid")
-                            color: Theme.danger
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            visible: nodeSelectionController.writeRestartRequired
-                            text: qsTrId("genycaster.settings.restart_genycaster_to_apply_network_changes")
-                            color: Theme.warning
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.settings.connection_proxy_for_farcaster_relay_and_network_reads")
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeMetaSize
-                            wrapMode: Text.WordWrap
-                        }
-                        RowLayout {
-                            Layout.fillWidth: true
-                            layoutDirection: Theme.uiDirection
-                            spacing: Theme.space2
-                            ActionButton {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.setup.system_proxy")
-                                selected: nodeSelectionController.proxyMode === "system"
-                                onClicked: nodeSelectionController.setProxyMode("system")
-                            }
-                            ActionButton {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.setup.direct")
-                                selected: nodeSelectionController.proxyMode === "direct"
-                                onClicked: nodeSelectionController.setProxyMode("direct")
-                            }
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            visible: nodeSelectionController.proxyRestartRequired
-                            text: qsTrId("genycaster.settings.restart_genycaster_to_apply_network_changes")
-                            color: Theme.warning
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
-                                  ? qsTrId("genycaster.settings.hypersnap_v2_only_hypersnap_compatible_api_nodes_are_eligible")
-                                  : presentationBridge.farcasterReadConfigured
-                                    ? qsTrId("genycaster.settings.farcaster_indexed_api").arg(presentationBridge.farcasterReadEndpoint)
-                                    : qsTrId("genycaster.settings.farcaster_indexed_reads_require_a_compatible_api_raw_hubs")
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            visible: presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
-                            text: qsTrId("genycaster.settings.known_farcaster_hubs_pinata_hub_neynar_hub_may_require")
-                            color: Theme.inkSubtle
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                    }
 
                     GridLayout {
                         id: localeGrid
@@ -2112,6 +1967,156 @@ GenyDrawer {
                             font.pixelSize: Theme.typeMetaSize
                             lineHeight: Theme.typeMetaLineHeight
                             wrapMode: Text.Wrap
+                        }
+                    }
+
+                    ProviderProfilesPanel {
+                        Layout.fillWidth: true
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.choose_network")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space2
+
+                            ActionButton {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.settings.hypersnap_label")
+                                selected: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
+                                elevated: false
+                                onClicked: presentationBridge.setPreferredNetwork(presentationBridge.independentNetworkKey)
+                            }
+
+                            ActionButton {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.settings.farcaster_label")
+                                selected: presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
+                                elevated: false
+                                onClicked: presentationBridge.setPreferredNetwork(presentationBridge.hostedNetworkKey)
+                            }
+                        }
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.network_settings_explainer")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.settings.validator_write_endpoint")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeMetaSize
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.settings.validator_write_description")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space2
+                            DirectionAwareTextField {
+                                id: validatorEndpointField
+                                Layout.fillWidth: true
+                                inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
+                                placeholderText: "https://validator.example"
+                                onTextChanged: root.validatorUrlError = false
+                                onAccepted: {
+                                    root.validatorUrlError = !nodeSelectionController.setSnapchainWriteEndpoint(text)
+                                }
+                            }
+                            ActionButton {
+                                compact: true
+                                text: qsTrId("genycaster.composer.apply")
+                                onClicked: {
+                                    root.validatorUrlError = !nodeSelectionController.setSnapchainWriteEndpoint(validatorEndpointField.text)
+                                }
+                            }
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: root.validatorUrlError
+                            text: qsTrId("genycaster.settings.validator_write_invalid")
+                            color: Theme.danger
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: nodeSelectionController.writeRestartRequired
+                            text: qsTrId("genycaster.settings.restart_genycaster_to_apply_network_changes")
+                            color: Theme.warning
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.settings.connection_proxy_for_farcaster_relay_and_network_reads")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeMetaSize
+                            wrapMode: Text.WordWrap
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space2
+                            ActionButton {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.setup.system_proxy")
+                                selected: nodeSelectionController.proxyMode === "system"
+                                onClicked: nodeSelectionController.setProxyMode("system")
+                            }
+                            ActionButton {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.setup.direct")
+                                selected: nodeSelectionController.proxyMode === "direct"
+                                onClicked: nodeSelectionController.setProxyMode("direct")
+                            }
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: nodeSelectionController.proxyRestartRequired
+                            text: qsTrId("genycaster.settings.restart_genycaster_to_apply_network_changes")
+                            color: Theme.warning
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
+                                  ? qsTrId("genycaster.settings.hypersnap_v2_only_hypersnap_compatible_api_nodes_are_eligible")
+                                  : presentationBridge.farcasterReadConfigured
+                                    ? qsTrId("genycaster.settings.farcaster_indexed_api").arg(presentationBridge.farcasterReadEndpoint)
+                                    : qsTrId("genycaster.settings.farcaster_indexed_reads_require_a_compatible_api_raw_hubs")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
+                            text: qsTrId("genycaster.settings.known_farcaster_hubs_pinata_hub_neynar_hub_may_require")
+                            color: Theme.inkSubtle
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
                         }
                     }
 

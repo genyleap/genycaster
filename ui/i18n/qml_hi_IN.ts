@@ -2,6 +2,118 @@
 <TS version="2.1" language="hi_IN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.providers.add">
+            <source>Add node</source>
+            <translation>नोड जोड़ें</translation>
+        </message>
+        <message id="genycaster.providers.add_read">
+            <source>Add read node</source>
+            <translation>रीड नोड जोड़ें</translation>
+        </message>
+        <message id="genycaster.providers.default_read">
+            <source>Automatic read provider</source>
+            <translation>स्वचालित रीड प्रदाता</translation>
+        </message>
+        <message id="genycaster.providers.default_write">
+            <source>Default write provider</source>
+            <translation>डिफ़ॉल्ट राइट प्रदाता</translation>
+        </message>
+        <message id="genycaster.providers.description">
+            <source>Manage compatible read and write nodes separately. Only installed adapter contracts are available.</source>
+            <translation>संगत रीड और राइट नोड अलग-अलग प्रबंधित करें। केवल इंस्टॉल किए गए अडैप्टर अनुबंध उपलब्ध हैं।</translation>
+        </message>
+        <message id="genycaster.providers.error_duplicate">
+            <source>This provider ID is already in use.</source>
+            <translation>यह प्रदाता ID पहले से उपयोग में है।</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_endpoint">
+            <source>Enter a valid HTTP(S) endpoint without credentials, query, or fragment.</source>
+            <translation>क्रेडेंशियल, क्वेरी या फ़्रैगमेंट के बिना वैध HTTP(S) पता दर्ज करें।</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_id">
+            <source>Use a unique ID with letters, digits, hyphens, dots, or underscores.</source>
+            <translation>अक्षरों, अंकों, हाइफ़न, डॉट या अंडरस्कोर वाला अनूठा ID उपयोग करें।</translation>
+        </message>
+        <message id="genycaster.providers.error_invalid_label">
+            <source>Enter a display name (up to 96 characters).</source>
+            <translation>प्रदर्शन नाम दर्ज करें (अधिकतम 96 अक्षर)।</translation>
+        </message>
+        <message id="genycaster.providers.error_limit">
+            <source>You can save up to 16 nodes per connection type.</source>
+            <translation>प्रत्येक कनेक्शन प्रकार के लिए अधिकतम 16 नोड सहेज सकते हैं।</translation>
+        </message>
+        <message id="genycaster.providers.error_storage">
+            <source>Unable to save provider settings.</source>
+            <translation>प्रदाता सेटिंग सहेजी नहीं जा सकीं।</translation>
+        </message>
+        <message id="genycaster.providers.error_unknown">
+            <source>That provider is not registered.</source>
+            <translation>यह प्रदाता पंजीकृत नहीं है।</translation>
+        </message>
+        <message id="genycaster.providers.error_unsupported">
+            <source>The selected adapter contract is unavailable in this build.</source>
+            <translation>चयनित अडैप्टर अनुबंध इस बिल्ड में उपलब्ध नहीं है।</translation>
+        </message>
+        <message id="genycaster.providers.id_placeholder">
+            <source>Node ID (e.g. home-reader)</source>
+            <translation>नोड ID (जैसे home-reader)</translation>
+        </message>
+        <message id="genycaster.providers.indexed_contract">
+            <source>Indexed read API</source>
+            <translation>इंडेक्स की गई रीड API</translation>
+        </message>
+        <message id="genycaster.providers.label_placeholder">
+            <source>Display name</source>
+            <translation>प्रदर्शन नाम</translation>
+        </message>
+        <message id="genycaster.providers.optional_read_endpoint">
+            <source>Read endpoint for reconciliation (optional)</source>
+            <translation>मिलान के लिए रीड एंडपॉइंट (वैकल्पिक)</translation>
+        </message>
+        <message id="genycaster.providers.raw_contract">
+            <source>Raw read node</source>
+            <translation>रॉ रीड नोड</translation>
+        </message>
+        <message id="genycaster.providers.read_endpoint">
+            <source>Read endpoint</source>
+            <translation>रीड एंडपॉइंट</translation>
+        </message>
+        <message id="genycaster.providers.read_title">
+            <source>Read providers</source>
+            <translation>रीड प्रदाता</translation>
+        </message>
+        <message id="genycaster.providers.remove">
+            <source>Remove</source>
+            <translation>हटाएँ</translation>
+        </message>
+        <message id="genycaster.providers.safety_note">
+            <source>Changes apply after restart. Queued writes remain bound to their original provider and endpoint. Never put API keys in URLs.</source>
+            <translation>बदलाव रीस्टार्ट के बाद लागू होंगे। कतार में मौजूद लेखन मूल प्रदाता और एंडपॉइंट से जुड़े रहेंगे। URL में API कुंजियाँ न डालें।</translation>
+        </message>
+        <message id="genycaster.providers.self_hosted">
+            <source>Self-hosted node</source>
+            <translation>स्वयं होस्ट किया गया नोड</translation>
+        </message>
+        <message id="genycaster.providers.title">
+            <source>Connected nodes</source>
+            <translation>कनेक्ट किए गए नोड</translation>
+        </message>
+        <message id="genycaster.providers.use">
+            <source>Use</source>
+            <translation>उपयोग करें</translation>
+        </message>
+        <message id="genycaster.providers.write_description">
+            <source>Choose a write-capable node for signed casts, reactions, links and signer operations. A read-only node cannot publish.</source>
+            <translation>हस्ताक्षरित कास्ट, प्रतिक्रियाओं, लिंक और साइनर कार्यों के लिए राइट-सक्षम नोड चुनें। रीड-ओनली नोड प्रकाशित नहीं कर सकता।</translation>
+        </message>
+        <message id="genycaster.providers.write_endpoint">
+            <source>Validator / write endpoint</source>
+            <translation>वैलिडेटर / राइट एंडपॉइंट</translation>
+        </message>
+        <message id="genycaster.providers.write_title">
+            <source>Write providers</source>
+            <translation>राइट प्रदाता</translation>
+        </message>
         <message id="genycaster.settings.validator_write_endpoint">
             <source>Snapchain write endpoint (validator)</source>
             <translation>Snapchain लेखन एंडपॉइंट (वैलिडेटर)</translation>
