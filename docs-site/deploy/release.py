@@ -27,6 +27,10 @@ def main() -> int:
         raise SystemExit("Refusing to publish uncommitted docs-site files")
     releases = TARGET / "releases"
     releases.mkdir(parents=True, exist_ok=True)
+    # The deployment account uses a restrictive umask; public docs need
+    # directory traversal by the Nginx worker, even for pre-existing releases.
+    TARGET.chmod(0o755)
+    releases.chmod(0o755)
     version = rev[:12]
     destination = releases / version
     if destination.exists():
@@ -48,6 +52,14 @@ def main() -> int:
         finally:
             if temporary.exists():
                 shutil.rmtree(temporary)
+    # tempfile.mkdtemp defaults to 0700. Nginx runs as www-data and needs
+    # read/traverse access to the immutable release directory.
+    destination.chmod(0o755)
+    for static_dir in ("assets", *PAGES):
+        (destination / static_dir).chmod(0o755)
+    for document in destination.rglob("*"):
+        if document.is_file():
+            document.chmod(0o644)
     current = TARGET / "current"
     if current.exists() and not current.is_symlink():
         raise RuntimeError("Existing docs root is not a release symlink")
