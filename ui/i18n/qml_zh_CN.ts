@@ -59,8 +59,8 @@
             <translation>正在检查节点…</translation>
         </message>
         <message id="genycaster.nodes.connected">
-            <source>Compatible • connection successful</source>
-            <translation>兼容 • 连接成功</translation>
+            <source>Read API test passed • other capabilities not checked</source>
+            <translation>读取 API 测试成功 • 其他能力尚未检查</translation>
         </message>
         <message id="genycaster.nodes.auth_required">
             <source>API key or payment required</source>
@@ -77,6 +77,14 @@
         <message id="genycaster.nodes.not_tested">
             <source>Not tested yet</source>
             <translation>尚未测试</translation>
+        </message>
+        <message id="genycaster.nodes.notifications_unavailable">
+            <source>Notifications are unavailable from this raw node</source>
+            <translation>此直接节点不支持通知</translation>
+        </message>
+        <message id="genycaster.nodes.raw_limitations">
+            <source>Raw Snapchain reads: posts, profiles and follows only. Notifications and global Explorer are unavailable. To use compatible providers for those screens, enable read fallback in Advanced options.</source>
+            <translation>Snapchain 直读仅支持帖子、资料和关注，不支持通知及全局探索。要在这些页面使用兼容服务，请在高级选项中开启读取回退。</translation>
         </message>
         <message id="genycaster.nodes.raw_description">
             <source>Direct Snapchain reads • no key required when the node is public</source>

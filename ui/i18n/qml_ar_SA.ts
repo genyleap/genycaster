@@ -59,8 +59,8 @@
             <translation>جارٍ فحص العقدة…</translation>
         </message>
         <message id="genycaster.nodes.connected">
-            <source>Compatible • connection successful</source>
-            <translation>متوافق • الاتصال ناجح</translation>
+            <source>Read API test passed • other capabilities not checked</source>
+            <translation>نجح اختبار قراءة API • لم تُختبر بقية الإمكانات</translation>
         </message>
         <message id="genycaster.nodes.auth_required">
             <source>API key or payment required</source>
@@ -77,6 +77,14 @@
         <message id="genycaster.nodes.not_tested">
             <source>Not tested yet</source>
             <translation>لم يُختبر بعد</translation>
+        </message>
+        <message id="genycaster.nodes.notifications_unavailable">
+            <source>Notifications are unavailable from this raw node</source>
+            <translation>الإشعارات غير متاحة عبر هذه العقدة المباشرة</translation>
+        </message>
+        <message id="genycaster.nodes.raw_limitations">
+            <source>Raw Snapchain reads: posts, profiles and follows only. Notifications and global Explorer are unavailable. To use compatible providers for those screens, enable read fallback in Advanced options.</source>
+            <translation>قراءة Snapchain المباشرة تدعم المنشورات والملفات والمتابعات فقط. الإشعارات والاستكشاف العام غير متاحين. لتفعيل مصادر متوافقة لهذه الصفحات، فعّل القراءة الاحتياطية ضمن الخيارات المتقدمة.</translation>
         </message>
         <message id="genycaster.nodes.raw_description">
             <source>Direct Snapchain reads • no key required when the node is public</source>

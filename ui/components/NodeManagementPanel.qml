@@ -80,10 +80,18 @@ ColumnLayout {
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: providerProfiles.activeReadProviderId === "hypersnap-v2"
-                      ? "HyperSnap v2" : providerProfiles.activeReadProviderId
+                      ? "HyperSnap v2" : providerProfiles.activeReadProviderLabel
                 color: Theme.ink
                 font.pixelSize: Theme.typeTitle3Size
                 font.weight: Theme.weightDemiBold
+            }
+            DirectionAwareLabel {
+                visible: providerProfiles.activeReadContract === "snapchain-v1"
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.nodes.raw_limitations")
+                font.pixelSize: Theme.typeCaptionSize
+                color: Theme.warning
+                wrapMode: Text.Wrap
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
@@ -171,9 +179,11 @@ ColumnLayout {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: String(modelData.contract) === "snapchain-v1"
-                              ? qsTrId("genycaster.nodes.raw_description")
+                              ? qsTrId("genycaster.nodes.raw_limitations")
                               : qsTrId("genycaster.nodes.indexed_description")
-                        color: Theme.inkSubtle
+                        color: String(modelData.contract) === "snapchain-v1"
+                               ? Theme.warning : Theme.inkSubtle
+                        wrapMode: Text.Wrap
                         font.pixelSize: Theme.typeCaptionSize
                     }
                     Flow {
@@ -476,7 +486,8 @@ ColumnLayout {
                             providerProfiles.removeReadProfile(nodeId)
                             return
                         }
-                        providerProfiles.selectReadProvider(nodeId)
+                        // Saving an unverified endpoint must not silently
+                        // replace the current working read source.
                         providerProfiles.probeReadProvider(nodeId)
                         readName.clear()
                         readEndpoint.clear()

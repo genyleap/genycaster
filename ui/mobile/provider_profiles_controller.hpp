@@ -30,12 +30,15 @@ class ProviderProfilesController final : public QObject {
     Q_PROPERTY(bool readRestartRequired READ readRestartRequired NOTIFY selectionChanged)
     Q_PROPERTY(bool writeRestartRequired READ writeRestartRequired NOTIFY selectionChanged)
     Q_PROPERTY(bool compatibleReadFallback READ compatibleReadFallback NOTIFY selectionChanged)
+    Q_PROPERTY(bool appliedCompatibleReadFallback READ appliedCompatibleReadFallback CONSTANT)
     Q_PROPERTY(bool indexedReadSupported READ indexedReadSupported CONSTANT)
     Q_PROPERTY(bool rawReadSupported READ rawReadSupported CONSTANT)
     Q_PROPERTY(bool writeSupported READ writeSupported CONSTANT)
     Q_PROPERTY(QString lastError READ lastError NOTIFY errorChanged)
     Q_PROPERTY(QString activeReadProviderId READ activeReadProviderId CONSTANT)
     Q_PROPERTY(QString activeReadEndpoint READ activeReadEndpoint CONSTANT)
+    Q_PROPERTY(QString activeReadContract READ activeReadContract CONSTANT)
+    Q_PROPERTY(QString activeReadProviderLabel READ activeReadProviderLabel CONSTANT)
     Q_PROPERTY(QString probeState READ probeState NOTIFY probeChanged)
     Q_PROPERTY(QString probeMessage READ probeMessage NOTIFY probeChanged)
     Q_PROPERTY(QString probeProviderId READ probeProviderId NOTIFY probeChanged)
@@ -58,6 +61,9 @@ public:
     [[nodiscard]] QVariantList writeProfiles() const;
     [[nodiscard]] QString selectedReadProviderId() const;
     [[nodiscard]] bool compatibleReadFallback() const;
+    [[nodiscard]] bool appliedCompatibleReadFallback() const noexcept {
+        return m_appliedCompatibleReadFallback;
+    }
     [[nodiscard]] QString selectedWriteProviderId() const;
     [[nodiscard]] bool readRestartRequired() const;
     [[nodiscard]] bool writeRestartRequired() const;
@@ -67,6 +73,8 @@ public:
     [[nodiscard]] QString lastError() const;
     [[nodiscard]] QString activeReadProviderId() const;
     [[nodiscard]] QString activeReadEndpoint() const;
+    [[nodiscard]] QString activeReadContract() const;
+    [[nodiscard]] QString activeReadProviderLabel() const;
     [[nodiscard]] QString probeState() const { return m_probeState; }
     [[nodiscard]] QString probeMessage() const { return m_probeMessage; }
     [[nodiscard]] QString probeProviderId() const { return m_probeProviderId; }
@@ -140,4 +148,7 @@ private:
     QString m_clipboardText{};
     bool startProbe(const QString& id, const QString& contract, const QString& endpoint,
                     const QString& draftApiKey = {});
+    void runProbeStep(const QString& id, const QString& contract,
+                      const QString& origin, const QString& draftApiKey,
+                      int step);
 };

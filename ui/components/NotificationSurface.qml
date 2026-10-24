@@ -11,6 +11,7 @@ Item {
     property bool loadingNotifications: false
     property bool hasMore: false
     property string errorText: ""
+    property bool unsupportedRawNotifications: false
     property bool authenticated: false
     property bool compact: false
     property string filterKind: "all"
@@ -40,12 +41,16 @@ Item {
                                         : Theme.iconNotification
     readonly property string stateTitle: !root.authenticated
                                          ? qsTrId("genycaster.notifications.sign_in_title")
+                                         : root.unsupportedRawNotifications
+                                           ? qsTrId("genycaster.nodes.notifications_unavailable")
                                          : root.stateIsError
                                            ? qsTrId("genycaster.notifications.could_not_refresh")
                                            : root.filterKind !== "all" ? qsTrId("genycaster.notifications.filtered_empty")
                                            : qsTrId("genycaster.notifications.empty_title")
     readonly property string stateDescription: !root.authenticated
                                                ? qsTrId("genycaster.notifications.sign_in_description")
+                                               : root.unsupportedRawNotifications
+                                                 ? qsTrId("genycaster.nodes.raw_limitations")
                                                : root.stateIsError
                                                  ? root.errorText
                                                  : root.filterKind !== "all"
@@ -691,7 +696,8 @@ Item {
                 }
 
                 ActionButton {
-                    visible: !root.authenticated || root.stateIsError
+                    visible: !root.authenticated
+                             || (root.stateIsError && !root.unsupportedRawNotifications)
                              || (root.authenticated && root.filterKind !== "all" && root.hasMore)
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: Theme.space2

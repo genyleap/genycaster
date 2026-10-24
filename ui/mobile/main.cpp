@@ -1892,8 +1892,11 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("renderingController"), &renderingController);
     engine.rootContext()->setContextProperty(QStringLiteral("textSelectionSettings"), &textSelectionSettings);
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
-    engine.rootContext()->setContextProperty(QStringLiteral("nodeProviderLabel"), QStringLiteral("Hypersnap v2"));
-    engine.rootContext()->setContextProperty(QStringLiteral("nodeProviderIcon"), QStringLiteral("quilibrium/hypersnap"));
+    engine.rootContext()->setContextProperty(QStringLiteral("nodeProviderLabel"),
+        providerProfilesController.activeReadProviderLabel());
+    engine.rootContext()->setContextProperty(QStringLiteral("nodeProviderIcon"),
+        providerProfilesController.activeReadContract() == QStringLiteral("snapchain-v1")
+            ? QString{} : QStringLiteral("quilibrium/hypersnap"));
 #else
     engine.rootContext()->setContextProperty(QStringLiteral("nodeProviderLabel"), QStringLiteral("Self-hosted"));
     engine.rootContext()->setContextProperty(QStringLiteral("nodeProviderIcon"), QStringLiteral("quilibrium/quilibrium"));

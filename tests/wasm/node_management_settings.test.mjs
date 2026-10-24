@@ -30,11 +30,14 @@ test('the active read route and pending choice are distinguishable', () => {
 });
 
 test('read health checks validate real typed API results with timeout and no redirect', () => {
-  assert.match(controller, /\/v1\/info/);
+  assert.match(controller, /\/v1\/castsByFid\?fid=3&pageSize=1&reverse=true/);
+  assert.match(controller, /\/v1\/userDataByFid\?fid=3&pageSize=100/);
   assert.match(controller, /\/v2\/farcaster\/user\?fid=3/);
   assert.match(controller, /QNetworkRequest::ManualRedirectPolicy/);
   assert.match(controller, /setTransferTimeout\(8'000\)/);
-  assert.match(controller, /json\.contains\(QStringLiteral\("dbStats"\)\)/);
+  assert.match(controller, /runProbeStep\(id, contract, origin, draftApiKey, 1\)/);
+  assert.match(controller, /QStringLiteral\("castAddBody"\)/);
+  assert.match(controller, /QStringLiteral\("userDataBody"\)/);
   assert.match(controller, /"incompatible"/);
   assert.match(controller, /"auth_required"/);
   assert.match(manager, /probeReadProvider/);
@@ -77,7 +80,7 @@ test('32 new UI labels are translated in every supported locale', () => {
     const content = read('ui/i18n/qml_'+locale+'.ts');
     for (const id of ['title','description','active','test','checking','connected',
                       'auth_required','incompatible','unreachable','not_tested',
-                      'raw_description','indexed_description','paste','local_warning',
+                      'raw_description','raw_limitations','indexed_description','paste','local_warning',
                       'api_warning','save_key','reload','test_note']) {
       assert.match(content,
         new RegExp('<message id="genycaster\\.nodes\\.' + id +
@@ -103,4 +106,31 @@ test('all Node Management Flow positioners use writable Layout.preferredHeight',
   // QQmlApplicationEngine aborts the entire Main interface at runtime.
   assert.doesNotMatch(manager, /implicitHeight:\s*childrenRect\.height/);
   assert.equal([...manager.matchAll(/Layout\.preferredHeight:\s*childrenRect\.height/g)].length, 5);
+});
+
+test('probing a real raw node requires both Cast and profile endpoints, not just info', () => {
+  assert.match(controller, /runProbeStep\(id, contract, origin, draftApiKey, 0\)/);
+  assert.match(controller, /runProbeStep\(id, contract, origin, draftApiKey, 1\)/);
+  assert.match(controller, /m_probeTimer\.start\(\)/);
+  assert.doesNotMatch(controller, /QStringLiteral\("\/v1\/info"\)/);
+  assert.match(read('ui/tests/provider_profiles_controller_tests.cpp'), /assert\(castRequests == 2 && profileRequests == 2\)/);
+  assert.match(read('ui/tests/provider_profiles_controller_tests.cpp'), /probeHttpStatus\(\) == 402/);
+});
+
+test('raw node limitations are explicit, and saving does not automatically switch provider', () => {
+  assert.match(manager, /genycaster\.nodes\.raw_limitations/);
+  assert.match(manager, /providerProfiles\.activeReadContract/);
+  assert.doesNotMatch(manager, /providerProfiles\.selectReadProvider\(nodeId\)/);
+  assert.match(bootstrap, /activeReadProviderLabel\(\)/);
+});
+
+test('unsupported raw notifications do not masquerade as a transient node outage', () => {
+  const notifications = read('ui/components/NotificationSurface.qml');
+  const shell = read('ui/components/AppShell.qml');
+  assert.match(header, /appliedCompatibleReadFallback READ appliedCompatibleReadFallback/);
+  assert.match(shell, /providerProfiles\.activeReadContract === "snapchain-v1"/);
+  assert.match(shell, /!providerProfiles\.appliedCompatibleReadFallback/);
+  assert.match(notifications, /root\.unsupportedRawNotifications/);
+  assert.match(notifications, /genycaster\.nodes\.notifications_unavailable/);
+  assert.match(notifications, /genycaster\.nodes\.raw_limitations/);
 });

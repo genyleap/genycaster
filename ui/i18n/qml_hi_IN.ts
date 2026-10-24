@@ -59,8 +59,8 @@
             <translation>नोड की जाँच जारी…</translation>
         </message>
         <message id="genycaster.nodes.connected">
-            <source>Compatible • connection successful</source>
-            <translation>अनुकूल • कनेक्शन सफल</translation>
+            <source>Read API test passed • other capabilities not checked</source>
+            <translation>रीड API जाँच सफल • अन्य क्षमताएँ नहीं जाँची गईं</translation>
         </message>
         <message id="genycaster.nodes.auth_required">
             <source>API key or payment required</source>
@@ -77,6 +77,14 @@
         <message id="genycaster.nodes.not_tested">
             <source>Not tested yet</source>
             <translation>अभी जाँच नहीं हुई</translation>
+        </message>
+        <message id="genycaster.nodes.notifications_unavailable">
+            <source>Notifications are unavailable from this raw node</source>
+            <translation>इस सीधे नोड से नोटिफ़िकेशन उपलब्ध नहीं हैं</translation>
+        </message>
+        <message id="genycaster.nodes.raw_limitations">
+            <source>Raw Snapchain reads: posts, profiles and follows only. Notifications and global Explorer are unavailable. To use compatible providers for those screens, enable read fallback in Advanced options.</source>
+            <translation>सीधा Snapchain केवल पोस्ट, प्रोफ़ाइल और फ़ॉलो के लिए है। नोटिफ़िकेशन और वैश्विक एक्सप्लोरर उपलब्ध नहीं हैं। इनके लिए उन्नत विकल्पों में संगत रीड फ़ॉलबैक चालू करें।</translation>
         </message>
         <message id="genycaster.nodes.raw_description">
             <source>Direct Snapchain reads • no key required when the node is public</source>

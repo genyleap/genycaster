@@ -59,8 +59,8 @@
             <translation>در حال بررسی نود…</translation>
         </message>
         <message id="genycaster.nodes.connected">
-            <source>Compatible • connection successful</source>
-            <translation>سازگار • اتصال موفق</translation>
+            <source>Read API test passed • other capabilities not checked</source>
+            <translation>آزمون خواندن API موفق • قابلیت‌های دیگر بررسی نشده‌اند</translation>
         </message>
         <message id="genycaster.nodes.auth_required">
             <source>API key or payment required</source>
@@ -77,6 +77,14 @@
         <message id="genycaster.nodes.not_tested">
             <source>Not tested yet</source>
             <translation>هنوز آزمایش نشده</translation>
+        </message>
+        <message id="genycaster.nodes.notifications_unavailable">
+            <source>Notifications are unavailable from this raw node</source>
+            <translation>اعلان‌ها از طریق این نود خام در دسترس نیستند</translation>
+        </message>
+        <message id="genycaster.nodes.raw_limitations">
+            <source>Raw Snapchain reads: posts, profiles and follows only. Notifications and global Explorer are unavailable. To use compatible providers for those screens, enable read fallback in Advanced options.</source>
+            <translation>خواندن خام Snapchain فقط برای پست‌ها، پروفایل‌ها و دنبال‌کردن‌هاست. اعلان‌ها و اکسپلورر سراسری در دسترس نیستند. برای استفاده از سرویس جایگزین در این بخش‌ها، در گزینه‌های پیشرفته «Fallback خواندن» را فعال کن.</translation>
         </message>
         <message id="genycaster.nodes.raw_description">
             <source>Direct Snapchain reads • no key required when the node is public</source>

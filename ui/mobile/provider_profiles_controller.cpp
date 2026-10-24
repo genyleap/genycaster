@@ -508,10 +508,24 @@ bool ProviderProfilesController::startProbe(
     m_probeHttpStatus = 0;
     emit probeChanged();
 
+    m_probeTimer.start();
+    runProbeStep(id, contract, origin, draftApiKey, 0);
+    return true;
+}
+
+void ProviderProfilesController::runProbeStep(
+    const QString& id, const QString& contract, const QString& origin,
+    const QString& draftApiKey, const int step)
+{
     const bool raw = contract == QStringLiteral("snapchain-v1");
-    const QString path = raw
-        ? QStringLiteral("/v1/info")
-        : QStringLiteral("/v2/farcaster/user?fid=3");
+    // Check the *actual* cast/profile endpoints the adapter uses. /v1/info
+    // can respond successfully while those paths are authenticated, absent,
+    // or serve a shape incompatible with our canonical decoders.
+    const QString path = !raw
+        ? QStringLiteral("/v2/farcaster/user?fid=3")
+        : step == 0
+            ? QStringLiteral("/v1/castsByFid?fid=3&pageSize=1&reverse=true")
+            : QStringLiteral("/v1/userDataByFid?fid=3&pageSize=100");
     QNetworkRequest request{QUrl(origin + path)};
     request.setRawHeader("Accept", "application/json");
     const QByteArray providedKey = draftApiKey.toUtf8();
@@ -526,7 +540,7 @@ bool ProviderProfilesController::startProbe(
             m_probeState = QStringLiteral("invalid");
             m_probeMessage = QStringLiteral("invalid_api_key");
             emit probeChanged();
-            return false;
+            return;
         }
         request.setRawHeader("x-api-key", providedKey);
     }
@@ -536,7 +550,7 @@ bool ProviderProfilesController::startProbe(
 #ifdef __EMSCRIPTEN__
     if (id != QStringLiteral("draft")) {
         const QByteArray idUtf8 = id.toUtf8();
-        // This key is explicitly session-scoped and never put in QSettings.
+        // Per-tab credential, scoped to this specific HTTPS instance.
         const char* key = reinterpret_cast<const char*>(EM_ASM_PTR({
             try {
                 const id = UTF8ToString($0);
@@ -551,52 +565,74 @@ bool ProviderProfilesController::startProbe(
         if (key) {
             const QByteArray secret{key};
             std::free(const_cast<char*>(key));
-            if (!secret.isEmpty()) request.setRawHeader("x-api-key", secret);
+            if (!secret.isEmpty() && origin.startsWith(QStringLiteral("https://")))
+                request.setRawHeader("x-api-key", secret);
         }
     }
 #endif
-    m_probeTimer.start();
     QNetworkReply* reply = m_network.get(request);
     m_probeReply = reply;
     QTimer::singleShot(8'500, reply, [reply] {
         if (!reply->isFinished()) reply->abort();
     });
-    connect(reply, &QNetworkReply::finished, this, [this, reply, id, raw] {
-        if (m_probeReply != reply) {
+    connect(reply, &QNetworkReply::finished, this,
+        [this, reply, id, contract, origin, draftApiKey, raw, step] {
+            if (m_probeReply != reply) {
+                reply->deleteLater();
+                return;
+            }
+            m_probeReply = nullptr;
+            m_probeLatencyMs = static_cast<int>(m_probeTimer.elapsed());
+            const int http =
+                reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            m_probeHttpStatus = http;
+            const QByteArray body = reply->read(48 * 1024);
+            const auto parsed = QJsonDocument::fromJson(body);
+            const QJsonObject json = parsed.isObject() ? parsed.object() : QJsonObject{};
+            bool validShape = false;
+            if (!raw) {
+                validShape = json.value(QStringLiteral("user")).isObject();
+            } else {
+                const QJsonArray messages = json.value(QStringLiteral("messages")).toArray();
+                for (const auto& item : messages) {
+                    const auto data = item.toObject().value(QStringLiteral("data")).toObject();
+                    if (data.value(QStringLiteral("fid")).toInt() != 3)
+                        continue;
+                    const auto bodyField = step == 0
+                        ? QStringLiteral("castAddBody") : QStringLiteral("userDataBody");
+                    if (data.value(bodyField).isObject()
+                        && (step != 0
+                            || item.toObject().value(QStringLiteral("hash")).isString())) {
+                        validShape = true;
+                        break;
+                    }
+                }
+            }
+            if (http == 401 || http == 402 || http == 403) {
+                m_probeState = QStringLiteral("auth_required");
+                m_probeMessage = QStringLiteral("api_key_required");
+            } else if (reply->error() != QNetworkReply::NoError) {
+                m_probeState = QStringLiteral("failed");
+                m_probeMessage = QStringLiteral("network_or_cors");
+            } else if (http < 200 || http >= 300) {
+                m_probeState = QStringLiteral("failed");
+                m_probeMessage = QStringLiteral("http_error");
+            } else if (!validShape) {
+                m_probeState = QStringLiteral("incompatible");
+                m_probeMessage = QStringLiteral("unexpected_json");
+            } else if (raw && step == 0) {
+                // A successful casts endpoint does not establish that profile
+                // reads will work. Only report healthy after *both* pass.
+                reply->deleteLater();
+                runProbeStep(id, contract, origin, draftApiKey, 1);
+                return;
+            } else {
+                m_probeState = QStringLiteral("healthy");
+                m_probeMessage = QStringLiteral("compatible");
+            }
+            emit probeChanged();
             reply->deleteLater();
-            return;
-        }
-        m_probeReply = nullptr;
-        m_probeLatencyMs = static_cast<int>(m_probeTimer.elapsed());
-        const int http = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        m_probeHttpStatus = http;
-        const QByteArray body = reply->read(32 * 1024);
-        const auto parsed = QJsonDocument::fromJson(body);
-        const QJsonObject json = parsed.isObject() ? parsed.object() : QJsonObject{};
-        const bool validShape = raw
-            ? json.contains(QStringLiteral("version"))
-                && json.contains(QStringLiteral("dbStats"))
-            : json.value(QStringLiteral("user")).isObject();
-        if (http == 401 || http == 403 || http == 402) {
-            m_probeState = QStringLiteral("auth_required");
-            m_probeMessage = QStringLiteral("api_key_required");
-        } else if (reply->error() != QNetworkReply::NoError) {
-            m_probeState = QStringLiteral("failed");
-            m_probeMessage = QStringLiteral("network_or_cors");
-        } else if (http < 200 || http >= 300) {
-            m_probeState = QStringLiteral("failed");
-            m_probeMessage = QStringLiteral("http_error");
-        } else if (!validShape) {
-            m_probeState = QStringLiteral("incompatible");
-            m_probeMessage = QStringLiteral("unexpected_json");
-        } else {
-            m_probeState = QStringLiteral("healthy");
-            m_probeMessage = QStringLiteral("compatible");
-        }
-        emit probeChanged();
-        reply->deleteLater();
-    });
-    return true;
+        });
 }
 
 bool ProviderProfilesController::setSessionReadApiKey(
@@ -719,4 +755,28 @@ void ProviderProfilesController::clearDraftProbe()
     m_probeLatencyMs = -1;
     m_probeHttpStatus = 0;
     emit probeChanged();
+}
+
+QString ProviderProfilesController::activeReadContract() const
+{
+    if (m_appliedReadId.isEmpty() || m_appliedReadId == QStringLiteral("hypersnap-v2"))
+        return QStringLiteral("hypersnap-v2");
+    for (const auto& entry : parseProfiles(m_appliedReadProfiles)) {
+        const auto profile = entry.toObject();
+        if (profile.value(QStringLiteral("id")).toString() == m_appliedReadId)
+            return profile.value(QStringLiteral("contract")).toString();
+    }
+    return {};
+}
+
+QString ProviderProfilesController::activeReadProviderLabel() const
+{
+    if (m_appliedReadId.isEmpty() || m_appliedReadId == QStringLiteral("hypersnap-v2"))
+        return QStringLiteral("HyperSnap v2");
+    for (const auto& entry : parseProfiles(m_appliedReadProfiles)) {
+        const auto profile = entry.toObject();
+        if (profile.value(QStringLiteral("id")).toString() == m_appliedReadId)
+            return profile.value(QStringLiteral("label")).toString(m_appliedReadId);
+    }
+    return m_appliedReadId;
 }

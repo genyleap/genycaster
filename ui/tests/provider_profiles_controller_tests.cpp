@@ -86,6 +86,10 @@ void testTypedReadWriteProfilesAndPersistentPreferences()
             settings.value(QStringLiteral("network/writeProviderProfilesJson")).toString(),
             QStringLiteral("reader-alpha"), QStringLiteral("writer-alpha"), true};
         assert(!controller.readRestartRequired() && !controller.writeRestartRequired());
+        assert(controller.activeReadProviderLabel() == QStringLiteral("My raw node"));
+        assert(controller.activeReadContract() == QStringLiteral("snapchain-v1"));
+        assert(controller.activeReadEndpoint() == QStringLiteral("https://read.example.test"));
+        assert(controller.appliedCompatibleReadFallback());
         assert(controller.compatibleReadFallback());
         assert(controller.setCompatibleReadFallback(false));
         assert(!controller.compatibleReadFallback());
@@ -163,15 +167,30 @@ void testLiveReadProbeDistinguishesValidProtocolFromAnyHttp200()
     QTcpServer server{};
     assert(server.listen(QHostAddress::LocalHost));
     bool compatible = true;
+    bool profileAuthorized = true;
+    int castRequests = 0;
+    int profileRequests = 0;
     QObject::connect(&server, &QTcpServer::newConnection, &server, [&] {
         auto* socket = server.nextPendingConnection();
-        QObject::connect(socket, &QTcpSocket::readyRead, socket, [socket, &compatible] {
+        QObject::connect(socket, &QTcpSocket::readyRead, socket, [&, socket] {
             const auto request = socket->readAll();
-            assert(request.startsWith("GET /v1/info "));
-            const QByteArray body = compatible
-                ? QByteArray{"{\"version\":\"test\",\"dbStats\":{\"numMessages\":1}}"}
-                : QByteArray{"{\"greeting\":\"not a Snapchain node\"}"};
-            const auto response = QByteArray{"HTTP/1.1 200 OK\r\nConnection: close\r\n"}
+            const bool casts = request.startsWith(
+                "GET /v1/castsByFid?fid=3&pageSize=1&reverse=true ");
+            const bool profile = request.startsWith(
+                "GET /v1/userDataByFid?fid=3&pageSize=100 ");
+            assert(casts || profile);
+            if (casts) ++castRequests;
+            else ++profileRequests;
+            const int status = profile && !profileAuthorized ? 402 : 200;
+            const QByteArray body = status == 402
+                ? QByteArray{"{\"error\":\"X-PAYMENT header or API key required\"}"}
+                : !compatible ? QByteArray{"{\"greeting\":\"not a raw API\"}"}
+                : casts ? QByteArray{R"({"messages":[{"hash":"0x123","data":{"fid":3,"castAddBody":{"text":"ok"}}}]})"}
+                : QByteArray{R"({"messages":[{"data":{"fid":3,"userDataBody":{"type":"USER_DATA_TYPE_USERNAME","value":"dwr"}}}]})"};
+            const auto response = QByteArray{"HTTP/1.1 "}
+                + QByteArray::number(status) + (status == 200
+                    ? " OK\r\nConnection: close\r\n"
+                    : " Payment Required\r\nConnection: close\r\n")
                 + "Content-Type: application/json\r\nContent-Length: "
                 + QByteArray::number(body.size()) + "\r\n\r\n" + body;
             socket->write(response);
@@ -189,14 +208,23 @@ void testLiveReadProbeDistinguishesValidProtocolFromAnyHttp200()
         });
         assert(controller.probeDraftNode(QStringLiteral("snapchain-v1"), endpoint));
         QTimer::singleShot(4500, &eventLoop, &QEventLoop::quit);
-        eventLoop.exec();
+        if (controller.probeState() == QStringLiteral("checking")) eventLoop.exec();
+        assert(controller.probeState() != QStringLiteral("checking"));
         assert(controller.probeLatencyMs() >= 0);
     };
     check();
     assert(controller.probeState() == QStringLiteral("healthy"));
+    assert(castRequests == 1 && profileRequests == 1);
+    profileAuthorized = false;
+    check();
+    assert(controller.probeState() == QStringLiteral("auth_required"));
+    assert(controller.probeHttpStatus() == 402);
+    assert(castRequests == 2 && profileRequests == 2);
+    profileAuthorized = true;
     compatible = false;
     check();
     assert(controller.probeState() == QStringLiteral("incompatible"));
+    assert(castRequests == 3 && profileRequests == 2);
     assert(!controller.probeDraftNode(
         QStringLiteral("snapchain-v1"), QStringLiteral("file:///etc/shadow")));
     assert(controller.probeState() == QStringLiteral("invalid"));

@@ -4,9 +4,9 @@ The Settings drawer includes a dedicated Node management tab on desktop and mobi
 
 ## Main read workflow
 
-- Show the startup-applied provider ID and endpoint separately from saved changes pending the next refresh.
+- Show the startup-applied friendly provider label, ID and endpoint separately from saved changes pending the next refresh. The footer must not hard-code HyperSnap when a custom read provider was selected.
 - List automatic HyperSnap and custom compatible typed read profiles, each with Test, Use and Remove actions.
-- Guide users through a friendly display name, endpoint, raw-versus-indexed contract, local example and optional API key; generate provider IDs automatically.
+- Guide users through a friendly display name, endpoint, raw-versus-indexed contract, local example and optional API key; generate provider IDs automatically. Saving a newly discovered node no longer silently selects it as the active reader: Use is an explicit separate action.
 - Provide a browser-native clipboard read action in addition to standard field context menus and keyboard editing.
 - Show a one-click WebAssembly reload when the chosen connection changes.
 - Keep write providers in a clearly separate section. This web build does not compile the custom validator adapter; never imply that choosing a read URL changes signed write destinations.
@@ -16,10 +16,14 @@ The Settings drawer includes a dedicated Node management tab on desktop and mobi
 
 The controller performs an asynchronous request (eight-second deadline, no automatic redirects) using the browser's own network context and CORS rules.
 
-- snapchain-v1: GET /v1/info, verifying an object with version and dbStats.
+- snapchain-v1: GET /v1/castsByFid?fid=3&pageSize=1&reverse=true followed by GET /v1/userDataByFid?fid=3&pageSize=100; both must return valid message records bound to the requested FID and expected body shapes. /v1/info is NOT enough to confirm a usable read API.
 - hypersnap-v2: GET /v2/farcaster/user?fid=3, verifying an object with user.
 
-Responses are classified as compatible, wrong API shape, authentication/payment required (HTTP 401/402/403), HTTP failure, or network/CORS failure. A successful probe shows measured response time. It does not prove chain synchronization, complete feature coverage, node ownership or writing rights.
+Responses are classified as verified sampled reads, wrong API shape, authentication/payment required (HTTP 401/402/403), HTTP failure, or network/CORS failure. A successful probe shows measured response time. It does not prove chain synchronization, complete feature coverage, node ownership or writing rights. The sample FID=3 assumes mainnet data and may not exist on a fresh or private test network; an empty sample is not evidence that the node is malicious.
+
+The raw Snapchain adapter advertises UserPosts/UserQuotes/UserReplies, profile and Follow graph capabilities, and bounded Following derivation; it does NOT implement aggregated Explorer, search, or Notifications. Node Management now displays this limitation explicitly. If the user explicitly enables compatible read fallback, the router may send unsupported requests to another compatible provider; strict raw-only users should expect those surfaces to be unavailable.
+
+**Provider-specific operational evidence (2026-10-24):** Neynar's `hub-api.neynar.com` and `snapchain-api.neynar.com` return HTTP 402 without an API key or X-PAYMENT; their preflight OPTIONS accepts `x-api-key` from `https://caster.genyleap.com`. A Key saved in this tab is not shown in plaintext again. A green Cast/Profile test does NOT assert notifications support.
 
 ## API keys and privacy
 

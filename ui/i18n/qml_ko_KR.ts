@@ -59,8 +59,8 @@
             <translation>노드 확인 중…</translation>
         </message>
         <message id="genycaster.nodes.connected">
-            <source>Compatible • connection successful</source>
-            <translation>호환 • 연결 성공</translation>
+            <source>Read API test passed • other capabilities not checked</source>
+            <translation>읽기 API 테스트 성공 • 다른 기능은 미확인</translation>
         </message>
         <message id="genycaster.nodes.auth_required">
             <source>API key or payment required</source>
@@ -77,6 +77,14 @@
         <message id="genycaster.nodes.not_tested">
             <source>Not tested yet</source>
             <translation>테스트 전</translation>
+        </message>
+        <message id="genycaster.nodes.notifications_unavailable">
+            <source>Notifications are unavailable from this raw node</source>
+            <translation>이 직접 노드에서는 알림을 사용할 수 없습니다</translation>
+        </message>
+        <message id="genycaster.nodes.raw_limitations">
+            <source>Raw Snapchain reads: posts, profiles and follows only. Notifications and global Explorer are unavailable. To use compatible providers for those screens, enable read fallback in Advanced options.</source>
+            <translation>Snapchain 직접 읽기는 게시물, 프로필, 팔로우만 지원합니다. 알림과 전체 탐색은 지원하지 않습니다. 해당 화면은 고급 옵션에서 호환 읽기 대체 경로를 활성화하세요.</translation>
         </message>
         <message id="genycaster.nodes.raw_description">
             <source>Direct Snapchain reads • no key required when the node is public</source>

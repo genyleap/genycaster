@@ -59,8 +59,8 @@
             <translation>Knoten wird geprüft…</translation>
         </message>
         <message id="genycaster.nodes.connected">
-            <source>Compatible • connection successful</source>
-            <translation>Kompatibel • Verbindung erfolgreich</translation>
+            <source>Read API test passed • other capabilities not checked</source>
+            <translation>Lese-API-Test erfolgreich • andere Funktionen ungeprüft</translation>
         </message>
         <message id="genycaster.nodes.auth_required">
             <source>API key or payment required</source>
@@ -77,6 +77,14 @@
         <message id="genycaster.nodes.not_tested">
             <source>Not tested yet</source>
             <translation>Noch nicht getestet</translation>
+        </message>
+        <message id="genycaster.nodes.notifications_unavailable">
+            <source>Notifications are unavailable from this raw node</source>
+            <translation>Benachrichtigungen sind über diesen Rohknoten nicht verfügbar</translation>
+        </message>
+        <message id="genycaster.nodes.raw_limitations">
+            <source>Raw Snapchain reads: posts, profiles and follows only. Notifications and global Explorer are unavailable. To use compatible providers for those screens, enable read fallback in Advanced options.</source>
+            <translation>Snapchain direkt unterstützt Beiträge, Profile und Follows. Benachrichtigungen und globaler Explorer fehlen. Für diese Seiten kompatible Lese-Fallbacks unter Erweiterte Optionen aktivieren.</translation>
         </message>
         <message id="genycaster.nodes.raw_description">
             <source>Direct Snapchain reads • no key required when the node is public</source>

@@ -950,6 +950,9 @@ Item {
                                             loadingNotifications: false
                                             hasMore: presentationBridge.notificationsHasMore
                                             errorText: presentationBridge.notificationsErrorText
+                                            unsupportedRawNotifications:
+                                                providerProfiles.activeReadContract === "snapchain-v1"
+                                                && !providerProfiles.appliedCompatibleReadFallback
                                             authenticated: presentationBridge.isAuthenticated
                                             compact: root.compact
                                             accountFid: presentationBridge.accountFid
