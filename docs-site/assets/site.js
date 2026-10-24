@@ -2,7 +2,7 @@
 const groups=[
  ["Start", [["Overview","/"],["Getting started","/quickstart/"],["Current status","/status/"]]],
  ["Architecture",[["Architecture map","/architecture/"],["Provider and node routing","/providers/"],["Switching clients","/client-switching/"]]],
- ["Developers",[["Build your own client","/build-your-own/"],["Operations and node setup","/operations/"]]]
+ ["Developers",[["Implement client architecture","/build-your-own/"],["Operations and node setup","/operations/"]]]
 ];
 const pages=groups.flatMap(g=>g[1]);
 const pagePath=location.pathname.replace(/index\.html$/,"").replace(/\/?$/,"/");

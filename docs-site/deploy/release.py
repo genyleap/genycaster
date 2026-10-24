@@ -14,7 +14,7 @@ TARGET = Path("/var/www/docs.genycaster.xyz")
 PAGES = ("quickstart", "architecture", "providers", "client-switching",
          "build-your-own", "operations", "status")
 FILES = ("index.html", "llms.txt", "robots.txt", "sitemap.xml")
-ASSETS = ("site.css", "site.js")
+ASSETS = ("site.css", "site.js", "genycaster-icon.svg", "genycaster-wordmark.svg")
 
 def main() -> int:
     subprocess.run(["node", "--test", str(SOURCE / "tests/site.test.mjs")],

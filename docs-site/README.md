@@ -8,7 +8,7 @@ Its white navigation layout follows the information architecture of `docs.genyle
 - Getting started and node selection guidance
 - Architecture and read/write diagrams
 - Provider and client switching (distinct topics)
-- Build from source, operation/production reference, candid status report
+- Language-neutral client-core implementation, operational reference and feature status
 - Machine-readable `llms.txt`, sitemap and robots
 
 ## Local preview
