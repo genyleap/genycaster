@@ -71,8 +71,13 @@ per-capability preferences.
 - Parent and cast-reference embeds preserve author/FID identities where present.
 - Next-page tokens are opaque SQLite mappings, never raw provider cursors at
   the presentation boundary.
-- Continuation mappings enforce provider ID, canonical capability ID, and exact
-  FID. A token from another provider, operation, or FID fails closed.
+- Continuation mappings enforce provider ID, canonical capability ID, exact
+  HTTP endpoint origin, and exact FID. A token from another provider,
+  operation, node origin, or FID fails closed. This endpoint-bound `raw-v2`
+  cursor format intentionally rejects tokens saved by the previous raw adapter
+  implementation; users must restart affected feeds from page one after upgrade.
+- `/v1/castsByFid` explicitly uses the documented `reverse=1` parameter
+  for newest-first ordering, with provider page tokens URL encoded.
 - Credentials remain in the adapter config and are never added to domain
   models; profile JSON is non-secret.
 

@@ -218,6 +218,8 @@ void testAsyncReadAndOpaquePagination()
     assert(page->next && !page->next->value.empty());
     assert(page->next->value != "opaque+/=");
     assert(transport.last.url.find("pageSize=5") != std::string::npos);
+    assert(transport.last.url.find("reverse=1") != std::string::npos);
+    assert(transport.last.url.find("reverse=true") == std::string::npos);
 
     auto nextResult = std::make_shared<std::promise<
         foundation::result::Result<capability::feed::FeedPage>>>();
@@ -252,6 +254,42 @@ void testAsyncReadAndOpaquePagination()
     }, [](auto) {});
     assert(!misuse);
     assert(misuse.error().code == foundation::error::ErrorCode::Conflict);
+
+    // A saved node ID is not an immutable endpoint identity. Reusing that ID
+    // after an operator switches server origins must not replay its old token
+    // against a new raw node, even when capability and user FID match.
+    FakeAsyncTransport movedTransport{};
+    auto movedGateway = raw::makeGateway(movedTransport, decoder, *store,
+        raw::Config{
+            .baseUrl = "https://different-node.example",
+            .providerId = provider::model::ProviderId{"raw-test"},
+        });
+    auto retargeted = movedGateway->feed(model::FeedQuery{
+        .kind = model::FeedQuery::Kind::UserPosts,
+        .fid = domain::identity::Fid{42},
+        .limit = 5U,
+        .continuation = page->next,
+    }, [](auto) {});
+    assert(!retargeted);
+    assert(retargeted.error().code == foundation::error::ErrorCode::Conflict);
+    assert(movedTransport.requests == 0U);
+
+    // Provider ID affinity also rejects a different registered source with
+    // an otherwise identical origin and user/capability.
+    auto otherGateway = raw::makeGateway(movedTransport, decoder, *store,
+        raw::Config{
+            .baseUrl = "https://raw.example",
+            .providerId = provider::model::ProviderId{"another-operator"},
+        });
+    auto other = otherGateway->feed(model::FeedQuery{
+        .kind = model::FeedQuery::Kind::UserPosts,
+        .fid = domain::identity::Fid{42},
+        .limit = 5U,
+        .continuation = page->next,
+    }, [](auto) {});
+    assert(!other);
+    assert(other.error().code == foundation::error::ErrorCode::Conflict);
+    assert(movedTransport.requests == 0U);
 }
 
 } // namespace

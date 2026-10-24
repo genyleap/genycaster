@@ -31,13 +31,15 @@ test('raw-node reads never guess that indexed-v2 API implements raw protocol', (
     assert.match(read('ui/CMakeLists.txt'), /FARCASTER_HAS_SNAPCHAIN_READ=1/);
 });
 
-test('raw-node continuation stays provider, capability, and FID scoped and private', () => {
+test('raw-node continuation stays provider, capability, endpoint and FID scoped and private', () => {
     const source = read('src/providers/snapchain/read.cpp');
     const domain = read('src/domain/cast.cppm');
     assert.match(source, /record->providerId\.value != m_config\.providerId\.value/);
     assert.match(source, /record->capabilityId\.value != capabilityId\.value/);
-    assert.match(source, /Raw-node continuation belongs to a different user FID/);
-    assert.match(source, /std::to_string\(fid\.value\) \+ ":" \+ \*cursor/);
+    assert.match(source, /Raw-node continuation has a different endpoint or user FID/);
+    assert.match(source, /"raw-v2:" \+ m_config\.baseUrl/);
+    assert.match(source, /std::to_string\(fid\.value\) \+ "\\n" \+ \*cursor/);
+    assert.match(source, /"&reverse=1"/);
     assert.doesNotMatch(domain, /providerCursor|pageToken/);
     assert.match(source, /WeightedThreadPoolExecutor/);
 });

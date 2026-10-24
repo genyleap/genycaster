@@ -329,7 +329,8 @@ public:
         std::string url{"/v1/castsByFid?fid="};
         url += std::to_string(query.fid->value);
         url += "&pageSize=" + std::to_string(std::clamp(query.limit, std::size_t{1}, std::size_t{100}));
-        url += "&reverse=true";
+        // HTTP read-node API specifies 1 for reverse chronological order.
+        url += "&reverse=1";
         if (query.continuation) {
             auto record = m_continuations.resolve(*query.continuation);
             if (!record) return std::unexpected(std::move(record.error()));
@@ -337,11 +338,16 @@ public:
                 || record->providerId.value != m_config.providerId.value)
                 return std::unexpected(Error::make(
                     ErrorCode::Conflict, "Read continuation does not match its capability/provider."));
-            const std::string prefix = std::to_string(query.fid->value) + ":";
+            // A continuation is valid for exactly one provider *instance*.
+            // Provider IDs can be reused after editing node profiles: a stale
+            // cursor must never be replayed against a different HTTP origin.
+            const std::string prefix = "raw-v2:" + m_config.baseUrl + "\n"
+                + std::to_string(query.fid->value) + "\n";
             if (!record->providerCursor.starts_with(prefix))
                 return std::unexpected(Error::make(
                     ErrorCode::Conflict,
-                    "Raw-node continuation belongs to a different user FID."));
+                    "Raw-node continuation has a different endpoint or user FID; "
+                    "restart this feed from its first page."));
             url += "&pageToken=" + escapeQuery(
                 std::string_view{record->providerCursor}.substr(prefix.size()));
         }
@@ -357,7 +363,8 @@ public:
                 if (const auto cursor = cursorFrom(parsed->as_object())) {
                     auto next = m_continuations.bind(
                         capabilityId, m_config.providerId,
-                        std::to_string(fid.value) + ":" + *cursor);
+                        "raw-v2:" + m_config.baseUrl + "\n"
+                            + std::to_string(fid.value) + "\n" + *cursor);
                     if (!next) return complete(std::unexpected(std::move(next.error())));
                     page->next = std::move(*next);
                 }
