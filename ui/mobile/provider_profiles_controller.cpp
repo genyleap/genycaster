@@ -1,15 +1,26 @@
 #include "provider_profiles_controller.hpp"
 
+#include <QClipboard>
+#include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QTimer>
+#include <QElapsedTimer>
 #include <QSettings>
 #include <QUrl>
 #include <QVariantMap>
 
 #include <algorithm>
 #include <utility>
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <cstdlib>
+#endif
 
 namespace {
 
@@ -125,12 +136,14 @@ ProviderProfilesController::ProviderProfilesController(
     QString appliedReadProviderId,
     QString appliedWriteProviderId,
     const bool appliedCompatibleReadFallback,
-    QObject* parent)
+    QObject* parent,
+    QString defaultIndexedEndpoint)
     : QObject(parent),
       m_settings(settings),
       m_appliedReadProfiles(canonicalProfiles(appliedReadProfiles)),
       m_appliedWriteProfiles(canonicalProfiles(appliedWriteProfiles)),
       m_appliedReadId(std::move(appliedReadProviderId)),
+      m_defaultIndexedEndpoint(std::move(defaultIndexedEndpoint)),
       m_appliedCompatibleReadFallback(appliedCompatibleReadFallback),
       m_appliedWriteId(std::move(appliedWriteProviderId))
 {
@@ -166,7 +179,8 @@ bool ProviderProfilesController::readRestartRequired() const
     return canonicalProfiles(m_settings.value(settingKey(kReadProfiles)).toString())
                 != m_appliedReadProfiles
         || selectedReadProviderId() != m_appliedReadId
-        || compatibleReadFallback() != m_appliedCompatibleReadFallback;
+        || compatibleReadFallback() != m_appliedCompatibleReadFallback
+        || m_sessionKeyChanged;
 }
 
 bool ProviderProfilesController::writeRestartRequired() const
@@ -338,6 +352,22 @@ bool ProviderProfilesController::removeProfile(
         m_settings.sync();
         return fail(QStringLiteral("storage"));
     }
+#ifdef __EMSCRIPTEN__
+    // Removing a profile also clears its per-tab credential so a later
+    // profile cannot accidentally inherit an old provider's secret.
+    if (!writer) {
+        const QByteArray tokenId = id.toUtf8();
+        EM_ASM({
+            try {
+                const id = UTF8ToString($0);
+                const name = "genycaster:read-session-keys";
+                const values = JSON.parse(sessionStorage.getItem(name) || "{}");
+                delete values[id];
+                sessionStorage.setItem(name, JSON.stringify(values));
+            } catch (_) {}
+        }, tokenId.constData());
+    }
+#endif
     clearError();
     emit profilesChanged();
     emit selectionChanged();
@@ -419,4 +449,272 @@ bool ProviderProfilesController::selectWriteProvider(const QString& id)
     clearError();
     emit selectionChanged();
     return true;
+}
+
+
+bool ProviderProfilesController::probeReadProvider(const QString& id)
+{
+    if (id.isEmpty() || id == QStringLiteral("hypersnap-v2"))
+        return startProbe(QStringLiteral("hypersnap-v2"), QStringLiteral("hypersnap-v2"),
+                          m_defaultIndexedEndpoint);
+    for (const auto& entry : parseProfiles(
+             m_settings.value(settingKey(kReadProfiles)).toString())) {
+        const auto profile = entry.toObject();
+        if (profile.value(QStringLiteral("id")).toString() != id) continue;
+        return startProbe(id, profile.value(QStringLiteral("contract")).toString(),
+                          profile.value(QStringLiteral("endpoint")).toString());
+    }
+    return fail(QStringLiteral("unknown_provider"));
+}
+
+bool ProviderProfilesController::probeDraftNode(
+    const QString& contract, const QString& endpoint, const QString& apiKey)
+{
+    return startProbe(QStringLiteral("draft"), contract, endpoint, apiKey);
+}
+
+bool ProviderProfilesController::startProbe(
+    const QString& id, const QString& contract, const QString& endpoint,
+    const QString& draftApiKey)
+{
+    // A ping to / is meaningless: a host can return a landing page and not
+    // implement our selected adapter. Probe a real read endpoint and verify
+    // its JSON shape, with the same browser CORS restrictions as normal reads.
+    const QString origin = normalizedOrigin(endpoint);
+    if (origin.isEmpty() || (contract != QStringLiteral("snapchain-v1")
+                             && contract != QStringLiteral("hypersnap-v2"))) {
+        if (m_probeReply) {
+            auto* oldReply = m_probeReply.data();
+            m_probeReply = nullptr;
+            oldReply->abort();
+            oldReply->deleteLater();
+        }
+        m_probeProviderId = id;
+        m_probeState = QStringLiteral("invalid");
+        m_probeMessage = QStringLiteral("invalid_address");
+        m_probeLatencyMs = -1;
+        emit probeChanged();
+        return false;
+    }
+    if (m_probeReply) {
+        m_probeReply->abort();
+        m_probeReply->deleteLater();
+        m_probeReply = nullptr;
+    }
+    m_probeProviderId = id;
+    m_probeState = QStringLiteral("checking");
+    m_probeMessage.clear();
+    m_probeLatencyMs = -1;
+    m_probeHttpStatus = 0;
+    emit probeChanged();
+
+    const bool raw = contract == QStringLiteral("snapchain-v1");
+    const QString path = raw
+        ? QStringLiteral("/v1/info")
+        : QStringLiteral("/v2/farcaster/user?fid=3");
+    QNetworkRequest request{QUrl(origin + path)};
+    request.setRawHeader("Accept", "application/json");
+    const QByteArray providedKey = draftApiKey.toUtf8();
+    if (!raw && id == QStringLiteral("draft") && !providedKey.isEmpty()) {
+        if (!origin.startsWith(QStringLiteral("https://"))
+            || providedKey.size() > 256
+            || std::any_of(providedKey.cbegin(), providedKey.cend(),
+                 [](const char value) {
+                     const auto byte = static_cast<unsigned char>(value);
+                     return byte < 33U || byte > 126U;
+                 })) {
+            m_probeState = QStringLiteral("invalid");
+            m_probeMessage = QStringLiteral("invalid_api_key");
+            emit probeChanged();
+            return false;
+        }
+        request.setRawHeader("x-api-key", providedKey);
+    }
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(8'000);
+#ifdef __EMSCRIPTEN__
+    if (!raw && id != QStringLiteral("draft")) {
+        const QByteArray idUtf8 = id.toUtf8();
+        // This key is explicitly session-scoped and never put in QSettings.
+        const char* key = reinterpret_cast<const char*>(EM_ASM_PTR({
+            try {
+                const id = UTF8ToString($0);
+                const values = JSON.parse(sessionStorage.getItem("genycaster:read-session-keys") || "{}");
+                const value = typeof values[id] === "string" ? values[id] : "";
+                const size = lengthBytesUTF8(value) + 1;
+                const ptr = _malloc(size);
+                stringToUTF8(value, ptr, size);
+                return ptr;
+            } catch (_) { return 0; }
+        }, idUtf8.constData()));
+        if (key) {
+            const QByteArray secret{key};
+            std::free(const_cast<char*>(key));
+            if (!secret.isEmpty()) request.setRawHeader("x-api-key", secret);
+        }
+    }
+#endif
+    m_probeTimer.start();
+    QNetworkReply* reply = m_network.get(request);
+    m_probeReply = reply;
+    QTimer::singleShot(8'500, reply, [reply] {
+        if (!reply->isFinished()) reply->abort();
+    });
+    connect(reply, &QNetworkReply::finished, this, [this, reply, id, raw] {
+        if (m_probeReply != reply) {
+            reply->deleteLater();
+            return;
+        }
+        m_probeReply = nullptr;
+        m_probeLatencyMs = static_cast<int>(m_probeTimer.elapsed());
+        const int http = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        m_probeHttpStatus = http;
+        const QByteArray body = reply->read(32 * 1024);
+        const auto parsed = QJsonDocument::fromJson(body);
+        const QJsonObject json = parsed.isObject() ? parsed.object() : QJsonObject{};
+        const bool validShape = raw
+            ? json.contains(QStringLiteral("version"))
+                && json.contains(QStringLiteral("dbStats"))
+            : json.value(QStringLiteral("user")).isObject();
+        if (http == 401 || http == 403 || http == 402) {
+            m_probeState = QStringLiteral("auth_required");
+            m_probeMessage = QStringLiteral("api_key_required");
+        } else if (reply->error() != QNetworkReply::NoError) {
+            m_probeState = QStringLiteral("failed");
+            m_probeMessage = QStringLiteral("network_or_cors");
+        } else if (http < 200 || http >= 300) {
+            m_probeState = QStringLiteral("failed");
+            m_probeMessage = QStringLiteral("http_error");
+        } else if (!validShape) {
+            m_probeState = QStringLiteral("incompatible");
+            m_probeMessage = QStringLiteral("unexpected_json");
+        } else {
+            m_probeState = QStringLiteral("healthy");
+            m_probeMessage = QStringLiteral("compatible");
+        }
+        emit probeChanged();
+        reply->deleteLater();
+    });
+    return true;
+}
+
+bool ProviderProfilesController::setSessionReadApiKey(
+    const QString& id, const QString& key)
+{
+    const QByteArray secret = key.toUtf8();
+    if (secret.size() > 256 || std::any_of(secret.cbegin(), secret.cend(),
+            [](char c) { return static_cast<unsigned char>(c) < 33
+                              || static_cast<unsigned char>(c) > 126; })) {
+        return fail(QStringLiteral("invalid_api_key"));
+    }
+    bool eligible = false;
+    for (const auto& entry : parseProfiles(
+             m_settings.value(settingKey(kReadProfiles)).toString())) {
+        const auto item = entry.toObject();
+        if (item.value(QStringLiteral("id")).toString() == id
+            && item.value(QStringLiteral("contract")).toString()
+                == QStringLiteral("hypersnap-v2")
+            && item.value(QStringLiteral("endpoint")).toString()
+                .startsWith(QStringLiteral("https://"))) {
+            eligible = true;
+        }
+    }
+    if (!eligible) return fail(QStringLiteral("unknown_provider"));
+#ifdef __EMSCRIPTEN__
+    const QByteArray name = id.toUtf8();
+    const bool stored = EM_ASM_INT({
+        try {
+            const id = UTF8ToString($0);
+            const value = UTF8ToString($1);
+            const key = "genycaster:read-session-keys";
+            const saved = JSON.parse(sessionStorage.getItem(key) || "{}");
+            if (value) saved[id] = value;
+            else delete saved[id];
+            sessionStorage.setItem(key, JSON.stringify(saved));
+            return 1;
+        } catch (_) { return 0; }
+    }, name.constData(), secret.constData()) != 0;
+    if (!stored) return fail(QStringLiteral("storage"));
+    m_sessionKeyChanged = true;
+    clearError();
+    emit selectionChanged();
+    return true;
+#else
+    return fail(QStringLiteral("unsupported_contract"));
+#endif
+}
+
+void ProviderProfilesController::acceptBrowserPaste(const QString& text)
+{
+    if (text.isEmpty() || text.size() > 4096) return;
+    m_clipboardText = text;
+    emit clipboardChanged();
+}
+
+#ifdef __EMSCRIPTEN__
+namespace {
+QPointer<ProviderProfilesController> pendingClipboardController{};
+}
+extern "C" EMSCRIPTEN_KEEPALIVE void genycasterNodeClipboardResult(const char* utf8)
+{
+    if (pendingClipboardController && utf8)
+        pendingClipboardController->acceptBrowserPaste(QString::fromUtf8(utf8));
+}
+#endif
+
+void ProviderProfilesController::requestBrowserPaste()
+{
+#ifdef __EMSCRIPTEN__
+    pendingClipboardController = this;
+    EM_ASM({
+        if (!navigator.clipboard || !navigator.clipboard.readText) return;
+        navigator.clipboard.readText().then(function(text) {
+            if (!text) return;
+            const length = lengthBytesUTF8(text) + 1;
+            const ptr = _malloc(length);
+            try {
+                stringToUTF8(text, ptr, length);
+                Module._genycasterNodeClipboardResult(ptr);
+            } finally { _free(ptr); }
+        }).catch(function() { /* Native paste shortcut is also available. */ });
+    });
+#else
+    if (const auto* clipboard = QGuiApplication::clipboard())
+        acceptBrowserPaste(clipboard->text());
+#endif
+}
+
+QString ProviderProfilesController::activeReadProviderId() const
+{
+    return m_appliedReadId.isEmpty() ? QStringLiteral("hypersnap-v2") : m_appliedReadId;
+}
+
+QString ProviderProfilesController::activeReadEndpoint() const
+{
+    if (m_appliedReadId.isEmpty() || m_appliedReadId == QStringLiteral("hypersnap-v2"))
+        return m_defaultIndexedEndpoint;
+    for (const auto& entry : parseProfiles(m_appliedReadProfiles)) {
+        const auto profile = entry.toObject();
+        if (profile.value(QStringLiteral("id")).toString() == m_appliedReadId)
+            return profile.value(QStringLiteral("endpoint")).toString();
+    }
+    return {};
+}
+
+void ProviderProfilesController::clearDraftProbe()
+{
+    if (m_probeProviderId != QStringLiteral("draft")) return;
+    if (m_probeReply) {
+        auto* pending = m_probeReply.data();
+        m_probeReply = nullptr;
+        pending->abort();
+        pending->deleteLater();
+    }
+    m_probeProviderId.clear();
+    m_probeState = QStringLiteral("idle");
+    m_probeMessage.clear();
+    m_probeLatencyMs = -1;
+    m_probeHttpStatus = 0;
+    emit probeChanged();
 }

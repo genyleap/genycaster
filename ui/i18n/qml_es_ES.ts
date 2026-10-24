@@ -38,6 +38,134 @@
             <source>App FID confirmed by selected node • not a verified app name</source>
             <translation>FID de la app confirmado por el nodo • nombre sin verificar</translation>
         </message>
+        <message id="genycaster.nodes.title">
+            <source>Node management</source>
+            <translation>Gestión de nodos</translation>
+        </message>
+        <message id="genycaster.nodes.description">
+            <source>Choose where Genycaster reads data. Reading and publishing use separate connections.</source>
+            <translation>Elige de dónde lee Genycaster. La lectura y la publicación usan conexiones separadas.</translation>
+        </message>
+        <message id="genycaster.nodes.active">
+            <source>Currently reading from</source>
+            <translation>Origen de lectura actual</translation>
+        </message>
+        <message id="genycaster.nodes.test">
+            <source>Test connection</source>
+            <translation>Probar conexión</translation>
+        </message>
+        <message id="genycaster.nodes.checking">
+            <source>Checking node…</source>
+            <translation>Comprobando nodo…</translation>
+        </message>
+        <message id="genycaster.nodes.connected">
+            <source>Compatible • connection successful</source>
+            <translation>Compatible • conexión correcta</translation>
+        </message>
+        <message id="genycaster.nodes.auth_required">
+            <source>API key or payment required</source>
+            <translation>Se requiere clave API o pago</translation>
+        </message>
+        <message id="genycaster.nodes.incompatible">
+            <source>Server responded, but the API is incompatible</source>
+            <translation>El servidor responde, pero la API no es compatible</translation>
+        </message>
+        <message id="genycaster.nodes.unreachable">
+            <source>Connection failed • check address, CORS or network</source>
+            <translation>Falló la conexión • revisa dirección, CORS o red</translation>
+        </message>
+        <message id="genycaster.nodes.not_tested">
+            <source>Not tested yet</source>
+            <translation>Sin probar</translation>
+        </message>
+        <message id="genycaster.nodes.raw_description">
+            <source>Direct Snapchain reads • no key required when the node is public</source>
+            <translation>Lectura directa de Snapchain • nodos públicos sin clave</translation>
+        </message>
+        <message id="genycaster.nodes.indexed_description">
+            <source>Indexed API • may require a provider key</source>
+            <translation>API indexada • quizá requiera clave del proveedor</translation>
+        </message>
+        <message id="genycaster.nodes.add">
+            <source>Add read node</source>
+            <translation>Añadir nodo de lectura</translation>
+        </message>
+        <message id="genycaster.nodes.choose_type">
+            <source>Which kind of service?</source>
+            <translation>¿Qué tipo de servicio?</translation>
+        </message>
+        <message id="genycaster.nodes.raw">
+            <source>Snapchain node</source>
+            <translation>Nodo Snapchain</translation>
+        </message>
+        <message id="genycaster.nodes.indexed">
+            <source>Indexed API</source>
+            <translation>API indexada</translation>
+        </message>
+        <message id="genycaster.nodes.name">
+            <source>Display name</source>
+            <translation>Nombre visible</translation>
+        </message>
+        <message id="genycaster.nodes.name_example">
+            <source>My Farcaster node</source>
+            <translation>Mi nodo Farcaster</translation>
+        </message>
+        <message id="genycaster.nodes.endpoint">
+            <source>Node address</source>
+            <translation>Dirección del nodo</translation>
+        </message>
+        <message id="genycaster.nodes.paste">
+            <source>Paste</source>
+            <translation>Pegar</translation>
+        </message>
+        <message id="genycaster.nodes.local_example">
+            <source>Use local node example</source>
+            <translation>Usar ejemplo de nodo local</translation>
+        </message>
+        <message id="genycaster.nodes.local_warning">
+            <source>Localhost is this device, not Genycaster's server. Browsers may block local HTTP or CORS; use a permitted HTTPS endpoint if needed.</source>
+            <translation>localhost es este dispositivo, no el servidor Genycaster. El navegador puede bloquear HTTP local o CORS; utiliza HTTPS si hace falta.</translation>
+        </message>
+        <message id="genycaster.nodes.api_key">
+            <source>API key</source>
+            <translation>Clave API</translation>
+        </message>
+        <message id="genycaster.nodes.api_optional">
+            <source>Paste optional provider key</source>
+            <translation>Pegar clave opcional</translation>
+        </message>
+        <message id="genycaster.nodes.api_warning">
+            <source>On web, keys stay in this tab's session storage, not app settings. Refresh to apply. Avoid shared devices; your provider must allow CORS.</source>
+            <translation>En la web, la clave queda en la sesión de esta pestaña, no en ajustes. Recarga para aplicar. Evita dispositivos compartidos; el proveedor debe permitir CORS.</translation>
+        </message>
+        <message id="genycaster.nodes.reload">
+            <source>Saved. Refresh Genycaster to apply the selected node.</source>
+            <translation>Guardado. Recarga Genycaster para aplicar el nodo.</translation>
+        </message>
+        <message id="genycaster.nodes.save_error">
+            <source>Could not save node</source>
+            <translation>No se pudo guardar el nodo</translation>
+        </message>
+        <message id="genycaster.nodes.write_separate">
+            <source>Publishing uses a separate connection. Selecting a read node does not change where your signed posts are sent.</source>
+            <translation>Publicar utiliza otra conexión. Cambiar de nodo lector no modifica el destino de las publicaciones firmadas.</translation>
+        </message>
+        <message id="genycaster.nodes.write_unavailable">
+            <source>This web build does not include a custom Snapchain validator adapter.</source>
+            <translation>Esta versión web no incluye adaptador de validador Snapchain personalizado.</translation>
+        </message>
+        <message id="genycaster.nodes.add_writer">
+            <source>Add validator</source>
+            <translation>Añadir validador</translation>
+        </message>
+        <message id="genycaster.nodes.test_note">
+            <source>A successful test checks API shape and response time, not full synchronization, ownership or publishing rights.</source>
+            <translation>La prueba comprueba la respuesta API y la latencia, no sincronización total, propiedad ni permisos de publicación.</translation>
+        </message>
+        <message id="genycaster.nodes.save_key">
+            <source>Save session key</source>
+            <translation>Guardar clave de sesión</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>Añadir nodo</translation>

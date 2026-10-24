@@ -38,6 +38,134 @@
             <source>App FID confirmed by selected node • not a verified app name</source>
             <translation>選択ノードが確認したアプリFID • アプリ名は未検証</translation>
         </message>
+        <message id="genycaster.nodes.title">
+            <source>Node management</source>
+            <translation>ノード管理</translation>
+        </message>
+        <message id="genycaster.nodes.description">
+            <source>Choose where Genycaster reads data. Reading and publishing use separate connections.</source>
+            <translation>Genycaster のデータ取得先を選択します。読み取りと投稿は別接続です。</translation>
+        </message>
+        <message id="genycaster.nodes.active">
+            <source>Currently reading from</source>
+            <translation>現在の読み取り元</translation>
+        </message>
+        <message id="genycaster.nodes.test">
+            <source>Test connection</source>
+            <translation>接続テスト</translation>
+        </message>
+        <message id="genycaster.nodes.checking">
+            <source>Checking node…</source>
+            <translation>ノードを確認中…</translation>
+        </message>
+        <message id="genycaster.nodes.connected">
+            <source>Compatible • connection successful</source>
+            <translation>互換 • 接続成功</translation>
+        </message>
+        <message id="genycaster.nodes.auth_required">
+            <source>API key or payment required</source>
+            <translation>API キーまたは支払いが必要</translation>
+        </message>
+        <message id="genycaster.nodes.incompatible">
+            <source>Server responded, but the API is incompatible</source>
+            <translation>応答しましたが API に互換性がありません</translation>
+        </message>
+        <message id="genycaster.nodes.unreachable">
+            <source>Connection failed • check address, CORS or network</source>
+            <translation>接続失敗 • URL、CORS、ネットワークを確認</translation>
+        </message>
+        <message id="genycaster.nodes.not_tested">
+            <source>Not tested yet</source>
+            <translation>未テスト</translation>
+        </message>
+        <message id="genycaster.nodes.raw_description">
+            <source>Direct Snapchain reads • no key required when the node is public</source>
+            <translation>Snapchain から直接取得 • 公開ノードはキー不要</translation>
+        </message>
+        <message id="genycaster.nodes.indexed_description">
+            <source>Indexed API • may require a provider key</source>
+            <translation>インデックス API • キーが必要な場合があります</translation>
+        </message>
+        <message id="genycaster.nodes.add">
+            <source>Add read node</source>
+            <translation>読み取りノードを追加</translation>
+        </message>
+        <message id="genycaster.nodes.choose_type">
+            <source>Which kind of service?</source>
+            <translation>サービスの種類は？</translation>
+        </message>
+        <message id="genycaster.nodes.raw">
+            <source>Snapchain node</source>
+            <translation>Snapchain ノード</translation>
+        </message>
+        <message id="genycaster.nodes.indexed">
+            <source>Indexed API</source>
+            <translation>インデックス API</translation>
+        </message>
+        <message id="genycaster.nodes.name">
+            <source>Display name</source>
+            <translation>表示名</translation>
+        </message>
+        <message id="genycaster.nodes.name_example">
+            <source>My Farcaster node</source>
+            <translation>マイ Farcaster ノード</translation>
+        </message>
+        <message id="genycaster.nodes.endpoint">
+            <source>Node address</source>
+            <translation>ノード URL</translation>
+        </message>
+        <message id="genycaster.nodes.paste">
+            <source>Paste</source>
+            <translation>貼り付け</translation>
+        </message>
+        <message id="genycaster.nodes.local_example">
+            <source>Use local node example</source>
+            <translation>ローカルノードの例を使用</translation>
+        </message>
+        <message id="genycaster.nodes.local_warning">
+            <source>Localhost is this device, not Genycaster's server. Browsers may block local HTTP or CORS; use a permitted HTTPS endpoint if needed.</source>
+            <translation>localhost はこの端末です。Genycaster サーバーではありません。ブラウザーはローカル HTTP や CORS をブロックする場合があります。</translation>
+        </message>
+        <message id="genycaster.nodes.api_key">
+            <source>API key</source>
+            <translation>API キー</translation>
+        </message>
+        <message id="genycaster.nodes.api_optional">
+            <source>Paste optional provider key</source>
+            <translation>任意の API キーを貼り付け</translation>
+        </message>
+        <message id="genycaster.nodes.api_warning">
+            <source>On web, keys stay in this tab's session storage, not app settings. Refresh to apply. Avoid shared devices; your provider must allow CORS.</source>
+            <translation>Web版のキーはこのタブのセッションにのみ保存され、設定には残りません。再読み込みで適用されます。共用端末では使用しないでください。</translation>
+        </message>
+        <message id="genycaster.nodes.reload">
+            <source>Saved. Refresh Genycaster to apply the selected node.</source>
+            <translation>保存しました。Genycaster を再読み込みして適用してください。</translation>
+        </message>
+        <message id="genycaster.nodes.save_error">
+            <source>Could not save node</source>
+            <translation>ノードを保存できません</translation>
+        </message>
+        <message id="genycaster.nodes.write_separate">
+            <source>Publishing uses a separate connection. Selecting a read node does not change where your signed posts are sent.</source>
+            <translation>投稿は別接続です。読み取りノードの変更は署名済み投稿の送信先を変更しません。</translation>
+        </message>
+        <message id="genycaster.nodes.write_unavailable">
+            <source>This web build does not include a custom Snapchain validator adapter.</source>
+            <translation>この Web 版では独自の Snapchain バリデーターに対応していません。</translation>
+        </message>
+        <message id="genycaster.nodes.add_writer">
+            <source>Add validator</source>
+            <translation>バリデーターを追加</translation>
+        </message>
+        <message id="genycaster.nodes.test_note">
+            <source>A successful test checks API shape and response time, not full synchronization, ownership or publishing rights.</source>
+            <translation>テストは API 形式と応答時間のみ確認します。完全同期、所有権、投稿権限は保証しません。</translation>
+        </message>
+        <message id="genycaster.nodes.save_key">
+            <source>Save session key</source>
+            <translation>セッションキーを保存</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>ノードを追加</translation>

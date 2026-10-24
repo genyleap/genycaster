@@ -38,6 +38,134 @@
             <source>App FID confirmed by selected node • not a verified app name</source>
             <translation>चयनित नोड द्वारा प्रमाणित ऐप FID • ऐप नाम सत्यापित नहीं</translation>
         </message>
+        <message id="genycaster.nodes.title">
+            <source>Node management</source>
+            <translation>नोड प्रबंधन</translation>
+        </message>
+        <message id="genycaster.nodes.description">
+            <source>Choose where Genycaster reads data. Reading and publishing use separate connections.</source>
+            <translation>चुनें कि Genycaster डेटा कहाँ से पढ़े। पढ़ना और पोस्ट करना अलग कनेक्शन हैं।</translation>
+        </message>
+        <message id="genycaster.nodes.active">
+            <source>Currently reading from</source>
+            <translation>वर्तमान डेटा स्रोत</translation>
+        </message>
+        <message id="genycaster.nodes.test">
+            <source>Test connection</source>
+            <translation>कनेक्शन जाँचें</translation>
+        </message>
+        <message id="genycaster.nodes.checking">
+            <source>Checking node…</source>
+            <translation>नोड की जाँच जारी…</translation>
+        </message>
+        <message id="genycaster.nodes.connected">
+            <source>Compatible • connection successful</source>
+            <translation>अनुकूल • कनेक्शन सफल</translation>
+        </message>
+        <message id="genycaster.nodes.auth_required">
+            <source>API key or payment required</source>
+            <translation>API कुंजी या भुगतान आवश्यक</translation>
+        </message>
+        <message id="genycaster.nodes.incompatible">
+            <source>Server responded, but the API is incompatible</source>
+            <translation>सर्वर ने जवाब दिया, पर API अनुकूल नहीं</translation>
+        </message>
+        <message id="genycaster.nodes.unreachable">
+            <source>Connection failed • check address, CORS or network</source>
+            <translation>कनेक्शन विफल • पता, CORS या नेटवर्क जाँचें</translation>
+        </message>
+        <message id="genycaster.nodes.not_tested">
+            <source>Not tested yet</source>
+            <translation>अभी जाँच नहीं हुई</translation>
+        </message>
+        <message id="genycaster.nodes.raw_description">
+            <source>Direct Snapchain reads • no key required when the node is public</source>
+            <translation>सीधे Snapchain से पढ़ें • सार्वजनिक नोड पर कुंजी नहीं चाहिए</translation>
+        </message>
+        <message id="genycaster.nodes.indexed_description">
+            <source>Indexed API • may require a provider key</source>
+            <translation>इंडेक्स्ड API • प्रदाता कुंजी चाहिए हो सकती है</translation>
+        </message>
+        <message id="genycaster.nodes.add">
+            <source>Add read node</source>
+            <translation>रीड नोड जोड़ें</translation>
+        </message>
+        <message id="genycaster.nodes.choose_type">
+            <source>Which kind of service?</source>
+            <translation>किस प्रकार की सेवा?</translation>
+        </message>
+        <message id="genycaster.nodes.raw">
+            <source>Snapchain node</source>
+            <translation>Snapchain नोड</translation>
+        </message>
+        <message id="genycaster.nodes.indexed">
+            <source>Indexed API</source>
+            <translation>इंडेक्स्ड API</translation>
+        </message>
+        <message id="genycaster.nodes.name">
+            <source>Display name</source>
+            <translation>दिखने वाला नाम</translation>
+        </message>
+        <message id="genycaster.nodes.name_example">
+            <source>My Farcaster node</source>
+            <translation>मेरा Farcaster नोड</translation>
+        </message>
+        <message id="genycaster.nodes.endpoint">
+            <source>Node address</source>
+            <translation>नोड का पता</translation>
+        </message>
+        <message id="genycaster.nodes.paste">
+            <source>Paste</source>
+            <translation>पेस्ट</translation>
+        </message>
+        <message id="genycaster.nodes.local_example">
+            <source>Use local node example</source>
+            <translation>लोकल नोड उदाहरण लें</translation>
+        </message>
+        <message id="genycaster.nodes.local_warning">
+            <source>Localhost is this device, not Genycaster's server. Browsers may block local HTTP or CORS; use a permitted HTTPS endpoint if needed.</source>
+            <translation>localhost इसी डिवाइस को दर्शाता है, Genycaster सर्वर को नहीं। ब्राउज़र लोकल HTTP या CORS ब्लॉक कर सकता है।</translation>
+        </message>
+        <message id="genycaster.nodes.api_key">
+            <source>API key</source>
+            <translation>API कुंजी</translation>
+        </message>
+        <message id="genycaster.nodes.api_optional">
+            <source>Paste optional provider key</source>
+            <translation>वैकल्पिक प्रदाता कुंजी पेस्ट करें</translation>
+        </message>
+        <message id="genycaster.nodes.api_warning">
+            <source>On web, keys stay in this tab's session storage, not app settings. Refresh to apply. Avoid shared devices; your provider must allow CORS.</source>
+            <translation>वेब पर कुंजी केवल इस टैब के सत्र में रहती है, सेटिंग्स में नहीं। लागू करने के लिए रीफ़्रेश करें। साझा डिवाइस से बचें।</translation>
+        </message>
+        <message id="genycaster.nodes.reload">
+            <source>Saved. Refresh Genycaster to apply the selected node.</source>
+            <translation>सहेजा गया। नोड लागू करने के लिए Genycaster रीफ़्रेश करें।</translation>
+        </message>
+        <message id="genycaster.nodes.save_error">
+            <source>Could not save node</source>
+            <translation>नोड सहेजा नहीं जा सका</translation>
+        </message>
+        <message id="genycaster.nodes.write_separate">
+            <source>Publishing uses a separate connection. Selecting a read node does not change where your signed posts are sent.</source>
+            <translation>पोस्ट के लिए अलग कनेक्शन है। रीड नोड बदलने से साइन किए गए पोस्ट का लक्ष्य नहीं बदलता।</translation>
+        </message>
+        <message id="genycaster.nodes.write_unavailable">
+            <source>This web build does not include a custom Snapchain validator adapter.</source>
+            <translation>इस वेब बिल्ड में कस्टम Snapchain वैलिडेटर अडैप्टर नहीं है।</translation>
+        </message>
+        <message id="genycaster.nodes.add_writer">
+            <source>Add validator</source>
+            <translation>वैलिडेटर जोड़ें</translation>
+        </message>
+        <message id="genycaster.nodes.test_note">
+            <source>A successful test checks API shape and response time, not full synchronization, ownership or publishing rights.</source>
+            <translation>जाँच केवल API उत्तर और विलंब को परखती है; पूर्ण सिंक, स्वामित्व या पोस्ट अधिकार नहीं।</translation>
+        </message>
+        <message id="genycaster.nodes.save_key">
+            <source>Save session key</source>
+            <translation>सत्र कुंजी सहेजें</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>नोड जोड़ें</translation>

@@ -38,6 +38,134 @@
             <source>App FID confirmed by selected node • not a verified app name</source>
             <translation>선택한 노드에서 확인한 앱 FID • 앱 이름은 미확인</translation>
         </message>
+        <message id="genycaster.nodes.title">
+            <source>Node management</source>
+            <translation>노드 관리</translation>
+        </message>
+        <message id="genycaster.nodes.description">
+            <source>Choose where Genycaster reads data. Reading and publishing use separate connections.</source>
+            <translation>Genycaster의 데이터 읽기 출처를 선택합니다. 읽기와 게시 연결은 별도입니다.</translation>
+        </message>
+        <message id="genycaster.nodes.active">
+            <source>Currently reading from</source>
+            <translation>현재 읽기 출처</translation>
+        </message>
+        <message id="genycaster.nodes.test">
+            <source>Test connection</source>
+            <translation>연결 테스트</translation>
+        </message>
+        <message id="genycaster.nodes.checking">
+            <source>Checking node…</source>
+            <translation>노드 확인 중…</translation>
+        </message>
+        <message id="genycaster.nodes.connected">
+            <source>Compatible • connection successful</source>
+            <translation>호환 • 연결 성공</translation>
+        </message>
+        <message id="genycaster.nodes.auth_required">
+            <source>API key or payment required</source>
+            <translation>API 키 또는 결제 필요</translation>
+        </message>
+        <message id="genycaster.nodes.incompatible">
+            <source>Server responded, but the API is incompatible</source>
+            <translation>서버가 응답했지만 API가 호환되지 않습니다</translation>
+        </message>
+        <message id="genycaster.nodes.unreachable">
+            <source>Connection failed • check address, CORS or network</source>
+            <translation>연결 실패 • 주소, CORS 또는 네트워크 확인</translation>
+        </message>
+        <message id="genycaster.nodes.not_tested">
+            <source>Not tested yet</source>
+            <translation>테스트 전</translation>
+        </message>
+        <message id="genycaster.nodes.raw_description">
+            <source>Direct Snapchain reads • no key required when the node is public</source>
+            <translation>Snapchain 직접 읽기 • 공개 노드는 키 불필요</translation>
+        </message>
+        <message id="genycaster.nodes.indexed_description">
+            <source>Indexed API • may require a provider key</source>
+            <translation>색인 API • 제공자 키가 필요할 수 있음</translation>
+        </message>
+        <message id="genycaster.nodes.add">
+            <source>Add read node</source>
+            <translation>읽기 노드 추가</translation>
+        </message>
+        <message id="genycaster.nodes.choose_type">
+            <source>Which kind of service?</source>
+            <translation>어떤 서비스인가요?</translation>
+        </message>
+        <message id="genycaster.nodes.raw">
+            <source>Snapchain node</source>
+            <translation>Snapchain 노드</translation>
+        </message>
+        <message id="genycaster.nodes.indexed">
+            <source>Indexed API</source>
+            <translation>색인 API</translation>
+        </message>
+        <message id="genycaster.nodes.name">
+            <source>Display name</source>
+            <translation>표시 이름</translation>
+        </message>
+        <message id="genycaster.nodes.name_example">
+            <source>My Farcaster node</source>
+            <translation>내 Farcaster 노드</translation>
+        </message>
+        <message id="genycaster.nodes.endpoint">
+            <source>Node address</source>
+            <translation>노드 주소</translation>
+        </message>
+        <message id="genycaster.nodes.paste">
+            <source>Paste</source>
+            <translation>붙여넣기</translation>
+        </message>
+        <message id="genycaster.nodes.local_example">
+            <source>Use local node example</source>
+            <translation>로컬 노드 예시 사용</translation>
+        </message>
+        <message id="genycaster.nodes.local_warning">
+            <source>Localhost is this device, not Genycaster's server. Browsers may block local HTTP or CORS; use a permitted HTTPS endpoint if needed.</source>
+            <translation>localhost는 Genycaster 서버가 아니라 이 기기입니다. 브라우저가 로컬 HTTP 또는 CORS를 차단할 수 있습니다.</translation>
+        </message>
+        <message id="genycaster.nodes.api_key">
+            <source>API key</source>
+            <translation>API 키</translation>
+        </message>
+        <message id="genycaster.nodes.api_optional">
+            <source>Paste optional provider key</source>
+            <translation>선택적 제공자 키 붙여넣기</translation>
+        </message>
+        <message id="genycaster.nodes.api_warning">
+            <source>On web, keys stay in this tab's session storage, not app settings. Refresh to apply. Avoid shared devices; your provider must allow CORS.</source>
+            <translation>웹에서는 키가 탭 세션 저장소에만 보관되며 설정에는 저장되지 않습니다. 새로고침 후 적용됩니다. 공용 기기는 피하세요.</translation>
+        </message>
+        <message id="genycaster.nodes.reload">
+            <source>Saved. Refresh Genycaster to apply the selected node.</source>
+            <translation>저장했습니다. Genycaster를 새로고침하면 적용됩니다.</translation>
+        </message>
+        <message id="genycaster.nodes.save_error">
+            <source>Could not save node</source>
+            <translation>노드를 저장할 수 없습니다</translation>
+        </message>
+        <message id="genycaster.nodes.write_separate">
+            <source>Publishing uses a separate connection. Selecting a read node does not change where your signed posts are sent.</source>
+            <translation>게시는 별도의 연결을 사용합니다. 읽기 노드를 바꿔도 서명된 게시물의 전송 대상은 바뀌지 않습니다.</translation>
+        </message>
+        <message id="genycaster.nodes.write_unavailable">
+            <source>This web build does not include a custom Snapchain validator adapter.</source>
+            <translation>이 웹 빌드는 사용자 지정 Snapchain 검증기 어댑터를 제공하지 않습니다.</translation>
+        </message>
+        <message id="genycaster.nodes.add_writer">
+            <source>Add validator</source>
+            <translation>검증기 추가</translation>
+        </message>
+        <message id="genycaster.nodes.test_note">
+            <source>A successful test checks API shape and response time, not full synchronization, ownership or publishing rights.</source>
+            <translation>테스트는 API 응답과 지연 시간만 확인합니다. 완전한 동기화, 소유권, 게시 권한을 확인하지 않습니다.</translation>
+        </message>
+        <message id="genycaster.nodes.save_key">
+            <source>Save session key</source>
+            <translation>세션 키 저장</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>노드 추가</translation>

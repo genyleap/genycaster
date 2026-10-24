@@ -23,7 +23,7 @@ GenyDrawer {
         // returning from a nested detail does not discard unsaved values.
         const pages = [mobileSettingsIndex, appearanceScroll, localeScroll,
                        marketScroll, readSettingsScroll, updatesScroll,
-                       recoverySettingsScroll]
+                       recoverySettingsScroll, nodeSettingsScroll]
         for (let i = 0; i < pages.length; ++i) {
             if (pages[i].contentItem)
                 pages[i].contentItem.contentY = 0
@@ -41,7 +41,7 @@ GenyDrawer {
             root.signOutConfirmationRequested()
             return
         }
-        if (section < 0 || section > 5
+        if (section < 0 || section > 6
                 || (section === 5 && !presentationBridge.isAuthenticated)) return
         root.currentSection = section
         root.mobileIndexOpen = false
@@ -53,7 +53,8 @@ GenyDrawer {
             qsTrId("genycaster.settings.market_pulse"),
             qsTrId("genycaster.settings.content_loading"),
             qsTrId("genycaster.settings.updates"),
-            qsTrId("genycaster.setup.recovery_title")
+            qsTrId("genycaster.setup.recovery_title"),
+            qsTrId("genycaster.nodes.title")
         ]
         return titles[Math.max(0, Math.min(titles.length - 1, section))]
     }
@@ -95,8 +96,6 @@ GenyDrawer {
             root.mobileIndexOpen = true
         }
         customAccentField.text = appearanceController.customAccentColor
-        validatorEndpointField.text = nodeSelectionController.snapchainWriteEndpoint
-        root.validatorUrlError = false
         root.customColorError = false
         root.showRecoveryExplanation = false
     }
@@ -511,7 +510,8 @@ GenyDrawer {
                     heading: qsTrId("genycaster.settings.mobile_feeds_content")
                     entries: [
                         { label: qsTrId("genycaster.settings.market_pulse"), icon: Theme.iconChart, section: 2 },
-                        { label: qsTrId("genycaster.settings.content_loading"), icon: Theme.iconDownload, section: 3 }
+                        { label: qsTrId("genycaster.settings.content_loading"), icon: Theme.iconDownload, section: 3 },
+                        { label: qsTrId("genycaster.nodes.title"), icon: Theme.iconCloud, section: 6 }
                     ]
                 }
                 MobileSettingsGroup {
@@ -534,9 +534,9 @@ GenyDrawer {
 
             GridLayout {
                 id: settingsTabs
-                // Six destinations: use two rows on phones instead of
-                // squeezing six icon-only buttons below touch-target width.
-                columns: root.compactLayout ? 3 : root.width >= 720 ? 3 : 2
+                // Seven destinations: four columns on wide desktop keeps
+                // two readable rows; mobile navigates through the index.
+                columns: root.compactLayout ? 3 : root.width >= 720 ? 4 : 2
                 rowSpacing: Theme.space1
                 columnSpacing: Theme.space1
                 // Desktop labels get their natural line width across two rows;
@@ -600,6 +600,17 @@ GenyDrawer {
                     iconGlyph: Theme.iconRefresh
                     text: qsTrId("genycaster.settings.updates")
                     onClicked: root.currentSection = 4
+                }
+                ActionButton {
+                    Layout.fillWidth: true
+                    compact: true
+                    quiet: true
+                    selected: root.currentSection === 6
+                    iconOnly: root.compactLayout
+                    Layout.minimumWidth: 0
+                    iconGlyph: Theme.iconCloud
+                    text: qsTrId("genycaster.nodes.title")
+                    onClicked: root.currentSection = 6
                 }
                 ActionButton {
                     objectName: "settingsRecoveryTab"
@@ -1970,154 +1981,12 @@ GenyDrawer {
                         }
                     }
 
-                    ProviderProfilesPanel {
+                    ActionButton {
                         Layout.fillWidth: true
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.space2
-
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.setup.choose_network")
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeLabelSize
-                            font.weight: Theme.weightDemiBold
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            layoutDirection: Theme.uiDirection
-                            spacing: Theme.space2
-
-                            ActionButton {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.settings.hypersnap_label")
-                                selected: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
-                                elevated: false
-                                onClicked: presentationBridge.setPreferredNetwork(presentationBridge.independentNetworkKey)
-                            }
-
-                            ActionButton {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.settings.farcaster_label")
-                                selected: presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
-                                elevated: false
-                                onClicked: presentationBridge.setPreferredNetwork(presentationBridge.hostedNetworkKey)
-                            }
-                        }
-
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.setup.network_settings_explainer")
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.settings.validator_write_endpoint")
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeMetaSize
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.settings.validator_write_description")
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        RowLayout {
-                            Layout.fillWidth: true
-                            layoutDirection: Theme.uiDirection
-                            spacing: Theme.space2
-                            DirectionAwareTextField {
-                                id: validatorEndpointField
-                                Layout.fillWidth: true
-                                inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
-                                placeholderText: "https://validator.example"
-                                onTextChanged: root.validatorUrlError = false
-                                onAccepted: {
-                                    root.validatorUrlError = !nodeSelectionController.setSnapchainWriteEndpoint(text)
-                                }
-                            }
-                            ActionButton {
-                                compact: true
-                                text: qsTrId("genycaster.composer.apply")
-                                onClicked: {
-                                    root.validatorUrlError = !nodeSelectionController.setSnapchainWriteEndpoint(validatorEndpointField.text)
-                                }
-                            }
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            visible: root.validatorUrlError
-                            text: qsTrId("genycaster.settings.validator_write_invalid")
-                            color: Theme.danger
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            visible: nodeSelectionController.writeRestartRequired
-                            text: qsTrId("genycaster.settings.restart_genycaster_to_apply_network_changes")
-                            color: Theme.warning
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.settings.connection_proxy_for_farcaster_relay_and_network_reads")
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeMetaSize
-                            wrapMode: Text.WordWrap
-                        }
-                        RowLayout {
-                            Layout.fillWidth: true
-                            layoutDirection: Theme.uiDirection
-                            spacing: Theme.space2
-                            ActionButton {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.setup.system_proxy")
-                                selected: nodeSelectionController.proxyMode === "system"
-                                onClicked: nodeSelectionController.setProxyMode("system")
-                            }
-                            ActionButton {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.setup.direct")
-                                selected: nodeSelectionController.proxyMode === "direct"
-                                onClicked: nodeSelectionController.setProxyMode("direct")
-                            }
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            visible: nodeSelectionController.proxyRestartRequired
-                            text: qsTrId("genycaster.settings.restart_genycaster_to_apply_network_changes")
-                            color: Theme.warning
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
-                                  ? qsTrId("genycaster.settings.hypersnap_v2_only_hypersnap_compatible_api_nodes_are_eligible")
-                                  : presentationBridge.farcasterReadConfigured
-                                    ? qsTrId("genycaster.settings.farcaster_indexed_api").arg(presentationBridge.farcasterReadEndpoint)
-                                    : qsTrId("genycaster.settings.farcaster_indexed_reads_require_a_compatible_api_raw_hubs")
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            visible: presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
-                            text: qsTrId("genycaster.settings.known_farcaster_hubs_pinata_hub_neynar_hub_may_require")
-                            color: Theme.inkSubtle
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.WordWrap
-                        }
+                        iconGlyph: Theme.iconCloud
+                        alignStart: true
+                        text: qsTrId("genycaster.nodes.title")
+                        onClicked: root.currentSection = 6
                     }
 
                     Superellipse {
@@ -2523,6 +2392,17 @@ GenyDrawer {
                             root.signOutConfirmationRequested()
                         }
                     }
+                }
+            }
+            ScrollView {
+                id: nodeSettingsScroll
+                clip: true
+                contentWidth: availableWidth
+                ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
+                ScrollBar.vertical: GenyScrollBar {}
+
+                NodeManagementPanel {
+                    width: nodeSettingsScroll.availableWidth
                 }
             }
         }

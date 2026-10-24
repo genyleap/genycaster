@@ -63,6 +63,7 @@ set(farcasterQmlFiles
     components/AmbientMediaBackdrop.qml
     components/LocaleSettingsPopup.qml
     components/ProviderProfilesPanel.qml
+    components/NodeManagementPanel.qml
     components/UpdateNoticeDrawer.qml
     components/LocaleFormat.qml
     components/MiniAppPresentationPreview.qml
@@ -1208,7 +1209,7 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
         mobile/provider_profiles_controller.cpp
         mobile/provider_profiles_controller.hpp)
     target_compile_features(farcaster_provider_profiles_tests PRIVATE cxx_std_26)
-    target_link_libraries(farcaster_provider_profiles_tests PRIVATE Qt6::Core)
+    target_link_libraries(farcaster_provider_profiles_tests PRIVATE Qt6::Core Qt6::Network Qt6::Gui)
     target_compile_definitions(farcaster_provider_profiles_tests PRIVATE
         FARCASTER_HAS_SNAPCHAIN_READ=1
         FARCASTER_HAS_HYPERSNAP_PROVIDER=1

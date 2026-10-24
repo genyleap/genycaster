@@ -5,6 +5,11 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSettings>
+#include <QEventLoop>
+#include <QHostAddress>
+#include <QTcpServer>
+#include <QTcpSocket>
+#include <QTimer>
 #include <QTemporaryDir>
 #include <QVariantMap>
 
@@ -148,6 +153,56 @@ void testNoCredentialOrProtocolSpoofing()
     assert(!settings.contains(QStringLiteral("network/writeProviderProfilesJson")));
 }
 
+
+void testLiveReadProbeDistinguishesValidProtocolFromAnyHttp200()
+{
+    QTemporaryDir temp{};
+    assert(temp.isValid());
+    QSettings settings{temp.filePath(QStringLiteral("health.ini")), QSettings::IniFormat};
+    ProviderProfilesController controller{settings, {}, {}, {}, {}};
+    QTcpServer server{};
+    assert(server.listen(QHostAddress::LocalHost));
+    bool compatible = true;
+    QObject::connect(&server, &QTcpServer::newConnection, &server, [&] {
+        auto* socket = server.nextPendingConnection();
+        QObject::connect(socket, &QTcpSocket::readyRead, socket, [socket, &compatible] {
+            const auto request = socket->readAll();
+            assert(request.startsWith("GET /v1/info "));
+            const QByteArray body = compatible
+                ? QByteArray{"{\"version\":\"test\",\"dbStats\":{\"numMessages\":1}}"}
+                : QByteArray{"{\"greeting\":\"not a Snapchain node\"}"};
+            const auto response = QByteArray{"HTTP/1.1 200 OK\r\nConnection: close\r\n"}
+                + "Content-Type: application/json\r\nContent-Length: "
+                + QByteArray::number(body.size()) + "\r\n\r\n" + body;
+            socket->write(response);
+            socket->flush();
+            socket->disconnectFromHost();
+        });
+    });
+    const QString endpoint = QStringLiteral("http://127.0.0.1:%1").arg(server.serverPort());
+    auto check = [&] {
+        QEventLoop eventLoop{};
+        QObject::connect(&controller, &ProviderProfilesController::probeChanged,
+                         &eventLoop, [&] {
+            if (controller.probeState() != QStringLiteral("checking"))
+                eventLoop.quit();
+        });
+        assert(controller.probeDraftNode(QStringLiteral("snapchain-v1"), endpoint));
+        QTimer::singleShot(4500, &eventLoop, &QEventLoop::quit);
+        eventLoop.exec();
+        assert(controller.probeLatencyMs() >= 0);
+    };
+    check();
+    assert(controller.probeState() == QStringLiteral("healthy"));
+    compatible = false;
+    check();
+    assert(controller.probeState() == QStringLiteral("incompatible"));
+    assert(!controller.probeDraftNode(
+        QStringLiteral("snapchain-v1"), QStringLiteral("file:///etc/shadow")));
+    assert(controller.probeState() == QStringLiteral("invalid"));
+    assert(!settings.contains(QStringLiteral("network/readProviderApiKeysJson")));
+}
+
 } // namespace
 
 int main(int argc, char* argv[])
@@ -155,5 +210,6 @@ int main(int argc, char* argv[])
     QCoreApplication app{argc, argv};
     testTypedReadWriteProfilesAndPersistentPreferences();
     testNoCredentialOrProtocolSpoofing();
+    testLiveReadProbeDistinguishesValidProtocolFromAnyHttp200();
     return 0;
 }

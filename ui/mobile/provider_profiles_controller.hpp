@@ -1,10 +1,14 @@
 #pragma once
 
+#include <QElapsedTimer>
+#include <QNetworkAccessManager>
+#include <QPointer>
 #include <QObject>
 #include <QString>
 #include <QVariantList>
 
 class QSettings;
+class QNetworkReply;
 
 /**
  * @brief Manages non-secret, explicitly typed read/write provider instances.
@@ -30,6 +34,14 @@ class ProviderProfilesController final : public QObject {
     Q_PROPERTY(bool rawReadSupported READ rawReadSupported CONSTANT)
     Q_PROPERTY(bool writeSupported READ writeSupported CONSTANT)
     Q_PROPERTY(QString lastError READ lastError NOTIFY errorChanged)
+    Q_PROPERTY(QString activeReadProviderId READ activeReadProviderId CONSTANT)
+    Q_PROPERTY(QString activeReadEndpoint READ activeReadEndpoint CONSTANT)
+    Q_PROPERTY(QString probeState READ probeState NOTIFY probeChanged)
+    Q_PROPERTY(QString probeMessage READ probeMessage NOTIFY probeChanged)
+    Q_PROPERTY(QString probeProviderId READ probeProviderId NOTIFY probeChanged)
+    Q_PROPERTY(int probeLatencyMs READ probeLatencyMs NOTIFY probeChanged)
+    Q_PROPERTY(int probeHttpStatus READ probeHttpStatus NOTIFY probeChanged)
+    Q_PROPERTY(QString clipboardText READ clipboardText NOTIFY clipboardChanged)
 
 public:
     ProviderProfilesController(
@@ -39,7 +51,8 @@ public:
         QString appliedReadProviderId,
         QString appliedWriteProviderId,
         bool appliedCompatibleReadFallback = false,
-        QObject* parent = nullptr);
+        QObject* parent = nullptr,
+        QString defaultIndexedEndpoint = QStringLiteral("https://haatz.quilibrium.com"));
 
     [[nodiscard]] QVariantList readProfiles() const;
     [[nodiscard]] QVariantList writeProfiles() const;
@@ -52,6 +65,21 @@ public:
     [[nodiscard]] bool rawReadSupported() const noexcept;
     [[nodiscard]] bool writeSupported() const noexcept;
     [[nodiscard]] QString lastError() const;
+    [[nodiscard]] QString activeReadProviderId() const;
+    [[nodiscard]] QString activeReadEndpoint() const;
+    [[nodiscard]] QString probeState() const { return m_probeState; }
+    [[nodiscard]] QString probeMessage() const { return m_probeMessage; }
+    [[nodiscard]] QString probeProviderId() const { return m_probeProviderId; }
+    [[nodiscard]] int probeLatencyMs() const { return m_probeLatencyMs; }
+    [[nodiscard]] int probeHttpStatus() const { return m_probeHttpStatus; }
+    [[nodiscard]] QString clipboardText() const { return m_clipboardText; }
+    Q_INVOKABLE bool probeReadProvider(const QString& id);
+    Q_INVOKABLE bool probeDraftNode(const QString& contract, const QString& endpoint,
+                                    const QString& apiKey = {});
+    Q_INVOKABLE bool setSessionReadApiKey(const QString& id, const QString& key);
+    Q_INVOKABLE void requestBrowserPaste();
+    Q_INVOKABLE void clearDraftProbe();
+    void acceptBrowserPaste(const QString& text);
 
     /** @brief Notifies QML when another settings panel changes the saved selection. */
     Q_INVOKABLE void refresh();
@@ -79,6 +107,8 @@ signals:
     void profilesChanged();
     void selectionChanged();
     void errorChanged();
+    void probeChanged();
+    void clipboardChanged();
 
 private:
     bool addProfile(const QString& key, bool writer, const QString& id,
@@ -94,7 +124,20 @@ private:
     QString m_appliedReadProfiles;
     QString m_appliedWriteProfiles;
     QString m_appliedReadId;
+    QString m_defaultIndexedEndpoint;
     bool m_appliedCompatibleReadFallback{false};
+    bool m_sessionKeyChanged{false};
     QString m_appliedWriteId;
     QString m_lastError;
+    QNetworkAccessManager m_network{this};
+    QPointer<QNetworkReply> m_probeReply{};
+    QElapsedTimer m_probeTimer{};
+    QString m_probeState{"idle"};
+    QString m_probeMessage{};
+    QString m_probeProviderId{};
+    int m_probeLatencyMs{-1};
+    int m_probeHttpStatus{0};
+    QString m_clipboardText{};
+    bool startProbe(const QString& id, const QString& contract, const QString& endpoint,
+                    const QString& draftApiKey = {});
 };

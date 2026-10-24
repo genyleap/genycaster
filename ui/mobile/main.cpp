@@ -863,8 +863,18 @@ int main(int argc, char* argv[])
     // log the JSON or its values. An unknown ID or insecure endpoint fails
     // closed rather than silently targeting another adapter.
     std::unordered_map<std::string, std::string> readProviderApiKeys{};
-    const QByteArray providerSecretsJson =
+    QByteArray providerSecretsJson =
         qgetenv("GENYCASTER_READ_PROVIDER_API_KEYS_JSON");
+#ifdef __EMSCRIPTEN__
+    if (providerSecretsJson.isEmpty()) {
+        // Explicitly supplied per-tab browser credentials. Never persist
+        // these keys in QSettings/IDBFS or bundle them into WASM assets.
+        const char* sessionJson = emscripten_run_script_string(
+            "(function(){try{return sessionStorage.getItem("
+            "'genycaster:read-session-keys')||'{}'}catch(e){return '{}'}})()");
+        if (sessionJson) providerSecretsJson = QByteArray{sessionJson};
+    }
+#endif
     if (!providerSecretsJson.isEmpty()) {
         QJsonParseError secretParseError{};
         const auto secrets = QJsonDocument::fromJson(
@@ -1414,7 +1424,7 @@ int main(int argc, char* argv[])
     providerProfilesControllerOwner = std::make_unique<ProviderProfilesController>(
         settings, providerProfilesJson, writeProfilesJson,
         preferredReadProviderText, preferredWriteProviderText,
-        allowCompatibleReadFallback);
+        allowCompatibleReadFallback, nullptr, appliedNodeEndpoint);
     ProviderProfilesController& providerProfilesController = *providerProfilesControllerOwner;
     updateControllerOwner = std::make_unique<UpdateController>(
         settings, !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, &application);
