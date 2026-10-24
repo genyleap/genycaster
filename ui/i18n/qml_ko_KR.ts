@@ -2,6 +2,14 @@
 <TS version="2.1" language="ko_KR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.providers.compatible_read_fallback">
+            <source>Allow compatible read fallback</source>
+            <translation>호환 읽기 공급자로 대체 허용</translation>
+        </message>
+        <message id="genycaster.providers.compatible_read_fallback_description">
+            <source>When enabled, Explorer, search and other reads may contact another compatible provider if the selected node cannot serve them. This can send read requests to managed services unless Strict Self-Hosted mode is active. Writes never fall back.</source>
+            <translation>사용하면 선택한 노드가 지원하지 않는 Explorer, 검색 및 기타 읽기 작업을 다른 호환 공급자에서 처리할 수 있습니다. 엄격한 자체 호스팅 모드가 아니면 관리형 서비스에 읽기 요청이 전송될 수 있습니다. 쓰기 작업은 절대 전환되지 않습니다.</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>노드 추가</translation>

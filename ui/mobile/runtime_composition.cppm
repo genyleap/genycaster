@@ -173,6 +173,8 @@ struct Runtime final {
     std::string independentReadProviderId{};
     std::string hostedReadProviderId{};
     std::string requestedReadProviderId{};
+    /** @brief Explicit consent for cross-provider Read fallback, never Write. */
+    bool allowCompatibleReadFallback{false};
     std::optional<farcaster::storage::continuation::ContinuationStore> continuations{};
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
     std::unique_ptr<farcaster::provider::hypersnap::async_gateway::AsyncGateway> asyncGateway{};
@@ -265,6 +267,7 @@ struct Runtime final {
     const std::optional<std::string>& farcasterReadApiKey,
     const std::vector<ReadProviderProfile>& additionalReadProviders,
     const std::optional<std::string>& preferredReadProviderId,
+    bool allowCompatibleReadFallback,
     const std::vector<WriteProviderProfile>& additionalWriteProviders,
     const std::optional<std::string>& preferredWriteProviderId,
     const std::optional<std::string>& authRelayUrl,

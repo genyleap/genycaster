@@ -25,6 +25,7 @@ class ProviderProfilesController final : public QObject {
     Q_PROPERTY(QString selectedWriteProviderId READ selectedWriteProviderId NOTIFY selectionChanged)
     Q_PROPERTY(bool readRestartRequired READ readRestartRequired NOTIFY selectionChanged)
     Q_PROPERTY(bool writeRestartRequired READ writeRestartRequired NOTIFY selectionChanged)
+    Q_PROPERTY(bool compatibleReadFallback READ compatibleReadFallback NOTIFY selectionChanged)
     Q_PROPERTY(bool indexedReadSupported READ indexedReadSupported CONSTANT)
     Q_PROPERTY(bool rawReadSupported READ rawReadSupported CONSTANT)
     Q_PROPERTY(bool writeSupported READ writeSupported CONSTANT)
@@ -37,11 +38,13 @@ public:
         QString appliedWriteProfiles,
         QString appliedReadProviderId,
         QString appliedWriteProviderId,
+        bool appliedCompatibleReadFallback = false,
         QObject* parent = nullptr);
 
     [[nodiscard]] QVariantList readProfiles() const;
     [[nodiscard]] QVariantList writeProfiles() const;
     [[nodiscard]] QString selectedReadProviderId() const;
+    [[nodiscard]] bool compatibleReadFallback() const;
     [[nodiscard]] QString selectedWriteProviderId() const;
     [[nodiscard]] bool readRestartRequired() const;
     [[nodiscard]] bool writeRestartRequired() const;
@@ -67,6 +70,8 @@ public:
     Q_INVOKABLE bool removeWriteProfile(const QString& id);
     /** @brief Selects a registered or built-in compatible reader; empty means automatic. */
     Q_INVOKABLE bool selectReadProvider(const QString& id);
+    /** @brief Explicit consent for compatible read fallbacks after restart. */
+    Q_INVOKABLE bool setCompatibleReadFallback(bool enabled);
     /** @brief Selects a registered or built-in compatible writer; empty means default. */
     Q_INVOKABLE bool selectWriteProvider(const QString& id);
 
@@ -89,6 +94,7 @@ private:
     QString m_appliedReadProfiles;
     QString m_appliedWriteProfiles;
     QString m_appliedReadId;
+    bool m_appliedCompatibleReadFallback{false};
     QString m_appliedWriteId;
     QString m_lastError;
 };

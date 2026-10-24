@@ -2,6 +2,14 @@
 <TS version="2.1" language="hi_IN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.providers.compatible_read_fallback">
+            <source>Allow compatible read fallback</source>
+            <translation>संगत वैकल्पिक रीड प्रदाता की अनुमति दें</translation>
+        </message>
+        <message id="genycaster.providers.compatible_read_fallback_description">
+            <source>When enabled, Explorer, search and other reads may contact another compatible provider if the selected node cannot serve them. This can send read requests to managed services unless Strict Self-Hosted mode is active. Writes never fall back.</source>
+            <translation>सक्षम होने पर, चुना हुआ नोड समर्थन न करे तो Explorer, खोज और अन्य रीड अनुरोध किसी दूसरे संगत प्रदाता का उपयोग कर सकते हैं। Strict Self-Hosted मोड के बिना अनुरोध प्रबंधित सेवाओं तक जा सकते हैं। राइट अनुरोध कभी दूसरे प्रदाता पर नहीं जाते।</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>नोड जोड़ें</translation>

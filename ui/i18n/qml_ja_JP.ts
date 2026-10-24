@@ -2,6 +2,14 @@
 <TS version="2.1" language="ja_JP" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.providers.compatible_read_fallback">
+            <source>Allow compatible read fallback</source>
+            <translation>互換読み取りプロバイダーへの切り替えを許可</translation>
+        </message>
+        <message id="genycaster.providers.compatible_read_fallback_description">
+            <source>When enabled, Explorer, search and other reads may contact another compatible provider if the selected node cannot serve them. This can send read requests to managed services unless Strict Self-Hosted mode is active. Writes never fall back.</source>
+            <translation>有効にすると、選択したノードが対応しない場合、Explorerや検索などの読み取りに別の互換プロバイダーを利用できます。厳格なセルフホストモード以外では管理サービスに読み取り要求が送られる場合があります。書き込みは切り替わりません。</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>ノードを追加</translation>

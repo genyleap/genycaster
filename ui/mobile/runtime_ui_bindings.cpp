@@ -2319,7 +2319,7 @@ void connectRuntime(
             routing::router::ProviderPreference{
                 .provider = farcaster::provider::model::ProviderId{
                     runtime->requestedReadProviderId},
-                .require = true,
+                .require = !runtime->allowCompatibleReadFallback,
             });
     }
     QObject::connect(&bridge, &PresentationBridge::preferredNetworkChanged, &bridge,

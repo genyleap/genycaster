@@ -2,6 +2,14 @@
 <TS version="2.1" language="ru_RU" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.providers.compatible_read_fallback">
+            <source>Allow compatible read fallback</source>
+            <translation>Разрешить совместимый резервный узел чтения</translation>
+        </message>
+        <message id="genycaster.providers.compatible_read_fallback_description">
+            <source>When enabled, Explorer, search and other reads may contact another compatible provider if the selected node cannot serve them. This can send read requests to managed services unless Strict Self-Hosted mode is active. Writes never fall back.</source>
+            <translation>При включении Explorer, поиск и другие операции чтения могут обращаться к другому совместимому провайдеру, если выбранный узел их не поддерживает. Вне строгого режима самостоятельного размещения запросы могут попасть в управляемые сервисы. Запись никогда не переключается.</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>Добавить узел</translation>

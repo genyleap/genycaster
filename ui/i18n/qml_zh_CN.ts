@@ -2,6 +2,14 @@
 <TS version="2.1" language="zh_CN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.providers.compatible_read_fallback">
+            <source>Allow compatible read fallback</source>
+            <translation>允许兼容读取服务商接管</translation>
+        </message>
+        <message id="genycaster.providers.compatible_read_fallback_description">
+            <source>When enabled, Explorer, search and other reads may contact another compatible provider if the selected node cannot serve them. This can send read requests to managed services unless Strict Self-Hosted mode is active. Writes never fall back.</source>
+            <translation>启用后，如果所选节点不支持 Explorer、搜索或其他读取操作，可使用另一家兼容服务商。除严格自托管模式外，读取请求可能发送至托管服务。写入操作绝不会切换服务商。</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>添加节点</translation>

@@ -2,6 +2,14 @@
 <TS version="2.1" language="de_DE" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.providers.compatible_read_fallback">
+            <source>Allow compatible read fallback</source>
+            <translation>Kompatiblen Lese-Fallback erlauben</translation>
+        </message>
+        <message id="genycaster.providers.compatible_read_fallback_description">
+            <source>When enabled, Explorer, search and other reads may contact another compatible provider if the selected node cannot serve them. This can send read requests to managed services unless Strict Self-Hosted mode is active. Writes never fall back.</source>
+            <translation>Wenn aktiviert, können Explorer, Suche und weitere Lesevorgänge einen anderen kompatiblen Anbieter verwenden, wenn der gewählte Knoten sie nicht unterstützt. Außer im strikten Self-Hosting-Modus können Anfragen an verwaltete Dienste gehen. Schreibvorgänge wechseln niemals den Anbieter.</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>Knoten hinzufügen</translation>

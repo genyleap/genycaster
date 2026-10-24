@@ -16,6 +16,7 @@ namespace {
 constexpr auto kReadProfiles = "network/readProviderProfilesJson";
 constexpr auto kWriteProfiles = "network/writeProviderProfilesJson";
 constexpr auto kReadSelection = "network/preferredReadProviderId";
+constexpr auto kReadFallback = "network/allowCompatibleReadFallback";
 constexpr auto kWriteSelection = "network/preferredWriteProviderId";
 constexpr int kMaximumProfiles = 16;
 
@@ -123,12 +124,14 @@ ProviderProfilesController::ProviderProfilesController(
     QString appliedWriteProfiles,
     QString appliedReadProviderId,
     QString appliedWriteProviderId,
+    const bool appliedCompatibleReadFallback,
     QObject* parent)
     : QObject(parent),
       m_settings(settings),
       m_appliedReadProfiles(canonicalProfiles(appliedReadProfiles)),
       m_appliedWriteProfiles(canonicalProfiles(appliedWriteProfiles)),
       m_appliedReadId(std::move(appliedReadProviderId)),
+      m_appliedCompatibleReadFallback(appliedCompatibleReadFallback),
       m_appliedWriteId(std::move(appliedWriteProviderId))
 {
 }
@@ -148,6 +151,11 @@ QString ProviderProfilesController::selectedReadProviderId() const
     return m_settings.value(settingKey(kReadSelection)).toString().trimmed();
 }
 
+bool ProviderProfilesController::compatibleReadFallback() const
+{
+    return m_settings.value(settingKey(kReadFallback), false).toBool();
+}
+
 QString ProviderProfilesController::selectedWriteProviderId() const
 {
     return m_settings.value(settingKey(kWriteSelection)).toString().trimmed();
@@ -157,7 +165,8 @@ bool ProviderProfilesController::readRestartRequired() const
 {
     return canonicalProfiles(m_settings.value(settingKey(kReadProfiles)).toString())
                 != m_appliedReadProfiles
-        || selectedReadProviderId() != m_appliedReadId;
+        || selectedReadProviderId() != m_appliedReadId
+        || compatibleReadFallback() != m_appliedCompatibleReadFallback;
 }
 
 bool ProviderProfilesController::writeRestartRequired() const
@@ -369,6 +378,19 @@ bool ProviderProfilesController::selectReadProvider(const QString& id)
     } else if (!save(settingKey(kReadSelection), selected)) {
         return false;
     }
+    clearError();
+    emit selectionChanged();
+    return true;
+}
+
+bool ProviderProfilesController::setCompatibleReadFallback(const bool enabled)
+{
+    if (compatibleReadFallback() == enabled) {
+        clearError();
+        return true;
+    }
+    if (!save(settingKey(kReadFallback), enabled ? QStringLiteral("true")
+                                              : QStringLiteral("false"))) return false;
     clearError();
     emit selectionChanged();
     return true;

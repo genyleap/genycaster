@@ -320,6 +320,7 @@ void testProviderNeutralCapabilityPreferences()
 
     const CapabilityId feedId{"social.feed.read"};
     const CapabilityId profileId{"social.profile.read"};
+    const CapabilityId indexedOnlyId{"index.search.read"};
     const CapabilityId castWriteId{"social.cast.publish"};
     const auto descriptor = [](const CapabilityId& id, const CapabilityAccess access) {
         return capability::model::CapabilityDescriptor{
@@ -353,6 +354,7 @@ void testProviderNeutralCapabilityPreferences()
             descriptor(feedId, CapabilityAccess::Read),
             descriptor(profileId, CapabilityAccess::Read),
             descriptor(castWriteId, CapabilityAccess::Write),
+            descriptor(indexedOnlyId, CapabilityAccess::Read),
         },
     }));
     assert(registry.registerProvider({
@@ -399,6 +401,21 @@ void testProviderNeutralCapabilityPreferences()
     });
     assert(router.resolve(readRequest())->provider.id.value == "local-alpha");
 
+    const routing::policy::CapabilityRequest indexRequest{
+        .capabilityId = indexedOnlyId, .requiredAccess = CapabilityAccess::Read,
+    };
+    // Selecting a raw-only node with strict read pinning must not disclose
+    // requests to an unrelated indexed provider without operator consent.
+    router.setPreferredProviderForAccess(CapabilityAccess::Read,
+        ProviderPreference{.provider = ProviderId{"local-alpha"}, .require = true});
+    assert(!router.resolve(indexRequest));
+    // Explicit compatible-read fallback preserves raw-node preference for
+    // supported operations, while Explorer/search can use an indexed source.
+    router.setPreferredProviderForAccess(CapabilityAccess::Read,
+        ProviderPreference{.provider = ProviderId{"local-alpha"}, .require = false});
+    assert(router.resolve(readRequest())->provider.id.value == "local-alpha");
+    assert(router.resolve(indexRequest)->provider.id.value == "remote-beta");
+
     // A pinned write never falls back to another writer without an explicit choice.
     router.setPreferredProviderForAccess(
         CapabilityAccess::Write,
@@ -441,6 +458,10 @@ void testProviderNeutralCapabilityPreferences()
     assert(!strict.resolve(readRequest()));
     strict.clearPreferredProviderForAccess(CapabilityAccess::Read);
     assert(strict.resolve(readRequest())->provider.id.value == "local-alpha");
+    strict.setPreferredProviderForAccess(CapabilityAccess::Read,
+        ProviderPreference{.provider = ProviderId{"local-alpha"}, .require = false});
+    // Read consent can relax affinity, not strict self-hosting/privacy rules.
+    assert(!strict.resolve(indexRequest));
 }
 
 void testRoutingFailureDiagnostics()

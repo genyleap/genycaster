@@ -64,6 +64,10 @@ void testTypedReadWriteProfilesAndPersistentPreferences()
         assert(controller.selectedReadProviderId() == QStringLiteral("reader-alpha"));
         assert(controller.selectedWriteProviderId() == QStringLiteral("writer-alpha"));
         assert(controller.readRestartRequired() && controller.writeRestartRequired());
+        assert(controller.setCompatibleReadFallback(true));
+        assert(controller.compatibleReadFallback());
+        assert(settings.value(QStringLiteral("network/allowCompatibleReadFallback")).toBool());
+        assert(controller.setCompatibleReadFallback(true));
         assert(settings.value(QStringLiteral("network/preferredReadProviderId"))
                == QStringLiteral("reader-alpha"));
         assert(settings.value(QStringLiteral("network/preferredWriteProviderId"))
@@ -75,8 +79,13 @@ void testTypedReadWriteProfilesAndPersistentPreferences()
             settings,
             settings.value(QStringLiteral("network/readProviderProfilesJson")).toString(),
             settings.value(QStringLiteral("network/writeProviderProfilesJson")).toString(),
-            QStringLiteral("reader-alpha"), QStringLiteral("writer-alpha")};
+            QStringLiteral("reader-alpha"), QStringLiteral("writer-alpha"), true};
         assert(!controller.readRestartRequired() && !controller.writeRestartRequired());
+        assert(controller.compatibleReadFallback());
+        assert(controller.setCompatibleReadFallback(false));
+        assert(!controller.compatibleReadFallback());
+        assert(controller.readRestartRequired());
+        assert(!controller.writeRestartRequired());
         assert(controller.readProfiles().size() == 2);
         assert(controller.writeProfiles().size() == 1);
         assert(controller.removeReadProfile(QStringLiteral("reader-alpha")));

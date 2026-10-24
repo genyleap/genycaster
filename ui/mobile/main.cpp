@@ -857,6 +857,15 @@ int main(int argc, char* argv[])
             });
         }
     }
+    // Non-strict routing may contact a different indexed provider. Require
+    // explicit user/operator consent; absence of a setting fails closed.
+    const bool allowCompatibleReadFallback =
+        arguments.contains(QStringLiteral("--allow-compatible-read-fallback"))
+        || (qEnvironmentVariableIsSet("GENYCASTER_ALLOW_COMPATIBLE_READ_FALLBACK")
+                ? qEnvironmentVariable("GENYCASTER_ALLOW_COMPATIBLE_READ_FALLBACK")
+                      .trimmed() == QStringLiteral("1")
+                : settings.value(QStringLiteral("network/allowCompatibleReadFallback"),
+                                 false).toBool());
     QString preferredReadProviderText = optionValue(
         arguments, QStringLiteral("--preferred-read-provider-id="));
     if (preferredReadProviderText.isEmpty()) {
@@ -1356,7 +1365,8 @@ int main(int argc, char* argv[])
     NodeSelectionController& nodeSelectionController = *nodeSelectionControllerOwner;
     providerProfilesControllerOwner = std::make_unique<ProviderProfilesController>(
         settings, providerProfilesJson, writeProfilesJson,
-        preferredReadProviderText, preferredWriteProviderText);
+        preferredReadProviderText, preferredWriteProviderText,
+        allowCompatibleReadFallback);
     ProviderProfilesController& providerProfilesController = *providerProfilesControllerOwner;
     updateControllerOwner = std::make_unique<UpdateController>(
         settings, !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, &application);
@@ -1895,6 +1905,7 @@ int main(int argc, char* argv[])
                                   databasePath, networkProxyPolicy, providerBaseUrl,
                                   farcasterReadBaseUrl, farcasterReadApiKey,
                                   additionalReadProviders, preferredReadProviderId,
+                                  allowCompatibleReadFallback,
                                   additionalWriteProviders, preferredWriteProviderId, authRelayUrl,
                                   optimismRpcUrl, snapchainBaseUrl, snapchainWriteBaseUrl,
                                   mediaGatewayBaseUrl, snapchainAuthorizationHeader,
@@ -1912,6 +1923,7 @@ int main(int argc, char* argv[])
                 farcasterReadApiKey,
                 additionalReadProviders,
                 preferredReadProviderId,
+                allowCompatibleReadFallback,
                 additionalWriteProviders,
                 preferredWriteProviderId,
                 authRelayUrl,

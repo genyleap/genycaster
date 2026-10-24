@@ -492,6 +492,7 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     [[maybe_unused]] const std::optional<std::string>& farcasterReadApiKey,
     [[maybe_unused]] const std::vector<ReadProviderProfile>& additionalReadProviders,
     [[maybe_unused]] const std::optional<std::string>& preferredReadProviderId,
+    [[maybe_unused]] const bool allowCompatibleReadFallback,
     [[maybe_unused]] const std::vector<WriteProviderProfile>& additionalWriteProviders,
     [[maybe_unused]] const std::optional<std::string>& preferredWriteProviderId,
     [[maybe_unused]] const std::optional<std::string>& authRelayUrl,
@@ -1104,6 +1105,7 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     }
 #endif
     runtime->requestedReadProviderId = preferredReadProviderId.value_or(std::string{});
+    runtime->allowCompatibleReadFallback = allowCompatibleReadFallback;
     runtime->router = std::make_unique<routing::router::CapabilityRouter>(
         runtime->registry,
         runtime->health,
@@ -1147,7 +1149,8 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         }
         runtime->router->setPreferredProviderForAccess(
             capability::model::CapabilityAccess::Read,
-            routing::router::ProviderPreference{.provider = selected, .require = true});
+            routing::router::ProviderPreference{
+                .provider = selected, .require = !allowCompatibleReadFallback});
     }
 
 #if FARCASTER_HAS_PROTOCOL_SIGNING

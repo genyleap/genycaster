@@ -91,6 +91,30 @@ ColumnLayout {
             selected: providerProfiles.selectedReadProviderId === "hypersnap-v2"
             onClicked: providerProfiles.selectReadProvider("hypersnap-v2")
         }
+        RowLayout {
+            Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
+            spacing: Theme.space2
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.providers.compatible_read_fallback")
+                color: Theme.ink
+                font.pixelSize: Theme.typeMetaSize
+                wrapMode: Text.Wrap
+            }
+            GenySwitch {
+                checked: providerProfiles.compatibleReadFallback
+                onToggled: providerProfiles.setCompatibleReadFallback(checked)
+                Accessible.name: qsTrId("genycaster.providers.compatible_read_fallback")
+            }
+        }
+        DirectionAwareLabel {
+            Layout.fillWidth: true
+            text: qsTrId("genycaster.providers.compatible_read_fallback_description")
+            color: providerProfiles.compatibleReadFallback ? Theme.warning : Theme.inkMuted
+            font.pixelSize: Theme.typeCaptionSize
+            wrapMode: Text.Wrap
+        }
         Repeater {
             model: providerProfiles.readProfiles
             delegate: RowLayout {

@@ -2,6 +2,14 @@
 <TS version="2.1" language="fr_FR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.providers.compatible_read_fallback">
+            <source>Allow compatible read fallback</source>
+            <translation>Autoriser un fournisseur de lecture de secours</translation>
+        </message>
+        <message id="genycaster.providers.compatible_read_fallback_description">
+            <source>When enabled, Explorer, search and other reads may contact another compatible provider if the selected node cannot serve them. This can send read requests to managed services unless Strict Self-Hosted mode is active. Writes never fall back.</source>
+            <translation>Si cette option est activée, Explorer, la recherche et d’autres lectures peuvent utiliser un fournisseur compatible si le nœud choisi ne les prend pas en charge. Les requêtes peuvent atteindre des services gérés hors du mode auto-hébergé strict. Les écritures ne basculent jamais.</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>Ajouter un nœud</translation>
