@@ -25,3 +25,15 @@ Recommended deployment: publish a validated release directory, then atomically c
 Stage a committed, verified release with `python3 docs-site/deploy/release.py`.
 
 The HTTP and TLS configuration templates are in `deploy/nginx-http-bootstrap.conf` and `deploy/nginx-tls.conf`. The domain requires a matching DNS record, a certificate explicitly valid for docs.genycaster.xyz and an administrator to enable the Nginx virtual host. The existing parent-domain certificate does not cover this subdomain. The docs application does not share the Genycaster WASM root.
+
+Administrative sequence (review before running):
+
+```sh
+sudo sh docs-site/deploy/activate.sh bootstrap
+# Confirm the HTTP-01 route is reachable on the requested DNS name.
+sudo certbot certonly --webroot -w /var/www/docs.genycaster.xyz/acme -d docs.genycaster.xyz
+sudo sh docs-site/deploy/activate.sh tls
+curl -I https://docs.genycaster.xyz/
+```
+
+Only execute this from the repository on the intended server with authorized access; the Remote Operations connector has `/etc` read-only and cannot issue/install the dedicated certificate.
