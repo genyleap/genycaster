@@ -96,6 +96,8 @@ Item {
 
     function compactCount(value) {
         const localeRevision = localizationController.revision
+        if (root.activeDetail.socialCountsKnown === false)
+            return "—"
         return LocaleFormat.formatCompactNumber(Number(value || 0))
     }
 
@@ -1161,6 +1163,15 @@ Item {
                         }
 
                         Item { Layout.fillWidth: true }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: Number(root.activeDetail.fid || 0) > 0
+                                 && root.activeDetail.socialCountsKnown === false
+                        text: qsTrId("genycaster.profile.social_totals_unavailable")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
                     }
 
                 }

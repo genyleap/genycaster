@@ -38,6 +38,10 @@
             <source>App FID confirmed by selected node • not a verified app name</source>
             <translation>شناسهٔ اپ (FID) تأییدشده توسط نود انتخابی • نام اپ تأیید نشده</translation>
         </message>
+        <message id="genycaster.profile.social_totals_unavailable">
+            <source>This source doesn't provide follower totals. You can still browse its follow lists when supported.</source>
+            <translation>این منبع تعداد کل دنبال‌کنندگان را ارائه نمی‌کند. در صورت پشتیبانی، همچنان می‌توانی فهرست دنبال‌کردن‌ها را ببینی.</translation>
+        </message>
         <message id="genycaster.nodes.title">
             <source>Node management</source>
             <translation>مدیریت نودها</translation>

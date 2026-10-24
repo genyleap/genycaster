@@ -38,6 +38,10 @@
             <source>App FID confirmed by selected node • not a verified app name</source>
             <translation>App FID confirmed by selected node • not a verified app name</translation>
         </message>
+        <message id="genycaster.profile.social_totals_unavailable">
+            <source>This source doesn't provide follower totals. You can still browse its follow lists when supported.</source>
+            <translation>This source doesn't provide follower totals. You can still browse its follow lists when supported.</translation>
+        </message>
         <message id="genycaster.nodes.title">
             <source>Node management</source>
             <translation>Node management</translation>

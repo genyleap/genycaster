@@ -420,10 +420,12 @@ Drawer {
                                     visible: resultRow.profileResult || Number(modelData.followerCount || 0) > 0
                                     Layout.fillWidth: true
                                     text: qsTrId("genycaster.profile.value_followers").arg(
-                                              LocaleFormat.formatInteger(Number(modelData.followerCount || 0)))
+                                              modelData.socialCountsKnown === false
+                                              ? "—" : LocaleFormat.formatInteger(Number(modelData.followerCount || 0)))
                                           + (resultRow.profileResult ? " · "
                                              + qsTrId("genycaster.profile.value_following").arg(
-                                                 LocaleFormat.formatInteger(Number(modelData.followingCount || 0))) : "")
+                                                 modelData.socialCountsKnown === false
+                                                 ? "—" : LocaleFormat.formatInteger(Number(modelData.followingCount || 0))) : "")
                                     color: Theme.textSecondary
                                     font.pixelSize: Theme.typeCaptionSize
                                     wrapMode: Text.Wrap

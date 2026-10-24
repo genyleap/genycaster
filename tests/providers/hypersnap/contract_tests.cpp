@@ -90,6 +90,7 @@ void testCanonicalCodec()
     assert(user->verifiedSolAddresses[0] == "So11111111111111111111111111111111111111112");
     assert(user->followerCount == 12);
     assert(user->followingCount == 8);
+    assert(user->socialCountsKnown);
 
     auto userUrl = provider::hypersnap::codec::decodeUserDataValue(
         test::hypersnap::fixtures::userUrlResponse());

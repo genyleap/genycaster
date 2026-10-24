@@ -697,6 +697,7 @@ void attachChannelPresentation(QVariantMap& row, const domain::cast::Cast& cast)
         {QStringLiteral("fid"), static_cast<qulonglong>(profile->fid.value)},
         {QStringLiteral("followerCount"), static_cast<qulonglong>(profile->followerCount)},
         {QStringLiteral("followingCount"), static_cast<qulonglong>(profile->followingCount)},
+        {QStringLiteral("socialCountsKnown"), profile->socialCountsKnown},
         {QStringLiteral("custodyAddress"), profile->custodyAddress
             ? QString::fromStdString(*profile->custodyAddress) : QString{}},
         {QStringLiteral("verifiedEthAddresses"), addressPresentation(profile->verifiedEthAddresses)},

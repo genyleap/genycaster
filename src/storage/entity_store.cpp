@@ -144,8 +144,9 @@ foundation::result::Status SqliteEntityStore::putProfile(const domain::profile::
     auto prepared = sqlite::Statement::prepare(m_impl->connection, R"SQL(
 INSERT INTO profiles(
     fid, username, display_name, bio, avatar_url, banner_url, location, profile_url, custody_address,
-    verified_eth_addresses, verified_sol_addresses, follower_count, following_count, quality_score)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    verified_eth_addresses, verified_sol_addresses, follower_count, following_count, quality_score,
+    social_counts_known)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(fid) DO UPDATE SET
     username = excluded.username,
     display_name = excluded.display_name,
@@ -159,6 +160,7 @@ ON CONFLICT(fid) DO UPDATE SET
     verified_sol_addresses = excluded.verified_sol_addresses,
     follower_count = excluded.follower_count,
     following_count = excluded.following_count,
+    social_counts_known = excluded.social_counts_known,
     quality_score = excluded.quality_score;
 )SQL");
     if (!prepared) {
@@ -221,6 +223,10 @@ ON CONFLICT(fid) DO UPDATE SET
         return std::unexpected(toFoundationError(sqlite::makeError(
             m_impl->connection.native(), "Failed to bind profile quality score")));
     }
+    if (sqlite3_bind_int(statement.native(), 15, profile.socialCountsKnown ? 1 : 0) != SQLITE_OK) {
+        return std::unexpected(toFoundationError(sqlite::makeError(
+            m_impl->connection.native(), "Failed to bind profile social count availability")));
+    }
     if (auto status = sqlite::stepDone(m_impl->connection, statement); !status) {
         return std::unexpected(toFoundationError(std::move(status.error())));
     }
@@ -234,8 +240,8 @@ SqliteEntityStore::findProfile(const domain::identity::Fid fid)
     auto prepared = sqlite::Statement::prepare(
         m_impl->connection,
         "SELECT username, display_name, bio, avatar_url, banner_url, location, profile_url, custody_address, "
-        "verified_eth_addresses, verified_sol_addresses, follower_count, following_count, quality_score "
-        "FROM profiles WHERE fid = ?;");
+        "verified_eth_addresses, verified_sol_addresses, follower_count, following_count, quality_score, "
+        "social_counts_known FROM profiles WHERE fid = ?;");
     if (!prepared) {
         return std::unexpected(toFoundationError(std::move(prepared.error())));
     }
@@ -275,6 +281,7 @@ SqliteEntityStore::findProfile(const domain::identity::Fid fid)
     if (sqlite3_column_type(statement.native(), 12) != SQLITE_NULL) {
         profile.qualityScore = sqlite3_column_double(statement.native(), 12);
     }
+    profile.socialCountsKnown = sqlite3_column_int(statement.native(), 13) != 0;
     return std::optional<domain::profile::Profile>{std::move(profile)};
 }
 
@@ -285,8 +292,8 @@ SqliteEntityStore::findProfileByUsername(const std::string_view username)
     auto prepared = sqlite::Statement::prepare(
         m_impl->connection,
         "SELECT fid, username, display_name, bio, avatar_url, banner_url, location, profile_url, custody_address, "
-        "verified_eth_addresses, verified_sol_addresses, follower_count, following_count, quality_score "
-        "FROM profiles WHERE username = ? COLLATE NOCASE LIMIT 1;");
+        "verified_eth_addresses, verified_sol_addresses, follower_count, following_count, quality_score, "
+        "social_counts_known FROM profiles WHERE username = ? COLLATE NOCASE LIMIT 1;");
     if (!prepared) {
         return std::unexpected(toFoundationError(std::move(prepared.error())));
     }
@@ -324,6 +331,7 @@ SqliteEntityStore::findProfileByUsername(const std::string_view username)
     if (sqlite3_column_type(statement.native(), 13) != SQLITE_NULL) {
         profile.qualityScore = sqlite3_column_double(statement.native(), 13);
     }
+    profile.socialCountsKnown = sqlite3_column_int(statement.native(), 14) != 0;
     return std::optional<domain::profile::Profile>{std::move(profile)};
 }
 

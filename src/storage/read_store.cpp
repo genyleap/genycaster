@@ -104,6 +104,7 @@ namespace {
         // the dedicated profile capability refreshes them.
         incoming.followerCount = 0;
         incoming.followingCount = 0;
+        incoming.socialCountsKnown = false;
         return incoming;
     }
 
@@ -113,6 +114,7 @@ namespace {
     // regressing a profile card to stale/partial metadata.
     incoming.followerCount = existing->followerCount;
     incoming.followingCount = existing->followingCount;
+    incoming.socialCountsKnown = existing->socialCountsKnown;
     if (!incoming.username && existing->username)
         incoming.username = existing->username;
     if (!incoming.displayName && existing->displayName)

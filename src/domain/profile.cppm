@@ -30,6 +30,9 @@ struct Profile final {
     std::vector<std::string> verifiedSolAddresses{};
     std::uint64_t followerCount{};
     std::uint64_t followingCount{};
+    /** @brief True only when social totals were supplied by an authoritative profile source.
+     * A raw protocol UserData response does not include social totals. */
+    bool socialCountsKnown{true};
     /** @brief Provider-derived account quality score normalized to [0, 1], when available. */
     std::optional<double> qualityScore{};
 };

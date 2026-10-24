@@ -14,8 +14,8 @@ Superellipse {
     property string bio: ""
     property string location: ""
     property bool verified: false
-    property int following: 0
-    property int followers: 0
+    property int following: -1
+    property int followers: -1
     property real trustScore: -1
     property string trustScoreSource: ""
     property bool compact: false
@@ -256,13 +256,13 @@ Superellipse {
 
                     Metric {
                         Layout.fillWidth: true
-                        valueText: LocaleFormat.formatCompactNumber(root.following)
+                        valueText: root.following >= 0 ? LocaleFormat.formatCompactNumber(root.following) : "—"
                         labelText: qsTrId("genycaster.shell.following")
                     }
                     Rectangle { Layout.preferredWidth: Theme.strokeHairline; Layout.preferredHeight: 28; color: Theme.divider }
                     Metric {
                         Layout.fillWidth: true
-                        valueText: LocaleFormat.formatCompactNumber(root.followers)
+                        valueText: root.followers >= 0 ? LocaleFormat.formatCompactNumber(root.followers) : "—"
                         labelText: qsTrId("genycaster.shell.followers")
                     }
                     Rectangle { Layout.preferredWidth: Theme.strokeHairline; Layout.preferredHeight: 28; color: Theme.divider }
@@ -418,12 +418,12 @@ Superellipse {
 
                 Metric {
                     Layout.fillWidth: true
-                    valueText: LocaleFormat.formatCompactNumber(root.followers)
+                    valueText: root.followers >= 0 ? LocaleFormat.formatCompactNumber(root.followers) : "—"
                     labelText: qsTrId("genycaster.shell.followers")
                 }
                 Metric {
                     Layout.fillWidth: true
-                    valueText: LocaleFormat.formatCompactNumber(root.following)
+                    valueText: root.following >= 0 ? LocaleFormat.formatCompactNumber(root.following) : "—"
                     labelText: qsTrId("genycaster.shell.following")
                 }
             }

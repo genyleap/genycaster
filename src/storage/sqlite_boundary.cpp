@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     verified_sol_addresses TEXT,
     follower_count INTEGER NOT NULL DEFAULT 0,
     following_count INTEGER NOT NULL DEFAULT 0,
+    social_counts_known INTEGER NOT NULL DEFAULT 0,
     quality_score REAL
 );
 -- Local-only suggestion lookup. Keep indices portable to the WASM SQLite
@@ -766,6 +767,25 @@ WHERE current.kind IN ('follow', 'unfollow')
     if (auto status = recordMigration(connection, 28, appliedAt); !status) {
         return status;
     }
+
+    // A zero-valued social total is not proof that an API returned zero.
+    // Upgrade existing snapshots conservatively: two zero totals become
+    // unknown until a typed indexed profile refresh supplies both fields.
+    {
+        auto exists = tableHasColumn(connection, "profiles", "social_counts_known");
+        if (!exists) { return std::unexpected(exists.error()); }
+        if (!*exists) {
+            if (auto status = connection.execute(
+                    "ALTER TABLE profiles ADD COLUMN social_counts_known INTEGER NOT NULL DEFAULT 0;");
+                !status) return status;
+            if (auto status = connection.execute(
+                    "UPDATE profiles SET social_counts_known = 1 "
+                    "WHERE follower_count > 0 OR following_count > 0;"); !status)
+                return status;
+        }
+    }
+    if (auto status = recordMigration(connection, 29, appliedAt); !status)
+        return status;
 
     // Copy legacy URL embeds only after all columns required by the current
     // cast_embed_items schema are guaranteed to exist. This ordering keeps

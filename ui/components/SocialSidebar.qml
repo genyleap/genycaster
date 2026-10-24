@@ -203,12 +203,16 @@ Item {
                         layoutDirection: Theme.uiDirection
 
                         DirectionAwareLabel {
-                            text: qsTrId("genycaster.social.followers_count").arg(LocaleFormat.formatCompactNumber(Number(root.shownProfile.followerCount || 0)))
+                            text: qsTrId("genycaster.social.followers_count").arg(root.shownProfile.socialCountsKnown === false
+                                                   ? "—"
+                                                   : LocaleFormat.formatCompactNumber(Number(root.shownProfile.followerCount || 0)))
                             color: Theme.textSecondary
                             font.pixelSize: Theme.typeCaptionSize
                         }
                         DirectionAwareLabel {
-                            text: qsTrId("genycaster.social.following_count").arg(LocaleFormat.formatCompactNumber(Number(root.shownProfile.followingCount || 0)))
+                            text: qsTrId("genycaster.social.following_count").arg(root.shownProfile.socialCountsKnown === false
+                                                   ? "—"
+                                                   : LocaleFormat.formatCompactNumber(Number(root.shownProfile.followingCount || 0)))
                             color: Theme.textSecondary
                             font.pixelSize: Theme.typeCaptionSize
                         }

@@ -38,6 +38,10 @@
             <source>App FID confirmed by selected node • not a verified app name</source>
             <translation>معرّف التطبيق FID مؤكد من العقدة المختارة • اسم التطبيق غير مؤكد</translation>
         </message>
+        <message id="genycaster.profile.social_totals_unavailable">
+            <source>This source doesn't provide follower totals. You can still browse its follow lists when supported.</source>
+            <translation>لا يوفّر هذا المصدر إجمالي المتابعين. يمكنك تصفّح قوائم المتابعة إذا كانت مدعومة.</translation>
+        </message>
         <message id="genycaster.nodes.title">
             <source>Node management</source>
             <translation>إدارة العقد</translation>

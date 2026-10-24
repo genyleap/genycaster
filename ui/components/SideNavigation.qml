@@ -37,8 +37,13 @@ Rectangle {
 
     readonly property bool ownsProfileDetail: Number(root.profileDetail.fid || 0) > 0
                                               && Number(root.profileDetail.fid || 0) === Number(root.accountFid)
-    readonly property int profileFollowers: root.ownsProfileDetail ? Number(root.profileDetail.followerCount || 0) : 0
-    readonly property int profileFollowing: root.ownsProfileDetail ? Number(root.profileDetail.followingCount || 0) : 0
+    // A raw Snapchain profile lacks totals. Keep unknown distinct from zero.
+    readonly property int profileFollowers: root.ownsProfileDetail
+                                           && root.profileDetail.socialCountsKnown !== false
+                                           ? Number(root.profileDetail.followerCount || 0) : -1
+    readonly property int profileFollowing: root.ownsProfileDetail
+                                           && root.profileDetail.socialCountsKnown !== false
+                                           ? Number(root.profileDetail.followingCount || 0) : -1
     readonly property real profileTrustScore: root.ownsProfileDetail && root.profileDetail.trustScore !== undefined
                                               ? Number(root.profileDetail.trustScore) : -1
     readonly property string profileTrustScoreSource: root.ownsProfileDetail

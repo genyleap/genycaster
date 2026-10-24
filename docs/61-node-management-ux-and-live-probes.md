@@ -24,6 +24,8 @@ Responses are classified as verified sampled reads, wrong API shape, authenticat
 
 The raw Snapchain adapter advertises UserPosts/UserQuotes/UserReplies, profile and Follow graph capabilities, and bounded Following derivation; it does NOT implement aggregated Explorer, search, or Notifications. Node Management now displays this limitation explicitly. If the user explicitly enables compatible read fallback, the router may send unsupported requests to another compatible provider; strict raw-only users should expect those surfaces to be unavailable.
 
+Raw `/v1/userDataByFid` contains display metadata but **not** aggregate follower/following counts. The canonical Profile carries `socialCountsKnown` independently of its numeric fields. Raw profiles and link-list placeholders mark it false; indexed profiles mark it true only when both counts are present. The SQLite migration keeps availability across refresh and converts legacy both-zero cache records to unknown until refreshed. The profile header, account card and social sidebar render an em dash, not invented zeroes, when totals are unknown. Graph list browsing remains available through `/v1/linksByFid` and `/v1/linksByTargetFid` when authorized; exhaustively walking tens of thousands of pages to reconstruct totals is intentionally **not** attempted.
+
 **Provider-specific operational evidence (2026-10-24):** Neynar's `hub-api.neynar.com` and `snapchain-api.neynar.com` return HTTP 402 without an API key or X-PAYMENT; their preflight OPTIONS accepts `x-api-key` from `https://caster.genyleap.com`. A Key saved in this tab is not shown in plaintext again. A green Cast/Profile test does NOT assert notifications support.
 
 ## API keys and privacy

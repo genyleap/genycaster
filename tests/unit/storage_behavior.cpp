@@ -76,7 +76,21 @@ void runLocalStoreRoundTrip()
     assert((*loadedProfile)->verifiedSolAddresses == profile.verifiedSolAddresses);
     assert((*loadedProfile)->followerCount == 1200);
     assert((*loadedProfile)->followingCount == 345);
+    assert((*loadedProfile)->socialCountsKnown);
     assert((*loadedProfile)->qualityScore == std::optional<double>{0.83});
+
+    // Raw Snapchain userData has no graph counts. Persist that distinction
+    // through both primary-key and username lookup; zero is not a known value.
+    auto rawProfile = profile;
+    rawProfile.followerCount = 0;
+    rawProfile.followingCount = 0;
+    rawProfile.socialCountsKnown = false;
+    assert(entityStore->putProfile(rawProfile));
+    auto unknown = entityStore->findProfile(domain::identity::Fid{42});
+    assert(unknown && *unknown && !(*unknown)->socialCountsKnown);
+    auto byUsername = entityStore->findProfileByUsername("alice");
+    assert(byUsername && *byUsername && !(*byUsername)->socialCountsKnown);
+    assert(entityStore->putProfile(profile));
 
     const auto createdAt = foundation::time::now();
     const domain::cast::Cast cast{

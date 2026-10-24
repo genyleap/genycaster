@@ -363,12 +363,13 @@ mapProfile(const JsonObject& user)
     };
 
     profile.bannerUrl = bannerFromObject(user);
-    if (auto followers = optionalUnsigned(user, "follower_count")) {
-        profile.followerCount = *followers;
-    }
-    if (auto following = optionalUnsigned(user, "following_count")) {
-        profile.followingCount = *following;
-    }
+    const auto followers = optionalUnsigned(user, "follower_count");
+    const auto following = optionalUnsigned(user, "following_count");
+    // Absence of a field is not proof of zero. Legacy/partial indexed
+    // payloads must not masquerade as authoritative social totals.
+    profile.socialCountsKnown = followers.has_value() && following.has_value();
+    if (followers) profile.followerCount = *followers;
+    if (following) profile.followingCount = *following;
 
     // Neynar-compatible user payloads expose account quality as either `score`
     // or the legacy experimental.neynar_user_score field. Keep the canonical

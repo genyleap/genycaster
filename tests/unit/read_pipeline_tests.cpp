@@ -1479,6 +1479,7 @@ void cachedProfileIndexSurvivesRestartAndKeepsLiteralQueries()
             && retained->value().displayName->value == "Verified Name");
         assert(retained->value().bio == "Complete verified bio");
         assert(retained->value().followerCount == 8'000U);
+        assert(retained->value().socialCountsKnown);
 
         const auto search = (*store)->searchCachedProfiles("@DeV", 3);
         assert(search && search->size() == 3U);
@@ -1740,6 +1741,7 @@ void embeddedFeedProfilesDoNotRegressAuthoritativeProfileMetadata()
     assert(persisted && *persisted);
     assert((*persisted)->followerCount == 18'000);
     assert((*persisted)->followingCount == 454);
+    assert((*persisted)->socialCountsKnown);
     assert((*persisted)->avatarUrl == authoritative.avatarUrl);
     assert((*persisted)->bannerUrl == authoritative.bannerUrl);
     assert((*persisted)->location == authoritative.location);

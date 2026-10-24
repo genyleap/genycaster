@@ -1014,6 +1014,7 @@ foundation::result::Result<domain::profile::Profile> decodeUserData(
     if (!messages)
         return std::unexpected(protocolError("UserData response has no messages array."));
     domain::profile::Profile profile{.fid = expectedFid};
+    profile.socialCountsKnown = false; // UserData does not contain graph totals.
     for (const auto& item : *messages) {
         const auto* message = object(&item);
         if (!message) return std::unexpected(protocolError("Malformed UserData message."));
@@ -1166,6 +1167,7 @@ foundation::result::Result<capability::social::SocialGraphPage> decodeFollowLink
         // Present only canonical FIDs; no usernames/avatars are invented.
         page.profiles.push_back(domain::profile::Profile{
             .fid = domain::identity::Fid{other},
+            .socialCountsKnown = false,
         });
     }
     return page;

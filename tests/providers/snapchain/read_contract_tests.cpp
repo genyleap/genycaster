@@ -67,6 +67,7 @@ void testRawProfileCodec()
     assert(profile->displayName && profile->displayName->value == "Alice Example");
     assert(profile->bio == "hello world");
     assert(profile->avatarUrl && *profile->avatarUrl == "https://cdn.example/pfp.png");
+    assert(!profile->socialCountsKnown); // UserData is not a graph-count API.
 
     assert(!raw::decodeUserData(body, domain::identity::Fid{12}));
     assert(!raw::decodeUserData("not-json", domain::identity::Fid{42}));
@@ -205,6 +206,7 @@ void testRawFollowGraphCodec()
     assert(graph->relations.front().target.value == 7U);
     assert(graph->profiles.front().fid.value == 7U);
     assert(!graph->profiles.front().username); // Raw graph cannot guess names.
+    assert(!graph->profiles.front().socialCountsKnown); // Nor graph totals.
     constexpr std::string_view followers = R"JSON({"messages":[
       {"data":{"fid":99,"linkBody":{"type":"follow","targetFid":42}}}
     ]})JSON";

@@ -38,6 +38,10 @@
             <source>App FID confirmed by selected node • not a verified app name</source>
             <translation>चयनित नोड द्वारा प्रमाणित ऐप FID • ऐप नाम सत्यापित नहीं</translation>
         </message>
+        <message id="genycaster.profile.social_totals_unavailable">
+            <source>This source doesn't provide follower totals. You can still browse its follow lists when supported.</source>
+            <translation>यह स्रोत फ़ॉलोअर की कुल संख्या नहीं देता। समर्थित होने पर आप फ़ॉलो सूची फिर भी देख सकते हैं।</translation>
+        </message>
         <message id="genycaster.nodes.title">
             <source>Node management</source>
             <translation>नोड प्रबंधन</translation>
