@@ -29,6 +29,9 @@ Item {
     property string signerFilterMode: "all"
     property string selectedSignerKey: ""
     readonly property var knownSignerKeys: root.collectSignerKeys()
+    property string appFilterMode: "all"
+    property string selectedAppFid: ""
+    readonly property var knownAppFids: root.collectAppFids()
     property bool identityAvailable: false
     property bool feedStarted: false
     property bool interactionsAvailable: false
@@ -454,6 +457,34 @@ Item {
         return keys
     }
 
+    function collectAppFids() {
+        const found = ({})
+        const values = []
+        const rows = root.rows || []
+        for (let i = 0; i < rows.length; ++i) {
+            const fid = String((rows[i] || ({})).sourceAppFid || "")
+            if (/^[1-9][0-9]*$/.test(fid) && !found[fid]) {
+                found[fid] = true
+                values.push(fid)
+            }
+        }
+        values.sort(function(a, b) {
+            return a.length === b.length ? (a < b ? -1 : a > b ? 1 : 0)
+                : a.length - b.length
+        })
+        return values
+    }
+
+    function rowMatchesAppFilter(row) {
+        if (root.appFilterMode === "all")
+            return true
+        if (!/^[1-9][0-9]*$/.test(root.selectedAppFid))
+            return root.appFilterMode === "exclude"
+        const actual = String((row || ({})).sourceAppFid || "")
+        return root.appFilterMode === "include"
+            ? actual === root.selectedAppFid : actual !== root.selectedAppFid
+    }
+
     function rowMatchesSignerFilter(row) {
         if (root.signerFilterMode === "all")
             return true
@@ -499,7 +530,7 @@ Item {
         const result = []
         for (let index = 0; index < source.length; ++index) {
             const row = source[index]
-            if (!root.rowMatchesSignerFilter(row))
+            if (!root.rowMatchesSignerFilter(row) || !root.rowMatchesAppFilter(row))
                 continue
             if ((root.presentationMode === "for-you" || root.presentationMode === "following")) {
                 // The main Explorer timeline is a complete, provider-ordered
@@ -1033,6 +1064,8 @@ Item {
         // reconcile keys; clearing the whole model forced expensive remounts.
         root.deferFeedWork(true, root.presentationMode === "visuals", true)
     }
+    onAppFilterModeChanged: root.deferFeedWork(true, false, true)
+    onSelectedAppFidChanged: root.deferFeedWork(true, false, true)
     onSignerFilterModeChanged: root.deferFeedWork(true, false, true)
     onSelectedSignerKeyChanged: root.deferFeedWork(true, false, true)
     onVisualFilterChanged: {
@@ -1295,7 +1328,7 @@ Item {
             // viewport overlay that tracks this slot until it reaches the top,
             // then remains pinned while older posts continue scrolling.
             implicitHeight: feedHeaderLoader.implicitHeight + communityNotice.height
-                            + localRecentNotice.height + signerFilterBar.height
+                            + localRecentNotice.height + signerFilterBar.height + appFilterBar.height
                             + newPostsSlot.height
             z: 20
 
@@ -1414,11 +1447,66 @@ Item {
                 }
             }
 
+            Column {
+                id: appFilterBar
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: signerFilterBar.bottom
+                anchors.leftMargin: Theme.space3
+                anchors.rightMargin: Theme.space3
+                height: visible ? implicitHeight + Theme.space2 : 0
+                visible: !root.socialMode && root.knownAppFids.length > 0
+                spacing: 3
+                DirectionAwareLabel {
+                    width: parent.width
+                    text: qsTrId("genycaster.feed.app_fid_filter_explanation")
+                    font.pixelSize: Theme.typeCaptionSize
+                    color: Theme.inkMuted
+                    elide: Text.ElideRight
+                }
+                Row {
+                    width: parent.width
+                    spacing: Theme.space2
+                    ComboBox {
+                        id: appModePicker
+                        width: Math.max(110, (parent.width - parent.spacing) * 0.45)
+                        height: 34
+                        font.pixelSize: Theme.typeCaptionSize
+                        model: [
+                            qsTrId("genycaster.feed.signer_filter_all"),
+                            qsTrId("genycaster.feed.signer_filter_include"),
+                            qsTrId("genycaster.feed.signer_filter_exclude")
+                        ]
+                        onActivated: function(index) {
+                            root.appFilterMode = index === 1 ? "include"
+                                               : index === 2 ? "exclude" : "all"
+                            if (root.appFilterMode !== "all" && !root.selectedAppFid)
+                                root.selectedAppFid = root.knownAppFids[0]
+                        }
+                    }
+                    ComboBox {
+                        id: appFidPicker
+                        width: parent.width - appModePicker.width - parent.spacing
+                        height: 34
+                        enabled: root.appFilterMode !== "all"
+                        font.pixelSize: Theme.typeCaptionSize
+                        model: root.knownAppFids.map(function(fid) {
+                            return { label: "FID " + fid, fid: fid }
+                        })
+                        textRole: "label"
+                        onActivated: function(index) {
+                            const option = model[index]
+                            if (option) root.selectedAppFid = option.fid
+                        }
+                    }
+                }
+            }
+
             Item {
                 id: newPostsSlot
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.top: signerFilterBar.bottom
+                anchors.top: appFilterBar.bottom
                 height: root.pendingNewPostCount > 0 && !root.socialMode ? 52 : 0
                 visible: height > 0
             }

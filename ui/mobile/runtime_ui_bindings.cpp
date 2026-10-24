@@ -507,6 +507,8 @@ void attachChannelPresentation(QVariantMap& row, const domain::cast::Cast& cast)
             ? QString::fromStdString(*cast.sourceClient) : QString{}},
         {QStringLiteral("signerPublicKeyHex"), cast.signerPublicKeyHex
             ? QString::fromStdString(*cast.signerPublicKeyHex) : QString{}},
+        {QStringLiteral("sourceAppFid"), cast.sourceAppFid
+            ? QString::number(cast.sourceAppFid->value) : QString{}},
         {QStringLiteral("authorFid"), authorFid},
         {QStringLiteral("author"), username(authorProfile)},
         {QStringLiteral("displayName"), resolvedName},
@@ -830,6 +832,8 @@ void attachChannelPresentation(QVariantMap& row, const domain::cast::Cast& cast)
             ? QString::fromStdString(*cast->sourceClient) : QString{});
         revisionParts.push_back(cast->signerPublicKeyHex
             ? QString::fromStdString(*cast->signerPublicKeyHex) : QString{});
+        revisionParts.push_back(cast->sourceAppFid
+            ? QString::number(cast->sourceAppFid->value) : QString{});
         const QString structuralRevision = revisionParts.join(QChar{0x1f});
         QVariantMap row{
             {QStringLiteral("_revision"), structuralRevision},
@@ -838,6 +842,8 @@ void attachChannelPresentation(QVariantMap& row, const domain::cast::Cast& cast)
                 ? QString::fromStdString(*cast->sourceClient) : QString{}},
             {QStringLiteral("signerPublicKeyHex"), cast->signerPublicKeyHex
                 ? QString::fromStdString(*cast->signerPublicKeyHex) : QString{}},
+            {QStringLiteral("sourceAppFid"), cast->sourceAppFid
+                ? QString::number(cast->sourceAppFid->value) : QString{}},
             {QStringLiteral("authorFid"), static_cast<qulonglong>(cast->author.value)},
             {QStringLiteral("author"), username(profile)},
             {QStringLiteral("displayName"), displayName(profile)},

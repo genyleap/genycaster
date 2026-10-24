@@ -2208,26 +2208,31 @@ void protocolSignerProvenanceSurvivesCacheAndSchemaUpgrade()
     const auto key = "0x" + std::string(64U, 'a');
     auto cast = makeCast("0xsigner-cache", 42, "authored", 1'000);
     cast.signerPublicKeyHex = key;
+    cast.sourceAppFid = domain::identity::Fid{333};
     {
         auto store = farcaster::storage::read::openReadStore(database.path);
         assert(store);
         assert((*store)->putCast(cast));
         auto loaded = (*store)->findCast(cast.id);
         assert(loaded && *loaded && (*loaded)->signerPublicKeyHex == key);
+        assert((*loaded)->sourceAppFid && (*loaded)->sourceAppFid->value == 333U);
         // A sparse compatible provider cannot overwrite canonical signer
         // provenance with an omitted application label.
         auto sparse = cast;
         sparse.signerPublicKeyHex.reset();
+        sparse.sourceAppFid.reset();
         sparse.sourceClient = "Unverified provider badge";
         assert((*store)->putCast(sparse));
         loaded = (*store)->findCast(cast.id);
         assert(loaded && *loaded && (*loaded)->signerPublicKeyHex == key);
         assert(!(*loaded)->sourceClient); // Display app label is not proof.
+        assert((*loaded)->sourceAppFid && (*loaded)->sourceAppFid->value == 333U);
     }
     auto reopened = farcaster::storage::read::openReadStore(database.path);
     assert(reopened);
     auto offline = (*reopened)->findCast(cast.id);
-    assert(offline && *offline && (*offline)->signerPublicKeyHex == key);
+    assert(offline && *offline && (*offline)->signerPublicKeyHex == key
+        && (*offline)->sourceAppFid && (*offline)->sourceAppFid->value == 333U);
 
     DatabaseFixture legacy{};
     {
@@ -2251,6 +2256,30 @@ void protocolSignerProvenanceSurvivesCacheAndSchemaUpgrade()
     assert((*migrated)->putCast(cast));
     auto enriched = (*migrated)->findCast(cast.id);
     assert(enriched && *enriched && (*enriched)->signerPublicKeyHex == key);
+
+    DatabaseFixture preApp{};
+    {
+        auto initial = farcaster::storage::read::openReadStore(preApp.path);
+        assert(initial);
+    }
+    sqlite3* databaseHandle{};
+    assert(sqlite3_open(preApp.path.string().c_str(), &databaseHandle) == SQLITE_OK);
+    assert(sqlite3_exec(databaseHandle,
+        "ALTER TABLE casts DROP COLUMN source_app_fid;"
+        "DELETE FROM schema_migrations WHERE version=28;",
+        nullptr, nullptr, nullptr) == SQLITE_OK);
+    assert(sqlite3_close(databaseHandle) == SQLITE_OK);
+    auto upgradedApp = farcaster::storage::read::openReadStore(preApp.path);
+    assert(upgradedApp);
+    auto noApp = cast;
+    noApp.sourceAppFid.reset();
+    assert((*upgradedApp)->putCast(noApp));
+    auto readUnknown = (*upgradedApp)->findCast(cast.id);
+    assert(readUnknown && *readUnknown && !(*readUnknown)->sourceAppFid);
+    assert((*upgradedApp)->putCast(cast));
+    auto appObserved = (*upgradedApp)->findCast(cast.id);
+    assert(appObserved && *appObserved && (*appObserved)->sourceAppFid
+        && (*appObserved)->sourceAppFid->value == 333U);
 }
 
 void hydratedMentionsSurviveMaterializationAndOfflineRestart()

@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS casts (
     text TEXT NOT NULL,
     display_text TEXT,
     signer_public_key_hex TEXT,
+    source_app_fid INTEGER,
     parent_id TEXT,
     parent_url TEXT,
     created_at_ms INTEGER NOT NULL,
@@ -747,6 +748,22 @@ WHERE current.kind IN ('follow', 'unfollow')
         }
     }
     if (auto status = recordMigration(connection, 27, appliedAt); !status) {
+        return status;
+    }
+
+    // Additive app FID from a verified key-registration response, never
+    // inferred from an unverified source-client display label.
+    {
+        auto exists = tableHasColumn(connection, "casts", "source_app_fid");
+        if (!exists) { return std::unexpected(exists.error()); }
+        if (!*exists) {
+            if (auto status = connection.execute(
+                    "ALTER TABLE casts ADD COLUMN source_app_fid INTEGER;"); !status) {
+                return status;
+            }
+        }
+    }
+    if (auto status = recordMigration(connection, 28, appliedAt); !status) {
         return status;
     }
 

@@ -110,7 +110,7 @@ to an already running Qt instance.
 | Network-wide Recent/Trending and search | **NOT IMPLEMENTED** | Local previously observed items are only partial and labeled as such |
 | Signed casts, reactions, follows | Implemented in routed Write source | Requires real signer, separate validator, E2E |
 | Existing custody seed import | **NOT IMPLEMENTED** | Must use audited BIP39/32 and platform vault |
-| Cross-client signer attribution and include/exclude | **PARTIAL** | Canonical signer-key Include/Exclude works for observed raw casts; verified application-FID mapping from signer registration remains outstanding |
+| Cross-client signer attribution and include/exclude | **PARTIAL** | Canonical signer-key filters and node-attested, currently active gasless-requester App FID Include/Exclude work on observed raw casts; historical attribution, full-network coverage and live independent E2E remain outstanding |
 | Fully independent account setup without managed OpenProof | **NOT VERIFIED** | External FID onboarding and signer flows have separate trust roots |
 | MIT submission and human voucher | **NOT COMPLETE** | Repository is GPL-3.0-only; do not relicense by editing LICENSE |
 

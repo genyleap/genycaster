@@ -320,6 +320,94 @@ using BodyCompletion = std::function<void(foundation::result::Result<std::string
  * refuses oversized graphs or insufficient per-author scanning rather than
  * displaying a silently truncated "complete" live feed.
  */
+
+/** Bounded best-effort raw signer-to-app enrichment, independent of host API
+ * metadata. A failed optional lookup must not discard actual signed Casts.
+ * Returning no sourceAppFid is deliberately preferable to invented identity.
+ */
+struct AppAttributionWork final : std::enable_shared_from_this<AppAttributionWork> {
+    using Starter = std::function<foundation::result::Result<async::Request>(
+        std::string, BodyCompletion)>;
+    Starter request{};
+    async::FeedCompletion finish{};
+    capability::feed::FeedPage page{};
+    std::vector<std::pair<std::uint64_t, std::string>> keys{};
+    std::size_t cursor{};
+    std::mutex mutex{};
+    std::vector<async::Request> requests{};
+    std::atomic_bool cancelled{false};
+    std::atomic_bool completed{false};
+    static constexpr std::size_t maximumLookups = 8U;
+
+    AppAttributionWork(Starter starter, async::FeedCompletion callback)
+        : request(std::move(starter)), finish(std::move(callback)) {}
+
+    void cancel() {
+        cancelled.store(true, std::memory_order_release);
+        std::scoped_lock lock{mutex};
+        for (const auto& pending : requests) pending.cancel();
+    }
+    [[nodiscard]] foundation::result::Status issue(
+        std::string url, BodyCompletion callback) {
+        if (cancelled.load(std::memory_order_acquire))
+            return std::unexpected(Error::make(ErrorCode::Unavailable, "Attribution cancelled."));
+        auto launched = request(std::move(url), std::move(callback));
+        if (!launched) return std::unexpected(std::move(launched.error()));
+        std::scoped_lock lock{mutex};
+        if (cancelled.load(std::memory_order_acquire)) launched->cancel();
+        else requests.push_back(std::move(*launched));
+        return {};
+    }
+    void complete(foundation::result::Result<capability::feed::FeedPage> value) {
+        if (cancelled.load(std::memory_order_acquire)
+            || completed.exchange(true, std::memory_order_acq_rel)) return;
+        finish(std::move(value));
+    }
+    void start(capability::feed::FeedPage ready) {
+        page = std::move(ready);
+        for (const auto& cast : page.casts) {
+            if (!cast.signerPublicKeyHex || cast.author.value == 0U) continue;
+            std::pair<std::uint64_t, std::string> key{
+                cast.author.value, *cast.signerPublicKeyHex};
+            if (std::find(keys.begin(), keys.end(), key) == keys.end()) {
+                if (keys.size() >= maximumLookups) break;
+                keys.push_back(std::move(key));
+            }
+        }
+        next();
+    }
+    void next() {
+        if (cancelled.load(std::memory_order_acquire)) return;
+        if (cursor >= keys.size())
+            return complete(std::move(page));
+        const auto [fid, key] = keys[cursor++];
+        auto issued = issue("/v1/signer?fid=" + std::to_string(fid)
+            + "&signer=" + escapeQuery(key),
+            [self = shared_from_this(), fid, key](
+                foundation::result::Result<std::string> response) mutable {
+                if (self->cancelled.load(std::memory_order_acquire)) return;
+                if (response) {
+                    const auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                        std::chrono::system_clock::now().time_since_epoch()).count();
+                    auto app = decodeSignerAppFid(*response,
+                        domain::identity::Fid{fid}, key,
+                        static_cast<std::uint64_t>(now));
+                    if (app && *app) {
+                        for (auto& cast : self->page.casts) {
+                            if (cast.author.value == fid && cast.signerPublicKeyHex
+                                && *cast.signerPublicKeyHex == key)
+                                cast.sourceAppFid = **app;
+                        }
+                    }
+                }
+                // 404, stale, revoked, malformed or unreachable signer
+                // cannot justify app attribution. Cast content remains usable.
+                self->next();
+            });
+        if (!issued) next(); // Optional enrichment may fail at admission.
+    }
+};
+
 struct FollowingWork final : std::enable_shared_from_this<FollowingWork> {
     using Starter = std::function<foundation::result::Result<async::Request>(
         std::string, BodyCompletion)>;
@@ -345,6 +433,7 @@ struct FollowingWork final : std::enable_shared_from_this<FollowingWork> {
     std::unordered_set<std::string> authorTokens{};
     std::mutex mutex{};
     std::vector<async::Request> operations{};
+    std::shared_ptr<AppAttributionWork> appAttribution{};
     std::atomic_bool cancelled{false};
     std::atomic_bool finished{false};
 
@@ -361,8 +450,13 @@ struct FollowingWork final : std::enable_shared_from_this<FollowingWork> {
 
     void cancel() {
         cancelled.store(true, std::memory_order_release);
-        std::scoped_lock lock{mutex};
-        for (const auto& operation : operations) operation.cancel();
+        std::shared_ptr<AppAttributionWork> child{};
+        {
+            std::scoped_lock lock{mutex};
+            for (const auto& operation : operations) operation.cancel();
+            child = appAttribution;
+        }
+        if (child) child->cancel();
     }
     void remember(async::Request operation) {
         std::scoped_lock lock{mutex};
@@ -558,7 +652,18 @@ struct FollowingWork final : std::enable_shared_from_this<FollowingWork> {
             if (!next) return fail(std::move(next.error()));
             page.next = std::move(*next);
         }
-        finish(std::move(page));
+        auto appWork = std::make_shared<AppAttributionWork>(
+            startRead, [weak = weak_from_this()](
+                foundation::result::Result<capability::feed::FeedPage> enriched) mutable {
+                if (auto self = weak.lock())
+                    self->finish(std::move(enriched));
+            });
+        {
+            std::scoped_lock lock{mutex};
+            appAttribution = appWork;
+            if (cancelled.load(std::memory_order_acquire)) appWork->cancel();
+        }
+        appWork->start(std::move(page));
     }
 };
 
@@ -660,25 +765,30 @@ public:
             url += "&pageToken=" + escapeQuery(
                 std::string_view{record->providerCursor}.substr(prefix.size()));
         }
-        return request(std::move(url),
-            [this, fid = *query.fid, kind = query.kind, capabilityId,
-             complete = std::move(completion)](
+        auto work = std::make_shared<AppAttributionWork>(
+            [this, options](std::string path, BodyCompletion done) {
+                return request(std::move(path), std::move(done), options);
+            }, std::move(completion));
+        auto launched = work->issue(std::move(url),
+            [this, work, fid = *query.fid, kind = query.kind, capabilityId](
                 foundation::result::Result<std::string> body) mutable {
-                if (!body) return complete(std::unexpected(std::move(body.error())));
+                if (!body) return work->complete(std::unexpected(std::move(body.error())));
                 auto page = decodeUserCasts(*body, fid, kind);
-                if (!page) return complete(std::unexpected(std::move(page.error())));
+                if (!page) return work->complete(std::unexpected(std::move(page.error())));
                 auto parsed = parse(*body);
-                if (!parsed) return complete(std::unexpected(std::move(parsed.error())));
+                if (!parsed) return work->complete(std::unexpected(std::move(parsed.error())));
                 if (const auto cursor = cursorFrom(parsed->as_object())) {
                     auto next = m_continuations.bind(
                         capabilityId, m_config.providerId,
                         "raw-v2:" + m_config.baseUrl + "\n"
                             + std::to_string(fid.value) + "\n" + *cursor);
-                    if (!next) return complete(std::unexpected(std::move(next.error())));
+                    if (!next) return work->complete(std::unexpected(std::move(next.error())));
                     page->next = std::move(*next);
                 }
-                complete(std::move(page));
-            }, options);
+                work->start(std::move(*page));
+            });
+        if (!launched) return std::unexpected(std::move(launched.error()));
+        return async::Request{[work] { work->cancel(); }};
     }
 
     [[nodiscard]] foundation::result::Result<async::Request> search(
@@ -959,6 +1069,53 @@ foundation::result::Result<capability::feed::FeedPage> decodeUserCasts(
     return page;
 }
 
+
+foundation::result::Result<std::optional<domain::identity::Fid>> decodeSignerAppFid(
+    const std::string_view jsonBody,
+    const domain::identity::Fid author,
+    const std::string_view signerKeyHex,
+    const std::uint64_t currentUnixSeconds)
+{
+    // The selected Snapchain node has already validated the signed custody
+    // request bound to requestFid. We independently check this read response
+    // for accidental/corrupt mismatches; we do not claim locally verified EIP-712.
+    if (author.value == 0U || signerKeyHex.size() != 66U
+        || !signerKeyHex.starts_with("0x"))
+        return std::unexpected(protocolError("Signer lookup needs a canonical key and author."));
+    for (std::size_t i = 2; i < signerKeyHex.size(); ++i)
+        if (!std::isxdigit(static_cast<unsigned char>(signerKeyHex[i])))
+            return std::unexpected(protocolError("Signer lookup key is malformed."));
+    auto parsed = parse(jsonBody);
+    if (!parsed) return std::unexpected(std::move(parsed.error()));
+    const auto* signer = object(field(parsed->as_object(), "signer"));
+    if (!signer) return std::optional<domain::identity::Fid>{};
+    const auto key = string(field(*signer, "key"));
+    const auto fid = unsignedValue(field(*signer, "fid"));
+    const auto type = unsignedValue(field(*signer, "keyType"));
+    if (!key || !fid || !type
+        || *key != signerKeyHex || *fid != author.value || *type != 1U)
+        return std::unexpected(protocolError("Unified signer record mismatches signed cast."));
+    if (string(field(*signer, "source")) != "SIGNER_SOURCE_OFFCHAIN")
+        return std::optional<domain::identity::Fid>{};
+    const auto requester = unsignedValue(field(*signer, "requestFid"));
+    const auto ttl = unsignedValue(field(*signer, "ttl"));
+    const auto used = unsignedValue(field(*signer, "lastUsedAt"));
+    const auto expiration = unsignedValue(field(*signer, "expiresAt"));
+    const auto* scopes = array(field(*signer, "scopes"));
+    if (!requester || *requester == 0U
+        || !ttl || *ttl == 0U || *ttl > 90ULL * 24U * 60U * 60U
+        || !used || !expiration || !scopes || scopes->empty())
+        return std::optional<domain::identity::Fid>{};
+    if (*used > std::numeric_limits<std::uint64_t>::max() - *ttl
+        || *expiration != *used + *ttl || *expiration <= currentUnixSeconds)
+        return std::optional<domain::identity::Fid>{};
+    bool castsAllowed = false;
+    for (const auto& scope : *scopes)
+        if (const auto value = string(&scope); value && *value == "MESSAGE_TYPE_CAST_ADD")
+            castsAllowed = true;
+    if (!castsAllowed) return std::optional<domain::identity::Fid>{};
+    return domain::identity::Fid{*requester};
+}
 
 foundation::result::Result<capability::social::SocialGraphPage> decodeFollowLinks(
     const std::string_view jsonBody, const domain::identity::Fid expectedFid,

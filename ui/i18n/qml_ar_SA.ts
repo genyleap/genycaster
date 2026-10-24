@@ -34,6 +34,10 @@
             <source>Exclude selected</source>
             <translation>استبعاد المفتاح المحدد</translation>
         </message>
+        <message id="genycaster.feed.app_fid_filter_explanation">
+            <source>App FID confirmed by selected node • not a verified app name</source>
+            <translation>معرّف التطبيق FID مؤكد من العقدة المختارة • اسم التطبيق غير مؤكد</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>إضافة عقدة</translation>

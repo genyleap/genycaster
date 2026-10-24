@@ -77,6 +77,11 @@ struct Cast final {
      * verified signature; missing provenance must remain unknown.
      */
     std::optional<std::string> signerPublicKeyHex{};
+    /** App FID asserted by the selected protocol-validating node's active
+     * registration for this exact signer key and author; absent for legacy,
+     * expired, inaccessible, or ambiguous registrations. Not an app name.
+     */
+    std::optional<identity::Fid> sourceAppFid{};
     std::optional<CastId> parent{};
     /** @brief Protocol-native parent URL used by channel/root casts when no parent cast is present. */
     std::optional<std::string> parentUrl{};

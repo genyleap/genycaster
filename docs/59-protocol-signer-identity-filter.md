@@ -43,7 +43,7 @@ Authoritative references:
 
 ## Important limitations
 
-**This is not a verified app-name or app-FID Include/Exclude filter.** The
+**The base signer-key filter alone is not app-name attribution.** A subsequent optional node-attested App FID filter is documented in [60-node-attested-app-fid-attribution.md](60-node-attested-app-fid-attribution.md). The
 public signer key tells us which delegated key produced a canonical message
 as reported by the selected Snapchain node. The mapping between that key and
 a named app still requires authoritative key-registration metadata, active
@@ -57,9 +57,10 @@ available keys are not a network-wide client directory. A revoked signer or
 a changed app authorization must be handled through the future verified
 registry enrichment layer, not by guessing.
 
-Balaji's requirement to include/exclude casts *by verified application*
-remains **PARTIAL/NOT SATISFIED** until those registry checks and a real
-self-hosted end-to-end run are implemented.
+Balaji's full historical/cross-network client filtering requirement
+remains **PARTIAL/NOT SATISFIED** even after node-attested current gasless
+App FID joins; older onchain signer provenance and a real self-hosted E2E
+still need independent verification.
 
 ## Regression
 

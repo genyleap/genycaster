@@ -34,6 +34,10 @@
             <source>Exclude selected</source>
             <translation>चयनित को हटाएँ</translation>
         </message>
+        <message id="genycaster.feed.app_fid_filter_explanation">
+            <source>App FID confirmed by selected node • not a verified app name</source>
+            <translation>चयनित नोड द्वारा प्रमाणित ऐप FID • ऐप नाम सत्यापित नहीं</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>नोड जोड़ें</translation>

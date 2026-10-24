@@ -66,7 +66,7 @@ test('QML surfaces an explicit unverified-app warning and offers include/exclude
   assert.match(qml, /root\.rowMatchesSignerFilter\(row\)/);
   assert.match(qml, /signerFilterMode = index === 1 \? "include"/);
   assert.match(qml, /selectedSignerKey = option\.key/);
-  assert.match(qml, /\+ localRecentNotice\.height \+ signerFilterBar\.height/);
+  assert.match(qml, /\+ localRecentNotice\.height \+ signerFilterBar\.height \+ appFilterBar\.height/);
   const locales = ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
                    'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN'];
   for (const locale of locales) {
@@ -77,5 +77,55 @@ test('QML surfaces an explicit unverified-app warning and offers include/exclude
         new RegExp('<message id="genycaster\\.feed\\.' + key
           + '">[\\s\\S]*?<translation>[^<]+</translation>'));
     }
+  }
+});
+
+
+function compileAppFilter(state) {
+  const found = /    function rowMatchesAppFilter\(row\) \{[\s\S]*?\n    \}\n\n    function rowMatchesSignerFilter/.exec(qml);
+  assert.ok(found, 'the actual QML App FID filter must exist');
+  const body = found[0].replace(/\n\n    function rowMatchesSignerFilter$/, '');
+  return new Function('root', 'return (' + body + ')')(state);
+}
+
+test('App FID filter includes only node-attested FID while preserving unknown in exclude mode', () => {
+  const all = compileAppFilter({appFilterMode:'all', selectedAppFid:''});
+  assert.equal(all({sourceAppFid:'333'}), true);
+  assert.equal(all({sourceClient:'App FID 333'}), true);
+  const only = compileAppFilter({appFilterMode:'include', selectedAppFid:'333'});
+  assert.equal(only({sourceAppFid:'333'}), true);
+  assert.equal(only({sourceAppFid:'777'}), false);
+  assert.equal(only({sourceClient:'App FID 333'}), false);
+  assert.equal(only({}), false);
+  const without = compileAppFilter({appFilterMode:'include', selectedAppFid:''});
+  assert.equal(without({sourceAppFid:'333'}), false);
+  const excluding = compileAppFilter({appFilterMode:'exclude', selectedAppFid:'333'});
+  assert.equal(excluding({sourceAppFid:'333'}), false);
+  assert.equal(excluding({sourceAppFid:'777'}), true);
+  assert.equal(excluding({sourceClient:'App FID 333'}), true);
+  assert.equal(excluding({}), true);
+});
+
+test('App FID registry route and canonical cache and locale controls are wired', () => {
+  const read = file => readFileSync(new URL(file, root), 'utf8');
+  const decoder = read('src/providers/snapchain/read.cpp');
+  const store = read('src/storage/entity_store.cpp');
+  const schema = read('src/storage/sqlite_boundary.cpp');
+  const bridge = read('ui/mobile/runtime_ui_bindings.cpp');
+  assert.match(decoder, /decodeSignerAppFid\(/);
+  assert.match(decoder, /\/v1\/signer\?fid=/);
+  assert.match(decoder, /maximumLookups = 8U/);
+  assert.match(decoder, /self->page\.casts/);
+  assert.match(store, /source_app_fid = COALESCE/);
+  assert.match(schema, /recordMigration\(connection, 28, appliedAt\)/);
+  assert.match(bridge, /QStringLiteral\("sourceAppFid"\)/);
+  assert.match(qml, /root\.rowMatchesAppFilter\(row\)/);
+  assert.match(qml, /selectedAppFid = option\.fid/);
+  assert.match(qml, /appFilterBar\.height/);
+  const locales=['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                 'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN'];
+  for (const locale of locales) {
+    assert.match(read('ui/i18n/qml_'+locale+'.ts'),
+      /<message id="genycaster\.feed\.app_fid_filter_explanation">[\s\S]*?<translation>[^<]+<\/translation>/);
   }
 });

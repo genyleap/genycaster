@@ -14,6 +14,7 @@ import farcaster.application.read.model;
 import farcaster.capability.feed;
 import farcaster.capability.social;
 import farcaster.capability.model;
+import farcaster.domain.cast;
 import farcaster.domain.identity;
 import farcaster.domain.profile;
 import farcaster.foundation.result;
@@ -70,6 +71,16 @@ struct Config final {
     std::string_view jsonBody,
     domain::identity::Fid expectedFid,
     farcaster::application::read::model::FeedQuery::Kind kind);
+
+/** @brief Verify a raw node's unified signer record against exact author/key.
+ * Missing/legacy/inactive app attribution returns no FID; corrupted or
+ * mismatched records are rejected. This relies on Snapchain validating
+ * SignedKeyRequest custody signatures; it is NOT a local cryptographic proof.
+ */
+[[nodiscard]] foundation::result::Result<std::optional<domain::identity::Fid>>
+decodeSignerAppFid(std::string_view jsonBody,
+    domain::identity::Fid author, std::string_view signerKeyHex,
+    std::uint64_t currentUnixSeconds);
 
 /** @brief Decode effective Follow links from an authenticated raw-node response. */
 [[nodiscard]] foundation::result::Result<capability::social::SocialGraphPage> decodeFollowLinks(

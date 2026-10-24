@@ -34,6 +34,10 @@
             <source>Exclude selected</source>
             <translation>選択した鍵を除外</translation>
         </message>
+        <message id="genycaster.feed.app_fid_filter_explanation">
+            <source>App FID confirmed by selected node • not a verified app name</source>
+            <translation>選択ノードが確認したアプリFID • アプリ名は未検証</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>ノードを追加</translation>

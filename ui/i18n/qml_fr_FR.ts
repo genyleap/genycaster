@@ -34,6 +34,10 @@
             <source>Exclude selected</source>
             <translation>Exclure la clé sélectionnée</translation>
         </message>
+        <message id="genycaster.feed.app_fid_filter_explanation">
+            <source>App FID confirmed by selected node • not a verified app name</source>
+            <translation>FID d'application confirmé par le nœud • nom non vérifié</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>Ajouter un nœud</translation>

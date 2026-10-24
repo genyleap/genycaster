@@ -35,6 +35,7 @@ constexpr std::string_view rootHash = "0x000000000000000000000000000000000000000
 constexpr std::string_view quoteHash = "0x0000000000000000000000000000000000000002";
 constexpr std::string_view replyHash = "0x0000000000000000000000000000000000000003";
 constexpr std::string_view embeddedHash = "0x0000000000000000000000000000000000000004";
+constexpr std::string_view signerKey = "0x0101010101010101010101010101010101010101010101010101010101010101";
 
 [[nodiscard]] std::string castJson(const bool wrongFid = false)
 {
@@ -100,6 +101,53 @@ void testRawUserFeeds()
 }
 
 
+
+
+void testAppFidUsesOnlyMatchedActiveSignedKeyRegistry()
+{
+    constexpr std::string_view key =
+        "0x0101010101010101010101010101010101010101010101010101010101010101";
+    const auto registration = [](const std::string_view source,
+        const std::string_view keyString, const unsigned fid,
+        const unsigned requestFid, const unsigned expiration,
+        const std::string_view scopes = R"(["MESSAGE_TYPE_CAST_ADD"])") {
+        return "{\"signer\":{\"source\":\"" + std::string{source}
+            + "\",\"key\":\"" + std::string{keyString}
+            + "\",\"keyType\":1,\"fid\":" + std::to_string(fid)
+            + ",\"requestFid\":" + std::to_string(requestFid)
+            + ",\"ttl\":1000,\"lastUsedAt\":100,\"expiresAt\":"
+            + std::to_string(expiration) + ",\"scopes\":"
+            + std::string{scopes} + "}}";
+    };
+    const auto valid = registration("SIGNER_SOURCE_OFFCHAIN", key, 42, 96, 1100);
+    auto verified = raw::decodeSignerAppFid(valid, domain::identity::Fid{42}, key, 200);
+    assert(verified && *verified && (**verified).value == 96U);
+    auto expired = raw::decodeSignerAppFid(valid, domain::identity::Fid{42}, key, 1100);
+    assert(expired && !*expired);
+    auto legacy = raw::decodeSignerAppFid(
+        registration("SIGNER_SOURCE_ONCHAIN", key, 42, 96, 1100),
+        domain::identity::Fid{42}, key, 200);
+    assert(legacy && !*legacy);
+    auto notAuthorized = raw::decodeSignerAppFid(
+        registration("SIGNER_SOURCE_OFFCHAIN", key, 42, 96, 1100,
+                     R"(["MESSAGE_TYPE_LINK_ADD"])"),
+        domain::identity::Fid{42}, key, 200);
+    assert(notAuthorized && !*notAuthorized);
+    auto missing = raw::decodeSignerAppFid(R"({"signer":null})",
+        domain::identity::Fid{42}, key, 200);
+    assert(missing && !*missing);
+    auto corruptFid = raw::decodeSignerAppFid(
+        registration("SIGNER_SOURCE_OFFCHAIN", key, 43, 96, 1100),
+        domain::identity::Fid{42}, key, 200);
+    assert(!corruptFid);
+    auto corruptKey = raw::decodeSignerAppFid(
+        registration("SIGNER_SOURCE_OFFCHAIN",
+                     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                     42, 96, 1100),
+        domain::identity::Fid{42}, key, 200);
+    assert(!corruptKey);
+    assert(!raw::decodeSignerAppFid("not json", domain::identity::Fid{42}, key, 200));
+}
 
 void testProtocolSignerKeyIsCanonicalButNeverGuessesAppIdentity()
 {
@@ -212,6 +260,8 @@ public:
     std::size_t requests{0};
     bool defer{false};
     bool followingFixture{false};
+    bool signerFixture{false};
+    bool signerRecordInvalid{false};
     bool graphTooLarge{false};
     bool graphAtLimit{false};
     bool graphTwoPages{false};
@@ -356,8 +406,31 @@ public:
             }
             return transport::async_http::Operation{[] {}};
         }
-        if (last.url.find("castsByFid") != std::string::npos)
-            complete(transport::http::HttpResponse{.statusCode = 200U, .body = castJson()});
+        if (last.url.find("/v1/signer?") != std::string::npos) {
+            if (!signerFixture) {
+                complete(transport::http::HttpResponse{.statusCode = 404U});
+            } else {
+                const auto now = std::chrono::duration_cast<std::chrono::seconds>(
+                    std::chrono::system_clock::now().time_since_epoch()).count();
+                const unsigned fid = signerRecordInvalid ? 43U : 42U;
+                const std::string body = R"({"signer":{"source":"SIGNER_SOURCE_OFFCHAIN","key":")"
+                    + std::string{signerKey} + R"(","keyType":1,"fid":)"
+                    + std::to_string(fid) + R"(,"requestFid":333,"ttl":1000,"lastUsedAt":)"
+                    + std::to_string(now) + R"(,"expiresAt":)"
+                    + std::to_string(now + 1000)
+                    + R"(,"scopes":["MESSAGE_TYPE_CAST_ADD"]}})";
+                complete(transport::http::HttpResponse{
+                    .statusCode = 200U, .body = body});
+            }
+        } else if (last.url.find("castsByFid") != std::string::npos) {
+            auto body = castJson();
+            if (signerFixture) {
+                const auto pos = body.find("\"data\":");
+                assert(pos != std::string::npos);
+                body.insert(pos, "\"signer\":\"" + std::string{signerKey} + "\",");
+            }
+            complete(transport::http::HttpResponse{.statusCode = 200U, .body = std::move(body)});
+        }
         else if (last.url.find("userDataByFid") != std::string::npos)
             complete(transport::http::HttpResponse{
                 .statusCode = 200U, .body = R"({"messages":[]})"});
@@ -373,6 +446,63 @@ public:
     }
 };
 
+
+
+void testAppAttributionComesFromSameRawNodeWithoutBreakingFeeds()
+{
+    DatabaseFixture db{};
+    auto cursors = storage::continuation::openContinuationStore(db.path);
+    assert(cursors);
+    execution::weighted_thread_pool::WeightedThreadPoolExecutor decoder{
+        1U, 16U, 8U * 1024U * 1024U};
+    FakeAsyncTransport transport{};
+    transport.signerFixture = true;
+    auto gateway = raw::makeGateway(transport, decoder, *cursors,
+        raw::Config{.baseUrl = "https://node.example",
+            .providerId = provider::model::ProviderId{"read-own"}});
+    const auto fetch = [&gateway](model::FeedQuery query) {
+        auto done = std::make_shared<std::promise<
+            foundation::result::Result<capability::feed::FeedPage>>>();
+        auto future = done->get_future();
+        auto operation = gateway->feed(query,
+            [done](auto response) { done->set_value(std::move(response)); });
+        assert(operation);
+        assert(future.wait_for(std::chrono::seconds{3}) == std::future_status::ready);
+        return future.get();
+    };
+    const auto query = model::FeedQuery{
+        .kind = model::FeedQuery::Kind::UserPosts,
+        .fid = domain::identity::Fid{42}, .limit = 5U};
+    auto observed = fetch(query);
+    assert(observed && observed->casts.size() == 1U);
+    assert(observed->casts.front().sourceAppFid
+        && observed->casts.front().sourceAppFid->value == 333U);
+    assert(observed->casts.front().signerPublicKeyHex
+        && *observed->casts.front().signerPublicKeyHex == signerKey);
+    assert(!observed->casts.front().sourceClient);
+    assert(transport.urls.size() == 2U); // canonical Casts + signer registration
+    assert(transport.urls[0].starts_with("https://node.example/v1/castsByFid?"));
+    assert(transport.urls[1].find("/v1/signer?fid=42&signer=0x")
+        != std::string::npos);
+    assert(transport.urls[1].starts_with("https://node.example/"));
+    assert(transport.last.headers.size() == 1U); // no managed provider API key
+
+    transport.urls.clear();
+    transport.signerRecordInvalid = true;
+    auto invalid = fetch(query);
+    assert(invalid && invalid->casts.size() == 1U);
+    assert(!invalid->casts.front().sourceAppFid);
+    assert(invalid->casts.front().signerPublicKeyHex);
+    transport.signerRecordInvalid = false;
+
+    // An unavailable signer endpoint must NOT make an otherwise valid
+    // canonical cast disappear from a user's chosen raw node.
+    transport.signerFixture = false;
+    auto noRegistration = fetch(query);
+    assert(noRegistration && noRegistration->casts.size() == 1U);
+    assert(!noRegistration->casts.front().signerPublicKeyHex);
+    assert(!noRegistration->casts.front().sourceAppFid);
+}
 
 void testRawSocialRequestAndCursorAffinity()
 {
@@ -762,6 +892,8 @@ int main()
     testRawProfileCodec();
     testRawUserFeeds();
     testProtocolSignerKeyIsCanonicalButNeverGuessesAppIdentity();
+    testAppFidUsesOnlyMatchedActiveSignedKeyRegistry();
+    testAppAttributionComesFromSameRawNodeWithoutBreakingFeeds();
     testRawFollowGraphCodec();
     testNoFalseCapabilities();
     testAsyncReadAndOpaquePagination();

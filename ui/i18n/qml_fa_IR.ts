@@ -34,6 +34,10 @@
             <source>Exclude selected</source>
             <translation>حذف کلید انتخاب‌شده</translation>
         </message>
+        <message id="genycaster.feed.app_fid_filter_explanation">
+            <source>App FID confirmed by selected node • not a verified app name</source>
+            <translation>شناسهٔ اپ (FID) تأییدشده توسط نود انتخابی • نام اپ تأیید نشده</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>افزودن نود</translation>

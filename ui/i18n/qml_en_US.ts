@@ -34,6 +34,10 @@
             <source>Exclude selected</source>
             <translation>Exclude selected</translation>
         </message>
+        <message id="genycaster.feed.app_fid_filter_explanation">
+            <source>App FID confirmed by selected node • not a verified app name</source>
+            <translation>App FID confirmed by selected node • not a verified app name</translation>
+        </message>
         <message id="genycaster.providers.add">
             <source>Add node</source>
             <translation>Add node</translation>
