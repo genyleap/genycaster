@@ -1,0 +1,24 @@
+# Genycaster developer documentation
+> Independent Farcaster client architecture and node-operation references.
+> Public documentation only. This site does not host the Genycaster application.
+> Updated 2026-10-24.
+
+https://docs.genycaster.xyz/
+https://docs.genycaster.xyz/quickstart/
+https://docs.genycaster.xyz/architecture/
+https://docs.genycaster.xyz/providers/
+https://docs.genycaster.xyz/client-switching/
+https://docs.genycaster.xyz/build-your-own/
+https://docs.genycaster.xyz/operations/
+https://docs.genycaster.xyz/status/
+
+## Important limitations
+The three-stage $2048 Farcaster client prize from Balaji requires independent node provisioning, read, validator-based write, secure client app authorization, social write flows, and originating-client filtering. Not all are yet verified end to end in Genycaster.
+The raw Snapchain protocol does not itself provide indexed global search, aggregated follower counts or product notifications.
+Configured read nodes and write providers are distinct.
+The app continues to be debugged at caster.genyleap.com and is not embedded on the documentation domain.
+
+## Source
+https://github.com/genyleap/genycaster
+https://github.com/farcasterxyz/snapchain
+https://farcaster.xyz/balajis.eth/0x50184b62
