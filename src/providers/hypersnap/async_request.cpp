@@ -189,6 +189,8 @@ foundation::result::Result<Operation> Client::getJson(
             ErrorCode::InvalidArgument,
             "Hypersnap async GET requires a completion, deadline and body limit."));
     }
+    if (auto status = request::validateConfig(m_config); !status)
+        return std::unexpected(std::move(status.error()));
     auto state = std::make_shared<Operation::State>();
     auto start = m_transport.start(
         transport::async_http::Request{
@@ -259,6 +261,8 @@ foundation::result::Result<Operation> Client::postReadJson(
             ErrorCode::InvalidArgument,
             "Hypersnap async read POST requires a completion, deadline and body limit."));
     }
+    if (auto status = request::validateConfig(m_config); !status)
+        return std::unexpected(std::move(status.error()));
     auto state = std::make_shared<Operation::State>();
     auto start = m_transport.start(
         transport::async_http::Request{

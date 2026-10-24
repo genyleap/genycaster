@@ -266,6 +266,7 @@ struct Runtime final {
     const std::optional<std::string>& farcasterReadBaseUrl,
     const std::optional<std::string>& farcasterReadApiKey,
     const std::vector<ReadProviderProfile>& additionalReadProviders,
+    const std::unordered_map<std::string, std::string>& readProviderApiKeys,
     const std::optional<std::string>& preferredReadProviderId,
     bool allowCompatibleReadFallback,
     const std::vector<WriteProviderProfile>& additionalWriteProviders,

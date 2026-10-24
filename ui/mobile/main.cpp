@@ -857,6 +857,54 @@ int main(int argc, char* argv[])
             });
         }
     }
+
+    // Indexed provider API keys are ephemeral, per-instance operator inputs.
+    // Never read secrets from saved provider profiles or QSettings, and never
+    // log the JSON or its values. An unknown ID or insecure endpoint fails
+    // closed rather than silently targeting another adapter.
+    std::unordered_map<std::string, std::string> readProviderApiKeys{};
+    const QByteArray providerSecretsJson =
+        qgetenv("GENYCASTER_READ_PROVIDER_API_KEYS_JSON");
+    if (!providerSecretsJson.isEmpty()) {
+        QJsonParseError secretParseError{};
+        const auto secrets = QJsonDocument::fromJson(
+            providerSecretsJson, &secretParseError);
+        if (secretParseError.error != QJsonParseError::NoError
+            || !secrets.isObject() || secrets.object().size() > 16) {
+            qCritical().noquote()
+                << "Indexed read credentials must be a JSON object with at most 16 provider IDs.";
+            return 2;
+        }
+        const auto entries = secrets.object();
+        for (auto it = entries.cbegin(); it != entries.cend(); ++it) {
+            const auto candidate = std::find_if(
+                additionalReadProviders.cbegin(), additionalReadProviders.cend(),
+                [&it](const auto& profile) {
+                    return profile.id == it.key().toStdString()
+                        && profile.adapterContract == "hypersnap-v2"
+                        && QUrl(QString::fromStdString(profile.endpoint))
+                            .scheme().compare(QStringLiteral("https"),
+                                              Qt::CaseInsensitive) == 0;
+                });
+            if (candidate == additionalReadProviders.cend()
+                || !it.value().isString()) {
+                qCritical().noquote()
+                    << "Indexed read credential ID must select a configured HTTPS indexed provider.";
+                return 2;
+            }
+            const QByteArray value = it.value().toString().toUtf8();
+            if (value.isEmpty() || value.size() > 256
+                || std::any_of(value.cbegin(), value.cend(), [](const char character) {
+                    const auto ascii = static_cast<unsigned char>(character);
+                    return ascii < 33U || ascii > 126U;
+                })) {
+                qCritical().noquote() << "Invalid indexed read credential format.";
+                return 2;
+            }
+            readProviderApiKeys.emplace(it.key().toStdString(), value.toStdString());
+        }
+    }
+
     // Non-strict routing may contact a different indexed provider. Require
     // explicit user/operator consent; absence of a setting fails closed.
     const bool allowCompatibleReadFallback =
@@ -1904,8 +1952,8 @@ int main(int argc, char* argv[])
                                   &mediaPlayback, &runtime,
                                   databasePath, networkProxyPolicy, providerBaseUrl,
                                   farcasterReadBaseUrl, farcasterReadApiKey,
-                                  additionalReadProviders, preferredReadProviderId,
-                                  allowCompatibleReadFallback,
+                                  additionalReadProviders, readProviderApiKeys,
+                                  preferredReadProviderId, allowCompatibleReadFallback,
                                   additionalWriteProviders, preferredWriteProviderId, authRelayUrl,
                                   optimismRpcUrl, snapchainBaseUrl, snapchainWriteBaseUrl,
                                   mediaGatewayBaseUrl, snapchainAuthorizationHeader,
@@ -1922,6 +1970,7 @@ int main(int argc, char* argv[])
                 farcasterReadBaseUrl,
                 farcasterReadApiKey,
                 additionalReadProviders,
+                readProviderApiKeys,
                 preferredReadProviderId,
                 allowCompatibleReadFallback,
                 additionalWriteProviders,

@@ -44,6 +44,7 @@ import farcaster.provider.hypersnap.identity;
 import farcaster.provider.hypersnap.notification;
 import farcaster.provider.hypersnap.profile;
 import farcaster.provider.hypersnap.registration;
+import farcaster.provider.hypersnap.request;
 import farcaster.provider.hypersnap.search;
 import farcaster.provider.hypersnap.social;
 import farcaster.provider.model;
@@ -1354,6 +1355,80 @@ void testSearchSemantics()
     assert(transport.urls()[1] == "https://node.test/v2/farcaster/channel/search?q=dev&limit=4");
 }
 
+void testReadApiKeysStayOnTheirConfiguredIndexedInstance()
+{
+    using namespace farcaster;
+    auto firstConfig = testConfig();
+    firstConfig.baseUrl = "https://indexed-alpha.test";
+    firstConfig.apiKey = "alpha-secret-test";
+    test::hypersnap::transport::FakeTransport alphaTransport{};
+    alphaTransport.enqueue(200, test::hypersnap::fixtures::userResponse());
+    provider::hypersnap::profile::ProfileSource alpha{alphaTransport, firstConfig};
+    assert(alpha.get(domain::identity::Fid{42}));
+    assert(!alphaTransport.requests().empty());
+    const auto& alphaHeaders = alphaTransport.requests().front().headers;
+    assert(std::ranges::find(alphaHeaders, std::string{"x-api-key: alpha-secret-test"})
+        != alphaHeaders.end());
+    assert(alphaTransport.urls().front().starts_with("https://indexed-alpha.test/"));
+
+    auto secondConfig = testConfig();
+    secondConfig.baseUrl = "https://indexed-beta.test";
+    secondConfig.apiKey = "beta-secret-test";
+    test::hypersnap::transport::FakeTransport betaTransport{};
+    betaTransport.enqueue(200, test::hypersnap::fixtures::userResponse());
+    provider::hypersnap::profile::ProfileSource beta{betaTransport, secondConfig};
+    assert(beta.get(domain::identity::Fid{42}));
+    const auto& betaHeaders = betaTransport.requests().front().headers;
+    assert(std::ranges::find(betaHeaders, std::string{"x-api-key: beta-secret-test"})
+        != betaHeaders.end());
+    assert(std::ranges::find(betaHeaders, std::string{"x-api-key: alpha-secret-test"})
+        == betaHeaders.end());
+    assert(betaTransport.urls().front().starts_with("https://indexed-beta.test/"));
+
+    // The synchronous indexed POST path must send the *same instance's* key.
+    betaTransport.enqueue(200, "{}");
+    provider::hypersnap::request::Client betaRequests{betaTransport, secondConfig};
+    assert(betaRequests.postJson("/v2/farcaster/example", "{}"));
+    assert(betaTransport.postRequests().size() == 1U);
+    const auto& postHeaders = betaTransport.postRequests().front().headers;
+    assert(std::ranges::find(postHeaders, std::string{"x-api-key: beta-secret-test"})
+        != postHeaders.end());
+    assert(std::ranges::find(postHeaders, std::string{"x-api-key: alpha-secret-test"})
+        == postHeaders.end());
+
+    auto anonymousConfig = testConfig();
+    test::hypersnap::transport::FakeTransport anonymousTransport{};
+    anonymousTransport.enqueue(200, test::hypersnap::fixtures::userResponse());
+    provider::hypersnap::profile::ProfileSource anonymous{
+        anonymousTransport, anonymousConfig};
+    assert(anonymous.get(domain::identity::Fid{42}));
+    const auto& anonymousHeaders = anonymousTransport.requests().front().headers;
+    assert(anonymousHeaders.size() == 1U);
+    assert(anonymousHeaders.front() == "Accept: application/json");
+
+    // Reject header injection and plaintext credential dispatch before I/O.
+    auto insecure = firstConfig;
+    insecure.baseUrl = "http://indexed-alpha.test";
+    provider::hypersnap::profile::ProfileSource insecureSource{alphaTransport, insecure};
+    const auto requestCount = alphaTransport.requests().size();
+    auto insecureResult = insecureSource.get(domain::identity::Fid{42});
+    assert(!insecureResult
+        && insecureResult.error().code == foundation::error::ErrorCode::InvalidArgument);
+    assert(alphaTransport.requests().size() == requestCount);
+    provider::hypersnap::request::Client invalidPost{alphaTransport, insecure};
+    auto refusedPost = invalidPost.postJson("/v2/farcaster/example", "{}");
+    assert(!refusedPost && refusedPost.error().code
+        == foundation::error::ErrorCode::InvalidArgument);
+    assert(alphaTransport.postRequests().empty());
+    auto injection = firstConfig;
+    injection.apiKey = "bad\r\nInjected: value";
+    provider::hypersnap::profile::ProfileSource invalidKeySource{alphaTransport, injection};
+    auto invalidResult = invalidKeySource.get(domain::identity::Fid{42});
+    assert(!invalidResult
+        && invalidResult.error().code == foundation::error::ErrorCode::InvalidArgument);
+    assert(alphaTransport.requests().size() == requestCount);
+}
+
 void testCurlTransportConstruction()
 {
     auto transport = farcaster::transport::curl::makeTransport();
@@ -1417,6 +1492,7 @@ int main()
     testFeedPaginationAffinity();
     testSocialGraphSemantics();
     testSearchSemantics();
+    testReadApiKeysStayOnTheirConfiguredIndexedInstance();
     testCapabilityRegistration();
     testCurlTransportConstruction();
     return 0;

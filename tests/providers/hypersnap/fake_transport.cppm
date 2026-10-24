@@ -36,10 +36,14 @@ public:
     /** @brief Returns complete provider-neutral requests in call order. */
     [[nodiscard]] const std::vector<farcaster::transport::http::HttpRequest>& requests() const noexcept;
 
+    /** @brief Returns captured POST requests for header-isolation assertions. */
+    [[nodiscard]] const std::vector<farcaster::transport::http::HttpPostRequest>& postRequests() const noexcept;
+
 private:
     std::deque<farcaster::transport::http::HttpResponse> m_responses{};
     std::vector<std::string> m_urls{};
     std::vector<farcaster::transport::http::HttpRequest> m_requests{};
+    std::vector<farcaster::transport::http::HttpPostRequest> m_postRequests{};
 };
 
 }

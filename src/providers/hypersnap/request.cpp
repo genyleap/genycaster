@@ -305,11 +305,15 @@ constexpr std::chrono::milliseconds retryMaximumDelay{1'200};
     transport::http::IHttpTransport& transport,
     const std::string& url,
     std::string body,
-    const GetOptions& options)
+    const GetOptions& options,
+    const std::string& apiKey)
 {
     auto response = transport.post(transport::http::HttpPostRequest{
         .url = url,
-        .headers = {"Accept: application/json", "Content-Type: application/json"},
+        .headers = apiKey.empty()
+            ? std::vector<std::string>{"Accept: application/json", "Content-Type: application/json"}
+            : std::vector<std::string>{"Accept: application/json", "Content-Type: application/json",
+                                       "x-api-key: " + apiKey},
         .body = std::move(body),
         .timeout = options.timeout,
         .maxBodyBytes = options.maxBodyBytes,
@@ -375,6 +379,17 @@ foundation::result::Status validateConfig(const config::Config& config)
             foundation::error::ErrorCode::InvalidArgument,
             "Hypersnap base URL must use http or https."));
     }
+    if (!config.apiKey.empty()) {
+        const bool validKey = config.apiKey.size() <= 256U
+            && std::ranges::all_of(config.apiKey, [](const unsigned char character) {
+                return character >= 33U && character <= 126U;
+            });
+        if (!config.baseUrl.starts_with("https://") || !validKey) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Indexed API keys require HTTPS and a printable, bounded credential."));
+        }
+    }
     if (config.baseUrl.find_first_of("?#\r\n") != std::string::npos) {
         return std::unexpected(makeError(
             foundation::error::ErrorCode::InvalidArgument,
@@ -398,6 +413,8 @@ foundation::result::Result<std::string> Client::getJson(
     const std::vector<std::pair<std::string, std::string>>& query,
     const GetOptions options)
 {
+    if (auto status = validateConfig(m_config); !status)
+        return std::unexpected(std::move(status.error()));
     if (options.timeout <= std::chrono::milliseconds::zero()) {
         return std::unexpected(makeError(
             foundation::error::ErrorCode::InvalidArgument,
@@ -431,7 +448,10 @@ foundation::result::Result<std::string> Client::getJson(
         ++attempts;
         auto response = m_transport.get(transport::http::HttpRequest{
             .url = url,
-            .headers = {"Accept: application/json"},
+            .headers = m_config.apiKey.empty()
+                ? std::vector<std::string>{"Accept: application/json"}
+                : std::vector<std::string>{"Accept: application/json",
+                                           "x-api-key: " + m_config.apiKey},
             .timeout = attemptTimeout,
             .maxBodyBytes = options.maxBodyBytes,
         });
@@ -471,7 +491,10 @@ foundation::result::Result<std::string> Client::postJson(
     std::string body,
     const GetOptions options)
 {
-    auto result = performPost(m_transport, makeUrl(m_config, path, {}), std::move(body), options);
+    if (auto status = validateConfig(m_config); !status)
+        return std::unexpected(std::move(status.error()));
+    auto result = performPost(m_transport, makeUrl(m_config, path, {}), std::move(body),
+                              options, m_config.apiKey);
     if (result) {
         return result;
     }

@@ -43,6 +43,7 @@ farcaster::foundation::result::Result<farcaster::transport::http::HttpResponse>
 FakeTransport::post(const farcaster::transport::http::HttpPostRequest& request)
 {
     m_urls.push_back(request.url);
+    m_postRequests.push_back(request);
     if (m_responses.empty()) {
         return std::unexpected(farcaster::foundation::error::Error::make(
             farcaster::foundation::error::ErrorCode::InternalFailure,
@@ -61,6 +62,12 @@ const std::vector<std::string>& FakeTransport::urls() const noexcept
 const std::vector<farcaster::transport::http::HttpRequest>& FakeTransport::requests() const noexcept
 {
     return m_requests;
+}
+
+const std::vector<farcaster::transport::http::HttpPostRequest>&
+FakeTransport::postRequests() const noexcept
+{
+    return m_postRequests;
 }
 
 }

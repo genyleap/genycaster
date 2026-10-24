@@ -2,6 +2,7 @@ module;
 
 #include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <expected>
 #include <functional>
 #include <cstdint>
@@ -12,6 +13,7 @@ module;
 #include <string>
 #include <system_error>
 #include <thread>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -491,6 +493,7 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     [[maybe_unused]] const std::optional<std::string>& farcasterReadBaseUrl,
     [[maybe_unused]] const std::optional<std::string>& farcasterReadApiKey,
     [[maybe_unused]] const std::vector<ReadProviderProfile>& additionalReadProviders,
+    [[maybe_unused]] const std::unordered_map<std::string, std::string>& readProviderApiKeys,
     [[maybe_unused]] const std::optional<std::string>& preferredReadProviderId,
     [[maybe_unused]] const bool allowCompatibleReadFallback,
     [[maybe_unused]] const std::vector<WriteProviderProfile>& additionalWriteProviders,
@@ -1033,8 +1036,26 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
             .capabilities = farcaster::provider::hypersnap::registration::capabilities(),
         });
         if (!registeredInstance) return std::unexpected(std::move(registeredInstance.error()));
+        // Per-instance credentials are injected only for the exact chosen
+        // indexed provider and never copied from the built-in hosted service.
+        // Plain HTTP must not transmit operator credentials.
+        const auto credential = readProviderApiKeys.find(profile.id);
+        const std::string endpointScheme = profile.endpoint.substr(0U, 8U);
+        const bool secureEndpoint = endpointScheme.size() == 8U
+            && std::equal(endpointScheme.begin(), endpointScheme.end(), "https://",
+                [](const unsigned char input, const char expected) {
+                    return std::tolower(input) == expected;
+                });
+        if (credential != readProviderApiKeys.end()
+            && (!secureEndpoint || credential->second.empty())) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Authenticated indexed read providers require an HTTPS endpoint and a valid credential."));
+        }
         farcaster::provider::hypersnap::config::Config config{
             .baseUrl = profile.endpoint,
+            .apiKey = credential == readProviderApiKeys.end()
+                ? std::string{} : credential->second,
             .provider = instance,
         };
         runtime->additionalReadGateways.push_back(
