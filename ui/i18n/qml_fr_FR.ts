@@ -162,6 +162,10 @@
             <source>A successful test checks API shape and response time, not full synchronization, ownership or publishing rights.</source>
             <translation>Le test vérifie la réponse API et la latence, pas la synchronisation complète, la propriété ni le droit de publier.</translation>
         </message>
+        <message id="genycaster.nodes.advanced">
+            <source>Advanced options</source>
+            <translation>Options avancées</translation>
+        </message>
         <message id="genycaster.nodes.save_key">
             <source>Save session key</source>
             <translation>Enregistrer la clé de session</translation>

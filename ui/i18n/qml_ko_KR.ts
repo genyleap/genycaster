@@ -162,6 +162,10 @@
             <source>A successful test checks API shape and response time, not full synchronization, ownership or publishing rights.</source>
             <translation>테스트는 API 응답과 지연 시간만 확인합니다. 완전한 동기화, 소유권, 게시 권한을 확인하지 않습니다.</translation>
         </message>
+        <message id="genycaster.nodes.advanced">
+            <source>Advanced options</source>
+            <translation>고급 옵션</translation>
+        </message>
         <message id="genycaster.nodes.save_key">
             <source>Save session key</source>
             <translation>세션 키 저장</translation>

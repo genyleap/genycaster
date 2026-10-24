@@ -162,6 +162,10 @@
             <source>A successful test checks API shape and response time, not full synchronization, ownership or publishing rights.</source>
             <translation>A successful test checks API shape and response time, not full synchronization, ownership or publishing rights.</translation>
         </message>
+        <message id="genycaster.nodes.advanced">
+            <source>Advanced options</source>
+            <translation>Advanced options</translation>
+        </message>
         <message id="genycaster.nodes.save_key">
             <source>Save session key</source>
             <translation>Save session key</translation>

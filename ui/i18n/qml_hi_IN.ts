@@ -162,6 +162,10 @@
             <source>A successful test checks API shape and response time, not full synchronization, ownership or publishing rights.</source>
             <translation>जाँच केवल API उत्तर और विलंब को परखती है; पूर्ण सिंक, स्वामित्व या पोस्ट अधिकार नहीं।</translation>
         </message>
+        <message id="genycaster.nodes.advanced">
+            <source>Advanced options</source>
+            <translation>उन्नत विकल्प</translation>
+        </message>
         <message id="genycaster.nodes.save_key">
             <source>Save session key</source>
             <translation>सत्र कुंजी सहेजें</translation>

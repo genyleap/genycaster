@@ -162,6 +162,10 @@
             <source>A successful test checks API shape and response time, not full synchronization, ownership or publishing rights.</source>
             <translation>آزمایش موفق فقط شکل پاسخ API و زمان پاسخ را بررسی می‌کند؛ نه همگام‌بودن کامل، مالکیت یا مجوز انتشار.</translation>
         </message>
+        <message id="genycaster.nodes.advanced">
+            <source>Advanced options</source>
+            <translation>گزینه‌های پیشرفته</translation>
+        </message>
         <message id="genycaster.nodes.save_key">
             <source>Save session key</source>
             <translation>ذخیرهٔ کلید در نشست</translation>

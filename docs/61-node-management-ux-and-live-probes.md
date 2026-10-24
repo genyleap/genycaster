@@ -24,7 +24,7 @@ Responses are classified as compatible, wrong API shape, authentication/payment 
 ## API keys and privacy
 
 - A public or locally run raw Snapchain node normally requires no API key only when its operator allows unauthenticated access.
-- The browser UI accepts optional indexed provider API keys, only for HTTPS profiles. Draft tests can send an explicit key to the chosen HTTPS endpoint.
+- The browser UI accepts optional provider API keys for indexed and raw Snapchain profiles, only for HTTPS origins. A key is sent as the `x-api-key` header only to the selected provider instance; other vendor-specific header schemes are not yet supported. Draft tests can send an explicit key to the chosen HTTPS endpoint.
 - An opted-in key is stored only in this tab's browser sessionStorage and is passed on refresh into the existing per-provider x-api-key header mechanism. It is not written to QSettings, IDBFS, the URL, source files or diagnostic logs. Deleting the profile also deletes its session credential.
 - Session storage is not an OS keychain or secure enclave. JavaScript on the same origin may access it, and session-restoration behavior depends on the browser. Avoid entering sensitive credentials on shared computers.
 - Native Qt continues to support operator-supplied environment credentials; this is not a native keychain UI. Nonstandard authentication for raw Snapchain endpoints remains a separate protocol adapter requirement.

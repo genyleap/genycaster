@@ -65,7 +65,8 @@ test('opt-in indexed API keys are session-scoped, never stored in QSettings', ()
 test('localhost is a browser-side example, not a managed fallback', () => {
   assert.match(manager, /http:\/\/127\.0\.0\.1:3381/);
   assert.match(manager, /genycaster\.nodes\.local_warning/);
-  assert.doesNotMatch(manager, /setCompatibleReadFallback/);
+  assert.match(manager, /setCompatibleReadFallback/);
+  assert.match(manager, /root\.showAdvanced/);
 });
 
 test('32 new UI labels are translated in every supported locale', () => {
@@ -82,4 +83,16 @@ test('32 new UI labels are translated in every supported locale', () => {
           '">[\\s\\S]*?<translation>[^<]+</translation>'));
     }
   }
+});
+
+test('a custom raw node can receive only its own explicit HTTPS x-api-key', () => {
+  const composition = read('ui/mobile/runtime_composition.cpp');
+  assert.match(bootstrap, /profile\.adapterContract == "snapchain-v1"/);
+  assert.match(composition, /const auto rawCredential = readProviderApiKeys\.find\(profile\.id\)/);
+  assert.match(composition, /\.authorizationHeaderName = rawCredential/);
+  assert.match(composition, /std::string\{"x-api-key"\}/);
+  assert.match(composition, /Authenticated raw read providers require HTTPS/);
+  const controller = read('ui/mobile/provider_profiles_controller.cpp');
+  assert.match(controller, /QStringLiteral\("snapchain-v1"\)\)/);
+  assert.match(manager, /readKey\.text\)/);
 });

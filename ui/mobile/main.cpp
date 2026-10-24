@@ -858,7 +858,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    // Indexed provider API keys are ephemeral, per-instance operator inputs.
+    // Provider API keys are ephemeral, per-instance operator inputs.
     // Never read secrets from saved provider profiles or QSettings, and never
     // log the JSON or its values. An unknown ID or insecure endpoint fails
     // closed rather than silently targeting another adapter.
@@ -891,7 +891,8 @@ int main(int argc, char* argv[])
                 additionalReadProviders.cbegin(), additionalReadProviders.cend(),
                 [&it](const auto& profile) {
                     return profile.id == it.key().toStdString()
-                        && profile.adapterContract == "hypersnap-v2"
+                        && (profile.adapterContract == "hypersnap-v2"
+                            || profile.adapterContract == "snapchain-v1")
                         && QUrl(QString::fromStdString(profile.endpoint))
                             .scheme().compare(QStringLiteral("https"),
                                               Qt::CaseInsensitive) == 0;
@@ -899,7 +900,7 @@ int main(int argc, char* argv[])
             if (candidate == additionalReadProviders.cend()
                 || !it.value().isString()) {
                 qCritical().noquote()
-                    << "Indexed read credential ID must select a configured HTTPS indexed provider.";
+                    << "Read credential ID must select a configured HTTPS provider.";
                 return 2;
             }
             const QByteArray value = it.value().toString().toUtf8();

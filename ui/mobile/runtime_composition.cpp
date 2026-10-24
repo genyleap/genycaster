@@ -1091,13 +1091,26 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
             .capabilities = farcaster::provider::snapchain::read::capabilities(),
         });
         if (!registered) return std::unexpected(std::move(registered.error()));
+        const auto rawCredential = readProviderApiKeys.find(profile.id);
+        if (rawCredential != readProviderApiKeys.end()
+            && (!profile.endpoint.starts_with("https://")
+                || rawCredential->second.empty())) {
+            return std::unexpected(foundation::error::Error::make(
+                foundation::error::ErrorCode::InvalidArgument,
+                "Authenticated raw read providers require HTTPS and a valid credential."));
+        }
         runtime->rawReadGateways.push_back(
             farcaster::provider::snapchain::read::makeGateway(
                 *runtime->asyncTransport,
                 *runtime->decodeExecutor,
                 *runtime->continuations,
                 farcaster::provider::snapchain::read::Config{
-                    .baseUrl = profile.endpoint, .providerId = instance.id,
+                    .baseUrl = profile.endpoint,
+                    .authorizationHeaderName = rawCredential == readProviderApiKeys.end()
+                        ? std::string{} : std::string{"x-api-key"},
+                    .authorizationHeaderValue = rawCredential == readProviderApiKeys.end()
+                        ? std::string{} : rawCredential->second,
+                    .providerId = instance.id,
                 }));
         runtime->rawReadProviderIds.push_back(profile.id);
     }

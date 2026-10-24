@@ -204,8 +204,7 @@ ColumnLayout {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: Theme.space2
-                        visible: String(modelData.contract) === "hypersnap-v2"
-                                 && Qt.platform.os === "wasm"
+                        visible: Qt.platform.os === "wasm"
                         property string nodeId: String(modelData.id)
                         DirectionAwareTextField {
                             id: savedNodeKey
@@ -259,6 +258,40 @@ ColumnLayout {
                         wrapMode: Text.Wrap
                     }
                 }
+            }
+        }
+        ActionButton {
+            Layout.fillWidth: true
+            alignStart: true
+            quiet: true
+            text: qsTrId("genycaster.nodes.advanced")
+            selected: root.showAdvanced
+            onClicked: root.showAdvanced = !root.showAdvanced
+        }
+        ColumnLayout {
+            visible: root.showAdvanced
+            Layout.fillWidth: true
+            spacing: Theme.space2
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.providers.compatible_read_fallback")
+                    color: Theme.ink
+                    wrapMode: Text.Wrap
+                }
+                GenySwitch {
+                    checked: providerProfiles.compatibleReadFallback
+                    onToggled: providerProfiles.setCompatibleReadFallback(checked)
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.providers.compatible_read_fallback_description")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.Wrap
             }
         }
         ActionButton {
@@ -381,8 +414,7 @@ ColumnLayout {
             }
         }
         ColumnLayout {
-            visible: root.readContract === "hypersnap-v2"
-                     && Qt.platform.os === "wasm"
+            visible: Qt.platform.os === "wasm"
             Layout.fillWidth: true
             spacing: Theme.space2
             DirectionAwareLabel {
@@ -427,7 +459,7 @@ ColumnLayout {
                 busy: providerProfiles.probeProviderId === "draft"
                       && providerProfiles.probeState === "checking"
                 onClicked: providerProfiles.probeDraftNode(root.readContract, readEndpoint.text,
-                                                           root.readContract === "hypersnap-v2" ? readKey.text : "")
+                                                           readKey.text)
             }
             ActionButton {
                 prominent: true
@@ -438,10 +470,12 @@ ColumnLayout {
                     const nodeId = "custom-" + Date.now().toString(36)
                     if (providerProfiles.addReadProfile(nodeId, nodeName, root.readContract,
                                                         readEndpoint.text.trim(), root.selfHosted)) {
-                        const savedKey = root.readContract !== "hypersnap-v2"
-                            || readKey.text.length === 0
+                        const savedKey = readKey.text.length === 0
                             || providerProfiles.setSessionReadApiKey(nodeId, readKey.text)
-                        if (!savedKey) return
+                        if (!savedKey) {
+                            providerProfiles.removeReadProfile(nodeId)
+                            return
+                        }
                         providerProfiles.selectReadProvider(nodeId)
                         providerProfiles.probeReadProvider(nodeId)
                         readName.clear()

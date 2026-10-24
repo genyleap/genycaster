@@ -515,7 +515,7 @@ bool ProviderProfilesController::startProbe(
     QNetworkRequest request{QUrl(origin + path)};
     request.setRawHeader("Accept", "application/json");
     const QByteArray providedKey = draftApiKey.toUtf8();
-    if (!raw && id == QStringLiteral("draft") && !providedKey.isEmpty()) {
+    if (id == QStringLiteral("draft") && !providedKey.isEmpty()) {
         if (!origin.startsWith(QStringLiteral("https://"))
             || providedKey.size() > 256
             || std::any_of(providedKey.cbegin(), providedKey.cend(),
@@ -534,7 +534,7 @@ bool ProviderProfilesController::startProbe(
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(8'000);
 #ifdef __EMSCRIPTEN__
-    if (!raw && id != QStringLiteral("draft")) {
+    if (id != QStringLiteral("draft")) {
         const QByteArray idUtf8 = id.toUtf8();
         // This key is explicitly session-scoped and never put in QSettings.
         const char* key = reinterpret_cast<const char*>(EM_ASM_PTR({
@@ -613,8 +613,10 @@ bool ProviderProfilesController::setSessionReadApiKey(
              m_settings.value(settingKey(kReadProfiles)).toString())) {
         const auto item = entry.toObject();
         if (item.value(QStringLiteral("id")).toString() == id
-            && item.value(QStringLiteral("contract")).toString()
+            && (item.value(QStringLiteral("contract")).toString()
                 == QStringLiteral("hypersnap-v2")
+                || item.value(QStringLiteral("contract")).toString()
+                    == QStringLiteral("snapchain-v1"))
             && item.value(QStringLiteral("endpoint")).toString()
                 .startsWith(QStringLiteral("https://"))) {
             eligible = true;
