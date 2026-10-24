@@ -555,7 +555,7 @@ struct FollowingWork final : std::enable_shared_from_this<FollowingWork> {
             return std::unexpected(unsupported("Following author history exceeds 8 pages"));
         const auto fid = domain::identity::Fid{authors[authorIndex]};
         std::string path = "/v1/castsByFid?fid=" + std::to_string(fid.value)
-            + "&pageSize=100&reverse=1";
+            + "&pageSize=100&reverse=true";
         if (token) {
             if (token->empty() || token->size() > 2048U
                 || !authorTokens.insert(*token).second)
@@ -750,8 +750,8 @@ public:
         std::string url{"/v1/castsByFid?fid="};
         url += std::to_string(query.fid->value);
         url += "&pageSize=" + std::to_string(std::clamp(query.limit, std::size_t{1}, std::size_t{100}));
-        // HTTP read-node API specifies 1 for reverse chronological order.
-        url += "&reverse=1";
+        // Snapchain HTTP query deserializes booleans as true/false, not 1/0.
+        url += "&reverse=true";
         if (query.continuation) {
             auto record = m_continuations.resolve(*query.continuation);
             if (!record) return std::unexpected(std::move(record.error()));

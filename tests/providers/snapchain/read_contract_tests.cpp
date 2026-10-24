@@ -626,7 +626,7 @@ void testBoundedLiveFollowingFromRawNode()
     assert(transport.urls.size() == 3U); // cursor freezes graph membership
     for (const auto& url : transport.urls) {
         assert(url.find("castsByFid") != std::string::npos);
-        assert(url.find("reverse=1") != std::string::npos);
+        assert(url.find("reverse=true") != std::string::npos);
     }
     const auto requestCount = transport.requests;
     auto wrongFid = gateway->feed(model::FeedQuery{
@@ -814,8 +814,8 @@ void testAsyncReadAndOpaquePagination()
     assert(page->next && !page->next->value.empty());
     assert(page->next->value != "opaque+/=");
     assert(transport.last.url.find("pageSize=5") != std::string::npos);
-    assert(transport.last.url.find("reverse=1") != std::string::npos);
-    assert(transport.last.url.find("reverse=true") == std::string::npos);
+    assert(transport.last.url.find("reverse=true") != std::string::npos);
+    assert(transport.last.url.find("reverse=1") == std::string::npos);
 
     auto nextResult = std::make_shared<std::promise<
         foundation::result::Result<capability::feed::FeedPage>>>();

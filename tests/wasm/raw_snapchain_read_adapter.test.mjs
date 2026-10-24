@@ -40,7 +40,7 @@ test('raw-node continuation stays provider, capability, endpoint and FID scoped 
     assert.match(source, /Raw-node continuation has a different endpoint or user FID/);
     assert.match(source, /"raw-v2:" \+ m_config\.baseUrl/);
     assert.match(source, /std::to_string\(fid\.value\) \+ "\\n" \+ \*cursor/);
-    assert.match(source, /"&reverse=1"/);
+    assert.match(source, /"&reverse=true"/);
     assert.doesNotMatch(domain, /providerCursor|pageToken/);
     assert.match(source, /WeightedThreadPoolExecutor/);
 });

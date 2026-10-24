@@ -15,7 +15,7 @@ test('raw Following derives bounded protocol graph and merges casts without a ho
   assert.match(source, /maximumFollowees = 256U/);
   assert.match(source, /maximumAuthorPages = 8U/);
   assert.match(source, /\/v1\/castsByFid\?fid=/);
-  assert.match(source, /&pageSize=100&reverse=1/);
+  assert.match(source, /&pageSize=100&reverse=true/);
   assert.match(source, /self->authors\.size\(\) > maximumFollowees \+ 1U/);
   assert.match(source, /self->candidates\.size\(\) <= self->limit/);
   assert.match(source, /self->lastAuthorTimestamp >= self->candidates\.back\(\)\.createdAt/);

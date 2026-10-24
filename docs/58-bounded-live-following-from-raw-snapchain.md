@@ -10,7 +10,7 @@ offline Following preview.
 Snapchain upstream `src/network/http_server.rs` accepts:
 - `GET /v1/linksByFid?fid=<viewer>&link_type=follow&pageSize=100&pageToken=...`
 - `GET /v1/linksByTargetFid?target_fid=<viewer>&link_type=follow&pageSize=...`
-- `GET /v1/castsByFid?fid=<author>&pageSize=100&reverse=1&pageToken=...`
+- `GET /v1/castsByFid?fid=<author>&pageSize=100&reverse=true&pageToken=...`
 
 `link_type` and `target_fid` are snake_case. The earlier `type` and
 `targetFid` request fields were incompatible. Opaque raw cursor values are
