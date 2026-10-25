@@ -1154,7 +1154,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       const upstreamPath = handoff ? '/account/connections/handoff'
                                    : '/account/connections/disconnect';
       const requestJson = handoff
-        ? {provider, return_to:'/openproof/account/connections/complete'}
+        ? {provider, return_to:'/genycaster-connect-complete.html'}
         : {provider,subject:payload.subject};
       const delegated = accountHeaders(authorization);
       if (!delegated) {

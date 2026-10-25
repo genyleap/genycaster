@@ -54,11 +54,16 @@ int main(int argc, char** argv)
     QTemporaryDir temp;
     assert(temp.isValid());
     QSettings settings(temp.filePath(QStringLiteral("social.ini")), QSettings::IniFormat);
-    const QJsonArray entries{QJsonObject{
-        {QStringLiteral("provider"), QStringLiteral("github")},
-        {QStringLiteral("subject"), QStringLiteral("developer-123")},
-        {QStringLiteral("username"), QStringLiteral("developer")},
-        {QStringLiteral("displayName"), QStringLiteral("Developer")}}};
+    const QJsonArray entries{
+        QJsonObject{
+            {QStringLiteral("provider"), QStringLiteral("github")},
+            {QStringLiteral("subject"), QStringLiteral("developer-123")},
+            {QStringLiteral("username"), QStringLiteral("developer")},
+            {QStringLiteral("displayName"), QStringLiteral("Developer")}},
+        QJsonObject{
+            {QStringLiteral("provider"), QStringLiteral("linkedin")},
+            {QStringLiteral("subject"), QStringLiteral("linkedin-oidc-456")},
+            {QStringLiteral("displayName"), QStringLiteral("Member")}}};
     const QJsonObject snapshot{
         {QStringLiteral("fid"), QStringLiteral("42")},
         {QStringLiteral("verifiedAt"), QDateTime::currentMSecsSinceEpoch()},
@@ -70,8 +75,19 @@ int main(int argc, char** argv)
     restored.setViewerFid(42);
     assert(restored.cachedSnapshot());
     assert(!restored.authorized());
-    assert(restored.connections().size() == 1);
+    assert(restored.connections().size() == 2);
+    assert(!restored.setLinkedInProfileUrl(
+        QStringLiteral("https://linkedin.com.evil.example/in/attacker")));
+    assert(!restored.setLinkedInProfileUrl(
+        QStringLiteral("http://www.linkedin.com/in/member-name")));
+    assert(restored.setLinkedInProfileUrl(
+        QStringLiteral("https://www.linkedin.com/in/member-name")));
+    assert(restored.linkedInProfileUrl()
+           == QStringLiteral("https://www.linkedin.com/in/member-name"));
     restored.setViewerFid(43);
+    assert(restored.linkedInProfileUrl().isEmpty());
+    assert(!restored.setLinkedInProfileUrl(
+        QStringLiteral("https://www.linkedin.com/in/member-name")));
     assert(!restored.cachedSnapshot());
     assert(restored.connections().isEmpty());
     return 0;

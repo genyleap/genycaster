@@ -89,11 +89,13 @@ test('OpenProof verification no longer sends the user to the Genyleap account po
 });
 
 test('own signed-in profile always exposes connection manager regardless of login issuer', () => {
-  assert.match(qml, /root\.isOwnProfile && Number\(root\.accountFid\) > 0/);
+  assert.match(qml, /readonly property bool isOwnProfile: Number\(root\.activeDetail\.fid/);
+  assert.match(qml, /visible: root\.isOwnProfile/);
   assert.doesNotMatch(qml, /root\.accountIssuer === openProofConnections\.identityIssuer/);
   assert.match(qml, /typeof openProofConnections === "undefined"/);
   assert.equal((qml.match(/objectName: "profileConnectionsButton"/g) || []).length, 1);
-  assert.ok(qml.indexOf('objectName: "profileConnectionsButton"') < qml.indexOf('id: followsYouBadge'), 'action belongs in the avatar area, not next to the long profile name');
+  assert.match(qml, /id: ownerSocialBadgeStrip[\s\S]*?objectName: "profileConnectionsButton"/);
+  assert.doesNotMatch(qml, /iconGlyph: Theme\.iconPlus\s*\n\s*text: qsTr\("Connections"\)/);
   assert.match(qml, /onIsOwnProfileChanged:[\s\S]*?!root\.isOwnProfile[\s\S]*?close\(\)/);
   assert.match(qml, /onVisibleChanged:[\s\S]*?!root\.visible[\s\S]*?close\(\)/);
   assert.match(shell, /accountIssuer: presentationBridge\.accountIdentityIssuer/);
@@ -112,7 +114,8 @@ test('Genycaster owns account connection actions; OpenProof controls the proof a
   assert.match(qml, /openProofConnections\.disconnectProvider\(provider, subject\)/);
   assert.match(qml, /openProofConnections\.authorizeAccount\(\)/);
   assert.doesNotMatch(shell, /openProofConnections\.openManager\(provider\)/);
-  assert.doesNotMatch(popup, /XMLHttpRequest|fetch\(|http[s]?:\/\//);
+  assert.doesNotMatch(popup, /XMLHttpRequest|fetch\(/);
+  assert.match(popup, /https:\/\/www\.linkedin\.com\/in\//);
   assert.match(controller, /gatewayActionUrl\(QStringLiteral\("\/handoff"\)\)/);
   assert.match(controller, /gatewayActionUrl\(QStringLiteral\("\/disconnect"\)\)/);
   assert.match(controller, /m_viewerFid != requiredFid \|\| fid != requiredFid/);
@@ -172,8 +175,45 @@ test('connection selector packages provider-owned SVGs and keeps links in the ap
   assert.match(popup, /Theme\.dark|Theme\.surfaceMuted/);
   assert.match(popup, /providerRow\.confirmUnlink = true/);
   assert.match(popup, /picker\.catalogFallback/);
-  assert.doesNotMatch(popup, /https?:\/\//);
+  assert.doesNotMatch(popup, /XMLHttpRequest|fetch\(/);
+  assert.match(popup, /linkedInUrlError/);
+  assert.match(popup, /Theme\.iconCheck/);
   assert.doesNotMatch(popup, /Verify profile first|Provider catalog unavailable; showing known options/);
+});
+
+test('desktop Connections and shared Settings drawer dismiss by backdrop and Escape', () => {
+  const base = read('../../ui/components/GenyDrawer.qml');
+  const settings = read('../../ui/components/LocaleSettingsPopup.qml');
+  assert.match(base, /closePolicy: Popup.CloseOnEscape \| Popup.CloseOnPressOutside/);
+  assert.match(base, /sequence: "Escape"/);
+  assert.match(base, /enabled: control.visible && !control.bottomSheet/);
+  assert.match(base, /onBackgroundTapped: control.close\(\)/);
+  assert.match(base, /visible: !control.bottomSheet/);
+  assert.match(settings, /GenyDrawer/);
+  assert.match(popup, /closePolicy: Popup.CloseOnEscape \| Popup.CloseOnPressOutside/);
+});
+
+test('social network badges have stateful checkmarks and real destinations', () => {
+  assert.match(qml, /id: ownerSocialBadgeStrip/);
+  assert.match(qml, /text: Theme.iconCheck/);
+  assert.match(qml, /socialBadge\.liveVerified \? Theme.success/);
+  assert.match(qml, /root.openConnections\(\)/);
+  assert.match(qml, /openProofConnections.linkedInProfileUrl/);
+  assert.match(popup, /onClicked: picker.openProfileRequested/);
+  assert.match(popup, /saveLinkedInUrlRequested/);
+  assert.match(controller, /bool OpenProofConnectionsController::setLinkedInProfileUrl/);
+  assert.match(controller, /candidate.host\(\) != QStringLiteral\("linkedin.com"\)/);
+});
+
+test('provider OAuth success completes in a self-closing first-party popup', () => {
+  const gateway = read('../../services/media-gateway/gateway.mjs');
+  const completion = read('../../services/media-gateway/public/genycaster-connect-complete.html');
+  assert.match(gateway, /return_to:\s*'\/genycaster-connect-complete.html'/);
+  assert.match(completion, /window.close\(\)/);
+  assert.match(completion, /id="close"/);
+  assert.match(completion, /URLSearchParams\(window.location.search\).has\('op_error'\)/);
+  assert.doesNotMatch(completion, /fetch\(|XMLHttpRequest|localStorage|document.cookie/);
+  assert.match(controller, /closeGenycasterConnectionWindow\(\)/);
 });
 
 test('provider listing failure is a subdued offline hint, never an auth error', () => {

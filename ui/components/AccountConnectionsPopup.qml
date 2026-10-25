@@ -16,6 +16,8 @@ GenyDrawer {
     property bool authorizing: false
     property bool actionBusy: false
     property string pendingProvider: ""
+    property string linkedInProfileUrl: ""
+    property bool linkedInUrlError: false
     property bool catalogFallback: false
     property string approvalUrl: ""
     property string errorText: ""
@@ -25,6 +27,8 @@ GenyDrawer {
     signal refreshRequested()
     signal connectRequested(string provider)
     signal disconnectRequested(string provider, string subject)
+    signal saveLinkedInUrlRequested(string url)
+    signal openProfileRequested(string url)
 
     // Connections is an in-product sheet: bottom-up on phones and
     // a right-anchored inspector on desktop, independent of UI text direction.
@@ -37,10 +41,13 @@ GenyDrawer {
     edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge
     dimBackground: true
     interactive: false
+    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     showHandle: mobilePresentation
     contentPadding: Theme.space4
     width: parent ? (mobilePresentation ? parent.width : Math.min(500, parent.width * 0.94)) : 500
     height: parent ? (mobilePresentation ? Math.min(parent.height * 0.92, 720) : parent.height) : 720
+
+    onOpened: linkedInUrlError = false
 
     readonly property string logoRoot: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/"
 
@@ -87,6 +94,21 @@ GenyDrawer {
     function supportsRedirect(provider) {
         return provider === "x" || provider === "github" || provider === "google"
                || provider === "linkedin" || provider === "telegram"
+    }
+
+    function profileUrlFor(provider) {
+        const connected = connectionFor(provider)
+        if (!connected) return ""
+        const username = String(connected.username || "").replace(/^@/, "")
+        if (provider === "linkedin") return linkedInProfileUrl
+        if (provider === "x" && /^[A-Za-z0-9_]{1,15}$/.test(username))
+            return "https://x.com/" + username
+        if (provider === "github"
+                && /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(username))
+            return "https://github.com/" + username
+        if (provider === "telegram" && /^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(username))
+            return "https://t.me/" + username
+        return ""
     }
 
     function connectionFor(provider) {
@@ -371,6 +393,26 @@ GenyDrawer {
                                 RowLayout {
                                     layoutDirection: Theme.uiDirection
                                     spacing: Theme.space1
+                                    Icon {
+                                        visible: providerRow.isConnected
+                                        text: Theme.iconCheck
+                                        color: picker.authorized ? Theme.success : Theme.inkSubtle
+                                        preferredSize: 16
+                                        Layout.preferredWidth: 20
+                                        Layout.preferredHeight: 20
+                                        Accessible.name: picker.authorized
+                                                         ? qsTr("Verified account")
+                                                         : qsTr("Previously verified account")
+                                    }
+                                    ActionButton {
+                                        visible: providerRow.isConnected
+                                                 && picker.profileUrlFor(providerRow.modelData).length > 0
+                                        compact: true
+                                        quiet: true
+                                        iconGlyph: Theme.iconArrowUpRight
+                                        text: qsTr("View")
+                                        onClicked: picker.openProfileRequested(picker.profileUrlFor(providerRow.modelData))
+                                    }
                                     ActionButton {
                                         visible: picker.authorized && providerRow.redirectCapable
                                         compact: true
@@ -409,6 +451,50 @@ GenyDrawer {
                                         color: providerRow.isConnected ? Theme.success : Theme.inkSubtle
                                         font.pixelSize: Theme.typeCaptionSize
                                     }
+                                }
+                            }
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                Layout.leftMargin: Theme.space3
+                                Layout.rightMargin: Theme.space3
+                                Layout.bottomMargin: Theme.space3
+                                visible: providerRow.modelData === "linkedin" && providerRow.isConnected
+                                spacing: Theme.space2
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: qsTr("Public LinkedIn profile URL")
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                }
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: Theme.space2
+                                    DirectionAwareTextField {
+                                        id: linkedinUrlField
+                                        Layout.fillWidth: true
+                                        forceLeftToRight: true
+                                        inputMethodHints: Qt.ImhUrlCharactersOnly
+                                        placeholderText: "https://www.linkedin.com/in/your-name"
+                                        text: picker.linkedInProfileUrl
+                                        selectByMouse: true
+                                        onTextEdited: picker.linkedInUrlError = false
+                                        onAccepted: picker.saveLinkedInUrlRequested(text)
+                                    }
+                                    ActionButton {
+                                        compact: true
+                                        prominent: linkedinUrlField.text.trim().length > 0
+                                        text: qsTr("Save")
+                                        onClicked: picker.saveLinkedInUrlRequested(linkedinUrlField.text)
+                                    }
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: picker.linkedInUrlError
+                                          ? qsTr("Enter a valid https://www.linkedin.com/in/... address.")
+                                          : qsTr("LinkedIn confirmed your account, but this public URL is provided by you.")
+                                    color: picker.linkedInUrlError ? Theme.danger : Theme.inkSubtle
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    wrapMode: Text.Wrap
                                 }
                             }
                             Rectangle {

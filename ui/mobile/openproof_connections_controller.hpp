@@ -34,6 +34,7 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(bool actionBusy READ actionBusy NOTIFY stateChanged)
     Q_PROPERTY(bool cachedSnapshot READ cachedSnapshot NOTIFY stateChanged)
     Q_PROPERTY(QString pendingProvider READ pendingProvider NOTIFY stateChanged)
+    Q_PROPERTY(QString linkedInProfileUrl READ linkedInProfileUrl NOTIFY stateChanged)
 public:
     explicit OpenProofConnectionsController(QObject* parent = nullptr,
                                             QSettings* settings = nullptr);
@@ -53,6 +54,7 @@ public:
     [[nodiscard]] bool actionBusy() const noexcept;
     [[nodiscard]] bool cachedSnapshot() const noexcept;
     [[nodiscard]] QString pendingProvider() const;
+    [[nodiscard]] QString linkedInProfileUrl() const;
 
     /** @brief Changes viewer identity, invalidating any delegated account
      * token and pending link work when FID changes or session signs out. */
@@ -64,6 +66,9 @@ public:
     Q_INVOKABLE void connectProvider(const QString& provider);
     Q_INVOKABLE void disconnectProvider(const QString& provider, const QString& subject);
     Q_INVOKABLE void stopAuthorization();
+    /** @brief Stores an owner-supplied public LinkedIn URL, not an OpenProof
+     * identity assertion. FID-scoped and never grants account access. */
+    Q_INVOKABLE bool setLinkedInProfileUrl(const QString& url);
 
     /** @brief Accepts the transient account grant from a *verified* OpenProof
      * login, never from QML. The same Farcaster FID must already own the GUI
@@ -89,6 +94,7 @@ private:
     void clearAccountGrant();
     void restoreCachedConnections();
     void saveCachedConnections() const;
+    void restoreLinkedInProfileUrl();
     void sendAccountRequest(const QUrl& url, QByteArray body,
                             std::function<void(int, QByteArray)> callback);
     [[nodiscard]] QUrl gatewayActionUrl(const QString& suffix = {}) const;
@@ -114,6 +120,7 @@ private:
     bool m_actionBusy{};
     QString m_approvalUrl{};
     QString m_pendingProvider{};
+    QString m_linkedInProfileUrl{};
     int m_remainingPolls{};
     QUrl m_catalogUrl{};
     QUrl m_issuerUrl{};

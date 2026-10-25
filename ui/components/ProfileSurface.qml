@@ -93,9 +93,12 @@ Item {
             else if (provider === "telegram"
                      && /^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(username))
                 href = "https://t.me/" + username
-            // LinkedIn's OIDC 'sub' is not a public /in/ vanity handle;
-            // keep its verified mark visible but never invent a link.
+            else if (provider === "linkedin")
+                href = String(openProofConnections.linkedInProfileUrl || "")
+            // LinkedIn login proves the account identity, not the owner's
+            // optional public vanity URL. Keep provenance explicit in UX.
             result.push({ provider: provider, href: href,
+                          userProvidedUrl: provider === "linkedin",
                           label: String(item.displayName || username || provider).slice(0, 128) })
         }
         return result
@@ -103,6 +106,12 @@ Item {
     function socialIcon(provider) {
         const rootPath = "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/"
         return rootPath + provider + ".svg"
+    }
+    function openConnections() {
+        if (typeof openProofConnections === "undefined" || openProofConnections === null)
+            return
+        openProofConnections.refresh()
+        accountConnectionsPopup.open()
     }
     readonly property bool showUsername: Boolean(root.activeDetail.username) && !root.syntheticUsername(root.activeDetail.username)
     readonly property string normalizedBio: String(root.activeDetail.bio || "").replace(/\s+/g, " ").trim()
@@ -980,30 +989,6 @@ Item {
                         ], 0)
                     }
 
-                    // Keep the owner's connection manager as discoverable as
-                    // the Follow action for other profiles. The browser portal
-                    // performs its own OpenProof authentication when needed;
-                    // a Farcaster recovery session must not hide this entry.
-                    ActionButton {
-                        objectName: "profileConnectionsButton"
-                        x: root.profileContentRtl ? root.profileContentX
-                                                  : root.profileContentX + root.profileContentWidth - width
-                        anchors.top: parent.top
-                        anchors.topMargin: Theme.space2
-                        visible: root.isOwnProfile && Number(root.accountFid) > 0
-                        compact: true
-                        quiet: true
-                        iconGlyph: Theme.iconPlus
-                        text: qsTr("Connections")
-                        onClicked: {
-                            if (typeof openProofConnections === "undefined"
-                                    || openProofConnections === null)
-                                return
-                            openProofConnections.refresh()
-                            accountConnectionsPopup.open()
-                        }
-                    }
-
                     ActionButton {
                         x: root.profileContentRtl ? root.profileContentX : root.profileContentX + root.profileContentWidth - width
                         anchors.top: parent.top
@@ -1100,46 +1085,92 @@ Item {
                         Item { Layout.fillWidth: true }
                     }
 
-                    RowLayout {
+                    Rectangle {
                         id: ownerSocialBadgeStrip
                         objectName: "ownerVerifiedSocialBadgeStrip"
                         Layout.fillWidth: true
-                        visible: root.ownerSocialLinks.length > 0
-                        spacing: Theme.space2
-                        layoutDirection: Theme.uiDirection
+                        visible: root.isOwnProfile
+                        implicitHeight: Theme.scaleUi(52)
+                        radius: Theme.curveCompact
+                        color: Theme.surfaceMuted
+                        border.color: Theme.borderMuted
+                        border.width: 1
 
-                        Repeater {
-                            model: root.ownerSocialLinks
-                            delegate: Button {
-                                id: socialBadge
-                                required property var modelData
-                                readonly property bool liveVerified: openProofConnections.authorized
-                                width: Theme.scaleUi(34)
-                                height: Theme.scaleUi(34)
-                                Layout.preferredWidth: width
-                                Layout.preferredHeight: height
-                                display: AbstractButton.IconOnly
-                                icon.source: root.socialIcon(String(modelData.provider))
-                                icon.width: Theme.scaleUi(22)
-                                icon.height: Theme.scaleUi(22)
-                                enabled: String(modelData.href || "").length > 0
-                                opacity: liveVerified ? 1 : 0.65
-                                background: Rectangle {
-                                    radius: Theme.curveCompact
-                                    color: Theme.surface
-                                    border.color: Theme.borderMuted
-                                    border.width: 1
-                                }
-                                ToolTip.visible: hovered
-                                ToolTip.text: String(modelData.label)
-                                              + (liveVerified ? qsTr(" · verified by OpenProof")
-                                                              : qsTr(" · previously verified"))
-                                              + (enabled ? "" : qsTr(" · public URL unavailable"))
-                                Accessible.name: ToolTip.text
-                                onClicked: root.externalRequested(String(modelData.href))
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: Theme.space2
+                            anchors.rightMargin: Theme.space2
+                            spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
+
+                            ActionButton {
+                                objectName: "profileConnectionsButton"
+                                compact: true
+                                quiet: true
+                                iconGlyph: root.ownerSocialLinks.length > 0
+                                           ? Theme.iconCheck : Theme.iconLink
+                                text: root.compact ? qsTr("Networks") : qsTr("Connections")
+                                Accessible.description: qsTr("Manage verified social accounts")
+                                onClicked: root.openConnections()
                             }
+
+                            Repeater {
+                                model: root.ownerSocialLinks
+                                delegate: Button {
+                                    id: socialBadge
+                                    required property var modelData
+                                    readonly property bool liveVerified: openProofConnections.authorized
+                                    readonly property bool hasPublicUrl: String(modelData.href || "").length > 0
+                                    Layout.preferredWidth: Theme.scaleUi(36)
+                                    Layout.preferredHeight: Theme.scaleUi(36)
+                                    hoverEnabled: true
+                                    display: AbstractButton.IconOnly
+                                    icon.source: root.socialIcon(String(modelData.provider))
+                                    icon.width: Theme.scaleUi(21)
+                                    icon.height: Theme.scaleUi(21)
+                                    background: Rectangle {
+                                        radius: Theme.curveCompact
+                                        color: socialBadge.hovered ? Theme.surfaceHover : Theme.surface
+                                        border.color: socialBadge.liveVerified ? Theme.success : Theme.borderMuted
+                                        border.width: 1
+
+                                        Rectangle {
+                                            anchors.right: parent.right
+                                            anchors.bottom: parent.bottom
+                                            anchors.rightMargin: -Theme.space1 / 2
+                                            anchors.bottomMargin: -Theme.space1 / 2
+                                            width: Theme.scaleUi(14)
+                                            height: width
+                                            radius: width / 2
+                                            color: socialBadge.liveVerified ? Theme.success : Theme.inkSubtle
+                                            border.color: Theme.surface
+                                            border.width: 1
+                                            Icon {
+                                                anchors.centerIn: parent
+                                                text: Theme.iconCheck
+                                                preferredSize: 10
+                                                color: Theme.surface
+                                            }
+                                        }
+                                    }
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: String(modelData.label)
+                                                  + (liveVerified ? qsTr(" · connected")
+                                                                  : qsTr(" · last verified"))
+                                                  + (modelData.userProvidedUrl && hasPublicUrl
+                                                     ? qsTr(" · public URL supplied by you") : "")
+                                                  + (!hasPublicUrl ? qsTr(" · manage profile link") : "")
+                                    Accessible.name: ToolTip.text
+                                    onClicked: {
+                                        if (hasPublicUrl)
+                                            root.externalRequested(String(modelData.href))
+                                        else
+                                            root.openConnections()
+                                    }
+                                }
+                            }
+                            Item { Layout.fillWidth: true }
                         }
-                        Item { Layout.fillWidth: true }
                     }
 
                     RichText {
@@ -1492,7 +1523,13 @@ Item {
         approvalUrl: openProofConnections.approvalUrl
         actionBusy: openProofConnections.actionBusy
         pendingProvider: openProofConnections.pendingProvider
+        linkedInProfileUrl: openProofConnections.linkedInProfileUrl
         errorText: openProofConnections.error
+        onSaveLinkedInUrlRequested: url => {
+            accountConnectionsPopup.linkedInUrlError =
+                !openProofConnections.setLinkedInProfileUrl(url)
+        }
+        onOpenProfileRequested: url => root.externalRequested(url)
         onAuthorizeRequested: openProofConnections.authorizeAccount()
         onApprovalRequested: url => Qt.openUrlExternally(url)
         onRefreshRequested: openProofConnections.refreshConnections()

@@ -645,7 +645,7 @@ test('browser OpenProof account handoff binds provider and local return path ser
     });
     assert.equal(upstreamCalls.length,1);
     assert.deepEqual(upstreamCalls[0].payload,{
-      provider:'x',return_to:'/openproof/account/connections/complete'
+      provider:'x',return_to:'/genycaster-connect-complete.html'
     });
     assert.equal(upstreamCalls[0].authorization,'Bearer valid-token');
   }, {fetchImpl: async(url,options)=>{

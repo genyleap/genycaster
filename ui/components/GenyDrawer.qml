@@ -29,6 +29,17 @@ Drawer {
     topPadding: contentPadding + sheetTopInset
     bottomPadding: contentPadding + (floatingSheet ? Theme.space3 : 0)
 
+    // Qt's Drawer can lose focus to embedded editors, WebAssembly canvases,
+    // or an app-wide shortcut handler. Desktop dismissal must remain available
+    // even when the close glyph is off-screen. Mobile sheets retain their own
+    // navigation/back contract.
+    Shortcut {
+        sequence: "Escape"
+        context: Qt.WindowShortcut
+        enabled: control.visible && !control.bottomSheet
+        onActivated: control.close()
+    }
+
     // One motion contract for side drawers and bottom sheets. Animate the
     // Drawer.position property so interactive edge gestures stay in sync;
     // never animate x/y, which Qt owns for an edge-anchored Drawer.
