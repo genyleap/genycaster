@@ -52,6 +52,7 @@ test('own signed-in profile always exposes connection manager regardless of logi
 
 test('Genycaster owns account connection actions; OpenProof controls the proof and consent', () => {
   assert.match(qml, /openProofConnections\.refresh\(\)/);
+  assert.match(qml, /AccountConnectionsPopup\s*\{[\s\S]*?parent: Overlay\.overlay/);
   assert.match(popup, /connectRequested\(string provider\)/);
   assert.match(popup, /disconnectRequested\(string provider, string subject\)/);
   assert.match(popup, /authorizeRequested\(\)/);

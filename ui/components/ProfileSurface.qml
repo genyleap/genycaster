@@ -1405,7 +1405,9 @@ Item {
 
     AccountConnectionsPopup {
         id: accountConnectionsPopup
-        parent: root
+        // The drawer must cover the whole application viewport, not only
+        // the profile center pane, on both desktop and mobile.
+        parent: Overlay.overlay
         providers: typeof openProofConnections !== "undefined"
                    && openProofConnections !== null
                    ? openProofConnections.providers : []
