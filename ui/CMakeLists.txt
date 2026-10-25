@@ -1000,14 +1000,6 @@ qt_add_resources(farcaster_client openproof_public_endpoints
         "${CMAKE_CURRENT_SOURCE_DIR}/config/public_endpoints.json"
 )
 
-# On the browser target, keep QML's precompiled bytecode but skip the
-# AOT-generated C++ functions. Qt's QMLCACHEGEN_ARGUMENTS --only-bytecode
-# avoids extremely expensive optimization of hundreds of generated files
-# on our resource-limited WASM release builder. Native Qt retains AOT.
-if(EMSCRIPTEN)
-    set_property(TARGET farcaster_client PROPERTY QT_QMLCACHEGEN_ARGUMENTS --only-bytecode)
-endif()
-
 qt_add_qml_module(farcaster_client
     URI Farcaster.Client
     VERSION 1.0
