@@ -13,7 +13,7 @@ test('mobile profile binds avatar and connections to the same header band',()=>{
 });
 test('profile extras are compact, labelled and reachable through a mobile sheet',()=>{
   assert.match(profile,/objectName: "profileMoreLinksInline"/);
-  assert.match(profile,/objectName: "ownerPersonalLinks"/);
+  assert.match(profile,/objectName: "profileIdentityLinks"/);
   assert.match(profile,/id: profileLinksDrawer[\s\S]*?bottomSheet: mobilePresentation/);
   assert.match(profile,/id: profileExtrasEditor[\s\S]*?bottomSheet: mobilePresentation/);
   assert.match(profile,/id: profileLinksDrawer[\s\S]*?title: qsTr\("Links"\)/);
@@ -24,14 +24,21 @@ test('profile extras are compact, labelled and reachable through a mobile sheet'
   assert.match(profile,/text: qsTr\("Save changes"\)/);
   assert.doesNotMatch(profile,/Popup \{\s*id: profileExtrasEditor/);
 });
-test('owner actions are short matching Edit/Share pills, not a full-width Edit and redundant Links button',()=>{
+test('mobile uses equal-width Share and Edit buttons; desktop uses a real profile menu',()=>{
   const start=profile.indexOf('objectName: "profileOwnerActions"');
   const end=profile.indexOf('DirectionAwareLabel {',start);
   const actions=profile.slice(start,end);
   assert.ok(start>0 && end>start);
   assert.match(actions,/objectName: "profileShareAction"/);
   assert.match(actions,/objectName: "profileEditAction"/);
-  assert.match(actions,/Layout\.maximumWidth: Theme\.scaleUi\(180\)/);
+  assert.match(actions,/visible: root\.isOwnProfile && root\.compact/);
+  assert.equal((actions.match(/Layout\.fillWidth: true/g)||[]).length,3);
+  assert.equal((actions.match(/Layout\.minimumWidth: 0/g)||[]).length,2);
+  assert.equal((actions.match(/Layout\.preferredWidth: Math\.max\(0, \(root\.profileContentWidth - Theme\.space2\) \/ 2\)/g)||[]).length,2);
+  assert.match(profile,/objectName: "profileOptionsButton"/);
+  assert.match(profile,/visible: !root\.compact[\s\S]*?iconGlyph: Theme\.iconMore/);
+  assert.match(profile,/objectName: "profileOptionsMenu"/);
+  assert.match(profile,/visible: root\.isOwnProfile[\s\S]*?text: qsTr\("Edit profile"\)/);
   assert.equal((actions.match(/compact: true/g)||[]).length,2);
   assert.equal((actions.match(/pill: true/g)||[]).length,2);
   assert.match(actions,/text: qsTr\("Share profile"\)/);
@@ -40,20 +47,21 @@ test('owner actions are short matching Edit/Share pills, not a full-width Edit a
   assert.match(actions,/profileExtrasEditor\.open\(\)/);
   assert.doesNotMatch(actions,/text: qsTr\("Links"\)/);
 });
-test('website and its extra-link count are grouped at the physical right edge',()=>{
-  const start=profile.indexOf('objectName: "profilePrimaryLinkRow"');
-  const end=profile.indexOf('visible: root.showLocation',start);
-  const primary=profile.slice(start,end);
+test('website and additional links are in the identity row, not below the biography',()=>{
+  const start=profile.indexOf('objectName: "profileIdentityRow"');
+  const end=profile.indexOf('objectName: "profileProfessionalCategory"',start);
+  const identity=profile.slice(start,end);
   assert.ok(start>0 && end>start);
-  assert.match(primary,/layoutDirection: Qt\.LeftToRight/);
-  assert.match(primary,/Item \{ Layout\.fillWidth: true \}/);
-  assert.match(primary,/Layout\.maximumWidth: Math\.max\(100, root\.profileContentWidth \* 0\.53\)/);
-  assert.match(primary,/objectName: "profileMoreLinksInline"/);
-  assert.match(primary,/onClicked: profileLinksDrawer\.open\(\)/);
-  const fallback=profile.slice(profile.indexOf('objectName: "ownerPersonalLinks"'),
-    profile.indexOf('objectName: "profileOwnerActions"'));
-  assert.match(fallback,/layoutDirection: Qt\.LeftToRight/);
-  assert.match(fallback,/Item \{ Layout\.fillWidth: true \}/);
+  assert.match(identity,/objectName: "profileIdentityLinks"/);
+  assert.match(identity,/layoutDirection: Qt\.LeftToRight/);
+  assert.match(identity,/objectName: "profileIdentityPrimaryLink"/);
+  assert.match(identity,/objectName: "profileMoreLinksInline"/);
+  assert.match(identity,/onClicked: profileLinksDrawer\.open\(\)/);
+  assert.match(profile,/readonly property string primaryProfileLinkUrl:/);
+  assert.match(profile,/readonly property int additionalProfileLinksCount:/);
+  assert.doesNotMatch(profile,/objectName: "ownerPersonalLinks"|objectName: "profilePrimaryLinkRow"/);
+  assert.ok(profile.indexOf('objectName: "profileIdentityLinks"')
+    < profile.indexOf('sourceText: root.normalizedBio'));
 });
 test('global navigation shares cubic slide/fade and honors reduced-motion settings',()=>{
   for (const id of ['appsSurfaceLoader','notificationsRouteLoader','feedSurfaceLoader','profileSurfaceLoader']) {

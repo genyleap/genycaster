@@ -67,6 +67,12 @@ Item {
             ? labels[index].trim().slice(0, 32) : qsTr("Link %1").arg(index + 1)
     }
     readonly property int profileLinkTotal: root.profileExtraLinks.length + (root.showProfileUrl ? 1 : 0)
+    readonly property string primaryProfileLinkUrl: root.showProfileUrl
+        ? String(root.activeDetail.profileUrl || "")
+        : (root.isOwnProfile && root.profileExtraLinks.length > 0
+            ? String(root.profileExtraLinks[0]) : "")
+    readonly property int additionalProfileLinksCount: Math.max(
+        0, root.profileLinkTotal - (root.primaryProfileLinkUrl.length > 0 ? 1 : 0))
     function openProfileLinks() {
         if (root.profileLinkTotal > 0) profileLinksDrawer.open()
     }
@@ -789,12 +795,13 @@ Item {
 
                 ActionButton {
                     id: profileShareButton
-                    objectName: "profileShareButton"
+                    objectName: "profileOptionsButton"
+                    visible: !root.compact
                     compact: true
                     quiet: true
-                    iconGlyph: Theme.iconShare
+                    iconGlyph: Theme.iconMore
                     iconOnly: true
-                    text: qsTr("Share profile")
+                    text: qsTr("Profile options")
                     enabled: Number(root.activeDetail.fid || 0) > 0
                     onClicked: {
                         profileShareMenu.active = true
@@ -812,7 +819,7 @@ Item {
                         sourceComponent: Component {
                             Popup {
                                 id: sharePopup
-                                objectName: "profileShareMenu"
+                                objectName: "profileOptionsMenu"
                                 parent: Overlay.overlay
                                 width: 250
                                 implicitHeight: shareActions.implicitHeight + Theme.space2
@@ -825,6 +832,18 @@ Item {
                                 contentItem: ColumnLayout {
                                     id: shareActions
                                     spacing: 0
+                                    ActionButton {
+                                        visible: root.isOwnProfile
+                                        Layout.fillWidth: true
+                                        quiet: true
+                                        alignStart: true
+                                        iconGlyph: Theme.iconCompose
+                                        text: qsTr("Edit profile")
+                                        onClicked: {
+                                            sharePopup.close()
+                                            profileExtrasEditor.open()
+                                        }
+                                    }
                                     ActionButton {
                                         Layout.fillWidth: true
                                         quiet: true
@@ -1227,20 +1246,22 @@ Item {
                     spacing: Theme.space1
 
                     RowLayout {
+                        objectName: "profileIdentityRow"
                         Layout.fillWidth: true
                         spacing: Theme.space2
                         layoutDirection: Theme.uiDirection
 
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            Layout.minimumWidth: 0
+                            Layout.minimumWidth: Theme.scaleUi(root.compact ? 76 : 125)
                             text: root.activeDetail.displayName || (root.showUsername ? root.activeDetail.username : "")
                                   || qsTrId("genycaster.profile.farcaster_profile")
                             color: Theme.ink
                             font.pixelSize: root.compact ? Theme.typeTitle2Size : Theme.typeTitle1Size
                             font.weight: Theme.weightBold
                             horizontalAlignment: Theme.textStartAlignment
-                            wrapMode: Text.Wrap
+                            wrapMode: root.compact ? Text.NoWrap : Text.Wrap
+                            elide: root.compact ? Text.ElideRight : Text.ElideNone
                         }
 
                         // Reserved for a future server-signed, wallet-bound GENY
@@ -1302,7 +1323,73 @@ Item {
                             }
                         }
 
-                        Item { Layout.fillWidth: true }
+                        RowLayout {
+                            id: identityLinks
+                            objectName: "profileIdentityLinks"
+                            visible: root.primaryProfileLinkUrl.length > 0
+                            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                            Layout.preferredWidth: Math.min(root.profileContentWidth * 0.57,
+                                Theme.scaleUi(root.compact ? 218 : 260))
+                            Layout.maximumWidth: Layout.preferredWidth
+                            spacing: Theme.space1
+                            layoutDirection: Qt.LeftToRight
+
+                            Button {
+                                id: identityPrimaryLink
+                                objectName: "profileIdentityPrimaryLink"
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                flat: true
+                                hoverEnabled: true
+                                padding: 0
+                                background: Item {}
+                                contentItem: RowLayout {
+                                    spacing: Theme.space1
+                                    Icon {
+                                        text: Theme.iconLink
+                                        color: Theme.accent
+                                        preferredSize: Theme.typeCaptionSize
+                                    }
+                                    Label {
+                                        Layout.fillWidth: true
+                                        Layout.minimumWidth: 0
+                                        text: root.displayUrl(root.primaryProfileLinkUrl)
+                                        color: Theme.accent
+                                        font.family: Theme.latinFontFamily
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        elide: Text.ElideRight
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                }
+                                Accessible.role: Accessible.Link
+                                Accessible.name: root.primaryProfileLinkUrl
+                                onClicked: root.externalRequested(root.primaryProfileLinkUrl)
+                            }
+                            Button {
+                                id: identityMoreLinks
+                                objectName: "profileMoreLinksInline"
+                                visible: root.isOwnProfile && root.additionalProfileLinksCount > 0
+                                Layout.alignment: Qt.AlignVCenter
+                                flat: true
+                                hoverEnabled: true
+                                padding: Theme.space1
+                                background: Rectangle {
+                                    radius: Theme.curveCompact
+                                    color: identityMoreLinks.hovered ? Theme.surfaceHover : "transparent"
+                                    Behavior on color {
+                                        ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                                    }
+                                }
+                                contentItem: Label {
+                                    text: qsTr("and %1 more").arg(root.additionalProfileLinksCount)
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: Theme.weightDemiBold
+                                }
+                                Accessible.name: qsTr("Show all profile links")
+                                onClicked: profileLinksDrawer.open()
+                            }
+                        }
                     }
 
                     RowLayout {
@@ -1350,137 +1437,23 @@ Item {
                         onExternalRequested: url => root.externalRequested(url)
                     }
 
-                    ColumnLayout {
-                        visible: root.showProfileUrl || root.showLocation
-                        Layout.fillWidth: true
-                        spacing: Theme.space1
-
-                        RowLayout {
-                            objectName: "profilePrimaryLinkRow"
-                            visible: root.showProfileUrl
-                            Layout.fillWidth: true
-                            spacing: Theme.space2
-                            // Keep the link and "more" action as one compact group
-                            // at the physical right edge, including on phones.
-                            layoutDirection: Qt.LeftToRight
-
-                            Item { Layout.fillWidth: true }
-
-                            Icon {
-                                text: Theme.iconLink
-                                color: Theme.accent
-                                preferredSize: Theme.typeCaptionSize
-                            }
-
-                            Label {
-                                Layout.maximumWidth: Math.max(100, root.profileContentWidth * 0.53)
-                                LayoutMirroring.enabled: false
-                                text: root.ltrText(root.displayUrl(root.activeDetail.profileUrl))
-                                font.family: Theme.latinFontFamily
-                                color: Theme.accent
-                                font.pixelSize: Theme.typeCaptionSize
-                                font.weight: Theme.weightMedium
-                                horizontalAlignment: Theme.textStartAlignment
-                                elide: Text.ElideRight
-
-                                HoverHandler { id: profileLinkHover }
-                                TapHandler {
-                                    gesturePolicy: TapHandler.ReleaseWithinBounds
-                                    onTapped: root.externalRequested(root.activeDetail.profileUrl || "")
-                                }
-                                Accessible.role: Accessible.Link
-                                Accessible.name: qsTrId("genycaster.profile.open_profile_link")
-                            }
-                            Button {
-                                objectName: "profileMoreLinksInline"
-                                visible: root.isOwnProfile && root.profileExtraLinks.length > 0
-                                flat: true
-                                padding: Theme.space1
-                                hoverEnabled: true
-                                background: Rectangle {
-                                    radius: Theme.curveCompact
-                                    color: parent.hovered ? Theme.surfaceHover : "transparent"
-                                    Behavior on color {
-                                        ColorAnimation { duration: Theme.motionFast }
-                                    }
-                                }
-                                contentItem: Label {
-                                    text: qsTr("and %1 more").arg(root.profileExtraLinks.length)
-                                    color: Theme.inkMuted
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    font.weight: Theme.weightDemiBold
-                                }
-                                Accessible.name: qsTr("Show all profile links")
-                                onClicked: profileLinksDrawer.open()
-                            }
-                        }
-
-                        RowLayout {
-                            visible: root.showLocation
-                            Layout.fillWidth: true
-                            spacing: Theme.space2
-                            layoutDirection: Theme.uiDirection
-
-                            Icon {
-                                text: Theme.iconLocation
-                                color: Theme.inkSubtle
-                                preferredSize: Theme.typeCaptionSize
-                            }
-
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: root.displayLocation
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                                elide: Text.ElideRight
-                            }
-                        }
-                    }
-
                     RowLayout {
-                        objectName: "ownerPersonalLinks"
+                        objectName: "profileLocationRow"
+                        visible: root.showLocation
                         Layout.fillWidth: true
-                        visible: root.isOwnProfile && !root.showProfileUrl
-                                 && root.profileExtraLinks.length > 0
                         spacing: Theme.space2
-                        layoutDirection: Qt.LeftToRight
-                        Item { Layout.fillWidth: true }
-                        Button {
-                            id: primaryExtraLink
-                            flat: true
-                            hoverEnabled: true
-                            Layout.maximumWidth: Math.max(100, root.profileContentWidth * 0.53)
-                            padding: Theme.space1
-                            background: Item {}
-                            contentItem: RowLayout {
-                                spacing: Theme.space2
-                                Icon {
-                                    text: Theme.iconLink
-                                    color: Theme.accent
-                                    preferredSize: Theme.typeCaptionSize
-                                }
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: root.displayUrl(root.profileExtraLinks[0] || "")
-                                    color: Theme.accent
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    elide: Text.ElideRight
-                                }
-                            }
-                            Accessible.role: Accessible.Link
-                            onClicked: root.externalRequested(String(root.profileExtraLinks[0] || ""))
+                        layoutDirection: Theme.uiDirection
+                        Icon {
+                            text: Theme.iconLocation
+                            color: Theme.inkSubtle
+                            preferredSize: Theme.typeCaptionSize
                         }
-                        Button {
-                            visible: root.profileExtraLinks.length > 1
-                            flat: true
-                            padding: Theme.space1
-                            background: Item {}
-                            contentItem: Label {
-                                text: qsTr("and %1 more").arg(root.profileExtraLinks.length - 1)
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                            }
-                            onClicked: profileLinksDrawer.open()
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: root.displayLocation
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            elide: Text.ElideRight
                         }
                     }
 
@@ -1549,21 +1522,16 @@ Item {
                     RowLayout {
                         objectName: "profileOwnerActions"
                         Layout.fillWidth: true
-                        visible: root.isOwnProfile
+                        visible: root.isOwnProfile && root.compact
                         spacing: Theme.space2
                         layoutDirection: Qt.LeftToRight
-
-                        // Desktop actions sit at the right. On phones two
-                        // equally sized, short pill buttons fill the action row.
-                        Item {
-                            visible: !root.compact
-                            Layout.fillWidth: true
-                        }
+                        // Two equal, gutter-to-gutter touch targets on phones.
+                        // Desktop actions live exclusively in profileOptionsMenu.
                         ActionButton {
                             objectName: "profileShareAction"
-                            Layout.fillWidth: root.compact
-                            Layout.maximumWidth: Theme.scaleUi(180)
-                            Layout.preferredWidth: Theme.scaleUi(root.compact ? 152 : 136)
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            Layout.preferredWidth: Math.max(0, (root.profileContentWidth - Theme.space2) / 2)
                             compact: true
                             quiet: false
                             pill: true
@@ -1575,9 +1543,9 @@ Item {
                         }
                         ActionButton {
                             objectName: "profileEditAction"
-                            Layout.fillWidth: root.compact
-                            Layout.maximumWidth: Theme.scaleUi(180)
-                            Layout.preferredWidth: Theme.scaleUi(root.compact ? 152 : 136)
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            Layout.preferredWidth: Math.max(0, (root.profileContentWidth - Theme.space2) / 2)
                             compact: true
                             quiet: false
                             pill: true
