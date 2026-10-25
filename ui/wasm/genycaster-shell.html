@@ -73,6 +73,41 @@
 #genycaster-update-banner button:focus-visible{outline:2px solid var(--update-success);outline-offset:3px}
 @media(max-width:560px){#genycaster-update-banner{padding:calc(env(safe-area-inset-top,0px) + 16px) 18px 20px;border-radius:0 0 22px 22px;max-height:82dvh}.update-version-grid{gap:7px}.update-version{padding:10px}.update-version strong{font-size:15px}}
 @media(prefers-reduced-motion:reduce){#genycaster-update-banner{animation:none}}
+
+/* Short, motion-aware studio ident shown over real asynchronous startup.
+   It never replaces measured WASM bytes with invented progress. */
+#genycaster-boot[data-intro="on"] .boot-content,
+#genycaster-boot[data-intro="on"] .boot-credit{visibility:hidden}
+#genycaster-studio-intro{position:absolute;inset:0;display:grid;place-items:center;z-index:2;
+  padding:32px 24px;overflow:hidden;isolation:isolate;text-align:center;pointer-events:none}
+#genycaster-studio-intro[hidden]{display:none}
+#genycaster-studio-intro::before{content:"";position:absolute;z-index:-1;
+  width:min(72vw,580px);aspect-ratio:1;border:1px solid #60d5af29;border-radius:50%;
+  background:radial-gradient(circle,#32cc9c18 0%,transparent 64%);
+  box-shadow:0 0 0 56px #60d5af08,0 0 0 115px #60d5af05;
+  animation:studioBreathe 3s ease-in-out infinite}
+.studio-scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:14px;opacity:0;transform:translateY(12px) scale(.975);
+  transition:opacity .42s ease,transform .55s cubic-bezier(.2,.75,.25,1)}
+#genycaster-studio-intro[data-scene="studio"] .studio-scene--studio,
+#genycaster-studio-intro[data-scene="partners"] .studio-scene--partners{opacity:1;transform:none}
+.studio-mark{display:block;width:94px;height:94px;object-fit:contain;filter:drop-shadow(0 16px 40px #21ba8450)}
+:root[data-chrome-theme="light"] .studio-mark{content:url("./genyleap-mark-light.svg")}
+.studio-brand{font-size:clamp(29px,6.5vw,44px);font-weight:780;letter-spacing:.12em;line-height:1.1}
+.studio-caption{font-size:clamp(11px,2vw,13px);font-weight:600;letter-spacing:.23em;text-transform:uppercase;color:#63d9b4}
+.studio-presents{font-size:13px;font-style:italic;letter-spacing:.18em;opacity:.62;margin-top:12px}
+.studio-hairline{width:88px;height:1px;background:linear-gradient(90deg,transparent,#5dd8b0,transparent)}
+.studio-ecosystem-title{font-size:10px;letter-spacing:.26em;text-transform:uppercase;opacity:.55}
+.studio-ecosystem{width:min(520px,92vw);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.studio-node{min-height:85px;border:1px solid #66cdae38;border-radius:14px;display:grid;place-items:center;
+  background:linear-gradient(140deg,#2cb59014,transparent 72%);position:relative;
+  font-size:clamp(14px,3vw,18px);font-weight:700;letter-spacing:.045em;box-shadow:0 12px 32px #0001}
+.studio-node::before{content:"";position:absolute;width:5px;height:5px;border-radius:50%;
+  background:#65e1bc;top:11px;left:12px;box-shadow:0 0 12px #65e1bc9c}
+.studio-node small{display:block;font-size:9px;text-transform:uppercase;font-weight:550;letter-spacing:.15em;opacity:.6}
+@keyframes studioBreathe{50%{transform:scale(1.06);opacity:.55}}
+@media(prefers-reduced-motion:reduce){#genycaster-studio-intro::before{animation:none}
+  .studio-scene{transition:none;transform:none}}
 .boot-content{width:min(380px,100%);padding:24px 8px;display:flex;flex-direction:column;align-items:center;text-align:center;margin-inline:auto}
 .boot-mark{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;width:100%;margin-bottom:52px;text-align:center}
 .boot-glyph{display:block;width:76px;height:76px;object-fit:contain}
@@ -120,6 +155,24 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
   <div class="update-actions"><button id="genycaster-update-later" type="button">Later</button><button id="genycaster-update-now" type="button">Update now</button></div>
 </section>
 <div id="genycaster-boot" role="status" aria-live="polite">
+  <div id="genycaster-studio-intro" data-scene="studio" aria-hidden="true" hidden>
+    <div class="studio-scene studio-scene--studio">
+      <img class="studio-mark" src="./genyleap-mark-dark.svg" alt="" decoding="async">
+      <div class="studio-brand">GENYLEAP</div>
+      <div class="studio-hairline"></div>
+      <div class="studio-caption">Genyleap Software Revolution</div>
+      <div class="studio-presents">presents</div>
+    </div>
+    <div class="studio-scene studio-scene--partners">
+      <div class="studio-ecosystem-title">Built for an open ecosystem</div>
+      <div class="studio-ecosystem">
+        <div class="studio-node"><span>Blockchain<small>Open infrastructure</small></span></div>
+        <div class="studio-node"><span>Farcaster<small>Social protocol</small></span></div>
+        <div class="studio-node"><span>Base<small>Onchain ecosystem</small></span></div>
+        <div class="studio-node"><span>OpenProof<small>Account identity</small></span></div>
+      </div>
+    </div>
+  </div>
   <div class="boot-content">
     <div class="boot-mark">
       <img class="boot-glyph" src="./genycaster-icon.svg" alt="" decoding="async">

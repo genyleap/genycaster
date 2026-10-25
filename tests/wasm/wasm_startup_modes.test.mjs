@@ -115,7 +115,7 @@ test("first launch uses real download → install → Qt initialize → ready mi
     assert.equal(h.phase(),"download","headers are not download completion");
     h.resourceComplete();
     assert.equal(h.phase(),"install");
-    assert.equal(h.label(),"Preparing application");
+    assert.equal(h.label(),"Preparing WebAssembly resources");
     h.config.monitorRunDependencies(0);
     assert.equal(h.phase(),"interface");
     assert.equal(h.label(),"Almost ready");
@@ -131,8 +131,8 @@ test("normal refresh skips Download/Install and restores the Qt runtime",async()
     const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa"});
     assert.equal(h.mode(),"warm");
     assert.equal(h.phase(),"initialize");
-    assert.equal(h.nodes.get("boot-heading").textContent,"Starting Genycaster…");
-    assert.equal(h.label(),"Preparing application");
+    assert.equal(h.nodes.get("boot-heading").textContent,"Initializing Runtime…");
+    assert.equal(h.label(),"Initializing Qt and WebAssembly");
     const response=await h.fetch();
     assert.ok(response.ok);
     assert.equal(h.phase(),"initialize");

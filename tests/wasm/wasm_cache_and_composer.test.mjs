@@ -205,6 +205,8 @@ test('Safari touch icons and responsive stage indicators ship from one public ro
     assert.match(cmake,/apple-touch-icon\.png/);
     assert.doesNotMatch(html,/class="boot-journey/);
     assert.match(html,/Preparing Genycaster…/);
+    assert.match(html,/Genyleap Software Revolution/);
+    assert.match(html,/Farcaster<small>Social protocol/);
     assert.match(html,/id="boot-track"/);
 });
 

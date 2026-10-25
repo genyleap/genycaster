@@ -214,12 +214,12 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     // An 8-byte native response can complete immediately: the optional
     // first-run clone accurately moves Download → Install on full consumption.
     assert.equal(elements.get('genycaster-boot').dataset.phase,'install');
-    assert.equal(elements.get('boot-stage').textContent,'Preparing application');
+    assert.equal(elements.get('boot-stage').textContent,'Preparing WebAssembly resources');
     const entry={name:'https://example.test/'+hashedWasm,responseEnd:20,transferSize:8,decodedBodySize:8};
     timingEntries.set(entry.name,[entry]);
     observeResources({getEntries:()=>[entry]});
     assert.equal(elements.get('genycaster-boot').dataset.phase,'install');
-    assert.equal(elements.get('boot-stage').textContent,'Preparing application');
+    assert.equal(elements.get('boot-stage').textContent,'Preparing WebAssembly resources');
     monitorDependencies(0);
     assert.equal(elements.get('genycaster-boot').dataset.phase,'interface');
     assert.equal(elements.get('boot-heading').textContent,'Opening Genycaster…');

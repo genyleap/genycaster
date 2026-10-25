@@ -10,6 +10,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QRegularExpression>
+#include <QCryptographicHash>
 #include <QSettings>
 #include <QUrlQuery>
 
@@ -137,6 +138,55 @@ bool OpenProofConnectionsController::actionBusy() const noexcept { return m_acti
 bool OpenProofConnectionsController::cachedSnapshot() const noexcept { return m_cachedSnapshot; }
 QString OpenProofConnectionsController::pendingProvider() const { return m_pendingProvider; }
 
+QString OpenProofConnectionsController::manualLinkedInSettingKey() const
+{
+    if (m_accountSubject.isEmpty() || !trustedHttpsEndpoint(m_issuerUrl)) return {};
+    const QByteArray owner = m_issuerUrl.toString(QUrl::FullyEncoded).toUtf8()
+        + ':' + m_accountSubject.toUtf8();
+    return QStringLiteral("genycaster/manualLinkedIn/")
+        + QString::fromLatin1(QCryptographicHash::hash(owner, QCryptographicHash::Sha256).toHex());
+}
+
+QString OpenProofConnectionsController::manualLinkedInUrl() const
+{
+    if (!m_verified || !isConnected(QStringLiteral("linkedin")) || !m_settings) return {};
+    const QString key = manualLinkedInSettingKey();
+    return key.isEmpty() ? QString{} : m_settings->value(key).toString();
+}
+
+void OpenProofConnectionsController::setManualLinkedInUrl(const QString& candidate)
+{
+    if (!m_verified || !isConnected(QStringLiteral("linkedin")) || !m_settings) return;
+    const QString value = candidate.trimmed();
+    const QUrl parsed{value};
+    static const QRegularExpression validPath{QStringLiteral("^/in/[A-Za-z0-9_-]{3,100}/?$")};
+    if (!value.isEmpty() && !(parsed.isValid() && parsed.scheme() == QStringLiteral("https")
+        && parsed.host() == QStringLiteral("www.linkedin.com")
+        && parsed.port() == -1 && parsed.userInfo().isEmpty()
+        && parsed.query().isEmpty() && parsed.fragment().isEmpty()
+        && validPath.match(parsed.path()).hasMatch())) {
+        m_error = QStringLiteral("Enter the full LinkedIn URL: https://www.linkedin.com/in/username");
+        emit stateChanged();
+        return;
+    }
+    const QString key = manualLinkedInSettingKey();
+    if (key.isEmpty()) return;
+    if (value.isEmpty()) m_settings->remove(key);
+    else m_settings->setValue(key, QStringLiteral("https://www.linkedin.com") + parsed.path());
+    m_settings->sync();
+    for (auto& entry : m_connections) {
+        auto item = entry.toMap();
+        if (item.value(QStringLiteral("provider")).toString() != QStringLiteral("linkedin")) continue;
+        item[QStringLiteral("manualProfileUrl")] = value.isEmpty()
+            ? QString{} : QStringLiteral("https://www.linkedin.com") + parsed.path();
+        entry = item;
+    }
+    saveCachedConnections();
+    m_error.clear();
+    emit stateChanged();
+}
+
+
 QString OpenProofConnectionsController::recoveryGatewayOrigin() const
 {
     if (!trustedHttpsEndpoint(m_gatewayUrl)) return {};
@@ -249,7 +299,8 @@ void OpenProofConnectionsController::restoreCachedConnections()
             {QStringLiteral("subject"), subject},
             {QStringLiteral("displayName"), name},
             {QStringLiteral("username"), username},
-            {QStringLiteral("profileUrl"), value.value(QStringLiteral("profileUrl")).toString()}});
+            {QStringLiteral("profileUrl"), value.value(QStringLiteral("profileUrl")).toString()},
+            {QStringLiteral("manualProfileUrl"), value.value(QStringLiteral("manualProfileUrl")).toString()}});
     }
     m_connections = std::move(restored);
     m_cachedSnapshot = true;
@@ -272,7 +323,8 @@ void OpenProofConnectionsController::saveCachedConnections() const
             {QStringLiteral("subject"), subject},
             {QStringLiteral("displayName"), item.value(QStringLiteral("displayName")).toString().left(256)},
             {QStringLiteral("username"), item.value(QStringLiteral("username")).toString().left(128)},
-            {QStringLiteral("profileUrl"), item.value(QStringLiteral("profileUrl")).toString().left(256)}});
+            {QStringLiteral("profileUrl"), item.value(QStringLiteral("profileUrl")).toString().left(256)},
+            {QStringLiteral("manualProfileUrl"), item.value(QStringLiteral("manualProfileUrl")).toString().left(256)}});
     }
     const QJsonObject snapshot{
         {QStringLiteral("fid"), QString::number(m_viewerFid)},
@@ -548,6 +600,10 @@ void OpenProofConnectionsController::refreshConnections()
                         json.value(QStringLiteral("display_name")).toString()},
                     {QStringLiteral("username"), handle},
                     {QStringLiteral("profileUrl"), publicUrl},
+                    {QStringLiteral("manualProfileUrl"), provider == QStringLiteral("linkedin")
+                        ? ([&] { const QString key = manualLinkedInSettingKey();
+                            return key.isEmpty() || !m_settings ? QString{} : m_settings->value(key).toString(); }())
+                        : QString{}},
                 });
             }
             if (!linkedFid || farcasterClaims != 1) {

@@ -3,9 +3,9 @@
 **Status:** Accepted boundary / implementation staged (2026-10-21).
 
 ## Responsibility
-- OpenProof alone creates, verifies, lists and removes linked identities. Genycaster must not duplicate the connection store, identity claims, credentials, refresh tokens or passwords.
+- OpenProof alone creates, verifies, lists and removes linked identities. Genycaster may cache limited display metadata in an app-owned `connections` table, but must not duplicate the connection authority, subjects, identity claims, credentials, refresh tokens or passwords. A manually entered URL has explicitly self-asserted provenance.
 - Farcaster/Hypersnap is the canonical protocol authority for user-data, casts and signer-bound writes.
-- Genycaster's **optional** extension database named `genycaster` owns only client-specific cross-device state (initially synchronized bookmarks); it references the stable OpenProof `issuer + subject` identity as an opaque principal, with no `users` or `social_connections` table.
+- Genycaster's optional PostgreSQL database `genycaster_db` stores application-only `connections`, `bookmarks`, `notifications`, `app_updates`, `tasks` and `drafts`. It references a server-verified OpenProof issuer + identity ID as an opaque principal, with no independent users or authentication table. Bookmarks and unpublished drafts are app-owned, not Farcaster protocol messages. No speculative streak/leaderboard tables are created until metrics and anti-abuse rules are defined.
 - The Qt profile presents an account-scoped picker for **the current authenticated profile only**; in-app Connect/Disconnect actions use an ephemeral account-scoped OpenProof bearer that has been checked against the active Farcaster FID. Provider credentials and OAuth tokens never enter QML, JS or persisted client state.
 
 ## Feature gate
@@ -24,7 +24,7 @@
 ## Operational limits
 OpenProof delegates `GET /account/connections`, `POST /account/connections/handoff` and `POST /account/connections/disconnect` with the first-party `account` OAuth scope. The in-app picker now uses the approved OpenProof device/verified-Farcaster grant and a fixed-destination browser CORS relay. A bearer is held only in native C++ until expiry/signout; the server retains no mirrored linked-account records. Redirect-provider consent is opened only through a user-clicked, one-time OpenProof handoff URL. A Farcaster-only login may authorize the same verified FID via OpenProof device approval; a mismatched linked FID is denied. Signed Web3 wallet linking remains an independent SIWF/SIWE capability not yet implemented in the picker.
 
-Create the PostgreSQL database `genycaster` **only** using authorized database administration. Apply migrations with a restricted schema owner; use TLS-secured connection strings from secret runtime configuration, not the repository. Do not create a shadow OpenProof user table or read its internal tables directly.
+Create the PostgreSQL database `genycaster_db` **only** using authorized database administration. Apply migrations with a restricted schema owner; use TLS-secured connection strings from secret runtime configuration, not the repository. Do not create a shadow OpenProof user table or read its internal tables directly.
 
 ## Implementation status (2026-10-21)
 
@@ -33,13 +33,16 @@ Create the PostgreSQL database `genycaster` **only** using authorized database a
   handoff and FID-verified identity ownership. OpenProof still owns upstream
   provider authentication, protocol signing and durable connection state.
 - Prepared: separate `services/account-sync` HTTP service for public
-  `GET /api/v1/connections/providers`, plus the DBA/create/migration SQL for
-  a future PostgreSQL database called `genycaster`. The service is deliberately
-  separate from the media gateway and contains no shadow identity table.
+  `GET /api/v1/connections/providers` and guarded cloud state routes. SQL migrations
+  define `genycaster_db` and the six feature tables. Every private API request
+  binds ownership from an authenticated OpenProof `/account/profile` response;
+  the service contains no shadow identity table. Recovery-ticket delegation
+  remains disabled until a server-side cookie-based adapter exists.
 - **Not completed or deployed:** actual PostgreSQL provisioning (direct DBA
   operation denied by the remote tool policy), reverse-proxy/API activation,
-  private authenticated cloud bookmarks API, multi-device bookmark sync, and
-  verified production OAuth account-linking end to end. Component tests
+  client-driven cloud bookmarks/drafts/notification sync, background task worker,
+  owner-consented public profile link API and complete recovery-ticket delegation.
+  The manual LinkedIn field is device-local until the cloud bridge is enabled. Component tests
   alone do not establish that a real X or GitHub account was connected.
 - Verified: `cmake --preset ui-qt612-debug` succeeded,
   `node --test tests/wasm/*.test.mjs` 292/292,

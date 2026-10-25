@@ -26,6 +26,7 @@ window.__genycasterSetBrowserChromeTheme=applyBrowserChromeTheme;
 applyBrowserChromeTheme(
     document.documentElement.getAttribute?.("data-chrome-theme") !== "light", false);
 let finished=false, failed=false;
+const studioIntro=$("genycaster-studio-intro");
 const bootStarted=performance.now();
 let wasmResourceUrl;
 let wasmResourceObserver=null;
@@ -76,6 +77,21 @@ try{
 const updating=seen && !!currentVersion && !!previousVersion && previousVersion!==currentVersion;
 const installing=!seen || updating;
 bootPhase=installing?"download":"initialize";
+// The two studio beats run while the real Qt/WASM startup proceeds, never
+// delaying a ready app or simulating download percentages. Warm starts skip it.
+if (studioIntro && boot && installing &&
+    !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+    studioIntro.hidden=false;
+    boot.dataset.intro='on';
+    window.setTimeout(()=>{
+        if (!finished && !failed && !studioIntro.hidden)
+            studioIntro.dataset.scene='partners';
+    },900);
+    window.setTimeout(()=>{
+        studioIntro.hidden=true;
+        boot.dataset.intro='off';
+    },1950);
+}
 if(boot?.dataset){
     boot.dataset.mode=installing?"install":"warm";
     boot.dataset.phase=bootPhase;
@@ -91,10 +107,10 @@ function showPhase(phase,title,detail,label){
     // Preserve the real loader state machine for first install, updates and
     // warm starts, but expose only one human-readable status to the user.
     const display={
-        download:[updating?"Updating Genycaster…":"Preparing Genycaster…",
-                  "Downloading app files"],
-        install:["Starting Genycaster…","Preparing application"],
-        initialize:["Starting Genycaster…","Preparing application"],
+        download:[updating?"Updating Software…":"Installing Software…",
+                  "Downloading application resources"],
+        install:["Verifying Software…","Preparing WebAssembly resources"],
+        initialize:["Initializing Runtime…","Initializing Qt and WebAssembly"],
         interface:["Opening Genycaster…","Almost ready"],
         ready:["Genycaster is ready","Ready"]
     }[phase];
@@ -403,6 +419,8 @@ function watchReleaseUpdates(){
 function fail(error) {
     if(finished||failed)return;
     failed=true;
+    if(studioIntro)studioIntro.hidden=true;
+    if(boot?.dataset)boot.dataset.intro='off';
     wasmResourceObserver?.disconnect();
     try{progressReader?.cancel();}catch{}
     preparing();
@@ -431,6 +449,8 @@ function revealReady() {
     track?.setAttribute?.("aria-valuetext","Ready");
     bootPhase="ready";
     finished=true;
+    if(studioIntro)studioIntro.hidden=true;
+    if(boot?.dataset)boot.dataset.intro='off';
     const timing=wasmResourceUrl?wasmTiming(wasmResourceUrl):null;
     // A worker-handled request is not proof of a cache hit.
     // Keep native responses intact rather than injecting headers.

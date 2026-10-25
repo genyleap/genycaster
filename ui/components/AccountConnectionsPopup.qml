@@ -16,6 +16,7 @@ GenyDrawer {
     property bool authorizing: false
     property bool actionBusy: false
     property string pendingProvider: ""
+    property string manualLinkedInUrl: ""
     property bool catalogFallback: false
     property string approvalUrl: ""
     property string errorText: ""
@@ -26,6 +27,7 @@ GenyDrawer {
     signal connectRequested(string provider)
     signal disconnectRequested(string provider, string subject)
     signal openProfileRequested(string url)
+    signal manualLinkedInRequested(string url)
 
     // Connections is an in-product sheet: bottom-up on phones and
     // a right-anchored inspector on desktop, independent of UI text direction.
@@ -96,8 +98,11 @@ GenyDrawer {
         if (!connected) return ""
         const username = String(connected.username || "").replace(/^@/, "")
         if (provider === "linkedin") {
-            const url = String(connected.profileUrl || "")
-            return /^https:\/\/www\.linkedin\.com\/(?:in\/[A-Za-z0-9_-]{3,100}\/?|profile-thirdparty-redirect\/[-A-Za-z0-9_%.]{1,1024})$/.test(url) ? url : ""
+            const official = String(connected.profileUrl || "")
+            if (/^https:\/\/www\.linkedin\.com\/(?:in\/[A-Za-z0-9_-]{3,100}\/?|profile-thirdparty-redirect\/[-A-Za-z0-9_%.]{1,1024})$/.test(official))
+                return official
+            const manual = String(connected.manualProfileUrl || "")
+            return /^https:\/\/www\.linkedin\.com\/in\/[A-Za-z0-9_-]{3,100}\/?$/.test(manual) ? manual : ""
         }
         if (provider === "x" && /^[A-Za-z0-9_]{1,15}$/.test(username))
             return "https://x.com/" + username
@@ -476,6 +481,56 @@ GenyDrawer {
                                         color: providerRow.isConnected ? Theme.success : Theme.inkSubtle
                                         font.pixelSize: Theme.typeCaptionSize
                                     }
+                                }
+                            }
+                            ColumnLayout {
+                                visible: providerRow.modelData === "linkedin"
+                                         && providerRow.isConnected && picker.authorized
+                                Layout.fillWidth: true
+                                Layout.leftMargin: Theme.space3
+                                Layout.rightMargin: Theme.space3
+                                Layout.bottomMargin: Theme.space3
+                                spacing: Theme.space1
+
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: qsTr("Public LinkedIn profile URL")
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeCaptionSize
+                                }
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: Theme.space2
+                                    TextField {
+                                        id: manualLinkedInField
+                                        Layout.fillWidth: true
+                                        implicitHeight: Theme.scaleUi(38)
+                                        text: picker.manualLinkedInUrl
+                                        placeholderText: "https://www.linkedin.com/in/username"
+                                        inputMethodHints: Qt.ImhUrlCharactersOnly | Qt.ImhNoAutoUppercase
+                                        color: Theme.ink
+                                        selectByMouse: true
+                                        background: Rectangle {
+                                            radius: Theme.curveCompact
+                                            color: Theme.surface
+                                            border.color: manualLinkedInField.activeFocus
+                                                          ? Theme.accent : Theme.borderMuted
+                                            border.width: 1
+                                        }
+                                    }
+                                    ActionButton {
+                                        compact: true
+                                        text: qsTr("Save")
+                                        enabled: !picker.actionBusy && manualLinkedInField.text !== picker.manualLinkedInUrl
+                                        onClicked: picker.manualLinkedInRequested(manualLinkedInField.text)
+                                    }
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: qsTr("User-entered URL · saved on this device. Cloud sync is not enabled yet.")
+                                    wrapMode: Text.Wrap
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
                                 }
                             }
                             DirectionAwareLabel {

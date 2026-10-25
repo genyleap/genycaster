@@ -34,6 +34,7 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(bool actionBusy READ actionBusy NOTIFY stateChanged)
     Q_PROPERTY(bool cachedSnapshot READ cachedSnapshot NOTIFY stateChanged)
     Q_PROPERTY(QString pendingProvider READ pendingProvider NOTIFY stateChanged)
+    Q_PROPERTY(QString manualLinkedInUrl READ manualLinkedInUrl NOTIFY stateChanged)
 public:
     explicit OpenProofConnectionsController(QObject* parent = nullptr,
                                             QSettings* settings = nullptr);
@@ -53,6 +54,10 @@ public:
     [[nodiscard]] bool actionBusy() const noexcept;
     [[nodiscard]] bool cachedSnapshot() const noexcept;
     [[nodiscard]] QString pendingProvider() const;
+    [[nodiscard]] QString manualLinkedInUrl() const;
+    /** Store a user-asserted public vanity URL in device-local state only.
+     * Does not upgrade OpenProof verification or silently enable cloud sync. */
+    Q_INVOKABLE void setManualLinkedInUrl(const QString& url);
 
     /** @brief Changes viewer identity, invalidating any delegated account
      * token and pending link work when FID changes or session signs out. */
@@ -85,6 +90,7 @@ signals:
     void stateChanged();
 
 private:
+    [[nodiscard]] QString manualLinkedInSettingKey() const;
     void clearAccountGrant();
     void restoreCachedConnections();
     void saveCachedConnections() const;

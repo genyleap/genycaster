@@ -55,13 +55,13 @@ test("phone Home is focused on three active actions and a locked Wallet",()=>{
 test("Boot Beta badge and footer remain in separate non-overlapping rows",()=>{
     const html=read("ui/wasm/genycaster-shell.html");
     const loader=read("ui/wasm/genycaster-loader.js");
-    assert.match(html,/<sup class="boot-beta">Beta 1\.0<\/sup>/);
+    assert.match(html,/<span class="boot-beta">Beta 1\.0<\/span>/);
     assert.doesNotMatch(html,/id="boot-note"/);
     assert.doesNotMatch(html,/id="boot-version"/);
     assert.match(html,/class="boot-credit"><div>Powered by <strong>Genyleap<\/strong> · WASM Engine<\/div><div class="boot-build" id="boot-build-credit"/);
     assert.match(html,/\.boot-credit\{[^}]*flex-direction:column/);
-    assert.match(html,/\.boot-beta\{[^}]*transform:translateY/);
-    for(const label of ["Preparing Genycaster…","Starting Genycaster…","Opening Genycaster…"])
+    assert.match(html,/\.boot-beta\{[^}]*text-align:center/);
+    for(const label of ["Installing Software…","Updating Software…","Initializing Runtime…","Opening Genycaster…"])
         assert.ok(loader.includes(label),label);
     assert.match(loader,/if\(creditBuild\)creditBuild\.textContent=buildLabel/);
     assert.match(html,/#qt-screen canvas\{touch-action:none/);

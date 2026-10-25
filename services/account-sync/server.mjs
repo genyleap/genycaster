@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {createCloudHandler} from './cloud_state.mjs';
 
 const MAX_RESPONSE_BYTES = 16 * 1024;
 const DISCOVERY_TTL_MS = 5 * 60_000;
@@ -14,13 +15,15 @@ export function normalizeCatalog(raw) {
 }
 
 export function createAccountApi({
-  catalogUrl, fetchImpl = globalThis.fetch, now = Date.now
+  catalogUrl, fetchImpl = globalThis.fetch, now = Date.now,
+  store = null, issuer = null,
 } = {}) {
   const endpoint = new URL(catalogUrl);
   if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password
       || endpoint.hash || endpoint.port || endpoint.search)
     throw new Error('Account API requires a credential-free HTTPS catalog URL');
 
+  const cloud = store && issuer ? createCloudHandler({store,issuer,fetchImpl}) : null;
   let cached = null;
   let pending = null;
   async function catalog() {
@@ -55,11 +58,19 @@ export function createAccountApi({
     res.setHeader('Cache-Control','no-store');
     res.setHeader('X-Content-Type-Options','nosniff');
     res.setHeader('Content-Type','application/json; charset=utf-8');
+    const path = new URL(req.url, 'http://localhost').pathname;
+    if (path.startsWith('/api/v1/cloud/')) {
+      if (!cloud) {
+        res.writeHead(503).end(JSON.stringify({error:'cloud_not_configured'}));
+        return;
+      }
+      await cloud(req,res,path);
+      return;
+    }
     if (req.method !== 'GET') {
       res.writeHead(405,{'Allow':'GET'}).end(JSON.stringify({error:'method_not_allowed'}));
       return;
     }
-    const path = new URL(req.url, 'http://localhost').pathname;
     if (path === '/healthz') {
       res.writeHead(200).end(JSON.stringify({ready:true}));
       return;
@@ -85,5 +96,11 @@ if (process.argv[1] && import.meta.url === new URL('file://' + process.argv[1]).
   const port = Number(process.env.GENYCASTER_API_PORT || 8797);
   if (!Number.isInteger(port) || port <= 0 || port > 65535)
     throw new Error('Invalid GENYCASTER_API_PORT');
-  createAccountApi({catalogUrl: origin}).listen(port,address);
+  // Cloud storage is disabled unless an isolated Genycaster PostgreSQL database
+  // has been provisioned and its restricted runtime role configured.
+  const url=process.env.GENYCASTER_DATABASE_URL;
+  const store=url ? await (await import('./pg_store.mjs')).createPgStore(url) : null;
+  createAccountApi({catalogUrl: origin,store,
+    issuer:process.env.GENYCASTER_OPENPROOF_ISSUER||'https://openproof.genyleap.com'})
+    .listen(port,address);
 }

@@ -85,6 +85,7 @@ Item {
             if (!["x", "github", "linkedin", "telegram"].includes(provider)) continue
             const username = String(item.username || "").replace(/^@/, "")
             let href = ""
+            let manuallyEntered = false
             if (provider === "x" && /^[A-Za-z0-9_]{1,15}$/.test(username))
                 href = "https://x.com/" + username
             else if (provider === "github"
@@ -97,6 +98,13 @@ Item {
                 const official = String(item.profileUrl || "")
                 if (/^https:\/\/www\.linkedin\.com\/(?:in\/[A-Za-z0-9_-]{3,100}\/?|profile-thirdparty-redirect\/[-A-Za-z0-9_%.]{1,1024})$/.test(official))
                     href = official
+                else {
+                    const manual = String(item.manualProfileUrl || "")
+                    if (/^https:\/\/www\.linkedin\.com\/in\/[A-Za-z0-9_-]{3,100}\/?$/.test(manual)) {
+                        href = manual
+                        manuallyEntered = true
+                    }
+                }
             }
             const label = String(item.displayName || username || provider).slice(0, 128)
             // A name-based LinkedIn search is a discovery action, not an
@@ -105,6 +113,7 @@ Item {
                     ? "https://www.linkedin.com/search/results/people/?keywords="
                       + encodeURIComponent(label) : ""
             result.push({ provider: provider, href: href, searchHref: searchHref,
+                          manualUrl: manuallyEntered,
                           label: label })
         }
         return result
@@ -1116,7 +1125,8 @@ Item {
                                 readonly property bool canFind: String(modelData.searchHref || "").length > 0
                                 readonly property string hintText: String(modelData.label)
                                     + (hasPublicUrl
-                                        ? (liveVerified ? qsTr(" · linked profile") : qsTr(" · previously linked"))
+                                        ? (modelData.manualUrl ? qsTr(" · URL entered by you (not LinkedIn-verified)")
+                                          : liveVerified ? qsTr(" · linked profile") : qsTr(" · previously linked"))
                                         : canFind ? qsTr(" · search LinkedIn by name")
                                                   : qsTr(" · manage connection"))
                                 Layout.preferredWidth: Theme.scaleUi(34)
@@ -1547,12 +1557,14 @@ Item {
         approvalUrl: openProofConnections.approvalUrl
         actionBusy: openProofConnections.actionBusy
         pendingProvider: openProofConnections.pendingProvider
+        manualLinkedInUrl: openProofConnections.manualLinkedInUrl
         errorText: openProofConnections.error
         onOpenProfileRequested: url => root.externalRequested(url)
         onAuthorizeRequested: openProofConnections.authorizeAccount()
         onApprovalRequested: url => Qt.openUrlExternally(url)
         onRefreshRequested: openProofConnections.refreshConnections()
         onConnectRequested: provider => openProofConnections.connectProvider(provider)
+        onManualLinkedInRequested: url => openProofConnections.setManualLinkedInUrl(url)
         onDisconnectRequested: (provider, subject) =>
             openProofConnections.disconnectProvider(provider, subject)
         onClosed: {
