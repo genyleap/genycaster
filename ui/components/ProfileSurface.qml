@@ -95,7 +95,7 @@ Item {
                 href = "https://t.me/" + username
             else if (provider === "linkedin") {
                 const official = String(item.profileUrl || "")
-                if (/^https:\/\/www\.linkedin\.com\/in\/[A-Za-z0-9_-]{3,100}\/?$/.test(official))
+                if (/^https:\/\/www\.linkedin\.com\/(?:in\/[A-Za-z0-9_-]{3,100}\/?|profile-thirdparty-redirect\/[-A-Za-z0-9_%.]{1,1024})$/.test(official))
                     href = official
             }
             const label = String(item.displayName || username || provider).slice(0, 128)

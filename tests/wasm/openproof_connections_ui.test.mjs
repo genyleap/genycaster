@@ -181,6 +181,10 @@ test('connection selector packages provider-owned SVGs and keeps links in the ap
   assert.match(popup, /encodeURIComponent\(name\)/);
   assert.match(popup, /destinationFor\(providerRow\.modelData\)/);
   assert.match(popup, /qsTr\("Find"\)/);
+  assert.match(popup, /qsTr\("Reconnect"\)/);
+  assert.match(popup, /profile-thirdparty-redirect/);
+  assert.match(qml, /profile-thirdparty-redirect/);
+  assert.match(controller, /verifiedRedirect/);
   assert.match(popup, /Theme\.iconCheck/);
   assert.doesNotMatch(popup, /Verify profile first|Provider catalog unavailable; showing known options/);
 });

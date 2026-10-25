@@ -525,12 +525,15 @@ void OpenProofConnectionsController::refreshConnections()
                         QStringLiteral("^/in/[A-Za-z0-9_-]{3,100}/?$")};
                     static const QRegularExpression vanity{
                         QStringLiteral("^[A-Za-z0-9_-]{3,100}$")};
+                    static const QRegularExpression verifiedRedirect{
+                        QStringLiteral("^/profile-thirdparty-redirect/[-A-Za-z0-9_%.]{1,1024}$")};
                     if (url.scheme() == QStringLiteral("https")
                         && (url.host() == QStringLiteral("linkedin.com")
                             || url.host() == QStringLiteral("www.linkedin.com"))
                         && url.port() == -1 && url.userInfo().isEmpty()
                         && url.query().isEmpty() && url.fragment().isEmpty()
-                        && profilePath.match(url.path()).hasMatch()) {
+                        && (profilePath.match(url.path()).hasMatch()
+                            || verifiedRedirect.match(url.path()).hasMatch())) {
                         publicUrl = QStringLiteral("https://www.linkedin.com")
                             + url.path();
                     } else if (vanity.match(handle).hasMatch()) {

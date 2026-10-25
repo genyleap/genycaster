@@ -97,7 +97,7 @@ GenyDrawer {
         const username = String(connected.username || "").replace(/^@/, "")
         if (provider === "linkedin") {
             const url = String(connected.profileUrl || "")
-            return /^https:\/\/www\.linkedin\.com\/in\/[A-Za-z0-9_-]{3,100}\/?$/.test(url) ? url : ""
+            return /^https:\/\/www\.linkedin\.com\/(?:in\/[A-Za-z0-9_-]{3,100}\/?|profile-thirdparty-redirect\/[-A-Za-z0-9_%.]{1,1024})$/.test(url) ? url : ""
         }
         if (provider === "x" && /^[A-Za-z0-9_]{1,15}$/.test(username))
             return "https://x.com/" + username
@@ -427,6 +427,15 @@ GenyDrawer {
                                         text: picker.profileUrlFor(providerRow.modelData).length > 0
                                               ? qsTr("View") : qsTr("Find")
                                         onClicked: picker.openProfileRequested(picker.destinationFor(providerRow.modelData))
+                                    }
+                                    ActionButton {
+                                        visible: picker.authorized && providerRow.modelData === "linkedin"
+                                                 && providerRow.isConnected
+                                                 && picker.profileUrlFor("linkedin").length === 0
+                                        compact: true
+                                        quiet: true
+                                        text: qsTr("Reconnect")
+                                        onClicked: picker.connectRequested("linkedin")
                                     }
                                     ActionButton {
                                         visible: picker.authorized && providerRow.redirectCapable
