@@ -1356,10 +1356,15 @@ Item {
                         spacing: Theme.space1
 
                         RowLayout {
+                            objectName: "profilePrimaryLinkRow"
                             visible: root.showProfileUrl
                             Layout.fillWidth: true
                             spacing: Theme.space2
-                            layoutDirection: Theme.uiDirection
+                            // Keep the link and "more" action as one compact group
+                            // at the physical right edge, including on phones.
+                            layoutDirection: Qt.LeftToRight
+
+                            Item { Layout.fillWidth: true }
 
                             Icon {
                                 text: Theme.iconLink
@@ -1368,7 +1373,7 @@ Item {
                             }
 
                             Label {
-                                Layout.fillWidth: true
+                                Layout.maximumWidth: Math.max(100, root.profileContentWidth * 0.53)
                                 LayoutMirroring.enabled: false
                                 text: root.ltrText(root.displayUrl(root.activeDetail.profileUrl))
                                 font.family: Theme.latinFontFamily
@@ -1438,11 +1443,13 @@ Item {
                         visible: root.isOwnProfile && !root.showProfileUrl
                                  && root.profileExtraLinks.length > 0
                         spacing: Theme.space2
+                        layoutDirection: Qt.LeftToRight
+                        Item { Layout.fillWidth: true }
                         Button {
                             id: primaryExtraLink
                             flat: true
                             hoverEnabled: true
-                            Layout.fillWidth: true
+                            Layout.maximumWidth: Math.max(100, root.profileContentWidth * 0.53)
                             padding: Theme.space1
                             background: Item {}
                             contentItem: RowLayout {
@@ -1475,29 +1482,6 @@ Item {
                             }
                             onClicked: profileLinksDrawer.open()
                         }
-                    }
-
-                    RowLayout {
-                        objectName: "profileOwnerActions"
-                        Layout.fillWidth: true
-                        visible: root.isOwnProfile
-                        spacing: Theme.space2
-                        ActionButton {
-                            Layout.fillWidth: root.compact
-                            compact: false
-                            quiet: false
-                            text: qsTr("Edit profile")
-                            onClicked: profileExtrasEditor.open()
-                        }
-                        ActionButton {
-                            Layout.fillWidth: root.compact
-                            compact: false
-                            quiet: true
-                            text: qsTr("Links")
-                            enabled: root.profileLinkTotal > 0
-                            onClicked: root.openProfileLinks()
-                        }
-                        Item { Layout.fillWidth: !root.compact }
                     }
 
                     RowLayout {
@@ -1562,6 +1546,47 @@ Item {
 
                         Item { Layout.fillWidth: true }
                     }
+                    RowLayout {
+                        objectName: "profileOwnerActions"
+                        Layout.fillWidth: true
+                        visible: root.isOwnProfile
+                        spacing: Theme.space2
+                        layoutDirection: Qt.LeftToRight
+
+                        // Desktop actions sit at the right. On phones two
+                        // equally sized, short pill buttons fill the action row.
+                        Item {
+                            visible: !root.compact
+                            Layout.fillWidth: true
+                        }
+                        ActionButton {
+                            objectName: "profileShareAction"
+                            Layout.fillWidth: root.compact
+                            Layout.maximumWidth: Theme.scaleUi(180)
+                            Layout.preferredWidth: Theme.scaleUi(root.compact ? 152 : 136)
+                            compact: true
+                            quiet: false
+                            pill: true
+                            elevated: false
+                            text: qsTr("Share profile")
+                            enabled: Number(root.activeDetail.fid || 0) > 0
+                            onClicked: presentationBridge.shareUrl(
+                                presentationBridge.profileShareUrl(Number(root.activeDetail.fid || 0)))
+                        }
+                        ActionButton {
+                            objectName: "profileEditAction"
+                            Layout.fillWidth: root.compact
+                            Layout.maximumWidth: Theme.scaleUi(180)
+                            Layout.preferredWidth: Theme.scaleUi(root.compact ? 152 : 136)
+                            compact: true
+                            quiet: false
+                            pill: true
+                            elevated: false
+                            text: qsTr("Edit profile")
+                            onClicked: profileExtrasEditor.open()
+                        }
+                    }
+
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         visible: Number(root.activeDetail.fid || 0) > 0

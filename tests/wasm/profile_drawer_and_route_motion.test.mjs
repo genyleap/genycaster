@@ -24,6 +24,37 @@ test('profile extras are compact, labelled and reachable through a mobile sheet'
   assert.match(profile,/text: qsTr\("Save changes"\)/);
   assert.doesNotMatch(profile,/Popup \{\s*id: profileExtrasEditor/);
 });
+test('owner actions are short matching Edit/Share pills, not a full-width Edit and redundant Links button',()=>{
+  const start=profile.indexOf('objectName: "profileOwnerActions"');
+  const end=profile.indexOf('DirectionAwareLabel {',start);
+  const actions=profile.slice(start,end);
+  assert.ok(start>0 && end>start);
+  assert.match(actions,/objectName: "profileShareAction"/);
+  assert.match(actions,/objectName: "profileEditAction"/);
+  assert.match(actions,/Layout\.maximumWidth: Theme\.scaleUi\(180\)/);
+  assert.equal((actions.match(/compact: true/g)||[]).length,2);
+  assert.equal((actions.match(/pill: true/g)||[]).length,2);
+  assert.match(actions,/text: qsTr\("Share profile"\)/);
+  assert.match(actions,/text: qsTr\("Edit profile"\)/);
+  assert.match(actions,/presentationBridge\.shareUrl\(/);
+  assert.match(actions,/profileExtrasEditor\.open\(\)/);
+  assert.doesNotMatch(actions,/text: qsTr\("Links"\)/);
+});
+test('website and its extra-link count are grouped at the physical right edge',()=>{
+  const start=profile.indexOf('objectName: "profilePrimaryLinkRow"');
+  const end=profile.indexOf('visible: root.showLocation',start);
+  const primary=profile.slice(start,end);
+  assert.ok(start>0 && end>start);
+  assert.match(primary,/layoutDirection: Qt\.LeftToRight/);
+  assert.match(primary,/Item \{ Layout\.fillWidth: true \}/);
+  assert.match(primary,/Layout\.maximumWidth: Math\.max\(100, root\.profileContentWidth \* 0\.53\)/);
+  assert.match(primary,/objectName: "profileMoreLinksInline"/);
+  assert.match(primary,/onClicked: profileLinksDrawer\.open\(\)/);
+  const fallback=profile.slice(profile.indexOf('objectName: "ownerPersonalLinks"'),
+    profile.indexOf('objectName: "profileOwnerActions"'));
+  assert.match(fallback,/layoutDirection: Qt\.LeftToRight/);
+  assert.match(fallback,/Item \{ Layout\.fillWidth: true \}/);
+});
 test('global navigation shares cubic slide/fade and honors reduced-motion settings',()=>{
   for (const id of ['appsSurfaceLoader','notificationsRouteLoader','feedSurfaceLoader','profileSurfaceLoader']) {
     const start=shell.indexOf('id: '+id);
