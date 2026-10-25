@@ -114,6 +114,9 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
     connect(&m_bookmarkPoll, &QTimer::timeout, this, [this] {
         if (!m_cloudServiceAvailable) checkCloudService();
         else {
+            // Connections are account data too: poll for changes made on
+            // another signed-in device, not only at first authorization.
+            m_linkedInReconciled = false;
             reconcileLinkedIn();
             pumpBookmarkChanges();
         }
