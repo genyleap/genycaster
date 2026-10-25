@@ -5,6 +5,21 @@ const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const profile=read('ui/components/ProfileSurface.qml');
 const shell=read('ui/components/AppShell.qml');
 const settings=read('ui/components/LocaleSettingsPopup.qml');
+test('profile profession and category are selectable, validated, and retain saved roles',()=>{
+  assert.match(profile,/readonly property var profileCategoryOptions:/);
+  assert.match(profile,/readonly property var profileRoleOptions:/);
+  assert.match(profile,/objectName: "profileCategoryPicker"/);
+  assert.match(profile,/objectName: "profileProfessionPicker"/);
+  assert.match(profile,/GenyComboBox \{\s*id: categoryEditor/);
+  assert.match(profile,/GenyComboBox \{\s*id: professionEditor/);
+  assert.match(profile,/root\.profileRoleOptions\.indexOf\(role\)/);
+  assert.match(profile,/root\.profileCategoryOptions\.indexOf\(categoryName\)/);
+  assert.match(profile,/category: categoryName/);
+  assert.match(profile,/root\.profileExtras\.category/);
+  assert.match(profile,/savedRole = String\(root\.profileExtras\.profession/);
+  assert.match(profile,/professionEditor\.currentIndex > 0 \? professionEditor\.currentText/);
+  assert.match(profile,/busy: root\.busy[\s\S]*?enabled: !root\.busy/);
+});
 test('mobile profile binds avatar and connections to the same header band',()=>{
   assert.match(profile,/readonly property int profileAvatarX: root\.compact\s*\? root\.profileContentX \+ Theme\.space2/);
   assert.match(profile,/id: ownerSocialBadgeStrip[\s\S]*?visible: root\.isOwnProfile && root\.ownerSocialLinks\.length > 0/);

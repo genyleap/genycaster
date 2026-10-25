@@ -13,7 +13,7 @@ const config = JSON.parse(read('../../ui/config/public_endpoints.json'));
 test('profile links, profession and holder trust remain separately scoped and disclosed', () => {
   assert.match(qml,/category: "genycaster-profile-extras"/);
   assert.match(qml,/profileExtrasOwnerKey: root.isOwnProfile/);
-  assert.match(qml,/function saveExtraDetails\(profession, rawLinks\)/);
+  assert.match(qml,/function saveExtraDetails\(profession, rawLinks, category\)/);
   assert.match(qml,/profileExtrasSettings.entriesJson = JSON.stringify\(entries\)/);
   assert.match(qml,/optional title \| HTTPS URL/);
   assert.match(qml,/objectName: "profileMoreLinksInline"/);

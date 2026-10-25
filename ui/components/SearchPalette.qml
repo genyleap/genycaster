@@ -96,7 +96,12 @@ Drawer {
                    searchField.text.trim().length >= 2
                    ? (root.filteredCount > 0 ? 470 : 225)
                    : (root.recentProfiles.length > 0 ? 420 : 300))
-        : Math.min(560, Math.max(320, parent.height * 0.72))) : 560
+        // Keep an empty command palette compact, not a 560px empty panel.
+        // Result lists get extra height only when there are actual rows.
+        : Math.min(parent.height * 0.76,
+            root.filteredCount > 0 ? Math.min(540, 224 + root.filteredCount * 86)
+            : root.recentProfiles.length > 0 && searchField.text.trim().length < 2
+              ? 400 : 250)) : 400
     x: parent ? (root.compact ? 0 : Math.round((parent.width - width) / 2)) : 0
     modal: true
     focus: true
@@ -655,6 +660,17 @@ Drawer {
                     }
                 }
             }
+        }
+
+        // With no results the old ColumnLayout centered the search input in
+        // the entire drawer. Keep heading and search input pinned to the top;
+        // reserve flexible space only *below* them.
+        Item {
+            objectName: "searchEmptyBottomSpace"
+            Layout.fillWidth: true
+            Layout.fillHeight: visible
+            Layout.minimumHeight: 0
+            visible: !resultViewport.visible && !suggestionViewport.visible
         }
     }
 }

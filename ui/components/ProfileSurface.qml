@@ -51,6 +51,30 @@ Item {
             return rows[root.profileExtrasOwnerKey] || ({})
         } catch (_) { return ({}) }
     }
+    // X-style professional identity is selected from curated categories and
+    // roles. Previously saved freeform roles remain available in the selector.
+    readonly property var profileCategoryOptions: [
+        qsTr("Select category"), qsTr("Arts & entertainment"), qsTr("Business"),
+        qsTr("Education"), qsTr("Finance"), qsTr("Food & beverage"),
+        qsTr("Health & wellness"), qsTr("Media & news"),
+        qsTr("Science & technology"), qsTr("Technology"),
+        qsTr("Professional services"), qsTr("Sports"),
+        qsTr("Travel & transportation"), qsTr("Other")
+    ]
+    readonly property var profileRoleOptions: {
+        const options = [qsTr("Select role"), qsTr("Artist"), qsTr("Author"),
+            qsTr("Creator"), qsTr("Designer"), qsTr("Developer"), qsTr("Engineer"),
+            qsTr("Entrepreneur"), qsTr("Founder"), qsTr("Investor"),
+            qsTr("Journalist"), qsTr("Photographer"), qsTr("Researcher"),
+            qsTr("Student"), qsTr("Teacher"), qsTr("Consultant"),
+            qsTr("Organization"), qsTr("Other")]
+        const saved = String(root.profileExtras.profession || "")
+        if (saved && options.indexOf(saved) < 0) options.push(saved)
+        return options
+    }
+    readonly property string profileCategory: {
+        return root.isOwnProfile ? String(root.profileExtras.category || "") : ""
+    }
     readonly property string profileProfession: {
         const fromSource = String(root.activeDetail.profession || root.activeDetail.category || "")
         return (root.isOwnProfile && root.profileExtras.profession)
@@ -80,9 +104,15 @@ Item {
         return text.length <= 512
             && /^https:\/\/(?![^/]*@)[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?:\:[0-9]{2,5})?(?:[\/?#][^\s]*)?$/.test(text)
     }
-    function saveExtraDetails(profession, rawLinks) {
+    function saveExtraDetails(profession, rawLinks, category) {
         if (!root.isOwnProfile || !root.profileExtrasOwnerKey) return false
         const role = String(profession || "").trim()
+        const categoryName = String(category || "").trim()
+        if ((role && root.profileRoleOptions.indexOf(role) <= 0)
+                || (categoryName && root.profileCategoryOptions.indexOf(categoryName) <= 0)) {
+            root.profileExtrasError = qsTr("Choose a category and role from the lists.")
+            return false
+        }
         if (role.length > 80) {
             root.profileExtrasError = qsTr("Profession must be 80 characters or fewer.")
             return false
@@ -102,7 +132,8 @@ Item {
             const entries = JSON.parse(profileExtrasSettings.entriesJson || "{}")
             const unique = prepared.filter((item,index)=>prepared.findIndex(e=>e.url===item.url)===index)
             entries[root.profileExtrasOwnerKey] = {
-                profession: role, links: unique.map(e=>e.url), labels: unique.map(e=>e.label)
+                profession: role, category: categoryName,
+                links: unique.map(e=>e.url), labels: unique.map(e=>e.label)
             }
             profileExtrasSettings.entriesJson = JSON.stringify(entries)
             root.profileExtrasError = ""
@@ -894,6 +925,9 @@ Item {
                     iconOnly: true
                     iconGlyph: Theme.iconRefresh
                     text: root.busy ? qsTrId("genycaster.profile.refreshing") : qsTrId("genycaster.profile.refresh")
+                    // ActionButton substitutes its continuously rotating
+                    // GenySpinner for the icon while a refresh is pending.
+                    busy: root.busy
                     enabled: !root.busy
                     onClicked: root.refreshRequested()
                 }
@@ -1416,11 +1450,18 @@ Item {
                     RowLayout {
                         objectName: "profileProfessionalCategory"
                         Layout.fillWidth: true
-                        visible: root.profileProfession.length > 0
+                        visible: root.profileProfession.length > 0 || root.profileCategory.length > 0
                         spacing: Theme.space2
+                        Icon {
+                            text: Theme.iconBusiness
+                            color: Theme.inkMuted
+                            preferredSize: Theme.typeCaptionSize
+                        }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: root.profileProfession
+                            text: root.profileCategory.length > 0 && root.profileProfession.length > 0
+                                  ? root.profileCategory + " · " + root.profileProfession
+                                  : (root.profileCategory || root.profileProfession)
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                             font.weight: Theme.weightMedium
@@ -1809,7 +1850,14 @@ Item {
         showHandle: mobilePresentation
         contentPadding: Theme.space4
         onOpened: {
-            professionEditor.text = String(root.profileExtras.profession || "")
+            const savedCategory = String(root.profileExtras.category || "")
+            const savedRole = String(root.profileExtras.profession || "")
+            const inferredCategory = !savedCategory && savedRole === "Developer"
+                                     ? qsTr("Technology") : savedCategory
+            categoryEditor.currentIndex = Math.max(0,
+                root.profileCategoryOptions.indexOf(inferredCategory))
+            professionEditor.currentIndex = Math.max(0,
+                root.profileRoleOptions.indexOf(savedRole))
             const saved = Array.isArray(root.profileExtras.links) ? root.profileExtras.links : []
             const titles = Array.isArray(root.profileExtras.labels) ? root.profileExtras.labels : []
             linksEditor.text = saved.map((url,index)=>titles[index]
@@ -1837,22 +1885,33 @@ Item {
                     spacing: Theme.space3
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTr("Profession or business category")
+                        text: qsTr("Professional category")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                     }
-                    TextField {
-                        id: professionEditor
+                    GenyComboBox {
+                        id: categoryEditor
+                        objectName: "profileCategoryPicker"
                         Layout.fillWidth: true
-                        maximumLength: 80
-                        placeholderText: qsTr("Designer, developer, artist…")
-                        color: Theme.ink
-                        background: Rectangle {
-                            color: Theme.surface
-                            radius: Theme.curveCompact
-                            border.color: professionEditor.activeFocus ? Theme.focus : Theme.borderMuted
-                            border.width: 1
-                        }
+                        Layout.minimumWidth: 0
+                        popupMaximumWidth: width
+                        model: root.profileCategoryOptions
+                        Accessible.name: qsTr("Professional category")
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTr("Role")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+                    GenyComboBox {
+                        id: professionEditor
+                        objectName: "profileProfessionPicker"
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        popupMaximumWidth: width
+                        model: root.profileRoleOptions
+                        Accessible.name: qsTr("Professional role")
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
@@ -1905,7 +1964,10 @@ Item {
                     Layout.fillWidth: true
                     text: qsTr("Save changes")
                     onClicked: {
-                        if (root.saveExtraDetails(professionEditor.text, linksEditor.text))
+                        if (root.saveExtraDetails(
+                                professionEditor.currentIndex > 0 ? professionEditor.currentText : "",
+                                linksEditor.text,
+                                categoryEditor.currentIndex > 0 ? categoryEditor.currentText : ""))
                             profileExtrasEditor.close()
                     }
                 }
