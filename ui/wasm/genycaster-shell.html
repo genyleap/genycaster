@@ -73,16 +73,16 @@
 #genycaster-update-banner button:focus-visible{outline:2px solid var(--update-success);outline-offset:3px}
 @media(max-width:560px){#genycaster-update-banner{padding:calc(env(safe-area-inset-top,0px) + 16px) 18px 20px;border-radius:0 0 22px 22px;max-height:82dvh}.update-version-grid{gap:7px}.update-version{padding:10px}.update-version strong{font-size:15px}}
 @media(prefers-reduced-motion:reduce){#genycaster-update-banner{animation:none}}
-.boot-content{width:min(380px,100%);padding:24px 8px;text-align:center}
-.boot-mark{display:flex;flex-direction:column;align-items:center;gap:16px;margin-bottom:52px}
+.boot-content{width:min(380px,100%);padding:24px 8px;display:flex;flex-direction:column;align-items:center;text-align:center;margin-inline:auto}
+.boot-mark{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;width:100%;margin-bottom:52px;text-align:center}
 .boot-glyph{display:block;width:76px;height:76px;object-fit:contain}
-.boot-wordmark{display:block;width:min(260px,75vw);height:auto;object-fit:contain}:root[data-chrome-theme="dark"] .boot-wordmark{content:url("./genycaster-wordmark-dark.svg")}
-.boot-beta{font-size:11px;font-weight:650;letter-spacing:.07em;color:var(--boot-ink);opacity:.55;line-height:1;white-space:nowrap}
-h1{font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.01em;margin:0 0 20px}
-.boot-track{height:5px;background:#dfe5f1;border-radius:99px;overflow:hidden}
+.boot-wordmark{display:block;width:min(260px,75vw);max-width:100%;height:auto;object-fit:contain;object-position:center}:root[data-chrome-theme="dark"] .boot-wordmark{content:url("./genycaster-wordmark-dark.svg")}
+.boot-beta{display:block;width:100%;text-align:center;font-size:11px;font-weight:650;letter-spacing:.07em;color:var(--boot-ink);opacity:.55;line-height:1;white-space:nowrap}
+h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.01em;margin:0 0 20px;text-align:center}
+.boot-track{width:100%;height:5px;background:#dfe5f1;border-radius:99px;overflow:hidden}
 .boot-fill{height:100%;width:28%;border-radius:99px;background:#315fff;animation:indeterminate 1.8s ease-in-out infinite}
 .boot-fill.measured{animation:none;transition:width .16s linear}
-.boot-foot{display:flex;justify-content:space-between;gap:12px;margin-top:13px;font-size:12px;line-height:1.4;color:#738099}
+.boot-foot{display:flex;width:100%;justify-content:space-between;gap:12px;margin-top:13px;font-size:12px;line-height:1.4;color:#738099}
 #boot-percent{font-variant-numeric:tabular-nums;color:#315fff;font-weight:650}
 .boot-status{display:none;font-size:13px;line-height:1.55;color:#69758b;margin:16px 0 0;overflow-wrap:anywhere}
 #genycaster-boot[data-phase="failed"] .boot-status{display:block}
@@ -122,7 +122,7 @@ h1{font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.01em;margin:
 <div id="genycaster-boot" role="status" aria-live="polite">
   <div class="boot-content">
     <div class="boot-mark">
-      <span class="boot-glyph" src="./genycaster-icon.svg" alt="" decoding="async">
+      <img class="boot-glyph" src="./genycaster-icon.svg" alt="" decoding="async">
       <img class="boot-wordmark" src="./genycaster-wordmark.svg" alt="GenyCaster" decoding="async"><span class="boot-beta">Beta 1.0</span>
     </div>
     <h1 id="boot-heading">Preparing Genycaster…</h1>

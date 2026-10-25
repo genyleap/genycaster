@@ -409,6 +409,24 @@ test('Qt button rings use keyboard focus, never persistent pointer-focus borders
     }
 });
 
+test('Splash logo, version, loading copy and progress share a centered layout axis',()=>{
+    // A previous <span class="boot-glyph" src="..."> was not a void image.
+    // It nested the wordmark and following block content in an inline span,
+    // shifting the visible logo to the right of the progress bar.
+    const branding=html.match(/<div class="boot-mark">([\s\S]*?)<\/div>\s*<h1 id="boot-heading">/);
+    assert.ok(branding,'brand group must close before the loading heading');
+    assert.match(branding[1],/<img class="boot-glyph" src="\.\/genycaster-icon\.svg" alt="" decoding="async">/);
+    assert.match(branding[1],/<img class="boot-wordmark" src="\.\/genycaster-wordmark\.svg" alt="GenyCaster"/);
+    assert.match(branding[1],/<span class="boot-beta">Beta 1\.0<\/span>/);
+    assert.doesNotMatch(branding[1],/<span class="boot-glyph"/);
+    assert.match(html,/\.boot-content\{[^}]*align-items:center[^}]*text-align:center/);
+    assert.match(html,/\.boot-mark\{[^}]*align-items:center[^}]*width:100%/);
+    assert.match(html,/\.boot-wordmark\{[^}]*object-position:center/);
+    assert.match(html,/\.boot-beta\{[^}]*width:100%;text-align:center/);
+    assert.match(html,/\.boot-track\{width:100%/);
+    assert.match(html,/\.boot-foot\{display:flex;width:100%/);
+});
+
 test('WASM splash is single-stage, retains original mark and build footer',()=>{
     const cmake=read('ui/CMakeLists.txt');
     const pack=read('tools/package_wasm_assets.py');
