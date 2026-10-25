@@ -435,6 +435,7 @@ GenyDrawer {
                                         compact: true
                                         quiet: true
                                         text: qsTr("Reconnect")
+                                        enabled: !picker.actionBusy
                                         onClicked: picker.connectRequested("linkedin")
                                     }
                                     ActionButton {

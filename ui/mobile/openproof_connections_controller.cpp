@@ -314,6 +314,7 @@ void OpenProofConnectionsController::clearAccountGrant()
     m_cachedSnapshot = false;
     m_actionBusy = false;
     m_pendingProvider.clear();
+    m_reconnectingLinkedIn = false;
     m_remainingPolls = 0;
 }
 
@@ -561,7 +562,20 @@ void OpenProofConnectionsController::refreshConnections()
             m_cachedSnapshot = false;
             saveCachedConnections();
             m_error.clear();
-            if (!m_pendingProvider.isEmpty() && isConnected(m_pendingProvider)) {
+            // A LinkedIn reauthorization begins with an already linked account.
+            // It succeeds only when the new provider-backed URL is observed,
+            // not merely because the old OpenProof subject is still connected.
+            bool linkedInUrlReady = false;
+            for (const auto& connection : m_connections) {
+                const auto item = connection.toMap();
+                if (item.value(QStringLiteral("provider")).toString() == QStringLiteral("linkedin")
+                    && !item.value(QStringLiteral("profileUrl")).toString().isEmpty()) {
+                    linkedInUrlReady = true;
+                    break;
+                }
+            }
+            if (!m_pendingProvider.isEmpty() && isConnected(m_pendingProvider)
+                && (!m_reconnectingLinkedIn || linkedInUrlReady)) {
 #if defined(__EMSCRIPTEN__)
                 // Only a server-confirmed OpenProof link closes the browser
                 // window; browser redirect/204 alone is not a success signal.
@@ -595,6 +609,7 @@ void OpenProofConnectionsController::finishAction(QString error)
     m_actionBusy = false;
     m_connectionPoll.stop();
     m_pendingProvider.clear();
+    m_reconnectingLinkedIn = false;
     m_remainingPolls = 0;
     m_error = std::move(error);
     emit stateChanged();
@@ -602,8 +617,9 @@ void OpenProofConnectionsController::finishAction(QString error)
 
 void OpenProofConnectionsController::connectProvider(const QString& provider)
 {
-    if (!m_verified || m_actionBusy || m_request
-        || !m_providers.contains(provider) || isConnected(provider)) return;
+    const bool alreadyLinked = isConnected(provider);
+    if (!m_verified || m_actionBusy || m_request || !m_providers.contains(provider)
+        || (alreadyLinked && provider != QStringLiteral("linkedin"))) return;
     // Signed web3 connections have a distinct SIWE/SIWF contract; never
     // pretend their provider is a redirect OAuth account.
     if (!QStringList{QStringLiteral("x"), QStringLiteral("github"),
@@ -621,6 +637,7 @@ void OpenProofConnectionsController::connectProvider(const QString& provider)
     }
 #endif
     m_actionBusy = true;
+    m_reconnectingLinkedIn = alreadyLinked && provider == QStringLiteral("linkedin");
     m_pendingProvider = provider;
     m_error.clear();
     emit stateChanged();

@@ -19,6 +19,13 @@ test('connections opens as mobile bottom sheet and desktop right drawer', () => 
   assert.ok(!popup.includes('GenyModal {'));
 });
 
+test('LinkedIn reauthorization waits for a new provider-backed URL rather than an already linked subject', () => {
+  assert.match(controller, /m_reconnectingLinkedIn = alreadyLinked/);
+  assert.match(controller, /!m_reconnectingLinkedIn \|\| linkedInUrlReady/);
+  assert.match(controller, /m_reconnectingLinkedIn = false/);
+  assert.match(popup, /picker\.connectRequested\("linkedin"\)/);
+});
+
 test('provider Connect opens secure OAuth from the first user gesture and updates the drawer from server confirmation', () => {
   const start = controller.indexOf('void OpenProofConnectionsController::connectProvider(');
   const end = controller.indexOf('void OpenProofConnectionsController::disconnectProvider(', start);

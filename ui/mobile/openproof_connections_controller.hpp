@@ -113,6 +113,7 @@ private:
     bool m_actionBusy{};
     QString m_approvalUrl{};
     QString m_pendingProvider{};
+    bool m_reconnectingLinkedIn{};
     int m_remainingPolls{};
     QUrl m_catalogUrl{};
     QUrl m_issuerUrl{};
