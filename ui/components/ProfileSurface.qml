@@ -98,8 +98,14 @@ Item {
                 if (/^https:\/\/www\.linkedin\.com\/in\/[A-Za-z0-9_-]{3,100}\/?$/.test(official))
                     href = official
             }
-            result.push({ provider: provider, href: href,
-                          label: String(item.displayName || username || provider).slice(0, 128) })
+            const label = String(item.displayName || username || provider).slice(0, 128)
+            // A name-based LinkedIn search is a discovery action, not an
+            // authenticated public profile URL. Never label it as verified.
+            const searchHref = provider === "linkedin" && !href && label
+                    ? "https://www.linkedin.com/search/results/people/?keywords="
+                      + encodeURIComponent(label) : ""
+            result.push({ provider: provider, href: href, searchHref: searchHref,
+                          label: label })
         }
         return result
     }
@@ -1107,18 +1113,28 @@ Item {
                                 required property var modelData
                                 readonly property bool liveVerified: openProofConnections.authorized
                                 readonly property bool hasPublicUrl: String(modelData.href || "").length > 0
-                                Layout.preferredWidth: Theme.scaleUi(32)
-                                Layout.preferredHeight: Theme.scaleUi(32)
-                                hoverEnabled: true
+                                readonly property bool canFind: String(modelData.searchHref || "").length > 0
+                                readonly property string hintText: String(modelData.label)
+                                    + (hasPublicUrl
+                                        ? (liveVerified ? qsTr(" · linked profile") : qsTr(" · previously linked"))
+                                        : canFind ? qsTr(" · search LinkedIn by name")
+                                                  : qsTr(" · manage connection"))
+                                Layout.preferredWidth: Theme.scaleUi(34)
+                                Layout.preferredHeight: Theme.scaleUi(34)
+                                hoverEnabled: !root.compact
+                                HoverHandler { cursorShape: Qt.PointingHandCursor }
                                 display: AbstractButton.IconOnly
                                 icon.source: root.socialIcon(String(modelData.provider))
                                 icon.width: Theme.scaleUi(21)
                                 icon.height: Theme.scaleUi(21)
                                 background: Rectangle {
                                     radius: Theme.curveCompact
-                                    color: socialBadge.hovered ? Theme.surfaceHover : Theme.surface
-                                    border.color: Theme.borderMuted
-                                    border.width: 1
+                                    color: socialBadge.down ? Theme.surfacePressed
+                                           : socialBadge.hovered ? Theme.surfaceHover : Theme.surface
+                                    border.color: Theme.keyboardFocusVisible(socialBadge) ? Theme.focus
+                                                  : socialBadge.hovered ? Theme.accent : Theme.borderMuted
+                                    border.width: socialBadge.hovered || Theme.keyboardFocusVisible(socialBadge) ? 2 : 1
+                                    Behavior on color { ColorAnimation { duration: Theme.motionFast } }
                                 }
                                 Rectangle {
                                     anchors.right: parent.right
@@ -1138,14 +1154,33 @@ Item {
                                         color: Theme.surface
                                     }
                                 }
-                                ToolTip.visible: hovered
-                                ToolTip.text: String(modelData.label)
-                                    + (liveVerified ? qsTr(" · OpenProof linked") : qsTr(" · last verified"))
-                                    + (!hasPublicUrl ? qsTr(" · public profile URL unavailable") : "")
-                                Accessible.name: ToolTip.text
+                                ToolTip {
+                                    visible: socialBadge.hovered && !root.compact
+                                    delay: 500
+                                    timeout: 3500
+                                    x: (socialBadge.width - width) / 2
+                                    y: socialBadge.height + Theme.space2
+                                    width: Theme.scaleUi(248)
+                                    padding: Theme.space2
+                                    contentItem: Text {
+                                        text: socialBadge.hintText
+                                        color: Theme.ink
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        wrapMode: Text.Wrap
+                                    }
+                                    background: Rectangle {
+                                        radius: Theme.curveCompact
+                                        color: Theme.surfaceElevated
+                                        border.color: Theme.borderMuted
+                                        border.width: 1
+                                    }
+                                }
+                                Accessible.name: hintText
+                                Accessible.description: hasPublicUrl ? qsTr("Open verified network profile")
+                                    : canFind ? qsTr("Find the linked account on LinkedIn") : qsTr("Manage connection")
                                 onClicked: {
-                                    if (hasPublicUrl)
-                                        root.externalRequested(String(modelData.href))
+                                    if (hasPublicUrl) root.externalRequested(String(modelData.href))
+                                    else if (canFind) root.externalRequested(String(modelData.searchHref))
                                     else root.openConnections()
                                 }
                             }

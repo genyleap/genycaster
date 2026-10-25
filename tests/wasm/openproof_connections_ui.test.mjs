@@ -176,7 +176,11 @@ test('connection selector packages provider-owned SVGs and keeps links in the ap
   assert.match(popup, /providerRow\.confirmUnlink = true/);
   assert.match(popup, /picker\.catalogFallback/);
   assert.doesNotMatch(popup, /XMLHttpRequest|fetch\(/);
-  assert.match(popup, /did not provide its public vanity URL/);
+  assert.match(popup, /does not share a public profile URL through standard sign-in/);
+  assert.match(popup, /linkedinSearchFor\(provider\)/);
+  assert.match(popup, /encodeURIComponent\(name\)/);
+  assert.match(popup, /destinationFor\(providerRow\.modelData\)/);
+  assert.match(popup, /qsTr\("Find"\)/);
   assert.match(popup, /Theme\.iconCheck/);
   assert.doesNotMatch(popup, /Verify profile first|Provider catalog unavailable; showing known options/);
 });
@@ -199,6 +203,11 @@ test('social network badges have stateful checkmarks and real destinations', () 
   assert.match(qml, /socialBadge\.liveVerified \? Theme.success/);
   assert.match(qml, /root.openConnections\(\)/);
   assert.match(qml, /item\.profileUrl/);
+  assert.match(qml, /searchHref: searchHref/);
+  assert.match(qml, /socialBadge\.hovered \? Theme\.surfaceHover/);
+  assert.match(qml, /width: Theme\.scaleUi\(248\)/);
+  assert.match(qml, /else if \(canFind\) root\.externalRequested/);
+  assert.doesNotMatch(qml, /public profile URL unavailable/);
   assert.match(popup, /onClicked: picker.openProfileRequested/);
   assert.doesNotMatch(popup, /saveLinkedInUrlRequested|linkedInUrlError/);
   assert.match(controller, /json\.value\(QStringLiteral\("profile_url"\)\)/);

@@ -109,6 +109,22 @@ GenyDrawer {
         return ""
     }
 
+    // LinkedIn's standard OIDC response identifies a member but usually does
+    // not include the public /in/ vanity slug. A name is not an identifier:
+    // a people-search destination is deliberately distinct from a profile URL.
+    function linkedinSearchFor(provider) {
+        if (provider !== "linkedin" || !connectionFor(provider)) return ""
+        const connection = connectionFor(provider)
+        const name = String(connection.displayName || "").trim().slice(0, 128)
+        if (!name) return ""
+        return "https://www.linkedin.com/search/results/people/?keywords="
+               + encodeURIComponent(name)
+    }
+
+    function destinationFor(provider) {
+        return profileUrlFor(provider) || linkedinSearchFor(provider)
+    }
+
     function connectionFor(provider) {
         for (let i = 0; i < connections.length; i++) {
             const connection = connections[i]
@@ -404,12 +420,13 @@ GenyDrawer {
                                     }
                                     ActionButton {
                                         visible: providerRow.isConnected
-                                                 && picker.profileUrlFor(providerRow.modelData).length > 0
+                                                 && picker.destinationFor(providerRow.modelData).length > 0
                                         compact: true
                                         quiet: true
                                         iconGlyph: Theme.iconArrowUpRight
-                                        text: qsTr("View")
-                                        onClicked: picker.openProfileRequested(picker.profileUrlFor(providerRow.modelData))
+                                        text: picker.profileUrlFor(providerRow.modelData).length > 0
+                                              ? qsTr("View") : qsTr("Find")
+                                        onClicked: picker.openProfileRequested(picker.destinationFor(providerRow.modelData))
                                     }
                                     ActionButton {
                                         visible: picker.authorized && providerRow.redirectCapable
@@ -455,11 +472,12 @@ GenyDrawer {
                                 visible: providerRow.modelData === "linkedin"
                                          && providerRow.isConnected
                                          && picker.profileUrlFor("linkedin").length === 0
+                                         && picker.linkedinSearchFor("linkedin").length === 0
                                 Layout.fillWidth: true
                                 Layout.leftMargin: Theme.space3
                                 Layout.rightMargin: Theme.space3
                                 Layout.bottomMargin: Theme.space2
-                                text: qsTr("LinkedIn authenticated this account but did not provide its public vanity URL.")
+                                text: qsTr("LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account's name.")
                                 wrapMode: Text.Wrap
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
