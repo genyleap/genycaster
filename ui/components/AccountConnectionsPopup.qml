@@ -11,6 +11,7 @@ GenyDrawer {
     property var providers: []
     property var connections: []
     property bool authorized: false
+    property bool cachedSnapshot: false
     property bool authorizing: false
     property bool actionBusy: false
     property string pendingProvider: ""
@@ -134,7 +135,7 @@ GenyDrawer {
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTr("Secure connection access")
+                        text: qsTr("Farcaster verification")
                         color: Theme.ink
                         font.pixelSize: Theme.typeLabelSize
                         font.weight: Theme.weightDemiBold
@@ -144,8 +145,10 @@ GenyDrawer {
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: picker.authorizing
-                          ? qsTr("Complete the secure account approval to unlock connections.")
-                          : qsTr("This sign-in session needs additional permission to manage linked accounts. Your existing connections remain unchanged.")
+                          ? qsTr("Confirm this Farcaster account in your wallet app to manage connections.")
+                          : picker.cachedSnapshot
+                            ? qsTr("These are your last verified links. They survive refresh; confirm with Farcaster only to make changes.")
+                            : qsTr("Verify ownership with Farcaster to manage your connections. No Genyleap account or password is required.")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.Wrap
@@ -162,14 +165,14 @@ GenyDrawer {
                         prominent: !picker.authorizing
                         quiet: picker.authorizing
                         enabled: !picker.authorizing
-                        text: picker.authorizing ? qsTr("Waiting for confirmation…") : qsTr("Unlock connections")
+                        text: picker.authorizing ? qsTr("Waiting for confirmation…") : qsTr("Verify with Farcaster")
                         iconGlyph: picker.authorizing ? "" : Theme.iconArrowUpRight
                         onClicked: picker.authorizeRequested()
                     }
                     ActionButton {
                         visible: picker.authorizing && picker.approvalUrl.length > 0
                         compact: true
-                        text: qsTr("Continue approval")
+                        text: qsTr("Open Farcaster verification")
                         iconGlyph: Theme.iconArrowUpRight
                         onClicked: picker.approvalRequested(picker.approvalUrl)
                     }
@@ -217,6 +220,12 @@ GenyDrawer {
                         font.weight: Theme.weightDemiBold
                     }
                 }
+            }
+            DirectionAwareLabel {
+                visible: picker.cachedSnapshot && !picker.authorized
+                text: qsTr("Last verified")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
             }
             ActionButton {
                 visible: picker.authorized
@@ -332,8 +341,12 @@ GenyDrawer {
                                         Layout.fillWidth: true
                                         text: {
                                             const connection = providerRow.activeConnection
-                                            if (picker.authorized && connection) {
+                                            if (connection && (picker.authorized || picker.cachedSnapshot)) {
                                                 const nick = String(connection.displayName || connection.username || "")
+                                                if (picker.cachedSnapshot && !picker.authorized)
+                                                    return nick.length > 0
+                                                           ? qsTr("Previously linked: %1").arg(nick)
+                                                           : qsTr("Previously linked")
                                                 return nick.length > 0 ? nick : qsTr("Connected")
                                             }
                                             if (picker.authorized && !providerRow.redirectCapable)

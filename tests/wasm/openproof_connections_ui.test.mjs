@@ -54,6 +54,16 @@ test('canonical Farcaster proof grants transient Connections access without a se
   assert.ok(controller.includes('m_viewerFid != requiredFid || fid != requiredFid'));
 });
 
+test('Farcaster ownership unlocks Connections without a Genyleap password and Telegram callback uses its registered host', () => {
+  assert.match(controller, /m_authorization\.beginFarcaster\(/);
+  assert.doesNotMatch(controller, /m_authorization\.begin\(/);
+  assert.match(controller, /m_browserConnectionBaseUrl\.path\(\) \+ QStringLiteral\("\/account\/connections\/handoff"\)/);
+  assert.match(popup, /Verify with Farcaster/);
+  assert.match(popup, /no Genyleap account or password is required/i);
+  assert.ok(!popup.includes('Continue approval'));
+  assert.equal(config.openproofBrowserConnectionBaseUrl, 'https://genyleap.com/openproof');
+});
+
 test('OpenProof verification no longer sends the user to the Genyleap account portal', () => {
   const auth = read('../../ui/mobile/browser_openproof_auth.cpp');
   assert.ok(auth.includes('verification_uri_complete'));

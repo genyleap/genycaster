@@ -4,6 +4,9 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QDateTime>
+#include <QSettings>
+#include <QTemporaryDir>
 
 #include <cassert>
 
@@ -15,8 +18,7 @@ int main(int argc, char** argv)
          "challenge_providers":["farcaster","ethereum-wallet","local","passkey"]}
     )JSON");
     assert((exact == QStringList{
-        QStringLiteral("ethereum-wallet"), QStringLiteral("farcaster"),
-        QStringLiteral("github"), QStringLiteral("google"), QStringLiteral("x")
+        QStringLiteral("github"), QStringLiteral("x")
     }));
     assert(OpenProofConnectionsController::parseProviderCatalog("{}").isEmpty());
     assert(OpenProofConnectionsController::parseProviderCatalog("null").isEmpty());
@@ -32,7 +34,7 @@ int main(int argc, char** argv)
 
     OpenProofConnectionsController controller{};
     assert(controller.providers().contains(QStringLiteral("x")));
-    assert(controller.providers().contains(QStringLiteral("farcaster")));
+    assert(!controller.providers().contains(QStringLiteral("farcaster")));
     assert(!controller.providers().contains(QStringLiteral("local")));
     controller.setViewerFid(42);
     assert(controller.recoveryGatewayOrigin().startsWith(QStringLiteral("https://")));
@@ -46,5 +48,31 @@ int main(int argc, char** argv)
     assert(!controller.actionBusy());
     controller.setViewerFid(0);
     assert(!controller.authorized());
+
+    // A bounded owner-local snapshot must survive reopening without making
+    // cached data an account grant, and must never leak to a different FID.
+    QTemporaryDir temp;
+    assert(temp.isValid());
+    QSettings settings(temp.filePath(QStringLiteral("social.ini")), QSettings::IniFormat);
+    const QJsonArray entries{QJsonObject{
+        {QStringLiteral("provider"), QStringLiteral("github")},
+        {QStringLiteral("subject"), QStringLiteral("developer-123")},
+        {QStringLiteral("username"), QStringLiteral("developer")},
+        {QStringLiteral("displayName"), QStringLiteral("Developer")}}};
+    const QJsonObject snapshot{
+        {QStringLiteral("fid"), QStringLiteral("42")},
+        {QStringLiteral("verifiedAt"), QDateTime::currentMSecsSinceEpoch()},
+        {QStringLiteral("connections"), entries}};
+    settings.setValue(QStringLiteral("openProofConnections/lastKnown/42"),
+        QString::fromUtf8(QJsonDocument(snapshot).toJson(QJsonDocument::Compact)));
+    settings.sync();
+    OpenProofConnectionsController restored(nullptr, &settings);
+    restored.setViewerFid(42);
+    assert(restored.cachedSnapshot());
+    assert(!restored.authorized());
+    assert(restored.connections().size() == 1);
+    restored.setViewerFid(43);
+    assert(!restored.cachedSnapshot());
+    assert(restored.connections().isEmpty());
     return 0;
 }

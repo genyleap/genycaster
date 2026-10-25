@@ -640,12 +640,12 @@ test('browser OpenProof account handoff binds provider and local return path ser
     },body:JSON.stringify({provider:'x'})});
     assert.equal(accepted.status,200);
     assert.deepEqual(await accepted.json(),{
-      handoff_url:'https://openproof.genyleap.com/account/connections/handoff?ticket=one-time',
+      handoff_url:'https://genyleap.com/openproof/account/connections/handoff?ticket=one-time',
       expires_at:'2026-10-21T12:02:00Z',
     });
     assert.equal(upstreamCalls.length,1);
     assert.deepEqual(upstreamCalls[0].payload,{
-      provider:'x',return_to:'/account/connections/complete'
+      provider:'x',return_to:'/openproof/account/connections/complete'
     });
     assert.equal(upstreamCalls[0].authorization,'Bearer valid-token');
   }, {fetchImpl: async(url,options)=>{
@@ -658,6 +658,22 @@ test('browser OpenProof account handoff binds provider and local return path ser
       expires_at:'2026-10-21T12:02:00Z'
     }),{status:201,headers:{'content-type':'application/json'}});
   }});
+});
+
+test('browser connection redirect honors the OIDC callback host and rejects unsafe browser base', () => {
+  const env = {GENYLEAP_MEDIA_TICKET_SECRET:'0123456789abcdef0123456789abcdef'};
+  const conf = loadConfig(env);
+  assert.equal(conf.connectionBrowserBase.href,'https://genyleap.com/openproof');
+  const callback = new URL('https://genyleap.com/openproof/auth/federated/callback');
+  const handoff = new URL('account/connections/handoff',conf.connectionBrowserBase.href+'/');
+  assert.equal(handoff.host,callback.host,
+    'OAuth state cookies must be minted on the registered callback host');
+  assert.throws(() => loadConfig({...env,
+    GENYCASTER_OPENPROOF_CONNECTION_BROWSER_BASE:'http://genyleap.com/openproof'}),
+    /must be HTTPS/);
+  assert.throws(() => loadConfig({...env,
+    GENYCASTER_OPENPROOF_CONNECTION_BROWSER_BASE:'https://genyleap.com/user-controlled'}),
+    /must be HTTPS \/openproof/);
 });
 
 test('browser OpenProof disconnect requires exact provider and subject, refuses last-method removal',async()=>{
@@ -900,7 +916,7 @@ test('temporary recovered OpenProof account capability reuses server cookie with
       body:JSON.stringify({provider:'x'})});
     assert.equal(handoff.status,200);
     assert.equal((await handoff.json()).handoff_url,
-      'https://openproof.genyleap.com/account/connections/handoff?ticket=fresh');
+      'https://genyleap.com/openproof/account/connections/handoff?ticket=fresh');
     const rejected=await fetch(origin+route,{headers:{
       authorization:'Bearer recovery.'+'Z'.repeat(43)}});
     assert.equal(rejected.status,401);

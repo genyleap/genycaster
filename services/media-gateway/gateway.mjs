@@ -48,6 +48,17 @@ export function loadConfig(env = process.env) {
   );
   if (openProofIssuer.protocol !== 'https:')
     throw new Error('GENYCASTER_OPENPROOF_ISSUER must use HTTPS');
+  // This host MUST match the registered OAuth redirect host. OpenProof's
+  // __Host- federation state cookies cannot cross from the issuer subdomain
+  // to the main-domain callback registered with upstream providers.
+  const connectionBrowserBase = normalizeOrigin(
+    env.GENYCASTER_OPENPROOF_CONNECTION_BROWSER_BASE ||
+      'https://genyleap.com/openproof',
+    'GENYCASTER_OPENPROOF_CONNECTION_BROWSER_BASE',
+  );
+  if (connectionBrowserBase.protocol !== 'https:' ||
+      connectionBrowserBase.pathname !== '/openproof')
+    throw new Error('GENYCASTER_OPENPROOF_CONNECTION_BROWSER_BASE must be HTTPS /openproof');
   const ticketSecret = String(env.GENYLEAP_MEDIA_TICKET_SECRET || '');
   if (ticketSecret.length < 32) throw new Error('GENYLEAP_MEDIA_TICKET_SECRET must contain at least 32 characters.');
   const multipartPartBytes = positiveInteger(
@@ -82,6 +93,7 @@ export function loadConfig(env = process.env) {
     partRateLimit: positiveInteger(env.GENYLEAP_MEDIA_PART_RATE_LIMIT, 240, 'GENYLEAP_MEDIA_PART_RATE_LIMIT'),
     trustCloudflare: env.GENYLEAP_MEDIA_TRUST_CLOUDFLARE === '1',
     openProofIssuer,
+    connectionBrowserBase,
   });
 }
 
@@ -1142,7 +1154,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       const upstreamPath = handoff ? '/account/connections/handoff'
                                    : '/account/connections/disconnect';
       const requestJson = handoff
-        ? {provider, return_to:'/account/connections/complete'}
+        ? {provider, return_to:'/openproof/account/connections/complete'}
         : {provider,subject:payload.subject};
       const delegated = accountHeaders(authorization);
       if (!delegated) {
@@ -1201,8 +1213,15 @@ export function createMediaGateway(config, storage, dependencies = {}) {
               || url.hash) {
             writeJson(response,502,{error:'openproof_invalid_handoff'});return;
           }
+          // Do not redirect the browser to the API issuer. Telegram (and
+          // other providers) returns to the registered callback on
+          // genyleap.com; __Host- state cookies must be minted on that host.
+          // The opaque ticket is validated server-side before any redirect.
+          const browserUrl = new URL(config.connectionBrowserBase.href);
+          browserUrl.pathname += '/account/connections/handoff';
+          browserUrl.searchParams.set('ticket', url.searchParams.get('ticket'));
           writeJson(response,200,{
-            handoff_url:url.href,expires_at:decoded.expires_at,
+            handoff_url:browserUrl.href,expires_at:decoded.expires_at,
           });
         } else if (decoded?.disconnected === true) {
           writeJson(response,200,{disconnected:true});

@@ -1,5 +1,6 @@
 {
   "openproofProviderCatalogUrl": "https://storage-farcaster.genyleap.com/v1/browser/openproof/providers",
   "openproofIssuerUrl": "https://openproof.genyleap.com",
+  "openproofBrowserConnectionBaseUrl": "https://genyleap.com/openproof",
   "openproofConnectionsGatewayUrl": "https://storage-farcaster.genyleap.com/v1/browser/openproof/connections"
 }

@@ -12,6 +12,7 @@
 
 #include "browser_openproof_auth.hpp"
 #include <QObject>
+class QSettings;
 #include <QString>
 #include <QStringList>
 #include <QUrl>
@@ -31,9 +32,11 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QString approvalUrl READ approvalUrl NOTIFY stateChanged)
     Q_PROPERTY(QVariantList connections READ connections NOTIFY stateChanged)
     Q_PROPERTY(bool actionBusy READ actionBusy NOTIFY stateChanged)
+    Q_PROPERTY(bool cachedSnapshot READ cachedSnapshot NOTIFY stateChanged)
     Q_PROPERTY(QString pendingProvider READ pendingProvider NOTIFY stateChanged)
 public:
-    explicit OpenProofConnectionsController(QObject* parent = nullptr);
+    explicit OpenProofConnectionsController(QObject* parent = nullptr,
+                                            QSettings* settings = nullptr);
 
     [[nodiscard]] QStringList providers() const;
     [[nodiscard]] bool loading() const noexcept;
@@ -48,6 +51,7 @@ public:
     [[nodiscard]] QString approvalUrl() const;
     [[nodiscard]] QVariantList connections() const;
     [[nodiscard]] bool actionBusy() const noexcept;
+    [[nodiscard]] bool cachedSnapshot() const noexcept;
     [[nodiscard]] QString pendingProvider() const;
 
     /** @brief Changes viewer identity, invalidating any delegated account
@@ -83,6 +87,8 @@ signals:
 
 private:
     void clearAccountGrant();
+    void restoreCachedConnections();
+    void saveCachedConnections() const;
     void sendAccountRequest(const QUrl& url, QByteArray body,
                             std::function<void(int, QByteArray)> callback);
     [[nodiscard]] QUrl gatewayActionUrl(const QString& suffix = {}) const;
@@ -90,11 +96,13 @@ private:
     void finishAction(QString error = {});
 
     QNetworkAccessManager m_network{this};
+    QSettings* m_settings{};
     BrowserOpenProofAuth m_authorization{this};
     QPointer<QNetworkReply> m_request{};
     QTimer m_grantExpiry{this};
     QTimer m_connectionPoll{this};
     QUrl m_gatewayUrl{};
+    QUrl m_browserConnectionBaseUrl{};
     QByteArray m_accountBearer{};
     QString m_accountSubject{};
     QVariantList m_connections{};
@@ -102,6 +110,7 @@ private:
     std::uint64_t m_grantGeneration{};
     bool m_authorizing{};
     bool m_verified{};
+    bool m_cachedSnapshot{};
     bool m_actionBusy{};
     QString m_approvalUrl{};
     QString m_pendingProvider{};

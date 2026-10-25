@@ -1840,7 +1840,7 @@ int main(int argc, char* argv[])
         QStringLiteral("bundledIconFontFamily"), bundledIconFontFamily);
     engine.rootContext()->setContextProperty(
         QStringLiteral("bundledIconRegularFontFamily"), bundledIconRegularFontFamily);
-    OpenProofConnectionsController openProofConnections{};
+    OpenProofConnectionsController openProofConnections{nullptr, &settings};
     engine.rootContext()->setContextProperty(
         QStringLiteral("openProofConnections"), &openProofConnections);
     QObject::connect(&presentationBridge, &PresentationBridge::authenticationStateChanged,

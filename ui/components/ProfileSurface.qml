@@ -73,6 +73,37 @@ Item {
                                            : root.profileContentRtl
                                              ? root.profileContentX + root.profileContentWidth - root.profileAvatarSize - Theme.space3
                                              : root.profileContentX + Theme.space3
+    // Never infer social proof from a Farcaster bio, display name or vanity URL.
+    // These labels originate from OpenProof's verified, FID-bound connection
+    // response (or a clearly marked owner-local last-known snapshot).
+    readonly property var ownerSocialLinks: {
+        if (!root.isOwnProfile || typeof openProofConnections === "undefined"
+                || openProofConnections === null) return []
+        const result = []
+        for (const item of openProofConnections.connections) {
+            const provider = String(item.provider || "")
+            if (!["x", "github", "linkedin", "telegram"].includes(provider)) continue
+            const username = String(item.username || "").replace(/^@/, "")
+            let href = ""
+            if (provider === "x" && /^[A-Za-z0-9_]{1,15}$/.test(username))
+                href = "https://x.com/" + username
+            else if (provider === "github"
+                     && /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(username))
+                href = "https://github.com/" + username
+            else if (provider === "telegram"
+                     && /^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(username))
+                href = "https://t.me/" + username
+            // LinkedIn's OIDC 'sub' is not a public /in/ vanity handle;
+            // keep its verified mark visible but never invent a link.
+            result.push({ provider: provider, href: href,
+                          label: String(item.displayName || username || provider).slice(0, 128) })
+        }
+        return result
+    }
+    function socialIcon(provider) {
+        const rootPath = "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/"
+        return rootPath + provider + ".svg"
+    }
     readonly property bool showUsername: Boolean(root.activeDetail.username) && !root.syntheticUsername(root.activeDetail.username)
     readonly property string normalizedBio: String(root.activeDetail.bio || "").replace(/\s+/g, " ").trim()
     readonly property string displayLocation: {
@@ -1069,6 +1100,48 @@ Item {
                         Item { Layout.fillWidth: true }
                     }
 
+                    RowLayout {
+                        id: ownerSocialBadgeStrip
+                        objectName: "ownerVerifiedSocialBadgeStrip"
+                        Layout.fillWidth: true
+                        visible: root.ownerSocialLinks.length > 0
+                        spacing: Theme.space2
+                        layoutDirection: Theme.uiDirection
+
+                        Repeater {
+                            model: root.ownerSocialLinks
+                            delegate: Button {
+                                id: socialBadge
+                                required property var modelData
+                                readonly property bool liveVerified: openProofConnections.authorized
+                                width: Theme.scaleUi(34)
+                                height: Theme.scaleUi(34)
+                                Layout.preferredWidth: width
+                                Layout.preferredHeight: height
+                                display: AbstractButton.IconOnly
+                                icon.source: root.socialIcon(String(modelData.provider))
+                                icon.width: Theme.scaleUi(22)
+                                icon.height: Theme.scaleUi(22)
+                                enabled: String(modelData.href || "").length > 0
+                                opacity: liveVerified ? 1 : 0.65
+                                background: Rectangle {
+                                    radius: Theme.curveCompact
+                                    color: Theme.surface
+                                    border.color: Theme.borderMuted
+                                    border.width: 1
+                                }
+                                ToolTip.visible: hovered
+                                ToolTip.text: String(modelData.label)
+                                              + (liveVerified ? qsTr(" · verified by OpenProof")
+                                                              : qsTr(" · previously verified"))
+                                              + (enabled ? "" : qsTr(" · public URL unavailable"))
+                                Accessible.name: ToolTip.text
+                                onClicked: root.externalRequested(String(modelData.href))
+                            }
+                        }
+                        Item { Layout.fillWidth: true }
+                    }
+
                     RichText {
                         visible: root.normalizedBio.length > 0
                         Layout.fillWidth: true
@@ -1414,6 +1487,7 @@ Item {
         connections: openProofConnections.connections
         catalogFallback: openProofConnections.catalogFallback
         authorized: openProofConnections.authorized
+        cachedSnapshot: openProofConnections.cachedSnapshot
         authorizing: openProofConnections.authorizing
         approvalUrl: openProofConnections.approvalUrl
         actionBusy: openProofConnections.actionBusy

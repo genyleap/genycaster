@@ -10,6 +10,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QRegularExpression>
+#include <QSettings>
 #include <QUrlQuery>
 
 #include <algorithm>
@@ -86,19 +87,23 @@ namespace {
 
 } // namespace
 
-OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent)
+OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, QSettings* settings)
     : QObject(parent),
+      m_settings(settings),
       m_catalogUrl(configuredUrl("GENYCASTER_OPENPROOF_PROVIDERS_URL",
           QStringLiteral("openproofProviderCatalogUrl"))),
       m_issuerUrl(configuredUrl("GENYCASTER_OPENPROOF_ISSUER_URL",
-          QStringLiteral("openproofIssuerUrl")))
+          QStringLiteral("openproofIssuerUrl"))),
+      m_browserConnectionBaseUrl(configuredUrl("GENYCASTER_OPENPROOF_BROWSER_CONNECTION_BASE_URL",
+          QStringLiteral("openproofBrowserConnectionBaseUrl")))
 {
     m_gatewayUrl = configuredUrl("GENYCASTER_OPENPROOF_CONNECTIONS_GATEWAY_URL",
         QStringLiteral("openproofConnectionsGatewayUrl"));
     m_grantExpiry.setSingleShot(true);
     connect(&m_grantExpiry, &QTimer::timeout, this, [this] {
         clearAccountGrant();
-        m_error = QStringLiteral("OpenProof account authorization expired. Authorize again.");
+        restoreCachedConnections();
+        m_error.clear();
         emit stateChanged();
     });
     m_connectionPoll.setInterval(3'000);
@@ -111,10 +116,12 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent)
         refreshConnections();
     });
     // A safe, last-known public capability catalog, not linked-account status.
+    // These are public-facing social reputation links, not sign-in methods.
+    // Google, wallet and Farcaster identity remain managed by OpenProof and
+    // are not advertised as a public social profile.
     m_providers = {
-        QStringLiteral("x"), QStringLiteral("github"), QStringLiteral("google"),
-        QStringLiteral("linkedin"), QStringLiteral("telegram"),
-        QStringLiteral("farcaster"), QStringLiteral("ethereum-wallet")
+        QStringLiteral("x"), QStringLiteral("github"),
+        QStringLiteral("linkedin"), QStringLiteral("telegram")
     };
 }
 
@@ -127,6 +134,7 @@ bool OpenProofConnectionsController::authorizing() const noexcept { return m_aut
 QString OpenProofConnectionsController::approvalUrl() const { return m_approvalUrl; }
 QVariantList OpenProofConnectionsController::connections() const { return m_connections; }
 bool OpenProofConnectionsController::actionBusy() const noexcept { return m_actionBusy; }
+bool OpenProofConnectionsController::cachedSnapshot() const noexcept { return m_cachedSnapshot; }
 QString OpenProofConnectionsController::pendingProvider() const { return m_pendingProvider; }
 QString OpenProofConnectionsController::recoveryGatewayOrigin() const
 {
@@ -189,8 +197,9 @@ QStringList OpenProofConnectionsController::parseProviderCatalog(const QByteArra
         for (const auto& entry : object.value(QString::fromLatin1(key)).toArray()) {
             if (!entry.isString()) continue;
             const QString provider = entry.toString();
-            if (validProviderName(provider) && provider != QStringLiteral("local")
-                && provider != QStringLiteral("passkey") && !result.contains(provider)) {
+            if (QStringList{QStringLiteral("x"), QStringLiteral("github"),
+                            QStringLiteral("linkedin"), QStringLiteral("telegram")}
+                    .contains(provider) && !result.contains(provider)) {
                 result.push_back(provider);
             }
         }
@@ -199,6 +208,86 @@ QStringList OpenProofConnectionsController::parseProviderCatalog(const QByteArra
     // not the social/external identity picker.
     result.sort(Qt::CaseInsensitive);
     return result;
+}
+
+void OpenProofConnectionsController::restoreCachedConnections()
+{
+    if (!m_settings || !m_viewerFid || m_verified) return;
+    const QString key = QStringLiteral("openProofConnections/lastKnown/")
+        + QString::number(m_viewerFid);
+    const QByteArray raw = m_settings->value(key).toString().toUtf8();
+    if (raw.isEmpty() || raw.size() > 16 * 1024) return;
+    const auto document = QJsonDocument::fromJson(raw);
+    if (!document.isObject()) return;
+    const auto snapshot = document.object();
+    if (snapshot.value(QStringLiteral("fid")).toString() != QString::number(m_viewerFid)
+        || !snapshot.value(QStringLiteral("connections")).isArray()) return;
+    const qint64 verifiedAt = snapshot.value(QStringLiteral("verifiedAt")).toVariant().toLongLong();
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    // Saved profile metadata is informational, never authority for mutations.
+    // Old or malformed records cannot masquerade as recent verification.
+    if (verifiedAt <= 0 || verifiedAt > now || now - verifiedAt > 30LL * 24 * 60 * 60 * 1000) return;
+    const auto entries = snapshot.value(QStringLiteral("connections")).toArray();
+    if (entries.size() > 4) return;
+    QVariantList restored;
+    QStringList seen;
+    for (const auto& item : entries) {
+        if (!item.isObject()) return;
+        const auto value = item.toObject();
+        const QString provider = value.value(QStringLiteral("provider")).toString();
+        const QString subject = value.value(QStringLiteral("subject")).toString();
+        const QString name = value.value(QStringLiteral("displayName")).toString();
+        const QString username = value.value(QStringLiteral("username")).toString();
+        if (!QStringList{QStringLiteral("x"), QStringLiteral("github"),
+                         QStringLiteral("linkedin"), QStringLiteral("telegram")}.contains(provider)
+            || seen.contains(provider) || subject.isEmpty() || subject.size() > 512
+            || name.size() > 256 || username.size() > 128) return;
+        seen.push_back(provider);
+        restored.push_back(QVariantMap{
+            {QStringLiteral("provider"), provider},
+            {QStringLiteral("subject"), subject},
+            {QStringLiteral("displayName"), name},
+            {QStringLiteral("username"), username}});
+    }
+    m_connections = std::move(restored);
+    m_cachedSnapshot = true;
+}
+
+void OpenProofConnectionsController::saveCachedConnections() const
+{
+    if (!m_settings || !m_verified || !m_viewerFid) return;
+    QJsonArray social;
+    for (const auto& entry : m_connections) {
+        const auto item = entry.toMap();
+        const QString provider = item.value(QStringLiteral("provider")).toString();
+        if (!QStringList{QStringLiteral("x"), QStringLiteral("github"),
+                         QStringLiteral("linkedin"), QStringLiteral("telegram")}.contains(provider))
+            continue;
+        const QString subject = item.value(QStringLiteral("subject")).toString();
+        if (subject.isEmpty() || subject.size() > 512) continue;
+        social.push_back(QJsonObject{
+            {QStringLiteral("provider"), provider},
+            {QStringLiteral("subject"), subject},
+            {QStringLiteral("displayName"), item.value(QStringLiteral("displayName")).toString().left(256)},
+            {QStringLiteral("username"), item.value(QStringLiteral("username")).toString().left(128)}});
+    }
+    const QJsonObject snapshot{
+        {QStringLiteral("fid"), QString::number(m_viewerFid)},
+        {QStringLiteral("verifiedAt"), QDateTime::currentMSecsSinceEpoch()},
+        {QStringLiteral("connections"), social}};
+    const QString key = QStringLiteral("openProofConnections/lastKnown/")
+        + QString::number(m_viewerFid);
+    m_settings->setValue(key, QString::fromUtf8(QJsonDocument(snapshot).toJson(QJsonDocument::Compact)));
+    m_settings->sync();
+#if defined(__EMSCRIPTEN__)
+    // The persistent cache contains only public-facing profile labels, never
+    // OpenProof cookies or bearer material. IDBFS persistence is serialized
+    // with the existing Genycaster browser-data flush contract.
+    EM_ASM({
+        if (typeof Module.genycasterSyncBrowserData === 'function')
+            Module.genycasterSyncBrowserData().catch(function() {});
+    });
+#endif
 }
 
 void OpenProofConnectionsController::clearAccountGrant()
@@ -219,6 +308,7 @@ void OpenProofConnectionsController::clearAccountGrant()
     m_accountSubject.clear();
     m_connections.clear();
     m_verified = false;
+    m_cachedSnapshot = false;
     m_actionBusy = false;
     m_pendingProvider.clear();
     m_remainingPolls = 0;
@@ -233,6 +323,7 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_approvalUrl.clear();
     m_error.clear();
     m_viewerFid = fid;
+    restoreCachedConnections();
     emit stateChanged();
 }
 
@@ -301,7 +392,10 @@ void OpenProofConnectionsController::authorizeAccount()
     const auto requiredFid = m_viewerFid;
     const auto generation = m_grantGeneration;
     emit stateChanged();
-    m_authorization.begin(
+    // Connections authorization comes from a signed Farcaster proof, not
+    // from Genyleap credentials or OpenProof's device-login screen. The same
+    // proof is checked against the currently displayed FID on both sides.
+    m_authorization.beginFarcaster(
         [this, generation](BrowserOpenProofState state) {
             if (generation != m_grantGeneration) return;
             switch (state.phase) {
@@ -312,8 +406,6 @@ void OpenProofConnectionsController::authorizeAccount()
                 m_authorizing = false;
                 m_approvalUrl.clear(); break;
             case BrowserOpenProofState::Phase::Authenticated:
-                m_authorizing = false;
-                m_approvalUrl.clear(); break;
             case BrowserOpenProofState::Phase::SignedOut:
                 m_authorizing = false;
                 m_approvalUrl.clear(); break;
@@ -322,22 +414,18 @@ void OpenProofConnectionsController::authorizeAccount()
             }
             emit stateChanged();
         },
-        [this, requiredFid, generation](QByteArray bearer, QString subject,
-                                        const std::uint64_t fid, const int expirySeconds) {
+        [this, requiredFid, generation](QByteArray ticket, QString subject,
+                                         const std::uint64_t fid, const int expirySeconds) {
             if (generation != m_grantGeneration || !requiredFid
-                || m_viewerFid != requiredFid || fid != requiredFid
-                || !trustedHttpsEndpoint(m_gatewayUrl) || bearer.size() > 8192
-                || bearer.isEmpty() || subject.isEmpty()) {
-                bearer.fill('\0');
-                m_error = QStringLiteral(
-                    "OpenProof authorization must match your active Farcaster profile.");
+                || m_viewerFid != requiredFid || fid != requiredFid) {
+                ticket.fill('\0');
+                m_error = QStringLiteral("Farcaster proof must match your active profile.");
+                m_authorizing = false;
                 emit stateChanged();
                 return;
             }
-            m_accountBearer = std::move(bearer);
-            m_accountSubject = std::move(subject);
-            m_grantExpiry.start(std::clamp(expirySeconds - 10, 1, 3'590) * 1'000);
-            refreshConnections();
+            acceptRecoveryGrant(std::move(ticket), std::move(subject), fid,
+                                expirySeconds);
         });
 }
 
@@ -383,7 +471,8 @@ void OpenProofConnectionsController::sendAccountRequest(
             if (generation != m_grantGeneration) return;
             if (status == 401 || status == 403) {
                 clearAccountGrant();
-                m_error = QStringLiteral("OpenProof account session expired. Authorize again.");
+                restoreCachedConnections();
+                m_error.clear();
                 emit stateChanged();
                 return;
             }
@@ -439,6 +528,8 @@ void OpenProofConnectionsController::refreshConnections()
             }
             m_connections = std::move(current);
             m_verified = true;
+            m_cachedSnapshot = false;
+            saveCachedConnections();
             m_error.clear();
             if (!m_pendingProvider.isEmpty() && isConnected(m_pendingProvider)) {
 #if defined(__EMSCRIPTEN__)
@@ -509,8 +600,11 @@ void OpenProofConnectionsController::connectProvider(const QString& provider)
         [this, provider](const int status, const QByteArray& payload) {
             const auto parsed = QJsonDocument::fromJson(payload).object();
             const QUrl url{parsed.value(QStringLiteral("handoff_url")).toString()};
-            if (status != 200 || url.scheme() != m_issuerUrl.scheme() || url.host() != m_issuerUrl.host() || url.port() != m_issuerUrl.port()
-                || url.path() != QStringLiteral("/account/connections/handoff")
+            if (status != 200 || !trustedHttpsEndpoint(m_browserConnectionBaseUrl)
+                || url.scheme() != m_browserConnectionBaseUrl.scheme()
+                || url.host() != m_browserConnectionBaseUrl.host()
+                || url.port() != m_browserConnectionBaseUrl.port()
+                || url.path() != m_browserConnectionBaseUrl.path() + QStringLiteral("/account/connections/handoff")
                 || !url.hasQuery() || !QUrlQuery{url}.hasQueryItem(QStringLiteral("ticket"))
                 || !trustedHttpsEndpoint(url.adjusted(QUrl::RemoveQuery))) {
                 finishAction(QStringLiteral("Could not create a secure OpenProof connection."));
