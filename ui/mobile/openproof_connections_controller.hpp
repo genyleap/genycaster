@@ -35,6 +35,10 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(bool cachedSnapshot READ cachedSnapshot NOTIFY stateChanged)
     Q_PROPERTY(QString pendingProvider READ pendingProvider NOTIFY stateChanged)
     Q_PROPERTY(QString manualLinkedInUrl READ manualLinkedInUrl NOTIFY stateChanged)
+    Q_PROPERTY(bool cloudBusy READ cloudBusy NOTIFY cloudStateChanged)
+    Q_PROPERTY(bool cloudServiceAvailable READ cloudServiceAvailable NOTIFY cloudStateChanged)
+    Q_PROPERTY(QString cloudError READ cloudError NOTIFY cloudStateChanged)
+    Q_PROPERTY(int cloudRevision READ cloudRevision NOTIFY cloudStateChanged)
 public:
     explicit OpenProofConnectionsController(QObject* parent = nullptr,
                                             QSettings* settings = nullptr);
@@ -55,6 +59,17 @@ public:
     [[nodiscard]] bool cachedSnapshot() const noexcept;
     [[nodiscard]] QString pendingProvider() const;
     [[nodiscard]] QString manualLinkedInUrl() const;
+    [[nodiscard]] bool cloudBusy() const noexcept { return m_cloudRequest != nullptr; }
+    [[nodiscard]] bool cloudServiceAvailable() const noexcept { return m_cloudServiceAvailable; }
+    Q_INVOKABLE void checkCloudService();
+    [[nodiscard]] QString cloudError() const { return m_cloudError; }
+    [[nodiscard]] int cloudRevision() const noexcept { return m_cloudRevision; }
+    /** Explicit opt-in cloud reads/writes; bearer never leaves native Qt. */
+    Q_INVOKABLE void fetchCloudProfileExtras();
+    Q_INVOKABLE void pushCloudProfileExtras(const QVariantMap& fields);
+    /** Manual vanity URLs are self-asserted; OpenProof remains link authority. */
+    Q_INVOKABLE void uploadManualLinkedInCloud();
+    Q_INVOKABLE void restoreManualLinkedInCloud();
     /** Store a user-asserted public vanity URL in device-local state only.
      * Does not upgrade OpenProof verification or silently enable cloud sync. */
     Q_INVOKABLE void setManualLinkedInUrl(const QString& url);
@@ -88,6 +103,9 @@ public:
 
 signals:
     void stateChanged();
+    void cloudStateChanged();
+    void cloudProfileExtrasReceived(const QVariantMap& item);
+    void cloudProfileExtrasSaved(const QVariantMap& item);
 
 private:
     [[nodiscard]] QString manualLinkedInSettingKey() const;
@@ -99,11 +117,20 @@ private:
     [[nodiscard]] QUrl gatewayActionUrl(const QString& suffix = {}) const;
     [[nodiscard]] bool isConnected(const QString& provider, const QString& subject = {}) const;
     void finishAction(QString error = {});
+    void sendCloudProfileRequest(bool upload, const QVariantMap& fields = {});
+    void sendCloudLinkedInRequest(bool upload);
 
     QNetworkAccessManager m_network{this};
     QSettings* m_settings{};
     BrowserOpenProofAuth m_authorization{this};
     QPointer<QNetworkReply> m_request{};
+    QPointer<QNetworkReply> m_cloudRequest{};
+    QPointer<QNetworkReply> m_cloudProbe{};
+    bool m_cloudServiceAvailable{};
+    bool m_applyingCloudLinkedIn{};
+    QUrl m_cloudUrl{};
+    QString m_cloudError{};
+    int m_cloudRevision{};
     QTimer m_grantExpiry{this};
     QTimer m_connectionPoll{this};
     QUrl m_gatewayUrl{};

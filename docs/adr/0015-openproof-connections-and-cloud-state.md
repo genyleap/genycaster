@@ -88,3 +88,40 @@ Create the PostgreSQL database `genycaster_db` **only** using authorized databas
   end-to-end signed proof against real OpenProof and explicit consent where
   required, and jointly verified gateway/client release. Test mocks do not
   prove that live OpenProof self-provision policy is enabled.
+
+## Implementation update — 2026-10-25
+
+- Genycaster retains OpenProof as the **only identity/connection authority**.
+  Private cloud APIs verify a short-lived bearer with trusted HTTPS
+  `GET /account/profile`, derive the opaque issuer+subject exclusively from
+  the response, and use parameterized owner-scoped SQL. The client never sends
+  a trusted FID, identity ID, provider subject or a persistent access token
+  to identify the cloud data owner.
+- The optional app-owned schema now includes migration
+  `003_profile_extras.sql` (private-by-default professional category, selected
+  role and five labelled HTTPS links), with optimistic revisions. An existing
+  self-authored `profileExtrasSettings` value remains local until the user
+  explicitly opts into an upload or restoration.
+- Bookmarks now accept client-generated UUID mutation IDs for repeat-safe
+  writes, retain deletion tombstones, and provide bounded cursor-based
+  reconciliation from `bookmark_changes`. The cloud API may not be
+  interpreted as proof of a Farcaster bookmark message; those are Genycaster
+  application-only records.
+- Native Qt holds the delegated OpenProof bearer only in transient C++ memory,
+  never exports it to QML/JavaScript, rejects recovery tickets for the private
+  API until verified gateway delegation exists, and drops ongoing requests
+  when viewer identity changes. The cloud UI is disabled unless a strict JSON
+  health probe succeeds; an HTML SPA fallback must not enable it.
+- **Operator gate remains unmet:** the current restricted server operations
+  session cannot become the `postgres` OS user (setuid/sudo denied), and the
+  `root` PostgreSQL role does not exist. No `genycaster_db` provisioning
+  could be performed under these permissions. No Nginx cloud proxy route
+  currently exists; the cloud UI therefore remains **not operational**.
+  The authorized DBA and deployment operator must complete schema creation,
+  least-privilege role setup, HTTPS proxy, and a two-device end-to-end test.
+- **Additional client work still necessary:** bookmarks, drafts and
+  notifications are represented by server APIs but their existing local
+  storage adapters are not yet bound to a durable, offline-queue/reconciliation
+  workflow. Previously cached connections are not authoritative; manually
+  entered LinkedIn URLs require separate cloud-upload consent. Scheduled tasks
+  are definitions only and cannot publish automatically.

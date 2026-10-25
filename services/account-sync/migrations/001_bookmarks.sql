@@ -1,4 +1,4 @@
--- Apply only inside a separately created PostgreSQL database named "genycaster".
+-- Apply only inside the separately created Genycaster PostgreSQL database "genycaster_db".
 -- No OpenProof identities, providers, verified claims, OAuth credentials, FIDs,
 -- protocol profiles or token metadata are copied into these tables.
 BEGIN;

@@ -14,9 +14,40 @@ export async function createPgStore(connectionString) {
   const pool=new Pool({connectionString, max:8, connectionTimeoutMillis:4000,
     idleTimeoutMillis:20000, statement_timeout:6000});
   // Fail closed without explicit schema provisioning. Never CREATE tables in a request.
-  await pool.query('SELECT 1 FROM schema_migrations WHERE version=2');
+  const migration=await pool.query('SELECT version FROM schema_migrations WHERE version=3');
+  if (migration.rowCount !== 1) {
+    await pool.end();
+    throw new Error('Genycaster database schema v3 is required');
+  }
   return {
     close:()=>pool.end(),
+    async getProfileExtras({issuer,subject}) {
+      const result=await pool.query(`SELECT category,profession,links,publicly_visible,
+          revision,updated_at FROM profile_extras WHERE issuer=$1 AND subject=$2`,
+        [issuer,subject]);
+      const record=result.rows[0];
+      return record ? {...record,revision:Number(record.revision)} : null;
+    },
+    async putProfileExtras({issuer,subject},item) {
+      // Version zero creates exactly once; existing rows require the expected
+      // revision. Two devices cannot silently overwrite each other's changes.
+      const result=await pool.query(`INSERT INTO profile_extras
+          (issuer,subject,category,profession,links,publicly_visible,revision)
+        SELECT $1,$2,$3,$4,$5::jsonb,false,1
+        WHERE $6::bigint=0 OR EXISTS (
+          SELECT 1 FROM profile_extras WHERE issuer=$1 AND subject=$2
+            AND revision=$6
+        )
+        ON CONFLICT (issuer,subject) DO UPDATE SET
+          category=EXCLUDED.category,profession=EXCLUDED.profession,
+          links=EXCLUDED.links,publicly_visible=false,
+          revision=profile_extras.revision+1,updated_at=now()
+        WHERE profile_extras.revision=$6
+        RETURNING category,profession,links,publicly_visible,revision,updated_at`,
+        [issuer,subject,item.category,item.profession,JSON.stringify(item.links),item.revision]);
+      const record=result.rows[0];
+      return record ? {...record,revision:Number(record.revision)} : null;
+    },
     async listUpdates() {
       const result=await pool.query('SELECT release_id,title,description,changes,published_at FROM app_updates WHERE visible=true ORDER BY published_at DESC LIMIT 100');
       return result.rows;
@@ -31,6 +62,16 @@ export async function createPgStore(connectionString) {
         [issuer,subject]);
       return result.rows.map(item=>entity==='bookmarks'?
         {...item,cast_hash:'0x'+item.cast_hash}:item);
+    },
+    async listBookmarkChanges({issuer,subject},cursor) {
+      const result=await pool.query(`SELECT sequence,
+            '0x'||encode(cast_hash,'hex') AS cast_hash,is_deleted,changed_at
+          FROM bookmark_changes
+          WHERE openproof_issuer=$1 AND openproof_subject=$2
+            AND sequence>$3::bigint
+          ORDER BY sequence ASC LIMIT 200`,
+        [issuer,subject,cursor]);
+      return result.rows;
     },
     async refreshConnections({issuer,subject},values) {
       const client=await pool.connect();
@@ -70,10 +111,33 @@ export async function createPgStore(connectionString) {
         const client=await pool.connect();
         try {
           await client.query('BEGIN');
+          const mutationId=item.mutation_id||randomUUID();
           const change=await client.query(`INSERT INTO bookmark_changes
             (openproof_issuer,openproof_subject,mutation_id,cast_hash,is_deleted)
-            VALUES($1,$2,$3,decode($4,'hex'),$5) RETURNING sequence`,
-            [issuer,subject,randomUUID(),item.cast_hash.slice(2),item.is_deleted]);
+            VALUES($1,$2,$3,decode($4,'hex'),$5)
+            ON CONFLICT (openproof_issuer,openproof_subject,mutation_id) DO NOTHING
+            RETURNING sequence`,
+            [issuer,subject,mutationId,item.cast_hash.slice(2),item.is_deleted]);
+          if (change.rowCount === 0) {
+            const previous=await client.query(`SELECT
+                '0x'||encode(cast_hash,'hex') AS cast_hash,is_deleted
+              FROM bookmark_changes
+              WHERE openproof_issuer=$1 AND openproof_subject=$2 AND mutation_id=$3`,
+              [issuer,subject,mutationId]);
+            await client.query('COMMIT');
+            const original=previous.rows[0];
+            // A retried idempotency key must never rewrite a newer change,
+            // nor may it be reused for a different bookmarked cast.
+            if (!original || original.cast_hash!==item.cast_hash
+                || original.is_deleted!==item.is_deleted) return null;
+            const current=await pool.query(`SELECT
+                '0x'||encode(cast_hash,'hex') AS cast_hash,
+                is_deleted,changed_seq,changed_at
+              FROM bookmarks WHERE openproof_issuer=$1 AND openproof_subject=$2
+                AND cast_hash=decode($3,'hex')`,
+              [issuer,subject,item.cast_hash.slice(2)]);
+            return current.rows[0]||null;
+          }
           const result=await client.query(`INSERT INTO bookmarks
             (openproof_issuer,openproof_subject,cast_hash,is_deleted,changed_seq)
             VALUES ($1,$2,decode($3,'hex'),$4,$5)

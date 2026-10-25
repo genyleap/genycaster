@@ -93,6 +93,8 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
       m_settings(settings),
       m_browserConnectionBaseUrl(configuredUrl("GENYCASTER_OPENPROOF_BROWSER_CONNECTION_BASE_URL",
           QStringLiteral("openproofBrowserConnectionBaseUrl"))),
+      m_cloudUrl(configuredUrl("GENYCASTER_CLOUD_API_URL",
+          QStringLiteral("genycasterCloudApiUrl"))),
       m_catalogUrl(configuredUrl("GENYCASTER_OPENPROOF_PROVIDERS_URL",
           QStringLiteral("openproofProviderCatalogUrl"))),
       m_issuerUrl(configuredUrl("GENYCASTER_OPENPROOF_ISSUER_URL",
@@ -174,6 +176,7 @@ void OpenProofConnectionsController::setManualLinkedInUrl(const QString& candida
     if (value.isEmpty()) m_settings->remove(key);
     else m_settings->setValue(key, QStringLiteral("https://www.linkedin.com") + parsed.path());
     m_settings->sync();
+    const bool syncEnabled = m_settings->value(key + QStringLiteral("/cloudEnabled")).toBool();
     for (auto& entry : m_connections) {
         auto item = entry.toMap();
         if (item.value(QStringLiteral("provider")).toString() != QStringLiteral("linkedin")) continue;
@@ -184,8 +187,258 @@ void OpenProofConnectionsController::setManualLinkedInUrl(const QString& candida
     saveCachedConnections();
     m_error.clear();
     emit stateChanged();
+    // Updating a URL is local-first; cloud propagation happens only after
+    // the owner explicitly enabled it and an authenticated service is ready.
+    if (!m_applyingCloudLinkedIn && syncEnabled && m_cloudServiceAvailable)
+        uploadManualLinkedInCloud();
 }
 
+
+void OpenProofConnectionsController::checkCloudService()
+{
+    if (m_cloudProbe || !trustedHttpsEndpoint(m_cloudUrl)
+        || m_cloudUrl.path() != QStringLiteral("/api/v1/cloud/profile_extras")) return;
+    QUrl probe = m_cloudUrl;
+    probe.setPath(QStringLiteral("/api/v1/cloud/app_updates"));
+    auto request = QNetworkRequest{probe};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(6'000);
+    request.setRawHeader("Accept", "application/json");
+    auto* reply = m_network.get(request);
+    m_cloudProbe = reply;
+    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+        if (m_cloudProbe == reply) m_cloudProbe = nullptr;
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto payload = reply->bytesAvailable() <= 12 * 1024
+            ? reply->readAll() : QByteArray{};
+        reply->deleteLater();
+        const auto doc = QJsonDocument::fromJson(payload);
+        // Production SPA fallbacks can return HTTP 200 with HTML. Never
+        // mistake that for a configured, healthy cloud JSON API.
+        m_cloudServiceAvailable = status == 200 && doc.isObject()
+            && doc.object().value(QStringLiteral("items")).isArray();
+        emit cloudStateChanged();
+        if (m_cloudServiceAvailable && m_verified && isConnected(QStringLiteral("linkedin"))
+            && manualLinkedInUrl().isEmpty() && !m_cloudRequest)
+            restoreManualLinkedInCloud();
+    });
+}
+
+void OpenProofConnectionsController::uploadManualLinkedInCloud()
+{
+    sendCloudLinkedInRequest(true);
+}
+
+void OpenProofConnectionsController::restoreManualLinkedInCloud()
+{
+    sendCloudLinkedInRequest(false);
+}
+
+void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
+{
+    if (!m_cloudServiceAvailable || !m_verified || !m_viewerFid || !m_settings
+        || !isConnected(QStringLiteral("linkedin")) || m_cloudRequest
+        || m_accountBearer.isEmpty() || m_accountBearer.startsWith("recovery.")) {
+        m_cloudError = QStringLiteral("Verified OpenProof authorization and active cloud storage are required.");
+        emit cloudStateChanged();
+        return;
+    }
+    QUrl url = m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/connections"));
+    auto request = QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept", "application/json");
+    request.setRawHeader("Authorization", "Bearer " + m_accountBearer);
+    QNetworkReply* reply{};
+    if (upload) {
+        QJsonObject body{
+            {QStringLiteral("provider"), QStringLiteral("linkedin")},
+            {QStringLiteral("publicly_visible"), false}
+        };
+        const QString manual = manualLinkedInUrl();
+        body.insert(QStringLiteral("manual_profile_url"),
+                    manual.isEmpty() ? QJsonValue{QJsonValue::Null} : QJsonValue{manual});
+        request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+        reply = m_network.put(request, QJsonDocument{body}.toJson(QJsonDocument::Compact));
+    } else {
+        reply = m_network.get(request);
+    }
+    m_cloudRequest = reply;
+    m_cloudError.clear();
+    const auto generation = m_grantGeneration;
+    emit cloudStateChanged();
+    connect(reply, &QNetworkReply::finished, this,
+            [this, reply, generation, upload] {
+        if (generation != m_grantGeneration) {
+            reply->deleteLater();
+            return;
+        }
+        if (m_cloudRequest == reply) m_cloudRequest = nullptr;
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes = reply->bytesAvailable() < 64 * 1024
+            ? reply->readAll() : QByteArray{};
+        reply->deleteLater();
+        const auto response = QJsonDocument::fromJson(bytes);
+        if (status != 200 || !response.isObject()) {
+            m_cloudError = status == 401
+                ? QStringLiteral("Reauthorize OpenProof to sync LinkedIn.")
+                : QStringLiteral("LinkedIn cloud sync is unavailable. The local URL is unchanged.");
+            emit cloudStateChanged();
+            return;
+        }
+        if (upload) {
+            if (!response.object().value(QStringLiteral("item")).isObject()) {
+                m_cloudError = QStringLiteral("LinkedIn cloud update was not confirmed.");
+            } else {
+                const QString key = manualLinkedInSettingKey();
+                if (!key.isEmpty())
+                    m_settings->setValue(key + QStringLiteral("/cloudEnabled"), true);
+                m_settings->sync();
+                m_cloudError.clear();
+            }
+        } else {
+            const auto items = response.object().value(QStringLiteral("items")).toArray();
+            for (const auto& value : items) {
+                if (!value.isObject()) continue;
+                const auto object = value.toObject();
+                if (object.value(QStringLiteral("provider")).toString()
+                    != QStringLiteral("linkedin")) continue;
+                const QString manual = object.value(QStringLiteral("manual_profile_url")).toString();
+                if (!manual.isEmpty()) {
+                    const QString existing = manualLinkedInUrl();
+                    if (!existing.isEmpty() && existing != manual) {
+                        m_cloudError = QStringLiteral(
+                            "This device has a different LinkedIn URL. Choose which one to keep.");
+                    } else {
+                        m_applyingCloudLinkedIn = true;
+                        setManualLinkedInUrl(manual);
+                        m_applyingCloudLinkedIn = false;
+                    }
+                }
+                break;
+            }
+        }
+        emit cloudStateChanged();
+    });
+}
+
+void OpenProofConnectionsController::fetchCloudProfileExtras()
+{
+    sendCloudProfileRequest(false);
+}
+
+void OpenProofConnectionsController::pushCloudProfileExtras(const QVariantMap& fields)
+{
+    sendCloudProfileRequest(true, fields);
+}
+
+void OpenProofConnectionsController::sendCloudProfileRequest(
+    const bool upload, const QVariantMap& fields)
+{
+    // A previously restored FID, local profile or opaque recovery ticket is
+    // not a cloud-authentication grant. Only a freshly FID-verified OpenProof
+    // bearer can access account-owned private state.
+    if (!m_cloudServiceAvailable) {
+        m_cloudError = QStringLiteral("Genycaster cloud database is not active. Local changes are safe.");
+        emit cloudStateChanged();
+        return;
+    }
+    if (!m_verified || !m_viewerFid || m_accountBearer.isEmpty()
+        || m_accountBearer.startsWith("recovery.") || m_cloudRequest) {
+        m_cloudError = QStringLiteral("Authorize your OpenProof account before using cloud sync.");
+        emit cloudStateChanged();
+        return;
+    }
+    if (!trustedHttpsEndpoint(m_cloudUrl)
+        || m_cloudUrl.path() != QStringLiteral("/api/v1/cloud/profile_extras")
+        || m_cloudUrl.hasQuery()) {
+        m_cloudError = QStringLiteral("Genycaster cloud sync is not configured.");
+        emit cloudStateChanged();
+        return;
+    }
+    auto request = QNetworkRequest{m_cloudUrl};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept", "application/json");
+    request.setRawHeader("Authorization", "Bearer " + m_accountBearer);
+    QNetworkReply* reply{};
+    if (upload) {
+        auto payload = QJsonObject::fromVariantMap(fields);
+        // The caller cannot choose a different owner or choose its own
+        // expected revision. The server independently authenticates identity.
+        payload.remove(QStringLiteral("issuer"));
+        payload.remove(QStringLiteral("subject"));
+        payload.remove(QStringLiteral("identity_id"));
+        payload[QStringLiteral("revision")] = m_cloudRevision;
+        payload[QStringLiteral("publicly_visible")] = false;
+        const auto body = QJsonDocument{payload}.toJson(QJsonDocument::Compact);
+        if (body.size() > 20 * 1024) {
+            m_cloudError = QStringLiteral("Profile data is too large to sync.");
+            emit cloudStateChanged();
+            return;
+        }
+        request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+        reply = m_network.put(request, body);
+    } else {
+        reply = m_network.get(request);
+    }
+    m_cloudRequest = reply;
+    m_cloudError.clear();
+    const auto generation = m_grantGeneration;
+    emit cloudStateChanged();
+    connect(reply, &QNetworkReply::finished, this,
+            [this, reply, generation, upload] {
+        if (generation != m_grantGeneration) {
+            reply->deleteLater();
+            return;
+        }
+        if (m_cloudRequest == reply) m_cloudRequest = nullptr;
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray bytes = reply->bytesAvailable() <= 24 * 1024
+            ? reply->readAll() : QByteArray{};
+        reply->deleteLater();
+        const auto doc = QJsonDocument::fromJson(bytes);
+        if (status == 409) {
+            m_cloudError = QStringLiteral(
+                "Another device changed the cloud profile. Restore its latest version before uploading.");
+        } else if (status == 401 || status == 403) {
+            m_cloudError = QStringLiteral("Your OpenProof authorization has expired. Reauthorize to sync.");
+        } else if (status == 503 || status == 404 || status == 0) {
+            m_cloudError = QStringLiteral("Genycaster cloud storage is not available yet. Local changes are safe.");
+        } else if (status != 200 || !doc.isObject()) {
+            m_cloudError = QStringLiteral("Could not synchronize profile details.");
+        } else {
+            const auto item = doc.object().value(QStringLiteral("item"));
+            if (item.isObject()) {
+                const auto object = item.toObject();
+                const int revision = object.value(QStringLiteral("revision")).toInt();
+                if (revision > 0
+                    && object.value(QStringLiteral("links")).isArray()
+                    && object.value(QStringLiteral("profession")).isString()
+                    && object.value(QStringLiteral("category")).isString()) {
+                    m_cloudRevision = revision;
+                    m_cloudError.clear();
+                    const QVariantMap fields = object.toVariantMap();
+                    if (upload) emit cloudProfileExtrasSaved(fields);
+                    else emit cloudProfileExtrasReceived(fields);
+                } else {
+                    m_cloudError = QStringLiteral("The cloud returned invalid profile details.");
+                }
+            } else if (!upload && item.isNull()) {
+                m_cloudRevision = 0;
+                m_cloudError.clear();
+                emit cloudProfileExtrasReceived({});
+            } else {
+                m_cloudError = QStringLiteral("The cloud returned an invalid response.");
+            }
+        }
+        emit cloudStateChanged();
+    });
+}
 
 QString OpenProofConnectionsController::recoveryGatewayOrigin() const
 {
@@ -358,6 +611,14 @@ void OpenProofConnectionsController::clearAccountGrant()
         m_request->deleteLater();
         m_request = nullptr;
     }
+    if (m_cloudRequest) {
+        m_cloudRequest->abort();
+        m_cloudRequest->deleteLater();
+        m_cloudRequest = nullptr;
+    }
+    m_cloudRevision = 0;
+    m_cloudError.clear();
+    emit cloudStateChanged();
     m_accountBearer.fill('\0');
     m_accountBearer.clear();
     m_accountSubject.clear();

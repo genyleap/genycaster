@@ -3,10 +3,30 @@
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PROVIDER = /^[a-z][a-z0-9-]{0,39}$/;
 const HASH = /^0x[0-9a-f]{40}$/i;
+const PROFILE_CATEGORY = new Set([
+  'Arts & entertainment','Business','Education','Finance','Food & beverage',
+  'Health & wellness','Media & news','Science & technology','Technology',
+  'Professional services','Sports','Travel & transportation','Other'
+]);
+const PROFILE_ROLE = new Set([
+  'Artist','Author','Creator','Designer','Developer','Engineer',
+  'Entrepreneur','Founder','Investor','Journalist','Photographer',
+  'Researcher','Student','Teacher','Consultant','Organization','Other'
+]);
 const KINDS = Object.freeze({
   drafts: ['cast', 'article', 'thread'],
   tasks: ['scheduled_cast', 'scheduled_article', 'reminder'],
 });
+export function validPersonalLink(value) {
+  if (typeof value !== 'string' || value.length > 512) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.username === '' && url.password === ''
+      && url.port === '' && url.hostname.length <= 253
+      && /^(?=.{1,253}$)(?:[a-z0-9-]+\.)+[a-z]{2,63}$/i.test(url.hostname)
+      && !/\s/.test(value) && url.hash.length < 128 && url.search.length < 256;
+  } catch {return false;}
+}
 export function validLinkedInUrl(value) {
   if (typeof value !== 'string' || value.length > 2048) return false;
   try {
@@ -18,15 +38,39 @@ export function validLinkedInUrl(value) {
 }
 export function validateCloudItem(entity, item) {
   if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+  if (entity === 'profile_extras') {
+    if (!Number.isSafeInteger(item.revision) || item.revision < 0
+        || !Array.isArray(item.links) || item.links.length > 5
+        || typeof item.category !== 'string' || item.category.length > 80
+        || typeof item.profession !== 'string' || item.profession.length > 80
+        || (item.category !== '' && !PROFILE_CATEGORY.has(item.category))
+        // Previously saved freeform professions require explicit selection on
+        // upgrade; arbitrary user strings cannot masquerade as a classified role.
+        || (item.profession !== '' && !PROFILE_ROLE.has(item.profession))) return null;
+    const seen = new Set();
+    const links = [];
+    for (const value of item.links) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)
+          || typeof value.label !== 'string' || value.label.length > 32
+          || typeof value.url !== 'string' || value.url.length > 512
+          || !validPersonalLink(value.url) || seen.has(value.url)) return null;
+      seen.add(value.url);
+      links.push({label:value.label,url:value.url});
+    }
+    return {category:item.category,profession:item.profession,links,
+      revision:item.revision,publicly_visible:false};
+  }
   if (entity === 'connections') {
     if (!PROVIDER.test(item.provider || '') || item.provider !== 'linkedin') return null;
-    if (!validLinkedInUrl(item.manual_profile_url)) return null;
+    if (item.manual_profile_url !== null && !validLinkedInUrl(item.manual_profile_url)) return null;
     return {provider: item.provider, manual_profile_url: item.manual_profile_url,
-      publicly_visible: item.publicly_visible === true};
+      publicly_visible: item.publicly_visible === true && item.manual_profile_url !== null};
   }
   if (entity === 'bookmarks') {
     if (typeof item.cast_hash !== 'string' || !HASH.test(item.cast_hash)) return null;
-    return {cast_hash: item.cast_hash.toLowerCase(), is_deleted: item.is_deleted === true};
+    if (item.mutation_id !== undefined && !ID.test(String(item.mutation_id))) return null;
+    return {cast_hash: item.cast_hash.toLowerCase(), is_deleted: item.is_deleted === true,
+      mutation_id:item.mutation_id ? String(item.mutation_id).toLowerCase() : undefined};
   }
   if (!ID.test(String(item.id || ''))) return null;
   if (entity === 'drafts') {
@@ -96,7 +140,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
     if (!path.startsWith('/api/v1/cloud/')) return false;
     const entity=path.slice('/api/v1/cloud/'.length);
     if (!['connections','bookmarks','notifications','app_updates','tasks','drafts',
-      'connections/refresh'].includes(entity)) {
+      'profile_extras','connections/refresh'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
     if (entity==='app_updates') {
@@ -131,6 +175,19 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
         respond(response,200,{refreshed:cleaned.length});return true;
       }
       if (request.method==='GET') {
+        if (entity==='bookmarks' && typeof store.listBookmarkChanges==='function') {
+          const url=new URL(request.url,'http://localhost');
+          const value=url.searchParams.get('since') || '0';
+          if (!/^(0|[1-9][0-9]{0,17})$/.test(value)) {
+            respond(response,400,{error:'invalid_cursor'});return true;
+          }
+          const items=await store.listBookmarkChanges(owner,value);
+          const cursor=items.length ? String(items.at(-1).sequence) : value;
+          respond(response,200,{items,next_cursor:cursor});return true;
+        }
+        if (entity==='profile_extras') {
+          respond(response,200,{item:await store.getProfileExtras(owner)});return true;
+        }
         respond(response,200,{items:await store.list(entity,owner)});return true;
       }
       if (request.method!=='PUT') {respond(response,405,{error:'method_not_allowed'});return true;}
@@ -138,7 +195,9 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
       const item=validateCloudItem(entity,raw);
       if (!item) {respond(response,400,{error:'invalid_item'});return true;}
       if (JSON.stringify(item).length>20000) {respond(response,413,{error:'item_too_large'});return true;}
-      const saved=await store.put(entity,owner,item);
+      const saved=entity==='profile_extras'
+        ? await store.putProfileExtras(owner,item)
+        : await store.put(entity,owner,item);
       if (!saved) {respond(response,409,{error:'revision_conflict'});return true;}
       respond(response,200,{item:saved});return true;
     } catch(error) {
