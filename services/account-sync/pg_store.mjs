@@ -154,7 +154,12 @@ export async function createPgStore(connectionString) {
       const revision=Number.isSafeInteger(item.revision) && item.revision>=0?item.revision:0;
       if (entity==='drafts') {
         const result=await pool.query(`INSERT INTO drafts
-          (issuer,subject,id,kind,title,content) VALUES ($1,$2,$3,$4,$5,$6::jsonb)
+          (issuer,subject,id,kind,title,content)
+          SELECT $1,$2,$3,$4,$5,$6::jsonb
+          WHERE $7::bigint=0 OR EXISTS (
+            SELECT 1 FROM drafts WHERE issuer=$1 AND subject=$2
+              AND id=$3 AND revision=$7
+          )
           ON CONFLICT(issuer,subject,id) DO UPDATE SET
             kind=EXCLUDED.kind,title=EXCLUDED.title,content=EXCLUDED.content,
             deleted_at=NULL,revision=drafts.revision+1,updated_at=now()
@@ -166,7 +171,11 @@ export async function createPgStore(connectionString) {
       if (entity==='tasks') {
         const result=await pool.query(`INSERT INTO tasks
           (issuer,subject,id,kind,schedule_at,timezone,payload,state,idempotency_key)
-          VALUES($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9)
+          SELECT $1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9
+          WHERE $10::bigint=0 OR EXISTS (
+            SELECT 1 FROM tasks WHERE issuer=$1 AND subject=$2
+              AND id=$3 AND revision=$10
+          )
           ON CONFLICT(issuer,subject,id) DO UPDATE SET
             kind=EXCLUDED.kind,schedule_at=EXCLUDED.schedule_at,
             timezone=EXCLUDED.timezone,payload=EXCLUDED.payload,state=EXCLUDED.state,
@@ -180,7 +189,11 @@ export async function createPgStore(connectionString) {
       if (entity==='notifications') {
         const result=await pool.query(`INSERT INTO notifications
           (issuer,subject,id,source,kind,payload,occurred_at,read_at)
-          VALUES($1,$2,$3,$4,$5,$6::jsonb,$7,$8)
+          SELECT $1,$2,$3,$4,$5,$6::jsonb,$7,$8
+          WHERE $9::bigint=0 OR EXISTS (
+            SELECT 1 FROM notifications WHERE issuer=$1 AND subject=$2
+              AND id=$3 AND revision=$9
+          )
           ON CONFLICT(issuer,subject,id) DO UPDATE SET
             read_at=EXCLUDED.read_at,revision=notifications.revision+1,updated_at=now()
           WHERE notifications.revision=$9

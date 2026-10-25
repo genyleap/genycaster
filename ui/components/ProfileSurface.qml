@@ -127,21 +127,19 @@ Item {
     }
     // X-style professional identity is selected from curated categories and
     // roles. Previously saved freeform roles remain available in the selector.
+    // These values are canonical API identifiers, not translated display
+    // strings. Translation must not change sync payloads across devices.
     readonly property var profileCategoryOptions: [
-        qsTr("Select category"), qsTr("Arts & entertainment"), qsTr("Business"),
-        qsTr("Education"), qsTr("Finance"), qsTr("Food & beverage"),
-        qsTr("Health & wellness"), qsTr("Media & news"),
-        qsTr("Science & technology"), qsTr("Technology"),
-        qsTr("Professional services"), qsTr("Sports"),
-        qsTr("Travel & transportation"), qsTr("Other")
+        "Select category", "Arts & entertainment", "Business", "Education",
+        "Finance", "Food & beverage", "Health & wellness", "Media & news",
+        "Science & technology", "Technology", "Professional services",
+        "Sports", "Travel & transportation", "Other"
     ]
     readonly property var profileRoleOptions: {
-        const options = [qsTr("Select role"), qsTr("Artist"), qsTr("Author"),
-            qsTr("Creator"), qsTr("Designer"), qsTr("Developer"), qsTr("Engineer"),
-            qsTr("Entrepreneur"), qsTr("Founder"), qsTr("Investor"),
-            qsTr("Journalist"), qsTr("Photographer"), qsTr("Researcher"),
-            qsTr("Student"), qsTr("Teacher"), qsTr("Consultant"),
-            qsTr("Organization"), qsTr("Other")]
+        const options = ["Select role", "Artist", "Author", "Creator",
+            "Designer", "Developer", "Engineer", "Entrepreneur", "Founder",
+            "Investor", "Journalist", "Photographer", "Researcher",
+            "Student", "Teacher", "Consultant", "Organization", "Other"]
         const saved = String(root.profileExtras.profession || "")
         if (saved && options.indexOf(saved) < 0) options.push(saved)
         return options
@@ -1933,7 +1931,7 @@ Item {
             const savedCategory = String(root.profileExtras.category || "")
             const savedRole = String(root.profileExtras.profession || "")
             const inferredCategory = !savedCategory && savedRole === "Developer"
-                                     ? qsTr("Technology") : savedCategory
+                                     ? "Technology" : savedCategory
             categoryEditor.currentIndex = Math.max(0,
                 root.profileCategoryOptions.indexOf(inferredCategory))
             professionEditor.currentIndex = Math.max(0,

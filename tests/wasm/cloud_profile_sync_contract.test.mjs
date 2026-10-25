@@ -29,6 +29,9 @@ test('local profile remains usable without sync and enabling cloud is explicit',
   assert.match(qml,/objectName: "uploadProfileToCloud"/);
   assert.match(qml,/objectName: "restoreProfileFromCloud"/);
   assert.match(qml,/root\.cloudRestoreRequested = true/);
+  assert.match(qml,/These values are canonical API identifiers, not translated display/);
+  assert.match(qml,/profileCategoryOptions:[\s\S]*?"Technology"/);
+  assert.doesNotMatch(qml,/qsTr\("Technology"\)/);
   assert.match(qml,/root\.restoreCloudProfile\(item\)/);
   assert.match(qml,/Connect your OpenProof account/);
 });
@@ -61,4 +64,8 @@ test('SQL app-only profile table has owner PK and optimistic revision',()=>{
   assert.match(api,/await authorize\(request\)/);
   assert.match(api,/entity==='profile_extras'/);
   assert.match(api,/error:'revision_conflict'/);
+  // A never-created record cannot be inserted with an arbitrary stale revision.
+  assert.match(db,/WHERE \$7::bigint=0 OR EXISTS \(/);
+  assert.match(db,/WHERE \$10::bigint=0 OR EXISTS \(/);
+  assert.match(db,/WHERE \$9::bigint=0 OR EXISTS \(/);
 });
