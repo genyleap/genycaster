@@ -91,10 +91,10 @@ namespace {
 OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, QSettings* settings)
     : QObject(parent),
       m_settings(settings),
-      m_browserConnectionBaseUrl(configuredUrl("GENYCASTER_OPENPROOF_BROWSER_CONNECTION_BASE_URL",
-          QStringLiteral("openproofBrowserConnectionBaseUrl"))),
       m_cloudUrl(configuredUrl("GENYCASTER_CLOUD_API_URL",
           QStringLiteral("genycasterCloudApiUrl"))),
+      m_browserConnectionBaseUrl(configuredUrl("GENYCASTER_OPENPROOF_BROWSER_CONNECTION_BASE_URL",
+          QStringLiteral("openproofBrowserConnectionBaseUrl"))),
       m_catalogUrl(configuredUrl("GENYCASTER_OPENPROOF_PROVIDERS_URL",
           QStringLiteral("openproofProviderCatalogUrl"))),
       m_issuerUrl(configuredUrl("GENYCASTER_OPENPROOF_ISSUER_URL",
@@ -176,7 +176,7 @@ void OpenProofConnectionsController::setManualLinkedInUrl(const QString& candida
     if (value.isEmpty()) m_settings->remove(key);
     else m_settings->setValue(key, QStringLiteral("https://www.linkedin.com") + parsed.path());
     m_settings->sync();
-    const bool syncEnabled = m_settings->value(key + QStringLiteral("/cloudEnabled")).toBool();
+    const bool syncEnabled = m_settings->value(key + QStringLiteral(".cloudEnabled")).toBool();
     for (auto& entry : m_connections) {
         auto item = entry.toMap();
         if (item.value(QStringLiteral("provider")).toString() != QStringLiteral("linkedin")) continue;
@@ -295,7 +295,7 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
             } else {
                 const QString key = manualLinkedInSettingKey();
                 if (!key.isEmpty())
-                    m_settings->setValue(key + QStringLiteral("/cloudEnabled"), true);
+                    m_settings->setValue(key + QStringLiteral(".cloudEnabled"), true);
                 m_settings->sync();
                 m_cloudError.clear();
             }
@@ -307,7 +307,13 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
                 if (object.value(QStringLiteral("provider")).toString()
                     != QStringLiteral("linkedin")) continue;
                 const QString manual = object.value(QStringLiteral("manual_profile_url")).toString();
-                if (!manual.isEmpty()) {
+                if (object.contains(QStringLiteral("manual_profile_url"))
+                    && object.value(QStringLiteral("manual_profile_url")).isNull()) {
+                    // Explicit restore applies the cloud deletion as well.
+                    m_applyingCloudLinkedIn = true;
+                    setManualLinkedInUrl({});
+                    m_applyingCloudLinkedIn = false;
+                } else if (!manual.isEmpty()) {
                     const QString existing = manualLinkedInUrl();
                     if (!existing.isEmpty() && existing != manual) {
                         m_cloudError = QStringLiteral(
