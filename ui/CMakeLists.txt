@@ -460,6 +460,24 @@ if(EMSCRIPTEN)
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-icon.svg"
             "$<TARGET_FILE_DIR:farcaster_client>/genycaster-icon.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/favicon.ico"
+            "$<TARGET_FILE_DIR:farcaster_client>/favicon.ico"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/favicon-16x16.png"
+            "$<TARGET_FILE_DIR:farcaster_client>/favicon-16x16.png"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/favicon-32x32.png"
+            "$<TARGET_FILE_DIR:farcaster_client>/favicon-32x32.png"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/favicon-48x48.png"
+            "$<TARGET_FILE_DIR:farcaster_client>/favicon-48x48.png"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-192.png"
+            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-192.png"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-512.png"
+            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-512.png"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/genyleap/icons/actions/repost.svg"
             "$<TARGET_FILE_DIR:farcaster_client>/genycaster-update-icon.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -481,8 +499,17 @@ if(EMSCRIPTEN)
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-boot-icon.svg"
             "$<TARGET_FILE_DIR:farcaster_client>/genycaster-boot-icon.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-boot-wordmark.svg"
-            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-boot-wordmark.svg"
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/intro-base.svg"
+            "$<TARGET_FILE_DIR:farcaster_client>/intro-base.svg"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/intro-farcaster.svg"
+            "$<TARGET_FILE_DIR:farcaster_client>/intro-farcaster.svg"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/intro-hypersnap.svg"
+            "$<TARGET_FILE_DIR:farcaster_client>/intro-hypersnap.svg"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/intro-openproof.svg"
+            "$<TARGET_FILE_DIR:farcaster_client>/intro-openproof.svg"
         COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_SOURCE_DIR}/tools/package_wasm_assets.py"
             --dir "$<TARGET_FILE_DIR:farcaster_client>"

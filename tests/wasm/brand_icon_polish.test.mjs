@@ -62,11 +62,31 @@ test("Browser tab and installed app icon use actual brand DNA and a clean versio
     assert.match(icon,/viewBox="0 0 512 512"/);
     assert.match(icon,/GenyCaster icon/);
     assert.match(icon,/fill="#FFFFFF"/);
-    assert.match(html,/genycaster-boot-wordmark\.svg/);
+    assert.match(html,/genycaster-wordmark-dark\.svg/);
     assert.match(html,/genycaster-boot-icon\.svg/);
+    const wordmark=read("ui/wasm/genycaster-wordmark-dark.svg");
+    assert.match(wordmark,/fill="#FFFFFF"/);
+    assert.match(wordmark,/fill="#B5B5B5"/);
+    for(const asset of ["favicon.ico","favicon-16x16.png","favicon-32x32.png",
+        "favicon-48x48.png","genycaster-192.png","genycaster-512.png"]){
+        assert.match(html+read("ui/wasm/genycaster-sw.js")+read("tools/package_wasm_assets.py"),
+            new RegExp(asset.replace(".","\\.")));
+        const bytes=readFileSync(new URL("../../ui/wasm/"+asset,import.meta.url));
+        assert.ok(bytes.length>100,asset);
+        if(asset.endsWith(".png")){
+            assert.equal(bytes.subarray(1,4).toString(),"PNG");
+            const size=Number((asset.match(/(16|32|48|192|512)/)||[])[0]);
+            assert.equal(bytes.readUInt32BE(16),size);
+            assert.equal(bytes.readUInt32BE(20),size);
+        }else{
+            assert.equal(bytes.readUInt16LE(0),0);
+            assert.equal(bytes.readUInt16LE(2),1);
+        }
+    }
+    assert.equal(manifest.icons.filter(i=>i.type==="image/png").length,2);
     const touch=readFileSync(new URL("../../ui/wasm/apple-touch-icon.png",import.meta.url));
     const touchPre=readFileSync(new URL("../../ui/wasm/apple-touch-icon-precomposed.png",import.meta.url));
     assert.ok(touch.equals(touchPre));
     assert.equal(touch.subarray(1,4).toString(),"PNG");
-    assert.match(read("ui/wasm/genycaster-sw.js"),/genycaster-static-v8/);
+    assert.match(read("ui/wasm/genycaster-sw.js"),/genycaster-static-v10/);
 });

@@ -24,9 +24,12 @@
 </script>
 <!-- Do not force black-translucent: WebKit deprecates it for mixed light/dark
      appearances. Let iOS choose status icons/chrome from the page colors. -->
-<link rel="icon" href="./genycaster-icon.svg?v=brand-3" type="image/svg+xml">
+<link rel="icon" href="./favicon.ico?v=brand-4" sizes="any">
+<link rel="icon" href="./favicon-16x16.png?v=brand-4" type="image/png" sizes="16x16">
+<link rel="icon" href="./favicon-32x32.png?v=brand-4" type="image/png" sizes="32x32">
+<link rel="icon" href="./genycaster-icon.svg?v=brand-4" type="image/svg+xml">
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
-<link rel="manifest" href="genycaster.webmanifest?v=chrome-3">
+<link rel="manifest" href="genycaster.webmanifest?v=brand-4">
 <title>Genycaster Beta 1.0</title>
 <style>
 :root{color-scheme:dark light;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;--app-chrome:#0b0c0f}
@@ -90,8 +93,23 @@
   max-width:760px}
 .studio-presents{font-size:clamp(15px,2.5vw,19px);font-weight:400;letter-spacing:.11em;
   color:#f7f8fa;margin-top:8px}
-.studio-ecosystem{display:flex;flex-direction:column;gap:17px;align-items:center;
-  font-size:clamp(22px,4.4vw,35px);font-weight:500;line-height:1.25;letter-spacing:.035em}
+.studio-ecosystem{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  width:min(790px,calc(100vw - 36px));column-gap:clamp(10px,2.5vw,44px);align-items:center}
+.studio-brand-item{display:flex;min-width:0;flex-direction:column;align-items:center;
+  justify-content:center;gap:16px;color:#f7f8fa;opacity:.96}
+.studio-brand-logo{display:block;width:100%;max-width:140px;height:clamp(49px,7vw,78px);
+  object-fit:contain;filter:none}
+.studio-brand-label{font-size:clamp(10px,1.6vw,14px);font-weight:500;letter-spacing:.06em;
+  color:#d9dce3;white-space:nowrap}
+#genycaster-studio-intro[data-scene="partners"] .studio-brand-item{
+  animation:studioBrandReveal .65s ease-out both}
+#genycaster-studio-intro[data-scene="partners"] .studio-brand-item:nth-child(2){animation-delay:.1s}
+#genycaster-studio-intro[data-scene="partners"] .studio-brand-item:nth-child(3){animation-delay:.2s}
+#genycaster-studio-intro[data-scene="partners"] .studio-brand-item:nth-child(4){animation-delay:.3s}
+@keyframes studioBrandReveal{from{opacity:0;transform:translateY(9px)}
+  to{opacity:.96;transform:none}}
+@media(max-width:480px){.studio-brand-item{gap:10px}.studio-brand-label{letter-spacing:0}}
+@media(prefers-reduced-motion:reduce){.studio-brand-item{animation:none!important}}
 @media(prefers-reduced-motion:reduce){.studio-scene{transition:none}}
 .boot-content{width:min(380px,100%);padding:24px 8px;display:flex;flex-direction:column;align-items:center;text-align:center;margin-inline:auto}
 .boot-mark{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;width:100%;margin-bottom:52px;text-align:center}
@@ -147,17 +165,17 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
     </div>
     <div class="studio-scene studio-scene--partners">
       <div class="studio-ecosystem">
-        <div>Blockchain</div>
-        <div>Farcaster</div>
-        <div>Base</div>
-        <div>OpenProof</div>
+        <div class="studio-brand-item"><img class="studio-brand-logo" src="./intro-base.svg" alt="" decoding="async"><span class="studio-brand-label">Base</span></div>
+        <div class="studio-brand-item"><img class="studio-brand-logo" src="./intro-farcaster.svg" alt="" decoding="async"><span class="studio-brand-label">Farcaster</span></div>
+        <div class="studio-brand-item"><img class="studio-brand-logo" src="./intro-hypersnap.svg" alt="" decoding="async"><span class="studio-brand-label">Hypersnap</span></div>
+        <div class="studio-brand-item"><img class="studio-brand-logo" src="./intro-openproof.svg" alt="" decoding="async"><span class="studio-brand-label">OpenProof</span></div>
       </div>
     </div>
   </div>
   <div class="boot-content">
     <div class="boot-mark">
       <img class="boot-glyph" src="./genycaster-boot-icon.svg" alt="" decoding="async">
-      <img class="boot-wordmark" src="./genycaster-boot-wordmark.svg" alt="GenyCaster" decoding="async"><span class="boot-beta">Beta 1.0</span>
+      <img class="boot-wordmark" src="./genycaster-wordmark-dark.svg" alt="GenyCaster" decoding="async"><span class="boot-beta">Beta 1.0</span>
     </div>
     <h1 id="boot-heading">Preparing Genycaster…</h1>
     <p class="boot-status" id="boot-status"></p>

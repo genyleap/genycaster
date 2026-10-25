@@ -7,19 +7,22 @@ test('Plain, readable studio credits precede actual WASM progress without decora
   const js=source('ui/wasm/genycaster-loader.js');
   const pack=source('tools/package_wasm_assets.py');
   const cmake=source('ui/CMakeLists.txt');
-  for(const brand of ['genycaster-boot-icon.svg','genycaster-boot-wordmark.svg']) {
+  for(const brand of ['genycaster-boot-icon.svg','intro-base.svg','intro-farcaster.svg','intro-hypersnap.svg','intro-openproof.svg']) {
     assert.match(html,new RegExp(brand.replace('.','\\.')));
     assert.match(pack,new RegExp(brand.replace('.','\\.')));
     assert.match(cmake,new RegExp(brand.replace('.','\\.')));
     assert.match(source('ui/wasm/'+brand),/<(?:[a-z0-9]+:)?svg/);
   }
-  for(const label of ['Genyleap Software Revolution','presents','Blockchain','Farcaster','Base','OpenProof'])
+  for(const label of ['Genyleap Software Revolution','presents','Hypersnap','Farcaster','Base','OpenProof'])
     assert.ok(html.includes(label),label);
   for(const removed of ['studio-node','studio-hairline','studio-mark','studio-ecosystem-title',
     'studioBreathe','Built for an open ecosystem','genyleap-mark-dark.svg'])
     assert.ok(!html.includes(removed),removed);
   const intro=html.split('<div id="genycaster-studio-intro"')[1].split('<div class="boot-content">')[0];
-  assert.doesNotMatch(intro,/<img\b|<svg\b|<small\b/);
+  assert.equal((intro.match(/class="studio-brand-logo"/g)||[]).length,4);
+  assert.match(html,/grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(intro,/<small\b|studio-node|studio-card/);
+  assert.ok(!intro.includes('Blockchain'));
   assert.match(html,/#genycaster-studio-intro\{[^}]*background:#0b0c0f/);
   assert.match(js,/const studioSceneMs=4000/);
   assert.match(js,/studioSceneMs\*2-elapsed/);

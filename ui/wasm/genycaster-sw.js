@@ -1,6 +1,6 @@
 /* Public application assets only. Never cache user API responses or credentials. */
 "use strict";
-const CACHE="genycaster-static-v8";
+const CACHE="genycaster-static-v10";
 const WASM_HASH=/^farcaster_client\.[0-9a-f]{20}\.wasm$/;
 // Explicit allowlist: a same-origin .json/.html URL might contain personal
 // account data. Never cache arbitrary paths based solely on file extension.
@@ -10,7 +10,9 @@ const PUBLIC_FILES=new Set([
     "genycaster-loader.js","genycaster-assets.json","genycaster-assets.js",
     "genycaster-sw.js","genycaster.webmanifest","genycaster-icon.svg",
     "genycaster-brand.svg","genycaster-wordmark.svg","genycaster-wordmark-dark.svg",
-    "genycaster-boot-icon.svg","genycaster-boot-wordmark.svg","genycaster-update-icon.svg","apple-touch-icon.png",
+    "favicon.ico","favicon-16x16.png","favicon-32x32.png","favicon-48x48.png",
+    "genycaster-192.png","genycaster-512.png",
+    "genycaster-boot-icon.svg","intro-base.svg","intro-farcaster.svg","intro-hypersnap.svg","intro-openproof.svg","genycaster-update-icon.svg","apple-touch-icon.png",
     "apple-touch-icon-precomposed.png",
     "secure_signer_vault.mjs","farcaster_protocol.mjs",
     "browser_protocol_signer.mjs","browser_device_session.mjs","browser_media_upload.mjs",

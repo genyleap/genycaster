@@ -1106,9 +1106,14 @@ Item {
                         Layout.fillWidth: true
                         visible: root.isOwnProfile
                         spacing: Theme.space2
-                        layoutDirection: Theme.uiDirection
+                        // Keep the social proof group at the physical right edge
+                        // on desktop. On phones hide the verbose heading to fit.
+                        layoutDirection: Qt.LeftToRight
+
+                        Item { Layout.fillWidth: true }
 
                         Label {
+                            visible: !root.compact
                             text: qsTr("Verified networks")
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
@@ -1154,14 +1159,17 @@ Item {
                                     width: Theme.scaleUi(13)
                                     height: width
                                     radius: width / 2
-                                    color: socialBadge.liveVerified ? Theme.success : Theme.inkSubtle
+                                    // Blue indicates a previously linked OpenProof
+                                    // account; green indicates current live proof.
+                                    // The tooltip still discloses cached provenance.
+                                    color: socialBadge.liveVerified ? Theme.success : Theme.accent
                                     border.color: Theme.surface
                                     border.width: 1
                                     Icon {
                                         anchors.centerIn: parent
                                         text: Theme.iconCheck
                                         preferredSize: 9
-                                        color: Theme.surface
+                                        color: Theme.contrastInk(socialBadge.liveVerified ? Theme.success : Theme.accent)
                                     }
                                 }
                                 ToolTip {
@@ -1204,7 +1212,6 @@ Item {
                             Accessible.description: qsTr("Manage verified social connections")
                             onClicked: root.openConnections()
                         }
-                        Item { Layout.fillWidth: true }
                     }
 
                     RichText {

@@ -10,6 +10,20 @@ const controller = read('../../ui/mobile/openproof_connections_controller.cpp');
 const migration = read('../../services/account-sync/migrations/001_bookmarks.sql');
 const config = JSON.parse(read('../../ui/config/public_endpoints.json'));
 
+test('owner profile anchors linked networks to the right with blue or green proof checks', () => {
+  const start = qml.indexOf('id: ownerSocialBadgeStrip');
+  const end = qml.indexOf('RichText {', start);
+  const group = qml.slice(start, end);
+  assert.ok(start > 0 && end > start);
+  assert.match(group, /layoutDirection: Qt\.LeftToRight/);
+  assert.match(group, /Item \{ Layout\.fillWidth: true \}[\s\S]*?Label \{/);
+  assert.match(group, /visible: !root\.compact/);
+  assert.match(group, /socialBadge\.liveVerified \? Theme\.success : Theme\.accent/);
+  assert.match(group, /Theme\.iconCheck/);
+  assert.match(group, /objectName: "profileConnectionsButton"/);
+  assert.doesNotMatch(group, /Item \{ Layout\.fillWidth: true \}\s*\}\s*$/);
+});
+
 test('connections opens as mobile bottom sheet and desktop right drawer', () => {
   assert.ok(popup.includes('GenyDrawer {'));
   assert.ok(popup.includes('bottomSheet: mobilePresentation'));
