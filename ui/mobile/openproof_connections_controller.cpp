@@ -90,12 +90,12 @@ namespace {
 OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, QSettings* settings)
     : QObject(parent),
       m_settings(settings),
+      m_browserConnectionBaseUrl(configuredUrl("GENYCASTER_OPENPROOF_BROWSER_CONNECTION_BASE_URL",
+          QStringLiteral("openproofBrowserConnectionBaseUrl"))),
       m_catalogUrl(configuredUrl("GENYCASTER_OPENPROOF_PROVIDERS_URL",
           QStringLiteral("openproofProviderCatalogUrl"))),
       m_issuerUrl(configuredUrl("GENYCASTER_OPENPROOF_ISSUER_URL",
-          QStringLiteral("openproofIssuerUrl"))),
-      m_browserConnectionBaseUrl(configuredUrl("GENYCASTER_OPENPROOF_BROWSER_CONNECTION_BASE_URL",
-          QStringLiteral("openproofBrowserConnectionBaseUrl")))
+          QStringLiteral("openproofIssuerUrl")))
 {
     m_gatewayUrl = configuredUrl("GENYCASTER_OPENPROOF_CONNECTIONS_GATEWAY_URL",
         QStringLiteral("openproofConnectionsGatewayUrl"));

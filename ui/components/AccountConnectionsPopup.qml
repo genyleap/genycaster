@@ -12,6 +12,7 @@ GenyDrawer {
     property var connections: []
     property bool authorized: false
     property bool cachedSnapshot: false
+    property bool editAccessRequested: false
     property bool authorizing: false
     property bool actionBusy: false
     property string pendingProvider: ""
@@ -108,7 +109,7 @@ GenyDrawer {
 
         Rectangle {
             Layout.fillWidth: true
-            visible: !picker.authorized
+            visible: !picker.authorized && (!picker.cachedSnapshot || picker.editAccessRequested)
             radius: Theme.curveContainer
             color: Theme.surfaceMuted
             border.width: 1
@@ -226,6 +227,13 @@ GenyDrawer {
                 text: qsTr("Last verified")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
+            }
+            ActionButton {
+                visible: picker.cachedSnapshot && !picker.authorized
+                compact: true
+                text: picker.editAccessRequested ? qsTr("Hide verification") : qsTr("Edit connections")
+                quiet: true
+                onClicked: picker.editAccessRequested = !picker.editAccessRequested
             }
             ActionButton {
                 visible: picker.authorized

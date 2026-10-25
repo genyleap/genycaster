@@ -54,6 +54,20 @@ test('canonical Farcaster proof grants transient Connections access without a se
   assert.ok(controller.includes('m_viewerFid != requiredFid || fid != requiredFid'));
 });
 
+test('owner remembers only last-known social proofs and never persists account bearers', () => {
+  assert.match(controller, /restoreCachedConnections\(\)/);
+  assert.match(controller, /saveCachedConnections\(\)/);
+  assert.match(controller, /openProofConnections\/lastKnown\//);
+  assert.match(controller, /m_cachedSnapshot = true/);
+  assert.match(controller, /if \(!m_settings \|\| !m_verified \|\| !m_viewerFid\) return/);
+  assert.match(controller, /m_accountBearer\.fill\(/);
+  assert.match(qml, /cachedSnapshot: openProofConnections\.cachedSnapshot/);
+  assert.match(popup, /editAccessRequested/);
+  assert.match(popup, /Edit connections/);
+  assert.match(qml, /ownerVerifiedSocialBadgeStrip/);
+  assert.match(qml, /root\.isOwnProfile/);
+});
+
 test('Farcaster ownership unlocks Connections without a Genyleap password and Telegram callback uses its registered host', () => {
   assert.match(controller, /m_authorization\.beginFarcaster\(/);
   assert.doesNotMatch(controller, /m_authorization\.begin\(/);

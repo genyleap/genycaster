@@ -1499,7 +1499,10 @@ Item {
         onConnectRequested: provider => openProofConnections.connectProvider(provider)
         onDisconnectRequested: (provider, subject) =>
             openProofConnections.disconnectProvider(provider, subject)
-        onClosed: openProofConnections.stopAuthorization()
+        onClosed: {
+            accountConnectionsPopup.editAccessRequested = false
+            openProofConnections.stopAuthorization()
+        }
     }
 
     onIsOwnProfileChanged: {
