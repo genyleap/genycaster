@@ -62,6 +62,6 @@ test('Manual LinkedIn edits are owner-gated local state, not a provider verifica
   assert.match(cpp,/QCryptographicHash::Sha256/);
   assert.match(cpp,/!m_verified \|\| !isConnected\(QStringLiteral\("linkedin"\)\)/);
   assert.match(qml,/onClicked: picker\.manualLinkedInRequested/);
-  assert.match(qml,/saved on this device/);
+  assert.match(qml,/Saved on this device\. Cloud sync awaits Genycaster database activation\./);
   assert.match(profile,/URL entered by you \(not LinkedIn-verified\)/);
 });

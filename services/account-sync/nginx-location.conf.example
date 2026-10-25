@@ -1,12 +1,22 @@
-# Example location to include under an HTTPS Genycaster vhost after
-# bringing the optional backend up. Do NOT activate until it passes staging tests.
-location ^~ /api/v1/ {
+# Include under the HTTPS caster.genyleap.com Nginx server block
+# once the dedicated account API is deployed. Keep cloud routes separate
+# from the application's static/SPA fallback and never proxy to OpenProof DB.
+#
+# Even before PostgreSQL provisioning this location returns the account API's
+# explicit 503 {"error":"cloud_not_configured"} JSON, not the SPA's 200 HTML.
+# The cloud client enables writes only after a successful JSON health probe.
+#
+# This file is a deployment example, not an enabled Nginx configuration.
+location ^~ /api/v1/cloud/ {
     proxy_pass http://127.0.0.1:8797;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header X-Request-ID $request_id;
     proxy_connect_timeout 3s;
-    proxy_read_timeout 7s;
-    client_max_body_size 16k;
+    proxy_read_timeout 10s;
+    proxy_redirect off;
+    client_max_body_size 24k;
+    add_header Cache-Control "no-store" always;
+    add_header X-Content-Type-Options "nosniff" always;
 }

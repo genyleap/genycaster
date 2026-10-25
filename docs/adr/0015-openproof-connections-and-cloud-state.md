@@ -125,3 +125,24 @@ Create the PostgreSQL database `genycaster_db` **only** using authorized databas
   workflow. Previously cached connections are not authoritative; manually
   entered LinkedIn URLs require separate cloud-upload consent. Scheduled tasks
   are definitions only and cannot publish automatically.
+
+## Production release and current operator boundary — 2026-10-26
+
+- Client release `15f5851d2bda20752b33-88c6b99ef152` from source
+  `88c6b99ef152a7f9da1152dce9ca4ca9bb593855` was successfully built,
+  verified and deployed to `caster.genyleap.com`; both origin and Cloudflare
+  release smoke checks passed. Its cloud buttons remain disabled until storage
+  is activated; this is not evidence of cross-device synchronization.
+- The Genycaster account API was restarted with the updated launcher.
+  `http://127.0.0.1:8797/healthz` returns `{"ready":true}`, while
+  `/api/v1/cloud/app_updates` returns `503 cloud_not_configured`
+  before PostgreSQL provisioning. No OpenProof database was accessed.
+- The public hostname's `/api/v1/cloud/` path currently falls through to
+  the application's HTML SPA entrypoint. Direct Nginx configuration edits
+  were rejected as **read-only** by the remote operations environment;
+  the intended safe reverse-proxy location lives in
+  `services/account-sync/nginx-location.conf.example` for a deployment
+  operator with authorized Nginx Editor rights.
+- PostgreSQL provisioning and restricted runtime role setup remain blocked
+  by the operations identity, and full bookmark/draft/notification two-way
+  client synchronization and cross-device E2E tests remain incomplete.

@@ -101,10 +101,11 @@ To activate:
   service login, apply migrations 001–003 and grant only the required table
   and bookmark sequence access. Never use the OpenProof database role.
 - Set `GENYCASTER_DATABASE_URL` outside Git in the Genycaster API
-  process environment and use the dedicated `server.mjs` launcher
-  (which validates the schema at startup). A deployment wrapper that always
-  calls `createAccountApi({catalogUrl})` without passing `store`
-  disables every private endpoint, even if the DB exists.
+  process environment and restart the dedicated account API with the
+  updated deployment wrapper (or `server.mjs`); both pass the configured
+  PostgreSQL `store` and validate schema version 3 at startup.
+  Until provisioned, the running service deliberately answers
+  `503 {"error":"cloud_not_configured"}` for private Cloud routes.
 - Route `/api/v1/cloud/` from `caster.genyleap.com` to the local
   Genycaster account API, use HTTPS, request body size limits and no
   cross-origin credential forwarding; reload Nginx only after `nginx -t`.
