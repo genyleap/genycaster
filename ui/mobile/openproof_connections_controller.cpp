@@ -13,6 +13,7 @@
 #include <QCryptographicHash>
 #include <QSettings>
 #include <QUrlQuery>
+#include <QUuid>
 
 #include <algorithm>
 
@@ -109,6 +110,14 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
         m_error.clear();
         emit stateChanged();
     });
+    m_bookmarkPoll.setInterval(25'000);
+    connect(&m_bookmarkPoll, &QTimer::timeout, this, [this] {
+        if (!m_cloudServiceAvailable) checkCloudService();
+        else {
+            reconcileLinkedIn();
+            pumpBookmarkChanges();
+        }
+    });
     m_connectionPoll.setInterval(3'000);
     connect(&m_connectionPoll, &QTimer::timeout, this, [this] {
         if (!m_verified || m_pendingProvider.isEmpty()
@@ -176,7 +185,8 @@ void OpenProofConnectionsController::setManualLinkedInUrl(const QString& candida
     if (value.isEmpty()) m_settings->remove(key);
     else m_settings->setValue(key, QStringLiteral("https://www.linkedin.com") + parsed.path());
     m_settings->sync();
-    const bool syncEnabled = m_settings->value(key + QStringLiteral(".cloudEnabled")).toBool();
+    if (!m_applyingCloudLinkedIn)
+        m_settings->setValue(key + QStringLiteral(".cloudDirty"), true);
     for (auto& entry : m_connections) {
         auto item = entry.toMap();
         if (item.value(QStringLiteral("provider")).toString() != QStringLiteral("linkedin")) continue;
@@ -187,10 +197,10 @@ void OpenProofConnectionsController::setManualLinkedInUrl(const QString& candida
     saveCachedConnections();
     m_error.clear();
     emit stateChanged();
-    // Updating a URL is local-first; cloud propagation happens only after
-    // the owner explicitly enabled it and an authenticated service is ready.
-    if (!m_applyingCloudLinkedIn && syncEnabled && m_cloudServiceAvailable)
-        uploadManualLinkedInCloud();
+    // Every local edit is durable first, then propagated automatically.
+    // Offline changes remain queued under the verified account.
+    if (!m_applyingCloudLinkedIn && m_cloudServiceAvailable
+        && !m_cloudRequest) uploadManualLinkedInCloud();
 }
 
 
@@ -219,10 +229,143 @@ void OpenProofConnectionsController::checkCloudService()
         m_cloudServiceAvailable = status == 200 && doc.isObject()
             && doc.object().value(QStringLiteral("items")).isArray();
         emit cloudStateChanged();
-        if (m_cloudServiceAvailable && m_verified && isConnected(QStringLiteral("linkedin"))
-            && manualLinkedInUrl().isEmpty() && !m_cloudRequest)
-            restoreManualLinkedInCloud();
+        if (m_cloudServiceAvailable && m_verified && cloudAuthorizationReady()) {
+            m_bookmarkPoll.start();
+            reconcileLinkedIn();
+            pumpBookmarkChanges();
+        }
     });
+}
+
+QString OpenProofConnectionsController::bookmarkStorageKey() const
+{
+    if (!m_viewerFid) return {};
+    return QStringLiteral("genycaster/bookmark-service/fid_%1").arg(m_viewerFid);
+}
+
+void OpenProofConnectionsController::recordBookmarkMutation(
+    const QString& castId, const bool deleted)
+{
+    if (!m_settings || !m_viewerFid) return;
+    static const QRegularExpression valid{
+        QStringLiteral("^0x[0-9a-fA-F]{40}$")};
+    if (!valid.match(castId).hasMatch()) return;
+    const QVariantMap item{
+        {QStringLiteral("cast_hash"), castId.toLower()},
+        {QStringLiteral("is_deleted"), deleted},
+        {QStringLiteral("mutation_id"), QUuid::createUuid().toString(QUuid::WithoutBraces)}
+    };
+    m_bookmarkOutbox.push_back(item);
+    m_settings->setValue(bookmarkStorageKey() + QStringLiteral("/outbox"), m_bookmarkOutbox);
+    m_settings->sync();
+    pumpBookmarkChanges();
+}
+
+void OpenProofConnectionsController::migrateLocalBookmarks(const QStringList& ids)
+{
+    if (!m_settings || !m_viewerFid || !m_verified
+        || !m_cloudServiceAvailable || !cloudAuthorizationReady()) return;
+    const QString key=bookmarkStorageKey() + QStringLiteral("/migrated");
+    if (m_settings->value(key).toBool()) return;
+    // Upgrade old per-FID device bookmarks without inventing deletes.
+    // Duplicate saves are harmless and do not replace remote removals on
+    // another device during ordinary reads.
+    for (const auto& id : ids) recordBookmarkMutation(id, false);
+    m_settings->setValue(key, true);
+    m_settings->sync();
+}
+
+void OpenProofConnectionsController::pumpBookmarkChanges()
+{
+    if (!m_settings || !m_viewerFid || !m_verified
+        || !cloudAuthorizationReady() || !m_cloudServiceAvailable
+        || m_cloudRequest || !trustedHttpsEndpoint(m_cloudUrl)) return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/bookmarks"));
+    const bool uploading=!m_bookmarkOutbox.isEmpty();
+    if (!uploading) {
+        QUrlQuery query;
+        query.addQueryItem(QStringLiteral("since"),m_bookmarkCursor);
+        url.setQuery(query);
+    }
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept","application/json");
+    request.setRawHeader("Authorization","Bearer " + m_accountBearer);
+    QVariantMap pending;
+    QNetworkReply* reply{};
+    if (uploading) {
+        pending=m_bookmarkOutbox.constFirst().toMap();
+        request.setHeader(QNetworkRequest::ContentTypeHeader,
+                          QStringLiteral("application/json"));
+        reply=m_network.put(request,
+              QJsonDocument{QJsonObject::fromVariantMap(pending)}.toJson(QJsonDocument::Compact));
+    } else {
+        reply=m_network.get(request);
+    }
+    m_cloudRequest=reply;
+    const auto generation=m_grantGeneration;
+    const auto viewer=m_viewerFid;
+    connect(reply,&QNetworkReply::finished,this,
+            [this,reply,generation,viewer,uploading,pending] {
+        if (m_cloudRequest==reply) m_cloudRequest=nullptr;
+        const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable() <= 100 * 1024
+            ? reply->readAll() : QByteArray{};
+        reply->deleteLater();
+        if (generation!=m_grantGeneration || viewer!=m_viewerFid) return;
+        if (status!=200) return; // Retain durable outbox/cursor on failures.
+        const auto json=QJsonDocument::fromJson(bytes);
+        if (!json.isObject()) return;
+        if (uploading) {
+            if (!json.object().value(QStringLiteral("item")).isObject()
+                || m_bookmarkOutbox.isEmpty()
+                || m_bookmarkOutbox.constFirst().toMap()
+                     .value(QStringLiteral("mutation_id"))!=pending.value(QStringLiteral("mutation_id")))
+                return;
+            m_bookmarkOutbox.removeFirst();
+            m_settings->setValue(bookmarkStorageKey()+QStringLiteral("/outbox"),m_bookmarkOutbox);
+            m_settings->sync();
+            QMetaObject::invokeMethod(this,[this] { pumpBookmarkChanges(); },
+                                      Qt::QueuedConnection);
+        } else {
+            const auto items=json.object().value(QStringLiteral("items"));
+            const QString next=json.object().value(QStringLiteral("next_cursor")).toString();
+            static const QRegularExpression cursorFormat{
+                QStringLiteral("^(0|[1-9][0-9]{0,17})$")};
+            if (!items.isArray() || !cursorFormat.match(next).hasMatch()) return;
+            QVariantList changes{};
+            for (const auto& value : items.toArray()) {
+                if (value.isObject()) changes.push_back(value.toObject().toVariantMap());
+            }
+            // Synchronously update the per-account local reading list before
+            // advancing the cursor; a crash can replay but cannot lose rows.
+            emit cloudBookmarkChangesReceived(changes);
+            const QString previous=m_bookmarkCursor;
+            m_bookmarkCursor=next;
+            m_settings->setValue(bookmarkStorageKey()+QStringLiteral("/cursor"),next);
+            m_settings->sync();
+            if (items.toArray().size()>=200 && next!=previous)
+                QMetaObject::invokeMethod(this,[this] { pumpBookmarkChanges(); },
+                                          Qt::QueuedConnection);
+        }
+    });
+}
+
+void OpenProofConnectionsController::reconcileLinkedIn()
+{
+    if (m_linkedInReconciled || !m_settings || !m_verified
+        || !m_cloudServiceAvailable || !cloudAuthorizationReady()
+        || m_cloudRequest || !isConnected(QStringLiteral("linkedin"))) return;
+    const QString key=manualLinkedInSettingKey();
+    if (key.isEmpty()) return;
+    m_linkedInReconciled=true;
+    if (m_settings->value(key+QStringLiteral(".cloudDirty")).toBool())
+        uploadManualLinkedInCloud();
+    else
+        restoreManualLinkedInCloud();
 }
 
 void OpenProofConnectionsController::uploadManualLinkedInCloud()
@@ -239,7 +382,7 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
 {
     if (!m_cloudServiceAvailable || !m_verified || !m_viewerFid || !m_settings
         || !isConnected(QStringLiteral("linkedin")) || m_cloudRequest
-        || m_accountBearer.isEmpty() || m_accountBearer.startsWith("recovery.")) {
+        || m_accountBearer.isEmpty()) {
         m_cloudError = QStringLiteral("Verified OpenProof authorization and active cloud storage are required.");
         emit cloudStateChanged();
         return;
@@ -252,15 +395,15 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
     request.setTransferTimeout(9'000);
     request.setRawHeader("Accept", "application/json");
     request.setRawHeader("Authorization", "Bearer " + m_accountBearer);
+    const QString uploadedUrl=upload ? manualLinkedInUrl() : QString{};
     QNetworkReply* reply{};
     if (upload) {
         QJsonObject body{
             {QStringLiteral("provider"), QStringLiteral("linkedin")},
             {QStringLiteral("publicly_visible"), false}
         };
-        const QString manual = manualLinkedInUrl();
         body.insert(QStringLiteral("manual_profile_url"),
-                    manual.isEmpty() ? QJsonValue{QJsonValue::Null} : QJsonValue{manual});
+                    uploadedUrl.isEmpty() ? QJsonValue{QJsonValue::Null} : QJsonValue{uploadedUrl});
         request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
         reply = m_network.put(request, QJsonDocument{body}.toJson(QJsonDocument::Compact));
     } else {
@@ -271,7 +414,7 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
     const auto generation = m_grantGeneration;
     emit cloudStateChanged();
     connect(reply, &QNetworkReply::finished, this,
-            [this, reply, generation, upload] {
+            [this, reply, generation, upload, uploadedUrl] {
         if (generation != m_grantGeneration) {
             reply->deleteLater();
             return;
@@ -283,6 +426,7 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
         reply->deleteLater();
         const auto response = QJsonDocument::fromJson(bytes);
         if (status != 200 || !response.isObject()) {
+            m_linkedInReconciled = false;
             m_cloudError = status == 401
                 ? QStringLiteral("Reauthorize OpenProof to sync LinkedIn.")
                 : QStringLiteral("LinkedIn cloud sync is unavailable. The local URL is unchanged.");
@@ -291,21 +435,36 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
         }
         if (upload) {
             if (!response.object().value(QStringLiteral("item")).isObject()) {
+                m_linkedInReconciled = false;
                 m_cloudError = QStringLiteral("LinkedIn cloud update was not confirmed.");
             } else {
                 const QString key = manualLinkedInSettingKey();
-                if (!key.isEmpty())
-                    m_settings->setValue(key + QStringLiteral(".cloudEnabled"), true);
+                const bool superseded = uploadedUrl != manualLinkedInUrl();
+                if (!key.isEmpty() && !superseded)
+                    m_settings->setValue(key + QStringLiteral(".cloudDirty"), false);
                 m_settings->sync();
                 m_cloudError.clear();
+                if (superseded)
+                    QMetaObject::invokeMethod(this,[this]{uploadManualLinkedInCloud();},
+                                              Qt::QueuedConnection);
             }
         } else {
+            const QString key=manualLinkedInSettingKey();
+            if (!key.isEmpty()
+                && m_settings->value(key+QStringLiteral(".cloudDirty")).toBool()) {
+                QMetaObject::invokeMethod(this,[this]{uploadManualLinkedInCloud();},
+                                          Qt::QueuedConnection);
+                emit cloudStateChanged();
+                return;
+            }
             const auto items = response.object().value(QStringLiteral("items")).toArray();
+            bool foundLinkedIn = false;
             for (const auto& value : items) {
                 if (!value.isObject()) continue;
                 const auto object = value.toObject();
                 if (object.value(QStringLiteral("provider")).toString()
                     != QStringLiteral("linkedin")) continue;
+                foundLinkedIn = true;
                 const QString manual = object.value(QStringLiteral("manual_profile_url")).toString();
                 if (object.contains(QStringLiteral("manual_profile_url"))
                     && object.value(QStringLiteral("manual_profile_url")).isNull()) {
@@ -315,10 +474,7 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
                     m_applyingCloudLinkedIn = false;
                 } else if (!manual.isEmpty()) {
                     const QString existing = manualLinkedInUrl();
-                    if (!existing.isEmpty() && existing != manual) {
-                        m_cloudError = QStringLiteral(
-                            "This device has a different LinkedIn URL. Choose which one to keep.");
-                    } else {
+                    if (existing != manual) {
                         m_applyingCloudLinkedIn = true;
                         setManualLinkedInUrl(manual);
                         m_applyingCloudLinkedIn = false;
@@ -326,6 +482,11 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
                 }
                 break;
             }
+            // Existing self-authored URLs on older devices are migrated on
+            // first verified login, never discarded just because cloud is empty.
+            if (!foundLinkedIn && !manualLinkedInUrl().isEmpty())
+                QMetaObject::invokeMethod(this, [this] { uploadManualLinkedInCloud(); },
+                                          Qt::QueuedConnection);
         }
         emit cloudStateChanged();
     });
@@ -352,8 +513,7 @@ void OpenProofConnectionsController::sendCloudProfileRequest(
         emit cloudStateChanged();
         return;
     }
-    if (!m_verified || !m_viewerFid || m_accountBearer.isEmpty()
-        || m_accountBearer.startsWith("recovery.") || m_cloudRequest) {
+    if (!m_verified || !m_viewerFid || m_accountBearer.isEmpty() || m_cloudRequest) {
         m_cloudError = QStringLiteral("Authorize your OpenProof account before using cloud sync.");
         emit cloudStateChanged();
         return;
@@ -612,6 +772,8 @@ void OpenProofConnectionsController::clearAccountGrant()
     ++m_grantGeneration;
     m_grantExpiry.stop();
     m_connectionPoll.stop();
+    m_bookmarkPoll.stop();
+    m_linkedInReconciled = false;
     if (m_request) {
         m_request->abort();
         m_request->deleteLater();
@@ -646,6 +808,12 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_approvalUrl.clear();
     m_error.clear();
     m_viewerFid = fid;
+    const QString key=bookmarkStorageKey();
+    m_bookmarkOutbox=key.isEmpty() || !m_settings
+        ? QVariantList{} : m_settings->value(key+QStringLiteral("/outbox")).toList();
+    m_bookmarkCursor=key.isEmpty() || !m_settings
+        ? QStringLiteral("0") : m_settings->value(
+            key+QStringLiteral("/cursor"),QStringLiteral("0")).toString();
     restoreCachedConnections();
     emit stateChanged();
 }
@@ -703,52 +871,6 @@ void OpenProofConnectionsController::stopAuthorization()
     m_authorizing = false;
     m_approvalUrl.clear();
     emit stateChanged();
-}
-
-void OpenProofConnectionsController::authorizeCloudAccount()
-{
-    if (!m_viewerFid || m_authorizing || m_cloudRequest
-        || !m_cloudServiceAvailable || cloudAuthorizationReady()) return;
-    m_authorization.cancel();
-    // A recovery capability cannot access private Cloud state. Request a
-    // separate, short-lived standard OpenProof device grant instead. The
-    // existing Farcaster sign-in remains unchanged.
-    clearAccountGrant();
-    m_authorizing = true;
-    m_approvalUrl.clear();
-    m_error.clear();
-    const auto expectedFid = m_viewerFid;
-    const auto generation = m_grantGeneration;
-    emit stateChanged();
-    m_authorization.begin(
-        [this, generation](BrowserOpenProofState state) {
-            if (generation != m_grantGeneration) return;
-            switch (state.phase) {
-            case BrowserOpenProofState::Phase::AwaitingApproval:
-                m_approvalUrl = state.approvalUrl; break;
-            case BrowserOpenProofState::Phase::Failed:
-                m_error = state.error;
-                m_authorizing = false;
-                m_approvalUrl.clear(); break;
-            case BrowserOpenProofState::Phase::Authenticated:
-            case BrowserOpenProofState::Phase::SignedOut:
-                m_authorizing = false;
-                m_approvalUrl.clear(); break;
-            case BrowserOpenProofState::Phase::Starting:
-                break;
-            }
-            emit stateChanged();
-        },
-        [this, expectedFid, generation](QByteArray bearer, QString subject,
-                                         std::uint64_t fid, int seconds) {
-            if (generation != m_grantGeneration || expectedFid != m_viewerFid
-                || fid != expectedFid) {
-                bearer.fill('\0');
-                return;
-            }
-            acceptAuthenticatedGrant(std::move(bearer), std::move(subject),
-                                     fid, seconds);
-        });
 }
 
 void OpenProofConnectionsController::authorizeAccount()
@@ -929,6 +1051,13 @@ void OpenProofConnectionsController::refreshConnections()
             m_connections = std::move(current);
             m_verified = true;
             m_cachedSnapshot = false;
+            m_bookmarkPoll.start();
+            if (m_cloudServiceAvailable) {
+                reconcileLinkedIn();
+                pumpBookmarkChanges();
+            }
+            else
+                checkCloudService();
             saveCachedConnections();
             m_error.clear();
             // A LinkedIn reauthorization begins with an already linked account.

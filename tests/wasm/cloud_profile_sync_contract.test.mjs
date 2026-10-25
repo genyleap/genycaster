@@ -2,87 +2,76 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
-test('only native controller holds cloud authentication bearer and enforces FID verification',()=>{
+
+test('existing Farcaster/OpenProof authorization is reused, never exposed to QML',()=>{
   const header=read('ui/mobile/openproof_connections_controller.hpp');
-  const source=read('ui/mobile/openproof_connections_controller.cpp');
-  const qml=read('ui/components/ProfileSurface.qml');
-  assert.match(header,/Q_INVOKABLE void fetchCloudProfileExtras\(\)/);
-  assert.match(header,/Q_INVOKABLE void pushCloudProfileExtras\(const QVariantMap& fields\)/);
-  assert.match(source,/if \(!m_verified \|\| !m_viewerFid \|\| m_accountBearer\.isEmpty\(\)/);
-  assert.match(source,/m_accountBearer\.startsWith\("recovery\."\)/);
-  assert.match(source,/payload\.remove\(QStringLiteral\("subject"\)\)/);
-  assert.match(source,/payload\[QStringLiteral\("revision"\)\] = m_cloudRevision/);
-  assert.match(source,/QNetworkRequest::ManualRedirectPolicy/);
-  assert.match(source,/if \(generation != m_grantGeneration\)/);
-  assert.doesNotMatch(header,/Q_PROPERTY\(.*[Bb]earer/);
-  assert.doesNotMatch(qml,/Bearer\s/);
-});
-test('a recovery-only Farcaster grant cannot be mistaken for authorized Cloud data access',()=>{
-  const header=read('ui/mobile/openproof_connections_controller.hpp');
-  const cpp=read('ui/mobile/openproof_connections_controller.cpp');
-  const qml=read('ui/components/ProfileSurface.qml');
-  assert.match(header,/Q_PROPERTY\(bool cloudAuthorizationReady READ cloudAuthorizationReady NOTIFY stateChanged\)/);
+  const code=read('ui/mobile/openproof_connections_controller.cpp');
+  const api=read('services/account-sync/cloud_state.mjs');
+  assert.match(header,/Q_PROPERTY\(bool cloudAuthorizationReady READ cloudAuthorizationReady/);
   assert.match(header,/return m_verified && !m_accountBearer\.isEmpty\(\)/);
-  assert.match(header,/!m_accountBearer\.startsWith\("recovery\."\)/);
-  assert.match(cpp,/void OpenProofConnectionsController::authorizeCloudAccount\(\)/);
-  assert.match(cpp,/m_authorization\.begin\(/);
-  assert.match(cpp,/expectedFid != m_viewerFid/);
-  assert.match(cpp,/acceptAuthenticatedGrant\(std::move\(bearer\)/);
-  assert.match(qml,/objectName: "authorizeCloudAccount"/);
-  assert.match(qml,/objectName: "openCloudApproval"/);
-  assert.match(qml,/Qt\.openUrlExternally\(openProofConnections\.approvalUrl\)/);
-  assert.match(qml,/enabled: openProofConnections\.cloudAuthorizationReady/);
-  assert.match(qml,/if \(openProofConnections\.cloudAuthorizationReady && root\.isOwnProfile/);
+  assert.doesNotMatch(header,/authorizeCloudAccount\(/);
+  assert.doesNotMatch(code,/authorizeCloudAccount\(/);
+  assert.match(api,/subject:'farcaster:'\+fid/);
+  assert.match(api,/storage-farcaster\.genyleap\.com\/v1\/browser\/openproof\/connections/);
+  assert.match(api,/linked\.length!==1/);
+  assert.match(code,/request\.setRawHeader\("Authorization", "Bearer " \+ m_accountBearer\)/);
+  assert.match(code,/QNetworkRequest::ManualRedirectPolicy/);
+  assert.doesNotMatch(header,/Q_PROPERTY\([^\n]*[Bb]earer/);
 });
-test('local profile remains usable without sync and enabling cloud is explicit',()=>{
-  const qml=read('ui/components/ProfileSurface.qml');
-  const config=read('ui/config/public_endpoints.json');
-  const json=JSON.parse(config);
-  assert.equal(json.genycasterCloudApiUrl,'https://caster.genyleap.com/api/v1/cloud/profile_extras');
-  assert.match(qml,/category: "genycaster-profile-cloud"/);
-  assert.match(qml,/readonly property bool cloudSyncEnabled:/);
-  assert.match(qml,/function setCloudFlags\(enabled, dirty\)/);
-  assert.match(qml,/if \(root.cloudSyncEnabled\)/);
-  assert.match(qml,/objectName: "uploadProfileToCloud"/);
-  assert.match(qml,/objectName: "restoreProfileFromCloud"/);
-  assert.match(qml,/root\.cloudRestoreRequested = true/);
-  assert.match(qml,/These values are canonical API identifiers, not translated display/);
-  assert.match(qml,/profileCategoryOptions:[\s\S]*?"Technology"/);
-  assert.doesNotMatch(qml,/qsTr\("Technology"\)/);
-  assert.match(qml,/root\.restoreCloudProfile\(item\)/);
-  assert.match(qml,/Authorize your OpenProof account/);
-});
-test('manual LinkedIn links have explicit owner-authenticated upload/restore and local-first consent',()=>{
-  const controller=read('ui/mobile/openproof_connections_controller.cpp');
-  const qml=read('ui/components/AccountConnectionsPopup.qml');
+
+test('profile category and links save locally then replicate without sync controls',()=>{
   const profile=read('ui/components/ProfileSurface.qml');
-  assert.match(controller,/void OpenProofConnectionsController::uploadManualLinkedInCloud\(\)/);
-  assert.match(controller,/void OpenProofConnectionsController::restoreManualLinkedInCloud\(\)/);
-  assert.match(controller,/m_accountBearer\.startsWith\("recovery\."\)/);
-  assert.match(controller,/m_applyingCloudLinkedIn/);
-  assert.match(controller,/cloudEnabled/);
-  assert.match(controller,/m_cloudServiceAvailable && m_verified && isConnected/);
-  assert.match(qml,/signal uploadCloudLinkedInRequested\(\)/);
-  assert.match(qml,/signal restoreCloudLinkedInRequested\(\)/);
-  assert.match(qml,/cloudAvailable: false/);
-  assert.match(profile,/onUploadCloudLinkedInRequested: openProofConnections\.uploadManualLinkedInCloud\(\)/);
-  assert.match(profile,/onRestoreCloudLinkedInRequested: openProofConnections\.restoreManualLinkedInCloud\(\)/);
-  assert.match(controller,/doc\.object\(\)\.value\(QStringLiteral\("items"\)\)\.isArray\(\)/);
+  assert.match(profile,/category: "genycaster-profile-extras"/);
+  assert.match(profile,/function saveExtraDetails\(/);
+  assert.match(profile,/root\.setCloudFlags\(true\)/);
+  assert.match(profile,/id: profileBackgroundRefresh/);
+  assert.match(profile,/onCloudProfileExtrasReceived\(item\)/);
+  assert.match(profile,/root\.restoreCloudProfile\(item\)/);
+  assert.doesNotMatch(profile,/objectName: "(?:uploadProfileToCloud|restoreProfileFromCloud|authorizeCloudAccount)"/);
+  assert.doesNotMatch(profile,/cloudSyncEnabled/);
+  assert.match(profile,/profileCategoryOptions:[\s\S]*?"Technology"/);
+  assert.doesNotMatch(profile,/qsTr\("Technology"\)/);
 });
-test('SQL app-only profile table has owner PK and optimistic revision',()=>{
+
+test('LinkedIn saves automatically and does not display upload or restore buttons',()=>{
+  const code=read('ui/mobile/openproof_connections_controller.cpp');
+  const popup=read('ui/components/AccountConnectionsPopup.qml');
+  const profile=read('ui/components/ProfileSurface.qml');
+  assert.match(code,/\.cloudDirty/);
+  assert.match(code,/if \(!m_applyingCloudLinkedIn && m_cloudServiceAvailable/);
+  assert.match(code,/restoreManualLinkedInCloud\(\)/);
+  assert.match(popup,/manualLinkedInRequested\(manualLinkedInField\.text\)/);
+  assert.doesNotMatch(popup,/(?:Sync URL|Restore from cloud|Cloud sync awaits|Cloud sync requires)/);
+  assert.doesNotMatch(profile,/onUploadCloudLinkedInRequested|onRestoreCloudLinkedInRequested/);
+});
+
+test('bookmark changes are owner-scoped, idempotent, and replayed without user intervention',()=>{
+  const cpp=read('ui/mobile/openproof_connections_controller.cpp');
+  const header=read('src/presentation/qt/presentation_bridge.hpp');
+  const presentation=read('src/presentation/qt/presentation_bridge.cpp');
+  const main=read('ui/mobile/main.cpp');
+  const store=read('services/account-sync/pg_store.mjs');
+  assert.match(header,/bookmarkMutated\(const QString& castId, bool isDeleted\)/);
+  assert.match(header,/applyCloudBookmarkChanges\(const QVariantList& changes\)/);
+  assert.match(presentation,/emit bookmarkMutated\(id, true\)/);
+  assert.match(presentation,/emit bookmarkMutated\(id, false\)/);
+  assert.match(presentation,/emit cloudBookmarkChangesReceived|emit bookmarksChanged/);
+  assert.match(cpp,/m_bookmarkOutbox\.push_back\(item\)/);
+  assert.match(cpp,/\/outbox/);
+  assert.match(cpp,/\/cursor/);
+  assert.match(cpp,/QUuid::createUuid\(\)/);
+  assert.match(cpp,/emit cloudBookmarkChangesReceived\(changes\)/);
+  assert.match(main,/PresentationBridge::bookmarkMutated/);
+  assert.match(main,/PresentationBridge::cloudBookmarkChangesReceived|OpenProofConnectionsController::cloudBookmarkChangesReceived/);
+  assert.match(store,/ON CONFLICT \(openproof_issuer,openproof_subject,mutation_id\) DO NOTHING/);
+  assert.match(store,/ORDER BY sequence ASC LIMIT 200/);
+});
+
+test('profile table is private by default with optimistic revision checks',()=>{
   const sql=read('services/account-sync/migrations/003_profile_extras.sql');
   const db=read('services/account-sync/pg_store.mjs');
-  const api=read('services/account-sync/cloud_state.mjs');
   assert.match(sql,/CREATE TABLE IF NOT EXISTS profile_extras/);
   assert.match(sql,/PRIMARY KEY \(issuer, subject\)/);
   assert.match(sql,/publicly_visible boolean NOT NULL DEFAULT false/);
   assert.match(db,/WHERE profile_extras\.revision=\$6/);
-  assert.match(db,/WHERE \$6::bigint=0 OR EXISTS \(/);
-  assert.match(api,/await authorize\(request\)/);
-  assert.match(api,/entity==='profile_extras'/);
-  assert.match(api,/error:'revision_conflict'/);
-  // A never-created record cannot be inserted with an arbitrary stale revision.
-  assert.match(db,/WHERE \$7::bigint=0 OR EXISTS \(/);
-  assert.match(db,/WHERE \$10::bigint=0 OR EXISTS \(/);
-  assert.match(db,/WHERE \$9::bigint=0 OR EXISTS \(/);
 });

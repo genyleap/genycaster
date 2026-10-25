@@ -17,9 +17,6 @@ GenyDrawer {
     property bool actionBusy: false
     property string pendingProvider: ""
     property string manualLinkedInUrl: ""
-    property bool cloudAvailable: false
-    property bool cloudBusy: false
-    property string cloudError: ""
     property bool catalogFallback: false
     property string approvalUrl: ""
     property string errorText: ""
@@ -31,8 +28,6 @@ GenyDrawer {
     signal disconnectRequested(string provider, string subject)
     signal openProfileRequested(string url)
     signal manualLinkedInRequested(string url)
-    signal uploadCloudLinkedInRequested()
-    signal restoreCloudLinkedInRequested()
 
     // Connections is an in-product sheet: bottom-up on phones and
     // a right-anchored inspector on desktop, independent of UI text direction.
@@ -530,35 +525,9 @@ GenyDrawer {
                                         onClicked: picker.manualLinkedInRequested(manualLinkedInField.text)
                                     }
                                 }
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: Theme.space2
-                                    ActionButton {
-                                        compact: true
-                                        quiet: true
-                                        busy: picker.cloudBusy
-                                        text: qsTr("Sync URL")
-                                        enabled: picker.authorized && picker.cloudAvailable
-                                                 && !picker.cloudBusy
-                                        onClicked: picker.uploadCloudLinkedInRequested()
-                                    }
-                                    ActionButton {
-                                        compact: true
-                                        quiet: true
-                                        busy: picker.cloudBusy
-                                        text: qsTr("Restore")
-                                        enabled: picker.authorized && picker.cloudAvailable
-                                                 && !picker.cloudBusy
-                                        onClicked: picker.restoreCloudLinkedInRequested()
-                                    }
-                                    Item { Layout.fillWidth: true }
-                                }
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
-                                    text: picker.cloudError.length > 0 ? picker.cloudError
-                                          : picker.cloudAvailable
-                                            ? qsTr("Self-asserted URL. Cloud sync requires your consent.")
-                                            : qsTr("Saved on this device. Cloud sync awaits Genycaster database activation.")
+                                    text: qsTr("Add your public LinkedIn profile URL.")
                                     wrapMode: Text.Wrap
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize

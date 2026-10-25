@@ -3,7 +3,8 @@ import test from 'node:test';
 import {createAccountApi} from '../server.mjs';
 import {validLinkedInUrl,validateCloudItem} from '../cloud_state.mjs';
 
-const principal='owner-verified-by-openproof';
+const principal='farcaster:42';
+const recovered='Bearer recovery.'+'R'.repeat(43);
 const upstream='https://identity.example.test/auth/providers';
 const calls=[];
 const store={
@@ -19,12 +20,19 @@ const store={
   },
 };
 const fetchImpl=async(url,opts)=>{
+  if(url==='https://storage-farcaster.genyleap.com/v1/browser/openproof/connections') {
+    if(opts.headers.authorization!==recovered) return new Response('{}',{status:401});
+    return new Response(JSON.stringify({connections:[
+      {provider:'farcaster',fid:'42'},{provider:'linkedin',display_name:'Linked'}
+    ]}),{status:200});
+  }
   if(url.endsWith('/account/profile')) {
     if(opts.headers.authorization!=='Bearer good') return new Response('{}',{status:401});
     return new Response(JSON.stringify({identity_id:principal}),{status:200});
   }
   if(url.endsWith('/account/connections')) return new Response(JSON.stringify({
-    connections:[{provider:'linkedin',display_name:'Kambiz Asadzadeh',
+    connections:[{provider:'farcaster',fid:'42'},
+      {provider:'linkedin',display_name:'Kambiz Asadzadeh',
       preferred_username:'',subject:'private-provider-subject',profile_url:'https://www.linkedin.com/in/kambizasadzadeh'}]
   }),{status:200});
   return new Response(JSON.stringify({providers:[],challenge_providers:[]}),{status:200});
@@ -57,6 +65,19 @@ test('Cloud endpoints reject anonymous and client-asserted identities; only Open
     assert.ok(calls.every(c=>c[c[0]==='bookmark-changes'?1:2]===principal));
   });
 });
+test('validated Farcaster recovery and standard OpenProof sessions map to one private account',async()=>{
+  calls.length=0;
+  await withServer(async request=>{
+    const standard=await request('profile_extras');
+    assert.equal(standard.status,200);
+    const recoveredRead=await request('profile_extras','GET',undefined,recovered);
+    assert.equal(recoveredRead.status,200);
+    assert.equal((await request('profile_extras','GET',undefined,
+      'Bearer recovery.'+'Z'.repeat(43))).status,401);
+    assert.ok(calls.filter(value=>value[0]==='get-profile')
+      .every(value=>value[1]==='farcaster:42'));
+  });
+});
 test('Manual LinkedIn URL is distinct from provider-verified URL and never mirrors upstream subject',async()=>{
   calls.length=0;
   await withServer(async request=>{
@@ -68,8 +89,8 @@ test('Manual LinkedIn URL is distinct from provider-verified URL and never mirro
     const refresh=await request('connections/refresh','POST',{});
     assert.equal(refresh.status,200);
     assert.equal(calls.at(-1)[0],'refresh');
-    assert.equal(calls.at(-1)[2][0].subject,undefined);
-    assert.equal(calls.at(-1)[2][0].provider_profile_url,manual.manual_profile_url);
+    assert.equal(calls.at(-1)[2][1].subject,undefined);
+    assert.equal(calls.at(-1)[2][1].provider_profile_url,manual.manual_profile_url);
   });
 });
 test('Bookmarks, drafts, task schedules and notifications are scoped to a user and validated before writes',async()=>{

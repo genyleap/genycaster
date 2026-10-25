@@ -42,12 +42,13 @@ Item {
         category: "genycaster-profile-extras"
         property string entriesJson: "{}"
     }
+    // Internal offline outbox. No sync controls are exposed to the user:
+    // editing profile details is the only action they need to perform.
     Settings {
         id: profileCloudSettings
         category: "genycaster-profile-cloud"
         property string perAccountJson: "{}"
     }
-    property bool cloudRestoreRequested: false
     readonly property var cloudAccountFlags: {
         if (!root.profileExtrasOwnerKey) return ({})
         try {
@@ -55,13 +56,12 @@ Item {
                 [root.profileExtrasOwnerKey] || ({})
         } catch (_) { return ({}) }
     }
-    readonly property bool cloudSyncEnabled: root.cloudAccountFlags.enabled === true
     readonly property bool cloudLocalDirty: root.cloudAccountFlags.dirty === true
-    function setCloudFlags(enabled, dirty) {
+    function setCloudFlags(dirty) {
         if (!root.profileExtrasOwnerKey) return
         try {
             const owners = JSON.parse(profileCloudSettings.perAccountJson || "{}")
-            owners[root.profileExtrasOwnerKey] = {enabled: enabled, dirty: dirty}
+            owners[root.profileExtrasOwnerKey] = {dirty: dirty}
             profileCloudSettings.perAccountJson = JSON.stringify(owners)
         } catch (_) { }
     }
@@ -72,10 +72,10 @@ Item {
         return {
             category: String(saved.category || ""),
             profession: String(saved.profession || ""),
-            links: urls.filter(url => typeof url === "string" && root.validExtraUrl(url))
-                .slice(0, 5).map((url, index) => ({
-                    label: String(labels[index] || "").slice(0, 32), url: url
-                }))
+            links: urls.map((url, index) => ({
+                label: String(labels[index] || "").slice(0, 32), url: url
+            })).filter(entry => typeof entry.url === "string"
+                        && root.validExtraUrl(entry.url)).slice(0, 5)
         }
     }
     function restoreCloudProfile(item) {
@@ -92,28 +92,52 @@ Item {
                 labels: links.map(entry => String(entry.label || "").slice(0, 32))
             }
             profileExtrasSettings.entriesJson = JSON.stringify(owners)
-            root.setCloudFlags(true, false)
+            root.setCloudFlags(false)
         } catch (_) { }
     }
     Connections {
         target: openProofConnections
         function onCloudProfileExtrasReceived(item) {
-            if (!root.cloudRestoreRequested || !root.isOwnProfile) return
-            root.cloudRestoreRequested = false
-            if (item && typeof item.category === "string")
+            if (!root.isOwnProfile) return
+            if (root.cloudLocalDirty) {
+                // Revisions are read from the service before replaying
+                // pending offline edits. Never erase unsent local values.
+                openProofConnections.pushCloudProfileExtras(root.cloudProfilePayload())
+            } else if (item && typeof item.category === "string") {
                 root.restoreCloudProfile(item)
+            } else if (Object.keys(root.profileExtras).length > 0) {
+                // One-time migration of previously saved local profile data.
+                root.setCloudFlags(true)
+                openProofConnections.pushCloudProfileExtras(root.cloudProfilePayload())
+            }
         }
         function onCloudProfileExtrasSaved(item) {
-            if (root.isOwnProfile && item && typeof item.category === "string")
-                root.setCloudFlags(true, false)
-        }
-        function onStateChanged() {
-            if (openProofConnections.cloudAuthorizationReady && root.isOwnProfile
-                && root.cloudSyncEnabled && !root.cloudLocalDirty
-                && !openProofConnections.cloudBusy) {
-                root.cloudRestoreRequested = true
-                openProofConnections.fetchCloudProfileExtras()
+            if (!root.isOwnProfile || !item || typeof item.category !== "string") return
+            // Never acknowledge an older request if another local save
+            // happened while it was in flight. Keep retrying latest edits.
+            const latest = root.cloudProfilePayload()
+            const same = item.category === latest.category
+                      && item.profession === latest.profession
+                      && JSON.stringify(item.links || []) === JSON.stringify(latest.links)
+            if (same) root.setCloudFlags(false)
+            else {
+                root.setCloudFlags(true)
+                if (!openProofConnections.cloudBusy)
+                    openProofConnections.fetchCloudProfileExtras()
             }
+        }
+    }
+    Timer {
+        id: profileBackgroundRefresh
+        interval: 45000
+        repeat: true
+        triggeredOnStart: true
+        running: root.visible && root.isOwnProfile
+                 && openProofConnections.cloudServiceAvailable
+                 && openProofConnections.cloudAuthorizationReady
+        onTriggered: {
+            if (!openProofConnections.cloudBusy)
+                openProofConnections.fetchCloudProfileExtras()
         }
     }
     readonly property string profileExtrasOwnerKey: root.isOwnProfile
@@ -210,11 +234,11 @@ Item {
             profileExtrasSettings.entriesJson = JSON.stringify(entries)
             root.profileExtrasError = ""
             root.profileLinksExpanded = false
-            if (root.cloudSyncEnabled) {
-                root.setCloudFlags(true, true)
-                if (openProofConnections.authorized)
-                    openProofConnections.pushCloudProfileExtras(root.cloudProfilePayload())
-            }
+            root.setCloudFlags(true)
+            if (openProofConnections.cloudServiceAvailable
+                    && openProofConnections.cloudAuthorizationReady
+                    && !openProofConnections.cloudBusy)
+                openProofConnections.fetchCloudProfileExtras()
             return true
         } catch (_) {
             root.profileExtrasError = qsTr("Could not save local profile details.")
@@ -2013,97 +2037,6 @@ Item {
                         }
                     }
                     DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: root.cloudSyncEnabled
-                              ? qsTr("Local changes are kept. Cloud upload uses revision checks.")
-                              : qsTr("Up to five links. Local by default; cloud sync requires OpenProof.")
-                        color: Theme.inkMuted
-                        wrapMode: Text.Wrap
-                        font.pixelSize: Theme.typeCaptionSize
-                    }
-                    // A Farcaster custody recovery ticket verifies Connections,
-                    // but does not authorize private Cloud API requests. Offer an
-                    // explicit short-lived OpenProof device grant instead.
-                    ActionButton {
-                        objectName: "authorizeCloudAccount"
-                        Layout.fillWidth: true
-                        visible: openProofConnections.cloudServiceAvailable
-                                 && !openProofConnections.cloudAuthorizationReady
-                        compact: true
-                        text: openProofConnections.authorizing
-                              ? qsTr("Waiting for OpenProof confirmation…")
-                              : qsTr("Authorize OpenProof for cloud sync")
-                        enabled: !openProofConnections.authorizing
-                        onClicked: openProofConnections.authorizeCloudAccount()
-                    }
-                    ActionButton {
-                        objectName: "openCloudApproval"
-                        Layout.fillWidth: true
-                        visible: openProofConnections.cloudServiceAvailable
-                                 && openProofConnections.authorizing
-                                 && openProofConnections.approvalUrl.length > 0
-                        compact: true
-                        quiet: true
-                        text: qsTr("Open OpenProof confirmation")
-                        onClicked: Qt.openUrlExternally(openProofConnections.approvalUrl)
-                    }
-                    RowLayout {
-                        objectName: "profileCloudSyncActions"
-                        Layout.fillWidth: true
-                        spacing: Theme.space2
-                        ActionButton {
-                            objectName: "uploadProfileToCloud"
-                            Layout.fillWidth: true
-                            compact: true
-                            quiet: true
-                            text: root.cloudSyncEnabled ? qsTr("Sync changes") : qsTr("Enable cloud sync")
-                            busy: openProofConnections.cloudBusy
-                            enabled: openProofConnections.cloudAuthorizationReady
-                                     && openProofConnections.cloudServiceAvailable
-                                     && !openProofConnections.cloudBusy
-                            onClicked: openProofConnections.pushCloudProfileExtras(root.cloudProfilePayload())
-                        }
-                        ActionButton {
-                            objectName: "restoreProfileFromCloud"
-                            Layout.fillWidth: true
-                            compact: true
-                            quiet: true
-                            text: qsTr("Restore from cloud")
-                            busy: openProofConnections.cloudBusy
-                            enabled: openProofConnections.cloudAuthorizationReady
-                                     && openProofConnections.cloudServiceAvailable
-                                     && !openProofConnections.cloudBusy
-                            onClicked: {
-                                root.cloudRestoreRequested = true
-                                openProofConnections.fetchCloudProfileExtras()
-                            }
-                        }
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        visible: !openProofConnections.cloudAuthorizationReady
-                        text: qsTr("Authorize your OpenProof account to synchronize private data between devices.")
-                        font.pixelSize: Theme.typeCaptionSize
-                        color: Theme.inkMuted
-                        wrapMode: Text.Wrap
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        visible: !openProofConnections.cloudServiceAvailable
-                        text: qsTr("Cloud sync is pending database activation. Your existing local data is preserved.")
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.Wrap
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        visible: openProofConnections.cloudError.length > 0
-                        text: openProofConnections.cloudError
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.Wrap
-                    }
-                    DirectionAwareLabel {
                         visible: root.profileExtrasError.length > 0
                         Layout.fillWidth: true
                         color: Theme.negative
@@ -2253,9 +2186,6 @@ Item {
         actionBusy: openProofConnections.actionBusy
         pendingProvider: openProofConnections.pendingProvider
         manualLinkedInUrl: openProofConnections.manualLinkedInUrl
-        cloudAvailable: openProofConnections.cloudServiceAvailable
-        cloudBusy: openProofConnections.cloudBusy
-        cloudError: openProofConnections.cloudError
         errorText: openProofConnections.error
         onOpenProfileRequested: url => root.externalRequested(url)
         onAuthorizeRequested: openProofConnections.authorizeAccount()
@@ -2263,8 +2193,6 @@ Item {
         onRefreshRequested: openProofConnections.refreshConnections()
         onConnectRequested: provider => openProofConnections.connectProvider(provider)
         onManualLinkedInRequested: url => openProofConnections.setManualLinkedInUrl(url)
-        onUploadCloudLinkedInRequested: openProofConnections.uploadManualLinkedInCloud()
-        onRestoreCloudLinkedInRequested: openProofConnections.restoreManualLinkedInCloud()
         onOpened: openProofConnections.checkCloudService()
         onDisconnectRequested: (provider, subject) =>
             openProofConnections.disconnectProvider(provider, subject)

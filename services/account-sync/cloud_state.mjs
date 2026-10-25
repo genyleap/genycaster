@@ -124,17 +124,39 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
   if (!store || !issuer || new URL(issuer).protocol !== 'https:')
     throw new Error('A store and trusted HTTPS OpenProof issuer are required');
   const upstream=issuer.replace(/\/$/,'');
+  // Genycaster account data is scoped to the *verified Farcaster FID*.
+  // OAuth and verified Farcaster recovery must resolve to exactly the same
+  // stable owner; caller-supplied identity/FID is never accepted.
   async function authorize(request) {
     const header=String(request.headers.authorization||'');
-    if (!/^Bearer [A-Za-z0-9._~+/-]+={0,2}$/.test(header) || header.length>8192 ||
-        header.startsWith('Bearer recovery.')) return null;
-    const response=await fetchImpl(upstream+'/account/profile',{headers:{authorization:header,
-      accept:'application/json'},redirect:'error',signal:AbortSignal.timeout(6000)});
+    if (!/^Bearer [A-Za-z0-9._~+/-]+={0,2}$/.test(header) || header.length>8192) return null;
+    const recovery=header.startsWith('Bearer recovery.');
+    // A recovery ticket is verified by the pre-existing Farcaster broker in
+    // the Genycaster media gateway. It holds the OpenProof session server-side.
+    // No new grant, cookie transfer to browser, or OpenProof modification.
+    const connectionEndpoint=recovery
+      ? 'https://storage-farcaster.genyleap.com/v1/browser/openproof/connections'
+      : upstream+'/account/connections';
+    if (!recovery) {
+      const profileResponse=await fetchImpl(upstream+'/account/profile',{
+        headers:{authorization:header,accept:'application/json'},
+        redirect:'error',signal:AbortSignal.timeout(6000)});
+      if (profileResponse.status!==200) return null;
+      const profile=await profileResponse.json();
+      if (!profile || typeof profile.identity_id!=='string'
+          || !/^[A-Za-z0-9:_-]{1,200}$/.test(profile.identity_id)) return null;
+    }
+    const response=await fetchImpl(connectionEndpoint,{
+      headers:{authorization:header,accept:'application/json'},
+      redirect:'error',signal:AbortSignal.timeout(6000)});
     if (response.status!==200) return null;
-    const profile=await response.json();
-    if (!profile || typeof profile.identity_id !== 'string' ||
-        !/^[A-Za-z0-9:_-]{1,200}$/.test(profile.identity_id)) return null;
-    return {issuer:upstream,subject:profile.identity_id,authorization:header};
+    const payload=await response.json();
+    if (!Array.isArray(payload.connections) || payload.connections.length>100) return null;
+    const linked=payload.connections.filter(c=>c?.provider==='farcaster');
+    if (linked.length!==1) return null;
+    const fid=String(linked[0].fid||'');
+    if (!/^[1-9][0-9]{0,18}$/.test(fid) || !Number.isSafeInteger(Number(fid))) return null;
+    return {issuer:upstream,subject:'farcaster:'+fid,authorization:header,fid};
   }
   return async function handleCloud(request,response,path) {
     if (!path.startsWith('/api/v1/cloud/')) return false;
@@ -155,7 +177,9 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
     try {
       if (entity==='connections/refresh') {
         if (request.method!=='POST') {respond(response,405,{error:'method_not_allowed'});return true;}
-        const reply=await fetchImpl(upstream+'/account/connections',{
+        const reply=await fetchImpl(owner.authorization.startsWith('Bearer recovery.')
+          ? 'https://storage-farcaster.genyleap.com/v1/browser/openproof/connections'
+          : upstream+'/account/connections',{
           headers:{authorization:owner.authorization,accept:'application/json'},
           redirect:'error',signal:AbortSignal.timeout(6000)});
         if (!reply.ok) {respond(response,502,{error:'connections_unavailable'});return true;}

@@ -146,3 +146,41 @@ Create the PostgreSQL database `genycaster_db` **only** using authorized databas
 - PostgreSQL provisioning and restricted runtime role setup remain blocked
   by the operations identity, and full bookmark/draft/notification two-way
   client synchronization and cross-device E2E tests remain incomplete.
+
+## Superseding implementation decision — 2026-10-26 (automatic app data)
+
+The earlier "opt-in cloud sync", extra account-consent and manual
+upload/restore approach above **is superseded**. It was the wrong UX:
+Genycaster owns data that Farcaster does not store, and its server is the
+automatic account-backed storage for ordinary Save/Unsave and profile edits.
+Users never enable a separate sync layer or learn a sync vocabulary.
+
+- The operator has created `genycaster_db`, applied migrations 1–3 and
+  enabled the restricted API under `https://caster.genyleap.com/api/v1/cloud/`.
+  Verified public API responses were HTTP 200 JSON for published updates and
+  HTTP 401 JSON for anonymous private data. OpenProof PostgreSQL stays separate.
+- Authentication for *both* normal OpenProof bearer and Farcaster-recovery
+  bearer resolves one stable `farcaster:<verified FID>` private storage owner.
+  The first route requires OpenProof profile + linked Farcaster; the second
+  requires the existing media gateway's server-validated temporary recovery
+  ticket, which uses a server-held OpenProof session to list the verified
+  Farcaster connection. No UI-asserted FID, handle, or public bearer claim
+  controls database ownership.
+- Profile links, professional category, manually specified LinkedIn URL and
+  bookmarked cast IDs are **automatic, local-first** actions. A failed
+  request must preserve local pending changes; signed-out identities never
+  upload or receive private records, and account/FID switches isolate both
+  cache and pending outboxes.
+- Bookmarks use client-generated UUID mutation IDs, a durable per-FID outbox,
+  server tombstones, incremental cursor reads and application of received
+  changes without recursively retransmitting them. New devices can open a
+  saved cast by its network hash. Its full cross-device preview is not yet
+  persisted by the current schema.
+- The draft, notification and task APIs exist but their native automatic
+  update adapters have **not** yet been completed. Do not claim complete
+  all-domain synchronization until these and real two-device login/offline
+  flows have been validated.
+
+This feature provides private per-account app state. It does **not** replace
+Farcaster protocol storage, expose OpenProof account secrets, confer LinkedIn
+verification on manually entered URLs, or provide any GENY holder attestation.

@@ -114,7 +114,7 @@ Flickable {
 
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: String(modelData.text || "")
+                        text: String(modelData.text || "") || qsTr("Open saved cast")
                         color: Theme.ink
                         font.pixelSize: Theme.typeBodySize
                         maximumLineCount: 5

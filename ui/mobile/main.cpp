@@ -1850,6 +1850,29 @@ int main(int argc, char* argv[])
         });
     openProofConnections.setViewerFid(
         presentationBridge.isAuthenticated() ? presentationBridge.accountFid() : 0);
+    // User actions update the local reading list immediately; Genycaster
+    // propagates owner-scoped mutations through its durable outbox.
+    QObject::connect(&presentationBridge, &PresentationBridge::bookmarkMutated,
+                     &openProofConnections,
+                     [&openProofConnections](const QString& castId, const bool deleted) {
+        openProofConnections.recordBookmarkMutation(castId, deleted);
+    });
+    QObject::connect(&openProofConnections,
+                     &OpenProofConnectionsController::cloudBookmarkChangesReceived,
+                     &presentationBridge,
+                     [&presentationBridge](const QVariantList& changes) {
+        presentationBridge.applyCloudBookmarkChanges(changes);
+    });
+    const auto migrateExistingBookmarks = [&presentationBridge, &openProofConnections] {
+        if (presentationBridge.isAuthenticated()
+            && openProofConnections.cloudServiceAvailable()
+            && openProofConnections.cloudAuthorizationReady())
+            openProofConnections.migrateLocalBookmarks(presentationBridge.bookmarkedCastIds());
+    };
+    QObject::connect(&openProofConnections, &OpenProofConnectionsController::cloudStateChanged,
+                     &presentationBridge, migrateExistingBookmarks);
+    QObject::connect(&openProofConnections, &OpenProofConnectionsController::stateChanged,
+                     &presentationBridge, migrateExistingBookmarks);
     engine.rootContext()->setContextProperty(QStringLiteral("presentationBridge"), &presentationBridge);
     engine.rootContext()->setContextProperty(QStringLiteral("channelDirectory"), &channelPickerController);
     engine.rootContext()->setContextProperty(QStringLiteral("dataStorage"), &dataStorageController);

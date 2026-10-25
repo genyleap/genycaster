@@ -62,14 +62,10 @@ public:
     [[nodiscard]] QString manualLinkedInUrl() const;
     [[nodiscard]] bool cloudBusy() const noexcept { return m_cloudRequest != nullptr; }
     [[nodiscard]] bool cloudAuthorizationReady() const noexcept {
-        return m_verified && !m_accountBearer.isEmpty()
-            && !m_accountBearer.startsWith("recovery.");
+        return m_verified && !m_accountBearer.isEmpty();
     }
     [[nodiscard]] bool cloudServiceAvailable() const noexcept { return m_cloudServiceAvailable; }
     Q_INVOKABLE void checkCloudService();
-    /** Optional OpenProof device grant for private account sync. Only native
-     * C++ receives the verified bearer, after matching the active FID. */
-    Q_INVOKABLE void authorizeCloudAccount();
     [[nodiscard]] QString cloudError() const { return m_cloudError; }
     [[nodiscard]] int cloudRevision() const noexcept { return m_cloudRevision; }
     /** Explicit opt-in cloud reads/writes; bearer never leaves native Qt. */
@@ -78,6 +74,10 @@ public:
     /** Manual vanity URLs are self-asserted; OpenProof remains link authority. */
     Q_INVOKABLE void uploadManualLinkedInCloud();
     Q_INVOKABLE void restoreManualLinkedInCloud();
+    /** Automatically record a durable local reading-list mutation for replay. */
+    void recordBookmarkMutation(const QString& castId, bool deleted);
+    /** Migrate existing local bookmarks once per verified account. */
+    void migrateLocalBookmarks(const QStringList& ids);
     /** Store a user-asserted public vanity URL in device-local state only.
      * Does not upgrade OpenProof verification or silently enable cloud sync. */
     Q_INVOKABLE void setManualLinkedInUrl(const QString& url);
@@ -114,6 +114,7 @@ signals:
     void cloudStateChanged();
     void cloudProfileExtrasReceived(const QVariantMap& item);
     void cloudProfileExtrasSaved(const QVariantMap& item);
+    void cloudBookmarkChangesReceived(const QVariantList& changes);
 
 private:
     [[nodiscard]] QString manualLinkedInSettingKey() const;
@@ -127,6 +128,9 @@ private:
     void finishAction(QString error = {});
     void sendCloudProfileRequest(bool upload, const QVariantMap& fields = {});
     void sendCloudLinkedInRequest(bool upload);
+    void pumpBookmarkChanges();
+    void reconcileLinkedIn();
+    [[nodiscard]] QString bookmarkStorageKey() const;
 
     QNetworkAccessManager m_network{this};
     QSettings* m_settings{};
@@ -136,11 +140,15 @@ private:
     QPointer<QNetworkReply> m_cloudProbe{};
     bool m_cloudServiceAvailable{};
     bool m_applyingCloudLinkedIn{};
+    bool m_linkedInReconciled{};
     QUrl m_cloudUrl{};
     QString m_cloudError{};
     int m_cloudRevision{};
     QTimer m_grantExpiry{this};
     QTimer m_connectionPoll{this};
+    QTimer m_bookmarkPoll{this};
+    QVariantList m_bookmarkOutbox{};
+    QString m_bookmarkCursor{QStringLiteral("0")};
     QUrl m_gatewayUrl{};
     QUrl m_browserConnectionBaseUrl{};
     QByteArray m_accountBearer{};

@@ -19,7 +19,7 @@ test('profile links, profession and holder trust remain separately scoped and di
   assert.match(qml,/objectName: "profileMoreLinksInline"/);
   assert.match(qml,/id: profileLinksDrawer/);
   assert.match(qml,/id: linksSheetRows/);
-  assert.match(qml,/Local by default; cloud sync requires OpenProof/);
+  assert.match(qml,/id: profileBackgroundRefresh/);
   assert.match(qml,/GenyDrawer \{\s*id: profileExtrasEditor/);
   assert.match(qml,/GenyDrawer \{\s*id: profileLinksDrawer/);
   assert.match(qml,/root.profileExtraLabel/);

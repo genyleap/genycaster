@@ -1,114 +1,119 @@
-# Genycaster Cloud State — PostgreSQL (application-owned)
+# Genycaster application-owned account state
 
-This is Genycaster's optional app-data service, **not an OpenProof database**.
-OpenProof continues to authenticate and link accounts. Farcaster/Hypersnap
-continues to own protocol messages and signer-bound writes. The application
-keeps local SQLite/IDBFS data available offline, whether or not cloud sync is
-enabled. Use the isolated database **genycaster_db**, not `openproof`.
+Genycaster stores the user features **not provided by Farcaster** in its own
+PostgreSQL database `genycaster_db`. The account user interface must **not**
+show any "Cloud Sync", "Enable Sync", "Upload" or "Restore" controls.
+Bookmarking, editing profile links, and changing self-authored connection URLs
+are ordinary product actions. They are stored locally first and then
+replicated automatically when a verified Genycaster account is online.
 
-## Tables and purposes
+OpenProof remains the identity and connection authority. A user-entered
+LinkedIn URL is *self-asserted*; it does not become OpenProof-verified.
+Farcaster/Snapchain remain the protocol source for casts, signers and likes.
 
-| Table | Owner and function |
+## Schema
+
+Apply migrations `001_bookmarks.sql`, `002_cloud_state.sql`, then
+`003_profile_extras.sql` inside the separate `genycaster_db`.
+
+| Table | Genycaster-owned purpose |
 | --- | --- |
-| `connections` | Display-only sanitized snapshot from authenticated OpenProof `/account/connections`, plus **separate**, self-asserted manual profile URL. Never a provider session, verified claim authority or token. |
-| `bookmarks` | App-private cast hashes with tombstones and `bookmark_changes` for incremental/replay-safe reconciliation (prepared migration 001). Not a Farcaster protocol message. |
-| `notifications` | Bounded account-specific notification snapshots, read state and revisions for cross-device reconciliation. Never an authority for protocol state. |
-| `app_updates` | Release-admin-published title, description and structured changelog; user API is strictly GET-only. |
-| `tasks` | Account-owned definitions for future scheduling, durable idempotency keys and states. **No scheduler, wallet key or unattended signer has been deployed.** |
-| `drafts` | Private cast/article/thread source content, revision-based optimistic conflict control, explicit cloud upload. Not published to Farcaster. |
-| `profile_extras` | Owner-selected professional category, role, and up to five labelled HTTPS links. Private by default, one row per server-verified account, optimistic revision checks; no OpenProof user data is copied. |
-| `schema_migrations` | Administrative forward-only schema tracking. |
+| `connections` | Bounded OpenProof-linked social metadata and owner-authored LinkedIn URL |
+| `profile_extras` | Selected profession/category and up to five labelled HTTPS URLs |
+| `bookmarks` | Current per-account cast hash reference and deletion state |
+| `bookmark_changes` | Monotonic, repeat-safe mutation history and incremental cursor |
+| `drafts` | Private application drafts; no protocol publishing |
+| `notifications` | Account-owned notification/read snapshots |
+| `tasks` | Future scheduled task definitions; no unattended signer or scheduler |
+| `app_updates` | Public version information, read-only to users |
+| `schema_migrations` | Administrative schema tracking |
 
-No speculative streak/leaderboard tables: these require a separate metric
-definition, anti-abuse model, ranking time window and data-retention policy.
+The API runtime must connect with a restricted `genycaster_api` role; no
+connection to or grants on OpenProof's PostgreSQL database are required.
 
-## Provisioning (operator gate)
+## Production infrastructure
 
-The schema is source-controlled, but a database is **not** provisioned by
-installing the WebAssembly client.
+As of October 26, 2026, the operator has provisioned the independent
+`genycaster_db`, applied migrations 1–3, configured `GENYCASTER_DATABASE_URL`
+outside Git, and enabled HTTPS `/api/v1/cloud/` through Nginx. Live probes
+confirmed `200 {"items":[]}` for `app_updates` and `401
+{"error":"authentication_required"}` for unauthenticated private reads.
 
-1. Authorized DBA creates a new PostgreSQL database using
-   `migrations/000_create_database.sql`. Use a least-privileged Genycaster
-   runtime role without access to OpenProof's database.
-2. Apply `001_bookmarks.sql`, `002_cloud_state.sql` and
-   `003_profile_extras.sql` **in order** inside `genycaster_db`
-   as the schema owner. Migrations are not automatically applied on requests.
-   After the changes the `schema_migrations` table must contain 1, 2 and 3.
-3. Configure a **secret** `GENYCASTER_DATABASE_URL` on the Genycaster
-   account API runtime. Install Node dependencies with `npm ci`.
-   Set `GENYCASTER_OPENPROOF_ISSUER` to the trusted HTTPS OpenProof issuer.
-4. Expose `/api/v1/cloud/` only through a same-origin HTTPS proxy with
-   bounded body sizes. Verify owner scoping, CORS/no CORS for browser clients,
-   auth expiration, and backup/restore before making the UI Sync button live.
-5. Explicitly enable per-account sync in the client only after end-to-end tests.
-   A successful local Save never implies the cloud accepted the write.
+If the DB is unavailable, the client must keep the local edit/outbox rather
+than implying that a remote write succeeded. The API responds with JSON,
+never its browser app shell. Browser clients only contact the same-origin
+`caster.genyleap.com` API; they do not see PostgreSQL credentials.
 
-Without `GENYCASTER_DATABASE_URL`, private cloud endpoints return
-`503 cloud_not_configured`; offline UI and protocol operations remain usable.
+## Authentication and ownership
 
-## API contract (staged)
+All private endpoints authenticate **every request**. The API ignores
+client-submitted FID, identity ID, username and issuer when choosing an owner.
 
-`GET /api/v1/connections/providers` is public provider discovery.
-`GET /api/v1/cloud/app_updates` is public published release notes.
-Private endpoints under `/api/v1/cloud/{connections,bookmarks,notifications,tasks,drafts,profile_extras}`
-support GET and PUT. `profile_extras` GET returns `{item:null}` for an
-uninitialized account, and PUT requires `revision:0` on creation or the
-last server revision on edits; stale writes return 409.
-Bookmarks support `GET /api/v1/cloud/bookmarks?since=<sequence>` to
-retrieve the next 200 append-only receipts with `next_cursor`; PUT accepts
-an optional UUID `mutation_id` for idempotent retries. `POST /api/v1/cloud/connections/refresh` fetches
-authenticated OpenProof provider metadata and copies only a limited set of
-display fields. A client may never submit an OpenProof subject or claim
-that a manually entered LinkedIn URL is verified.
+- Standard OpenProof bearer: verify `GET /account/profile` and exactly one
+  linked Farcaster FID through `GET /account/connections`.
+- Farcaster recovery bearer: verify the pre-existing, session-bound
+  `recovery.<ticket>` with the Genycaster media gateway's fixed HTTPS
+  `/v1/browser/openproof/connections` route. The gateway validates the
+  temporary ticket and queries OpenProof with server-held session cookies.
+  A client must not provide a bare FID as evidence.
+- Both authenticated routes resolve to the stable owner
+  `(issuer='https://openproof.genyleap.com', subject='farcaster:<verified FID>')`.
+  This is intentionally consistent across different devices and login paths.
+  Never export the temporary bearer to QML, JavaScript or persistent storage.
 
-The sync API verifies the caller on every request via the upstream
-`GET /account/profile`, binding all SQL parameters to the returned
-`identity_id` and the configured OpenProof issuer. No client-supplied FID,
-subject, email, username or JWT payload is used as an identity authority.
-Bearer recovery tickets use a server-held cookie and **are not yet supported
-by the dedicated cloud service**; a verified gateway adapter is required.
-Do not work around this by trusting client identifiers.
+Changing the current viewer FID cancels pending network operations and
+selects a different per-account local outbox and cursor.
 
-PUT for drafts, tasks and notifications carries an expected `revision`
-(0 for initial create), and concurrent updates return HTTP 409. There is
-no automatic scheduled publishing: a future worker needs explicit user
-authorization, safe signer custody, lease/claims and replay protection.
+## User-visible behavior
 
-For historical and public integration, `connections` is NOT a parallel
-OpenProof identity directory: it is a revocable account-owned profile
-presentation cache. The account owner explicitly chooses whether a manual
-URL is visible on a future public profile endpoint. **No public per-user
-link-reading endpoint has been enabled.**
+Bookmark Save/Unsave always changes the local UI immediately. A durable
+per-FID queue with UUID mutation IDs automatically replays on reconnect;
+the client reads `GET /bookmarks?since=<cursor>` in bounded batches,
+applies tombstones without recursive writes, and advances its cursor only
+after local changes are applied. Server retries are idempotent.
 
-**Feature status:** Genycaster's own PostgreSQL schema and guarded REST
-implementation exist. The native Qt profile editor contains an explicit,
-opt-in upload/restore path for `profile_extras` and keeps local data when
-unavailable. The API must pass an authenticated PostgreSQL production check
-before its actions become enabled; HTTP 200 HTML from an SPA fallback is
-deliberately rejected. No access bearer is exposed to QML/JavaScript.
+Profile category/profession/link edits are local-first; a background read
+loads the server revision before optimistic PUT. Offline changes remain
+marked dirty, with automatic retry and 409 revision handling. An in-flight
+older response cannot acknowledge a newer edit.
 
-**Not yet live:** The current Remote Operations execution identity lacks
-PostgreSQL DBA privileges (peer authentication rejects `root`, and
-`sudo -u postgres` is unavailable under its policy), so it cannot create
-`genycaster_db` itself. The production Nginx /api/v1/cloud/ location is
-also not enabled. Do not advertise cloud persistence while those operator
-gates remain unmet. Local bookmarks/drafts/notification mutations are
-not yet wired into the two-way client reconciliation adapter. This work
-is intentionally distinguished from a complete multi-device Sync feature.
+LinkedIn's manual vanity URL is also saved locally first and replayed
+automatically; reads from other devices restore it. Manual URLs stay
+distinguished from provider-backed URLs.
 
-To activate:
-- Have an authorized DBA provision `genycaster_db` and a least-privileged
-  service login, apply migrations 001–003 and grant only the required table
-  and bookmark sequence access. Never use the OpenProof database role.
-- Set `GENYCASTER_DATABASE_URL` outside Git in the Genycaster API
-  process environment and restart the dedicated account API with the
-  updated deployment wrapper (or `server.mjs`); both pass the configured
-  PostgreSQL `store` and validate schema version 3 at startup.
-  Until provisioned, the running service deliberately answers
-  `503 {"error":"cloud_not_configured"}` for private Cloud routes.
-- Route `/api/v1/cloud/` from `caster.genyleap.com` to the local
-  Genycaster account API, use HTTPS, request body size limits and no
-  cross-origin credential forwarding; reload Nginx only after `nginx -t`.
-- Exercise two different OpenProof identities, logout/expiry, a second
-  device, concurrent edits (409), bookmark retry/del/delete, backup/restore
-  before enabling default synchronization.
+There are **no explicit sync controls** or sync account-enrollment gates in
+the UI. Existing Farcaster/OpenProof authentication is reused.
+
+## API
+
+`GET /api/v1/cloud/app_updates` — public published changelogs.
+
+`GET|PUT /api/v1/cloud/{connections,bookmarks,notifications,drafts,tasks,profile_extras}`
+— private verified account data; request bodies are bounded and validated.
+
+`POST /api/v1/cloud/connections/refresh` — refresh provider metadata only
+from authenticated OpenProof, never user-provided claims.
+
+Profile extras use revision 0 for create, expected revision for updates;
+conflicts return HTTP 409. Bookmarks accept an optional UUID
+`mutation_id` and expose a cursor-driven change log. Drafts, notifications
+and tasks have guarded APIs, **but full automatic native-client reconciliation
+for those three domains is not yet wired up**. No background scheduled
+publishing, GENY attestation, public user-profile reader or Streak service
+should be claimed.
+
+## Testing and operational checks
+
+```bash
+node --test services/account-sync/test/*.test.mjs
+curl -i https://caster.genyleap.com/api/v1/cloud/app_updates
+curl -i https://caster.genyleap.com/api/v1/cloud/profile_extras
+```
+
+Expected anonymous responses are `200` JSON and `401` JSON respectively.
+Full cross-device acceptance requires two real authenticated sessions:
+save/un-save on device A, confirm device B receives the change, then repeat
+for profile links and LinkedIn; test offline replay, logout/account switch,
+concurrent edits, and database backup/restore.
+
+No actual private user token should appear in logs or be pasted into tickets.

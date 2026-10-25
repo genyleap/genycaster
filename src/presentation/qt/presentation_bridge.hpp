@@ -168,8 +168,10 @@ public:
     [[nodiscard]] QVariantMap detail() const;
     [[nodiscard]] QStringList bookmarkedCastIds() const;
     [[nodiscard]] QVariantList bookmarkedCasts() const;
-    /** @brief Bookmarks are a device-local, authenticated account-scoped reading list. */
+    /** Local-first reading list; owner-scoped mutations are replicated by the
+     * Genycaster service (not by the Farcaster protocol). */
     Q_INVOKABLE void toggleBookmark(const QVariantMap& cast);
+    void applyCloudBookmarkChanges(const QVariantList& changes);
     [[nodiscard]] QVariantList searchResults() const;
     [[nodiscard]] bool searchBusy() const noexcept;
     [[nodiscard]] QString searchErrorText() const;
@@ -435,6 +437,7 @@ signals:
     void searchChanged();
     void notificationsChanged();
     void bookmarksChanged();
+    void bookmarkMutated(const QString& castId, bool isDeleted);
     void followingStoriesChanged();
     void readPreferencesChanged();
     /** @brief Emitted only when OS/network reachability knowledge or online state changes. */

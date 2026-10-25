@@ -1044,6 +1044,7 @@ void PresentationBridge::toggleBookmark(const QVariantMap& cast)
                 m_settings->sync();
             }
             emit bookmarksChanged();
+            emit bookmarkMutated(id, true);
             return;
         }
     }
@@ -1064,6 +1065,50 @@ void PresentationBridge::toggleBookmark(const QVariantMap& cast)
             m_bookmarkedCasts);
         m_settings->sync();
     }
+    emit bookmarksChanged();
+    emit bookmarkMutated(id, false);
+}
+
+void PresentationBridge::applyCloudBookmarkChanges(const QVariantList& changes)
+{
+    if (!m_isAuthenticated || m_accountFid == 0) return;
+    bool modified = false;
+    for (const auto& value : changes) {
+        const QVariantMap change = value.toMap();
+        const QString id = canonicalProtocolCastId(change.value(QStringLiteral("cast_hash")).toString());
+        if (id.isEmpty()) continue;
+        qsizetype match = -1;
+        for (qsizetype i = 0; i < m_bookmarkedCasts.size(); ++i) {
+            if (canonicalProtocolCastId(m_bookmarkedCasts.at(i).toMap()
+                    .value(QStringLiteral("castId")).toString()) == id) {
+                match = i;
+                break;
+            }
+        }
+        if (change.value(QStringLiteral("is_deleted")).toBool()) {
+            if (match >= 0) {
+                m_bookmarkedCasts.removeAt(match);
+                modified = true;
+            }
+        } else if (match < 0) {
+            // Farcaster does not provide a bookmark protocol or full post
+            // payload. The remote hash is a navigable reference; existing
+            // local previews are preserved if already available.
+            m_bookmarkedCasts.prepend(QVariantMap{
+                {QStringLiteral("castId"), id},
+                {QStringLiteral("text"), QString{}}
+            });
+            modified = true;
+        }
+    }
+    if (!modified) return;
+    if (m_bookmarkedCasts.size() > 200) m_bookmarkedCasts = m_bookmarkedCasts.mid(0, 200);
+    if (m_settings) {
+        m_settings->setValue(QStringLiteral("bookmarks/account_%1").arg(m_accountFid),
+                             m_bookmarkedCasts);
+        m_settings->sync();
+    }
+    // Remote replays must never enqueue their own mutations.
     emit bookmarksChanged();
 }
 QVariantList PresentationBridge::searchResults() const { return m_searchResults; }
