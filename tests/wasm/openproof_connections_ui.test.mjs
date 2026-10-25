@@ -10,6 +10,25 @@ const controller = read('../../ui/mobile/openproof_connections_controller.cpp');
 const migration = read('../../services/account-sync/migrations/001_bookmarks.sql');
 const config = JSON.parse(read('../../ui/config/public_endpoints.json'));
 
+test('profile links, profession and holder trust remain separately scoped and disclosed', () => {
+  assert.match(qml,/category: "genycaster-profile-extras"/);
+  assert.match(qml,/profileExtrasOwnerKey: root.isOwnProfile/);
+  assert.match(qml,/function saveExtraDetails\(profession, rawLinks\)/);
+  assert.match(qml,/profileExtrasSettings.entriesJson = JSON.stringify\(entries\)/);
+  assert.match(qml,/one HTTPS URL per line/);
+  assert.match(qml,/root.profileExtraLinks.slice\(0, 2\)/);
+  assert.match(qml,/root.profileLinksExpanded \? qsTr\("Show less"\) : qsTr\("Read more"\)/);
+  assert.match(qml,/Saved on this device only/);
+  assert.match(qml,/property bool genyHolderAttested: false/);
+  assert.match(qml,/visible: root.genyHolderAttested/);
+  assert.match(qml,/id: genyHolderBadge/);
+  assert.doesNotMatch(qml,/genyHolderAttested:\s*root\.activeDetail/);
+  assert.match(qml,/objectName: "profileProfessionalCategory"/);
+  assert.match(qml,/objectName: "profileFollowingCount"/);
+  assert.match(qml,/objectName: "profileFollowersCount"/);
+  assert.match(qml,/text: qsTr\("Followers"\)[\s\S]*?color: followersCountButton\.hovered \? Theme\.ink : Theme\.inkMuted/);
+});
+
 test('owner profile anchors linked networks to the right with blue or green proof checks', () => {
   const start = qml.indexOf('id: ownerSocialBadgeStrip');
   const end = qml.indexOf('RichText {', start);

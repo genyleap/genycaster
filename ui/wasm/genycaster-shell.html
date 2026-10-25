@@ -191,10 +191,6 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
 // not after a flash of the loading UI. Never read account or protocol data.
 (function () {
     try {
-        const current=window.__genycasterAssets?.version || "";
-        const seen=localStorage.getItem("genycaster.boot.loaded.v1")==="1";
-        const previous=localStorage.getItem("genycaster.boot.version.v1") || "";
-        if (seen && !(current && previous && current!==previous)) return;
         const intro=document.getElementById("genycaster-studio-intro");
         const boot=document.getElementById("genycaster-boot");
         if (!intro || !boot) return;

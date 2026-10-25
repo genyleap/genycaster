@@ -29,8 +29,10 @@ let finished=false, failed=false;
 let qtRuntimeLoaded=false, qmlRootReady=false;
 const studioIntro=$("genycaster-studio-intro");
 let studioComplete=true;
-// Eight seconds total: two unhurried, readable, four-second white-text credits.
+// Every refresh shows the credits, even when binary data is already cached.
+// The ecosystem logos have extra time to be read and recognized.
 const studioSceneMs=4000;
+const studioPartnersMs=6500;
 const bootStarted=performance.now();
 let wasmResourceUrl;
 let wasmResourceObserver=null;
@@ -81,10 +83,10 @@ try{
 const updating=seen && !!currentVersion && !!previousVersion && previousVersion!==currentVersion;
 const installing=!seen || updating;
 bootPhase=installing?"download":"initialize";
-// Studio credits are not progress simulation. They begin before heavy scripts
-// load, stay readable for four seconds each, and cannot vanish when Qt happens
-// to finish early. A warm start never waits for studio credits.
-if (studioIntro && boot && installing) {
+// Studio credits are not progress simulation: run on EVERY document load,
+// including ordinary refreshes with cached WASM. Actual progress remains
+// independently measured; Qt readiness cannot cut the credits short.
+if (studioIntro && boot) {
     const earlyStart=Number(window.__genycasterIntroStartedAt);
     const startedAt=Number.isFinite(earlyStart) && earlyStart>0
         ? earlyStart : performance.now();
@@ -103,7 +105,7 @@ if (studioIntro && boot && installing) {
         studioIntro.hidden=true;
         boot.dataset.intro='off';
         if(qtRuntimeLoaded && qmlRootReady) revealReady();
-    },Math.max(0,studioSceneMs*2-elapsed));
+    },Math.max(0,studioSceneMs+studioPartnersMs-elapsed));
 }
 if(boot?.dataset){
     boot.dataset.mode=installing?"install":"warm";

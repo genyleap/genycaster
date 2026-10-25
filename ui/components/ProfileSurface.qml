@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Shapes
+import QtCore
 
 Item {
     id: root
@@ -29,6 +30,65 @@ Item {
     property bool interactionsAvailable: false
     property double accountFid: 0
     property string accountIssuer: ""
+    // GENY holder status is *never* derived from a user-editable bio, display
+    // name, URL or arbitrary Farcaster metadata. A future attestation service
+    // may bind this property after verifying the actual wallet and holdings.
+    property bool genyHolderAttested: false
+    property bool profileLinksExpanded: false
+    property string profileExtrasError: ""
+
+    Settings {
+        id: profileExtrasSettings
+        category: "genycaster-profile-extras"
+        property string entriesJson: "{}"
+    }
+    readonly property string profileExtrasOwnerKey: root.isOwnProfile
+        ? String(root.accountIssuer || "local") + ":" + String(root.accountFid) : ""
+    readonly property var profileExtras: {
+        if (!root.profileExtrasOwnerKey) return ({})
+        try {
+            const rows = JSON.parse(profileExtrasSettings.entriesJson || "{}")
+            return rows[root.profileExtrasOwnerKey] || ({})
+        } catch (_) { return ({}) }
+    }
+    readonly property string profileProfession: {
+        const fromSource = String(root.activeDetail.profession || root.activeDetail.category || "")
+        return (root.isOwnProfile && root.profileExtras.profession)
+            ? String(root.profileExtras.profession) : fromSource.slice(0, 80)
+    }
+    readonly property var profileExtraLinks: {
+        return root.isOwnProfile && Array.isArray(root.profileExtras.links)
+            ? root.profileExtras.links.filter(s=>typeof s === "string" && root.validExtraUrl(s)).slice(0, 5)
+            : []
+    }
+    function validExtraUrl(text) {
+        return text.length <= 512
+            && /^https:\/\/(?![^/]*@)[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?:\:[0-9]{2,5})?(?:[\/?#][^\s]*)?$/.test(text)
+    }
+    function saveExtraDetails(profession, rawLinks) {
+        if (!root.isOwnProfile || !root.profileExtrasOwnerKey) return false
+        const role = String(profession || "").trim()
+        if (role.length > 80) {
+            root.profileExtrasError = qsTr("Profession must be 80 characters or fewer.")
+            return false
+        }
+        const lines = String(rawLinks || "").split(/[\r\n]+/).map(s=>s.trim()).filter(s=>s.length>0)
+        if (lines.length > 5 || lines.some(s=>!root.validExtraUrl(s))) {
+            root.profileExtrasError = qsTr("Use up to five HTTPS links, one URL per line.")
+            return false
+        }
+        try {
+            const entries = JSON.parse(profileExtrasSettings.entriesJson || "{}")
+            entries[root.profileExtrasOwnerKey] = {profession: role, links: lines.filter((link,index)=>lines.indexOf(link)===index)}
+            profileExtrasSettings.entriesJson = JSON.stringify(entries)
+            root.profileExtrasError = ""
+            root.profileLinksExpanded = false
+            return true
+        } catch (_) {
+            root.profileExtrasError = qsTr("Could not save local profile details.")
+            return false
+        }
+    }
     property bool loadMorePending: false
     property double positionedProfileFid: 0
     property string viewportAnchorKey: ""
@@ -1004,113 +1064,17 @@ Item {
                         ], 0)
                     }
 
-                    ActionButton {
-                        x: root.profileContentRtl ? root.profileContentX : root.profileContentX + root.profileContentWidth - width
-                        anchors.top: parent.top
-                        anchors.topMargin: Theme.space2
-                        visible: Boolean(root.activeDetail.followingKnown)
-                                 && Number(root.activeDetail.fid || 0) > 0
-                                 && !root.isOwnProfile
-                        compact: true
-                        iconGlyph: Boolean(root.activeDetail.followingByMe) ? Theme.iconCheck : ""
-                        text: Boolean(root.activeDetail.followingByMe) ? qsTrId("genycaster.profile.followed") : qsTrId("genycaster.profile.follow")
-                        selected: Boolean(root.activeDetail.followingByMe)
-                        prominent: !Boolean(root.activeDetail.followingByMe)
-                        Accessible.description: Boolean(root.activeDetail.followingByMe)
-                                                ? qsTrId("genycaster.profile.unfollow") : text
-                        onClicked: {
-                            if (!root.interactionsAvailable) {
-                                root.authenticationRequested()
-                                return
-                            }
-                            root.followingMutationRequested(
-                                Number(root.activeDetail.fid), !Boolean(root.activeDetail.followingByMe))
-                        }
-                    }
-                }
-
-                ColumnLayout {
-                    width: root.profileContentWidth
-                    x: root.profileContentX
-                    spacing: Theme.space1
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.space2
-                        layoutDirection: Theme.uiDirection
-
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                            text: root.activeDetail.displayName || (root.showUsername ? root.activeDetail.username : "")
-                                  || qsTrId("genycaster.profile.farcaster_profile")
-                            color: Theme.ink
-                            font.pixelSize: root.compact ? Theme.typeTitle2Size : Theme.typeTitle1Size
-                            font.weight: Theme.weightBold
-                            horizontalAlignment: Theme.textStartAlignment
-                            wrapMode: Text.Wrap
-                        }
-
-                        Item {
-                            id: followsYouBadge
-                            visible: Boolean(root.activeDetail.followsMeKnown) && Boolean(root.activeDetail.followsMe)
-                                     && !root.isOwnProfile
-                            implicitWidth: followsYouText.implicitWidth + Theme.space3
-                            implicitHeight: Math.max(24, followsYouText.implicitHeight + Theme.space1)
-
-                            Superellipse {
-                                anchors.fill: parent
-                                fillColor: Theme.surfaceRaised
-                                borderWidth: 1
-                                borderColor: Theme.borderStrong
-                                curveDepth: Math.round(height / 2)
-                            }
-
-                            Label {
-                                id: followsYouText
-                                anchors.centerIn: parent
-                                text: qsTrId("genycaster.profile.follows_you")
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                                font.weight: Theme.weightDemiBold
-                            }
-                        }
-
-                        Item { Layout.fillWidth: true }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.space1
-                        layoutDirection: Theme.uiDirection
-
-                        Label {
-                            visible: root.showUsername
-                            Layout.maximumWidth: Math.max(160, parent.width * 0.72)
-                            LayoutMirroring.enabled: false
-                            text: root.ltrHandle(root.activeDetail.username)
-                            font.family: Theme.latinFontFamily
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeMetaSize
-                            horizontalAlignment: Theme.textStartAlignment
-                            elide: Text.ElideRight
-                        }
-
-
-                        Item { Layout.fillWidth: true }
-                    }
-
                     RowLayout {
                         id: ownerSocialBadgeStrip
                         objectName: "ownerVerifiedSocialBadgeStrip"
-                        Layout.fillWidth: true
-                        visible: root.isOwnProfile
-                        spacing: Theme.space2
+                        width: Math.min(implicitWidth, Math.max(0, root.profileContentWidth - root.profileAvatarSize - Theme.space4))
+                        x: root.profileContentX + root.profileContentWidth - width
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: root.isOwnProfile && !root.compact
+                        spacing: Theme.space1
                         // Keep the social proof group at the physical right edge
                         // on desktop. On phones hide the verbose heading to fit.
                         layoutDirection: Qt.LeftToRight
-
-                        Item { Layout.fillWidth: true }
 
                         Label {
                             visible: !root.compact
@@ -1214,6 +1178,215 @@ Item {
                         }
                     }
 
+                    ActionButton {
+                        x: root.profileContentRtl ? root.profileContentX : root.profileContentX + root.profileContentWidth - width
+                        anchors.top: parent.top
+                        anchors.topMargin: Theme.space2
+                        visible: Boolean(root.activeDetail.followingKnown)
+                                 && Number(root.activeDetail.fid || 0) > 0
+                                 && !root.isOwnProfile
+                        compact: true
+                        iconGlyph: Boolean(root.activeDetail.followingByMe) ? Theme.iconCheck : ""
+                        text: Boolean(root.activeDetail.followingByMe) ? qsTrId("genycaster.profile.followed") : qsTrId("genycaster.profile.follow")
+                        selected: Boolean(root.activeDetail.followingByMe)
+                        prominent: !Boolean(root.activeDetail.followingByMe)
+                        Accessible.description: Boolean(root.activeDetail.followingByMe)
+                                                ? qsTrId("genycaster.profile.unfollow") : text
+                        onClicked: {
+                            if (!root.interactionsAvailable) {
+                                root.authenticationRequested()
+                                return
+                            }
+                            root.followingMutationRequested(
+                                Number(root.activeDetail.fid), !Boolean(root.activeDetail.followingByMe))
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    width: root.profileContentWidth
+                    x: root.profileContentX
+                    spacing: Theme.space1
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+                        layoutDirection: Theme.uiDirection
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            text: root.activeDetail.displayName || (root.showUsername ? root.activeDetail.username : "")
+                                  || qsTrId("genycaster.profile.farcaster_profile")
+                            color: Theme.ink
+                            font.pixelSize: root.compact ? Theme.typeTitle2Size : Theme.typeTitle1Size
+                            font.weight: Theme.weightBold
+                            horizontalAlignment: Theme.textStartAlignment
+                            wrapMode: Text.Wrap
+                        }
+
+                        // Reserved for a future server-signed, wallet-bound GENY
+                        // holding attestation. Never display from editable metadata.
+                        Rectangle {
+                            id: genyHolderBadge
+                            objectName: "verifiedGenyHolderBadge"
+                            visible: root.genyHolderAttested
+                            implicitWidth: holderBadgeContent.implicitWidth + Theme.space3
+                            implicitHeight: Math.max(25, holderBadgeContent.implicitHeight + Theme.space1)
+                            radius: implicitHeight / 2
+                            color: Theme.dark ? "#342812" : "#FFF6DE"
+                            border.color: "#D6A435"
+                            border.width: 1
+                            Row {
+                                id: holderBadgeContent
+                                anchors.centerIn: parent
+                                spacing: Theme.space1
+                                Icon {
+                                    text: Theme.iconCheck
+                                    color: Theme.dark ? "#F5CD66" : "#956A0B"
+                                    preferredSize: Theme.typeCaptionSize
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Label {
+                                    text: qsTr("GENY")
+                                    color: Theme.dark ? "#F5CD66" : "#956A0B"
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: Theme.weightBold
+                                }
+                            }
+                            ToolTip.visible: genyHolderBadgeHover.hovered
+                            ToolTip.text: qsTr("Verified GENY holder")
+                            HoverHandler { id: genyHolderBadgeHover }
+                        }
+
+                        Item {
+                            id: followsYouBadge
+                            visible: Boolean(root.activeDetail.followsMeKnown) && Boolean(root.activeDetail.followsMe)
+                                     && !root.isOwnProfile
+                            implicitWidth: followsYouText.implicitWidth + Theme.space3
+                            implicitHeight: Math.max(24, followsYouText.implicitHeight + Theme.space1)
+
+                            Superellipse {
+                                anchors.fill: parent
+                                fillColor: Theme.surfaceRaised
+                                borderWidth: 1
+                                borderColor: Theme.borderStrong
+                                curveDepth: Math.round(height / 2)
+                            }
+
+                            Label {
+                                id: followsYouText
+                                anchors.centerIn: parent
+                                text: qsTrId("genycaster.profile.follows_you")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: Theme.weightDemiBold
+                            }
+                        }
+
+                        Item { Layout.fillWidth: true }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space1
+                        layoutDirection: Theme.uiDirection
+
+                        Label {
+                            visible: root.showUsername
+                            Layout.maximumWidth: Math.max(160, parent.width * 0.72)
+                            LayoutMirroring.enabled: false
+                            text: root.ltrHandle(root.activeDetail.username)
+                            font.family: Theme.latinFontFamily
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeMetaSize
+                            horizontalAlignment: Theme.textStartAlignment
+                            elide: Text.ElideRight
+                        }
+
+
+                        Item { Layout.fillWidth: true }
+                    }
+
+                    RowLayout {
+                        objectName: "compactVerifiedSocialBadges"
+                        Layout.fillWidth: true
+                        visible: root.isOwnProfile && root.compact
+                        layoutDirection: Qt.LeftToRight
+                        spacing: Theme.space1
+                        Item { Layout.fillWidth: true }
+                        Repeater {
+                            model: root.ownerSocialLinks
+                            delegate: Button {
+                                id: compactSocialBadge
+                                required property var modelData
+                                Layout.preferredWidth: Theme.scaleUi(31)
+                                Layout.preferredHeight: Theme.scaleUi(31)
+                                display: AbstractButton.IconOnly
+                                icon.source: root.socialIcon(String(modelData.provider))
+                                icon.width: Theme.scaleUi(19)
+                                icon.height: Theme.scaleUi(19)
+                                background: Rectangle {
+                                    radius: Theme.curveCompact
+                                    color: Theme.surface
+                                    border.color: Theme.borderMuted
+                                    border.width: 1
+                                }
+                                Rectangle {
+                                    anchors.right: parent.right
+                                    anchors.bottom: parent.bottom
+                                    width: Theme.scaleUi(11)
+                                    height: width
+                                    radius: width/2
+                                    color: openProofConnections.authorized ? Theme.success : Theme.accent
+                                    border.color: Theme.surface
+                                    border.width: 1
+                                    Icon {
+                                        anchors.centerIn: parent
+                                        text: Theme.iconCheck
+                                        color: Theme.contrastInk(parent.color)
+                                        preferredSize: 8
+                                    }
+                                }
+                                Accessible.name: String(modelData.label || modelData.provider)
+                                onClicked: {
+                                    if (modelData.href) root.externalRequested(String(modelData.href))
+                                    else if (modelData.searchHref) root.externalRequested(String(modelData.searchHref))
+                                    else root.openConnections()
+                                }
+                            }
+                        }
+                        ActionButton {
+                            compact: true
+                            quiet: true
+                            text: qsTr("Manage")
+                            onClicked: root.openConnections()
+                        }
+                    }
+
+                    RowLayout {
+                        objectName: "profileProfessionalCategory"
+                        Layout.fillWidth: true
+                        visible: root.profileProfession.length > 0 || root.isOwnProfile
+                        spacing: Theme.space2
+                        DirectionAwareLabel {
+                            visible: root.profileProfession.length > 0
+                            text: root.profileProfession
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            font.weight: Theme.weightMedium
+                        }
+                        Item { Layout.fillWidth: true }
+                        ActionButton {
+                            visible: root.isOwnProfile
+                            compact: true
+                            quiet: true
+                            text: qsTr("Edit details")
+                            Accessible.description: qsTr("Edit profession and personal links stored on this device")
+                            onClicked: profileExtrasEditor.open()
+                        }
+                    }
+
                     RichText {
                         visible: root.normalizedBio.length > 0
                         Layout.fillWidth: true
@@ -1283,6 +1456,51 @@ Item {
                         }
                     }
 
+                    ColumnLayout {
+                        objectName: "ownerPersonalLinks"
+                        Layout.fillWidth: true
+                        visible: root.isOwnProfile && root.profileExtraLinks.length > 0
+                        spacing: Theme.space1
+
+                        Repeater {
+                            model: root.profileLinksExpanded ? root.profileExtraLinks
+                                  : root.profileExtraLinks.slice(0, 2)
+                            delegate: Button {
+                                id: personalLinkButton
+                                required property var modelData
+                                Layout.alignment: Qt.AlignLeft
+                                flat: true
+                                hoverEnabled: true
+                                padding: Theme.space1
+                                background: Item {}
+                                contentItem: Row {
+                                    spacing: Theme.space2
+                                    Icon {
+                                        text: Theme.iconLink
+                                        color: Theme.accent
+                                        preferredSize: Theme.typeCaptionSize
+                                    }
+                                    Label {
+                                        text: root.displayUrl(personalLinkButton.modelData)
+                                        color: Theme.accent
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        elide: Text.ElideRight
+                                    }
+                                }
+                                Accessible.role: Accessible.Link
+                                Accessible.name: String(modelData)
+                                onClicked: root.externalRequested(String(modelData))
+                            }
+                        }
+                        ActionButton {
+                            visible: root.profileExtraLinks.length > 2
+                            compact: true
+                            quiet: true
+                            text: root.profileLinksExpanded ? qsTr("Show less") : qsTr("Read more")
+                            onClicked: root.profileLinksExpanded = !root.profileLinksExpanded
+                        }
+                    }
+
                     RowLayout {
                         // Unknown profile metadata must never be presented as
                         // verified zero followers/following on an empty header.
@@ -1291,20 +1509,56 @@ Item {
                         spacing: Theme.space1
                         layoutDirection: Theme.uiDirection
 
-                        ActionButton {
-                            compact: true
-                            quiet: true
-                            alignStart: true
-                            text: qsTrId("genycaster.profile.value_following").arg(root.compactCount(root.activeDetail.followingCount))
+                        Button {
+                            id: followingCountButton
+                            objectName: "profileFollowingCount"
+                            flat: true
+                            hoverEnabled: true
                             onClicked: root.followingRequested()
+                            Accessible.name: qsTrId("genycaster.profile.value_following")
+                                .arg(root.compactCount(root.activeDetail.followingCount))
+                            background: Item {}
+                            padding: Theme.space1
+                            contentItem: Row {
+                                spacing: Theme.space1
+                                Label {
+                                    text: root.compactCount(root.activeDetail.followingCount)
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeBodySize
+                                    font.weight: Theme.weightDemiBold
+                                }
+                                Label {
+                                    text: qsTr("Following")
+                                    color: followingCountButton.hovered ? Theme.ink : Theme.inkMuted
+                                    font.pixelSize: Theme.typeBodySize
+                                }
+                            }
                         }
 
-                        ActionButton {
-                            compact: true
-                            quiet: true
-                            alignStart: true
-                            text: qsTrId("genycaster.profile.value_followers").arg(root.compactCount(root.activeDetail.followerCount))
+                        Button {
+                            id: followersCountButton
+                            objectName: "profileFollowersCount"
+                            flat: true
+                            hoverEnabled: true
                             onClicked: root.followersRequested()
+                            Accessible.name: qsTrId("genycaster.profile.value_followers")
+                                .arg(root.compactCount(root.activeDetail.followerCount))
+                            background: Item {}
+                            padding: Theme.space1
+                            contentItem: Row {
+                                spacing: Theme.space1
+                                Label {
+                                    text: root.compactCount(root.activeDetail.followerCount)
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeBodySize
+                                    font.weight: Theme.weightDemiBold
+                                }
+                                Label {
+                                    text: qsTr("Followers")
+                                    color: followersCountButton.hovered ? Theme.ink : Theme.inkMuted
+                                    font.pixelSize: Theme.typeBodySize
+                                }
+                            }
                         }
 
                         Item { Layout.fillWidth: true }
@@ -1548,6 +1802,111 @@ Item {
         }
     }
 
+    Popup {
+        id: profileExtrasEditor
+        objectName: "profileExtrasEditor"
+        parent: Overlay.overlay
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        width: Math.min(460, parent ? parent.width - Theme.space4 * 2 : 460)
+        x: parent ? Math.round((parent.width - width) / 2) : 0
+        y: parent ? Math.round((parent.height - height) / 2) : 0
+        padding: Theme.space4
+        onOpened: {
+            professionEditor.text = String(root.profileExtras.profession || "")
+            linksEditor.text = Array.isArray(root.profileExtras.links)
+                ? root.profileExtras.links.join("\n") : ""
+            root.profileExtrasError = ""
+        }
+        background: Rectangle {
+            color: Theme.surfaceElevated
+            radius: Theme.curveModal
+            border.color: Theme.borderStrong
+            border.width: 1
+        }
+        contentItem: ColumnLayout {
+            spacing: Theme.space3
+            Label {
+                text: qsTr("Profile details")
+                font.pixelSize: Theme.typeTitle3Size
+                font.weight: Theme.weightDemiBold
+                color: Theme.ink
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTr("Profession or business category")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+            }
+            TextField {
+                id: professionEditor
+                Layout.fillWidth: true
+                maximumLength: 80
+                placeholderText: qsTr("Designer, developer, artist…")
+                color: Theme.ink
+                background: Rectangle {
+                    color: Theme.surface
+                    radius: Theme.curveCompact
+                    border.color: professionEditor.activeFocus ? Theme.focus : Theme.borderMuted
+                }
+            }
+            DirectionAwareLabel {
+                text: qsTr("Personal or company links (one HTTPS URL per line, up to five)")
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                font.pixelSize: Theme.typeCaptionSize
+                color: Theme.inkMuted
+            }
+            TextArea {
+                id: linksEditor
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.scaleUi(126)
+                wrapMode: TextEdit.NoWrap
+                placeholderText: "https://example.com\nhttps://another.example"
+                color: Theme.ink
+                background: Rectangle {
+                    color: Theme.surface
+                    radius: Theme.curveCompact
+                    border.color: linksEditor.activeFocus ? Theme.focus : Theme.borderMuted
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTr("Saved on this device only. Cloud sync and public sharing will be enabled with Genycaster accounts.")
+                color: Theme.inkMuted
+                wrapMode: Text.Wrap
+                font.pixelSize: Theme.typeCaptionSize
+            }
+            DirectionAwareLabel {
+                visible: root.profileExtrasError.length > 0
+                Layout.fillWidth: true
+                color: Theme.negative
+                text: root.profileExtrasError
+                wrapMode: Text.Wrap
+                font.pixelSize: Theme.typeCaptionSize
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Item { Layout.fillWidth: true }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    text: qsTr("Cancel")
+                    onClicked: profileExtrasEditor.close()
+                }
+                ActionButton {
+                    compact: true
+                    text: qsTr("Save")
+                    onClicked: {
+                        if (root.saveExtraDetails(professionEditor.text, linksEditor.text))
+                            profileExtrasEditor.close()
+                    }
+                }
+            }
+        }
+    }
+
     AccountConnectionsPopup {
         id: accountConnectionsPopup
         // The drawer must cover the whole application viewport, not only
@@ -1581,8 +1940,11 @@ Item {
     }
 
     onIsOwnProfileChanged: {
-        if (!root.isOwnProfile)
+        root.profileLinksExpanded = false
+        if (!root.isOwnProfile) {
             accountConnectionsPopup.close()
+            profileExtrasEditor.close()
+        }
     }
     PullToRefresh {
         flickable: profileList

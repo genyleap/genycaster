@@ -25,7 +25,8 @@ test('Plain, readable studio credits precede actual WASM progress without decora
   assert.ok(!intro.includes('Blockchain'));
   assert.match(html,/#genycaster-studio-intro\{[^}]*background:#0b0c0f/);
   assert.match(js,/const studioSceneMs=4000/);
-  assert.match(js,/studioSceneMs\*2-elapsed/);
+  assert.match(js,/const studioPartnersMs=6500/);
+  assert.match(js,/studioSceneMs\+studioPartnersMs-elapsed/);
   assert.match(js,/!studioComplete\)return/);
   assert.match(js,/Updating Software…/);
   assert.match(js,/Initializing Qt and WebAssembly/);
@@ -33,6 +34,8 @@ test('Plain, readable studio credits precede actual WASM progress without decora
   assert.match(html,/__genycasterIntroStartedAt=performance.now\(\)/);
   assert.ok(html.indexOf('src="genycaster-assets.js"')<html.indexOf('src="qtloader.js"'));
   assert.doesNotMatch(source('ui/wasm/genycaster-boot-icon.svg'),/fill="#101010"/);
+  assert.match(source('ui/wasm/genycaster-boot-icon.svg'),/fill="#989898"/);
+  assert.doesNotMatch(html,/if \(seen && !\(current && previous && current!==previous\)\) return/);
 });
 test('Cloud schema isolates all intended owner features, not speculative leaderboards',()=>{
   const first=source('services/account-sync/migrations/001_bookmarks.sql');

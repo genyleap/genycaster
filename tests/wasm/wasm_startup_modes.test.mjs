@@ -121,7 +121,7 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     };
 }
 
-test("two plain studio credits remain readable for four seconds each even when Qt loads early",()=>{
+test("studio credits remain readable: four seconds for Genyleap and six and a half for ecosystem",()=>{
     const h=host({studioTimed:true});
     const intro=h.nodes.get("genycaster-studio-intro");
     assert.equal(intro.hidden,false);
@@ -134,7 +134,7 @@ test("two plain studio credits remain readable for four seconds each even when Q
     assert.equal(intro.hidden,false);
     h.advance(1);
     assert.equal(intro.dataset.scene,"partners");
-    h.advance(3999);
+    h.advance(6499);
     assert.equal(intro.hidden,false);
     assert.notEqual(h.phase(),"ready");
     h.advance(1);
@@ -142,12 +142,17 @@ test("two plain studio credits remain readable for four seconds each even when Q
     assert.equal(h.phase(),"ready","real Qt readiness is now revealed");
     assert.equal(h.storage.get("genycaster.boot.loaded.v1"),"1");
 });
-test("warm boot never waits through studio credits",()=>{
+test("every refresh presents the studio credits, even after WASM is cached",()=>{
     const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa",studioTimed:true});
     const intro=h.nodes.get("genycaster-studio-intro");
-    assert.equal(intro.hidden,true);
+    assert.equal(intro.hidden,false);
     h.config.qt.onLoaded();
     h.qmlReady();
+    assert.notEqual(h.phase(),"ready");
+    h.advance(4000);
+    assert.equal(intro.dataset.scene,"partners");
+    h.advance(6500);
+    assert.equal(intro.hidden,true);
     assert.equal(h.phase(),"ready");
 });
 
