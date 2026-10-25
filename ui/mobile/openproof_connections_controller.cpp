@@ -17,15 +17,29 @@
 #if defined(__EMSCRIPTEN__)
 #include <emscripten/emscripten.h>
 
-// Only a disposable browser window handle is kept here: never credentials,
-// token material, or an identity assertion. The actual connection is verified
-// by the same native controller over its authenticated OpenProof gateway.
-EM_JS(int, openGenycasterConnectionWindow, (const char* target), {
+// Opening the popup must happen in the original user-click stack: opening
+// after the asynchronous OpenProof handoff would be blocked in many browsers.
+// Neither tokens nor account claims enter JavaScript; only an opaque handoff
+// destination is passed after the backend creates its one-use ticket.
+EM_JS(int, prepareGenycasterConnectionWindow, (), {
     try {
+        const previous = window.__genycasterConnectionApproval;
+        if (previous && !previous.closed) previous.close();
         const page = window.open('about:blank', '_blank', 'width=540,height=700');
         if (!page) return 0;
         page.opener = null;
+        page.document.title = 'Genycaster - Connecting account';
+        page.document.body.textContent = 'Connecting your account securely…';
         window.__genycasterConnectionApproval = page;
+        return 1;
+    } catch (_) {
+        return 0;
+    }
+});
+EM_JS(int, navigateGenycasterConnectionWindow, (const char* target), {
+    try {
+        const page = window.__genycasterConnectionApproval;
+        if (!page || page.closed) return 0;
         page.location.replace(UTF8ToString(target));
         return 1;
     } catch (_) {
@@ -111,9 +125,9 @@ QString OpenProofConnectionsController::error() const { return m_error; }
 bool OpenProofConnectionsController::authorized() const noexcept { return m_verified; }
 bool OpenProofConnectionsController::authorizing() const noexcept { return m_authorizing; }
 QString OpenProofConnectionsController::approvalUrl() const { return m_approvalUrl; }
-QString OpenProofConnectionsController::consentUrl() const { return m_consentUrl; }
 QVariantList OpenProofConnectionsController::connections() const { return m_connections; }
 bool OpenProofConnectionsController::actionBusy() const noexcept { return m_actionBusy; }
+QString OpenProofConnectionsController::pendingProvider() const { return m_pendingProvider; }
 QString OpenProofConnectionsController::recoveryGatewayOrigin() const
 {
     if (!trustedHttpsEndpoint(m_gatewayUrl)) return {};
@@ -207,7 +221,6 @@ void OpenProofConnectionsController::clearAccountGrant()
     m_verified = false;
     m_actionBusy = false;
     m_pendingProvider.clear();
-    m_consentUrl.clear();
     m_remainingPolls = 0;
 }
 
@@ -453,10 +466,14 @@ bool OpenProofConnectionsController::isConnected(
 
 void OpenProofConnectionsController::finishAction(QString error)
 {
+#if defined(__EMSCRIPTEN__)
+    // The result is established by the authenticated connections response,
+    // not by any redirect or an untrusted message from the popup.
+    closeGenycasterConnectionWindow();
+#endif
     m_actionBusy = false;
     m_connectionPoll.stop();
     m_pendingProvider.clear();
-    m_consentUrl.clear();
     m_remainingPolls = 0;
     m_error = std::move(error);
     emit stateChanged();
@@ -475,7 +492,15 @@ void OpenProofConnectionsController::connectProvider(const QString& provider)
         emit stateChanged();
         return;
     }
+#if defined(__EMSCRIPTEN__)
+    if (prepareGenycasterConnectionWindow() == 0) {
+        m_error = QStringLiteral("The browser blocked secure account approval. Allow popups for Genycaster and retry.");
+        emit stateChanged();
+        return;
+    }
+#endif
     m_actionBusy = true;
+    m_pendingProvider = provider;
     m_error.clear();
     emit stateChanged();
     sendAccountRequest(gatewayActionUrl(QStringLiteral("/handoff")),
@@ -491,37 +516,24 @@ void OpenProofConnectionsController::connectProvider(const QString& provider)
                 finishAction(QStringLiteral("Could not create a secure OpenProof connection."));
                 return;
             }
-            // Opening the provider URL must be a direct user interaction in
-            // WASM, otherwise browser popup blockers can discard it.
-            m_pendingProvider = provider;
-            m_consentUrl = url.toString(QUrl::FullyEncoded);
+            // OAuth consent itself belongs to the identity provider; the
+            // Genycaster drawer owns initiation, polling and final status.
+            // The WASM window was created synchronously on the initial click.
+            bool opened = false;
+#if defined(__EMSCRIPTEN__)
+            const QByteArray destination = url.toString(QUrl::FullyEncoded).toUtf8();
+            opened = navigateGenycasterConnectionWindow(destination.constData()) != 0;
+#else
+            opened = QDesktopServices::openUrl(url);
+#endif
+            if (!opened) {
+                finishAction(QStringLiteral("Could not open the provider. Allow popups and retry."));
+                return;
+            }
             m_remainingPolls = 40;
+            m_connectionPoll.start();
             emit stateChanged();
         });
-}
-
-void OpenProofConnectionsController::openConsent()
-{
-    if (!m_verified || m_consentUrl.isEmpty() || !m_actionBusy
-        || m_pendingProvider.isEmpty()) return;
-    const QUrl url{m_consentUrl};
-    m_consentUrl.clear();
-    bool opened = false;
-#if defined(__EMSCRIPTEN__)
-    // A real user click reaches here synchronously from the QML drawer.
-    // Open a distinct trusted browser window (not a credential-reading
-    // embedded WebView); its handle lets us dismiss it after server proof.
-    const QByteArray destination = url.toString(QUrl::FullyEncoded).toUtf8();
-    opened = openGenycasterConnectionWindow(destination.constData()) != 0;
-#else
-    opened = QDesktopServices::openUrl(url);
-#endif
-    if (!opened) {
-        finishAction(QStringLiteral("Could not open secure provider approval. Allow popups and retry."));
-        return;
-    }
-    m_connectionPoll.start();
-    emit stateChanged();
 }
 
 void OpenProofConnectionsController::disconnectProvider(

@@ -84,6 +84,21 @@ export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now
   // Genycaster C++ adapter; no OpenProof cookie or account token reaches QML.
   const accountSessions = new Map();
   const accountLifetimeMs = 45 * 60_000;
+  function issueVerifiedAccountTicket(fid, subject, cookies) {
+    // Called only after OpenProof verified a signed proof, returned its
+    // canonical identity, and confirmed the sole linked Farcaster FID.
+    // The session cookie never leaves this server; the ticket is revocable
+    // by expiry and authorizes only the existing first-party account routes.
+    cleanup();
+    if (accountSessions.size >= maxAttempts)
+      throw resultError('auth_too_many_pending', 429);
+    const ticket = 'recovery.' + randomBytes(32).toString('base64url');
+    accountSessions.set(createHash('sha256').update(ticket).digest('hex'), {
+      fid: String(fid), subject, cookies: new Map(cookies),
+      expiresAt: now() + accountLifetimeMs,
+    });
+    return ticket;
+  }
   function cleanup() {
     for (const [key, attempt] of attempts) {
       if (now() >= attempt.expiresAt) attempts.delete(key);
@@ -213,14 +228,8 @@ export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now
           || fc.length!==1 || String(fc[0].fid)!==attempt.fid) {
         throw resultError('auth_verified_identity_mismatch',401);
       }
-      cleanup();
-      if (accountSessions.size >= maxAttempts)
-        throw resultError('auth_too_many_pending',429);
-      const accountTicket='recovery.'+randomBytes(32).toString('base64url');
-      accountSessions.set(createHash('sha256').update(accountTicket).digest('hex'),{
-        fid:attempt.fid,subject,cookies:new Map(attempt.cookies),
-        expiresAt:now()+accountLifetimeMs,
-      });
+      const accountTicket = issueVerifiedAccountTicket(
+        attempt.fid, subject, attempt.cookies);
       return {authenticated:true,issuer,subject,fid:attempt.fid,
         account_ticket:accountTicket,expires_in:Math.floor(accountLifetimeMs/1000)};
     } finally {
@@ -281,10 +290,14 @@ export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now
           farcaster.length !== 1 || String(farcaster[0].fid) !== String(proof.fid)) {
         throw resultError('auth_verified_identity_mismatch', 401);
       }
+      const accountTicket = issueVerifiedAccountTicket(
+        String(proof.fid), subject, attempt.cookies);
       return {
         authenticated: true,
         subject,
         fid: String(proof.fid),
+        account_ticket: accountTicket,
+        account_expires_in: Math.floor(accountLifetimeMs / 1000),
         username: String(farcaster[0].preferred_username || proof.username || '').slice(0, 128),
         display_name: String(farcaster[0].display_name || proof.displayName || '').slice(0, 256),
         avatar_url: String(farcaster[0].picture_url || proof.pfpUrl || '').slice(0, 2048),

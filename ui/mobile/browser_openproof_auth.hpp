@@ -41,7 +41,7 @@ public:
     ~BrowserOpenProofAuth() override;
 
     void begin(Observer observer, ConnectionGrant connectionGrant = {});
-    void beginFarcaster(Observer observer);
+    void beginFarcaster(Observer observer, ConnectionGrant connectionGrant = {});
     void cancel();
     void signOut();
 

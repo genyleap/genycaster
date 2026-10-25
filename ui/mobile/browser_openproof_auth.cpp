@@ -181,11 +181,12 @@ void BrowserOpenProofAuth::begin(Observer observer, ConnectionGrant connectionGr
     });
 }
 
-void BrowserOpenProofAuth::beginFarcaster(Observer observer)
+void BrowserOpenProofAuth::beginFarcaster(Observer observer, ConnectionGrant connectionGrant)
 {
     reset();
     m_directFarcaster = true;
     m_observer = std::move(observer);
+    m_connectionGrant = std::move(connectionGrant);
     emitState(BrowserOpenProofState{.phase = BrowserOpenProofState::Phase::Starting});
 
     auto request = QNetworkRequest{QUrl{QStringLiteral(
@@ -265,7 +266,17 @@ void BrowserOpenProofAuth::pollFarcaster()
         m_farcasterTicket.fill('\0');
         m_farcasterTicket.clear();
         m_sessionExpiryTimer.start(authenticated.tokenExpiresSeconds * 1000);
+        // The same OpenProof-verified Farcaster proof may also authorize a
+        // bounded account capability. Deliver it only to the C++ controller,
+        // after the canonical identity/FID have been enqueued for the UI.
         emitState(std::move(authenticated));
+        const QString grant = json.value(QStringLiteral("account_ticket")).toString();
+        const int grantSeconds = json.value(QStringLiteral("account_expires_in")).toInt();
+        if (m_connectionGrant && grant.startsWith(QStringLiteral("recovery."))
+            && grant.size() == 52 && grantSeconds >= 60 && grantSeconds <= 3600) {
+            m_connectionGrant(grant.toUtf8(), subject, fid, grantSeconds);
+        }
+        m_connectionGrant = {};
     });
 }
 

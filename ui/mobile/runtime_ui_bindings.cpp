@@ -2660,7 +2660,25 @@ void connectRuntime(
                     });
             } else if (route == QStringLiteral("farcaster")) {
                 browserSigner->cancelRecovery();
-                browserAuth->beginFarcaster(browserObserver);
+                browserAuth->beginFarcaster(browserObserver,
+                    [&bridge, &connections](QByteArray ticket, QString subject,
+                                           const std::uint64_t fid, const int expiresSeconds) {
+                        // Farcaster channel proof was verified by OpenProof,
+                        // including its sole linked FID. Queue the temporary
+                        // account capability after the canonical UI session.
+                        QMetaObject::invokeMethod(&bridge,
+                            [&bridge, &connections, ticket = std::move(ticket),
+                             subject = std::move(subject), fid, expiresSeconds]() mutable {
+                                if (!bridge.isAuthenticated() || bridge.accountFid() != fid
+                                    || bridge.authenticationRoute() != QStringLiteral("farcaster")
+                                    || bridge.accountIdentityIssuer() != connections.identityIssuer()) {
+                                    ticket.fill('\0');
+                                    return;
+                                }
+                                connections.acceptRecoveryGrant(
+                                    std::move(ticket), std::move(subject), fid, expiresSeconds);
+                            }, Qt::QueuedConnection);
+                    });
             } else if (route == QStringLiteral("recovery")) {
                 sessionObserver(application::session::SessionState{
                     .phase = application::session::SessionPhase::Starting,

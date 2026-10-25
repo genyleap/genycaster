@@ -29,9 +29,9 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(bool authorized READ authorized NOTIFY stateChanged)
     Q_PROPERTY(bool authorizing READ authorizing NOTIFY stateChanged)
     Q_PROPERTY(QString approvalUrl READ approvalUrl NOTIFY stateChanged)
-    Q_PROPERTY(QString consentUrl READ consentUrl NOTIFY stateChanged)
     Q_PROPERTY(QVariantList connections READ connections NOTIFY stateChanged)
     Q_PROPERTY(bool actionBusy READ actionBusy NOTIFY stateChanged)
+    Q_PROPERTY(QString pendingProvider READ pendingProvider NOTIFY stateChanged)
 public:
     explicit OpenProofConnectionsController(QObject* parent = nullptr);
 
@@ -46,10 +46,9 @@ public:
     [[nodiscard]] bool authorized() const noexcept;
     [[nodiscard]] bool authorizing() const noexcept;
     [[nodiscard]] QString approvalUrl() const;
-    [[nodiscard]] QString consentUrl() const;
-    Q_INVOKABLE void openConsent();
     [[nodiscard]] QVariantList connections() const;
     [[nodiscard]] bool actionBusy() const noexcept;
+    [[nodiscard]] QString pendingProvider() const;
 
     /** @brief Changes viewer identity, invalidating any delegated account
      * token and pending link work when FID changes or session signs out. */
@@ -106,7 +105,6 @@ private:
     bool m_actionBusy{};
     QString m_approvalUrl{};
     QString m_pendingProvider{};
-    QString m_consentUrl{};
     int m_remainingPolls{};
     QUrl m_catalogUrl{};
     QUrl m_issuerUrl{};

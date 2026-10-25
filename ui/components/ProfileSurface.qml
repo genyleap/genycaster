@@ -1416,9 +1416,8 @@ Item {
         authorized: openProofConnections.authorized
         authorizing: openProofConnections.authorizing
         approvalUrl: openProofConnections.approvalUrl
-        consentUrl: openProofConnections.consentUrl
         actionBusy: openProofConnections.actionBusy
-        onConsentRequested: openProofConnections.openConsent()
+        pendingProvider: openProofConnections.pendingProvider
         errorText: openProofConnections.error
         onAuthorizeRequested: openProofConnections.authorizeAccount()
         onApprovalRequested: url => Qt.openUrlExternally(url)

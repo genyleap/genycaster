@@ -68,7 +68,7 @@ function fixture({ mismatch = false, linkedFid = '123' } = {}) {
   };
   const broker = createBrowserFarcasterBroker({ fetchImpl, now: () => nowMs });
   return { broker, calls, approve: () => { completed = true; },
-    advance: () => { nowMs += 2_000; } };
+    advance: (milliseconds = 2_000) => { nowMs += milliseconds; } };
 }
 
 test('direct Farcaster proof is accepted only after OpenProof verification and linked FID', async () => {
@@ -86,9 +86,18 @@ test('direct Farcaster proof is accepted only after OpenProof verification and l
   assert.equal(result.username, 'account');
   assert.equal(result.signature, undefined);
   assert.equal(result.cookie, undefined);
+  assert.match(result.account_ticket, /^recovery\.[A-Za-z0-9_-]{43}$/);
+  assert.equal(result.account_expires_in, 2700);
+  assert.deepEqual(broker.authorizeRecoveryAccount('Bearer ' + result.account_ticket), {
+    fid: '123', subject: 'openproof-sub-123',
+    cookie: '__Host-openproof-web3-continuation=a1; __Host-openproof-web3-binding=b2; __Host-openproof-web3-transaction=c3; __Host-openproof-web3-challenge=d4; __Host-openproof-session=verified-session',
+  });
   assert.equal(calls.length, 7);
   broker.consume(started.ticket);
   await assert.rejects(() => broker.poll(started.ticket), /auth_expired_or_unknown/);
+  advance(45 * 60_000 + 1);
+  assert.equal(broker.authorizeRecoveryAccount('Bearer ' + result.account_ticket), null,
+    'channel-authenticated account access expires without affecting identity');
 });
 
 test('a wrong relay nonce fails closed before contacting OpenProof verification', async () => {

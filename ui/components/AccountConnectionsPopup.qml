@@ -13,14 +13,13 @@ GenyDrawer {
     property bool authorized: false
     property bool authorizing: false
     property bool actionBusy: false
+    property string pendingProvider: ""
     property bool catalogFallback: false
     property string approvalUrl: ""
-    property string consentUrl: ""
     property string errorText: ""
 
     signal authorizeRequested()
     signal approvalRequested(string url)
-    signal consentRequested()
     signal refreshRequested()
     signal connectRequested(string provider)
     signal disconnectRequested(string provider, string subject)
@@ -102,7 +101,7 @@ GenyDrawer {
         ModalHeader {
             Layout.fillWidth: true
             title: qsTr("Connections")
-            subtitle: qsTr("Your accounts, securely managed with OpenProof.")
+            subtitle: qsTr("Manage connected accounts securely in Genycaster.")
             onCloseRequested: picker.close()
         }
 
@@ -135,7 +134,7 @@ GenyDrawer {
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTr("Verify account ownership")
+                        text: qsTr("Secure connection access")
                         color: Theme.ink
                         font.pixelSize: Theme.typeLabelSize
                         font.weight: Theme.weightDemiBold
@@ -145,8 +144,8 @@ GenyDrawer {
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: picker.authorizing
-                          ? qsTr("Approve the OpenProof request for this Farcaster profile.")
-                          : qsTr("Confirm your Farcaster profile once to link other networks.")
+                          ? qsTr("Complete the secure account approval to unlock connections.")
+                          : qsTr("This sign-in session needs additional permission to manage linked accounts. Your existing connections remain unchanged.")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.Wrap
@@ -163,14 +162,14 @@ GenyDrawer {
                         prominent: !picker.authorizing
                         quiet: picker.authorizing
                         enabled: !picker.authorizing
-                        text: picker.authorizing ? qsTr("Awaiting approval…") : qsTr("Verify with OpenProof")
+                        text: picker.authorizing ? qsTr("Waiting for confirmation…") : qsTr("Unlock connections")
                         iconGlyph: picker.authorizing ? "" : Theme.iconArrowUpRight
                         onClicked: picker.authorizeRequested()
                     }
                     ActionButton {
                         visible: picker.authorizing && picker.approvalUrl.length > 0
                         compact: true
-                        text: qsTr("Open approval")
+                        text: qsTr("Continue approval")
                         iconGlyph: Theme.iconArrowUpRight
                         onClicked: picker.approvalRequested(picker.approvalUrl)
                     }
@@ -231,20 +230,11 @@ GenyDrawer {
             }
         }
 
-        ActionButton {
-            Layout.fillWidth: true
-            visible: picker.consentUrl.length > 0
-            prominent: true
-            compact: true
-            iconGlyph: Theme.iconArrowUpRight
-            text: qsTr("Continue to secure approval")
-            onClicked: picker.consentRequested()
-        }
-
         DirectionAwareLabel {
             Layout.fillWidth: true
-            visible: picker.actionBusy && picker.consentUrl.length === 0
-            text: qsTr("Complete the provider approval in the secure browser. Genycaster will verify the connection here automatically.")
+            visible: picker.actionBusy && picker.pendingProvider.length > 0
+            text: qsTr("Connecting %1. Confirm in the provider window; Genycaster will update this list automatically.")
+                  .arg(picker.providerTitle(picker.pendingProvider))
             color: Theme.inkMuted
             font.pixelSize: Theme.typeCaptionSize
             wrapMode: Text.Wrap
@@ -438,7 +428,7 @@ GenyDrawer {
                 Layout.fillWidth: true
                 text: picker.catalogFallback
                       ? qsTr("Showing saved provider list. Refresh when online.")
-                      : qsTr("Connections are verified by OpenProof.")
+                      : qsTr("Connected accounts share your secure identity.")
                 font.pixelSize: Theme.typeCaptionSize
                 color: Theme.inkSubtle
                 wrapMode: Text.Wrap

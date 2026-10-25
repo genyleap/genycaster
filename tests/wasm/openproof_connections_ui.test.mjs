@@ -19,14 +19,39 @@ test('connections opens as mobile bottom sheet and desktop right drawer', () => 
   assert.ok(!popup.includes('GenyModal {'));
 });
 
-test('WASM OAuth approval opens a disposable browser popup closed only after OpenProof verifies linkage', () => {
-  assert.ok(controller.includes('openGenycasterConnectionWindow'));
-  assert.ok(controller.includes("page.opener = null"));
+test('provider Connect opens secure OAuth from the first user gesture and updates the drawer from server confirmation', () => {
+  const start = controller.indexOf('void OpenProofConnectionsController::connectProvider(');
+  const end = controller.indexOf('void OpenProofConnectionsController::disconnectProvider(', start);
+  const connect = controller.slice(start, end);
+  assert.ok(controller.includes('prepareGenycasterConnectionWindow'));
+  assert.ok(controller.includes('navigateGenycasterConnectionWindow'));
   assert.ok(controller.includes('closeGenycasterConnectionWindow'));
+  assert.ok(controller.includes("page.opener = null"));
+  assert.ok(connect.indexOf('prepareGenycasterConnectionWindow()') < connect.indexOf('sendAccountRequest('));
+  assert.ok(connect.indexOf('sendAccountRequest(') < connect.indexOf('navigateGenycasterConnectionWindow(destination.constData())'));
+  assert.ok(connect.includes('opened = QDesktopServices::openUrl(url)'));
+  assert.ok(connect.includes('m_connectionPoll.start()'));
   assert.ok(controller.includes('isConnected(m_pendingProvider)'));
-  assert.ok(controller.includes('opened = openGenycasterConnectionWindow(destination.constData()) != 0'));
-  assert.ok(controller.includes('opened = QDesktopServices::openUrl(url)'));
+  assert.ok(!popup.includes('Continue to secure approval'));
+  assert.ok(!popup.includes('Verify with OpenProof'));
+  assert.ok(!controller.includes('m_consentUrl'));
   assert.ok(!controller.includes('window.location ='));
+});
+
+test('canonical Farcaster proof grants transient Connections access without a second OpenProof device approval', () => {
+  const auth = read('../../ui/mobile/browser_openproof_auth.cpp');
+  const runtime = read('../../ui/mobile/runtime_ui_bindings.cpp');
+  const broker = read('../../services/media-gateway/browser_farcaster_auth.mjs');
+  assert.ok(broker.includes('issueVerifiedAccountTicket('));
+  assert.ok(broker.includes('account_expires_in: Math.floor(accountLifetimeMs / 1000)'));
+  assert.ok(auth.includes('m_connectionGrant(grant.toUtf8(), subject, fid, grantSeconds)'));
+  assert.ok(auth.indexOf('emitState(std::move(authenticated));', auth.indexOf('void BrowserOpenProofAuth::pollFarcaster()'))
+    < auth.indexOf('m_connectionGrant(grant.toUtf8(), subject, fid, grantSeconds)'));
+  assert.ok(runtime.includes('browserAuth->beginFarcaster(browserObserver,'));
+  assert.ok(runtime.includes('connections.acceptRecoveryGrant('));
+  assert.ok(runtime.includes('bridge.authenticationRoute() != QStringLiteral("farcaster")'));
+  assert.ok(controller.includes('ticketFormat'));
+  assert.ok(controller.includes('m_viewerFid != requiredFid || fid != requiredFid'));
 });
 
 test('OpenProof verification no longer sends the user to the Genyleap account portal', () => {
