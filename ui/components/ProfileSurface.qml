@@ -108,7 +108,7 @@ Item {
                 root.setCloudFlags(true, false)
         }
         function onStateChanged() {
-            if (openProofConnections.authorized && root.isOwnProfile
+            if (openProofConnections.cloudAuthorizationReady && root.isOwnProfile
                 && root.cloudSyncEnabled && !root.cloudLocalDirty
                 && !openProofConnections.cloudBusy) {
                 root.cloudRestoreRequested = true
@@ -2021,6 +2021,32 @@ Item {
                         wrapMode: Text.Wrap
                         font.pixelSize: Theme.typeCaptionSize
                     }
+                    // A Farcaster custody recovery ticket verifies Connections,
+                    // but does not authorize private Cloud API requests. Offer an
+                    // explicit short-lived OpenProof device grant instead.
+                    ActionButton {
+                        objectName: "authorizeCloudAccount"
+                        Layout.fillWidth: true
+                        visible: openProofConnections.cloudServiceAvailable
+                                 && !openProofConnections.cloudAuthorizationReady
+                        compact: true
+                        text: openProofConnections.authorizing
+                              ? qsTr("Waiting for OpenProof confirmation…")
+                              : qsTr("Authorize OpenProof for cloud sync")
+                        enabled: !openProofConnections.authorizing
+                        onClicked: openProofConnections.authorizeCloudAccount()
+                    }
+                    ActionButton {
+                        objectName: "openCloudApproval"
+                        Layout.fillWidth: true
+                        visible: openProofConnections.cloudServiceAvailable
+                                 && openProofConnections.authorizing
+                                 && openProofConnections.approvalUrl.length > 0
+                        compact: true
+                        quiet: true
+                        text: qsTr("Open OpenProof confirmation")
+                        onClicked: Qt.openUrlExternally(openProofConnections.approvalUrl)
+                    }
                     RowLayout {
                         objectName: "profileCloudSyncActions"
                         Layout.fillWidth: true
@@ -2032,7 +2058,7 @@ Item {
                             quiet: true
                             text: root.cloudSyncEnabled ? qsTr("Sync changes") : qsTr("Enable cloud sync")
                             busy: openProofConnections.cloudBusy
-                            enabled: openProofConnections.authorized
+                            enabled: openProofConnections.cloudAuthorizationReady
                                      && openProofConnections.cloudServiceAvailable
                                      && !openProofConnections.cloudBusy
                             onClicked: openProofConnections.pushCloudProfileExtras(root.cloudProfilePayload())
@@ -2044,7 +2070,7 @@ Item {
                             quiet: true
                             text: qsTr("Restore from cloud")
                             busy: openProofConnections.cloudBusy
-                            enabled: openProofConnections.authorized
+                            enabled: openProofConnections.cloudAuthorizationReady
                                      && openProofConnections.cloudServiceAvailable
                                      && !openProofConnections.cloudBusy
                             onClicked: {
@@ -2055,8 +2081,8 @@ Item {
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        visible: !openProofConnections.authorized
-                        text: qsTr("Connect your OpenProof account to synchronize between devices.")
+                        visible: !openProofConnections.cloudAuthorizationReady
+                        text: qsTr("Authorize your OpenProof account to synchronize private data between devices.")
                         font.pixelSize: Theme.typeCaptionSize
                         color: Theme.inkMuted
                         wrapMode: Text.Wrap

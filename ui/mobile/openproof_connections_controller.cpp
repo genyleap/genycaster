@@ -705,6 +705,52 @@ void OpenProofConnectionsController::stopAuthorization()
     emit stateChanged();
 }
 
+void OpenProofConnectionsController::authorizeCloudAccount()
+{
+    if (!m_viewerFid || m_authorizing || m_cloudRequest
+        || !m_cloudServiceAvailable || cloudAuthorizationReady()) return;
+    m_authorization.cancel();
+    // A recovery capability cannot access private Cloud state. Request a
+    // separate, short-lived standard OpenProof device grant instead. The
+    // existing Farcaster sign-in remains unchanged.
+    clearAccountGrant();
+    m_authorizing = true;
+    m_approvalUrl.clear();
+    m_error.clear();
+    const auto expectedFid = m_viewerFid;
+    const auto generation = m_grantGeneration;
+    emit stateChanged();
+    m_authorization.begin(
+        [this, generation](BrowserOpenProofState state) {
+            if (generation != m_grantGeneration) return;
+            switch (state.phase) {
+            case BrowserOpenProofState::Phase::AwaitingApproval:
+                m_approvalUrl = state.approvalUrl; break;
+            case BrowserOpenProofState::Phase::Failed:
+                m_error = state.error;
+                m_authorizing = false;
+                m_approvalUrl.clear(); break;
+            case BrowserOpenProofState::Phase::Authenticated:
+            case BrowserOpenProofState::Phase::SignedOut:
+                m_authorizing = false;
+                m_approvalUrl.clear(); break;
+            case BrowserOpenProofState::Phase::Starting:
+                break;
+            }
+            emit stateChanged();
+        },
+        [this, expectedFid, generation](QByteArray bearer, QString subject,
+                                         std::uint64_t fid, int seconds) {
+            if (generation != m_grantGeneration || expectedFid != m_viewerFid
+                || fid != expectedFid) {
+                bearer.fill('\0');
+                return;
+            }
+            acceptAuthenticatedGrant(std::move(bearer), std::move(subject),
+                                     fid, seconds);
+        });
+}
+
 void OpenProofConnectionsController::authorizeAccount()
 {
     if (!m_viewerFid || m_authorizing) return;

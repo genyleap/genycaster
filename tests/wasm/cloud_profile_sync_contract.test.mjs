@@ -17,6 +17,23 @@ test('only native controller holds cloud authentication bearer and enforces FID 
   assert.doesNotMatch(header,/Q_PROPERTY\(.*[Bb]earer/);
   assert.doesNotMatch(qml,/Bearer\s/);
 });
+test('a recovery-only Farcaster grant cannot be mistaken for authorized Cloud data access',()=>{
+  const header=read('ui/mobile/openproof_connections_controller.hpp');
+  const cpp=read('ui/mobile/openproof_connections_controller.cpp');
+  const qml=read('ui/components/ProfileSurface.qml');
+  assert.match(header,/Q_PROPERTY\(bool cloudAuthorizationReady READ cloudAuthorizationReady NOTIFY stateChanged\)/);
+  assert.match(header,/return m_verified && !m_accountBearer\.isEmpty\(\)/);
+  assert.match(header,/!m_accountBearer\.startsWith\("recovery\."\)/);
+  assert.match(cpp,/void OpenProofConnectionsController::authorizeCloudAccount\(\)/);
+  assert.match(cpp,/m_authorization\.begin\(/);
+  assert.match(cpp,/expectedFid != m_viewerFid/);
+  assert.match(cpp,/acceptAuthenticatedGrant\(std::move\(bearer\)/);
+  assert.match(qml,/objectName: "authorizeCloudAccount"/);
+  assert.match(qml,/objectName: "openCloudApproval"/);
+  assert.match(qml,/Qt\.openUrlExternally\(openProofConnections\.approvalUrl\)/);
+  assert.match(qml,/enabled: openProofConnections\.cloudAuthorizationReady/);
+  assert.match(qml,/if \(openProofConnections\.cloudAuthorizationReady && root\.isOwnProfile/);
+});
 test('local profile remains usable without sync and enabling cloud is explicit',()=>{
   const qml=read('ui/components/ProfileSurface.qml');
   const config=read('ui/config/public_endpoints.json');
@@ -33,7 +50,7 @@ test('local profile remains usable without sync and enabling cloud is explicit',
   assert.match(qml,/profileCategoryOptions:[\s\S]*?"Technology"/);
   assert.doesNotMatch(qml,/qsTr\("Technology"\)/);
   assert.match(qml,/root\.restoreCloudProfile\(item\)/);
-  assert.match(qml,/Connect your OpenProof account/);
+  assert.match(qml,/Authorize your OpenProof account/);
 });
 test('manual LinkedIn links have explicit owner-authenticated upload/restore and local-first consent',()=>{
   const controller=read('ui/mobile/openproof_connections_controller.cpp');

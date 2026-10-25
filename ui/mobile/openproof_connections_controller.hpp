@@ -36,6 +36,7 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QString pendingProvider READ pendingProvider NOTIFY stateChanged)
     Q_PROPERTY(QString manualLinkedInUrl READ manualLinkedInUrl NOTIFY stateChanged)
     Q_PROPERTY(bool cloudBusy READ cloudBusy NOTIFY cloudStateChanged)
+    Q_PROPERTY(bool cloudAuthorizationReady READ cloudAuthorizationReady NOTIFY stateChanged)
     Q_PROPERTY(bool cloudServiceAvailable READ cloudServiceAvailable NOTIFY cloudStateChanged)
     Q_PROPERTY(QString cloudError READ cloudError NOTIFY cloudStateChanged)
     Q_PROPERTY(int cloudRevision READ cloudRevision NOTIFY cloudStateChanged)
@@ -60,8 +61,15 @@ public:
     [[nodiscard]] QString pendingProvider() const;
     [[nodiscard]] QString manualLinkedInUrl() const;
     [[nodiscard]] bool cloudBusy() const noexcept { return m_cloudRequest != nullptr; }
+    [[nodiscard]] bool cloudAuthorizationReady() const noexcept {
+        return m_verified && !m_accountBearer.isEmpty()
+            && !m_accountBearer.startsWith("recovery.");
+    }
     [[nodiscard]] bool cloudServiceAvailable() const noexcept { return m_cloudServiceAvailable; }
     Q_INVOKABLE void checkCloudService();
+    /** Optional OpenProof device grant for private account sync. Only native
+     * C++ receives the verified bearer, after matching the active FID. */
+    Q_INVOKABLE void authorizeCloudAccount();
     [[nodiscard]] QString cloudError() const { return m_cloudError; }
     [[nodiscard]] int cloudRevision() const noexcept { return m_cloudRevision; }
     /** Explicit opt-in cloud reads/writes; bearer never leaves native Qt. */

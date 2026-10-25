@@ -114,7 +114,7 @@ test('owner remembers only last-known social proofs and never persists account b
 
 test('Farcaster ownership unlocks Connections without a Genyleap password and Telegram callback uses its registered host', () => {
   assert.match(controller, /m_authorization\.beginFarcaster\(/);
-  assert.doesNotMatch(controller, /m_authorization\.begin\(/);
+  // Connection management still uses Farcaster; private cloud sync has a\n  // separate, opt-in OpenProof device grant.\n  assert.match(controller, /void OpenProofConnectionsController::authorizeCloudAccount\(\)/);
   assert.match(controller, /m_browserConnectionBaseUrl\.path\(\) \+ QStringLiteral\("\/account\/connections\/handoff"\)/);
   assert.match(popup, /Verify with Farcaster/);
   assert.match(popup, /no Genyleap account or password is required/i);
