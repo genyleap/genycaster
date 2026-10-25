@@ -29,10 +29,12 @@ let finished=false, failed=false;
 let qtRuntimeLoaded=false, qmlRootReady=false;
 const studioIntro=$("genycaster-studio-intro");
 let studioComplete=true;
-// Every refresh shows the credits, even when binary data is already cached.
-// The ecosystem logos have extra time to be read and recognized.
-const studioSceneMs=4000;
-const studioPartnersMs=6500;
+let splashMinimumReached=true;
+// Three readable phases on every refresh, independently of WASM cache speed.
+// A brief studio credit, a longer partner reveal, then visible Genycaster branding.
+const studioSceneMs=2700;
+const studioPartnersMs=5500;
+const splashSceneMs=2600;
 const bootStarted=performance.now();
 let wasmResourceUrl;
 let wasmResourceObserver=null;
@@ -91,6 +93,7 @@ if (studioIntro && boot) {
     const startedAt=Number.isFinite(earlyStart) && earlyStart>0
         ? earlyStart : performance.now();
     studioComplete=false;
+    splashMinimumReached=false;
     studioIntro.hidden=false;
     boot.dataset.intro='on';
     const elapsed=Math.max(0,performance.now()-startedAt);
@@ -104,7 +107,13 @@ if (studioIntro && boot) {
         studioComplete=true;
         studioIntro.hidden=true;
         boot.dataset.intro='off';
-        if(qtRuntimeLoaded && qmlRootReady) revealReady();
+        // Keep the actual Genycaster splash visible for its own full beat.
+        // This is presentation gating only: downloaded-byte progress and
+        // Qt's real readiness remain unchanged.
+        window.setTimeout(()=>{
+            splashMinimumReached=true;
+            if(qtRuntimeLoaded && qmlRootReady) revealReady();
+        },splashSceneMs);
     },Math.max(0,studioSceneMs+studioPartnersMs-elapsed));
 }
 if(boot?.dataset){
@@ -452,7 +461,7 @@ function fail(error) {
 // constructed Main. Requiring an explicit C++ acknowledgement prevents the
 // silent black screen seen when a type in the AppShell dependency tree fails.
 function revealReady() {
-    if(failed||finished||!qtRuntimeLoaded||!qmlRootReady||!studioComplete)return;
+    if(failed||finished||!qtRuntimeLoaded||!qmlRootReady||!studioComplete||!splashMinimumReached)return;
     wasmResourceObserver?.disconnect();
     try{progressReader?.cancel();}catch{}
     // Ready reflects Qt's actual initialization callback, not

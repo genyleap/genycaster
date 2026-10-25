@@ -906,6 +906,15 @@ Item {
                                     visible: active
                                     opacity: active ? 1.0 : 0.0
                                     scale: active ? 1.0 : 0.99
+                                    transform: Translate {
+                                        y: active ? 0 : (root.mobile ? 14 : 9)
+                                        Behavior on y {
+                                            NumberAnimation {
+                                                duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+                                    }
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
                                     Layout.maximumWidth: root.adaptiveDetailWidth
@@ -932,6 +941,15 @@ Item {
                                     visible: active
                                     opacity: active ? 1.0 : 0.0
                                     scale: active ? 1.0 : 0.99
+                                    transform: Translate {
+                                        y: active ? 0 : (root.mobile ? 14 : 9)
+                                        Behavior on y {
+                                            NumberAnimation {
+                                                duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+                                    }
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
                                     Layout.maximumWidth: root.adaptiveDetailWidth
@@ -1035,6 +1053,15 @@ Item {
                                              && root.primaryDestination === "home"
                                     opacity: visible ? 1.0 : 0.0
                                     scale: visible ? 1.0 : 0.99
+                                    transform: Translate {
+                                        y: visible ? 0 : (root.mobile ? 14 : 9)
+                                        Behavior on y {
+                                            NumberAnimation {
+                                                duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+                                    }
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
                                     Layout.maximumWidth: 16777215
@@ -1080,6 +1107,15 @@ Item {
                                     visible: surfaceRequested
                                     opacity: visible ? 1.0 : 0.0
                                     scale: visible ? 1.0 : 0.99
+                                    transform: Translate {
+                                        y: surfaceRequested ? 0 : (root.mobile ? 14 : 9)
+                                        Behavior on y {
+                                            NumberAnimation {
+                                                duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+                                    }
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
                                     Layout.maximumWidth: presentationBridge.activeView === "feed" ? root.adaptiveFeedWidth : root.adaptiveDetailWidth
@@ -1160,6 +1196,15 @@ Item {
                                     visible: surfaceRequested
                                     opacity: visible ? 1.0 : 0.0
                                     scale: visible ? 1.0 : 0.99
+                                    transform: Translate {
+                                        y: surfaceRequested ? 0 : (root.mobile ? 14 : 9)
+                                        Behavior on y {
+                                            NumberAnimation {
+                                                duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+                                    }
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
                                     Layout.maximumWidth: root.adaptiveProfileWidth
@@ -1219,6 +1264,15 @@ Item {
                                     visible: surfaceRequested
                                     opacity: visible ? 1.0 : 0.0
                                     scale: visible ? 1.0 : 0.99
+                                    transform: Translate {
+                                        y: surfaceRequested ? 0 : (root.mobile ? 14 : 9)
+                                        Behavior on y {
+                                            NumberAnimation {
+                                                duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis
+                                                easing.type: Easing.OutCubic
+                                            }
+                                        }
+                                    }
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
                                     Layout.maximumWidth: root.adaptiveCastWidth

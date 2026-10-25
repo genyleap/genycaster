@@ -121,7 +121,7 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     };
 }
 
-test("studio credits remain readable: four seconds for Genyleap and six and a half for ecosystem",()=>{
+test("three intro phases: 2.7s studio, 5.5s partners, 2.6s Genycaster splash",()=>{
     const h=host({studioTimed:true});
     const intro=h.nodes.get("genycaster-studio-intro");
     assert.equal(intro.hidden,false);
@@ -129,17 +129,21 @@ test("studio credits remain readable: four seconds for Genyleap and six and a ha
     h.config.qt.onLoaded();
     h.qmlReady();
     assert.notEqual(h.phase(),"ready","Qt readiness must not cut the studio credit short");
-    h.advance(3999);
+    h.advance(2699);
     assert.equal(intro.dataset.scene,"studio");
     assert.equal(intro.hidden,false);
     h.advance(1);
     assert.equal(intro.dataset.scene,"partners");
-    h.advance(6499);
+    h.advance(5499);
     assert.equal(intro.hidden,false);
     assert.notEqual(h.phase(),"ready");
     h.advance(1);
     assert.equal(intro.hidden,true);
-    assert.equal(h.phase(),"ready","real Qt readiness is now revealed");
+    assert.notEqual(h.phase(),"ready","splash must stay visible after logo reveal");
+    h.advance(2599);
+    assert.notEqual(h.phase(),"ready");
+    h.advance(1);
+    assert.equal(h.phase(),"ready","real Qt readiness is revealed after the splash");
     assert.equal(h.storage.get("genycaster.boot.loaded.v1"),"1");
 });
 test("every refresh presents the studio credits, even after WASM is cached",()=>{
@@ -149,10 +153,12 @@ test("every refresh presents the studio credits, even after WASM is cached",()=>
     h.config.qt.onLoaded();
     h.qmlReady();
     assert.notEqual(h.phase(),"ready");
-    h.advance(4000);
+    h.advance(2700);
     assert.equal(intro.dataset.scene,"partners");
-    h.advance(6500);
+    h.advance(5500);
     assert.equal(intro.hidden,true);
+    assert.notEqual(h.phase(),"ready");
+    h.advance(2600);
     assert.equal(h.phase(),"ready");
 });
 

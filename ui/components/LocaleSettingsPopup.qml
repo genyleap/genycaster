@@ -638,10 +638,25 @@ GenyDrawer {
             }
 
         StackLayout {
+            id: settingsPages
             visible: !root.mobilePresentation || !root.mobileIndexOpen
             Layout.fillWidth: true
             Layout.fillHeight: true
             currentIndex: root.currentSection
+            onCurrentIndexChanged: {
+                if (!Theme.reduceMotion && root.opened) sectionMotion.restart()
+            }
+            SequentialAnimation {
+                id: sectionMotion
+                NumberAnimation {
+                    target: settingsPages
+                    property: "opacity"
+                    from: 0.32
+                    to: 1.0
+                    duration: Theme.motionEmphasis
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             ScrollView {
                 id: appearanceScroll

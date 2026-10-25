@@ -15,10 +15,14 @@ test('profile links, profession and holder trust remain separately scoped and di
   assert.match(qml,/profileExtrasOwnerKey: root.isOwnProfile/);
   assert.match(qml,/function saveExtraDetails\(profession, rawLinks\)/);
   assert.match(qml,/profileExtrasSettings.entriesJson = JSON.stringify\(entries\)/);
-  assert.match(qml,/one HTTPS URL per line/);
-  assert.match(qml,/root.profileExtraLinks.slice\(0, 2\)/);
-  assert.match(qml,/root.profileLinksExpanded \? qsTr\("Show less"\) : qsTr\("Read more"\)/);
-  assert.match(qml,/Saved on this device only/);
+  assert.match(qml,/optional title \| HTTPS URL/);
+  assert.match(qml,/objectName: "profileMoreLinksInline"/);
+  assert.match(qml,/id: profileLinksDrawer/);
+  assert.match(qml,/id: linksSheetRows/);
+  assert.match(qml,/Saved only on this device/);
+  assert.match(qml,/GenyDrawer \{\s*id: profileExtrasEditor/);
+  assert.match(qml,/GenyDrawer \{\s*id: profileLinksDrawer/);
+  assert.match(qml,/root.profileExtraLabel/);
   assert.match(qml,/property bool genyHolderAttested: false/);
   assert.match(qml,/visible: root.genyHolderAttested/);
   assert.match(qml,/id: genyHolderBadge/);
@@ -35,12 +39,12 @@ test('owner profile anchors linked networks to the right with blue or green proo
   const group = qml.slice(start, end);
   assert.ok(start > 0 && end > start);
   assert.match(group, /layoutDirection: Qt\.LeftToRight/);
-  assert.match(group, /Item \{ Layout\.fillWidth: true \}[\s\S]*?Label \{/);
+  assert.match(group, /width: Math\.min\(implicitWidth/);
   assert.match(group, /visible: !root\.compact/);
   assert.match(group, /socialBadge\.liveVerified \? Theme\.success : Theme\.accent/);
   assert.match(group, /Theme\.iconCheck/);
   assert.match(group, /objectName: "profileConnectionsButton"/);
-  assert.doesNotMatch(group, /Item \{ Layout\.fillWidth: true \}\s*\}\s*$/);
+  assert.match(qml, /objectName: "profileOwnerActions"/);
 });
 
 test('connections opens as mobile bottom sheet and desktop right drawer', () => {

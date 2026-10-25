@@ -24,10 +24,12 @@ test('Plain, readable studio credits precede actual WASM progress without decora
   assert.doesNotMatch(intro,/<small\b|studio-node|studio-card/);
   assert.ok(!intro.includes('Blockchain'));
   assert.match(html,/#genycaster-studio-intro\{[^}]*background:#0b0c0f/);
-  assert.match(js,/const studioSceneMs=4000/);
-  assert.match(js,/const studioPartnersMs=6500/);
+  assert.match(js,/const studioSceneMs=2700/);
+  assert.match(js,/const studioPartnersMs=5500/);
   assert.match(js,/studioSceneMs\+studioPartnersMs-elapsed/);
-  assert.match(js,/!studioComplete\)return/);
+  assert.match(js,/splashMinimumReached=true/);
+  assert.match(js,/!splashMinimumReached\)return/);
+  assert.match(js,/const splashSceneMs=2600/);
   assert.match(js,/Updating Software…/);
   assert.match(js,/Initializing Qt and WebAssembly/);
   assert.match(js,/received\*100\/total/);

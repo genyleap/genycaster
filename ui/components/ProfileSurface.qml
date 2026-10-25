@@ -61,6 +61,15 @@ Item {
             ? root.profileExtras.links.filter(s=>typeof s === "string" && root.validExtraUrl(s)).slice(0, 5)
             : []
     }
+    function profileExtraLabel(index) {
+        const labels = root.profileExtras.labels
+        return Array.isArray(labels) && typeof labels[index] === "string" && labels[index].trim()
+            ? labels[index].trim().slice(0, 32) : qsTr("Link %1").arg(index + 1)
+    }
+    readonly property int profileLinkTotal: root.profileExtraLinks.length + (root.showProfileUrl ? 1 : 0)
+    function openProfileLinks() {
+        if (root.profileLinkTotal > 0) profileLinksDrawer.open()
+    }
     function validExtraUrl(text) {
         return text.length <= 512
             && /^https:\/\/(?![^/]*@)[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?:\:[0-9]{2,5})?(?:[\/?#][^\s]*)?$/.test(text)
@@ -73,13 +82,22 @@ Item {
             return false
         }
         const lines = String(rawLinks || "").split(/[\r\n]+/).map(s=>s.trim()).filter(s=>s.length>0)
-        if (lines.length > 5 || lines.some(s=>!root.validExtraUrl(s))) {
-            root.profileExtrasError = qsTr("Use up to five HTTPS links, one URL per line.")
+        const prepared = lines.map(line => {
+            const separator = line.indexOf("|")
+            const label = separator >= 0 ? line.slice(0, separator).trim() : ""
+            const url = separator >= 0 ? line.slice(separator + 1).trim() : line
+            return {label: label, url: url}
+        })
+        if (prepared.length > 5 || prepared.some(s=>s.label.length>32 || !root.validExtraUrl(s.url))) {
+            root.profileExtrasError = qsTr("Use up to five HTTPS links. Optional format: Personal | https://example.com")
             return false
         }
         try {
             const entries = JSON.parse(profileExtrasSettings.entriesJson || "{}")
-            entries[root.profileExtrasOwnerKey] = {profession: role, links: lines.filter((link,index)=>lines.indexOf(link)===index)}
+            const unique = prepared.filter((item,index)=>prepared.findIndex(e=>e.url===item.url)===index)
+            entries[root.profileExtrasOwnerKey] = {
+                profession: role, links: unique.map(e=>e.url), labels: unique.map(e=>e.label)
+            }
             profileExtrasSettings.entriesJson = JSON.stringify(entries)
             root.profileExtrasError = ""
             root.profileLinksExpanded = false
@@ -129,7 +147,7 @@ Item {
     readonly property int profileContentX: Math.max(root.profileMargin, Math.round((width - root.profileContentWidth) / 2))
     readonly property bool profileContentRtl: Theme.rtl
     readonly property int profileAvatarX: root.compact
-                                           ? Math.round((root.width - root.profileAvatarSize) / 2)
+                                           ? root.profileContentX + Theme.space2
                                            : root.profileContentRtl
                                              ? root.profileContentX + root.profileContentWidth - root.profileAvatarSize - Theme.space3
                                              : root.profileContentX + Theme.space3
@@ -1067,10 +1085,10 @@ Item {
                     RowLayout {
                         id: ownerSocialBadgeStrip
                         objectName: "ownerVerifiedSocialBadgeStrip"
-                        width: Math.min(implicitWidth, Math.max(0, root.profileContentWidth - root.profileAvatarSize - Theme.space4))
+                        width: Math.min(implicitWidth, Math.max(0, root.profileContentWidth - root.profileAvatarSize - Theme.space2))
                         x: root.profileContentX + root.profileContentWidth - width
                         anchors.verticalCenter: parent.verticalCenter
-                        visible: root.isOwnProfile && !root.compact
+                        visible: root.isOwnProfile && root.ownerSocialLinks.length > 0
                         spacing: Theme.space1
                         // Keep the social proof group at the physical right edge
                         // on desktop. On phones hide the verbose heading to fit.
@@ -1098,14 +1116,14 @@ Item {
                                           : liveVerified ? qsTr(" · linked profile") : qsTr(" · previously linked"))
                                         : canFind ? qsTr(" · search LinkedIn by name")
                                                   : qsTr(" · manage connection"))
-                                Layout.preferredWidth: Theme.scaleUi(34)
-                                Layout.preferredHeight: Theme.scaleUi(34)
+                                Layout.preferredWidth: Theme.scaleUi(root.compact ? 29 : 34)
+                                Layout.preferredHeight: Theme.scaleUi(root.compact ? 29 : 34)
                                 hoverEnabled: !root.compact
                                 HoverHandler { cursorShape: Qt.PointingHandCursor }
                                 display: AbstractButton.IconOnly
                                 icon.source: root.socialIcon(String(modelData.provider))
-                                icon.width: Theme.scaleUi(21)
-                                icon.height: Theme.scaleUi(21)
+                                icon.width: Theme.scaleUi(root.compact ? 18 : 21)
+                                icon.height: Theme.scaleUi(root.compact ? 18 : 21)
                                 background: Rectangle {
                                     radius: Theme.curveCompact
                                     color: socialBadge.down ? Theme.surfacePressed
@@ -1309,81 +1327,17 @@ Item {
                     }
 
                     RowLayout {
-                        objectName: "compactVerifiedSocialBadges"
-                        Layout.fillWidth: true
-                        visible: root.isOwnProfile && root.compact
-                        layoutDirection: Qt.LeftToRight
-                        spacing: Theme.space1
-                        Item { Layout.fillWidth: true }
-                        Repeater {
-                            model: root.ownerSocialLinks
-                            delegate: Button {
-                                id: compactSocialBadge
-                                required property var modelData
-                                Layout.preferredWidth: Theme.scaleUi(31)
-                                Layout.preferredHeight: Theme.scaleUi(31)
-                                display: AbstractButton.IconOnly
-                                icon.source: root.socialIcon(String(modelData.provider))
-                                icon.width: Theme.scaleUi(19)
-                                icon.height: Theme.scaleUi(19)
-                                background: Rectangle {
-                                    radius: Theme.curveCompact
-                                    color: Theme.surface
-                                    border.color: Theme.borderMuted
-                                    border.width: 1
-                                }
-                                Rectangle {
-                                    anchors.right: parent.right
-                                    anchors.bottom: parent.bottom
-                                    width: Theme.scaleUi(11)
-                                    height: width
-                                    radius: width/2
-                                    color: openProofConnections.authorized ? Theme.success : Theme.accent
-                                    border.color: Theme.surface
-                                    border.width: 1
-                                    Icon {
-                                        anchors.centerIn: parent
-                                        text: Theme.iconCheck
-                                        color: Theme.contrastInk(parent.color)
-                                        preferredSize: 8
-                                    }
-                                }
-                                Accessible.name: String(modelData.label || modelData.provider)
-                                onClicked: {
-                                    if (modelData.href) root.externalRequested(String(modelData.href))
-                                    else if (modelData.searchHref) root.externalRequested(String(modelData.searchHref))
-                                    else root.openConnections()
-                                }
-                            }
-                        }
-                        ActionButton {
-                            compact: true
-                            quiet: true
-                            text: qsTr("Manage")
-                            onClicked: root.openConnections()
-                        }
-                    }
-
-                    RowLayout {
                         objectName: "profileProfessionalCategory"
                         Layout.fillWidth: true
-                        visible: root.profileProfession.length > 0 || root.isOwnProfile
+                        visible: root.profileProfession.length > 0
                         spacing: Theme.space2
                         DirectionAwareLabel {
-                            visible: root.profileProfession.length > 0
+                            Layout.fillWidth: true
                             text: root.profileProfession
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                             font.weight: Theme.weightMedium
-                        }
-                        Item { Layout.fillWidth: true }
-                        ActionButton {
-                            visible: root.isOwnProfile
-                            compact: true
-                            quiet: true
-                            text: qsTr("Edit details")
-                            Accessible.description: qsTr("Edit profession and personal links stored on this device")
-                            onClicked: profileExtrasEditor.open()
+                            elide: Text.ElideRight
                         }
                     }
 
@@ -1432,6 +1386,28 @@ Item {
                                 Accessible.role: Accessible.Link
                                 Accessible.name: qsTrId("genycaster.profile.open_profile_link")
                             }
+                            Button {
+                                objectName: "profileMoreLinksInline"
+                                visible: root.isOwnProfile && root.profileExtraLinks.length > 0
+                                flat: true
+                                padding: Theme.space1
+                                hoverEnabled: true
+                                background: Rectangle {
+                                    radius: Theme.curveCompact
+                                    color: parent.hovered ? Theme.surfaceHover : "transparent"
+                                    Behavior on color {
+                                        ColorAnimation { duration: Theme.motionFast }
+                                    }
+                                }
+                                contentItem: Label {
+                                    text: qsTr("and %1 more").arg(root.profileExtraLinks.length)
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: Theme.weightDemiBold
+                                }
+                                Accessible.name: qsTr("Show all profile links")
+                                onClicked: profileLinksDrawer.open()
+                            }
                         }
 
                         RowLayout {
@@ -1456,49 +1432,72 @@ Item {
                         }
                     }
 
-                    ColumnLayout {
+                    RowLayout {
                         objectName: "ownerPersonalLinks"
                         Layout.fillWidth: true
-                        visible: root.isOwnProfile && root.profileExtraLinks.length > 0
-                        spacing: Theme.space1
-
-                        Repeater {
-                            model: root.profileLinksExpanded ? root.profileExtraLinks
-                                  : root.profileExtraLinks.slice(0, 2)
-                            delegate: Button {
-                                id: personalLinkButton
-                                required property var modelData
-                                Layout.alignment: Qt.AlignLeft
-                                flat: true
-                                hoverEnabled: true
-                                padding: Theme.space1
-                                background: Item {}
-                                contentItem: Row {
-                                    spacing: Theme.space2
-                                    Icon {
-                                        text: Theme.iconLink
-                                        color: Theme.accent
-                                        preferredSize: Theme.typeCaptionSize
-                                    }
-                                    Label {
-                                        text: root.displayUrl(personalLinkButton.modelData)
-                                        color: Theme.accent
-                                        font.pixelSize: Theme.typeCaptionSize
-                                        elide: Text.ElideRight
-                                    }
+                        visible: root.isOwnProfile && !root.showProfileUrl
+                                 && root.profileExtraLinks.length > 0
+                        spacing: Theme.space2
+                        Button {
+                            id: primaryExtraLink
+                            flat: true
+                            hoverEnabled: true
+                            Layout.fillWidth: true
+                            padding: Theme.space1
+                            background: Item {}
+                            contentItem: RowLayout {
+                                spacing: Theme.space2
+                                Icon {
+                                    text: Theme.iconLink
+                                    color: Theme.accent
+                                    preferredSize: Theme.typeCaptionSize
                                 }
-                                Accessible.role: Accessible.Link
-                                Accessible.name: String(modelData)
-                                onClicked: root.externalRequested(String(modelData))
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: root.displayUrl(root.profileExtraLinks[0] || "")
+                                    color: Theme.accent
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    elide: Text.ElideRight
+                                }
                             }
+                            Accessible.role: Accessible.Link
+                            onClicked: root.externalRequested(String(root.profileExtraLinks[0] || ""))
+                        }
+                        Button {
+                            visible: root.profileExtraLinks.length > 1
+                            flat: true
+                            padding: Theme.space1
+                            background: Item {}
+                            contentItem: Label {
+                                text: qsTr("and %1 more").arg(root.profileExtraLinks.length - 1)
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                            }
+                            onClicked: profileLinksDrawer.open()
+                        }
+                    }
+
+                    RowLayout {
+                        objectName: "profileOwnerActions"
+                        Layout.fillWidth: true
+                        visible: root.isOwnProfile
+                        spacing: Theme.space2
+                        ActionButton {
+                            Layout.fillWidth: root.compact
+                            compact: false
+                            quiet: false
+                            text: qsTr("Edit profile")
+                            onClicked: profileExtrasEditor.open()
                         }
                         ActionButton {
-                            visible: root.profileExtraLinks.length > 2
-                            compact: true
+                            Layout.fillWidth: root.compact
+                            compact: false
                             quiet: true
-                            text: root.profileLinksExpanded ? qsTr("Show less") : qsTr("Read more")
-                            onClicked: root.profileLinksExpanded = !root.profileLinksExpanded
+                            text: qsTr("Links")
+                            enabled: root.profileLinkTotal > 0
+                            onClicked: root.openProfileLinks()
                         }
+                        Item { Layout.fillWidth: !root.compact }
                     }
 
                     RowLayout {
@@ -1802,105 +1801,218 @@ Item {
         }
     }
 
-    Popup {
+    // All account-owned sheets reuse the application's interactive
+    // GenyDrawer motion contract (position animation + reduced-motion support).
+    GenyDrawer {
         id: profileExtrasEditor
         objectName: "profileExtrasEditor"
         parent: Overlay.overlay
-        modal: true
-        focus: true
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        width: Math.min(460, parent ? parent.width - Theme.space4 * 2 : 460)
-        x: parent ? Math.round((parent.width - width) / 2) : 0
-        y: parent ? Math.round((parent.height - height) / 2) : 0
-        padding: Theme.space4
+        readonly property bool mobilePresentation: parent && parent.width < Theme.breakpointMobile
+        bottomSheet: mobilePresentation
+        edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge
+        dimBackground: true
+        width: parent ? (mobilePresentation ? parent.width : Math.min(480, parent.width)) : 480
+        height: parent ? (mobilePresentation ? Math.min(parent.height * 0.92, 750) : parent.height) : 750
+        showHandle: mobilePresentation
+        contentPadding: Theme.space4
         onOpened: {
             professionEditor.text = String(root.profileExtras.profession || "")
-            linksEditor.text = Array.isArray(root.profileExtras.links)
-                ? root.profileExtras.links.join("\n") : ""
+            const saved = Array.isArray(root.profileExtras.links) ? root.profileExtras.links : []
+            const titles = Array.isArray(root.profileExtras.labels) ? root.profileExtras.labels : []
+            linksEditor.text = saved.map((url,index)=>titles[index]
+                ? titles[index] + " | " + url : url).join("\n")
             root.profileExtrasError = ""
-        }
-        background: Rectangle {
-            color: Theme.surfaceElevated
-            radius: Theme.curveModal
-            border.color: Theme.borderStrong
-            border.width: 1
         }
         contentItem: ColumnLayout {
             spacing: Theme.space3
-            Label {
-                text: qsTr("Profile details")
-                font.pixelSize: Theme.typeTitle3Size
-                font.weight: Theme.weightDemiBold
-                color: Theme.ink
-            }
-            DirectionAwareLabel {
+            ModalHeader {
                 Layout.fillWidth: true
-                text: qsTr("Profession or business category")
-                color: Theme.inkMuted
-                font.pixelSize: Theme.typeCaptionSize
+                title: qsTr("Edit profile details")
+                subtitle: qsTr("Profession and personal links")
+                onCloseRequested: profileExtrasEditor.close()
             }
-            TextField {
-                id: professionEditor
+            Flickable {
                 Layout.fillWidth: true
-                maximumLength: 80
-                placeholderText: qsTr("Designer, developer, artist…")
-                color: Theme.ink
-                background: Rectangle {
-                    color: Theme.surface
-                    radius: Theme.curveCompact
-                    border.color: professionEditor.activeFocus ? Theme.focus : Theme.borderMuted
+                Layout.fillHeight: true
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                contentHeight: formColumn.implicitHeight + Theme.space4
+                contentWidth: width
+                ColumnLayout {
+                    id: formColumn
+                    width: parent.width
+                    spacing: Theme.space3
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTr("Profession or business category")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+                    TextField {
+                        id: professionEditor
+                        Layout.fillWidth: true
+                        maximumLength: 80
+                        placeholderText: qsTr("Designer, developer, artist…")
+                        color: Theme.ink
+                        background: Rectangle {
+                            color: Theme.surface
+                            radius: Theme.curveCompact
+                            border.color: professionEditor.activeFocus ? Theme.focus : Theme.borderMuted
+                            border.width: 1
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTr("Links — optional title | HTTPS URL, one per line")
+                        wrapMode: Text.Wrap
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.inkMuted
+                    }
+                    TextArea {
+                        id: linksEditor
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Theme.scaleUi(180)
+                        wrapMode: TextEdit.WrapAnywhere
+                        placeholderText: qsTr("Personal | https://example.com\nCompany | https://company.com")
+                        color: Theme.ink
+                        background: Rectangle {
+                            color: Theme.surface
+                            radius: Theme.curveCompact
+                            border.color: linksEditor.activeFocus ? Theme.focus : Theme.borderMuted
+                            border.width: 1
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTr("Up to five links. Saved only on this device; cloud sync is not active.")
+                        color: Theme.inkMuted
+                        wrapMode: Text.Wrap
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+                    DirectionAwareLabel {
+                        visible: root.profileExtrasError.length > 0
+                        Layout.fillWidth: true
+                        color: Theme.negative
+                        text: root.profileExtrasError
+                        wrapMode: Text.Wrap
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
                 }
-            }
-            DirectionAwareLabel {
-                text: qsTr("Personal or company links (one HTTPS URL per line, up to five)")
-                Layout.fillWidth: true
-                wrapMode: Text.Wrap
-                font.pixelSize: Theme.typeCaptionSize
-                color: Theme.inkMuted
-            }
-            TextArea {
-                id: linksEditor
-                Layout.fillWidth: true
-                Layout.preferredHeight: Theme.scaleUi(126)
-                wrapMode: TextEdit.NoWrap
-                placeholderText: "https://example.com\nhttps://another.example"
-                color: Theme.ink
-                background: Rectangle {
-                    color: Theme.surface
-                    radius: Theme.curveCompact
-                    border.color: linksEditor.activeFocus ? Theme.focus : Theme.borderMuted
-                }
-            }
-            DirectionAwareLabel {
-                Layout.fillWidth: true
-                text: qsTr("Saved on this device only. Cloud sync and public sharing will be enabled with Genycaster accounts.")
-                color: Theme.inkMuted
-                wrapMode: Text.Wrap
-                font.pixelSize: Theme.typeCaptionSize
-            }
-            DirectionAwareLabel {
-                visible: root.profileExtrasError.length > 0
-                Layout.fillWidth: true
-                color: Theme.negative
-                text: root.profileExtrasError
-                wrapMode: Text.Wrap
-                font.pixelSize: Theme.typeCaptionSize
             }
             RowLayout {
                 Layout.fillWidth: true
-                Item { Layout.fillWidth: true }
+                spacing: Theme.space2
                 ActionButton {
-                    compact: true
+                    Layout.fillWidth: true
                     quiet: true
                     text: qsTr("Cancel")
                     onClicked: profileExtrasEditor.close()
                 }
                 ActionButton {
-                    compact: true
-                    text: qsTr("Save")
+                    Layout.fillWidth: true
+                    text: qsTr("Save changes")
                     onClicked: {
                         if (root.saveExtraDetails(professionEditor.text, linksEditor.text))
                             profileExtrasEditor.close()
+                    }
+                }
+            }
+        }
+    }
+
+    GenyDrawer {
+        id: profileLinksDrawer
+        objectName: "profileLinksDrawer"
+        parent: Overlay.overlay
+        readonly property bool mobilePresentation: parent && parent.width < Theme.breakpointMobile
+        bottomSheet: mobilePresentation
+        edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge
+        dimBackground: true
+        showHandle: mobilePresentation
+        width: parent ? (mobilePresentation ? parent.width : Math.min(440, parent.width)) : 440
+        height: parent ? (mobilePresentation ? Math.min(parent.height * 0.68, 530) : parent.height) : 530
+        contentPadding: Theme.space4
+        contentItem: ColumnLayout {
+            spacing: Theme.space3
+            ModalHeader {
+                Layout.fillWidth: true
+                title: qsTr("Links")
+                subtitle: qsTr("Personal and professional websites")
+                onCloseRequested: profileLinksDrawer.close()
+            }
+            Flickable {
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                contentHeight: linksSheetRows.implicitHeight + Theme.space4
+                ColumnLayout {
+                    id: linksSheetRows
+                    width: parent.width
+                    spacing: Theme.space3
+                    Button {
+                        visible: root.showProfileUrl
+                        Layout.fillWidth: true
+                        flat: true
+                        background: Rectangle {
+                            radius: Theme.curveCompact
+                            color: parent.hovered ? Theme.surfaceHover : Theme.surface
+                        }
+                        padding: Theme.space2
+                        contentItem: ColumnLayout {
+                            spacing: Theme.space1
+                            DirectionAwareLabel {
+                                text: qsTr("Farcaster website")
+                                color: Theme.ink
+                                font.weight: Theme.weightDemiBold
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: root.displayUrl(root.activeDetail.profileUrl || "")
+                                color: Theme.inkMuted
+                                elide: Text.ElideRight
+                            }
+                        }
+                        onClicked: {
+                            root.externalRequested(root.activeDetail.profileUrl || "")
+                            profileLinksDrawer.close()
+                        }
+                    }
+                    Repeater {
+                        model: root.profileExtraLinks
+                        delegate: Button {
+                            id: linkSheetRow
+                            required property int index
+                            required property var modelData
+                            Layout.fillWidth: true
+                            flat: true
+                            padding: Theme.space2
+                            background: Rectangle {
+                                radius: Theme.curveCompact
+                                color: linkSheetRow.hovered ? Theme.surfaceHover : Theme.surface
+                                Behavior on color {
+                                    ColorAnimation { duration: Theme.motionFast }
+                                }
+                            }
+                            contentItem: ColumnLayout {
+                                spacing: Theme.space1
+                                DirectionAwareLabel {
+                                    text: root.profileExtraLabel(linkSheetRow.index)
+                                    color: Theme.ink
+                                    font.weight: Theme.weightDemiBold
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: root.displayUrl(linkSheetRow.modelData)
+                                    color: Theme.inkMuted
+                                    elide: Text.ElideRight
+                                }
+                            }
+                            onClicked: {
+                                root.externalRequested(String(modelData))
+                                profileLinksDrawer.close()
+                            }
+                        }
                     }
                 }
             }
@@ -1944,6 +2056,7 @@ Item {
         if (!root.isOwnProfile) {
             accountConnectionsPopup.close()
             profileExtrasEditor.close()
+            profileLinksDrawer.close()
         }
     }
     PullToRefresh {
