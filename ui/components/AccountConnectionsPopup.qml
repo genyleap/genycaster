@@ -5,7 +5,7 @@ import Farcaster.Client
 
 /** OpenProof is the authority for connection state; brand SVGs ship in Qt
  * resources, with no remote image dependencies or credentials in QML. */
-GenyModal {
+GenyDrawer {
     id: picker
     objectName: "accountConnectionsPopup"
     property var providers: []
@@ -25,9 +25,21 @@ GenyModal {
     signal connectRequested(string provider)
     signal disconnectRequested(string provider, string subject)
 
-    width: Math.min(490, parent ? Math.max(280, parent.width - Theme.space3 * 2) : 490)
-    height: Math.min(590, parent ? Math.max(280, parent.height - Theme.space3 * 2) : 590)
-    padding: Theme.space4
+    // Connections is an in-product sheet: bottom-up on phones and
+    // a right-anchored inspector on desktop, independent of UI text direction.
+    readonly property real viewportWidth: Overlay.overlay && Overlay.overlay.width > 0
+                                          ? Overlay.overlay.width
+                                          : (parent ? parent.width : 0)
+    readonly property bool mobilePresentation: viewportWidth > 0
+                                              && viewportWidth < Theme.breakpointMobile
+    bottomSheet: mobilePresentation
+    edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge
+    dimBackground: true
+    interactive: false
+    showHandle: mobilePresentation
+    contentPadding: Theme.space4
+    width: parent ? (mobilePresentation ? parent.width : Math.min(500, parent.width * 0.94)) : 500
+    height: parent ? (mobilePresentation ? Math.min(parent.height * 0.92, 720) : parent.height) : 720
 
     readonly property string logoRoot: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/"
 
@@ -227,6 +239,15 @@ GenyModal {
             iconGlyph: Theme.iconArrowUpRight
             text: qsTr("Continue to secure approval")
             onClicked: picker.consentRequested()
+        }
+
+        DirectionAwareLabel {
+            Layout.fillWidth: true
+            visible: picker.actionBusy && picker.consentUrl.length === 0
+            text: qsTr("Complete the provider approval in the secure browser. Genycaster will verify the connection here automatically.")
+            color: Theme.inkMuted
+            font.pixelSize: Theme.typeCaptionSize
+            wrapMode: Text.Wrap
         }
 
         Rectangle {

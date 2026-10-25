@@ -155,14 +155,23 @@ void BrowserOpenProofAuth::begin(Observer observer, ConnectionGrant connectionGr
         const int expiry = std::clamp(response.value(QStringLiteral("expires_in")).toInt(600), 60, 600);
         m_deadlineMs = QDateTime::currentMSecsSinceEpoch() + static_cast<qint64>(expiry) * 1000;
 
-        // Reuse the existing Genyleap account ceremony; never collect passwords
-        // or custody secrets inside Qt/QML.
-        const QString continuation = QStringLiteral("/openproof/oauth/device?user_code=") +
-            QString::fromLatin1(QUrl::toPercentEncoding(userCode));
-        QUrl approval{QStringLiteral("https://genyleap.com/account")};
-        QUrlQuery query{};
-        query.addQueryItem(QStringLiteral("return_to"), continuation);
-        approval.setQuery(query);
+        // OpenProof owns the account session for both Genycaster and Genyleap.
+        // Use the issuer\u0027s device-verification contract directly instead of
+        // routing Genycaster users through Genyleap\u0027s account application.
+        // Never accept an arbitrary approval origin from an upstream response.
+        const QUrl approval{response.value(QStringLiteral("verification_uri_complete")).toString()};
+        const QUrl canonicalIssuer{QString::fromLatin1(issuer)};
+        const QUrlQuery verificationQuery{approval};
+        if (!approval.isValid() || approval.scheme() != QStringLiteral("https")
+            || approval.host() != canonicalIssuer.host()
+            || approval.port() != canonicalIssuer.port()
+            || !approval.userInfo().isEmpty() || !approval.fragment().isEmpty()
+            || approval.path() != QStringLiteral("/oauth/device")
+            || verificationQuery.queryItems().size() != 1
+            || verificationQuery.queryItemValue(QStringLiteral("user_code")) != userCode) {
+            fail(qtTrId("genycaster.browser_auth.incomplete_challenge"));
+            return;
+        }
         m_approvalUrl = approval.toString(QUrl::FullyEncoded);
         emitState(BrowserOpenProofState{
             .phase = BrowserOpenProofState::Phase::AwaitingApproval,

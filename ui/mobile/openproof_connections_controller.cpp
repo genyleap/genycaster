@@ -14,6 +14,33 @@
 
 #include <algorithm>
 
+#if defined(__EMSCRIPTEN__)
+#include <emscripten/emscripten.h>
+
+// Only a disposable browser window handle is kept here: never credentials,
+// token material, or an identity assertion. The actual connection is verified
+// by the same native controller over its authenticated OpenProof gateway.
+EM_JS(int, openGenycasterConnectionWindow, (const char* target), {
+    try {
+        const page = window.open('about:blank', '_blank', 'width=540,height=700');
+        if (!page) return 0;
+        page.opener = null;
+        window.__genycasterConnectionApproval = page;
+        page.location.replace(UTF8ToString(target));
+        return 1;
+    } catch (_) {
+        return 0;
+    }
+});
+EM_JS(void, closeGenycasterConnectionWindow, (), {
+    const page = window.__genycasterConnectionApproval;
+    window.__genycasterConnectionApproval = null;
+    if (page && !page.closed) {
+        try { page.close(); } catch (_) {}
+    }
+});
+#endif
+
 namespace {
 
 [[nodiscard]] QUrl configuredUrl(const char* overrideName, const QString& jsonKey)
@@ -162,6 +189,9 @@ QStringList OpenProofConnectionsController::parseProviderCatalog(const QByteArra
 
 void OpenProofConnectionsController::clearAccountGrant()
 {
+#if defined(__EMSCRIPTEN__)
+    closeGenycasterConnectionWindow();
+#endif
     ++m_grantGeneration;
     m_grantExpiry.stop();
     m_connectionPoll.stop();
@@ -398,6 +428,11 @@ void OpenProofConnectionsController::refreshConnections()
             m_verified = true;
             m_error.clear();
             if (!m_pendingProvider.isEmpty() && isConnected(m_pendingProvider)) {
+#if defined(__EMSCRIPTEN__)
+                // Only a server-confirmed OpenProof link closes the browser
+                // window; browser redirect/204 alone is not a success signal.
+                closeGenycasterConnectionWindow();
+#endif
                 finishAction();
             }
             emit stateChanged();
@@ -471,8 +506,18 @@ void OpenProofConnectionsController::openConsent()
         || m_pendingProvider.isEmpty()) return;
     const QUrl url{m_consentUrl};
     m_consentUrl.clear();
-    if (!QDesktopServices::openUrl(url)) {
-        finishAction(QStringLiteral("Could not open secure provider approval."));
+    bool opened = false;
+#if defined(__EMSCRIPTEN__)
+    // A real user click reaches here synchronously from the QML drawer.
+    // Open a distinct trusted browser window (not a credential-reading
+    // embedded WebView); its handle lets us dismiss it after server proof.
+    const QByteArray destination = url.toString(QUrl::FullyEncoded).toUtf8();
+    opened = openGenycasterConnectionWindow(destination.constData()) != 0;
+#else
+    opened = QDesktopServices::openUrl(url);
+#endif
+    if (!opened) {
+        finishAction(QStringLiteral("Could not open secure provider approval. Allow popups and retry."));
         return;
     }
     m_connectionPoll.start();

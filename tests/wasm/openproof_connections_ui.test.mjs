@@ -10,6 +10,35 @@ const controller = read('../../ui/mobile/openproof_connections_controller.cpp');
 const migration = read('../../services/account-sync/migrations/001_bookmarks.sql');
 const config = JSON.parse(read('../../ui/config/public_endpoints.json'));
 
+test('connections opens as mobile bottom sheet and desktop right drawer', () => {
+  assert.ok(popup.includes('GenyDrawer {'));
+  assert.ok(popup.includes('bottomSheet: mobilePresentation'));
+  assert.ok(popup.includes('edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge'));
+  assert.ok(popup.includes('Theme.breakpointMobile'));
+  assert.ok(popup.includes('dimBackground: true'));
+  assert.ok(!popup.includes('GenyModal {'));
+});
+
+test('WASM OAuth approval opens a disposable browser popup closed only after OpenProof verifies linkage', () => {
+  assert.ok(controller.includes('openGenycasterConnectionWindow'));
+  assert.ok(controller.includes("page.opener = null"));
+  assert.ok(controller.includes('closeGenycasterConnectionWindow'));
+  assert.ok(controller.includes('isConnected(m_pendingProvider)'));
+  assert.ok(controller.includes('opened = openGenycasterConnectionWindow(destination.constData()) != 0'));
+  assert.ok(controller.includes('opened = QDesktopServices::openUrl(url)'));
+  assert.ok(!controller.includes('window.location ='));
+});
+
+test('OpenProof verification no longer sends the user to the Genyleap account portal', () => {
+  const auth = read('../../ui/mobile/browser_openproof_auth.cpp');
+  assert.ok(auth.includes('verification_uri_complete'));
+  assert.ok(auth.includes('approval.host() != canonicalIssuer.host()'));
+  assert.ok(auth.includes('approval.path() != QStringLiteral("/oauth/device")'));
+  assert.ok(auth.includes('verificationQuery.queryItemValue(QStringLiteral("user_code")) != userCode'));
+  assert.ok(!auth.includes('https://genyleap.com/account'));
+  assert.ok(!auth.includes('/openproof/oauth/device?user_code='));
+});
+
 test('own signed-in profile always exposes connection manager regardless of login issuer', () => {
   assert.match(qml, /root\.isOwnProfile && Number\(root\.accountFid\) > 0/);
   assert.doesNotMatch(qml, /root\.accountIssuer === openProofConnections\.identityIssuer/);
