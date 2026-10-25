@@ -26,7 +26,11 @@ window.__genycasterSetBrowserChromeTheme=applyBrowserChromeTheme;
 applyBrowserChromeTheme(
     document.documentElement.getAttribute?.("data-chrome-theme") !== "light", false);
 let finished=false, failed=false;
+let qtRuntimeLoaded=false, qmlRootReady=false;
 const studioIntro=$("genycaster-studio-intro");
+let studioComplete=true;
+// Eight seconds total: two unhurried, readable, four-second white-text credits.
+const studioSceneMs=4000;
 const bootStarted=performance.now();
 let wasmResourceUrl;
 let wasmResourceObserver=null;
@@ -77,20 +81,29 @@ try{
 const updating=seen && !!currentVersion && !!previousVersion && previousVersion!==currentVersion;
 const installing=!seen || updating;
 bootPhase=installing?"download":"initialize";
-// The two studio beats run while the real Qt/WASM startup proceeds, never
-// delaying a ready app or simulating download percentages. Warm starts skip it.
-if (studioIntro && boot && installing &&
-    !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+// Studio credits are not progress simulation. They begin before heavy scripts
+// load, stay readable for four seconds each, and cannot vanish when Qt happens
+// to finish early. A warm start never waits for studio credits.
+if (studioIntro && boot && installing) {
+    const earlyStart=Number(window.__genycasterIntroStartedAt);
+    const startedAt=Number.isFinite(earlyStart) && earlyStart>0
+        ? earlyStart : performance.now();
+    studioComplete=false;
     studioIntro.hidden=false;
     boot.dataset.intro='on';
+    const elapsed=Math.max(0,performance.now()-startedAt);
+    studioIntro.dataset.scene=elapsed>=studioSceneMs ? 'partners' : 'studio';
     window.setTimeout(()=>{
-        if (!finished && !failed && !studioIntro.hidden)
+        if (!failed && !finished && !studioComplete)
             studioIntro.dataset.scene='partners';
-    },900);
+    },Math.max(0,studioSceneMs-elapsed));
     window.setTimeout(()=>{
+        if (studioComplete) return;
+        studioComplete=true;
         studioIntro.hidden=true;
         boot.dataset.intro='off';
-    },1950);
+        if(qtRuntimeLoaded && qmlRootReady) revealReady();
+    },Math.max(0,studioSceneMs*2-elapsed));
 }
 if(boot?.dataset){
     boot.dataset.mode=installing?"install":"warm";
@@ -436,10 +449,8 @@ function fail(error) {
 // The Qt loader signals only that WebAssembly bootstrapped, NOT that QML
 // constructed Main. Requiring an explicit C++ acknowledgement prevents the
 // silent black screen seen when a type in the AppShell dependency tree fails.
-let qtRuntimeLoaded=false, qmlRootReady=false;
 function revealReady() {
-
-    if(failed||finished||!qtRuntimeLoaded||!qmlRootReady)return;
+    if(failed||finished||!qtRuntimeLoaded||!qmlRootReady||!studioComplete)return;
     wasmResourceObserver?.disconnect();
     try{progressReader?.cancel();}catch{}
     // Ready reflects Qt's actual initialization callback, not

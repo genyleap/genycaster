@@ -206,12 +206,12 @@ test('Safari touch icons and responsive stage indicators ship from one public ro
     assert.doesNotMatch(html,/class="boot-journey/);
     assert.match(html,/Preparing Genycaster…/);
     assert.match(html,/Genyleap Software Revolution/);
-    assert.match(html,/Farcaster<small>Social protocol/);
+    assert.match(html,/\<div\>Farcaster\<\/div\>/);
     assert.match(html,/id="boot-track"/);
 });
 
 test('bootstrap uses actual original Geny SVG, not a home-made DNA',()=>{
-    assert.match(html,/genycaster-wordmark\.svg/);
+    assert.match(html,/genycaster-boot-wordmark\.svg/);
     assert.match(html,/Powered by <strong>Genyleap<\/strong>/);
     assert.doesNotMatch(html,/helix-float|boot-card|qtlogo/);
 });

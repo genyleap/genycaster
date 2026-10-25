@@ -2,26 +2,34 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const source=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
-test('Genyleap studio ident precedes measured WASM loading without faked percent',()=>{
+test('Plain, readable studio credits precede actual WASM progress without decoration',()=>{
   const html=source('ui/wasm/genycaster-shell.html');
   const js=source('ui/wasm/genycaster-loader.js');
   const pack=source('tools/package_wasm_assets.py');
   const cmake=source('ui/CMakeLists.txt');
-  for(const brand of ['genyleap-mark-dark.svg','genyleap-mark-light.svg']) {
+  for(const brand of ['genycaster-boot-icon.svg','genycaster-boot-wordmark.svg']) {
     assert.match(html,new RegExp(brand.replace('.','\\.')));
     assert.match(pack,new RegExp(brand.replace('.','\\.')));
     assert.match(cmake,new RegExp(brand.replace('.','\\.')));
-    assert.match(source('ui/wasm/'+brand),/<svg/);
+    assert.match(source('ui/wasm/'+brand),/<(?:[a-z0-9]+:)?svg/);
   }
   for(const label of ['Genyleap Software Revolution','presents','Blockchain','Farcaster','Base','OpenProof'])
     assert.ok(html.includes(label),label);
-  assert.match(js,/installing &&/);
-  assert.match(js,/prefers-reduced-motion: reduce/);
-  assert.match(js,/studioIntro\.dataset\.scene='partners'/);
+  for(const removed of ['studio-node','studio-hairline','studio-mark','studio-ecosystem-title',
+    'studioBreathe','Built for an open ecosystem','genyleap-mark-dark.svg'])
+    assert.ok(!html.includes(removed),removed);
+  const intro=html.split('<div id="genycaster-studio-intro"')[1].split('<div class="boot-content">')[0];
+  assert.doesNotMatch(intro,/<img\b|<svg\b|<small\b/);
+  assert.match(html,/#genycaster-studio-intro\{[^}]*background:#0b0c0f/);
+  assert.match(js,/const studioSceneMs=4000/);
+  assert.match(js,/studioSceneMs\*2-elapsed/);
+  assert.match(js,/!studioComplete\)return/);
   assert.match(js,/Updating Software…/);
   assert.match(js,/Initializing Qt and WebAssembly/);
   assert.match(js,/received\*100\/total/);
-  assert.match(js,/if\(studioIntro\)studioIntro\.hidden=true/);
+  assert.match(html,/__genycasterIntroStartedAt=performance.now\(\)/);
+  assert.ok(html.indexOf('src="genycaster-assets.js"')<html.indexOf('src="qtloader.js"'));
+  assert.doesNotMatch(source('ui/wasm/genycaster-boot-icon.svg'),/fill="#101010"/);
 });
 test('Cloud schema isolates all intended owner features, not speculative leaderboards',()=>{
   const first=source('services/account-sync/migrations/001_bookmarks.sql');

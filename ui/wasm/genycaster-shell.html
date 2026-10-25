@@ -40,7 +40,7 @@
 #ios-status-chrome{position:fixed;top:0;left:0;right:0;height:max(env(safe-area-inset-top,0px),1px);background-color:var(--app-chrome);pointer-events:none;z-index:6}
 #qt-screen{position:absolute;inset:0;width:100%;height:100%;overflow:hidden;z-index:1}
 #qt-screen canvas{touch-action:none;-webkit-touch-callout:none}
-#genycaster-boot{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;background:var(--app-chrome);color:var(--boot-ink);transition:opacity .26s ease}
+#genycaster-boot{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;background:#0b0c0f;color:#f7f8fa;transition:opacity .26s ease}
 #genycaster-boot.finished{opacity:0;pointer-events:none}
 /* A running WASM tab does not update when its deployment changes. Present an
    explicit, non-destructive refresh affordance above Qt, never auto-reload an
@@ -74,51 +74,36 @@
 @media(max-width:560px){#genycaster-update-banner{padding:calc(env(safe-area-inset-top,0px) + 16px) 18px 20px;border-radius:0 0 22px 22px;max-height:82dvh}.update-version-grid{gap:7px}.update-version{padding:10px}.update-version strong{font-size:15px}}
 @media(prefers-reduced-motion:reduce){#genycaster-update-banner{animation:none}}
 
-/* Short, motion-aware studio ident shown over real asynchronous startup.
-   It never replaces measured WASM bytes with invented progress. */
+/* A deliberately plain studio credit: white type, no emblems, frames,
+   decorative rings or faux loading graphics. Each card stays readable. */
 #genycaster-boot[data-intro="on"] .boot-content,
 #genycaster-boot[data-intro="on"] .boot-credit{visibility:hidden}
-#genycaster-studio-intro{position:absolute;inset:0;display:grid;place-items:center;z-index:2;
-  padding:32px 24px;overflow:hidden;isolation:isolate;text-align:center;pointer-events:none}
+#genycaster-studio-intro{position:absolute;inset:0;z-index:2;display:grid;place-items:center;
+  padding:32px 24px;background:#0b0c0f;text-align:center;pointer-events:none}
 #genycaster-studio-intro[hidden]{display:none}
-#genycaster-studio-intro::before{content:"";position:absolute;z-index:-1;
-  width:min(72vw,580px);aspect-ratio:1;border:1px solid #60d5af29;border-radius:50%;
-  background:radial-gradient(circle,#32cc9c18 0%,transparent 64%);
-  box-shadow:0 0 0 56px #60d5af08,0 0 0 115px #60d5af05;
-  animation:studioBreathe 3s ease-in-out infinite}
 .studio-scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  flex-direction:column;gap:14px;opacity:0;transform:translateY(12px) scale(.975);
-  transition:opacity .42s ease,transform .55s cubic-bezier(.2,.75,.25,1)}
+  flex-direction:column;gap:18px;padding:32px 24px;color:#f7f8fa;opacity:0;
+  transition:opacity .4s ease}
 #genycaster-studio-intro[data-scene="studio"] .studio-scene--studio,
-#genycaster-studio-intro[data-scene="partners"] .studio-scene--partners{opacity:1;transform:none}
-.studio-mark{display:block;width:94px;height:94px;object-fit:contain;filter:drop-shadow(0 16px 40px #21ba8450)}
-:root[data-chrome-theme="light"] .studio-mark{content:url("./genyleap-mark-light.svg")}
-.studio-brand{font-size:clamp(29px,6.5vw,44px);font-weight:780;letter-spacing:.12em;line-height:1.1}
-.studio-caption{font-size:clamp(11px,2vw,13px);font-weight:600;letter-spacing:.23em;text-transform:uppercase;color:#63d9b4}
-.studio-presents{font-size:13px;font-style:italic;letter-spacing:.18em;opacity:.62;margin-top:12px}
-.studio-hairline{width:88px;height:1px;background:linear-gradient(90deg,transparent,#5dd8b0,transparent)}
-.studio-ecosystem-title{font-size:10px;letter-spacing:.26em;text-transform:uppercase;opacity:.55}
-.studio-ecosystem{width:min(520px,92vw);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.studio-node{min-height:85px;border:1px solid #66cdae38;border-radius:14px;display:grid;place-items:center;
-  background:linear-gradient(140deg,#2cb59014,transparent 72%);position:relative;
-  font-size:clamp(14px,3vw,18px);font-weight:700;letter-spacing:.045em;box-shadow:0 12px 32px #0001}
-.studio-node::before{content:"";position:absolute;width:5px;height:5px;border-radius:50%;
-  background:#65e1bc;top:11px;left:12px;box-shadow:0 0 12px #65e1bc9c}
-.studio-node small{display:block;font-size:9px;text-transform:uppercase;font-weight:550;letter-spacing:.15em;opacity:.6}
-@keyframes studioBreathe{50%{transform:scale(1.06);opacity:.55}}
-@media(prefers-reduced-motion:reduce){#genycaster-studio-intro::before{animation:none}
-  .studio-scene{transition:none;transform:none}}
+#genycaster-studio-intro[data-scene="partners"] .studio-scene--partners{opacity:1}
+.studio-caption{font-size:clamp(23px,4.5vw,42px);font-weight:580;letter-spacing:.025em;line-height:1.3;
+  max-width:760px}
+.studio-presents{font-size:clamp(15px,2.5vw,19px);font-weight:400;letter-spacing:.11em;
+  color:#f7f8fa;margin-top:8px}
+.studio-ecosystem{display:flex;flex-direction:column;gap:17px;align-items:center;
+  font-size:clamp(22px,4.4vw,35px);font-weight:500;line-height:1.25;letter-spacing:.035em}
+@media(prefers-reduced-motion:reduce){.studio-scene{transition:none}}
 .boot-content{width:min(380px,100%);padding:24px 8px;display:flex;flex-direction:column;align-items:center;text-align:center;margin-inline:auto}
 .boot-mark{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;width:100%;margin-bottom:52px;text-align:center}
-.boot-glyph{display:block;width:76px;height:76px;object-fit:contain}
-.boot-wordmark{display:block;width:min(260px,75vw);max-width:100%;height:auto;object-fit:contain;object-position:center}:root[data-chrome-theme="dark"] .boot-wordmark{content:url("./genycaster-wordmark-dark.svg")}
-.boot-beta{display:block;width:100%;text-align:center;font-size:11px;font-weight:650;letter-spacing:.07em;color:var(--boot-ink);opacity:.55;line-height:1;white-space:nowrap}
+.boot-glyph{display:block;width:74px;height:74px;object-fit:contain}
+.boot-wordmark{display:block;width:min(260px,75vw);max-width:100%;height:auto;object-fit:contain;object-position:center}
+.boot-beta{display:block;width:100%;text-align:center;font-size:11px;font-weight:650;letter-spacing:.07em;color:#f7f8fa;opacity:.6;line-height:1;white-space:nowrap}
 h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.01em;margin:0 0 20px;text-align:center}
-.boot-track{width:100%;height:5px;background:#dfe5f1;border-radius:99px;overflow:hidden}
-.boot-fill{height:100%;width:28%;border-radius:99px;background:#315fff;animation:indeterminate 1.8s ease-in-out infinite}
+.boot-track{width:100%;height:4px;background:#353841;border-radius:99px;overflow:hidden}
+.boot-fill{height:100%;width:28%;border-radius:99px;background:#eef0f4;animation:indeterminate 1.8s ease-in-out infinite}
 .boot-fill.measured{animation:none;transition:width .16s linear}
-.boot-foot{display:flex;width:100%;justify-content:space-between;gap:12px;margin-top:13px;font-size:12px;line-height:1.4;color:#738099}
-#boot-percent{font-variant-numeric:tabular-nums;color:#315fff;font-weight:650}
+.boot-foot{display:flex;width:100%;justify-content:space-between;gap:12px;margin-top:13px;font-size:12px;line-height:1.4;color:#999da9}
+#boot-percent{font-variant-numeric:tabular-nums;color:#eef0f4;font-weight:650}
 .boot-status{display:none;font-size:13px;line-height:1.55;color:#69758b;margin:16px 0 0;overflow-wrap:anywhere}
 #genycaster-boot[data-phase="failed"] .boot-status{display:block}
 #genycaster-boot[data-phase="failed"] .boot-fill{animation:none;width:100%;background:#c45b70;opacity:.65}
@@ -157,26 +142,22 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
 <div id="genycaster-boot" role="status" aria-live="polite">
   <div id="genycaster-studio-intro" data-scene="studio" aria-hidden="true" hidden>
     <div class="studio-scene studio-scene--studio">
-      <img class="studio-mark" src="./genyleap-mark-dark.svg" alt="" decoding="async">
-      <div class="studio-brand">GENYLEAP</div>
-      <div class="studio-hairline"></div>
       <div class="studio-caption">Genyleap Software Revolution</div>
       <div class="studio-presents">presents</div>
     </div>
     <div class="studio-scene studio-scene--partners">
-      <div class="studio-ecosystem-title">Built for an open ecosystem</div>
       <div class="studio-ecosystem">
-        <div class="studio-node"><span>Blockchain<small>Open infrastructure</small></span></div>
-        <div class="studio-node"><span>Farcaster<small>Social protocol</small></span></div>
-        <div class="studio-node"><span>Base<small>Onchain ecosystem</small></span></div>
-        <div class="studio-node"><span>OpenProof<small>Account identity</small></span></div>
+        <div>Blockchain</div>
+        <div>Farcaster</div>
+        <div>Base</div>
+        <div>OpenProof</div>
       </div>
     </div>
   </div>
   <div class="boot-content">
     <div class="boot-mark">
-      <img class="boot-glyph" src="./genycaster-icon.svg" alt="" decoding="async">
-      <img class="boot-wordmark" src="./genycaster-wordmark.svg" alt="GenyCaster" decoding="async"><span class="boot-beta">Beta 1.0</span>
+      <img class="boot-glyph" src="./genycaster-boot-icon.svg" alt="" decoding="async">
+      <img class="boot-wordmark" src="./genycaster-boot-wordmark.svg" alt="GenyCaster" decoding="async"><span class="boot-beta">Beta 1.0</span>
     </div>
     <h1 id="boot-heading">Preparing Genycaster…</h1>
     <p class="boot-status" id="boot-status"></p>
@@ -186,9 +167,27 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
   </div>
   <div class="boot-credit"><div>Powered by <strong>Genyleap</strong> · WASM Engine</div><div class="boot-build" id="boot-build-credit"></div></div>
 </div>
+<script src="genycaster-assets.js"></script>
+<script>
+// Show the first studio credit before the large Qt loader scripts evaluate,
+// not after a flash of the loading UI. Never read account or protocol data.
+(function () {
+    try {
+        const current=window.__genycasterAssets?.version || "";
+        const seen=localStorage.getItem("genycaster.boot.loaded.v1")==="1";
+        const previous=localStorage.getItem("genycaster.boot.version.v1") || "";
+        if (seen && !(current && previous && current!==previous)) return;
+        const intro=document.getElementById("genycaster-studio-intro");
+        const boot=document.getElementById("genycaster-boot");
+        if (!intro || !boot) return;
+        window.__genycasterIntroStartedAt=performance.now();
+        intro.hidden=false;
+        boot.dataset.intro="on";
+    } catch (_) { /* optional storage and boot animation */ }
+})();
+</script>
 <script src="qtloader.js"></script>
 <script src="farcaster_client.js"></script>
-<script src="genycaster-assets.js"></script>
 <script src="genycaster-loader.js"></script>
 </body>
 </html>

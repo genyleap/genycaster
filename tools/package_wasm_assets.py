@@ -23,7 +23,7 @@ directory = args.dir.resolve()
 if args.source:
     source=args.source.resolve()
     for rel in (
-        "genycaster-brand.svg", "genycaster-wordmark.svg", "genycaster-wordmark-dark.svg", "genyleap-mark-dark.svg", "genyleap-mark-light.svg", "genycaster-update-icon.svg", "genycaster-shell.html", "genycaster-loader.js", "genycaster-sw.js",
+        "genycaster-brand.svg", "genycaster-wordmark.svg", "genycaster-wordmark-dark.svg", "genycaster-boot-icon.svg", "genycaster-boot-wordmark.svg", "genycaster-update-icon.svg", "genycaster-shell.html", "genycaster-loader.js", "genycaster-sw.js",
         "apple-touch-icon.png", "apple-touch-icon-precomposed.png",
         "genycaster.webmanifest", "genycaster-icon.svg", "secure_signer_vault.mjs",
         "farcaster_protocol.mjs", "browser_protocol_signer.mjs",
@@ -65,7 +65,7 @@ if not target.exists() or target.stat().st_size != wasm.stat().st_size:
 # Never auto-delete an active content-addressed release during packaging.
 public = ["farcaster_client.html", "qtloader.js", "farcaster_client.js",
           "genycaster-loader.js", "genycaster-sw.js",
-          "genycaster.webmanifest", "genycaster-icon.svg", "genycaster-brand.svg", "genycaster-wordmark.svg", "genycaster-wordmark-dark.svg", "genyleap-mark-dark.svg", "genyleap-mark-light.svg", "genycaster-update-icon.svg",
+          "genycaster.webmanifest", "genycaster-icon.svg", "genycaster-brand.svg", "genycaster-wordmark.svg", "genycaster-wordmark-dark.svg", "genycaster-boot-icon.svg", "genycaster-boot-wordmark.svg", "genycaster-update-icon.svg",
           "apple-touch-icon.png", "apple-touch-icon-precomposed.png",
           "recovery-phrase-dialog.mjs", "farcaster_recovery.mjs",
           "openproof_recovery.mjs", "browser_protocol_signer.mjs", "browser_device_session.mjs",

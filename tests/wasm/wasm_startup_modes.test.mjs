@@ -4,7 +4,7 @@ import vm from "node:vm";
 import {readFileSync} from "node:fs";
 
 const script=readFileSync(new URL("../../ui/wasm/genycaster-loader.js",import.meta.url),"utf8");
-function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measured=false,withoutLength=false}={}) {
+function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measured=false,withoutLength=false,studioTimed=false}={}) {
     const nodes=new Map();
     for(const id of ["genycaster-boot","boot-heading","boot-status","boot-stage",
         "boot-fill","boot-percent","boot-retry","boot-build-credit","qt-screen",
@@ -14,10 +14,10 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
         "genycaster-update-details-title",
         "genycaster-update-current","genycaster-update-next",
         "genycaster-update-current-channel","genycaster-update-next-channel",
-        "genycaster-update-details"]) {
+        "genycaster-update-details","genycaster-studio-intro"]) {
         const classes=new Set();
         nodes.set(id,{
-            hidden:id==="genycaster-update-banner"||id==="genycaster-update-backdrop",textContent:"",style:{},dataset:{},
+            hidden:id==="genycaster-update-banner"||id==="genycaster-update-backdrop"||id==="genycaster-studio-intro",textContent:"",style:{},dataset:{},
             classList:{add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x)},
             handlers:{},addEventListener(type,handler){this.handlers[type]=handler;}
         });
@@ -29,6 +29,8 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     const chrome={scheme:"",color:"",statusStyle:""};
     let config=null, observer=null, downloadStream=null;
     let latestVersion=version, reloadedTo="";
+    let now=100;
+    const timers=[];
     const listeners={};
     const binary="farcaster_client.bbbbbbbbbbbbbbbbbbbb.wasm";
     const scope={
@@ -48,7 +50,12 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
                         headers:{"Content-Type":"application/wasm"}
                     }),
             addEventListener(name,handler){listeners[name]=handler;},innerHeight:700,
-            setTimeout:(fn,delay)=>{if(delay!==2500)fn();},
+            setTimeout:(fn,delay)=>{
+                if(delay===2500)return 0;
+                if(studioTimed){timers.push({at:now+delay,fn});return timers.length;}
+                fn();
+                return 0;
+            },
         },
         localStorage:{
             getItem:key=>storage.get(key)||null,
@@ -66,7 +73,7 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
             })},
         location:{href:"https://example.test/farcaster_client.html",origin:"https://example.test",
                   replace(url){reloadedTo=url;}},
-        performance:{now:()=>100,getEntriesByName:url=>resources.get(url)||[]},
+        performance:{now:()=>now,getEntriesByName:url=>resources.get(url)||[]},
         PerformanceObserver:class {
             constructor(cb){this.cb=cb;}
             observe(){observer=this.cb;}
@@ -78,6 +85,16 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     vm.runInNewContext(script,scope);
     return {
         nodes,storage,resources,chrome,
+        advance(ms) {
+            const target=now+ms;
+            while(timers.some(timer=>timer.at<=target)){
+                timers.sort((a,b)=>a.at-b.at);
+                const next=timers.shift();
+                now=next.at;
+                next.fn();
+            }
+            now=target;
+        },
         setLatestVersion(value){latestVersion=value;},
         fireFocus(){return listeners.focus?.();},
         clickUpdate(){nodes.get("genycaster-update-now").handlers.click?.();},
@@ -103,6 +120,36 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
         label:()=>nodes.get("boot-stage").textContent
     };
 }
+
+test("two plain studio credits remain readable for four seconds each even when Qt loads early",()=>{
+    const h=host({studioTimed:true});
+    const intro=h.nodes.get("genycaster-studio-intro");
+    assert.equal(intro.hidden,false);
+    assert.equal(intro.dataset.scene,"studio");
+    h.config.qt.onLoaded();
+    h.qmlReady();
+    assert.notEqual(h.phase(),"ready","Qt readiness must not cut the studio credit short");
+    h.advance(3999);
+    assert.equal(intro.dataset.scene,"studio");
+    assert.equal(intro.hidden,false);
+    h.advance(1);
+    assert.equal(intro.dataset.scene,"partners");
+    h.advance(3999);
+    assert.equal(intro.hidden,false);
+    assert.notEqual(h.phase(),"ready");
+    h.advance(1);
+    assert.equal(intro.hidden,true);
+    assert.equal(h.phase(),"ready","real Qt readiness is now revealed");
+    assert.equal(h.storage.get("genycaster.boot.loaded.v1"),"1");
+});
+test("warm boot never waits through studio credits",()=>{
+    const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa",studioTimed:true});
+    const intro=h.nodes.get("genycaster-studio-intro");
+    assert.equal(intro.hidden,true);
+    h.config.qt.onLoaded();
+    h.qmlReady();
+    assert.equal(h.phase(),"ready");
+});
 
 test("first launch uses real download → install → Qt initialize → ready milestones",async()=>{
     const h=host();

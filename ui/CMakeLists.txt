@@ -478,11 +478,11 @@ if(EMSCRIPTEN)
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-wordmark-dark.svg"
             "$<TARGET_FILE_DIR:farcaster_client>/genycaster-wordmark-dark.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genyleap-mark-dark.svg"
-            "$<TARGET_FILE_DIR:farcaster_client>/genyleap-mark-dark.svg"
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-boot-icon.svg"
+            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-boot-icon.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genyleap-mark-light.svg"
-            "$<TARGET_FILE_DIR:farcaster_client>/genyleap-mark-light.svg"
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-boot-wordmark.svg"
+            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-boot-wordmark.svg"
         COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_SOURCE_DIR}/tools/package_wasm_assets.py"
             --dir "$<TARGET_FILE_DIR:farcaster_client>"

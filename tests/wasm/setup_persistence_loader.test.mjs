@@ -86,7 +86,7 @@ test('WASM packages branded shell instead of Qt logo; mobile uses visible viewpo
     assert.match(html,/<script src="farcaster_client\.js">/);
     assert.doesNotMatch(html,/qtlogo/);
     assert.match(html,/class="boot-glyph"/);
-    assert.match(html,/class="boot-glyph" src="\.\/genycaster-icon\.svg"/);
+    assert.match(html,/class="boot-glyph" src="\.\/genycaster-boot-icon\.svg"/);
     assert.match(html,/Powered by <strong>Genyleap<\/strong>/);
     assert.match(html,/class="boot-content"/);
     assert.doesNotMatch(html,/<div class="boot-card"/);
@@ -415,8 +415,8 @@ test('Splash logo, version, loading copy and progress share a centered layout ax
     // shifting the visible logo to the right of the progress bar.
     const branding=html.match(/<div class="boot-mark">([\s\S]*?)<\/div>\s*<h1 id="boot-heading">/);
     assert.ok(branding,'brand group must close before the loading heading');
-    assert.match(branding[1],/<img class="boot-glyph" src="\.\/genycaster-icon\.svg" alt="" decoding="async">/);
-    assert.match(branding[1],/<img class="boot-wordmark" src="\.\/genycaster-wordmark\.svg" alt="GenyCaster"/);
+    assert.match(branding[1],/<img class="boot-glyph" src="\.\/genycaster-boot-icon\.svg" alt="" decoding="async">/);
+    assert.match(branding[1],/<img class="boot-wordmark" src="\.\/genycaster-boot-wordmark\.svg" alt="GenyCaster"/);
     assert.match(branding[1],/<span class="boot-beta">Beta 1\.0<\/span>/);
     assert.doesNotMatch(branding[1],/<span class="boot-glyph"/);
     assert.match(html,/\.boot-content\{[^}]*align-items:center[^}]*text-align:center/);
@@ -431,7 +431,7 @@ test('WASM splash is single-stage, retains original mark and build footer',()=>{
     const cmake=read('ui/CMakeLists.txt');
     const pack=read('tools/package_wasm_assets.py');
     assert.doesNotMatch(html,/class="boot-journey/);
-    assert.match(html,/genycaster-wordmark\.svg/);
+    assert.match(html,/genycaster-boot-wordmark\.svg/);
     assert.match(html,/Powered by <strong>Genyleap<\/strong> · WASM Engine/);
     assert.doesNotMatch(html,/box-shadow:0 0 0 4px/);
     assert.doesNotMatch(html,/id="boot-version"/);
