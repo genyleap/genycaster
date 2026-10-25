@@ -316,6 +316,16 @@ GenyDrawer {
                             Connections {
                                 target: picker
                                 function onClosed() { providerRow.confirmUnlink = false }
+                                function onOpened() {
+                                    if (providerRow.modelData === "linkedin") {
+                                        linkedinUrlField.text = picker.linkedInProfileUrl
+                                        picker.linkedInUrlError = false
+                                    }
+                                }
+                                function onLinkedInProfileUrlChanged() {
+                                    if (providerRow.modelData === "linkedin" && !linkedinUrlField.activeFocus)
+                                        linkedinUrlField.text = picker.linkedInProfileUrl
+                                }
                             }
                             onIsConnectedChanged: confirmUnlink = false
 
