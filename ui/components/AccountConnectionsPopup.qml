@@ -16,8 +16,6 @@ GenyDrawer {
     property bool authorizing: false
     property bool actionBusy: false
     property string pendingProvider: ""
-    property string linkedInProfileUrl: ""
-    property bool linkedInUrlError: false
     property bool catalogFallback: false
     property string approvalUrl: ""
     property string errorText: ""
@@ -27,7 +25,6 @@ GenyDrawer {
     signal refreshRequested()
     signal connectRequested(string provider)
     signal disconnectRequested(string provider, string subject)
-    signal saveLinkedInUrlRequested(string url)
     signal openProfileRequested(string url)
 
     // Connections is an in-product sheet: bottom-up on phones and
@@ -46,8 +43,6 @@ GenyDrawer {
     contentPadding: Theme.space4
     width: parent ? (mobilePresentation ? parent.width : Math.min(500, parent.width * 0.94)) : 500
     height: parent ? (mobilePresentation ? Math.min(parent.height * 0.92, 720) : parent.height) : 720
-
-    onOpened: linkedInUrlError = false
 
     readonly property string logoRoot: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/"
 
@@ -100,7 +95,10 @@ GenyDrawer {
         const connected = connectionFor(provider)
         if (!connected) return ""
         const username = String(connected.username || "").replace(/^@/, "")
-        if (provider === "linkedin") return linkedInProfileUrl
+        if (provider === "linkedin") {
+            const url = String(connected.profileUrl || "")
+            return /^https:\/\/www\.linkedin\.com\/in\/[A-Za-z0-9_-]{3,100}\/?$/.test(url) ? url : ""
+        }
         if (provider === "x" && /^[A-Za-z0-9_]{1,15}$/.test(username))
             return "https://x.com/" + username
         if (provider === "github"
@@ -316,16 +314,6 @@ GenyDrawer {
                             Connections {
                                 target: picker
                                 function onClosed() { providerRow.confirmUnlink = false }
-                                function onOpened() {
-                                    if (providerRow.modelData === "linkedin") {
-                                        linkedinUrlField.text = picker.linkedInProfileUrl
-                                        picker.linkedInUrlError = false
-                                    }
-                                }
-                                function onLinkedInProfileUrlChanged() {
-                                    if (providerRow.modelData === "linkedin" && !linkedinUrlField.activeFocus)
-                                        linkedinUrlField.text = picker.linkedInProfileUrl
-                                }
                             }
                             onIsConnectedChanged: confirmUnlink = false
 
@@ -463,49 +451,18 @@ GenyDrawer {
                                     }
                                 }
                             }
-                            ColumnLayout {
+                            DirectionAwareLabel {
+                                visible: providerRow.modelData === "linkedin"
+                                         && providerRow.isConnected
+                                         && picker.profileUrlFor("linkedin").length === 0
                                 Layout.fillWidth: true
                                 Layout.leftMargin: Theme.space3
                                 Layout.rightMargin: Theme.space3
-                                Layout.bottomMargin: Theme.space3
-                                visible: providerRow.modelData === "linkedin" && providerRow.isConnected
-                                spacing: Theme.space2
-                                DirectionAwareLabel {
-                                    Layout.fillWidth: true
-                                    text: qsTr("Public LinkedIn profile URL")
-                                    color: Theme.inkMuted
-                                    font.pixelSize: Theme.typeCaptionSize
-                                }
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: Theme.space2
-                                    DirectionAwareTextField {
-                                        id: linkedinUrlField
-                                        Layout.fillWidth: true
-                                        forceLeftToRight: true
-                                        inputMethodHints: Qt.ImhUrlCharactersOnly
-                                        placeholderText: "https://www.linkedin.com/in/your-name"
-                                        text: picker.linkedInProfileUrl
-                                        selectByMouse: true
-                                        onTextEdited: picker.linkedInUrlError = false
-                                        onAccepted: picker.saveLinkedInUrlRequested(text)
-                                    }
-                                    ActionButton {
-                                        compact: true
-                                        prominent: linkedinUrlField.text.trim().length > 0
-                                        text: qsTr("Save")
-                                        onClicked: picker.saveLinkedInUrlRequested(linkedinUrlField.text)
-                                    }
-                                }
-                                DirectionAwareLabel {
-                                    Layout.fillWidth: true
-                                    text: picker.linkedInUrlError
-                                          ? qsTr("Enter a valid https://www.linkedin.com/in/... address.")
-                                          : qsTr("LinkedIn confirmed your account, but this public URL is provided by you.")
-                                    color: picker.linkedInUrlError ? Theme.danger : Theme.inkSubtle
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    wrapMode: Text.Wrap
-                                }
+                                Layout.bottomMargin: Theme.space2
+                                text: qsTr("LinkedIn authenticated this account but did not provide its public vanity URL.")
+                                wrapMode: Text.Wrap
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
                             }
                             Rectangle {
                                 Layout.fillWidth: true

@@ -83,31 +83,30 @@ Rectangle {
             spacing: Theme.space2
             layoutDirection: Theme.uiDirection
 
-            Superellipse {
-                Layout.preferredWidth: 34
-                Layout.preferredHeight: 34
-                fillColor: Theme.primaryFill
-                curveDepth: Theme.shapeControlMedium
-
-                Icon {
-                    anchors.centerIn: parent
-                    text: Theme.iconLeaf
-                    color: Theme.accentInk
-                    preferredSize: Theme.iconSizeLarge
-                }
+            Image {
+                Layout.preferredWidth: 35
+                Layout.preferredHeight: 35
+                source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                sourceSize.width: 70
+                sourceSize.height: 70
+                fillMode: Image.PreserveAspectFit
+                Accessible.ignored: true
             }
 
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 0
-                Label {
+                Image {
                     Layout.fillWidth: true
-                    text: qsTrId("genycaster.side_nav.genycaster")
-                    color: Theme.textPrimary
-                    font.family: Theme.latinFontFamily
-                    font.pixelSize: Theme.typeTitle3Size
-                    font.weight: Theme.weightBold
-                    horizontalAlignment: Theme.textStartAlignment
+                    Layout.preferredHeight: 19
+                    horizontalAlignment: Image.AlignLeft
+                    fillMode: Image.PreserveAspectFit
+                    source: Theme.dark
+                            ? "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark-dark.svg"
+                            : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark.svg"
+                    sourceSize.width: 340
+                    sourceSize.height: 44
+                    Accessible.name: "GenyCaster"
                 }
                 Label {
                     text: qsTrId("genycaster.release.beta_1_0")

@@ -86,7 +86,7 @@ test('WASM packages branded shell instead of Qt logo; mobile uses visible viewpo
     assert.match(html,/<script src="farcaster_client\.js">/);
     assert.doesNotMatch(html,/qtlogo/);
     assert.match(html,/class="boot-glyph"/);
-    assert.match(html,/url\("\.\/genycaster-brand\.svg"\)/);
+    assert.match(html,/class="boot-glyph" src="\.\/genycaster-icon\.svg"/);
     assert.match(html,/Powered by <strong>Genyleap<\/strong>/);
     assert.match(html,/class="boot-content"/);
     assert.doesNotMatch(html,/<div class="boot-card"/);
@@ -413,11 +413,11 @@ test('WASM splash is single-stage, retains original mark and build footer',()=>{
     const cmake=read('ui/CMakeLists.txt');
     const pack=read('tools/package_wasm_assets.py');
     assert.doesNotMatch(html,/class="boot-journey/);
-    assert.match(html,/genycaster-brand\.svg/);
+    assert.match(html,/genycaster-wordmark\.svg/);
     assert.match(html,/Powered by <strong>Genyleap<\/strong> · WASM Engine/);
     assert.doesNotMatch(html,/box-shadow:0 0 0 4px/);
     assert.doesNotMatch(html,/id="boot-version"/);
-    assert.match(html,/<sup class="boot-beta">Beta 1\.0<\/sup>/);
+    assert.match(html,/<span class="boot-beta">Beta 1\.0<\/span>/);
     assert.doesNotMatch(html,/id="boot-note"/);
     assert.match(html,/id="boot-build-credit"/);
     assert.match(cmake,/--app-version "\$\{PROJECT_VERSION\}"/);

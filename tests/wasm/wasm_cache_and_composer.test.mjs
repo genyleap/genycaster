@@ -59,7 +59,7 @@ test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
             '--release-label','Beta 1.0'],
             {encoding:'utf8'});
         assert.equal(packSource.status,0,packSource.stderr);
-        const originalBrand=read(new URL('../../ui/assets/icons/genyleap/icons/brands/geny.svg',import.meta.url),'utf8');
+        const originalBrand=read(new URL('../../ui/wasm/genycaster-icon.svg',import.meta.url),'utf8');
         assert.equal(readFileSync(join(dir,'genycaster-brand.svg'),'utf8'),originalBrand,
             'boot asset must be the actual application SVG');
         const included=JSON.parse(readFileSync(join(dir,'genycaster-assets.json'),'utf8')).files;
@@ -209,7 +209,7 @@ test('Safari touch icons and responsive stage indicators ship from one public ro
 });
 
 test('bootstrap uses actual original Geny SVG, not a home-made DNA',()=>{
-    assert.match(html,/genycaster-brand\.svg/);
+    assert.match(html,/genycaster-wordmark\.svg/);
     assert.match(html,/Powered by <strong>Genyleap<\/strong>/);
     assert.doesNotMatch(html,/helix-float|boot-card|qtlogo/);
 });

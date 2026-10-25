@@ -24,7 +24,7 @@
 </script>
 <!-- Do not force black-translucent: WebKit deprecates it for mixed light/dark
      appearances. Let iOS choose status icons/chrome from the page colors. -->
-<link rel="icon" href="./genycaster-icon.svg?v=brand-2" type="image/svg+xml">
+<link rel="icon" href="./genycaster-icon.svg?v=brand-3" type="image/svg+xml">
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
 <link rel="manifest" href="genycaster.webmanifest?v=chrome-3">
 <title>Genycaster Beta 1.0</title>
@@ -75,9 +75,9 @@
 @media(prefers-reduced-motion:reduce){#genycaster-update-banner{animation:none}}
 .boot-content{width:min(380px,100%);padding:24px 8px;text-align:center}
 .boot-mark{display:flex;flex-direction:column;align-items:center;gap:16px;margin-bottom:52px}
-.boot-glyph{display:block;width:64px;height:64px;background:#315fff;-webkit-mask:url("./genycaster-brand.svg") center/contain no-repeat;mask:url("./genycaster-brand.svg") center/contain no-repeat}
-.boot-brand{display:inline-flex;align-items:flex-start;justify-content:center;gap:5px;font-size:26px;line-height:1.3;font-weight:750;letter-spacing:-.045em;white-space:nowrap}
-.boot-beta{font-size:10px;font-weight:700;letter-spacing:0;color:#315fff;line-height:1;white-space:nowrap;transform:translateY(3px)}
+.boot-glyph{display:block;width:76px;height:76px;object-fit:contain}
+.boot-wordmark{display:block;width:min(260px,75vw);height:auto;object-fit:contain}:root[data-chrome-theme="dark"] .boot-wordmark{content:url("./genycaster-wordmark-dark.svg")}
+.boot-beta{font-size:11px;font-weight:650;letter-spacing:.07em;color:var(--boot-ink);opacity:.55;line-height:1;white-space:nowrap}
 h1{font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.01em;margin:0 0 20px}
 .boot-track{height:5px;background:#dfe5f1;border-radius:99px;overflow:hidden}
 .boot-fill{height:100%;width:28%;border-radius:99px;background:#315fff;animation:indeterminate 1.8s ease-in-out infinite}
@@ -122,8 +122,8 @@ h1{font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.01em;margin:
 <div id="genycaster-boot" role="status" aria-live="polite">
   <div class="boot-content">
     <div class="boot-mark">
-      <span class="boot-glyph" aria-hidden="true"></span>
-      <div class="boot-brand">Genycaster<sup class="boot-beta">Beta 1.0</sup></div>
+      <span class="boot-glyph" src="./genycaster-icon.svg" alt="" decoding="async">
+      <img class="boot-wordmark" src="./genycaster-wordmark.svg" alt="GenyCaster" decoding="async"><span class="boot-beta">Beta 1.0</span>
     </div>
     <h1 id="boot-heading">Preparing Genycaster…</h1>
     <p class="boot-status" id="boot-status"></p>

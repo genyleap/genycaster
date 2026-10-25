@@ -76,18 +76,7 @@ int main(int argc, char** argv)
     assert(restored.cachedSnapshot());
     assert(!restored.authorized());
     assert(restored.connections().size() == 2);
-    assert(!restored.setLinkedInProfileUrl(
-        QStringLiteral("https://linkedin.com.evil.example/in/attacker")));
-    assert(!restored.setLinkedInProfileUrl(
-        QStringLiteral("http://www.linkedin.com/in/member-name")));
-    assert(restored.setLinkedInProfileUrl(
-        QStringLiteral("https://www.linkedin.com/in/member-name")));
-    assert(restored.linkedInProfileUrl()
-           == QStringLiteral("https://www.linkedin.com/in/member-name"));
     restored.setViewerFid(43);
-    assert(restored.linkedInProfileUrl().isEmpty());
-    assert(!restored.setLinkedInProfileUrl(
-        QStringLiteral("https://www.linkedin.com/in/member-name")));
     assert(!restored.cachedSnapshot());
     assert(restored.connections().isEmpty());
     return 0;

@@ -36,25 +36,29 @@ Rectangle {
             layoutDirection: Theme.uiDirection
             spacing: Theme.space2
 
-            // Keep the DNA mark light and crisp: no filled logo tile in
-            // the narrow mobile header, and no offscreen shadow layer.
-            Icon {
+            Image {
                 Layout.preferredWidth: 30
-                Layout.preferredHeight: 34
-                text: Theme.iconLeaf
-                color: Theme.accent
-                preferredSize: 30
+                Layout.preferredHeight: 30
+                source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                sourceSize.width: 60
+                sourceSize.height: 60
+                fillMode: Image.PreserveAspectFit
+                Accessible.ignored: true
             }
 
             ColumnLayout {
                 spacing: 0
-                Label {
-                    text: qsTrId("genycaster.header.genycaster")
-                    color: Theme.ink
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.typeTitle3Size
-                    font.weight: Theme.weightBold
-                    renderType: Text.NativeRendering
+                Image {
+                    Layout.preferredWidth: 132
+                    Layout.preferredHeight: 20
+                    fillMode: Image.PreserveAspectFit
+                    horizontalAlignment: Image.AlignLeft
+                    source: Theme.dark
+                            ? "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark-dark.svg"
+                            : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark.svg"
+                    sourceSize.width: 300
+                    sourceSize.height: 40
+                    Accessible.name: "GenyCaster"
                 }
                 Label {
                     text: qsTrId("genycaster.release.beta_1_0")

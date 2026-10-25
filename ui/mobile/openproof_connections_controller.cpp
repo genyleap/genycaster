@@ -136,67 +136,7 @@ QVariantList OpenProofConnectionsController::connections() const { return m_conn
 bool OpenProofConnectionsController::actionBusy() const noexcept { return m_actionBusy; }
 bool OpenProofConnectionsController::cachedSnapshot() const noexcept { return m_cachedSnapshot; }
 QString OpenProofConnectionsController::pendingProvider() const { return m_pendingProvider; }
-QString OpenProofConnectionsController::linkedInProfileUrl() const { return m_linkedInProfileUrl; }
 
-void OpenProofConnectionsController::restoreLinkedInProfileUrl()
-{
-    m_linkedInProfileUrl.clear();
-    if (!m_settings || !m_viewerFid) return;
-    const QString key = QStringLiteral("openProofConnections/publicLinkedIn/")
-        + QString::number(m_viewerFid);
-    const QString saved = m_settings->value(key).toString();
-    // Revalidate persisted owner input on every read.
-    const QUrl url{saved};
-    static const QRegularExpression path{
-        QStringLiteral("^/in/[A-Za-z0-9_-]{3,100}/?$")};
-    if (url.scheme() == QStringLiteral("https")
-        && (url.host() == QStringLiteral("www.linkedin.com")
-            || url.host() == QStringLiteral("linkedin.com"))
-        && url.port() == -1 && url.userInfo().isEmpty()
-        && url.query().isEmpty() && url.fragment().isEmpty()
-        && path.match(url.path()).hasMatch()) {
-        m_linkedInProfileUrl = QStringLiteral("https://www.linkedin.com")
-            + url.path().remove(QRegularExpression{QStringLiteral("/$")});
-    }
-}
-
-bool OpenProofConnectionsController::setLinkedInProfileUrl(const QString& raw)
-{
-    if (!m_viewerFid || !m_settings
-        || !isConnected(QStringLiteral("linkedin"))) return false;
-    const QString value = raw.trimmed();
-    if (value.size() > 256) return false;
-    if (!value.isEmpty()) {
-        QString normalized = value;
-        if (normalized.startsWith(QStringLiteral("linkedin.com/"), Qt::CaseInsensitive)
-            || normalized.startsWith(QStringLiteral("www.linkedin.com/"), Qt::CaseInsensitive))
-            normalized.prepend(QStringLiteral("https://"));
-        const QUrl candidate{normalized};
-        static const QRegularExpression path{
-            QStringLiteral("^/in/[A-Za-z0-9_-]{3,100}/?$")};
-        if (candidate.scheme() != QStringLiteral("https")
-            || (candidate.host() != QStringLiteral("linkedin.com")
-                && candidate.host() != QStringLiteral("www.linkedin.com"))
-            || candidate.port() != -1 || !candidate.userInfo().isEmpty()
-            || !candidate.query().isEmpty() || !candidate.fragment().isEmpty()
-            || !path.match(candidate.path()).hasMatch()) return false;
-        m_linkedInProfileUrl = QStringLiteral("https://www.linkedin.com")
-            + candidate.path().remove(QRegularExpression{QStringLiteral("/$")});
-    } else {
-        m_linkedInProfileUrl.clear();
-    }
-    m_settings->setValue(QStringLiteral("openProofConnections/publicLinkedIn/")
-                         + QString::number(m_viewerFid), m_linkedInProfileUrl);
-    m_settings->sync();
-#if defined(__EMSCRIPTEN__)
-    EM_ASM({
-        if (typeof Module.genycasterSyncBrowserData === 'function')
-            Module.genycasterSyncBrowserData().catch(function() {});
-    });
-#endif
-    emit stateChanged();
-    return true;
-}
 QString OpenProofConnectionsController::recoveryGatewayOrigin() const
 {
     if (!trustedHttpsEndpoint(m_gatewayUrl)) return {};
@@ -308,7 +248,8 @@ void OpenProofConnectionsController::restoreCachedConnections()
             {QStringLiteral("provider"), provider},
             {QStringLiteral("subject"), subject},
             {QStringLiteral("displayName"), name},
-            {QStringLiteral("username"), username}});
+            {QStringLiteral("username"), username},
+            {QStringLiteral("profileUrl"), value.value(QStringLiteral("profileUrl")).toString()}});
     }
     m_connections = std::move(restored);
     m_cachedSnapshot = true;
@@ -330,7 +271,8 @@ void OpenProofConnectionsController::saveCachedConnections() const
             {QStringLiteral("provider"), provider},
             {QStringLiteral("subject"), subject},
             {QStringLiteral("displayName"), item.value(QStringLiteral("displayName")).toString().left(256)},
-            {QStringLiteral("username"), item.value(QStringLiteral("username")).toString().left(128)}});
+            {QStringLiteral("username"), item.value(QStringLiteral("username")).toString().left(128)},
+            {QStringLiteral("profileUrl"), item.value(QStringLiteral("profileUrl")).toString().left(256)}});
     }
     const QJsonObject snapshot{
         {QStringLiteral("fid"), QString::number(m_viewerFid)},
@@ -385,7 +327,6 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_error.clear();
     m_viewerFid = fid;
     restoreCachedConnections();
-    restoreLinkedInProfileUrl();
     emit stateChanged();
 }
 
@@ -572,13 +513,37 @@ void OpenProofConnectionsController::refreshConnections()
                     const qulonglong linked = fidValue.toVariant().toULongLong(&valid);
                     linkedFid = linkedFid || (valid && linked == m_viewerFid);
                 }
+                // Never synthesize a LinkedIn vanity URL from display_name or
+                // the OIDC sub. Prefer provider-backed profile_url and only
+                // use preferred_username when that exact claim is available.
+                QString publicUrl;
+                const QString handle = json.value(QStringLiteral("preferred_username")).toString();
+                if (provider == QStringLiteral("linkedin")) {
+                    const QString value = json.value(QStringLiteral("profile_url")).toString();
+                    const QUrl url{value};
+                    static const QRegularExpression profilePath{
+                        QStringLiteral("^/in/[A-Za-z0-9_-]{3,100}/?$")};
+                    static const QRegularExpression vanity{
+                        QStringLiteral("^[A-Za-z0-9_-]{3,100}$")};
+                    if (url.scheme() == QStringLiteral("https")
+                        && (url.host() == QStringLiteral("linkedin.com")
+                            || url.host() == QStringLiteral("www.linkedin.com"))
+                        && url.port() == -1 && url.userInfo().isEmpty()
+                        && url.query().isEmpty() && url.fragment().isEmpty()
+                        && profilePath.match(url.path()).hasMatch()) {
+                        publicUrl = QStringLiteral("https://www.linkedin.com")
+                            + url.path();
+                    } else if (vanity.match(handle).hasMatch()) {
+                        publicUrl = QStringLiteral("https://www.linkedin.com/in/") + handle;
+                    }
+                }
                 current.push_back(QVariantMap{
                     {QStringLiteral("provider"), provider},
                     {QStringLiteral("subject"), subject},
                     {QStringLiteral("displayName"),
                         json.value(QStringLiteral("display_name")).toString()},
-                    {QStringLiteral("username"),
-                        json.value(QStringLiteral("preferred_username")).toString()},
+                    {QStringLiteral("username"), handle},
+                    {QStringLiteral("profileUrl"), publicUrl},
                 });
             }
             if (!linkedFid || farcasterClaims != 1) {

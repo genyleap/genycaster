@@ -469,8 +469,14 @@ if(EMSCRIPTEN)
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/apple-touch-icon-precomposed.png"
             "$<TARGET_FILE_DIR:farcaster_client>/apple-touch-icon-precomposed.png"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/genyleap/icons/brands/geny.svg"
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-icon.svg"
             "$<TARGET_FILE_DIR:farcaster_client>/genycaster-brand.svg"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-wordmark.svg"
+            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-wordmark.svg"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-wordmark-dark.svg"
+            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-wordmark-dark.svg"
         COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_SOURCE_DIR}/tools/package_wasm_assets.py"
             --dir "$<TARGET_FILE_DIR:farcaster_client>"
@@ -1013,6 +1019,9 @@ qt_add_qml_module(farcaster_client
         mobile/feed_rows_model.cpp
         mobile/feed_rows_model.hpp
     RESOURCES
+        wasm/genycaster-icon.svg
+        wasm/genycaster-wordmark.svg
+        wasm/genycaster-wordmark-dark.svg
 )
 
 target_include_directories(farcaster_client

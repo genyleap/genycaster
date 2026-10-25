@@ -59,12 +59,14 @@ test("Browser tab and installed app icon use actual brand DNA and a clean versio
     assert.match(html,/<title>Genycaster Beta 1\.0<\/title>/);
     assert.doesNotMatch(html,/Secure social client/);
     assert.equal(manifest.description,"Genycaster Beta 1.0");
-    assert.match(icon,/viewBox="0 0 192 192"/);
-    assert.match(icon,/translate\(24 24\) scale\(6\)/);
-    assert.match(icon,/fill="#ffffff"/);
+    assert.match(icon,/viewBox="0 0 512 512"/);
+    assert.match(icon,/GenyCaster icon/);
+    assert.match(icon,/fill="#FFFFFF"/);
+    assert.match(html,/genycaster-wordmark\.svg/);
+    assert.match(html,/genycaster-wordmark-dark\.svg/);
     const touch=readFileSync(new URL("../../ui/wasm/apple-touch-icon.png",import.meta.url));
     const touchPre=readFileSync(new URL("../../ui/wasm/apple-touch-icon-precomposed.png",import.meta.url));
     assert.ok(touch.equals(touchPre));
     assert.equal(touch.subarray(1,4).toString(),"PNG");
-    assert.match(read("ui/wasm/genycaster-sw.js"),/genycaster-static-v5/);
+    assert.match(read("ui/wasm/genycaster-sw.js"),/genycaster-static-v6/);
 });

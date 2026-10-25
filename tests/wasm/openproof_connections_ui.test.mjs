@@ -115,7 +115,7 @@ test('Genycaster owns account connection actions; OpenProof controls the proof a
   assert.match(qml, /openProofConnections\.authorizeAccount\(\)/);
   assert.doesNotMatch(shell, /openProofConnections\.openManager\(provider\)/);
   assert.doesNotMatch(popup, /XMLHttpRequest|fetch\(/);
-  assert.match(popup, /https:\/\/www\.linkedin\.com\/in\//);
+  assert.match(popup, /profileUrlFor\(provider\)/);
   assert.match(controller, /gatewayActionUrl\(QStringLiteral\("\/handoff"\)\)/);
   assert.match(controller, /gatewayActionUrl\(QStringLiteral\("\/disconnect"\)\)/);
   assert.match(controller, /m_viewerFid != requiredFid \|\| fid != requiredFid/);
@@ -176,7 +176,7 @@ test('connection selector packages provider-owned SVGs and keeps links in the ap
   assert.match(popup, /providerRow\.confirmUnlink = true/);
   assert.match(popup, /picker\.catalogFallback/);
   assert.doesNotMatch(popup, /XMLHttpRequest|fetch\(/);
-  assert.match(popup, /linkedInUrlError/);
+  assert.match(popup, /did not provide its public vanity URL/);
   assert.match(popup, /Theme\.iconCheck/);
   assert.doesNotMatch(popup, /Verify profile first|Provider catalog unavailable; showing known options/);
 });
@@ -198,11 +198,11 @@ test('social network badges have stateful checkmarks and real destinations', () 
   assert.match(qml, /text: Theme.iconCheck/);
   assert.match(qml, /socialBadge\.liveVerified \? Theme.success/);
   assert.match(qml, /root.openConnections\(\)/);
-  assert.match(qml, /openProofConnections.linkedInProfileUrl/);
+  assert.match(qml, /item\.profileUrl/);
   assert.match(popup, /onClicked: picker.openProfileRequested/);
-  assert.match(popup, /saveLinkedInUrlRequested/);
-  assert.match(controller, /bool OpenProofConnectionsController::setLinkedInProfileUrl/);
-  assert.match(controller, /candidate.host\(\) != QStringLiteral\("linkedin.com"\)/);
+  assert.doesNotMatch(popup, /saveLinkedInUrlRequested|linkedInUrlError/);
+  assert.match(controller, /json\.value\(QStringLiteral\("profile_url"\)\)/);
+  assert.match(controller, /url\.host\(\) == QStringLiteral\("linkedin.com"\)/);
 });
 
 test('provider OAuth success completes in a self-closing first-party popup', () => {
