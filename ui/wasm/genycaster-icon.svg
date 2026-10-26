@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="32 32 448 448" role="img" aria-labelledby="title desc">
   <title id="title">GenyCaster icon</title>
   <desc id="desc">Minimal rounded-square G mark with forward arrow. Vector-only artwork, no fonts or embedded images.</desc>
   <path fill="#101010" d="M 158 56 H 354 C 410.33 56 456 101.67 456 158 V 354 C 456 410.33 410.33 456 354 456 H 158 C 101.67 456 56 410.33 56 354 V 158 C 56 101.67 101.67 56 158 56 Z"/>

@@ -563,6 +563,22 @@ Item {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 1
                             }
+
+                            // Mobile timestamp belongs on the same baseline as
+                            // the author name, never below the handle or beside
+                            // the bottom edge of the overflow action.
+                            DirectionAwareLabel {
+                                objectName: "compactCastAuthorMetadata"
+                                visible: root.compact && Number(root.modelData.createdAtMs || 0) > 0
+                                Layout.alignment: Qt.AlignVCenter
+                                Layout.maximumWidth: Math.min(104, root.width * 0.25)
+                                text: visible ? LocaleFormat.formatRelativeTime(
+                                    Number(root.modelData.createdAtMs)) : ""
+                                color: Theme.inkSubtle
+                                font.pixelSize: Theme.typeCaptionSize
+                                elide: Text.ElideRight
+                                forceLeftToRight: true
+                            }
                         }
 
                         RowLayout {
@@ -594,18 +610,7 @@ Item {
                                 clientName: String(root.modelData.sourceClient || "")
                             }
 
-                            DirectionAwareLabel {
-                                objectName: "compactCastAuthorMetadata"
-                                visible: root.compact
-                                         && Number(root.modelData.createdAtMs || 0) > 0
-                                Layout.maximumWidth: Math.min(112, castAuthorIdentity.width * 0.43)
-                                text: visible
-                                    ? LocaleFormat.formatRelativeTime(Number(root.modelData.createdAtMs)) : ""
-                                color: Theme.inkSubtle
-                                font.pixelSize: Theme.typeCaptionSize
-                                elide: Text.ElideRight
-                            }
-                        }
+"".slice(0,0)                        }
                     }
 
                     ActionButton {

@@ -96,6 +96,7 @@
 #include "browser_wheel_fallback.hpp"
 #include "browser_signer_bridge.hpp"
 #include "browser_cast_payload.hpp"
+#include "browser_emoji_recovery.hpp"
 #endif
 #include "data_storage_controller.hpp"
 
@@ -1996,6 +1997,7 @@ int main(int argc, char* argv[])
     renderingController.attachWindow(mainWindow);
 #if defined(__EMSCRIPTEN__)
     installBrowserWheelBridge(mainWindow);
+    genycasterInstallBrowserEmojiRecovery();
     // This is the only reliable readiness event: the Main.qml object tree
     // exists, rather than just the Emscripten/Qt runtime being initialized.
     EM_ASM({ window.__genycasterQmlStartup?.(true, ""); });

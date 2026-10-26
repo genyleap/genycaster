@@ -131,11 +131,10 @@ ColumnLayout {
             // Timeline replies share the page canvas. Ownership and selection
             // use a restrained edge, not a full purple highlighted tile.
             fillColor: Theme.backgroundPrimary
-            // Distinguish new confirmed replies and other people's replies
-            // to my Cast without turning every reply into a filled tile.
-            borderWidth: root.highlighted || root.replyToMyCast ? Theme.strokeHairline : 0
-            borderColor: root.highlighted ? Theme.accent
-                         : root.replyToMyCast ? Theme.positive : "transparent"
+            // All conversation replies share one unobtrusive surface.
+            // Notification emphasis lives in the label, not a green outline.
+            borderWidth: 0
+            borderColor: "transparent"
             curveDepth: Theme.curveModal
 
             ColumnLayout {

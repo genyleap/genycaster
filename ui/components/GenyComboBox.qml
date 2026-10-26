@@ -112,7 +112,8 @@ ComboBox {
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: control.textAt(optionDelegate.index)
-                color: optionDelegate.highlighted || optionDelegate.currentOption ? Theme.ink : Theme.inkMuted
+                // Unselected choices must be fully readable, not appear disabled.
+                color: Theme.ink
                 font.pixelSize: Theme.typeLabelSize
                 font.weight: optionDelegate.currentOption ? Theme.weightDemiBold : Theme.weightMedium
                 verticalAlignment: Text.AlignVCenter
@@ -133,7 +134,7 @@ ComboBox {
             anchors.margins: 2
             fillColor: optionDelegate.highlighted || optionDelegate.hovered
                        ? Theme.primarySurfaceHover
-                       : optionDelegate.currentOption ? Theme.primarySurface : "transparent"
+                       : optionDelegate.currentOption ? Theme.primarySurface : Theme.surfaceRaised
             curveDepth: Theme.curveCompact
             Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
         }
@@ -157,7 +158,8 @@ ComboBox {
         }
 
         background: PopupSurface {
-            borderColor: Theme.borderMuted
+            fillColor: Theme.surfaceElevated
+            borderColor: Theme.borderDefault
             curveDepth: Theme.curveContainer
             elevation: Theme.elevationPopover
         }

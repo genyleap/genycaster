@@ -286,13 +286,13 @@ GenyDrawer {
                 }
             }
             DirectionAwareLabel {
-                visible: picker.cachedSnapshot && !picker.authorized
+                visible: picker.cachedSnapshot && !picker.authorized && !picker.mobilePresentation
                 text: qsTr("Saved account links")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
             }
             ActionButton {
-                visible: picker.cachedSnapshot && !picker.authorized
+                visible: picker.cachedSnapshot && !picker.authorized && !picker.mobilePresentation
                 compact: true
                 text: picker.editAccessRequested ? qsTr("Hide verification") : qsTr("Edit connections")
                 quiet: true
@@ -307,6 +307,27 @@ GenyDrawer {
                 iconGlyph: Theme.iconRefresh
                 enabled: !picker.actionBusy
                 onClicked: picker.refreshRequested()
+            }
+        }
+
+        RowLayout {
+            visible: picker.mobilePresentation && picker.cachedSnapshot && !picker.authorized
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            spacing: Theme.space2
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                text: qsTr("Saved account links")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                elide: Text.ElideRight
+            }
+            ActionButton {
+                compact: true
+                text: picker.editAccessRequested ? qsTr("Hide verification") : qsTr("Edit connections")
+                quiet: true
+                onClicked: picker.editAccessRequested = !picker.editAccessRequested
             }
         }
 
@@ -337,7 +358,7 @@ GenyDrawer {
                 ScrollBar.vertical: GenyScrollBar {}
 
                 ColumnLayout {
-                    width: providerScroll.availableWidth
+                    width: Math.max(0, providerScroll.availableWidth)
                     spacing: 0
 
                     Repeater {
@@ -376,6 +397,7 @@ GenyDrawer {
 
                             RowLayout {
                                 Layout.fillWidth: true
+                                Layout.minimumWidth: 0
                                 Layout.preferredHeight: Theme.scaleUi(66)
                                 Layout.leftMargin: Theme.space3
                                 Layout.rightMargin: Theme.space3
@@ -413,6 +435,7 @@ GenyDrawer {
 
                                 ColumnLayout {
                                     Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
                                     spacing: Theme.space1
                                     DirectionAwareLabel {
                                         Layout.fillWidth: true
@@ -464,6 +487,7 @@ GenyDrawer {
                                                  && picker.destinationFor(providerRow.modelData).length > 0
                                         compact: true
                                         quiet: true
+                                        iconOnly: picker.mobilePresentation
                                         iconGlyph: Theme.iconArrowUpRight
                                         text: picker.profileUrlFor(providerRow.modelData).length > 0
                                               ? qsTr("View") : qsTr("Find")

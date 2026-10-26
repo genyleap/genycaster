@@ -78,30 +78,33 @@ Button {
             Layout.preferredWidth: Theme.scaleUi(44)
             Layout.preferredHeight: Theme.scaleUi(44)
             radius: Theme.curveCompact
-            color: Theme.surfaceRaised
+            color: Theme.primarySurface
             border.color: Theme.borderMuted
             border.width: 1
+            // Always paint a legible site monogram underneath the bitmap.
+            // Some sites serve a transparent/empty ICO which Qt reports Ready.
+            // A fallback conditioned solely on Image.status leaves blank tiles.
+            Text {
+                anchors.centerIn: parent
+                text: root.siteInitial
+                color: Theme.ink
+                font.family: Theme.latinFontFamily
+                font.pixelSize: Theme.typeTitle3Size
+                font.weight: Theme.weightBold
+                visible: true
+            }
             Image {
                 id: faviconImage
                 anchors.centerIn: parent
                 width: Theme.scaleUi(27)
                 height: width
                 source: root.faviconUrl
-                sourceSize.width: Math.ceil(width * 2)
-                sourceSize.height: Math.ceil(height * 2)
+                sourceSize.width: Math.ceil(width * 3)
+                sourceSize.height: Math.ceil(height * 3)
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
                 cache: true
                 visible: status === Image.Ready
-            }
-            DirectionAwareLabel {
-                anchors.centerIn: parent
-                visible: faviconImage.status !== Image.Ready
-                text: root.siteInitial
-                color: Theme.inkMuted
-                font.pixelSize: Theme.typeTitle3Size
-                font.weight: Theme.weightBold
-                forceLeftToRight: true
             }
         }
 

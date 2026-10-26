@@ -50,7 +50,7 @@ ComboBox {
 
     contentItem: DirectionAwareLabel {
         text: control.displayText
-        color: control.popup.visible ? Theme.textPrimary : Theme.textSecondary
+        color: Theme.textPrimary
         font.pixelSize: Theme.typeCaptionSize
         font.weight: Theme.weightMedium
         verticalAlignment: Text.AlignVCenter
@@ -73,10 +73,10 @@ ComboBox {
     }
 
     background: Superellipse {
-        fillColor: control.popup.visible ? Theme.surfaceRaised
-                  : control.hovered ? Theme.surfaceHover : "transparent"
-        borderWidth: control.popup.visible || Theme.keyboardFocusVisible(control) ? Theme.strokeHairline : 0
-        borderColor: Theme.keyboardFocusVisible(control) || control.popup.visible ? Theme.accent : Theme.borderSubtle
+        fillColor: control.popup.visible ? Theme.surfaceElevated
+                  : control.hovered ? Theme.surfaceHover : Theme.surfaceRaised
+        borderWidth: Theme.strokeHairline
+        borderColor: Theme.keyboardFocusVisible(control) || control.popup.visible ? Theme.accent : Theme.borderDefault
         curveDepth: height / 2
         elevation: Theme.elevationNone
     }
@@ -100,7 +100,7 @@ ComboBox {
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: control.textAt(option.index)
-                color: option.index === control.currentIndex ? Theme.accent : Theme.textSecondary
+                color: option.index === control.currentIndex ? Theme.accent : Theme.textPrimary
                 font.pixelSize: Theme.typeMetaSize
                 font.weight: option.index === control.currentIndex ? Theme.weightDemiBold : Theme.weightMedium
                 elide: Text.ElideRight
@@ -117,7 +117,8 @@ ComboBox {
         background: Superellipse {
             anchors.fill: parent
             anchors.margins: 2
-            fillColor: option.highlighted || option.hovered ? Theme.surfaceHover : "transparent"
+            fillColor: option.highlighted || option.hovered ? Theme.primarySurfaceHover
+                       : option.index === control.currentIndex ? Theme.primarySurface : Theme.surfaceRaised
             curveDepth: 10
         }
     }
@@ -141,7 +142,8 @@ ComboBox {
         }
 
         background: PopupSurface {
-            borderColor: Theme.borderSubtle
+            fillColor: Theme.surfaceElevated
+            borderColor: Theme.borderDefault
             curveDepth: Theme.curveCompact
             elevation: Theme.elevationPopover
         }
