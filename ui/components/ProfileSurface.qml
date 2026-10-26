@@ -313,6 +313,17 @@ Item {
         // freeform role as a selectable value and then silently fail HTTP 400.
         return options
     }
+    function profileOptionLabel(value) {
+        const canonical = String(value || "")
+        if (!canonical) return ""
+        if (root.profileCategoryOptions.indexOf(canonical) < 0
+                && root.profileRoleOptions.indexOf(canonical) < 0)
+            return canonical
+        const key = canonical.toLowerCase().replace(/[^a-z0-9]+/g, "_")
+                                      .replace(/^_+|_+$/g, "")
+        // The visible copy is localized but canonical API values are untouched.
+        return qsTrId("genycaster.profile.option." + key)
+    }
     readonly property string profileCategory: {
         return root.isOwnProfile ? String(root.profileExtras.category || "") : ""
     }
@@ -1096,7 +1107,7 @@ Item {
                     quiet: true
                     iconGlyph: Theme.iconMore
                     iconOnly: true
-                    text: qsTr("Profile options")
+                    text: qsTrId("genycaster.profile.options")
                     enabled: Number(root.activeDetail.fid || 0) > 0
                     onClicked: {
                         profileShareMenu.active = true
@@ -1156,7 +1167,7 @@ Item {
                                         quiet: true
                                         alignStart: true
                                         iconGlyph: Theme.iconCopy
-                                        text: qsTr("Copy profile link")
+                                        text: qsTrId("genycaster.share.copy_profile_link")
                                         onClicked: {
                                             presentationBridge.copyText(presentationBridge.profileShareUrl(
                                                 Number(root.activeDetail.fid || 0)))
@@ -1170,7 +1181,7 @@ Item {
                                         quiet: true
                                         alignStart: true
                                         iconGlyph: Theme.iconArrowUpRight
-                                        text: qsTr("Open in Farcaster")
+                                        text: qsTrId("genycaster.share.open_farcaster")
                                         onClicked: {
                                             sharePopup.close()
                                             presentationBridge.openFarcasterProfile(
@@ -1680,12 +1691,12 @@ Item {
                                     }
                                 }
                                 contentItem: Label {
-                                    text: qsTr("and %1 more").arg(root.additionalProfileLinksCount)
+                                    text: qsTrId("genycaster.profile.more_links").arg(root.additionalProfileLinksCount)
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
                                     font.weight: Theme.weightDemiBold
                                 }
-                                Accessible.name: qsTr("Show all profile links")
+                                Accessible.name: qsTrId("genycaster.profile.show_all_links")
                                 onClicked: profileLinksDrawer.open()
                             }
                         }
@@ -1725,8 +1736,9 @@ Item {
                         DirectionAwareLabel {
                             Layout.fillWidth: true
                             text: root.profileCategory.length > 0 && root.profileProfession.length > 0
-                                  ? root.profileCategory + " · " + root.profileProfession
-                                  : (root.profileCategory || root.profileProfession)
+                                  ? root.profileOptionLabel(root.profileCategory) + " · "
+                                    + root.profileOptionLabel(root.profileProfession)
+                                  : root.profileOptionLabel(root.profileCategory || root.profileProfession)
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                             font.weight: Theme.weightMedium
@@ -2175,6 +2187,7 @@ Item {
                         Layout.minimumWidth: 0
                         popupMaximumWidth: width
                         model: root.profileCategoryOptions
+                        optionLabelProvider: function(value) { return root.profileOptionLabel(value) }
                         Accessible.name: qsTrId("genycaster.profile.category_label")
                     }
                     DirectionAwareLabel {
@@ -2190,6 +2203,7 @@ Item {
                         Layout.minimumWidth: 0
                         popupMaximumWidth: width
                         model: root.profileRoleOptions
+                        optionLabelProvider: function(value) { return root.profileOptionLabel(value) }
                         Accessible.name: qsTrId("genycaster.profile.role_accessible")
                     }
                     DirectionAwareLabel {
@@ -2204,7 +2218,7 @@ Item {
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTr("Links — optional title | HTTPS URL, one per line")
+                        text: qsTrId("genycaster.profile.links_editor_hint")
                         wrapMode: Text.Wrap
                         font.pixelSize: Theme.typeCaptionSize
                         color: Theme.inkMuted

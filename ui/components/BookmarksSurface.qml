@@ -142,7 +142,7 @@ Flickable {
             delegate: Superellipse {
                 required property var modelData
                 Layout.fillWidth: true
-                implicitHeight: savedContent.implicitHeight + Theme.space3 * 2
+                implicitHeight: savedContent.implicitHeight + Theme.space2 * 2
                 fillColor: Theme.surfaceRaised
                 borderColor: Theme.borderSubtle
                 borderWidth: Theme.strokeHairline
@@ -151,7 +151,7 @@ Flickable {
                 ColumnLayout {
                     id: savedContent
                     anchors.fill: parent
-                    anchors.margins: Theme.space3
+                    anchors.margins: Theme.space2
                     spacing: Theme.space2
 
                     RowLayout {
@@ -185,29 +185,6 @@ Flickable {
                                 LayoutMirroring.enabled: false
                             }
                         }
-                        ActionButton {
-                            objectName: "bookmarkPriorityButton"
-                            visible: !root.compact
-                            compact: true
-                            quiet: true
-                            selected: Number(modelData.priority || 0) > 0
-                            iconGlyph: Theme.iconSpark
-                            text: Number(modelData.priority || 0) > 0
-                                  ? qsTrId("genycaster.bookmarks.unpin")
-                                  : qsTrId("genycaster.bookmarks.pin")
-                            onClicked: root.priorityRequested(String(modelData.castId || ""),
-                                Number(modelData.priority || 0) > 0 ? 0 : 1)
-                        }
-                        ActionButton {
-                            objectName: "bookmarkRemoveButton"
-                            visible: !root.compact
-                            compact: true
-                            quiet: true
-                            destructive: true
-                            iconGlyph: Theme.iconTrash
-                            text: qsTrId("genycaster.bookmarks.remove")
-                            onClicked: root.removeRequested(String(modelData.castId || ""))
-                        }
                     }
 
                     DirectionAwareLabel {
@@ -216,7 +193,7 @@ Flickable {
                         text: String(modelData.text || "")
                         color: Theme.ink
                         font.pixelSize: Theme.typeBodySize
-                        maximumLineCount: 5
+                        maximumLineCount: 3
                         elide: Text.ElideRight
                         wrapMode: Text.Wrap
                         TapHandler {
@@ -234,16 +211,18 @@ Flickable {
                         onClicked: root.castRequested(String(modelData.castId || ""))
                     }
                     RowLayout {
-                        visible: root.compact
                         Layout.fillWidth: true
                         layoutDirection: Theme.uiDirection
-                        spacing: Theme.space2
+                        spacing: Theme.space1
+                        Item { Layout.fillWidth: true }
                         ActionButton {
                             objectName: "bookmarkPriorityMobileButton"
-                            Layout.fillWidth: true
+                            iconOnly: true
                             compact: true
                             quiet: true
-                            selected: Number(modelData.priority || 0) > 0
+                            selected: false
+                            customIconColor: Number(modelData.priority || 0) > 0
+                                             ? Theme.warning : Theme.inkMuted
                             iconGlyph: Theme.iconSpark
                             text: Number(modelData.priority || 0) > 0
                                   ? qsTrId("genycaster.bookmarks.unpin")
@@ -253,7 +232,7 @@ Flickable {
                         }
                         ActionButton {
                             objectName: "bookmarkRemoveMobileButton"
-                            Layout.fillWidth: true
+                            iconOnly: true
                             compact: true
                             quiet: true
                             destructive: true

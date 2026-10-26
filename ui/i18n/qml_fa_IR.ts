@@ -2,6 +2,178 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.profile.option.select_category">
+            <source>Select category</source>
+            <translation>انتخاب دسته‌بندی</translation>
+        </message>
+        <message id="genycaster.profile.option.arts_entertainment">
+            <source>Arts &amp; entertainment</source>
+            <translation>هنر و سرگرمی</translation>
+        </message>
+        <message id="genycaster.profile.option.business">
+            <source>Business</source>
+            <translation>کسب‌وکار</translation>
+        </message>
+        <message id="genycaster.profile.option.education">
+            <source>Education</source>
+            <translation>آموزش</translation>
+        </message>
+        <message id="genycaster.profile.option.finance">
+            <source>Finance</source>
+            <translation>مالی</translation>
+        </message>
+        <message id="genycaster.profile.option.food_beverage">
+            <source>Food &amp; beverage</source>
+            <translation>غذا و نوشیدنی</translation>
+        </message>
+        <message id="genycaster.profile.option.health_wellness">
+            <source>Health &amp; wellness</source>
+            <translation>سلامت و تندرستی</translation>
+        </message>
+        <message id="genycaster.profile.option.media_news">
+            <source>Media &amp; news</source>
+            <translation>رسانه و خبر</translation>
+        </message>
+        <message id="genycaster.profile.option.science_technology">
+            <source>Science &amp; technology</source>
+            <translation>علم و فناوری</translation>
+        </message>
+        <message id="genycaster.profile.option.technology">
+            <source>Technology</source>
+            <translation>فناوری</translation>
+        </message>
+        <message id="genycaster.profile.option.professional_services">
+            <source>Professional services</source>
+            <translation>خدمات تخصصی</translation>
+        </message>
+        <message id="genycaster.profile.option.sports">
+            <source>Sports</source>
+            <translation>ورزش</translation>
+        </message>
+        <message id="genycaster.profile.option.travel_transportation">
+            <source>Travel &amp; transportation</source>
+            <translation>سفر و حمل‌ونقل</translation>
+        </message>
+        <message id="genycaster.profile.option.other">
+            <source>Other</source>
+            <translation>سایر</translation>
+        </message>
+        <message id="genycaster.profile.option.select_role">
+            <source>Select role</source>
+            <translation>انتخاب نقش</translation>
+        </message>
+        <message id="genycaster.profile.option.artist">
+            <source>Artist</source>
+            <translation>هنرمند</translation>
+        </message>
+        <message id="genycaster.profile.option.author">
+            <source>Author</source>
+            <translation>نویسنده</translation>
+        </message>
+        <message id="genycaster.profile.option.creator">
+            <source>Creator</source>
+            <translation>تولیدکنندهٔ محتوا</translation>
+        </message>
+        <message id="genycaster.profile.option.designer">
+            <source>Designer</source>
+            <translation>طراح</translation>
+        </message>
+        <message id="genycaster.profile.option.developer">
+            <source>Developer</source>
+            <translation>توسعه‌دهنده</translation>
+        </message>
+        <message id="genycaster.profile.option.engineer">
+            <source>Engineer</source>
+            <translation>مهندس</translation>
+        </message>
+        <message id="genycaster.profile.option.entrepreneur">
+            <source>Entrepreneur</source>
+            <translation>کارآفرین</translation>
+        </message>
+        <message id="genycaster.profile.option.founder">
+            <source>Founder</source>
+            <translation>بنیان‌گذار</translation>
+        </message>
+        <message id="genycaster.profile.option.investor">
+            <source>Investor</source>
+            <translation>سرمایه‌گذار</translation>
+        </message>
+        <message id="genycaster.profile.option.journalist">
+            <source>Journalist</source>
+            <translation>روزنامه‌نگار</translation>
+        </message>
+        <message id="genycaster.profile.option.photographer">
+            <source>Photographer</source>
+            <translation>عکاس</translation>
+        </message>
+        <message id="genycaster.profile.option.researcher">
+            <source>Researcher</source>
+            <translation>پژوهشگر</translation>
+        </message>
+        <message id="genycaster.profile.option.student">
+            <source>Student</source>
+            <translation>دانشجو</translation>
+        </message>
+        <message id="genycaster.profile.option.teacher">
+            <source>Teacher</source>
+            <translation>معلم</translation>
+        </message>
+        <message id="genycaster.profile.option.consultant">
+            <source>Consultant</source>
+            <translation>مشاور</translation>
+        </message>
+        <message id="genycaster.profile.option.organization">
+            <source>Organization</source>
+            <translation>سازمان</translation>
+        </message>
+        <message id="genycaster.profile.more_links">
+            <source>and %1 more</source>
+            <translation>و %1 لینک دیگر</translation>
+        </message>
+        <message id="genycaster.profile.show_all_links">
+            <source>Show all profile links</source>
+            <translation>نمایش همهٔ لینک‌های پروفایل</translation>
+        </message>
+        <message id="genycaster.profile.options">
+            <source>Profile options</source>
+            <translation>گزینه‌های پروفایل</translation>
+        </message>
+        <message id="genycaster.profile.links_editor_hint">
+            <source>Links — optional title | HTTPS URL, one per line</source>
+            <translation>لینک‌ها — عنوان اختیاری | نشانی HTTPS، هر لینک در یک خط</translation>
+        </message>
+        <message id="genycaster.share.copy_profile_link">
+            <source>Copy profile link</source>
+            <translation>کپی لینک پروفایل</translation>
+        </message>
+        <message id="genycaster.share.open_farcaster">
+            <source>Open in Farcaster</source>
+            <translation>بازکردن در فارکستر</translation>
+        </message>
+        <message id="genycaster.share.cast">
+            <source>Share cast</source>
+            <translation>اشتراک‌گذاری کست</translation>
+        </message>
+        <message id="genycaster.share.share_action">
+            <source>Share…</source>
+            <translation>اشتراک‌گذاری…</translation>
+        </message>
+        <message id="genycaster.share.copy_link">
+            <source>Copy link</source>
+            <translation>کپی لینک</translation>
+        </message>
+        <message id="genycaster.share.copy_farcaster_link">
+            <source>Copy Farcaster link</source>
+            <translation>کپی لینک فارکستر</translation>
+        </message>
+        <message id="genycaster.share.open_quorum">
+            <source>Open in Quorum</source>
+            <translation>بازکردن در Quorum</translation>
+        </message>
+        <message id="genycaster.brand.genyleap">
+            <source>Genyleap</source>
+            <translation>جنی‌لیپ</translation>
+        </message>
         <message id="genycaster.bookmarks.description">
             <source>Your saved casts, available on your signed-in devices</source>
             <translation>کست‌های ذخیره‌شدهٔ شما، در تمام دستگاه‌هایی که وارد حساب شده‌اید</translation>
@@ -1760,7 +1932,7 @@
         </message>
         <message id="genycaster.feed_header.search_people_channels_casts">
             <source>Search people, @user, /channel, or cast id</source>
-            <translation>جست‌وجوی نام، @کاربر، /کانال یا شناسهٔ کست</translation>
+            <translation>جست‌وجوی افراد، @کاربر، /کانال یا کست‌ها</translation>
         </message>
         <message id="genycaster.feed_header.universal_search">
             <source>Explore search</source>
@@ -4240,23 +4412,23 @@
         </message>
         <message id="genycaster.shell.your_genyleap_account">
             <source>Your Genyleap account</source>
-            <translation>حساب Genyleap شما</translation>
+            <translation>حساب جنی‌لیپ شما</translation>
         </message>
         <message id="genycaster.shell.continue_with_genyleap">
             <source>Continue with Genyleap</source>
-            <translation>ادامه با Genyleap</translation>
+            <translation>ادامه با جنی‌لیپ</translation>
         </message>
         <message id="genycaster.shell.open_genyleap">
             <source>Open Genyleap</source>
-            <translation>باز کردن Genyleap</translation>
+            <translation>باز کردن جنی‌لیپ</translation>
         </message>
         <message id="genycaster.shell.connecting_securely_to_genyleap">
             <source>Connecting securely to Genyleap…</source>
-            <translation>در حال اتصال امن به Genyleap…</translation>
+            <translation>در حال اتصال امن به جنی‌لیپ…</translation>
         </message>
         <message id="genycaster.shell.approve_genyleap_sign_in_in_your_browser">
             <source>Approve Genyleap sign-in in your browser. If you’re already signed in on genyleap.com, you won’t need to sign in again.</source>
-            <translation>ورود Genyleap را در مرورگر تأیید کنید. اگر از قبل در genyleap.com وارد شده‌اید، نیازی نیست دوباره وارد شوید.</translation>
+            <translation>ورود جنی‌لیپ را در مرورگر تأیید کنید. اگر از قبل در genyleap.com وارد شده‌اید، نیازی نیست دوباره وارد شوید.</translation>
         </message>
         <message id="genycaster.shell.link_your_farcaster_account">
             <source>Link your Farcaster account</source>
@@ -4280,7 +4452,7 @@
         </message>
         <message id="genycaster.setup.subtitle">
             <source>Sign in to continue. OpenProof verifies your Genyleap identity, and a linked Farcaster account is required for Genycaster.</source>
-            <translation>برای ادامه وارد شوید. OpenProof هویت Genyleap شما را تأیید می‌کند و برای جنی‌کستر یک حساب فارکستر پیوندشده لازم است.</translation>
+            <translation>برای ادامه وارد شوید. OpenProof هویت جنی‌لیپ شما را تأیید می‌کند و برای جنی‌کستر یک حساب فارکستر پیوندشده لازم است.</translation>
         </message>
         <message id="genycaster.setup.welcome">
             <source>Welcome</source>
@@ -4308,7 +4480,7 @@
         </message>
         <message id="genycaster.setup.terms_body">
             <source>Genyleap's published Terms of Use cover website information and product resources. Website information is general and product scope may change. Downloads and repositories can carry their own licenses, release notes, and compatibility requirements. Sending a project enquiry does not create a contract or guarantee acceptance. Review the full Terms before continuing.</source>
-            <translation>شرایط استفاده منتشرشده Genyleap اطلاعات وب‌سایت و منابع محصول را پوشش می‌دهد. اطلاعات وب‌سایت عمومی است و محدوده محصولات ممکن است تغییر کند. دانلودها و مخزن‌ها می‌توانند مجوز، یادداشت انتشار و الزامات سازگاری مخصوص خود را داشته باشند. ارسال درخواست پروژه به‌تنهایی قرارداد ایجاد نمی‌کند و پذیرش را تضمین نمی‌کند. پیش از ادامه، متن کامل شرایط را مرور کنید.</translation>
+            <translation>شرایط استفاده منتشرشده جنی‌لیپ اطلاعات وب‌سایت و منابع محصول را پوشش می‌دهد. اطلاعات وب‌سایت عمومی است و محدوده محصولات ممکن است تغییر کند. دانلودها و مخزن‌ها می‌توانند مجوز، یادداشت انتشار و الزامات سازگاری مخصوص خود را داشته باشند. ارسال درخواست پروژه به‌تنهایی قرارداد ایجاد نمی‌کند و پذیرش را تضمین نمی‌کند. پیش از ادامه، متن کامل شرایط را مرور کنید.</translation>
         </message>
         <message id="genycaster.setup.privacy_title">
             <source>Privacy Policy</source>
@@ -4316,7 +4488,7 @@
         </message>
         <message id="genycaster.setup.privacy_body">
             <source>The published Genyleap Privacy notice covers information you choose to submit through contact and project forms and basic abuse-prevention data. Genycaster additionally uses the Genyleap/OpenProof account and linked Farcaster identity you choose during setup to authenticate you and enable protocol actions. Appearance and locale preferences are stored locally in the app unless a feature explicitly says otherwise. Review the full Privacy notice before continuing.</source>
-            <translation>اطلاعیه حریم خصوصی منتشرشده Genyleap اطلاعاتی را پوشش می‌دهد که خودتان از طریق فرم‌های تماس و پروژه ارسال می‌کنید و همچنین داده‌های پایه جلوگیری از سوءاستفاده. جنی‌کستر علاوه بر آن، برای احراز هویت و فعال‌کردن عملیات پروتکل از حساب Genyleap/OpenProof و هویت فارکستر پیوندشده‌ای که در راه‌اندازی انتخاب می‌کنید استفاده می‌کند. تنظیمات ظاهر و منطقه‌ای در خود برنامه به‌صورت محلی نگهداری می‌شوند مگر اینکه قابلیتی صریحاً خلاف آن را اعلام کند. پیش از ادامه، متن کامل حریم خصوصی را مرور کنید.</translation>
+            <translation>اطلاعیه حریم خصوصی منتشرشده جنی‌لیپ اطلاعاتی را پوشش می‌دهد که خودتان از طریق فرم‌های تماس و پروژه ارسال می‌کنید و همچنین داده‌های پایه جلوگیری از سوءاستفاده. جنی‌کستر علاوه بر آن، برای احراز هویت و فعال‌کردن عملیات پروتکل از حساب جنی‌لیپ/OpenProof و هویت فارکستر پیوندشده‌ای که در راه‌اندازی انتخاب می‌کنید استفاده می‌کند. تنظیمات ظاهر و منطقه‌ای در خود برنامه به‌صورت محلی نگهداری می‌شوند مگر اینکه قابلیتی صریحاً خلاف آن را اعلام کند. پیش از ادامه، متن کامل حریم خصوصی را مرور کنید.</translation>
         </message>
         <message id="genycaster.setup.agree_continue">
             <source>Agree &amp; Continue</source>
@@ -4344,7 +4516,7 @@
         </message>
         <message id="genycaster.setup.account_verified_body">
             <source>Your Genyleap/OpenProof identity is verified and the required Farcaster identity is linked.</source>
-            <translation>هویت Genyleap/OpenProof شما تأیید شده و هویت فارکستر موردنیاز نیز پیوند خورده است.</translation>
+            <translation>هویت جنی‌لیپ/OpenProof شما تأیید شده و هویت فارکستر موردنیاز نیز پیوند خورده است.</translation>
         </message>
         <message id="genycaster.setup.consent_recorded">
             <source>Consent recorded</source>
@@ -4404,7 +4576,7 @@
         </message>
         <message id="genycaster.setup.account_genyleap_body">
             <source>Continue with your Genyleap/OpenProof identity. Farcaster will be linked if needed.</source>
-            <translation>با هویت Genyleap/OpenProof خود ادامه دهید؛ در صورت نیاز فارکستر نیز پیوند داده می‌شود.</translation>
+            <translation>با هویت جنی‌لیپ/OpenProof خود ادامه دهید؛ در صورت نیاز فارکستر نیز پیوند داده می‌شود.</translation>
         </message>
         <message id="genycaster.setup.account_farcaster_body">
             <source>Use a Farcaster-compatible sign-in directly.</source>
@@ -4636,7 +4808,7 @@
         </message>
         <message id="genycaster.setup.browser_sign_in_verifies_your_genyleap_openproof_account_and">
             <source>Browser sign-in verifies your Genyleap/OpenProof account and linked Farcaster FID. Publishing still requires a secure protocol signer and is unavailable in the browser.</source>
-            <translation> ورود به سیستم از طریق مرورگر، حساب کاربری Genyleap/OpenProof و شناسه امنیتی فارکستر مرتبط با آن را تأیید می‌کند. انتشار همچنان به یک امضاکننده پروتکل امن نیاز دارد و در مرورگر در دسترس نیست.</translation>
+            <translation> ورود به سیستم از طریق مرورگر، حساب کاربری جنی‌لیپ/OpenProof و شناسه امنیتی فارکستر مرتبط با آن را تأیید می‌کند. انتشار همچنان به یک امضاکننده پروتکل امن نیاز دارد و در مرورگر در دسترس نیست.</translation>
         </message>
         <message id="genycaster.setup.continue_as_guest">
             <source>Continue as guest</source>
@@ -4756,7 +4928,7 @@
         </message>
         <message id="genycaster.browser_auth.multiple_farcaster_identities">
             <source>Multiple Farcaster identities are linked; choose one in Genyleap.</source>
-            <translation>چند هویت فارکستر به حساب متصل است؛ یکی را در Genyleap انتخاب کنید.</translation>
+            <translation>چند هویت فارکستر به حساب متصل است؛ یکی را در جنی‌لیپ انتخاب کنید.</translation>
         </message>
         <message id="genycaster.browser_auth.invalid_linked_fid">
             <source>OpenProof returned an invalid linked Farcaster FID.</source>
@@ -4764,7 +4936,7 @@
         </message>
         <message id="genycaster.browser_auth.link_farcaster_account">
             <source>Link your Farcaster account in Genyleap, then sign in again.</source>
-            <translation>حساب فارکستر خود را در Genyleap متصل کنید و دوباره وارد شوید.</translation>
+            <translation>حساب فارکستر خود را در جنی‌لیپ متصل کنید و دوباره وارد شوید.</translation>
         </message>
         <message id="genycaster.shell.farcaster_sign_in_openproof_verification">
             <source>Signed in with Farcaster · verified by OpenProof</source>

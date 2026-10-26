@@ -350,7 +350,7 @@ RowLayout {
         Layout.minimumWidth: Theme.touchTarget
         iconGlyph: Theme.iconShare
         enabled: root.normalizedCastId.length > 0
-        Accessible.name: qsTr("Share cast")
+        Accessible.name: qsTrId("genycaster.share.cast")
         onClicked: {
             castShareMenu.active = true
             const menu = castShareMenu.item
@@ -385,7 +385,7 @@ RowLayout {
                             quiet: true
                             alignStart: true
                             iconGlyph: Theme.iconShare
-                            text: qsTr("Share…")
+                            text: qsTrId("genycaster.share.share_action")
                             onClicked: {
                                 sharePopup.close()
                                 presentationBridge.shareUrl(presentationBridge.castShareUrl(root.normalizedCastId))
@@ -396,7 +396,7 @@ RowLayout {
                             quiet: true
                             alignStart: true
                             iconGlyph: Theme.iconCopy
-                            text: qsTr("Copy link")
+                            text: qsTrId("genycaster.share.copy_link")
                             onClicked: {
                                 presentationBridge.copyText(presentationBridge.castShareUrl(root.normalizedCastId))
                                 sharePopup.close()
@@ -407,7 +407,7 @@ RowLayout {
                             quiet: true
                             alignStart: true
                             iconGlyph: Theme.iconCopy
-                            text: qsTr("Copy Farcaster link")
+                            text: qsTrId("genycaster.share.copy_farcaster_link")
                             onClicked: {
                                 presentationBridge.copyText(presentationBridge.farcasterWebCastUrl(
                                     root.normalizedCastId, String(root.castData.author || "")))
@@ -421,7 +421,7 @@ RowLayout {
                             quiet: true
                             alignStart: true
                             iconGlyph: Theme.iconArrowUpRight
-                            text: qsTr("Open in Quorum")
+                            text: qsTrId("genycaster.share.open_quorum")
                             onClicked: {
                                 sharePopup.close()
                                 presentationBridge.openQuorumCast(root.normalizedCastId)
@@ -433,7 +433,7 @@ RowLayout {
                             quiet: true
                             alignStart: true
                             iconGlyph: Theme.iconArrowUpRight
-                            text: qsTr("Open in Farcaster")
+                            text: qsTrId("genycaster.share.open_farcaster")
                             onClicked: {
                                 sharePopup.close()
                                 presentationBridge.openFarcasterCast(

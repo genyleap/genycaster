@@ -18,8 +18,10 @@ test('bookmark view supports account refresh, remove, priority and sorting witho
   assert.match(surface,/PullToRefresh \{/);
   assert.match(surface,/onRefreshRequested: root\.refreshRequested\(\)/);
   assert.match(surface,/id: bookmarkSortPicker/);
-  assert.match(surface,/objectName: "bookmarkRemoveButton"/);
-  assert.match(surface,/objectName: "bookmarkPriorityButton"/);
+  assert.match(surface,/objectName: "bookmarkRemoveMobileButton"/);
+  assert.match(surface,/objectName: "bookmarkPriorityMobileButton"/);
+  assert.match(surface,/customIconColor: Number\(modelData.priority/);
+  assert.match(surface,/iconOnly: true/);
   assert.match(surface,/root\.priorityRequested/);
   assert.match(controller,/void OpenProofConnectionsController::refreshAccountBookmarks/);
   assert.match(controller,/QStringLiteral\("state"\),QStringLiteral\("1"\)/);

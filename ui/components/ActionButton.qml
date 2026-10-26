@@ -13,6 +13,7 @@ Button {
     property bool destructiveFilled: false
     property bool positive: false
     property bool selected: false
+    property color customIconColor: "transparent"
     property string iconGlyph: ""
     property bool iconOnly: false
     property bool compact: false
@@ -157,7 +158,7 @@ Button {
             visible: !control.busy && control.iconGlyph.length > 0
             text: control.iconGlyph
             filled: control.selected
-            color: control.foregroundColor
+            color: control.customIconColor.a > 0 ? control.customIconColor : control.foregroundColor
             Behavior on color { ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast } }
             preferredSize: control.iconSize
             Layout.alignment: Qt.AlignCenter

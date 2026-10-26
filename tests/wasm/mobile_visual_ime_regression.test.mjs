@@ -133,9 +133,9 @@ test('iOS emoji recovery runs only after Qt misses committed Unicode input', () 
 
 test('browser favicon prefers vector source and versioned manifest', () => {
   const html = read('ui/wasm/genycaster-shell.html');
-  assert.match(html, /genycaster-icon\.svg\?v=brand-5/);
-  assert.match(html, /favicon\.ico\?v=brand-5/);
-  assert.match(html, /webmanifest\?v=brand-5/);
-  assert.ok(html.indexOf('genycaster-icon.svg?v=brand-5') <
-            html.indexOf('favicon.ico?v=brand-5'));
+  assert.match(html, /genycaster-icon\.svg\?v=brand-6/);
+  assert.match(html, /favicon\.ico\?v=brand-6/);
+  assert.match(html, /webmanifest\?v=brand-6/);
+  assert.ok(html.indexOf('genycaster-icon.svg?v=brand-6') <
+            html.indexOf('favicon.ico?v=brand-6'));
 });

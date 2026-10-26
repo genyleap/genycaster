@@ -59,8 +59,8 @@ test("Browser tab and installed app icon use actual brand DNA and a clean versio
     assert.match(html,/<title>Genycaster Beta 1\.0<\/title>/);
     assert.doesNotMatch(html,/Secure social client/);
     assert.equal(manifest.description,"Genycaster Beta 1.0");
-    assert.match(icon,/viewBox="32 32 448 448"/);
-    assert.ok(html.includes("genycaster-icon.svg?v=brand-5"));
+    assert.match(icon,/viewBox="48 48 416 416"/);
+    assert.ok(html.includes("genycaster-icon.svg?v=brand-6"));
     assert.match(icon,/GenyCaster icon/);
     assert.match(icon,/fill="#FFFFFF"/);
     assert.match(html,/genycaster-wordmark-dark\.svg/);

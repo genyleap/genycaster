@@ -7,6 +7,10 @@ ComboBox {
     id: control
 
     property int popupMaximumWidth: 680
+    // Display-only translation; currentText remains the protocol/account
+    // canonical value for validation and persistence.
+    property var optionLabelProvider: function(value) { return value }
+    function localizedOption(value) { return String(optionLabelProvider(String(value))) }
     readonly property real measuredTextWidth: {
         let widest = 0
         for (let index = 0; index < optionMetrics.count; ++index) {
@@ -39,7 +43,7 @@ ComboBox {
         delegate: DirectionAwareLabel {
             required property int index
             visible: false
-            text: control.textAt(index)
+            text: control.localizedOption(control.textAt(index))
             font.pixelSize: Theme.typeLabelSize
             font.weight: Theme.weightMedium
         }
@@ -48,7 +52,7 @@ ComboBox {
     contentItem: DirectionAwareLabel {
         leftPadding: 0
         rightPadding: 0
-        text: control.displayText
+        text: control.localizedOption(control.displayText)
         color: control.enabled ? Theme.ink : Theme.inkSubtle
         font.pixelSize: Theme.typeLabelSize
         font.weight: Theme.weightMedium
@@ -111,7 +115,7 @@ ComboBox {
 
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: control.textAt(optionDelegate.index)
+                text: control.localizedOption(control.textAt(optionDelegate.index))
                 // Unselected choices must be fully readable, not appear disabled.
                 color: Theme.ink
                 font.pixelSize: Theme.typeLabelSize

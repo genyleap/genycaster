@@ -299,7 +299,7 @@ Item {
 
         Label {
             visible: !root.compactMetadata
-            text: "© " + new Date().getFullYear() + " Genyleap"
+            text: "© " + new Date().getFullYear() + " " + qsTrId("genycaster.brand.genyleap")
             color: Theme.textTertiary
             font.family: Theme.latinFontFamily
             font.pixelSize: Math.max(9, Theme.typeCaptionSize - 1)

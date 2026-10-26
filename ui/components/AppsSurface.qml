@@ -897,10 +897,14 @@ Item {
                                                         iconOnly: true
                                                         readonly property bool saved: Boolean(cardCell.modelData.saved)
                                                         iconGlyph: saved ? Theme.iconCheck : Theme.iconPlus
-                                                        selected: saved
-                                                        enabled: !saved
+                                                        positive: saved
+                                                        pill: saved
+                                                        quiet: !saved
+                                                        enabled: true
                                                         text: saved ? qsTrId("genycaster.apps.saved") : qsTrId("genycaster.apps.save")
-                                                        onClicked: miniAppCatalog.addToMyMiniApps(cardCell.modelData)
+                                                        onClicked: {
+                                                            if (!saved) miniAppCatalog.addToMyMiniApps(cardCell.modelData)
+                                                        }
                                                     }
                                                 }
                                             }
@@ -1051,8 +1055,10 @@ Item {
                                                 readonly property bool inLibrary: root.farcasterSection === "my"
                                                 iconGlyph: saved ? (inLibrary ? Theme.iconTrash : Theme.iconCheck)
                                                                  : Theme.iconPlus
-                                                selected: saved
-                                                enabled: !saved || inLibrary
+                                                positive: saved && !inLibrary
+                                                pill: saved && !inLibrary
+                                                quiet: !saved || inLibrary
+                                                enabled: true
                                                 text: saved ? (inLibrary ? qsTrId("genycaster.apps.remove") : qsTrId("genycaster.apps.saved"))
                                                             : qsTrId("genycaster.apps.save")
                                                 onClicked: {
@@ -1090,13 +1096,15 @@ Item {
     GenyDrawer {
         id: miniAppDetailDrawer
         objectName: "miniAppDetailDrawer"
-        bottomSheet: true
+        readonly property bool mobilePresentation: parent ? parent.width < Theme.breakpointMobile : true
+        bottomSheet: mobilePresentation
+        edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge
         fullScreen: false
         dimBackground: true
         interactive: false
-        showHandle: true
-        width: parent ? parent.width : 420
-        height: parent ? Math.min(parent.height * 0.88, 740) : 640
+        showHandle: mobilePresentation
+        width: parent ? (mobilePresentation ? parent.width : Math.min(480, parent.width * 0.9)) : 420
+        height: parent ? (mobilePresentation ? Math.min(parent.height * 0.88, 740) : parent.height) : 640
 
         ColumnLayout {
             anchors.fill: parent
@@ -1383,11 +1391,14 @@ Item {
                     compact: true
                     quiet: true
                     iconOnly: true
+                    positive: Boolean(root.selectedMiniApp.saved)
+                    pill: Boolean(root.selectedMiniApp.saved)
                     iconGlyph: root.selectedMiniApp.saved ? Theme.iconCheck : Theme.iconPlus
                     text: root.selectedMiniApp.saved
                           ? qsTrId("genycaster.apps.saved") : qsTrId("genycaster.apps.save")
-                    enabled: !Boolean(root.selectedMiniApp.saved)
+                    enabled: true
                     onClicked: {
+                        if (Boolean(root.selectedMiniApp.saved)) return
                         miniAppCatalog.addToMyMiniApps(root.selectedMiniApp)
                         root.selectedMiniApp = Object.assign({}, root.selectedMiniApp, { saved: true })
                     }

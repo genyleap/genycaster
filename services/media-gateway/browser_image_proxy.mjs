@@ -20,6 +20,24 @@ export const defaultBrowserImageHosts = [
 ];
 export const maximumBrowserImageBytes = 8 * 1024 * 1024;
 
+// Public website icons have a narrowly defined exception to the static CDN
+// allowlist. This does NOT grant access to arbitrary pages or paths: the DNS-
+// pinned raster fetch below still rejects private hosts, HTML and SVG content.
+export function validPublicFaviconUrl(rawUrl) {
+  if (typeof rawUrl !== 'string' || rawUrl.length > 2048) return null;
+  let url;
+  try { url = new URL(rawUrl); } catch { return null; }
+  if (url.protocol !== 'https:' || url.port || url.username || url.password
+      || url.hash || url.search || isIP(url.hostname)) return null;
+  const domain = url.hostname.toLowerCase().replace(/\.$/,'');
+  if (!domain.includes('.') || domain === 'localhost'
+      || /\.(?:localhost|local|internal|test|invalid)$/.test(domain))
+    return null;
+  if (!['/favicon.ico','/favicon.png','/apple-touch-icon.png'].includes(url.pathname))
+    return null;
+  return url;
+}
+
 export function validImageUrl(rawUrl, allowedHosts = defaultBrowserImageHosts) {
   if (typeof rawUrl !== 'string' || rawUrl.length > 4096) return null;
   let parsed;

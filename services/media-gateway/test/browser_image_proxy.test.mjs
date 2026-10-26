@@ -1,7 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isPublicAddress, validImageUrl, maximumBrowserImageBytes, retrieveBrowserImage,
+import { isPublicAddress, validImageUrl, validPublicFaviconUrl,
+  maximumBrowserImageBytes, retrieveBrowserImage,
   rasterMimeFromBytes } from '../browser_image_proxy.mjs';
+
+test('public favicon exception allows only bounded site icon paths', () => {
+  for (const allowed of [
+    'https://linktr.ee/favicon.ico',
+    'https://genycaster.xyz/favicon.ico',
+    'https://example.com/favicon.png',
+    'https://example.com/apple-touch-icon.png',
+  ]) assert.equal(validPublicFaviconUrl(allowed)?.href, allowed);
+  for (const denied of [
+    'https://localhost/favicon.ico',
+    'https://127.0.0.1/favicon.ico',
+    'https://example.internal/favicon.ico',
+    'http://example.com/favicon.ico',
+    'https://user:pw@example.com/favicon.ico',
+    'https://example.com:8443/favicon.ico',
+    'https://example.com/favicon.ico?url=https://other.com',
+    'https://example.com/favicon.svg',
+    'https://example.com/private/profile.png',
+    'https://example.com/favicon.ico#frag',
+  ]) assert.equal(validPublicFaviconUrl(denied), null, denied);
+});
+
 
 test('public image URL policy rejects credentialed/non-HTTPS/internal destinations', () => {
   for (const target of [

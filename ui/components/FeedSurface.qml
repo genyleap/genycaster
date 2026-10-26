@@ -1552,10 +1552,11 @@ Item {
             property real committedHeight: reservedHeight
 
             function synchronizeHeight() {
-                // The estimate is only a placeholder until incubation ends.
-                // Deferring a downward correction until movement stops leaves
-                // enormous invisible gaps between casts during a long flick.
-                // Qt ListView tracks the actual delegate heights as they settle.
+                // Media loaders can resolve a video aspect/height mid-flick.
+                // Do not resize a live ListView delegate underneath the
+                // finger: Qt can reinterpret the scroll delta as a jump.
+                // Apply measured geometry only after movement ends.
+                if (readList.moving) return
                 if (!rowDelegate.incubating && rowDelegate.resolvedHeight > 0)
                     rowDelegate.committedHeight = rowDelegate.resolvedHeight
                 else
@@ -1595,8 +1596,13 @@ Item {
             Connections {
                 target: readList
                 function onMovingChanged() {
-                    if (!readList.moving)
+                    if (!readList.moving) {
+                        // Capture the visible cast before deferred video/card
+                        // heights settle, then keep that anchor in view.
+                        if (root.geometryAnchorKey.length === 0)
+                            root.rememberVisibleGeometry()
                         rowDelegate.synchronizeHeight()
+                    }
                 }
             }
 

@@ -615,6 +615,7 @@ Item {
 
                     ActionButton {
                         id: moreButton
+                        Layout.alignment: Qt.AlignTop
                         compact: true
                         quiet: true
                         iconOnly: true

@@ -2,6 +2,178 @@
 <TS version="2.1" language="ja_JP" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.profile.option.select_category">
+            <source>Select category</source>
+            <translation>Select category</translation>
+        </message>
+        <message id="genycaster.profile.option.arts_entertainment">
+            <source>Arts &amp; entertainment</source>
+            <translation>Arts &amp; entertainment</translation>
+        </message>
+        <message id="genycaster.profile.option.business">
+            <source>Business</source>
+            <translation>Business</translation>
+        </message>
+        <message id="genycaster.profile.option.education">
+            <source>Education</source>
+            <translation>Education</translation>
+        </message>
+        <message id="genycaster.profile.option.finance">
+            <source>Finance</source>
+            <translation>Finance</translation>
+        </message>
+        <message id="genycaster.profile.option.food_beverage">
+            <source>Food &amp; beverage</source>
+            <translation>Food &amp; beverage</translation>
+        </message>
+        <message id="genycaster.profile.option.health_wellness">
+            <source>Health &amp; wellness</source>
+            <translation>Health &amp; wellness</translation>
+        </message>
+        <message id="genycaster.profile.option.media_news">
+            <source>Media &amp; news</source>
+            <translation>Media &amp; news</translation>
+        </message>
+        <message id="genycaster.profile.option.science_technology">
+            <source>Science &amp; technology</source>
+            <translation>Science &amp; technology</translation>
+        </message>
+        <message id="genycaster.profile.option.technology">
+            <source>Technology</source>
+            <translation>Technology</translation>
+        </message>
+        <message id="genycaster.profile.option.professional_services">
+            <source>Professional services</source>
+            <translation>Professional services</translation>
+        </message>
+        <message id="genycaster.profile.option.sports">
+            <source>Sports</source>
+            <translation>Sports</translation>
+        </message>
+        <message id="genycaster.profile.option.travel_transportation">
+            <source>Travel &amp; transportation</source>
+            <translation>Travel &amp; transportation</translation>
+        </message>
+        <message id="genycaster.profile.option.other">
+            <source>Other</source>
+            <translation>Other</translation>
+        </message>
+        <message id="genycaster.profile.option.select_role">
+            <source>Select role</source>
+            <translation>Select role</translation>
+        </message>
+        <message id="genycaster.profile.option.artist">
+            <source>Artist</source>
+            <translation>Artist</translation>
+        </message>
+        <message id="genycaster.profile.option.author">
+            <source>Author</source>
+            <translation>Author</translation>
+        </message>
+        <message id="genycaster.profile.option.creator">
+            <source>Creator</source>
+            <translation>Creator</translation>
+        </message>
+        <message id="genycaster.profile.option.designer">
+            <source>Designer</source>
+            <translation>Designer</translation>
+        </message>
+        <message id="genycaster.profile.option.developer">
+            <source>Developer</source>
+            <translation>Developer</translation>
+        </message>
+        <message id="genycaster.profile.option.engineer">
+            <source>Engineer</source>
+            <translation>Engineer</translation>
+        </message>
+        <message id="genycaster.profile.option.entrepreneur">
+            <source>Entrepreneur</source>
+            <translation>Entrepreneur</translation>
+        </message>
+        <message id="genycaster.profile.option.founder">
+            <source>Founder</source>
+            <translation>Founder</translation>
+        </message>
+        <message id="genycaster.profile.option.investor">
+            <source>Investor</source>
+            <translation>Investor</translation>
+        </message>
+        <message id="genycaster.profile.option.journalist">
+            <source>Journalist</source>
+            <translation>Journalist</translation>
+        </message>
+        <message id="genycaster.profile.option.photographer">
+            <source>Photographer</source>
+            <translation>Photographer</translation>
+        </message>
+        <message id="genycaster.profile.option.researcher">
+            <source>Researcher</source>
+            <translation>Researcher</translation>
+        </message>
+        <message id="genycaster.profile.option.student">
+            <source>Student</source>
+            <translation>Student</translation>
+        </message>
+        <message id="genycaster.profile.option.teacher">
+            <source>Teacher</source>
+            <translation>Teacher</translation>
+        </message>
+        <message id="genycaster.profile.option.consultant">
+            <source>Consultant</source>
+            <translation>Consultant</translation>
+        </message>
+        <message id="genycaster.profile.option.organization">
+            <source>Organization</source>
+            <translation>Organization</translation>
+        </message>
+        <message id="genycaster.profile.more_links">
+            <source>and %1 more</source>
+            <translation>and %1 more</translation>
+        </message>
+        <message id="genycaster.profile.show_all_links">
+            <source>Show all profile links</source>
+            <translation>Show all profile links</translation>
+        </message>
+        <message id="genycaster.profile.options">
+            <source>Profile options</source>
+            <translation>Profile options</translation>
+        </message>
+        <message id="genycaster.profile.links_editor_hint">
+            <source>Links — optional title | HTTPS URL, one per line</source>
+            <translation>Links — optional title | HTTPS URL, one per line</translation>
+        </message>
+        <message id="genycaster.share.copy_profile_link">
+            <source>Copy profile link</source>
+            <translation>Copy profile link</translation>
+        </message>
+        <message id="genycaster.share.open_farcaster">
+            <source>Open in Farcaster</source>
+            <translation>Open in Farcaster</translation>
+        </message>
+        <message id="genycaster.share.cast">
+            <source>Share cast</source>
+            <translation>Share cast</translation>
+        </message>
+        <message id="genycaster.share.share_action">
+            <source>Share…</source>
+            <translation>Share…</translation>
+        </message>
+        <message id="genycaster.share.copy_link">
+            <source>Copy link</source>
+            <translation>Copy link</translation>
+        </message>
+        <message id="genycaster.share.copy_farcaster_link">
+            <source>Copy Farcaster link</source>
+            <translation>Copy Farcaster link</translation>
+        </message>
+        <message id="genycaster.share.open_quorum">
+            <source>Open in Quorum</source>
+            <translation>Open in Quorum</translation>
+        </message>
+        <message id="genycaster.brand.genyleap">
+            <source>Genyleap</source>
+            <translation>Genyleap</translation>
+        </message>
         <message id="genycaster.bookmarks.description">
             <source>Your saved casts, available on your signed-in devices</source>
             <translation>保存したキャストはログイン中の端末で利用できます</translation>

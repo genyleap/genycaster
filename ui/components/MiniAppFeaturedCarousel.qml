@@ -293,11 +293,15 @@ Item {
                     iconOnly: true
                     quiet: false
                     positive: Boolean(featuredCell.app.saved)
+                    pill: Boolean(featuredCell.app.saved)
                     iconGlyph: Boolean(featuredCell.app.saved) ? Theme.iconCheck : Theme.iconPlus
                     text: Boolean(featuredCell.app.saved)
                           ? qsTrId("genycaster.apps.saved") : qsTrId("genycaster.apps.save")
-                    enabled: !Boolean(featuredCell.app.saved)
-                    onClicked: root.saveRequested(featuredCell.app)
+                    enabled: true
+                    onClicked: {
+                        if (!Boolean(featuredCell.app.saved))
+                            root.saveRequested(featuredCell.app)
+                    }
                 }
 
                 // The open action is explicit: a card-wide TapHandler would

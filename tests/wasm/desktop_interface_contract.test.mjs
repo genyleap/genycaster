@@ -7,11 +7,11 @@ const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'ut
 test('share menus show concise, untruncated action labels', () => {
     const cast = read('ui/components/EngagementBar.qml');
     const profile = read('ui/components/ProfileSurface.qml');
-    assert.match(cast, /text: qsTr\("Share…".*\)/);
-    assert.match(cast, /text: qsTr\("Copy link"\)/);
+    assert.match(cast, /text: qsTrId\("genycaster.share.share_action"\)/);
+    assert.match(cast, /text: qsTrId\("genycaster.share.copy_link"\)/);
     assert.doesNotMatch(cast, /text: qsTr\("Copy Farcaster URI"\)/);
     assert.match(profile, /text: qsTrId\("genycaster\.profile\.share_profile"\)/);
-    assert.match(profile, /text: qsTr\("Copy profile link"\)/);
+    assert.match(profile, /text: qsTrId\("genycaster.share.copy_profile_link"\)/);
     assert.doesNotMatch(profile, /text: qsTr\("Copy Farcaster URI"\)/);
     assert.doesNotMatch(cast + profile, /Copy Farcaster URI \(experimental\)|Copy Genycaster profile link/);
 });
@@ -77,8 +77,8 @@ test('all platforms share consistent app-first client actions', () => {
     const bridge = read('src/presentation/qt/presentation_bridge.cpp');
     const header = read('src/presentation/qt/presentation_bridge.hpp');
 
-    assert.ok(cast.includes('text: qsTr("Open in Quorum")'));
-    assert.ok(cast.includes('text: qsTr("Open in Farcaster")'));
+    assert.ok(cast.includes('text: qsTrId("genycaster.share.open_quorum")'));
+    assert.ok(cast.includes('text: qsTrId("genycaster.share.open_farcaster")'));
     assert.ok(cast.includes('presentationBridge.openQuorumCast(root.normalizedCastId)'));
     assert.ok(cast.includes('presentationBridge.openFarcasterCast('));
     assert.ok(profile.includes('presentationBridge.openFarcasterProfile('));

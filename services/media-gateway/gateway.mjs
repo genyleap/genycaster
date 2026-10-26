@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { defaultBrowserImageHosts, rasterMimeFromBytes, retrieveBrowserImage, validImageUrl } from './browser_image_proxy.mjs';
+import { defaultBrowserImageHosts, rasterMimeFromBytes, retrieveBrowserImage, validImageUrl, validPublicFaviconUrl } from './browser_image_proxy.mjs';
 import { createBrowserFarcasterBroker } from './browser_farcaster_auth.mjs';
 import { publicTokenSnapshot } from './browser_token_insights.mjs';
 import { publicMiniAppPreview, validMiniAppTarget } from './browser_miniapp_preview.mjs';
@@ -1330,10 +1330,13 @@ export function createMediaGateway(config, storage, dependencies = {}) {
           verifiedMiniAppImages.set(requested,runtime.now()+300000);
       }
       // First-party catalogue icons and verified OpenGraph images may live
-      // outside the static CDN allowlist. Both must match an exact short-lived
-      // server-validated URL, never a user-supplied arbitrary image source. Refresh the
-      // verified set lazily after a server restart or browser cache hit.
+      // outside the static CDN allowlist. Public site favicons are the only
+      // bounded path exception: raster-only, pinned public DNS and a fixed
+      // path. No arbitrary remote image/proxy URLs are admitted.
       if (typeof requested === 'string' && !validImageUrl(requested)) {
+        const publicIcon = validPublicFaviconUrl(requested);
+        if (publicIcon)
+          allowedHosts = [...defaultBrowserImageHosts, publicIcon.hostname];
         if ((verifiedLinkImages.get(requested) || 0) > runtime.now()
             || (verifiedMiniAppImages.get(requested) || 0) > runtime.now()) {
           try {

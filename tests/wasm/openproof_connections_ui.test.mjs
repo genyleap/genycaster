@@ -15,7 +15,7 @@ test('profile links, profession and holder trust remain separately scoped and di
   assert.match(qml,/profileExtrasOwnerKey: root.isOwnProfile/);
   assert.match(qml,/function saveExtraDetails\(profession, rawLinks, category\)/);
   assert.match(qml,/profileExtrasSettings.entriesJson = JSON.stringify\(entries\)/);
-  assert.match(qml,/optional title \| HTTPS URL/);
+  assert.match(qml,/genycaster.profile.links_editor_hint/);
   assert.match(qml,/objectName: "profileMoreLinksInline"/);
   assert.match(qml,/id: profileLinksDrawer/);
   assert.match(qml,/id: linksSheetRows/);

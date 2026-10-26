@@ -44,6 +44,10 @@ Button {
     readonly property string faviconUrl: {
         const declared = String(metadata.favicon || "")
         if (declared.length > 0) return declared
+        // OG/Twitter artwork is the next best real image when the site
+        // does not publish an icon. The C++ metadata resolver verifies it.
+        const previewImage = String(metadata.previewImage || "")
+        if (previewImage.length > 0) return previewImage
         // Public same-origin favicon is a bounded fallback when Open Graph
         // metadata omits rel=icon. All remote images still pass the Qt C++
         // resolver's public-address validation and image gateway.
