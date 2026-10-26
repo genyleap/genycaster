@@ -893,7 +893,6 @@ Item {
                                                     }
                                                     ActionButton {
                                                         compact: true
-                                                        quiet: true
                                                         iconOnly: true
                                                         readonly property bool saved: Boolean(cardCell.modelData.saved)
                                                         iconGlyph: saved ? Theme.iconCheck : Theme.iconPlus
@@ -1049,7 +1048,6 @@ Item {
                                             ActionButton {
                                                 Layout.alignment: Qt.AlignVCenter
                                                 compact: true
-                                                quiet: true
                                                 iconOnly: true
                                                 readonly property bool saved: Boolean(cardCell.modelData.saved)
                                                 readonly property bool inLibrary: root.farcasterSection === "my"
