@@ -91,6 +91,9 @@ export function validateCloudItem(entity, item) {
       revision:item.revision};
   }
   if (entity === 'notifications') {
+    // Reserved for the app-owned read watermark, never a user-supplied event.
+    if (String(item.id).toLowerCase()==='00000000-0000-4000-8000-000000000001'
+        || (item.source==='genycaster' && item.kind==='seen_watermark')) return null;
     if (!/^[a-z][a-z0-9_-]{0,39}$/.test(item.source || '') ||
         typeof item.kind !== 'string' || item.kind.length > 64 || !item.kind ||
         typeof item.occurred_at !== 'string' ||
@@ -161,8 +164,8 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
   return async function handleCloud(request,response,path) {
     if (!path.startsWith('/api/v1/cloud/')) return false;
     const entity=path.slice('/api/v1/cloud/'.length);
-    if (!['connections','bookmarks','notifications','app_updates','tasks','drafts',
-      'profile_extras','connections/refresh'].includes(entity)) {
+    if (!['connections','bookmarks','notifications','notification_seen',
+      'app_updates','tasks','drafts','profile_extras','connections/refresh'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
     if (entity==='app_updates') {
@@ -175,6 +178,28 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
     try {owner=await authorize(request);}catch{}
     if (!owner) {respond(response,401,{error:'authentication_required'});return true;}
     try {
+      if (entity==='notification_seen') {
+        // A private account-wide read watermark, not a protocol notification.
+        // The server resolves the owner from the verified bearer, never a FID
+        // supplied by the caller. Milliseconds travel as decimal strings to
+        // avoid losing precision in JavaScript/JSON transports.
+        if (request.method==='GET') {
+          respond(response,200,{seen_at_ms:await store.getNotificationSeen(owner)});
+          return true;
+        }
+        if (request.method!=='PUT') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        const raw=await readBody(request);
+        const value=raw?.seen_at_ms;
+        if (typeof value!=='string' || !/^(0|[1-9][0-9]{0,15})$/.test(value)
+            || !Number.isSafeInteger(Number(value))
+            || Number(value)>Date.now()+300_000) {
+          respond(response,400,{error:'invalid_seen_at'});return true;
+        }
+        respond(response,200,{seen_at_ms:await store.putNotificationSeen(owner,value)});
+        return true;
+      }
       if (entity==='connections/refresh') {
         if (request.method!=='POST') {respond(response,405,{error:'method_not_allowed'});return true;}
         const reply=await fetchImpl(owner.authorization.startsWith('Bearer recovery.')

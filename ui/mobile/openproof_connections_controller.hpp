@@ -5,6 +5,7 @@
 #include <QPointer>
 #include <QNetworkReply>
 #include <QTimer>
+#include <QSet>
 #include <QVariantList>
 #include <QtTypes>
 #include <cstdint>
@@ -68,7 +69,7 @@ public:
     Q_INVOKABLE void checkCloudService();
     [[nodiscard]] QString cloudError() const { return m_cloudError; }
     [[nodiscard]] int cloudRevision() const noexcept { return m_cloudRevision; }
-    /** Explicit opt-in cloud reads/writes; bearer never leaves native Qt. */
+    /** Automatic account-owned profile storage; bearer never leaves native Qt. */
     Q_INVOKABLE void fetchCloudProfileExtras();
     Q_INVOKABLE void pushCloudProfileExtras(const QVariantMap& fields);
     /** Manual vanity URLs are self-asserted; OpenProof remains link authority. */
@@ -78,6 +79,8 @@ public:
     void recordBookmarkMutation(const QString& castId, bool deleted);
     /** Migrate existing local bookmarks once per verified account. */
     void migrateLocalBookmarks(const QStringList& ids);
+    /** Persist the per-account notification seen watermark automatically. */
+    void recordNotificationSeenAt(qulonglong fid, qlonglong observedAtMs);
     /** Store a user-asserted public vanity URL in device-local state only.
      * Does not upgrade OpenProof verification or silently enable cloud sync. */
     Q_INVOKABLE void setManualLinkedInUrl(const QString& url);
@@ -115,6 +118,7 @@ signals:
     void cloudProfileExtrasReceived(const QVariantMap& item);
     void cloudProfileExtrasSaved(const QVariantMap& item);
     void cloudBookmarkChangesReceived(const QVariantList& changes);
+    void cloudNotificationSeenAtReceived(qulonglong fid, qlonglong observedAtMs);
 
 private:
     [[nodiscard]] QString manualLinkedInSettingKey() const;
@@ -129,6 +133,7 @@ private:
     void sendCloudProfileRequest(bool upload, const QVariantMap& fields = {});
     void sendCloudLinkedInRequest(bool upload);
     void pumpBookmarkChanges();
+    void pumpNotificationSeenAt(bool upload = false);
     void reconcileLinkedIn();
     [[nodiscard]] QString bookmarkStorageKey() const;
 
@@ -137,6 +142,7 @@ private:
     BrowserOpenProofAuth m_authorization{this};
     QPointer<QNetworkReply> m_request{};
     QPointer<QNetworkReply> m_cloudRequest{};
+    QPointer<QNetworkReply> m_notificationRequest{};
     QPointer<QNetworkReply> m_cloudProbe{};
     bool m_cloudServiceAvailable{};
     bool m_applyingCloudLinkedIn{};
@@ -149,6 +155,11 @@ private:
     QTimer m_bookmarkPoll{this};
     QVariantList m_bookmarkOutbox{};
     QString m_bookmarkCursor{QStringLiteral("0")};
+    bool m_legacyBookmarksPending{};
+    QStringList m_legacyBookmarkCandidates{};
+    QSet<QString> m_bookmarkHistoryKeys{};
+    qlonglong m_notificationSeenAtMs{};
+    qlonglong m_notificationRemoteAtMs{};
     QUrl m_gatewayUrl{};
     QUrl m_browserConnectionBaseUrl{};
     QByteArray m_accountBearer{};

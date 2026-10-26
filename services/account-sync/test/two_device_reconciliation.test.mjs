@@ -15,6 +15,8 @@ function ownerStore() {
   const changes=new Map();
   const mutations=new Map();
   const profiles=new Map();
+  const watermark=new Map();
+  const seenTimes=new Map();
   let sequence=0;
   const key=owner=>owner.issuer+':'+owner.subject;
   return {
@@ -23,6 +25,19 @@ function ownerStore() {
       return (changes.get(key(owner))||[]).filter(e=>Number(e.sequence)>Number(cursor)).slice(0,200);
     },
     async getProfileExtras(owner){return profiles.get(key(owner))||null;},
+    async getNotificationSeen(owner){return seenTimes.get(key(owner))||'0';},
+    async putNotificationSeen(owner,milliseconds){
+      const latest=String(Math.max(Number(milliseconds),Number(seenTimes.get(key(owner))||'0')));
+      seenTimes.set(key(owner),latest);
+      return latest;
+    },
+    async list(){return [];},
+    async getNotificationSeen(owner){return watermark.get(key(owner))||'0';},
+    async putNotificationSeen(owner,seen){
+      const k=key(owner), next=String(Math.max(Number(watermark.get(k)||0),Number(seen)));
+      watermark.set(k,next);
+      return next;
+    },
     async putProfileExtras(owner,item){
       const k=key(owner), previous=profiles.get(k);
       if((previous?.revision||0)!==item.revision) return null;
@@ -31,8 +46,8 @@ function ownerStore() {
       return saved;
     },
     async put(entity,owner,item){
-      if(entity!=='bookmarks') throw Error('unexpected write '+entity);
       const k=key(owner);
+      if(entity!=='bookmarks') throw Error('unexpected write '+entity);
       let ids=mutations.get(k);
       if(!ids){ids=new Map();mutations.set(k,ids);}
       if(ids.has(item.mutation_id)){
@@ -111,6 +126,24 @@ test('two signed-in devices share owner state automatically, repeat writes are i
     assert.equal((await request('profile_extras',recovery,'PUT',profile)).status,409);
     const unrelated=await request('profile_extras',stranger);
     assert.equal((await unrelated.json()).item,null);
+
+    const seen={seen_at_ms:'1700000000000'};
+    assert.equal((await request('notification_seen',normal,'PUT',seen)).status,200);
+    const seenByOtherDevice=await request('notification_seen',recovery);
+    assert.equal(seenByOtherDevice.status,200);
+    assert.equal((await seenByOtherDevice.json()).seen_at_ms,seen.seen_at_ms);
+    // Older device cannot mark notifications unread again.
+    const older=await request('notification_seen',recovery,'PUT',{seen_at_ms:'1699999999999'});
+    assert.equal(older.status,200);
+    assert.equal((await older.json()).seen_at_ms,seen.seen_at_ms);
+    const foreignSeen=await request('notification_seen',stranger);
+    assert.equal((await foreignSeen.json()).seen_at_ms,'0');
+    assert.equal((await request('notification_seen',normal,'PUT',{seen_at_ms:'bad'})).status,400);
+    assert.equal((await request('notifications',normal,'PUT',{
+      id:'00000000-0000-4000-8000-000000000001',
+      source:'genycaster',kind:'seen_watermark',payload:{},
+      occurred_at:'2026-10-26T10:00:00Z',revision:0
+    })).status,400);
   }finally{
     await new Promise(resolve=>service.close(resolve));
   }

@@ -1,6 +1,9 @@
 // The database role for this pool is restricted to genycaster_db.
 // No JOIN to OpenProof tables, provider credentials, or protocol signer keys.
 import {randomUUID} from 'node:crypto';
+// Internal singleton row inside the existing per-account notifications table.
+// A dedicated state endpoint owns it; ordinary notification APIs cannot write it.
+const NOTIFICATION_SEEN_ROW='00000000-0000-4000-8000-000000000001';
 const COLUMNS=Object.freeze({
   drafts:'id,kind,title,content,revision,deleted_at,updated_at',
   tasks:'id,kind,schedule_at,timezone,payload,state,revision,attempt_count,executed_at,deleted_at,updated_at',
@@ -8,6 +11,14 @@ const COLUMNS=Object.freeze({
   connections:'provider,display_name,preferred_username,provider_profile_url,manual_profile_url,publicly_visible,last_confirmed_at,updated_at',
   bookmarks:"encode(cast_hash,'hex') AS cast_hash,is_deleted,changed_seq,changed_at",
 });
+function normalizeRow(entity, row) {
+  if (!row) return null;
+  if (entity==='bookmarks') return {...row,cast_hash:'0x'+row.cast_hash};
+  if (entity==='drafts' || entity==='tasks' || entity==='notifications')
+    return {...row,revision:Number(row.revision)};
+  return row;
+}
+
 export async function createPgStore(connectionString) {
   if (!connectionString) throw new Error('GENYCASTER_DATABASE_URL is required');
   const {Pool}=await import('pg');
@@ -21,6 +32,31 @@ export async function createPgStore(connectionString) {
   }
   return {
     close:()=>pool.end(),
+    async getNotificationSeen({issuer,subject}) {
+      const result=await pool.query(`SELECT
+          (EXTRACT(EPOCH FROM read_at)*1000)::bigint::text AS seen_at_ms
+          FROM notifications
+          WHERE issuer=$1 AND subject=$2 AND id=$3 AND source='genycaster'
+            AND kind='seen_watermark'`,
+        [issuer,subject,NOTIFICATION_SEEN_ROW]);
+      return result.rows[0]?.seen_at_ms||'0';
+    },
+    async putNotificationSeen({issuer,subject},milliseconds) {
+      // Monotonic under simultaneous writes from two devices: older requests
+      // cannot mark notifications unread again or overwrite a newer watermark.
+      const result=await pool.query(`INSERT INTO notifications
+          (issuer,subject,id,source,kind,payload,occurred_at,read_at)
+          VALUES ($1,$2,$3,'genycaster','seen_watermark','{}'::jsonb,
+              'epoch'::timestamptz,to_timestamp($4::double precision/1000))
+          ON CONFLICT (issuer,subject,id) DO UPDATE SET
+            source='genycaster',kind='seen_watermark',
+            read_at=GREATEST(COALESCE(notifications.read_at,'epoch'::timestamptz),
+                             EXCLUDED.read_at),
+            revision=notifications.revision+1,updated_at=now()
+          RETURNING (EXTRACT(EPOCH FROM read_at)*1000)::bigint::text AS seen_at_ms`,
+        [issuer,subject,NOTIFICATION_SEEN_ROW,milliseconds]);
+      return result.rows[0].seen_at_ms;
+    },
     async getProfileExtras({issuer,subject}) {
       const result=await pool.query(`SELECT category,profession,links,publicly_visible,
           revision,updated_at FROM profile_extras WHERE issuer=$1 AND subject=$2`,
@@ -58,10 +94,11 @@ export async function createPgStore(connectionString) {
       const result=await pool.query(
         'SELECT '+columns+' FROM '+entity+' WHERE '+(
           entity==='bookmarks'?'openproof_issuer=$1 AND openproof_subject=$2':'issuer=$1 AND subject=$2'
-        )+' ORDER BY '+(entity==='bookmarks'?'changed_at DESC':'updated_at DESC')+' LIMIT 500',
+        )+(entity==='notifications'
+          ? " AND NOT (source='genycaster' AND kind='seen_watermark')" : '')
+          +' ORDER BY '+(entity==='bookmarks'?'changed_at DESC':'updated_at DESC')+' LIMIT 500',
         [issuer,subject]);
-      return result.rows.map(item=>entity==='bookmarks'?
-        {...item,cast_hash:'0x'+item.cast_hash}:item);
+      return result.rows.map(row=>normalizeRow(entity,row));
     },
     async listBookmarkChanges({issuer,subject},cursor) {
       const result=await pool.query(`SELECT sequence,
@@ -166,7 +203,7 @@ export async function createPgStore(connectionString) {
           WHERE drafts.revision=$7
           RETURNING ${COLUMNS.drafts}`,
           [issuer,subject,item.id,item.kind,item.title,JSON.stringify(item.content),revision]);
-        return result.rows[0]||null;
+        return normalizeRow('drafts',result.rows[0]);
       }
       if (entity==='tasks') {
         const result=await pool.query(`INSERT INTO tasks
@@ -184,7 +221,7 @@ export async function createPgStore(connectionString) {
           RETURNING ${COLUMNS.tasks}`,
           [issuer,subject,item.id,item.kind,item.schedule_at,item.timezone,
            JSON.stringify(item.payload),item.state,item.idempotency_key,revision]);
-        return result.rows[0]||null;
+        return normalizeRow('tasks',result.rows[0]);
       }
       if (entity==='notifications') {
         const result=await pool.query(`INSERT INTO notifications
@@ -200,7 +237,7 @@ export async function createPgStore(connectionString) {
           RETURNING ${COLUMNS.notifications}`,
           [issuer,subject,item.id,item.source,item.kind,JSON.stringify(item.payload),
            item.occurred_at,item.read_at,revision]);
-        return result.rows[0]||null;
+        return normalizeRow('notifications',result.rows[0]);
       }
       throw new Error('unsupported_table');
     }

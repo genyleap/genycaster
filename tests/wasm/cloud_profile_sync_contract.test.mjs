@@ -61,10 +61,31 @@ test('bookmark changes are owner-scoped, idempotent, and replayed without user i
   assert.match(cpp,/\/cursor/);
   assert.match(cpp,/QUuid::createUuid\(\)/);
   assert.match(cpp,/emit cloudBookmarkChangesReceived\(changes\)/);
+  assert.match(cpp,/m_bookmarkHistoryKeys\.contains\(hash\)/);
+  assert.match(cpp,/m_legacyBookmarksPending/);
+  assert.match(cpp,/bookmarkStorageKey\(\)\+QStringLiteral\("\/migrated"\)/);
   assert.match(main,/PresentationBridge::bookmarkMutated/);
   assert.match(main,/PresentationBridge::cloudBookmarkChangesReceived|OpenProofConnectionsController::cloudBookmarkChangesReceived/);
   assert.match(store,/ON CONFLICT \(openproof_issuer,openproof_subject,mutation_id\) DO NOTHING/);
   assert.match(store,/ORDER BY sequence ASC LIMIT 200/);
+});
+
+test('notification read state is replicated invisibly with a monotonic owner-scoped watermark',()=>{
+  const controller=read('ui/mobile/openproof_connections_controller.cpp');
+  const header=read('ui/mobile/openproof_connections_controller.hpp');
+  const main=read('ui/mobile/main.cpp');
+  const pg=read('services/account-sync/pg_store.mjs');
+  assert.match(header,/cloudNotificationSeenAtReceived\(qulonglong fid, qlonglong observedAtMs\)/);
+  assert.match(header,/recordNotificationSeenAt\(qulonglong fid, qlonglong observedAtMs\)/);
+  assert.match(controller,/\/api\/v1\/cloud\/notification_seen/);
+  assert.match(controller,/QStringLiteral\("seen_at_ms"\)/);
+  assert.match(controller,/observedAtMs <= m_notificationSeenAtMs/);
+  assert.match(controller,/m_notificationSeenAtMs>m_notificationRemoteAtMs/);
+  assert.match(controller,/m_notificationRemoteAtMs=observed/);
+  assert.match(main,/PresentationBridge::notificationSeenAtChanged/);
+  assert.match(main,/OpenProofConnectionsController::cloudNotificationSeenAtReceived/);
+  assert.match(pg,/normalizeRow\(entity,row\)/);
+  assert.match(pg,/return normalizeRow\('notifications',result.rows\[0\]\)/);
 });
 
 test('profile table is private by default with optimistic revision checks',()=>{

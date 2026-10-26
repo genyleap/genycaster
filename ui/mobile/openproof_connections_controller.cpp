@@ -16,6 +16,7 @@
 #include <QUuid>
 
 #include <algorithm>
+#include <utility>
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten/emscripten.h>
@@ -261,6 +262,9 @@ void OpenProofConnectionsController::recordBookmarkMutation(
     m_bookmarkOutbox.push_back(item);
     m_settings->setValue(bookmarkStorageKey() + QStringLiteral("/outbox"), m_bookmarkOutbox);
     m_settings->sync();
+#if defined(__EMSCRIPTEN__)
+    EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
+#endif
     pumpBookmarkChanges();
 }
 
@@ -270,12 +274,15 @@ void OpenProofConnectionsController::migrateLocalBookmarks(const QStringList& id
         || !m_cloudServiceAvailable || !cloudAuthorizationReady()) return;
     const QString key=bookmarkStorageKey() + QStringLiteral("/migrated");
     if (m_settings->value(key).toBool()) return;
-    // Upgrade old per-FID device bookmarks without inventing deletes.
-    // Duplicate saves are harmless and do not replace remote removals on
-    // another device during ordinary reads.
-    for (const auto& id : ids) recordBookmarkMutation(id, false);
-    m_settings->setValue(key, true);
-    m_settings->sync();
+    if (m_legacyBookmarksPending) return;
+    // Never blindly upload old device bookmarks: another device might have
+    // deleted one already. First replay *all* server receipts, including
+    // tombstones, then enqueue only hashes unseen by the service.
+    m_legacyBookmarksPending=true;
+    m_legacyBookmarkCandidates=ids;
+    m_bookmarkHistoryKeys.clear();
+    m_bookmarkCursor=QStringLiteral("0");
+    pumpBookmarkChanges();
 }
 
 void OpenProofConnectionsController::pumpBookmarkChanges()
@@ -286,6 +293,7 @@ void OpenProofConnectionsController::pumpBookmarkChanges()
     QUrl url=m_cloudUrl;
     url.setPath(QStringLiteral("/api/v1/cloud/bookmarks"));
     const bool uploading=!m_bookmarkOutbox.isEmpty();
+    const QString fromCursor=uploading ? QString{} : m_bookmarkCursor;
     if (!uploading) {
         QUrlQuery query;
         query.addQueryItem(QStringLiteral("since"),m_bookmarkCursor);
@@ -312,7 +320,7 @@ void OpenProofConnectionsController::pumpBookmarkChanges()
     const auto generation=m_grantGeneration;
     const auto viewer=m_viewerFid;
     connect(reply,&QNetworkReply::finished,this,
-            [this,reply,generation,viewer,uploading,pending] {
+            [this,reply,generation,viewer,uploading,pending,fromCursor] {
         if (m_cloudRequest==reply) m_cloudRequest=nullptr;
         const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto bytes=reply->bytesAvailable() <= 100 * 1024
@@ -331,6 +339,9 @@ void OpenProofConnectionsController::pumpBookmarkChanges()
             m_bookmarkOutbox.removeFirst();
             m_settings->setValue(bookmarkStorageKey()+QStringLiteral("/outbox"),m_bookmarkOutbox);
             m_settings->sync();
+#if defined(__EMSCRIPTEN__)
+            EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
+#endif
             QMetaObject::invokeMethod(this,[this] { pumpBookmarkChanges(); },
                                       Qt::QueuedConnection);
         } else {
@@ -339,21 +350,161 @@ void OpenProofConnectionsController::pumpBookmarkChanges()
             static const QRegularExpression cursorFormat{
                 QStringLiteral("^(0|[1-9][0-9]{0,17})$")};
             if (!items.isArray() || !cursorFormat.match(next).hasMatch()) return;
+            if (m_legacyBookmarksPending && fromCursor!=QStringLiteral("0")
+                && m_bookmarkHistoryKeys.isEmpty()) {
+                // Initial legacy reconciliation began while another cursor
+                // request was in flight. Restart from zero, not from an
+                // incomplete tail that could miss older deletion receipts.
+                QMetaObject::invokeMethod(this,[this]{pumpBookmarkChanges();},
+                                          Qt::QueuedConnection);
+                return;
+            }
             QVariantList changes{};
             for (const auto& value : items.toArray()) {
-                if (value.isObject()) changes.push_back(value.toObject().toVariantMap());
+                if (!value.isObject()) continue;
+                const QVariantMap change=value.toObject().toVariantMap();
+                if (m_legacyBookmarksPending)
+                    m_bookmarkHistoryKeys.insert(
+                        change.value(QStringLiteral("cast_hash")).toString().toLower());
+                changes.push_back(change);
             }
             // Synchronously update the per-account local reading list before
             // advancing the cursor; a crash can replay but cannot lose rows.
             emit cloudBookmarkChangesReceived(changes);
             const QString previous=m_bookmarkCursor;
             m_bookmarkCursor=next;
-            m_settings->setValue(bookmarkStorageKey()+QStringLiteral("/cursor"),next);
-            m_settings->sync();
-            if (items.toArray().size()>=200 && next!=previous)
+            if (next!=previous) {
+                m_settings->setValue(bookmarkStorageKey()+QStringLiteral("/cursor"),next);
+                m_settings->sync();
+#if defined(__EMSCRIPTEN__)
+                EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
+#endif
+            }
+            if (items.toArray().size()>=200 && next!=previous) {
                 QMetaObject::invokeMethod(this,[this] { pumpBookmarkChanges(); },
                                           Qt::QueuedConnection);
+                return;
+            }
+            if (m_legacyBookmarksPending) {
+                static const QRegularExpression validHash{
+                    QStringLiteral("^0x[0-9a-f]{40}$")};
+                for (const auto& original : std::as_const(m_legacyBookmarkCandidates)) {
+                    const QString hash=original.toLower();
+                    if (!validHash.match(hash).hasMatch()
+                        || m_bookmarkHistoryKeys.contains(hash)) continue;
+                    bool queued=false;
+                    for (const auto& pendingValue : std::as_const(m_bookmarkOutbox)) {
+                        if (pendingValue.toMap().value(QStringLiteral("cast_hash"))
+                                .toString()==hash) { queued=true; break; }
+                    }
+                    if (!queued) m_bookmarkOutbox.push_back(QVariantMap{
+                        {QStringLiteral("cast_hash"),hash},
+                        {QStringLiteral("is_deleted"),false},
+                        {QStringLiteral("mutation_id"),
+                         QUuid::createUuid().toString(QUuid::WithoutBraces)}
+                    });
+                }
+                m_legacyBookmarksPending=false;
+                m_legacyBookmarkCandidates.clear();
+                m_bookmarkHistoryKeys.clear();
+                m_settings->setValue(bookmarkStorageKey()+QStringLiteral("/migrated"),true);
+                m_settings->setValue(bookmarkStorageKey()+QStringLiteral("/outbox"),m_bookmarkOutbox);
+                m_settings->sync();
+#if defined(__EMSCRIPTEN__)
+                EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
+#endif
+            }
+            if (!m_bookmarkOutbox.isEmpty())
+                QMetaObject::invokeMethod(this,[this] { pumpBookmarkChanges(); },
+                                          Qt::QueuedConnection);
+            else
+                QMetaObject::invokeMethod(this,[this] { pumpNotificationSeenAt(); },
+                                          Qt::QueuedConnection);
         }
+    });
+}
+
+void OpenProofConnectionsController::recordNotificationSeenAt(
+    const qulonglong fid, const qlonglong observedAtMs)
+{
+    if (!m_settings || !m_viewerFid || fid != m_viewerFid
+        || observedAtMs <= m_notificationSeenAtMs) return;
+    m_notificationSeenAtMs=observedAtMs;
+    m_settings->setValue(QStringLiteral("notifications/seen_at/%1").arg(fid),
+                         m_notificationSeenAtMs);
+    m_settings->sync();
+#if defined(__EMSCRIPTEN__)
+    EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
+#endif
+    pumpNotificationSeenAt();
+}
+
+void OpenProofConnectionsController::pumpNotificationSeenAt(const bool upload)
+{
+    if (!m_viewerFid || !m_settings || !m_verified || !cloudAuthorizationReady()
+        || !m_cloudServiceAvailable || m_cloudRequest
+        || !trustedHttpsEndpoint(m_cloudUrl)) return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/notification_seen"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept","application/json");
+    request.setRawHeader("Authorization","Bearer " + m_accountBearer);
+    const qlonglong uploadedAt=upload ? m_notificationSeenAtMs : 0;
+    QNetworkReply* reply{};
+    if (upload) {
+        if (m_notificationSeenAtMs <= m_notificationRemoteAtMs) return;
+        // Only the timestamp is submitted. The account API owns the
+        // reserved record and atomically keeps the maximum across devices.
+        const QJsonObject body{
+            {QStringLiteral("seen_at_ms"),QString::number(uploadedAt)}
+        };
+        request.setHeader(QNetworkRequest::ContentTypeHeader,
+                          QStringLiteral("application/json"));
+        reply=m_network.put(request,QJsonDocument{body}.toJson(QJsonDocument::Compact));
+    } else {
+        reply=m_network.get(request);
+    }
+    m_cloudRequest=reply;
+    const auto generation=m_grantGeneration;
+    const auto viewer=m_viewerFid;
+    connect(reply,&QNetworkReply::finished,this,
+        [this,reply,generation,viewer,upload,uploadedAt] {
+        if (m_cloudRequest==reply) m_cloudRequest=nullptr;
+        const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<=64*1024
+            ? reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if (generation!=m_grantGeneration || viewer!=m_viewerFid) return;
+        if (status!=200) return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        if (!doc.isObject()) return;
+        // Send millisecond integers as strings: no floating-point rounding
+        // at the wire/SQL boundary, and no client-controlled account key.
+        const QString raw=doc.object().value(QStringLiteral("seen_at_ms")).toString();
+        static const QRegularExpression validStamp{
+            QStringLiteral("^(0|[1-9][0-9]{0,15})$")};
+        if (!validStamp.match(raw).hasMatch()) return;
+        bool valid=false;
+        const auto observed=raw.toLongLong(&valid);
+        if (!valid || observed<0) return;
+        m_notificationRemoteAtMs=observed;
+        if (m_notificationRemoteAtMs>m_notificationSeenAtMs) {
+            m_notificationSeenAtMs=m_notificationRemoteAtMs;
+            m_settings->setValue(QStringLiteral("notifications/seen_at/%1").arg(viewer),
+                                 m_notificationSeenAtMs);
+            m_settings->sync();
+#if defined(__EMSCRIPTEN__)
+            EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
+#endif
+            emit cloudNotificationSeenAtReceived(viewer,m_notificationSeenAtMs);
+        }
+        if (m_notificationSeenAtMs>m_notificationRemoteAtMs
+            && (!upload || uploadedAt!=m_notificationSeenAtMs))
+            QMetaObject::invokeMethod(this,[this]{pumpNotificationSeenAt(true);},
+                                      Qt::QueuedConnection);
     });
 }
 
@@ -427,6 +578,10 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
         const auto bytes = reply->bytesAvailable() < 64 * 1024
             ? reply->readAll() : QByteArray{};
         reply->deleteLater();
+        // LinkedIn refresh must release the shared request lane for bookmarks
+        // and read-watermark changes, including when the refresh fails.
+        QMetaObject::invokeMethod(this, [this] { pumpBookmarkChanges(); },
+                                  Qt::QueuedConnection);
         const auto response = QJsonDocument::fromJson(bytes);
         if (status != 200 || !response.isObject()) {
             m_linkedInReconciled = false;
@@ -817,6 +972,13 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_bookmarkCursor=key.isEmpty() || !m_settings
         ? QStringLiteral("0") : m_settings->value(
             key+QStringLiteral("/cursor"),QStringLiteral("0")).toString();
+    m_legacyBookmarksPending=false;
+    m_legacyBookmarkCandidates.clear();
+    m_bookmarkHistoryKeys.clear();
+    m_notificationSeenAtMs=m_settings && fid
+        ? m_settings->value(QStringLiteral("notifications/seen_at/%1").arg(fid),
+                            0).toLongLong() : 0;
+    m_notificationRemoteAtMs=0;
     restoreCachedConnections();
     emit stateChanged();
 }

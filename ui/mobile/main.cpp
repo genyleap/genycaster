@@ -1863,6 +1863,18 @@ int main(int argc, char* argv[])
                      [&presentationBridge](const QVariantList& changes) {
         presentationBridge.applyCloudBookmarkChanges(changes);
     });
+    QObject::connect(&presentationBridge, &PresentationBridge::notificationSeenAtChanged,
+                     &openProofConnections,
+                     [&openProofConnections](const qulonglong fid, const qlonglong seenAtMs) {
+        openProofConnections.recordNotificationSeenAt(fid,seenAtMs);
+    });
+    QObject::connect(&openProofConnections,
+                     &OpenProofConnectionsController::cloudNotificationSeenAtReceived,
+                     &presentationBridge,
+                     [&presentationBridge](const qulonglong fid, const qlonglong seenAtMs) {
+        if (presentationBridge.isAuthenticated() && fid==presentationBridge.accountFid())
+            presentationBridge.restoreNotificationSeenAt(fid,seenAtMs);
+    });
     const auto migrateExistingBookmarks = [&presentationBridge, &openProofConnections] {
         if (presentationBridge.isAuthenticated()
             && openProofConnections.cloudServiceAvailable()
