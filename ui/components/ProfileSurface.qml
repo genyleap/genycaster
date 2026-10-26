@@ -2271,12 +2271,21 @@ Item {
         contentPadding: Theme.space4
         // LinkPreviewResolver is a shared C++/Qt service, not a browser-only
         // metadata bridge. Queue bounded public-link lookups only on open.
+        function requestMetadata(url) {
+            linkPreviewResolver.requestPreview(url)
+            // Single-threaded WebAssembly has no native parser worker.
+            // Reuse Genycaster's existing bounded C++ metadata relay there,
+            // rather than introducing browser JavaScript or raw QML fetch.
+            if (Qt.platform.os === "wasm"
+                    && typeof browserLinkMetadataController !== "undefined")
+                browserLinkMetadataController.requestPreview(url, "link")
+        }
         onOpened: {
             if (root.showProfileUrl)
-                linkPreviewResolver.requestPreview(String(root.activeDetail.profileUrl || ""))
+                requestMetadata(String(root.activeDetail.profileUrl || ""))
             const urls = root.profileExtraLinks
             for (let i = 0; i < urls.length; ++i)
-                linkPreviewResolver.requestPreview(String(urls[i]))
+                requestMetadata(String(urls[i]))
         }
         contentItem: ColumnLayout {
             spacing: Theme.space3

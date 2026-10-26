@@ -15,9 +15,29 @@ Button {
     flat: true
     padding: Theme.space2
     hoverEnabled: true
+    property var browserMetadata: ({})
     readonly property var metadata: {
         const revision = linkPreviewResolver.revision
-        return linkPreviewResolver.previewFor(root.targetUrl)
+        const native = linkPreviewResolver.previewFor(root.targetUrl)
+        return root.browserMetadata.resolved
+               && root.browserMetadata.providerKind === "web"
+               ? root.browserMetadata : native
+    }
+    onTargetUrlChanged: browserMetadata = ({})
+    Component.onCompleted: {
+        if (Qt.platform.os === "wasm"
+                && typeof browserLinkMetadataController !== "undefined")
+            browserMetadata = browserLinkMetadataController.previewFor(root.targetUrl, "link")
+    }
+    Connections {
+        target: typeof browserLinkMetadataController !== "undefined"
+                ? browserLinkMetadataController : null
+        function onPreviewReady(url, kind, preview) {
+            if (kind !== "link" || String(url) !== root.targetUrl.split("#")[0])
+                return
+            root.browserMetadata = preview && preview.resolved && preview.providerKind === "web"
+                                   ? preview : ({})
+        }
     }
     readonly property string websiteTitle: String(metadata.siteName || metadata.title || "").trim()
     readonly property string description: String(metadata.summary || metadata.description || "").trim()

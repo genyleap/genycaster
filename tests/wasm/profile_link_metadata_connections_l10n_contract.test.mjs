@@ -8,12 +8,17 @@ test('profile links use shared Qt metadata resolver for favicon/title/descriptio
   const profile=read('ui/components/ProfileSurface.qml');
   const link=read('ui/components/ProfileLinkRow.qml');
   const cmake=read('ui/CMakeLists.txt');
-  assert.match(profile,/id: profileLinksDrawer[\s\S]*?onOpened: \{[\s\S]*?linkPreviewResolver\.requestPreview/);
+  assert.match(profile,/id: profileLinksDrawer[\s\S]*?function requestMetadata\(url\)[\s\S]*?linkPreviewResolver\.requestPreview/);
+  assert.match(profile,/onOpened: \{[\s\S]*?requestMetadata/);
+  assert.match(profile,/browserLinkMetadataController\.requestPreview\(url, "link"\)/);
   assert.match(profile,/delegate: ProfileLinkRow/);
   assert.match(link,/linkPreviewResolver\.previewFor\(root\.targetUrl\)/);
   assert.match(link,/readonly property string faviconUrl: String\(metadata\.favicon/);
   assert.match(link,/metadata\.siteName \|\| metadata\.title/);
   assert.match(link,/metadata\.summary \|\| metadata\.description/);
+  assert.match(link,/browserLinkMetadataController\.previewFor\(root\.targetUrl, "link"\)/);
+  assert.match(link,/function onPreviewReady\(url, kind, preview\)/);
+  assert.match(read('ui/mobile/link_preview_resolver.cpp'),/#if defined\(__EMSCRIPTEN__\)[\s\S]*?Metadata parsing requires a native worker/);
   assert.doesNotMatch(link,/\b(?:fetch|XMLHttpRequest|localStorage|document|window)\s*[.(]/);
   assert.match(cmake,/components\/ProfileLinkRow\.qml/);
   const native=read('ui/mobile/main.cpp');
