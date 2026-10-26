@@ -42,6 +42,8 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(bool cloudServiceAvailable READ cloudServiceAvailable NOTIFY cloudStateChanged)
     Q_PROPERTY(QString cloudError READ cloudError NOTIFY cloudStateChanged)
     Q_PROPERTY(int cloudRevision READ cloudRevision NOTIFY cloudStateChanged)
+    Q_PROPERTY(QVariantMap cloudProfileExtras READ cloudProfileExtras NOTIFY cloudStateChanged)
+    Q_PROPERTY(bool bookmarkRefreshBusy READ bookmarkRefreshBusy NOTIFY cloudStateChanged)
 public:
     explicit OpenProofConnectionsController(QObject* parent = nullptr,
                                             QSettings* settings = nullptr);
@@ -70,14 +72,28 @@ public:
     Q_INVOKABLE void checkCloudService();
     [[nodiscard]] QString cloudError() const { return m_cloudError; }
     [[nodiscard]] int cloudRevision() const noexcept { return m_cloudRevision; }
+    [[nodiscard]] QVariantMap cloudProfileExtras() const { return m_cloudProfileExtras; }
+    [[nodiscard]] bool bookmarkPreviewSupported() const noexcept {
+        return m_bookmarkPreviewsReady;
+    }
+    void publishBookmarkPreviewIfMissing(const QString& castId,
+                                         const QVariantMap& snapshot);
+    [[nodiscard]] bool bookmarkRefreshBusy() const noexcept {
+        return m_bookmarkSnapshotRequest!=nullptr;
+    }
     /** Automatic account-owned profile storage; bearer never leaves native Qt. */
     Q_INVOKABLE void fetchCloudProfileExtras();
+    /** Read the last server-confirmed OpenProof link display snapshot. */
+    Q_INVOKABLE void refreshAccountConnectionsSnapshot();
+    /** Re-read the bookmark change history on demand, without local data loss. */
+    Q_INVOKABLE void refreshAccountBookmarks();
     Q_INVOKABLE void pushCloudProfileExtras(const QVariantMap& fields);
     /** Manual vanity URLs are self-asserted; OpenProof remains link authority. */
     Q_INVOKABLE void uploadManualLinkedInCloud();
     Q_INVOKABLE void restoreManualLinkedInCloud();
     /** Automatically record a durable local reading-list mutation for replay. */
-    void recordBookmarkMutation(const QString& castId, bool deleted);
+    void recordBookmarkMutation(const QString& castId, bool deleted,
+                                const QVariantMap& snapshot = {});
     /** Migrate existing local bookmarks once per verified account. */
     void migrateLocalBookmarks(const QStringList& ids);
     /** Persist the per-account notification seen watermark automatically. */
@@ -141,6 +157,8 @@ private:
     void revokeAccountSession();
     void authorizeCloudRequest(QNetworkRequest& request) const;
     void restoreCachedConnections();
+    void publishVerifiedConnectionsSnapshot();
+    void publishPortableConnectionLabels();
     void saveCachedConnections() const;
     void sendAccountRequest(const QUrl& url, QByteArray body,
                             std::function<void(int, QByteArray)> callback);
@@ -162,6 +180,12 @@ private:
     BrowserOpenProofAuth m_authorization{this};
     QPointer<QNetworkReply> m_request{};
     QPointer<QNetworkReply> m_cloudRequest{};
+    QPointer<QNetworkReply> m_accountConnectionsRequest{};
+    QPointer<QNetworkReply> m_portableConnectionsRequest{};
+    bool m_portableConnectionsPublished{};
+    QPointer<QNetworkReply> m_bookmarkSnapshotRequest{};
+    bool m_bookmarkPreviewsReady{};
+    QSet<QString> m_bookmarkPreviewSent{};
     QPointer<QNetworkReply> m_draftRequest{};
     QPointer<QNetworkReply> m_cloudProbe{};
     QPointer<QNetworkReply> m_sessionRequest{};
@@ -174,6 +198,7 @@ private:
     QUrl m_cloudUrl{};
     QString m_cloudError{};
     int m_cloudRevision{};
+    QVariantMap m_cloudProfileExtras{};
     QTimer m_grantExpiry{this};
     QTimer m_connectionPoll{this};
     QTimer m_bookmarkPoll{this};

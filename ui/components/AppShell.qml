@@ -890,6 +890,12 @@ Item {
                                             rows: presentationBridge.bookmarkedCasts
                                             compact: root.compact
                                             authenticated: presentationBridge.isAuthenticated
+                                            refreshBusy: openProofConnections.bookmarkRefreshBusy
+                                            onRefreshRequested: openProofConnections.refreshAccountBookmarks()
+                                            onRemoveRequested: castId => presentationBridge.removeBookmark(castId)
+                                            onPriorityRequested: (castId, priority) =>
+                                                presentationBridge.setBookmarkPriority(castId, priority)
+                                            Component.onCompleted: openProofConnections.refreshAccountBookmarks()
                                             onCastRequested: castId => {
                                                 root.rememberShellRouteForReturn()
                                                 root.shellRoute = ""

@@ -122,6 +122,8 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
             // another signed-in device, not only at first authorization.
             m_linkedInReconciled = false;
             reconcileLinkedIn();
+            publishPortableConnectionLabels();
+            refreshAccountConnectionsSnapshot();
             pumpBookmarkChanges();
             pumpDraftChanges();
         }
@@ -252,6 +254,8 @@ void OpenProofConnectionsController::restoreAccountSession()
         m_cloudSessionVerified=true;
         m_cloudCsrf=csrf;
         m_bookmarkPoll.start();
+        publishPortableConnectionLabels();
+        if(!m_portableConnectionsRequest)refreshAccountConnectionsSnapshot();
         emit stateChanged();
         if(m_cloudServiceAvailable) {
             pumpBookmarkChanges();
@@ -321,6 +325,8 @@ void OpenProofConnectionsController::acceptBrowserAccountSession(
     m_cloudSessionVerified=true;
     m_cloudCsrf=std::move(csrf);
     m_bookmarkPoll.start();
+    publishPortableConnectionLabels();
+    if(!m_portableConnectionsRequest)refreshAccountConnectionsSnapshot();
     emit stateChanged();
     if(m_cloudServiceAvailable) {
         pumpBookmarkChanges();
@@ -382,6 +388,7 @@ void OpenProofConnectionsController::checkCloudService()
         if (m_cloudServiceAvailable && cloudAuthorizationReady()) {
             m_bookmarkPoll.start();
             reconcileLinkedIn();
+            refreshAccountConnectionsSnapshot();
             pumpBookmarkChanges();
             pumpDraftChanges();
         }
@@ -395,15 +402,31 @@ QString OpenProofConnectionsController::bookmarkStorageKey() const
 }
 
 void OpenProofConnectionsController::recordBookmarkMutation(
-    const QString& castId, const bool deleted)
+    const QString& castId, const bool deleted, const QVariantMap& snapshot)
 {
     if (!m_settings || !m_viewerFid) return;
     static const QRegularExpression valid{
         QStringLiteral("^0x[0-9a-fA-F]{40}$")};
     if (!valid.match(castId).hasMatch()) return;
+    const auto priority=std::clamp(snapshot.value(QStringLiteral("priority")).toInt(),0,2);
+    QVariantMap preview;
+    if(!deleted) {
+        for(const auto& key : {QStringLiteral("authorFid"),QStringLiteral("author"),
+            QStringLiteral("username"),QStringLiteral("displayName"),
+            QStringLiteral("avatarUrl"),QStringLiteral("createdAtMs"),
+            QStringLiteral("text")}) {
+            if(snapshot.contains(key))preview.insert(key,snapshot.value(key));
+        }
+        const QString image=preview.value(QStringLiteral("avatarUrl")).toString();
+        if(!image.isEmpty() && (!image.startsWith(QStringLiteral("https://"))
+                               || image.size()>512))
+            preview.remove(QStringLiteral("avatarUrl"));
+    }
     const QVariantMap item{
         {QStringLiteral("cast_hash"), castId.toLower()},
         {QStringLiteral("is_deleted"), deleted},
+        {QStringLiteral("priority"), deleted ? 0 : priority},
+        {QStringLiteral("preview"), preview.isEmpty() ? QVariant{} : QVariant{preview}},
         {QStringLiteral("mutation_id"), QUuid::createUuid().toString(QUuid::WithoutBraces)}
     };
     m_bookmarkOutbox.push_back(item);
@@ -1176,6 +1199,7 @@ void OpenProofConnectionsController::sendCloudProfileRequest(
                     m_cloudRevision = revision;
                     m_cloudError.clear();
                     const QVariantMap fields = object.toVariantMap();
+                    m_cloudProfileExtras=fields;
                     if (upload) emit cloudProfileExtrasSaved(fields);
                     else emit cloudProfileExtrasReceived(fields);
                 } else {
@@ -1183,6 +1207,7 @@ void OpenProofConnectionsController::sendCloudProfileRequest(
                 }
             } else if (!upload && item.isNull()) {
                 m_cloudRevision = 0;
+                m_cloudProfileExtras.clear();
                 m_cloudError.clear();
                 emit cloudProfileExtrasReceived({});
             } else {
@@ -1265,6 +1290,232 @@ QStringList OpenProofConnectionsController::parseProviderCatalog(const QByteArra
     // not the social/external identity picker.
     result.sort(Qt::CaseInsensitive);
     return result;
+}
+
+void OpenProofConnectionsController::refreshAccountConnectionsSnapshot()
+{
+    if (!m_viewerFid || !m_cloudSessionVerified || !m_cloudServiceAvailable
+        || m_accountConnectionsRequest || !trustedHttpsEndpoint(m_cloudUrl))
+        return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/connections"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9000);
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    auto* reply=m_network.get(request);
+    m_accountConnectionsRequest=reply;
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if(m_accountConnectionsRequest==reply)m_accountConnectionsRequest=nullptr;
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto body=reply->bytesAvailable()<=32768?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(viewer!=m_viewerFid || generation!=m_grantGeneration
+           || status!=200 || m_verified)return;
+        const auto parsed=QJsonDocument::fromJson(body);
+        if(!parsed.isObject() || !parsed.object().value(QStringLiteral("items")).isArray())return;
+        const auto items=parsed.object().value(QStringLiteral("items")).toArray();
+        QVariantList current;
+        QSet<QString> providers;
+        for(const auto& raw : items) {
+            if(!raw.isObject())continue;
+            const auto row=raw.toObject();
+            const auto provider=row.value(QStringLiteral("provider")).toString();
+            if(!m_providers.contains(provider) || providers.contains(provider))continue;
+            providers.insert(provider);
+            current.push_back(QVariantMap{
+                {QStringLiteral("provider"),provider},
+                // Informational marker, never a provider OAuth subject.
+                {QStringLiteral("subject"),QStringLiteral("server-confirmed:")+provider},
+                {QStringLiteral("displayName"),row.value(QStringLiteral("display_name")).toString()},
+                {QStringLiteral("username"),row.value(QStringLiteral("preferred_username")).toString()},
+                {QStringLiteral("profileUrl"),row.value(QStringLiteral("provider_profile_url")).toString()},
+                {QStringLiteral("manualProfileUrl"),row.value(QStringLiteral("manual_profile_url")).toString()}
+            });
+        }
+        // Do not promote display cache to active OpenProof authorization.
+        m_connections=std::move(current);
+        m_cachedSnapshot=!m_connections.isEmpty();
+        emit stateChanged();
+    });
+}
+
+void OpenProofConnectionsController::publishVerifiedConnectionsSnapshot()
+{
+    // A verified upstream bearer is checked server-side once more.
+    // Client-authored provider claims are never trusted as link evidence.
+    if(!m_verified || m_accountBearer.isEmpty()
+       || !trustedHttpsEndpoint(m_cloudUrl))return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/connections/refresh"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(12000);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,
+                      QStringLiteral("application/json"));
+    request.setRawHeader("Accept","application/json");
+    request.setRawHeader("Authorization","Bearer "+m_accountBearer);
+    auto* reply=m_network.post(request,QByteArrayLiteral("{}"));
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        const auto code=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        reply->deleteLater();
+        if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        if(code==200)refreshAccountConnectionsSnapshot();
+    });
+}
+
+void OpenProofConnectionsController::publishBookmarkPreviewIfMissing(
+    const QString& castId,const QVariantMap& snapshot)
+{
+    if(!m_bookmarkPreviewsReady || m_bookmarkPreviewSent.contains(castId)
+       || m_bookmarkPreviewSent.size()>=32
+       || snapshot.value(QStringLiteral("text")).toString().isEmpty()
+       || snapshot.value(QStringLiteral("authorFid")).toULongLong()==0)
+        return;
+    m_bookmarkPreviewSent.insert(castId);
+    recordBookmarkMutation(castId,false,snapshot);
+}
+
+void OpenProofConnectionsController::publishPortableConnectionLabels()
+{
+    if(!m_viewerFid || !m_cloudSessionVerified || m_verified
+       || !m_cachedSnapshot || m_portableConnectionsPublished
+       || m_portableConnectionsRequest || !trustedHttpsEndpoint(m_cloudUrl))
+        return;
+    QJsonArray entries;
+    QSet<QString> seen;
+    for(const auto& value:m_connections) {
+        const auto item=value.toMap();
+        const auto provider=item.value(QStringLiteral("provider")).toString();
+        if(!m_providers.contains(provider)||seen.contains(provider))continue;
+        seen.insert(provider);
+        QString url=item.value(QStringLiteral("profileUrl")).toString();
+        if(!url.isEmpty()) {
+            const QUrl parsed{url};
+            QStringList allowedHosts;
+            if(provider==QStringLiteral("x"))
+                allowedHosts={QStringLiteral("x.com"),QStringLiteral("twitter.com")};
+            else if(provider==QStringLiteral("github"))
+                allowedHosts={QStringLiteral("github.com")};
+            else if(provider==QStringLiteral("linkedin"))
+                allowedHosts={QStringLiteral("linkedin.com"),
+                              QStringLiteral("www.linkedin.com")};
+            else if(provider==QStringLiteral("telegram"))
+                allowedHosts={QStringLiteral("t.me")};
+            if(parsed.scheme()!=QStringLiteral("https")
+               || !allowedHosts.contains(parsed.host())
+               || parsed.port()!=-1 || !parsed.userInfo().isEmpty()
+               || !parsed.query().isEmpty() || !parsed.fragment().isEmpty()
+               || url.size()>512)url.clear();
+        }
+        QString manual;
+        if(provider==QStringLiteral("linkedin")) {
+            manual=item.value(QStringLiteral("manualProfileUrl")).toString();
+            const QUrl candidate{manual};
+            if(candidate.scheme()!=QStringLiteral("https")
+               || candidate.host()!=QStringLiteral("www.linkedin.com")
+               || !candidate.path().startsWith(QStringLiteral("/in/"))
+               || candidate.port()!=-1 || !candidate.query().isEmpty()
+               || !candidate.fragment().isEmpty() || manual.size()>512)
+                manual.clear();
+        }
+        entries.push_back(QJsonObject{
+            {QStringLiteral("provider"),provider},
+            {QStringLiteral("display_name"),item.value(
+                QStringLiteral("displayName")).toString().left(256)},
+            {QStringLiteral("preferred_username"),item.value(
+                QStringLiteral("username")).toString().left(128)},
+            {QStringLiteral("provider_profile_url"),url},
+            {QStringLiteral("manual_profile_url"),
+             manual}
+        });
+    }
+    if(entries.isEmpty())return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/connections/portable"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9000);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,
+                      QStringLiteral("application/json"));
+    authorizeCloudRequest(request);
+    const auto body=QJsonDocument{QJsonObject{{QStringLiteral("items"),entries}}}
+        .toJson(QJsonDocument::Compact);
+    auto* reply=m_network.put(request,body);
+    m_portableConnectionsRequest=reply;
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if(m_portableConnectionsRequest==reply)m_portableConnectionsRequest=nullptr;
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        reply->deleteLater();
+        if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        if(status==200) {
+            m_portableConnectionsPublished=true;
+            refreshAccountConnectionsSnapshot();
+        }
+    });
+}
+
+void OpenProofConnectionsController::refreshAccountBookmarks()
+{
+    if(!m_viewerFid || !cloudAuthorizationReady() || !m_cloudServiceAvailable
+       || m_bookmarkSnapshotRequest || !trustedHttpsEndpoint(m_cloudUrl))return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/bookmarks"));
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("state"),QStringLiteral("1"));
+    url.setQuery(query);
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(12000);
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    auto* reply=m_network.get(request);
+    m_bookmarkSnapshotRequest=reply;
+    emit cloudStateChanged();
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if(m_bookmarkSnapshotRequest==reply)m_bookmarkSnapshotRequest=nullptr;
+        emit cloudStateChanged();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto data=reply->bytesAvailable()<=1'048'576?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(viewer!=m_viewerFid || generation!=m_grantGeneration || status!=200)
+            return;
+        const auto doc=QJsonDocument::fromJson(data);
+        if(!doc.isObject() || !doc.object().value(QStringLiteral("items")).isArray())
+            return;
+        // Apply current canonical server state without discarding local
+        // pending mutations. The normal durable outbox still owns their fate.
+        QSet<QString> pending;
+        for(const auto& item:m_bookmarkOutbox)
+            pending.insert(item.toMap().value(QStringLiteral("cast_hash")).toString());
+        QVariantList changes;
+        const auto items=doc.object().value(QStringLiteral("items")).toArray();
+        if(items.size()>500)return;
+        m_bookmarkPreviewsReady=doc.object().value(
+            QStringLiteral("preview_supported")).toBool();
+        for(const auto& item:items) {
+            if(!item.isObject())continue;
+            auto row=item.toObject().toVariantMap();
+            if(pending.contains(row.value(QStringLiteral("cast_hash")).toString()))
+                continue;
+            changes.push_back(std::move(row));
+        }
+        emit cloudBookmarkChangesReceived(changes);
+        pumpBookmarkChanges();
+    });
 }
 
 void OpenProofConnectionsController::restoreCachedConnections()
@@ -1366,6 +1617,21 @@ void OpenProofConnectionsController::clearAccountGrant()
         m_request->deleteLater();
         m_request = nullptr;
     }
+    if (m_bookmarkSnapshotRequest) {
+        m_bookmarkSnapshotRequest->abort();
+        m_bookmarkSnapshotRequest->deleteLater();
+        m_bookmarkSnapshotRequest=nullptr;
+    }
+    if (m_portableConnectionsRequest) {
+        m_portableConnectionsRequest->abort();
+        m_portableConnectionsRequest->deleteLater();
+        m_portableConnectionsRequest=nullptr;
+    }
+    if (m_accountConnectionsRequest) {
+        m_accountConnectionsRequest->abort();
+        m_accountConnectionsRequest->deleteLater();
+        m_accountConnectionsRequest=nullptr;
+    }
     if (m_cloudRequest) {
         m_cloudRequest->abort();
         m_cloudRequest->deleteLater();
@@ -1381,7 +1647,10 @@ void OpenProofConnectionsController::clearAccountGrant()
     // Losing the short-lived OpenProof grant does not invalidate a verified
     // Genycaster browser session or its last known profile CAS revision.
     // Account switches clear m_cloudSessionVerified before reaching here.
-    if(!m_cloudSessionVerified)m_cloudRevision=0;
+    if(!m_cloudSessionVerified) {
+        m_cloudRevision=0;
+        m_cloudProfileExtras.clear();
+    }
     m_cloudError.clear();
     emit cloudStateChanged();
     m_accountBearer.fill('\0');
@@ -1422,6 +1691,9 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_legacyBookmarksPending=false;
     m_legacyBookmarkCandidates.clear();
     m_bookmarkHistoryKeys.clear();
+    m_bookmarkPreviewsReady=false;
+    m_bookmarkPreviewSent.clear();
+    m_portableConnectionsPublished=false;
     m_notificationSeenAtMs=m_settings && fid
         ? m_settings->value(QStringLiteral("notifications/seen_at/%1").arg(fid),
                             0).toLongLong() : 0;
@@ -1682,6 +1954,7 @@ void OpenProofConnectionsController::refreshConnections()
             else
                 checkCloudService();
             saveCachedConnections();
+            publishVerifiedConnectionsSnapshot();
             m_error.clear();
             // A LinkedIn reauthorization begins with an already linked account.
             // It succeeds only when the new provider-backed URL is observed,

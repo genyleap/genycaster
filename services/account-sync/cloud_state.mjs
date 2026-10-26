@@ -89,7 +89,28 @@ export function validateCloudItem(entity, item) {
   if (entity === 'bookmarks') {
     if (typeof item.cast_hash !== 'string' || !HASH.test(item.cast_hash)) return null;
     if (item.mutation_id !== undefined && !ID.test(String(item.mutation_id))) return null;
+    const priority=item.priority===undefined?0:item.priority;
+    if (!Number.isInteger(priority)||priority<0||priority>2)return null;
+    let preview=null;
+    if (item.preview!==undefined && item.preview!==null) {
+      const p=item.preview;
+      if(!p||typeof p!=='object'||Array.isArray(p))return null;
+      const fid=Number(p.authorFid||0);
+      if(!Number.isSafeInteger(fid)||fid<0||fid>Number.MAX_SAFE_INTEGER)return null;
+      for(const key of ['author','username','displayName','avatarUrl','text'])
+        if(p[key]!==undefined && typeof p[key]!=='string')return null;
+      if(String(p.avatarUrl||'') &&
+         (!/^https:\/\//.test(p.avatarUrl)||p.avatarUrl.length>512))return null;
+      const stamp=Number(p.createdAtMs||0);
+      if(!Number.isSafeInteger(stamp)||stamp<0)return null;
+      preview={authorFid:fid,author:String(p.author||'').slice(0,128),
+        username:String(p.username||'').slice(0,128),
+        displayName:String(p.displayName||'').slice(0,128),
+        avatarUrl:String(p.avatarUrl||'').slice(0,512),
+        text:String(p.text||'').slice(0,1200),createdAtMs:stamp};
+    }
     return {cast_hash: item.cast_hash.toLowerCase(), is_deleted: item.is_deleted === true,
+      priority,preview,
       mutation_id:item.mutation_id ? String(item.mutation_id).toLowerCase() : undefined};
   }
   if (!ID.test(String(item.id || ''))) return null;
@@ -226,6 +247,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
     const entity=path.slice('/api/v1/cloud/'.length);
     if (!['connections','bookmarks','notifications','notification_seen',
       'app_updates','tasks','drafts','profile_extras','connections/refresh',
+      'connections/portable',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
@@ -313,6 +335,50 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
         respond(response,200,{seen_at_ms:await store.putNotificationSeen(owner,value)});
         return true;
       }
+      if(entity==='connections/portable') {
+        if(request.method!=='PUT') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        const data=await readBody(request,8192);
+        if(!data||!Array.isArray(data.items)||data.items.length>4
+           ||typeof store.importConnectionLabels!=='function') {
+          respond(response,400,{error:'invalid_connections'});return true;
+        }
+        const allowed=new Set(['x','github','linkedin','telegram']);
+        const hosts={
+          x:['x.com','twitter.com'],github:['github.com'],
+          linkedin:['linkedin.com','www.linkedin.com'],
+          telegram:['t.me']
+        };
+        const unique=new Set(),cleaned=[];
+        for(const row of data.items) {
+          if(!row || typeof row!=='object'||Array.isArray(row)
+             ||!allowed.has(row.provider)||unique.has(row.provider)
+             ||typeof row.display_name!=='string'||row.display_name.length>256
+             ||typeof row.preferred_username!=='string'
+             ||row.preferred_username.length>128
+             ||typeof row.provider_profile_url!=='string'
+             ||row.provider_profile_url.length>512
+             ||(row.manual_profile_url!==undefined &&
+                (typeof row.manual_profile_url!=='string' ||
+                 (row.manual_profile_url && !validLinkedInUrl(row.manual_profile_url)) ||
+                 (row.provider!=='linkedin' && row.manual_profile_url)))) {
+            respond(response,400,{error:'invalid_connections'});return true;
+          }
+          if(row.provider_profile_url) {
+            let url;
+            try{url=new URL(row.provider_profile_url);}catch{}
+            if(!url||url.protocol!=='https:'||!hosts[row.provider].includes(url.hostname)
+               ||url.username||url.password||url.port||url.search||url.hash) {
+              respond(response,400,{error:'invalid_connections'});return true;
+            }
+          }
+          unique.add(row.provider);
+          cleaned.push({...row});
+        }
+        await store.importConnectionLabels(owner,cleaned);
+        respond(response,200,{saved:cleaned.length});return true;
+      }
       if (entity==='connections/refresh') {
         if (request.method!=='POST') {respond(response,405,{error:'method_not_allowed'});return true;}
         const reply=await fetchImpl(owner.authorization.startsWith('Bearer recovery.')
@@ -339,6 +405,15 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
       if (request.method==='GET') {
         if (entity==='bookmarks' && typeof store.listBookmarkChanges==='function') {
           const url=new URL(request.url,'http://localhost');
+          if (url.searchParams.get('state')==='1' &&
+              typeof store.listBookmarkSnapshot==='function') {
+            respond(response,200,{
+              items:await store.listBookmarkSnapshot(owner),
+              preview_supported:typeof store.bookmarkPreviewsReady==='function'
+                ?store.bookmarkPreviewsReady():false,
+            });
+            return true;
+          }
           const value=url.searchParams.get('since') || '0';
           if (!/^(0|[1-9][0-9]{0,17})$/.test(value)) {
             respond(response,400,{error:'invalid_cursor'});return true;

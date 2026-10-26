@@ -7,13 +7,46 @@ Flickable {
     property var rows: []
     property bool compact: false
     property bool authenticated: false
+    property bool refreshBusy: false
+    property string sortMode: "priority"
     signal castRequested(string castId)
+    signal removeRequested(string castId)
+    signal priorityRequested(string castId, int priority)
+    signal refreshRequested()
     signal authenticationRequested()
 
     clip: true
-    boundsBehavior: Flickable.StopAtBounds
     contentWidth: width
     contentHeight: column.implicitHeight + Theme.space5 * 2
+    boundsBehavior: Flickable.DragOverBounds
+    boundsMovement: Flickable.FollowBoundsBehavior
+    readonly property var sortedRows: {
+        const items = Array.isArray(root.rows) ? root.rows.slice() : []
+        // Sorting never collapses distinct Farcaster hashes into one item.
+        const seen = new Set()
+        const unique = items.filter(item => {
+            const id = String(item.castId || "").toLowerCase()
+            if (!/^0x[0-9a-f]{40}$/.test(id) || seen.has(id)) return false
+            seen.add(id)
+            return true
+        })
+        unique.sort((a, b) => {
+            if (root.sortMode === "priority") {
+                const byPriority = Number(b.priority || 0) - Number(a.priority || 0)
+                if (byPriority !== 0) return byPriority
+            }
+            const timeA = Number(a.savedAtMs || a.createdAtMs || 0)
+            const timeB = Number(b.savedAtMs || b.createdAtMs || 0)
+            return root.sortMode === "oldest" ? timeA - timeB : timeB - timeA
+        })
+        return unique
+    }
+    PullToRefresh {
+        flickable: root
+        busy: root.refreshBusy
+        refreshEnabled: root.authenticated
+        onRefreshRequested: root.refreshRequested()
+    }
 
     ColumnLayout {
         id: column
@@ -34,22 +67,46 @@ Flickable {
                 font.weight: Theme.weightBold
             }
             Label {
-                text: LocaleFormat.formatInteger(root.rows.length)
+                text: LocaleFormat.formatInteger(root.sortedRows.length)
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeMetaSize
             }
         }
 
-        DirectionAwareLabel {
+        RowLayout {
             Layout.fillWidth: true
-            text: qsTrId("genycaster.side_nav.bookmarks")
-            color: Theme.inkMuted
-            font.pixelSize: Theme.typeMetaSize
-            wrapMode: Text.Wrap
+            spacing: Theme.space2
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTr("Your saved casts, available on your signed-in devices")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeMetaSize
+                wrapMode: Text.Wrap
+            }
+            GenyComboBox {
+                id: bookmarkSortPicker
+                objectName: "bookmarkSortPicker"
+                Layout.preferredWidth: root.compact ? 116 : 160
+                model: [qsTr("Priority"), qsTr("Newest"), qsTr("Oldest")]
+                currentIndex: root.sortMode === "oldest" ? 2
+                            : root.sortMode === "newest" ? 1 : 0
+                onActivated: index => root.sortMode =
+                    index === 2 ? "oldest" : index === 1 ? "newest" : "priority"
+            }
+            ActionButton {
+                iconOnly: true
+                compact: true
+                quiet: true
+                iconGlyph: Theme.iconRefresh
+                text: qsTr("Refresh saved casts")
+                busy: root.refreshBusy
+                enabled: root.authenticated && !root.refreshBusy
+                onClicked: root.refreshRequested()
+            }
         }
 
         DirectionAwareLabel {
-            visible: !root.authenticated || root.rows.length === 0
+            visible: !root.authenticated || root.sortedRows.length === 0
             Layout.fillWidth: true
             Layout.topMargin: Theme.space6
             text: !root.authenticated
@@ -62,7 +119,7 @@ Flickable {
         }
 
         Repeater {
-            model: root.rows
+            model: root.sortedRows
             delegate: Superellipse {
                 required property var modelData
                 Layout.fillWidth: true
@@ -105,27 +162,41 @@ Flickable {
                                 elide: Text.ElideRight
                             }
                         }
-                        Icon {
-                            text: Theme.iconArrowRight
-                            color: Theme.inkMuted
-                            preferredSize: Theme.iconSizeSmall
+                        ActionButton {
+                            objectName: "bookmarkPriorityButton"
+                            compact: true
+                            quiet: true
+                            iconOnly: true
+                            iconGlyph: Theme.iconLocation
+                            text: Number(modelData.priority || 0) > 0
+                                  ? qsTr("Remove priority") : qsTr("Prioritize bookmark")
+                            onClicked: root.priorityRequested(String(modelData.castId || ""),
+                                Number(modelData.priority || 0) > 0 ? 0 : 1)
+                        }
+                        ActionButton {
+                            objectName: "bookmarkRemoveButton"
+                            compact: true
+                            quiet: true
+                            iconOnly: true
+                            iconGlyph: Theme.iconTrash
+                            text: qsTr("Remove bookmark")
+                            onClicked: root.removeRequested(String(modelData.castId || ""))
                         }
                     }
 
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: String(modelData.text || "") || qsTr("Open saved cast")
+                        text: String(modelData.text || "") || qsTr("Cast details unavailable. Tap to open.")
                         color: Theme.ink
                         font.pixelSize: Theme.typeBodySize
                         maximumLineCount: 5
                         elide: Text.ElideRight
                         wrapMode: Text.Wrap
+                        TapHandler {
+                            gesturePolicy: TapHandler.ReleaseWithinBounds
+                            onTapped: root.castRequested(String(modelData.castId || ""))
+                        }
                     }
-                }
-
-                TapHandler {
-                    gesturePolicy: TapHandler.ReleaseWithinBounds
-                    onTapped: root.castRequested(String(modelData.castId || ""))
                 }
             }
         }

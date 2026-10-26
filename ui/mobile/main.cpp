@@ -1874,14 +1874,27 @@ int main(int argc, char* argv[])
     // propagates owner-scoped mutations through its durable outbox.
     QObject::connect(&presentationBridge, &PresentationBridge::bookmarkMutated,
                      &openProofConnections,
-                     [&openProofConnections](const QString& castId, const bool deleted) {
-        openProofConnections.recordBookmarkMutation(castId, deleted);
+                     [&openProofConnections,&presentationBridge](
+                         const QString& castId, const bool deleted) {
+        openProofConnections.recordBookmarkMutation(
+            castId,deleted,deleted ? QVariantMap{} : presentationBridge.bookmarkEntry(castId));
     });
     QObject::connect(&openProofConnections,
                      &OpenProofConnectionsController::cloudBookmarkChangesReceived,
                      &presentationBridge,
-                     [&presentationBridge](const QVariantList& changes) {
+                     [&presentationBridge,&openProofConnections](
+                         const QVariantList& changes) {
         presentationBridge.applyCloudBookmarkChanges(changes);
+        if (!openProofConnections.bookmarkPreviewSupported())return;
+        for(const auto& value:changes) {
+            const auto row=value.toMap();
+            if(row.value(QStringLiteral("is_deleted")).toBool()
+               || !row.value(QStringLiteral("preview")).toMap().isEmpty())
+                continue;
+            const auto id=row.value(QStringLiteral("cast_hash")).toString();
+            openProofConnections.publishBookmarkPreviewIfMissing(
+                id,presentationBridge.bookmarkEntry(id));
+        }
     });
     QObject::connect(&presentationBridge, &PresentationBridge::notificationSeenAtChanged,
                      &openProofConnections,

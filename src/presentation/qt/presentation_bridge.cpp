@@ -1010,6 +1010,55 @@ QVariantList PresentationBridge::followingStoryProfiles() const
 bool PresentationBridge::explorerArtBusy() const noexcept { return m_explorerArtBusy; }
 QVariantMap PresentationBridge::detail() const { return m_detail; }
 
+namespace {
+[[nodiscard]] QVariantList normalizedAccountBookmarks(const QVariantList& source)
+{
+    QVariantList items;
+    QHash<QString,qsizetype> positions;
+    for(const auto& entry : source) {
+        auto cast=entry.toMap();
+        const auto id=canonicalProtocolCastId(cast.value(QStringLiteral("castId")).toString());
+        if(id.isEmpty())continue;
+        cast.insert(QStringLiteral("castId"),id);
+        const auto previous=positions.constFind(id);
+        if(previous!=positions.cend()) {
+            auto earlier=items.at(*previous).toMap();
+            // Keep the richest available preview, never duplicate one hash.
+            if(cast.value(QStringLiteral("text")).toString().size() >
+               earlier.value(QStringLiteral("text")).toString().size())
+                earlier.insert(QStringLiteral("text"),cast.value(QStringLiteral("text")));
+            for(const auto& key : {QStringLiteral("authorFid"),QStringLiteral("author"),
+                QStringLiteral("username"),QStringLiteral("displayName"),
+                QStringLiteral("avatarUrl"),QStringLiteral("createdAtMs")}) {
+                if((earlier.value(key).toString().isEmpty()
+                    || (key==QStringLiteral("authorFid")
+                        && earlier.value(key).toULongLong()==0)) &&
+                   !cast.value(key).toString().isEmpty())
+                    earlier.insert(key,cast.value(key));
+            }
+            earlier.insert(QStringLiteral("priority"),std::max(
+                earlier.value(QStringLiteral("priority")).toInt(),
+                cast.value(QStringLiteral("priority")).toInt()));
+            earlier.insert(QStringLiteral("savedAtMs"),std::max(
+                earlier.value(QStringLiteral("savedAtMs")).toLongLong(),
+                cast.value(QStringLiteral("savedAtMs")).toLongLong()));
+            items[*previous]=std::move(earlier);
+        }else{
+            positions.insert(id,items.size());
+            items.push_back(cast);
+        }
+    }
+    std::stable_sort(items.begin(),items.end(),[](const QVariant& lhs,const QVariant& rhs) {
+        const auto left=lhs.toMap(),right=rhs.toMap();
+        const int a=left.value(QStringLiteral("priority")).toInt(),
+                  b=right.value(QStringLiteral("priority")).toInt();
+        if(a!=b)return a>b;
+        return left.value(QStringLiteral("savedAtMs")).toLongLong() >
+               right.value(QStringLiteral("savedAtMs")).toLongLong();
+    });
+    return items.mid(0,200);
+}
+}
 QStringList PresentationBridge::bookmarkedCastIds() const
 {
     QStringList ids{};
@@ -1026,16 +1075,15 @@ QVariantList PresentationBridge::bookmarkedCasts() const { return m_bookmarkedCa
 
 void PresentationBridge::toggleBookmark(const QVariantMap& cast)
 {
-    // This feature is an on-device reading list, not a claim of server-side
-    // Farcaster bookmark synchronization. A verified viewer session determines
-    // the owner, so saved posts never cross into a different signed-in account.
+    // Canonical Farcaster cast hash is the unique owner-scoped bookmark key.
+    // The Genycaster account API stores the cross-device mutation receipts.
     if (!m_isAuthenticated || m_accountFid == 0)
         return;
     const QString id = canonicalProtocolCastId(cast.value(QStringLiteral("castId")).toString());
     if (id.isEmpty())
         return;
     for (qsizetype index = 0; index < m_bookmarkedCasts.size(); ++index) {
-        if (canonicalCastKey(m_bookmarkedCasts.at(index).toMap().value(
+        if (canonicalProtocolCastId(m_bookmarkedCasts.at(index).toMap().value(
                 QStringLiteral("castId")).toString()) == id) {
             m_bookmarkedCasts.removeAt(index);
             if (m_settings) {
@@ -1057,7 +1105,10 @@ void PresentationBridge::toggleBookmark(const QVariantMap& cast)
             saved.insert(key, cast.value(key));
     }
     saved.insert(QStringLiteral("text"), cast.value(QStringLiteral("text")).toString().left(1200));
+    saved.insert(QStringLiteral("priority"),0);
+    saved.insert(QStringLiteral("savedAtMs"),QDateTime::currentMSecsSinceEpoch());
     m_bookmarkedCasts.prepend(std::move(saved));
+    m_bookmarkedCasts=normalizedAccountBookmarks(m_bookmarkedCasts);
     if (m_bookmarkedCasts.size() > 200)
         m_bookmarkedCasts = m_bookmarkedCasts.mid(0, 200);
     if (m_settings) {
@@ -1069,13 +1120,55 @@ void PresentationBridge::toggleBookmark(const QVariantMap& cast)
     emit bookmarkMutated(id, false);
 }
 
+QVariantMap PresentationBridge::bookmarkEntry(const QString& castId) const
+{
+    const auto id=canonicalProtocolCastId(castId);
+    for(const auto& item:m_bookmarkedCasts) {
+        const auto cast=item.toMap();
+        if(canonicalProtocolCastId(cast.value(QStringLiteral("castId")).toString())==id)
+            return cast;
+    }
+    return {};
+}
+
+void PresentationBridge::removeBookmark(const QString& castId)
+{
+    const auto saved=bookmarkEntry(castId);
+    if(!saved.isEmpty())toggleBookmark(saved);
+}
+
+void PresentationBridge::setBookmarkPriority(const QString& castId,int priority)
+{
+    if(!m_isAuthenticated||!m_accountFid||priority<0||priority>2)return;
+    const auto id=canonicalProtocolCastId(castId);
+    for(qsizetype i=0;i<m_bookmarkedCasts.size();++i) {
+        auto row=m_bookmarkedCasts.at(i).toMap();
+        if(canonicalProtocolCastId(row.value(QStringLiteral("castId")).toString())!=id)
+            continue;
+        if(row.value(QStringLiteral("priority")).toInt()==priority)return;
+        row.insert(QStringLiteral("priority"),priority);
+        row.insert(QStringLiteral("savedAtMs"),QDateTime::currentMSecsSinceEpoch());
+        m_bookmarkedCasts[i]=row;
+        m_bookmarkedCasts=normalizedAccountBookmarks(m_bookmarkedCasts);
+        if(m_settings) {
+            m_settings->setValue(QStringLiteral("bookmarks/account_%1").arg(m_accountFid),
+                                 m_bookmarkedCasts);
+            m_settings->sync();
+        }
+        emit bookmarksChanged();
+        emit bookmarkMutated(id,false);
+        return;
+    }
+}
+
 void PresentationBridge::applyCloudBookmarkChanges(const QVariantList& changes)
 {
     if (!m_isAuthenticated || m_accountFid == 0) return;
     bool modified = false;
     for (const auto& value : changes) {
         const QVariantMap change = value.toMap();
-        const QString id = canonicalProtocolCastId(change.value(QStringLiteral("cast_hash")).toString());
+        const QString id = canonicalProtocolCastId(
+            change.value(QStringLiteral("cast_hash")).toString());
         if (id.isEmpty()) continue;
         qsizetype match = -1;
         for (qsizetype i = 0; i < m_bookmarkedCasts.size(); ++i) {
@@ -1090,19 +1183,58 @@ void PresentationBridge::applyCloudBookmarkChanges(const QVariantList& changes)
                 m_bookmarkedCasts.removeAt(match);
                 modified = true;
             }
-        } else if (match < 0) {
-            // Farcaster does not provide a bookmark protocol or full post
-            // payload. The remote hash is a navigable reference; existing
-            // local previews are preserved if already available.
-            m_bookmarkedCasts.prepend(QVariantMap{
-                {QStringLiteral("castId"), id},
-                {QStringLiteral("text"), QString{}}
-            });
-            modified = true;
+            continue;
+        }
+        QVariantMap row = match>=0?m_bookmarkedCasts.at(match).toMap()
+            :QVariantMap{{QStringLiteral("castId"),id}};
+        const QVariantMap preview=change.value(QStringLiteral("preview")).toMap();
+        for (const QString& key : {QStringLiteral("authorFid"),QStringLiteral("author"),
+             QStringLiteral("username"),QStringLiteral("displayName"),
+             QStringLiteral("avatarUrl"),QStringLiteral("createdAtMs"),
+             QStringLiteral("text")}) {
+            const auto value=preview.value(key);
+            if(!value.isNull() && !value.toString().isEmpty()
+               && (key!=QStringLiteral("authorFid") || value.toULongLong()>0))
+                row.insert(key,value);
+        }
+        // Until server schema v5 is active, feed rows can fill known metadata.
+        for(const auto& known:m_rows) {
+            const auto cast=known.toMap();
+            if(canonicalProtocolCastId(cast.value(QStringLiteral("castId")).toString())!=id)
+                continue;
+            for(const QString& key : {QStringLiteral("authorFid"),QStringLiteral("author"),
+                QStringLiteral("username"),QStringLiteral("displayName"),
+                QStringLiteral("avatarUrl"),QStringLiteral("createdAtMs"),
+                QStringLiteral("text")}) {
+                if(row.value(key).toString().isEmpty() && !cast.value(key).toString().isEmpty())
+                    row.insert(key,cast.value(key));
+            }
+            break;
+        }
+        if(change.contains(QStringLiteral("priority")))
+            row.insert(QStringLiteral("priority"),
+                       change.value(QStringLiteral("priority")).toInt());
+        if(change.contains(QStringLiteral("changed_at"))) {
+            const auto date=QDateTime::fromString(
+                change.value(QStringLiteral("changed_at")).toString(),Qt::ISODate);
+            if(date.isValid())row.insert(QStringLiteral("savedAtMs"),date.toMSecsSinceEpoch());
+        }
+        if(match>=0) {
+            if(row!=m_bookmarkedCasts.at(match).toMap()) {
+                m_bookmarkedCasts[match]=std::move(row);
+                modified=true;
+            }
+        }else {
+            m_bookmarkedCasts.prepend(std::move(row));
+            modified=true;
         }
     }
+    const auto cleaned=normalizedAccountBookmarks(m_bookmarkedCasts);
+    if(cleaned!=m_bookmarkedCasts) {
+        m_bookmarkedCasts=cleaned;
+        modified=true;
+    }
     if (!modified) return;
-    if (m_bookmarkedCasts.size() > 200) m_bookmarkedCasts = m_bookmarkedCasts.mid(0, 200);
     if (m_settings) {
         m_settings->setValue(QStringLiteral("bookmarks/account_%1").arg(m_accountFid),
                              m_bookmarkedCasts);
@@ -2931,8 +3063,8 @@ void PresentationBridge::applyAuthenticationState(
     bool accountRowsChanged = previousAccountFid != m_accountFid;
     if (previousAccountFid != m_accountFid) {
         m_bookmarkedCasts = (m_accountFid != 0 && m_settings)
-            ? m_settings->value(QStringLiteral("bookmarks/account_%1").arg(m_accountFid))
-                .toList().mid(0, 200)
+            ? normalizedAccountBookmarks(m_settings->value(
+                QStringLiteral("bookmarks/account_%1").arg(m_accountFid)).toList())
             : QVariantList{};
         emit bookmarksChanged();
         // Cached public content survives an account switch, but its viewer

@@ -254,6 +254,21 @@ Item {
     readonly property var profileExtras: {
         const generation = root.profileExtrasGeneration
         if (!root.profileExtrasOwnerKey) return ({})
+        // Live, account-verified API state is authoritative for a clean
+        // profile. QSettings remains a durable offline outbox, never a
+        // higher-priority display source than a known newer server revision.
+        const server = openProofConnections.cloudProfileExtras
+        if (!root.cloudLocalDirty
+                && Number(openProofConnections.cloudRevision || 0) > 0
+                && server && typeof server.category === "string"
+                && typeof server.profession === "string"
+                && Array.isArray(server.links)) {
+            return {
+                category: server.category, profession: server.profession,
+                links: server.links.map(entry => String(entry.url || "")),
+                labels: server.links.map(entry => String(entry.label || ""))
+            }
+        }
         try {
             const rows = JSON.parse(profileExtrasSettings.entriesJson || "{}")
             return rows[root.profileExtrasOwnerKey] || ({})
@@ -2314,6 +2329,8 @@ Item {
 
     onIsOwnProfileChanged: {
         root.profileLinksExpanded = false
+        if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
+            profileRefreshRetry.restart()
         if (!root.isOwnProfile) {
             accountConnectionsPopup.close()
             profileExtrasEditor.close()

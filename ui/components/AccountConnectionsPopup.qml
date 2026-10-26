@@ -189,7 +189,7 @@ GenyDrawer {
                     text: picker.authorizing
                           ? qsTr("Confirm this Farcaster account in your wallet app to manage connections.")
                           : picker.cachedSnapshot
-                            ? qsTr("These are your last verified links. They survive refresh; confirm with Farcaster only to make changes.")
+                            ? qsTr("These links are saved with your Genycaster account. Verify with Farcaster to manage providers or confirm their current status.")
                             : qsTr("Verify ownership with Farcaster to manage your connections. No Genyleap account or password is required.")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
@@ -265,7 +265,7 @@ GenyDrawer {
             }
             DirectionAwareLabel {
                 visible: picker.cachedSnapshot && !picker.authorized
-                text: qsTr("Last verified")
+                text: qsTr("Saved account links")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
             }
@@ -394,8 +394,8 @@ GenyDrawer {
                                                 const nick = String(connection.displayName || connection.username || "")
                                                 if (picker.cachedSnapshot && !picker.authorized)
                                                     return nick.length > 0
-                                                           ? qsTr("Previously linked: %1").arg(nick)
-                                                           : qsTr("Previously linked")
+                                                           ? qsTr("Saved link: %1").arg(nick)
+                                                           : qsTr("Saved account link")
                                                 return nick.length > 0 ? nick : qsTr("Connected")
                                             }
                                             if (picker.authorized && !providerRow.redirectCapable)
@@ -421,7 +421,7 @@ GenyDrawer {
                                         Layout.preferredHeight: 20
                                         Accessible.name: picker.authorized
                                                          ? qsTr("Verified account")
-                                                         : qsTr("Previously verified account")
+                                                         : qsTr("Saved account link — verification required for changes")
                                     }
                                     ActionButton {
                                         visible: providerRow.isConnected

@@ -83,3 +83,40 @@ With the **same verified Farcaster FID** on two signed-in browsers:
 Do not consider the feature complete until the live tests pass. No Farcaster
 private keys, wallet custody phrases or OpenProof tokens belong in
 Genycaster account-session storage.
+
+
+## 6. Bookmark preview and priority extension (schema v5)
+
+Account sessions, Profile and Draft work with schema v4. Genycaster's
+cross-device **Cast bookmark preview and priority** require the separate,
+additive `005_bookmark_previews.sql` migration. It adds nullable display
+snapshots and constrained priority metadata to existing private tables;
+it never deletes or resets bookmarks. The backend remains compatible with
+schema v4: v5-only fields are not queried before the migration exists.
+
+Run under the server's root shell (redirection reads the migration as root;
+the `postgres` OS account cannot traverse the restricted repository path):
+
+```sh
+sudo -u postgres pg_dump -Fc genycaster_db > /root/genycaster-before-v5.dump
+sudo -u postgres psql -v ON_ERROR_STOP=1 -d genycaster_db \
+  < /opt/genycaster/repository/services/account-sync/migrations/005_bookmark_previews.sql
+sudo -u postgres psql -d genycaster_db \
+  -c "SELECT version FROM schema_migrations ORDER BY version;"
+sudo -u postgres psql -d genycaster_db \
+  -c "SELECT count(*) AS bookmarks FROM bookmarks;"
+pm2 startOrReload /opt/genycaster/caster-deployment/account-api.ecosystem.config.cjs --update-env
+```
+
+Expected migration includes `ALTER TABLE`, `CREATE INDEX`, `INSERT 0 1`
+and `COMMIT`. Verify v5 exists before claiming portable previews and
+priority are active. Existing saved Cast hashes remain canonical, and
+previous local previews are safely backfilled by authenticated devices.
+A missing preview cannot be manufactured from only a Snapchain hash:
+`/v1/castById` also needs the author FID. The UI must show an honest
+placeholder until a verified read or existing device supplies the preview.
+
+The account-scoped saved-link cache is separate from OpenProof authority:
+cached provider labels are never stored as proof or granted management
+capability. Only an independently verified OpenProof bearer may update
+`last_confirmed_at`; cookie-only imports remain explicitly unverified.

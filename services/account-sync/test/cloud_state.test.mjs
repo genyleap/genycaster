@@ -18,6 +18,15 @@ const store={
     calls.push(['bookmark-changes',owner.subject,since]);
     return [{sequence:'42',cast_hash:'0x'+'ab'.repeat(20),is_deleted:true}];
   },
+  bookmarkPreviewsReady:()=>true,
+  async listBookmarkSnapshot(owner){
+    calls.push(['bookmark-snapshot',owner.subject]);
+    return [{cast_hash:'0x'+'ab'.repeat(20),is_deleted:false,
+      priority:1,preview:{authorFid:42,text:'Public Cast'}}];
+  },
+  async importConnectionLabels(owner,items){
+    calls.push(['portable-links',owner.subject,items]);
+  },
 };
 const fetchImpl=async(url,opts)=>{
   if(url==='https://storage-farcaster.genyleap.com/v1/browser/openproof/connections') {
@@ -169,4 +178,45 @@ test('App updates are public read-only, and cloud storage is disabled when uncon
     assert.equal(r.status,503);
     assert.deepEqual(await r.json(),{error:'cloud_not_configured'});
   }finally{server.close();}
+});
+
+test('bookmarks preserve verified owner-scoped priority, public Cast preview and canonical snapshot',async()=>{
+  const id='36e3e644-379e-40ee-b09d-9ed30feb1d2c';
+  const valid={cast_hash:'0x'+'a2'.repeat(20),is_deleted:false,priority:1,
+    mutation_id:id,preview:{authorFid:42,displayName:'COMPEZ',
+      text:'Your client. Your node. Your rules.',avatarUrl:'https://example.test/avatar.png'}};
+  const parsed=validateCloudItem('bookmarks',valid);
+  assert.equal(parsed.priority,1);
+  assert.equal(parsed.preview.text,valid.preview.text);
+  assert.equal(validateCloudItem('bookmarks',{...valid,priority:3}),null);
+  assert.equal(validateCloudItem('bookmarks',{...valid,
+    preview:{...valid.preview,avatarUrl:'javascript:alert(1)'}}),null);
+  await withServer(async request=>{
+    const snapshot=await request('bookmarks?state=1');
+    assert.equal(snapshot.status,200);
+    const data=await snapshot.json();
+    assert.equal(data.preview_supported,true);
+    assert.equal(data.items[0].priority,1);
+    assert.ok(calls.some(row=>row[0]==='bookmark-snapshot'&&row[1]===principal));
+    assert.equal((await request('bookmarks','PUT',valid)).status,200);
+  });
+});
+test('portable connection labels cannot fabricate verified OpenProof authority',async()=>{
+  calls.length=0;
+  await withServer(async request=>{
+    const item={items:[{provider:'github',display_name:'Dev',
+      preferred_username:'compez',provider_profile_url:'https://github.com/compez'}]};
+    assert.equal((await request('connections/portable','PUT',item)).status,200);
+    assert.equal(calls.at(-1)[0],'portable-links');
+    assert.equal(calls.at(-1)[1],principal);
+    assert.equal(calls.at(-1)[2][0].provider,'github');
+    assert.equal((await request('connections/portable','PUT',{
+      items:[{...item.items[0],provider_profile_url:'https://evil.example/compez'}]
+    })).status,400);
+    assert.equal((await request('connections/portable','PUT',{
+      items:[item.items[0],item.items[0]]
+    })).status,400);
+    assert.equal((await request('connections/portable','GET')).status,405);
+    assert.equal((await request('connections/portable','PUT',item,'Bearer bad')).status,401);
+  });
 });

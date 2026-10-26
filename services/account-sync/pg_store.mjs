@@ -30,15 +30,17 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   // endpoints fail closed until the additive migration is applied and the
   // backend is restarted; the other account data remains available.
   const migrations=await pool.query(
-    'SELECT version FROM schema_migrations WHERE version IN (3,4)');
+    'SELECT version FROM schema_migrations WHERE version IN (3,4,5)');
   const versions=new Set(migrations.rows.map(row=>Number(row.version)));
   if (!versions.has(3)) {
     await pool.end();
     throw new Error('Genycaster database schema v3 is required');
   }
   const sessionsReady=versions.has(4);
+  const bookmarkPreviewsReady=versions.has(5);
   return {
     close:()=>pool.end(),
+    bookmarkPreviewsReady:()=>bookmarkPreviewsReady,
     async createSession({issuer,subject},tokenHash,csrfToken) {
       if(!sessionsReady)throw new Error('account_sessions_not_ready');
       await pool.query(`INSERT INTO account_sessions
@@ -133,14 +135,27 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
       return result.rows.map(row=>normalizeRow(entity,row));
     },
     async listBookmarkChanges({issuer,subject},cursor) {
+      const extra=bookmarkPreviewsReady
+        ? ',priority,preview' : '';
       const result=await pool.query(`SELECT sequence,
-            '0x'||encode(cast_hash,'hex') AS cast_hash,is_deleted,changed_at
+            '0x'||encode(cast_hash,'hex') AS cast_hash,is_deleted,changed_at`+
+            extra+`
           FROM bookmark_changes
           WHERE openproof_issuer=$1 AND openproof_subject=$2
             AND sequence>$3::bigint
           ORDER BY sequence ASC LIMIT 200`,
         [issuer,subject,cursor]);
       return result.rows;
+    },
+    async listBookmarkSnapshot({issuer,subject}) {
+      const extra=bookmarkPreviewsReady
+        ? ',priority,preview' : '';
+      const rows=await pool.query(`SELECT
+        '0x'||encode(cast_hash,'hex') AS cast_hash,
+        is_deleted,changed_seq,changed_at`+extra+`
+        FROM bookmarks WHERE openproof_issuer=$1 AND openproof_subject=$2
+        ORDER BY changed_seq DESC LIMIT 500`,[issuer,subject]);
+      return rows.rows;
     },
     async refreshConnections({issuer,subject},values) {
       const client=await pool.connect();
@@ -158,11 +173,50 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
             [issuer,subject,value.provider,value.display_name,value.preferred_username,
              value.provider_profile_url]);
         }
-        // Do not delete manually entered profiles if the provider is temporarily
-        // unavailable or a reauthorization hasn't completed.
+        // The upstream request already succeeded and this is the complete
+        // verified provider set. Retire revoked links; preserve user-entered
+        // URLs, but never continue labeling their provider as verified.
+        await client.query(`UPDATE connections
+             SET last_confirmed_at=NULL,updated_at=now()
+             WHERE issuer=$1 AND subject=$2 AND last_confirmed_at IS NOT NULL
+               AND NOT (provider = ANY($3::text[]))`,
+          [issuer,subject,values.map(value=>value.provider)]);
         await client.query('COMMIT');
       } catch(e){await client.query('ROLLBACK');throw e;}
       finally {client.release();}
+    },
+    async importConnectionLabels({issuer,subject},values) {
+      // The account holder may carry public-facing labels across devices.
+      // This is NOT an OpenProof verification or an authorization source:
+      // last_confirmed_at always stays NULL for newly imported rows.
+      const client=await pool.connect();
+      try {
+        await client.query('BEGIN');
+        for(const row of values) {
+          await client.query(`INSERT INTO connections
+            (issuer,subject,provider,display_name,preferred_username,
+             provider_profile_url,manual_profile_url)
+            VALUES($1,$2,$3,NULLIF($4,''),NULLIF($5,''),$6,NULLIF($7,''))
+            ON CONFLICT (issuer,subject,provider) DO UPDATE SET
+              display_name=CASE WHEN connections.last_confirmed_at IS NULL
+                THEN COALESCE(EXCLUDED.display_name,connections.display_name)
+                ELSE connections.display_name END,
+              preferred_username=CASE WHEN connections.last_confirmed_at IS NULL
+                THEN COALESCE(EXCLUDED.preferred_username,connections.preferred_username)
+                ELSE connections.preferred_username END,
+              provider_profile_url=CASE WHEN connections.last_confirmed_at IS NULL
+                THEN COALESCE(EXCLUDED.provider_profile_url,connections.provider_profile_url)
+                ELSE connections.provider_profile_url END,
+              manual_profile_url=COALESCE(EXCLUDED.manual_profile_url,
+                                          connections.manual_profile_url),
+              updated_at=now()`,
+            [issuer,subject,row.provider,row.display_name,
+             row.preferred_username,row.provider_profile_url,
+             row.manual_profile_url||'']);
+        }
+        await client.query('COMMIT');
+      }catch(error){await client.query('ROLLBACK');throw error;}
+      finally{client.release();}
     },
     async put(entity,{issuer,subject},item) {
       if (entity==='connections') {
@@ -181,12 +235,21 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
         try {
           await client.query('BEGIN');
           const mutationId=item.mutation_id||randomUUID();
-          const change=await client.query(`INSERT INTO bookmark_changes
-            (openproof_issuer,openproof_subject,mutation_id,cast_hash,is_deleted)
-            VALUES($1,$2,$3,decode($4,'hex'),$5)
-            ON CONFLICT (openproof_issuer,openproof_subject,mutation_id) DO NOTHING
-            RETURNING sequence`,
-            [issuer,subject,mutationId,item.cast_hash.slice(2),item.is_deleted]);
+          const change=bookmarkPreviewsReady
+            ? await client.query(`INSERT INTO bookmark_changes
+              (openproof_issuer,openproof_subject,mutation_id,cast_hash,
+               is_deleted,priority,preview)
+              VALUES($1,$2,$3,decode($4,'hex'),$5,$6,$7::jsonb)
+              ON CONFLICT (openproof_issuer,openproof_subject,mutation_id) DO NOTHING
+              RETURNING sequence`,
+              [issuer,subject,mutationId,item.cast_hash.slice(2),item.is_deleted,
+               item.priority,JSON.stringify(item.preview)])
+            : await client.query(`INSERT INTO bookmark_changes
+              (openproof_issuer,openproof_subject,mutation_id,cast_hash,is_deleted)
+              VALUES($1,$2,$3,decode($4,'hex'),$5)
+              ON CONFLICT (openproof_issuer,openproof_subject,mutation_id) DO NOTHING
+              RETURNING sequence`,
+              [issuer,subject,mutationId,item.cast_hash.slice(2),item.is_deleted]);
           if (change.rowCount === 0) {
             const previous=await client.query(`SELECT
                 '0x'||encode(cast_hash,'hex') AS cast_hash,is_deleted
@@ -207,14 +270,29 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
               [issuer,subject,item.cast_hash.slice(2)]);
             return current.rows[0]||null;
           }
-          const result=await client.query(`INSERT INTO bookmarks
-            (openproof_issuer,openproof_subject,cast_hash,is_deleted,changed_seq)
-            VALUES ($1,$2,decode($3,'hex'),$4,$5)
-            ON CONFLICT(openproof_issuer,openproof_subject,cast_hash) DO UPDATE
-              SET is_deleted=EXCLUDED.is_deleted,changed_seq=EXCLUDED.changed_seq,
-                  changed_at=now()
-            RETURNING encode(cast_hash,'hex') AS cast_hash,is_deleted,changed_seq,changed_at`,
-            [issuer,subject,item.cast_hash.slice(2),item.is_deleted,change.rows[0].sequence]);
+          const result=bookmarkPreviewsReady
+            ? await client.query(`INSERT INTO bookmarks
+              (openproof_issuer,openproof_subject,cast_hash,is_deleted,changed_seq,
+               priority,preview)
+              VALUES($1,$2,decode($3,'hex'),$4,$5,$6,$7::jsonb)
+              ON CONFLICT(openproof_issuer,openproof_subject,cast_hash) DO UPDATE
+                SET is_deleted=EXCLUDED.is_deleted,changed_seq=EXCLUDED.changed_seq,
+                    priority=EXCLUDED.priority,
+                    preview=COALESCE(EXCLUDED.preview,bookmarks.preview),
+                    changed_at=now()
+              RETURNING encode(cast_hash,'hex') AS cast_hash,
+                is_deleted,changed_seq,changed_at,priority,preview`,
+              [issuer,subject,item.cast_hash.slice(2),item.is_deleted,
+               change.rows[0].sequence,item.priority,JSON.stringify(item.preview)])
+            : await client.query(`INSERT INTO bookmarks
+              (openproof_issuer,openproof_subject,cast_hash,is_deleted,changed_seq)
+              VALUES ($1,$2,decode($3,'hex'),$4,$5)
+              ON CONFLICT(openproof_issuer,openproof_subject,cast_hash) DO UPDATE
+                SET is_deleted=EXCLUDED.is_deleted,changed_seq=EXCLUDED.changed_seq,
+                    changed_at=now()
+              RETURNING encode(cast_hash,'hex') AS cast_hash,is_deleted,changed_seq,changed_at`,
+              [issuer,subject,item.cast_hash.slice(2),item.is_deleted,
+               change.rows[0].sequence]);
           await client.query('COMMIT');
           return {...result.rows[0],cast_hash:item.cast_hash};
         }catch(e){await client.query('ROLLBACK');throw e;}

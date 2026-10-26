@@ -171,6 +171,9 @@ public:
     /** Local-first reading list; owner-scoped mutations are replicated by the
      * Genycaster service (not by the Farcaster protocol). */
     Q_INVOKABLE void toggleBookmark(const QVariantMap& cast);
+    Q_INVOKABLE void removeBookmark(const QString& castId);
+    Q_INVOKABLE void setBookmarkPriority(const QString& castId, int priority);
+    [[nodiscard]] QVariantMap bookmarkEntry(const QString& castId) const;
     void applyCloudBookmarkChanges(const QVariantList& changes);
     [[nodiscard]] QVariantList searchResults() const;
     [[nodiscard]] bool searchBusy() const noexcept;
