@@ -41,7 +41,7 @@ test('mobile footer is full bleed dark, with curved page edge and no floating ca
     assert.match(nav, /anchors\.topMargin: 17\s+anchors\.bottomMargin: 23/);
     assert.match(nav, /y: -7\s+height: 14/);
     assert.doesNotMatch(nav, /id: dockSurface|glassCapture|MultiEffect|shadowEnabled: true|borderWidth: 1/);
-    assert.equal(nav.split('darkDock: true').length - 1, 5);
+    assert.equal(nav.split('darkDock: true').length - 1, 6);
     assert.match(button, /darkDock \? "#ffffff"/);
     assert.match(shell, /id: mobileBottomNavigation[\s\S]*?height: 88/);
     assert.match(shell, /anchors\.left: readingPane\.left\s+anchors\.right: readingPane\.right\s+anchors\.bottom: readingPane\.bottom/);

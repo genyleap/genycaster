@@ -36,6 +36,10 @@ Item {
     property bool genyHolderAttested: false
     property bool profileLinksExpanded: false
     property string profileExtrasError: ""
+    // Force UI bindings to re-evaluate after an authoritative account read.
+    // QSettings-backed string changes are otherwise not always propagated
+    // to a previously constructed ProfileSurface on Qt/WASM.
+    property int profileExtrasGeneration: 0
 
     Settings {
         id: profileExtrasSettings
@@ -123,6 +127,7 @@ Item {
                 labels: links.map(entry => String(entry.label || "").slice(0, 32))
             }
             profileExtrasSettings.entriesJson = JSON.stringify(owners)
+            root.profileExtrasGeneration++
             root.setCloudFlags(false, Number(item.revision || 0))
         } catch (_) { }
     }
@@ -165,6 +170,29 @@ Item {
                 root.setCloudFlags(true)
                 if (!openProofConnections.cloudBusy)
                     openProofConnections.fetchCloudProfileExtras()
+            }
+        }
+    }
+    function refreshProfileAndAccount() {
+        root.refreshRequested()
+        if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady) {
+            profileRefreshRetry.restart()
+            openProofConnections.refreshAccountDraft()
+        }
+    }
+    Timer {
+        id: profileRefreshRetry
+        interval: 350
+        repeat: true
+        onTriggered: {
+            if (!root.isOwnProfile || !openProofConnections.cloudAuthorizationReady
+                    || !openProofConnections.cloudServiceAvailable) {
+                stop()
+                return
+            }
+            if (!openProofConnections.cloudBusy) {
+                stop()
+                openProofConnections.fetchCloudProfileExtras()
             }
         }
     }
@@ -211,6 +239,7 @@ Item {
             if (!source) return
             entries[canonical] = entries[source]
             profileExtrasSettings.entriesJson = JSON.stringify(entries)
+            root.profileExtrasGeneration++
             if (flags[source]?.dirty === true) {
                 flags[canonical] = {dirty: true}
                 profileCloudSettings.perAccountJson = JSON.stringify(flags)
@@ -223,6 +252,7 @@ Item {
     onAccountIssuerChanged: root.migrateLegacyProfileExtras()
     Component.onCompleted: root.migrateLegacyProfileExtras()
     readonly property var profileExtras: {
+        const generation = root.profileExtrasGeneration
         if (!root.profileExtrasOwnerKey) return ({})
         try {
             const rows = JSON.parse(profileExtrasSettings.entriesJson || "{}")
@@ -312,13 +342,13 @@ Item {
                 links: unique.map(e=>e.url), labels: unique.map(e=>e.label)
             }
             profileExtrasSettings.entriesJson = JSON.stringify(entries)
+            root.profileExtrasGeneration++
             root.profileExtrasError = ""
             root.profileLinksExpanded = false
             root.setCloudFlags(true, Number(openProofConnections.cloudRevision || 0))
             if (openProofConnections.cloudServiceAvailable
-                    && openProofConnections.cloudAuthorizationReady
-                    && !openProofConnections.cloudBusy)
-                openProofConnections.fetchCloudProfileExtras()
+                    && openProofConnections.cloudAuthorizationReady)
+                profileRefreshRetry.restart()
             return true
         } catch (_) {
             root.profileExtrasError = qsTr("Could not save local profile details.")
@@ -1110,7 +1140,7 @@ Item {
                     // GenySpinner for the icon while a refresh is pending.
                     busy: root.busy
                     enabled: !root.busy
-                    onClicked: root.refreshRequested()
+                    onClicked: root.refreshProfileAndAccount()
                 }
             }
 
@@ -2294,7 +2324,7 @@ Item {
         flickable: profileList
         busy: root.busy
         refreshEnabled: Number(root.activeDetail.fid || 0) > 0
-        onRefreshRequested: root.refreshRequested()
+        onRefreshRequested: root.refreshProfileAndAccount()
     }
 
     ScrollToTopButton {

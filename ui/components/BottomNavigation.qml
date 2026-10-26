@@ -99,6 +99,16 @@ Item {
             onClicked: root.routeRequested("apps")
         }
         BottomNavButton {
+            objectName: "mobileBottomBookmarksButton"
+            darkDock: true
+            Layout.fillWidth: true
+            text: qsTrId("genycaster.side_nav.bookmarks")
+            iconGlyph: Theme.iconBookmark
+            selected: root.shellRoute === "bookmarks"
+            showLabel: false
+            onClicked: root.routeRequested("bookmarks")
+        }
+        BottomNavButton {
             darkDock: true
             Layout.fillWidth: true
             text: qsTrId("genycaster.side_nav.profile")

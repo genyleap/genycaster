@@ -659,6 +659,9 @@ public:
     // Contextual replies/quotes never autosave into the ordinary Cast draft.
     bool contextDocument{};
     bool composerActive{};
+    // Tracks edits during the *current* open composer even after autosave
+    // clears dirty; only an untouched open editor accepts new remote data.
+    bool composerTouched{};
     bool applyingRemote{};
     QString saveStatusText{};
     qulonglong revision{};
@@ -673,6 +676,7 @@ public:
 
     void markDirty()
     {
+        if (composerActive && !applyingRemote) composerTouched = true;
         dirty = true;
         saveStatusText = qtTrId("genycaster.composer.unsaved");
         emit owner.saveStateChanged();
@@ -930,6 +934,7 @@ void RichComposerController::setViewerFid(const qulonglong fid)
 void RichComposerController::setComposerActive(const bool active)
 {
     m_impl->composerActive=active;
+    if (active) m_impl->composerTouched=false;
     if (!active && m_impl->contextDocument) {
         // An ephemeral reply/quote must not block incoming account drafts
         // after its drawer has closed. The ordinary unpublished draft lives
@@ -943,7 +948,8 @@ void RichComposerController::setComposerActive(const bool active)
 bool RichComposerController::applyAccountDraft(
     const qulonglong fid, const QByteArray& serialized, const bool deleted)
 {
-    if (!fid || fid!=m_impl->viewerFid || m_impl->composerActive
+    if (!fid || fid!=m_impl->viewerFid
+        || (m_impl->composerActive && m_impl->composerTouched)
         || m_impl->dirty || m_impl->contextDocument)
         return false;
     // The account adapter only forwards a server-verified owner. Validate the
@@ -963,6 +969,7 @@ bool RichComposerController::applyAccountDraft(
         restoreDraft();
     }
     m_impl->applyingRemote=false;
+    emit accountDraftApplied();
     return true;
 }
 

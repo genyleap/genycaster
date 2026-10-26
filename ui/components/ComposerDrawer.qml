@@ -419,6 +419,16 @@ GenyDrawer {
         }
     }
 
+    Connections {
+        target: richComposer
+        function onAccountDraftApplied() {
+            // The native adapter applies remote content only to a pristine
+            // editor; update the manually-backed mobile text field as well.
+            if (root.opened && root.compact && root.editorMode === "visual")
+                mobilePlainEditor.text = richComposer.safeText
+        }
+    }
+
     onOpened: {
         richComposer.setComposerActive(true)
         // Reused Drawer scroll position must not hide the next reply target.
@@ -472,6 +482,11 @@ GenyDrawer {
             if (root.initialAction !== "media")
                 initialComposerFocus.restart()
         }
+        // Opening an ordinary Cast pulls the latest account draft immediately.
+        // A reply, quote or handoff stays isolated; the native adapter refuses
+        // to replace text once the user begins editing this opening.
+        if (!root.transientDraft && !root.parentCast && !root.quotedCast)
+            openProofConnections.refreshAccountDraft()
         if (root.initialAction === "media") {
             root.pendingMediaBlockIndex = visualEditor.activeBlockIndex
             if (Qt.platform.os === "wasm") {

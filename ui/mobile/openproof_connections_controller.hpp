@@ -86,6 +86,8 @@ public:
     void recordDraftMutation(qulonglong fid, bool deleted);
     /** @brief Acknowledge a server snapshot only after the editor applied it. */
     void confirmDraftSnapshot(qulonglong fid, int revision);
+    /** Refresh the current account draft immediately on normal composer entry. */
+    Q_INVOKABLE void refreshAccountDraft();
     /** Store a user-asserted public vanity URL in device-local state only.
      * Does not upgrade OpenProof verification or silently enable cloud sync. */
     Q_INVOKABLE void setManualLinkedInUrl(const QString& url);

@@ -694,6 +694,13 @@ void OpenProofConnectionsController::confirmDraftSnapshot(
 #endif
 }
 
+void OpenProofConnectionsController::refreshAccountDraft()
+{
+    // Explicit screen entry is not a mutation and never authorizes by FID
+    // alone. This read is independent from the normal 25-second poll.
+    pumpDraftChanges();
+}
+
 void OpenProofConnectionsController::pumpDraftChanges()
 {
     if (!m_settings || !m_viewerFid ||

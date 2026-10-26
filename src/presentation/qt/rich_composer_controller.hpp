@@ -81,8 +81,8 @@ public:
      * its previous owner before the editor is reset and the new owner's draft
      * is restored. A zero FID selects the unassigned legacy draft. */
     void setViewerFid(qulonglong fid);
-    /** @brief Marks the composer as in use so automatic account refreshes
-     * never replace visible text, even after autosave clears dirty state. */
+    /** @brief An untouched open composer may accept new server drafts, but
+     * never replace text edited during this opening, even after autosave. */
     Q_INVOKABLE void setComposerActive(bool active);
     /** @brief Applies verified account state only when the editor has no
      * uncommitted changes; remote content is validated before replacement.
@@ -152,6 +152,8 @@ public:
     void markManagedAssetCleanupCompleted(const QString& managementToken);
 
 signals:
+    /** @brief The verified account draft replaced a pristine local editor. */
+    void accountDraftApplied();
     void documentChanged();
     void historyChanged();
     void saveStateChanged();

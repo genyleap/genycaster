@@ -32,7 +32,9 @@ test('pull-to-refresh arms only for a real top-origin drag and emits one refresh
         const source = read('ui/components/' + file + '.qml');
         assert.match(source, /boundsBehavior: Flickable\.DragOverBounds/);
         assert.match(source, /boundsMovement: Flickable\.FollowBoundsBehavior/);
-        assert.match(source, /PullToRefresh \{[\s\S]*?onRefreshRequested: root\.refreshRequested\(\)/);
+        assert.match(source, file === 'ProfileSurface'
+            ? /PullToRefresh \{[\s\S]*?onRefreshRequested: root\.refreshProfileAndAccount\(\)/
+            : /PullToRefresh \{[\s\S]*?onRefreshRequested: root\.refreshRequested\(\)/);
     }
     assert.match(shell, /onRefreshRequested: presentationBridge\.openNotifications\(\)/);
     assert.match(shell, /onRefreshRequested: root\.primaryDestination === "explorer"[\s\S]*?presentationBridge\.refreshLatestFeed\(\)/);
