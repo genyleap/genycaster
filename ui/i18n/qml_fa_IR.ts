@@ -2,6 +2,206 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.profile.extras_heading">
+            <source>Additional Genycaster details</source>
+            <translation>جزئیات تکمیلی جنی‌کستر</translation>
+        </message>
+        <message id="genycaster.profile.extras_description">
+            <source>Your professional category and personal links are kept with your Genycaster account.</source>
+            <translation>دسته‌بندی حرفه‌ای و لینک‌های شخصی در حساب جنی‌کستر شما نگهداری می‌شوند.</translation>
+        </message>
+        <message id="genycaster.profile.save_additional_details">
+            <source>Save additional details</source>
+            <translation>ذخیرهٔ جزئیات تکمیلی</translation>
+        </message>
+        <message id="genycaster.connections.copy_ethereum_wallet">
+            <source>Ethereum wallet</source>
+            <translation>کیف پول اتریوم</translation>
+        </message>
+        <message id="genycaster.connections.copy_social_account">
+            <source>Social account</source>
+            <translation>حساب شبکهٔ اجتماعی</translation>
+        </message>
+        <message id="genycaster.connections.copy_developer_profile">
+            <source>Developer profile</source>
+            <translation>پروفایل توسعه‌دهنده</translation>
+        </message>
+        <message id="genycaster.connections.copy_google_account">
+            <source>Google account</source>
+            <translation>حساب گوگل</translation>
+        </message>
+        <message id="genycaster.connections.copy_professional_profile">
+            <source>Professional profile</source>
+            <translation>پروفایل حرفه‌ای</translation>
+        </message>
+        <message id="genycaster.connections.copy_messaging_account">
+            <source>Messaging account</source>
+            <translation>حساب پیام‌رسان</translation>
+        </message>
+        <message id="genycaster.connections.copy_protocol_identity">
+            <source>Protocol identity</source>
+            <translation>هویت پروتکلی</translation>
+        </message>
+        <message id="genycaster.connections.copy_on_chain_identity">
+            <source>On-chain identity</source>
+            <translation>هویت آن‌چین</translation>
+        </message>
+        <message id="genycaster.connections.copy_external_account">
+            <source>External account</source>
+            <translation>حساب خارجی</translation>
+        </message>
+        <message id="genycaster.connections.copy_farcaster_verification">
+            <source>Farcaster verification</source>
+            <translation>تأیید هویت فارکستر</translation>
+        </message>
+        <message id="genycaster.connections.copy_confirm_this_farcaster_account_in_your_wallet_app_to_manage_connections">
+            <source>Confirm this Farcaster account in your wallet app to manage connections.</source>
+            <translation>برای مدیریت اتصال‌ها، حساب فارکستر را در کیف پول خود تأیید کنید.</translation>
+        </message>
+        <message id="genycaster.connections.copy_these_links_are_saved_with_your_genycaster_account_verify_with_farcaster">
+            <source>These links are saved with your Genycaster account. Verify with Farcaster to manage providers or confirm their current status.</source>
+            <translation>این اتصال‌ها در حساب جنی‌کستر شما ذخیره شده‌اند. برای مدیریت یا بررسی وضعیت فعلی، هویت فارکستر را تأیید کنید.</translation>
+        </message>
+        <message id="genycaster.connections.copy_verify_ownership_with_farcaster_to_manage_your_connections_no_genyleap_a">
+            <source>Verify ownership with Farcaster to manage your connections. No Genyleap account or password is required.</source>
+            <translation>برای مدیریت اتصال‌ها، مالکیت حساب فارکستر را تأیید کنید. حساب یا رمز عبور جنی‌لیپ لازم نیست.</translation>
+        </message>
+        <message id="genycaster.connections.copy_waiting_for_confirmation">
+            <source>Waiting for confirmation…</source>
+            <translation>در انتظار تأیید…</translation>
+        </message>
+        <message id="genycaster.connections.copy_open_farcaster_verification">
+            <source>Open Farcaster verification</source>
+            <translation>بازکردن تأیید هویت فارکستر</translation>
+        </message>
+        <message id="genycaster.connections.copy_verified">
+            <source>Verified</source>
+            <translation>تأییدشده</translation>
+        </message>
+        <message id="genycaster.connections.copy_saved_account_links">
+            <source>Saved account links</source>
+            <translation>اتصال‌های ذخیره‌شده</translation>
+        </message>
+        <message id="genycaster.connections.copy_hide_verification">
+            <source>Hide verification</source>
+            <translation>بستن بخش تأیید هویت</translation>
+        </message>
+        <message id="genycaster.connections.copy_edit_connections">
+            <source>Edit connections</source>
+            <translation>ویرایش اتصال‌ها</translation>
+        </message>
+        <message id="genycaster.connections.copy_connecting_1_confirm_in_the_provider_window_genycaster_will_update_this_">
+            <source>Connecting %1. Confirm in the provider window; Genycaster will update this list automatically.</source>
+            <translation>در حال اتصال به %1. در پنجرهٔ سرویس تأیید کنید؛ فهرست به‌صورت خودکار به‌روز می‌شود.</translation>
+        </message>
+        <message id="genycaster.connections.copy_saved_link_1">
+            <source>Saved link: %1</source>
+            <translation>حساب ذخیره‌شده: %1</translation>
+        </message>
+        <message id="genycaster.connections.copy_saved_account_link">
+            <source>Saved account link</source>
+            <translation>اتصال ذخیره‌شده</translation>
+        </message>
+        <message id="genycaster.connections.copy_signed_proof_required">
+            <source>Signed proof required</source>
+            <translation>نیازمند تأیید هویت</translation>
+        </message>
+        <message id="genycaster.connections.copy_verified_account">
+            <source>Verified account</source>
+            <translation>حساب تأییدشده</translation>
+        </message>
+        <message id="genycaster.connections.copy_saved_account_link_verification_required_for_changes">
+            <source>Saved account link — verification required for changes</source>
+            <translation>اتصال ذخیره‌شده؛ تغییر آن به تأیید هویت نیاز دارد.</translation>
+        </message>
+        <message id="genycaster.connections.copy_view">
+            <source>View</source>
+            <translation>نمایش</translation>
+        </message>
+        <message id="genycaster.connections.copy_find">
+            <source>Find</source>
+            <translation>یافتن</translation>
+        </message>
+        <message id="genycaster.connections.copy_reconnect">
+            <source>Reconnect</source>
+            <translation>اتصال دوباره</translation>
+        </message>
+        <message id="genycaster.connections.copy_confirm">
+            <source>Confirm</source>
+            <translation>تأیید</translation>
+        </message>
+        <message id="genycaster.connections.copy_remove">
+            <source>Remove</source>
+            <translation>حذف</translation>
+        </message>
+        <message id="genycaster.connections.copy_connect">
+            <source>Connect</source>
+            <translation>اتصال</translation>
+        </message>
+        <message id="genycaster.connections.copy_cancel">
+            <source>Cancel</source>
+            <translation>انصراف</translation>
+        </message>
+        <message id="genycaster.connections.copy_linked">
+            <source>Linked</source>
+            <translation>متصل</translation>
+        </message>
+        <message id="genycaster.connections.copy_proof_only">
+            <source>Proof only</source>
+            <translation>فقط تأیید هویت</translation>
+        </message>
+        <message id="genycaster.connections.copy_public_linkedin_profile_url">
+            <source>Public LinkedIn profile URL</source>
+            <translation>نشانی عمومی پروفایل لینکدین</translation>
+        </message>
+        <message id="genycaster.connections.copy_save">
+            <source>Save</source>
+            <translation>ذخیره</translation>
+        </message>
+        <message id="genycaster.connections.copy_add_your_public_linkedin_profile_url">
+            <source>Add your public LinkedIn profile URL.</source>
+            <translation>نشانی عمومی پروفایل لینکدین خود را اضافه کنید.</translation>
+        </message>
+        <message id="genycaster.connections.copy_linkedin_does_not_share_a_public_profile_url_through_standard_sign_in_fi">
+            <source>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</source>
+            <translation>ورود استاندارد لینکدین نشانی عمومی پروفایل را ارائه نمی‌کند. گزینهٔ «یافتن» نام حساب متصل را در لینکدین جست‌وجو می‌کند.</translation>
+        </message>
+        <message id="genycaster.connections.copy_showing_saved_provider_list_refresh_when_online">
+            <source>Showing saved provider list. Refresh when online.</source>
+            <translation>فهرست اتصال‌های ذخیره‌شده نمایش داده می‌شود. پس از اتصال به اینترنت تازه‌سازی کنید.</translation>
+        </message>
+        <message id="genycaster.connections.copy_connected_accounts_share_your_secure_identity">
+            <source>Connected accounts share your secure identity.</source>
+            <translation>حساب‌های متصل به هویت امن شما مرتبط‌اند.</translation>
+        </message>
+        <message id="genycaster.home.scope_feed">
+            <source>Feed</source>
+            <translation>فید</translation>
+        </message>
+        <message id="genycaster.home.scope_everyone">
+            <source>Everyone</source>
+            <translation>همه</translation>
+        </message>
+        <message id="genycaster.home.scope_following">
+            <source>Following</source>
+            <translation>دنبال‌شوندگان</translation>
+        </message>
+        <message id="genycaster.profile.edit_image_url">
+            <source>Edit your media URLs</source>
+            <translation>ویرایش نشانی تصاویر</translation>
+        </message>
+        <message id="genycaster.profile.hide_image_url">
+            <source>Hide image URLs</source>
+            <translation>پنهان‌کردن نشانی تصاویر</translation>
+        </message>
+        <message id="genycaster.profile.image_preview_hint">
+            <source>Preview and upload a new photo</source>
+            <translation>پیش‌نمایش تصویر و جایگزینی آن</translation>
+        </message>
+        <message id="genycaster.profile.edit_sections_subtitle">
+            <source>Edit Farcaster profile and personal links</source>
+            <translation>ویرایش اطلاعات فارکستر و لینک‌های شخصی</translation>
+        </message>
         <message id="genycaster.profile.conflict_notice">
             <source>Another device has newer profile details. Your previous local edit was preserved.</source>
             <translation>دستگاه دیگری جزئیات جدیدتری از پروفایل دارد. ویرایش قبلی شما حفظ شده است.</translation>
@@ -2466,7 +2666,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.home.visual_filter_nfts">
             <source>NFTs</source>
-            <translation>NFTها</translation>
+            <translation>NFT</translation>
         </message>
         <message id="genycaster.home.visual_highlights">
             <source>Visual Highlights</source>
@@ -4378,7 +4578,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.storage.nfts">
             <source>NFTs</source>
-            <translation>NFTها</translation>
+            <translation>NFT</translation>
         </message>
         <message id="genycaster.storage.mini_apps">
             <source>Mini Apps</source>
@@ -5186,7 +5386,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.release.beta_1_0">
             <source>Beta 1.0</source>
-            <translation>نسخهٔ بتا ۱٫۰</translation>
+            <translation>بتا ۱٫۰</translation>
         </message>
         <message id="genycaster.home.search_description">
             <source>Find people, casts and channels</source>

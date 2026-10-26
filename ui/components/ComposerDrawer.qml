@@ -772,6 +772,7 @@ GenyDrawer {
                         Avatar {
                             Layout.alignment: Qt.AlignVCenter
                             avatarSize: 39
+                            forceAutomaticDownload: true
                             sourceUrl: String(channelRow.modelData.imageUrl || "")
                             displayName: String(channelRow.modelData.name || "")
                         }

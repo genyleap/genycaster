@@ -170,7 +170,7 @@ Item {
 
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTr("Feed")
+                text: qsTrId("genycaster.home.scope_feed")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
                 elide: Text.ElideRight
@@ -194,8 +194,8 @@ Item {
 
                     Repeater {
                         model: [
-                            { id: "all", title: qsTr("Everyone") },
-                            { id: "following", title: qsTr("Following") }
+                            { id: "all", title: qsTrId("genycaster.home.scope_everyone") },
+                            { id: "following", title: qsTrId("genycaster.home.scope_following") }
                         ]
 
                         delegate: Button {

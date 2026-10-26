@@ -390,6 +390,7 @@ ListView {
                                     Layout.preferredHeight: 20
                                     avatarSize: 20
                                     sourceUrl: root.resolvedChannelImage
+                                    forceAutomaticDownload: true
                                     displayName: root.resolvedChannelName
                                 }
                                 DirectionAwareLabel {

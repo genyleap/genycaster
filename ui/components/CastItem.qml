@@ -545,6 +545,7 @@ Item {
                                     Layout.preferredHeight: Layout.preferredWidth
                                     avatarSize: Layout.preferredWidth
                                     sourceUrl: root.channelImageUrl
+                                    forceAutomaticDownload: true
                                     displayName: root.channelDisplayName
                                 }
                                 DirectionAwareLabel {
@@ -596,7 +597,7 @@ Item {
                                 font.family: Theme.latinFontFamily
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeMetaSize
-                                horizontalAlignment: Text.AlignLeft
+                                horizontalAlignment: Theme.textStartAlignment
                                 elide: Text.ElideRight
                                 TapHandler {
                                     enabled: Number(root.modelData.authorFid || 0) > 0

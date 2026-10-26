@@ -56,21 +56,21 @@ GenyDrawer {
         case "linkedin": return "LinkedIn"
         case "telegram": return "Telegram"
         case "farcaster": return "Farcaster"
-        case "ethereum-wallet": return qsTr("Ethereum wallet")
+        case "ethereum-wallet": return qsTrId("genycaster.connections.copy_ethereum_wallet")
         default: return provider
         }
     }
 
     function providerDescription(provider) {
         switch (provider) {
-        case "x": return qsTr("Social account")
-        case "github": return qsTr("Developer profile")
-        case "google": return qsTr("Google account")
-        case "linkedin": return qsTr("Professional profile")
-        case "telegram": return qsTr("Messaging account")
-        case "farcaster": return qsTr("Protocol identity")
-        case "ethereum-wallet": return qsTr("On-chain identity")
-        default: return qsTr("External account")
+        case "x": return qsTrId("genycaster.connections.copy_social_account")
+        case "github": return qsTrId("genycaster.connections.copy_developer_profile")
+        case "google": return qsTrId("genycaster.connections.copy_google_account")
+        case "linkedin": return qsTrId("genycaster.connections.copy_professional_profile")
+        case "telegram": return qsTrId("genycaster.connections.copy_messaging_account")
+        case "farcaster": return qsTrId("genycaster.connections.copy_protocol_identity")
+        case "ethereum-wallet": return qsTrId("genycaster.connections.copy_on_chain_identity")
+        default: return qsTrId("genycaster.connections.copy_external_account")
         }
     }
 
@@ -199,7 +199,7 @@ GenyDrawer {
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTr("Farcaster verification")
+                        text: qsTrId("genycaster.connections.copy_farcaster_verification")
                         color: Theme.ink
                         font.pixelSize: Theme.typeLabelSize
                         font.weight: Theme.weightDemiBold
@@ -209,10 +209,10 @@ GenyDrawer {
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: picker.authorizing
-                          ? qsTr("Confirm this Farcaster account in your wallet app to manage connections.")
+                          ? qsTrId("genycaster.connections.copy_confirm_this_farcaster_account_in_your_wallet_app_to_manage_connections")
                           : picker.cachedSnapshot
-                            ? qsTr("These links are saved with your Genycaster account. Verify with Farcaster to manage providers or confirm their current status.")
-                            : qsTr("Verify ownership with Farcaster to manage your connections. No Genyleap account or password is required.")
+                            ? qsTrId("genycaster.connections.copy_these_links_are_saved_with_your_genycaster_account_verify_with_farcaster")
+                            : qsTrId("genycaster.connections.copy_verify_ownership_with_farcaster_to_manage_your_connections_no_genyleap_a")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.Wrap
@@ -229,14 +229,14 @@ GenyDrawer {
                         prominent: !picker.authorizing
                         quiet: picker.authorizing
                         enabled: !picker.authorizing
-                        text: picker.authorizing ? qsTr("Waiting for confirmation…") : qsTrId("genycaster.connections.verify")
+                        text: picker.authorizing ? qsTrId("genycaster.connections.copy_waiting_for_confirmation") : qsTrId("genycaster.connections.verify")
                         iconGlyph: picker.authorizing ? "" : Theme.iconArrowUpRight
                         onClicked: picker.authorizeRequested()
                     }
                     ActionButton {
                         visible: picker.authorizing && picker.approvalUrl.length > 0
                         compact: true
-                        text: qsTr("Open Farcaster verification")
+                        text: qsTrId("genycaster.connections.copy_open_farcaster_verification")
                         iconGlyph: Theme.iconArrowUpRight
                         onClicked: picker.approvalRequested(picker.approvalUrl)
                     }
@@ -256,7 +256,7 @@ GenyDrawer {
                 font.weight: Theme.weightDemiBold
             }
             DirectionAwareLabel {
-                text: String(picker.linkedCount)
+                text: LocaleFormat.formatInteger(picker.linkedCount)
                 color: Theme.inkSubtle
                 font.pixelSize: Theme.typeCaptionSize
             }
@@ -278,7 +278,7 @@ GenyDrawer {
                         color: Theme.success
                     }
                     DirectionAwareLabel {
-                        text: qsTr("Verified")
+                        text: qsTrId("genycaster.connections.copy_verified")
                         color: Theme.success
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightDemiBold
@@ -287,14 +287,14 @@ GenyDrawer {
             }
             DirectionAwareLabel {
                 visible: picker.cachedSnapshot && !picker.authorized && !picker.mobilePresentation
-                text: qsTr("Saved account links")
+                text: qsTrId("genycaster.connections.copy_saved_account_links")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
             }
             ActionButton {
                 visible: picker.cachedSnapshot && !picker.authorized && !picker.mobilePresentation
                 compact: true
-                text: picker.editAccessRequested ? qsTr("Hide verification") : qsTr("Edit connections")
+                text: picker.editAccessRequested ? qsTrId("genycaster.connections.copy_hide_verification") : qsTrId("genycaster.connections.copy_edit_connections")
                 quiet: true
                 onClicked: picker.editAccessRequested = !picker.editAccessRequested
             }
@@ -314,18 +314,19 @@ GenyDrawer {
             visible: picker.mobilePresentation && picker.cachedSnapshot && !picker.authorized
             Layout.fillWidth: true
             Layout.minimumWidth: 0
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space2
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                text: qsTr("Saved account links")
+                text: qsTrId("genycaster.connections.copy_saved_account_links")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
                 elide: Text.ElideRight
             }
             ActionButton {
                 compact: true
-                text: picker.editAccessRequested ? qsTr("Hide verification") : qsTr("Edit connections")
+                text: picker.editAccessRequested ? qsTrId("genycaster.connections.copy_hide_verification") : qsTrId("genycaster.connections.copy_edit_connections")
                 quiet: true
                 onClicked: picker.editAccessRequested = !picker.editAccessRequested
             }
@@ -334,7 +335,7 @@ GenyDrawer {
         DirectionAwareLabel {
             Layout.fillWidth: true
             visible: picker.actionBusy && picker.pendingProvider.length > 0
-            text: qsTr("Connecting %1. Confirm in the provider window; Genycaster will update this list automatically.")
+            text: qsTrId("genycaster.connections.copy_connecting_1_confirm_in_the_provider_window_genycaster_will_update_this_")
                   .arg(picker.providerTitle(picker.pendingProvider))
             color: Theme.inkMuted
             font.pixelSize: Theme.typeCaptionSize
@@ -453,12 +454,12 @@ GenyDrawer {
                                                 const nick = String(connection.displayName || connection.username || "")
                                                 if (picker.cachedSnapshot && !picker.authorized)
                                                     return nick.length > 0
-                                                           ? qsTr("Saved link: %1").arg(nick)
-                                                           : qsTr("Saved account link")
+                                                           ? qsTrId("genycaster.connections.copy_saved_link_1").arg(nick)
+                                                           : qsTrId("genycaster.connections.copy_saved_account_link")
                                                 return nick.length > 0 ? nick : qsTrId("genycaster.connections.status_connected")
                                             }
                                             if (picker.authorized && !providerRow.redirectCapable)
-                                                return qsTr("Signed proof required")
+                                                return qsTrId("genycaster.connections.copy_signed_proof_required")
                                             if (picker.authorized) return qsTrId("genycaster.connections.status_not_connected")
                                             return picker.providerDescription(providerRow.modelData)
                                         }
@@ -479,8 +480,8 @@ GenyDrawer {
                                         Layout.preferredWidth: 20
                                         Layout.preferredHeight: 20
                                         Accessible.name: picker.authorized
-                                                         ? qsTr("Verified account")
-                                                         : qsTr("Saved account link — verification required for changes")
+                                                         ? qsTrId("genycaster.connections.copy_verified_account")
+                                                         : qsTrId("genycaster.connections.copy_saved_account_link_verification_required_for_changes")
                                     }
                                     ActionButton {
                                         visible: providerRow.isConnected
@@ -490,7 +491,7 @@ GenyDrawer {
                                         iconOnly: picker.mobilePresentation
                                         iconGlyph: Theme.iconArrowUpRight
                                         text: picker.profileUrlFor(providerRow.modelData).length > 0
-                                              ? qsTr("View") : qsTr("Find")
+                                              ? qsTrId("genycaster.connections.copy_view") : qsTrId("genycaster.connections.copy_find")
                                         onClicked: picker.openProfileRequested(picker.destinationFor(providerRow.modelData))
                                     }
                                     ActionButton {
@@ -499,7 +500,7 @@ GenyDrawer {
                                                  && picker.profileUrlFor("linkedin").length === 0
                                         compact: true
                                         quiet: true
-                                        text: qsTr("Reconnect")
+                                        text: qsTrId("genycaster.connections.copy_reconnect")
                                         enabled: !picker.actionBusy
                                         onClicked: picker.connectRequested("linkedin")
                                     }
@@ -511,8 +512,8 @@ GenyDrawer {
                                         elevated: false
                                         enabled: !picker.actionBusy
                                         text: providerRow.isConnected
-                                              ? providerRow.confirmUnlink ? qsTr("Confirm") : qsTr("Remove")
-                                              : qsTr("Connect")
+                                              ? providerRow.confirmUnlink ? qsTrId("genycaster.connections.copy_confirm") : qsTrId("genycaster.connections.copy_remove")
+                                              : qsTrId("genycaster.connections.copy_connect")
                                         onClicked: {
                                             if (providerRow.isConnected) {
                                                 if (!providerRow.confirmUnlink) {
@@ -532,12 +533,12 @@ GenyDrawer {
                                         compact: true
                                         quiet: true
                                         elevated: false
-                                        text: qsTr("Cancel")
+                                        text: qsTrId("genycaster.connections.copy_cancel")
                                         onClicked: providerRow.confirmUnlink = false
                                     }
                                     DirectionAwareLabel {
                                         visible: picker.authorized && !providerRow.redirectCapable
-                                        text: providerRow.isConnected ? qsTr("Linked") : qsTr("Proof only")
+                                        text: providerRow.isConnected ? qsTrId("genycaster.connections.copy_linked") : qsTrId("genycaster.connections.copy_proof_only")
                                         color: providerRow.isConnected ? Theme.success : Theme.inkSubtle
                                         font.pixelSize: Theme.typeCaptionSize
                                     }
@@ -554,7 +555,7 @@ GenyDrawer {
 
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
-                                    text: qsTr("Public LinkedIn profile URL")
+                                    text: qsTrId("genycaster.connections.copy_public_linkedin_profile_url")
                                     color: Theme.ink
                                     font.pixelSize: Theme.typeCaptionSize
                                 }
@@ -580,14 +581,14 @@ GenyDrawer {
                                     }
                                     ActionButton {
                                         compact: true
-                                        text: qsTr("Save")
+                                        text: qsTrId("genycaster.connections.copy_save")
                                         enabled: !picker.actionBusy && manualLinkedInField.text !== picker.manualLinkedInUrl
                                         onClicked: picker.manualLinkedInRequested(manualLinkedInField.text)
                                     }
                                 }
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
-                                    text: qsTr("Add your public LinkedIn profile URL.")
+                                    text: qsTrId("genycaster.connections.copy_add_your_public_linkedin_profile_url")
                                     wrapMode: Text.Wrap
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
@@ -602,7 +603,7 @@ GenyDrawer {
                                 Layout.leftMargin: Theme.space3
                                 Layout.rightMargin: Theme.space3
                                 Layout.bottomMargin: Theme.space2
-                                text: qsTr("LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account's name.")
+                                text: qsTrId("genycaster.connections.copy_linkedin_does_not_share_a_public_profile_url_through_standard_sign_in_fi")
                                 wrapMode: Text.Wrap
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
@@ -644,8 +645,8 @@ GenyDrawer {
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: picker.catalogFallback
-                      ? qsTr("Showing saved provider list. Refresh when online.")
-                      : qsTr("Connected accounts share your secure identity.")
+                      ? qsTrId("genycaster.connections.copy_showing_saved_provider_list_refresh_when_online")
+                      : qsTrId("genycaster.connections.copy_connected_accounts_share_your_secure_identity")
                 font.pixelSize: Theme.typeCaptionSize
                 color: Theme.inkSubtle
                 wrapMode: Text.Wrap

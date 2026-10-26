@@ -8,6 +8,8 @@ Button {
     id: root
     required property string targetUrl
     property string userLabel: ""
+    // Generic numbered placeholders should not hide a verified page title.
+    property bool genericLabel: false
     property string displayUrl: ""
     signal openRequested(string url)
 
@@ -21,7 +23,7 @@ Button {
         const native = linkPreviewResolver.previewFor(root.targetUrl)
         return root.browserMetadata.resolved
                && root.browserMetadata.providerKind === "web"
-               ? root.browserMetadata : native
+               ? Object.assign({}, native, root.browserMetadata) : native
     }
     property bool artworkFallback: false
     onTargetUrlChanged: {
@@ -60,9 +62,10 @@ Button {
         const matched = /^https:\/\/([^\/?#:]+)/i.exec(root.targetUrl)
         return matched ? matched[1].replace(/^www\./i, "").charAt(0).toUpperCase() : "W"
     }
-    readonly property string rowTitle: root.userLabel.length > 0
-                                       ? root.userLabel
-                                       : (websiteTitle || qsTrId("genycaster.profile.website"))
+    readonly property string rowTitle: root.genericLabel && root.websiteTitle.length > 0
+                                       ? root.websiteTitle
+                                       : (root.userLabel.length > 0 ? root.userLabel
+                                          : (websiteTitle || qsTrId("genycaster.profile.website")))
     Accessible.name: rowTitle + " " + root.displayUrl
     onClicked: root.openRequested(root.targetUrl)
 
@@ -103,19 +106,28 @@ Button {
                 anchors.centerIn: parent
                 width: Theme.scaleUi(27)
                 height: width
-                source: root.faviconUrl
+                // A favicon is essential UI artwork, not an optional feed
+                // download. Force the bounded remote image provider to admit it.
+                source: root.faviconUrl.length > 0
+                        ? dataStorage.remoteImageSource(root.faviconUrl, "avatars", true) : ""
                 sourceSize.width: Math.ceil(width * 3)
                 sourceSize.height: Math.ceil(height * 3)
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
                 cache: true
-                visible: status === Image.Ready
-                onStatusChanged: {
-                    if (status === Image.Error && !root.artworkFallback
-                            && root.previewArtworkSource.length > 0
-                            && root.previewArtworkSource !== source.toString())
+                visible: status === Image.Ready && implicitWidth > 1 && implicitHeight > 1
+                function tryArtworkFallback() {
+                    // RemoteImageProvider deliberately returns a transparent
+                    // 1px placeholder for decode/policy failures (Image.Ready).
+                    if (root.artworkFallback || root.previewArtworkSource.length === 0)
+                        return
+                    if (status === Image.Error || (status === Image.Ready
+                           && implicitWidth <= 1 && implicitHeight <= 1))
                         root.artworkFallback = true
                 }
+                onStatusChanged: tryArtworkFallback()
+                onImplicitWidthChanged: tryArtworkFallback()
+                onImplicitHeightChanged: tryArtworkFallback()
             }
         }
 
@@ -132,7 +144,7 @@ Button {
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                visible: root.userLabel.length > 0
+                visible: !root.genericLabel && root.userLabel.length > 0
                          && root.websiteTitle.length > 0
                          && root.websiteTitle !== root.userLabel
                 text: root.websiteTitle

@@ -58,5 +58,5 @@ test('connection labels are portable yet separate from upstream verified authori
   assert.match(controller,/m_cachedSnapshot=!m_connections\.isEmpty\(\)/);
   assert.match(store,/async importConnectionLabels/);
   assert.match(store,/last_confirmed_at IS NULL/);
-  assert.match(source('ui/components/AccountConnectionsPopup.qml'),/Saved account links/);
+  assert.match(source('ui/components/AccountConnectionsPopup.qml'),/genycaster\.connections\.copy_saved_account_links/);
 });

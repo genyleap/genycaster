@@ -36,7 +36,7 @@ test('profile extras are compact, labelled and reachable through a mobile sheet'
   assert.match(profile,/labels: unique\.map\(e=>e\.label\)/);
   assert.match(profile,/linksEditor\.text = saved\.map/);
   assert.match(profile,/objectName: "profileOwnerActions"/);
-  assert.match(profile,/text: qsTrId\("genycaster\.profile\.save_changes"\)/);
+  assert.match(profile,/text: qsTrId\("genycaster\.profile\.save_additional_details"\)/);
   assert.doesNotMatch(profile,/Popup \{\s*id: profileExtrasEditor/);
 });
 test('mobile uses equal-width Share and Edit buttons; desktop uses a real profile menu',()=>{

@@ -40,6 +40,7 @@ Item {
     property string protocolProfileError: ""
     property bool protocolProfilePending: false
     property bool protocolProfileConfirmed: false
+    property bool editProfileMediaUrls: false
     property int pendingProfileMediaAfterIndex: -1
 
     function chooseProfileImage(afterIndex) {
@@ -2205,6 +2206,7 @@ Item {
             root.protocolProfileError = ""
             root.protocolProfilePending = false
             root.protocolProfileConfirmed = false
+            root.editProfileMediaUrls = false
             displayProtocolEditor.text = String(root.activeDetail.displayName || "")
             bioProtocolEditor.text = String(root.activeDetail.bio || "")
             websiteProtocolEditor.text = String(root.activeDetail.profileUrl || "")
@@ -2216,7 +2218,7 @@ Item {
             ModalHeader {
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.profile.edit_details")
-                subtitle: qsTrId("genycaster.profile.personal_links")
+                subtitle: qsTrId("genycaster.profile.edit_sections_subtitle")
                 onCloseRequested: profileExtrasEditor.close()
             }
             Flickable {
@@ -2249,7 +2251,7 @@ Item {
                         text: qsTrId("genycaster.profile.display_name")
                         color: Theme.inkMuted
                     }
-                    TextField {
+                    DirectionAwareTextField {
                         id: displayProtocolEditor
                         objectName: "profileProtocolDisplay"
                         Layout.fillWidth: true
@@ -2261,32 +2263,24 @@ Item {
                         text: qsTrId("genycaster.profile.bio")
                         color: Theme.inkMuted
                     }
-                    TextArea {
+                    DirectionAwareTextArea {
                         id: bioProtocolEditor
                         objectName: "profileProtocolBio"
                         Layout.fillWidth: true
-                        Layout.preferredHeight: Theme.scaleUi(94)
+                        Layout.preferredHeight: Theme.scaleUi(114)
                         wrapMode: TextEdit.Wrap
-                        color: Theme.ink
-                        background: Rectangle {
-                            radius: Theme.curveCompact
-                            color: Theme.surface
-                            border.color: bioProtocolEditor.activeFocus ? Theme.focus : Theme.borderMuted
-                        }
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.profile.website")
                         color: Theme.inkMuted
                     }
-                    TextField {
+                    DirectionAwareTextField {
                         id: websiteProtocolEditor
                         objectName: "profileProtocolWebsite"
                         Layout.fillWidth: true
                         inputMethodHints: Qt.ImhUrlCharactersOnly
-                        color: Theme.ink
-                        LayoutMirroring.enabled: false
-                        horizontalAlignment: Text.AlignLeft
+                        forceLeftToRight: true
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
@@ -2295,24 +2289,45 @@ Item {
                     }
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: Theme.space2
-                        TextField {
-                            id: avatarProtocolEditor
-                            objectName: "profileProtocolAvatar"
+                        layoutDirection: Theme.uiDirection
+                        spacing: Theme.space3
+                        Avatar {
+                            avatarSize: 52
+                            Layout.preferredWidth: 52
+                            Layout.preferredHeight: 52
+                            sourceUrl: avatarProtocolEditor.text.trim()
+                            displayName: displayProtocolEditor.text
+                            forceAutomaticDownload: true
+                        }
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            inputMethodHints: Qt.ImhUrlCharactersOnly
-                            color: Theme.ink
-                            LayoutMirroring.enabled: false
-                            horizontalAlignment: Text.AlignLeft
+                            spacing: Theme.space1
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.profile.image_preview_hint")
+                                color: Theme.inkSubtle
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.Wrap
+                            }
+                            ActionButton {
+                                Layout.alignment: Qt.AlignLeft
+                                compact: true
+                                quiet: true
+                                iconGlyph: Theme.iconImage
+                                text: qsTrId("genycaster.profile.upload_avatar")
+                                enabled: mediaUpload.available && !mediaUpload.busy
+                                onClicked: root.chooseProfileImage(-1001)
+                            }
                         }
-                        ActionButton {
-                            compact: true
-                            iconOnly: true
-                            iconGlyph: Theme.iconImage
-                            text: qsTrId("genycaster.profile.upload_avatar")
-                            enabled: mediaUpload.available && !mediaUpload.busy
-                            onClicked: root.chooseProfileImage(-1001)
-                        }
+                    }
+                    DirectionAwareTextField {
+                        id: avatarProtocolEditor
+                        objectName: "profileProtocolAvatar"
+                        visible: root.editProfileMediaUrls
+                        Layout.fillWidth: true
+                        forceLeftToRight: true
+                        inputMethodHints: Qt.ImhUrlCharactersOnly
+                        placeholderText: "https://"
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
@@ -2321,24 +2336,59 @@ Item {
                     }
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: Theme.space2
-                        TextField {
-                            id: bannerProtocolEditor
-                            objectName: "profileProtocolBanner"
+                        layoutDirection: Theme.uiDirection
+                        spacing: Theme.space3
+                        SuperellipseImage {
+                            Layout.preferredWidth: 92
+                            Layout.preferredHeight: 54
+                            source: linkPreviewResolver.imageSourceForUrl(bannerProtocolEditor.text.trim())
+                            mediaCategory: "avatars"
+                            forceAutomaticDownload: true
+                            showLoadingIndicator: false
+                            showFailureIndicator: false
+                            fillColor: Theme.surfaceMuted
+                            borderWidth: 1
+                            borderColor: Theme.borderMuted
+                            curveDepth: Theme.curveCompact
+                        }
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            inputMethodHints: Qt.ImhUrlCharactersOnly
-                            color: Theme.ink
-                            LayoutMirroring.enabled: false
-                            horizontalAlignment: Text.AlignLeft
+                            spacing: Theme.space1
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.profile.image_preview_hint")
+                                color: Theme.inkSubtle
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.Wrap
+                            }
+                            ActionButton {
+                                Layout.alignment: Qt.AlignLeft
+                                compact: true
+                                quiet: true
+                                iconGlyph: Theme.iconImage
+                                text: qsTrId("genycaster.profile.upload_banner")
+                                enabled: mediaUpload.available && !mediaUpload.busy
+                                onClicked: root.chooseProfileImage(-1002)
+                            }
                         }
-                        ActionButton {
-                            compact: true
-                            iconOnly: true
-                            iconGlyph: Theme.iconImage
-                            text: qsTrId("genycaster.profile.upload_banner")
-                            enabled: mediaUpload.available && !mediaUpload.busy
-                            onClicked: root.chooseProfileImage(-1002)
-                        }
+                    }
+                    DirectionAwareTextField {
+                        id: bannerProtocolEditor
+                        objectName: "profileProtocolBanner"
+                        visible: root.editProfileMediaUrls
+                        Layout.fillWidth: true
+                        forceLeftToRight: true
+                        inputMethodHints: Qt.ImhUrlCharactersOnly
+                        placeholderText: "https://"
+                    }
+                    ActionButton {
+                        Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+                        compact: true
+                        quiet: true
+                        text: root.editProfileMediaUrls
+                              ? qsTrId("genycaster.profile.hide_image_url")
+                              : qsTrId("genycaster.profile.edit_image_url")
+                        onClicked: root.editProfileMediaUrls = !root.editProfileMediaUrls
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
@@ -2414,6 +2464,20 @@ Item {
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
+                        text: qsTrId("genycaster.profile.extras_heading")
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightDemiBold
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.profile.extras_description")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
                         text: qsTrId("genycaster.profile.category_label")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
@@ -2461,19 +2525,13 @@ Item {
                         font.pixelSize: Theme.typeCaptionSize
                         color: Theme.inkMuted
                     }
-                    TextArea {
+                    DirectionAwareTextArea {
                         id: linksEditor
                         Layout.fillWidth: true
                         Layout.preferredHeight: Theme.scaleUi(180)
                         wrapMode: TextEdit.WrapAnywhere
                         placeholderText: qsTrId("genycaster.profile.links_placeholder")
                         color: Theme.ink
-                        background: Rectangle {
-                            color: Theme.surface
-                            radius: Theme.curveCompact
-                            border.color: linksEditor.activeFocus ? Theme.focus : Theme.borderMuted
-                            border.width: 1
-                        }
                     }
                     DirectionAwareLabel {
                         visible: root.profileExtrasError.length > 0
@@ -2496,7 +2554,7 @@ Item {
                 }
                 ActionButton {
                     Layout.fillWidth: true
-                    text: qsTrId("genycaster.profile.save_changes")
+                    text: qsTrId("genycaster.profile.save_additional_details")
                     onClicked: {
                         if (root.saveExtraDetails(
                                 professionEditor.currentIndex > 0 ? professionEditor.currentText : "",
@@ -2574,6 +2632,7 @@ Item {
                             required property var modelData
                             targetUrl: String(modelData)
                             userLabel: root.profileExtraLabel(index)
+                            genericLabel: !String(root.profileSequence(root.profileExtras.labels, 5)[index] || "").trim()
                             displayUrl: root.displayUrl(targetUrl)
                             onOpenRequested: url => {
                                 root.externalRequested(url)

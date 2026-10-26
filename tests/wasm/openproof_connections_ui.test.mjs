@@ -107,7 +107,7 @@ test('owner remembers only last-known social proofs and never persists account b
   assert.match(controller, /m_accountBearer\.fill\(/);
   assert.match(qml, /cachedSnapshot: openProofConnections\.cachedSnapshot/);
   assert.match(popup, /editAccessRequested/);
-  assert.match(popup, /Edit connections/);
+  assert.match(popup, /genycaster\.connections\.copy_edit_connections/);
   assert.match(qml, /ownerVerifiedSocialBadgeStrip/);
   assert.match(qml, /root\.isOwnProfile/);
 });
@@ -116,8 +116,8 @@ test('Farcaster ownership unlocks Connections without a Genyleap password and Te
   assert.match(controller, /m_authorization\.beginFarcaster\(/);
   // Connection management still uses Farcaster; private cloud sync has a\n  // separate, opt-in OpenProof device grant.\n  assert.match(controller, /void OpenProofConnectionsController::authorizeCloudAccount\(\)/);
   assert.match(controller, /m_browserConnectionBaseUrl\.path\(\) \+ QStringLiteral\("\/account\/connections\/handoff"\)/);
-  assert.match(popup, /Verify with Farcaster/);
-  assert.match(popup, /no Genyleap account or password is required/i);
+  assert.match(popup, /genycaster\.connections\.copy_these_links_are_saved_with_your_genycaster_account/);
+  assert.match(popup, /genycaster\.connections\.copy_verify_ownership_with_farcaster_to_manage_your_connections/);
   assert.ok(!popup.includes('Continue approval'));
   assert.equal(config.openproofBrowserConnectionBaseUrl, 'https://genyleap.com/openproof');
 });
@@ -220,12 +220,12 @@ test('connection selector packages provider-owned SVGs and keeps links in the ap
   assert.match(popup, /providerRow\.confirmUnlink = true/);
   assert.match(popup, /picker\.catalogFallback/);
   assert.doesNotMatch(popup, /XMLHttpRequest|fetch\(/);
-  assert.match(popup, /does not share a public profile URL through standard sign-in/);
+  assert.match(popup, /genycaster\.connections\.copy_linkedin_does_not_share_a_public_profile_url_through_standard_sign/);
   assert.match(popup, /linkedinSearchFor\(provider\)/);
   assert.match(popup, /encodeURIComponent\(name\)/);
   assert.match(popup, /destinationFor\(providerRow\.modelData\)/);
-  assert.match(popup, /qsTr\("Find"\)/);
-  assert.match(popup, /qsTr\("Reconnect"\)/);
+  assert.match(popup, /qsTrId\("genycaster\.connections\.copy_find"\)/);
+  assert.match(popup, /qsTrId\("genycaster\.connections\.copy_reconnect"\)/);
   assert.match(popup, /profile-thirdparty-redirect/);
   assert.match(qml, /profile-thirdparty-redirect/);
   assert.match(controller, /verifiedRedirect/);

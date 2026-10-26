@@ -60,13 +60,15 @@ Rectangle {
                     sourceSize.height: 40
                     Accessible.name: "GenyCaster"
                 }
-                Label {
+                DirectionAwareLabel {
                     text: qsTrId("genycaster.release.beta_1_0")
                     color: Theme.inkMuted
-                    font.family: Theme.latinFontFamily
+                    font.family: Theme.fontFamilyForText(text)
                     font.pixelSize: Theme.typeCaptionSize
-                    font.weight: Theme.weightDemiBold
+                    font.weight: Theme.weightMedium
                     renderType: Text.NativeRendering
+                    horizontalAlignment: Theme.textStartAlignment
+                    LayoutMirroring.enabled: false
                     Accessible.ignored: true
                 }
             }

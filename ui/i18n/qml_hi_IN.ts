@@ -2,6 +2,206 @@
 <TS version="2.1" language="hi_IN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.profile.extras_heading">
+            <source>Additional Genycaster details</source>
+            <translation>Additional Genycaster details</translation>
+        </message>
+        <message id="genycaster.profile.extras_description">
+            <source>Your professional category and personal links are kept with your Genycaster account.</source>
+            <translation>Your professional category and personal links are kept with your Genycaster account.</translation>
+        </message>
+        <message id="genycaster.profile.save_additional_details">
+            <source>Save additional details</source>
+            <translation>Save additional details</translation>
+        </message>
+        <message id="genycaster.connections.copy_ethereum_wallet">
+            <source>Ethereum wallet</source>
+            <translation>Ethereum wallet</translation>
+        </message>
+        <message id="genycaster.connections.copy_social_account">
+            <source>Social account</source>
+            <translation>Social account</translation>
+        </message>
+        <message id="genycaster.connections.copy_developer_profile">
+            <source>Developer profile</source>
+            <translation>Developer profile</translation>
+        </message>
+        <message id="genycaster.connections.copy_google_account">
+            <source>Google account</source>
+            <translation>Google account</translation>
+        </message>
+        <message id="genycaster.connections.copy_professional_profile">
+            <source>Professional profile</source>
+            <translation>Professional profile</translation>
+        </message>
+        <message id="genycaster.connections.copy_messaging_account">
+            <source>Messaging account</source>
+            <translation>Messaging account</translation>
+        </message>
+        <message id="genycaster.connections.copy_protocol_identity">
+            <source>Protocol identity</source>
+            <translation>Protocol identity</translation>
+        </message>
+        <message id="genycaster.connections.copy_on_chain_identity">
+            <source>On-chain identity</source>
+            <translation>On-chain identity</translation>
+        </message>
+        <message id="genycaster.connections.copy_external_account">
+            <source>External account</source>
+            <translation>External account</translation>
+        </message>
+        <message id="genycaster.connections.copy_farcaster_verification">
+            <source>Farcaster verification</source>
+            <translation>Farcaster verification</translation>
+        </message>
+        <message id="genycaster.connections.copy_confirm_this_farcaster_account_in_your_wallet_app_to_manage_connections">
+            <source>Confirm this Farcaster account in your wallet app to manage connections.</source>
+            <translation>Confirm this Farcaster account in your wallet app to manage connections.</translation>
+        </message>
+        <message id="genycaster.connections.copy_these_links_are_saved_with_your_genycaster_account_verify_with_farcaster">
+            <source>These links are saved with your Genycaster account. Verify with Farcaster to manage providers or confirm their current status.</source>
+            <translation>These links are saved with your Genycaster account. Verify with Farcaster to manage providers or confirm their current status.</translation>
+        </message>
+        <message id="genycaster.connections.copy_verify_ownership_with_farcaster_to_manage_your_connections_no_genyleap_a">
+            <source>Verify ownership with Farcaster to manage your connections. No Genyleap account or password is required.</source>
+            <translation>Verify ownership with Farcaster to manage your connections. No Genyleap account or password is required.</translation>
+        </message>
+        <message id="genycaster.connections.copy_waiting_for_confirmation">
+            <source>Waiting for confirmation…</source>
+            <translation>Waiting for confirmation…</translation>
+        </message>
+        <message id="genycaster.connections.copy_open_farcaster_verification">
+            <source>Open Farcaster verification</source>
+            <translation>Open Farcaster verification</translation>
+        </message>
+        <message id="genycaster.connections.copy_verified">
+            <source>Verified</source>
+            <translation>Verified</translation>
+        </message>
+        <message id="genycaster.connections.copy_saved_account_links">
+            <source>Saved account links</source>
+            <translation>Saved account links</translation>
+        </message>
+        <message id="genycaster.connections.copy_hide_verification">
+            <source>Hide verification</source>
+            <translation>Hide verification</translation>
+        </message>
+        <message id="genycaster.connections.copy_edit_connections">
+            <source>Edit connections</source>
+            <translation>Edit connections</translation>
+        </message>
+        <message id="genycaster.connections.copy_connecting_1_confirm_in_the_provider_window_genycaster_will_update_this_">
+            <source>Connecting %1. Confirm in the provider window; Genycaster will update this list automatically.</source>
+            <translation>Connecting %1. Confirm in the provider window; Genycaster will update this list automatically.</translation>
+        </message>
+        <message id="genycaster.connections.copy_saved_link_1">
+            <source>Saved link: %1</source>
+            <translation>Saved link: %1</translation>
+        </message>
+        <message id="genycaster.connections.copy_saved_account_link">
+            <source>Saved account link</source>
+            <translation>Saved account link</translation>
+        </message>
+        <message id="genycaster.connections.copy_signed_proof_required">
+            <source>Signed proof required</source>
+            <translation>Signed proof required</translation>
+        </message>
+        <message id="genycaster.connections.copy_verified_account">
+            <source>Verified account</source>
+            <translation>Verified account</translation>
+        </message>
+        <message id="genycaster.connections.copy_saved_account_link_verification_required_for_changes">
+            <source>Saved account link — verification required for changes</source>
+            <translation>Saved account link — verification required for changes</translation>
+        </message>
+        <message id="genycaster.connections.copy_view">
+            <source>View</source>
+            <translation>View</translation>
+        </message>
+        <message id="genycaster.connections.copy_find">
+            <source>Find</source>
+            <translation>Find</translation>
+        </message>
+        <message id="genycaster.connections.copy_reconnect">
+            <source>Reconnect</source>
+            <translation>Reconnect</translation>
+        </message>
+        <message id="genycaster.connections.copy_confirm">
+            <source>Confirm</source>
+            <translation>Confirm</translation>
+        </message>
+        <message id="genycaster.connections.copy_remove">
+            <source>Remove</source>
+            <translation>Remove</translation>
+        </message>
+        <message id="genycaster.connections.copy_connect">
+            <source>Connect</source>
+            <translation>Connect</translation>
+        </message>
+        <message id="genycaster.connections.copy_cancel">
+            <source>Cancel</source>
+            <translation>Cancel</translation>
+        </message>
+        <message id="genycaster.connections.copy_linked">
+            <source>Linked</source>
+            <translation>Linked</translation>
+        </message>
+        <message id="genycaster.connections.copy_proof_only">
+            <source>Proof only</source>
+            <translation>Proof only</translation>
+        </message>
+        <message id="genycaster.connections.copy_public_linkedin_profile_url">
+            <source>Public LinkedIn profile URL</source>
+            <translation>Public LinkedIn profile URL</translation>
+        </message>
+        <message id="genycaster.connections.copy_save">
+            <source>Save</source>
+            <translation>Save</translation>
+        </message>
+        <message id="genycaster.connections.copy_add_your_public_linkedin_profile_url">
+            <source>Add your public LinkedIn profile URL.</source>
+            <translation>Add your public LinkedIn profile URL.</translation>
+        </message>
+        <message id="genycaster.connections.copy_linkedin_does_not_share_a_public_profile_url_through_standard_sign_in_fi">
+            <source>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</source>
+            <translation>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</translation>
+        </message>
+        <message id="genycaster.connections.copy_showing_saved_provider_list_refresh_when_online">
+            <source>Showing saved provider list. Refresh when online.</source>
+            <translation>Showing saved provider list. Refresh when online.</translation>
+        </message>
+        <message id="genycaster.connections.copy_connected_accounts_share_your_secure_identity">
+            <source>Connected accounts share your secure identity.</source>
+            <translation>Connected accounts share your secure identity.</translation>
+        </message>
+        <message id="genycaster.home.scope_feed">
+            <source>Feed</source>
+            <translation>Feed</translation>
+        </message>
+        <message id="genycaster.home.scope_everyone">
+            <source>Everyone</source>
+            <translation>Everyone</translation>
+        </message>
+        <message id="genycaster.home.scope_following">
+            <source>Following</source>
+            <translation>Following</translation>
+        </message>
+        <message id="genycaster.profile.edit_image_url">
+            <source>Edit your media URLs</source>
+            <translation>Edit your media URLs</translation>
+        </message>
+        <message id="genycaster.profile.hide_image_url">
+            <source>Hide image URLs</source>
+            <translation>Hide image URLs</translation>
+        </message>
+        <message id="genycaster.profile.image_preview_hint">
+            <source>Preview and upload a new photo</source>
+            <translation>Preview and upload a new photo</translation>
+        </message>
+        <message id="genycaster.profile.edit_sections_subtitle">
+            <source>Edit Farcaster profile and personal links</source>
+            <translation>Edit Farcaster profile and personal links</translation>
+        </message>
         <message id="genycaster.profile.conflict_notice">
             <source>Another device has newer profile details. Your previous local edit was preserved.</source>
             <translation>Another device has newer profile details. Your previous local edit was preserved.</translation>

@@ -5,9 +5,9 @@ import QtQuick.Layouts
 RowLayout {
     id: root
     objectName: "engagementBar"
-    // Stable action order: the trailing share action stays at the physical
-    // bottom-right in both LTR and RTL languages.
-    layoutDirection: Qt.LeftToRight
+    // Mirror the interaction clusters as a whole for RTL. Keep the
+    // individual action's icon/count cluster controlled by EngagementButton.
+    layoutDirection: Theme.uiDirection
 
     property bool compact: false
     property bool showViews: true
@@ -216,7 +216,8 @@ RowLayout {
     RowLayout {
         id: reactionActions
         objectName: "castReactionActions"
-        Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+        Layout.alignment: Qt.AlignVCenter
+        layoutDirection: Theme.uiDirection
         spacing: root.compact ? 0 : Theme.space1
 
     EngagementButton {
@@ -326,7 +327,8 @@ RowLayout {
     RowLayout {
         id: utilityActions
         objectName: "castUtilityActions"
-        Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+        Layout.alignment: Qt.AlignVCenter
+        layoutDirection: Theme.uiDirection
         spacing: root.compact ? 0 : Theme.space1
 
     EngagementButton {

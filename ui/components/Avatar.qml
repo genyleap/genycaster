@@ -7,6 +7,9 @@ Item {
     property string sourceUrl: ""
     property string displayName: ""
     property int avatarSize: 44
+    // UI-critical channel artwork must not be suppressed by the optional
+    // feed-media automatic-download preference.
+    property bool forceAutomaticDownload: false
     property real avatarCurveDepth: Math.round(avatarSize * 0.30)
     property real avatarExponent: 3.8
 
@@ -50,6 +53,7 @@ Item {
         anchors.fill: parent
         source: root.resolvedSource
         mediaCategory: "avatars"
+        forceAutomaticDownload: root.forceAutomaticDownload
         requestedSourceWidth: Math.max(1, root.avatarSize)
         requestedSourceHeight: Math.max(1, root.avatarSize)
         fillMode: Image.PreserveAspectCrop
