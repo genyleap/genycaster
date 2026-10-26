@@ -1844,12 +1844,18 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(
         QStringLiteral("openProofConnections"), &openProofConnections);
     QObject::connect(&presentationBridge, &PresentationBridge::authenticationStateChanged,
-        &openProofConnections, [&presentationBridge, &openProofConnections] {
-            openProofConnections.setViewerFid(
-                presentationBridge.isAuthenticated() ? presentationBridge.accountFid() : 0);
+        &openProofConnections, [&presentationBridge, &openProofConnections, &richComposerController] {
+            const auto fid = presentationBridge.isAuthenticated()
+                ? presentationBridge.accountFid() : 0;
+            // Account-scoped unpublished drafts must never carry over when the
+            // active Farcaster identity changes on a shared device.
+            richComposerController.setViewerFid(fid);
+            openProofConnections.setViewerFid(fid);
         });
-    openProofConnections.setViewerFid(
-        presentationBridge.isAuthenticated() ? presentationBridge.accountFid() : 0);
+    const auto initialFid = presentationBridge.isAuthenticated()
+        ? presentationBridge.accountFid() : 0;
+    richComposerController.setViewerFid(initialFid);
+    openProofConnections.setViewerFid(initialFid);
     // User actions update the local reading list immediately; Genycaster
     // propagates owner-scoped mutations through its durable outbox.
     QObject::connect(&presentationBridge, &PresentationBridge::bookmarkMutated,

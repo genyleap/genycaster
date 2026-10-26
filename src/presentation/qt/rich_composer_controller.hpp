@@ -76,6 +76,10 @@ public:
     Q_INVOKABLE void beginContextDocument();
     /** @brief Restores the latest versioned rich draft, if one exists. */
     Q_INVOKABLE bool restoreDraft();
+    /** @brief Selects the local draft owner. A dirty ordinary draft is saved to
+     * its previous owner before the editor is reset and the new owner's draft
+     * is restored. A zero FID selects the unassigned legacy draft. */
+    void setViewerFid(qulonglong fid);
     /** @brief Persists the complete AST plus editor source without publishing anything. */
     Q_INVOKABLE void saveDraft();
     /** @brief Deletes the current local draft. */

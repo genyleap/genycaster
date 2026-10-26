@@ -630,6 +630,19 @@ public:
 
     QSettings& settings;
     RichComposerController& owner;
+    qulonglong viewerFid{};
+    [[nodiscard]] QString draftKey() const
+    {
+        return viewerFid
+            ? QStringLiteral("composer/accounts/fid_%1/richDraftV1").arg(viewerFid)
+            : QString::fromLatin1(DraftKey);
+    }
+    [[nodiscard]] QString managedDraftKey() const
+    {
+        return viewerFid
+            ? QStringLiteral("composer/accounts/fid_%1/richManagedAssetsV1").arg(viewerFid)
+            : QString::fromLatin1(DraftManagedAssetsKey);
+    }
     farcaster::application::rich::MarkdownImporter importer{};
     farcaster::application::rich::MarkdownExporter exporter{};
     farcaster::application::rich::FarcasterSafeSerializer serializer{};
@@ -710,8 +723,8 @@ public:
     {
         autosave.stop();
         if (contextDocument) return;
-        settings.setValue(QString::fromLatin1(DraftKey), documentToJson(document, markdown));
-        settings.setValue(QString::fromLatin1(DraftManagedAssetsKey), managedAssetsToJson(managedAssets));
+        settings.setValue(draftKey(), documentToJson(document, markdown));
+        settings.setValue(managedDraftKey(), managedAssetsToJson(managedAssets));
         settings.sync();
         dirty = false;
         saveStatusText = explicitSave ? qtTrId("genycaster.composer.saved") : qtTrId("genycaster.composer.autosaved");
@@ -856,7 +869,7 @@ bool RichComposerController::restoreDraft()
 {
     m_impl->autosave.stop();
     m_impl->contextDocument = false;
-    const auto bytes = m_impl->settings.value(QString::fromLatin1(DraftKey)).toByteArray();
+    const auto bytes = m_impl->settings.value(m_impl->draftKey()).toByteArray();
     if (bytes.isEmpty()) return false;
     auto restored = documentFromJson(bytes);
     if (!restored) return false;
@@ -874,12 +887,12 @@ bool RichComposerController::restoreDraft()
     }
     const bool strippedStaleQuote = m_impl->document.blocks.size() != previousSize;
     m_impl->managedAssets = managedAssetsFromJson(
-        m_impl->settings.value(QString::fromLatin1(DraftManagedAssetsKey)).toByteArray());
+        m_impl->settings.value(m_impl->managedDraftKey()).toByteArray());
     m_impl->markdown = std::move(restored->second);
     if (strippedStaleQuote || m_impl->markdown.isEmpty())
         m_impl->syncMarkdownFromDocument();
     if (strippedStaleQuote) {
-        m_impl->settings.setValue(QString::fromLatin1(DraftKey),
+        m_impl->settings.setValue(m_impl->draftKey(),
                                   documentToJson(m_impl->document, m_impl->markdown));
         m_impl->settings.sync();
     }
@@ -892,6 +905,22 @@ bool RichComposerController::restoreDraft()
     emit saveStateChanged();
     return true;
 }
+void RichComposerController::setViewerFid(const qulonglong fid)
+{
+    if (m_impl->viewerFid == fid) return;
+    // Finish the previous account's pending autosave synchronously before
+    // changing its namespace. Contextual replies and quotes are never drafts.
+    m_impl->autosave.stop();
+    if (m_impl->dirty && !m_impl->contextDocument)
+        m_impl->saveDraft(false);
+    m_impl->viewerFid = fid;
+    m_impl->contextDocument = false;
+    m_impl->newEmpty(false);
+    // A signed-in FID never reads the legacy unassigned draft. Existing
+    // legacy data remains intact and can still be opened when signed out.
+    restoreDraft();
+}
+
 void RichComposerController::saveDraft() { m_impl->saveDraft(true); }
 void RichComposerController::clearDraft()
 {
@@ -901,8 +930,8 @@ void RichComposerController::clearDraft()
         }
     }
     m_impl->managedAssets.clear();
-    m_impl->settings.remove(QString::fromLatin1(DraftKey));
-    m_impl->settings.remove(QString::fromLatin1(DraftManagedAssetsKey));
+    m_impl->settings.remove(m_impl->draftKey());
+    m_impl->settings.remove(m_impl->managedDraftKey());
     m_impl->settings.sync();
     m_impl->dirty = false;
     m_impl->saveStatusText.clear();
@@ -1525,8 +1554,8 @@ void RichComposerController::commitPublishedCast(const QString& castId)
         m_impl->settings.setValue(managedSidecarKey, managedAssetsToJson(publishedAssets));
     }
     if (!m_impl->contextDocument) {
-        m_impl->settings.remove(QString::fromLatin1(DraftKey));
-        m_impl->settings.remove(QString::fromLatin1(DraftManagedAssetsKey));
+        m_impl->settings.remove(m_impl->draftKey());
+        m_impl->settings.remove(m_impl->managedDraftKey());
     }
     m_impl->settings.sync();
     m_impl->managedAssets.clear();
