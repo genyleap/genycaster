@@ -16,7 +16,6 @@ function ownerStore() {
   const mutations=new Map();
   const profiles=new Map();
   const watermark=new Map();
-  const seenTimes=new Map();
   let sequence=0;
   const key=owner=>owner.issuer+':'+owner.subject;
   return {
@@ -25,12 +24,6 @@ function ownerStore() {
       return (changes.get(key(owner))||[]).filter(e=>Number(e.sequence)>Number(cursor)).slice(0,200);
     },
     async getProfileExtras(owner){return profiles.get(key(owner))||null;},
-    async getNotificationSeen(owner){return seenTimes.get(key(owner))||'0';},
-    async putNotificationSeen(owner,milliseconds){
-      const latest=String(Math.max(Number(milliseconds),Number(seenTimes.get(key(owner))||'0')));
-      seenTimes.set(key(owner),latest);
-      return latest;
-    },
     async list(){return [];},
     async getNotificationSeen(owner){return watermark.get(key(owner))||'0';},
     async putNotificationSeen(owner,seen){

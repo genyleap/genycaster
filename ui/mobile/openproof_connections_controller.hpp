@@ -142,7 +142,6 @@ private:
     BrowserOpenProofAuth m_authorization{this};
     QPointer<QNetworkReply> m_request{};
     QPointer<QNetworkReply> m_cloudRequest{};
-    QPointer<QNetworkReply> m_notificationRequest{};
     QPointer<QNetworkReply> m_cloudProbe{};
     bool m_cloudServiceAvailable{};
     bool m_applyingCloudLinkedIn{};
