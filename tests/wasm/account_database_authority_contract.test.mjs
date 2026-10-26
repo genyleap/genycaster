@@ -32,6 +32,27 @@ function runReceived({dirty,baseRevision,remote}) {
   });
   return calls;
 }
+test('category and bookmark account transport are compiled into every Qt client, not only WASM',()=>{
+  const cmake=readFileSync(new URL('../../ui/CMakeLists.txt',import.meta.url),'utf8');
+  const bookmarks=readFileSync(new URL('../../ui/components/BookmarksSurface.qml',import.meta.url),'utf8');
+  const profile=readFileSync(new URL('../../ui/components/ProfileSurface.qml',import.meta.url),'utf8');
+  const config=readFileSync(new URL('../../ui/config/public_endpoints.json',import.meta.url),'utf8');
+  const nativeBoundary=cmake.indexOf('\nif(EMSCRIPTEN)');
+  assert.ok(nativeBoundary>0);
+  for(const entry of [
+    'mobile/openproof_connections_controller.cpp',
+    'components/ProfileSurface.qml','components/BookmarksSurface.qml'
+  ]) assert.ok(cmake.indexOf(entry)>0 && cmake.indexOf(entry)<nativeBoundary,entry);
+  assert.match(cpp,/void OpenProofConnectionsController::recordBookmarkMutation/);
+  assert.match(cpp,/void OpenProofConnectionsController::sendCloudProfileRequest/);
+  assert.match(cpp,/QNetworkRequest/);
+  assert.match(config,/"genycasterCloudApiUrl": "https:\/\//);
+  for(const qml of [bookmarks,profile]){
+    assert.doesNotMatch(qml,/\b(?:window|document|localStorage|indexedDB)\s*\./);
+    assert.doesNotMatch(qml,/\b(?:fetch|XMLHttpRequest|WebSocket)\s*\(/);
+  }
+});
+
 test('stale dirty desktop cache does not overwrite newer phone profile',()=>{
   assert.deepEqual(runReceived({
     dirty:true,baseRevision:undefined,
