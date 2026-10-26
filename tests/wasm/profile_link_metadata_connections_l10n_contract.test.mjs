@@ -41,7 +41,11 @@ test('connections distinguish offered networks from confirmed links across devic
   assert.match(picker,/readonly property int linkedCount:/);
   assert.match(picker,/model: picker\.orderedProviders/);
   assert.match(picker,/genycaster\.connections\.available_networks/);
-  assert.match(controller,/row\.value\(QStringLiteral\("last_confirmed_at"\)\)\.isNull\(\)/);
+  assert.match(controller,/const auto confirmed=row\.value\(QStringLiteral\("last_confirmed_at"\)\)/);
+  assert.match(controller,/if\(!confirmed\.isString\(\)/);
+  assert.match(controller,/bool serverVerifiedFarcaster=false/);
+  assert.match(controller,/if\(!serverVerifiedFarcaster \|\| m_actionBusy/);
+  assert.match(controller,/if\(retained!=m_connections\)/);
   assert.match(read('services/account-sync/pg_store.mjs'),/last_confirmed_at/);
 });
 

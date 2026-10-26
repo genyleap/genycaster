@@ -1366,22 +1366,26 @@ void OpenProofConnectionsController::refreshAccountConnectionsSnapshot()
         const auto body=reply->bytesAvailable()<=32768?reply->readAll():QByteArray{};
         reply->deleteLater();
         if(viewer!=m_viewerFid || generation!=m_grantGeneration
-           || status!=200 || m_verified)return;
+           || status!=200)return;
         const auto parsed=QJsonDocument::fromJson(body);
         if(!parsed.isObject() || !parsed.object().value(QStringLiteral("items")).isArray())return;
         const auto items=parsed.object().value(QStringLiteral("items")).toArray();
         QVariantList current;
         QSet<QString> providers;
+        bool serverVerifiedFarcaster=false;
         for(const auto& raw : items) {
             if(!raw.isObject())continue;
             const auto row=raw.toObject();
             const auto provider=row.value(QStringLiteral("provider")).toString();
-            // An owner-authored portable label is not evidence of an active
-            // OpenProof connection. A revoked network has no confirmation.
-            // Never promote either row to a checked/verified device link.
-            if(row.value(QStringLiteral("last_confirmed_at")).isNull()
-                || !m_providers.contains(provider) || providers.contains(provider))
+            const auto confirmed=row.value(QStringLiteral("last_confirmed_at"));
+            // Only an OpenProof-confirmed row, never an owner-authored
+            // portable label, may appear as a linked network.
+            if(!confirmed.isString() || confirmed.toString().isEmpty())continue;
+            if(provider==QStringLiteral("farcaster")) {
+                serverVerifiedFarcaster=true;
                 continue;
+            }
+            if(!m_providers.contains(provider) || providers.contains(provider))continue;
             providers.insert(provider);
             current.push_back(QVariantMap{
                 {QStringLiteral("provider"),provider},
@@ -1393,7 +1397,30 @@ void OpenProofConnectionsController::refreshAccountConnectionsSnapshot()
                 {QStringLiteral("manualProfileUrl"),row.value(QStringLiteral("manual_profile_url")).toString()}
             });
         }
-        // Do not promote display cache to active OpenProof authorization.
+        if(m_verified) {
+            // Another signed-in device may have disconnected a provider
+            // since our last OpenProof read. When the database contains a
+            // server-refreshed Farcaster identity, retire only the missing
+            // public social badges; retain original OpenProof subjects for
+            // remaining links and never synthesize authorization from SQL.
+            if(!serverVerifiedFarcaster || m_actionBusy || !m_pendingProvider.isEmpty())
+                return;
+            QVariantList retained;
+            for(const auto& value:m_connections) {
+                const auto item=value.toMap();
+                const auto provider=item.value(QStringLiteral("provider")).toString();
+                if(!m_providers.contains(provider) || providers.contains(provider))
+                    retained.push_back(value);
+            }
+            if(retained!=m_connections) {
+                m_connections=std::move(retained);
+                saveCachedConnections();
+                emit stateChanged();
+            }
+            return;
+        }
+        // No active OpenProof grant: saved labels are display-only. A synthetic
+        // server-confirmed subject must never authorize provider unlinking.
         m_connections=std::move(current);
         m_cachedSnapshot=!m_connections.isEmpty();
         emit stateChanged();
