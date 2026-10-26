@@ -70,7 +70,7 @@ test('mobile Composer fills the current Qt viewport and preserves desktop host',
  const composer=read('ComposerDrawer.qml');
  const adaptive=read('GenyAdaptiveDialog.qml');
  assert.match(app,/hostItem: root\.mobile \? root : readingPane/);
- assert.match(composer,/fullScreen: compact && \(!replyMode \|\| keyboardVisible\)/);
+ assert.match(composer,/fullScreen: compact/);
  assert.match(composer,/height: parent \? \(compact/);
  assert.match(composer,/objectName: "mobileComposerNavigation"/);
  assert.match(composer,/objectName: "mobileComposerMediaBar"/);

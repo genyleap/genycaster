@@ -494,16 +494,11 @@ Superellipse {
     // lightweight Loader has become visible. Reserve all three bounded text
     // lines upfront so asynchronous metadata never grows an existing feed row.
     // Use semantic line metrics instead of a fixed pixel size for text scaling.
-    readonly property real genericReservedHeight: Math.max(
-        root.reserveArtwork ? (root.compact ? 150 : 186) : (root.compact ? 92 : 104),
-        (root.castCaption.length > 0 ? root.bodyLineHeight * 2 + Theme.space2 : 0)
-           + 20 + root.bodyLineHeight * (root.compact ? 1 : 2)
-           + root.metaLineHeight * (root.compact ? 1 : 2)
-           + root.captionLineHeight + Theme.space3 * 2 + Theme.space2 * 4)
-    implicitHeight: root.layoutMiniApp || root.preferPosterLayout
-                    ? content.implicitHeight + Theme.space3 * 2
-                    : Math.max(content.implicitHeight + Theme.space3 * 2,
-                               root.genericReservedHeight)
+    // Only reserve a compact text baseline while metadata is pending.
+    // The old fixed 150–186px floor produced empty cards for text-only links.
+    readonly property real genericReservedHeight: root.compact ? 72 : 92
+    implicitHeight: content.implicitHeight
+                    + (root.compact ? Theme.space2 : Theme.space3) * 2
     fillColor: !root.scrollMoving && hover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
     borderWidth: Theme.strokeHairline
     borderColor: !root.scrollMoving && hover.hovered ? Theme.borderDefault : Theme.borderSubtle
@@ -537,9 +532,12 @@ Superellipse {
     ColumnLayout {
         id: content
         anchors.fill: parent
-        anchors.margins: root.layoutMiniApp ? Theme.space4 : Theme.space3
-        anchors.leftMargin: root.layoutMiniApp ? Theme.space4 : Theme.space3
-        anchors.rightMargin: root.layoutMiniApp ? Theme.space4 : Theme.space3
+        anchors.margins: root.layoutMiniApp ? Theme.space4
+                         : root.compact ? Theme.space2 : Theme.space3
+        anchors.leftMargin: root.layoutMiniApp ? Theme.space4
+                            : root.compact ? Theme.space2 : Theme.space3
+        anchors.rightMargin: root.layoutMiniApp ? Theme.space4
+                             : root.compact ? Theme.space2 : Theme.space3
         spacing: root.layoutMiniApp ? Theme.space3 : Theme.space2
 
         // Poster/Mini App cards also retain the Cast sentence within the card;
@@ -1072,6 +1070,8 @@ Superellipse {
             Item {
                 id: genericThumbFrame
                 readonly property bool shouldReserve: root.reserveArtwork
+                                                    && root.previewSource.length > 0
+                                                    && !root.genericArtworkUnavailable
                 visible: shouldReserve
                 // Cap the artwork by actual card width; a fixed 184px
                 // thumbnail plus long metadata made narrow cards overflow.
@@ -1113,7 +1113,7 @@ Superellipse {
                     forceAutomaticDownload: true
                     requestedSourceWidth: Math.max(320, Math.round(width))
                     requestedSourceHeight: Math.max(240, Math.round(height))
-                    fillMode: Image.PreserveAspectCrop
+                    fillMode: Image.PreserveAspectFit
                     fillColor: Theme.backgroundSecondary
                     borderWidth: 0
                     curveDepth: Theme.shapeMedia

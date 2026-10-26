@@ -13,7 +13,7 @@ test('Plain, readable studio credits precede actual WASM progress without decora
     assert.match(cmake,new RegExp(brand.replace('.','\\.')));
     assert.match(source('ui/wasm/'+brand),/<(?:[a-z0-9]+:)?svg/);
   }
-  for(const label of ['Genyleap Software Revolution','presents','Hypersnap','Farcaster','Base','OpenProof'])
+  for(const label of ['Genyleap Software Revolution','presents','HyperSnap','Farcaster','Base','OpenProof'])
     assert.ok(html.includes(label),label);
   for(const removed of ['studio-node','studio-hairline','studio-mark','studio-ecosystem-title',
     'studioBreathe','Built for an open ecosystem','genyleap-mark-dark.svg'])

@@ -41,7 +41,20 @@ Button {
     }
     readonly property string websiteTitle: String(metadata.siteName || metadata.title || "").trim()
     readonly property string description: String(metadata.summary || metadata.description || "").trim()
-    readonly property string faviconUrl: String(metadata.favicon || "")
+    readonly property string faviconUrl: {
+        const declared = String(metadata.favicon || "")
+        if (declared.length > 0) return declared
+        // Public same-origin favicon is a bounded fallback when Open Graph
+        // metadata omits rel=icon. All remote images still pass the Qt C++
+        // resolver's public-address validation and image gateway.
+        const matched = /^https:\/\/([^\/?#:]+)/i.exec(root.targetUrl)
+        return matched ? linkPreviewResolver.imageSourceForUrl(
+            "https://" + matched[1] + "/favicon.ico") : ""
+    }
+    readonly property string siteInitial: {
+        const matched = /^https:\/\/([^\/?#:]+)/i.exec(root.targetUrl)
+        return matched ? matched[1].replace(/^www\./i, "").charAt(0).toUpperCase() : "W"
+    }
     readonly property string rowTitle: root.userLabel.length > 0
                                        ? root.userLabel
                                        : (websiteTitle || qsTrId("genycaster.profile.website"))
@@ -81,12 +94,14 @@ Button {
                 cache: true
                 visible: status === Image.Ready
             }
-            Icon {
+            DirectionAwareLabel {
                 anchors.centerIn: parent
-                text: Theme.iconGlobe
-                color: Theme.inkMuted
-                preferredSize: 24
                 visible: faviconImage.status !== Image.Ready
+                text: root.siteInitial
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeTitle3Size
+                font.weight: Theme.weightBold
+                forceLeftToRight: true
             }
         }
 

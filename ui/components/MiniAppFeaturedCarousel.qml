@@ -165,7 +165,8 @@ Item {
                     fillMode: Image.PreserveAspectCrop
                     // Wide Qt/WASM textures can paint blank with MultiEffect.
                     // The card itself clips the guaranteed plain-image path.
-                    clipToSuperellipse: false
+                    clipToSuperellipse: true
+                    curveDepth: Theme.curveContainer
                     requestedSourceWidth: Math.min(640, Math.ceil(width * 1.4))
                     requestedSourceHeight: Math.min(440, Math.ceil(height * 1.4))
                 }
@@ -286,10 +287,11 @@ Item {
                 ActionButton {
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: Theme.space2
+                    anchors.margins: Theme.space3
                     compact: true
+                    prominent: !Boolean(featuredCell.app.saved)
                     iconOnly: true
-                    quiet: !Boolean(featuredCell.app.saved)
+                    quiet: false
                     positive: Boolean(featuredCell.app.saved)
                     iconGlyph: Boolean(featuredCell.app.saved) ? Theme.iconCheck : Theme.iconPlus
                     text: Boolean(featuredCell.app.saved)

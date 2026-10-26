@@ -75,7 +75,10 @@ GenyDrawer {
     // A reply opens as a compact bottom sheet. When the keyboard appears
     // it uses the available Qt viewport rather than clipping the target or
     // controls behind the iOS input accessory.
-    fullScreen: compact && (!replyMode || keyboardVisible)
+    // Keep one geometry for the whole keyboard session; switching between
+    // sheet and fullscreen as iOS opens its IME can invalidate the active
+    // TextArea and silently discard composed emoji input.
+    fullScreen: compact
     showHandle: !fullScreen
     modal: true
     focus: true
@@ -85,10 +88,7 @@ GenyDrawer {
     // During typing the Qt viewport already excludes the on-screen keyboard.
     // Consume its full available height instead of leaving a dead upper gap.
     // Parent is AppShell on mobile (not the scrolling reading column).
-    height: parent ? (compact
-                      ? (replyMode && !keyboardVisible
-                         ? Math.min(parent.height * 0.82, 690)
-                         : parent.height)
+    height: parent ? (compact ? parent.height
                       : (replyMode ? Math.min(parent.height * 0.66, 600)
                          : Math.min(parent.height * 0.78, 720))) : 720
     // Composer content owns vertical scrolling; drawer-swipe gestures would otherwise
@@ -404,8 +404,12 @@ GenyDrawer {
     function focusVisualEditorNow() {
         // Called synchronously from the originating tap: iOS WebKit normally
         // rejects keyboard activation if focus is deferred to a timer.
-        if (root.compact)
+        if (root.compact) {
             mobilePlainEditor.forceActiveFocus()
+            if (Qt.platform.os === "ios" || Qt.platform.os === "android"
+                    || Qt.platform.os === "wasm")
+                Qt.inputMethod.show()
+        }
     }
 
     Timer {
@@ -414,8 +418,23 @@ GenyDrawer {
         repeat: false
         onTriggered: {
             if (!root.opened || !root.compact || root.editorMode !== "visual") return
-            mobilePlainEditor.forceActiveFocus()
+            if (!mobilePlainEditor.activeFocus)
+                mobilePlainEditor.forceActiveFocus()
             root.ensureEditorVisible(mobilePlainEditor)
+            if (!mobilePlainEditor.activeFocus && ++root.initialFocusAttempts < 3)
+                initialComposerFocus.restart()
+        }
+    }
+
+    Timer {
+        id: mobileInputCommit
+        interval: 110
+        repeat: false
+        onTriggered: {
+            if (root.opened && root.compact && root.editorMode === "visual"
+                    && mobilePlainEditor.preeditText.length === 0
+                    && richComposer.safeText !== mobilePlainEditor.text)
+                richComposer.setBlockText(0, mobilePlainEditor.text)
         }
     }
 
@@ -1297,10 +1316,17 @@ GenyDrawer {
                         persistentSelection: true
                         wrapMode: TextEdit.Wrap
                         font.pixelSize: Theme.typeBodySize
+                        // Do not rebuild the rich document during a native
+                        // keyboard's marked-text/emoji composition. Qt may
+                        // otherwise replace the active preedit selection.
                         onTextChanged: {
                             if (root.opened && root.compact && root.editorMode === "visual"
-                                    && richComposer.safeText !== text)
-                                richComposer.setBlockText(0, text)
+                                    && preeditText.length === 0)
+                                mobileInputCommit.restart()
+                        }
+                        onPreeditTextChanged: {
+                            if (preeditText.length === 0 && root.opened)
+                                mobileInputCommit.restart()
                         }
                         onActiveFocusChanged: {
                             if (activeFocus)

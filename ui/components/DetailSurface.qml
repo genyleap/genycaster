@@ -227,6 +227,24 @@ ListView {
         return result
     }
 
+    readonly property string visibleCastText: {
+        const original = String(root.detail.text || "")
+        if (!original.length) return qsTrId("genycaster.detail.no_detail_cached_yet")
+        const embedded = root.protocolEmbedUrls || []
+        if (!embedded.length) return original
+        // Canonical Cast text remains unchanged for quoting and publishing.
+        // A URL is removed only if its destination already has an embed card.
+        return original.replace(/https?:\/\/[^\s<>]+/gi, token => {
+            const normalized = token.replace(/[.,!?;:)]+$/, "").split("#")[0]
+            for (let i = 0; i < embedded.length; ++i) {
+                if (String(embedded[i]).split("#")[0] === normalized)
+                    return token.slice(normalized.length)
+            }
+            return token
+        }).replace(/[ \t]+\n/g, "\n").replace(/\n[ \t]+/g, "\n")
+          .replace(/\n{3,}/g, "\n\n").trim()
+    }
+
     function ltrText(value) {
         const isolate = String.fromCharCode(0x2066)
         const pop = String.fromCharCode(0x2069)
@@ -249,11 +267,11 @@ ListView {
         // Cast threads may spread to the wide detail bound on desktop; only the
         // reading-style profile view keeps the narrower centered column. Compact
         // (mobile) layouts always fill the viewport minus the gutter.
-        width: Math.min(root.width - (root.compact ? Theme.mobileGutter * 2 : Theme.contentGutter * 2),
+        width: Math.min(root.width - (root.compact ? Theme.space2 * 2 : Theme.contentGutter * 2),
                         root.activeView === "cast"
                             ? (root.compact ? Theme.detailWidth : Theme.detailWidthWide)
                             : Theme.readingWidth)
-        x: Math.max(root.compact ? Theme.mobileGutter : Theme.contentGutter, (root.width - width) / 2)
+        x: Math.max(root.compact ? Theme.space2 : Theme.contentGutter, (root.width - width) / 2)
         y: root.compact ? Theme.space3 : Theme.space4
         spacing: Theme.space3
 
@@ -285,7 +303,7 @@ ListView {
 
         Superellipse {
             Layout.fillWidth: true
-            implicitHeight: detailBody.implicitHeight + Theme.space4 * 2
+            implicitHeight: detailBody.implicitHeight + (root.compact ? Theme.space2 : Theme.space4) * 2
             fillColor: root.activeView === "cast" ? Theme.backgroundPrimary : Theme.surfaceRaised
             borderWidth: root.activeView === "cast" && root.compact ? 0 : Theme.strokeHairline
             borderColor: root.activeView === "cast" && root.compact ? "transparent" : Theme.borderSubtle
@@ -296,7 +314,7 @@ ListView {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.margins: root.compact ? Theme.space4 : Theme.space5
+                anchors.margins: root.compact ? Theme.space2 : Theme.space5
                 spacing: root.compact ? Theme.space3 : Theme.space4
 
                 RowLayout {
@@ -525,7 +543,7 @@ ListView {
                     visible: root.activeView === "cast"
                     Layout.fillWidth: true
                     castId: String(root.detail.castId || "")
-                    plainText: String(root.detail.text || qsTrId("genycaster.detail.no_detail_cached_yet"))
+                    plainText: root.visibleCastText
                     compact: root.compact
                     suppressedEmbedUrls: root.protocolEmbedUrls
                     onExternalRequested: url => root.externalRequested(url)
@@ -703,9 +721,9 @@ ListView {
 
     delegate: ThreadReplyItem {
         required property var modelData
-        width: Math.min(root.width - (root.compact ? Theme.mobileGutter * 2 : Theme.contentGutter * 2),
+        width: Math.min(root.width - (root.compact ? Theme.space2 * 2 : Theme.contentGutter * 2),
                         root.compact ? Theme.detailWidth : Theme.detailWidthWide)
-        x: Math.max(root.compact ? Theme.mobileGutter : Theme.contentGutter,
+        x: Math.max(root.compact ? Theme.space2 : Theme.contentGutter,
                     (root.width - width) / 2)
         reply: modelData
         enrichmentActive: root.activeView === "cast" && root.visible

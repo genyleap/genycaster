@@ -13,6 +13,9 @@ Superellipse {
     readonly property string rawArtworkSource: String(root.embed.imageSource || root.embed.artwork || root.embed.previewImage || "")
     readonly property string artworkSource: {
         const source = root.rawArtworkSource.trim()
+        // Do not treat a marketplace HTML page as the artwork URL.
+        if (source === root.targetUrl)
+            return ""
         if (/^image:\/\/remote\//i.test(source) || /^qrc:\//i.test(source))
             return source
         if (/^https?:\/\//i.test(source))
@@ -32,13 +35,13 @@ Superellipse {
     readonly property real titleLineHeight: Math.ceil(root.compact
                                                      ? Theme.typeMetaSize * Theme.typeMetaLineHeight
                                                      : Theme.typeBodySize * Theme.typeBodyLineHeight)
-    readonly property real cardPadding: root.compact ? Theme.space3 : Theme.space4
+    readonly property real cardPadding: root.compact ? Theme.space2 : Theme.space3
     // NFT artwork is the subject of the card, not a tiny decorative thumbnail.
     readonly property real artworkWidth: root.horizontalCard
                                          ? Math.min(360, Math.max(260, width * 0.39)) : width
     readonly property real artworkHeight: root.horizontalCard
-                                          ? Math.min(340, Math.max(250, root.artworkWidth * 0.95))
-                                          : Math.min(430, Math.max(275, width * 0.84))
+                                          ? Math.min(340, Math.max(180, root.artworkWidth * 0.84))
+                                          : Math.min(360, Math.max(152, width * 0.66))
 
     signal openRequested(string url)
     signal mediaRequested(var mediaItems, int index)
@@ -117,7 +120,7 @@ Superellipse {
             // state can clear on re-admission after kinetic scrolling.
             // Reserve the artwork region as soon as the collectible URL is
             // known, even before the marketplace resolves its image.
-            visible: root.targetUrl.length > 0 && !Boolean(root.embed.pairedVisual)
+            visible: root.artworkSource.length > 0 && !Boolean(root.embed.pairedVisual)
             Layout.fillWidth: !root.horizontalCard
             Layout.preferredWidth: root.horizontalCard ? root.artworkWidth : -1
             Layout.preferredHeight: visible ? root.artworkHeight : 0
@@ -220,9 +223,7 @@ Superellipse {
                 Layout.fillWidth: true
                 // The title may grow from one line to two once metadata lands.
                 // Allocate both lines before the first presentation frame.
-                Layout.preferredHeight: root.titleLineHeight * 2
-                Layout.minimumHeight: Layout.preferredHeight
-                Layout.maximumHeight: Layout.preferredHeight
+                Layout.preferredHeight: Math.min(root.titleLineHeight * 2, Math.max(root.titleLineHeight, implicitHeight))
                 verticalAlignment: Text.AlignTop
                 text: root.titleText
                 color: Theme.textPrimary
@@ -234,10 +235,8 @@ Superellipse {
             }
 
             DirectionAwareLabel {
-                visible: root.targetUrl.length > 0
+                visible: root.creatorText.length > 0
                 Layout.preferredHeight: visible ? root.captionLineHeight : 0
-                Layout.minimumHeight: Layout.preferredHeight
-                Layout.maximumHeight: Layout.preferredHeight
                 Layout.fillWidth: true
                 text: root.creatorText
                 color: Theme.textSecondary
@@ -246,10 +245,8 @@ Superellipse {
             }
 
             DirectionAwareLabel {
-                visible: root.targetUrl.length > 0
+                visible: root.collectionText.length > 0 && root.collectionText !== root.titleText
                 Layout.preferredHeight: visible ? root.captionLineHeight : 0
-                Layout.minimumHeight: Layout.preferredHeight
-                Layout.maximumHeight: Layout.preferredHeight
                 Layout.fillWidth: true
                 text: root.collectionText !== root.titleText ? root.collectionText : ""
                 color: Theme.textTertiary
@@ -260,7 +257,7 @@ Superellipse {
             Flow {
                 id: metadataChips
                 Layout.fillWidth: true
-                visible: root.targetUrl.length > 0
+                visible: root.chainText.length > 0 || root.editionText.length > 0 || root.priceText.length > 0
                 Layout.preferredHeight: visible ? 28 : 0
                 Layout.minimumHeight: Layout.preferredHeight
                 Layout.maximumHeight: Layout.preferredHeight

@@ -404,8 +404,8 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.leftMargin: root.compact ? Theme.mobileGutter : Theme.space3
-        anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space3
+        anchors.leftMargin: root.compact ? Theme.space2 : Theme.space3
+        anchors.rightMargin: root.compact ? Theme.space2 : Theme.space3
         anchors.topMargin: Theme.space2
         anchors.bottomMargin: Theme.space1
         spacing: root.compact ? Theme.space1 : Theme.space3
@@ -436,7 +436,7 @@ Item {
             id: messageSurface
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            implicitHeight: messageContent.implicitHeight + Theme.space4 * 2
+            implicitHeight: messageContent.implicitHeight + (root.compact ? Theme.space2 : Theme.space4) * 2
 
             // All feed families share one soft superellipse surface. Keeping
             // the wrapper outside media Loaders preserves delegate reuse.
@@ -453,10 +453,10 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.leftMargin: Theme.space4
-                anchors.rightMargin: Theme.space4
-                anchors.topMargin: Theme.space4
-                anchors.bottomMargin: Theme.space4
+                anchors.leftMargin: root.compact ? Theme.space2 : Theme.space4
+                anchors.rightMargin: root.compact ? Theme.space2 : Theme.space4
+                anchors.topMargin: root.compact ? Theme.space2 : Theme.space4
+                anchors.bottomMargin: root.compact ? Theme.space2 : Theme.space4
                 spacing: Theme.space2
                 layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
 

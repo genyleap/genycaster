@@ -13,7 +13,8 @@ test('profile links use shared Qt metadata resolver for favicon/title/descriptio
   assert.match(profile,/browserLinkMetadataController\.requestPreview\(url, "link"\)/);
   assert.match(profile,/delegate: ProfileLinkRow/);
   assert.match(link,/linkPreviewResolver\.previewFor\(root\.targetUrl\)/);
-  assert.match(link,/readonly property string faviconUrl: String\(metadata\.favicon/);
+  assert.match(link,/readonly property string faviconUrl:/);
+  assert.match(link,/linkPreviewResolver\.imageSourceForUrl\(/);
   assert.match(link,/metadata\.siteName \|\| metadata\.title/);
   assert.match(link,/metadata\.summary \|\| metadata\.description/);
   assert.match(link,/browserLinkMetadataController\.previewFor\(root\.targetUrl, "link"\)/);

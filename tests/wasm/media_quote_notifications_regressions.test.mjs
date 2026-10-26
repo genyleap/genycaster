@@ -25,8 +25,8 @@ test('late or failed link/NFT artwork retains first-frame geometry during scroll
     assert.match(link, /readonly property bool shouldReserve: root\.reserveArtwork/);
     assert.match(link, /root\.compact \? 420 : 640/);
     assert.match(link, /root\.compact \? 238 : 328/);
-    assert.match(collectible, /visible: root\.targetUrl\.length > 0 && !Boolean\(root\.embed\.pairedVisual\)/);
-    assert.match(collectible, /Layout\.preferredHeight: root\.titleLineHeight \* 2/);
+    assert.match(collectible, /visible: root\.artworkSource\.length > 0 && !Boolean\(root\.embed\.pairedVisual\)/);
+    assert.match(collectible, /Layout\.preferredHeight: Math\.min\(root\.titleLineHeight \* 2/);
     assert.match(collectible, /visible: root\.artworkSource\.length === 0 \|\| collectibleArtwork\.loadFailed/);
     assert.doesNotMatch(collectible, /root\.artworkUnavailable/);
     assert.match(link, /onLoadFailedChanged: \{/);
@@ -78,7 +78,7 @@ test('marketplace artwork retries through the CORS-safe browser metadata provide
 test('miniapp posters keep useful original artwork size with better inset spacing', () => {
     const link = read('ui/components/LinkPreview.qml');
     assert.match(link, /Math\.min\(root\.compact \? 420 : 640,/);
-    assert.match(link, /anchors\.margins: root\.layoutMiniApp \? Theme\.space4 : Theme\.space3/);
+    assert.match(link, /anchors\.margins: root\.layoutMiniApp \? Theme\.space4/);
     assert.match(link, /spacing: root\.layoutMiniApp \? Theme\.space3 : Theme\.space2/);
 });
 

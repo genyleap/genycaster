@@ -28,7 +28,7 @@ test("Discover cards use true covers without stretching icons as hero art",()=>{
     assert.match(view,/miniAppCatalog\.recordRecentUse\(app\)/);
     assert.match(hero,/source: String\(featuredCell\.app\.coverSource \|\| ""\)/);
     assert.match(hero,/source: String\(featuredCell\.app\.iconSource \|\| ""\)/);
-    assert.match(hero,/clipToSuperellipse: false/);
+    assert.match(hero,/clipToSuperellipse: true/);
     assert.match(hero,/GradientStop \{ position: 1\.0/);
     assert.match(hero,/signal openRequested\(var app\)/);
     assert.match(hero,/signal saveRequested\(var app\)/);

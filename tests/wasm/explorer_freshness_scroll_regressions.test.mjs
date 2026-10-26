@@ -144,7 +144,7 @@ test('link previews reconcile metadata without binding loops or geometry jumps',
     assert.match(qml, /property var previewData: \(\{\}\)/);
     assert.match(qml, /onTriggered: root\.previewData = root\.selectedPreviewData\(\)/);
     assert.match(qml, /readonly property real genericReservedHeight/);
-    assert.match(qml, /Math\.max\(content\.implicitHeight \+ Theme\.space3 \* 2,/);
+    assert.match(qml, /implicitHeight: content\.implicitHeight/);
     assert.match(qml, /readonly property bool reserveArtwork: !root\.suppressArtwork\s*&& root\.targetUrl\.length > 0/);
     assert.match(qml, /readonly property var reservedLayout:/);
     assert.match(qml, /root\.browserMiniAppPreview\.providerKind === "miniapp"/);
