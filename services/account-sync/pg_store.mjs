@@ -243,7 +243,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
               ON CONFLICT (openproof_issuer,openproof_subject,mutation_id) DO NOTHING
               RETURNING sequence`,
               [issuer,subject,mutationId,item.cast_hash.slice(2),item.is_deleted,
-               item.priority,JSON.stringify(item.preview)])
+               item.priority,item.preview === null ? null : JSON.stringify(item.preview)])
             : await client.query(`INSERT INTO bookmark_changes
               (openproof_issuer,openproof_subject,mutation_id,cast_hash,is_deleted)
               VALUES($1,$2,$3,decode($4,'hex'),$5)
@@ -283,7 +283,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
               RETURNING encode(cast_hash,'hex') AS cast_hash,
                 is_deleted,changed_seq,changed_at,priority,preview`,
               [issuer,subject,item.cast_hash.slice(2),item.is_deleted,
-               change.rows[0].sequence,item.priority,JSON.stringify(item.preview)])
+               change.rows[0].sequence,item.priority,item.preview === null ? null : JSON.stringify(item.preview)])
             : await client.query(`INSERT INTO bookmarks
               (openproof_issuer,openproof_subject,cast_hash,is_deleted,changed_seq)
               VALUES ($1,$2,decode($3,'hex'),$4,$5)
