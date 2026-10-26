@@ -23,7 +23,7 @@ Apply migrations `001_bookmarks.sql`, `002_cloud_state.sql`, then
 | `bookmarks` | Current per-account cast hash reference and deletion state |
 | `bookmark_changes` | Monotonic, repeat-safe mutation history and incremental cursor |
 | `drafts` | Private application drafts; no protocol publishing |
-| `notifications` | Account-owned notification/read snapshots |
+| `notifications` | Provider-event snapshots (future adapter) and the app-owned, monotonic read watermark |
 | `tasks` | Future scheduled task definitions; no unattended signer or scheduler |
 | `app_updates` | Public version information, read-only to users |
 | `schema_migrations` | Administrative schema tracking |
@@ -70,7 +70,10 @@ Bookmark Save/Unsave always changes the local UI immediately. A durable
 per-FID queue with UUID mutation IDs automatically replays on reconnect;
 the client reads `GET /bookmarks?since=<cursor>` in bounded batches,
 applies tombstones without recursive writes, and advances its cursor only
-after local changes are applied. Server retries are idempotent.
+after local changes are applied. Server retries are idempotent. When an older
+device first upgrades, it scans the existing server history (including
+deleted bookmarks) before migrating unrecognized local saves, so a stale
+local bookmark does not resurrect an existing server deletion.
 
 Profile category/profession/link edits are local-first; a background read
 loads the server revision before optimistic PUT. Offline changes remain
@@ -80,6 +83,13 @@ older response cannot acknowledge a newer edit.
 LinkedIn's manual vanity URL is also saved locally first and replayed
 automatically; reads from other devices restore it. Manual URLs stay
 distinguished from provider-backed URLs.
+
+Notification read state is per-account, not per-device: the native client
+automatically persists its seen watermark and exchanges it with
+`GET|PUT /api/v1/cloud/notification_seen`. The API accepts millisecond
+timestamps as decimal strings and atomically retains the maximum value across
+concurrent devices. The reserved database row is not writable through the
+ordinary `notifications` endpoint.
 
 There are **no explicit sync controls** or sync account-enrollment gates in
 the UI. Existing Farcaster/OpenProof authentication is reused.
@@ -97,8 +107,10 @@ from authenticated OpenProof, never user-provided claims.
 Profile extras use revision 0 for create, expected revision for updates;
 conflicts return HTTP 409. Bookmarks accept an optional UUID
 `mutation_id` and expose a cursor-driven change log. Drafts, notifications
-and tasks have guarded APIs, **but full automatic native-client reconciliation
-for those three domains is not yet wired up**. No background scheduled
+and tasks have guarded APIs, **but full native-client reconciliation for
+draft contents, provider notification snapshots and scheduled tasks is
+not yet wired up**. The cross-device *notification seen watermark* is
+implemented independently. No background scheduled
 publishing, GENY attestation, public user-profile reader or Streak service
 should be claimed.
 
