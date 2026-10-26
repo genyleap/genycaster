@@ -10,6 +10,9 @@ export const defaultBrowserImageHosts = [
   'pbs.twimg.com', 'res.cloudinary.com', 'ipfs.io', 'gateway.pinata.cloud',
   'arweave.net', 'media-farcaster.genyleap.com', 'images.unsplash.com',
   'cdn.farcaster.xyz', 'i.seadn.io', 'media.discordapp.net', 'cdn.discordapp.com',
+  // Warpcast's verified channel directory publishes immutable IPFS artwork
+  // through this gateway. Keep it confined to an immutable /ipfs/CID path.
+  'ipfs.decentralized-content.com',
   // Keep the browser's bounded raster-only retrieval compatible with the
   // image hosts recognized by the C++ Cast embed classifier.
   'media.tenor.com', 'media.giphy.com', 'lh3.googleusercontent.com', 'imagekit.io',
@@ -49,6 +52,9 @@ export function validImageUrl(rawUrl, allowedHosts = defaultBrowserImageHosts) {
   // First-party media must be a published asset, not a recursive gateway URL.
   if (hostname === 'media-farcaster.genyleap.com' &&
       !parsed.pathname.startsWith('/m/')) return null;
+  if (hostname === 'ipfs.decentralized-content.com'
+      && !/^\/ipfs\/(?:b[a-z2-7]{30,100}|Qm[1-9A-HJ-NP-Za-km-z]{44})$/.test(parsed.pathname))
+    return null;
   if ((hostname === 'videodelivery.net' || hostname.endsWith('.videodelivery.net')
        || hostname.endsWith('.cloudflarestream.com'))
       && !/^\/[a-zA-Z0-9_-]{20,128}\/thumbnails\/thumbnail\.jpg$/.test(parsed.pathname)) return null;

@@ -11,7 +11,7 @@ const now=Math.floor(Date.now()/1000)-1609459200;
 
 function fixture({custodyAddress=address, noWallet=false, activeInitially=false,
                   wrongResponse=false, rejectSubmit=false, wrongFid=false,
-                  wrongType=false}={}){
+                  wrongType=false, profileScope=true}={}){
     const typed=[],submitted=[],changes=[],states=[],calls=[];
     let active=activeInitially, nonce=0;
     const browser={isSecureContext:true};
@@ -52,7 +52,8 @@ function fixture({custodyAddress=address, noWallet=false, activeInitially=false,
                 expiresAt:now+2592000,requestFid:fid,
                 scopes:['MESSAGE_TYPE_CAST_ADD','MESSAGE_TYPE_CAST_REMOVE',
                     'MESSAGE_TYPE_REACTION_ADD','MESSAGE_TYPE_REACTION_REMOVE',
-                    'MESSAGE_TYPE_LINK_ADD','MESSAGE_TYPE_LINK_REMOVE'],
+                    'MESSAGE_TYPE_LINK_ADD','MESSAGE_TYPE_LINK_REMOVE',
+                    ...(profileScope?['MESSAGE_TYPE_USER_DATA_ADD']:[])],
             };
             return new Response(JSON.stringify({
                 signers: active?[record]:[],currentUserNonce:nonce,
@@ -83,6 +84,7 @@ function fixture({custodyAddress=address, noWallet=false, activeInitially=false,
                 1:'MESSAGE_TYPE_CAST_ADD',2:'MESSAGE_TYPE_CAST_REMOVE',
                 3:'MESSAGE_TYPE_REACTION_ADD',4:'MESSAGE_TYPE_REACTION_REMOVE',
                 5:'MESSAGE_TYPE_LINK_ADD',6:'MESSAGE_TYPE_LINK_REMOVE',
+                11:'MESSAGE_TYPE_USER_DATA_ADD',
                 16:'MESSAGE_TYPE_KEY_ADD',17:'MESSAGE_TYPE_KEY_REMOVE',
             };
             assert.ok(types[kind], 'canonical message type expected');
@@ -110,7 +112,7 @@ test('two custody EIP-712 signatures and canonical KEY_ADD before network-ready'
     assert.equal(data.typed[1].primaryType,'KeyAdd');
     assert.equal(data.typed[1].message.fid,fid);
     assert.equal(data.typed[1].message.nonce,1);
-    assert.deepEqual(data.typed[1].message.scopes,[1,2,3,4,5,6]);
+    assert.deepEqual(data.typed[1].message.scopes,[1,2,3,4,5,6,11]);
     assert.equal(data.typed[0].message.requestFid,fid);
     assert.equal(data.states.at(-1).phase,'ready');
     assert.equal(signer.ready,true);
@@ -118,6 +120,26 @@ test('two custody EIP-712 signatures and canonical KEY_ADD before network-ready'
     assert.match(hash,/^0x[0-9a-f]{40}$/);
     assert.equal(data.submitted.length,2);
     assert.equal(signer.ready,true);
+});
+
+
+test('profile UserDataAdd signs each changed slot only with scope 11 and confirms canonical response', async()=>{
+    const data=fixture(), signer=data.create();
+    await signer.provision(fid);
+    const before=data.submitted.length;
+    const hash=await signer.updateProfile(fid,{display:'GenyCaster',bio:'test profile'});
+    assert.match(hash,/^0x[0-9a-f]{40}$/);
+    assert.equal(data.submitted.length,before+2);
+    assert.equal(signer.ready,true);
+    await assert.rejects(()=>signer.updateProfile(fid,{unknown:'x'}),/no profile changes/);
+});
+
+test('legacy signer without UserDataAdd authorization cannot change profile',async()=>{
+    const data=fixture({profileScope:false}), signer=data.create();
+    await signer.provision(fid);
+    const before=data.submitted.length;
+    await assert.rejects(()=>signer.updateProfile(fid,{display:'Not authorized'}),/not network-authorized/);
+    assert.equal(data.submitted.length,before);
 });
 
 test('gasless signer confirmation survives registry lag after nonce advancement',async()=>{

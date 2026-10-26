@@ -140,8 +140,16 @@ Flickable {
         Repeater {
             model: root.sortedRows
             delegate: Superellipse {
+                id: bookmarkCard
                 required property var modelData
                 Layout.fillWidth: true
+                // The saved cast card is one navigation target. Icon buttons
+                // below retain their own action and must not navigate.
+                TapHandler {
+                    objectName: "bookmarkCardOpenHandler"
+                    gesturePolicy: TapHandler.ReleaseWithinBounds
+                    onTapped: root.castRequested(String(bookmarkCard.modelData.castId || ""))
+                }
                 implicitHeight: savedContent.implicitHeight + Theme.space2 * 2
                 fillColor: Theme.surfaceRaised
                 borderColor: Theme.borderSubtle
@@ -196,10 +204,6 @@ Flickable {
                         maximumLineCount: 3
                         elide: Text.ElideRight
                         wrapMode: Text.Wrap
-                        TapHandler {
-                            gesturePolicy: TapHandler.ReleaseWithinBounds
-                            onTapped: root.castRequested(String(modelData.castId || ""))
-                        }
                     }
                     ActionButton {
                         visible: String(modelData.text || "").length === 0

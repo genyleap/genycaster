@@ -7,6 +7,7 @@ import {
     abiMetadata, farcasterTimestamp, fromHex, hex, keyAddTypedData,
     sealMessage, SOCIAL_SCOPES, unsignedCastAdd, unsignedCastRemove,
     unsignedFollow, unsignedKeyAdd, unsignedKeyRemove, unsignedReaction,
+    unsignedUserDataAdd,
 } from './farcaster_protocol.mjs';
 
 const registryAddress = '0x00000000fc6c5f01fc30151999387bb99a9f489b';
@@ -88,14 +89,16 @@ function uint32(value,name) {
 function recordScopes(record) {
     const names=['MESSAGE_TYPE_CAST_ADD','MESSAGE_TYPE_CAST_REMOVE',
         'MESSAGE_TYPE_REACTION_ADD','MESSAGE_TYPE_REACTION_REMOVE',
-        'MESSAGE_TYPE_LINK_ADD','MESSAGE_TYPE_LINK_REMOVE'];
-    return names.map((name,i)=>record.scopes?.includes(name)?i+1:null).filter(x=>x!==null);
+        'MESSAGE_TYPE_LINK_ADD','MESSAGE_TYPE_LINK_REMOVE',
+        'MESSAGE_TYPE_USER_DATA_ADD'];
+    return names.map((name,i)=>record.scopes?.includes(name)
+        ? (i===6?11:i+1):null).filter(x=>x!==null);
 }
 function signerRecord(record,fid,publicKey) {
     if(String(record.fid)!==fid||Number(record.keyType)!==1
         ||record.key?.toLowerCase()!=='0x'+publicKey)return null;
     if(record.source==='SIGNER_SOURCE_ONCHAIN')return {
-        source:'onchain',fid,key:publicKey,scopes:SOCIAL_SCOPES,requestFid:fid,
+        source:'onchain',fid,key:publicKey,scopes:[...SOCIAL_SCOPES,11],requestFid:fid,
     };
     if(record.source!=='SIGNER_SOURCE_OFFCHAIN')throw new Error('unknown signer registration type');
     const ttl=uint32(record.ttl,'TTL');
@@ -197,6 +200,7 @@ export function createBrowserProtocolSigner({
             1:'MESSAGE_TYPE_CAST_ADD',2:'MESSAGE_TYPE_CAST_REMOVE',
             3:'MESSAGE_TYPE_REACTION_ADD',4:'MESSAGE_TYPE_REACTION_REMOVE',
             5:'MESSAGE_TYPE_LINK_ADD',6:'MESSAGE_TYPE_LINK_REMOVE',
+            11:'MESSAGE_TYPE_USER_DATA_ADD',
             16:'MESSAGE_TYPE_KEY_ADD',17:'MESSAGE_TYPE_KEY_REMOVE',
         };
         const kind=unsigned.data[0]===8 ? unsigned.data[1] : undefined;
@@ -409,7 +413,7 @@ export function createBrowserProtocolSigner({
                 const deadline=farcasterTimestamp()+3600;
                 const ttl=30*86400;
                 const typed=keyAddTypedData({fid,publicKeyHex:activeKey,
-                    scopes:SOCIAL_SCOPES,nonce,deadline,ttl});
+                    scopes:[...SOCIAL_SCOPES,11],nonce,deadline,ttl});
                 verifySession(fid,expectedGeneration);
                 const signedRequest=await wallet.signTypedData(typed.signedKeyRequest);
                 fromHex(signedRequest,65);
@@ -420,7 +424,7 @@ export function createBrowserProtocolSigner({
                 const metadata=abiMetadata(fid,wallet.address,signedRequest,deadline);
                 const unsigned=unsignedKeyAdd({fid,publicKeyHex:activeKey,
                     nonce,deadline,ttl,custodySignature,metadata,
-                    scopes:SOCIAL_SCOPES});
+                    scopes:[...SOCIAL_SCOPES,11]});
                 // Never replay a submission after ambiguous network failure.
                 assertCurrent();
                 await submit(unsigned,fid,expectedGeneration);
@@ -516,6 +520,24 @@ export function createBrowserProtocolSigner({
     const follow=(fid,targetFid,active)=>signedWrite(fid,active?5:6,(key,id)=>
         unsignedFollow({fid:id,publicKeyHex:key,targetFid,active}));
 
+    // Each modified slot is an independently durable Farcaster message. A
+    // partially accepted update is surfaced as an error; it is never claimed
+    // that the whole profile changed atomically.
+    async function updateProfile(fid,updates) {
+        if(!updates || typeof updates!=='object'||Array.isArray(updates))
+            throw new Error('invalid profile changes');
+        const allowed=['display','bio','url','pfp','banner'];
+        const changes=allowed.filter(key=>Object.hasOwn(updates,key))
+            .map(type=>({type,value:updates[type]}));
+        if(!changes.length)throw new Error('no profile changes');
+        let hash='';
+        for(const change of changes){
+            hash=await signedWrite(fid,11,(key,id)=>
+                unsignedUserDataAdd({fid:id,publicKeyHex:key,...change}));
+        }
+        return hash;
+    }
+
     async function revoke(fidValue){
         const fid=requireFid(fidValue);
         return exclusive(async()=>{
@@ -545,7 +567,7 @@ export function createBrowserProtocolSigner({
     }
     function signedOut(){generation++;activeFid=null;activeKey=null;state('signed-out');}
     return Object.freeze({
-        restore,provision,provisionFromRecovery,recoverAccountFromPhrase,publishCast,publishThread,castRemove,reaction,follow,revoke,signedOut,
+        restore,provision,provisionFromRecovery,recoverAccountFromPhrase,publishCast,publishThread,castRemove,reaction,follow,updateProfile,revoke,signedOut,
         get ready(){return !!activeFid&&!!activeKey&&!busy&&lastPhase==='ready';},
     });
 }

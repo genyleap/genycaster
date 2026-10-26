@@ -210,6 +210,8 @@ public:
     Q_INVOKABLE void markNotificationsRead();
     Q_INVOKABLE void openCast(const QString& castId);
     Q_INVOKABLE void openProfile();
+    /** @brief Emits bounded protocol-native UserDataAdd changes; never writes Genycaster-only extras. */
+    Q_INVOKABLE bool updateProtocolProfile(const QVariantMap& fields);
     Q_INVOKABLE void openMyProfile();
     /** @brief Resolves one exact Farcaster username from Explore and opens its profile without retargeting Home. */
     Q_INVOKABLE void openProfileUsername(const QString& username);
@@ -479,6 +481,9 @@ signals:
     void publishThreadRequested(QVariantList casts, qulonglong parentAuthorFid, QString parentCastId);
     void reactionRequested(QString kind, qulonglong targetAuthorFid, QString targetCastId, bool active);
     void followingMutationRequested(qulonglong targetFid, bool following);
+    void protocolProfileUpdateRequested(QVariantMap fields);
+    /** @brief Terminal confirmation for the user's protocol profile operation only. */
+    void protocolProfileWriteCompleted(bool confirmed, QString message);
     void removeCastRequested(qulonglong authorFid, QString castId);
     void embeddedMediaRequested(QString url, QString title);
     void socialRequested(

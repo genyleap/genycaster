@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Shapes
+import QtQuick.Dialogs
 import QtCore
 
 Item {
@@ -36,6 +37,53 @@ Item {
     property bool genyHolderAttested: false
     property bool profileLinksExpanded: false
     property string profileExtrasError: ""
+    property string protocolProfileError: ""
+    property bool protocolProfilePending: false
+    property bool protocolProfileConfirmed: false
+    property int pendingProfileMediaAfterIndex: -1
+
+    function chooseProfileImage(afterIndex) {
+        if (!root.isOwnProfile || !mediaUpload.available || mediaUpload.busy)
+            return
+        root.pendingProfileMediaAfterIndex = afterIndex
+        if (Qt.platform.os === "wasm")
+            mediaUpload.browseBrowserImage(afterIndex)
+        else
+            profilePicturePicker.open()
+    }
+    Connections {
+        target: mediaUpload
+        function onAssetReady(url, mediaType, managementToken, afterIndex) {
+            if (!root.isOwnProfile || (afterIndex !== -1001 && afterIndex !== -1002)) return
+            if (!/^https:\/\/media-farcaster\.genyleap\.com\/m\//.test(String(url))) {
+                root.protocolProfileError = qsTrId("genycaster.profile.invalid_uploaded_image")
+                return
+            }
+            if (afterIndex === -1001) avatarProtocolEditor.text = String(url)
+            else bannerProtocolEditor.text = String(url)
+            mediaUpload.clear()
+        }
+    }
+    Connections {
+        target: presentationBridge
+        function onProtocolProfileWriteCompleted(confirmed, message) {
+            if (!root.protocolProfilePending) return
+            root.protocolProfilePending = false
+            root.protocolProfileConfirmed = Boolean(confirmed)
+            root.protocolProfileError = confirmed ? ""
+                : (String(message || "") || qsTrId("genycaster.profile.protocol_write_failed"))
+        }
+    }
+    FileDialog {
+        id: profilePicturePicker
+        title: qsTrId("genycaster.profile.select_image")
+        fileMode: FileDialog.OpenFile
+        nameFilters: [qsTrId("genycaster.media.images") + " (*.jpg *.jpeg *.png *.webp *.gif *.avif)"]
+        onAccepted: {
+            if (!mediaUpload.beginUpload(selectedFile, root.pendingProfileMediaAfterIndex))
+                root.protocolProfileError = qsTrId("genycaster.profile.invalid_uploaded_image")
+        }
+    }
     // Force UI bindings to re-evaluate after an authoritative account read.
     // QSettings-backed string changes are otherwise not always propagated
     // to a previously constructed ProfileSurface on Qt/WASM.
@@ -101,7 +149,7 @@ Item {
                 localBackups: snapshots.slice(-5)
             }
             profileCloudSettings.perAccountJson = JSON.stringify(owners)
-            root.profileExtrasError = qsTr("Another device has newer profile details. Your previous local edit was preserved.")
+            root.profileExtrasError = qsTrId("genycaster.profile.conflict_notice")
         } catch (_) { }
     }
     // QVariantList travels from native C++ to QML as a sequence. Qt's
@@ -376,7 +424,7 @@ Item {
             return false
         }
         if (role.length > 80) {
-            root.profileExtrasError = qsTr("Profession must be 80 characters or fewer.")
+            root.profileExtrasError = qsTrId("genycaster.profile.profession_limit")
             return false
         }
         const lines = String(rawLinks || "").split(/[\r\n]+/).map(s=>s.trim()).filter(s=>s.length>0)
@@ -387,7 +435,7 @@ Item {
             return {label: label, url: url}
         })
         if (prepared.length > 5 || prepared.some(s=>s.label.length>32 || !root.validExtraUrl(s.url))) {
-            root.profileExtrasError = qsTr("Use up to five HTTPS links. Optional format: Personal | https://example.com")
+            root.profileExtrasError = qsTrId("genycaster.profile.links_limit")
             return false
         }
         try {
@@ -416,7 +464,7 @@ Item {
             }
             return true
         } catch (_) {
-            root.profileExtrasError = qsTr("Could not save local profile details.")
+            root.profileExtrasError = qsTrId("genycaster.profile.local_save_failed")
             return false
         }
     }
@@ -1441,10 +1489,10 @@ Item {
                                 readonly property bool canFind: String(modelData.searchHref || "").length > 0
                                 readonly property string hintText: String(modelData.label)
                                     + (hasPublicUrl
-                                        ? (modelData.manualUrl ? qsTr(" · URL entered by you (not LinkedIn-verified)")
-                                          : liveVerified ? qsTr(" · linked profile") : qsTr(" · previously linked"))
-                                        : canFind ? qsTr(" · search LinkedIn by name")
-                                                  : qsTr(" · manage connection"))
+                                        ? (modelData.manualUrl ? qsTrId("genycaster.profile.network_manual_url")
+                                          : liveVerified ? qsTrId("genycaster.profile.network_linked_profile") : qsTrId("genycaster.profile.network_previously_linked"))
+                                        : canFind ? qsTrId("genycaster.profile.network_search_linkedin")
+                                                  : qsTrId("genycaster.profile.network_manage_connection"))
                                 Layout.preferredWidth: Theme.scaleUi(root.compact ? 29 : 34)
                                 Layout.preferredHeight: Theme.scaleUi(root.compact ? 29 : 34)
                                 hoverEnabled: !root.compact
@@ -1505,8 +1553,8 @@ Item {
                                     }
                                 }
                                 Accessible.name: hintText
-                                Accessible.description: hasPublicUrl ? qsTr("Open verified network profile")
-                                    : canFind ? qsTr("Find the linked account on LinkedIn") : qsTr("Manage connection")
+                                Accessible.description: hasPublicUrl ? qsTrId("genycaster.profile.network_open_verified")
+                                    : canFind ? qsTrId("genycaster.profile.network_find_linkedin") : qsTrId("genycaster.profile.network_manage")
                                 onClicked: {
                                     if (hasPublicUrl) root.externalRequested(String(modelData.href))
                                     else if (canFind) root.externalRequested(String(modelData.searchHref))
@@ -1604,7 +1652,7 @@ Item {
                                 }
                             }
                             ToolTip.visible: genyHolderBadgeHover.hovered
-                            ToolTip.text: qsTr("Verified GENY holder")
+                            ToolTip.text: qsTrId("genycaster.profile.verified_geny_holder")
                             HoverHandler { id: genyHolderBadgeHover }
                         }
 
@@ -1753,8 +1801,8 @@ Item {
                         color: openProofConnections.cloudError.length > 0
                                ? Theme.negative : Theme.inkMuted
                         text: openProofConnections.cloudError.length > 0
-                              ? qsTr("Your profile changes could not be saved yet. Edit your profile to retry.")
-                              : qsTr("Saving your profile changes…")
+                              ? qsTrId("genycaster.profile.save_retry_notice")
+                              : qsTrId("genycaster.profile.saving_details")
                         wrapMode: Text.Wrap
                         font.pixelSize: Theme.typeCaptionSize
                     }
@@ -1815,7 +1863,7 @@ Item {
                                     font.weight: Theme.weightDemiBold
                                 }
                                 Label {
-                                    text: qsTr("Following")
+                                    text: qsTrId("genycaster.profile.following")
                                     color: followingCountButton.hovered ? Theme.ink : Theme.inkMuted
                                     font.pixelSize: Theme.typeBodySize
                                 }
@@ -1841,7 +1889,7 @@ Item {
                                     font.weight: Theme.weightDemiBold
                                 }
                                 Label {
-                                    text: qsTr("Followers")
+                                    text: qsTrId("genycaster.profile.followers")
                                     color: followersCountButton.hovered ? Theme.ink : Theme.inkMuted
                                     font.pixelSize: Theme.typeBodySize
                                 }
@@ -2154,6 +2202,14 @@ Item {
             linksEditor.text = saved.map((url,index)=>titles[index]
                 ? titles[index] + " | " + url : url).join("\n")
             root.profileExtrasError = ""
+            root.protocolProfileError = ""
+            root.protocolProfilePending = false
+            root.protocolProfileConfirmed = false
+            displayProtocolEditor.text = String(root.activeDetail.displayName || "")
+            bioProtocolEditor.text = String(root.activeDetail.bio || "")
+            websiteProtocolEditor.text = String(root.activeDetail.profileUrl || "")
+            avatarProtocolEditor.text = String(root.activeDetail.avatarUrl || "")
+            bannerProtocolEditor.text = String(root.activeDetail.bannerUrl || "")
         }
         contentItem: ColumnLayout {
             spacing: Theme.space3
@@ -2174,6 +2230,188 @@ Item {
                     id: formColumn
                     width: parent.width
                     spacing: Theme.space3
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.profile.protocol_heading")
+                        font.weight: Theme.weightBold
+                        font.pixelSize: Theme.typeLabelSize
+                        color: Theme.ink
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.profile.protocol_description")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.profile.display_name")
+                        color: Theme.inkMuted
+                    }
+                    TextField {
+                        id: displayProtocolEditor
+                        objectName: "profileProtocolDisplay"
+                        Layout.fillWidth: true
+                        maximumLength: 32
+                        color: Theme.ink
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.profile.bio")
+                        color: Theme.inkMuted
+                    }
+                    TextArea {
+                        id: bioProtocolEditor
+                        objectName: "profileProtocolBio"
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Theme.scaleUi(94)
+                        wrapMode: TextEdit.Wrap
+                        color: Theme.ink
+                        background: Rectangle {
+                            radius: Theme.curveCompact
+                            color: Theme.surface
+                            border.color: bioProtocolEditor.activeFocus ? Theme.focus : Theme.borderMuted
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.profile.website")
+                        color: Theme.inkMuted
+                    }
+                    TextField {
+                        id: websiteProtocolEditor
+                        objectName: "profileProtocolWebsite"
+                        Layout.fillWidth: true
+                        inputMethodHints: Qt.ImhUrlCharactersOnly
+                        color: Theme.ink
+                        LayoutMirroring.enabled: false
+                        horizontalAlignment: Text.AlignLeft
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.profile.avatar")
+                        color: Theme.inkMuted
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+                        TextField {
+                            id: avatarProtocolEditor
+                            objectName: "profileProtocolAvatar"
+                            Layout.fillWidth: true
+                            inputMethodHints: Qt.ImhUrlCharactersOnly
+                            color: Theme.ink
+                            LayoutMirroring.enabled: false
+                            horizontalAlignment: Text.AlignLeft
+                        }
+                        ActionButton {
+                            compact: true
+                            iconOnly: true
+                            iconGlyph: Theme.iconImage
+                            text: qsTrId("genycaster.profile.upload_avatar")
+                            enabled: mediaUpload.available && !mediaUpload.busy
+                            onClicked: root.chooseProfileImage(-1001)
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.profile.banner")
+                        color: Theme.inkMuted
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+                        TextField {
+                            id: bannerProtocolEditor
+                            objectName: "profileProtocolBanner"
+                            Layout.fillWidth: true
+                            inputMethodHints: Qt.ImhUrlCharactersOnly
+                            color: Theme.ink
+                            LayoutMirroring.enabled: false
+                            horizontalAlignment: Text.AlignLeft
+                        }
+                        ActionButton {
+                            compact: true
+                            iconOnly: true
+                            iconGlyph: Theme.iconImage
+                            text: qsTrId("genycaster.profile.upload_banner")
+                            enabled: mediaUpload.available && !mediaUpload.busy
+                            onClicked: root.chooseProfileImage(-1002)
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: mediaUpload.busy || root.protocolProfilePending
+                        text: mediaUpload.busy
+                              ? qsTrId("genycaster.profile.uploading_image")
+                              : qsTrId("genycaster.profile.saving_to_farcaster")
+                        color: Theme.inkMuted
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: root.protocolProfileError.length > 0 || mediaUpload.errorText.length > 0
+                        text: root.protocolProfileError || mediaUpload.errorText
+                        color: Theme.negative
+                        wrapMode: Text.Wrap
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: root.protocolProfileConfirmed
+                        text: qsTrId("genycaster.profile.protocol_confirmed")
+                        color: Theme.success
+                        wrapMode: Text.Wrap
+                    }
+                    ActionButton {
+                        objectName: "profileProtocolSave"
+                        Layout.fillWidth: true
+                        positive: true
+                        enabled: presentationBridge.writeReady && !presentationBridge.writeBusy
+                                 && !mediaUpload.busy && !root.protocolProfilePending
+                        text: qsTrId("genycaster.profile.update_farcaster")
+                        onClicked: {
+                            const current = root.activeDetail
+                            const fields = {
+                                display: displayProtocolEditor.text.trim(),
+                                bio: bioProtocolEditor.text.trim(),
+                                url: websiteProtocolEditor.text.trim(),
+                                pfp: avatarProtocolEditor.text.trim(),
+                                banner: bannerProtocolEditor.text.trim()
+                            }
+                            const existing = {
+                                display: String(current.displayName || ""),
+                                bio: String(current.bio || ""),
+                                url: String(current.profileUrl || ""),
+                                pfp: String(current.avatarUrl || ""),
+                                banner: String(current.bannerUrl || "")
+                            }
+                            const changes = ({})
+                            for (const key of Object.keys(fields)) {
+                                if (fields[key] !== existing[key]) changes[key] = fields[key]
+                            }
+                            if (Object.keys(changes).length === 0) {
+                                root.protocolProfileError = qsTrId("genycaster.profile.no_protocol_changes")
+                                return
+                            }
+                            for (const key of Object.keys(changes)) {
+                                if (presentationBridge.utf8ByteCount(changes[key])
+                                    > (key === "display" ? 32 : 256)) {
+                                    root.protocolProfileError = qsTrId("genycaster.profile.value_too_long")
+                                    return
+                                }
+                            }
+                            root.protocolProfileError = ""
+                            root.protocolProfileConfirmed = false
+                            root.protocolProfilePending = presentationBridge.updateProtocolProfile(changes)
+                            if (!root.protocolProfilePending)
+                                root.protocolProfileError = qsTrId("genycaster.profile.protocol_write_failed")
+                        }
+                    }
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 1
+                        color: Theme.borderMuted
+                    }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.profile.category_label")
@@ -2228,7 +2466,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: Theme.scaleUi(180)
                         wrapMode: TextEdit.WrapAnywhere
-                        placeholderText: qsTr("Personal | https://example.com\nCompany | https://company.com")
+                        placeholderText: qsTrId("genycaster.profile.links_placeholder")
                         color: Theme.ink
                         background: Rectangle {
                             color: Theme.surface

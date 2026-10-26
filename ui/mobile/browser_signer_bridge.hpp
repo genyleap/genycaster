@@ -204,7 +204,14 @@ private:
                 } else if (phase == QStringLiteral("confirmed")) {
                     const auto hash = event.value(QStringLiteral("hash")).toString();
                     const auto operation = event.value(QStringLiteral("operation")).toString();
-                    if (operation == QStringLiteral("remove")) {
+                    if (operation == QStringLiteral("profile")) {
+                        // UserDataAdd is not a CastAdd. Profile reads may lag
+                        // indexing; refresh from the provider after confirmation.
+                        presentation->applyWriteState(
+                            QStringLiteral("confirmed"), false, {}, {});
+                        emit presentation->protocolProfileWriteCompleted(true, {});
+                        presentation->openMyProfile();
+                    } else if (operation == QStringLiteral("remove")) {
                         const QString castId = event.value(QStringLiteral("targetCastId")).toString();
                         // A confirmed CastRemove has its *own* message hash.
                         // Use the original target hash for the removal mutation,
@@ -235,6 +242,9 @@ private:
                 } else {
                     presentation->applyWriteState(
                         QStringLiteral("failed"), false, {}, error);
+                    if (event.value(QStringLiteral("operation")).toString()
+                        == QStringLiteral("profile"))
+                        emit presentation->protocolProfileWriteCompleted(false, error);
                 }
             }
         }

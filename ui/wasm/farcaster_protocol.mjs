@@ -254,6 +254,29 @@ function unsignedSocial({fid,publicKeyHex,kind,bodyField,body,
         fieldNum(3,timestamp),fieldNum(4,1),fieldBytes(bodyField,body,true));
     return {data,hash:blake3Digest20(data),key};
 }
+// Farcaster UserDataAdd is signed with the same canonical Ed25519 message
+// envelope as casts. Profile image bytes are hosted separately; the protocol
+// stores only stable, public HTTPS URLs (never upload credentials).
+export function unsignedUserDataAdd({
+    fid,publicKeyHex,type,value,timestamp=farcasterTimestamp()
+}){
+    const types=Object.freeze({pfp:1,display:2,bio:3,url:5,banner:10});
+    invariant(typeof type==='string' && Object.hasOwn(types,type),'unsupported profile data type');
+    invariant(typeof value==='string'
+        && !/[\x00-\x08\x0b-\x1f\x7f]/.test(value)
+        && (type==='bio' || !/[\x09\x0a\x0d]/.test(value)),
+        'invalid profile value');
+    const bytes=encoder.encode(value);
+    const limit=type==='display'?32:256;
+    invariant(bytes.length<=limit,'profile value exceeds Farcaster byte limit');
+    if (type==='pfp'||type==='banner'||type==='url') {
+        invariant(value==='' || /^https:\/\/[^\s/@?#]+(?:\/[^\s]*)?$/i.test(value),
+            'profile image and website values must be public HTTPS URLs');
+    }
+    const body=concat(fieldNum(1,types[type]),fieldBytes(2,value,true));
+    return unsignedSocial({fid,publicKeyHex,kind:11,bodyField:12,body,timestamp});
+}
+
 export function unsignedReaction({
     fid,publicKeyHex,target,reaction='like',active=true,
     timestamp=farcasterTimestamp()

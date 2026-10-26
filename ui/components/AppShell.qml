@@ -899,9 +899,12 @@ Item {
                                                 presentationBridge.setBookmarkPriority(castId, priority)
                                             Component.onCompleted: openProofConnections.refreshAccountBookmarks()
                                             onCastRequested: castId => {
+                                                const hash = String(castId || "").trim()
+                                                if (!/^0x[0-9a-fA-F]{40}$/.test(hash)) return
                                                 root.rememberShellRouteForReturn()
                                                 root.shellRoute = ""
-                                                presentationBridge.openCast(castId)
+                                                // Preserve the original destination on back.
+                                                presentationBridge.openCast(hash)
                                             }
                                             onAuthenticationRequested: root.openAccountPopup()
                                         }

@@ -881,6 +881,9 @@ GenyDrawer {
     Connections {
         target: mediaUpload
         function onAssetReady(url, mediaType, managementToken, afterIndex) {
+            // Negative profile destinations are handled by ProfileSurface,
+            // never inserted into the cast composer.
+            if (afterIndex === -1001 || afterIndex === -1002) return
             const canonicalUrl = String(url || "")
             const nextMetadata = Object.assign({}, root.mediaMetadata)
             nextMetadata[canonicalUrl] = {

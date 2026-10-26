@@ -43,6 +43,14 @@ test('public image URL policy rejects credentialed/non-HTTPS/internal destinatio
                  hostname, hostname);
   }
   assert.equal(validImageUrl('https://imagekit.io.evil.test/file'), null);
+  const channelCid='bafkreigbei45ni5zsliszzeivotgee5auj2ykkh6zrzjwvm4izviidusny';
+  assert.equal(validImageUrl('https://ipfs.decentralized-content.com/ipfs/'+channelCid)?.hostname,
+               'ipfs.decentralized-content.com');
+  for (const path of ['/','/admin','/ipfs/', '/ipfs/../../../admin',
+                      '/api/v1/secrets', '/ipfs/'+channelCid+'/index.html']) {
+    assert.equal(validImageUrl('https://ipfs.decentralized-content.com'+path),null,path);
+  }
+  assert.equal(validImageUrl('https://imagekit.io.evil.test/file'), null);
   for (const miniapp of ['atgif.com','universal-caster-income.vercel.app','assets.foundly.dev'])
     assert.equal(validImageUrl('https://'+miniapp+'/logo.png'),null,'publisher-specific hosts must not be hardcoded');
   assert.equal(validImageUrl('https://videodelivery.net/0123456789abcdef0123456789abcdef/thumbnails/thumbnail.jpg?time=1s')?.hostname,'videodelivery.net');

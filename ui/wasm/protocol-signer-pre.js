@@ -269,6 +269,8 @@
                             payload.reaction,payload.active); break;
                     case "follow":
                         hash = await current.follow(fid,payload.targetFid,payload.active); break;
+                    case "profile":
+                        hash = await current.updateProfile(fid,payload); break;
                     default:
                         throw new Error("Unsupported browser signer action");
                     }
@@ -291,6 +293,7 @@
                 }
                 report({kind: action === "restore" || action === "restore-for-setup"
                        || action === "provision" || action === "revoke" ? "signer" : "write",
+                    operation: action,
                     phase: cancelled ? "missing"
                          : action === "restore" ? "unavailable"
                          : action === "provision" || action === "restore-for-setup"

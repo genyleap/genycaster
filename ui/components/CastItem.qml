@@ -409,7 +409,7 @@ Item {
         anchors.topMargin: Theme.space2
         anchors.bottomMargin: Theme.space1
         spacing: root.compact ? Theme.space1 : Theme.space3
-        layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
+        layoutDirection: Theme.uiDirection
 
         Item {
             visible: !root.compact
@@ -458,7 +458,7 @@ Item {
                 anchors.topMargin: root.compact ? Theme.space2 : Theme.space4
                 anchors.bottomMargin: root.compact ? Theme.space2 : Theme.space4
                 spacing: Theme.space2
-                layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
+                layoutDirection: Theme.uiDirection
 
                 RowLayout {
                     Layout.fillWidth: true
@@ -466,7 +466,7 @@ Item {
                     Layout.leftMargin: root.mediaContentInset
                     Layout.rightMargin: root.mediaContentInset
                     spacing: Theme.space1
-                    layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
+                    layoutDirection: Theme.uiDirection
 
                     Item {
                         visible: root.compact
@@ -503,7 +503,7 @@ Item {
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
                             spacing: Theme.space1
-                            layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
+                            layoutDirection: Theme.uiDirection
 
                             DirectionAwareLabel {
                                 id: castAuthorName
@@ -533,10 +533,10 @@ Item {
                                 Layout.fillWidth: true
                                 Layout.minimumWidth: 0
                                 spacing: Theme.space1
-                                layoutDirection: Qt.LeftToRight
+                                layoutDirection: Theme.uiDirection
 
                                 DirectionAwareLabel {
-                                    text: qsTr("in")
+                                    text: qsTrId("genycaster.cast.in_channel")
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
                                 }
@@ -585,7 +585,7 @@ Item {
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
                             spacing: Theme.space2
-                            layoutDirection: Qt.LeftToRight
+                            layoutDirection: Theme.uiDirection
 
                             Label {
                                 visible: Boolean(root.modelData.author)

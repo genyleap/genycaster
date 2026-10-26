@@ -2,6 +2,160 @@
 <TS version="2.1" language="ja_JP" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.profile.conflict_notice">
+            <source>Another device has newer profile details. Your previous local edit was preserved.</source>
+            <translation>Another device has newer profile details. Your previous local edit was preserved.</translation>
+        </message>
+        <message id="genycaster.profile.profession_limit">
+            <source>Profession must be 80 characters or fewer.</source>
+            <translation>Profession must be 80 characters or fewer.</translation>
+        </message>
+        <message id="genycaster.profile.links_limit">
+            <source>Use up to five HTTPS links. Optional format: Personal | https://example.com</source>
+            <translation>Use up to five HTTPS links. Optional format: Personal | https://example.com</translation>
+        </message>
+        <message id="genycaster.profile.local_save_failed">
+            <source>Could not save local profile details.</source>
+            <translation>Could not save local profile details.</translation>
+        </message>
+        <message id="genycaster.profile.network_manual_url">
+            <source> · URL entered by you (not LinkedIn-verified)</source>
+            <translation> · URL entered by you (not LinkedIn-verified)</translation>
+        </message>
+        <message id="genycaster.profile.network_linked_profile">
+            <source> · linked profile</source>
+            <translation> · linked profile</translation>
+        </message>
+        <message id="genycaster.profile.network_previously_linked">
+            <source> · previously linked</source>
+            <translation> · previously linked</translation>
+        </message>
+        <message id="genycaster.profile.network_search_linkedin">
+            <source> · search LinkedIn by name</source>
+            <translation> · search LinkedIn by name</translation>
+        </message>
+        <message id="genycaster.profile.network_manage_connection">
+            <source> · manage connection</source>
+            <translation> · manage connection</translation>
+        </message>
+        <message id="genycaster.profile.network_open_verified">
+            <source>Open verified network profile</source>
+            <translation>Open verified network profile</translation>
+        </message>
+        <message id="genycaster.profile.network_find_linkedin">
+            <source>Find the linked account on LinkedIn</source>
+            <translation>Find the linked account on LinkedIn</translation>
+        </message>
+        <message id="genycaster.profile.network_manage">
+            <source>Manage connection</source>
+            <translation>Manage connection</translation>
+        </message>
+        <message id="genycaster.profile.verified_geny_holder">
+            <source>Verified GENY holder</source>
+            <translation>Verified GENY holder</translation>
+        </message>
+        <message id="genycaster.profile.save_retry_notice">
+            <source>Your profile changes could not be saved yet. Edit your profile to retry.</source>
+            <translation>Your profile changes could not be saved yet. Edit your profile to retry.</translation>
+        </message>
+        <message id="genycaster.profile.saving_details">
+            <source>Saving your profile changes…</source>
+            <translation>Saving your profile changes…</translation>
+        </message>
+        <message id="genycaster.profile.following">
+            <source>Following</source>
+            <translation>Following</translation>
+        </message>
+        <message id="genycaster.profile.followers">
+            <source>Followers</source>
+            <translation>Followers</translation>
+        </message>
+        <message id="genycaster.profile.links_placeholder">
+            <source>Personal | https://example.com
+Company | https://company.com</source>
+            <translation>Personal | https://example.com
+Company | https://company.com</translation>
+        </message>
+        <message id="genycaster.cast.in_channel">
+            <source>in</source>
+            <translation>in</translation>
+        </message>
+        <message id="genycaster.profile.protocol_heading">
+            <source>Farcaster profile</source>
+            <translation>Farcaster profile</translation>
+        </message>
+        <message id="genycaster.profile.protocol_description">
+            <source>These details are signed and published to Farcaster for all clients.</source>
+            <translation>These details are signed and published to Farcaster for all clients.</translation>
+        </message>
+        <message id="genycaster.profile.display_name">
+            <source>Display name</source>
+            <translation>Display name</translation>
+        </message>
+        <message id="genycaster.profile.bio">
+            <source>Bio</source>
+            <translation>Bio</translation>
+        </message>
+        <message id="genycaster.profile.avatar">
+            <source>Profile photo</source>
+            <translation>Profile photo</translation>
+        </message>
+        <message id="genycaster.profile.banner">
+            <source>Profile banner</source>
+            <translation>Profile banner</translation>
+        </message>
+        <message id="genycaster.profile.upload_avatar">
+            <source>Upload profile photo</source>
+            <translation>Upload profile photo</translation>
+        </message>
+        <message id="genycaster.profile.upload_banner">
+            <source>Upload banner</source>
+            <translation>Upload banner</translation>
+        </message>
+        <message id="genycaster.profile.uploading_image">
+            <source>Uploading image…</source>
+            <translation>Uploading image…</translation>
+        </message>
+        <message id="genycaster.profile.saving_to_farcaster">
+            <source>Publishing changes to Farcaster…</source>
+            <translation>Publishing changes to Farcaster…</translation>
+        </message>
+        <message id="genycaster.profile.protocol_confirmed">
+            <source>Confirmed on Farcaster. Profile will refresh.</source>
+            <translation>Confirmed on Farcaster. Profile will refresh.</translation>
+        </message>
+        <message id="genycaster.profile.update_farcaster">
+            <source>Update Farcaster profile</source>
+            <translation>Update Farcaster profile</translation>
+        </message>
+        <message id="genycaster.profile.no_protocol_changes">
+            <source>No Farcaster profile changes.</source>
+            <translation>No Farcaster profile changes.</translation>
+        </message>
+        <message id="genycaster.profile.value_too_long">
+            <source>A value exceeds the Farcaster byte limit.</source>
+            <translation>A value exceeds the Farcaster byte limit.</translation>
+        </message>
+        <message id="genycaster.profile.protocol_write_failed">
+            <source>Farcaster rejected the profile changes.</source>
+            <translation>Farcaster rejected the profile changes.</translation>
+        </message>
+        <message id="genycaster.profile.protocol_signer_required">
+            <source>A Farcaster signer with profile-edit permission is required.</source>
+            <translation>A Farcaster signer with profile-edit permission is required.</translation>
+        </message>
+        <message id="genycaster.profile.protocol_native_unavailable">
+            <source>Protocol profile editing is not yet available in the native runtime.</source>
+            <translation>Protocol profile editing is not yet available in the native runtime.</translation>
+        </message>
+        <message id="genycaster.profile.select_image">
+            <source>Choose a profile image</source>
+            <translation>Choose a profile image</translation>
+        </message>
+        <message id="genycaster.profile.invalid_uploaded_image">
+            <source>The uploaded image URL is not a verified public media asset.</source>
+            <translation>The uploaded image URL is not a verified public media asset.</translation>
+        </message>
         <message id="genycaster.profile.option.select_category">
             <source>Select category</source>
             <translation>Select category</translation>

@@ -30,7 +30,7 @@ test('profile links, profession and holder trust remain separately scoped and di
   assert.match(qml,/objectName: "profileProfessionalCategory"/);
   assert.match(qml,/objectName: "profileFollowingCount"/);
   assert.match(qml,/objectName: "profileFollowersCount"/);
-  assert.match(qml,/text: qsTr\("Followers"\)[\s\S]*?color: followersCountButton\.hovered \? Theme\.ink : Theme\.inkMuted/);
+  assert.match(qml,/text: qsTrId\("genycaster\.profile\.followers"\)[\s\S]*?color: followersCountButton\.hovered \? Theme\.ink : Theme\.inkMuted/);
 });
 
 test('owner profile anchors linked networks to the right with blue or green proof checks', () => {

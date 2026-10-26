@@ -23,7 +23,11 @@ Button {
                && root.browserMetadata.providerKind === "web"
                ? root.browserMetadata : native
     }
-    onTargetUrlChanged: browserMetadata = ({})
+    property bool artworkFallback: false
+    onTargetUrlChanged: {
+        browserMetadata = ({})
+        artworkFallback = false
+    }
     Component.onCompleted: {
         if (Qt.platform.os === "wasm"
                 && typeof browserLinkMetadataController !== "undefined")
@@ -41,19 +45,16 @@ Button {
     }
     readonly property string websiteTitle: String(metadata.siteName || metadata.title || "").trim()
     readonly property string description: String(metadata.summary || metadata.description || "").trim()
+    readonly property string previewArtworkSource: String(metadata.previewImage || "")
     readonly property string faviconUrl: {
+        // Prefer the site's actual icon; the OpenGraph poster is artwork,
+        // not necessarily a legible 27px favicon. Fall back on raster failure.
+        if (root.artworkFallback) return root.previewArtworkSource
         const declared = String(metadata.favicon || "")
         if (declared.length > 0) return declared
-        // OG/Twitter artwork is the next best real image when the site
-        // does not publish an icon. The C++ metadata resolver verifies it.
-        const previewImage = String(metadata.previewImage || "")
-        if (previewImage.length > 0) return previewImage
-        // Public same-origin favicon is a bounded fallback when Open Graph
-        // metadata omits rel=icon. All remote images still pass the Qt C++
-        // resolver's public-address validation and image gateway.
         const matched = /^https:\/\/([^\/?#:]+)/i.exec(root.targetUrl)
         return matched ? linkPreviewResolver.imageSourceForUrl(
-            "https://" + matched[1] + "/favicon.ico") : ""
+            "https://" + matched[1] + "/favicon.ico") : root.previewArtworkSource
     }
     readonly property string siteInitial: {
         const matched = /^https:\/\/([^\/?#:]+)/i.exec(root.targetUrl)
@@ -109,6 +110,12 @@ Button {
                 asynchronous: true
                 cache: true
                 visible: status === Image.Ready
+                onStatusChanged: {
+                    if (status === Image.Error && !root.artworkFallback
+                            && root.previewArtworkSource.length > 0
+                            && root.previewArtworkSource !== source.toString())
+                        root.artworkFallback = true
+                }
             }
         }
 

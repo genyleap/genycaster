@@ -2,6 +2,160 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.profile.conflict_notice">
+            <source>Another device has newer profile details. Your previous local edit was preserved.</source>
+            <translation>دستگاه دیگری جزئیات جدیدتری از پروفایل دارد. ویرایش قبلی شما حفظ شده است.</translation>
+        </message>
+        <message id="genycaster.profile.profession_limit">
+            <source>Profession must be 80 characters or fewer.</source>
+            <translation>عنوان حرفه‌ای نباید بیش از ۸۰ نویسه باشد.</translation>
+        </message>
+        <message id="genycaster.profile.links_limit">
+            <source>Use up to five HTTPS links. Optional format: Personal | https://example.com</source>
+            <translation>حداکثر پنج لینک HTTPS وارد کنید. قالب اختیاری: شخصی | https://example.com</translation>
+        </message>
+        <message id="genycaster.profile.local_save_failed">
+            <source>Could not save local profile details.</source>
+            <translation>ذخیرهٔ جزئیات تکمیلی پروفایل ناموفق بود.</translation>
+        </message>
+        <message id="genycaster.profile.network_manual_url">
+            <source> · URL entered by you (not LinkedIn-verified)</source>
+            <translation> · نشانی واردشده توسط شما (تأییدنشده در لینکدین)</translation>
+        </message>
+        <message id="genycaster.profile.network_linked_profile">
+            <source> · linked profile</source>
+            <translation> · پروفایل متصل</translation>
+        </message>
+        <message id="genycaster.profile.network_previously_linked">
+            <source> · previously linked</source>
+            <translation> · اتصال پیشین</translation>
+        </message>
+        <message id="genycaster.profile.network_search_linkedin">
+            <source> · search LinkedIn by name</source>
+            <translation> · جست‌وجو در لینکدین با نام</translation>
+        </message>
+        <message id="genycaster.profile.network_manage_connection">
+            <source> · manage connection</source>
+            <translation> · مدیریت اتصال</translation>
+        </message>
+        <message id="genycaster.profile.network_open_verified">
+            <source>Open verified network profile</source>
+            <translation>بازکردن پروفایل تأییدشدهٔ شبکه</translation>
+        </message>
+        <message id="genycaster.profile.network_find_linkedin">
+            <source>Find the linked account on LinkedIn</source>
+            <translation>یافتن حساب متصل در لینکدین</translation>
+        </message>
+        <message id="genycaster.profile.network_manage">
+            <source>Manage connection</source>
+            <translation>مدیریت اتصال</translation>
+        </message>
+        <message id="genycaster.profile.verified_geny_holder">
+            <source>Verified GENY holder</source>
+            <translation>دارندهٔ تأییدشدهٔ GENY</translation>
+        </message>
+        <message id="genycaster.profile.save_retry_notice">
+            <source>Your profile changes could not be saved yet. Edit your profile to retry.</source>
+            <translation>تغییرات پروفایل هنوز ثبت نشده‌اند. برای تلاش دوباره، ویرایش پروفایل را باز کنید.</translation>
+        </message>
+        <message id="genycaster.profile.saving_details">
+            <source>Saving your profile changes…</source>
+            <translation>در حال ثبت تغییرات پروفایل…</translation>
+        </message>
+        <message id="genycaster.profile.following">
+            <source>Following</source>
+            <translation>دنبال‌شوندگان</translation>
+        </message>
+        <message id="genycaster.profile.followers">
+            <source>Followers</source>
+            <translation>دنبال‌کنندگان</translation>
+        </message>
+        <message id="genycaster.profile.links_placeholder">
+            <source>Personal | https://example.com
+Company | https://company.com</source>
+            <translation>شخصی | https://example.com
+شرکت | https://company.com</translation>
+        </message>
+        <message id="genycaster.cast.in_channel">
+            <source>in</source>
+            <translation>در</translation>
+        </message>
+        <message id="genycaster.profile.protocol_heading">
+            <source>Farcaster profile</source>
+            <translation>پروفایل فارکستر</translation>
+        </message>
+        <message id="genycaster.profile.protocol_description">
+            <source>These details are signed and published to Farcaster for all clients.</source>
+            <translation>این اطلاعات با امضای شما در پروتکل فارکستر ثبت می‌شوند و در کلاینت‌های دیگر نیز قابل مشاهده‌اند.</translation>
+        </message>
+        <message id="genycaster.profile.display_name">
+            <source>Display name</source>
+            <translation>نام نمایشی</translation>
+        </message>
+        <message id="genycaster.profile.bio">
+            <source>Bio</source>
+            <translation>زندگی‌نامه</translation>
+        </message>
+        <message id="genycaster.profile.avatar">
+            <source>Profile photo</source>
+            <translation>عکس پروفایل</translation>
+        </message>
+        <message id="genycaster.profile.banner">
+            <source>Profile banner</source>
+            <translation>کاور پروفایل</translation>
+        </message>
+        <message id="genycaster.profile.upload_avatar">
+            <source>Upload profile photo</source>
+            <translation>بارگذاری عکس پروفایل</translation>
+        </message>
+        <message id="genycaster.profile.upload_banner">
+            <source>Upload banner</source>
+            <translation>بارگذاری کاور</translation>
+        </message>
+        <message id="genycaster.profile.uploading_image">
+            <source>Uploading image…</source>
+            <translation>در حال بارگذاری تصویر…</translation>
+        </message>
+        <message id="genycaster.profile.saving_to_farcaster">
+            <source>Publishing changes to Farcaster…</source>
+            <translation>در حال ثبت تغییرات در فارکستر…</translation>
+        </message>
+        <message id="genycaster.profile.protocol_confirmed">
+            <source>Confirmed on Farcaster. Profile will refresh.</source>
+            <translation>تغییرات در فارکستر تأیید شد. پروفایل تازه‌سازی می‌شود.</translation>
+        </message>
+        <message id="genycaster.profile.update_farcaster">
+            <source>Update Farcaster profile</source>
+            <translation>به‌روزرسانی پروفایل فارکستر</translation>
+        </message>
+        <message id="genycaster.profile.no_protocol_changes">
+            <source>No Farcaster profile changes.</source>
+            <translation>تغییری در پروفایل فارکستر وجود ندارد.</translation>
+        </message>
+        <message id="genycaster.profile.value_too_long">
+            <source>A value exceeds the Farcaster byte limit.</source>
+            <translation>یکی از مقادیر از محدودیت بایت فارکستر بیشتر است.</translation>
+        </message>
+        <message id="genycaster.profile.protocol_write_failed">
+            <source>Farcaster rejected the profile changes.</source>
+            <translation>ثبت تغییرات پروفایل در فارکستر ناموفق بود.</translation>
+        </message>
+        <message id="genycaster.profile.protocol_signer_required">
+            <source>A Farcaster signer with profile-edit permission is required.</source>
+            <translation>برای ویرایش پروفایل، امضاکنندهٔ فارکستر با مجوز ویرایش پروفایل لازم است.</translation>
+        </message>
+        <message id="genycaster.profile.protocol_native_unavailable">
+            <source>Protocol profile editing is not yet available in the native runtime.</source>
+            <translation>ویرایش اطلاعات پروتکل در نسخهٔ بومی هنوز فعال نیست.</translation>
+        </message>
+        <message id="genycaster.profile.select_image">
+            <source>Choose a profile image</source>
+            <translation>انتخاب تصویر پروفایل</translation>
+        </message>
+        <message id="genycaster.profile.invalid_uploaded_image">
+            <source>The uploaded image URL is not a verified public media asset.</source>
+            <translation>نشانی تصویر بارگذاری‌شده معتبر و عمومی نیست.</translation>
+        </message>
         <message id="genycaster.profile.option.select_category">
             <source>Select category</source>
             <translation>انتخاب دسته‌بندی</translation>

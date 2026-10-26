@@ -1527,6 +1527,38 @@ void PresentationBridge::openCast(const QString& castId)
     emit castRequested(castId.trimmed(), consumeRecoveryProbe());
 }
 
+bool PresentationBridge::updateProtocolProfile(const QVariantMap& fields)
+{
+    if (!m_isAuthenticated || m_accountFid == 0 || !m_writeReady || m_writeBusy
+        || fields.isEmpty() || fields.size() > 5) {
+        applyWriteState(QStringLiteral("blocked"), false, {},
+            qtTrId("genycaster.profile.protocol_signer_required"));
+        return false;
+    }
+    QVariantMap normalized{};
+    for (auto it = fields.cbegin(); it != fields.cend(); ++it) {
+        const QString key = it.key();
+        if (key != QStringLiteral("display") && key != QStringLiteral("bio")
+            && key != QStringLiteral("url") && key != QStringLiteral("pfp")
+            && key != QStringLiteral("banner")) return false;
+        const QString value = it.value().toString();
+        const int maximumBytes = key == QStringLiteral("display") ? 32 : 256;
+        if (value.toUtf8().size() > maximumBytes || value.contains(QLatin1Char('\0')))
+            return false;
+        if ((!value.isEmpty()) && (key == QStringLiteral("pfp")
+            || key == QStringLiteral("banner") || key == QStringLiteral("url"))) {
+            const QUrl url{value};
+            if (!url.isValid() || url.scheme() != QStringLiteral("https")
+                || url.host().isEmpty() || !url.userName().isEmpty()
+                || !url.password().isEmpty() || url.port() != -1)
+                return false;
+        }
+        normalized.insert(key, value);
+    }
+    emit protocolProfileUpdateRequested(normalized);
+    return true;
+}
+
 void PresentationBridge::openProfile()
 {
     if (m_identityFid == 0) {

@@ -320,7 +320,7 @@ ListView {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: Theme.space3
-                    layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
+                    layoutDirection: Theme.uiDirection
 
                     Item {
                         Layout.alignment: Qt.AlignTop
@@ -350,7 +350,7 @@ ListView {
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
                             spacing: Theme.space1
-                            layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
+                            layoutDirection: Theme.uiDirection
 
                             DirectionAwareLabel {
                                 Layout.minimumWidth: 0
@@ -379,9 +379,9 @@ ListView {
                                 Layout.fillWidth: true
                                 Layout.minimumWidth: 0
                                 spacing: Theme.space1
-                                layoutDirection: Qt.LeftToRight
+                                layoutDirection: Theme.uiDirection
                                 DirectionAwareLabel {
-                                    text: qsTr("in")
+                                    text: qsTrId("genycaster.cast.in_channel")
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
                                 }
@@ -412,7 +412,7 @@ ListView {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: Theme.space1
-                            layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight
+                            layoutDirection: Theme.uiDirection
 
                             Label {
                                 visible: Boolean(root.detail.username)

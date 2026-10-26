@@ -63,5 +63,5 @@ test('Manual LinkedIn edits are owner-gated local state, not a provider verifica
   assert.match(cpp,/!m_verified \|\| !isConnected\(QStringLiteral\("linkedin"\)\)/);
   assert.match(qml,/onClicked: picker\.manualLinkedInRequested/);
   assert.match(qml,/Add your public LinkedIn profile URL\./);
-  assert.match(profile,/URL entered by you \(not LinkedIn-verified\)/);
+  assert.match(profile,/genycaster\.profile\.network_manual_url/);
 });

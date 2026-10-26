@@ -3146,6 +3146,36 @@ void connectRuntime(
             }
         });
 
+    QObject::connect(&bridge, &PresentationBridge::protocolProfileUpdateRequested, &bridge,
+        [&bridge, runtime
+#if defined(__EMSCRIPTEN__)
+        , browserSigner
+#endif
+        ](const QVariantMap& changes) {
+#if defined(__EMSCRIPTEN__)
+            if (!bridge.isAuthenticated() || !bridge.writeReady()) {
+                bridge.applyWriteState(QStringLiteral("blocked"), false, {},
+                    qtTrId("genycaster.profile.protocol_signer_required"));
+                return;
+            }
+            QJsonObject payload{};
+            for (auto it = changes.cbegin(); it != changes.cend(); ++it)
+                payload.insert(it.key(), it.value().toString());
+            browserSigner->start(QStringLiteral("profile"),
+                QString::number(bridge.accountFid()), payload);
+#else
+            // Native profile mutations require the same durable outbox path
+            // as other writes. Do not silently pretend that local settings
+            // are a successful Farcaster UserDataAdd.
+            Q_UNUSED(runtime);
+            Q_UNUSED(changes);
+            bridge.applyWriteState(QStringLiteral("blocked"), false, {},
+                qtTrId("genycaster.profile.protocol_native_unavailable"));
+            emit bridge.protocolProfileWriteCompleted(false,
+                qtTrId("genycaster.profile.protocol_native_unavailable"));
+#endif
+        });
+
     QObject::connect(&bridge, &PresentationBridge::followingMutationRequested, &bridge,
         [&bridge, runtime, writeObserver
 #if defined(__EMSCRIPTEN__)
