@@ -891,6 +891,8 @@ Item {
                                             compact: root.compact
                                             authenticated: presentationBridge.isAuthenticated
                                             refreshBusy: openProofConnections.bookmarkRefreshBusy
+                                            accountError: openProofConnections.bookmarkError
+                                            pendingCount: openProofConnections.bookmarkPendingCount
                                             onRefreshRequested: openProofConnections.refreshAccountBookmarks()
                                             onRemoveRequested: castId => presentationBridge.removeBookmark(castId)
                                             onPriorityRequested: (castId, priority) =>

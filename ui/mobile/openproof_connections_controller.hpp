@@ -44,6 +44,8 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(int cloudRevision READ cloudRevision NOTIFY cloudStateChanged)
     Q_PROPERTY(QVariantMap cloudProfileExtras READ cloudProfileExtras NOTIFY cloudStateChanged)
     Q_PROPERTY(bool bookmarkRefreshBusy READ bookmarkRefreshBusy NOTIFY cloudStateChanged)
+    Q_PROPERTY(QString bookmarkError READ bookmarkError NOTIFY cloudStateChanged)
+    Q_PROPERTY(int bookmarkPendingCount READ bookmarkPendingCount NOTIFY cloudStateChanged)
 public:
     explicit OpenProofConnectionsController(QObject* parent = nullptr,
                                             QSettings* settings = nullptr);
@@ -80,6 +82,10 @@ public:
                                          const QVariantMap& snapshot);
     [[nodiscard]] bool bookmarkRefreshBusy() const noexcept {
         return m_bookmarkSnapshotRequest!=nullptr;
+    }
+    [[nodiscard]] QString bookmarkError() const { return m_bookmarkError; }
+    [[nodiscard]] int bookmarkPendingCount() const noexcept {
+        return static_cast<int>(m_bookmarkOutbox.size());
     }
     /** Automatic account-owned profile storage; bearer never leaves native Qt. */
     Q_INVOKABLE void fetchCloudProfileExtras();
@@ -203,6 +209,7 @@ private:
     QTimer m_connectionPoll{this};
     QTimer m_bookmarkPoll{this};
     QVariantList m_bookmarkOutbox{};
+    QString m_bookmarkError{};
     QString m_bookmarkCursor{QStringLiteral("0")};
     bool m_legacyBookmarksPending{};
     QStringList m_legacyBookmarkCandidates{};

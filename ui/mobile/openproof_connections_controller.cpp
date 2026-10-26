@@ -430,8 +430,10 @@ void OpenProofConnectionsController::recordBookmarkMutation(
         {QStringLiteral("mutation_id"), QUuid::createUuid().toString(QUuid::WithoutBraces)}
     };
     m_bookmarkOutbox.push_back(item);
+    m_bookmarkError.clear();
     m_settings->setValue(bookmarkStorageKey() + QStringLiteral("/outbox"), m_bookmarkOutbox);
     m_settings->sync();
+    emit cloudStateChanged();
 #if defined(__EMSCRIPTEN__)
     EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
 #endif
@@ -497,7 +499,38 @@ void OpenProofConnectionsController::pumpBookmarkChanges()
             ? reply->readAll() : QByteArray{};
         reply->deleteLater();
         if (generation!=m_grantGeneration || viewer!=m_viewerFid) return;
-        if (status!=200) return; // Retain durable outbox/cursor on failures.
+        if (status!=200) {
+            // A rejected preview used to block the entire durable queue
+            // forever. Retry its original toggle without optional artwork;
+            // retain the canonical hash, priority and idempotency key.
+            if (uploading && (status==400 || status==413) &&
+                    !m_bookmarkOutbox.isEmpty() &&
+                    m_bookmarkOutbox.constFirst().toMap().value(
+                        QStringLiteral("mutation_id"))==pending.value(
+                        QStringLiteral("mutation_id"))) {
+                auto first=m_bookmarkOutbox.first().toMap();
+                if (first.value(QStringLiteral("preview")).isValid() &&
+                    !first.value(QStringLiteral("preview")).isNull()) {
+                    first.remove(QStringLiteral("preview"));
+                    m_bookmarkOutbox[0]=first;
+                    m_settings->setValue(bookmarkStorageKey()+
+                        QStringLiteral("/outbox"),m_bookmarkOutbox);
+                    m_settings->sync();
+                    QMetaObject::invokeMethod(this,[this]{pumpBookmarkChanges();},
+                                              Qt::QueuedConnection);
+                    return;
+                }
+            }
+            m_bookmarkError=(status==401 || status==403)
+                ? QStringLiteral("Bookmark account authorization expired. Your changes are saved on this device.")
+                : (status==400 || status==413)
+                ? QStringLiteral("A saved cast was rejected by the account API; its local copy is preserved.")
+                : QStringLiteral("Cannot update bookmarks on the account server. Changes are kept locally.");
+            emit cloudStateChanged();
+            return; // Never discard an unacknowledged bookmark mutation.
+        }
+        m_bookmarkError.clear();
+        emit cloudStateChanged();
         const auto json=QJsonDocument::fromJson(bytes);
         if (!json.isObject()) return;
         if (uploading) {
@@ -507,6 +540,7 @@ void OpenProofConnectionsController::pumpBookmarkChanges()
                      .value(QStringLiteral("mutation_id"))!=pending.value(QStringLiteral("mutation_id")))
                 return;
             m_bookmarkOutbox.removeFirst();
+            emit cloudStateChanged();
             m_settings->setValue(bookmarkStorageKey()+QStringLiteral("/outbox"),m_bookmarkOutbox);
             m_settings->sync();
 #if defined(__EMSCRIPTEN__)
@@ -530,12 +564,22 @@ void OpenProofConnectionsController::pumpBookmarkChanges()
                 return;
             }
             QVariantList changes{};
+            // A GET may have started before a local toggle. Its server-side
+            // deletion/addition receipt is then older than our queued edit.
+            // Never replay it over the optimistic bookmark state. Advance
+            // the cursor normally; the outbox later commits the newer edit.
+            QSet<QString> pendingHashes;
+            for (const auto& outboxEntry : std::as_const(m_bookmarkOutbox))
+                pendingHashes.insert(outboxEntry.toMap()
+                    .value(QStringLiteral("cast_hash")).toString().toLower());
             for (const auto& value : items.toArray()) {
                 if (!value.isObject()) continue;
                 const QVariantMap change=value.toObject().toVariantMap();
+                const QString hash=change.value(QStringLiteral("cast_hash"))
+                    .toString().toLower();
                 if (m_legacyBookmarksPending)
-                    m_bookmarkHistoryKeys.insert(
-                        change.value(QStringLiteral("cast_hash")).toString().toLower());
+                    m_bookmarkHistoryKeys.insert(hash);
+                if (pendingHashes.contains(hash)) continue;
                 changes.push_back(change);
             }
             // Synchronously update the per-account local reading list before
@@ -1181,6 +1225,13 @@ void OpenProofConnectionsController::sendCloudProfileRequest(
         if (status == 409) {
             m_cloudError = QStringLiteral(
                 "Another device saved newer profile details. Your local edits remain preserved.");
+            // Immediately retrieve the winning revision so the UI can
+            // reconcile the pending edit; do not wait for the next poll.
+            QMetaObject::invokeMethod(this, [this] { fetchCloudProfileExtras(); },
+                                      Qt::QueuedConnection);
+        } else if (status == 400 || status == 413) {
+            m_cloudError = QStringLiteral(
+                "Profile details were rejected. Check the selected category, role and links.");
         } else if (status == 401 || status == 403) {
             m_cloudError = QStringLiteral("Your account authorization is unavailable. Local edits are preserved.");
         } else if (status == 503 || status == 404 || status == 0) {
@@ -1685,6 +1736,8 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     const QString key=bookmarkStorageKey();
     m_bookmarkOutbox=key.isEmpty() || !m_settings
         ? QVariantList{} : m_settings->value(key+QStringLiteral("/outbox")).toList();
+    m_bookmarkError.clear();
+    emit cloudStateChanged();
     m_bookmarkCursor=key.isEmpty() || !m_settings
         ? QStringLiteral("0") : m_settings->value(
             key+QStringLiteral("/cursor"),QStringLiteral("0")).toString();

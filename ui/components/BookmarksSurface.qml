@@ -8,6 +8,8 @@ Flickable {
     property bool compact: false
     property bool authenticated: false
     property bool refreshBusy: false
+    property string accountError: ""
+    property int pendingCount: 0
     property string sortMode: "priority"
     signal castRequested(string castId)
     signal removeRequested(string castId)
@@ -21,7 +23,13 @@ Flickable {
     boundsBehavior: Flickable.DragOverBounds
     boundsMovement: Flickable.FollowBoundsBehavior
     readonly property var sortedRows: {
-        const items = Array.isArray(root.rows) ? root.rows.slice() : []
+        // QML exposes C++ QVariantList as a sequence, which is not always a
+        // JavaScript Array. Array.isArray() can silently discard every saved
+        // cast even though the native account model contains bookmarks.
+        const sequence = root.rows || []
+        const items = []
+        for (let i = 0; i < Number(sequence.length || 0); ++i)
+            items.push(sequence[i])
         // Sorting never collapses distinct Farcaster hashes into one item.
         const seen = new Set()
         const unique = items.filter(item => {
@@ -103,6 +111,17 @@ Flickable {
                 enabled: root.authenticated && !root.refreshBusy
                 onClicked: root.refreshRequested()
             }
+        }
+
+        DirectionAwareLabel {
+            objectName: "bookmarkAccountStatus"
+            visible: root.authenticated && (root.accountError.length > 0 || root.pendingCount > 0)
+            Layout.fillWidth: true
+            color: root.accountError.length > 0 ? Theme.negative : Theme.inkMuted
+            text: root.accountError.length > 0 ? root.accountError
+                  : qsTr("%1 saved cast changes are being added to your account.").arg(root.pendingCount)
+            font.pixelSize: Theme.typeCaptionSize
+            wrapMode: Text.Wrap
         }
 
         DirectionAwareLabel {

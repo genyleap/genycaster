@@ -25,6 +25,17 @@ test('bookmark view supports account refresh, remove, priority and sorting witho
   assert.match(controller,/QStringLiteral\("state"\),QStringLiteral\("1"\)/);
   assert.match(store,/async listBookmarkSnapshot/);
 });
+test('bookmark view accepts native C++ QVariantList and exposes pending/error states',()=>{
+  const header=source('ui/mobile/openproof_connections_controller.hpp');
+  const shell=source('ui/components/AppShell.qml');
+  assert.doesNotMatch(surface,/Array\.isArray\(root\.rows\)/);
+  assert.match(surface,/Number\(sequence\.length \|\| 0\)/);
+  assert.match(surface,/objectName: "bookmarkAccountStatus"/);
+  assert.match(shell,/pendingCount: openProofConnections\.bookmarkPendingCount/);
+  assert.match(header,/Q_PROPERTY\(QString bookmarkError READ bookmarkError/);
+  assert.match(controller,/pendingHashes\.contains\(hash\)/);
+  assert.match(controller,/first\.remove\(QStringLiteral\("preview"\)\)/);
+});
 test('bookmarked Cast preview and priority are owner-scoped with explicit v5 schema gating',()=>{
   assert.match(store,/bookmarkPreviewsReady=versions\.has\(5\)/);
   assert.match(store,/async listBookmarkChanges[\s\S]*?preview/);

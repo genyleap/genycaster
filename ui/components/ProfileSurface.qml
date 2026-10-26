@@ -76,6 +76,10 @@ Item {
                 localBackups: old.localBackups || []
             }
             profileCloudSettings.perAccountJson = JSON.stringify(owners)
+            // Force the profile's computed state to read the new pending/clean
+            // flag *after* it is written, even where Qt/WASM Settings does not
+            // notify an existing binding synchronously.
+            root.profileExtrasGeneration++
         } catch (_) { }
     }
     function preserveConflictingProfile(item) {
@@ -100,10 +104,20 @@ Item {
             root.profileExtrasError = qsTr("Another device has newer profile details. Your previous local edit was preserved.")
         } catch (_) { }
     }
+    // QVariantList travels from native C++ to QML as a sequence. Qt's
+    // sequence values are indexable, but Array.isArray() is not guaranteed
+    // to recognize them. Accept both without trusting unbounded input.
+    function profileSequence(value, limit) {
+        if (!value || typeof value.length !== "number"
+                || value.length < 0 || value.length > limit) return []
+        const items = []
+        for (let i = 0; i < value.length; ++i) items.push(value[i])
+        return items
+    }
     function cloudProfilePayload() {
         const saved = root.profileExtras
-        const urls = Array.isArray(saved.links) ? saved.links : []
-        const labels = Array.isArray(saved.labels) ? saved.labels : []
+        const urls = root.profileSequence(saved.links, 5)
+        const labels = root.profileSequence(saved.labels, 5)
         return {
             category: String(saved.category || ""),
             profession: String(saved.profession || ""),
@@ -116,9 +130,12 @@ Item {
     function restoreCloudProfile(item) {
         if (!root.isOwnProfile || !root.profileExtrasOwnerKey
             || !item || typeof item.profession !== "string"
-            || typeof item.category !== "string" || !Array.isArray(item.links)) return
-        const links = item.links.filter(entry => entry && typeof entry.url === "string"
-            && root.validExtraUrl(entry.url)).slice(0, 5)
+            || typeof item.category !== "string"
+            || !item.links || typeof item.links.length !== "number"
+            || item.links.length > 5) return
+        const links = root.profileSequence(item.links, 5).filter(entry =>
+            entry && typeof entry.url === "string"
+            && root.validExtraUrl(entry.url))
         try {
             const owners = JSON.parse(profileExtrasSettings.entriesJson || "{}")
             owners[root.profileExtrasOwnerKey] = {
@@ -164,7 +181,8 @@ Item {
             const latest = root.cloudProfilePayload()
             const same = item.category === latest.category
                       && item.profession === latest.profession
-                      && JSON.stringify(item.links || []) === JSON.stringify(latest.links)
+                      && JSON.stringify(root.profileSequence(item.links, 5))
+                         === JSON.stringify(latest.links)
             if (same) root.setCloudFlags(false, Number(item.revision || 0))
             else {
                 root.setCloudFlags(true)
@@ -262,11 +280,13 @@ Item {
                 && Number(openProofConnections.cloudRevision || 0) > 0
                 && server && typeof server.category === "string"
                 && typeof server.profession === "string"
-                && Array.isArray(server.links)) {
+                && server.links && typeof server.links.length === "number"
+                && server.links.length <= 5) {
+            const links = root.profileSequence(server.links, 5)
             return {
                 category: server.category, profession: server.profession,
-                links: server.links.map(entry => String(entry.url || "")),
-                labels: server.links.map(entry => String(entry.label || ""))
+                links: links.map(entry => String(entry.url || "")),
+                labels: links.map(entry => String(entry.label || ""))
             }
         }
         try {
@@ -275,9 +295,9 @@ Item {
         } catch (_) { return ({}) }
     }
     // X-style professional identity is selected from curated categories and
-    // roles. Previously saved freeform roles remain available in the selector.
-    // These values are canonical API identifiers, not translated display
-    // strings. Translation must not change sync payloads across devices.
+    // roles. Legacy freeform roles must be explicitly replaced before saving,
+    // because the account API validates the same canonical role vocabulary.
+    // These are API identifiers, not translated display strings.
     readonly property var profileCategoryOptions: [
         "Select category", "Arts & entertainment", "Business", "Education",
         "Finance", "Food & beverage", "Health & wellness", "Media & news",
@@ -289,8 +309,8 @@ Item {
             "Designer", "Developer", "Engineer", "Entrepreneur", "Founder",
             "Investor", "Journalist", "Photographer", "Researcher",
             "Student", "Teacher", "Consultant", "Organization", "Other"]
-        const saved = String(root.profileExtras.profession || "")
-        if (saved && options.indexOf(saved) < 0) options.push(saved)
+        // The account API accepts only curated roles. Never offer a legacy
+        // freeform role as a selectable value and then silently fail HTTP 400.
         return options
     }
     readonly property string profileCategory: {
@@ -322,8 +342,16 @@ Item {
         if (root.profileLinkTotal > 0) profileLinksDrawer.open()
     }
     function validExtraUrl(text) {
-        return text.length <= 512
-            && /^https:\/\/(?![^/]*@)[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?:\:[0-9]{2,5})?(?:[\/?#][^\s]*)?$/.test(text)
+        const value = String(text || "")
+        // Match the account API's hostname, scheme, port and query policy
+        // before closing the editor. Otherwise a valid-looking local edit
+        // fails with HTTP 400 and the category silently reverts on refresh.
+        const match = /^https:\/\/(?![^/]*@)((?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,63})(?:[\/?#][^\s]*)?$/.exec(value)
+        if (!match || value.length > 512 || match[1].length > 253) return false
+        const query = /\?([^#]*)/.exec(value)
+        const hash = /#(.*)$/.exec(value)
+        return (!query || query[1].length < 256)
+            && (!hash || hash[1].length < 128)
     }
     function saveExtraDetails(profession, rawLinks, category) {
         if (!root.isOwnProfile || !root.profileExtrasOwnerKey) return false
@@ -350,6 +378,8 @@ Item {
             return false
         }
         try {
+            const wasDirty = root.cloudLocalDirty
+            const knownRevision = Number(openProofConnections.cloudRevision || 0)
             const entries = JSON.parse(profileExtrasSettings.entriesJson || "{}")
             const unique = prepared.filter((item,index)=>prepared.findIndex(e=>e.url===item.url)===index)
             entries[root.profileExtrasOwnerKey] = {
@@ -357,13 +387,20 @@ Item {
                 links: unique.map(e=>e.url), labels: unique.map(e=>e.label)
             }
             profileExtrasSettings.entriesJson = JSON.stringify(entries)
-            root.profileExtrasGeneration++
             root.profileExtrasError = ""
             root.profileLinksExpanded = false
-            root.setCloudFlags(true, Number(openProofConnections.cloudRevision || 0))
+            // Mark the new record pending before invalidating the display
+            // binding. Otherwise an already-fetched server value can win the
+            // first binding evaluation and leave the old category on screen.
+            root.setCloudFlags(true, knownRevision)
+            root.profileExtrasGeneration++
             if (openProofConnections.cloudServiceAvailable
-                    && openProofConnections.cloudAuthorizationReady)
-                profileRefreshRetry.restart()
+                    && openProofConnections.cloudAuthorizationReady) {
+                if (knownRevision > 0 && !wasDirty && !openProofConnections.cloudBusy)
+                    openProofConnections.pushCloudProfileExtras(root.cloudProfilePayload())
+                else
+                    profileRefreshRetry.restart()
+            }
             return true
         } catch (_) {
             root.profileExtrasError = qsTr("Could not save local profile details.")
@@ -1695,6 +1732,19 @@ Item {
                         }
                     }
 
+                    DirectionAwareLabel {
+                        objectName: "profileSaveStatus"
+                        visible: root.isOwnProfile && root.cloudLocalDirty
+                        Layout.fillWidth: true
+                        color: openProofConnections.cloudError.length > 0
+                               ? Theme.negative : Theme.inkMuted
+                        text: openProofConnections.cloudError.length > 0
+                              ? qsTr("Your profile changes could not be saved yet. Edit your profile to retry.")
+                              : qsTr("Saving your profile changes…")
+                        wrapMode: Text.Wrap
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+
                     RichText {
                         visible: root.normalizedBio.length > 0
                         Layout.fillWidth: true
@@ -2139,6 +2189,16 @@ Item {
                         popupMaximumWidth: width
                         model: root.profileRoleOptions
                         Accessible.name: qsTr("Professional role")
+                    }
+                    DirectionAwareLabel {
+                        visible: String(root.profileExtras.profession || "").length > 0
+                            && root.profileRoleOptions.indexOf(String(root.profileExtras.profession)) < 0
+                            && professionEditor.currentIndex === 0
+                        Layout.fillWidth: true
+                        text: qsTr("Your previous role is no longer supported. Select a role to replace it.")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true

@@ -42,6 +42,15 @@ test('profile category and links save locally then replicate without sync contro
   assert.doesNotMatch(profile,/qsTr\("Technology"\)/);
 });
 
+test('native profile extras sequences are normalized before category restore and save',()=>{
+  const profile=read('ui/components/ProfileSurface.qml');
+  assert.match(profile,/function profileSequence\(value, limit\)/);
+  assert.match(profile,/root\.profileSequence\(item\.links, 5\)/);
+  assert.match(profile,/root\.profileSequence\(server\.links, 5\)/);
+  assert.match(profile,/root\.profileSequence\(saved\.links, 5\)/);
+  assert.doesNotMatch(profile,/Array\.isArray\(server\.links\)/);
+  assert.doesNotMatch(profile,/!Array\.isArray\(item\.links\)/);
+});
 test('LinkedIn saves automatically and does not display upload or restore buttons',()=>{
   const code=read('ui/mobile/openproof_connections_controller.cpp');
   const popup=read('ui/components/AccountConnectionsPopup.qml');
