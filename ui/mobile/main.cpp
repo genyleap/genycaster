@@ -1856,6 +1856,20 @@ int main(int argc, char* argv[])
         ? presentationBridge.accountFid() : 0;
     richComposerController.setViewerFid(initialFid);
     openProofConnections.setViewerFid(initialFid);
+    QObject::connect(&richComposerController, &RichComposerController::draftLocallyChanged,
+                     &openProofConnections,
+                     [&openProofConnections](const qulonglong fid, const bool deleted) {
+        openProofConnections.recordDraftMutation(fid, deleted);
+    });
+    QObject::connect(&openProofConnections,
+                     &OpenProofConnectionsController::cloudDraftSnapshotReceived,
+                     &richComposerController,
+                     [&richComposerController, &openProofConnections](
+                         const qulonglong fid, const QByteArray& document,
+                         const bool deleted, const int revision) {
+        if (richComposerController.applyAccountDraft(fid, document, deleted))
+            openProofConnections.confirmDraftSnapshot(fid, revision);
+    });
     // User actions update the local reading list immediately; Genycaster
     // propagates owner-scoped mutations through its durable outbox.
     QObject::connect(&presentationBridge, &PresentationBridge::bookmarkMutated,

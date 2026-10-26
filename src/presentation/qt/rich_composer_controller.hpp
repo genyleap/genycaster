@@ -2,6 +2,7 @@
 #pragma once
 
 #include <QObject>
+#include <QByteArray>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
@@ -80,6 +81,14 @@ public:
      * its previous owner before the editor is reset and the new owner's draft
      * is restored. A zero FID selects the unassigned legacy draft. */
     void setViewerFid(qulonglong fid);
+    /** @brief Marks the composer as in use so automatic account refreshes
+     * never replace visible text, even after autosave clears dirty state. */
+    Q_INVOKABLE void setComposerActive(bool active);
+    /** @brief Applies verified account state only when the editor has no
+     * uncommitted changes; remote content is validated before replacement.
+     * Return false to retry later without advancing the remote revision. */
+    [[nodiscard]] bool applyAccountDraft(qulonglong fid, const QByteArray& serialized,
+                                          bool deleted);
     /** @brief Persists the complete AST plus editor source without publishing anything. */
     Q_INVOKABLE void saveDraft();
     /** @brief Deletes the current local draft. */
@@ -148,6 +157,8 @@ signals:
     void saveStateChanged();
     /** @brief Requests immediate processing of newly queued managed-media cleanup. */
     void managedAssetCleanupRequested();
+    /** @brief Emitted after a user-owned, FID-scoped draft changes on disk. */
+    void draftLocallyChanged(qulonglong fid, bool deleted);
 
 private:
     class Impl;

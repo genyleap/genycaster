@@ -76,9 +76,13 @@ export function validateCloudItem(entity, item) {
   if (entity === 'drafts') {
     if (!KINDS.drafts.includes(item.kind) || typeof item.title !== 'string' ||
         item.title.length > 256 || !item.content || typeof item.content !== 'object' ||
-        Array.isArray(item.content)) return null;
+        Array.isArray(item.content) || !Number.isSafeInteger(item.revision) ||
+        item.revision < 0 || (item.is_deleted !== undefined &&
+          typeof item.is_deleted !== 'boolean')) return null;
+    if (item.is_deleted === true &&
+        (item.title !== '' || Object.keys(item.content).length !== 0)) return null;
     return {id:item.id.toLowerCase(), kind:item.kind, title:item.title, content:item.content,
-      revision:item.revision};
+      revision:item.revision,is_deleted:item.is_deleted===true};
   }
   if (entity === 'tasks') {
     if (!KINDS.tasks.includes(item.kind) || !['draft', 'scheduled', 'cancelled'].includes(item.state) ||
@@ -237,13 +241,26 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
         if (entity==='profile_extras') {
           respond(response,200,{item:await store.getProfileExtras(owner)});return true;
         }
+        if (entity==='drafts') {
+          const id=new URL(request.url,'http://localhost').searchParams.get('id');
+          if (id!==null) {
+            if (!ID.test(id)) {respond(response,400,{error:'invalid_draft_id'});return true;}
+            const row=await store.getDraft(owner,id.toLowerCase());
+            respond(response,200,{items:row?[row]:[]});return true;
+          }
+        }
         respond(response,200,{items:await store.list(entity,owner)});return true;
       }
       if (request.method!=='PUT') {respond(response,405,{error:'method_not_allowed'});return true;}
-      const raw=await readBody(request);
+      // Rich drafts store the entire editable document, not only cast text.
+      // Keep them bounded separately from short profile and preference writes.
+      const itemLimit=entity==='drafts'?196_608:20_000;
+      const raw=await readBody(request,entity==='drafts'?208_896:24_576);
       const item=validateCloudItem(entity,raw);
       if (!item) {respond(response,400,{error:'invalid_item'});return true;}
-      if (JSON.stringify(item).length>20000) {respond(response,413,{error:'item_too_large'});return true;}
+      if (Buffer.byteLength(JSON.stringify(item),'utf8')>itemLimit) {
+        respond(response,413,{error:'item_too_large'});return true;
+      }
       const saved=entity==='profile_extras'
         ? await store.putProfileExtras(owner,item)
         : await store.put(entity,owner,item);

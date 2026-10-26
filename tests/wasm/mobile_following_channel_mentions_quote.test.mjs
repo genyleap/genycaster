@@ -143,7 +143,7 @@ test('New Cast cannot inherit a quoted reference from a previously composed cast
  assert.match(cpp,/if \(contextDocument\) return/);
  assert.match(cpp,/if \(!contextDocument\) autosave\.start\(\)/);
  assert.match(cpp,/std::holds_alternative<farcaster::domain::rich::CastReferenceBlock>/);
- assert.match(cpp,/if \(!m_impl->contextDocument\) \{[\s\S]*?settings\.remove\(QString::fromLatin1\(DraftKey\)\)/);
+ assert.match(cpp,/if \(!m_impl->contextDocument\) \{[\s\S]*?settings\.remove\(m_impl->draftKey\(\)\)/);
  assert.match(composer,/richComposer\.beginContextDocument\(\)/);
  assert.match(composer,/function publicationEmbeds\(\)/);
  assert.match(composer,/return root\.quoteMode \? embeds : embeds\.filter/);

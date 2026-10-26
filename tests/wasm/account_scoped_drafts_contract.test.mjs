@@ -10,7 +10,8 @@ test('composer drafts and managed media are stored in the same FID-specific name
   assert.match(header,/void setViewerFid\(qulonglong fid\)/);
   assert.match(cpp,/composer\/accounts\/fid_%1\/richDraftV1/);
   assert.match(cpp,/composer\/accounts\/fid_%1\/richManagedAssetsV1/);
-  assert.match(cpp,/settings\.setValue\(draftKey\(\), documentToJson/);
+  assert.match(cpp,/settings\.setValue\(draftKey\(\), serialized\)/);
+  assert.match(cpp,/serialized=documentToJson\(document, markdown\)/);
   assert.match(cpp,/settings\.setValue\(managedDraftKey\(\), managedAssetsToJson/);
   assert.match(cpp,/settings\.value\(m_impl->draftKey\(\)\)/);
   assert.match(cpp,/settings\.value\(m_impl->managedDraftKey\(\)\)/);

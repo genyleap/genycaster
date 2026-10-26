@@ -420,6 +420,7 @@ GenyDrawer {
     }
 
     onOpened: {
+        richComposer.setComposerActive(true)
         // Reused Drawer scroll position must not hide the next reply target.
         if (composerScroll.contentItem)
             composerScroll.contentItem.contentY = 0
@@ -508,6 +509,7 @@ GenyDrawer {
                 && richComposer.dirty && !presentationBridge.writeBusy)
             richComposer.saveDraft()
         presentationBridge.clearReplyTarget()
+        richComposer.setComposerActive(false)
         root.abandoned()
     }
 

@@ -184,3 +184,14 @@ Users never enable a separate sync layer or learn a sync vocabulary.
 This feature provides private per-account app state. It does **not** replace
 Farcaster protocol storage, expose OpenProof account secrets, confer LinkedIn
 verification on manually entered URLs, or provide any GENY holder attestation.
+
+## Implementation extension — 2026-10-26: ordinary Cast draft replication
+
+- **Responsibility / capability:** Genycaster Extension; one unpublished, account-owned rich Cast document (not a Farcaster protocol draft).
+- **Optionality / degradation:** local editing and drafts remain available offline or without a verified OpenProof bearer; no additional account opt-in or explicit sync control.
+- **Public contract:** authenticated `GET /api/v1/cloud/drafts?id=<UUID>`, `PUT /api/v1/cloud/drafts` with server-verified owner and optimistic `revision`. A deletion is a `PUT` with `is_deleted:true`, empty content and empty title; the existing `deleted_at` column stores a tombstone. Oversized rich documents are rejected without dropping the local copy.
+- **Invariants:** the current single ordinary Cast composer uses the constant draft ID `00000000-0000-4000-8000-000000000002`, scoped by verified issuer and FID. Qt's local draft cache and pending revision/dirty state are partitioned per FID. The transient bearer stays in native C++, not QML, JavaScript or disk. Managed-asset deletion credentials are device-private and never copied into the database.
+- **Reconciliation:** local edit, autosave, explicit save, clear and confirmed publication enqueue an account mutation after local persistence. The native adapter checks the last remote revision and only writes against a matching revision. A `409` triggers a re-read, never a blind overwrite. Incoming drafts/tombstones apply only when the active editor has no unsaved or contextual draft and the prior local state is not pending. Stale network callbacks are invalidated on account/FID switch.
+- **Conflict limitation:** if two devices edit an older revision at once, both original copies remain intact (local pending and server version); automatic field-level or document merge and multi-draft conflict selection have not yet been implemented. Do not describe this as fully resolved concurrent draft editing.
+- **Dependencies / expected failures:** existing OpenProof-verified account API, isolated PostgreSQL schema v3, Qt presentation adapter and QSettings local outbox. Authentication expiry, network loss, revision conflict, invalid document, and bounded-request rejection all fail without discarding local content. No OpenProof DB access, new schema migration, background cast signing, or protocol mutation is added.
+- **Verification scope:** API tombstone/ownership/revision tests and static native contract tests pass; native compilation and authenticated real two-device draft recovery remain separate release gates.

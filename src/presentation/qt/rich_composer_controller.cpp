@@ -658,6 +658,8 @@ public:
     bool dirty{};
     // Contextual replies/quotes never autosave into the ordinary Cast draft.
     bool contextDocument{};
+    bool composerActive{};
+    bool applyingRemote{};
     QString saveStatusText{};
     qulonglong revision{};
 
@@ -723,9 +725,13 @@ public:
     {
         autosave.stop();
         if (contextDocument) return;
-        settings.setValue(draftKey(), documentToJson(document, markdown));
+        const QByteArray serialized=documentToJson(document, markdown);
+        const bool changed=settings.value(draftKey()).toByteArray()!=serialized;
+        settings.setValue(draftKey(), serialized);
         settings.setValue(managedDraftKey(), managedAssetsToJson(managedAssets));
         settings.sync();
+        if (changed && viewerFid && !applyingRemote)
+            emit owner.draftLocallyChanged(viewerFid, false);
         dirty = false;
         saveStatusText = explicitSave ? qtTrId("genycaster.composer.saved") : qtTrId("genycaster.composer.autosaved");
         emit owner.saveStateChanged();
@@ -921,6 +927,37 @@ void RichComposerController::setViewerFid(const qulonglong fid)
     restoreDraft();
 }
 
+void RichComposerController::setComposerActive(const bool active)
+{
+    m_impl->composerActive=active;
+}
+
+bool RichComposerController::applyAccountDraft(
+    const qulonglong fid, const QByteArray& serialized, const bool deleted)
+{
+    if (!fid || fid!=m_impl->viewerFid || m_impl->composerActive
+        || m_impl->dirty || m_impl->contextDocument)
+        return false;
+    // The account adapter only forwards a server-verified owner. Validate the
+    // rich document before touching locally persisted unpublished content.
+    if (!deleted && (serialized.isEmpty() || serialized.size()>180*1024
+                     || !documentFromJson(serialized))) return false;
+    m_impl->applyingRemote=true;
+    if (deleted) {
+        clearDraft();
+        m_impl->newEmpty(false);
+    } else {
+        m_impl->settings.setValue(m_impl->draftKey(),serialized);
+        // Media management tokens are device-private. Uploaded media URLs in
+        // the AST may travel, but storage deletion capabilities never do.
+        m_impl->settings.remove(m_impl->managedDraftKey());
+        m_impl->settings.sync();
+        restoreDraft();
+    }
+    m_impl->applyingRemote=false;
+    return true;
+}
+
 void RichComposerController::saveDraft() { m_impl->saveDraft(true); }
 void RichComposerController::clearDraft()
 {
@@ -929,10 +966,13 @@ void RichComposerController::clearDraft()
             queueCleanupToken(m_impl->settings, iterator.value());
         }
     }
+    const bool hadDraft=m_impl->settings.contains(m_impl->draftKey());
     m_impl->managedAssets.clear();
     m_impl->settings.remove(m_impl->draftKey());
     m_impl->settings.remove(m_impl->managedDraftKey());
     m_impl->settings.sync();
+    if (hadDraft && m_impl->viewerFid && !m_impl->applyingRemote)
+        emit draftLocallyChanged(m_impl->viewerFid, true);
     m_impl->dirty = false;
     m_impl->saveStatusText.clear();
     emit saveStateChanged();
@@ -1558,6 +1598,8 @@ void RichComposerController::commitPublishedCast(const QString& castId)
         m_impl->settings.remove(m_impl->managedDraftKey());
     }
     m_impl->settings.sync();
+    if (!m_impl->contextDocument && m_impl->viewerFid && !m_impl->applyingRemote)
+        emit draftLocallyChanged(m_impl->viewerFid, true);
     m_impl->managedAssets.clear();
     m_impl->dirty = false;
     m_impl->saveStatusText = qtTrId("genycaster.composer.published_metadata_saved");

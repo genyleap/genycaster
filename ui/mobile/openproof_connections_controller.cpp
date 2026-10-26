@@ -120,6 +120,7 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
             m_linkedInReconciled = false;
             reconcileLinkedIn();
             pumpBookmarkChanges();
+            pumpDraftChanges();
         }
     });
     m_connectionPoll.setInterval(3'000);
@@ -237,6 +238,7 @@ void OpenProofConnectionsController::checkCloudService()
             m_bookmarkPoll.start();
             reconcileLinkedIn();
             pumpBookmarkChanges();
+            pumpDraftChanges();
         }
     });
 }
@@ -504,6 +506,247 @@ void OpenProofConnectionsController::pumpNotificationSeenAt(const bool upload)
         if (m_notificationSeenAtMs>m_notificationRemoteAtMs
             && (!upload || uploadedAt!=m_notificationSeenAtMs))
             QMetaObject::invokeMethod(this,[this]{pumpNotificationSeenAt(true);},
+                                      Qt::QueuedConnection);
+    });
+}
+
+QString OpenProofConnectionsController::draftStorageKey() const
+{
+    return m_viewerFid
+        ? QStringLiteral("genycaster/draft-service/fid_%1").arg(m_viewerFid)
+        : QString{};
+}
+
+void OpenProofConnectionsController::recordDraftMutation(
+    const qulonglong fid, const bool deleted)
+{
+    if (!m_settings || !fid || fid!=m_viewerFid) return;
+    const auto key=draftStorageKey();
+    m_draftMutationSerial++;
+    m_settings->setValue(key+QStringLiteral("/serial"),m_draftMutationSerial);
+    m_settings->setValue(key+QStringLiteral("/dirty"),true);
+    m_settings->setValue(key+QStringLiteral("/deleted"),deleted);
+    m_settings->sync();
+#if defined(__EMSCRIPTEN__)
+    EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
+#endif
+    if (m_draftRemoteInitialized && !m_draftConflict) uploadDraftChange();
+    else pumpDraftChanges();
+}
+
+void OpenProofConnectionsController::confirmDraftSnapshot(
+    const qulonglong fid, const int revision)
+{
+    if (!m_settings || !fid || fid!=m_viewerFid || revision<=0
+        || m_settings->value(draftStorageKey()+QStringLiteral("/dirty")).toBool())
+        return;
+    m_draftRevision=revision;
+    m_settings->setValue(draftStorageKey()+QStringLiteral("/revision"),revision);
+    m_settings->setValue(draftStorageKey()+QStringLiteral("/seen"),true);
+    m_settings->sync();
+#if defined(__EMSCRIPTEN__)
+    EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
+#endif
+}
+
+void OpenProofConnectionsController::pumpDraftChanges()
+{
+    if (!m_settings || !m_viewerFid || !m_verified ||
+        !cloudAuthorizationReady() || !m_cloudServiceAvailable ||
+        m_draftRequest || !trustedHttpsEndpoint(m_cloudUrl)) return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/drafts"));
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("id"),
+                       QStringLiteral("00000000-0000-4000-8000-000000000002"));
+    url.setQuery(query);
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept","application/json");
+    request.setRawHeader("Authorization","Bearer "+m_accountBearer);
+    auto* reply=m_network.get(request);
+    m_draftRequest=reply;
+    const auto generation=m_grantGeneration;
+    const auto viewer=m_viewerFid;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,generation,viewer] {
+        if (m_draftRequest==reply) m_draftRequest=nullptr;
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<=384*1024
+            ? reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if (generation!=m_grantGeneration || viewer!=m_viewerFid
+            || status!=200) return;
+        const auto response=QJsonDocument::fromJson(bytes);
+        if (!response.isObject() ||
+            !response.object().value(QStringLiteral("items")).isArray()) return;
+        const auto key=draftStorageKey();
+        constexpr auto draftId="00000000-0000-4000-8000-000000000002";
+        QJsonObject remote;
+        for (const auto& value:response.object().value(QStringLiteral("items")).toArray()) {
+            if (!value.isObject()) continue;
+            const auto row=value.toObject();
+            if (row.value(QStringLiteral("id")).toString()==QString::fromLatin1(draftId)) {
+                remote=row;
+                break;
+            }
+        }
+        if (!remote.isEmpty()
+            && remote.value(QStringLiteral("kind")).toString()!=QStringLiteral("cast")) {
+            m_draftConflict=true;
+            return; // A foreign record cannot be silently replaced by this adapter.
+        }
+        const int remoteRevision=remote.isEmpty()?0:
+            remote.value(QStringLiteral("revision")).toInt(-1);
+        if (remoteRevision<0) return;
+        const bool deleted=!remote.isEmpty()
+            && !remote.value(QStringLiteral("deleted_at")).isNull();
+        const auto localDocumentKey=QStringLiteral(
+            "composer/accounts/fid_%1/richDraftV1").arg(viewer);
+        const bool hasLocalDraft=m_settings->contains(localDocumentKey);
+        bool dirty=m_settings->value(key+QStringLiteral("/dirty")).toBool();
+        // Old per-FID drafts predate the account replication adapter. Import
+        // only when the server has no newer draft, never overwrite silently.
+        if (!m_settings->value(key+QStringLiteral("/seen")).toBool()
+            && hasLocalDraft && !dirty) {
+            dirty=true;
+            m_settings->setValue(key+QStringLiteral("/dirty"),true);
+            m_settings->setValue(key+QStringLiteral("/deleted"),false);
+            m_settings->sync();
+        }
+        m_draftRemoteRevision=remoteRevision;
+        m_draftRemoteInitialized=true;
+        if (dirty && remoteRevision>m_draftRevision) {
+            // A network acknowledgement may be lost after PostgreSQL has
+            // committed the write. Recognize an identical server snapshot
+            // rather than incorrectly locking the outbox in conflict state.
+            const bool pendingDelete=m_settings->value(
+                key+QStringLiteral("/deleted")).toBool();
+            const auto serverDoc=remote.value(QStringLiteral("content")).toObject()
+                .value(QStringLiteral("document")).toObject();
+            const auto localDoc=QJsonDocument::fromJson(
+                m_settings->value(localDocumentKey).toByteArray());
+            if (pendingDelete==deleted
+                && (deleted || (localDoc.isObject() && !serverDoc.isEmpty()
+                    && localDoc.object()==serverDoc))) {
+                m_draftRevision=remoteRevision;
+                m_draftConflict=false;
+                m_settings->setValue(key+QStringLiteral("/revision"),remoteRevision);
+                m_settings->setValue(key+QStringLiteral("/seen"),true);
+                m_settings->setValue(key+QStringLiteral("/dirty"),false);
+                m_settings->sync();
+#if defined(__EMSCRIPTEN__)
+                EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
+#endif
+                return;
+            }
+        }
+        if (dirty) {
+            if (m_draftRevision!=remoteRevision) {
+                // Both versions remain intact: the unsent local draft stays
+                // durable, and the other device's draft stays on the server.
+                m_draftConflict=true;
+                return;
+            }
+            m_draftConflict=false;
+            QMetaObject::invokeMethod(this,[this]{uploadDraftChange();},
+                                      Qt::QueuedConnection);
+            return;
+        }
+        m_draftConflict=false;
+        if (remoteRevision==m_draftRevision || remoteRevision==0) {
+            m_settings->setValue(key+QStringLiteral("/seen"),true);
+            return;
+        }
+        if (!deleted && !remote.value(QStringLiteral("content")).isObject())
+            return;
+        const auto content=remote.value(QStringLiteral("content")).toObject();
+        if (!deleted && !content.value(QStringLiteral("document")).isObject())
+            return;
+        const QByteArray serialized=deleted ? QByteArray{}
+            : QJsonDocument{content.value(QStringLiteral("document")).toObject()}
+                  .toJson(QJsonDocument::Compact);
+        // The UI adapter rejects delivery while the user is editing. Only
+        // its explicit acknowledgement advances the persistent revision.
+        emit cloudDraftSnapshotReceived(viewer,serialized,deleted,remoteRevision);
+    });
+}
+
+void OpenProofConnectionsController::uploadDraftChange()
+{
+    if (!m_settings || !m_draftRemoteInitialized || m_draftConflict ||
+        !m_viewerFid || !m_verified || !cloudAuthorizationReady() ||
+        !m_cloudServiceAvailable || m_draftRequest ||
+        m_draftRemoteRevision!=m_draftRevision ||
+        !m_settings->value(draftStorageKey()+QStringLiteral("/dirty")).toBool())
+        return;
+    const auto key=draftStorageKey();
+    const bool deleted=m_settings->value(key+QStringLiteral("/deleted")).toBool();
+    QJsonObject content;
+    if (!deleted) {
+        const auto localKey=QStringLiteral(
+            "composer/accounts/fid_%1/richDraftV1").arg(m_viewerFid);
+        const auto doc=QJsonDocument::fromJson(m_settings->value(localKey).toByteArray());
+        if (!doc.isObject()) return;
+        content.insert(QStringLiteral("document"),doc.object());
+    }
+    const QJsonObject body{
+        {QStringLiteral("id"),QStringLiteral("00000000-0000-4000-8000-000000000002")},
+        {QStringLiteral("kind"),QStringLiteral("cast")},
+        {QStringLiteral("title"),QString{}},
+        {QStringLiteral("content"),content},
+        {QStringLiteral("is_deleted"),deleted},
+        {QStringLiteral("revision"),m_draftRevision}
+    };
+    const auto data=QJsonDocument{body}.toJson(QJsonDocument::Compact);
+    if (data.size()>188*1024) return; // Do not abandon the local pending draft.
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/drafts"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept","application/json");
+    request.setRawHeader("Authorization","Bearer "+m_accountBearer);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,QStringLiteral("application/json"));
+    auto* reply=m_network.put(request,data);
+    m_draftRequest=reply;
+    const auto generation=m_grantGeneration;
+    const auto viewer=m_viewerFid;
+    const auto serial=m_draftMutationSerial;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,generation,viewer,serial] {
+        if (m_draftRequest==reply) m_draftRequest=nullptr;
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<=256*1024
+            ? reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if (generation!=m_grantGeneration || viewer!=m_viewerFid) return;
+        if (status==409) {
+            m_draftRemoteInitialized=false;
+            QMetaObject::invokeMethod(this,[this]{pumpDraftChanges();},
+                                      Qt::QueuedConnection);
+            return;
+        }
+        if (status!=200) return;
+        const auto response=QJsonDocument::fromJson(bytes);
+        const int next=response.isObject()
+            ? response.object().value(QStringLiteral("item")).toObject()
+                .value(QStringLiteral("revision")).toInt(-1):-1;
+        if (next<=m_draftRevision) return;
+        m_draftRevision=next;
+        m_draftRemoteRevision=next;
+        const auto stateKey=draftStorageKey();
+        m_settings->setValue(stateKey+QStringLiteral("/revision"),next);
+        m_settings->setValue(stateKey+QStringLiteral("/seen"),true);
+        if (serial==m_draftMutationSerial)
+            m_settings->setValue(stateKey+QStringLiteral("/dirty"),false);
+        m_settings->sync();
+#if defined(__EMSCRIPTEN__)
+        EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
+#endif
+        if (serial!=m_draftMutationSerial)
+            QMetaObject::invokeMethod(this,[this]{uploadDraftChange();},
                                       Qt::QueuedConnection);
     });
 }
@@ -942,6 +1185,13 @@ void OpenProofConnectionsController::clearAccountGrant()
         m_cloudRequest->deleteLater();
         m_cloudRequest = nullptr;
     }
+    if (m_draftRequest) {
+        m_draftRequest->abort();
+        m_draftRequest->deleteLater();
+        m_draftRequest=nullptr;
+    }
+    m_draftRemoteInitialized=false;
+    m_draftConflict=false;
     m_cloudRevision = 0;
     m_cloudError.clear();
     emit cloudStateChanged();
@@ -979,6 +1229,14 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
         ? m_settings->value(QStringLiteral("notifications/seen_at/%1").arg(fid),
                             0).toLongLong() : 0;
     m_notificationRemoteAtMs=0;
+    const auto draftKey=draftStorageKey();
+    m_draftRevision=draftKey.isEmpty() || !m_settings ? 0 :
+        m_settings->value(draftKey+QStringLiteral("/revision"),0).toInt();
+    m_draftMutationSerial=draftKey.isEmpty() || !m_settings ? 0 :
+        m_settings->value(draftKey+QStringLiteral("/serial"),0).toULongLong();
+    m_draftRemoteRevision=0;
+    m_draftRemoteInitialized=false;
+    m_draftConflict=false;
     restoreCachedConnections();
     emit stateChanged();
 }
@@ -1220,6 +1478,7 @@ void OpenProofConnectionsController::refreshConnections()
             if (m_cloudServiceAvailable) {
                 reconcileLinkedIn();
                 pumpBookmarkChanges();
+                pumpDraftChanges();
             }
             else
                 checkCloudService();

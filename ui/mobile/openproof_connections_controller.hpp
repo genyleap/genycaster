@@ -81,6 +81,10 @@ public:
     void migrateLocalBookmarks(const QStringList& ids);
     /** Persist the per-account notification seen watermark automatically. */
     void recordNotificationSeenAt(qulonglong fid, qlonglong observedAtMs);
+    /** @brief Queue local composer edits and deletions for the verified FID. */
+    void recordDraftMutation(qulonglong fid, bool deleted);
+    /** @brief Acknowledge a server snapshot only after the editor applied it. */
+    void confirmDraftSnapshot(qulonglong fid, int revision);
     /** Store a user-asserted public vanity URL in device-local state only.
      * Does not upgrade OpenProof verification or silently enable cloud sync. */
     Q_INVOKABLE void setManualLinkedInUrl(const QString& url);
@@ -119,6 +123,8 @@ signals:
     void cloudProfileExtrasSaved(const QVariantMap& item);
     void cloudBookmarkChangesReceived(const QVariantList& changes);
     void cloudNotificationSeenAtReceived(qulonglong fid, qlonglong observedAtMs);
+    void cloudDraftSnapshotReceived(qulonglong fid, QByteArray document,
+                                    bool deleted, int revision);
 
 private:
     [[nodiscard]] QString manualLinkedInSettingKey() const;
@@ -134,6 +140,9 @@ private:
     void sendCloudLinkedInRequest(bool upload);
     void pumpBookmarkChanges();
     void pumpNotificationSeenAt(bool upload = false);
+    void pumpDraftChanges();
+    void uploadDraftChange();
+    [[nodiscard]] QString draftStorageKey() const;
     void reconcileLinkedIn();
     [[nodiscard]] QString bookmarkStorageKey() const;
 
@@ -142,6 +151,7 @@ private:
     BrowserOpenProofAuth m_authorization{this};
     QPointer<QNetworkReply> m_request{};
     QPointer<QNetworkReply> m_cloudRequest{};
+    QPointer<QNetworkReply> m_draftRequest{};
     QPointer<QNetworkReply> m_cloudProbe{};
     bool m_cloudServiceAvailable{};
     bool m_applyingCloudLinkedIn{};
@@ -159,6 +169,11 @@ private:
     QSet<QString> m_bookmarkHistoryKeys{};
     qlonglong m_notificationSeenAtMs{};
     qlonglong m_notificationRemoteAtMs{};
+    int m_draftRevision{};
+    int m_draftRemoteRevision{};
+    qulonglong m_draftMutationSerial{};
+    bool m_draftRemoteInitialized{};
+    bool m_draftConflict{};
     QUrl m_gatewayUrl{};
     QUrl m_browserConnectionBaseUrl{};
     QByteArray m_accountBearer{};

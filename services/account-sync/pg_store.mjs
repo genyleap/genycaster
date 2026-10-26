@@ -32,6 +32,12 @@ export async function createPgStore(connectionString) {
   }
   return {
     close:()=>pool.end(),
+    async getDraft({issuer,subject},id) {
+      const result=await pool.query(`SELECT ${COLUMNS.drafts}
+          FROM drafts WHERE issuer=$1 AND subject=$2 AND id=$3`,
+        [issuer,subject,id]);
+      return normalizeRow('drafts',result.rows[0]);
+    },
     async getNotificationSeen({issuer,subject}) {
       const result=await pool.query(`SELECT
           (EXTRACT(EPOCH FROM read_at)*1000)::bigint::text AS seen_at_ms
@@ -190,19 +196,24 @@ export async function createPgStore(connectionString) {
       }
       const revision=Number.isSafeInteger(item.revision) && item.revision>=0?item.revision:0;
       if (entity==='drafts') {
+        // Deletions are versioned tombstones. A stale device cannot resurrect
+        // a published or discarded draft without first observing its revision.
         const result=await pool.query(`INSERT INTO drafts
-          (issuer,subject,id,kind,title,content)
-          SELECT $1,$2,$3,$4,$5,$6::jsonb
+          (issuer,subject,id,kind,title,content,deleted_at)
+          SELECT $1,$2,$3,$4,$5,$6::jsonb,
+            CASE WHEN $8::boolean THEN now() ELSE NULL END
           WHERE $7::bigint=0 OR EXISTS (
             SELECT 1 FROM drafts WHERE issuer=$1 AND subject=$2
               AND id=$3 AND revision=$7
           )
           ON CONFLICT(issuer,subject,id) DO UPDATE SET
             kind=EXCLUDED.kind,title=EXCLUDED.title,content=EXCLUDED.content,
-            deleted_at=NULL,revision=drafts.revision+1,updated_at=now()
+            deleted_at=EXCLUDED.deleted_at,
+            revision=drafts.revision+1,updated_at=now()
           WHERE drafts.revision=$7
           RETURNING ${COLUMNS.drafts}`,
-          [issuer,subject,item.id,item.kind,item.title,JSON.stringify(item.content),revision]);
+          [issuer,subject,item.id,item.kind,item.title,JSON.stringify(item.content),
+           revision,item.is_deleted===true]);
         return normalizeRow('drafts',result.rows[0]);
       }
       if (entity==='tasks') {

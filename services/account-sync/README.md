@@ -91,6 +91,23 @@ timestamps as decimal strings and atomically retains the maximum value across
 concurrent devices. The reserved database row is not writable through the
 ordinary `notifications` endpoint.
 
+The ordinary rich Cast composer now records per-FID draft edits and deletes
+locally before uploading them through the account API. It uses one reserved
+per-owner Cast draft ID, an optimistic revision, and a durable dirty flag.
+`GET /drafts?id=<UUID>` provides a bounded lookup for that record; PUT with
+`is_deleted:true` persists a versioned tombstone (including after a
+confirmed publication). Server-side conflicts return 409, and the client
+retains its unsent local version instead of overwriting the newer server
+version. Existing old local drafts are imported only when no remote draft
+conflicts. The transferred editable AST never includes device-private media
+management/deletion tokens. Rich draft bodies have a separate 192 KiB
+server-side item limit; over-limit edits remain stored locally.
+
+This is a **single active Cast draft** adapter, not a multi-draft manager.
+Concurrent conflicting edits on different devices are safely retained but
+need a future user-facing draft-version resolution flow; no silent
+last-writer-wins merge is claimed.
+
 There are **no explicit sync controls** or sync account-enrollment gates in
 the UI. Existing Farcaster/OpenProof authentication is reused.
 
@@ -106,13 +123,14 @@ from authenticated OpenProof, never user-provided claims.
 
 Profile extras use revision 0 for create, expected revision for updates;
 conflicts return HTTP 409. Bookmarks accept an optional UUID
-`mutation_id` and expose a cursor-driven change log. Drafts, notifications
-and tasks have guarded APIs, **but full native-client reconciliation for
-draft contents, provider notification snapshots and scheduled tasks is
-not yet wired up**. The cross-device *notification seen watermark* is
-implemented independently. No background scheduled
-publishing, GENY attestation, public user-profile reader or Streak service
-should be claimed.
+`mutation_id` and expose a cursor-driven change log. A single ordinary
+Cast draft now has an automatic local-first native adapter with versioned
+deletion and conflict preservation. Other draft types, multi-draft browsing,
+provider notification snapshots and task scheduling/execution do not yet
+have full native-client reconciliation. The cross-device *notification seen
+watermark* is implemented independently. No background scheduled publishing,
+GENY attestation, public user-profile reader or Streak service should
+be claimed.
 
 ## Testing and operational checks
 
