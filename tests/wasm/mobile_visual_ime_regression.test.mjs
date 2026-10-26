@@ -76,6 +76,7 @@ test('mobile Cast time aligns with name rather than handle or overflow action', 
   const identity = cast.slice(cast.indexOf('id: castNameAndChannel'),
                               cast.indexOf('id: moreButton'));
   assert.match(identity, /objectName: "compactCastAuthorMetadata"/);
+  assert.doesNotMatch(identity, /\.slice\(0,0\)/);
   assert.ok(identity.indexOf('objectName: "compactCastAuthorMetadata"')
             < identity.indexOf('text: root.ltrHandle'));
   assert.match(identity, /Layout\.alignment: Qt\.AlignVCenter/);

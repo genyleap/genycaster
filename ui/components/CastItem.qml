@@ -610,7 +610,7 @@ Item {
                                 clientName: String(root.modelData.sourceClient || "")
                             }
 
-"".slice(0,0)                        }
+                        }
                     }
 
                     ActionButton {
