@@ -14,6 +14,7 @@
 #include "browser_openproof_auth.hpp"
 #include <QObject>
 class QSettings;
+class QNetworkRequest;
 #include <QString>
 #include <QStringList>
 #include <QUrl>
@@ -63,7 +64,7 @@ public:
     [[nodiscard]] QString manualLinkedInUrl() const;
     [[nodiscard]] bool cloudBusy() const noexcept { return m_cloudRequest != nullptr; }
     [[nodiscard]] bool cloudAuthorizationReady() const noexcept {
-        return m_verified && !m_accountBearer.isEmpty();
+        return (m_verified && !m_accountBearer.isEmpty()) || m_cloudSessionVerified;
     }
     [[nodiscard]] bool cloudServiceAvailable() const noexcept { return m_cloudServiceAvailable; }
     Q_INVOKABLE void checkCloudService();
@@ -129,6 +130,10 @@ signals:
 private:
     [[nodiscard]] QString manualLinkedInSettingKey() const;
     void clearAccountGrant();
+    void restoreAccountSession();
+    void bootstrapAccountSession();
+    void revokeAccountSession();
+    void authorizeCloudRequest(QNetworkRequest& request) const;
     void restoreCachedConnections();
     void saveCachedConnections() const;
     void sendAccountRequest(const QUrl& url, QByteArray body,
@@ -153,7 +158,10 @@ private:
     QPointer<QNetworkReply> m_cloudRequest{};
     QPointer<QNetworkReply> m_draftRequest{};
     QPointer<QNetworkReply> m_cloudProbe{};
+    QPointer<QNetworkReply> m_sessionRequest{};
     bool m_cloudServiceAvailable{};
+    bool m_cloudSessionVerified{};
+    QByteArray m_cloudCsrf{};
     bool m_applyingCloudLinkedIn{};
     bool m_linkedInReconciled{};
     QUrl m_cloudUrl{};

@@ -3,9 +3,9 @@
 Genycaster stores the user features **not provided by Farcaster** in its own
 PostgreSQL database `genycaster_db`. The account user interface must **not**
 show any "Cloud Sync", "Enable Sync", "Upload" or "Restore" controls.
-Bookmarking, editing profile links, and changing self-authored connection URLs
-are ordinary product actions. They are stored locally first and then
-replicated automatically when a verified Genycaster account is online.
+Bookmarking, editing profile links, writing Cast drafts and changing account URLs
+are ordinary product actions. The Genycaster database is canonical for account
+state; local device data serves only as a responsive and offline cache.
 
 OpenProof remains the identity and connection authority. A user-entered
 LinkedIn URL is *self-asserted*; it does not become OpenProof-verified.
@@ -13,8 +13,9 @@ Farcaster/Snapchain remain the protocol source for casts, signers and likes.
 
 ## Schema
 
-Apply migrations `001_bookmarks.sql`, `002_cloud_state.sql`, then
-`003_profile_extras.sql` inside the separate `genycaster_db`.
+Apply migrations `001_bookmarks.sql`, `002_cloud_state.sql`,
+`003_profile_extras.sql` and `004_account_sessions.sql` inside
+`genycaster_db` with an authorized database-admin role.
 
 | Table | Genycaster-owned purpose |
 | --- | --- |
@@ -27,6 +28,7 @@ Apply migrations `001_bookmarks.sql`, `002_cloud_state.sql`, then
 | `tasks` | Future scheduled task definitions; no unattended signer or scheduler |
 | `app_updates` | Public version information, read-only to users |
 | `schema_migrations` | Administrative schema tracking |
+| `account_sessions` | Verified per-browser sessions, stored by token digest |
 
 The API runtime must connect with a restricted `genycaster_api` role; no
 connection to or grants on OpenProof's PostgreSQL database are required.
@@ -63,6 +65,29 @@ client-submitted FID, identity ID, username and issuer when choosing an owner.
 
 Changing the current viewer FID cancels pending network operations and
 selects a different per-account local outbox and cursor.
+
+## Persistent account access
+
+A verified OpenProof/Farcaster grant automatically establishes a 30-day
+same-origin account session at POST /api/v1/cloud/session. PostgreSQL stores
+only a SHA-256 token digest, while the browser holds a Secure, HttpOnly,
+SameSite=Strict, host-only cookie. The Qt client retains only the current
+FID and a CSRF value in memory, never a persisted OpenProof bearer.
+GET /session validates this cookie and returns the database's verified FID.
+A remembered local FID alone must **never** authorize account reads.
+All cookie-authorized writes require the CSRF header. DELETE /session
+revokes the record on sign-out.
+
+Migration 004 is mandatory before restarting the updated backend. Apply it
+with the DB administrator, verify the restricted API role, then activate
+the server and test same-origin browser cookies before publishing the new
+WASM client.
+
+The production Nginx `/api/v1/cloud/` proxy currently limits request bodies
+to 24 KiB while the API explicitly supports 192 KiB rich drafts. Increase
+`client_max_body_size` for **that location only** to at least `208k`,
+validate with `nginx -t`, and reload Nginx before claiming full-size draft
+support. Do not alter unrelated upload or API limits.
 
 ## User-visible behavior
 

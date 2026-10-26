@@ -1,5 +1,24 @@
 // Genycaster-owned cloud state. OpenProof authorizes the principal, but never
 // stores these app-specific preferences, drafts, bookmarks or schedules.
+import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';
+
+const SESSION_COOKIE='__Host-genycaster-account';
+const SESSION_LIFETIME=30*24*60*60;
+function sessionToken(request) {
+  const cookies=String(request.headers.cookie||'').split(';');
+  const match=cookies.map(value=>value.trim()).find(value=>
+    value.startsWith(SESSION_COOKIE+'='));
+  const value=match?.slice(SESSION_COOKIE.length+1)||'';
+  return /^[A-Za-z0-9_-]{43}$/.test(value) ? value : null;
+}
+function sessionDigest(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
+function csrfMatches(header,expected) {
+  if(typeof header!=='string' || typeof expected!=='string' ||
+     header.length!==43 || expected.length!==43)return false;
+  return timingSafeEqual(Buffer.from(header),Buffer.from(expected));
+}
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PROVIDER = /^[a-z][a-z0-9-]{0,39}$/;
 const HASH = /^0x[0-9a-f]{40}$/i;
@@ -136,6 +155,23 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
   // stable owner; caller-supplied identity/FID is never accepted.
   async function authorize(request) {
     const header=String(request.headers.authorization||'');
+    if (!header) {
+      // Browser continuity is backed by an independently verified,
+      // server-issued HttpOnly cookie. A bare remembered FID is never proof.
+      const cookie=sessionToken(request);
+      if(!cookie || typeof store.getSession!=='function') return null;
+      const session=await store.getSession(sessionDigest(cookie));
+      if(!session || !/^farcaster:[1-9][0-9]{0,18}$/.test(session.subject))
+        return null;
+      // Browsers automatically attach cookies: non-GET operations additionally
+      // require a secret returned only to the same-origin account client.
+      if(request.method!=='GET' &&
+          !csrfMatches(request.headers['x-genycaster-csrf'],session.csrf_token))
+        return null;
+      return {issuer:session.issuer,subject:session.subject,
+        fid:session.subject.slice('farcaster:'.length),
+        cookieAuth:true,sessionToken:cookie,csrfToken:session.csrf_token};
+    }
     if (!/^Bearer [A-Za-z0-9._~+/-]+={0,2}$/.test(header) || header.length>8192) return null;
     const recovery=header.startsWith('Bearer recovery.');
     // A recovery ticket is verified by the pre-existing Farcaster broker in
@@ -169,7 +205,8 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
     if (!path.startsWith('/api/v1/cloud/')) return false;
     const entity=path.slice('/api/v1/cloud/'.length);
     if (!['connections','bookmarks','notifications','notification_seen',
-      'app_updates','tasks','drafts','profile_extras','connections/refresh'].includes(entity)) {
+      'app_updates','tasks','drafts','profile_extras','connections/refresh',
+      'session'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
     if (entity==='app_updates') {
@@ -182,6 +219,35 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
     try {owner=await authorize(request);}catch{}
     if (!owner) {respond(response,401,{error:'authentication_required'});return true;}
     try {
+      if(entity==='session') {
+        if(request.method==='POST') {
+          // A verified, fresh OpenProof/Farcaster grant is the only bootstrap
+          // path. An existing cookie cannot issue an unlimited new cookie.
+          if(owner.cookieAuth || typeof store.createSession!=='function') {
+            respond(response,401,{error:'authentication_required'});return true;
+          }
+          const token=randomBytes(32).toString('base64url');
+          const csrf=randomBytes(32).toString('base64url');
+          await store.createSession(owner,sessionDigest(token),csrf);
+          response.setHeader('Set-Cookie', SESSION_COOKIE+'='+token+
+            '; Path=/; Max-Age='+SESSION_LIFETIME+
+            '; Secure; HttpOnly; SameSite=Strict');
+          respond(response,200,{fid:owner.fid,csrf_token:csrf});
+          return true;
+        }
+        if(request.method==='GET' && owner.cookieAuth) {
+          respond(response,200,{fid:owner.fid,csrf_token:owner.csrfToken});
+          return true;
+        }
+        if(request.method==='DELETE' && owner.cookieAuth
+           && typeof store.revokeSession==='function') {
+          await store.revokeSession(sessionDigest(owner.sessionToken));
+          response.setHeader('Set-Cookie',SESSION_COOKIE+
+            '=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict');
+          respond(response,200,{revoked:true});return true;
+        }
+        respond(response,405,{error:'method_not_allowed'});return true;
+      }
       if (entity==='notification_seen') {
         // A private account-wide read watermark, not a protocol notification.
         // The server resolves the owner from the verified bearer, never a FID

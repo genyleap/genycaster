@@ -25,13 +25,29 @@ export async function createPgStore(connectionString) {
   const pool=new Pool({connectionString, max:8, connectionTimeoutMillis:4000,
     idleTimeoutMillis:20000, statement_timeout:6000});
   // Fail closed without explicit schema provisioning. Never CREATE tables in a request.
-  const migration=await pool.query('SELECT version FROM schema_migrations WHERE version=3');
+  const migration=await pool.query('SELECT version FROM schema_migrations WHERE version=4');
   if (migration.rowCount !== 1) {
     await pool.end();
-    throw new Error('Genycaster database schema v3 is required');
+    throw new Error('Genycaster database schema v4 is required');
   }
   return {
     close:()=>pool.end(),
+    async createSession({issuer,subject},tokenHash,csrfToken) {
+      await pool.query(`INSERT INTO account_sessions
+          (issuer,subject,token_hash,csrf_token,expires_at)
+          VALUES ($1,$2,$3,$4,now()+interval '30 days')`,
+        [issuer,subject,tokenHash,csrfToken]);
+    },
+    async getSession(tokenHash) {
+      const result=await pool.query(`SELECT issuer,subject,csrf_token
+          FROM account_sessions WHERE token_hash=$1 AND expires_at>now()`,
+        [tokenHash]);
+      return result.rows[0]||null;
+    },
+    async revokeSession(tokenHash) {
+      await pool.query('DELETE FROM account_sessions WHERE token_hash=$1',
+        [tokenHash]);
+    },
     async getDraft({issuer,subject},id) {
       const result=await pool.query(`SELECT ${COLUMNS.drafts}
           FROM drafts WHERE issuer=$1 AND subject=$2 AND id=$3`,

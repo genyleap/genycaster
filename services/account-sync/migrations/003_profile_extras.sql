@@ -1,6 +1,6 @@
 -- Add owner-managed profile presentation data to Genycaster's own database.
 -- OpenProof verifies the principal. These fields are NOT provider-verified.
--- Explicit cloud sync is optional; local-only accounts continue to work.
+-- The account database is canonical; an offline device cache grants no identity.
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS profile_extras (

@@ -8,7 +8,12 @@ test('existing Farcaster/OpenProof authorization is reused, never exposed to QML
   const code=read('ui/mobile/openproof_connections_controller.cpp');
   const api=read('services/account-sync/cloud_state.mjs');
   assert.match(header,/Q_PROPERTY\(bool cloudAuthorizationReady READ cloudAuthorizationReady/);
-  assert.match(header,/return m_verified && !m_accountBearer\.isEmpty\(\)/);
+  assert.match(header,/\(m_verified && !m_accountBearer\.isEmpty\(\)\) \|\| m_cloudSessionVerified/);
+  // FID-only local continuation is not enough; a server-verified
+  // browser session is recovered automatically before account API use.
+  assert.match(code,/restoreAccountSession\(\)/);
+  assert.match(code,/bootstrapAccountSession\(\)/);
+  assert.match(code,/authorizeCloudRequest\(request\)/);
   assert.doesNotMatch(header,/authorizeCloudAccount\(/);
   assert.doesNotMatch(code,/authorizeCloudAccount\(/);
   assert.match(api,/subject:'farcaster:'\+fid/);

@@ -108,11 +108,14 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
     connect(&m_grantExpiry, &QTimer::timeout, this, [this] {
         clearAccountGrant();
         restoreCachedConnections();
+        if(m_cloudSessionVerified)m_bookmarkPoll.start();
         m_error.clear();
         emit stateChanged();
     });
     m_bookmarkPoll.setInterval(25'000);
     connect(&m_bookmarkPoll, &QTimer::timeout, this, [this] {
+        if(m_verified && !m_cloudSessionVerified && !m_sessionRequest)
+            bootstrapAccountSession();
         if (!m_cloudServiceAvailable) checkCloudService();
         else {
             // Connections are account data too: poll for changes made on
@@ -209,6 +212,115 @@ void OpenProofConnectionsController::setManualLinkedInUrl(const QString& candida
 }
 
 
+void OpenProofConnectionsController::authorizeCloudRequest(
+    QNetworkRequest& request) const
+{
+    if (m_cloudSessionVerified && !m_cloudCsrf.isEmpty())
+        request.setRawHeader("X-Genycaster-CSRF", m_cloudCsrf);
+    else if (m_verified && !m_accountBearer.isEmpty())
+        request.setRawHeader("Authorization", "Bearer " + m_accountBearer);
+}
+
+void OpenProofConnectionsController::restoreAccountSession()
+{
+    if (!m_viewerFid || !trustedHttpsEndpoint(m_cloudUrl)
+        || m_sessionRequest) return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/session"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept","application/json");
+    auto* reply=m_network.get(request);
+    m_sessionRequest=reply;
+    const auto generation=m_grantGeneration;
+    const auto viewer=m_viewerFid;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,generation,viewer] {
+        if(m_sessionRequest==reply)m_sessionRequest=nullptr;
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<8192?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(generation!=m_grantGeneration || viewer!=m_viewerFid || status!=200)
+            return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        if(!doc.isObject())return;
+        const auto data=doc.object();
+        const auto csrf=data.value(QStringLiteral("csrf_token")).toString().toUtf8();
+        if(data.value(QStringLiteral("fid")).toString()!=QString::number(viewer)
+            || csrf.size()!=43)return;
+        m_cloudSessionVerified=true;
+        m_cloudCsrf=csrf;
+        m_bookmarkPoll.start();
+        emit stateChanged();
+        if(m_cloudServiceAvailable) {
+            pumpBookmarkChanges();
+            pumpNotificationSeenAt();
+            pumpDraftChanges();
+        } else checkCloudService();
+    });
+}
+
+void OpenProofConnectionsController::bootstrapAccountSession()
+{
+    if(!m_viewerFid || !m_verified || m_accountBearer.isEmpty()
+        || !trustedHttpsEndpoint(m_cloudUrl))return;
+    if(m_sessionRequest) {
+        m_sessionRequest->abort();
+        m_sessionRequest->deleteLater();
+        m_sessionRequest=nullptr;
+    }
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/session"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept","application/json");
+    request.setRawHeader("Authorization","Bearer "+m_accountBearer);
+    auto* reply=m_network.post(request,QByteArray{});
+    m_sessionRequest=reply;
+    const auto generation=m_grantGeneration;
+    const auto viewer=m_viewerFid;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,generation,viewer] {
+        if(m_sessionRequest==reply)m_sessionRequest=nullptr;
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<8192?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(generation!=m_grantGeneration || viewer!=m_viewerFid || status!=200)
+            return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        if(!doc.isObject())return;
+        const auto data=doc.object();
+        const auto csrf=data.value(QStringLiteral("csrf_token")).toString().toUtf8();
+        if(data.value(QStringLiteral("fid")).toString()!=QString::number(viewer)
+            || csrf.size()!=43)return;
+        // A successful Set-Cookie response is not proof that a browser
+        // actually retained an HttpOnly cookie (privacy policy or storage
+        // restrictions may reject it). Require a same-origin GET roundtrip.
+        m_cloudSessionVerified=false;
+        m_cloudCsrf.clear();
+        emit stateChanged();
+        restoreAccountSession();
+    });
+}
+
+void OpenProofConnectionsController::revokeAccountSession()
+{
+    if(!m_viewerFid || !m_cloudSessionVerified || m_cloudCsrf.isEmpty()
+        || !trustedHttpsEndpoint(m_cloudUrl))return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/session"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept","application/json");
+    request.setRawHeader("X-Genycaster-CSRF",m_cloudCsrf);
+    auto* reply=m_network.deleteResource(request);
+    connect(reply,&QNetworkReply::finished,reply,&QObject::deleteLater);
+}
+
 void OpenProofConnectionsController::checkCloudService()
 {
     if (m_cloudProbe || !trustedHttpsEndpoint(m_cloudUrl)
@@ -234,7 +346,7 @@ void OpenProofConnectionsController::checkCloudService()
         m_cloudServiceAvailable = status == 200 && doc.isObject()
             && doc.object().value(QStringLiteral("items")).isArray();
         emit cloudStateChanged();
-        if (m_cloudServiceAvailable && m_verified && cloudAuthorizationReady()) {
+        if (m_cloudServiceAvailable && cloudAuthorizationReady()) {
             m_bookmarkPoll.start();
             reconcileLinkedIn();
             pumpBookmarkChanges();
@@ -272,7 +384,7 @@ void OpenProofConnectionsController::recordBookmarkMutation(
 
 void OpenProofConnectionsController::migrateLocalBookmarks(const QStringList& ids)
 {
-    if (!m_settings || !m_viewerFid || !m_verified
+    if (!m_settings || !m_viewerFid
         || !m_cloudServiceAvailable || !cloudAuthorizationReady()) return;
     const QString key=bookmarkStorageKey() + QStringLiteral("/migrated");
     if (m_settings->value(key).toBool()) return;
@@ -289,7 +401,7 @@ void OpenProofConnectionsController::migrateLocalBookmarks(const QStringList& id
 
 void OpenProofConnectionsController::pumpBookmarkChanges()
 {
-    if (!m_settings || !m_viewerFid || !m_verified
+    if (!m_settings || !m_viewerFid
         || !cloudAuthorizationReady() || !m_cloudServiceAvailable
         || m_cloudRequest || !trustedHttpsEndpoint(m_cloudUrl)) return;
     QUrl url=m_cloudUrl;
@@ -306,7 +418,7 @@ void OpenProofConnectionsController::pumpBookmarkChanges()
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(9'000);
     request.setRawHeader("Accept","application/json");
-    request.setRawHeader("Authorization","Bearer " + m_accountBearer);
+    authorizeCloudRequest(request);
     QVariantMap pending;
     QNetworkReply* reply{};
     if (uploading) {
@@ -443,7 +555,7 @@ void OpenProofConnectionsController::recordNotificationSeenAt(
 
 void OpenProofConnectionsController::pumpNotificationSeenAt(const bool upload)
 {
-    if (!m_viewerFid || !m_settings || !m_verified || !cloudAuthorizationReady()
+    if (!m_viewerFid || !m_settings || !cloudAuthorizationReady()
         || !m_cloudServiceAvailable || m_cloudRequest
         || !trustedHttpsEndpoint(m_cloudUrl)) return;
     QUrl url=m_cloudUrl;
@@ -453,7 +565,7 @@ void OpenProofConnectionsController::pumpNotificationSeenAt(const bool upload)
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(9'000);
     request.setRawHeader("Accept","application/json");
-    request.setRawHeader("Authorization","Bearer " + m_accountBearer);
+    authorizeCloudRequest(request);
     const qlonglong uploadedAt=upload ? m_notificationSeenAtMs : 0;
     QNetworkReply* reply{};
     if (upload) {
@@ -551,7 +663,7 @@ void OpenProofConnectionsController::confirmDraftSnapshot(
 
 void OpenProofConnectionsController::pumpDraftChanges()
 {
-    if (!m_settings || !m_viewerFid || !m_verified ||
+    if (!m_settings || !m_viewerFid ||
         !cloudAuthorizationReady() || !m_cloudServiceAvailable ||
         m_draftRequest || !trustedHttpsEndpoint(m_cloudUrl)) return;
     QUrl url=m_cloudUrl;
@@ -565,7 +677,7 @@ void OpenProofConnectionsController::pumpDraftChanges()
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(9'000);
     request.setRawHeader("Accept","application/json");
-    request.setRawHeader("Authorization","Bearer "+m_accountBearer);
+    authorizeCloudRequest(request);
     auto* reply=m_network.get(request);
     m_draftRequest=reply;
     const auto generation=m_grantGeneration;
@@ -694,7 +806,7 @@ void OpenProofConnectionsController::pumpDraftChanges()
 void OpenProofConnectionsController::uploadDraftChange()
 {
     if (!m_settings || !m_draftRemoteInitialized || m_draftConflict ||
-        !m_viewerFid || !m_verified || !cloudAuthorizationReady() ||
+        !m_viewerFid || !cloudAuthorizationReady() ||
         !m_cloudServiceAvailable || m_draftRequest ||
         m_draftRemoteRevision!=m_draftRevision ||
         !m_settings->value(draftStorageKey()+QStringLiteral("/dirty")).toBool())
@@ -726,7 +838,7 @@ void OpenProofConnectionsController::uploadDraftChange()
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(9'000);
     request.setRawHeader("Accept","application/json");
-    request.setRawHeader("Authorization","Bearer "+m_accountBearer);
+    authorizeCloudRequest(request);
     request.setHeader(QNetworkRequest::ContentTypeHeader,QStringLiteral("application/json"));
     auto* reply=m_network.put(request,data);
     m_draftRequest=reply;
@@ -932,8 +1044,8 @@ void OpenProofConnectionsController::sendCloudProfileRequest(
         emit cloudStateChanged();
         return;
     }
-    if (!m_verified || !m_viewerFid || m_accountBearer.isEmpty() || m_cloudRequest) {
-        m_cloudError = QStringLiteral("Authorize your OpenProof account before using cloud sync.");
+    if (!m_viewerFid || !cloudAuthorizationReady() || m_cloudRequest) {
+        m_cloudError = QStringLiteral("Account data is temporarily unavailable. Local edits are preserved.");
         emit cloudStateChanged();
         return;
     }
@@ -949,7 +1061,7 @@ void OpenProofConnectionsController::sendCloudProfileRequest(
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(9'000);
     request.setRawHeader("Accept", "application/json");
-    request.setRawHeader("Authorization", "Bearer " + m_accountBearer);
+    authorizeCloudRequest(request);
     QNetworkReply* reply{};
     if (upload) {
         auto payload = QJsonObject::fromVariantMap(fields);
@@ -1228,6 +1340,14 @@ void OpenProofConnectionsController::clearAccountGrant()
 void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
 {
     if (m_viewerFid == fid) return;
+    if(m_viewerFid)revokeAccountSession();
+    if(m_sessionRequest) {
+        m_sessionRequest->abort();
+        m_sessionRequest->deleteLater();
+        m_sessionRequest=nullptr;
+    }
+    m_cloudSessionVerified=false;
+    m_cloudCsrf.clear();
     m_authorization.cancel();
     clearAccountGrant();
     m_authorizing = false;
@@ -1257,6 +1377,7 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_draftConflict=false;
     restoreCachedConnections();
     emit stateChanged();
+    if(m_viewerFid)restoreAccountSession();
 }
 
 void OpenProofConnectionsController::acceptAuthenticatedGrant(
@@ -1493,6 +1614,7 @@ void OpenProofConnectionsController::refreshConnections()
             m_verified = true;
             m_cachedSnapshot = false;
             m_bookmarkPoll.start();
+            bootstrapAccountSession();
             if (m_cloudServiceAvailable) {
                 reconcileLinkedIn();
                 pumpBookmarkChanges();
