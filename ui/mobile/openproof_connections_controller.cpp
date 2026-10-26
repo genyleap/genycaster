@@ -751,31 +751,46 @@ void OpenProofConnectionsController::pumpDraftChanges()
             "composer/accounts/fid_%1/richDraftV1").arg(viewer);
         const bool hasLocalDraft=m_settings->contains(localDocumentKey);
         bool dirty=m_settings->value(key+QStringLiteral("/dirty")).toBool();
-        // The database is authoritative for an existing account draft.
-        // Import an old device-only draft only into an empty account record.
-        // Otherwise preserve the previous device copy separately before
-        // showing the current database document; never create a fake CAS
-        // conflict merely because this is the device's first server read.
-        if (!m_settings->value(key+QStringLiteral("/seen")).toBool()
-            && hasLocalDraft && !dirty) {
-            if (remoteRevision==0) {
-                dirty=true;
-                m_settings->setValue(key+QStringLiteral("/dirty"),true);
-                m_settings->setValue(key+QStringLiteral("/deleted"),false);
-            } else {
-                const auto previous=m_settings->value(localDocumentKey).toByteArray();
-                const auto canonical=QJsonDocument{
-                    remote.value(QStringLiteral("content")).toObject()
-                        .value(QStringLiteral("document")).toObject()
-                }.toJson(QJsonDocument::Compact);
-                if (!previous.isEmpty() &&
-                    (deleted || QJsonDocument::fromJson(previous).object()
-                        != QJsonDocument::fromJson(canonical).object())) {
-                    const auto backupKey=key+QStringLiteral("/legacy-device-backup");
-                    if (!m_settings->contains(backupKey))
-                        m_settings->setValue(backupKey,previous);
+        // The database is canonical for an existing account draft. A
+        // pre-account local document or an older pending edit must never
+        // prevent another device's newer revision from being displayed.
+        // Preserve any differing local work *before* accepting the server
+        // version. An active editor still refuses remote application.
+        const bool seen=m_settings->value(key+QStringLiteral("/seen")).toBool();
+        const auto previous=m_settings->value(localDocumentKey).toByteArray();
+        const auto localDocument=QJsonDocument::fromJson(previous);
+        const auto serverDocument=remote.value(QStringLiteral("content")).toObject()
+            .value(QStringLiteral("document")).toObject();
+        const bool differs=hasLocalDraft &&
+            (deleted || !localDocument.isObject()
+                || localDocument.object()!=serverDocument);
+        const bool staleDirty=dirty && remoteRevision>m_draftRevision;
+        if (remoteRevision==0 && !seen && hasLocalDraft && !dirty) {
+            dirty=true;
+            m_settings->setValue(key+QStringLiteral("/dirty"),true);
+            m_settings->setValue(key+QStringLiteral("/deleted"),false);
+            m_settings->sync();
+        } else if (remoteRevision>0 &&
+                   (!seen || staleDirty || (differs && remoteRevision==m_draftRevision))) {
+            if (differs && !previous.isEmpty()) {
+                const auto backupKey=key+QStringLiteral("/legacy-device-backup");
+                if (!m_settings->contains(backupKey))
+                    m_settings->setValue(backupKey,previous);
+                if (staleDirty) {
+                    const auto conflictKey=key+QStringLiteral("/conflict-device-backup/")
+                        +QString::number(m_draftMutationSerial);
+                    if (!m_settings->contains(conflictKey))
+                        m_settings->setValue(conflictKey,previous);
                 }
             }
+            if (staleDirty) {
+                // This older local version is safe in its own backup; it is
+                // not entitled to overwrite a newer database document.
+                dirty=false;
+                m_draftConflict=false;
+                m_settings->setValue(key+QStringLiteral("/dirty"),false);
+            }
+            m_settings->setValue(key+QStringLiteral("/seen"),true);
             m_settings->sync();
         }
         m_draftRemoteRevision=remoteRevision;
@@ -818,7 +833,8 @@ void OpenProofConnectionsController::pumpDraftChanges()
             return;
         }
         m_draftConflict=false;
-        if (remoteRevision==m_draftRevision || remoteRevision==0) {
+        if (remoteRevision==0 || (remoteRevision==m_draftRevision
+            && (deleted ? !hasLocalDraft : !differs))) {
             m_settings->setValue(key+QStringLiteral("/seen"),true);
             return;
         }
@@ -1073,7 +1089,7 @@ void OpenProofConnectionsController::sendCloudProfileRequest(
     // not a cloud-authentication grant. Only a freshly FID-verified OpenProof
     // bearer can access account-owned private state.
     if (!m_cloudServiceAvailable) {
-        m_cloudError = QStringLiteral("Genycaster cloud database is not active. Local changes are safe.");
+        m_cloudError = QStringLiteral("Account data service is unavailable. Your local edits are preserved.");
         emit cloudStateChanged();
         return;
     }
@@ -1085,7 +1101,7 @@ void OpenProofConnectionsController::sendCloudProfileRequest(
     if (!trustedHttpsEndpoint(m_cloudUrl)
         || m_cloudUrl.path() != QStringLiteral("/api/v1/cloud/profile_extras")
         || m_cloudUrl.hasQuery()) {
-        m_cloudError = QStringLiteral("Genycaster cloud sync is not configured.");
+        m_cloudError = QStringLiteral("Account data service is not configured.");
         emit cloudStateChanged();
         return;
     }
@@ -1107,7 +1123,7 @@ void OpenProofConnectionsController::sendCloudProfileRequest(
         payload[QStringLiteral("publicly_visible")] = false;
         const auto body = QJsonDocument{payload}.toJson(QJsonDocument::Compact);
         if (body.size() > 20 * 1024) {
-            m_cloudError = QStringLiteral("Profile data is too large to sync.");
+            m_cloudError = QStringLiteral("Profile details exceed the storage limit.");
             emit cloudStateChanged();
             return;
         }
@@ -1134,13 +1150,13 @@ void OpenProofConnectionsController::sendCloudProfileRequest(
         const auto doc = QJsonDocument::fromJson(bytes);
         if (status == 409) {
             m_cloudError = QStringLiteral(
-                "Another device changed the cloud profile. Restore its latest version before uploading.");
+                "Another device saved newer profile details. Your local edits remain preserved.");
         } else if (status == 401 || status == 403) {
-            m_cloudError = QStringLiteral("Your OpenProof authorization has expired. Reauthorize to sync.");
+            m_cloudError = QStringLiteral("Your account authorization is unavailable. Local edits are preserved.");
         } else if (status == 503 || status == 404 || status == 0) {
-            m_cloudError = QStringLiteral("Genycaster cloud storage is not available yet. Local changes are safe.");
+            m_cloudError = QStringLiteral("Account data service is temporarily unavailable. Local edits are preserved.");
         } else if (status != 200 || !doc.isObject()) {
-            m_cloudError = QStringLiteral("Could not synchronize profile details.");
+            m_cloudError = QStringLiteral("Could not save profile details to your account.");
         } else {
             const auto item = doc.object().value(QStringLiteral("item"));
             if (item.isObject()) {
@@ -1156,14 +1172,14 @@ void OpenProofConnectionsController::sendCloudProfileRequest(
                     if (upload) emit cloudProfileExtrasSaved(fields);
                     else emit cloudProfileExtrasReceived(fields);
                 } else {
-                    m_cloudError = QStringLiteral("The cloud returned invalid profile details.");
+                    m_cloudError = QStringLiteral("Account data service returned invalid profile details.");
                 }
             } else if (!upload && item.isNull()) {
                 m_cloudRevision = 0;
                 m_cloudError.clear();
                 emit cloudProfileExtrasReceived({});
             } else {
-                m_cloudError = QStringLiteral("The cloud returned an invalid response.");
+                m_cloudError = QStringLiteral("Account data service returned an invalid response.");
             }
         }
         emit cloudStateChanged();

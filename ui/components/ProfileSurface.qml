@@ -57,12 +57,43 @@ Item {
         } catch (_) { return ({}) }
     }
     readonly property bool cloudLocalDirty: root.cloudAccountFlags.dirty === true
-    function setCloudFlags(dirty) {
+    function setCloudFlags(dirty, baseRevision) {
         if (!root.profileExtrasOwnerKey) return
         try {
             const owners = JSON.parse(profileCloudSettings.perAccountJson || "{}")
-            owners[root.profileExtrasOwnerKey] = {dirty: dirty}
+            const old = owners[root.profileExtrasOwnerKey] || ({})
+            // Only an explicit user edit records its known server revision.
+            // Existing legacy "dirty" flags without a revision are NOT proof
+            // that the cache may replace a newer database record.
+            const base = baseRevision === undefined
+                ? old.baseRevision : baseRevision
+            owners[root.profileExtrasOwnerKey] = {
+                dirty: dirty, baseRevision: base === undefined ? null : base,
+                localBackups: old.localBackups || []
+            }
             profileCloudSettings.perAccountJson = JSON.stringify(owners)
+        } catch (_) { }
+    }
+    function preserveConflictingProfile(item) {
+        if (!root.profileExtrasOwnerKey) return
+        try {
+            const owners = JSON.parse(profileCloudSettings.perAccountJson || "{}")
+            const previous = owners[root.profileExtrasOwnerKey] || ({})
+            const snapshots = previous.localBackups || []
+            snapshots.push({
+                value: root.profileExtras,
+                baseRevision: previous.baseRevision === undefined
+                    ? null : previous.baseRevision,
+                serverRevision: Number(item.revision || 0)
+            })
+            // Bounded backups preserve offline user work without letting stale
+            // device caches silently replace the account database.
+            owners[root.profileExtrasOwnerKey] = {
+                dirty: false, baseRevision: Number(item.revision || 0),
+                localBackups: snapshots.slice(-5)
+            }
+            profileCloudSettings.perAccountJson = JSON.stringify(owners)
+            root.profileExtrasError = qsTr("Another device has newer profile details. Your previous local edit was preserved.")
         } catch (_) { }
     }
     function cloudProfilePayload() {
@@ -92,7 +123,7 @@ Item {
                 labels: links.map(entry => String(entry.label || "").slice(0, 32))
             }
             profileExtrasSettings.entriesJson = JSON.stringify(owners)
-            root.setCloudFlags(false)
+            root.setCloudFlags(false, Number(item.revision || 0))
         } catch (_) { }
     }
     Connections {
@@ -100,9 +131,19 @@ Item {
         function onCloudProfileExtrasReceived(item) {
             if (!root.isOwnProfile) return
             if (root.cloudLocalDirty) {
-                // Revisions are read from the service before replaying
-                // pending offline edits. Never erase unsent local values.
-                openProofConnections.pushCloudProfileExtras(root.cloudProfilePayload())
+                const remoteRevision = Number(item && item.revision || 0)
+                const baseRevision = root.cloudAccountFlags.baseRevision
+                // A legacy device cache has no CAS base. It may be imported
+                // only when the database has no record. A contemporary edit
+                // may be uploaded only when its known base is current.
+                if (remoteRevision === 0 ||
+                        (typeof baseRevision === "number" &&
+                         baseRevision === remoteRevision)) {
+                    openProofConnections.pushCloudProfileExtras(root.cloudProfilePayload())
+                } else {
+                    root.preserveConflictingProfile(item)
+                    root.restoreCloudProfile(item)
+                }
             } else if (item && typeof item.category === "string") {
                 root.restoreCloudProfile(item)
             } else if (Object.keys(root.profileExtras).length > 0) {
@@ -119,7 +160,7 @@ Item {
             const same = item.category === latest.category
                       && item.profession === latest.profession
                       && JSON.stringify(item.links || []) === JSON.stringify(latest.links)
-            if (same) root.setCloudFlags(false)
+            if (same) root.setCloudFlags(false, Number(item.revision || 0))
             else {
                 root.setCloudFlags(true)
                 if (!openProofConnections.cloudBusy)
@@ -273,7 +314,7 @@ Item {
             profileExtrasSettings.entriesJson = JSON.stringify(entries)
             root.profileExtrasError = ""
             root.profileLinksExpanded = false
-            root.setCloudFlags(true)
+            root.setCloudFlags(true, Number(openProofConnections.cloudRevision || 0))
             if (openProofConnections.cloudServiceAvailable
                     && openProofConnections.cloudAuthorizationReady
                     && !openProofConnections.cloudBusy)

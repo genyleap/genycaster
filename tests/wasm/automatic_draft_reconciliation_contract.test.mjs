@@ -14,6 +14,8 @@ test('composer saves or clears only ordinary FID-scoped drafts and never publish
   assert.match(composer,/m_impl->dirty \|\| m_impl->contextDocument/);
   assert.match(composer,/m_impl->applyingRemote=true/);
   assert.match(composer,/m_impl->composerActive[\s\S]*?m_impl->dirty \|\| m_impl->contextDocument/);
+  assert.match(composer,/if \(!active && m_impl->contextDocument\) \{/);
+  assert.match(composer,/m_impl->contextDocument=false;[\s\S]*?m_impl->newEmpty\(false\)/);
   const drawer=read('ui/components/ComposerDrawer.qml');
   assert.match(drawer,/onOpened: \{\s*richComposer\.setComposerActive\(true\)/);
   assert.match(drawer,/onClosed: \{[\s\S]*?richComposer\.setComposerActive\(false\)/);
@@ -31,9 +33,9 @@ test('account draft replication reuses verified native bearer with durable per-F
   assert.match(account,/m_draftConflict=true/);
   // First read of an existing server draft is not a concurrency conflict
   // merely because an older client left a locally scoped draft behind.
-  assert.match(account,/if \(remoteRevision==0\) \{/);
+  assert.match(account,/if \(remoteRevision==0 && !seen && hasLocalDraft && !dirty\) \{/);
   assert.match(account,/legacy-device-backup/);
-  assert.match(account,/if \(!previous\.isEmpty\(\) &&/);
+  assert.match(account,/if \(differs && !previous\.isEmpty\(\)\)/);
   assert.match(account,/localDoc\.object\(\)==serverDoc/);
   assert.match(account,/QStringLiteral\("\/dirty"\),false/);
   assert.match(account,/status==409/);

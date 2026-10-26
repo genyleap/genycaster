@@ -930,6 +930,14 @@ void RichComposerController::setViewerFid(const qulonglong fid)
 void RichComposerController::setComposerActive(const bool active)
 {
     m_impl->composerActive=active;
+    if (!active && m_impl->contextDocument) {
+        // An ephemeral reply/quote must not block incoming account drafts
+        // after its drawer has closed. The ordinary unpublished draft lives
+        // in its separate, FID-scoped QSettings key and is not deleted.
+        m_impl->autosave.stop();
+        m_impl->contextDocument=false;
+        m_impl->newEmpty(false);
+    }
 }
 
 bool RichComposerController::applyAccountDraft(
