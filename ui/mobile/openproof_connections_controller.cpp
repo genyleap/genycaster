@@ -306,6 +306,29 @@ void OpenProofConnectionsController::bootstrapAccountSession()
     });
 }
 
+void OpenProofConnectionsController::acceptBrowserAccountSession(
+    const qulonglong fid, QByteArray csrf)
+{
+    static const QRegularExpression csrfFormat{
+        QStringLiteral("^[A-Za-z0-9_-]{43}$")};
+    if(!fid || fid!=m_viewerFid || !csrfFormat.match(
+            QString::fromLatin1(csrf)).hasMatch()) {
+        csrf.fill('\\0');
+        return;
+    }
+    // The browser only emits this after a verified signed challenge AND a
+    // same-origin GET that proves the HttpOnly cookie was actually stored.
+    m_cloudSessionVerified=true;
+    m_cloudCsrf=std::move(csrf);
+    m_bookmarkPoll.start();
+    emit stateChanged();
+    if(m_cloudServiceAvailable) {
+        pumpBookmarkChanges();
+        pumpNotificationSeenAt();
+        pumpDraftChanges();
+    } else checkCloudService();
+}
+
 void OpenProofConnectionsController::revokeAccountSession()
 {
     if(!m_viewerFid || !m_cloudSessionVerified || m_cloudCsrf.isEmpty()

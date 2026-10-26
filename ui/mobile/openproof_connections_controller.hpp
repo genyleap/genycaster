@@ -109,6 +109,10 @@ public:
      * independently verified Farcaster custody recovery; never persists it. */
     void acceptRecoveryGrant(QByteArray ticket, QString subject,
                              std::uint64_t fid, int expiresSeconds);
+    /** An already registered Farcaster signer proved ownership to the
+     * same-origin Genycaster API. Accept only the active account's CSRF
+     * capability; the HttpOnly cookie itself never crosses into Qt. */
+    void acceptBrowserAccountSession(qulonglong fid, QByteArray csrf);
 
     /** @brief Refreshes public provider capabilities over bounded HTTPS.
      * Network or CORS errors preserve the last known display-only list. */

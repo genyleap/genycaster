@@ -412,6 +412,9 @@ if(EMSCRIPTEN)
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_device_session.mjs"
             "$<TARGET_FILE_DIR:farcaster_client>/browser_device_session.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_account_session.mjs"
+            "$<TARGET_FILE_DIR:farcaster_client>/browser_account_session.mjs"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_media_upload.mjs"
             "$<TARGET_FILE_DIR:farcaster_client>/browser_media_upload.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different

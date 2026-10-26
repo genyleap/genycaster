@@ -57,6 +57,29 @@
             snapchainBase: base,
             onState(status) {
                 report({kind: "signer", ...status});
+                // The registered Farcaster signer can independently prove
+                // the account owner for private Genycaster database access.
+                // This is automatic after verified signer restoration.
+                if(status.phase==="ready" && status.ready && status.fid) {
+                    const fid=String(status.fid);
+                    const currentEpoch=epoch;
+                    if(owner===fid) {
+                        void import('./browser_account_session.mjs')
+                            .then(module=>module.ensureBrowserAccountSession({
+                                fid,origin:window.location.origin,
+                            }))
+                            .then(result=>{
+                                if(epoch===currentEpoch && owner===fid)
+                                    report({kind:'account-session',phase:'ready',
+                                        fid,csrfToken:result.csrf_token});
+                            })
+                            .catch(error=>{
+                                if(epoch===currentEpoch && owner===fid)
+                                    report({kind:'account-session',phase:'failed',
+                                        fid,error:String(error?.message||error).slice(0,140)});
+                            });
+                    }
+                }
             },
         });
         client = current;

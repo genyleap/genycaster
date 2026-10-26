@@ -2300,6 +2300,10 @@ void connectRuntime(
     auto* const browserSigner = new genycaster::ui::browser_signing::Bridge(
         bridge, richComposer, browserSnapchainOrigin,
         connections.recoveryGatewayOrigin());
+    browserSigner->setAccountSessionObserver(
+        [&connections](const qulonglong fid, QByteArray csrf) {
+            connections.acceptBrowserAccountSession(fid,std::move(csrf));
+        });
 #else
     Q_UNUSED(browserSnapchainOrigin);
 #endif

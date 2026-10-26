@@ -42,6 +42,11 @@ public:
 
     using RecoveryObserver = std::function<void(
         QString, QString, bool, bool, QString, QString, QByteArray, int)>;
+    using AccountSessionObserver = std::function<void(qulonglong, QByteArray)>;
+    void setAccountSessionObserver(AccountSessionObserver observer)
+    {
+        m_accountSessionObserver=std::move(observer);
+    }
     void setRecoveryObserver(RecoveryObserver observer)
     {
         m_recoveryObserver = std::move(observer);
@@ -163,6 +168,15 @@ private:
                 || fid != QString::number(presentation->accountFid())) continue;
 
             const QString error = event.value(QStringLiteral("error")).toString();
+            if(kind==QStringLiteral("account-session")) {
+                if(phase==QStringLiteral("ready") && m_accountSessionObserver) {
+                    const QByteArray csrf=event.value(QStringLiteral("csrfToken"))
+                                               .toString().toUtf8();
+                    if(csrf.size()==43)
+                        m_accountSessionObserver(presentation->accountFid(),csrf);
+                }
+                continue;
+            }
             if (kind == QStringLiteral("signer")) {
                 QString status{};
                 if (phase == QStringLiteral("ready")) {
@@ -227,6 +241,7 @@ private:
     }
 
     RecoveryObserver m_recoveryObserver{};
+    AccountSessionObserver m_accountSessionObserver{};
     QString m_pendingRecoveryId{};
     QString m_pendingResumeId{};
     QPointer<PresentationBridge> m_presentation{};

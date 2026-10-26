@@ -187,6 +187,25 @@ export function createBrowserSignerVault(environment = globalThis) {
             return signature;
         },
 
+        // The account-session capability is independent of Farcaster
+        // message signatures and media uploads. Only this exact
+        // domain-separated nonce challenge is permitted.
+        async signAccountChallenge(fidValue, nonce) {
+            const fid=requireFid(fidValue);
+            if(typeof nonce!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(nonce))
+                throw failure('invalid account-session challenge');
+            const challenge=new TextEncoder().encode(
+                'genycaster-account-session-v1\n'+fid+'\n'+nonce);
+            const record=await read(fid);
+            if(!record)throw failure('authorized signing key unavailable');
+            const signature=new Uint8Array(await crypto.subtle.sign(
+                'Ed25519',record.privateKey,challenge));
+            if(signature.length!==64 || !await crypto.subtle.verify(
+                'Ed25519',record.publicKey,signature,challenge))
+                throw failure('account-session proof self-verification failed');
+            return {publicKeyHex:record.publicKeyHex,signature:encodeHex(signature)};
+        },
+
         // A narrowly scoped media proof is not a Farcaster cast signature.
         // Do not expose an arbitrary-message signer to UI code.
         async signMediaChallenge(fidValue, challenge) {

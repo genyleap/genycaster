@@ -68,15 +68,32 @@ selects a different per-account local outbox and cursor.
 
 ## Persistent account access
 
-A verified OpenProof/Farcaster grant automatically establishes a 30-day
-same-origin account session at POST /api/v1/cloud/session. PostgreSQL stores
-only a SHA-256 token digest, while the browser holds a Secure, HttpOnly,
-SameSite=Strict, host-only cookie. The Qt client retains only the current
-FID and a CSRF value in memory, never a persisted OpenProof bearer.
-GET /session validates this cookie and returns the database's verified FID.
-A remembered local FID alone must **never** authorize account reads.
-All cookie-authorized writes require the CSRF header. DELETE /session
-revokes the record on sign-out.
+Genycaster supports two independently verified ways to establish a
+30-day browser account session:
+
+- An explicit OpenProof/Farcaster grant uses POST /api/v1/cloud/session.
+- An already **Snapchain-registered** device signer uses POST
+  /api/v1/cloud/session/challenge followed by POST /api/v1/cloud/session/proof.
+  The 90-second nonce is one-time and domain-separated, signed with the
+  non-extractable Ed25519 browser key. The API validates the signature
+  and the **live FID-scoped signer registration**, including scopes and
+  expiry, directly with the fixed Snapchain endpoint. A remembered FID,
+  an unregistered signer and a mere local session marker grant nothing.
+  The browser performs this ceremony silently on registered signer
+  restoration; no private key or custody phrase is sent to the server.
+
+The account database remains canonical. PostgreSQL stores only a SHA-256
+session-token digest. A Secure, HttpOnly, SameSite=Strict host-only cookie
+belongs to the official Genycaster origin. A same-origin GET /session confirms
+the browser retained the cookie and returns the canonical FID. The Qt client
+receives only the matching FID and an in-memory CSRF value, never the
+HttpOnly cookie or a persistent OpenProof bearer. Cookie-authorized writes
+require the CSRF header. DELETE /session revokes the browser session.
+
+The session-proof routes require browser same-origin requests, enforce
+single-use nonce replay prevention, strict signer-key matching and bounded
+Snapchain reads. Signer scopes for Farcaster protocol writes remain separate:
+the account proof signs **only** a Genycaster account challenge, not a Cast.
 
 The updated backend remains schema-v3 compatible: it continues to serve
 existing account data if PM2 restarts before migration 004, while the new

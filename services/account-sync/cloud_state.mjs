@@ -1,6 +1,7 @@
 // Genycaster-owned cloud state. OpenProof authorizes the principal, but never
 // stores these app-specific preferences, drafts, bookmarks or schedules.
 import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';
+import {createSignerSessionProof} from './signer_session_proof.mjs';
 
 const SESSION_COOKIE='__Host-genycaster-account';
 const SESSION_LIFETIME=30*24*60*60;
@@ -150,6 +151,25 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
   if (!store || !issuer || new URL(issuer).protocol !== 'https:')
     throw new Error('A store and trusted HTTPS OpenProof issuer are required');
   const upstream=issuer.replace(/\/$/,'');
+  const signerProof=createSignerSessionProof({fetchImpl});
+  function sameOriginRequest(request) {
+    // The browser must be on the official Genycaster host, not another site
+    // submitting a form and attempting to plant an authenticated cookie.
+    return request.headers.origin==='https://caster.genyleap.com' &&
+      (!request.headers['sec-fetch-site'] ||
+       request.headers['sec-fetch-site']==='same-origin');
+  }
+  async function issueSession(owner,response) {
+    if(typeof store.createSession!=='function')
+      throw Object.assign(new Error('session_unavailable'),{status:503});
+    const token=randomBytes(32).toString('base64url');
+    const csrf=randomBytes(32).toString('base64url');
+    await store.createSession(owner,sessionDigest(token),csrf);
+    response.setHeader('Set-Cookie',SESSION_COOKIE+'='+token+
+      '; Path=/; Max-Age='+SESSION_LIFETIME+
+      '; Secure; HttpOnly; SameSite=Strict');
+    respond(response,200,{fid:owner.fid,csrf_token:csrf});
+  }
   // Genycaster account data is scoped to the *verified Farcaster FID*.
   // OAuth and verified Farcaster recovery must resolve to exactly the same
   // stable owner; caller-supplied identity/FID is never accepted.
@@ -206,7 +226,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
     const entity=path.slice('/api/v1/cloud/'.length);
     if (!['connections','bookmarks','notifications','notification_seen',
       'app_updates','tasks','drafts','profile_extras','connections/refresh',
-      'session'].includes(entity)) {
+      'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
     if (entity==='app_updates') {
@@ -214,6 +234,35 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
       else try {respond(response,200,{items:await store.listUpdates()});}
         catch {respond(response,503,{error:'cloud_unavailable'});}
       return true;
+    }
+    if(entity==='session/challenge' || entity==='session/proof') {
+      if(request.method!=='POST') {
+        respond(response,405,{error:'method_not_allowed'});return true;
+      }
+      if(!sameOriginRequest(request)) {
+        respond(response,403,{error:'origin_not_allowed'});return true;
+      }
+      try {
+        if(!String(request.headers['content-type']||'').startsWith('application/json')) {
+          respond(response,415,{error:'unsupported_media_type'});return true;
+        }
+        const data=await readBody(request,1024);
+        if(entity==='session/challenge') {
+          respond(response,200,signerProof.issue(data?.fid));return true;
+        }
+        const owner=await signerProof.prove(data);
+        await issueSession(owner,response);
+        return true;
+      }catch(error) {
+        const code=String(error?.message||'');
+        const allowed=new Set(['invalid_fid','challenge_limit',
+          'invalid_account_proof','unregistered_signer',
+          'signer_registry_unavailable','session_unavailable',
+          'account_sessions_not_ready','too_large','invalid_json']);
+        respond(response,[400,401,413,429,503].includes(error?.status)
+          ?error.status:503,{error:allowed.has(code)?code:'session_unavailable'});
+        return true;
+      }
     }
     let owner;
     try {owner=await authorize(request);}catch{}
@@ -226,13 +275,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
           if(owner.cookieAuth || typeof store.createSession!=='function') {
             respond(response,401,{error:'authentication_required'});return true;
           }
-          const token=randomBytes(32).toString('base64url');
-          const csrf=randomBytes(32).toString('base64url');
-          await store.createSession(owner,sessionDigest(token),csrf);
-          response.setHeader('Set-Cookie', SESSION_COOKIE+'='+token+
-            '; Path=/; Max-Age='+SESSION_LIFETIME+
-            '; Secure; HttpOnly; SameSite=Strict');
-          respond(response,200,{fid:owner.fid,csrf_token:csrf});
+          await issueSession(owner,response);
           return true;
         }
         if(request.method==='GET' && owner.cookieAuth) {
