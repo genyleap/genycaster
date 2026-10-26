@@ -78,10 +78,12 @@ A remembered local FID alone must **never** authorize account reads.
 All cookie-authorized writes require the CSRF header. DELETE /session
 revokes the record on sign-out.
 
-Migration 004 is mandatory before restarting the updated backend. Apply it
-with the DB administrator, verify the restricted API role, then activate
-the server and test same-origin browser cookies before publishing the new
-WASM client.
+The updated backend remains schema-v3 compatible: it continues to serve
+existing account data if PM2 restarts before migration 004, while the new
+session endpoints fail closed. Migration 004 is still mandatory to **enable**
+persisted account sessions. Apply it with the DB administrator, verify the
+restricted API role, then restart the server and test same-origin browser
+cookies before publishing the new WASM client.
 
 The production Nginx `/api/v1/cloud/` proxy currently limits request bodies
 to 24 KiB while the API explicitly supports 192 KiB rich drafts. Increase

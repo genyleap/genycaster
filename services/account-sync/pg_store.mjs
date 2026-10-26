@@ -19,32 +19,42 @@ function normalizeRow(entity, row) {
   return row;
 }
 
-export async function createPgStore(connectionString) {
+export async function createPgStore(connectionString, {poolFactory}={}) {
   if (!connectionString) throw new Error('GENYCASTER_DATABASE_URL is required');
-  const {Pool}=await import('pg');
-  const pool=new Pool({connectionString, max:8, connectionTimeoutMillis:4000,
-    idleTimeoutMillis:20000, statement_timeout:6000});
-  // Fail closed without explicit schema provisioning. Never CREATE tables in a request.
-  const migration=await pool.query('SELECT version FROM schema_migrations WHERE version=4');
-  if (migration.rowCount !== 1) {
+  const settings={connectionString, max:8, connectionTimeoutMillis:4000,
+    idleTimeoutMillis:20000, statement_timeout:6000};
+  const pool=poolFactory ? poolFactory(settings)
+    : new (await import('pg')).Pool(settings);
+  // Schema v3 is enough to keep the existing account API operational.
+  // Do not require an un-applied v4 migration on a PM2 restart. The session
+  // endpoints fail closed until the additive migration is applied and the
+  // backend is restarted; the other account data remains available.
+  const migrations=await pool.query(
+    'SELECT version FROM schema_migrations WHERE version IN (3,4)');
+  const versions=new Set(migrations.rows.map(row=>Number(row.version)));
+  if (!versions.has(3)) {
     await pool.end();
-    throw new Error('Genycaster database schema v4 is required');
+    throw new Error('Genycaster database schema v3 is required');
   }
+  const sessionsReady=versions.has(4);
   return {
     close:()=>pool.end(),
     async createSession({issuer,subject},tokenHash,csrfToken) {
+      if(!sessionsReady)throw new Error('account_sessions_not_ready');
       await pool.query(`INSERT INTO account_sessions
           (issuer,subject,token_hash,csrf_token,expires_at)
           VALUES ($1,$2,$3,$4,now()+interval '30 days')`,
         [issuer,subject,tokenHash,csrfToken]);
     },
     async getSession(tokenHash) {
+      if(!sessionsReady)return null;
       const result=await pool.query(`SELECT issuer,subject,csrf_token
           FROM account_sessions WHERE token_hash=$1 AND expires_at>now()`,
         [tokenHash]);
       return result.rows[0]||null;
     },
     async revokeSession(tokenHash) {
+      if(!sessionsReady)return;
       await pool.query('DELETE FROM account_sessions WHERE token_hash=$1',
         [tokenHash]);
     },
