@@ -32,6 +32,10 @@ test('profile category and links save locally then replicate without sync contro
   assert.match(profile,/id: profileBackgroundRefresh/);
   assert.match(profile,/onCloudProfileExtrasReceived\(item\)/);
   assert.match(profile,/root\.restoreCloudProfile\(item\)/);
+  assert.match(profile,/profileExtrasOwnerKey: root\.isOwnProfile[\s\S]*?"farcaster:" \+ String\(root\.accountFid\)/);
+  assert.match(profile,/function migrateLegacyProfileExtras\(\)/);
+  assert.match(profile,/onProfileExtrasOwnerKeyChanged: root\.migrateLegacyProfileExtras\(\)/);
+  assert.match(profile,/genycaster:device-local:/);
   assert.doesNotMatch(profile,/objectName: "(?:uploadProfileToCloud|restoreProfileFromCloud|authorizeCloudAccount)"/);
   assert.doesNotMatch(profile,/cloudSyncEnabled/);
   assert.match(profile,/profileCategoryOptions:[\s\S]*?"Technology"/);

@@ -224,7 +224,7 @@ void OpenProofConnectionsController::authorizeCloudRequest(
 void OpenProofConnectionsController::restoreAccountSession()
 {
     if (!m_viewerFid || !trustedHttpsEndpoint(m_cloudUrl)
-        || m_sessionRequest) return;
+        || m_sessionRevoking || m_sessionRequest) return;
     QUrl url=m_cloudUrl;
     url.setPath(QStringLiteral("/api/v1/cloud/session"));
     auto request=QNetworkRequest{url};
@@ -264,6 +264,7 @@ void OpenProofConnectionsController::restoreAccountSession()
 void OpenProofConnectionsController::bootstrapAccountSession()
 {
     if(!m_viewerFid || !m_verified || m_accountBearer.isEmpty()
+        || m_sessionRevoking || m_cloudSessionVerified
         || !trustedHttpsEndpoint(m_cloudUrl))return;
     if(m_sessionRequest) {
         m_sessionRequest->abort();
@@ -317,8 +318,17 @@ void OpenProofConnectionsController::revokeAccountSession()
     request.setTransferTimeout(9'000);
     request.setRawHeader("Accept","application/json");
     request.setRawHeader("X-Genycaster-CSRF",m_cloudCsrf);
+    m_sessionRevoking=true;
     auto* reply=m_network.deleteResource(request);
-    connect(reply,&QNetworkReply::finished,reply,&QObject::deleteLater);
+    connect(reply,&QNetworkReply::finished,this,[this,reply] {
+        reply->deleteLater();
+        m_sessionRevoking=false;
+        // Never allow an old account's late cookie clear to race a newly
+        // verified account's Set-Cookie response during account switching.
+        if(!m_viewerFid)return;
+        if(m_verified && !m_accountBearer.isEmpty())bootstrapAccountSession();
+        else restoreAccountSession();
+    });
 }
 
 void OpenProofConnectionsController::checkCloudService()
@@ -1322,7 +1332,10 @@ void OpenProofConnectionsController::clearAccountGrant()
     }
     m_draftRemoteInitialized=false;
     m_draftConflict=false;
-    m_cloudRevision = 0;
+    // Losing the short-lived OpenProof grant does not invalidate a verified
+    // Genycaster browser session or its last known profile CAS revision.
+    // Account switches clear m_cloudSessionVerified before reaching here.
+    if(!m_cloudSessionVerified)m_cloudRevision=0;
     m_cloudError.clear();
     emit cloudStateChanged();
     m_accountBearer.fill('\0');
@@ -1614,7 +1627,7 @@ void OpenProofConnectionsController::refreshConnections()
             m_verified = true;
             m_cachedSnapshot = false;
             m_bookmarkPoll.start();
-            bootstrapAccountSession();
+            if(!m_cloudSessionVerified)bootstrapAccountSession();
             if (m_cloudServiceAvailable) {
                 reconcileLinkedIn();
                 pumpBookmarkChanges();

@@ -140,8 +140,47 @@ Item {
                 openProofConnections.fetchCloudProfileExtras()
         }
     }
+    // Genycaster stores account-authored profile data under the verified FID,
+    // regardless of whether the browser entered through OpenProof or Farcaster.
+    // Older route-specific local settings are imported without deleting them.
     readonly property string profileExtrasOwnerKey: root.isOwnProfile
-        ? String(root.accountIssuer || "local") + ":" + String(root.accountFid) : ""
+        ? "farcaster:" + String(root.accountFid) : ""
+    function migrateLegacyProfileExtras() {
+        if (!root.profileExtrasOwnerKey) return
+        try {
+            const canonical = root.profileExtrasOwnerKey
+            const fid = String(root.accountFid)
+            const oldKeys = [
+                String(root.accountIssuer || "local") + ":" + fid,
+                "https://openproof.genyleap.com:" + fid,
+                "genycaster:device-local:" + fid,
+                "local:" + fid
+            ]
+            const entries = JSON.parse(profileExtrasSettings.entriesJson || "{}")
+            const flags = JSON.parse(profileCloudSettings.perAccountJson || "{}")
+            // An unsent edit from another sign-in route wins over an older
+            // acknowledged local cache. Both legacy copies remain untouched.
+            if (entries[canonical] && flags[canonical]?.dirty === true) return
+            const validLegacy = key => entries[key] && typeof entries[key] === "object"
+                                        && !Array.isArray(entries[key])
+            let source = oldKeys.find(key => validLegacy(key)
+                                    && flags[key]?.dirty === true)
+            if (!source && entries[canonical]) return
+            if (!source) source = oldKeys.find(key => validLegacy(key))
+            if (!source) return
+            entries[canonical] = entries[source]
+            profileExtrasSettings.entriesJson = JSON.stringify(entries)
+            if (flags[source]?.dirty === true) {
+                flags[canonical] = {dirty: true}
+                profileCloudSettings.perAccountJson = JSON.stringify(flags)
+            }
+        } catch (_) {
+            // Offline settings may be unavailable; never erase legacy data.
+        }
+    }
+    onProfileExtrasOwnerKeyChanged: root.migrateLegacyProfileExtras()
+    onAccountIssuerChanged: root.migrateLegacyProfileExtras()
+    Component.onCompleted: root.migrateLegacyProfileExtras()
     readonly property var profileExtras: {
         if (!root.profileExtrasOwnerKey) return ({})
         try {

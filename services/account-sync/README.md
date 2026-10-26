@@ -116,6 +116,13 @@ timestamps as decimal strings and atomically retains the maximum value across
 concurrent devices. The reserved database row is not writable through the
 ordinary `notifications` endpoint.
 
+Profile-specific device caches use the stable `farcaster:<FID>` key regardless
+of sign-in route. Existing route-scoped QSettings entries are copied without
+erasure; a previously queued, unsent edit is preferred over an older clean
+local cache. The server remains canonical for saved profile data. Account
+switching waits for the old session's cookie revocation before requesting a
+new session, avoiding a late sign-out response clearing the new account.
+
 The ordinary rich Cast composer now records per-FID draft edits and deletes
 locally before uploading them through the account API. It uses one reserved
 per-owner Cast draft ID, an optimistic revision, and a durable dirty flag.

@@ -161,6 +161,7 @@ private:
     QPointer<QNetworkReply> m_sessionRequest{};
     bool m_cloudServiceAvailable{};
     bool m_cloudSessionVerified{};
+    bool m_sessionRevoking{};
     QByteArray m_cloudCsrf{};
     bool m_applyingCloudLinkedIn{};
     bool m_linkedInReconciled{};
