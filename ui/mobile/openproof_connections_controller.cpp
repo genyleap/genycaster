@@ -606,13 +606,31 @@ void OpenProofConnectionsController::pumpDraftChanges()
             "composer/accounts/fid_%1/richDraftV1").arg(viewer);
         const bool hasLocalDraft=m_settings->contains(localDocumentKey);
         bool dirty=m_settings->value(key+QStringLiteral("/dirty")).toBool();
-        // Old per-FID drafts predate the account replication adapter. Import
-        // only when the server has no newer draft, never overwrite silently.
+        // The database is authoritative for an existing account draft.
+        // Import an old device-only draft only into an empty account record.
+        // Otherwise preserve the previous device copy separately before
+        // showing the current database document; never create a fake CAS
+        // conflict merely because this is the device's first server read.
         if (!m_settings->value(key+QStringLiteral("/seen")).toBool()
             && hasLocalDraft && !dirty) {
-            dirty=true;
-            m_settings->setValue(key+QStringLiteral("/dirty"),true);
-            m_settings->setValue(key+QStringLiteral("/deleted"),false);
+            if (remoteRevision==0) {
+                dirty=true;
+                m_settings->setValue(key+QStringLiteral("/dirty"),true);
+                m_settings->setValue(key+QStringLiteral("/deleted"),false);
+            } else {
+                const auto previous=m_settings->value(localDocumentKey).toByteArray();
+                const auto canonical=QJsonDocument{
+                    remote.value(QStringLiteral("content")).toObject()
+                        .value(QStringLiteral("document")).toObject()
+                }.toJson(QJsonDocument::Compact);
+                if (!previous.isEmpty() &&
+                    (deleted || QJsonDocument::fromJson(previous).object()
+                        != QJsonDocument::fromJson(canonical).object())) {
+                    const auto backupKey=key+QStringLiteral("/legacy-device-backup");
+                    if (!m_settings->contains(backupKey))
+                        m_settings->setValue(backupKey,previous);
+                }
+            }
             m_settings->sync();
         }
         m_draftRemoteRevision=remoteRevision;

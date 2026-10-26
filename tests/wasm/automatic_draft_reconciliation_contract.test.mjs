@@ -29,6 +29,11 @@ test('account draft replication reuses verified native bearer with durable per-F
   assert.match(account,/m_draftMutationSerial\+\+/);
   assert.match(account,/m_draftRevision!=remoteRevision/);
   assert.match(account,/m_draftConflict=true/);
+  // First read of an existing server draft is not a concurrency conflict
+  // merely because an older client left a locally scoped draft behind.
+  assert.match(account,/if \(remoteRevision==0\) \{/);
+  assert.match(account,/legacy-device-backup/);
+  assert.match(account,/if \(!previous\.isEmpty\(\) &&/);
   assert.match(account,/localDoc\.object\(\)==serverDoc/);
   assert.match(account,/QStringLiteral\("\/dirty"\),false/);
   assert.match(account,/status==409/);
