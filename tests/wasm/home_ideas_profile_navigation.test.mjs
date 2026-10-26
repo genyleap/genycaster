@@ -19,7 +19,8 @@ test('mobile nav Profile replaces redundant Settings, with guest sign-in preserv
     const nav = qml('BottomNavigation');
     const shell = qml('AppShell');
     assert.match(header, /visible: !root\.compact \|\| !root\.isAuthenticated/);
-    assert.match(header, /text: Theme\.iconLeaf[\s\S]*?color: Theme\.accent/);
+    assert.match(header, /source: "qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon\.svg"/);
+    assert.match(header, /genycaster-wordmark\.svg/);
     assert.doesNotMatch(header, /fillColor: Theme\.primaryFill/);
     assert.match(nav, /signal profileRequested\(\)/);
     assert.match(nav, /text: qsTrId\("genycaster\.side_nav\.profile"\)[\s\S]*?onClicked: root\.profileRequested\(\)/);

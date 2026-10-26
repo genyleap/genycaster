@@ -31,8 +31,8 @@ test('thread reply rail nodes align and incoming replies to my cast stand out', 
  const detail = qml('DetailSurface');
  assert.match(rail, /fillColor: root\.highlighted \? Theme\.accent : Theme\.borderStrong/);
  assert.match(rail, /width: root\.compact \? 8 : 9[\s\S]*?borderWidth: 0/);
- assert.match(item, /root\.replyToMyCast \? Theme\.primarySurface/);
- assert.match(item, /root\.replyToMyCast \? Theme\.borderStrong : Theme\.borderSubtle/);
+ assert.match(item, /borderWidth: root.highlighted \|\| root.replyToMyCast \? Theme.strokeHairline : 0/);
+ assert.match(item, /: root.replyToMyCast \? Theme.positive : "transparent"/);
  assert.match(detail, /id: replyCountLabel[\s\S]*?LocaleFormat\.formatInteger\(root\.prioritizedReplies\.length\)/);
  assert.match(detail, /curveDepth: height \/ 2/);
 });

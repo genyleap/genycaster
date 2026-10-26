@@ -52,8 +52,10 @@ test('cast detail keeps timestamp beside author and views in the same action foo
   assert.match(detail,/LocaleFormat\.formatRelativeTime\(milliseconds\)/);
   assert.match(detail,/EngagementBar \{[\s\S]*?showViews: true/);
   assert.match(bar,/visible: root.showViews && root.resolvedViewCount/);
-  assert.match(bar,/Layout.fillWidth: true[\s\S]*?iconGlyph: Theme.iconReply/);
-  assert.match(bar,/Layout.fillWidth: true[\s\S]*?iconGlyph: Theme.iconRepost/);
+  assert.match(bar,/id: reactionActions[\s\S]*?iconGlyph: Theme.iconReply/);
+  assert.match(bar,/id: utilityActions[\s\S]*?id: bookmarkButton/);
+  assert.match(bar,/Item \{ Layout.fillWidth: true; Layout.minimumWidth: 0 \}/);
+  assert.match(bar,/id: reactionActions[\s\S]*?iconGlyph: Theme.iconRepost/);
   assert.match(bar,/metricText: root.likeCount > 0 \? LocaleFormat.formatCompactNumber\(root.likeCount\)/);
   assert.match(bar,/id: bookmarkButton/);
   assert.match(bar,/iconFilled: root.isBookmarked/);

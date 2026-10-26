@@ -131,8 +131,11 @@ ColumnLayout {
             // Timeline replies share the page canvas. Ownership and selection
             // use a restrained edge, not a full purple highlighted tile.
             fillColor: Theme.backgroundPrimary
-            borderWidth: root.highlighted ? Theme.strokeHairline : 0
-            borderColor: root.highlighted ? Theme.accent : "transparent"
+            // Distinguish new confirmed replies and other people's replies
+            // to my Cast without turning every reply into a filled tile.
+            borderWidth: root.highlighted || root.replyToMyCast ? Theme.strokeHairline : 0
+            borderColor: root.highlighted ? Theme.accent
+                         : root.replyToMyCast ? Theme.positive : "transparent"
             curveDepth: Theme.curveModal
 
             ColumnLayout {

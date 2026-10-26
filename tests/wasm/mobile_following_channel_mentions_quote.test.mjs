@@ -54,7 +54,7 @@ test('Cast surfaces blend into theme, including the detail header',()=>{
  const cast=read('ui/components/CastItem.qml');
  const detail=read('ui/components/DetailSurface.qml');
  assert.match(cast,/fillColor: Theme\.backgroundPrimary/);
- assert.match(cast,/borderWidth: root\.compact \? 0/);
+ assert.match(cast,/id: messageSurface[\s\S]*?borderWidth: 0/);
  assert.match(detail,/root\.activeView === "cast" \? Theme\.backgroundPrimary/);
 });
 test('Quote produces a visible error when a canonical target is missing and opens a composer for valid hashes',()=>{

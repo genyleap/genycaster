@@ -25,6 +25,10 @@ test('Explorer For You keeps all recent root casts in provider order', () => {
     const root = {
         rows, supplementalRows: [], socialMode: false, presentationMode: 'for-you',
         isRootPost: row => !row.isReply && !row.parentCastId,
+        // These predicates are Qt methods on the real component. Simulate the
+        // default, unrestricted audience for this provider-order regression.
+        rowMatchesSignerFilter: () => true,
+        rowMatchesAppFilter: () => true,
     };
     const execute = new Function('root', 'function sourceRows() {' + match[1]
         + '\n}\nreturn sourceRows();');
@@ -233,8 +237,9 @@ test('mobile brand header keeps crisp native text without an offscreen elevation
     const header = read('ui/components/AppHeader.qml');
     assert.match(header, /layer\.enabled: false/);
     assert.match(header, /renderType: Text\.NativeRendering/);
-    // Brand DNA is now a bare Icon, not a shadowed/tiled Superellipse.
-    assert.match(header, /\/\/ Keep the DNA mark light and crisp/);
+    // Branding uses a native SVG icon and wordmark rather than a shadowed tile.
+    assert.match(header, /source: "qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon\.svg"/);
+    assert.match(header, /genycaster-wordmark\.svg/);
     assert.doesNotMatch(header, /elevation: Theme\.elevationNone/);
     assert.doesNotMatch(header, /fillColor: Theme\.primaryFill/);
 });

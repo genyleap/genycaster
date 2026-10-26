@@ -27,11 +27,16 @@ test('provider profiles UI is wired to persisted composition settings', () => {
 test('new provider editor is in network/content settings, not language settings', () => {
   const popup = read('ui/components/LocaleSettingsPopup.qml');
   const section = popup.indexOf('id: readSettingsScroll');
-  const panel = popup.indexOf('ProviderProfilesPanel {');
+  const panel = read('ui/components/NodeManagementPanel.qml');
   const locale = popup.indexOf('id: localeScroll');
-  const oldSelector = popup.indexOf('qsTrId("genycaster.setup.choose_network")');
-  assert(section > 0 && panel > section);
-  assert(locale > 0 && locale < section && oldSelector > section);
+  const nodeSettings = popup.indexOf('id: nodeSettingsScroll');
+  assert(section > 0 && nodeSettings > section);
+  assert(locale > 0 && locale < section);
+  assert.match(popup.slice(nodeSettings), /NodeManagementPanel \{/);
+  assert.match(panel, /providerProfiles\.addReadProfile/);
+  assert.match(panel, /providerProfiles\.addWriteProfile/);
+  assert.match(panel, /providerProfiles\.selectReadProvider/);
+  assert.match(panel, /providerProfiles\.selectWriteProvider/);
   assert(!popup.slice(locale, section).includes('id: validatorEndpointField'));
   assert.match(read('ui/CMakeLists.txt'), /components\/ProviderProfilesPanel\.qml/);
 });

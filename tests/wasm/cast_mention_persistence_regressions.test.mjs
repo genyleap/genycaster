@@ -13,7 +13,7 @@ test('SQLite v26 migrates existing caches without overwriting signed CastAdd tex
 });
 test('provider-rendered @mentions survive entity-store upserts and roundtrip through feed/cache',()=>{
  const store=read('src/storage/entity_store.cpp');
- assert.match(store, /INSERT INTO casts\([^)]*display_text\)/);
+ assert.match(store, /INSERT INTO casts\([^)]*display_text[^)]*\)/);
  assert.match(store, /display_text = COALESCE\(excluded\.display_text, casts\.display_text\)/);
  assert.match(store, /bindOptionalText\(castStatement\.native\(\), 10, cast\.displayText\)/);
  assert.match(store, /SELECT c\.author_fid, c\.text,[\s\S]*?c\.display_text/);

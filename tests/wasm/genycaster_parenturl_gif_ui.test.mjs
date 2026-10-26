@@ -18,7 +18,8 @@ test('reply rail and count use aligned, solid geometry and incoming highlight',(
  const rail=read('ui/components/GenyThreadRail.qml');
  assert.match(detail,/parentAuthoredByMe: Number\(root.detail.authorFid/);
  assert.match(reply,/readonly property bool replyToMyCast:/);
- assert.match(reply,/root.replyToMyCast \? Theme.primarySurface/);
+ assert.match(reply,/borderWidth: root.highlighted \|\| root.replyToMyCast \? Theme.strokeHairline : 0/);
+ assert.match(reply,/: root.replyToMyCast \? Theme.positive : "transparent"/);
  assert.match(reply,/spacing: Theme.space1/);
  assert.match(rail,/implicitWidth: compact \? 17 : 22/);
  assert.match(rail,/anchors.horizontalCenter: parent.horizontalCenter/);

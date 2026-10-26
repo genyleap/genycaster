@@ -73,7 +73,7 @@ test("Qt live language selection updates the release drawer language across WASM
     assert.ok(loader.includes("if(latestReleaseDetails)fillReleaseDetails(latestReleaseDetails)"));
     assert.ok(native.includes('qsTrId("genycaster.update.available")'));
     assert.ok(native.includes('qsTrId("genycaster.update.no_notes")'));
-    assert.ok(native.includes('if (Qt.platform.os === "wasm") return'));
+    assert.ok(native.includes('if (Qt.platform.os === "wasm")'));
 });
 
 test("update drawer reuses the repository icon and success tokens across WASM and native",()=>{

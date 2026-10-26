@@ -10,6 +10,7 @@ test('separate validator URL is persisted, validated, and passed to the Qt compo
     const composition = read('ui/mobile/runtime_composition.cpp');
     const controller = read('src/providers/hypersnap/node_selection_controller.cpp');
     const settings = read('ui/components/LocaleSettingsPopup.qml');
+    const nodes = read('ui/components/NodeManagementPanel.qml');
 
     assert.match(main, /--snapchain-write-base-url=/);
     assert.match(main, /GENYCASTER_SNAPCHAIN_WRITE_BASE_URL/);
@@ -20,8 +21,10 @@ test('separate validator URL is persisted, validated, and passed to the Qt compo
     assert.match(composition, /writeSubmitterConfig\.baseUrl = \*snapchainWriteBaseUrl/);
     assert.match(controller, /bool NodeSelectionController::setSnapchainWriteEndpoint/);
     assert.match(controller, /m_settings\.sync\(\)/);
-    assert.match(settings, /nodeSelectionController\.setSnapchainWriteEndpoint\(validatorEndpointField\.text\)/);
-    assert.match(settings, /nodeSelectionController\.writeRestartRequired/);
+    assert.match(settings, /NodeManagementPanel \{/);
+    assert.match(nodes, /providerProfiles\.addWriteProfile\(id, writeName\.text\.trim\(\),/);
+    assert.match(nodes, /"snapchain-v1", writeEndpoint\.text\.trim\(\)/);
+    assert.match(nodes, /providerProfiles\.writeRestartRequired/);
 });
 
 test('no read-node API credentials are forwarded to another write endpoint', () => {
