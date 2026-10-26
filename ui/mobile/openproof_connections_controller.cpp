@@ -1376,7 +1376,12 @@ void OpenProofConnectionsController::refreshAccountConnectionsSnapshot()
             if(!raw.isObject())continue;
             const auto row=raw.toObject();
             const auto provider=row.value(QStringLiteral("provider")).toString();
-            if(!m_providers.contains(provider) || providers.contains(provider))continue;
+            // An owner-authored portable label is not evidence of an active
+            // OpenProof connection. A revoked network has no confirmation.
+            // Never promote either row to a checked/verified device link.
+            if(row.value(QStringLiteral("last_confirmed_at")).isNull()
+                || !m_providers.contains(provider) || providers.contains(provider))
+                continue;
             providers.insert(provider);
             current.push_back(QVariantMap{
                 {QStringLiteral("provider"),provider},

@@ -2,6 +2,158 @@
 <TS version="2.1" language="zh_CN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.bookmarks.description">
+            <source>Your saved casts, available on your signed-in devices</source>
+            <translation>保存的 Cast 可在已登录设备上查看</translation>
+        </message>
+        <message id="genycaster.bookmarks.sort_priority">
+            <source>Priority</source>
+            <translation>优先级</translation>
+        </message>
+        <message id="genycaster.bookmarks.sort_newest">
+            <source>Newest</source>
+            <translation>最新</translation>
+        </message>
+        <message id="genycaster.bookmarks.sort_oldest">
+            <source>Oldest</source>
+            <translation>最早</translation>
+        </message>
+        <message id="genycaster.bookmarks.refresh">
+            <source>Refresh saved casts</source>
+            <translation>刷新已保存的 Cast</translation>
+        </message>
+        <message id="genycaster.bookmarks.pending">
+            <source>Saving %1 bookmark changes to your account…</source>
+            <translation>正在将 %1 项书签更改保存到您的账户…</translation>
+        </message>
+        <message id="genycaster.bookmarks.saved_cast">
+            <source>Saved cast</source>
+            <translation>已保存的 Cast</translation>
+        </message>
+        <message id="genycaster.bookmarks.unpin">
+            <source>Remove priority</source>
+            <translation>取消优先</translation>
+        </message>
+        <message id="genycaster.bookmarks.pin">
+            <source>Prioritize</source>
+            <translation>设为优先</translation>
+        </message>
+        <message id="genycaster.bookmarks.remove">
+            <source>Remove bookmark</source>
+            <translation>移除书签</translation>
+        </message>
+        <message id="genycaster.bookmarks.open_saved_cast">
+            <source>Open saved cast</source>
+            <translation>打开已保存的 Cast</translation>
+        </message>
+        <message id="genycaster.profile.link_number">
+            <source>Link %1</source>
+            <translation>链接 %1</translation>
+        </message>
+        <message id="genycaster.profile.selection_error">
+            <source>Choose a category and role from the lists.</source>
+            <translation>请从列表中选择类别和角色。</translation>
+        </message>
+        <message id="genycaster.profile.linked_networks">
+            <source>Connected networks</source>
+            <translation>已连接的网络</translation>
+        </message>
+        <message id="genycaster.profile.manage_connections">
+            <source>Manage social connections</source>
+            <translation>管理社交连接</translation>
+        </message>
+        <message id="genycaster.profile.manage">
+            <source>Manage</source>
+            <translation>管理</translation>
+        </message>
+        <message id="genycaster.profile.edit_details">
+            <source>Edit profile details</source>
+            <translation>编辑个人资料详情</translation>
+        </message>
+        <message id="genycaster.profile.personal_links">
+            <source>Profession and personal links</source>
+            <translation>职业和个人链接</translation>
+        </message>
+        <message id="genycaster.profile.category_label">
+            <source>Professional category</source>
+            <translation>职业类别</translation>
+        </message>
+        <message id="genycaster.profile.role_label">
+            <source>Role</source>
+            <translation>角色</translation>
+        </message>
+        <message id="genycaster.profile.role_accessible">
+            <source>Professional role</source>
+            <translation>职业角色</translation>
+        </message>
+        <message id="genycaster.profile.previous_role">
+            <source>Your previous role is no longer supported. Select a role to replace it.</source>
+            <translation>原角色已不受支持，请选择其他角色。</translation>
+        </message>
+        <message id="genycaster.profile.cancel">
+            <source>Cancel</source>
+            <translation>取消</translation>
+        </message>
+        <message id="genycaster.profile.save_changes">
+            <source>Save changes</source>
+            <translation>保存更改</translation>
+        </message>
+        <message id="genycaster.profile.edit_profile">
+            <source>Edit profile</source>
+            <translation>编辑个人资料</translation>
+        </message>
+        <message id="genycaster.profile.share_profile">
+            <source>Share profile</source>
+            <translation>分享个人资料</translation>
+        </message>
+        <message id="genycaster.profile.links_title">
+            <source>Links</source>
+            <translation>链接</translation>
+        </message>
+        <message id="genycaster.profile.links_subtitle">
+            <source>Personal and professional websites</source>
+            <translation>个人和职业网站</translation>
+        </message>
+        <message id="genycaster.profile.farcaster_website">
+            <source>Farcaster website</source>
+            <translation>Farcaster 网站</translation>
+        </message>
+        <message id="genycaster.profile.website">
+            <source>Website</source>
+            <translation>网站</translation>
+        </message>
+        <message id="genycaster.connections.connected_accounts">
+            <source>Connected accounts</source>
+            <translation>已连接的账户</translation>
+        </message>
+        <message id="genycaster.connections.available_networks">
+            <source>Available networks</source>
+            <translation>可连接的网络</translation>
+        </message>
+        <message id="genycaster.connections.title">
+            <source>Connections</source>
+            <translation>连接</translation>
+        </message>
+        <message id="genycaster.connections.description">
+            <source>Manage connected accounts securely in Genycaster.</source>
+            <translation>在 Genycaster 中安全管理已连接账户。</translation>
+        </message>
+        <message id="genycaster.connections.status_connected">
+            <source>Connected</source>
+            <translation>已连接</translation>
+        </message>
+        <message id="genycaster.connections.status_not_connected">
+            <source>Not connected</source>
+            <translation>未连接</translation>
+        </message>
+        <message id="genycaster.connections.verify">
+            <source>Verify with Farcaster</source>
+            <translation>使用 Farcaster 验证</translation>
+        </message>
+        <message id="genycaster.connections.refresh">
+            <source>Refresh connections</source>
+            <translation>刷新连接</translation>
+        </message>
         <message id="genycaster.providers.compatible_read_fallback">
             <source>Allow compatible read fallback</source>
             <translation>允许兼容读取服务商接管</translation>

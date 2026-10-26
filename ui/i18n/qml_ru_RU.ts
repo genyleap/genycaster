@@ -2,6 +2,158 @@
 <TS version="2.1" language="ru_RU" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.bookmarks.description">
+            <source>Your saved casts, available on your signed-in devices</source>
+            <translation>Ваши сохранённые касты доступны на устройствах, где выполнен вход</translation>
+        </message>
+        <message id="genycaster.bookmarks.sort_priority">
+            <source>Priority</source>
+            <translation>Приоритет</translation>
+        </message>
+        <message id="genycaster.bookmarks.sort_newest">
+            <source>Newest</source>
+            <translation>Сначала новые</translation>
+        </message>
+        <message id="genycaster.bookmarks.sort_oldest">
+            <source>Oldest</source>
+            <translation>Сначала старые</translation>
+        </message>
+        <message id="genycaster.bookmarks.refresh">
+            <source>Refresh saved casts</source>
+            <translation>Обновить сохранённые касты</translation>
+        </message>
+        <message id="genycaster.bookmarks.pending">
+            <source>Saving %1 bookmark changes to your account…</source>
+            <translation>Сохраняем %1 изменений закладок в вашей учётной записи…</translation>
+        </message>
+        <message id="genycaster.bookmarks.saved_cast">
+            <source>Saved cast</source>
+            <translation>Сохранённый каст</translation>
+        </message>
+        <message id="genycaster.bookmarks.unpin">
+            <source>Remove priority</source>
+            <translation>Убрать приоритет</translation>
+        </message>
+        <message id="genycaster.bookmarks.pin">
+            <source>Prioritize</source>
+            <translation>Повысить приоритет</translation>
+        </message>
+        <message id="genycaster.bookmarks.remove">
+            <source>Remove bookmark</source>
+            <translation>Удалить закладку</translation>
+        </message>
+        <message id="genycaster.bookmarks.open_saved_cast">
+            <source>Open saved cast</source>
+            <translation>Открыть сохранённый каст</translation>
+        </message>
+        <message id="genycaster.profile.link_number">
+            <source>Link %1</source>
+            <translation>Ссылка %1</translation>
+        </message>
+        <message id="genycaster.profile.selection_error">
+            <source>Choose a category and role from the lists.</source>
+            <translation>Выберите категорию и роль из списков.</translation>
+        </message>
+        <message id="genycaster.profile.linked_networks">
+            <source>Connected networks</source>
+            <translation>Подключённые сети</translation>
+        </message>
+        <message id="genycaster.profile.manage_connections">
+            <source>Manage social connections</source>
+            <translation>Управлять социальными связями</translation>
+        </message>
+        <message id="genycaster.profile.manage">
+            <source>Manage</source>
+            <translation>Управлять</translation>
+        </message>
+        <message id="genycaster.profile.edit_details">
+            <source>Edit profile details</source>
+            <translation>Изменить данные профиля</translation>
+        </message>
+        <message id="genycaster.profile.personal_links">
+            <source>Profession and personal links</source>
+            <translation>Профессия и личные ссылки</translation>
+        </message>
+        <message id="genycaster.profile.category_label">
+            <source>Professional category</source>
+            <translation>Профессиональная категория</translation>
+        </message>
+        <message id="genycaster.profile.role_label">
+            <source>Role</source>
+            <translation>Роль</translation>
+        </message>
+        <message id="genycaster.profile.role_accessible">
+            <source>Professional role</source>
+            <translation>Профессиональная роль</translation>
+        </message>
+        <message id="genycaster.profile.previous_role">
+            <source>Your previous role is no longer supported. Select a role to replace it.</source>
+            <translation>Прежняя роль больше не поддерживается. Выберите другую.</translation>
+        </message>
+        <message id="genycaster.profile.cancel">
+            <source>Cancel</source>
+            <translation>Отмена</translation>
+        </message>
+        <message id="genycaster.profile.save_changes">
+            <source>Save changes</source>
+            <translation>Сохранить изменения</translation>
+        </message>
+        <message id="genycaster.profile.edit_profile">
+            <source>Edit profile</source>
+            <translation>Изменить профиль</translation>
+        </message>
+        <message id="genycaster.profile.share_profile">
+            <source>Share profile</source>
+            <translation>Поделиться профилем</translation>
+        </message>
+        <message id="genycaster.profile.links_title">
+            <source>Links</source>
+            <translation>Ссылки</translation>
+        </message>
+        <message id="genycaster.profile.links_subtitle">
+            <source>Personal and professional websites</source>
+            <translation>Личные и профессиональные сайты</translation>
+        </message>
+        <message id="genycaster.profile.farcaster_website">
+            <source>Farcaster website</source>
+            <translation>Сайт Farcaster</translation>
+        </message>
+        <message id="genycaster.profile.website">
+            <source>Website</source>
+            <translation>Сайт</translation>
+        </message>
+        <message id="genycaster.connections.connected_accounts">
+            <source>Connected accounts</source>
+            <translation>Подключённые аккаунты</translation>
+        </message>
+        <message id="genycaster.connections.available_networks">
+            <source>Available networks</source>
+            <translation>Доступные сети</translation>
+        </message>
+        <message id="genycaster.connections.title">
+            <source>Connections</source>
+            <translation>Подключения</translation>
+        </message>
+        <message id="genycaster.connections.description">
+            <source>Manage connected accounts securely in Genycaster.</source>
+            <translation>Безопасно управляйте подключёнными аккаунтами в Genycaster.</translation>
+        </message>
+        <message id="genycaster.connections.status_connected">
+            <source>Connected</source>
+            <translation>Подключено</translation>
+        </message>
+        <message id="genycaster.connections.status_not_connected">
+            <source>Not connected</source>
+            <translation>Не подключено</translation>
+        </message>
+        <message id="genycaster.connections.verify">
+            <source>Verify with Farcaster</source>
+            <translation>Подтвердить через Farcaster</translation>
+        </message>
+        <message id="genycaster.connections.refresh">
+            <source>Refresh connections</source>
+            <translation>Обновить подключения</translation>
+        </message>
         <message id="genycaster.providers.compatible_read_fallback">
             <source>Allow compatible read fallback</source>
             <translation>Разрешить совместимый резервный узел чтения</translation>

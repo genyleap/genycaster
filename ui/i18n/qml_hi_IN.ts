@@ -2,6 +2,158 @@
 <TS version="2.1" language="hi_IN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.bookmarks.description">
+            <source>Your saved casts, available on your signed-in devices</source>
+            <translation>आपके सहेजे गए कास्ट, आपके साइन-इन किए गए डिवाइसों पर उपलब्ध</translation>
+        </message>
+        <message id="genycaster.bookmarks.sort_priority">
+            <source>Priority</source>
+            <translation>प्राथमिकता</translation>
+        </message>
+        <message id="genycaster.bookmarks.sort_newest">
+            <source>Newest</source>
+            <translation>नवीनतम</translation>
+        </message>
+        <message id="genycaster.bookmarks.sort_oldest">
+            <source>Oldest</source>
+            <translation>सबसे पुराने</translation>
+        </message>
+        <message id="genycaster.bookmarks.refresh">
+            <source>Refresh saved casts</source>
+            <translation>सहेजे गए कास्ट रीफ़्रेश करें</translation>
+        </message>
+        <message id="genycaster.bookmarks.pending">
+            <source>Saving %1 bookmark changes to your account…</source>
+            <translation>आपके खाते में %1 बुकमार्क परिवर्तन सहेजे जा रहे हैं…</translation>
+        </message>
+        <message id="genycaster.bookmarks.saved_cast">
+            <source>Saved cast</source>
+            <translation>सहेजा गया कास्ट</translation>
+        </message>
+        <message id="genycaster.bookmarks.unpin">
+            <source>Remove priority</source>
+            <translation>प्राथमिकता हटाएँ</translation>
+        </message>
+        <message id="genycaster.bookmarks.pin">
+            <source>Prioritize</source>
+            <translation>प्राथमिकता दें</translation>
+        </message>
+        <message id="genycaster.bookmarks.remove">
+            <source>Remove bookmark</source>
+            <translation>बुकमार्क हटाएँ</translation>
+        </message>
+        <message id="genycaster.bookmarks.open_saved_cast">
+            <source>Open saved cast</source>
+            <translation>सहेजा गया कास्ट खोलें</translation>
+        </message>
+        <message id="genycaster.profile.link_number">
+            <source>Link %1</source>
+            <translation>लिंक %1</translation>
+        </message>
+        <message id="genycaster.profile.selection_error">
+            <source>Choose a category and role from the lists.</source>
+            <translation>सूचियों से श्रेणी और भूमिका चुनें।</translation>
+        </message>
+        <message id="genycaster.profile.linked_networks">
+            <source>Connected networks</source>
+            <translation>जुड़े हुए नेटवर्क</translation>
+        </message>
+        <message id="genycaster.profile.manage_connections">
+            <source>Manage social connections</source>
+            <translation>सोशल कनेक्शन प्रबंधित करें</translation>
+        </message>
+        <message id="genycaster.profile.manage">
+            <source>Manage</source>
+            <translation>प्रबंधित करें</translation>
+        </message>
+        <message id="genycaster.profile.edit_details">
+            <source>Edit profile details</source>
+            <translation>प्रोफ़ाइल विवरण संपादित करें</translation>
+        </message>
+        <message id="genycaster.profile.personal_links">
+            <source>Profession and personal links</source>
+            <translation>पेशा और निजी लिंक</translation>
+        </message>
+        <message id="genycaster.profile.category_label">
+            <source>Professional category</source>
+            <translation>पेशेवर श्रेणी</translation>
+        </message>
+        <message id="genycaster.profile.role_label">
+            <source>Role</source>
+            <translation>भूमिका</translation>
+        </message>
+        <message id="genycaster.profile.role_accessible">
+            <source>Professional role</source>
+            <translation>पेशेवर भूमिका</translation>
+        </message>
+        <message id="genycaster.profile.previous_role">
+            <source>Your previous role is no longer supported. Select a role to replace it.</source>
+            <translation>आपकी पिछली भूमिका अब समर्थित नहीं है। दूसरी चुनें।</translation>
+        </message>
+        <message id="genycaster.profile.cancel">
+            <source>Cancel</source>
+            <translation>रद्द करें</translation>
+        </message>
+        <message id="genycaster.profile.save_changes">
+            <source>Save changes</source>
+            <translation>बदलाव सहेजें</translation>
+        </message>
+        <message id="genycaster.profile.edit_profile">
+            <source>Edit profile</source>
+            <translation>प्रोफ़ाइल संपादित करें</translation>
+        </message>
+        <message id="genycaster.profile.share_profile">
+            <source>Share profile</source>
+            <translation>प्रोफ़ाइल साझा करें</translation>
+        </message>
+        <message id="genycaster.profile.links_title">
+            <source>Links</source>
+            <translation>लिंक</translation>
+        </message>
+        <message id="genycaster.profile.links_subtitle">
+            <source>Personal and professional websites</source>
+            <translation>निजी और पेशेवर वेबसाइटें</translation>
+        </message>
+        <message id="genycaster.profile.farcaster_website">
+            <source>Farcaster website</source>
+            <translation>फ़ारकास्टर वेबसाइट</translation>
+        </message>
+        <message id="genycaster.profile.website">
+            <source>Website</source>
+            <translation>वेबसाइट</translation>
+        </message>
+        <message id="genycaster.connections.connected_accounts">
+            <source>Connected accounts</source>
+            <translation>जुड़े हुए खाते</translation>
+        </message>
+        <message id="genycaster.connections.available_networks">
+            <source>Available networks</source>
+            <translation>उपलब्ध नेटवर्क</translation>
+        </message>
+        <message id="genycaster.connections.title">
+            <source>Connections</source>
+            <translation>कनेक्शन</translation>
+        </message>
+        <message id="genycaster.connections.description">
+            <source>Manage connected accounts securely in Genycaster.</source>
+            <translation>Genycaster में जुड़े खातों को सुरक्षित रूप से प्रबंधित करें।</translation>
+        </message>
+        <message id="genycaster.connections.status_connected">
+            <source>Connected</source>
+            <translation>जुड़ा हुआ</translation>
+        </message>
+        <message id="genycaster.connections.status_not_connected">
+            <source>Not connected</source>
+            <translation>कनेक्ट नहीं है</translation>
+        </message>
+        <message id="genycaster.connections.verify">
+            <source>Verify with Farcaster</source>
+            <translation>Farcaster से सत्यापित करें</translation>
+        </message>
+        <message id="genycaster.connections.refresh">
+            <source>Refresh connections</source>
+            <translation>कनेक्शन रीफ़्रेश करें</translation>
+        </message>
         <message id="genycaster.providers.compatible_read_fallback">
             <source>Allow compatible read fallback</source>
             <translation>संगत वैकल्पिक रीड प्रदाता की अनुमति दें</translation>

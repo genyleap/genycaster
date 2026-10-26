@@ -2,6 +2,158 @@
 <TS version="2.1" language="ko_KR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.bookmarks.description">
+            <source>Your saved casts, available on your signed-in devices</source>
+            <translation>저장한 캐스트는 로그인한 기기에서 사용할 수 있습니다</translation>
+        </message>
+        <message id="genycaster.bookmarks.sort_priority">
+            <source>Priority</source>
+            <translation>우선순위</translation>
+        </message>
+        <message id="genycaster.bookmarks.sort_newest">
+            <source>Newest</source>
+            <translation>최신순</translation>
+        </message>
+        <message id="genycaster.bookmarks.sort_oldest">
+            <source>Oldest</source>
+            <translation>오래된순</translation>
+        </message>
+        <message id="genycaster.bookmarks.refresh">
+            <source>Refresh saved casts</source>
+            <translation>저장한 캐스트 새로고침</translation>
+        </message>
+        <message id="genycaster.bookmarks.pending">
+            <source>Saving %1 bookmark changes to your account…</source>
+            <translation>북마크 변경 %1개를 계정에 저장하는 중…</translation>
+        </message>
+        <message id="genycaster.bookmarks.saved_cast">
+            <source>Saved cast</source>
+            <translation>저장한 캐스트</translation>
+        </message>
+        <message id="genycaster.bookmarks.unpin">
+            <source>Remove priority</source>
+            <translation>우선순위 해제</translation>
+        </message>
+        <message id="genycaster.bookmarks.pin">
+            <source>Prioritize</source>
+            <translation>우선순위 지정</translation>
+        </message>
+        <message id="genycaster.bookmarks.remove">
+            <source>Remove bookmark</source>
+            <translation>북마크 삭제</translation>
+        </message>
+        <message id="genycaster.bookmarks.open_saved_cast">
+            <source>Open saved cast</source>
+            <translation>저장한 캐스트 열기</translation>
+        </message>
+        <message id="genycaster.profile.link_number">
+            <source>Link %1</source>
+            <translation>링크 %1</translation>
+        </message>
+        <message id="genycaster.profile.selection_error">
+            <source>Choose a category and role from the lists.</source>
+            <translation>목록에서 카테고리와 역할을 선택하세요.</translation>
+        </message>
+        <message id="genycaster.profile.linked_networks">
+            <source>Connected networks</source>
+            <translation>연결된 네트워크</translation>
+        </message>
+        <message id="genycaster.profile.manage_connections">
+            <source>Manage social connections</source>
+            <translation>소셜 연결 관리</translation>
+        </message>
+        <message id="genycaster.profile.manage">
+            <source>Manage</source>
+            <translation>관리</translation>
+        </message>
+        <message id="genycaster.profile.edit_details">
+            <source>Edit profile details</source>
+            <translation>프로필 세부정보 편집</translation>
+        </message>
+        <message id="genycaster.profile.personal_links">
+            <source>Profession and personal links</source>
+            <translation>직업 및 개인 링크</translation>
+        </message>
+        <message id="genycaster.profile.category_label">
+            <source>Professional category</source>
+            <translation>직업 카테고리</translation>
+        </message>
+        <message id="genycaster.profile.role_label">
+            <source>Role</source>
+            <translation>역할</translation>
+        </message>
+        <message id="genycaster.profile.role_accessible">
+            <source>Professional role</source>
+            <translation>직업 역할</translation>
+        </message>
+        <message id="genycaster.profile.previous_role">
+            <source>Your previous role is no longer supported. Select a role to replace it.</source>
+            <translation>기존 역할은 더 이상 지원되지 않습니다. 다른 역할을 선택하세요.</translation>
+        </message>
+        <message id="genycaster.profile.cancel">
+            <source>Cancel</source>
+            <translation>취소</translation>
+        </message>
+        <message id="genycaster.profile.save_changes">
+            <source>Save changes</source>
+            <translation>변경사항 저장</translation>
+        </message>
+        <message id="genycaster.profile.edit_profile">
+            <source>Edit profile</source>
+            <translation>프로필 편집</translation>
+        </message>
+        <message id="genycaster.profile.share_profile">
+            <source>Share profile</source>
+            <translation>프로필 공유</translation>
+        </message>
+        <message id="genycaster.profile.links_title">
+            <source>Links</source>
+            <translation>링크</translation>
+        </message>
+        <message id="genycaster.profile.links_subtitle">
+            <source>Personal and professional websites</source>
+            <translation>개인 및 업무 웹사이트</translation>
+        </message>
+        <message id="genycaster.profile.farcaster_website">
+            <source>Farcaster website</source>
+            <translation>파캐스터 웹사이트</translation>
+        </message>
+        <message id="genycaster.profile.website">
+            <source>Website</source>
+            <translation>웹사이트</translation>
+        </message>
+        <message id="genycaster.connections.connected_accounts">
+            <source>Connected accounts</source>
+            <translation>연결된 계정</translation>
+        </message>
+        <message id="genycaster.connections.available_networks">
+            <source>Available networks</source>
+            <translation>연결 가능한 네트워크</translation>
+        </message>
+        <message id="genycaster.connections.title">
+            <source>Connections</source>
+            <translation>연결</translation>
+        </message>
+        <message id="genycaster.connections.description">
+            <source>Manage connected accounts securely in Genycaster.</source>
+            <translation>Genycaster에서 연결된 계정을 안전하게 관리하세요.</translation>
+        </message>
+        <message id="genycaster.connections.status_connected">
+            <source>Connected</source>
+            <translation>연결됨</translation>
+        </message>
+        <message id="genycaster.connections.status_not_connected">
+            <source>Not connected</source>
+            <translation>연결되지 않음</translation>
+        </message>
+        <message id="genycaster.connections.verify">
+            <source>Verify with Farcaster</source>
+            <translation>파캐스터로 인증</translation>
+        </message>
+        <message id="genycaster.connections.refresh">
+            <source>Refresh connections</source>
+            <translation>연결 새로고침</translation>
+        </message>
         <message id="genycaster.providers.compatible_read_fallback">
             <source>Allow compatible read fallback</source>
             <translation>호환 읽기 공급자로 대체 허용</translation>

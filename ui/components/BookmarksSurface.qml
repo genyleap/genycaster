@@ -86,7 +86,7 @@ Flickable {
             spacing: Theme.space2
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTr("Your saved casts, available on your signed-in devices")
+                text: qsTrId("genycaster.bookmarks.description")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeMetaSize
                 wrapMode: Text.Wrap
@@ -95,7 +95,7 @@ Flickable {
                 id: bookmarkSortPicker
                 objectName: "bookmarkSortPicker"
                 Layout.preferredWidth: root.compact ? 116 : 160
-                model: [qsTr("Priority"), qsTr("Newest"), qsTr("Oldest")]
+                model: [qsTrId("genycaster.bookmarks.sort_priority"), qsTrId("genycaster.bookmarks.sort_newest"), qsTrId("genycaster.bookmarks.sort_oldest")]
                 currentIndex: root.sortMode === "oldest" ? 2
                             : root.sortMode === "newest" ? 1 : 0
                 onActivated: index => root.sortMode =
@@ -106,7 +106,7 @@ Flickable {
                 compact: true
                 quiet: true
                 iconGlyph: Theme.iconRefresh
-                text: qsTr("Refresh saved casts")
+                text: qsTrId("genycaster.bookmarks.refresh")
                 busy: root.refreshBusy
                 enabled: root.authenticated && !root.refreshBusy
                 onClicked: root.refreshRequested()
@@ -119,7 +119,7 @@ Flickable {
             Layout.fillWidth: true
             color: root.accountError.length > 0 ? Theme.negative : Theme.inkMuted
             text: root.accountError.length > 0 ? root.accountError
-                  : qsTr("%1 saved cast changes are being added to your account.").arg(root.pendingCount)
+                  : qsTrId("genycaster.bookmarks.pending").arg(root.pendingCount)
             font.pixelSize: Theme.typeCaptionSize
             wrapMode: Text.Wrap
         }
@@ -158,6 +158,7 @@ Flickable {
                         Layout.fillWidth: true
                         spacing: Theme.space2
                         Avatar {
+                            visible: Number(modelData.authorFid || 0) > 0
                             avatarSize: 35
                             sourceUrl: String(modelData.avatarUrl || "")
                             displayName: String(modelData.displayName || modelData.author || "")
@@ -167,7 +168,8 @@ Flickable {
                             spacing: 0
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: String(modelData.displayName || modelData.author || "Farcaster")
+                                text: String(modelData.displayName || modelData.author || "")
+                                      || qsTrId("genycaster.bookmarks.saved_cast")
                                 color: Theme.ink
                                 font.pixelSize: Theme.typeLabelSize
                                 font.weight: Theme.weightDemiBold
@@ -175,37 +177,43 @@ Flickable {
                             }
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: String(modelData.author || modelData.username || "")
+                                text: String(modelData.username || modelData.author || "")
+                                      || String(modelData.castId || "").slice(0, 12) + "…"
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 elide: Text.ElideRight
+                                LayoutMirroring.enabled: false
                             }
                         }
                         ActionButton {
                             objectName: "bookmarkPriorityButton"
+                            visible: !root.compact
                             compact: true
                             quiet: true
-                            iconOnly: true
-                            iconGlyph: Theme.iconLocation
+                            selected: Number(modelData.priority || 0) > 0
+                            iconGlyph: Theme.iconSpark
                             text: Number(modelData.priority || 0) > 0
-                                  ? qsTr("Remove priority") : qsTr("Prioritize bookmark")
+                                  ? qsTrId("genycaster.bookmarks.unpin")
+                                  : qsTrId("genycaster.bookmarks.pin")
                             onClicked: root.priorityRequested(String(modelData.castId || ""),
                                 Number(modelData.priority || 0) > 0 ? 0 : 1)
                         }
                         ActionButton {
                             objectName: "bookmarkRemoveButton"
+                            visible: !root.compact
                             compact: true
                             quiet: true
-                            iconOnly: true
+                            destructive: true
                             iconGlyph: Theme.iconTrash
-                            text: qsTr("Remove bookmark")
+                            text: qsTrId("genycaster.bookmarks.remove")
                             onClicked: root.removeRequested(String(modelData.castId || ""))
                         }
                     }
 
                     DirectionAwareLabel {
+                        visible: String(modelData.text || "").length > 0
                         Layout.fillWidth: true
-                        text: String(modelData.text || "") || qsTr("Cast details unavailable. Tap to open.")
+                        text: String(modelData.text || "")
                         color: Theme.ink
                         font.pixelSize: Theme.typeBodySize
                         maximumLineCount: 5
@@ -214,6 +222,44 @@ Flickable {
                         TapHandler {
                             gesturePolicy: TapHandler.ReleaseWithinBounds
                             onTapped: root.castRequested(String(modelData.castId || ""))
+                        }
+                    }
+                    ActionButton {
+                        visible: String(modelData.text || "").length === 0
+                        Layout.alignment: Qt.AlignLeft
+                        quiet: true
+                        compact: true
+                        iconGlyph: Theme.iconArrowUpRight
+                        text: qsTrId("genycaster.bookmarks.open_saved_cast")
+                        onClicked: root.castRequested(String(modelData.castId || ""))
+                    }
+                    RowLayout {
+                        visible: root.compact
+                        Layout.fillWidth: true
+                        layoutDirection: Theme.uiDirection
+                        spacing: Theme.space2
+                        ActionButton {
+                            objectName: "bookmarkPriorityMobileButton"
+                            Layout.fillWidth: true
+                            compact: true
+                            quiet: true
+                            selected: Number(modelData.priority || 0) > 0
+                            iconGlyph: Theme.iconSpark
+                            text: Number(modelData.priority || 0) > 0
+                                  ? qsTrId("genycaster.bookmarks.unpin")
+                                  : qsTrId("genycaster.bookmarks.pin")
+                            onClicked: root.priorityRequested(String(modelData.castId || ""),
+                                Number(modelData.priority || 0) > 0 ? 0 : 1)
+                        }
+                        ActionButton {
+                            objectName: "bookmarkRemoveMobileButton"
+                            Layout.fillWidth: true
+                            compact: true
+                            quiet: true
+                            destructive: true
+                            iconGlyph: Theme.iconTrash
+                            text: qsTrId("genycaster.bookmarks.remove")
+                            onClicked: root.removeRequested(String(modelData.castId || ""))
                         }
                     }
                 }

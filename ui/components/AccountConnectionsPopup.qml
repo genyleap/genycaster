@@ -138,13 +138,35 @@ GenyDrawer {
         return null
     }
 
+    // The provider catalog is a list of available integrations, NOT the
+    // account's connected networks. Keep linked networks first, with the
+    // optional integrations visually separated on every screen size.
+    readonly property var orderedProviders: {
+        const linked = []
+        const available = []
+        const list = picker.providers || []
+        for (let i = 0; i < list.length; ++i) {
+            const provider = String(list[i])
+            if (picker.connectionFor(provider)) linked.push(provider)
+            else available.push(provider)
+        }
+        return linked.concat(available)
+    }
+    readonly property int linkedCount: {
+        let count = 0
+        const list = picker.providers || []
+        for (let i = 0; i < list.length; ++i)
+            if (picker.connectionFor(String(list[i]))) ++count
+        return count
+    }
+
     contentItem: ColumnLayout {
         spacing: Theme.space3
 
         ModalHeader {
             Layout.fillWidth: true
-            title: qsTr("Connections")
-            subtitle: qsTr("Manage connected accounts securely in Genycaster.")
+            title: qsTrId("genycaster.connections.title")
+            subtitle: qsTrId("genycaster.connections.description")
             onCloseRequested: picker.close()
         }
 
@@ -207,7 +229,7 @@ GenyDrawer {
                         prominent: !picker.authorizing
                         quiet: picker.authorizing
                         enabled: !picker.authorizing
-                        text: picker.authorizing ? qsTr("Waiting for confirmation…") : qsTr("Verify with Farcaster")
+                        text: picker.authorizing ? qsTr("Waiting for confirmation…") : qsTrId("genycaster.connections.verify")
                         iconGlyph: picker.authorizing ? "" : Theme.iconArrowUpRight
                         onClicked: picker.authorizeRequested()
                     }
@@ -228,13 +250,13 @@ GenyDrawer {
             spacing: Theme.space2
 
             DirectionAwareLabel {
-                text: qsTr("Networks")
+                text: qsTrId("genycaster.connections.connected_accounts")
                 color: Theme.ink
                 font.pixelSize: Theme.typeLabelSize
                 font.weight: Theme.weightDemiBold
             }
             DirectionAwareLabel {
-                text: String(picker.providers.length)
+                text: String(picker.linkedCount)
                 color: Theme.inkSubtle
                 font.pixelSize: Theme.typeCaptionSize
             }
@@ -281,7 +303,7 @@ GenyDrawer {
                 compact: true
                 iconOnly: true
                 quiet: true
-                text: qsTr("Refresh connections")
+                text: qsTrId("genycaster.connections.refresh")
                 iconGlyph: Theme.iconRefresh
                 enabled: !picker.actionBusy
                 onClicked: picker.refreshRequested()
@@ -319,7 +341,7 @@ GenyDrawer {
                     spacing: 0
 
                     Repeater {
-                        model: picker.providers
+                        model: picker.orderedProviders
 
                         delegate: ColumnLayout {
                             id: providerRow
@@ -337,6 +359,20 @@ GenyDrawer {
                                 function onClosed() { providerRow.confirmUnlink = false }
                             }
                             onIsConnectedChanged: confirmUnlink = false
+
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                Layout.topMargin: Theme.space3
+                                Layout.leftMargin: Theme.space3
+                                Layout.rightMargin: Theme.space3
+                                Layout.bottomMargin: Theme.space1
+                                visible: !providerRow.isConnected
+                                         && providerRow.index === picker.linkedCount
+                                text: qsTrId("genycaster.connections.available_networks")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: Theme.weightDemiBold
+                            }
 
                             RowLayout {
                                 Layout.fillWidth: true
@@ -396,11 +432,11 @@ GenyDrawer {
                                                     return nick.length > 0
                                                            ? qsTr("Saved link: %1").arg(nick)
                                                            : qsTr("Saved account link")
-                                                return nick.length > 0 ? nick : qsTr("Connected")
+                                                return nick.length > 0 ? nick : qsTrId("genycaster.connections.status_connected")
                                             }
                                             if (picker.authorized && !providerRow.redirectCapable)
                                                 return qsTr("Signed proof required")
-                                            if (picker.authorized) return qsTr("Not connected")
+                                            if (picker.authorized) return qsTrId("genycaster.connections.status_not_connected")
                                             return picker.providerDescription(providerRow.modelData)
                                         }
                                         color: providerRow.isConnected && picker.authorized ? Theme.success : Theme.inkMuted

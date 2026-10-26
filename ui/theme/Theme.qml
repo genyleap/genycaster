@@ -420,6 +420,7 @@ QtObject {
     readonly property string iconLink: "link"
     readonly property string iconMention: "mention"
     readonly property string iconLocation: "pin"
+    readonly property string iconSpark: "spark"
     readonly property string iconBookmark: "bookmark"
     readonly property string iconStore: "store"
     readonly property string iconNotification: "bell"

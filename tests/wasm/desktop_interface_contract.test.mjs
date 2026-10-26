@@ -10,7 +10,7 @@ test('share menus show concise, untruncated action labels', () => {
     assert.match(cast, /text: qsTr\("Share…".*\)/);
     assert.match(cast, /text: qsTr\("Copy link"\)/);
     assert.doesNotMatch(cast, /text: qsTr\("Copy Farcaster URI"\)/);
-    assert.match(profile, /text: qsTr\("Share profile"\)/);
+    assert.match(profile, /text: qsTrId\("genycaster\.profile\.share_profile"\)/);
     assert.match(profile, /text: qsTr\("Copy profile link"\)/);
     assert.doesNotMatch(profile, /text: qsTr\("Copy Farcaster URI"\)/);
     assert.doesNotMatch(cast + profile, /Copy Farcaster URI \(experimental\)|Copy Genycaster profile link/);

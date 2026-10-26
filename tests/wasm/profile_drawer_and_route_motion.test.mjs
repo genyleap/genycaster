@@ -21,7 +21,7 @@ test('profile profession and category are selectable, validated, and retain save
   assert.match(profile,/busy: root\.busy[\s\S]*?enabled: !root\.busy/);
 });
 test('mobile profile binds avatar and connections to the same header band',()=>{
-  assert.match(profile,/readonly property int profileAvatarX: root\.compact\s*\? root\.profileContentX \+ Theme\.space2/);
+  assert.match(profile,/readonly property int profileAvatarX: root\.profileContentRtl/);
   assert.match(profile,/id: ownerSocialBadgeStrip[\s\S]*?visible: root\.isOwnProfile && root\.ownerSocialLinks\.length > 0/);
   assert.doesNotMatch(profile,/objectName: "compactVerifiedSocialBadges"/);
   assert.match(profile,/Layout\.preferredWidth: Theme\.scaleUi\(root\.compact \? 29 : 34\)/);
@@ -31,12 +31,12 @@ test('profile extras are compact, labelled and reachable through a mobile sheet'
   assert.match(profile,/objectName: "profileIdentityLinks"/);
   assert.match(profile,/id: profileLinksDrawer[\s\S]*?bottomSheet: mobilePresentation/);
   assert.match(profile,/id: profileExtrasEditor[\s\S]*?bottomSheet: mobilePresentation/);
-  assert.match(profile,/id: profileLinksDrawer[\s\S]*?title: qsTr\("Links"\)/);
-  assert.match(profile,/root\.profileExtraLabel\(linkSheetRow\.index\)/);
+  assert.match(profile,/id: profileLinksDrawer[\s\S]*?title: qsTrId\("genycaster\.profile\.links_title"\)/);
+  assert.match(profile,/userLabel: root\.profileExtraLabel\(index\)/);
   assert.match(profile,/labels: unique\.map\(e=>e\.label\)/);
   assert.match(profile,/linksEditor\.text = saved\.map/);
   assert.match(profile,/objectName: "profileOwnerActions"/);
-  assert.match(profile,/text: qsTr\("Save changes"\)/);
+  assert.match(profile,/text: qsTrId\("genycaster\.profile\.save_changes"\)/);
   assert.doesNotMatch(profile,/Popup \{\s*id: profileExtrasEditor/);
 });
 test('mobile uses equal-width Share and Edit buttons; desktop uses a real profile menu',()=>{
@@ -53,14 +53,14 @@ test('mobile uses equal-width Share and Edit buttons; desktop uses a real profil
   assert.match(profile,/objectName: "profileOptionsButton"/);
   assert.match(profile,/visible: !root\.compact[\s\S]*?iconGlyph: Theme\.iconMore/);
   assert.match(profile,/objectName: "profileOptionsMenu"/);
-  assert.match(profile,/visible: root\.isOwnProfile[\s\S]*?text: qsTr\("Edit profile"\)/);
+  assert.match(profile,/visible: root\.isOwnProfile[\s\S]*?text: qsTrId\("genycaster\.profile\.edit_profile"\)/);
   assert.equal((actions.match(/compact: true/g)||[]).length,2);
   assert.equal((actions.match(/pill: true/g)||[]).length,2);
-  assert.match(actions,/text: qsTr\("Share profile"\)/);
-  assert.match(actions,/text: qsTr\("Edit profile"\)/);
+  assert.match(actions,/text: qsTrId\("genycaster\.profile\.share_profile"\)/);
+  assert.match(actions,/text: qsTrId\("genycaster\.profile\.edit_profile"\)/);
   assert.match(actions,/presentationBridge\.shareUrl\(/);
   assert.match(actions,/profileExtrasEditor\.open\(\)/);
-  assert.doesNotMatch(actions,/text: qsTr\("Links"\)/);
+  assert.doesNotMatch(actions,/text: qsTrId\("genycaster\.profile\.links_title"\)/);
 });
 test('website and additional links are in the identity row, not below the biography',()=>{
   const start=profile.indexOf('objectName: "profileIdentityRow"');

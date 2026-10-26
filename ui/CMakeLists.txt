@@ -115,6 +115,7 @@ set(farcasterQmlFiles
     components/GenyTabStrip.qml
     components/ProfileListItem.qml
     components/ProgressRing.qml
+    components/ProfileLinkRow.qml
     components/ProfileSurface.qml
     components/AccountConnectionsPopup.qml
     components/ProfileTrustCard.qml

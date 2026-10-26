@@ -322,14 +322,16 @@ Item {
             ? String(root.profileExtras.profession) : fromSource.slice(0, 80)
     }
     readonly property var profileExtraLinks: {
-        return root.isOwnProfile && Array.isArray(root.profileExtras.links)
-            ? root.profileExtras.links.filter(s=>typeof s === "string" && root.validExtraUrl(s)).slice(0, 5)
+        const links = root.profileSequence(root.profileExtras.links, 5)
+        return root.isOwnProfile
+            ? links.filter(s => typeof s === "string" && root.validExtraUrl(s))
             : []
     }
     function profileExtraLabel(index) {
-        const labels = root.profileExtras.labels
-        return Array.isArray(labels) && typeof labels[index] === "string" && labels[index].trim()
-            ? labels[index].trim().slice(0, 32) : qsTr("Link %1").arg(index + 1)
+        const labels = root.profileSequence(root.profileExtras.labels, 5)
+        return typeof labels[index] === "string" && labels[index].trim()
+            ? labels[index].trim().slice(0, 32)
+            : qsTrId("genycaster.profile.link_number").arg(index + 1)
     }
     readonly property int profileLinkTotal: root.profileExtraLinks.length + (root.showProfileUrl ? 1 : 0)
     readonly property string primaryProfileLinkUrl: root.showProfileUrl
@@ -359,7 +361,7 @@ Item {
         const categoryName = String(category || "").trim()
         if ((role && root.profileRoleOptions.indexOf(role) <= 0)
                 || (categoryName && root.profileCategoryOptions.indexOf(categoryName) <= 0)) {
-            root.profileExtrasError = qsTr("Choose a category and role from the lists.")
+            root.profileExtrasError = qsTrId("genycaster.profile.selection_error")
             return false
         }
         if (role.length > 80) {
@@ -446,11 +448,10 @@ Item {
     readonly property int profileContentWidth: Math.max(0, Math.min(root.profileContentLimit, width - root.profileMargin * 2))
     readonly property int profileContentX: Math.max(root.profileMargin, Math.round((width - root.profileContentWidth) / 2))
     readonly property bool profileContentRtl: Theme.rtl
-    readonly property int profileAvatarX: root.compact
-                                           ? root.profileContentX + Theme.space2
-                                           : root.profileContentRtl
-                                             ? root.profileContentX + root.profileContentWidth - root.profileAvatarSize - Theme.space3
-                                             : root.profileContentX + Theme.space3
+    readonly property int profileAvatarX: root.profileContentRtl
+                                         ? root.profileContentX + root.profileContentWidth
+                                           - root.profileAvatarSize - (root.compact ? Theme.space2 : Theme.space3)
+                                         : root.profileContentX + (root.compact ? Theme.space2 : Theme.space3)
     // Never infer social proof from a Farcaster bio, display name or vanity URL.
     // These labels originate from OpenProof's verified, FID-bound connection
     // response (or a clearly marked owner-local last-known snapshot).
@@ -1132,7 +1133,7 @@ Item {
                                         quiet: true
                                         alignStart: true
                                         iconGlyph: Theme.iconCompose
-                                        text: qsTr("Edit profile")
+                                        text: qsTrId("genycaster.profile.edit_profile")
                                         onClicked: {
                                             sharePopup.close()
                                             profileExtrasEditor.open()
@@ -1143,7 +1144,7 @@ Item {
                                         quiet: true
                                         alignStart: true
                                         iconGlyph: Theme.iconShare
-                                        text: qsTr("Share profile")
+                                        text: qsTrId("genycaster.profile.share_profile")
                                         onClicked: {
                                             sharePopup.close()
                                             presentationBridge.shareUrl(presentationBridge.profileShareUrl(
@@ -1402,17 +1403,18 @@ Item {
                         id: ownerSocialBadgeStrip
                         objectName: "ownerVerifiedSocialBadgeStrip"
                         width: Math.min(implicitWidth, Math.max(0, root.profileContentWidth - root.profileAvatarSize - Theme.space2))
-                        x: root.profileContentX + root.profileContentWidth - width
+                        x: root.profileContentRtl ? root.profileContentX
+                                                  : root.profileContentX + root.profileContentWidth - width
                         anchors.verticalCenter: parent.verticalCenter
                         visible: root.isOwnProfile && root.ownerSocialLinks.length > 0
                         spacing: Theme.space1
-                        // Keep the social proof group at the physical right edge
-                        // on desktop. On phones hide the verbose heading to fit.
-                        layoutDirection: Qt.LeftToRight
+                        // Place linked badges opposite the avatar in either
+                        // direction; on compact RTL screens the avatar is right.
+                        layoutDirection: root.profileContentRtl ? Qt.RightToLeft : Qt.LeftToRight
 
                         Label {
                             visible: !root.compact
-                            text: qsTr("Verified networks")
+                            text: qsTrId("genycaster.profile.linked_networks")
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                             font.weight: Theme.weightDemiBold
@@ -1506,8 +1508,8 @@ Item {
                             compact: true
                             quiet: true
                             iconGlyph: Theme.iconLink
-                            text: qsTr("Manage")
-                            Accessible.description: qsTr("Manage verified social connections")
+                            text: qsTrId("genycaster.profile.manage")
+                            Accessible.description: qsTrId("genycaster.profile.manage_connections")
                             onClicked: root.openConnections()
                         }
                     }
@@ -1853,7 +1855,7 @@ Item {
                             quiet: false
                             pill: true
                             elevated: false
-                            text: qsTr("Share profile")
+                            text: qsTrId("genycaster.profile.share_profile")
                             enabled: Number(root.activeDetail.fid || 0) > 0
                             onClicked: presentationBridge.shareUrl(
                                 presentationBridge.profileShareUrl(Number(root.activeDetail.fid || 0)))
@@ -1867,7 +1869,7 @@ Item {
                             quiet: false
                             pill: true
                             elevated: false
-                            text: qsTr("Edit profile")
+                            text: qsTrId("genycaster.profile.edit_profile")
                             onClicked: profileExtrasEditor.open()
                         }
                     }
@@ -2145,8 +2147,8 @@ Item {
             spacing: Theme.space3
             ModalHeader {
                 Layout.fillWidth: true
-                title: qsTr("Edit profile details")
-                subtitle: qsTr("Profession and personal links")
+                title: qsTrId("genycaster.profile.edit_details")
+                subtitle: qsTrId("genycaster.profile.personal_links")
                 onCloseRequested: profileExtrasEditor.close()
             }
             Flickable {
@@ -2162,7 +2164,7 @@ Item {
                     spacing: Theme.space3
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTr("Professional category")
+                        text: qsTrId("genycaster.profile.category_label")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                     }
@@ -2173,11 +2175,11 @@ Item {
                         Layout.minimumWidth: 0
                         popupMaximumWidth: width
                         model: root.profileCategoryOptions
-                        Accessible.name: qsTr("Professional category")
+                        Accessible.name: qsTrId("genycaster.profile.category_label")
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTr("Role")
+                        text: qsTrId("genycaster.profile.role_label")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                     }
@@ -2188,14 +2190,14 @@ Item {
                         Layout.minimumWidth: 0
                         popupMaximumWidth: width
                         model: root.profileRoleOptions
-                        Accessible.name: qsTr("Professional role")
+                        Accessible.name: qsTrId("genycaster.profile.role_accessible")
                     }
                     DirectionAwareLabel {
                         visible: String(root.profileExtras.profession || "").length > 0
                             && root.profileRoleOptions.indexOf(String(root.profileExtras.profession)) < 0
                             && professionEditor.currentIndex === 0
                         Layout.fillWidth: true
-                        text: qsTr("Your previous role is no longer supported. Select a role to replace it.")
+                        text: qsTrId("genycaster.profile.previous_role")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
@@ -2237,12 +2239,12 @@ Item {
                 ActionButton {
                     Layout.fillWidth: true
                     quiet: true
-                    text: qsTr("Cancel")
+                    text: qsTrId("genycaster.profile.cancel")
                     onClicked: profileExtrasEditor.close()
                 }
                 ActionButton {
                     Layout.fillWidth: true
-                    text: qsTr("Save changes")
+                    text: qsTrId("genycaster.profile.save_changes")
                     onClicked: {
                         if (root.saveExtraDetails(
                                 professionEditor.currentIndex > 0 ? professionEditor.currentText : "",
@@ -2267,12 +2269,21 @@ Item {
         width: parent ? (mobilePresentation ? parent.width : Math.min(440, parent.width)) : 440
         height: parent ? (mobilePresentation ? Math.min(parent.height * 0.68, 530) : parent.height) : 530
         contentPadding: Theme.space4
+        // LinkPreviewResolver is a shared C++/Qt service, not a browser-only
+        // metadata bridge. Queue bounded public-link lookups only on open.
+        onOpened: {
+            if (root.showProfileUrl)
+                linkPreviewResolver.requestPreview(String(root.activeDetail.profileUrl || ""))
+            const urls = root.profileExtraLinks
+            for (let i = 0; i < urls.length; ++i)
+                linkPreviewResolver.requestPreview(String(urls[i]))
+        }
         contentItem: ColumnLayout {
             spacing: Theme.space3
             ModalHeader {
                 Layout.fillWidth: true
-                title: qsTr("Links")
-                subtitle: qsTr("Personal and professional websites")
+                title: qsTrId("genycaster.profile.links_title")
+                subtitle: qsTrId("genycaster.profile.links_subtitle")
                 onCloseRequested: profileLinksDrawer.close()
             }
             Flickable {
@@ -2285,66 +2296,26 @@ Item {
                     id: linksSheetRows
                     width: parent.width
                     spacing: Theme.space3
-                    Button {
+                    ProfileLinkRow {
                         visible: root.showProfileUrl
-                        Layout.fillWidth: true
-                        flat: true
-                        background: Rectangle {
-                            radius: Theme.curveCompact
-                            color: parent.hovered ? Theme.surfaceHover : Theme.surface
-                        }
-                        padding: Theme.space2
-                        contentItem: ColumnLayout {
-                            spacing: Theme.space1
-                            DirectionAwareLabel {
-                                text: qsTr("Farcaster website")
-                                color: Theme.ink
-                                font.weight: Theme.weightDemiBold
-                            }
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: root.displayUrl(root.activeDetail.profileUrl || "")
-                                color: Theme.inkMuted
-                                elide: Text.ElideRight
-                            }
-                        }
-                        onClicked: {
-                            root.externalRequested(root.activeDetail.profileUrl || "")
+                        targetUrl: String(root.activeDetail.profileUrl || "")
+                        userLabel: qsTrId("genycaster.profile.farcaster_website")
+                        displayUrl: root.displayUrl(targetUrl)
+                        onOpenRequested: url => {
+                            root.externalRequested(url)
                             profileLinksDrawer.close()
                         }
                     }
                     Repeater {
                         model: root.profileExtraLinks
-                        delegate: Button {
-                            id: linkSheetRow
+                        delegate: ProfileLinkRow {
                             required property int index
                             required property var modelData
-                            Layout.fillWidth: true
-                            flat: true
-                            padding: Theme.space2
-                            background: Rectangle {
-                                radius: Theme.curveCompact
-                                color: linkSheetRow.hovered ? Theme.surfaceHover : Theme.surface
-                                Behavior on color {
-                                    ColorAnimation { duration: Theme.motionFast }
-                                }
-                            }
-                            contentItem: ColumnLayout {
-                                spacing: Theme.space1
-                                DirectionAwareLabel {
-                                    text: root.profileExtraLabel(linkSheetRow.index)
-                                    color: Theme.ink
-                                    font.weight: Theme.weightDemiBold
-                                }
-                                DirectionAwareLabel {
-                                    Layout.fillWidth: true
-                                    text: root.displayUrl(linkSheetRow.modelData)
-                                    color: Theme.inkMuted
-                                    elide: Text.ElideRight
-                                }
-                            }
-                            onClicked: {
-                                root.externalRequested(String(modelData))
+                            targetUrl: String(modelData)
+                            userLabel: root.profileExtraLabel(index)
+                            displayUrl: root.displayUrl(targetUrl)
+                            onOpenRequested: url => {
+                                root.externalRequested(url)
                                 profileLinksDrawer.close()
                             }
                         }
