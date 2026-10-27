@@ -49,3 +49,9 @@ test('bookmark action opens a nonblocking collection chooser only when adding',(
   assert.match(chooser,/signal unfiledRequested\(\)/);
   assert.match(chooser,/signal createRequested\(string name\)/);
 });
+
+test('each new visual surface is registered in the Qt QML module',()=>{
+  const cmake=read('ui/CMakeLists.txt');
+  for(const component of ['BookmarkCollectionChooser','TopicBrowseSurface','TopicFilterPicker'])
+    assert.ok(cmake.includes('components/'+component+'.qml'));
+});

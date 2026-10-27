@@ -38,6 +38,7 @@ set(farcasterQmlFiles
     components/CastViews.qml
     components/CastReactions.qml
     components/BookmarksSurface.qml
+    components/BookmarkCollectionChooser.qml
     components/ContextRail.qml
     components/ComposerDrawer.qml
     components/DashedCapsuleOutline.qml
@@ -142,6 +143,8 @@ set(farcasterQmlFiles
     components/TokenSemantic.qml
     components/VectorStroke.qml
     components/TokenAddressPreview.qml
+    components/TopicBrowseSurface.qml
+    components/TopicFilterPicker.qml
     components/VideoPreview.qml
     components/VisualPost.qml
     theme/Theme.qml
