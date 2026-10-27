@@ -8,7 +8,7 @@ const principal='farcaster:42';
 const calls=[];
 const store={
   async listTopics(){return initialTopics.map((slug,i)=>({id:String(i+1),slug,cast_count:i}));},
-  async listTopicCasts(slug,limit,offset){calls.push(['list',slug,limit,offset]);return [{cast_hash:'0x'+'ab'.repeat(20),author_fid:'42'}];},
+  async listTopicCasts(slug,limit,offset,authorFid){calls.push(['list',slug,limit,offset,authorFid]);return [{cast_hash:'0x'+'ab'.repeat(20),author_fid:'42'}];},
   async assignCastTopics(owner,hash,slugs){
     calls.push(['assign',owner.subject,owner.fid,hash,slugs]);
     return {cast_hash:hash,topics:slugs};
@@ -35,6 +35,11 @@ test('topics are public read-only, sorted and not tied to parent_url or channel 
      ['art','development','photography']);
   assert.equal((await req('topics','PUT',{})).status,405);
   assert.equal((await req('topic_casts?topic=art&limit=10')).status,200);
+  assert.equal((await req('topic_casts?topic=art&author_fid=42')).status,200);
+  assert.ok(calls.some(c=>c[0]==='list' && c[1]==='art' && c[4]==='42'));
+  assert.equal((await req('topic_casts?topic=art&author_fid=0')).status,400);
+  assert.equal((await req('topic_casts?topic=art&author_fid=abc')).status,400);
+  assert.equal((await req('topic_casts?topic=art&author_fid=42&author_fid=43')).status,400);
   assert.equal((await req('topic_casts?topic=../admin')).status,400);
   assert.equal((await req('topic_casts?topic=art&limit=1000')).status,400);
   assert.equal((await req('topic_casts','PUT',{})).status,405);

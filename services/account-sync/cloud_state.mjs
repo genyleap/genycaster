@@ -296,10 +296,14 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         const search=new URL(request.url,'http://localhost').searchParams;
         const slug=search.get('topic') || '';
         const page=topicPagination(search);
-        if(!TOPIC_SLUG.test(slug) || !page) {
+        const authorFid=search.get('author_fid');
+        if(!TOPIC_SLUG.test(slug) || !page
+           || search.getAll('author_fid').length>1
+           || (authorFid!==null && !/^[1-9][0-9]{0,18}$/.test(authorFid))) {
           respond(response,400,{error:'invalid_topic_filter'});return true;
         }
-        respond(response,200,{items:await store.listTopicCasts(slug,page.limit,page.offset),
+        respond(response,200,{items:await store.listTopicCasts(
+          slug,page.limit,page.offset,authorFid),
           limit:page.limit,offset:page.offset});
       }catch {respond(response,503,{error:'topics_unavailable'});}
       return true;

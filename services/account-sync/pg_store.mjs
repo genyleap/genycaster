@@ -79,14 +79,16 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
       }catch(e){await client.query('ROLLBACK');throw e;}
       finally{client.release();}
     },
-    async listTopicCasts(slug,limit,offset) {
+    async listTopicCasts(slug,limit,offset,authorFid=null) {
       if(!topicsReady) throw new Error('topics_not_ready');
+      const authorClause=authorFid===null?'':' AND ct.author_fid=$4::bigint';
+      const params=authorFid===null?[slug,limit,offset]:[slug,limit,offset,authorFid];
       const result=await pool.query(`SELECT '0x'||encode(ct.cast_hash,'hex') AS cast_hash,
            ct.author_fid::text,ct.created_at
          FROM cast_topics ct INNER JOIN topics t ON t.id=ct.topic_id
-         WHERE t.slug=$1 AND t.is_active=true
+         WHERE t.slug=$1 AND t.is_active=true${authorClause}
          ORDER BY ct.created_at DESC,ct.cast_hash DESC LIMIT $2 OFFSET $3`,
-         [slug,limit,offset]);
+         params);
       return result.rows;
     },
     async createSession({issuer,subject},tokenHash,csrfToken) {
