@@ -3824,6 +3824,41 @@ void connectRuntime(
             }
         });
 
+    // Hydrate only visible saved casts. This uses the same provider-routed,
+    // cancelable C++ read service as cast detail, without navigating, mutating
+    // bookmarks or launching unbounded requests for the full reading list.
+    QObject::connect(&bridge, &PresentationBridge::bookmarkHydrationRequested,
+        &bridge, [&bridge, runtime](const QStringList& hashes) {
+            const qulonglong ownerFid = bridge.accountFid();
+            if (!ownerFid || !bridge.isAuthenticated()) return;
+            for (const QString& hash : hashes.mid(0, 12)) {
+                const domain::cast::CastId castId{hash.toStdString()};
+                if (!runtime->beginReferencedPreviewRequest(castId)) continue;
+                auto request = runtime->service->openCast(castId,
+                    [&bridge, runtime, castId, hash, ownerFid](
+                        application::read::model::CastState state) {
+                        const auto phase = state.metadata.phase;
+                        if (state.cast) {
+                            QVariantMap cast = castPreviewPresentation(state);
+                            QMetaObject::invokeMethod(&bridge,
+                                [&bridge, ownerFid, hash, cast = std::move(cast)]() mutable {
+                                    if (bridge.isAuthenticated() &&
+                                        bridge.accountFid() == ownerFid)
+                                        bridge.applyHydratedBookmark(hash, std::move(cast));
+                                }, Qt::QueuedConnection);
+                        }
+                        if (phase == application::read::model::ReadPhase::Ready
+                            || phase == application::read::model::ReadPhase::Failed)
+                            runtime->finishReferencedPreviewRequest(castId, bool(state.cast));
+                    },
+                    application::read::model::ReadOptions{.allowRecoveryProbe = false});
+                if (request)
+                    runtime->keepReferencedPreviewRequest(castId, std::move(*request));
+                else
+                    runtime->finishReferencedPreviewRequest(castId, false);
+            }
+        });
+
     QObject::connect(&bridge, &PresentationBridge::castRequested, &bridge,
         [&bridge, runtime](const QString& castId, const bool allowRecoveryProbe) {
             runtime->cancelAllRequests();

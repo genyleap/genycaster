@@ -20,7 +20,8 @@ test('bookmark view supports account refresh, remove, priority and sorting witho
   assert.match(surface,/id: bookmarkSortPicker/);
   assert.match(surface,/objectName: "bookmarkRemoveMobileButton"/);
   assert.match(surface,/objectName: "bookmarkPriorityMobileButton"/);
-  assert.match(surface,/customIconColor: Number\(modelData.priority/);
+  assert.match(surface,/customIconColor: selected \? Theme.warning : Theme.inkMuted/);
+  assert.match(surface,/selected: Number\(bookmarkCard.modelData.priority \|\| 0\) > 0/);
   assert.match(surface,/iconOnly: true/);
   assert.match(surface,/root\.priorityRequested/);
   assert.match(controller,/void OpenProofConnectionsController::refreshAccountBookmarks/);

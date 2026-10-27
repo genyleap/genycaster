@@ -56,8 +56,9 @@ test('apps saved indicators remain legibly green and enabled when already saved'
 
 test('bookmarks show compact icon-only actions and a gold priority star', () => {
   const saved = read('ui/components/BookmarksSurface.qml');
-  assert.match(saved, /maximumLineCount: 3/);
-  assert.match(saved, /customIconColor: Number\(modelData\.priority \|\| 0\) > 0\s*\? Theme\.warning/);
+  assert.match(saved, /CastItem \{/);
+  assert.match(saved, /customIconColor: selected \? Theme.warning : Theme.inkMuted/);
+  assert.match(saved, /iconGlyph: Theme.iconPriorityStar/);
   assert.match(saved, /iconOnly: true/);
   assert.doesNotMatch(saved, /Layout\.fillWidth: true\s*compact: true\s*quiet: true\s*selected: Number\(modelData\.priority/);
 });

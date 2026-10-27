@@ -1036,6 +1036,15 @@ namespace {
                    !cast.value(key).toString().isEmpty())
                     earlier.insert(key,cast.value(key));
             }
+            for(const auto& key : {QStringLiteral("embeds"), QStringLiteral("parentCastId"),
+                QStringLiteral("parentUrl"), QStringLiteral("channelId"),
+                QStringLiteral("channelName"), QStringLiteral("channelImageUrl"),
+                QStringLiteral("replyCount"), QStringLiteral("recastCount"),
+                QStringLiteral("likeCount"), QStringLiteral("viewCount"),
+                QStringLiteral("richHydrated")}) {
+                if(!earlier.contains(key) && cast.contains(key))
+                    earlier.insert(key,cast.value(key));
+            }
             earlier.insert(QStringLiteral("priority"),std::max(
                 earlier.value(QStringLiteral("priority")).toInt(),
                 cast.value(QStringLiteral("priority")).toInt()));
@@ -1105,6 +1114,18 @@ void PresentationBridge::toggleBookmark(const QVariantMap& cast)
             saved.insert(key, cast.value(key));
     }
     saved.insert(QStringLiteral("text"), cast.value(QStringLiteral("text")).toString().left(1200));
+    // Preserve rich payload on the saving device. The account service stores
+    // a bounded portable preview; other devices hydrate by canonical cast ID.
+    for (const auto& key : {QStringLiteral("embeds"), QStringLiteral("parentCastId"),
+                             QStringLiteral("parentUrl"), QStringLiteral("channelId"),
+                             QStringLiteral("channelName"), QStringLiteral("channelImageUrl"),
+                             QStringLiteral("replyCount"), QStringLiteral("recastCount"),
+                             QStringLiteral("likeCount"), QStringLiteral("viewCount")}) {
+        if (cast.contains(key))
+            saved.insert(key, cast.value(key));
+    }
+    saved.insert(QStringLiteral("richHydrated"),
+        cast.contains(QStringLiteral("embeds")));
     saved.insert(QStringLiteral("priority"),0);
     saved.insert(QStringLiteral("savedAtMs"),QDateTime::currentMSecsSinceEpoch());
     m_bookmarkedCasts.prepend(std::move(saved));
@@ -1118,6 +1139,55 @@ void PresentationBridge::toggleBookmark(const QVariantMap& cast)
     }
     emit bookmarksChanged();
     emit bookmarkMutated(id, false);
+}
+
+void PresentationBridge::hydrateBookmarkedCasts(const QStringList& castIds)
+{
+    if (!m_isAuthenticated || m_accountFid == 0) return;
+    QStringList pending;
+    for (const auto& supplied : castIds) {
+        const QString hash = canonicalProtocolCastId(supplied);
+        if (hash.isEmpty() || pending.contains(hash)) continue;
+        const QVariantMap saved = bookmarkEntry(hash);
+        if (saved.isEmpty() || saved.value(QStringLiteral("richHydrated")).toBool()) continue;
+        pending.push_back(hash);
+        if (pending.size() >= 12) break; // visible-only bounded read interest
+    }
+    if (!pending.isEmpty()) emit bookmarkHydrationRequested(pending);
+}
+
+void PresentationBridge::applyHydratedBookmark(QString castId, QVariantMap resolved)
+{
+    if (!m_isAuthenticated || !m_accountFid) return;
+    const QString hash = canonicalProtocolCastId(castId);
+    if (hash.isEmpty() || canonicalProtocolCastId(
+        resolved.value(QStringLiteral("castId")).toString()) != hash) return;
+    for (qsizetype index = 0; index < m_bookmarkedCasts.size(); ++index) {
+        auto saved = m_bookmarkedCasts.at(index).toMap();
+        if (saved.value(QStringLiteral("castId")).toString() != hash) continue;
+        // Never replace bookmark priority, timestamps or local mutation state
+        // with values from the read provider. The network supplies cast data.
+        for (const auto& key : {QStringLiteral("authorFid"), QStringLiteral("author"),
+                QStringLiteral("username"), QStringLiteral("displayName"),
+                QStringLiteral("avatarUrl"), QStringLiteral("createdAtMs"),
+                QStringLiteral("text"), QStringLiteral("embeds"),
+                QStringLiteral("parentCastId"), QStringLiteral("parentUrl"),
+                QStringLiteral("channelId"), QStringLiteral("channelName"),
+                QStringLiteral("channelImageUrl"), QStringLiteral("replyCount"),
+                QStringLiteral("recastCount"), QStringLiteral("likeCount")}) {
+            if (resolved.contains(key)) saved.insert(key, resolved.value(key));
+        }
+        saved.insert(QStringLiteral("richHydrated"), true);
+        if (saved == m_bookmarkedCasts.at(index).toMap()) return;
+        m_bookmarkedCasts[index] = saved;
+        if (m_settings) {
+            m_settings->setValue(QStringLiteral("bookmarks/account_%1").arg(m_accountFid),
+                m_bookmarkedCasts);
+            m_settings->sync();
+        }
+        emit bookmarksChanged(); // never emit bookmarkMutated for read hydration
+        return;
+    }
 }
 
 QVariantMap PresentationBridge::bookmarkEntry(const QString& castId) const

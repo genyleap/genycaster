@@ -2,6 +2,14 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.release.beta_version_number">
+            <source>1.0</source>
+            <translation>۱٫۰</translation>
+        </message>
+        <message id="genycaster.release.beta_label">
+            <source>Beta</source>
+            <translation>بتا ·</translation>
+        </message>
         <message id="genycaster.home.geny_token_title">
             <source>GENY Token</source>
             <translation>توکن GENY</translation>

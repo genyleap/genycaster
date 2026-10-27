@@ -890,6 +890,10 @@ Item {
                                             rows: presentationBridge.bookmarkedCasts
                                             compact: root.compact
                                             authenticated: presentationBridge.isAuthenticated
+                                            interactionsAvailable: presentationBridge.isAuthenticated
+                                                                   && presentationBridge.writeReady
+                                                                   && !presentationBridge.writeBusy
+                                            accountFid: presentationBridge.accountFid
                                             refreshBusy: openProofConnections.bookmarkRefreshBusy
                                             accountError: openProofConnections.bookmarkError
                                             pendingCount: openProofConnections.bookmarkPendingCount
@@ -897,6 +901,24 @@ Item {
                                             onRemoveRequested: castId => presentationBridge.removeBookmark(castId)
                                             onPriorityRequested: (castId, priority) =>
                                                 presentationBridge.setBookmarkPriority(castId, priority)
+                                            onHydrationRequested: castIds =>
+                                                presentationBridge.hydrateBookmarkedCasts(castIds)
+                                            onProfileRequested: fid => {
+                                                root.rememberShellRouteForReturn()
+                                                root.shellRoute = ""
+                                                presentationBridge.openProfileFid(fid)
+                                            }
+                                            onReplyRequested: cast => root.openComposer(cast)
+                                            onQuoteRequested: cast => root.openQuoteComposer(cast)
+                                            onReactionRequested: (kind, cast, active) =>
+                                                presentationBridge.setReaction(kind, Number(cast.authorFid || 0),
+                                                    String(cast.castId || ""), active)
+                                            onRemoveCastRequested: cast =>
+                                                presentationBridge.removeCast(Number(cast.authorFid || 0),
+                                                    String(cast.castId || ""))
+                                            onExternalRequested: url => root.openCastTextLink(url)
+                                            onMediaRequested: (mediaItems, index) =>
+                                                mediaGallery.openAt(mediaItems, index)
                                             Component.onCompleted: openProofConnections.refreshAccountBookmarks()
                                             onCastRequested: castId => {
                                                 const hash = String(castId || "").trim()

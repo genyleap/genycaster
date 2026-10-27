@@ -29,9 +29,9 @@ test('profile links use shared Qt metadata resolver for favicon/title/descriptio
 
 test('bookmark priority action is clear, not a location marker, and missing previews are actionable',()=>{
   const surface=read('ui/components/BookmarksSurface.qml');
-  assert.match(surface,/objectName: "bookmarkPriorityMobileButton"[\s\S]*?iconGlyph: Theme\.iconSpark/);
+  assert.match(surface,/objectName: "bookmarkPriorityMobileButton"[\s\S]*?iconGlyph: Theme\.iconPriorityStar/);
   assert.doesNotMatch(surface,/iconGlyph: Theme\.iconLocation/);
-  assert.match(surface,/genycaster\.bookmarks\.open_saved_cast/);
+  assert.match(surface,/onOpenRequested: castId => root.castRequested\(castId\)/);
   assert.match(surface,/destructive: true[\s\S]*?genycaster\.bookmarks\.remove/);
 });
 

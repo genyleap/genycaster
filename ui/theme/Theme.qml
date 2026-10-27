@@ -422,6 +422,7 @@ QtObject {
     readonly property string iconLocation: "pin"
     readonly property string iconSpark: "spark"
     readonly property string iconBookmark: "bookmark"
+    readonly property string iconPriorityStar: "priority-star"
     readonly property string iconStore: "store"
     readonly property string iconNotification: "bell"
     readonly property string iconMessage: "message"
@@ -513,6 +514,7 @@ QtObject {
         case "mention": path = "social/at"; break
         case "pin": path = "system/pin"; break
         case "bookmark": path = filled ? "actions/bookmark-filled" : "actions/bookmark"; break
+        case "priority-star": path = filled ? "actions/star-filled" : "actions/star"; break
         case "bell": path = filled ? "navigation/notifications-filled" : "navigation/notifications"; break
         case "store": path = "social/wallet"; break
         case "briefcase": path = "social/users"; break

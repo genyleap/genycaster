@@ -73,8 +73,8 @@ test('bookmarks persist on-device per verified account and have a navigable rout
   assert.match(c,/canonicalProtocolCastId\(cast.value\(QStringLiteral\("castId"\)\)/);
   assert.match(shell,/active: root.shellRoute === "bookmarks"/);
   assert.match(shell,/BookmarksSurface \{/);
-  assert.match(ui,/objectName: "bookmarkCardOpenHandler"/);
-  assert.match(ui,/onTapped: root.castRequested\(String\(bookmarkCard.modelData.castId \|\| ""\)\)/);
+  assert.match(ui,/objectName: "bookmarkRichCast"/);
+  assert.match(ui,/onOpenRequested: castId => root.castRequested\(castId\)/);
   assert.match(shell,/objectName: "mobileAccountBookmarksButton"/);
   assert.match(read('ui/CMakeLists.txt'),/components\/BookmarksSurface.qml/);
 });

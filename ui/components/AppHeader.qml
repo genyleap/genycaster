@@ -46,29 +46,38 @@ Rectangle {
                 Accessible.ignored: true
             }
 
+            // The brand asset has a fixed Latin glyph order. Its caption uses
+            // an isolated LTR version number so Persian text cannot reorder
+            // the two lines or stretch the wordmark across the header.
             ColumnLayout {
-                spacing: 0
+                LayoutMirroring.enabled: false
+                spacing: Theme.scaleUi(2)
                 Image {
-                    Layout.preferredWidth: 132
-                    Layout.preferredHeight: 20
+                    Layout.preferredWidth: root.compact ? 132 : 150
+                    Layout.preferredHeight: root.compact ? 22 : 24
                     fillMode: Image.PreserveAspectFit
                     horizontalAlignment: Image.AlignLeft
                     source: Theme.dark
                             ? "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark-dark.svg"
                             : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark.svg"
-                    sourceSize.width: 300
-                    sourceSize.height: 40
+                    sourceSize.width: 450
+                    sourceSize.height: 72
                     Accessible.name: "GenyCaster"
                 }
-                DirectionAwareLabel {
-                    text: qsTrId("genycaster.release.beta_1_0")
+                Label {
+                    Layout.fillWidth: true
+                    LayoutMirroring.enabled: false
+                    text: Theme.rtl ? qsTrId("genycaster.release.beta_label")
+                                          + " \u2066" + qsTrId("genycaster.release.beta_version_number") + "\u2069"
+                                    : qsTrId("genycaster.release.beta_1_0")
                     color: Theme.inkMuted
                     font.family: Theme.fontFamilyForText(text)
                     font.pixelSize: Theme.typeCaptionSize
                     font.weight: Theme.weightMedium
                     renderType: Text.NativeRendering
-                    horizontalAlignment: Theme.textStartAlignment
-                    LayoutMirroring.enabled: false
+                    horizontalAlignment: Text.AlignLeft
+                    verticalAlignment: Text.AlignVCenter
+                    textFormat: Text.PlainText
                     Accessible.ignored: true
                 }
             }

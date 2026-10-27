@@ -31,7 +31,7 @@ test('mentions are true internal profile links in both Qt text rendering modes a
     assert.match(shell,/function openCastTextLink\(url\)/);
     assert.match(shell,/presentationBridge.openProfileUsername\(target.substring\(1\)\)/);
     assert.match(shell,/presentationBridge.openProfileFid\(Number\(target.substring\(5\)\)\)/);
-    assert.equal((shell.match(/onExternalRequested: url => root.openCastTextLink\(url\)/g)||[]).length,3);
+    assert.equal((shell.match(/onExternalRequested: url => root.openCastTextLink\(url\)/g)||[]).length,4);
     assert.match(read('ui/components/RichText.qml'),/token.startsWith\("@"\)/);
 });
 

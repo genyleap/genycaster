@@ -11,12 +11,11 @@ test('direction-aware labels separate interface alignment from content script di
 });
 test('bookmark author layout mirrors, while saved cast body preserves natural text direction', () => {
   const q = read('ui/components/BookmarksSurface.qml');
-  assert.match(q, /layoutDirection: Theme\.uiDirection[\s\S]*?Avatar \{/);
-  assert.match(q, /text: String\(modelData\.displayName[\s\S]*?alignToUi: true/);
-  assert.match(q, /text: String\(modelData\.username[\s\S]*?alignToUi: true/);
-  const body = q.slice(q.indexOf('visible: String(modelData.text || "")'));
-  assert.match(body, /text: String\(modelData\.text \|\| ""\)/);
-  assert.doesNotMatch(body.slice(0, body.indexOf('ActionButton {')), /alignToUi: true|forceRightToLeft: true/);
+  assert.match(q, /CastItem \{/);
+  assert.match(q, /modelData: bookmarkCard.modelData/);
+  const cast = read('ui/components/CastItem.qml');
+  assert.match(cast, /readonly property bool contentRtl: localizationController.isRightToLeftText/);
+  assert.match(cast, /RichCastRenderer \{/);
 });
 test('provider and node names follow UI edge regardless of Latin content', () => {
   const connections = read('ui/components/AccountConnectionsPopup.qml');

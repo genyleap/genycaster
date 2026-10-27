@@ -1,0 +1,25 @@
+# GitHub Linguist: report the languages of maintained application code.
+# C++ modules and Qt Quick sources are first-class application code.
+*.cppm linguist-language=C++
+*.qml linguist-language=QML
+
+# Test suites, regression fixtures, and development tooling.
+tests/** linguist-detectable=false
+services/**/test/** linguist-detectable=false
+services/**/tests/** linguist-detectable=false
+tools/** linguist-detectable=false
+
+# Documentation (including its standalone web site) is not client runtime.
+docs/** linguist-documentation
+docs-site/** linguist-documentation
+
+# Qt Linguist XML translation catalogs are not TypeScript code.
+ui/i18n/*.ts linguist-detectable=false
+
+# Bundled upstream JavaScript libraries are not authored by this project.
+ui/wasm/vendor/** linguist-vendored
+
+# Future imported and generated sources.
+vendor/** linguist-vendored
+third_party/** linguist-vendored
+generated/** linguist-generated

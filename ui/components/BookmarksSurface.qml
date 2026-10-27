@@ -7,6 +7,8 @@ Flickable {
     property var rows: []
     property bool compact: false
     property bool authenticated: false
+    property bool interactionsAvailable: false
+    property double accountFid: 0
     property bool refreshBusy: false
     property string accountError: ""
     property int pendingCount: 0
@@ -14,6 +16,14 @@ Flickable {
     signal castRequested(string castId)
     signal removeRequested(string castId)
     signal priorityRequested(string castId, int priority)
+    signal hydrationRequested(var castIds)
+    signal profileRequested(double fid)
+    signal replyRequested(var cast)
+    signal quoteRequested(var cast)
+    signal reactionRequested(string kind, var cast, bool active)
+    signal removeCastRequested(var cast)
+    signal externalRequested(string url)
+    signal mediaRequested(var mediaItems, int index)
     signal refreshRequested()
     signal authenticationRequested()
 
@@ -49,6 +59,35 @@ Flickable {
         })
         return unique
     }
+    // Only read the visible portion of the list; scroll and account updates
+    // schedule a bounded, cancellable provider read by canonical cast hash.
+    function hydrateVisible() {
+        if (!root.authenticated) return
+        const requested = []
+        for (let i = 0; i < root.sortedRows.length; ++i) {
+            const card = savedCastRepeater.itemAt(i)
+            if (!card || card.y + card.height < root.contentY - root.height * 0.5
+                    || card.y > root.contentY + root.height * 1.5)
+                continue
+            const item = root.sortedRows[i]
+            if (!item || Boolean(item.richHydrated)) continue
+            const hash = String(item.castId || "")
+            if (/^0x[0-9a-fA-F]{40}$/.test(hash)) requested.push(hash)
+            if (requested.length >= 8) break
+        }
+        if (requested.length > 0) root.hydrationRequested(requested)
+    }
+    Timer {
+        id: hydrationTimer
+        interval: 260
+        repeat: false
+        onTriggered: root.hydrateVisible()
+    }
+    Component.onCompleted: hydrationTimer.start()
+    onContentYChanged: hydrationTimer.restart()
+    onSortedRowsChanged: hydrationTimer.restart()
+    onHeightChanged: hydrationTimer.restart()
+
     PullToRefresh {
         flickable: root
         busy: root.refreshBusy
@@ -140,86 +179,62 @@ Flickable {
         }
 
         Repeater {
+            id: savedCastRepeater
             model: root.sortedRows
             delegate: Superellipse {
                 id: bookmarkCard
                 required property var modelData
                 Layout.fillWidth: true
-                // The saved cast card is one navigation target. Icon buttons
-                // below retain their own action and must not navigate.
-                TapHandler {
-                    objectName: "bookmarkCardOpenHandler"
-                    gesturePolicy: TapHandler.ReleaseWithinBounds
-                    onTapped: root.castRequested(String(bookmarkCard.modelData.castId || ""))
-                }
                 implicitHeight: savedContent.implicitHeight + Theme.space2 * 2
                 fillColor: Theme.surfaceRaised
                 borderColor: Theme.borderSubtle
                 borderWidth: Theme.strokeHairline
                 curveDepth: Theme.curveContainer
 
+                // Render bookmarked content through the exact same rich cast
+                // presentation as feed/profile, including parent context,
+                // images, videos, link cards and reaction controls.
                 ColumnLayout {
                     id: savedContent
                     anchors.fill: parent
                     anchors.margins: Theme.space2
-                    spacing: Theme.space2
+                    spacing: Theme.space1
 
-                    RowLayout {
+                    CastSkeleton {
+                        id: castSkeletonFallback
                         Layout.fillWidth: true
-                        spacing: Theme.space2
-                        layoutDirection: Theme.uiDirection
-                        Avatar {
-                            visible: Number(modelData.authorFid || 0) > 0
-                            avatarSize: 35
-                            sourceUrl: String(modelData.avatarUrl || "")
-                            displayName: String(modelData.displayName || modelData.author || "")
-                        }
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 0
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: String(modelData.displayName || modelData.author || "")
-                                      || qsTrId("genycaster.bookmarks.saved_cast")
-                                alignToUi: true
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeLabelSize
-                                font.weight: Theme.weightDemiBold
-                                elide: Text.ElideRight
-                            }
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: String(modelData.username || modelData.author || "")
-                                      || String(modelData.castId || "").slice(0, 12) + "…"
-                                alignToUi: true
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                                elide: Text.ElideRight
-                                LayoutMirroring.enabled: false
-                            }
-                        }
+                        Layout.preferredHeight: implicitHeight
+                        visible: !Boolean(bookmarkCard.modelData.authorFid)
+                                 && !String(bookmarkCard.modelData.text || "").length
+                                 && !Boolean(bookmarkCard.modelData.richHydrated)
+                        animate: visible && !root.moving
                     }
 
-                    DirectionAwareLabel {
-                        visible: String(modelData.text || "").length > 0
+                    CastItem {
+                        id: savedCast
+                        objectName: "bookmarkRichCast"
+                        visible: !Boolean(castSkeletonFallback.visible)
                         Layout.fillWidth: true
-                        text: String(modelData.text || "")
-                        color: Theme.ink
-                        font.pixelSize: Theme.typeBodySize
-                        maximumLineCount: 3
-                        elide: Text.ElideRight
-                        wrapMode: Text.Wrap
+                        Layout.preferredHeight: visible ? implicitHeight : 0
+                        modelData: bookmarkCard.modelData
+                        compact: root.compact
+                        interactionsAvailable: root.interactionsAvailable
+                        accountFid: root.accountFid
+                        enrichmentActive: bookmarkCard.visible && !root.moving
+                        onOpenRequested: castId => root.castRequested(castId)
+                        onProfileRequested: fid => root.profileRequested(fid)
+                        onReplyRequested: cast => root.replyRequested(cast)
+                        onQuoteRequested: cast => root.quoteRequested(cast)
+                        onReactionRequested: (kind, cast, active) =>
+                            root.reactionRequested(kind, cast, active)
+                        onRemoveRequested: cast => root.removeCastRequested(cast)
+                        onExternalRequested: url => root.externalRequested(url)
+                        onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
+                        onAuthenticationRequested: root.authenticationRequested()
                     }
-                    ActionButton {
-                        visible: String(modelData.text || "").length === 0
-                        Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
-                        quiet: true
-                        compact: true
-                        iconGlyph: Theme.iconArrowUpRight
-                        text: qsTrId("genycaster.bookmarks.open_saved_cast")
-                        onClicked: root.castRequested(String(modelData.castId || ""))
-                    }
+
                     RowLayout {
+                        id: bookmarkActions
                         Layout.fillWidth: true
                         layoutDirection: Theme.uiDirection
                         spacing: Theme.space1
@@ -229,15 +244,14 @@ Flickable {
                             iconOnly: true
                             compact: true
                             quiet: true
-                            selected: false
-                            customIconColor: Number(modelData.priority || 0) > 0
-                                             ? Theme.warning : Theme.inkMuted
-                            iconGlyph: Theme.iconSpark
-                            text: Number(modelData.priority || 0) > 0
-                                  ? qsTrId("genycaster.bookmarks.unpin")
-                                  : qsTrId("genycaster.bookmarks.pin")
-                            onClicked: root.priorityRequested(String(modelData.castId || ""),
-                                Number(modelData.priority || 0) > 0 ? 0 : 1)
+                            selected: Number(bookmarkCard.modelData.priority || 0) > 0
+                            customIconColor: selected ? Theme.warning : Theme.inkMuted
+                            iconGlyph: Theme.iconPriorityStar
+                            text: selected ? qsTrId("genycaster.bookmarks.unpin")
+                                           : qsTrId("genycaster.bookmarks.pin")
+                            onClicked: root.priorityRequested(
+                                String(bookmarkCard.modelData.castId || ""),
+                                selected ? 0 : 1)
                         }
                         ActionButton {
                             objectName: "bookmarkRemoveMobileButton"
@@ -247,7 +261,8 @@ Flickable {
                             destructive: true
                             iconGlyph: Theme.iconTrash
                             text: qsTrId("genycaster.bookmarks.remove")
-                            onClicked: root.removeRequested(String(modelData.castId || ""))
+                            onClicked: root.removeRequested(
+                                String(bookmarkCard.modelData.castId || ""))
                         }
                     }
                 }

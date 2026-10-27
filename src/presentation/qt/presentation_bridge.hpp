@@ -173,6 +173,9 @@ public:
     Q_INVOKABLE void toggleBookmark(const QVariantMap& cast);
     Q_INVOKABLE void removeBookmark(const QString& castId);
     Q_INVOKABLE void setBookmarkPriority(const QString& castId, int priority);
+    /** Background, navigation-free restoration of rich saved cast models. */
+    Q_INVOKABLE void hydrateBookmarkedCasts(const QStringList& castIds);
+    void applyHydratedBookmark(QString castId, QVariantMap cast);
     [[nodiscard]] QVariantMap bookmarkEntry(const QString& castId) const;
     void applyCloudBookmarkChanges(const QVariantList& changes);
     [[nodiscard]] QVariantList searchResults() const;
@@ -443,6 +446,7 @@ signals:
     void notificationsChanged();
     void bookmarksChanged();
     void bookmarkMutated(const QString& castId, bool isDeleted);
+    void bookmarkHydrationRequested(QStringList castIds);
     void followingStoriesChanged();
     void readPreferencesChanged();
     /** @brief Emitted only when OS/network reachability knowledge or online state changes. */

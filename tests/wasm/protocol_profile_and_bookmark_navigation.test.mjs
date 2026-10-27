@@ -24,8 +24,8 @@ test('Farcaster UserDataAdd emits exact canonical protobuf type/body/slot bytes'
 test('Bookmarked cast navigates from whole card, never limited to text label',()=>{
   const ui=read('ui/components/BookmarksSurface.qml');
   const shell=read('ui/components/AppShell.qml');
-  assert.match(ui,/id: bookmarkCard[\s\S]*?objectName: "bookmarkCardOpenHandler"/);
-  assert.match(ui,/onTapped: root\.castRequested\(String\(bookmarkCard\.modelData\.castId \|\| ""\)\)/);
+  assert.match(ui,/id: bookmarkCard[\s\S]*?CastItem \{/);
+  assert.match(ui,/onOpenRequested: castId => root.castRequested\(castId\)/);
   assert.match(shell,/onCastRequested: castId => \{[\s\S]*?root\.rememberShellRouteForReturn\(\)[\s\S]*?presentationBridge\.openCast\(hash\)/);
 });
 
