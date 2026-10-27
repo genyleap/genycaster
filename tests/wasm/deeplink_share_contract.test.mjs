@@ -15,6 +15,18 @@ test('cast share is the right-most footer action and has native and web targets'
   assert.match(bar, /id: castShareMenu[\s\S]*?active: false/);
 });
 
+test('cast context menu copies the cast permalink, not an attached image or website', () => {
+  const cast = read('ui/components/CastItem.qml');
+  assert.ok(cast.includes('readonly property string castPermalink: presentationBridge.castShareUrl('));
+  assert.ok(cast.includes('CastViews.normalizeHash(root.modelData.castId || "")'));
+  const menuStart = cast.indexOf('text: qsTrId("genycaster.cast.copy_link")');
+  assert.ok(menuStart > 0);
+  const menuAction = cast.slice(menuStart, menuStart + 210);
+  assert.ok(menuAction.includes('presentationBridge.copyText(root.castPermalink)'));
+  assert.ok(cast.includes('visible: root.castPermalink.length > 0'));
+  assert.ok(!cast.includes('presentationBridge.copyText(root.firstExternalUrl)'));
+});
+
 test('profile sharing appears on the shared profile surface', () => {
   const profile = read('ui/components/ProfileSurface.qml');
   assert.match(profile, /id: profileShareButton/);

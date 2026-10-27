@@ -319,6 +319,12 @@ Item {
                      .trim()
     }
 
+    // Cast permalinks are protocol identities, never the first media/embed URL.
+    // Keep the copy action consistent with the footer Share menu and its
+    // platform-aware public GenyCaster deep-link destination.
+    readonly property string castPermalink: presentationBridge.castShareUrl(
+        CastViews.normalizeHash(root.modelData.castId || ""))
+
     readonly property string firstExternalUrl: {
         const values = root.effectiveEmbeds || []
         for (let index = 0; index < values.length; ++index) {
@@ -1107,14 +1113,14 @@ Item {
                     }
 
                     ActionButton {
-                        visible: root.firstExternalUrl.length > 0
+                        visible: root.castPermalink.length > 0
                         Layout.fillWidth: true
                         quiet: true
                         alignStart: true
                         iconGlyph: Theme.iconLink
                         text: qsTrId("genycaster.cast.copy_link")
                         onClicked: {
-                            presentationBridge.copyText(root.firstExternalUrl)
+                            presentationBridge.copyText(root.castPermalink)
                             castMenu.close()
                         }
                     }
