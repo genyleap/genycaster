@@ -38,6 +38,7 @@ set(farcasterQmlFiles
     components/CastViews.qml
     components/CastReactions.qml
     components/BookmarksSurface.qml
+    components/ContentFilterSheet.qml
     components/BookmarkCollectionChooser.qml
     components/ContextRail.qml
     components/ComposerDrawer.qml

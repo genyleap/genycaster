@@ -2012,12 +2012,25 @@ Item {
                             onActivated: tabId => root.profileFeedRequested(tabId)
                         }
 
+                        ActionButton {
+                            objectName: "mobileProfileFilterTrigger"
+                            visible: root.compact
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.preferredWidth: 44
+                            Layout.preferredHeight: 44
+                            iconOnly: true
+                            quiet: true
+                            iconGlyph: "filter"
+                            text: "Filter posts"
+                            onClicked: profileFilterSheet.open()
+                        }
                         FilterDropdown {
                             id: profileSortFilter
                             objectName: "profileSortFilter"
                             Layout.alignment: Qt.AlignVCenter
                             Layout.preferredWidth: implicitWidth
-                            Layout.maximumWidth: root.compact ? 98 : 136
+                            visible: !root.compact
+                            Layout.maximumWidth: 136
                             model: root.profileFeed === "user-popular"
                                    ? [
                                        qsTrId("genycaster.profile.sort_all"),
@@ -2048,13 +2061,14 @@ Item {
                 }
             }
             RowLayout {
-                visible: root.topicCatalog.length > 0
+                visible: !root.compact && root.topicCatalog.length > 0
                 Layout.fillWidth: true
                 Layout.leftMargin: root.profileContentX
                 Layout.rightMargin: root.profileContentX
                 Layout.preferredHeight: visible ? Theme.controlHeight + Theme.space2 : 0
                 spacing: Theme.space2
                 TopicFilterPicker {
+                    id: profileTopicPicker
                     Layout.preferredWidth: root.compact ? 164 : 204
                     Layout.maximumWidth: root.compact ? 164 : 204
                     Layout.preferredHeight: Theme.controlHeight
@@ -2199,6 +2213,51 @@ Item {
                 running: visible && !profileList.moving
                 Accessible.name: qsTrId("genycaster.profile.loading_more_profile_posts")
             }
+        }
+    }
+
+    // Mobile-only progressive disclosure; desktop retains inline controls.
+    ContentFilterSheet {
+        id: profileFilterSheet
+        heading: "Filter profile casts"
+        sections: {
+            const topics = [{id:"", label:"All topics"}]
+            for (const entry of root.topicCatalog || []) {
+                const slug=String(entry.slug || "")
+                if (/^[a-z][a-z0-9-]{1,63}$/.test(slug))
+                    topics.push({id:slug,label:profileTopicPicker.titleFor(slug)})
+            }
+            return [
+                {id:"feed", title:"Content", value:root.profileFeed, defaultValue:"user-posts",
+                 options:[
+                    {id:"user-posts",label:qsTrId("genycaster.profile.posts")},
+                    {id:"user-quotes",label:qsTrId("genycaster.profile.quotes")},
+                    {id:"user-replies",label:qsTrId("genycaster.profile.replies")},
+                    {id:"user-likes",label:qsTrId("genycaster.profile.likes")},
+                    {id:"user-popular",label:qsTrId("genycaster.profile.popular")}]},
+                {id:"order",title:"Sort",value:root.profileFeed === "user-popular"
+                    ? root.popularMetric : root.profileSortMode,
+                 defaultValue:root.profileFeed === "user-popular" ? "all" : "newest",
+                 options:root.profileFeed === "user-popular"
+                   ? [{id:"all",label:qsTrId("genycaster.profile.sort_all")},
+                      {id:"likes",label:qsTrId("genycaster.profile.sort_likes")},
+                      {id:"recasts",label:qsTrId("genycaster.profile.sort_recasts")},
+                      {id:"replies",label:qsTrId("genycaster.profile.sort_replies")}]
+                   : [{id:"newest",label:qsTrId("genycaster.profile.sort_newest")},
+                      {id:"oldest",label:qsTrId("genycaster.profile.sort_oldest")}]},
+                {id:"topic",title:"Topics",value:"",defaultValue:"",options:topics}
+            ]
+        }
+        onApplied: values => {
+            if (values.feed !== root.profileFeed)
+                root.profileFeedRequested(String(values.feed || "user-posts"))
+            if (root.profileFeed === "user-popular")
+                root.popularMetric = ["all","likes","recasts","replies"].includes(values.order)
+                    ? String(values.order) : "all"
+            else
+                root.profileSortMode = values.order === "oldest" ? "oldest" : "newest"
+            if (values.topic)
+                root.topicRequested(String(values.topic),Number(root.activeDetail.fid || 0))
         }
     }
 

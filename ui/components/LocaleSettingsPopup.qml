@@ -67,6 +67,7 @@ GenyDrawer {
     signal customAccentStudioRequested(string color)
     signal dataStorageRequested()
     signal signOutConfirmationRequested()
+    signal profileRequested()
 
     function applyCustomAccentColor(color) {
         const applied = appearanceController.setCustomAccentColor(String(color || ""))
@@ -468,6 +469,61 @@ GenyDrawer {
                 font.weight: Theme.weightBold
             }
             Item { Layout.preferredWidth: 48; Layout.preferredHeight: 48 }
+        }
+
+        // Account identity is the entry point to Settings on both phone and desktop.
+        Superellipse {
+            objectName: "settingsProfileCard"
+            visible: presentationBridge.isAuthenticated
+            Layout.fillWidth: true
+            Layout.maximumWidth: 640
+            Layout.alignment: Qt.AlignHCenter
+            Layout.preferredHeight: visible ? 86 : 0
+            fillColor: Theme.surfaceMuted
+            borderWidth: Theme.strokeHairline
+            borderColor: Theme.borderSubtle
+            curveDepth: Theme.curveContainer
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: Theme.space3
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space3
+                Avatar {
+                    sourceUrl: String(presentationBridge.accountAvatarUrl || "")
+                    displayName: String(presentationBridge.accountName || "")
+                    avatarSize: 52
+                    Layout.preferredWidth: 52
+                    Layout.preferredHeight: 52
+                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.space1
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: String(presentationBridge.accountName || presentationBridge.identityName || "")
+                        color: Theme.textPrimary
+                        font.pixelSize: Theme.typeBodySize
+                        font.weight: Theme.weightDemiBold
+                        elide: Text.ElideRight
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: "@" + String(presentationBridge.accountProfile.username || "")
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.typeMetaSize
+                        elide: Text.ElideRight
+                        visible: Boolean(presentationBridge.accountProfile.username)
+                    }
+                }
+                Icon {
+                    text: Theme.iconArrowRight
+                    color: Theme.textSecondary
+                    preferredSize: Theme.iconSize
+                }
+            }
+            TapHandler { onTapped: root.profileRequested() }
+            Accessible.role: Accessible.Button
+            Accessible.name: qsTrId("genycaster.profile.edit_profile")
         }
 
         ScrollView {

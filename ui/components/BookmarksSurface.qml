@@ -132,6 +132,25 @@ Flickable {
     onSortedRowsChanged: hydrationTimer.restart()
     onHeightChanged: hydrationTimer.restart()
 
+    ContentFilterSheet {
+        id: bookmarkFilterSheet
+        heading: "Filter bookmarks"
+        sections: [
+            {id:"sort",title:"Sort",value:root.sortMode,defaultValue:"priority",
+             options:[{id:"priority",label:qsTrId("genycaster.bookmarks.sort_priority")},
+                      {id:"newest",label:qsTrId("genycaster.bookmarks.sort_newest")},
+                      {id:"oldest",label:qsTrId("genycaster.bookmarks.sort_oldest")}]},
+            {id:"collection",title:"Collections",value:root.selectedCollection,defaultValue:"",
+             options:root.collectionChoices.map(entry=>({id:entry.id,label:entry.name}))}
+        ]
+        onApplied: values => {
+            root.sortMode = ["priority","newest","oldest"].includes(values.sort)
+                ? String(values.sort) : "priority"
+            if (String(values.collection || "") !== root.selectedCollection)
+                root.collectionSelected(String(values.collection || ""))
+        }
+    }
+
     PullToRefresh {
         flickable: root
         busy: root.refreshBusy
@@ -163,6 +182,41 @@ Flickable {
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeMetaSize
             }
+            ActionButton {
+                visible: root.compact
+                objectName: "mobileBookmarkFilterTrigger"
+                Layout.preferredWidth: 44
+                Layout.preferredHeight: 44
+                compact: true
+                quiet: true
+                iconOnly: true
+                iconGlyph: "filter"
+                text: "Filter bookmarks"
+                onClicked: bookmarkFilterSheet.open()
+            }
+            ActionButton {
+                visible: root.compact
+                Layout.preferredWidth: 44
+                Layout.preferredHeight: 44
+                quiet: true
+                iconOnly: true
+                iconGlyph: Theme.iconPlus
+                text: "New collection"
+                enabled: root.authenticated && !root.collectionsBusy
+                onClicked: root.editCollection("create",null)
+            }
+            ActionButton {
+                visible: root.compact
+                Layout.preferredWidth: 44
+                Layout.preferredHeight: 44
+                quiet: true
+                iconOnly: true
+                iconGlyph: Theme.iconRefresh
+                text: qsTrId("genycaster.bookmarks.refresh")
+                busy: root.refreshBusy || root.collectionsBusy
+                enabled: root.authenticated && !root.refreshBusy && !root.collectionsBusy
+                onClicked: { root.refreshRequested(); root.collectionsRefreshRequested() }
+            }
         }
 
         ColumnLayout {
@@ -176,6 +230,7 @@ Flickable {
                 wrapMode: Text.Wrap
             }
             RowLayout {
+                visible: !root.compact
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 spacing: Theme.space2
@@ -218,6 +273,7 @@ Flickable {
                 font.pixelSize: Theme.typeMetaSize
             }
             RowLayout {
+                visible: !root.compact
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 spacing: Theme.space2
@@ -257,6 +313,15 @@ Flickable {
             }
         }
 
+        DirectionAwareLabel {
+            visible: root.compact
+            Layout.fillWidth: true
+            text: (root.activeCollectionEntry ? String(root.activeCollectionEntry.name) : "All bookmarks")
+                  + " · " + (root.sortMode === "priority" ? "Priority" : root.sortMode === "oldest" ? "Oldest" : "Newest")
+            color: Theme.textSecondary
+            font.pixelSize: Theme.typeMetaSize
+            elide: Text.ElideRight
+        }
         RowLayout {
             Layout.fillWidth: true
             visible: root.activeCollectionEntry !== null

@@ -769,7 +769,7 @@ Item {
                 onSearchRequested: searchPalette.open()
             }
             TopicFilterPicker {
-                visible: presentationBridge.isAuthenticated
+                visible: !root.mobile && presentationBridge.isAuthenticated
                          && openProofConnections.topicCatalog.length > 0
                 width: root.compact ? 136 : 156
                 height: visible ? implicitHeight : 0
@@ -779,6 +779,19 @@ Item {
                 selectedTopic: root.topicBrowseActive && root.topicBrowseScope==="explorer"
                                ? root.topicBrowseSlug : ""
                 onTopicRequested: slug => root.openTopicBrowser(slug,"explorer",0)
+            }
+            ActionButton {
+                visible: root.mobile && presentationBridge.isAuthenticated
+                         && openProofConnections.topicCatalog.length > 0
+                x: Theme.gutter(parent.width)
+                width: 44
+                height: visible ? 44 : 0
+                compact: true
+                quiet: true
+                iconOnly: true
+                iconGlyph: "filter"
+                text: "Filter Explorer"
+                onClicked: explorerFilterSheet.open()
             }
             Item { width: parent.width; height: Theme.space2 }
         }
@@ -1938,6 +1951,46 @@ Item {
         }
     }
 
+    ContentFilterSheet {
+        id: explorerFilterSheet
+        heading: "Filter Explorer"
+        sections: {
+            const topicOptions=[{id:"",label:"All topics"}]
+            for (const entry of openProofConnections.topicCatalog || []) {
+                const slug=String(entry.slug || "")
+                if (!/^[a-z][a-z0-9-]{1,63}$/.test(slug)) continue
+                const names={
+                    art:qsTrId("genycaster.topic.art"),
+                    development:qsTrId("genycaster.topic.development"),
+                    photography:qsTrId("genycaster.topic.photography"),
+                    design:qsTrId("genycaster.topic.design"),
+                    technology:qsTrId("genycaster.topic.technology"),
+                    music:qsTrId("genycaster.topic.music"),
+                    writing:qsTrId("genycaster.topic.writing"),
+                    science:qsTrId("genycaster.topic.science"),
+                    business:qsTrId("genycaster.topic.business"),
+                    gaming:qsTrId("genycaster.topic.gaming")
+                }
+                topicOptions.push({id:slug,label:names[slug]
+                    || slug.replace(/-/g," ").replace(/\b\w/g,c=>c.toUpperCase())})
+            }
+            return [
+                {id:"audience",title:"Audience",value:root.explorerAudience,defaultValue:"all",
+                 options:[{id:"all",label:"Everyone"},{id:"following",label:"Following"}]},
+                {id:"topic",title:"Topics",value:root.topicBrowseActive
+                    && root.topicBrowseScope==="explorer" ? root.topicBrowseSlug : "",
+                 defaultValue:"",options:topicOptions}
+            ]
+        }
+        onApplied: values => {
+            root.chooseExplorerAudience(String(values.audience || "all"))
+            if (values.topic)
+                root.openTopicBrowser(String(values.topic),"explorer",0)
+            else if (root.topicBrowseActive && root.topicBrowseScope==="explorer")
+                root.closeTopicBrowser()
+        }
+    }
+
     MediaGallery {
         id: mediaGallery
     }
@@ -1963,6 +2016,10 @@ Item {
                 onCustomAccentStudioRequested: color => accentColorStudio.openWith(color)
                 onDataStorageRequested: root.openDataStorageSettings()
                 onSignOutConfirmationRequested: root.requestSignOut()
+                onProfileRequested: {
+                    close()
+                    root.openMyProfileFromNavigation()
+                }
             }
         }
     }

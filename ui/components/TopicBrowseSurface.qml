@@ -72,6 +72,25 @@ Item {
     onCachedRowsChanged: visibleHydrationTimer.restart()
     onBookmarkedRowsChanged: visibleHydrationTimer.restart()
 
+    ContentFilterSheet {
+        id: topicFilterSheet
+        heading: "Filter topics"
+        sections: {
+            const options=[{id:"",label:"All topics"}]
+            for (const entry of root.topics || []) {
+                const slug=String(entry.slug || "")
+                if (/^[a-z][a-z0-9-]{1,63}$/.test(slug))
+                    options.push({id:slug,label:topicBrowserPicker.titleFor(slug)})
+            }
+            return [{id:"topic",title:"Topics",value:root.topicSlug,defaultValue:"",
+                     options:options}]
+        }
+        onApplied: values => {
+            if (String(values.topic || "") !== root.topicSlug)
+                root.topicRequested(String(values.topic || ""))
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.space2
@@ -97,8 +116,22 @@ Item {
                 font.weight: Theme.weightDemiBold
                 elide: Text.ElideRight
             }
+            ActionButton {
+                visible: root.compact
+                objectName: "mobileTopicFilterTrigger"
+                Layout.preferredWidth: 44
+                Layout.preferredHeight: 44
+                quiet: true
+                compact: true
+                iconOnly: true
+                iconGlyph: "filter"
+                text: "Filter topics"
+                onClicked: topicFilterSheet.open()
+            }
             TopicFilterPicker {
-                Layout.preferredWidth: root.compact ? 148 : 200
+                id: topicBrowserPicker
+                visible: !root.compact
+                Layout.preferredWidth: 200
                 Layout.maximumWidth: root.compact ? 148 : 200
                 Layout.preferredHeight: 30
                 compact: root.compact
