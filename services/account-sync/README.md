@@ -13,11 +13,13 @@ Farcaster/Snapchain remain the protocol source for casts, signers and likes.
 
 ## Schema
 
-Apply migrations `001_bookmarks.sql` through `006_cast_topics.sql` in
+Apply migrations `001_bookmarks.sql` through `007_bookmark_collections.sql` in
 version order inside `genycaster_db` with an authorized database-admin
-role. Migration 006 creates app-owned topics and their Cast associations;
-it grants only SELECT on the catalog and SELECT/INSERT/DELETE on the links
-to the restricted runtime role.
+role. Migration 006 creates app-owned topics and their Cast associations.
+Migration 007 introduces private per-account bookmark collections, memberships,
+and a tombstone trigger that removes memberships when a bookmark is unsaved.
+Each migration grants only the table operations needed by the restricted
+runtime role.
 
 | Table | Genycaster-owned purpose |
 | --- | --- |
@@ -33,6 +35,8 @@ to the restricted runtime role.
 | `account_sessions` | Verified per-browser sessions, stored by token digest |
 | `topics` | Global ordered, active topic slugs (editable by DB administrator, not users) |
 | `cast_topics` | Up to three topic references per protocol-verified, author-owned cast; independent of channels |
+| `bookmark_collections` | Private user-created, account-owned named reading-list collections |
+| `bookmark_collection_items` | Private many-to-many links to existing, saved bookmarks |
 
 The API runtime must connect with a restricted `genycaster_api` role; no
 connection to or grants on OpenProof's PostgreSQL database are required.
@@ -192,6 +196,23 @@ Validation is strict, maximum three unique active slugs, no channel or
 `parent_url` dependency. A locally queued assignment may retry while the
 Cast is waiting for Snapchain indexing. Adding a topic is an administrative
 catalog operation, never an unauthenticated or user-supplied new slug.
+
+`GET|PUT /api/v1/cloud/bookmark_collections` — authenticated private
+collection listing and revision-safe create/rename/delete. Create requires
+`{ "action":"create","id":"<uuid>","name":"Inspiration" }`;
+rename/delete require the current `expected_revision`. A collection deletion
+only removes its membership links, never the saved Cast itself. Name uniqueness,
+count limits and ownership are enforced in PostgreSQL.
+
+`GET /api/v1/cloud/bookmark_collection_items?collection_id=<uuid>`
+and `PUT /api/v1/cloud/bookmark_collection_items` — authenticated listing
+and attaching/removing saved Cast hashes using
+`{ "collection_id":"<uuid>","cast_hash":"0x<40 hex>","remove":false }`.
+One bookmark can belong to multiple collections. Unsaving a bookmark removes
+its collection memberships in the same DB transaction via a trigger.
+Migration 007 is required; while unapplied, signed-in requests get 503.
+The Composer's public Cast Topics and personal bookmark collections
+remain independent entities, and no manual account-sync UI is required.
 
 `GET|PUT /api/v1/cloud/{connections,bookmarks,notifications,drafts,tasks,profile_extras}`
 — private verified account data; request bodies are bounded and validated.

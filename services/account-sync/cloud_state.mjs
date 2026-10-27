@@ -154,6 +154,33 @@ export function validateCloudItem(entity, item) {
   }
   return null;
 }
+export function validateBookmarkCollectionChange(raw) {
+  if(!raw || typeof raw!=='object' || Array.isArray(raw)
+     || !ID.test(String(raw.id||''))) return null;
+  const action=raw.action;
+  if(!['create','rename','delete'].includes(action))return null;
+  if(action!=='create' && (!/^[1-9][0-9]{0,15}$/.test(String(raw.expected_revision||''))))
+    return null;
+  let name='';
+  if(action!=='delete') {
+    if(typeof raw.name!=='string' || raw.name!==raw.name.trim()
+       || raw.name!==raw.name.normalize('NFC')
+       || Array.from(raw.name).length<1 || Array.from(raw.name).length>80
+       || /[\u0000-\u001f\u007f-\u009f]/u.test(raw.name))
+      return null;
+    name=raw.name;
+  }
+  return {id:raw.id.toLowerCase(),action,name,
+          ...(action==='create'?{}:{expected_revision:String(raw.expected_revision)})};
+}
+export function validateBookmarkCollectionItem(raw) {
+  if(!raw || typeof raw!=='object' || Array.isArray(raw)
+     || !ID.test(String(raw.collection_id||''))
+     || !HASH.test(String(raw.cast_hash||''))
+     || typeof raw.remove!=='boolean') return null;
+  return {collection_id:raw.collection_id.toLowerCase(),
+          cast_hash:raw.cast_hash.toLowerCase(),remove:raw.remove};
+}
 async function readBody(request, limit=24576) {
   let size=0;const chunks=[];
   for await (const chunk of request) {
@@ -282,6 +309,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     if (!['connections','bookmarks','notifications','notification_seen',
       'app_updates','tasks','drafts','profile_extras','connections/refresh',
       'connections/portable','topics','topic_casts','cast_topics',
+      'bookmark_collections','bookmark_collection_items',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
@@ -389,6 +417,47 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         }
         respond(response,200,{seen_at_ms:await store.putNotificationSeen(owner,value)});
         return true;
+      }
+      if(entity==='bookmark_collections') {
+        if(typeof store.bookmarkCollectionsReady==='function'
+           && !store.bookmarkCollectionsReady()) {
+          respond(response,503,{error:'bookmark_collections_unavailable'});return true;
+        }
+        if(request.method==='GET') {
+          respond(response,200,{items:await store.listBookmarkCollections(owner)});
+          return true;
+        }
+        if(request.method!=='PUT') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        const change=validateBookmarkCollectionChange(await readBody(request,2048));
+        if(!change) {respond(response,400,{error:'invalid_bookmark_collection'});return true;}
+        const saved=await store.putBookmarkCollection(owner,change);
+        if(!saved) {respond(response,409,{error:'bookmark_collection_conflict'});return true;}
+        respond(response,200,{item:saved});return true;
+      }
+      if(entity==='bookmark_collection_items') {
+        if(typeof store.bookmarkCollectionsReady==='function'
+           && !store.bookmarkCollectionsReady()) {
+          respond(response,503,{error:'bookmark_collections_unavailable'});return true;
+        }
+        if(request.method==='GET') {
+          const search=new URL(request.url,'http://localhost').searchParams;
+          const id=search.get('collection_id');
+          if(!ID.test(String(id||''))) {
+            respond(response,400,{error:'invalid_bookmark_collection'});return true;
+          }
+          respond(response,200,{items:await store.listBookmarkCollectionItems(owner,id.toLowerCase())});
+          return true;
+        }
+        if(request.method!=='PUT') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        const change=validateBookmarkCollectionItem(await readBody(request,2048));
+        if(!change) {respond(response,400,{error:'invalid_bookmark_collection_item'});return true;}
+        const saved=await store.putBookmarkCollectionItem(owner,change);
+        if(!saved) {respond(response,409,{error:'bookmark_collection_item_conflict'});return true;}
+        respond(response,200,{item:saved});return true;
       }
       if(entity==='cast_topics') {
         if(request.method!=='PUT') {

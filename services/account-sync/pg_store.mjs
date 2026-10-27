@@ -30,7 +30,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   // endpoints fail closed until the additive migration is applied and the
   // backend is restarted; the other account data remains available.
   const migrations=await pool.query(
-    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6)');
+    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7)');
   const versions=new Set(migrations.rows.map(row=>Number(row.version)));
   if (!versions.has(3)) {
     await pool.end();
@@ -39,10 +39,12 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const sessionsReady=versions.has(4);
   const bookmarkPreviewsReady=versions.has(5);
   const topicsReady=versions.has(6);
+  const bookmarkCollectionsReady=versions.has(7);
   return {
     close:()=>pool.end(),
     bookmarkPreviewsReady:()=>bookmarkPreviewsReady,
     topicsReady:()=>topicsReady,
+    bookmarkCollectionsReady:()=>bookmarkCollectionsReady,
     async listTopics() {
       if(!topicsReady) throw new Error('topics_not_ready');
       const result=await pool.query(`SELECT id::text,slug,sort_order,
@@ -90,6 +92,109 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
          ORDER BY ct.created_at DESC,ct.cast_hash DESC LIMIT $2 OFFSET $3`,
          params);
       return result.rows;
+    },
+    async listBookmarkCollections({issuer,subject}) {
+      if(!bookmarkCollectionsReady) throw new Error('bookmark_collections_not_ready');
+      const result=await pool.query(`SELECT c.id::text,c.name,c.revision::text,c.sort_order,
+           (SELECT count(*)::integer FROM bookmark_collection_items i
+            WHERE i.issuer=c.issuer AND i.subject=c.subject
+              AND i.collection_id=c.id) AS item_count
+         FROM bookmark_collections c
+         WHERE c.issuer=$1 AND c.subject=$2
+         ORDER BY c.sort_order,c.created_at,c.id LIMIT 50`,[issuer,subject]);
+      return result.rows;
+    },
+    async putBookmarkCollection({issuer,subject},change) {
+      if(!bookmarkCollectionsReady) throw new Error('bookmark_collections_not_ready');
+      const fields='id::text,name,revision::text,sort_order';
+      if(change.action==='create') {
+        const client=await pool.connect();
+        try {
+          await client.query('BEGIN');
+          await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',
+                             [issuer+':'+subject+':bookmark-collections']);
+          const old=await client.query(`SELECT ${fields} FROM bookmark_collections
+            WHERE issuer=$1 AND subject=$2 AND id=$3::uuid`,
+            [issuer,subject,change.id]);
+          if(old.rows.length) {
+            await client.query('COMMIT');
+            return old.rows[0].name===change.name?old.rows[0]:null;
+          }
+          const total=await client.query(`SELECT count(*)::integer AS n
+            FROM bookmark_collections WHERE issuer=$1 AND subject=$2`,
+            [issuer,subject]);
+          if(total.rows[0].n>=50){await client.query('ROLLBACK');return null;}
+          const result=await client.query(`INSERT INTO bookmark_collections
+            (issuer,subject,id,name) VALUES($1,$2,$3::uuid,$4)
+            ON CONFLICT DO NOTHING RETURNING ${fields}`,
+            [issuer,subject,change.id,change.name]);
+          await client.query('COMMIT');
+          return result.rows[0]||null;
+        }catch(e){await client.query('ROLLBACK');throw e;}
+        finally{client.release();}
+      }
+      if(change.action==='rename') {
+        try {
+          const result=await pool.query(`UPDATE bookmark_collections
+            SET name=$4,revision=revision+1,updated_at=now()
+            WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
+              AND revision=$5::bigint RETURNING ${fields}`,
+            [issuer,subject,change.id,change.name,change.expected_revision]);
+          return result.rows[0]||null;
+        }catch(error) {
+          if(error?.code==='23505')return null; // duplicate name is a conflict
+          throw error;
+        }
+      }
+      if(change.action==='delete') {
+        const result=await pool.query(`DELETE FROM bookmark_collections
+          WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
+            AND revision=$4::bigint RETURNING id::text`,
+          [issuer,subject,change.id,change.expected_revision]);
+        return result.rows[0]||null;
+      }
+      return null;
+    },
+    async listBookmarkCollectionItems({issuer,subject},id) {
+      if(!bookmarkCollectionsReady) throw new Error('bookmark_collections_not_ready');
+      const result=await pool.query(`SELECT '0x'||encode(i.cast_hash,'hex') AS cast_hash,
+           i.added_at
+         FROM bookmark_collection_items i
+         JOIN bookmarks b ON b.openproof_issuer=i.issuer
+           AND b.openproof_subject=i.subject AND b.cast_hash=i.cast_hash
+         WHERE i.issuer=$1 AND i.subject=$2 AND i.collection_id=$3::uuid
+           AND b.is_deleted=false ORDER BY i.added_at DESC,i.cast_hash DESC LIMIT 500`,
+         [issuer,subject,id]);
+      return result.rows;
+    },
+    async putBookmarkCollectionItem({issuer,subject},change) {
+      if(!bookmarkCollectionsReady) throw new Error('bookmark_collections_not_ready');
+      const params=[issuer,subject,change.collection_id,change.cast_hash.slice(2)];
+      if(change.remove) {
+        await pool.query(`DELETE FROM bookmark_collection_items
+          WHERE issuer=$1 AND subject=$2 AND collection_id=$3::uuid
+            AND cast_hash=decode($4,'hex')`,params);
+        return {collection_id:change.collection_id,cast_hash:change.cast_hash,removed:true};
+      }
+      const result=await pool.query(`INSERT INTO bookmark_collection_items
+         (issuer,subject,collection_id,cast_hash)
+         SELECT c.issuer,c.subject,c.id,b.cast_hash
+         FROM bookmark_collections c JOIN bookmarks b
+           ON b.openproof_issuer=c.issuer AND b.openproof_subject=c.subject
+         WHERE c.issuer=$1 AND c.subject=$2 AND c.id=$3::uuid
+           AND b.cast_hash=decode($4,'hex') AND b.is_deleted=false
+         FOR UPDATE OF b,c
+         ON CONFLICT DO NOTHING
+         RETURNING collection_id::text`,params);
+      if(!result.rowCount) {
+        const already=await pool.query(`SELECT 1 FROM bookmark_collection_items i
+          JOIN bookmarks b ON b.openproof_issuer=i.issuer
+            AND b.openproof_subject=i.subject AND b.cast_hash=i.cast_hash
+          WHERE i.issuer=$1 AND i.subject=$2 AND i.collection_id=$3::uuid
+            AND i.cast_hash=decode($4,'hex') AND b.is_deleted=false`,params);
+        if(!already.rowCount)return null;
+      }
+      return {collection_id:change.collection_id,cast_hash:change.cast_hash,removed:false};
     },
     async createSession({issuer,subject},tokenHash,csrfToken) {
       if(!sessionsReady)throw new Error('account_sessions_not_ready');
