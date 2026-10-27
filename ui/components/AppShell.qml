@@ -774,6 +774,9 @@ Item {
                 authenticated: presentationBridge.isAuthenticated
                 interactionsAvailable: presentationBridge.isAuthenticated && presentationBridge.writeReady && !presentationBridge.writeBusy
                 compact: root.compact
+                filterAvailable: presentationBridge.isAuthenticated
+                                 && openProofConnections.topicCatalog.length > 0
+                onFilterRequested: explorerFilterSheet.open()
                 onModeRequested: mode => root.selectExplorerPresentationMode(mode)
                 onVisualFilterRequested: filter => root.explorerVisualFilter = filter
                 onComposeRequested: root.openComposer(null)
@@ -798,30 +801,6 @@ Item {
                 }
                 onAuthenticationRequested: root.openAccountPopup()
                 onSearchRequested: searchPalette.open()
-            }
-            TopicFilterPicker {
-                visible: false
-                width: root.compact ? 136 : 156
-                height: visible ? implicitHeight : 0
-                x: Theme.gutter(parent.width)
-                compact: root.compact
-                catalog: openProofConnections.topicCatalog
-                selectedTopic: root.topicBrowseActive && root.topicBrowseScope==="explorer"
-                               ? root.topicBrowseSlug : ""
-                onTopicRequested: slug => root.openTopicBrowser(slug,"explorer",0)
-            }
-            ActionButton {
-                visible: presentationBridge.isAuthenticated
-                         && openProofConnections.topicCatalog.length > 0
-                x: Theme.gutter(parent.width)
-                width: 44
-                height: visible ? 44 : 0
-                compact: true
-                quiet: true
-                iconOnly: true
-                iconGlyph: "filter"
-                text: "Filter Explorer"
-                onClicked: explorerFilterSheet.open()
             }
             Item { width: parent.width; height: Theme.space2 }
         }

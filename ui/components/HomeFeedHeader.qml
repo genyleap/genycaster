@@ -8,6 +8,8 @@ Item {
     property string presentationMode: "for-you"
     property string visualFilter: "all"
     property string audience: "all"
+    property bool filterAvailable: false
+    signal filterRequested()
     signal audienceRequested(string audience)
     property string displayName: ""
     property string avatarUrl: ""
@@ -240,10 +242,31 @@ Item {
             }
         }
 
-        ContentTabs {
+        RowLayout {
             Layout.fillWidth: true
-            currentMode: root.presentationMode
-            onModeRequested: mode => root.modeRequested(mode)
+            Layout.minimumWidth: 0
+            spacing: Theme.space1
+            layoutDirection: Theme.uiDirection
+
+            ContentTabs {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                Layout.preferredHeight: 48
+                currentMode: root.presentationMode
+                onModeRequested: mode => root.modeRequested(mode)
+            }
+            ActionButton {
+                objectName: "explorerFilterTrigger"
+                visible: root.filterAvailable
+                Layout.preferredWidth: 44
+                Layout.preferredHeight: 44
+                compact: true
+                quiet: true
+                iconOnly: true
+                iconGlyph: "filter"
+                text: "Filter Explorer"
+                onClicked: root.filterRequested()
+            }
         }
 
     }
