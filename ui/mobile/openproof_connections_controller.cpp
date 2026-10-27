@@ -264,6 +264,7 @@ void OpenProofConnectionsController::restoreAccountSession()
             || csrf.size()!=43)return;
         m_cloudSessionVerified=true;
         m_cloudCsrf=csrf;
+        fetchTopics();
         m_bookmarkPoll.start();
         publishPortableConnectionLabels();
         if(!m_portableConnectionsRequest)refreshAccountConnectionsSnapshot();
@@ -335,6 +336,7 @@ void OpenProofConnectionsController::acceptBrowserAccountSession(
     // same-origin GET that proves the HttpOnly cookie was actually stored.
     m_cloudSessionVerified=true;
     m_cloudCsrf=std::move(csrf);
+    fetchTopics();
     m_bookmarkPoll.start();
     publishPortableConnectionLabels();
     if(!m_portableConnectionsRequest)refreshAccountConnectionsSnapshot();
@@ -1769,7 +1771,10 @@ QString OpenProofConnectionsController::topicOutboxKey() const
 
 void OpenProofConnectionsController::fetchTopics()
 {
-    if(m_topicCatalogRequest || !trustedHttpsEndpoint(m_cloudUrl)) return;
+    // Topic metadata belongs to authenticated GenyCaster accounts. Never
+    // probe the protected endpoint without a verified bearer or browser session.
+    if(m_topicCatalogRequest || !cloudAuthorizationReady()
+       || !trustedHttpsEndpoint(m_cloudUrl)) return;
     QUrl endpoint=m_cloudUrl;
     endpoint.setPath(QStringLiteral("/api/v1/cloud/topics"));
     endpoint.setQuery(QString{});
@@ -1778,6 +1783,7 @@ void OpenProofConnectionsController::fetchTopics()
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(9'000);
     request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
     auto* reply=m_network.get(request);
     m_topicCatalogRequest=reply;
     const auto generation=m_grantGeneration;
@@ -1979,6 +1985,7 @@ void OpenProofConnectionsController::acceptAuthenticatedGrant(
     m_accountSubject = std::move(subject);
     m_grantExpiry.start(std::clamp(expiresSeconds - 10, 1, 3'590) * 1'000);
     m_error.clear();
+    fetchTopics();
     refreshConnections();
 }
 
@@ -2004,6 +2011,7 @@ void OpenProofConnectionsController::acceptRecoveryGrant(
     m_accountSubject = std::move(subject);
     m_grantExpiry.start(std::clamp(expiresSeconds - 10, 1, 3'590) * 1'000);
     m_error.clear();
+    fetchTopics();
     refreshConnections();
     pumpTopicWrites();
 }

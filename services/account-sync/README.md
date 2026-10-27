@@ -170,12 +170,20 @@ the UI. Existing Farcaster/OpenProof authentication is reused.
 
 `GET /api/v1/cloud/app_updates` — public published changelogs.
 
-`GET /api/v1/cloud/topics` — public ordered topic slugs and counts; the API
-returns no per-language display names. Clients localize the slug locally.
+`GET /api/v1/cloud/topics` — **authenticated GenyCaster account**
+ordered topic slugs and counts; the API returns no per-language display names.
+Clients localize the slug locally.
 
-`GET /api/v1/cloud/topic_casts?topic=art&limit=30&offset=0` — public bounded
-filter returning matching Cast hashes and FIDs. The client's Farcaster reader
-remains responsible for resolving the protocol Cast payloads.
+`GET /api/v1/cloud/topic_casts?topic=art&limit=30&offset=0` — **authenticated**
+bounded filter returning matching Cast hashes and FIDs. The client's Farcaster
+reader remains responsible for resolving the protocol Cast payloads.
+An optional `author_fid` restricts results to a single author. Both reads
+require either a server-verified, linked-FID bearer grant or a valid same-origin
+GenyCaster HttpOnly account session; unauthenticated access returns HTTP 401.
+Origin, User-Agent and embedded shared client keys do **not** prove a particular
+native application and must not be treated as authorization. The protected API
+is available to verified account holders; exclusive executable identity would
+require independently validated platform/device attestation where supported.
 
 `PUT /api/v1/cloud/cast_topics` — authenticated post-publication topic assignment
 with `{ "cast_hash": "0x…", "topics": ["art", "photography"] }`. The server

@@ -285,29 +285,6 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
-    if (entity==='topics' || entity==='topic_casts') {
-      if(request.method!=='GET') {
-        respond(response,405,{error:'method_not_allowed'});return true;
-      }
-      try {
-        if(entity==='topics') {
-          respond(response,200,{items:await store.listTopics()});return true;
-        }
-        const search=new URL(request.url,'http://localhost').searchParams;
-        const slug=search.get('topic') || '';
-        const page=topicPagination(search);
-        const authorFid=search.get('author_fid');
-        if(!TOPIC_SLUG.test(slug) || !page
-           || search.getAll('author_fid').length>1
-           || (authorFid!==null && !/^[1-9][0-9]{0,18}$/.test(authorFid))) {
-          respond(response,400,{error:'invalid_topic_filter'});return true;
-        }
-        respond(response,200,{items:await store.listTopicCasts(
-          slug,page.limit,page.offset,authorFid),
-          limit:page.limit,offset:page.offset});
-      }catch {respond(response,503,{error:'topics_unavailable'});}
-      return true;
-    }
     if (entity==='app_updates') {
       if (request.method!=='GET') respond(response,405,{error:'method_not_allowed'});
       else try {respond(response,200,{items:await store.listUpdates()});}
@@ -347,6 +324,27 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     try {owner=await authorize(request);}catch{}
     if (!owner) {respond(response,401,{error:'authentication_required'});return true;}
     try {
+      if(entity==='topics' || entity==='topic_casts') {
+        if(request.method!=='GET') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        if(entity==='topics') {
+          respond(response,200,{items:await store.listTopics()});return true;
+        }
+        const search=new URL(request.url,'http://localhost').searchParams;
+        const slug=search.get('topic') || '';
+        const page=topicPagination(search);
+        const authorFid=search.get('author_fid');
+        if(!TOPIC_SLUG.test(slug) || !page
+           || search.getAll('author_fid').length>1
+           || (authorFid!==null && !/^[1-9][0-9]{0,18}$/.test(authorFid))) {
+          respond(response,400,{error:'invalid_topic_filter'});return true;
+        }
+        respond(response,200,{items:await store.listTopicCasts(
+          slug,page.limit,page.offset,authorFid),
+          limit:page.limit,offset:page.offset});
+        return true;
+      }
       if(entity==='session') {
         if(request.method==='POST') {
           // A verified, fresh OpenProof/Farcaster grant is the only bootstrap

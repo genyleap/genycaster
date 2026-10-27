@@ -14,9 +14,13 @@ const store={
     return {cast_hash:hash,topics:slugs};
   }
 };
-const fetchImpl=async(url)=> url.endsWith('/account/profile')
-  ? new Response(JSON.stringify({identity_id:principal}),{status:200})
-  : new Response(JSON.stringify({connections:[{provider:'farcaster',fid:'42'}]}),{status:200});
+const fetchImpl=async(url,init)=>{
+  if(init?.headers?.authorization!=='Bearer good')
+    return new Response('{}',{status:401});
+  return url.endsWith('/account/profile')
+    ? new Response(JSON.stringify({identity_id:principal}),{status:200})
+    : new Response(JSON.stringify({connections:[{provider:'farcaster',fid:'42'}]}),{status:200});
+};
 async function withServer(run){
  const s=createAccountApi({catalogUrl:'https://id.example.test/catalog',fetchImpl,store,
   issuer:'https://id.example.test',topicVerifier:async()=>true});
@@ -27,22 +31,29 @@ async function withServer(run){
   ...(data===undefined?{}:{body:JSON.stringify(data)})}));}
  finally{await new Promise(done=>s.close(done));}
 }
-test('topics are public read-only, sorted and not tied to parent_url or channel IDs',async()=>{
+test('topics and topic discovery require verified GenyCaster account identity',async()=>{
  await withServer(async req=>{
-  const r=await req('topics');
+  assert.equal((await req('topics')).status,401);
+  assert.equal((await req('topic_casts?topic=art')).status,401);
+  assert.equal((await req('topics','GET',undefined,'Bearer forged')).status,401);
+  assert.equal((await req('topic_casts?topic=art','GET',undefined,'Bearer forged')).status,401);
+  const valid='Bearer good';
+  const r=await req('topics','GET',undefined,valid);
   assert.equal(r.status,200);
   assert.deepEqual((await r.json()).items.slice(0,3).map(x=>x.slug),
      ['art','development','photography']);
-  assert.equal((await req('topics','PUT',{})).status,405);
-  assert.equal((await req('topic_casts?topic=art&limit=10')).status,200);
-  assert.equal((await req('topic_casts?topic=art&author_fid=42')).status,200);
+  assert.equal((await req('topics','PUT',{},valid)).status,405);
+  assert.equal((await req('topic_casts?topic=art&limit=10','GET',undefined,valid)).status,200);
+  assert.equal((await req('topic_casts?topic=art&author_fid=42','GET',undefined,valid)).status,200);
   assert.ok(calls.some(c=>c[0]==='list' && c[1]==='art' && c[4]==='42'));
-  assert.equal((await req('topic_casts?topic=art&author_fid=0')).status,400);
-  assert.equal((await req('topic_casts?topic=art&author_fid=abc')).status,400);
-  assert.equal((await req('topic_casts?topic=art&author_fid=42&author_fid=43')).status,400);
-  assert.equal((await req('topic_casts?topic=../admin')).status,400);
-  assert.equal((await req('topic_casts?topic=art&limit=1000')).status,400);
-  assert.equal((await req('topic_casts','PUT',{})).status,405);
+  for(const path of [
+    'topic_casts?topic=art&author_fid=0',
+    'topic_casts?topic=art&author_fid=abc',
+    'topic_casts?topic=art&author_fid=42&author_fid=43',
+    'topic_casts?topic=../admin',
+    'topic_casts?topic=art&limit=1000'
+  ]) assert.equal((await req(path,'GET',undefined,valid)).status,400);
+  assert.equal((await req('topic_casts','PUT',{},valid)).status,405);
  });
 });
 test('topic associations only accept owner-authenticated canonical casts, unique enabled-like slugs and max three',async()=>{
