@@ -8,7 +8,7 @@
         </message>
         <message id="genycaster.release.beta_label">
             <source>Beta</source>
-            <translation>بتا ·</translation>
+            <translation>بتا</translation>
         </message>
         <message id="genycaster.home.geny_token_title">
             <source>GENY Token</source>

@@ -21,42 +21,66 @@ Rectangle {
     implicitHeight: Theme.appBarHeight
     color: Theme.backgroundPrimary
     layer.enabled: false
+    LayoutMirroring.enabled: false
+    LayoutMirroring.childrenInherit: true
 
     readonly property int gutter: Theme.gutter(root.width)
 
-    RowLayout {
+    // All brand geometry is explicit, rather than nested RTL RowLayouts:
+    // layout mirroring must never distribute the wordmark away from its icon.
+    Item {
+        id: headerContent
         anchors.fill: parent
-        layoutDirection: Theme.uiDirection
         anchors.leftMargin: root.gutter
         anchors.rightMargin: root.gutter
-        spacing: Theme.space1
+        LayoutMirroring.enabled: false
 
-        RowLayout {
+        Item {
+            id: brandCluster
+            objectName: "appHeaderBrandCluster"
             visible: root.showBrand
-            layoutDirection: Theme.uiDirection
-            spacing: Theme.space2
+            readonly property real symbolSize: Theme.scaleUi(30)
+            readonly property real wordmarkWidth: Theme.scaleUi(root.compact ? 132 : 150)
+            readonly property real brandGap: Theme.space2
+            width: symbolSize + brandGap + wordmarkWidth
+            height: Theme.scaleUi(42)
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.right: Theme.rtl ? parent.right : undefined
+            anchors.left: Theme.rtl ? undefined : parent.left
 
             Image {
-                Layout.preferredWidth: 30
-                Layout.preferredHeight: 30
+                id: brandSymbol
+                width: brandCluster.symbolSize
+                height: brandCluster.symbolSize
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.right: Theme.rtl ? parent.right : undefined
+                anchors.left: Theme.rtl ? undefined : parent.left
                 source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
-                sourceSize.width: 60
-                sourceSize.height: 60
+                sourceSize.width: 90
+                sourceSize.height: 90
                 fillMode: Image.PreserveAspectFit
                 Accessible.ignored: true
             }
 
-            // The brand asset has a fixed Latin glyph order. Its caption uses
-            // an isolated LTR version number so Persian text cannot reorder
-            // the two lines or stretch the wordmark across the header.
-            ColumnLayout {
-                LayoutMirroring.enabled: false
-                spacing: Theme.scaleUi(2)
+            Item {
+                id: brandText
+                objectName: "appHeaderWordmarkAndVersion"
+                width: brandCluster.wordmarkWidth
+                height: brandCluster.height
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.right: Theme.rtl ? brandSymbol.left : undefined
+                anchors.rightMargin: Theme.rtl ? brandCluster.brandGap : 0
+                anchors.left: Theme.rtl ? undefined : brandSymbol.right
+                anchors.leftMargin: Theme.rtl ? 0 : brandCluster.brandGap
+
                 Image {
-                    Layout.preferredWidth: root.compact ? 132 : 150
-                    Layout.preferredHeight: root.compact ? 22 : 24
-                    fillMode: Image.PreserveAspectFit
+                    id: brandWordmark
+                    width: parent.width
+                    height: Theme.scaleUi(root.compact ? 22 : 24)
+                    anchors.top: parent.top
+                    anchors.left: parent.left
                     horizontalAlignment: Image.AlignLeft
+                    fillMode: Image.PreserveAspectFit
                     source: Theme.dark
                             ? "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark-dark.svg"
                             : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark.svg"
@@ -64,71 +88,107 @@ Rectangle {
                     sourceSize.height: 72
                     Accessible.name: "GenyCaster"
                 }
-                Label {
-                    Layout.fillWidth: true
+
+                // Separate visual runs: Persian, punctuation and localized
+                // numerals must not be reordered by the surrounding RTL UI.
+                Row {
+                    id: localizedVersion
+                    visible: Theme.rtl
+                    anchors.top: brandWordmark.bottom
+                    anchors.topMargin: Theme.scaleUi(2)
+                    anchors.left: parent.left
+                    spacing: Theme.scaleUi(3)
+                    layoutDirection: Qt.RightToLeft
                     LayoutMirroring.enabled: false
-                    text: Theme.rtl ? qsTrId("genycaster.release.beta_label")
-                                          + " \u2066" + qsTrId("genycaster.release.beta_version_number") + "\u2069"
-                                    : qsTrId("genycaster.release.beta_1_0")
+
+                    Text {
+                        text: qsTrId("genycaster.release.beta_label")
+                        color: Theme.inkMuted
+                        font.family: Theme.fontFamilyForText(text)
+                        font.pixelSize: Theme.typeCaptionSize
+                        font.weight: Theme.weightMedium
+                        renderType: Text.NativeRendering
+                    }
+                    Text {
+                        text: "·"
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        renderType: Text.NativeRendering
+                    }
+                    Text {
+                        text: qsTrId("genycaster.release.beta_version_number")
+                        color: Theme.inkMuted
+                        font.family: Theme.fontFamilyForText(text)
+                        font.pixelSize: Theme.typeCaptionSize
+                        font.weight: Theme.weightMedium
+                        renderType: Text.NativeRendering
+                    }
+                }
+
+                Text {
+                    visible: !Theme.rtl
+                    anchors.top: brandWordmark.bottom
+                    anchors.topMargin: Theme.scaleUi(2)
+                    anchors.left: parent.left
+                    text: qsTrId("genycaster.release.beta_1_0")
                     color: Theme.inkMuted
                     font.family: Theme.fontFamilyForText(text)
                     font.pixelSize: Theme.typeCaptionSize
                     font.weight: Theme.weightMedium
                     renderType: Text.NativeRendering
-                    horizontalAlignment: Text.AlignLeft
-                    verticalAlignment: Text.AlignVCenter
-                    textFormat: Text.PlainText
-                    Accessible.ignored: true
                 }
             }
         }
 
-        Item { Layout.fillWidth: true }
+        RowLayout {
+            id: headerActions
+            objectName: "appHeaderActions"
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.left: Theme.rtl ? parent.left : undefined
+            anchors.right: Theme.rtl ? undefined : parent.right
+            layoutDirection: Theme.uiDirection
+            spacing: Theme.space1
 
-        ActionButton {
-            compact: true
-            quiet: true
-            selected: root.notificationsSelected
-            iconOnly: true
-            iconGlyph: Theme.iconNotification
-            badgeText: root.notificationUnreadCount > 0 && !root.notificationsSelected
-                       ? (root.notificationUnreadCount > 99 ? (LocaleFormat.formatInteger(99) + "+")
-                          : LocaleFormat.formatInteger(root.notificationUnreadCount))
-                       : ""
-            text: qsTrId("genycaster.side_nav.notifications")
-            onClicked: root.notificationsRequested()
-        }
+            ActionButton {
+                compact: true
+                quiet: true
+                selected: root.notificationsSelected
+                iconOnly: true
+                iconGlyph: Theme.iconNotification
+                badgeText: root.notificationUnreadCount > 0 && !root.notificationsSelected
+                           ? (root.notificationUnreadCount > 99 ? (LocaleFormat.formatInteger(99) + "+")
+                              : LocaleFormat.formatInteger(root.notificationUnreadCount))
+                           : ""
+                text: qsTrId("genycaster.side_nav.notifications")
+                onClicked: root.notificationsRequested()
+            }
 
-        ActionButton {
-            compact: true
-            quiet: true
-            iconOnly: true
-            iconGlyph: Theme.iconSettings
-            text: qsTrId("genycaster.settings.title")
-            Accessible.name: qsTrId("genycaster.settings.open")
-            onClicked: root.settingsRequested()
-        }
+            ActionButton {
+                compact: true
+                quiet: true
+                iconOnly: true
+                iconGlyph: Theme.iconSettings
+                text: qsTrId("genycaster.settings.title")
+                Accessible.name: qsTrId("genycaster.settings.open")
+                onClicked: root.settingsRequested()
+            }
 
-
-
-        ActionButton {
-            // Signed-in mobile users reach Profile from the bottom tab.
-            // Keep Sign in here for guests, and retain the desktop account action.
-            visible: !root.compact || !root.isAuthenticated
-            compact: true
-            quiet: root.isAuthenticated
-            prominent: !root.isAuthenticated
-            iconOnly: root.compact
-            iconGlyph: root.isAuthenticated ? Theme.iconProfile : Theme.iconSignIn
-            text: root.isAuthenticated
-                  ? qsTrId("genycaster.header.account")
-                  : qsTrId("genycaster.header.sign_in")
-            Accessible.description: root.isAuthenticated
-                                    ? qsTrId("genycaster.header.open_your_signed_in_account_session")
-                                    : qsTrId("genycaster.header.sign_in_to_interact_on_farcaster")
-            // Authenticated identity icon navigates to the profile directly.
-            // Revocation and Sign Out belong in Settings / Security instead.
-            onClicked: root.isAuthenticated ? root.ownProfileRequested() : root.accountRequested()
+            ActionButton {
+                // Signed-in mobile users reach Profile from the bottom tab.
+                visible: !root.compact || !root.isAuthenticated
+                compact: true
+                quiet: root.isAuthenticated
+                prominent: !root.isAuthenticated
+                iconOnly: root.compact
+                iconGlyph: root.isAuthenticated ? Theme.iconProfile : Theme.iconSignIn
+                text: root.isAuthenticated
+                      ? qsTrId("genycaster.header.account")
+                      : qsTrId("genycaster.header.sign_in")
+                Accessible.description: root.isAuthenticated
+                                        ? qsTrId("genycaster.header.open_your_signed_in_account_session")
+                                        : qsTrId("genycaster.header.sign_in_to_interact_on_farcaster")
+                onClicked: root.isAuthenticated ? root.ownProfileRequested() : root.accountRequested()
+            }
         }
     }
 

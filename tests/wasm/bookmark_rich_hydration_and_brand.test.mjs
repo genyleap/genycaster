@@ -53,8 +53,13 @@ test('header uses a stable wordmark, separated Beta label and bidi-isolated vers
   const qml=read('ui/components/AppHeader.qml');
   const fa=read('ui/i18n/qml_fa_IR.ts');
   assert.match(qml,/genycaster-wordmark-dark.svg/);
-  assert.match(qml,/ColumnLayout \{[\s\S]*?LayoutMirroring.enabled: false/);
+  assert.match(qml,/objectName: "appHeaderBrandCluster"/);
+  assert.match(qml,/objectName: "appHeaderWordmarkAndVersion"/);
+  assert.match(qml,/anchors.right: Theme.rtl \? parent.right : undefined/);
+  assert.match(qml,/anchors.right: Theme.rtl \? brandSymbol.left : undefined/);
+  assert.match(qml,/anchors.left: Theme.rtl \? parent.left : undefined/);
+  assert.match(qml,/layoutDirection: Qt.RightToLeft/);
   assert.match(qml,/genycaster.release.beta_label/);
-  assert.match(qml,/\\u2066/);
+  assert.match(qml,/genycaster.release.beta_version_number/);
   assert.match(fa,/id="genycaster.release.beta_label"/);
 });
