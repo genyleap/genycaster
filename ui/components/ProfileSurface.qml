@@ -21,6 +21,7 @@ Item {
     property string profileFeed: "user-posts"
     property string profileSortMode: "newest"
     property string popularMetric: "all"
+    property var topicCatalog: []
     property bool runtimeReady: false
     property bool compact: false
     property bool busy: false
@@ -488,6 +489,7 @@ Item {
     signal followingRequested()
     signal refreshRequested()
     signal profileFeedRequested(string feed)
+    signal topicRequested(string slug, double authorFid)
     signal castRequested(string castId)
     signal profileRequested(double fid)
     signal replyRequested(var cast)
@@ -2044,6 +2046,26 @@ Item {
                         }
                     }
                 }
+            }
+            RowLayout {
+                visible: root.topicCatalog.length > 0
+                Layout.fillWidth: true
+                Layout.leftMargin: root.profileContentX
+                Layout.rightMargin: root.profileContentX
+                Layout.preferredHeight: visible ? Theme.controlHeight + Theme.space2 : 0
+                spacing: Theme.space2
+                TopicFilterPicker {
+                    Layout.preferredWidth: root.compact ? 164 : 204
+                    Layout.maximumWidth: root.compact ? 164 : 204
+                    Layout.preferredHeight: Theme.controlHeight
+                    catalog: root.topicCatalog
+                    compact: root.compact
+                    onTopicRequested: slug => {
+                        if(slug.length > 0)
+                            root.topicRequested(slug,Number(root.activeDetail.fid || 0))
+                    }
+                }
+                Item { Layout.fillWidth: true }
             }
         }
 

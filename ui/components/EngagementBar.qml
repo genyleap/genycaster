@@ -342,7 +342,12 @@ RowLayout {
         activeColor: Theme.accent
         enabled: root.normalizedCastId.length > 0 && presentationBridge.isAuthenticated
         Accessible.name: root.isBookmarked ? "Remove bookmark" : "Bookmark cast"
-        onClicked: presentationBridge.toggleBookmark(root.castData)
+        onClicked: {
+            const adding = !root.isBookmarked
+            presentationBridge.toggleBookmark(root.castData)
+            if (adding)
+                openProofConnections.requestBookmarkCollectionChoice(root.normalizedCastId)
+        }
     }
     // Lazy share menu: constructing a Popup for every virtualized feed row
     // would regress scroll performance on mobile WebAssembly.

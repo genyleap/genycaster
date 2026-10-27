@@ -49,6 +49,11 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QVariantList topicCatalog READ topicCatalog NOTIFY topicsChanged)
     Q_PROPERTY(bool topicsBusy READ topicsBusy NOTIFY topicsChanged)
     Q_PROPERTY(QString topicsError READ topicsError NOTIFY topicsChanged)
+    Q_PROPERTY(QVariantList topicCastItems READ topicCastItems NOTIFY topicCastsChanged)
+    Q_PROPERTY(bool topicCastsBusy READ topicCastsBusy NOTIFY topicCastsChanged)
+    Q_PROPERTY(bool topicCastsHasMore READ topicCastsHasMore NOTIFY topicCastsChanged)
+    Q_PROPERTY(QString topicCastsError READ topicCastsError NOTIFY topicCastsChanged)
+    Q_PROPERTY(QString activeCastTopic READ activeCastTopic NOTIFY topicCastsChanged)
     Q_PROPERTY(QVariantList bookmarkCollections READ bookmarkCollections NOTIFY bookmarkCollectionsChanged)
     Q_PROPERTY(QVariantList bookmarkCollectionItems READ bookmarkCollectionItems NOTIFY bookmarkCollectionsChanged)
     Q_PROPERTY(QString activeBookmarkCollection READ activeBookmarkCollection NOTIFY bookmarkCollectionsChanged)
@@ -99,12 +104,21 @@ public:
     [[nodiscard]] bool topicsBusy() const noexcept { return m_topicCatalogRequest != nullptr; }
     [[nodiscard]] QString topicsError() const { return m_topicsError; }
     Q_INVOKABLE void fetchTopics();
+    [[nodiscard]] QVariantList topicCastItems() const { return m_topicCastItems; }
+    [[nodiscard]] bool topicCastsBusy() const noexcept { return m_topicCastsRequest != nullptr; }
+    [[nodiscard]] bool topicCastsHasMore() const noexcept { return m_topicCastsHasMore; }
+    [[nodiscard]] QString topicCastsError() const { return m_topicCastsError; }
+    [[nodiscard]] QString activeCastTopic() const { return m_activeCastTopic; }
+    Q_INVOKABLE void selectCastTopic(const QString& slug, const QString& authorFid = {});
+    Q_INVOKABLE void loadMoreTopicCasts();
+    Q_INVOKABLE void clearCastTopic();
     Q_INVOKABLE void saveCastTopics(const QString& castHash, const QStringList& slugs);
     [[nodiscard]] QVariantList bookmarkCollections() const { return m_bookmarkCollections; }
     [[nodiscard]] QVariantList bookmarkCollectionItems() const { return m_bookmarkCollectionItems; }
     [[nodiscard]] QString activeBookmarkCollection() const { return m_activeBookmarkCollection; }
     [[nodiscard]] bool bookmarkCollectionsBusy() const noexcept { return m_bookmarkCollectionRequest != nullptr; }
     [[nodiscard]] QString bookmarkCollectionsError() const { return m_bookmarkCollectionsError; }
+    Q_INVOKABLE void requestBookmarkCollectionChoice(const QString& castHash);
     Q_INVOKABLE void refreshBookmarkCollections();
     Q_INVOKABLE void selectBookmarkCollection(const QString& id);
     Q_INVOKABLE void createBookmarkCollection(const QString& name);
@@ -175,7 +189,9 @@ signals:
     void stateChanged();
     void cloudStateChanged();
     void topicsChanged();
+    void topicCastsChanged();
     void bookmarkCollectionsChanged();
+    void bookmarkCollectionChoiceRequested(const QString& castHash);
     void cloudProfileExtrasReceived(const QVariantMap& item);
     void cloudProfileExtrasSaved(const QVariantMap& item);
     void cloudBookmarkChangesReceived(const QVariantList& changes);
@@ -224,6 +240,14 @@ private:
     QPointer<QNetworkReply> m_cloudProbe{};
     QPointer<QNetworkReply> m_topicCatalogRequest{};
     QPointer<QNetworkReply> m_topicSaveRequest{};
+    QPointer<QNetworkReply> m_topicCastsRequest{};
+    QVariantList m_topicCastItems{};
+    QString m_activeCastTopic{};
+    QString m_topicAuthorFid{};
+    QString m_topicCastsError{};
+    bool m_topicCastsHasMore{};
+    std::uint64_t m_topicCastsGeneration{};
+    void fetchTopicCastPage();
     QVariantList m_topicCatalog{};
     QVariantList m_topicOutbox{};
     QString m_topicsError{};

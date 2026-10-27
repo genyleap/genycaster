@@ -155,6 +155,107 @@ Item {
         root.explorerAudience = chosen
         root.selectExplorerPresentationMode(root.explorerPresentationMode, true)
     }
+    property string bookmarkChoiceHash: ""
+    property real bookmarkChoiceOwner: 0
+    property string bookmarkAssignmentHash: ""
+    property string bookmarkAssignmentCollection: ""
+    property string bookmarkAssignmentCreateName: ""
+    property int bookmarkAssignmentAttempts: 0
+
+    function assignSavedBookmark(hash,collectionId) {
+        if(!/^0x[0-9a-fA-F]{40}$/.test(String(hash))
+           || !/^[0-9a-fA-F-]{36}$/.test(String(collectionId)))return
+        root.bookmarkAssignmentHash=String(hash).toLowerCase()
+        root.bookmarkAssignmentCollection=String(collectionId)
+        root.bookmarkAssignmentAttempts=0
+        bookmarkAssignmentFlush.restart()
+    }
+    function flushBookmarkAssignment() {
+        if(!root.bookmarkAssignmentHash.length)return
+        if(!presentationBridge.isAuthenticated
+           || Number(presentationBridge.accountFid)!==root.bookmarkChoiceOwner) {
+            root.bookmarkAssignmentHash=""
+            root.bookmarkAssignmentCollection=""
+            root.bookmarkAssignmentCreateName=""
+            return
+        }
+        if(openProofConnections.bookmarkPendingCount===0
+           && !openProofConnections.bookmarkCollectionsBusy
+           && presentationBridge.bookmarkedCastIds.indexOf(root.bookmarkAssignmentHash)>=0) {
+            openProofConnections.setBookmarkCollectionMembership(
+                root.bookmarkAssignmentHash,root.bookmarkAssignmentCollection,false)
+            root.bookmarkAssignmentHash=""
+            root.bookmarkAssignmentCollection=""
+            return
+        }
+        if(++root.bookmarkAssignmentAttempts < 40)
+            bookmarkAssignmentFlush.restart()
+    }
+
+    Timer {
+        id: bookmarkAssignmentFlush
+        interval: 500
+        repeat: false
+        onTriggered: root.flushBookmarkAssignment()
+    }
+    Connections {
+        target: openProofConnections
+        function onBookmarkCollectionChoiceRequested(hash) {
+            root.bookmarkChoiceHash=hash
+            root.bookmarkChoiceOwner=Number(presentationBridge.accountFid)
+            root.bookmarkAssignmentCreateName=""
+            bookmarkCollectionChooser.castHash=hash
+            bookmarkCollectionChooser.newName=""
+            bookmarkCollectionChooser.open()
+            openProofConnections.refreshBookmarkCollections()
+        }
+        function onBookmarkCollectionsChanged() {
+            if(!root.bookmarkAssignmentCreateName.length
+               || openProofConnections.bookmarkCollectionsBusy)return
+            const expected=root.bookmarkAssignmentCreateName
+            const found=(openProofConnections.bookmarkCollections||[])
+                .find(x=>String(x.name||"")===expected)
+            if(found) {
+                root.bookmarkAssignmentCreateName=""
+                root.assignSavedBookmark(root.bookmarkChoiceHash,String(found.id))
+            }
+        }
+    }
+    property bool topicBrowseActive: false
+    property string topicBrowseScope: ""
+    property string topicBrowseSlug: ""
+    property string topicBrowseAuthorFid: ""
+    function openTopicBrowser(slug, scope, authorFid) {
+        const chosen=String(slug || "")
+        if(!chosen.length) {root.closeTopicBrowser();return}
+        if(!presentationBridge.isAuthenticated
+           || !openProofConnections.cloudAuthorizationReady) {
+            root.openAccountPopup()
+            return
+        }
+        root.topicBrowseScope=String(scope || "explorer")
+        root.topicBrowseSlug=chosen
+        root.topicBrowseAuthorFid=Number(authorFid || 0)>0
+                                 ? String(Math.floor(authorFid)) : ""
+        root.topicBrowseActive=true
+        openProofConnections.selectCastTopic(chosen,root.topicBrowseAuthorFid)
+    }
+    function closeTopicBrowser() {
+        root.topicBrowseActive=false
+        root.topicBrowseSlug=""
+        root.topicBrowseScope=""
+        root.topicBrowseAuthorFid=""
+        openProofConnections.clearCastTopic()
+    }
+    onShellRouteChanged: {
+        if(root.shellRoute.length > 0 && root.topicBrowseActive)
+            root.closeTopicBrowser()
+    }
+    onPrimaryDestinationChanged: {
+        if(root.topicBrowseActive && root.topicBrowseScope==="explorer"
+           && root.primaryDestination!=="explorer")
+            root.closeTopicBrowser()
+    }
     property string explorerPresentationMode: "for-you"
     property string explorerVisualFilter: "nfts"
     // Keep the notifications busy flag as an imperative snapshot. Feeding the
@@ -659,6 +760,19 @@ Item {
                 onAuthenticationRequested: root.openAccountPopup()
                 onSearchRequested: searchPalette.open()
             }
+            TopicFilterPicker {
+                visible: presentationBridge.isAuthenticated
+                         && openProofConnections.topicCatalog.length > 0
+                width: root.compact ? 164 : 204
+                height: visible ? Theme.controlHeight : 0
+                x: Theme.gutter(parent.width)
+                compact: root.compact
+                catalog: openProofConnections.topicCatalog
+                selectedTopic: root.topicBrowseActive && root.topicBrowseScope==="explorer"
+                               ? root.topicBrowseSlug : ""
+                onTopicRequested: slug => root.openTopicBrowser(slug,"explorer",0)
+            }
+            Item { width: parent.width; height: Theme.space2 }
         }
     }
 
@@ -1160,7 +1274,7 @@ Item {
                                                                              && !(presentationBridge.activeView === "feed"
                                                                                   && root.primaryDestination === "home")
                                     active: surfaceRequested || item !== null
-                                    visible: surfaceRequested
+                                    visible: surfaceRequested && !root.topicBrowseActive
                                     opacity: visible ? 1.0 : 0.0
                                     scale: visible ? 1.0 : 0.99
                                     transform: Translate {
@@ -1245,11 +1359,52 @@ Item {
                                 }
 
                                 Loader {
+                                    id: topicBrowseLoader
+                                    active: root.topicBrowseActive && root.shellRoute.length===0
+                                            && (presentationBridge.activeView==="feed"
+                                                || presentationBridge.activeView==="profile")
+                                    visible: active
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    Layout.maximumWidth: root.adaptiveDetailWidth
+                                    Layout.alignment: Qt.AlignHCenter
+                                    sourceComponent: Component {
+                                        TopicBrowseSurface {
+                                            scopeName: root.topicBrowseScope==="profile" ? "Profile" : "Explorer"
+                                            topicSlug: root.topicBrowseSlug
+                                            topics: openProofConnections.topicCatalog
+                                            items: openProofConnections.topicCastItems
+                                            cachedRows: presentationBridge.rows
+                                            busy: openProofConnections.topicCastsBusy
+                                            hasMore: openProofConnections.topicCastsHasMore
+                                            errorText: openProofConnections.topicCastsError
+                                            compact: root.compact
+                                            accountFid: presentationBridge.accountFid
+                                            onBackRequested: root.closeTopicBrowser()
+                                            onTopicRequested: slug => root.openTopicBrowser(
+                                                slug,root.topicBrowseScope,
+                                                Number(root.topicBrowseAuthorFid || 0))
+                                            onMoreRequested: openProofConnections.loadMoreTopicCasts()
+                                            onCastRequested: hash => {
+                                                root.closeTopicBrowser()
+                                                presentationBridge.openCast(hash)
+                                            }
+                                            onProfileRequested: fid => {
+                                                root.closeTopicBrowser()
+                                                presentationBridge.openProfileFid(fid)
+                                            }
+                                            onMediaRequested: (items,index) => mediaGallery.openAt(items,index)
+                                            onExternalRequested: url => root.openCastTextLink(url)
+                                        }
+                                    }
+                                }
+
+                                Loader {
                                     id: profileSurfaceLoader
                                     readonly property bool surfaceRequested: root.shellRoute.length === 0
                                                                              && presentationBridge.activeView === "profile"
                                     active: surfaceRequested || item !== null
-                                    visible: surfaceRequested
+                                    visible: surfaceRequested && !root.topicBrowseActive
                                     opacity: visible ? 1.0 : 0.0
                                     scale: visible ? 1.0 : 0.99
                                     transform: Translate {
@@ -1271,6 +1426,8 @@ Item {
                                             detail: presentationBridge.detail
                                             rows: presentationBridge.rows
                                             profileFeed: presentationBridge.profileFeed
+                                            topicCatalog: openProofConnections.topicCatalog
+                                            onTopicRequested: (slug,fid) => root.openTopicBrowser(slug,"profile",fid)
                                             runtimeReady: presentationBridge.runtimeReady
                                             compact: root.compact
                                             busy: presentationBridge.isBusy
@@ -1748,6 +1905,23 @@ Item {
             root.primaryDestination = "explorer"
             root.shellRoute = ""
             presentationBridge.openSearchQuery(query)
+        }
+    }
+
+    BookmarkCollectionChooser {
+        id: bookmarkCollectionChooser
+        collections: openProofConnections.bookmarkCollections
+        busy: openProofConnections.bookmarkCollectionsBusy
+        onCollectionPicked: id => root.assignSavedBookmark(
+            root.bookmarkChoiceHash,id)
+        onCreateRequested: name => {
+            root.bookmarkAssignmentCreateName=name
+            openProofConnections.createBookmarkCollection(name)
+        }
+        onUnfiledRequested: {
+            root.bookmarkAssignmentHash=""
+            root.bookmarkAssignmentCollection=""
+            root.bookmarkAssignmentCreateName=""
         }
     }
 

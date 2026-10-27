@@ -1708,6 +1708,7 @@ void OpenProofConnectionsController::clearAccountGrant()
     closeGenycasterConnectionWindow();
 #endif
     ++m_grantGeneration;
+    clearCastTopic();
     m_grantExpiry.stop();
     m_connectionPoll.stop();
     m_bookmarkPoll.stop();
@@ -1823,6 +1824,123 @@ void OpenProofConnectionsController::fetchTopics()
             m_topicsError=QStringLiteral("Topics could not be refreshed");
         reply->deleteLater();
         emit topicsChanged();
+    });
+}
+
+void OpenProofConnectionsController::clearCastTopic()
+{
+    ++m_topicCastsGeneration;
+    if(m_topicCastsRequest) {
+        m_topicCastsRequest->abort();
+        m_topicCastsRequest->deleteLater();
+        m_topicCastsRequest=nullptr;
+    }
+    m_activeCastTopic.clear();
+    m_topicAuthorFid.clear();
+    m_topicCastItems.clear();
+    m_topicCastsHasMore=false;
+    m_topicCastsError.clear();
+    emit topicCastsChanged();
+}
+
+void OpenProofConnectionsController::selectCastTopic(
+    const QString& slug, const QString& authorFid)
+{
+    static const QRegularExpression slugPattern{
+        QStringLiteral("^[a-z][a-z0-9-]{1,63}$")};
+    static const QRegularExpression fidPattern{
+        QStringLiteral("^[1-9][0-9]{0,18}$")};
+    clearCastTopic();
+    if(!slugPattern.match(slug).hasMatch()
+       || (!authorFid.isEmpty() && !fidPattern.match(authorFid).hasMatch()))
+        return;
+    m_activeCastTopic=slug;
+    m_topicAuthorFid=authorFid;
+    if(!cloudAuthorizationReady()) {
+        m_topicCastsError=QStringLiteral("Sign in to browse GenyCaster topics");
+        emit topicCastsChanged();
+        return;
+    }
+    fetchTopicCastPage();
+}
+
+void OpenProofConnectionsController::loadMoreTopicCasts()
+{
+    if(m_topicCastsHasMore && !m_topicCastsRequest)fetchTopicCastPage();
+}
+
+void OpenProofConnectionsController::fetchTopicCastPage()
+{
+    if(m_activeCastTopic.isEmpty() || m_topicCastsRequest
+       || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl))
+        return;
+    constexpr int pageSize=30;
+    const auto offset=m_topicCastItems.size();
+    QUrl endpoint=m_cloudUrl;
+    endpoint.setPath(QStringLiteral("/api/v1/cloud/topic_casts"));
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("topic"),m_activeCastTopic);
+    query.addQueryItem(QStringLiteral("limit"),QString::number(pageSize));
+    query.addQueryItem(QStringLiteral("offset"),QString::number(offset));
+    if(!m_topicAuthorFid.isEmpty())
+        query.addQueryItem(QStringLiteral("author_fid"),m_topicAuthorFid);
+    endpoint.setQuery(query);
+    QNetworkRequest request{endpoint};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(12'000);
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    auto* reply=m_network.get(request);
+    m_topicCastsRequest=reply;
+    const auto requestGeneration=m_topicCastsGeneration;
+    const auto viewer=m_viewerFid;
+    const auto currentTopic=m_activeCastTopic;
+    m_topicCastsError.clear();
+    emit topicCastsChanged();
+    connect(reply,&QNetworkReply::finished,this,
+            [this,reply,requestGeneration,viewer,currentTopic,offset] {
+        if(m_topicCastsRequest==reply)m_topicCastsRequest=nullptr;
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if(requestGeneration!=m_topicCastsGeneration
+           || viewer!=m_viewerFid || currentTopic!=m_activeCastTopic) {
+            reply->deleteLater();
+            return;
+        }
+        const auto body=reply->readAll();
+        if(status!=200 || reply->error()!=QNetworkReply::NoError
+           || body.size()>64*1024) {
+            m_topicCastsError=status==401
+                ? QStringLiteral("Sign in to browse GenyCaster topics")
+                : QStringLiteral("Unable to load topic casts");
+        } else {
+            QJsonParseError parseError;
+            const auto doc=QJsonDocument::fromJson(body,&parseError);
+            const auto rows=doc.object().value(QStringLiteral("items")).toArray();
+            static const QRegularExpression hashPattern{
+                QStringLiteral("^0x[0-9a-fA-F]{40}$")};
+            QSet<QString> known;
+            for(const auto& existing : m_topicCastItems)
+                known.insert(existing.toMap().value(QStringLiteral("cast_hash")).toString());
+            if(parseError.error!=QJsonParseError::NoError || rows.size()>30) {
+                m_topicCastsError=QStringLiteral("Invalid topic response");
+            } else {
+                for(const auto& row : rows) {
+                    const auto obj=row.toObject();
+                    const auto hash=obj.value(QStringLiteral("cast_hash")).toString().toLower();
+                    if(!hashPattern.match(hash).hasMatch() || known.contains(hash))
+                        continue;
+                    known.insert(hash);
+                    m_topicCastItems.push_back(QVariantMap{
+                        {QStringLiteral("cast_hash"),hash},
+                        {QStringLiteral("author_fid"),
+                         obj.value(QStringLiteral("author_fid")).toString()}});
+                }
+                m_topicCastsHasMore=rows.size()==30;
+            }
+        }
+        reply->deleteLater();
+        emit topicCastsChanged();
     });
 }
 
@@ -1985,6 +2103,16 @@ void OpenProofConnectionsController::sendBookmarkCollectionRequest(
             },Qt::QueuedConnection);
         }
     });
+}
+
+void OpenProofConnectionsController::requestBookmarkCollectionChoice(
+    const QString& castHash)
+{
+    static const QRegularExpression pattern{
+        QStringLiteral("^0x[0-9a-fA-F]{40}$")};
+    if(!m_viewerFid || !cloudAuthorizationReady()
+       || !pattern.match(castHash).hasMatch())return;
+    emit bookmarkCollectionChoiceRequested(castHash.toLower());
 }
 
 void OpenProofConnectionsController::refreshBookmarkCollections()
