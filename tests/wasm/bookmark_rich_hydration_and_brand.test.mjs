@@ -55,9 +55,9 @@ test('header uses a stable wordmark, separated Beta label and bidi-isolated vers
   assert.match(qml,/genycaster-wordmark-dark.svg/);
   assert.match(qml,/objectName: "appHeaderBrandCluster"/);
   assert.match(qml,/objectName: "appHeaderWordmarkAndVersion"/);
-  assert.match(qml,/anchors.right: Theme.rtl \? parent.right : undefined/);
-  assert.match(qml,/anchors.right: Theme.rtl \? brandSymbol.left : undefined/);
-  assert.match(qml,/anchors.left: Theme.rtl \? parent.left : undefined/);
+  assert.match(qml,/x: Theme.rtl \? parent.width - root.gutter - width : root.gutter/);
+  assert.match(qml,/x: Theme.rtl \? 0 : brandSymbol.width \+ brandCluster.brandGap/);
+  assert.match(qml,/x: Theme.rtl \? root.gutter : parent.width - root.gutter - width/);
   assert.match(qml,/layoutDirection: Qt.RightToLeft/);
   assert.match(qml,/genycaster.release.beta_label/);
   assert.match(qml,/genycaster.release.beta_version_number/);

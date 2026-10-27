@@ -22,7 +22,7 @@ Rectangle {
     color: Theme.backgroundPrimary
     layer.enabled: false
     LayoutMirroring.enabled: false
-    LayoutMirroring.childrenInherit: true
+    LayoutMirroring.childrenInherit: false
 
     readonly property int gutter: Theme.gutter(root.width)
 
@@ -30,10 +30,12 @@ Rectangle {
     // layout mirroring must never distribute the wordmark away from its icon.
     Item {
         id: headerContent
-        anchors.fill: parent
-        anchors.leftMargin: root.gutter
-        anchors.rightMargin: root.gutter
+        x: 0
+        y: 0
+        width: root.width
+        height: root.height
         LayoutMirroring.enabled: false
+        LayoutMirroring.childrenInherit: false
 
         Item {
             id: brandCluster
@@ -44,17 +46,18 @@ Rectangle {
             readonly property real brandGap: Theme.space2
             width: symbolSize + brandGap + wordmarkWidth
             height: Theme.scaleUi(42)
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.right: Theme.rtl ? parent.right : undefined
-            anchors.left: Theme.rtl ? undefined : parent.left
+            x: Theme.rtl ? parent.width - root.gutter - width : root.gutter
+            y: (parent.height - height) / 2
+            LayoutMirroring.enabled: false
+            LayoutMirroring.childrenInherit: false
 
             Image {
                 id: brandSymbol
                 width: brandCluster.symbolSize
                 height: brandCluster.symbolSize
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.right: Theme.rtl ? parent.right : undefined
-                anchors.left: Theme.rtl ? undefined : parent.left
+                x: Theme.rtl ? brandCluster.width - width : 0
+                y: (brandCluster.height - height) / 2
+                LayoutMirroring.enabled: false
                 source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
                 sourceSize.width: 90
                 sourceSize.height: 90
@@ -67,18 +70,18 @@ Rectangle {
                 objectName: "appHeaderWordmarkAndVersion"
                 width: brandCluster.wordmarkWidth
                 height: brandCluster.height
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.right: Theme.rtl ? brandSymbol.left : undefined
-                anchors.rightMargin: Theme.rtl ? brandCluster.brandGap : 0
-                anchors.left: Theme.rtl ? undefined : brandSymbol.right
-                anchors.leftMargin: Theme.rtl ? 0 : brandCluster.brandGap
+                x: Theme.rtl ? 0 : brandSymbol.width + brandCluster.brandGap
+                y: (brandCluster.height - height) / 2
+                LayoutMirroring.enabled: false
+                LayoutMirroring.childrenInherit: false
 
                 Image {
                     id: brandWordmark
                     width: parent.width
                     height: Theme.scaleUi(root.compact ? 22 : 24)
-                    anchors.top: parent.top
-                    anchors.left: parent.left
+                    x: 0
+                    y: 0
+                    LayoutMirroring.enabled: false
                     horizontalAlignment: Image.AlignLeft
                     fillMode: Image.PreserveAspectFit
                     source: Theme.dark
@@ -94,9 +97,8 @@ Rectangle {
                 Row {
                     id: localizedVersion
                     visible: Theme.rtl
-                    anchors.top: brandWordmark.bottom
-                    anchors.topMargin: Theme.scaleUi(2)
-                    anchors.left: parent.left
+                    x: 0
+                    y: brandWordmark.height + Theme.scaleUi(2)
                     spacing: Theme.scaleUi(3)
                     layoutDirection: Qt.RightToLeft
                     LayoutMirroring.enabled: false
@@ -127,9 +129,8 @@ Rectangle {
 
                 Text {
                     visible: !Theme.rtl
-                    anchors.top: brandWordmark.bottom
-                    anchors.topMargin: Theme.scaleUi(2)
-                    anchors.left: parent.left
+                    x: 0
+                    y: brandWordmark.height + Theme.scaleUi(2)
                     text: qsTrId("genycaster.release.beta_1_0")
                     color: Theme.inkMuted
                     font.family: Theme.fontFamilyForText(text)
@@ -143,10 +144,15 @@ Rectangle {
         RowLayout {
             id: headerActions
             objectName: "appHeaderActions"
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: Theme.rtl ? parent.left : undefined
-            anchors.right: Theme.rtl ? undefined : parent.right
-            layoutDirection: Theme.uiDirection
+            // A free-standing RowLayout may otherwise grow to the width of
+            // its containing workspace, scattering individual icon buttons.
+            width: implicitWidth
+            height: implicitHeight
+            x: Theme.rtl ? root.gutter : parent.width - root.gutter - width
+            y: (parent.height - height) / 2
+            LayoutMirroring.enabled: false
+            LayoutMirroring.childrenInherit: false
+            layoutDirection: Qt.LeftToRight
             spacing: Theme.space1
 
             ActionButton {
