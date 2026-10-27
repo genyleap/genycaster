@@ -2,6 +2,90 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.topic.art">
+            <source>Art</source>
+            <translation>هنر</translation>
+        </message>
+        <message id="genycaster.topic.development">
+            <source>Development</source>
+            <translation>توسعهٔ نرم‌افزار</translation>
+        </message>
+        <message id="genycaster.topic.photography">
+            <source>Photography</source>
+            <translation>عکاسی</translation>
+        </message>
+        <message id="genycaster.topic.design">
+            <source>Design</source>
+            <translation>طراحی</translation>
+        </message>
+        <message id="genycaster.topic.technology">
+            <source>Technology</source>
+            <translation>فناوری</translation>
+        </message>
+        <message id="genycaster.topic.music">
+            <source>Music</source>
+            <translation>موسیقی</translation>
+        </message>
+        <message id="genycaster.topic.writing">
+            <source>Writing</source>
+            <translation>نویسندگی</translation>
+        </message>
+        <message id="genycaster.topic.science">
+            <source>Science</source>
+            <translation>علم</translation>
+        </message>
+        <message id="genycaster.topic.business">
+            <source>Business</source>
+            <translation>کسب‌وکار</translation>
+        </message>
+        <message id="genycaster.topic.gaming">
+            <source>Gaming</source>
+            <translation>بازی</translation>
+        </message>
+        <message id="genycaster.topics.label">
+            <source>Topics</source>
+            <translation>موضوعات</translation>
+        </message>
+        <message id="genycaster.topics.selected_count">
+            <source>%1 selected</source>
+            <translation>%1 موضوع</translation>
+        </message>
+        <message id="genycaster.topics.choose">
+            <source>Choose topics</source>
+            <translation>انتخاب موضوع</translation>
+        </message>
+        <message id="genycaster.topics.hint">
+            <source>Choose up to three topics describing your content. Topics are independent of channels.</source>
+            <translation>حداکثر سه موضوع برای محتوای کست انتخاب کنید. موضوعات مستقل از کانال هستند.</translation>
+        </message>
+        <message id="genycaster.topics.search">
+            <source>Search topics</source>
+            <translation>جستجوی موضوعات</translation>
+        </message>
+        <message id="genycaster.topics.unavailable">
+            <source>Topics are currently unavailable. Try again later.</source>
+            <translation>موضوعات فعلاً در دسترس نیستند. بعداً دوباره امتحان کنید.</translation>
+        </message>
+        <message id="genycaster.topics.limit">
+            <source>%1 of %2 selected</source>
+            <translation>%1 از %2 انتخاب شده</translation>
+        </message>
+        <message id="genycaster.topics.clear">
+            <source>Clear</source>
+            <translation>پاک‌کردن</translation>
+        </message>
+        <message id="genycaster.topics.done">
+            <source>Done</source>
+            <translation>تأیید</translation>
+        </message>
+        <message id="genycaster.topics.add_selection">
+            <source>Add topic</source>
+            <translation>انتخاب موضوع</translation>
+        </message>
+        <message id="genycaster.topics.remove_selection">
+            <source>Remove topic</source>
+            <translation>حذف انتخاب</translation>
+        </message>
         <message id="genycaster.release.beta_version_number">
             <source>1.0</source>
             <translation>۱٫۰</translation>

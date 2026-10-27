@@ -2,6 +2,90 @@
 <TS version="2.1" language="es_ES" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.topic.art">
+            <source>Art</source>
+            <translation>Arte</translation>
+        </message>
+        <message id="genycaster.topic.development">
+            <source>Development</source>
+            <translation>Desarrollo</translation>
+        </message>
+        <message id="genycaster.topic.photography">
+            <source>Photography</source>
+            <translation>Fotografía</translation>
+        </message>
+        <message id="genycaster.topic.design">
+            <source>Design</source>
+            <translation>Diseño</translation>
+        </message>
+        <message id="genycaster.topic.technology">
+            <source>Technology</source>
+            <translation>Tecnología</translation>
+        </message>
+        <message id="genycaster.topic.music">
+            <source>Music</source>
+            <translation>Música</translation>
+        </message>
+        <message id="genycaster.topic.writing">
+            <source>Writing</source>
+            <translation>Escritura</translation>
+        </message>
+        <message id="genycaster.topic.science">
+            <source>Science</source>
+            <translation>Ciencia</translation>
+        </message>
+        <message id="genycaster.topic.business">
+            <source>Business</source>
+            <translation>Negocios</translation>
+        </message>
+        <message id="genycaster.topic.gaming">
+            <source>Gaming</source>
+            <translation>Videojuegos</translation>
+        </message>
+        <message id="genycaster.topics.label">
+            <source>Topics</source>
+            <translation>Temas</translation>
+        </message>
+        <message id="genycaster.topics.selected_count">
+            <source>%1 selected</source>
+            <translation>%1 seleccionados</translation>
+        </message>
+        <message id="genycaster.topics.choose">
+            <source>Choose topics</source>
+            <translation>Elegir temas</translation>
+        </message>
+        <message id="genycaster.topics.hint">
+            <source>Choose up to three topics describing your content. Topics are independent of channels.</source>
+            <translation>Elige hasta tres temas que describan tu contenido. Los temas son independientes de los canales.</translation>
+        </message>
+        <message id="genycaster.topics.search">
+            <source>Search topics</source>
+            <translation>Buscar temas</translation>
+        </message>
+        <message id="genycaster.topics.unavailable">
+            <source>Topics are currently unavailable. Try again later.</source>
+            <translation>Los temas no están disponibles por ahora. Inténtalo de nuevo más tarde.</translation>
+        </message>
+        <message id="genycaster.topics.limit">
+            <source>%1 of %2 selected</source>
+            <translation>%1 de %2 seleccionados</translation>
+        </message>
+        <message id="genycaster.topics.clear">
+            <source>Clear</source>
+            <translation>Borrar selección</translation>
+        </message>
+        <message id="genycaster.topics.done">
+            <source>Done</source>
+            <translation>Listo</translation>
+        </message>
+        <message id="genycaster.topics.add_selection">
+            <source>Add topic</source>
+            <translation>Añadir tema</translation>
+        </message>
+        <message id="genycaster.topics.remove_selection">
+            <source>Remove topic</source>
+            <translation>Quitar tema</translation>
+        </message>
         <message id="genycaster.release.beta_version_number">
             <source>1.0</source>
             <translation>1.0</translation>

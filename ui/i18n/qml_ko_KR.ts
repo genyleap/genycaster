@@ -2,6 +2,90 @@
 <TS version="2.1" language="ko_KR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.topic.art">
+            <source>Art</source>
+            <translation>예술</translation>
+        </message>
+        <message id="genycaster.topic.development">
+            <source>Development</source>
+            <translation>개발</translation>
+        </message>
+        <message id="genycaster.topic.photography">
+            <source>Photography</source>
+            <translation>사진</translation>
+        </message>
+        <message id="genycaster.topic.design">
+            <source>Design</source>
+            <translation>디자인</translation>
+        </message>
+        <message id="genycaster.topic.technology">
+            <source>Technology</source>
+            <translation>기술</translation>
+        </message>
+        <message id="genycaster.topic.music">
+            <source>Music</source>
+            <translation>음악</translation>
+        </message>
+        <message id="genycaster.topic.writing">
+            <source>Writing</source>
+            <translation>글쓰기</translation>
+        </message>
+        <message id="genycaster.topic.science">
+            <source>Science</source>
+            <translation>과학</translation>
+        </message>
+        <message id="genycaster.topic.business">
+            <source>Business</source>
+            <translation>비즈니스</translation>
+        </message>
+        <message id="genycaster.topic.gaming">
+            <source>Gaming</source>
+            <translation>게임</translation>
+        </message>
+        <message id="genycaster.topics.label">
+            <source>Topics</source>
+            <translation>주제</translation>
+        </message>
+        <message id="genycaster.topics.selected_count">
+            <source>%1 selected</source>
+            <translation>%1개 선택됨</translation>
+        </message>
+        <message id="genycaster.topics.choose">
+            <source>Choose topics</source>
+            <translation>주제 선택</translation>
+        </message>
+        <message id="genycaster.topics.hint">
+            <source>Choose up to three topics describing your content. Topics are independent of channels.</source>
+            <translation>콘텐츠를 설명하는 주제를 최대 3개 선택하세요. 주제는 채널과 별개입니다.</translation>
+        </message>
+        <message id="genycaster.topics.search">
+            <source>Search topics</source>
+            <translation>주제 검색</translation>
+        </message>
+        <message id="genycaster.topics.unavailable">
+            <source>Topics are currently unavailable. Try again later.</source>
+            <translation>현재 주제를 불러올 수 없습니다. 나중에 다시 시도하세요.</translation>
+        </message>
+        <message id="genycaster.topics.limit">
+            <source>%1 of %2 selected</source>
+            <translation>%2개 중 %1개 선택</translation>
+        </message>
+        <message id="genycaster.topics.clear">
+            <source>Clear</source>
+            <translation>선택 지우기</translation>
+        </message>
+        <message id="genycaster.topics.done">
+            <source>Done</source>
+            <translation>완료</translation>
+        </message>
+        <message id="genycaster.topics.add_selection">
+            <source>Add topic</source>
+            <translation>주제 추가</translation>
+        </message>
+        <message id="genycaster.topics.remove_selection">
+            <source>Remove topic</source>
+            <translation>주제 제거</translation>
+        </message>
         <message id="genycaster.release.beta_version_number">
             <source>1.0</source>
             <translation>1.0</translation>

@@ -46,6 +46,9 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(bool bookmarkRefreshBusy READ bookmarkRefreshBusy NOTIFY cloudStateChanged)
     Q_PROPERTY(QString bookmarkError READ bookmarkError NOTIFY cloudStateChanged)
     Q_PROPERTY(int bookmarkPendingCount READ bookmarkPendingCount NOTIFY cloudStateChanged)
+    Q_PROPERTY(QVariantList topicCatalog READ topicCatalog NOTIFY topicsChanged)
+    Q_PROPERTY(bool topicsBusy READ topicsBusy NOTIFY topicsChanged)
+    Q_PROPERTY(QString topicsError READ topicsError NOTIFY topicsChanged)
 public:
     explicit OpenProofConnectionsController(QObject* parent = nullptr,
                                             QSettings* settings = nullptr);
@@ -87,6 +90,11 @@ public:
     [[nodiscard]] int bookmarkPendingCount() const noexcept {
         return static_cast<int>(m_bookmarkOutbox.size());
     }
+    [[nodiscard]] QVariantList topicCatalog() const { return m_topicCatalog; }
+    [[nodiscard]] bool topicsBusy() const noexcept { return m_topicCatalogRequest != nullptr; }
+    [[nodiscard]] QString topicsError() const { return m_topicsError; }
+    Q_INVOKABLE void fetchTopics();
+    Q_INVOKABLE void saveCastTopics(const QString& castHash, const QStringList& slugs);
     /** Automatic account-owned profile storage; bearer never leaves native Qt. */
     Q_INVOKABLE void fetchCloudProfileExtras();
     /** Read the last server-confirmed OpenProof link display snapshot. */
@@ -148,6 +156,7 @@ public:
 signals:
     void stateChanged();
     void cloudStateChanged();
+    void topicsChanged();
     void cloudProfileExtrasReceived(const QVariantMap& item);
     void cloudProfileExtrasSaved(const QVariantMap& item);
     void cloudBookmarkChangesReceived(const QVariantList& changes);
@@ -194,6 +203,13 @@ private:
     QSet<QString> m_bookmarkPreviewSent{};
     QPointer<QNetworkReply> m_draftRequest{};
     QPointer<QNetworkReply> m_cloudProbe{};
+    QPointer<QNetworkReply> m_topicCatalogRequest{};
+    QPointer<QNetworkReply> m_topicSaveRequest{};
+    QVariantList m_topicCatalog{};
+    QVariantList m_topicOutbox{};
+    QString m_topicsError{};
+    void pumpTopicWrites();
+    [[nodiscard]] QString topicOutboxKey() const;
     QPointer<QNetworkReply> m_sessionRequest{};
     bool m_cloudServiceAvailable{};
     bool m_cloudSessionVerified{};

@@ -16,14 +16,15 @@ export function normalizeCatalog(raw) {
 
 export function createAccountApi({
   catalogUrl, fetchImpl = globalThis.fetch, now = Date.now,
-  store = null, issuer = null,
+  store = null, issuer = null, topicVerifier = undefined,
 } = {}) {
   const endpoint = new URL(catalogUrl);
   if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password
       || endpoint.hash || endpoint.port || endpoint.search)
     throw new Error('Account API requires a credential-free HTTPS catalog URL');
 
-  const cloud = store && issuer ? createCloudHandler({store,issuer,fetchImpl}) : null;
+  const cloud = store && issuer ? createCloudHandler({store,issuer,fetchImpl,
+    ...(topicVerifier ? {verifyTopicOwner:topicVerifier} : {})}) : null;
   let cached = null;
   let pending = null;
   async function catalog() {

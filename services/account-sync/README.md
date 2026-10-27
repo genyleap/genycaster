@@ -13,9 +13,11 @@ Farcaster/Snapchain remain the protocol source for casts, signers and likes.
 
 ## Schema
 
-Apply migrations `001_bookmarks.sql`, `002_cloud_state.sql`,
-`003_profile_extras.sql` and `004_account_sessions.sql` inside
-`genycaster_db` with an authorized database-admin role.
+Apply migrations `001_bookmarks.sql` through `006_cast_topics.sql` in
+version order inside `genycaster_db` with an authorized database-admin
+role. Migration 006 creates app-owned topics and their Cast associations;
+it grants only SELECT on the catalog and SELECT/INSERT/DELETE on the links
+to the restricted runtime role.
 
 | Table | Genycaster-owned purpose |
 | --- | --- |

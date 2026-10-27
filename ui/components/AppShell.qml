@@ -129,6 +129,9 @@ Item {
         signOutConfirm.open()
     }
     property string submittedCastBaseline: ""
+    property var pendingCastTopics: []
+    property string pendingTopicsBaseline: ""
+    property real pendingTopicsOwner: 0
     property string pendingMiniAppComposeRequestId: ""
     property string pendingMiniAppComposeText: ""
     property var pendingMiniAppComposeEmbeds: []
@@ -1357,6 +1360,9 @@ Item {
                                 blurSourceItem: shellContent
                                 parentCast: root.composerParent
                                 onPublishRequested: (text, mentionFids, mentionPositions, embeds, parentUrl) => {
+                                    root.pendingCastTopics = composerDrawer.selectedTopics.slice()
+                                    root.pendingTopicsBaseline = String(presentationBridge.lastPublishedCastId || "")
+                                    root.pendingTopicsOwner = Number(presentationBridge.accountFid)
                                     root.submittedReplyParentId = ""
                                     root.submittedReplyText = ""
                                     root.awaitingRichCommit = true
@@ -1368,6 +1374,9 @@ Item {
                                     presentationBridge.publishPreparedCast(text, mentionFids, mentionPositions, embeds, parentUrl)
                                 }
                                 onReplyRequested: (text, mentionFids, mentionPositions, embeds) => {
+                                    root.pendingCastTopics = composerDrawer.selectedTopics.slice()
+                                    root.pendingTopicsBaseline = String(presentationBridge.lastPublishedCastId || "")
+                                    root.pendingTopicsOwner = Number(presentationBridge.accountFid)
                                     root.submittedReplyParentId = root.composerParent
                                         ? String(root.composerParent.castId || "") : ""
                                     root.submittedReplyText = String(text || "")
@@ -1391,6 +1400,10 @@ Item {
                                     presentationBridge.publishPreparedReply(text, mentionFids, mentionPositions, embeds)
                                 }
                                 onThreadRequested: casts => {
+                                    // A multi-cast thread's root alone receives the selected topics.
+                                    root.pendingCastTopics = composerDrawer.selectedTopics.slice()
+                                    root.pendingTopicsBaseline = String(presentationBridge.lastPublishedCastId || "")
+                                    root.pendingTopicsOwner = Number(presentationBridge.accountFid)
                                     root.submittedReplyParentId = ""
                                     root.submittedReplyText = ""
                                     root.awaitingRichCommit = true
@@ -2348,6 +2361,21 @@ Item {
                         === removedId.replace(/^0x/i, "").toLowerCase())
                 root.confirmedReply = ({})
             const castId = String(presentationBridge.lastPublishedCastId || "")
+            if (presentationBridge.writePhase === "confirmed"
+                    && /^0x[0-9a-fA-F]{40}$/.test(castId)
+                    && castId !== root.pendingTopicsBaseline
+                    && root.pendingCastTopics.length > 0
+                    && root.pendingTopicsOwner === Number(presentationBridge.accountFid)) {
+                // The protocol write is confirmed before GenyCaster stores its
+                // separate, optional topic association. No synthetic cast data.
+                openProofConnections.saveCastTopics(castId,root.pendingCastTopics)
+                root.pendingCastTopics = []
+                root.pendingTopicsBaseline = castId
+            }
+            if (presentationBridge.writePhase === "failed"
+                    || presentationBridge.writePhase === "blocked") {
+                root.pendingCastTopics = []
+            }
             if (root.awaitingRichCommit
                     && presentationBridge.writePhase === "confirmed"
                     && castId.length > 0

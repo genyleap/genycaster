@@ -2,6 +2,7 @@
 // stores these app-specific preferences, drafts, bookmarks or schedules.
 import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';
 import {createSignerSessionProof} from './signer_session_proof.mjs';
+import {validateCastTopicAssignment,TOPIC_SLUG,topicPagination} from './topics.mjs';
 
 const SESSION_COOKIE='__Host-genycaster-account';
 const SESSION_LIFETIME=30*24*60*60;
@@ -168,7 +169,40 @@ function respond(response,status,value) {
     'cache-control':'no-store','x-content-type-options':'nosniff'});
   response.end(JSON.stringify(value));
 }
-export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) {
+export async function verifyCastTopicOwnership(hash,fid,{fetchImpl=globalThis.fetch}={}) {
+  // Farcaster signatures are validated by the authoritative Snapchain read
+  // endpoint. A client-supplied hash or FID is never sufficient to label
+  // another person's cast. Fail closed on unindexed, removed or malformed casts.
+  if(!/^0x[0-9a-f]{40}$/.test(hash) ||
+     !/^[1-9][0-9]{0,18}$/.test(String(fid))) return false;
+  try {
+    const url='https://snapchain.genyleap.com/v1/castById?fid='+
+      encodeURIComponent(String(fid))+'&hash='+encodeURIComponent(hash);
+    const reply=await fetchImpl(url,{method:'GET',
+      headers:{accept:'application/json'},redirect:'error',
+      signal:AbortSignal.timeout(4500)});
+    if(reply.status!==200 || Number(reply.headers.get('content-length')||0)>32768
+        || !reply.body) return false;
+    // Content-Length is optional and cannot be trusted as a response-size cap.
+    // Bound the actual bytes before accepting JSON from the Snapchain adapter.
+    const chunks=[];
+    let bytes=0;
+    for await (const chunk of reply.body) {
+      bytes+=chunk.byteLength;
+      if(bytes>32768) return false;
+      chunks.push(Buffer.from(chunk));
+    }
+    const msg=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    const record=msg?.message ?? msg;
+    const data=record?.data;
+    const recordFid=String(data?.fid||'');
+    const responseHash=String(record?.hash||'').toLowerCase();
+    return recordFid===String(fid) && responseHash===hash &&
+      !!data?.castAddBody && typeof data.castAddBody==='object';
+  }catch {return false;}
+}
+export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
+                                    verifyTopicOwner=verifyCastTopicOwnership}) {
   if (!store || !issuer || new URL(issuer).protocol !== 'https:')
     throw new Error('A store and trusted HTTPS OpenProof issuer are required');
   const upstream=issuer.replace(/\/$/,'');
@@ -247,9 +281,28 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
     const entity=path.slice('/api/v1/cloud/'.length);
     if (!['connections','bookmarks','notifications','notification_seen',
       'app_updates','tasks','drafts','profile_extras','connections/refresh',
-      'connections/portable',
+      'connections/portable','topics','topic_casts','cast_topics',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
+    }
+    if (entity==='topics' || entity==='topic_casts') {
+      if(request.method!=='GET') {
+        respond(response,405,{error:'method_not_allowed'});return true;
+      }
+      try {
+        if(entity==='topics') {
+          respond(response,200,{items:await store.listTopics()});return true;
+        }
+        const search=new URL(request.url,'http://localhost').searchParams;
+        const slug=search.get('topic') || '';
+        const page=topicPagination(search);
+        if(!TOPIC_SLUG.test(slug) || !page) {
+          respond(response,400,{error:'invalid_topic_filter'});return true;
+        }
+        respond(response,200,{items:await store.listTopicCasts(slug,page.limit,page.offset),
+          limit:page.limit,offset:page.offset});
+      }catch {respond(response,503,{error:'topics_unavailable'});}
+      return true;
     }
     if (entity==='app_updates') {
       if (request.method!=='GET') respond(response,405,{error:'method_not_allowed'});
@@ -334,6 +387,22 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch}) 
         }
         respond(response,200,{seen_at_ms:await store.putNotificationSeen(owner,value)});
         return true;
+      }
+      if(entity==='cast_topics') {
+        if(request.method!=='PUT') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        const assignment=validateCastTopicAssignment(await readBody(request,2048));
+        if(!assignment || typeof store.assignCastTopics!=='function') {
+          respond(response,400,{error:'invalid_cast_topics'});return true;
+        }
+        if(!await verifyTopicOwner(assignment.cast_hash,owner.fid,{fetchImpl})) {
+          respond(response,422,{error:'cast_not_confirmed_for_owner'});return true;
+        }
+        const saved=await store.assignCastTopics(owner,
+          assignment.cast_hash,assignment.topics);
+        if(!saved) {respond(response,409,{error:'topic_conflict'});return true;}
+        respond(response,200,{item:saved});return true;
       }
       if(entity==='connections/portable') {
         if(request.method!=='PUT') {

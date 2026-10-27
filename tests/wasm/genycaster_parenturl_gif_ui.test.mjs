@@ -42,7 +42,7 @@ test('channel picker relies exclusively on the C++ HyperSnap controller',()=>{
  assert.match(main,/setContextProperty\(QStringLiteral\("channelDirectory"\)/);
  assert.match(header,/Q_INVOKABLE QVariantMap chooseChannel/);
  assert.match(composer,/root.selectedParentUrl = String\(selection.parentUrl \|\| ""\)/);
- assert.match(composer,/qsTrId\("genycaster.composer.category"\)/);
+ assert.match(composer,/qsTrId\("genycaster.topics.label"\)/);
  assert.match(shell,/publishPreparedCast\(text, mentionFids, mentionPositions, embeds, parentUrl\)/);
  assert.doesNotMatch(composer,/XMLHttpRequest|channelIconIndex|channelImageFor|searchFor\("dev"\)/);
 });
@@ -221,7 +221,7 @@ test('composer context uses outline pills before selection and fixed footer abov
  assert.match(composer,/Layout.preferredHeight: 36/);
  assert.match(composer,/Math.max\(118, Math.min\(188, composerScroll.height \* 0.36\)\)/);
  assert.match(composer,/const fitsFully = panelBottom - panelTop <= flick.height - margin \* 2/);
- assert.match(composer,/qsTrId\("genycaster\.composer\.category"\)/);
+ assert.match(composer,/qsTrId\("genycaster\.topics\.label"\)/);
 });
 test('image picker and upload pipeline accept GIF without converting to PNG',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');

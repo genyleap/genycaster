@@ -126,6 +126,7 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
             refreshAccountConnectionsSnapshot();
             pumpBookmarkChanges();
             pumpDraftChanges();
+            pumpTopicWrites();
         }
     });
     m_connectionPoll.setInterval(3'000);
@@ -145,6 +146,16 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
         QStringLiteral("x"), QStringLiteral("github"),
         QStringLiteral("linkedin"), QStringLiteral("telegram")
     };
+    // Last-resort offline catalog. The PostgreSQL topic table remains
+    // authoritative and replaces this list after an API read; new topics
+    // never require a client release.
+    for(const auto& slug : {QStringLiteral("art"),QStringLiteral("development"),
+          QStringLiteral("photography"),QStringLiteral("design"),
+          QStringLiteral("technology"),QStringLiteral("music"),
+          QStringLiteral("writing"),QStringLiteral("science"),
+          QStringLiteral("business"),QStringLiteral("gaming")})
+        m_topicCatalog.push_back(QVariantMap{{QStringLiteral("slug"),slug}});
+
 }
 
 QStringList OpenProofConnectionsController::providers() const { return m_providers; }
@@ -332,6 +343,7 @@ void OpenProofConnectionsController::acceptBrowserAccountSession(
         pumpBookmarkChanges();
         pumpNotificationSeenAt();
         pumpDraftChanges();
+        pumpTopicWrites();
     } else checkCloudService();
 }
 
@@ -391,6 +403,7 @@ void OpenProofConnectionsController::checkCloudService()
             refreshAccountConnectionsSnapshot();
             pumpBookmarkChanges();
             pumpDraftChanges();
+            pumpTopicWrites();
         }
     });
 }
@@ -1748,6 +1761,143 @@ void OpenProofConnectionsController::clearAccountGrant()
     m_remainingPolls = 0;
 }
 
+QString OpenProofConnectionsController::topicOutboxKey() const
+{
+    return m_viewerFid
+        ? QStringLiteral("topics/account_%1/outbox").arg(m_viewerFid) : QString{};
+}
+
+void OpenProofConnectionsController::fetchTopics()
+{
+    if(m_topicCatalogRequest || !trustedHttpsEndpoint(m_cloudUrl)) return;
+    QUrl endpoint=m_cloudUrl;
+    endpoint.setPath(QStringLiteral("/api/v1/cloud/topics"));
+    endpoint.setQuery({});
+    QNetworkRequest request{endpoint};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept","application/json");
+    auto* reply=m_network.get(request);
+    m_topicCatalogRequest=reply;
+    const auto generation=m_grantGeneration;
+    emit topicsChanged();
+    connect(reply,&QNetworkReply::finished,this,[this,reply,generation] {
+        if(m_topicCatalogRequest==reply)m_topicCatalogRequest=nullptr;
+        const int code=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if(generation==m_grantGeneration && code==200
+                && reply->error()==QNetworkReply::NoError) {
+            QJsonParseError error;
+            const auto document=QJsonDocument::fromJson(reply->readAll(),&error);
+            const auto items=document.object().value(QStringLiteral("items")).toArray();
+            QVariantList cleaned;
+            QSet<QString> seen;
+            static const QRegularExpression slugPattern{
+                QStringLiteral("^[a-z][a-z0-9-]{1,63}$")};
+            for(const auto& value : items) {
+                const auto item=value.toObject();
+                const auto slug=item.value(QStringLiteral("slug")).toString();
+                if(!slugPattern.match(slug).hasMatch() || seen.contains(slug))continue;
+                seen.insert(slug);
+                cleaned.push_back(QVariantMap{
+                    {QStringLiteral("slug"),slug},
+                    {QStringLiteral("cast_count"),
+                        item.value(QStringLiteral("cast_count")).toInt()}
+                });
+            }
+            if(error.error==QJsonParseError::NoError && !cleaned.isEmpty()) {
+                m_topicCatalog=std::move(cleaned);
+                m_topicsError.clear();
+            } else {
+                m_topicsError=QStringLiteral("Invalid topic catalog response");
+            }
+        } else if(generation==m_grantGeneration)
+            m_topicsError=QStringLiteral("Topics could not be refreshed");
+        reply->deleteLater();
+        emit topicsChanged();
+    });
+}
+
+void OpenProofConnectionsController::saveCastTopics(
+    const QString& castHash,const QStringList& slugs)
+{
+    if(!m_viewerFid || slugs.isEmpty() || slugs.size()>3)return;
+    static const QRegularExpression castPattern{
+        QStringLiteral("^0x[0-9a-fA-F]{40}$")};
+    static const QRegularExpression topicPattern{
+        QStringLiteral("^[a-z][a-z0-9-]{1,63}$")};
+    if(!castPattern.match(castHash).hasMatch())return;
+    QSet<QString> unique;
+    for(const auto& slug : slugs) {
+        if(!topicPattern.match(slug).hasMatch() || unique.contains(slug))return;
+        unique.insert(slug);
+    }
+    if(!m_settings)return;
+    const auto normalized=castHash.toLower();
+    QVariantList remaining;
+    for(const auto& item : m_topicOutbox) {
+        if(item.toMap().value(QStringLiteral("cast_hash")).toString()!=normalized)
+            remaining.push_back(item);
+    }
+    remaining.push_back(QVariantMap{
+        {QStringLiteral("cast_hash"),normalized},
+        {QStringLiteral("topics"),slugs},
+        {QStringLiteral("fid"),QVariant::fromValue<qulonglong>(m_viewerFid)}
+    });
+    m_topicOutbox=std::move(remaining);
+    m_settings->setValue(topicOutboxKey(),m_topicOutbox);
+    m_settings->sync();
+    pumpTopicWrites();
+}
+
+void OpenProofConnectionsController::pumpTopicWrites()
+{
+    if(m_topicSaveRequest || m_topicOutbox.isEmpty() || !m_viewerFid
+        || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl))return;
+    const auto item=m_topicOutbox.first().toMap();
+    if(item.value(QStringLiteral("fid")).toULongLong()!=m_viewerFid)return;
+    QUrl endpoint=m_cloudUrl;
+    endpoint.setPath(QStringLiteral("/api/v1/cloud/cast_topics"));
+    endpoint.setQuery({});
+    QNetworkRequest request{endpoint};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,
+                      QStringLiteral("application/json"));
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    const auto payload=QJsonObject{
+        {QStringLiteral("cast_hash"),item.value(QStringLiteral("cast_hash")).toString()},
+        {QStringLiteral("topics"),QJsonArray::fromStringList(
+            item.value(QStringLiteral("topics")).toStringList())}
+    };
+    auto* reply=m_network.put(request,QJsonDocument(payload).toJson(QJsonDocument::Compact));
+    m_topicSaveRequest=reply;
+    const auto generation=m_grantGeneration;
+    const auto owner=m_viewerFid;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,generation,owner,item] {
+        if(m_topicSaveRequest==reply)m_topicSaveRequest=nullptr;
+        const auto code=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if(generation==m_grantGeneration && owner==m_viewerFid) {
+            if(code==200 || code==400 || code==409) {
+                for(auto it=m_topicOutbox.begin();it!=m_topicOutbox.end();++it) {
+                    if(it->toMap()==item) {m_topicOutbox.erase(it);break;}
+                }
+                if(m_settings) {
+                    m_settings->setValue(topicOutboxKey(),m_topicOutbox);
+                    m_settings->sync();
+                }
+            }
+            m_topicsError=code==200 ? QString{} :
+                QStringLiteral("Unable to save cast topics");
+            emit topicsChanged();
+        }
+        reply->deleteLater();
+        if(code==200) pumpTopicWrites();
+    });
+}
+
 void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
 {
     if (m_viewerFid == fid) return;
@@ -1765,6 +1915,21 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_approvalUrl.clear();
     m_error.clear();
     m_viewerFid = fid;
+    if(m_topicCatalogRequest) {
+        m_topicCatalogRequest->abort();
+        m_topicCatalogRequest->deleteLater();
+        m_topicCatalogRequest=nullptr;
+    }
+    m_topicCatalog.clear();
+    if(m_topicSaveRequest) {
+        m_topicSaveRequest->abort();
+        m_topicSaveRequest->deleteLater();
+        m_topicSaveRequest=nullptr;
+    }
+    m_topicOutbox=topicOutboxKey().isEmpty() || !m_settings
+        ? QVariantList{} : m_settings->value(topicOutboxKey()).toList();
+    m_topicsError.clear();
+    emit topicsChanged();
     const QString key=bookmarkStorageKey();
     m_bookmarkOutbox=key.isEmpty() || !m_settings
         ? QVariantList{} : m_settings->value(key+QStringLiteral("/outbox")).toList();
@@ -1840,6 +2005,7 @@ void OpenProofConnectionsController::acceptRecoveryGrant(
     m_grantExpiry.start(std::clamp(expiresSeconds - 10, 1, 3'590) * 1'000);
     m_error.clear();
     refreshConnections();
+    pumpTopicWrites();
 }
 
 void OpenProofConnectionsController::stopAuthorization()

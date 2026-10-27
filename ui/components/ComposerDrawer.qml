@@ -22,6 +22,9 @@ GenyDrawer {
     property string selectedContextLabel: ""
     property string selectedContextImage: ""
     property string selectedChannelId: ""
+    // Cast topics are metadata owned by GenyCaster, not a Farcaster parent URL.
+    property var selectedTopics: []
+    readonly property int maxCastTopics: 3
     property int initialFocusAttempts: 0
     property string suggestedText: ""
     property var suggestedEmbeds: []
@@ -66,6 +69,35 @@ GenyDrawer {
     signal replyRequested(string text, var mentionFids, var mentionPositions, var embeds)
     signal threadRequested(var casts)
     signal abandoned()
+
+    function topicName(slug) {
+        switch (String(slug || "")) {
+        case "art": return qsTrId("genycaster.topic.art")
+        case "development": return qsTrId("genycaster.topic.development")
+        case "photography": return qsTrId("genycaster.topic.photography")
+        case "design": return qsTrId("genycaster.topic.design")
+        case "technology": return qsTrId("genycaster.topic.technology")
+        case "music": return qsTrId("genycaster.topic.music")
+        case "writing": return qsTrId("genycaster.topic.writing")
+        case "science": return qsTrId("genycaster.topic.science")
+        case "business": return qsTrId("genycaster.topic.business")
+        case "gaming": return qsTrId("genycaster.topic.gaming")
+        default: {
+            const tokens=String(slug).split("-")
+            return tokens.map(t=>t.length ? t.charAt(0).toUpperCase()+t.slice(1) : "").join(" ")
+        }
+        }
+    }
+
+    function toggleTopic(slug) {
+        const key=String(slug || "")
+        const old=root.selectedTopics || []
+        if(old.indexOf(key)>=0) {
+            root.selectedTopics=old.filter(t=>t!==key)
+        } else if(old.length<root.maxCastTopics) {
+            root.selectedTopics=old.concat([key])
+        }
+    }
 
     ListModel { id: threadTailModel }
 
@@ -460,6 +492,8 @@ GenyDrawer {
         root.selectedContextLabel = ""
         root.selectedContextImage = ""
         root.selectedChannelId = ""
+        root.selectedTopics = []
+        openProofConnections.fetchTopics()
         root.expandedViewportHeight = root.parent ? root.parent.height : root.height
         root.closeComposerPopups()
         editorMode = "visual"
@@ -868,6 +902,167 @@ GenyDrawer {
         }
     }
 
+    GenyDrawer {
+        id: topicPicker
+        objectName: "composerTopicDrawer"
+        hostItem: root.hostItem
+        bottomSheet: true
+        showHandle: true
+        dimBackground: true
+        interactive: false
+        width: parent ? parent.width : root.width
+        height: parent ? Math.min(parent.height * 0.72, 600) : 560
+        contentPadding: Theme.space3
+        onOpened: {
+            topicSearch.text = ""
+            openProofConnections.fetchTopics()
+        }
+        contentItem: ColumnLayout {
+            spacing: Theme.space3
+            RowLayout {
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.topics.choose")
+                    color: Theme.textPrimary
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightBold
+                }
+                ActionButton {
+                    compact: true
+                    iconOnly: true
+                    quiet: true
+                    iconGlyph: Theme.iconClose
+                    text: qsTrId("genycaster.shell.cancel")
+                    onClicked: topicPicker.close()
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.topics.hint")
+                color: Theme.textSecondary
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.Wrap
+            }
+            DirectionAwareTextField {
+                id: topicSearch
+                objectName: "composerTopicSearch"
+                Layout.fillWidth: true
+                placeholderText: qsTrId("genycaster.topics.search")
+            }
+            Flickable {
+                id: topicScroll
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                contentWidth: width
+                contentHeight: topicFlow.height
+                Flow {
+                    id: topicFlow
+                    width: topicScroll.width
+                    height: childrenRect.height
+                    spacing: Theme.space2
+                    layoutDirection: Theme.uiDirection
+
+                    Repeater {
+                        model: openProofConnections.topicCatalog
+                        delegate: Item {
+                            id: topicChip
+                            required property var modelData
+                            readonly property string slug: String(modelData.slug || "")
+                            readonly property string title: root.topicName(slug)
+                            readonly property bool chosen: root.selectedTopics.indexOf(slug)>=0
+                            visible: topicSearch.text.trim().length === 0
+                                     || title.toLocaleLowerCase().includes(topicSearch.text.trim().toLocaleLowerCase())
+                                     || slug.includes(topicSearch.text.trim().toLocaleLowerCase())
+                            width: Math.min(topicFlow.width, chipText.implicitWidth
+                                            + (chosen ? Theme.scaleUi(60) : Theme.scaleUi(36)))
+                            height: Theme.scaleUi(44)
+
+                            Superellipse {
+                                anchors.fill: parent
+                                fillColor: topicChip.chosen ? Theme.primarySurface : Theme.surfaceRaised
+                                borderWidth: topicChip.chosen ? 2 : 1
+                                borderColor: topicChip.chosen ? Theme.accent : Theme.borderMuted
+                                curveDepth: Theme.curveControl
+                            }
+                            RowLayout {
+                                anchors.centerIn: parent
+                                spacing: Theme.space1
+                                layoutDirection: Theme.uiDirection
+                                Icon {
+                                    visible: topicChip.chosen
+                                    text: Theme.iconCheck
+                                    color: Theme.accent
+                                    preferredSize: Theme.iconSizeSmall
+                                }
+                                DirectionAwareLabel {
+                                    id: chipText
+                                    text: topicChip.title
+                                    color: Theme.textPrimary
+                                    font.pixelSize: Theme.typeMetaSize
+                                    font.weight: topicChip.chosen
+                                                 ? Theme.weightDemiBold : Theme.weightMedium
+                                    alignToUi: true
+                                }
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                enabled: topicChip.chosen
+                                         || root.selectedTopics.length < root.maxCastTopics
+                                onClicked: root.toggleTopic(topicChip.slug)
+                            }
+                            Accessible.role: Accessible.Button
+                            Accessible.name: topicChip.title
+                            Accessible.description: topicChip.chosen
+                                ? qsTrId("genycaster.topics.remove_selection")
+                                : qsTrId("genycaster.topics.add_selection")
+                        }
+                    }
+                }
+            }
+            BusyIndicator {
+                Layout.alignment: Qt.AlignHCenter
+                visible: openProofConnections.topicsBusy
+                running: visible
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                visible: !openProofConnections.topicsBusy
+                         && openProofConnections.topicCatalog.length === 0
+                text: qsTrId("genycaster.topics.unavailable")
+                color: Theme.inkMuted
+                wrapMode: Text.Wrap
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.topics.limit").arg(
+                        LocaleFormat.formatInteger(root.selectedTopics.length)).arg(
+                        LocaleFormat.formatInteger(root.maxCastTopics))
+                    color: Theme.textSecondary
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    enabled: root.selectedTopics.length > 0
+                    text: qsTrId("genycaster.topics.clear")
+                    onClicked: root.selectedTopics=[]
+                }
+                ActionButton {
+                    compact: true
+                    prominent: true
+                    text: qsTrId("genycaster.topics.done")
+                    onClicked: topicPicker.close()
+                }
+            }
+        }
+    }
+
     FileDialog {
         id: mediaFileDialog
         title: qsTrId("genycaster.media.choose_file")
@@ -1056,6 +1251,32 @@ GenyDrawer {
                 Layout.fillWidth: true
                 mode: root.editorMode
                 onModeRequested: mode => root.setEditorMode(mode)
+            }
+
+            RowLayout {
+                objectName: "desktopCastTopics"
+                visible: !root.compact && root.showTaxonomyControls
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space2
+                ActionButton {
+                    compact: true
+                    selected: root.selectedTopics.length > 0
+                    iconGlyph: Theme.iconPalette
+                    text: root.selectedTopics.length > 0
+                          ? qsTrId("genycaster.topics.selected_count").arg(
+                                LocaleFormat.formatInteger(root.selectedTopics.length))
+                          : qsTrId("genycaster.topics.label")
+                    onClicked: topicPicker.open()
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    color: Theme.inkSubtle
+                    font.pixelSize: Theme.typeCaptionSize
+                    text: root.selectedTopics.map(s=>root.topicName(s)).join(" · ")
+                    elide: Text.ElideRight
+                    alignToUi: true
+                }
             }
 
             Superellipse {
@@ -1710,23 +1931,47 @@ GenyDrawer {
                         }
                     }
                     Item {
+                        id: selectedTopicChip
+                        objectName: "composerTopicSelection"
                         Layout.preferredHeight: 36
-                        Layout.preferredWidth: categoryText.implicitWidth + Theme.space3 * 2
-                        opacity: 0.82
-                        DashedCapsuleOutline {
+                        Layout.preferredWidth: Math.min(root.width * 0.39,
+                            Math.max(104, categoryText.implicitWidth + Theme.space3 * 2))
+                        Superellipse {
                             anchors.fill: parent
-                            lineColor: Theme.textSecondary
+                            curveDepth: Theme.curveControl
+                            fillColor: root.selectedTopics.length > 0
+                                       ? Theme.primarySurface : "transparent"
+                            borderWidth: 1
+                            borderColor: root.selectedTopics.length > 0
+                                         ? Theme.accent : Theme.borderMuted
                         }
-                        DirectionAwareLabel {
-                            id: categoryText
+                        RowLayout {
                             anchors.centerIn: parent
-                            text: qsTrId("genycaster.composer.category")
-                            font.pixelSize: Theme.typeMetaSize
-                            color: Theme.textSecondary
+                            spacing: Theme.space1
+                            Icon {
+                                text: Theme.iconPalette
+                                preferredSize: Theme.iconSizeSmall
+                                color: root.selectedTopics.length > 0
+                                       ? Theme.accent : Theme.textSecondary
+                            }
+                            DirectionAwareLabel {
+                                id: categoryText
+                                text: root.selectedTopics.length > 0
+                                    ? qsTrId("genycaster.topics.selected_count").arg(
+                                        LocaleFormat.formatInteger(root.selectedTopics.length))
+                                    : qsTrId("genycaster.topics.label")
+                                font.pixelSize: Theme.typeMetaSize
+                                font.weight: root.selectedTopics.length > 0
+                                             ? Theme.weightDemiBold : Theme.weightMedium
+                                color: Theme.textPrimary
+                            }
                         }
-                        Accessible.role: Accessible.StaticText
-                        Accessible.name: qsTrId("genycaster.composer.category")
-                        Accessible.description: qsTrId("genycaster.home.hub_coming_soon")
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: topicPicker.open()
+                        }
+                        Accessible.role: Accessible.Button
+                        Accessible.name: qsTrId("genycaster.topics.label")
                     }
                     Item { Layout.fillWidth: true }
                     ActionButton {

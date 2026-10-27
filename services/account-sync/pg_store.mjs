@@ -30,7 +30,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   // endpoints fail closed until the additive migration is applied and the
   // backend is restarted; the other account data remains available.
   const migrations=await pool.query(
-    'SELECT version FROM schema_migrations WHERE version IN (3,4,5)');
+    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6)');
   const versions=new Set(migrations.rows.map(row=>Number(row.version)));
   if (!versions.has(3)) {
     await pool.end();
@@ -38,9 +38,57 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   }
   const sessionsReady=versions.has(4);
   const bookmarkPreviewsReady=versions.has(5);
+  const topicsReady=versions.has(6);
   return {
     close:()=>pool.end(),
     bookmarkPreviewsReady:()=>bookmarkPreviewsReady,
+    topicsReady:()=>topicsReady,
+    async listTopics() {
+      if(!topicsReady) throw new Error('topics_not_ready');
+      const result=await pool.query(`SELECT id::text,slug,sort_order,
+           (SELECT count(*)::integer FROM cast_topics WHERE topic_id=topics.id) AS cast_count
+         FROM topics WHERE is_active=true ORDER BY sort_order ASC,id ASC LIMIT 500`);
+      return result.rows;
+    },
+    async assignCastTopics({fid},castHash,slugs) {
+      if(!topicsReady) throw new Error('topics_not_ready');
+      const client=await pool.connect();
+      try {
+        await client.query('BEGIN');
+        // Lock this immutable cast identity across concurrent requests. Lock
+        // does not depend on existing rows, so two devices cannot interleave
+        // different sets of tags against one cast.
+        await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[castHash]);
+        const topics=await client.query(
+          'SELECT id,slug FROM topics WHERE is_active=true AND slug=ANY($1::text[])',
+          [slugs]);
+        if(topics.rows.length!==slugs.length) {
+          await client.query('ROLLBACK');return null;
+        }
+        const other=await client.query(
+          'SELECT 1 FROM cast_topics WHERE cast_hash=decode(substr($1,3),\'hex\') AND author_fid<>$2 LIMIT 1',
+          [castHash,fid]);
+        if(other.rowCount) {await client.query('ROLLBACK');return null;}
+        await client.query('DELETE FROM cast_topics WHERE cast_hash=decode(substr($1,3),\'hex\') AND author_fid=$2',
+          [castHash,fid]);
+        for(const row of topics.rows)
+          await client.query(`INSERT INTO cast_topics(cast_hash,topic_id,author_fid)
+             VALUES(decode(substr($1,3),'hex'),$2,$3)`,[castHash,row.id,fid]);
+        await client.query('COMMIT');
+        return {cast_hash:castHash,topics:slugs};
+      }catch(e){await client.query('ROLLBACK');throw e;}
+      finally{client.release();}
+    },
+    async listTopicCasts(slug,limit,offset) {
+      if(!topicsReady) throw new Error('topics_not_ready');
+      const result=await pool.query(`SELECT '0x'||encode(ct.cast_hash,'hex') AS cast_hash,
+           ct.author_fid::text,ct.created_at
+         FROM cast_topics ct INNER JOIN topics t ON t.id=ct.topic_id
+         WHERE t.slug=$1 AND t.is_active=true
+         ORDER BY ct.created_at DESC,ct.cast_hash DESC LIMIT $2 OFFSET $3`,
+         [slug,limit,offset]);
+      return result.rows;
+    },
     async createSession({issuer,subject},tokenHash,csrfToken) {
       if(!sessionsReady)throw new Error('account_sessions_not_ready');
       await pool.query(`INSERT INTO account_sessions
