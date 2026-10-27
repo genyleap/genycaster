@@ -15,6 +15,7 @@ Popup {
     padding: Theme.space3
     property var collections: []
     property bool busy: false
+    property string errorText: ""
     property string castHash: ""
     property string newName: ""
     signal collectionPicked(string id)
@@ -93,11 +94,16 @@ Popup {
                 iconGlyph: Theme.iconPlus
                 text: "Create"
                 enabled: !root.busy && root.newName.trim().length>0
-                onClicked: {
-                    root.createRequested(root.newName.trim())
-                    root.close()
-                }
+                onClicked: root.createRequested(root.newName.trim())
             }
+        }
+        DirectionAwareLabel {
+            Layout.fillWidth: true
+            visible: root.errorText.length > 0
+            text: root.errorText
+            color: Theme.negative
+            font.pixelSize: Theme.typeCaptionSize
+            wrapMode: Text.Wrap
         }
         GenySpinner {
             Layout.alignment: Qt.AlignHCenter

@@ -11,6 +11,7 @@ Item {
     property var topics: []
     property var items: []
     property var cachedRows: []
+    property var hydratedRows: []
     property bool busy: false
     property bool hasMore: false
     property string errorText: ""
@@ -20,6 +21,7 @@ Item {
     signal backRequested()
     signal topicRequested(string slug)
     signal moreRequested()
+    signal hydrationRequested(var castIds)
     signal castRequested(string hash)
     signal profileRequested(double fid)
     signal mediaRequested(var mediaItems, int index)
@@ -27,14 +29,42 @@ Item {
 
     function cachedCast(hash) {
         const key=String(hash || "").toLowerCase()
-        const rows=root.cachedRows || []
-        for (let i=0;i<rows.length;i++) {
-            const item=rows[i] || ({})
-            if (String(item.castId || "").toLowerCase()===key)
-                return item
+        for (const rows of [root.hydratedRows || [], root.cachedRows || []]) {
+            for (let i=0;i<rows.length;i++) {
+                const item=rows[i] || ({})
+                if (String(item.castId || "").toLowerCase()===key)
+                    return item
+            }
         }
         return null
     }
+
+    function hydrateVisibleCasts() {
+        if (!root.items || root.items.length===0) return
+        const requested=[]
+        for (let i=0;i<root.items.length;++i) {
+            const delegate=results.itemAtIndex(i)
+            if (!delegate || delegate.y+delegate.height < results.contentY
+                || delegate.y > results.contentY+results.height) continue
+            const item=root.items[i] || ({})
+            const hash=String(item.cast_hash || "")
+            if (/^0x[0-9a-fA-F]{40}$/.test(hash) && !root.cachedCast(hash))
+                requested.push(hash)
+            if (requested.length>=8) break
+        }
+        if (requested.length>0) root.hydrationRequested(requested)
+    }
+
+    Timer {
+        id: visibleHydrationTimer
+        interval: 330
+        repeat: false
+        onTriggered: root.hydrateVisibleCasts()
+    }
+    Component.onCompleted: visibleHydrationTimer.start()
+    onItemsChanged: visibleHydrationTimer.restart()
+    onHydratedRowsChanged: visibleHydrationTimer.restart()
+    onCachedRowsChanged: visibleHydrationTimer.restart()
 
     ColumnLayout {
         anchors.fill: parent
@@ -64,7 +94,7 @@ Item {
             TopicFilterPicker {
                 Layout.preferredWidth: root.compact ? 148 : 200
                 Layout.maximumWidth: root.compact ? 148 : 200
-                Layout.preferredHeight: Theme.controlHeight
+                Layout.preferredHeight: 30
                 compact: root.compact
                 selectedTopic: root.topicSlug
                 catalog: root.topics
@@ -100,6 +130,8 @@ Item {
             spacing: Theme.space2
             model: root.items || []
             boundsBehavior: Flickable.StopAtBounds
+            onContentYChanged: visibleHydrationTimer.restart()
+            onHeightChanged: visibleHydrationTimer.restart()
             delegate: Item {
                 id: row
                 required property var modelData

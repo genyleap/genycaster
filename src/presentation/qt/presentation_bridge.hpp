@@ -74,6 +74,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY stateChanged)
     Q_PROPERTY(QStringList bookmarkedCastIds READ bookmarkedCastIds NOTIFY bookmarksChanged)
     Q_PROPERTY(QVariantList bookmarkedCasts READ bookmarkedCasts NOTIFY bookmarksChanged)
+    Q_PROPERTY(QVariantList topicPreviewCasts READ topicPreviewCasts NOTIFY topicPreviewCastsChanged)
     Q_PROPERTY(QVariantList searchResults READ searchResults NOTIFY searchChanged)
     Q_PROPERTY(bool searchBusy READ searchBusy NOTIFY searchChanged)
     Q_PROPERTY(QString searchErrorText READ searchErrorText NOTIFY searchChanged)
@@ -176,6 +177,10 @@ public:
     /** Background, navigation-free restoration of rich saved cast models. */
     Q_INVOKABLE void hydrateBookmarkedCasts(const QStringList& castIds);
     void applyHydratedBookmark(QString castId, QVariantMap cast);
+    /** @brief Bounded, navigation-free previews of server-indexed topic casts; never modifies bookmarks. */
+    [[nodiscard]] QVariantList topicPreviewCasts() const;
+    Q_INVOKABLE void hydrateTopicCasts(const QStringList& castIds);
+    void applyHydratedTopicCast(QString castId, QVariantMap cast);
     [[nodiscard]] QVariantMap bookmarkEntry(const QString& castId) const;
     void applyCloudBookmarkChanges(const QVariantList& changes);
     [[nodiscard]] QVariantList searchResults() const;
@@ -447,6 +452,8 @@ signals:
     void bookmarksChanged();
     void bookmarkMutated(const QString& castId, bool isDeleted);
     void bookmarkHydrationRequested(QStringList castIds);
+    void topicHydrationRequested(QStringList castIds);
+    void topicPreviewCastsChanged();
     void followingStoriesChanged();
     void readPreferencesChanged();
     /** @brief Emitted only when OS/network reachability knowledge or online state changes. */
@@ -601,6 +608,7 @@ private:
     bool m_explorerArtBusy{false};
     QVariantMap m_detail{};
     QVariantList m_bookmarkedCasts{};
+    QVariantList m_topicPreviewCasts{};
     // Short-lived context hydrations are shared by Feed and Cast detail.
     // A late cache-first snapshot must never erase an already resolved quote.
     QHash<QString, QVariantMap> m_referencedPreviewCache{};

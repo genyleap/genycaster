@@ -3824,6 +3824,39 @@ void connectRuntime(
             }
         });
 
+    // Topic discovery hydrates only visible canonical hashes through the
+    // provider-neutral read service. Never turn a topic view into bookmarks.
+    QObject::connect(&bridge, &PresentationBridge::topicHydrationRequested,
+        &bridge, [&bridge, runtime](const QStringList& hashes) {
+            const qulonglong ownerFid = bridge.accountFid();
+            if (!ownerFid || !bridge.isAuthenticated()) return;
+            for (const QString& hash : hashes.mid(0, 8)) {
+                const domain::cast::CastId castId{hash.toStdString()};
+                if (!runtime->beginReferencedPreviewRequest(castId)) continue;
+                auto request = runtime->service->openCast(castId,
+                    [&bridge, runtime, castId, hash, ownerFid](
+                        application::read::model::CastState state) {
+                        const auto phase = state.metadata.phase;
+                        if (state.cast) {
+                            QVariantMap preview = castPreviewPresentation(state);
+                            QMetaObject::invokeMethod(&bridge,
+                                [&bridge, ownerFid, hash, preview = std::move(preview)]() mutable {
+                                    if (bridge.isAuthenticated() && bridge.accountFid() == ownerFid)
+                                        bridge.applyHydratedTopicCast(hash, std::move(preview));
+                                }, Qt::QueuedConnection);
+                        }
+                        if (phase == application::read::model::ReadPhase::Ready
+                            || phase == application::read::model::ReadPhase::Failed)
+                            runtime->finishReferencedPreviewRequest(castId, bool(state.cast));
+                    },
+                    application::read::model::ReadOptions{.allowRecoveryProbe = false});
+                if (request)
+                    runtime->keepReferencedPreviewRequest(castId, std::move(*request));
+                else
+                    runtime->finishReferencedPreviewRequest(castId, false);
+            }
+        });
+
     // Hydrate only visible saved casts. This uses the same provider-routed,
     // cancelable C++ read service as cast detail, without navigating, mutating
     // bookmarks or launching unbounded requests for the full reading list.

@@ -211,13 +211,21 @@ Item {
         }
         function onBookmarkCollectionsChanged() {
             if(!root.bookmarkAssignmentCreateName.length
-               || openProofConnections.bookmarkCollectionsBusy)return
+               || openProofConnections.bookmarkCollectionsBusy
+               || openProofConnections.bookmarkCollectionsError.length)return
+            if(!presentationBridge.isAuthenticated
+               || Number(presentationBridge.accountFid)!==root.bookmarkChoiceOwner) {
+                root.bookmarkAssignmentCreateName=""
+                bookmarkCollectionChooser.close()
+                return
+            }
             const expected=root.bookmarkAssignmentCreateName
             const found=(openProofConnections.bookmarkCollections||[])
                 .find(x=>String(x.name||"")===expected)
             if(found) {
                 root.bookmarkAssignmentCreateName=""
                 root.assignSavedBookmark(root.bookmarkChoiceHash,String(found.id))
+                bookmarkCollectionChooser.close()
             }
         }
     }
@@ -763,8 +771,8 @@ Item {
             TopicFilterPicker {
                 visible: presentationBridge.isAuthenticated
                          && openProofConnections.topicCatalog.length > 0
-                width: root.compact ? 164 : 204
-                height: visible ? Theme.controlHeight : 0
+                width: root.compact ? 136 : 156
+                height: visible ? implicitHeight : 0
                 x: Theme.gutter(parent.width)
                 compact: root.compact
                 catalog: openProofConnections.topicCatalog
@@ -1375,6 +1383,7 @@ Item {
                                             topics: openProofConnections.topicCatalog
                                             items: openProofConnections.topicCastItems
                                             cachedRows: presentationBridge.rows
+                                            hydratedRows: presentationBridge.topicPreviewCasts
                                             busy: openProofConnections.topicCastsBusy
                                             hasMore: openProofConnections.topicCastsHasMore
                                             errorText: openProofConnections.topicCastsError
@@ -1385,6 +1394,7 @@ Item {
                                                 slug,root.topicBrowseScope,
                                                 Number(root.topicBrowseAuthorFid || 0))
                                             onMoreRequested: openProofConnections.loadMoreTopicCasts()
+                                            onHydrationRequested: castIds => presentationBridge.hydrateTopicCasts(castIds)
                                             onCastRequested: hash => {
                                                 root.closeTopicBrowser()
                                                 presentationBridge.openCast(hash)
@@ -1912,6 +1922,8 @@ Item {
         id: bookmarkCollectionChooser
         collections: openProofConnections.bookmarkCollections
         busy: openProofConnections.bookmarkCollectionsBusy
+        errorText: openProofConnections.bookmarkCollectionsError
+        onClosed: root.bookmarkAssignmentCreateName=""
         onCollectionPicked: id => root.assignSavedBookmark(
             root.bookmarkChoiceHash,id)
         onCreateRequested: name => {

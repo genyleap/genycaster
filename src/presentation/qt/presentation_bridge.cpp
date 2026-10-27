@@ -1141,6 +1141,52 @@ void PresentationBridge::toggleBookmark(const QVariantMap& cast)
     emit bookmarkMutated(id, false);
 }
 
+QVariantList PresentationBridge::topicPreviewCasts() const
+{
+    return m_topicPreviewCasts;
+}
+
+void PresentationBridge::hydrateTopicCasts(const QStringList& castIds)
+{
+    if (!m_isAuthenticated || !m_accountFid) return;
+    QStringList pending;
+    for (const auto& supplied : castIds) {
+        const auto hash = canonicalProtocolCastId(supplied);
+        if (hash.isEmpty() || pending.contains(hash)) continue;
+        bool cached = false;
+        for (const auto& preview : m_topicPreviewCasts) {
+            if (preview.toMap().value(QStringLiteral("castId")).toString() == hash) {
+                cached = true;
+                break;
+            }
+        }
+        if (cached) continue;
+        pending.push_back(hash);
+        if (pending.size() >= 8) break;
+    }
+    if (!pending.isEmpty()) emit topicHydrationRequested(pending);
+}
+
+void PresentationBridge::applyHydratedTopicCast(QString castId, QVariantMap cast)
+{
+    if (!m_isAuthenticated || !m_accountFid) return;
+    const auto hash = canonicalProtocolCastId(castId);
+    if (hash.isEmpty() || canonicalProtocolCastId(
+        cast.value(QStringLiteral("castId")).toString()) != hash) return;
+    for (qsizetype index = 0; index < m_topicPreviewCasts.size(); ++index) {
+        const auto existing = m_topicPreviewCasts.at(index).toMap();
+        if (existing.value(QStringLiteral("castId")).toString() != hash) continue;
+        if (existing == cast) return;
+        m_topicPreviewCasts[index] = std::move(cast);
+        emit topicPreviewCastsChanged();
+        return;
+    }
+    m_topicPreviewCasts.append(std::move(cast));
+    if (m_topicPreviewCasts.size() > 90)
+        m_topicPreviewCasts.remove(0, m_topicPreviewCasts.size() - 90);
+    emit topicPreviewCastsChanged();
+}
+
 void PresentationBridge::hydrateBookmarkedCasts(const QStringList& castIds)
 {
     if (!m_isAuthenticated || m_accountFid == 0) return;
@@ -3164,6 +3210,8 @@ void PresentationBridge::applyAuthenticationState(
     // no reaction overlay changed; force rebinding after any viewer switch.
     bool accountRowsChanged = previousAccountFid != m_accountFid;
     if (previousAccountFid != m_accountFid) {
+        m_topicPreviewCasts.clear();
+        emit topicPreviewCastsChanged();
         m_bookmarkedCasts = (m_accountFid != 0 && m_settings)
             ? normalizedAccountBookmarks(m_settings->value(
                 QStringLiteral("bookmarks/account_%1").arg(m_accountFid)).toList())

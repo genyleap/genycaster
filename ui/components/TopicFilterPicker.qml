@@ -8,8 +8,8 @@ Item {
     property bool compact: false
     property string selectedTopic: ""
     signal topicRequested(string slug)
-    implicitWidth: root.compact ? 172 : 208
-    implicitHeight: Theme.controlHeight
+    implicitWidth: root.compact ? 136 : 156
+    implicitHeight: 28
 
     function titleFor(slug) {
         switch (slug) {
@@ -23,7 +23,7 @@ Item {
         case "science": return qsTrId("genycaster.topic.science")
         case "business": return qsTrId("genycaster.topic.business")
         case "gaming": return qsTrId("genycaster.topic.gaming")
-        default: return slug
+        default: return slug.replace(/-/g, " ").replace(/\b\w/g, character => character.toUpperCase())
         }
     }
 
@@ -37,7 +37,10 @@ Item {
         return out
     }
 
-    GenyComboBox {
+    FilterDropdown {
+        minimumPopupWidth: 136
+        maximumPopupWidth: 208
+        maximumTriggerWidth: 156
         objectName: "topicFilterPicker"
         anchors.left: parent.left
         anchors.right: parent.right
