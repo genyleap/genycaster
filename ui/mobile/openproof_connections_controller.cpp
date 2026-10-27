@@ -1772,7 +1772,7 @@ void OpenProofConnectionsController::fetchTopics()
     if(m_topicCatalogRequest || !trustedHttpsEndpoint(m_cloudUrl)) return;
     QUrl endpoint=m_cloudUrl;
     endpoint.setPath(QStringLiteral("/api/v1/cloud/topics"));
-    endpoint.setQuery({});
+    endpoint.setQuery(QString{});
     QNetworkRequest request{endpoint};
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::ManualRedirectPolicy);
@@ -1858,7 +1858,7 @@ void OpenProofConnectionsController::pumpTopicWrites()
     if(item.value(QStringLiteral("fid")).toULongLong()!=m_viewerFid)return;
     QUrl endpoint=m_cloudUrl;
     endpoint.setPath(QStringLiteral("/api/v1/cloud/cast_topics"));
-    endpoint.setQuery({});
+    endpoint.setQuery(QString{});
     QNetworkRequest request{endpoint};
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::ManualRedirectPolicy);
