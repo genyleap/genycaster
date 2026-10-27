@@ -38,7 +38,7 @@ test('owner profile anchors linked networks to the right with blue or green proo
   const end = qml.indexOf('RichText {', start);
   const group = qml.slice(start, end);
   assert.ok(start > 0 && end > start);
-  assert.match(group, /layoutDirection: Qt\.LeftToRight/);
+  assert.match(group, /layoutDirection: root\.profileContentRtl \? Qt\.RightToLeft : Qt\.LeftToRight/);
   assert.match(group, /width: Math\.min\(implicitWidth/);
   assert.match(group, /visible: !root\.compact/);
   assert.match(group, /socialBadge\.liveVerified \? Theme\.success : Theme\.accent/);

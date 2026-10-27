@@ -1691,7 +1691,7 @@ Item {
                                 Theme.scaleUi(root.compact ? 218 : 260))
                             Layout.maximumWidth: Layout.preferredWidth
                             spacing: Theme.space1
-                            layoutDirection: Qt.LeftToRight
+                            layoutDirection: Theme.uiDirection
 
                             Button {
                                 id: identityPrimaryLink
@@ -1704,6 +1704,7 @@ Item {
                                 background: Item {}
                                 contentItem: RowLayout {
                                     spacing: Theme.space1
+                                    layoutDirection: Theme.uiDirection
                                     Icon {
                                         text: Theme.iconLink
                                         color: Theme.accent
@@ -1713,6 +1714,8 @@ Item {
                                         Layout.fillWidth: true
                                         Layout.minimumWidth: 0
                                         text: root.displayUrl(root.primaryProfileLinkUrl)
+                                        horizontalAlignment: Theme.textStartAlignment
+                                        LayoutMirroring.enabled: false
                                         color: Theme.accent
                                         font.family: Theme.latinFontFamily
                                         font.pixelSize: Theme.typeCaptionSize
@@ -1740,7 +1743,8 @@ Item {
                                     }
                                 }
                                 contentItem: Label {
-                                    text: qsTrId("genycaster.profile.more_links").arg(root.additionalProfileLinksCount)
+                                    text: qsTrId("genycaster.profile.more_links").arg(
+                                        LocaleFormat.formatInteger(root.additionalProfileLinksCount))
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
                                     font.weight: Theme.weightDemiBold
@@ -1776,6 +1780,7 @@ Item {
                         objectName: "profileProfessionalCategory"
                         Layout.fillWidth: true
                         visible: root.profileProfession.length > 0 || root.profileCategory.length > 0
+                        layoutDirection: Theme.uiDirection
                         spacing: Theme.space2
                         Icon {
                             text: Theme.iconBusiness
@@ -1788,6 +1793,7 @@ Item {
                                   ? root.profileOptionLabel(root.profileCategory) + " · "
                                     + root.profileOptionLabel(root.profileProfession)
                                   : root.profileOptionLabel(root.profileCategory || root.profileProfession)
+                            alignToUi: true
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                             font.weight: Theme.weightMedium

@@ -68,7 +68,7 @@ test('website and additional links are in the identity row, not below the biogra
   const identity=profile.slice(start,end);
   assert.ok(start>0 && end>start);
   assert.match(identity,/objectName: "profileIdentityLinks"/);
-  assert.match(identity,/layoutDirection: Qt\.LeftToRight/);
+  assert.match(identity,/objectName: "profileIdentityLinks"[\s\S]*?layoutDirection: Theme\.uiDirection/);
   assert.match(identity,/objectName: "profileIdentityPrimaryLink"/);
   assert.match(identity,/objectName: "profileMoreLinksInline"/);
   assert.match(identity,/onClicked: profileLinksDrawer\.open\(\)/);

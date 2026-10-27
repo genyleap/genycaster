@@ -704,6 +704,7 @@ GenyDrawer {
                     anchors.leftMargin: Theme.space3
                     anchors.rightMargin: Theme.space3
                     spacing: Theme.space2
+                    layoutDirection: Theme.uiDirection
                     Icon {
                         text: Theme.iconSearch
                         color: Theme.textSecondary
@@ -712,6 +713,8 @@ GenyDrawer {
                     TextField {
                         id: channelSearch
                         objectName: "composerChannelSearch"
+                        LayoutMirroring.enabled: false
+                        horizontalAlignment: Theme.textStartAlignment
                         Layout.fillWidth: true
                         placeholderText: qsTrId("genycaster.composer.channel_search")
                         color: Theme.textPrimary
@@ -787,6 +790,7 @@ GenyDrawer {
                                 text: channelRow.isHome
                                       ? qsTrId("genycaster.composer.home_channel")
                                       : String(channelRow.modelData.name || channelRow.modelData.id || "")
+                                alignToUi: true
                                 elide: Text.ElideRight
                             }
                             DirectionAwareLabel {

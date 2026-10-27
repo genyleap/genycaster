@@ -77,7 +77,8 @@ Item {
                                                  ? qsTrId("genycaster.home.greeting_afternoon")
                                                  : root.localHour < 21
                                                    ? qsTrId("genycaster.home.greeting_evening")
-                                                   : qsTrId("genycaster.home.greeting_night")).arg(root.welcomeName)
+                                                   : qsTrId("genycaster.home.greeting_night")).arg(
+                                                       "\u2066" + root.welcomeName + "\u2069")
     implicitWidth: 980
     implicitHeight: 790
 
@@ -167,6 +168,7 @@ Item {
                         DirectionAwareLabel {
                             Layout.fillWidth: true
                             text: modelData.name
+                            alignToUi: true
                             color: Theme.textPrimary
                             font.pixelSize: Theme.typeBodySize
                             font.weight: Theme.weightDemiBold
@@ -240,13 +242,15 @@ Item {
                         spacing: Theme.space1
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: "GENY Token"
+                            text: qsTrId("genycaster.home.geny_token_title")
+                            alignToUi: true
                             color: Theme.textPrimary
                             font.weight: Theme.weightBold
                             font.pixelSize: Theme.typeLabelSize
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
+                            alignToUi: true
                             text: genyTokenBanner.slideIndex === 0
                                   ? qsTrId("genycaster.home.geny_token_slide_one")
                                   : qsTrId("genycaster.home.geny_token_slide_two")

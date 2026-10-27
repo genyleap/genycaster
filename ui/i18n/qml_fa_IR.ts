@@ -2,6 +2,10 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.home.geny_token_title">
+            <source>GENY Token</source>
+            <translation>توکن GENY</translation>
+        </message>
         <message id="genycaster.profile.extras_heading">
             <source>Additional Genycaster details</source>
             <translation>جزئیات تکمیلی جنی‌کستر</translation>
@@ -662,7 +666,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.connections.description">
             <source>Manage connected accounts securely in Genycaster.</source>
-            <translation>حساب‌های متصل را در Genycaster به‌صورت امن مدیریت کنید.</translation>
+            <translation>حساب‌های متصل خود را در جنی‌کستر به‌صورت امن مدیریت کنید.</translation>
         </message>
         <message id="genycaster.connections.status_connected">
             <source>Connected</source>
@@ -4706,7 +4710,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.home.composer_placeholder">
             <source>Write a new cast or message…</source>
-            <translation>یک Cast یا پیام جدید بنویسید…</translation>
+            <translation>یک کست یا پیام جدید بنویسید…</translation>
         </message>
         <message id="genycaster.settings.social_workspace">
             <source>Social workspace</source>
@@ -5386,7 +5390,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.release.beta_1_0">
             <source>Beta 1.0</source>
-            <translation>بتا ۱٫۰</translation>
+            <translation>بتا · ۱٫۰</translation>
         </message>
         <message id="genycaster.home.search_description">
             <source>Find people, casts and channels</source>

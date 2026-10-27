@@ -70,7 +70,8 @@ Item {
                                ? qsTrId("genycaster.home.greeting_afternoon")
                                : root.localHour < 21
                                  ? qsTrId("genycaster.home.greeting_evening")
-                                 : qsTrId("genycaster.home.greeting_night")).arg(greetingName)
+                                 : qsTrId("genycaster.home.greeting_night")).arg(
+                                     "\u2066" + greetingName + "\u2069")
                     color: Theme.textPrimary
                     font.pixelSize: root.compact ? Theme.typeTitle3Size : Theme.typeTitle2Size
                     font.weight: Theme.weightBold

@@ -46,6 +46,7 @@ Superellipse {
         DirectionAwareLabel {
             Layout.fillWidth: true
             text: qsTrId("genycaster.shell.whats_happening")
+            alignToUi: true
             color: Theme.textPrimary
             font.pixelSize: Theme.typeLabelSize
             font.weight: Theme.weightDemiBold

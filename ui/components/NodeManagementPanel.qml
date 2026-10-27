@@ -133,6 +133,7 @@ ColumnLayout {
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: providerProfiles.activeReadProviderLabel
+                    alignToUi: true
                     color: Theme.ink
                     font.pixelSize: Theme.typeTitle3Size
                     font.weight: Theme.weightDemiBold
@@ -272,6 +273,7 @@ ColumnLayout {
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
                             text: String(modelData.label)
+                            alignToUi: true
                             color: Theme.ink
                             font.weight: Theme.weightMedium
                             elide: Text.ElideMiddle
@@ -318,6 +320,7 @@ ColumnLayout {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: String(modelData.endpoint || "")
+                        alignToUi: true
                         color: Theme.inkSubtle
                         font.pixelSize: Theme.typeCaptionSize
                         forceLeftToRight: true
@@ -405,6 +408,7 @@ ColumnLayout {
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 text: String(modelData.name)
+                                alignToUi: true
                                 color: Theme.ink
                                 font.pixelSize: Theme.typeLabelSize
                                 elide: Text.ElideRight
@@ -412,7 +416,7 @@ ColumnLayout {
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 text: String(modelData.host)
-                                forceLeftToRight: true
+                                alignToUi: true
                                 font.pixelSize: Theme.typeCaptionSize
                                 color: Theme.inkSubtle
                                 elide: Text.ElideMiddle

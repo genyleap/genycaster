@@ -6,6 +6,10 @@ Label {
 
     property bool forceLeftToRight: false
     property bool forceRightToLeft: false
+    // Chrome labels should align to the interface's reading edge even when
+    // their content starts with a Latin brand, handle, or product name.
+    // Keep the Unicode bidi algorithm in charge of the glyph order.
+    property bool alignToUi: false
     // QQC2 Label does not support textInteractionFlags. Applying that
     // property prevents the whole QML root from loading in WebAssembly.
     // Keep this compatibility hint; selectable body text is implemented by
@@ -22,7 +26,8 @@ Label {
 
     LayoutMirroring.enabled: false
     font.family: Theme.fontFamilyForText(analyzedText)
-    horizontalAlignment: effectiveTextDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
+    horizontalAlignment: alignToUi ? Theme.textStartAlignment
+                       : effectiveTextDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
 
     // QQC2 Label has no textInteractionFlags. Keep Control's sizing/layout
     // contract and expose read-only selection only after an explicit hold.

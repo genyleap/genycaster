@@ -257,6 +257,7 @@ GenyDrawer {
             }
             DirectionAwareLabel {
                 text: LocaleFormat.formatInteger(picker.linkedCount)
+                alignToUi: true
                 color: Theme.inkSubtle
                 font.pixelSize: Theme.typeCaptionSize
             }
@@ -441,6 +442,7 @@ GenyDrawer {
                                     DirectionAwareLabel {
                                         Layout.fillWidth: true
                                         text: picker.providerTitle(providerRow.modelData)
+                                        alignToUi: true
                                         color: Theme.ink
                                         font.weight: Theme.weightDemiBold
                                         font.pixelSize: Theme.typeLabelSize
@@ -454,7 +456,7 @@ GenyDrawer {
                                                 const nick = String(connection.displayName || connection.username || "")
                                                 if (picker.cachedSnapshot && !picker.authorized)
                                                     return nick.length > 0
-                                                           ? qsTrId("genycaster.connections.copy_saved_link_1").arg(nick)
+                                                           ? qsTrId("genycaster.connections.copy_saved_link_1").arg("\u2066" + nick + "\u2069")
                                                            : qsTrId("genycaster.connections.copy_saved_account_link")
                                                 return nick.length > 0 ? nick : qsTrId("genycaster.connections.status_connected")
                                             }
@@ -463,6 +465,7 @@ GenyDrawer {
                                             if (picker.authorized) return qsTrId("genycaster.connections.status_not_connected")
                                             return picker.providerDescription(providerRow.modelData)
                                         }
+                                        alignToUi: true
                                         color: providerRow.isConnected && picker.authorized ? Theme.success : Theme.inkMuted
                                         font.pixelSize: Theme.typeCaptionSize
                                         elide: Text.ElideRight
@@ -562,13 +565,14 @@ GenyDrawer {
                                 RowLayout {
                                     Layout.fillWidth: true
                                     spacing: Theme.space2
-                                    TextField {
+                                    DirectionAwareTextField {
                                         id: manualLinkedInField
                                         Layout.fillWidth: true
                                         implicitHeight: Theme.scaleUi(38)
                                         text: picker.manualLinkedInUrl
                                         placeholderText: "https://www.linkedin.com/in/username"
                                         inputMethodHints: Qt.ImhUrlCharactersOnly | Qt.ImhNoAutoUppercase
+                                        forceLeftToRight: true
                                         color: Theme.ink
                                         selectByMouse: true
                                         background: Rectangle {

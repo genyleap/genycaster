@@ -66,6 +66,7 @@ Flickable {
             Layout.fillWidth: true
             Layout.topMargin: Theme.space3
             spacing: Theme.space2
+            layoutDirection: Theme.uiDirection
             Icon { text: Theme.iconBookmark; color: Theme.accent; preferredSize: Theme.typeTitle2Size }
             DirectionAwareLabel {
                 Layout.fillWidth: true
@@ -84,6 +85,7 @@ Flickable {
         RowLayout {
             Layout.fillWidth: true
             spacing: Theme.space2
+            layoutDirection: Theme.uiDirection
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.bookmarks.description")
@@ -165,6 +167,7 @@ Flickable {
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Theme.space2
+                        layoutDirection: Theme.uiDirection
                         Avatar {
                             visible: Number(modelData.authorFid || 0) > 0
                             avatarSize: 35
@@ -178,6 +181,7 @@ Flickable {
                                 Layout.fillWidth: true
                                 text: String(modelData.displayName || modelData.author || "")
                                       || qsTrId("genycaster.bookmarks.saved_cast")
+                                alignToUi: true
                                 color: Theme.ink
                                 font.pixelSize: Theme.typeLabelSize
                                 font.weight: Theme.weightDemiBold
@@ -187,6 +191,7 @@ Flickable {
                                 Layout.fillWidth: true
                                 text: String(modelData.username || modelData.author || "")
                                       || String(modelData.castId || "").slice(0, 12) + "…"
+                                alignToUi: true
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 elide: Text.ElideRight
@@ -207,7 +212,7 @@ Flickable {
                     }
                     ActionButton {
                         visible: String(modelData.text || "").length === 0
-                        Layout.alignment: Qt.AlignLeft
+                        Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
                         quiet: true
                         compact: true
                         iconGlyph: Theme.iconArrowUpRight

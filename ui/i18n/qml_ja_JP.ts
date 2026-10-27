@@ -2,6 +2,10 @@
 <TS version="2.1" language="ja_JP" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.home.geny_token_title">
+            <source>GENY Token</source>
+            <translation>GENY Token</translation>
+        </message>
         <message id="genycaster.profile.extras_heading">
             <source>Additional Genycaster details</source>
             <translation>Additional Genycaster details</translation>
