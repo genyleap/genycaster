@@ -1384,6 +1384,7 @@ Item {
                                             items: openProofConnections.topicCastItems
                                             cachedRows: presentationBridge.rows
                                             hydratedRows: presentationBridge.topicPreviewCasts
+                                            bookmarkedRows: presentationBridge.bookmarkedCasts
                                             busy: openProofConnections.topicCastsBusy
                                             hasMore: openProofConnections.topicCastsHasMore
                                             errorText: openProofConnections.topicCastsError

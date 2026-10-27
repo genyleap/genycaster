@@ -52,3 +52,22 @@ test('bookmark collection creation keeps chooser open while the server confirms 
   assert.match(shell, /openProofConnections\.bookmarkCollectionsError\.length\)return/);
   assert.match(shell, /root\.assignSavedBookmark\(root\.bookmarkChoiceHash,String\(found\.id\)\)\s*bookmarkCollectionChooser\.close\(\)/);
 });
+
+test('topic pagination advances by raw server rows, not deduplicated cast count', () => {
+  const controller = read('ui/mobile/openproof_connections_controller.cpp');
+  const header = read('ui/mobile/openproof_connections_controller.hpp');
+  assert.match(header, /qsizetype m_topicCastOffset/);
+  assert.match(controller, /m_topicCastOffset=0;/);
+  assert.match(controller, /const auto offset=m_topicCastOffset;/);
+  assert.match(controller, /m_topicCastOffset=offset\+rows\.size\(\);/);
+  assert.match(controller, /m_topicCastsHasMore=rows\.size\(\)==pageSize;/);
+  assert.doesNotMatch(controller, /const auto offset=m_topicCastItems\.size\(\)/);
+});
+
+test('topic discovery reuses canonical quote previews and hydrated bookmark cards', () => {
+  assert.match(bridgeSource, /m_referencedPreviewCache\.constFind\(hash\)/);
+  assert.match(bridgeSource, /applyHydratedTopicCast\(hash, referenced\.value\(\)\)/);
+  assert.match(browse, /property var bookmarkedRows: \[\]/);
+  assert.match(browse, /source===2 && !Boolean\(item\.richHydrated\)/);
+  assert.match(shell, /bookmarkedRows: presentationBridge\.bookmarkedCasts/);
+});

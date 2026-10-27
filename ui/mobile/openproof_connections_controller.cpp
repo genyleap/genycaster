@@ -1838,6 +1838,7 @@ void OpenProofConnectionsController::clearCastTopic()
     m_activeCastTopic.clear();
     m_topicAuthorFid.clear();
     m_topicCastItems.clear();
+    m_topicCastOffset=0;
     m_topicCastsHasMore=false;
     m_topicCastsError.clear();
     emit topicCastsChanged();
@@ -1875,7 +1876,7 @@ void OpenProofConnectionsController::fetchTopicCastPage()
        || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl))
         return;
     constexpr int pageSize=30;
-    const auto offset=m_topicCastItems.size();
+    const auto offset=m_topicCastOffset;
     QUrl endpoint=m_cloudUrl;
     endpoint.setPath(QStringLiteral("/api/v1/cloud/topic_casts"));
     QUrlQuery query;
@@ -1899,7 +1900,7 @@ void OpenProofConnectionsController::fetchTopicCastPage()
     m_topicCastsError.clear();
     emit topicCastsChanged();
     connect(reply,&QNetworkReply::finished,this,
-            [this,reply,requestGeneration,viewer,currentTopic,offset] {
+            [this,reply,requestGeneration,viewer,currentTopic,offset,pageSize] {
         if(m_topicCastsRequest==reply)m_topicCastsRequest=nullptr;
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         if(requestGeneration!=m_topicCastsGeneration
@@ -1936,7 +1937,10 @@ void OpenProofConnectionsController::fetchTopicCastPage()
                         {QStringLiteral("author_fid"),
                          obj.value(QStringLiteral("author_fid")).toString()}});
                 }
-                m_topicCastsHasMore=rows.size()==30;
+                // The server offset counts raw rows. Invalid or duplicate hashes
+                // must not cause the next page to repeat this same window.
+                m_topicCastOffset=offset+rows.size();
+                m_topicCastsHasMore=rows.size()==pageSize;
             }
         }
         reply->deleteLater();

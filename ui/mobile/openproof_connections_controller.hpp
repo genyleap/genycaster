@@ -242,6 +242,7 @@ private:
     QPointer<QNetworkReply> m_topicSaveRequest{};
     QPointer<QNetworkReply> m_topicCastsRequest{};
     QVariantList m_topicCastItems{};
+    qsizetype m_topicCastOffset{}; // Raw server offset, independent of deduped display count.
     QString m_activeCastTopic{};
     QString m_topicAuthorFid{};
     QString m_topicCastsError{};

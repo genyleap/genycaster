@@ -12,6 +12,7 @@ Item {
     property var items: []
     property var cachedRows: []
     property var hydratedRows: []
+    property var bookmarkedRows: []
     property bool busy: false
     property bool hasMore: false
     property string errorText: ""
@@ -29,9 +30,13 @@ Item {
 
     function cachedCast(hash) {
         const key=String(hash || "").toLowerCase()
-        for (const rows of [root.hydratedRows || [], root.cachedRows || []]) {
+        const sources = [root.hydratedRows || [], root.cachedRows || [], root.bookmarkedRows || []]
+        for (let source=0;source<sources.length;source++) {
+            const rows=sources[source]
             for (let i=0;i<rows.length;i++) {
                 const item=rows[i] || ({})
+                if (source===2 && !Boolean(item.richHydrated))
+                    continue
                 if (String(item.castId || "").toLowerCase()===key)
                     return item
             }
@@ -65,6 +70,7 @@ Item {
     onItemsChanged: visibleHydrationTimer.restart()
     onHydratedRowsChanged: visibleHydrationTimer.restart()
     onCachedRowsChanged: visibleHydrationTimer.restart()
+    onBookmarkedRowsChanged: visibleHydrationTimer.restart()
 
     ColumnLayout {
         anchors.fill: parent

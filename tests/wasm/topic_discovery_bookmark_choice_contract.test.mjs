@@ -30,7 +30,7 @@ test('topic requests are protected from stale owner and stale topic results',()=
   assert.match(controller,/currentTopic!=m_activeCastTopic/);
   assert.match(controller,/m_topicCastsRequest->abort\(\)/);
   assert.match(controller,/body\.size\(\)>64\*1024/);
-  assert.match(controller,/m_topicCastsHasMore=rows\.size\(\)==30/);
+  assert.match(controller,/m_topicCastsHasMore=rows\.size\(\)==pageSize/);
   assert.match(controller,/clearCastTopic\(\);[\s\S]*?m_grantExpiry\.stop\(\)/);
 });
 test('topic picker uses catalog slugs and known translated topic labels',()=>{

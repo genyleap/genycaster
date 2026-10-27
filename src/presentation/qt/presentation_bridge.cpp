@@ -1161,6 +1161,16 @@ void PresentationBridge::hydrateTopicCasts(const QStringList& castIds)
             }
         }
         if (cached) continue;
+        // Reference previews share the read-service request pool. A hash
+        // already resolved as a quote/parent must be reused here rather
+        // than requesting it again from a pool that suppresses duplicates.
+        const auto referenced = m_referencedPreviewCache.constFind(hash);
+        if (referenced != m_referencedPreviewCache.cend()
+            && canonicalProtocolCastId(referenced.value().value(
+                QStringLiteral("castId")).toString()) == hash) {
+            applyHydratedTopicCast(hash, referenced.value());
+            continue;
+        }
         pending.push_back(hash);
         if (pending.size() >= 8) break;
     }
