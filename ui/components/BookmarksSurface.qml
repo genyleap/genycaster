@@ -24,7 +24,7 @@ Flickable {
     property string collectionEditorRevision: ""
     property string collectionEditorName: ""
     readonly property var collectionChoices: {
-        const result = [{ id: "", name: "All bookmarks" }]
+        const result = [{ id: "", name: qsTrId("genycaster.filters.all_bookmarks") }]
         const source = root.collections || []
         for(let i=0;i<Number(source.length || 0);++i) {
             const item=source[i] || ({})
@@ -145,13 +145,13 @@ Flickable {
 
     ContentFilterSheet {
         id: bookmarkFilterSheet
-        heading: "Filter bookmarks"
+        heading: qsTrId("genycaster.filters.bookmarks")
         sections: [
-            {id:"sort",title:"Sort",value:root.sortMode,defaultValue:"priority",
+            {id:"sort",title:qsTrId("genycaster.filters.sort"),value:root.sortMode,defaultValue:"priority",
              options:[{id:"priority",label:qsTrId("genycaster.bookmarks.sort_priority")},
                       {id:"newest",label:qsTrId("genycaster.bookmarks.sort_newest")},
                       {id:"oldest",label:qsTrId("genycaster.bookmarks.sort_oldest")}]},
-            {id:"collection",title:"Collections",value:root.selectedCollection,defaultValue:"",
+            {id:"collection",title:qsTrId("genycaster.filters.collections"),value:root.selectedCollection,defaultValue:"",
              options:root.collectionChoices.map(entry=>({id:entry.id,label:entry.name}))}
         ]
         onApplied: values => {
@@ -202,7 +202,7 @@ Flickable {
                 quiet: true
                 iconOnly: true
                 iconGlyph: "filter"
-                text: "Filter bookmarks"
+                text: qsTrId("genycaster.filters.bookmarks")
                 onClicked: bookmarkFilterSheet.open()
             }
             ActionButton {
@@ -279,7 +279,7 @@ Flickable {
             DirectionAwareLabel {
                 visible: !root.compact
                 Layout.fillWidth: true
-                text: "Collections"
+                text: qsTrId("genycaster.filters.collections")
                 color: Theme.textSecondary
                 font.pixelSize: Theme.typeMetaSize
             }
@@ -327,8 +327,11 @@ Flickable {
         DirectionAwareLabel {
             visible: root.compact
             Layout.fillWidth: true
-            text: (root.activeCollectionEntry ? String(root.activeCollectionEntry.name) : "All bookmarks")
-                  + " · " + (root.sortMode === "priority" ? "Priority" : root.sortMode === "oldest" ? "Oldest" : "Newest")
+            text: (root.activeCollectionEntry ? String(root.activeCollectionEntry.name)
+                   : qsTrId("genycaster.filters.all_bookmarks"))
+                  + " · " + (root.sortMode === "priority" ? qsTrId("genycaster.bookmarks.sort_priority")
+                          : root.sortMode === "oldest" ? qsTrId("genycaster.bookmarks.sort_oldest")
+                                                      : qsTrId("genycaster.bookmarks.sort_newest"))
             color: Theme.textSecondary
             font.pixelSize: Theme.typeMetaSize
             elide: Text.ElideRight

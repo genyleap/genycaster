@@ -58,6 +58,8 @@ Item {
     property bool applyingGeometryAnchor: false
     property bool previewSyncPending: false
     property string presentationMode: "for-you"
+    property bool topicFilterActive: false
+    property string topicFilterSlug: ""
     property string visualFilter: "nfts"
     property int forYouPrefetchPages: 0
     property int visualPrefetchPages: 0
@@ -530,9 +532,12 @@ Item {
         const result = []
         for (let index = 0; index < source.length; ++index) {
             const row = source[index]
-            if (!root.rowMatchesSignerFilter(row) || !root.rowMatchesAppFilter(row))
+            if (!root.topicFilterActive
+                    && (!root.rowMatchesSignerFilter(row) || !root.rowMatchesAppFilter(row)))
                 continue
-            if ((root.presentationMode === "for-you" || root.presentationMode === "following")) {
+            if (root.topicFilterActive) {
+                result.push({payload: row, presentationKind: "conversation"})
+            } else if ((root.presentationMode === "for-you" || root.presentationMode === "following")) {
                 // The main Explorer timeline is a complete, provider-ordered
                 // stream of recent root casts, not a residual bucket after
                 // NFT/Devs/Conversation classification. Filtering those out
@@ -1033,6 +1038,7 @@ Item {
     }
 
     onRowsChanged: root.deferFeedWork(true, false, true)
+    onTopicFilterActiveChanged: root.deferFeedWork(true, false, true)
     onSupplementalRowsChanged: {
         if (root.presentationMode === "visuals")
             root.deferFeedWork(true, true, false)
@@ -1327,7 +1333,7 @@ Item {
             // first cast can never slide underneath it. The visible banner is a
             // viewport overlay that tracks this slot until it reaches the top,
             // then remains pinned while older posts continue scrolling.
-            implicitHeight: feedHeaderLoader.implicitHeight + communityNotice.height
+            implicitHeight: feedHeaderLoader.implicitHeight + topicFilterNotice.height + communityNotice.height
                             + localRecentNotice.height + signerFilterBar.height + appFilterBar.height
                             + newPostsSlot.height
             z: 20
@@ -1354,10 +1360,28 @@ Item {
             }
 
             DirectionAwareLabel {
-                id: communityNotice
+                id: topicFilterNotice
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: feedHeaderLoader.bottom
+                anchors.leftMargin: Theme.mobileGutter
+                anchors.rightMargin: Theme.mobileGutter
+                height: visible ? implicitHeight + Theme.space3 : 0
+                visible: root.topicFilterActive
+                text: qsTrId("genycaster.filters.topic_results") + " · "
+                      + root.topicFilterSlug.replace(/-/g," ")
+                color: Theme.accent
+                font.pixelSize: Theme.typeMetaSize
+                font.weight: Theme.weightDemiBold
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Theme.textStartAlignment
+            }
+
+            DirectionAwareLabel {
+                id: communityNotice
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: topicFilterNotice.bottom
                 height: visible ? 36 : 0
                 visible: root.communityFallback && root.activeFeed === "trending" && !root.socialMode
                 text: qsTrId("genycaster.feed.trending_is_temporarily_unavailable_showing_live_community_posts_instead")

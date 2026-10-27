@@ -2,6 +2,74 @@
 <TS version="2.1" language="ja_JP" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.filters.title">
+            <source>Filters</source>
+            <translation>フィルター</translation>
+        </message>
+        <message id="genycaster.filters.explorer">
+            <source>Explore filters</source>
+            <translation>探索フィルター</translation>
+        </message>
+        <message id="genycaster.filters.profile">
+            <source>Profile cast filters</source>
+            <translation>プロフィール投稿のフィルター</translation>
+        </message>
+        <message id="genycaster.filters.bookmarks">
+            <source>Bookmark filters</source>
+            <translation>ブックマークのフィルター</translation>
+        </message>
+        <message id="genycaster.filters.topic">
+            <source>Topic filters</source>
+            <translation>トピックのフィルター</translation>
+        </message>
+        <message id="genycaster.filters.audience">
+            <source>Audience</source>
+            <translation>閲覧対象</translation>
+        </message>
+        <message id="genycaster.filters.content">
+            <source>Content type</source>
+            <translation>コンテンツの種類</translation>
+        </message>
+        <message id="genycaster.filters.sort">
+            <source>Sort by</source>
+            <translation>並べ替え</translation>
+        </message>
+        <message id="genycaster.filters.collections">
+            <source>Collections</source>
+            <translation>コレクション</translation>
+        </message>
+        <message id="genycaster.filters.all_topics">
+            <source>All topics</source>
+            <translation>すべてのトピック</translation>
+        </message>
+        <message id="genycaster.filters.all_bookmarks">
+            <source>All bookmarks</source>
+            <translation>すべてのブックマーク</translation>
+        </message>
+        <message id="genycaster.filters.clear_all">
+            <source>Clear all</source>
+            <translation>すべてクリア</translation>
+        </message>
+        <message id="genycaster.filters.apply">
+            <source>Apply filters</source>
+            <translation>フィルターを適用</translation>
+        </message>
+        <message id="genycaster.filters.hint">
+            <source>Choose filters, then apply to update this list.</source>
+            <translation>フィルターを選んで適用すると一覧が更新されます。</translation>
+        </message>
+        <message id="genycaster.filters.audience_hint">
+            <source>Audience applies when no topic is selected.</source>
+            <translation>閲覧対象はトピック未選択時に適用されます。</translation>
+        </message>
+        <message id="genycaster.filters.selection_hint">
+            <source>Choose one option per group.</source>
+            <translation>各グループから1つ選択してください。</translation>
+        </message>
+        <message id="genycaster.filters.topic_results">
+            <source>Filtered by topic</source>
+            <translation>トピックで絞り込み中</translation>
+        </message>
         <message id="genycaster.topic.art">
             <source>Art</source>
             <translation>アート</translation>

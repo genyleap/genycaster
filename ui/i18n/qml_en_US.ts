@@ -2,6 +2,74 @@
 <TS version="2.1" language="en_US" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.filters.title">
+            <source>Filters</source>
+            <translation>Filters</translation>
+        </message>
+        <message id="genycaster.filters.explorer">
+            <source>Explore filters</source>
+            <translation>Explore filters</translation>
+        </message>
+        <message id="genycaster.filters.profile">
+            <source>Profile cast filters</source>
+            <translation>Profile cast filters</translation>
+        </message>
+        <message id="genycaster.filters.bookmarks">
+            <source>Bookmark filters</source>
+            <translation>Bookmark filters</translation>
+        </message>
+        <message id="genycaster.filters.topic">
+            <source>Topic filters</source>
+            <translation>Topic filters</translation>
+        </message>
+        <message id="genycaster.filters.audience">
+            <source>Audience</source>
+            <translation>Audience</translation>
+        </message>
+        <message id="genycaster.filters.content">
+            <source>Content type</source>
+            <translation>Content type</translation>
+        </message>
+        <message id="genycaster.filters.sort">
+            <source>Sort by</source>
+            <translation>Sort by</translation>
+        </message>
+        <message id="genycaster.filters.collections">
+            <source>Collections</source>
+            <translation>Collections</translation>
+        </message>
+        <message id="genycaster.filters.all_topics">
+            <source>All topics</source>
+            <translation>All topics</translation>
+        </message>
+        <message id="genycaster.filters.all_bookmarks">
+            <source>All bookmarks</source>
+            <translation>All bookmarks</translation>
+        </message>
+        <message id="genycaster.filters.clear_all">
+            <source>Clear all</source>
+            <translation>Clear all</translation>
+        </message>
+        <message id="genycaster.filters.apply">
+            <source>Apply filters</source>
+            <translation>Apply filters</translation>
+        </message>
+        <message id="genycaster.filters.hint">
+            <source>Choose filters, then apply to update this list.</source>
+            <translation>Choose filters, then apply to update this list.</translation>
+        </message>
+        <message id="genycaster.filters.audience_hint">
+            <source>Audience applies when no topic is selected.</source>
+            <translation>Audience applies when no topic is selected.</translation>
+        </message>
+        <message id="genycaster.filters.selection_hint">
+            <source>Choose one option per group.</source>
+            <translation>Choose one option per group.</translation>
+        </message>
+        <message id="genycaster.filters.topic_results">
+            <source>Filtered by topic</source>
+            <translation>Filtered by topic</translation>
+        </message>
         <message id="genycaster.topic.art">
             <source>Art</source>
             <translation>Art</translation>

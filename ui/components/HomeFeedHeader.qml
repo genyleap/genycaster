@@ -264,7 +264,7 @@ Item {
                 quiet: true
                 iconOnly: true
                 iconGlyph: "filter"
-                text: "Filter Explorer"
+                text: qsTrId("genycaster.filters.explorer")
                 onClicked: root.filterRequested()
             }
         }

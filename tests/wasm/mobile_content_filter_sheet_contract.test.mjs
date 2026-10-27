@@ -27,7 +27,7 @@ test('Explorer uses the same responsive filter drawer on desktop and mobile',()=
   assert.match(header, /objectName: "explorerFilterTrigger"/);
   assert.match(header, /onClicked: root\.filterRequested\(\)/);
   assert.match(header, /ContentTabs \{[\s\S]*?ActionButton \{/);
-  assert.match(shell, /root\.chooseExplorerAudience\(String\(values\.audience/);
+  assert.match(shell, /root\.chooseExplorerAudience\(values\.topic \? "all"/);
   assert.match(shell, /root\.openTopicBrowser\(String\(values\.topic\),"explorer",0\)/);
 });
 test('Profile and topic discovery use the same filter action across screen sizes',()=>{

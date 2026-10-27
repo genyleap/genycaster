@@ -2,6 +2,74 @@
 <TS version="2.1" language="ko_KR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.filters.title">
+            <source>Filters</source>
+            <translation>필터</translation>
+        </message>
+        <message id="genycaster.filters.explorer">
+            <source>Explore filters</source>
+            <translation>탐색 필터</translation>
+        </message>
+        <message id="genycaster.filters.profile">
+            <source>Profile cast filters</source>
+            <translation>프로필 게시물 필터</translation>
+        </message>
+        <message id="genycaster.filters.bookmarks">
+            <source>Bookmark filters</source>
+            <translation>북마크 필터</translation>
+        </message>
+        <message id="genycaster.filters.topic">
+            <source>Topic filters</source>
+            <translation>주제 필터</translation>
+        </message>
+        <message id="genycaster.filters.audience">
+            <source>Audience</source>
+            <translation>공개 대상</translation>
+        </message>
+        <message id="genycaster.filters.content">
+            <source>Content type</source>
+            <translation>콘텐츠 유형</translation>
+        </message>
+        <message id="genycaster.filters.sort">
+            <source>Sort by</source>
+            <translation>정렬 기준</translation>
+        </message>
+        <message id="genycaster.filters.collections">
+            <source>Collections</source>
+            <translation>컬렉션</translation>
+        </message>
+        <message id="genycaster.filters.all_topics">
+            <source>All topics</source>
+            <translation>모든 주제</translation>
+        </message>
+        <message id="genycaster.filters.all_bookmarks">
+            <source>All bookmarks</source>
+            <translation>모든 북마크</translation>
+        </message>
+        <message id="genycaster.filters.clear_all">
+            <source>Clear all</source>
+            <translation>모두 지우기</translation>
+        </message>
+        <message id="genycaster.filters.apply">
+            <source>Apply filters</source>
+            <translation>필터 적용</translation>
+        </message>
+        <message id="genycaster.filters.hint">
+            <source>Choose filters, then apply to update this list.</source>
+            <translation>필터를 선택한 뒤 적용하면 목록이 갱신됩니다.</translation>
+        </message>
+        <message id="genycaster.filters.audience_hint">
+            <source>Audience applies when no topic is selected.</source>
+            <translation>대상은 주제를 선택하지 않았을 때 적용됩니다.</translation>
+        </message>
+        <message id="genycaster.filters.selection_hint">
+            <source>Choose one option per group.</source>
+            <translation>그룹마다 한 가지를 선택하세요.</translation>
+        </message>
+        <message id="genycaster.filters.topic_results">
+            <source>Filtered by topic</source>
+            <translation>주제로 필터링됨</translation>
+        </message>
         <message id="genycaster.topic.art">
             <source>Art</source>
             <translation>예술</translation>

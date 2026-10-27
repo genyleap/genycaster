@@ -90,15 +90,15 @@ Item {
 
     ContentFilterSheet {
         id: topicFilterSheet
-        heading: "Filter topics"
+        heading: qsTrId("genycaster.filters.topic")
         sections: {
-            const options=[{id:"",label:"All topics"}]
+            const options=[{id:"",label:qsTrId("genycaster.filters.all_topics")}]
             for (const entry of root.topics || []) {
                 const slug=String(entry.slug || "")
                 if (/^[a-z][a-z0-9-]{1,63}$/.test(slug))
                     options.push({id:slug,label:root.topicTitleFor(slug)})
             }
-            return [{id:"topic",title:"Topics",value:root.topicSlug,defaultValue:"",
+            return [{id:"topic",title:qsTrId("genycaster.topics.label"),value:root.topicSlug,defaultValue:"",
                      options:options}]
         }
         onApplied: values => {
@@ -141,7 +141,7 @@ Item {
                 compact: true
                 iconOnly: true
                 iconGlyph: "filter"
-                text: "Filter topics"
+                text: qsTrId("genycaster.filters.topic")
                 onClicked: topicFilterSheet.open()
             }
             TopicFilterPicker {

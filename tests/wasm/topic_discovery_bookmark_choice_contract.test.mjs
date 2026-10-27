@@ -18,8 +18,8 @@ test('Explorer and Profile use authenticated server-indexed topic cast retrieval
   assert.match(controller,/QStringLiteral\("author_fid"\)/);
   assert.match(controller,/QStringLiteral\("offset"\)/);
   assert.match(header,/Q_PROPERTY\(QVariantList topicCastItems/);
-  assert.match(shell,/onTopicRequested: \(slug,fid\) => root\.openTopicBrowser\(slug,"profile",fid\)/);
-  assert.match(shell,/onTopicRequested: slug => root\.openTopicBrowser\(slug,"explorer",0\)/);
+  assert.match(shell,/if\(slug\) root\.openTopicBrowser\(slug,"profile",fid\)/);
+  assert.match(shell,/root\.openTopicBrowser\(String\(values\.topic\),"explorer",0\)/);
   assert.match(profile,/root\.topicRequested\(slug,Number\(root\.activeDetail\.fid \|\| 0\)\)/);
   assert.match(browse,/model: root\.items \|\| \[\]/);
   assert.match(browse,/onClicked: root\.castRequested\(row\.hash\)/);

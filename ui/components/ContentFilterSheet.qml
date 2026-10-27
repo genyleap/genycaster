@@ -2,12 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-// Shared filter presentation: one selection model, adaptive sheet on phones,
-// edge drawer on desktops. Dismiss never commits staged selections.
+// Product-owned adaptive filter editor. Selections are staged until Apply.
+// Group cards share the same semantics on mobile (sheet) and desktop (drawer).
 GenyDrawer {
     id: root
     objectName: "contentFilterSheet"
-    property string heading: "Filters"
+    property string heading: qsTrId("genycaster.filters.title")
     property var sections: []
     property var draft: ({})
     signal applied(var values)
@@ -46,18 +46,30 @@ GenyDrawer {
 
     contentItem: ColumnLayout {
         spacing: Theme.space3
+
         RowLayout {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             spacing: Theme.space2
-            DirectionAwareLabel {
+            ColumnLayout {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                text: root.heading
-                color: Theme.textPrimary
-                font.pixelSize: Theme.typeTitle2Size
-                font.weight: Theme.weightBold
-                elide: Text.ElideRight
+                spacing: Theme.space1
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: root.heading
+                    color: Theme.textPrimary
+                    font.pixelSize: Theme.typeTitle2Size
+                    font.weight: Theme.weightBold
+                    elide: Text.ElideRight
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.filters.hint")
+                    color: Theme.textSecondary
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                }
             }
             ActionButton {
                 iconOnly: true
@@ -70,9 +82,8 @@ GenyDrawer {
             }
         }
 
-        // Explicit contentHeight is essential here. The former ScrollView +
-        // ColumnLayout + Flow left its Flickable at zero content height on iOS
-        // WebAssembly, showing only the header and Apply/Clear footer.
+        // Give the content area an explicit height contract; a nested
+        // ScrollView/ColumnLayout previously yielded a blank mobile sheet.
         Flickable {
             id: filterScroller
             objectName: "contentFilterOptions"
@@ -87,65 +98,115 @@ GenyDrawer {
             Column {
                 id: filterGroups
                 width: filterScroller.width
-                spacing: Theme.space4
+                spacing: Theme.space3
 
                 Repeater {
                     model: root.sections || []
-                    delegate: Column {
+                    delegate: Superellipse {
                         id: sectionGroup
                         required property var modelData
+                        required property int index
                         width: filterGroups.width
-                        spacing: Theme.space3
+                        height: sectionContent.implicitHeight + Theme.space3 * 2
+                        fillColor: Theme.surfaceMuted
+                        borderWidth: Theme.strokeHairline
+                        borderColor: Theme.borderSubtle
+                        curveDepth: Theme.curveContainer
 
-                        DirectionAwareLabel {
-                            width: parent.width
-                            text: String(sectionGroup.modelData.title || "")
-                            color: Theme.textPrimary
-                            font.pixelSize: Theme.typeBodySize
-                            font.weight: Theme.weightDemiBold
-                        }
-                        Flow {
-                            width: parent.width
-                            spacing: Theme.space2
-                            layoutDirection: Theme.uiDirection
+                        Column {
+                            id: sectionContent
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.leftMargin: Theme.space3
+                            anchors.rightMargin: Theme.space3
+                            anchors.topMargin: Theme.space3
+                            spacing: Theme.space3
 
-                            Repeater {
-                                model: sectionGroup.modelData.options || []
-                                delegate: Button {
-                                    id: chip
-                                    required property var modelData
-                                    readonly property string filterKey:
-                                        String(sectionGroup.modelData.id || "")
-                                    readonly property string optionId:
-                                        String(modelData.id || "")
-                                    readonly property bool chosen:
-                                        String(root.draft[filterKey] || "") === optionId
-                                    implicitWidth: Math.max(88,
-                                        chipText.implicitWidth + Theme.space4 * 2)
-                                    implicitHeight: 44
-                                    Accessible.name: String(modelData.label || "")
-                                    Accessible.role: Accessible.RadioButton
-                                    Accessible.checked: chosen
-                                    onClicked: root.choose(filterKey, optionId)
-                                    background: Superellipse {
-                                        fillColor: chip.chosen ? Theme.primarySurface
-                                                              : Theme.surfaceRaised
-                                        borderWidth: chip.chosen ? 2 : Theme.strokeHairline
-                                        borderColor: chip.chosen ? Theme.accent
-                                                                 : Theme.borderDefault
-                                        curveDepth: height / 2
+                            RowLayout {
+                                width: parent.width
+                                layoutDirection: Theme.uiDirection
+                                spacing: Theme.space2
+
+                                Superellipse {
+                                    Layout.preferredWidth: 32
+                                    Layout.preferredHeight: 32
+                                    fillColor: Theme.primarySurface
+                                    curveDepth: 12
+                                    DirectionAwareLabel {
+                                        anchors.centerIn: parent
+                                        text: String(sectionGroup.index + 1)
+                                        color: Theme.accent
+                                        font.pixelSize: Theme.typeMetaSize
+                                        font.weight: Theme.weightBold
                                     }
-                                    contentItem: DirectionAwareLabel {
-                                        id: chipText
-                                        text: String(chip.modelData.label || "")
-                                        color: chip.chosen ? Theme.accent
-                                                           : Theme.textPrimary
-                                        font.pixelSize: Theme.typeBodySize
-                                        font.weight: chip.chosen
-                                                     ? Theme.weightDemiBold
-                                                     : Theme.weightMedium
-                                        horizontalAlignment: Text.AlignHCenter
-                                        verticalAlignment: Text.AlignVCenter
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
+                                    text: String(sectionGroup.modelData.title || "")
+                                    color: Theme.textPrimary
+                                    font.pixelSize: Theme.typeBodySize
+                                    font.weight: Theme.weightDemiBold
+                                    elide: Text.ElideRight
+                                }
+                                Icon {
+                                    text: Theme.iconCheck
+                                    color: Theme.accent
+                                    preferredSize: Theme.iconSize
+                                }
+                            }
+                            DirectionAwareLabel {
+                                width: parent.width
+                                visible: String(sectionGroup.modelData.hint || "").length > 0
+                                text: String(sectionGroup.modelData.hint || "")
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.WordWrap
+                            }
+                            Flow {
+                                width: parent.width
+                                spacing: Theme.space2
+                                layoutDirection: Theme.uiDirection
+                                Repeater {
+                                    model: sectionGroup.modelData.options || []
+                                    delegate: Button {
+                                        id: chip
+                                        required property var modelData
+                                        readonly property string filterKey:
+                                            String(sectionGroup.modelData.id || "")
+                                        readonly property string optionId:
+                                            String(modelData.id || "")
+                                        readonly property bool chosen:
+                                            String(root.draft[filterKey] || "") === optionId
+                                        implicitWidth: Math.max(88,
+                                            chipText.implicitWidth + Theme.space4 * 2)
+                                        implicitHeight: 44
+                                        Accessible.name: String(modelData.label || "")
+                                        Accessible.role: Accessible.RadioButton
+                                        Accessible.checked: chosen
+                                        onClicked: root.choose(filterKey, optionId)
+                                        background: Superellipse {
+                                            fillColor: chip.chosen ? Theme.primarySurface
+                                                                  : Theme.surfaceRaised
+                                            borderWidth: chip.chosen ? 2 : Theme.strokeHairline
+                                            borderColor: chip.chosen ? Theme.accent
+                                                                     : Theme.borderDefault
+                                            curveDepth: height / 2
+                                        }
+                                        contentItem: DirectionAwareLabel {
+                                            id: chipText
+                                            text: String(chip.modelData.label || "")
+                                            color: chip.chosen ? Theme.accent
+                                                               : Theme.textPrimary
+                                            font.pixelSize: Theme.typeBodySize
+                                            font.weight: chip.chosen
+                                                         ? Theme.weightDemiBold
+                                                         : Theme.weightMedium
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
+                                            elide: Text.ElideRight
+                                        }
                                     }
                                 }
                             }
@@ -165,14 +226,14 @@ GenyDrawer {
             Layout.minimumWidth: 0
             spacing: Theme.space2
             ActionButton {
-                text: "Clear all"
+                text: qsTrId("genycaster.filters.clear_all")
                 quiet: true
                 Layout.preferredHeight: 48
                 onClicked: root.clearDraft()
             }
             Item { Layout.fillWidth: true }
             ActionButton {
-                text: "Apply filters"
+                text: qsTrId("genycaster.filters.apply")
                 prominent: true
                 Layout.preferredHeight: 48
                 onClicked: {

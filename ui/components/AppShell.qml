@@ -233,6 +233,70 @@ Item {
     property string topicBrowseScope: ""
     property string topicBrowseSlug: ""
     property string topicBrowseAuthorFid: ""
+    // Server-confirmed topic memberships are projected into the existing
+    // Explorer/Profile cast lists. They never replace the navigation surface.
+    property var topicHydrationAttempted: ({})
+    function topicInlineRows() {
+        if (!root.topicBrowseActive) return []
+        const available = Object.create(null)
+        for (const source of [presentationBridge.topicPreviewCasts || [],
+                              presentationBridge.rows || [],
+                              presentationBridge.bookmarkedCasts || []]) {
+            for (const cast of source) {
+                const hash = String(cast.castId || "").toLowerCase()
+                if (/^0x[0-9a-f]{40}$/.test(hash)
+                    && !available[hash] && (cast.richHydrated !== false))
+                    available[hash] = cast
+            }
+        }
+        const selected = []
+        for (const membership of openProofConnections.topicCastItems || []) {
+            const hash = String(membership.cast_hash || "").toLowerCase()
+            if (available[hash]) selected.push(available[hash])
+        }
+        return selected
+    }
+    function hydrateInlineTopicCasts() {
+        if (!root.topicBrowseActive) return
+        const pending = []
+        for (const membership of openProofConnections.topicCastItems || []) {
+            const hash = String(membership.cast_hash || "").toLowerCase()
+            if (!/^0x[0-9a-f]{40}$/.test(hash)
+                || root.topicHydrationAttempted[hash]) continue
+            root.topicHydrationAttempted[hash] = true
+            pending.push(hash)
+            if (pending.length >= 8) break
+        }
+        if (pending.length > 0)
+            presentationBridge.hydrateTopicCasts(pending)
+    }
+    Timer {
+        id: inlineTopicHydration
+        interval: 240
+        repeat: false
+        onTriggered: root.hydrateInlineTopicCasts()
+    }
+    Connections {
+        target: openProofConnections
+        function onTopicCastsChanged() { inlineTopicHydration.restart() }
+    }
+    Connections {
+        target: presentationBridge
+        function onTopicPreviewCastsChanged() {
+            if (root.topicBrowseActive) inlineTopicHydration.restart()
+        }
+        function onStateChanged() {
+            if (root.topicBrowseActive && root.topicBrowseScope==="profile") {
+                const fid=Number(presentationBridge.detail.fid || 0)
+                if (fid>0 && fid!==Number(root.topicBrowseAuthorFid || 0))
+                    root.closeTopicBrowser()
+            }
+        }
+        function onAuthenticationStateChanged() {
+            if (!presentationBridge.isAuthenticated && root.topicBrowseActive)
+                root.closeTopicBrowser()
+        }
+    }
     function openTopicBrowser(slug, scope, authorFid) {
         const chosen=String(slug || "")
         if(!chosen.length) {root.closeTopicBrowser();return}
@@ -246,10 +310,13 @@ Item {
         root.topicBrowseAuthorFid=Number(authorFid || 0)>0
                                  ? String(Math.floor(authorFid)) : ""
         root.topicBrowseActive=true
+        root.topicHydrationAttempted=({})
         openProofConnections.selectCastTopic(chosen,root.topicBrowseAuthorFid)
     }
     function closeTopicBrowser() {
         root.topicBrowseActive=false
+        root.topicHydrationAttempted=({})
+        inlineTopicHydration.stop()
         root.topicBrowseSlug=""
         root.topicBrowseScope=""
         root.topicBrowseAuthorFid=""
@@ -260,8 +327,9 @@ Item {
             root.closeTopicBrowser()
     }
     onPrimaryDestinationChanged: {
-        if(root.topicBrowseActive && root.topicBrowseScope==="explorer"
-           && root.primaryDestination!=="explorer")
+        if (root.topicBrowseActive
+            && ((root.topicBrowseScope==="explorer" && root.primaryDestination!=="explorer")
+                || (root.topicBrowseScope==="profile" && root.primaryDestination==="explorer")))
             root.closeTopicBrowser()
     }
     property string explorerPresentationMode: "for-you"
@@ -1305,7 +1373,7 @@ Item {
                                                                              && !(presentationBridge.activeView === "feed"
                                                                                   && root.primaryDestination === "home")
                                     active: surfaceRequested || item !== null
-                                    visible: surfaceRequested && !root.topicBrowseActive
+                                    visible: surfaceRequested
                                     opacity: visible ? 1.0 : 0.0
                                     scale: visible ? 1.0 : 0.99
                                     transform: Translate {
@@ -1325,7 +1393,8 @@ Item {
                                     sourceComponent: Component {
                                         FeedSurface {
                                             presentationActive: feedSurfaceLoader.surfaceRequested
-                                            rows: presentationBridge.rows
+                                            rows: root.topicBrowseActive && root.topicBrowseScope==="explorer"
+                                                  ? root.topicInlineRows() : presentationBridge.rows
                                             // Explorer semantics classify only the live primary feed.
                                             // The legacy art supplement can remain cached for a whole
                                             // session and is therefore intentionally excluded here.
@@ -1333,16 +1402,22 @@ Item {
                                             supplementalBusy: false
                                             runtimeReady: presentationBridge.runtimeReady
                                             socialMode: presentationBridge.activeView !== "feed"
-                                            busy: presentationBridge.isBusy
-                                            hasMore: presentationBridge.hasMore
+                                            busy: root.topicBrowseActive && root.topicBrowseScope==="explorer"
+                                                  ? openProofConnections.topicCastsBusy : presentationBridge.isBusy
+                                            hasMore: root.topicBrowseActive && root.topicBrowseScope==="explorer"
+                                                     ? openProofConnections.topicCastsHasMore : presentationBridge.hasMore
                                             cachedMore: presentationBridge.cachedFeedHasMore
                                             offline: presentationBridge.isOffline
                                             sourceUnavailable: presentationBridge.sourceUnavailable
-                                            errorText: presentationBridge.errorText
+                                            errorText: root.topicBrowseActive && root.topicBrowseScope==="explorer"
+                                                       ? openProofConnections.topicCastsError : presentationBridge.errorText
                                             activeFeed: presentationBridge.activeFeed
                                             communityFallback: presentationBridge.communityFallback
                                             localDerivedRecent: presentationBridge.localDerivedRecent
                                             localDerivedFollowing: presentationBridge.localDerivedFollowing
+                                            topicFilterActive: root.topicBrowseActive
+                                                               && root.topicBrowseScope==="explorer"
+                                            topicFilterSlug: root.topicBrowseSlug
                                             presentationMode: root.primaryDestination === "explorer"
                                                               ? root.explorerPresentationMode : root.homePresentationMode
                                             visualFilter: root.primaryDestination === "explorer"
@@ -1366,13 +1441,23 @@ Item {
                                                 presentationBridge.setReaction(kind, Number(cast.authorFid || 0), String(cast.castId || ""), active)
                                             onRemoveCastRequested: cast =>
                                                 presentationBridge.removeCast(Number(cast.authorFid || 0), String(cast.castId || ""))
-                                            onLoadMoreRequested: presentationBridge.loadMore()
-                                            onRefreshRequested: root.primaryDestination === "explorer"
+                                            onLoadMoreRequested: {
+                                                if(root.topicBrowseActive && root.topicBrowseScope==="explorer")
+                                                    openProofConnections.loadMoreTopicCasts()
+                                                else presentationBridge.loadMore()
+                                            }
+                                            onRefreshRequested: root.topicBrowseActive && root.topicBrowseScope==="explorer"
+                                                ? openProofConnections.selectCastTopic(root.topicBrowseSlug,
+                                                    root.topicBrowseAuthorFid)
+                                                : root.primaryDestination === "explorer"
                                                 ? presentationBridge.refreshLatestFeed() : presentationBridge.retry()
                                             onRevealPendingPostsRequested: presentationBridge.revealPendingPosts()
                                             onExternalRequested: url => root.openCastTextLink(url)
                                             onMediaRequested: (mediaItems, index) => mediaGallery.openAt(mediaItems, index)
-                                            onRetryRequested: root.primaryDestination === "explorer"
+                                            onRetryRequested: root.topicBrowseActive && root.topicBrowseScope==="explorer"
+                                                ? openProofConnections.selectCastTopic(root.topicBrowseSlug,
+                                                    root.topicBrowseAuthorFid)
+                                                : root.primaryDestination === "explorer"
                                                 ? presentationBridge.refreshLatestFeed() : presentationBridge.retry()
                                             onIdentityRequested: presentationBridge.selectFeed("trending")
                                             onFollowingRequested: presentationBridge.selectFeed("following")
@@ -1391,7 +1476,7 @@ Item {
 
                                 Loader {
                                     id: topicBrowseLoader
-                                    active: root.topicBrowseActive && root.shellRoute.length===0
+                                    active: false && root.topicBrowseActive && root.shellRoute.length===0
                                             && (presentationBridge.activeView==="feed"
                                                 || presentationBridge.activeView==="profile")
                                     visible: active
@@ -1438,7 +1523,7 @@ Item {
                                     readonly property bool surfaceRequested: root.shellRoute.length === 0
                                                                              && presentationBridge.activeView === "profile"
                                     active: surfaceRequested || item !== null
-                                    visible: surfaceRequested && !root.topicBrowseActive
+                                    visible: surfaceRequested
                                     opacity: visible ? 1.0 : 0.0
                                     scale: visible ? 1.0 : 0.99
                                     transform: Translate {
@@ -1458,17 +1543,29 @@ Item {
                                     sourceComponent: Component {
                                         ProfileSurface {
                                             detail: presentationBridge.detail
-                                            rows: presentationBridge.rows
+                                            rows: root.topicBrowseActive && root.topicBrowseScope==="profile"
+                                                  ? root.topicInlineRows() : presentationBridge.rows
+                                            topicFilterActive: root.topicBrowseActive && root.topicBrowseScope==="profile"
+                                            topicFilterSlug: root.topicBrowseSlug
+                                            topicFilterBusy: openProofConnections.topicCastsBusy
+                                            topicFilterHasMore: openProofConnections.topicCastsHasMore
                                             profileFeed: presentationBridge.profileFeed
                                             topicCatalog: openProofConnections.topicCatalog
-                                            onTopicRequested: (slug,fid) => root.openTopicBrowser(slug,"profile",fid)
+                                            onTopicRequested: (slug,fid) => {
+                                                if(slug) root.openTopicBrowser(slug,"profile",fid)
+                                                else if(root.topicBrowseActive && root.topicBrowseScope==="profile")
+                                                    root.closeTopicBrowser()
+                                            }
                                             runtimeReady: presentationBridge.runtimeReady
                                             compact: root.compact
-                                            busy: presentationBridge.isBusy
-                                            hasMore: presentationBridge.hasMore
+                                            busy: root.topicBrowseActive && root.topicBrowseScope==="profile"
+                                                  ? openProofConnections.topicCastsBusy : presentationBridge.isBusy
+                                            hasMore: root.topicBrowseActive && root.topicBrowseScope==="profile"
+                                                     ? openProofConnections.topicCastsHasMore : presentationBridge.hasMore
                                             offline: presentationBridge.isOffline
                                             sourceUnavailable: presentationBridge.sourceUnavailable
-                                            errorText: presentationBridge.errorText
+                                            errorText: root.topicBrowseActive && root.topicBrowseScope==="profile"
+                                                       ? openProofConnections.topicCastsError : presentationBridge.errorText
                                             interactionsAvailable: presentationBridge.isAuthenticated
                                                                    && presentationBridge.writeReady
                                                                    && !presentationBridge.writeBusy
@@ -1478,7 +1575,11 @@ Item {
                                             onFollowersRequested: presentationBridge.openFollowers()
                                             onFollowingRequested: presentationBridge.openFollowing()
                                             onRefreshRequested: presentationBridge.selectProfileFeed(presentationBridge.profileFeed)
-                                            onProfileFeedRequested: feed => presentationBridge.selectProfileFeed(feed)
+                                            onProfileFeedRequested: feed => {
+                                                if(root.topicBrowseActive && root.topicBrowseScope==="profile")
+                                                    root.closeTopicBrowser()
+                                                presentationBridge.selectProfileFeed(feed)
+                                            }
                                             onCastRequested: castId => presentationBridge.openCast(castId)
                                             onProfileRequested: fid => presentationBridge.openProfileFid(fid)
                                             onReplyRequested: cast => root.openComposer(cast)
@@ -1492,7 +1593,11 @@ Item {
                                             onExternalRequested: url => root.openCastTextLink(url)
                                             onMediaRequested: (mediaItems, index) => mediaGallery.openAt(mediaItems, index)
                                             onAuthenticationRequested: root.openAccountPopup()
-                                            onLoadMoreRequested: presentationBridge.loadMore()
+                                            onLoadMoreRequested: {
+                                                if(root.topicBrowseActive && root.topicBrowseScope==="profile")
+                                                    openProofConnections.loadMoreTopicCasts()
+                                                else presentationBridge.loadMore()
+                                            }
                                         }
                                     }
 
@@ -1963,9 +2068,9 @@ Item {
 
     ContentFilterSheet {
         id: explorerFilterSheet
-        heading: "Filter Explorer"
+        heading: qsTrId("genycaster.filters.explorer")
         sections: {
-            const topicOptions=[{id:"",label:"All topics"}]
+            const topicOptions=[{id:"",label:qsTrId("genycaster.filters.all_topics")}]
             for (const entry of openProofConnections.topicCatalog || []) {
                 const slug=String(entry.slug || "")
                 if (!/^[a-z][a-z0-9-]{1,63}$/.test(slug)) continue
@@ -1985,15 +2090,19 @@ Item {
                     || slug.replace(/-/g," ").replace(/\b\w/g,c=>c.toUpperCase())})
             }
             return [
-                {id:"audience",title:"Audience",value:root.explorerAudience,defaultValue:"all",
-                 options:[{id:"all",label:"Everyone"},{id:"following",label:"Following"}]},
-                {id:"topic",title:"Topics",value:root.topicBrowseActive
+                {id:"audience",title:qsTrId("genycaster.filters.audience"),
+                 hint:qsTrId("genycaster.filters.audience_hint"),value:root.explorerAudience,defaultValue:"all",
+                 options:[{id:"all",label:qsTrId("genycaster.home.scope_everyone")},{id:"following",label:qsTrId("genycaster.home.scope_following")}]},
+                {id:"topic",title:qsTrId("genycaster.topics.label"),value:root.topicBrowseActive
                     && root.topicBrowseScope==="explorer" ? root.topicBrowseSlug : "",
                  defaultValue:"",options:topicOptions}
             ]
         }
         onApplied: values => {
-            root.chooseExplorerAudience(String(values.audience || "all"))
+            // The topic index has no social-graph join. Do not imply
+            // Following has narrowed its server-confirmed results.
+            root.chooseExplorerAudience(values.topic ? "all"
+                                        : String(values.audience || "all"))
             if (values.topic)
                 root.openTopicBrowser(String(values.topic),"explorer",0)
             else if (root.topicBrowseActive && root.topicBrowseScope==="explorer")

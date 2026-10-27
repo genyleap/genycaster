@@ -22,6 +22,10 @@ Item {
     property string profileSortMode: "newest"
     property string popularMetric: "all"
     property var topicCatalog: []
+    property bool topicFilterActive: false
+    property string topicFilterSlug: ""
+    property bool topicFilterBusy: false
+    property bool topicFilterHasMore: false
     function topicTitleFor(slug) {
         const titles={
             art:qsTrId("genycaster.topic.art"),
@@ -2037,7 +2041,7 @@ Item {
                             iconOnly: true
                             quiet: true
                             iconGlyph: "filter"
-                            text: "Filter posts"
+                            text: qsTrId("genycaster.filters.profile")
                             onClicked: profileFilterSheet.open()
                         }
                         FilterDropdown {
@@ -2075,6 +2079,18 @@ Item {
                         }
                     }
                 }
+            }
+            DirectionAwareLabel {
+                visible: root.topicFilterActive
+                Layout.fillWidth: true
+                Layout.leftMargin: root.profileContentX
+                Layout.rightMargin: root.profileContentX
+                text: qsTrId("genycaster.filters.topic_results") + " · "
+                      + root.topicTitleFor(root.topicFilterSlug)
+                color: Theme.accent
+                font.pixelSize: Theme.typeMetaSize
+                font.weight: Theme.weightDemiBold
+                horizontalAlignment: Theme.textStartAlignment
             }
             RowLayout {
                 visible: false
@@ -2235,23 +2251,23 @@ Item {
     // Shared adaptive filter drawer for touch and pointer-driven windows.
     ContentFilterSheet {
         id: profileFilterSheet
-        heading: "Filter profile casts"
+        heading: qsTrId("genycaster.filters.profile")
         sections: {
-            const topics = [{id:"", label:"All topics"}]
+            const topics = [{id:"", label:qsTrId("genycaster.filters.all_topics")}]
             for (const entry of root.topicCatalog || []) {
                 const slug=String(entry.slug || "")
                 if (/^[a-z][a-z0-9-]{1,63}$/.test(slug))
                     topics.push({id:slug,label:root.topicTitleFor(slug)})
             }
             return [
-                {id:"feed", title:"Content", value:root.profileFeed, defaultValue:"user-posts",
+                {id:"feed", title:qsTrId("genycaster.filters.content"), value:root.profileFeed, defaultValue:"user-posts",
                  options:[
                     {id:"user-posts",label:qsTrId("genycaster.profile.posts")},
                     {id:"user-quotes",label:qsTrId("genycaster.profile.quotes")},
                     {id:"user-replies",label:qsTrId("genycaster.profile.replies")},
                     {id:"user-likes",label:qsTrId("genycaster.profile.likes")},
                     {id:"user-popular",label:qsTrId("genycaster.profile.popular")}]},
-                {id:"order",title:"Sort",value:root.profileFeed === "user-popular"
+                {id:"order",title:qsTrId("genycaster.filters.sort"),value:root.profileFeed === "user-popular"
                     ? root.popularMetric : root.profileSortMode,
                  defaultValue:root.profileFeed === "user-popular" ? "all" : "newest",
                  options:root.profileFeed === "user-popular"
@@ -2261,19 +2277,22 @@ Item {
                       {id:"replies",label:qsTrId("genycaster.profile.sort_replies")}]
                    : [{id:"newest",label:qsTrId("genycaster.profile.sort_newest")},
                       {id:"oldest",label:qsTrId("genycaster.profile.sort_oldest")}]},
-                {id:"topic",title:"Topics",value:"",defaultValue:"",options:topics}
+                {id:"topic",title:qsTrId("genycaster.topics.label"),
+                 value:root.topicFilterSlug,defaultValue:"",options:topics}
             ]
         }
         onApplied: values => {
-            if (values.feed !== root.profileFeed)
+            const feedChanged = String(values.feed || "user-posts") !== root.profileFeed
+            if (feedChanged)
                 root.profileFeedRequested(String(values.feed || "user-posts"))
             if (root.profileFeed === "user-popular")
                 root.popularMetric = ["all","likes","recasts","replies"].includes(values.order)
                     ? String(values.order) : "all"
             else
                 root.profileSortMode = values.order === "oldest" ? "oldest" : "newest"
-            if (values.topic)
-                root.topicRequested(String(values.topic),Number(root.activeDetail.fid || 0))
+            if (String(values.topic || "") !== root.topicFilterSlug
+                || (feedChanged && Boolean(values.topic)))
+                root.topicRequested(String(values.topic || ""),Number(root.activeDetail.fid || 0))
         }
     }
 
