@@ -31,6 +31,8 @@ to the restricted runtime role.
 | `app_updates` | Public version information, read-only to users |
 | `schema_migrations` | Administrative schema tracking |
 | `account_sessions` | Verified per-browser sessions, stored by token digest |
+| `topics` | Global ordered, active topic slugs (editable by DB administrator, not users) |
+| `cast_topics` | Up to three topic references per protocol-verified, author-owned cast; independent of channels |
 
 The API runtime must connect with a restricted `genycaster_api` role; no
 connection to or grants on OpenProof's PostgreSQL database are required.
@@ -167,6 +169,21 @@ the UI. Existing Farcaster/OpenProof authentication is reused.
 ## API
 
 `GET /api/v1/cloud/app_updates` — public published changelogs.
+
+`GET /api/v1/cloud/topics` — public ordered topic slugs and counts; the API
+returns no per-language display names. Clients localize the slug locally.
+
+`GET /api/v1/cloud/topic_casts?topic=art&limit=30&offset=0` — public bounded
+filter returning matching Cast hashes and FIDs. The client's Farcaster reader
+remains responsible for resolving the protocol Cast payloads.
+
+`PUT /api/v1/cloud/cast_topics` — authenticated post-publication topic assignment
+with `{ "cast_hash": "0x…", "topics": ["art", "photography"] }`. The server
+checks the Cast hash and verified owner against Snapchain before writing.
+Validation is strict, maximum three unique active slugs, no channel or
+`parent_url` dependency. A locally queued assignment may retry while the
+Cast is waiting for Snapchain indexing. Adding a topic is an administrative
+catalog operation, never an unauthenticated or user-supplied new slug.
 
 `GET|PUT /api/v1/cloud/{connections,bookmarks,notifications,drafts,tasks,profile_extras}`
 — private verified account data; request bodies are bounded and validated.
